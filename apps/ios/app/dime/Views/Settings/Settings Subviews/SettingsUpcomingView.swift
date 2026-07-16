@@ -55,12 +55,12 @@ struct SettingsUpcomingView: View {
             showFuture.toggle()
           }
           .onChange(of: showFuture) { newValue in
-            UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.set(
+            AppIdentifiers.sharedDefaults!.set(
               newValue, forKey: "showUpcomingTransactions")
 
             if !newValue {
               showSoon = false
-              UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.set(
+              AppIdentifiers.sharedDefaults!.set(
                 false, forKey: "showUpcomingTransactionsWhenUpcoming")
             }
           }
@@ -90,7 +90,7 @@ struct SettingsUpcomingView: View {
             showSoon.toggle()
           }
           .onChange(of: showSoon) { newValue in
-            UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.set(
+            AppIdentifiers.sharedDefaults!.set(
               newValue, forKey: "showUpcomingTransactionsWhenUpcoming")
           }
         }
@@ -117,9 +117,9 @@ struct SettingsUpcomingView: View {
     }
     .modifier(SettingsSubviewModifier())
     .onAppear {
-      showFuture = UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.bool(
+      showFuture = AppIdentifiers.sharedDefaults!.bool(
         forKey: "showUpcomingTransactions")
-      showSoon = UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.bool(
+      showSoon = AppIdentifiers.sharedDefaults!.bool(
         forKey: "showUpcomingTransactionsWhenUpcoming")
     }
   }

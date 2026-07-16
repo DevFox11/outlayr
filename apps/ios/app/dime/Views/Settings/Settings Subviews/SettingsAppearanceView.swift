@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsAppearanceView: View {
-  @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults)
   var colourScheme: Int = 0
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 

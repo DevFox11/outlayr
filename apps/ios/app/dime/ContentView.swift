@@ -11,34 +11,34 @@ struct ContentView: View {
     @EnvironmentObject var appLockVM: AppLockViewModel
     @EnvironmentObject var dataController: DataController
 
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var colourScheme: Int = 0
+    @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults) var colourScheme: Int = 0
     @Environment(\.scenePhase) var scenePhase
-    @AppStorage("showNotifications", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showNotifications: Bool = false
-    @AppStorage("notificationsEnabled", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var notificationsEnabled: Bool = true
+    @AppStorage("showNotifications", store: AppIdentifiers.sharedDefaults) var showNotifications: Bool = false
+    @AppStorage("notificationsEnabled", store: AppIdentifiers.sharedDefaults) var notificationsEnabled: Bool = true
 
-    @AppStorage("firstLaunch", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var firstLaunch: Bool = true
+    @AppStorage("firstLaunch", store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
 
     // adds category orders
-    @AppStorage("dataMigration1", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var dataMigration1: Bool = true
+    @AppStorage("dataMigration1", store: AppIdentifiers.sharedDefaults) var dataMigration1: Bool = true
 
     // converts category colors to hex codes
-    @AppStorage("dataMigration2", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var dataMigration2: Bool = true
+    @AppStorage("dataMigration2", store: AppIdentifiers.sharedDefaults) var dataMigration2: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
 
     @State var showIntro: Bool = false
     @State var showUpdate: Bool = false
 
     var center = UNUserNotificationCenter.current()
 
-    @AppStorage("topEdge", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var savedTopEdge: Double = 30
-    @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var savedBottomEdge: Double = 15
+    @AppStorage("topEdge", store: AppIdentifiers.sharedDefaults) var savedTopEdge: Double = 30
+    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults) var savedBottomEdge: Double = 15
 
     // updateSheetShowing
 
-    @AppStorage("previousVersion", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var previousVersionString: String = "Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))"
+    @AppStorage("previousVersion", store: AppIdentifiers.sharedDefaults) var previousVersionString: String = "Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))"
 
-    @AppStorage("showUpdateSheet", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showUpdateSheet: Bool = true
+    @AppStorage("showUpdateSheet", store: AppIdentifiers.sharedDefaults) var showUpdateSheet: Bool = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -69,7 +69,7 @@ struct ContentView: View {
             }
 
             let defaults =
-                UserDefaults(suiteName: "group.com.rafaelsoh.dime") ?? UserDefaults.standard
+                AppIdentifiers.sharedDefaults ?? UserDefaults.standard
 
             if defaults.object(forKey: "firstDayOfMonth") == nil {
                 defaults.set(1, forKey: "firstDayOfMonth")
