@@ -8,7 +8,6 @@
 import Combine
 import ConfettiSwiftUI
 import Foundation
-import StoreKit
 import SwiftUI
 import UserNotifications
 import WidgetKit
@@ -139,7 +138,6 @@ struct SettingsView: View {
 
   // popups
 
-  @State var showTipJarMenu = false
   @State var showImportGuide = false
   @State var showUpdate: Bool = false
 
@@ -391,12 +389,6 @@ struct SettingsView: View {
               }
 
               Button {
-                showTipJarMenu = true
-              } label: {
-                SettingsRowView(systemImage: "heart.fill", title: "Tip Jar", colour: 123)
-              }
-
-              Button {
                 supportEmail.send(openURL: openURL)
               } label: {
                 SettingsRowView(systemImage: "ladybug.fill", title: "Report Bug", colour: 124)
@@ -485,9 +477,6 @@ struct SettingsView: View {
       .navigationBarTitle("")
       .navigationBarHidden(true)
       .background(Color.PrimaryBackground)
-      .fullScreenCover(isPresented: $showTipJarMenu) {
-        TipJarAlert()
-      }
       .fullScreenCover(isPresented: $showUpdate) {
         UpdateAlert()
       }
@@ -582,240 +571,6 @@ struct SettingsView: View {
 
     if let windowScene = scene as? UIWindowScene {
       windowScene.keyWindow?.rootViewController?.present(av, animated: true, completion: nil)
-    }
-  }
-}
-
-struct TipJarAlert: View {
-  @Environment(\.dismiss) var dismiss
-  @Environment(\.colorScheme) var systemColorScheme
-  @EnvironmentObject var unlockManager: UnlockManager
-
-  @State private var offset: CGFloat = 0
-
-  @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
-  var bottomEdge: Double = 15
-
-  @State var opacity = 0.0
-  @State var counter = 0
-
-  var bottomCaption: String {
-    if unlockManager.failedTransaction {
-      return "Tip failed to go through, please try again!"
-    } else if unlockManager.purchaseCount > 0 {
-      return "Thanks a million, \(Image(systemName: "heart.fill")) Rafael"
-    } else {
-      return "Have a great day ahead!"
-    }
-  }
-
-  //    var sortedProducts: [SKProduct] {
-  //        let holding = unlockManager.loadedProducts.sorted {
-  //            $0.price.doubleValue > $1.price.doubleValue
-  //        }
-  //
-  //        return holding
-  //    }
-
-  var body: some View {
-    ZStack(alignment: .bottom) {
-      Color.PrimaryBackground.opacity(opacity)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture {
-          withAnimation(.easeIn(duration: 0.15)) {
-            opacity = 0
-            offset += 300
-          }
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            dismiss()
-          }
-        }
-        .onAppear {
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            withAnimation {
-              opacity = 0.4
-            }
-          }
-        }
-
-      VStack {
-        switch unlockManager.requestState {
-        case .loading:
-          ProgressView {
-            Text("Loading")
-              .font(.system(.body, design: .rounded).weight(.medium))
-              //                            .font(.system(size: 18, weight: .medium, design: .rounded))
-              .foregroundColor(Color.SubtitleText)
-              .frame(maxWidth: .infinity)
-              .frame(height: 200)
-          }
-        case .failed:
-          Text("Unable to load tip options, please try again later 🥲")
-            .font(.system(.body, design: .rounded).weight(.medium))
-
-            //                        .font(.system(size: 18, weight: .medium, design: .rounded))
-            .multilineTextAlignment(.center)
-            .foregroundColor(Color.SubtitleText)
-            .frame(maxWidth: .infinity)
-            .frame(height: 200)
-        default:
-          VStack(alignment: .leading, spacing: 4) {
-            HStack {
-              Image(systemName: "heart.fill")
-                .font(.system(.callout, design: .rounded))
-
-              //                                .font(.system(size: 16))
-              Text("Tip Jar")
-                .font(.system(.title2, design: .rounded).weight(.medium))
-
-              //                                .font(.system(size: 22, weight: .medium, design: .rounded))
-            }
-            .foregroundColor(.PrimaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .trailing) {
-              Button {
-                withAnimation(.easeIn(duration: 0.15)) {
-                  opacity = 0
-                  offset += 300
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                  dismiss()
-                }
-              } label: {
-                Image(systemName: "xmark")
-                  .font(.system(.subheadline, design: .rounded).weight(.semibold))
-
-                  //                                    .font(.system(size: 14, weight: .semibold))
-                  .foregroundColor(Color.SubtitleText)
-                  .padding(7)
-                  .background(Color.SecondaryBackground, in: Circle())
-                  .contentShape(Circle())
-              }
-              .offset(x: 5, y: -5)
-            }
-
-            Text(
-              "Hey! Dime was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Dime and want to support development, please consider a small tip."
-            )
-            .font(.system(.callout, design: .rounded).weight(.medium))
-
-            //                            .font(.system(size: 16, weight: .medium, design: .rounded))
-            .foregroundColor(.SubtitleText)
-            .padding(.bottom, 20)
-
-            ProductView(
-              products: unlockManager.loadedProducts.sorted {
-                $0.price.doubleValue < $1.price.doubleValue
-              }
-            )
-            .padding(.bottom, 20)
-
-            Text(bottomCaption)
-              .font(.system(.subheadline, design: .rounded).weight(.medium))
-
-              //                                .font(.system(size: 14, weight: .medium, design: .rounded))
-              .frame(maxWidth: .infinity)
-              .foregroundColor(.SubtitleText)
-          }
-        }
-      }
-      .padding(18)
-      .animation(.easeInOut, value: unlockManager.failedTransaction)
-      .background(
-        RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(
-          color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6)
-      )
-      .overlay(
-        RoundedRectangle(cornerRadius: 13).stroke(
-          systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3)
-      )
-      .offset(y: offset)
-      .confettiCannon(
-        counter: $counter, num: 50, openingAngle: Angle(degrees: 0),
-        closingAngle: Angle(degrees: 360), radius: 200
-      )
-      .gesture(
-        DragGesture()
-          .onChanged { gesture in
-            if gesture.translation.height < 0 {
-              offset = gesture.translation.height / 3
-            } else {
-              offset = gesture.translation.height
-            }
-          }
-          .onEnded { value in
-            if value.translation.height > 30 {
-              withAnimation(.easeIn(duration: 0.15)) {
-                opacity = 0
-                offset += 300
-              }
-              DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                dismiss()
-              }
-
-            } else {
-              withAnimation {
-                offset = 0
-              }
-            }
-          }
-      )
-      .padding(.horizontal, 17)
-      .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
-      .onChange(of: unlockManager.purchaseCount) { _ in
-        counter += 1
-      }
-    }
-    .edgesIgnoringSafeArea(.all)
-    .background(BackgroundBlurView())
-  }
-}
-
-struct ProductView: View {
-  @EnvironmentObject var unlockManager: UnlockManager
-  let products: [SKProduct]
-
-  var body: some View {
-    VStack {
-      ForEach(products, id: \.self) { product in
-        HStack {
-          Text(getText(product.productIdentifier))
-
-          Spacer()
-
-          Button {
-            unlock(product)
-          } label: {
-            Text(product.localizedPrice)
-              .monospacedDigit()
-              .padding(6)
-              .background(
-                Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-              )
-          }
-        }
-      }
-    }
-    .foregroundColor(.PrimaryText)
-    .font(.system(.body, design: .rounded).weight(.semibold))
-    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-    //        .font(.system(size: 18, weight: .semibold, design: .rounded))
-  }
-
-  func unlock(_ product: SKProduct) {
-    unlockManager.buy(product: product)
-  }
-
-  func getText(_ string: String) -> String {
-    if string == "com.rafaelsoh.dime.smalltip" {
-      return String(localized: "☕ Coffee-Sized Tip")
-    } else if string == "com.rafaelsoh.dime.mediumtip" {
-      return String(localized: "🌮 Taco-Sized Tip")
-    } else if string == "com.rafaelsoh.dime.largetip" {
-      return String(localized: "🍕 Pizza-Sized Tip")
-    } else {
-      return ""
     }
   }
 }
