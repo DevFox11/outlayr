@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "test": "turbo run test",
     "check-types": "turbo run check-types",
     "dev:server": "turbo run dev -F @outlayr/backend",
     "dev:setup": "turbo run dev:setup -F @outlayr/backend",

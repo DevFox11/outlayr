@@ -1,0 +1,56 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+      - "turbo.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+  pull_request:
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+      - "turbo.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: xcodebuild (unsigned device build)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build (device, code signing disabled)
+        run: pnpm turbo run build --filter=@outlayr/ios
+
+  # test:
+  #   The `test` job runs `xcodebuild test` against the `dimeTests` XCTest target.
+  #   That target does not exist yet — it lands in slice B3 — so running it now
+  #   would fail and turn this PR red. Enable this job in B3 once the target
+  #   exists, using default/ad-hoc simulator signing. It MUST NOT set
+  #   CODE_SIGNING_ALLOWED=NO (the simulator TEST_HOST needs default signing),
+  #   and it runs `pnpm turbo run test --filter=@outlayr/ios` (turbo serializes
+  #   build -> test via the root `test` task's dependsOn: ["build"]).

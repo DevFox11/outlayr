@@ -49,6 +49,8 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/ios: {}
+
   packages/backend:
     dependencies:
       convex:
