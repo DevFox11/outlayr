@@ -37,7 +37,7 @@ struct WelcomeSheetView: View {
             if firstPage {
                 VStack(spacing: 50) {
                     VStack(spacing: 2) {
-                        Image("AppIcon1_EG")
+                        Image("OutlayrMark")
                             .resizable()
                             .frame(width: 70, height: 70)
                             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))

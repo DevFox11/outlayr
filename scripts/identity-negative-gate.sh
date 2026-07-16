@@ -23,8 +23,10 @@
 # match would also collide with unrelated identifiers such as `ViewDimensions`.
 #
 # Allow-list (design #743): the gate's own scripts, the two history docs that
-# must describe the old identity, and `apps/ios/README.md` (whose mandated GPL
-# attribution links to the upstream `rafsoh/dimeApp` repo).
+# must describe the old identity, `apps/ios/README.md` (whose mandated GPL
+# attribution links to the upstream `rafsoh/dimeApp` repo), and the in-app GPL
+# credits screen `SettingsAboutView.swift` (C5.3), which links to that same
+# upstream `rafsoh/dimeApp` repo as required attribution.
 #
 set -euo pipefail
 
@@ -42,6 +44,7 @@ ALLOW=(
   '!scripts/**'                         # the gate's own scripts (self-match)
   '!README.md'                          # apps/ios/README.md (GPL attribution link)
   '!apps/ios/README.md'                 # same, if scope widens to repo root
+  '!SettingsAboutView.swift'            # in-app GPL credits (links to rafsoh/dimeApp)
   '!docs/decisions/baseline.md'         # baseline history (describes old ids)
   '!docs/decisions/rebrand-identity.md' # this flip's old->new map
 )

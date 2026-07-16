@@ -26,13 +26,13 @@ struct SettingsAppIconView: View {
       displaySubtitle: "Designed by the brilliant @rudra_dsigns, check out his work on Twitter."),
     AppIconBundle(
       actualFileName: "AppIcon2", exampleFileName: "AppIcon2_EG", displayName: "Unicorn",
-      displaySubtitle: "Dime definitely isn't becoming one but it never hurts to keep dreaming."),
+      displaySubtitle: "Outlayr definitely isn't becoming one but it never hurts to keep dreaming."),
     AppIconBundle(
       actualFileName: "AppIcon3", exampleFileName: "AppIcon3_EG", displayName: "V1.5",
       displaySubtitle: "An early prototype also designed by @rudra_dsigns that I kinda fancy."),
     AppIconBundle(
       actualFileName: "AppIcon4", exampleFileName: "AppIcon4_EG", displayName: "O.G.",
-      displaySubtitle: "Haphazardly put together in under 30 minutes, the original Dime icon.")
+      displaySubtitle: "Haphazardly put together in under 30 minutes, the original icon.")
   ]
 
   @State private var position: Int?

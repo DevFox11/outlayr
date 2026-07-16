@@ -32,6 +32,8 @@
 		5327D287287C697400F76ADF /* OutlayrApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D286287C697400F76ADF /* OutlayrApp.swift */; };
 		5327D28E287C697C00F76ADF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D28D287C697C00F76ADF /* Preview Assets.xcassets */; };
 		5327D295287C698900F76ADF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D294287C698900F76ADF /* Assets.xcassets */; };
+		C5A1C0FF1C04DE01ABCDEF02 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */; };
+		C5A1C0FF1C04DE01ABCDEF04 /* AppIconTesting.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */; };
 		5327D2AD287C6AD200F76ADF /* DataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AC287C6AD200F76ADF /* DataController.swift */; };
 		5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AF287C6AFB00F76ADF /* Authentication.swift */; };
 		5327D2B7287C6AFB00F76ADF /* KeyboardHeightHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */; };
@@ -130,6 +132,7 @@
 		53D6BDC52AF6B32C00F5728E /* StepperButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */; };
 		53D6BDC82AF73B4800F5728E /* SettingsAppearanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */; };
 		53D6BDCA2AF73B7A00F5728E /* SettingsAppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */; };
+		C5B7A0011D0E0F0000ABCDE2 /* SettingsAboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */; };
 		53D6BDCC2AF73BC800F5728E /* SettingsCurrencyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */; };
 		53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */; };
 		53D6BDD02AF73C4300F5728E /* SettingsNumberEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCF2AF73C4300F5728E /* SettingsNumberEntryView.swift */; };
@@ -246,6 +249,8 @@
 		5327D286287C697400F76ADF /* OutlayrApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlayrApp.swift; sourceTree = "<group>"; };
 		5327D28D287C697C00F76ADF /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		5327D294287C698900F76ADF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconTesting.icon; sourceTree = "<group>"; };
 		5327D2AC287C6AD200F76ADF /* DataController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataController.swift; sourceTree = "<group>"; };
 		5327D2AF287C6AFB00F76ADF /* Authentication.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Authentication.swift; sourceTree = "<group>"; };
 		5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyboardHeightHelper.swift; sourceTree = "<group>"; };
@@ -326,6 +331,7 @@
 		53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperButtons.swift; sourceTree = "<group>"; };
 		53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppearanceView.swift; sourceTree = "<group>"; };
 		53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppIconView.swift; sourceTree = "<group>"; };
+		C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutView.swift; sourceTree = "<group>"; };
 		53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCurrencyView.swift; sourceTree = "<group>"; };
 		53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWeekStartView.swift; sourceTree = "<group>"; };
 		53D6BDCF2AF73C4300F5728E /* SettingsNumberEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNumberEntryView.swift; sourceTree = "<group>"; };
@@ -489,6 +495,8 @@
 				5327D2DF287C6B7C00F76ADF /* DeviceModels.json */,
 				5327D2CA287C6B4700F76ADF /* ContentView.swift */,
 				5327D294287C698900F76ADF /* Assets.xcassets */,
+				C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */,
+				C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */,
 				530C89D42A793B4400B5028D /* Shortcuts */,
 				5327D298287C69B800F76ADF /* Views */,
 				5327D299287C69C100F76ADF /* Models */,
@@ -668,6 +676,7 @@
 				53D6BDDE2AF73EF100F5728E /* SettingsHapticsView.swift */,
 				53D6BDCF2AF73C4300F5728E /* SettingsNumberEntryView.swift */,
 				53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */,
+				C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */,
 				53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */,
 				53D6BDD12AF73C5D00F5728E /* SettingsNotificationView.swift */,
 				53D6BDD32AF73CA100F5728E /* SettingsFeatureLabView.swift */,
@@ -910,6 +919,8 @@
 				D63B204A2D8728C300CAFB20 /* Localizable.strings in Resources */,
 				D63B204B2D8728C300CAFB20 /* Localizable.stringsdict in Resources */,
 				5327D295287C698900F76ADF /* Assets.xcassets in Resources */,
+				C5A1C0FF1C04DE01ABCDEF02 /* AppIcon.icon in Resources */,
+				C5A1C0FF1C04DE01ABCDEF04 /* AppIconTesting.icon in Resources */,
 				53756F632AC3C25E0065D0C2 /* sample.csv in Resources */,
 				5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */,
 			);
@@ -993,6 +1004,7 @@
 				AEADEF742AE94DC3006EB614 /* ToolbarButton.swift in Sources */,
 				53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */,
 				53D6BDCA2AF73B7A00F5728E /* SettingsAppIconView.swift in Sources */,
+				C5B7A0011D0E0F0000ABCDE2 /* SettingsAboutView.swift in Sources */,
 				5327D2DA287C6B5F00F76ADF /* TestView.swift in Sources */,
 				538A32AA2A505AC6008AEF8C /* BottomSheet.swift in Sources */,
 				5327D2D9287C6B5F00F76ADF /* HomeView.swift in Sources */,
@@ -1450,7 +1462,7 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon4 AppIcon3 AppIcon2 AppIcon1";
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconTesting;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Outlayr/Outlayr.entitlements;

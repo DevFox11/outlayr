@@ -8,6 +8,8 @@
     "gate:identity": "../../scripts/identity-negative-gate.sh && ../../scripts/identity-positive-gate.sh && ../../scripts/identity-gate-selftest.sh",
     "gate:identity:negative": "../../scripts/identity-negative-gate.sh",
     "gate:identity:positive": "../../scripts/identity-positive-gate.sh",
-    "gate:identity:selftest": "../../scripts/identity-gate-selftest.sh"
+    "gate:identity:selftest": "../../scripts/identity-gate-selftest.sh",
+    "gate:branding": "../../scripts/branding-gate.sh",
+    "gate:all": "../../scripts/identity-negative-gate.sh && ../../scripts/identity-positive-gate.sh && ../../scripts/identity-gate-selftest.sh && ../../scripts/branding-gate.sh"
   }
 }

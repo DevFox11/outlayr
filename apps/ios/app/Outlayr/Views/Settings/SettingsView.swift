@@ -81,9 +81,9 @@ struct SettingsView: View {
   }
 
   @Environment(\.openURL) var openURL
-  let supportEmail = SupportEmail(toAddress: "rafasohhh@gmail.com", subject: "Support Email")
+  let supportEmail = SupportEmail(toAddress: "support@tryoutlayr.com", subject: "Support Email")
   let featureRequestEmail = SupportEmail(
-    toAddress: "rafasohhh@gmail.com", subject: "Feature Request")
+    toAddress: "support@tryoutlayr.com", subject: "Feature Request")
 
   @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults)
   var numberEntryType: Int = 2
@@ -402,7 +402,7 @@ struct SettingsView: View {
               }
 
               Button {
-                let url = "https://apps.apple.com/app/id1635280255?action=write-review"
+                let url = "https://tryoutlayr.com"
                 guard let writeReviewURL = URL(string: url)
                 else { fatalError("Expected a valid URL") }
                 UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
@@ -411,17 +411,17 @@ struct SettingsView: View {
               }
 
               Button {
-                shareSheet(url: "https://apps.apple.com/app/id1635280255")
+                shareSheet(url: "https://tryoutlayr.com")
               } label: {
                 SettingsRowView(systemImage: "shareplay", title: "Share with Friends", colour: 127)
               }
 
               Button {
-                if let url = URL(string: "https://www.x.com/budgetwithdime") {
+                if let url = URL(string: "https://x.com/tryoutlayr") {
                   UIApplication.shared.open(url)
                 }
               } label: {
-                SettingsRowView(systemImage: "bird.fill", title: "Follow Dime on X", colour: 128)
+                SettingsRowView(systemImage: "bird.fill", title: "Follow Outlayr on X", colour: 128)
                   .frame(maxWidth: .infinity)
               }
 
@@ -432,6 +432,11 @@ struct SettingsView: View {
               } label: {
                 SettingsRowView(
                   systemImage: "camera.fill", title: "Follow Rafael on X", colour: 129)
+              }
+
+              NavigationLink(destination: SettingsAboutView()) {
+                SettingsRowView(
+                  systemImage: "info.circle.fill", title: "About & Credits", colour: 130)
               }
             }
             .padding(10)
