@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "build": "xcodebuild build -project app/dime.xcodeproj -scheme dime -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO",
-    "test": "xcodebuild test -project app/dime.xcodeproj -scheme dime -destination \"platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 16}\""
+    "test": "xcodebuild test -project app/dime.xcodeproj -scheme dime -destination \"platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 16}\"",
+    "gate:identity": "../../scripts/identity-negative-gate.sh && ../../scripts/identity-positive-gate.sh && ../../scripts/identity-gate-selftest.sh",
+    "gate:identity:negative": "../../scripts/identity-negative-gate.sh",
+    "gate:identity:positive": "../../scripts/identity-positive-gate.sh",
+    "gate:identity:selftest": "../../scripts/identity-gate-selftest.sh"
   }
 }

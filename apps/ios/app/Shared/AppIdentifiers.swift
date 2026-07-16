@@ -16,19 +16,19 @@ import Foundation
 
 enum AppIdentifiers {
     /// Bundle-identifier root shared by the app and every extension target.
-    static let bundleIdRoot = "com.rafaelsoh.dime"
+    static let bundleIdRoot = "com.tryoutlayr.app"
 
     /// App-group suite backing the shared `UserDefaults` and the Core Data
     /// store. Rule: `"group." + bundleIdRoot`.
-    static let appGroup = "group.com.rafaelsoh.dime"
+    static let appGroup = "group.com.tryoutlayr.app"
 
     /// CloudKit container backing `NSPersistentCloudKitContainer`.
     /// Rule: `"iCloud." + bundleIdRoot`.
-    static let cloudKitContainer = "iCloud.com.rafaelsoh.dime"
+    static let cloudKitContainer = "iCloud.com.tryoutlayr.app"
 
     /// Deep-link URL scheme, including the `://` separator. Rule: the bare
     /// Info.plist `CFBundleURLSchemes` entry is this value with `://` stripped.
-    static let urlScheme = "dimeapp://"
+    static let urlScheme = "outlayr://"
 
     /// Shared `UserDefaults` suite used by the app, widgets, and intents.
     /// Optional to mirror the literal `UserDefaults(suiteName:)` it replaces.
@@ -44,5 +44,5 @@ enum AppIdentifiers {
     /// Ubiquity key-value store identifier declared in every target's
     /// entitlements. Rule: literal `$(TeamIdentifierPrefix)` (expanded at build
     /// time) + `bundleIdRoot`.
-    static let ubiquityKVStore = "$(TeamIdentifierPrefix)com.rafaelsoh.dime"
+    static let ubiquityKVStore = "$(TeamIdentifierPrefix)com.tryoutlayr.app"
 }
