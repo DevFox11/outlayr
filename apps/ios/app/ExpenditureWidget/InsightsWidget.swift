@@ -70,7 +70,7 @@ struct InsightsProvider: IntentTimelineProvider {
             // calendar initialization
             var calendar = Calendar(identifier: .gregorian)
 
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.integer(forKey: "firstWeekday")
+            calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
             calendar.minimumDaysInFirstWeek = 4
 
             var dictionary = [Date: Double]()
@@ -300,13 +300,13 @@ struct InsightsWidgetEntryView: View {
     let monthNumberArray = [1, 4, 7, 10]
     let monthNames: [Int: String] = [1: "Jan", 4: "Apr", 7: "Jul", 10: "Oct"]
 
-    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var firstDayOfMonth: Int = 1
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("firstDayOfMonth", store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
     var dollarText: String {
         if entry.amount < 10000 && showCents {
@@ -493,7 +493,7 @@ struct InsightsWidgetEntryView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .widgetURL(URL(string: "dimeapp://insights"))
+            .widgetURL(URL(string: AppIdentifiers.urlScheme + "insights"))
             .containerBackground(for: .widget) {
                 Color.PrimaryBackground
             }
@@ -691,7 +691,7 @@ struct InsightsWidgetCategoryBreakdownView: View {
                     .frame(maxHeight: .infinity)
             }
 
-            Link(destination: URL(string: "dimeapp://newExpense")!) {
+            Link(destination: URL(string: AppIdentifiers.urlScheme + "newExpense")!) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(.system(size: 9, weight: .medium, design: .rounded))

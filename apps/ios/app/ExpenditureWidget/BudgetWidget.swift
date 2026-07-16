@@ -263,18 +263,18 @@ struct BudgetWidgetEntryView: View {
                 .containerBackground(for: .widget) {
                     Color.PrimaryBackground
                 }
-                .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget?budget=\(entry.budget.name)"))
         }
     }
 }
 
 struct WidgetBudgetDollarView: View {
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
     var amount: Double
     var red: Bool
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

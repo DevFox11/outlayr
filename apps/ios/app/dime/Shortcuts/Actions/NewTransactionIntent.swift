@@ -202,9 +202,9 @@ extension RepeatType: AppEnum {
 struct ShortcutTransactionView: View {
     let transaction: Transaction
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
 
     var transactionAmountString: String {
         let numberFormatter = NumberFormatter()

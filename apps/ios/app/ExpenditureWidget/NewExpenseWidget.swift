@@ -60,7 +60,7 @@ struct NewExpenseWidgetEntry: TimelineEntry {
 struct NewExpenseWidgetEntryView: View {
     let entry: NewExpenseProvider.Entry
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -77,7 +77,7 @@ struct NewExpenseWidgetEntryView: View {
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                     .padding(.horizontal, 9)
             }
-            .widgetURL(URL(string: "dimeapp://newExpense"))
+            .widgetURL(URL(string: AppIdentifiers.urlScheme + "newExpense"))
             .containerBackground(for: .widget) {
                 AccessoryWidgetBackground()
             }
