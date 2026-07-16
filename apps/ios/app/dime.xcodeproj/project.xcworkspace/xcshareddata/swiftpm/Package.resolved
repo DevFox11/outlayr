@@ -20,15 +20,6 @@
       }
     },
     {
-      "identity" : "crookedtext",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/duemunk/CrookedText",
-      "state" : {
-        "revision" : "70ae8691bdfb62698571e69bd855acf4030795ea",
-        "version" : "0.0.1"
-      }
-    },
-    {
       "identity" : "popovers",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/aheze/Popovers",

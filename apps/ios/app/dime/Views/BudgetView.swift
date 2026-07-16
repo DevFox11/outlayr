@@ -5,7 +5,6 @@
 //  Created by Rafael Soh on 20/5/22.
 //
 
-import CrookedText
 import Foundation
 import SwiftUI
 
@@ -409,7 +408,7 @@ struct MainBudgetView: View {
                     }
                 }
 
-                CrookedText(text: String(localized: "OVERALL SPENT: \(percentString1)"), radius: width / 2 + 8)
+                CurvedText(text: String(localized: "OVERALL SPENT: \(percentString1)"), radius: width / 2 + 8)
                     .font(.system(.footnote, design: .rounded).weight(.medium))
 //                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
