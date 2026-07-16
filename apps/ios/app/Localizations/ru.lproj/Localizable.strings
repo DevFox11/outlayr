@@ -1,12 +1,12 @@
 /* 
   Localizable.strings
-  dime
+  Outlayr
 
   Created by Rafael Soh on 6/3/23.
   
 */
 
-"dime_name" = "Outlayr";
+"outlayr_name" = "Outlayr";
 "welcome_header_1" = "Отслеживайте свои финансы";
 "welcome_subtitle_1" = "Добавляйте записи легко и быстро";
 "welcome_header_2" = "Анализируйте свои расходы";

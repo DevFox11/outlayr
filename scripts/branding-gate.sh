@@ -57,7 +57,6 @@ NAME_ALLOW=(
   '!README.md'                # GPL acknowledgements ("based on Dime by Rafael Soh")
   '!LICENSE'                  # license text
   '!SettingsAboutView.swift'  # in-app GPL credits ("Based on Dime by Rafael Soh")
-  '!privacypolicy.md'         # inherited legal doc (flagged for an Outlayr rewrite)
 )
 nameglobs=(); for g in "${NAME_ALLOW[@]}"; do nameglobs+=(--glob "$g"); done
 

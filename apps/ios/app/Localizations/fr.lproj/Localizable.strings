@@ -1,6 +1,6 @@
 /*
   Localizable.strings
-  dime
+  Outlayr
 
   Created by Rafael Soh on 6/3/23.
   
@@ -8,7 +8,7 @@
 
 // welcome sheet
 
-"dime_name" = "Outlayr";
+"outlayr_name" = "Outlayr";
 "welcome_header_1" = "Suivez vos finances";
 "welcome_subtitle_1" = "Ajouter de nouvelles entrées de manière simple et rapide";
 "welcome_header_2" = "Analyser vos dépenses";
