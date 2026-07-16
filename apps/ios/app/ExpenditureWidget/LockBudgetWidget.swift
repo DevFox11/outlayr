@@ -178,7 +178,6 @@ struct LockBudgetWidgetEntryView: View {
             }
 
         case .accessoryCircular:
-            if #available(iOS 17.0, *) {
                 if entry.configuration.budget == nil {
                     ZStack {
                         AccessoryWidgetBackground()
@@ -199,37 +198,8 @@ struct LockBudgetWidgetEntryView: View {
                     .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
                     .containerBackground(for: .widget) { Color.clear }
                 }
-            } else {
-                if entry.configuration.budget == nil {
-                    ZStack {
-                        if #available(iOS 16.0, *) {
-                            AccessoryWidgetBackground()
-                        }
-
-                        VStack {
-                            Text("SELECT BUDGET")
-                                .font(.system(size: 8, weight: .semibold, design: .rounded))
-                                .frame(maxWidth: .infinity)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                } else {
-                    if #available(iOS 16.0, *) {
-                        Gauge(value: percent < 1 ? percent : 1) {
-                            Text(entry.budget.emoji)
-                        } currentValueLabel: {
-                            Text("\(Int(round(percent * 100)))%")
-                        }
-                        .gaugeStyle(AccessoryCircularGaugeStyle())
-                        .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
-                    } else {
-                        EmptyView()
-                    }
-                }
-            }
 
         case .accessoryRectangular:
-            if #available(iOS 17.0, *) {
                 if entry.configuration.budget == nil {
                     Text("SELECT BUDGET IN WIDGET OPTIONS")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -273,51 +243,6 @@ struct LockBudgetWidgetEntryView: View {
                     .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
                     .containerBackground(for: .widget) { Color.clear }
                 }
-            } else {
-                if entry.configuration.budget == nil {
-                    Text("SELECT BUDGET IN WIDGET OPTIONS")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
-                } else {
-                    GeometryReader { proxy in
-                        VStack(alignment: .leading) {
-                            HStack(spacing: 3) {
-                                Text(entry.budget.name)
-
-                                if showPercent(size: proxy.size.width) {
-                                    Text("•")
-                                    Text(percentString)
-                                }
-                            }
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-
-                            Text("\(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle) \(budgetType)")
-                                .font(.system(size: 14, weight: .regular, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
-
-                            if #available(iOS 16.0, *) {
-                                Gauge(value: percent, in: 0 ... 1) {
-                                    Text("Percent Spent")
-                                } currentValueLabel: {
-                                    EmptyView()
-                                } minimumValueLabel: {
-                                    Text("\(entry.totalSpent, specifier: (showCents && entry.totalSpent < 100) ? "%.2f" : "%.0f")")
-                                        .font(.system(size: 10, weight: .regular, design: .rounded))
-                                } maximumValueLabel: {
-                                    Text("\(entry.budget.budgetAmount, specifier: (showCents && entry.budget.budgetAmount < 100) ? "%.2f" : "%.0f")")
-                                        .font(.system(size: 10, weight: .regular, design: .rounded))
-                                }
-                                .frame(height: 5)
-                                .gaugeStyle(.accessoryLinear)
-                            }
-                        }
-                        .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
-                }
-            }
 
         default:
             EmptyView()

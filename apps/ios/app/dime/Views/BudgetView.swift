@@ -81,7 +81,7 @@ struct ActualBudgetView: View {
     @State var date = Date.now
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 HStack {
                     Text("Budgets")

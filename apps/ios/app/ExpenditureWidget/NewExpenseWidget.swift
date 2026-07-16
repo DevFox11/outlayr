@@ -66,7 +66,6 @@ struct NewExpenseWidgetEntryView: View {
     }
 
     var body: some View {
-        if #available(iOS 17.0, *) {
             ZStack {
                 AccessoryWidgetBackground()
 
@@ -82,21 +81,5 @@ struct NewExpenseWidgetEntryView: View {
             .containerBackground(for: .widget) {
                 AccessoryWidgetBackground()
             }
-        } else {
-            ZStack {
-                Circle()
-                    .fill(Color.SecondaryBackground.opacity(0.5))
-
-                Text("\(currencySymbol.count < 3 ? "+" : "")\(currencySymbol)")
-                    .font(.system(size: currencySymbol.count < 3 ? 13 : 11, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.SecondaryBackground)
-                    .padding(.vertical, 2)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-                    .padding(.horizontal, 9)
-            }
-            .padding(0.5)
-            .widgetURL(URL(string: "dimeapp://newExpense"))
-        }
     }
 }

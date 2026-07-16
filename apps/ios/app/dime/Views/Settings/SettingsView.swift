@@ -148,7 +148,7 @@ struct SettingsView: View {
   @EnvironmentObject var dataController: DataController
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       VStack {
         HStack {
           Text("Settings")

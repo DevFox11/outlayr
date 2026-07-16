@@ -202,7 +202,6 @@ struct ExpenditureWidgetEntryView: View {
                 Text("\(positivityText)\(currencySymbol)\(abs(entry.amount), specifier: (showCents && entry.amount < 1000) ? "%.2f" : "%.0f") \(inlineSubtitleText)")
             }
         case .accessoryRectangular:
-            if #available(iOS 17.0, *) {
                 if entry.transactions.count == 0 {
                     Text("NO RECENT EXPENSES")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -231,36 +230,7 @@ struct ExpenditureWidgetEntryView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .containerBackground(for: .widget) { Color.clear }
                 }
-            } else {
-                if entry.transactions.count == 0 {
-                    Text("NO RECENT EXPENSES")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .multilineTextAlignment(.center)
-                } else {
-                    GeometryReader { proxy in
-                        VStack(alignment: .leading, spacing: 2) {
-                            ForEach(entry.transactions.prefix(3), id: \.self) { transaction in
-                                HStack(spacing: 3) {
-                                    Text(transaction.note)
-                                        .fontWeight(.semibold)
-                                        .lineLimit(1)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    Text("\(transaction.income ? "+" : "-")\(currencySymbol)\(transaction.amount, specifier: (showCents && transaction.amount < 100) ? "%.2f" : "%.0f")")
-                                        .fontWeight(.regular)
-                                        .layoutPriority(1)
-                                        .lineLimit(1)
-                                }
-                                .font(.system(size: getRectangularWidgetFont(width: proxy.size.width), design: .rounded))
-                            }
-                        }
-                        .frame(width: proxy.size.width, height: proxy.size.height)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
         case .systemSmall:
-            if #available(iOS 17.0, *) {
                 GeometryReader { proxy in
                     VStack(spacing: 0) {
                         VStack(spacing: 0) {
@@ -356,105 +326,8 @@ struct ExpenditureWidgetEntryView: View {
                 }
                 .widgetURL(entry.transactions.count < 2 ? URL(string: "dimeapp://newExpense") : nil)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            } else {
-                GeometryReader { proxy in
-                    VStack(spacing: 0) {
-                        VStack(spacing: 0) {
-                            Text((typeText + " " + inlineSubtitleText).uppercased())
-                                .font(.system(size: 9, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
-
-                            RecentTransactionsDollarView(amount: entry.amount, showCents: showCents, net: entry.type == .net)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: proxy.size.height * 0.2)
-                        }
-                        .frame(maxWidth: .infinity)
-
-                        if entry.transactions.isEmpty {
-                            VStack(spacing: 5) {
-                                Text("NO RECENT EXPENSES")
-                                    .font(.system(size: 9, weight: .medium, design: .rounded))
-                                    .foregroundColor(Color.SubtitleText)
-                                    .frame(maxHeight: .infinity)
-
-                                HStack(spacing: 5) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 10, weight: .medium, design: .rounded))
-
-                                    Text("New Expense")
-                                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                                        .foregroundColor(Color.PrimaryText)
-                                }
-                                .padding(.vertical, 5)
-                                .frame(maxWidth: .infinity)
-                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.SecondaryBackground))
-                                .frame(maxHeight: .infinity, alignment: .bottom)
-                            }
-                            .padding(.top, 12)
-
-                        } else {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("RECENT EXPENSES")
-                                    .font(.system(size: 9, weight: .medium, design: .rounded))
-                                    .foregroundColor(Color.SubtitleText)
-
-                                ForEach(entry.transactions.prefix(3), id: \.self) { transaction in
-                                    HStack(spacing: 5) {
-                                        Capsule()
-                                            .fill(Color(transaction.colour))
-                                            .frame(width: 4, height: 12)
-
-                                        Text(transaction.note)
-                                            .lineLimit(1)
-                                            .font(.system(size: 13, weight: .regular, design: .rounded))
-                                            .foregroundColor(Color.PrimaryText)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                                        if transaction.income {
-                                            Text("+\(currencySymbol)\(transaction.amount, specifier: (showCents && transaction.amount < 100) ? "%.2f" : "%.0f")")
-                                                .font(.system(size: 13, weight: .regular, design: .rounded))
-                                                .foregroundColor(Color.IncomeGreen)
-                                                .lineLimit(1)
-                                                .layoutPriority(1)
-                                        } else {
-                                            Text("-\(currencySymbol)\(transaction.amount, specifier: (showCents && transaction.amount < 100) ? "%.2f" : "%.0f")")
-                                                .font(.system(size: 13, weight: .regular, design: .rounded))
-                                                .foregroundColor(Color.SubtitleText)
-                                                .lineLimit(1)
-                                                .layoutPriority(1)
-                                        }
-                                    }
-                                }
-
-                                if entry.transactions.count < 2 {
-                                    HStack(spacing: 5) {
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 10, weight: .medium, design: .rounded))
-
-                                        Text("New Expense")
-                                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                                            .foregroundColor(Color.PrimaryText)
-                                    }
-                                    .padding(.vertical, 5)
-                                    .frame(maxWidth: .infinity)
-                                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.SecondaryBackground))
-                                    .frame(maxHeight: .infinity, alignment: .bottom)
-                                }
-                            }
-                            .padding(.top, entry.transactions.count == 3 ? 5 : 10)
-                            .frame(maxHeight: .infinity, alignment: .top)
-                        }
-                    }
-                    .padding(15)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.PrimaryBackground)
-                .widgetURL(entry.transactions.count < 2 ? URL(string: "dimeapp://newExpense") : nil)
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            }
 
         case .systemLarge:
-            if #available(iOS 17.0, *) {
                 GeometryReader { _ in
                     VStack(spacing: 0) {
                         VStack(spacing: 0) {
@@ -552,7 +425,6 @@ struct ExpenditureWidgetEntryView: View {
                 .containerBackground(for: .widget) {
                     Color.PrimaryBackground
                 }
-            }
 
         default:
             EmptyView()
