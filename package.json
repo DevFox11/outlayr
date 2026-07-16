@@ -1,0 +1,31 @@
+{
+  "name": "outlayr",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "dev:server": "turbo run dev -F @outlayr/backend",
+    "dev:setup": "turbo run dev:setup -F @outlayr/backend",
+    "check": "biome check --write ."
+  },
+  "dependencies": {
+    "@outlayr/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
+    "@outlayr/config": "workspace:*",
+    "@types/node": "^26.1.1",
+    "lefthook": "^2.1.10",
+    "turbo": "^2.10.5",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@11.13.0"
+}

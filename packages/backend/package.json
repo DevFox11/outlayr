@@ -1,0 +1,21 @@
+{
+  "name": "@outlayr/backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "AGPL-3.0-only",
+  "author": "",
+  "scripts": {
+    "dev": "convex dev",
+    "dev:setup": "convex dev --configure --until-success"
+  },
+  "dependencies": {
+    "convex": "^1.42.2",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@outlayr/config": "workspace:*",
+    "@types/node": "^26.1.1",
+    "typescript": "catalog:"
+  }
+}
