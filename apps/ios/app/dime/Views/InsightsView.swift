@@ -1165,7 +1165,6 @@ struct AverageLineView: View {
     var getMax: Int
     var average: Double
 
-//    @AppStorage("animated", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var animated: Bool = true
 //    @State var showLine: Bool = false
 //    @State var offset: CGFloat
 

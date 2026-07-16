@@ -92,8 +92,6 @@
 //
 //    let entry: TemplateTransactionWidgetProvider.Entry
 //
-//    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
-//    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
 //    var currencySymbol: String {
 //        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
 //    }
@@ -170,7 +168,6 @@
 //
 //            }
 //            .padding(0.5)
-//            .widgetURL(URL(string: "dimeapp://newExpense"))
 //        }
 //
 //    }

@@ -14,8 +14,6 @@ struct SettingsGoofyView: View {
   @AppStorage("confetti", store: AppIdentifiers.sharedDefaults) var confetti:
     Bool = false
 
-  //    @AppStorage("chromatic", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var chromatic: Bool = false
-
   @AppStorage("logViewLineGraph", store: AppIdentifiers.sharedDefaults)
   var lineGraph: Bool = false
 

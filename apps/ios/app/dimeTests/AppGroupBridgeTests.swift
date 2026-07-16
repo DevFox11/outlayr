@@ -6,10 +6,11 @@
 //  smoke test only: the simulator does NOT enforce app-group entitlements, so the
 //  ONLY authoritative bridge proof is the on-device manual check gated on C3.
 //
-//  At B3 the identifiers are still the legacy literals. C2 later re-points these
-//  to AppIdentifiers; the derivation assertions below encode the rules the C3
-//  positive cross-surface gate will enforce (root = group id minus "group.";
-//  container = "iCloud." + root).
+//  These identifiers are sourced from AppIdentifiers (re-pointed at C2), so the
+//  suite the test round-trips follows the C3 identity flip automatically. The
+//  derivation assertions below cross-check AppIdentifiers' own constants and
+//  encode the rules the C3 positive cross-surface gate enforces (root = group id
+//  minus "group."; container = "iCloud." + root).
 //
 
 import CoreData
@@ -18,9 +19,9 @@ import XCTest
 @testable import dime
 
 final class AppGroupBridgeTests: XCTestCase {
-    private let appGroup = "group.com.rafaelsoh.dime"
-    private let cloudKitContainer = "iCloud.com.rafaelsoh.dime"
-    private let bundleRoot = "com.rafaelsoh.dime"
+    private let appGroup = AppIdentifiers.appGroup
+    private let cloudKitContainer = AppIdentifiers.cloudKitContainer
+    private let bundleRoot = AppIdentifiers.bundleIdRoot
 
     func testIdentifierDerivationRulesHold() {
         XCTAssertTrue(appGroup.hasPrefix("group."))
