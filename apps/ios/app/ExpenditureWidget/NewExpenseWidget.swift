@@ -24,6 +24,7 @@ struct NewExpenseWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NewExpenseProvider()) { entry in
             NewExpenseWidgetEntryView(entry: entry)
+                .guardedByDataStore()
         }
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .configurationDisplayName("New Expense")

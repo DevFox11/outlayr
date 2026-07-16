@@ -8,12 +8,44 @@
 import SwiftUI
 import WidgetKit
 
+/// Placeholder rendered by every widget when the shared Core Data store failed to
+/// open (broken app group). Shows an explicit error instead of letting a widget
+/// masquerade as working-but-empty. Defined here (a file shared by the app and the
+/// widget-extension targets) so `guardedByDataStore()` is visible in both.
+struct WidgetDataStoreUnavailableView: View {
+    var body: some View {
+        Text("Storage unavailable")
+            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .multilineTextAlignment(.center)
+            .foregroundColor(Color.SubtitleText)
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .containerBackground(for: .widget) {
+                Color.PrimaryBackground
+            }
+    }
+}
+
+extension View {
+    /// Refuses to render real widget content when the shared store is unavailable,
+    /// showing `WidgetDataStoreUnavailableView` instead of stale/empty data.
+    @ViewBuilder
+    func guardedByDataStore() -> some View {
+        if DataController.storeIsAvailable {
+            self
+        } else {
+            WidgetDataStoreUnavailableView()
+        }
+    }
+}
+
 struct BudgetWidget: Widget {
     let kind: String = "BudgetWidget"
 
     var body: some WidgetConfiguration {
         IntentConfiguration(kind: kind, intent: BudgetWidgetConfigurationIntent.self, provider: BudgetWidgetProvider()) { entry in
             BudgetWidgetEntryView(entry: entry)
+                .guardedByDataStore()
         }
         .configurationDisplayName("Budget")
         .description("Monitor how you are sticking to your budgets.")
@@ -50,6 +82,13 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
     }
 
     func loadData(budgetId: String) -> (total: Double, percentage: Double, budget: HoldingBudget) {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: do not touch the store (avoids a crash on the
+            // force-unwrapped objectID lookup). The entry view shows the error
+            // placeholder via `guardedByDataStore()`.
+            return (0, 0, HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0))
+        }
+
 //        let dataController = DataController()
         let dataController = DataController.shared
 

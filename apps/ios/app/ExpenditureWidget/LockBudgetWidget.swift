@@ -26,6 +26,7 @@ struct LockBudgetWidget: Widget {
     var body: some WidgetConfiguration {
         IntentConfiguration(kind: kind, intent: BudgetWidgetConfigurationIntent.self, provider: LockBudgetWidgetProvider()) { entry in
             LockBudgetWidgetEntryView(entry: entry)
+                .guardedByDataStore()
         }
         .configurationDisplayName("Budget")
         .description("Monitor how you are sticking to your budgets.")
@@ -62,6 +63,13 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
     }
 
     func loadData(budgetId: String) -> (total: Double, timeLeft: String, budget: HoldingBudget) {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: do not touch the store (avoids a crash on the
+            // force-unwrapped objectID lookup). The entry view shows the error
+            // placeholder via `guardedByDataStore()`.
+            return (0, "", HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0))
+        }
+
 //        let dataController = DataController()
         let dataController = DataController.shared
 

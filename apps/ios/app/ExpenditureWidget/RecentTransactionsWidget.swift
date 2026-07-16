@@ -33,6 +33,7 @@ struct RecentExpenditureWidget: Widget {
     var body: some WidgetConfiguration {
         IntentConfiguration(kind: kind, intent: RecentWidgetConfigurationIntent.self, provider: Provider()) { entry in
             ExpenditureWidgetEntryView(entry: entry)
+                .guardedByDataStore()
         }
         .configurationDisplayName("Recent Transactions")
         .description("View your latest expenses.")
@@ -63,6 +64,12 @@ struct Provider: IntentTimelineProvider {
     }
 
     func loadAmount(type: TimePeriod, insightsType: InsightsType) -> Double {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: skip the store read; the entry view shows the error
+            // placeholder via `guardedByDataStore()`. Return the existing zero default.
+            return 0
+        }
+
 //        let dataController = DataController()
         let dataController = DataController.shared
 
@@ -101,6 +108,12 @@ struct Provider: IntentTimelineProvider {
     }
 
     func loadTransactions(type: TimePeriod, count: Int) -> [HoldingTransaction] {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: skip the store read; the entry view shows the error
+            // placeholder via `guardedByDataStore()`. Return the existing empty default.
+            return []
+        }
+
 //        let dataController = DataController()
         let dataController = DataController.shared
         let itemRequest = dataController.fetchRequestForRecentTransactionsWithCount(type: type, count: count)

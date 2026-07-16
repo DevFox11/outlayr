@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os
 import SwiftUI
 import WidgetKit
 
@@ -38,6 +39,35 @@ class DataController: ObservableObject {
     let now: () -> Date
     let injectedCalendar: Calendar
     let sharedDefaults: UserDefaults
+
+    /// Whether the persistent store loaded from the shared app-group container.
+    /// `.appGroupUnavailable` means the app↔widget↔extension bridge is broken and
+    /// every process must surface a visible error instead of a silent empty store.
+    let storeState: StoreState
+
+    enum StoreState: Equatable {
+        case loaded
+        case appGroupUnavailable
+    }
+
+    /// `true` when the shared store loaded normally. Widget and app-extension entry
+    /// points read this to refuse rendering stale/empty data on a broken bridge.
+    static var storeIsAvailable: Bool { shared.storeState == .loaded }
+
+    /// Error returned by intent extensions when the shared store is unavailable.
+    static let appGroupUnavailableError = NSError(
+        domain: "DataStore.AppGroupUnavailable",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "The shared app group container is unavailable, so data cannot be loaded."]
+    )
+
+    /// Pure fail-loud decision, extracted from `init` so it can be unit-tested
+    /// without a real `FileManager` or a fatal build: a `nil` container URL means
+    /// the shared app-group container could not be resolved, so the store must
+    /// refuse to open a private per-process fallback. Any resolved URL is `.loaded`.
+    static func storeState(for containerURL: URL?) -> StoreState {
+        containerURL == nil ? .appGroupUnavailable : .loaded
+    }
 
     init(
         inMemory: Bool = false,
@@ -74,11 +104,29 @@ class DataController: ObservableObject {
             description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: AppIdentifiers.cloudKitContainer)
 
             let groupID = AppIdentifiers.appGroup
+            let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID)
+            let state = Self.storeState(for: containerURL)
 
-            if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID) {
-                description.url = url.appendingPathComponent("Main.sqlite")
+            if state == .appGroupUnavailable {
+                // The shared app-group container is missing. Falling through here would
+                // let Core Data quietly open a private, per-process store — the app and
+                // its widgets/extensions would each read a DIFFERENT empty database and
+                // masquerade as "working but empty". Refuse the silent fallback so a
+                // misconfigured App Groups entitlement / provisioning profile is loud.
+                Logger(subsystem: AppIdentifiers.bundleIdRoot, category: "storage")
+                    .fault("App group \"\(groupID, privacy: .public)\" is unavailable — refusing to open a non-shared fallback store. Verify the App Groups entitlement and provisioning profile.")
+                #if DEBUG
+                    fatalError("App group \"\(groupID)\" is unavailable — verify the App Groups entitlement and provisioning profile. Refusing to open a non-shared fallback store.")
+                #else
+                    storeState = .appGroupUnavailable
+                    return
+                #endif
             }
+
+            description.url = containerURL!.appendingPathComponent("Main.sqlite")
         }
+
+        storeState = .loaded
 
         container.persistentStoreDescriptions = [description]
 

@@ -12,6 +12,13 @@ class IntentHandler: INExtension, BudgetWidgetConfigurationIntentHandling {
     let dataController = DataController.shared
 
     func provideBudgetOptionsCollection(for _: BudgetWidgetConfigurationIntent, with completion: @escaping (INObjectCollection<WidgetBudget>?, Error?) -> Void) {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: fail the intent request instead of returning an
+            // empty budget list that looks like the user has no budgets.
+            completion(nil, DataController.appGroupUnavailableError)
+            return
+        }
+
         let budgetFetchRequest = dataController.fetchRequestForBudgets()
 
         let budgets = dataController.results(for: budgetFetchRequest).map {

@@ -19,6 +19,25 @@ class IntentViewController: UIViewController, INUIHostedViewControlling {
 
     // Prepare your view controller for the interaction to handle.
     func configureView(for parameters: Set<INParameter>, of _: INInteraction, interactiveBehavior _: INUIInteractiveBehavior, context _: INUIHostedViewContext, completion: @escaping (Bool, Set<INParameter>, CGSize) -> Void) {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: surface a visible error instead of hosting a view
+            // backed by an unreadable store.
+            let label = UILabel()
+            label.text = "Storage unavailable"
+            label.textAlignment = .center
+            label.numberOfLines = 0
+            label.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                label.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 16),
+                label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -16)
+            ])
+            completion(true, parameters, CGSize(width: 320, height: 60))
+            return
+        }
+
         // Do configuration here, including preparing views and calculating a desired size for presentation.
         completion(true, parameters, desiredSize)
     }

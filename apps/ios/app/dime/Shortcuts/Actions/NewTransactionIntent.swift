@@ -68,6 +68,12 @@ struct NewTransactionIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: refuse before writing. Persisting to an unloaded
+            // context would silently lose the transaction. Fail the intent loudly.
+            throw DataController.appGroupUnavailableError
+        }
+
         if expenseCategory == nil && incomeCategory == nil {
             if income == .expense {
                 throw $expenseCategory.needsValueError()

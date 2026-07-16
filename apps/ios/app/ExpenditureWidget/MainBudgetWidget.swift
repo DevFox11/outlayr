@@ -26,6 +26,7 @@ struct MainBudgetWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: MainBudgetWidgetProvider()) { entry in
             MainBudgetWidgetEntryView(entry: entry)
+                .guardedByDataStore()
         }
         .supportedFamilies(supportedFamilies)
         .configurationDisplayName("Overall Budget")
@@ -60,6 +61,13 @@ struct MainBudgetWidgetProvider: TimelineProvider {
     }
 
     func loadData() -> (found: Bool, totalSpent: Double, budgetAmount: Double, percentage: Double, type: Int, startDate: Date) {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: skip the store read; the entry view shows the error
+            // placeholder via `guardedByDataStore()`. Return the existing not-found
+            // default (`found: false`), the same shape used when no budget exists.
+            return (found: false, totalSpent: 0, budgetAmount: 0, percentage: 0, type: 0, startDate: Date())
+        }
+
 //        let dataController = DataController()
         let dataController = DataController.shared
 

@@ -24,6 +24,12 @@ struct BudgetIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some ReturnsValue<Double> & ShowsSnippetView & ProvidesDialog {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: fail loudly instead of returning 0 leftover, which
+            // would masquerade as a real (fully-spent) budget figure.
+            throw DataController.appGroupUnavailableError
+        }
+
         if type == .category && budget == nil {
             throw $budget.needsValueError()
         }

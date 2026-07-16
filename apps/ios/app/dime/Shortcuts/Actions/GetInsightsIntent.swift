@@ -30,6 +30,12 @@ struct GetInsightsIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some ReturnsValue<Double> & ShowsSnippetView & ProvidesDialog {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: fail loudly instead of returning 0, which would
+            // masquerade as a genuinely empty ledger.
+            throw DataController.appGroupUnavailableError
+        }
+
         let dataController = DataController.shared
 //        let dataController = DataController()
 

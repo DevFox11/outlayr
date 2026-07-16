@@ -11,6 +11,28 @@ import XCTest
 @testable import dime
 
 final class DataControllerPersistenceTests: CharacterizationTestCase {
+    func testInMemoryStoreReportsLoadedState() throws {
+        // The C2b fail-loud guard must never misfire on a healthy store: the
+        // in-memory path (and, by construction, the resolved app-group path) reports
+        // `.loaded`. The unreachable nil-container path is verified on-device (C3.5).
+        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+        XCTAssertEqual(controller.storeState, .loaded)
+    }
+
+    func testStoreStateForNilContainerReportsAppGroupUnavailable() {
+        // Locks the fail-loud decision directly: a nil app-group container URL (a
+        // broken App Groups entitlement / provisioning profile) must refuse the
+        // silent per-process fallback store. Pure, so it needs no FileManager or
+        // fatal build to exercise the branch the runtime guard can't reach on-sim.
+        XCTAssertEqual(DataController.storeState(for: nil), .appGroupUnavailable)
+    }
+
+    func testStoreStateForResolvedContainerReportsLoaded() {
+        // The complement: any resolved container URL keeps the store `.loaded`, so
+        // the guard never misfires on a healthy app group.
+        XCTAssertEqual(DataController.storeState(for: URL(fileURLWithPath: "/tmp/x")), .loaded)
+    }
+
     func testNewTransactionPersistsWithDerivedDayAndMonth() throws {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext

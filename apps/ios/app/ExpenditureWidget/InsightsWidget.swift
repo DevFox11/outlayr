@@ -15,6 +15,7 @@ struct InsightsWidget: Widget {
     var body: some WidgetConfiguration {
         IntentConfiguration(kind: kind, intent: InsightsWidgetConfigurationIntent.self, provider: InsightsProvider()) { entry in
             InsightsWidgetEntryView(entry: entry)
+                .guardedByDataStore()
         }
         .configurationDisplayName("Insights")
         .description("Analyse your expenditure breakdowns over various time periods.")
@@ -51,6 +52,12 @@ struct InsightsProvider: IntentTimelineProvider {
     }
 
     func loadData(type: InsightsTimePeriod, income: Bool) -> (amount: Double, maximum: Double, average: Double, numberOfDays: Int, dates: [Date], dateDictionary: [Date: Double], categories: [HoldingCategory]) {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: skip the store read. The entry view shows the error
+            // placeholder via `guardedByDataStore()`; return the existing empty default.
+            return (0, 0, 0, 0, [Date](), [Date: Double](), [HoldingCategory]())
+        }
+
 //        let dataController = DataController()
         let dataController = DataController.shared
         let itemRequest = dataController.fetchRequestForWidgetInsights(type: type, income: income)
