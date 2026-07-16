@@ -57,7 +57,7 @@ bareScheme="${urlScheme%://}"
 
 # --- entitlements (4 files) ---
 ent_files=(
-  "$IOS/dime/dime.entitlements"
+  "$IOS/Outlayr/Outlayr.entitlements"
   "$IOS/ExpenditureWidgetExtension.entitlements"
   "$IOS/BudgetIntent/BudgetIntent.entitlements"
   "$IOS/BudgetIntentUI/BudgetIntentUI.entitlements"
@@ -74,7 +74,7 @@ for f in "${ent_files[@]}"; do
 done
 
 # --- Info.plist ---
-plist="$IOS/dime/Info.plist"
+plist="$IOS/Outlayr/Info.plist"
 if [ ! -f "$plist" ]; then
   bad "missing Info.plist: $plist"
 else
@@ -89,7 +89,7 @@ else
 fi
 
 # --- pbxproj PRODUCT_BUNDLE_IDENTIFIER lines ---
-pbx="$IOS/dime.xcodeproj/project.pbxproj"
+pbx="$IOS/Outlayr.xcodeproj/project.pbxproj"
 if [ ! -f "$pbx" ]; then
   bad "missing pbxproj: $pbx"
 else
@@ -106,7 +106,7 @@ else
   done < <(rg -N -o -r '$1' 'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);' "$pbx")
 
   # Expected count derived from the native-target inventory:
-  # (app + widget + BudgetIntent + BudgetIntentUI + dimeTests) x (Debug + Release) = 10
+  # (app + widget + BudgetIntent + BudgetIntentUI + OutlayrTests) x (Debug + Release) = 10
   expected_pbx=10
   [ "$count" = "$expected_pbx" ] && ok "pbxproj bundle-id line count = $count" || bad "pbxproj bundle-id count $count != $expected_pbx"
 

@@ -39,7 +39,7 @@ enum AppIdentifiers {
     static let extensionSuffixes = [".ExpenditureWidget", ".BudgetIntent", ".BudgetIntentUI"]
 
     /// Suffix of the unit-test bundle id (`bundleIdRoot + testTargetSuffix`).
-    static let testTargetSuffix = ".dimeTests"
+    static let testTargetSuffix = ".OutlayrTests"
 
     /// Ubiquity key-value store identifier declared in every target's
     /// entitlements. Rule: literal `$(TeamIdentifierPrefix)` (expanded at build

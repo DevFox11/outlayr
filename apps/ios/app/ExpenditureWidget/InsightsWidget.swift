@@ -1,6 +1,6 @@
 //
 //  InsightsWidget.swift
-//  dime
+//  Outlayr
 //
 //  Created by Rafael Soh on 14/8/22.
 //

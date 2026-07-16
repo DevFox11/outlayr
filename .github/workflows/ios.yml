@@ -47,7 +47,7 @@ jobs:
         run: pnpm turbo run build --filter=@outlayr/ios
 
   test:
-    name: xcodebuild test (dimeTests)
+    name: xcodebuild test (OutlayrTests)
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4

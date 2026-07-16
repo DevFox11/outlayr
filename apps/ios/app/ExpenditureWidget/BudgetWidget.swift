@@ -1,6 +1,6 @@
 //
 //  BudgetWidget.swift
-//  dime
+//  Outlayr
 //
 //  Created by Rafael Soh on 17/8/22.
 //
