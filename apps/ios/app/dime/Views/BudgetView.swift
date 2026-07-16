@@ -7,7 +7,6 @@
 
 import CrookedText
 import Foundation
-import Popovers
 import SwiftUI
 
 struct BudgetView: View {

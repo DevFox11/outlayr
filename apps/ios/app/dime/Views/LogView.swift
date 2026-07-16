@@ -8,7 +8,6 @@
 import CloudKitSyncMonitor
 import CoreData
 import Foundation
-import SwiftUIIntrospect
 import Popovers
 import SwiftUI
 
@@ -636,6 +635,7 @@ struct SearchView: View {
     @Environment(\.dismiss) var dismiss
 
     @State var searchQuery = ""
+    @FocusState private var searchFieldFocused: Bool
 
     var body: some View {
         VStack(spacing: 18) {
@@ -648,9 +648,7 @@ struct SearchView: View {
                         .foregroundColor(Color.DarkIcon.opacity(0.8))
                         .accessibility(hidden: true)
                     TextField("Search entry by note", text: $searchQuery)
-                        .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17, .v18)) { textField in
-                            textField.becomeFirstResponder()
-                        }
+                        .focused($searchFieldFocused)
                         .font(.system(.body, design: .rounded).weight(.regular))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 17, weight: .regular, design: .rounded))
@@ -695,6 +693,11 @@ struct SearchView: View {
         }
         .padding(15)
         .background(Color.PrimaryBackground)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                searchFieldFocused = true
+            }
+        }
     }
 }
 
