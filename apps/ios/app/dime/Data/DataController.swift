@@ -32,7 +32,23 @@ class DataController: ObservableObject {
 
     var container = NSPersistentCloudKitContainer(name: "MainModel")
 
-    init() {
+    // Characterization seams (flagged mechanical, B3). Production defaults keep
+    // behavior byte-for-byte identical; tests inject a frozen clock, a pinned
+    // calendar, and an isolated UserDefaults suite for deterministic date math.
+    let now: () -> Date
+    let injectedCalendar: Calendar
+    let sharedDefaults: UserDefaults
+
+    init(
+        inMemory: Bool = false,
+        now: @escaping () -> Date = { Date.now },
+        calendar: Calendar = .current,
+        sharedDefaults: UserDefaults? = nil
+    ) {
+        self.now = now
+        self.injectedCalendar = calendar
+        self.sharedDefaults = sharedDefaults ?? UserDefaults(suiteName: "group.com.rafaelsoh.dime") ?? .standard
+
         let description = NSPersistentStoreDescription()
 
         description.shouldMigrateStoreAutomatically = true
@@ -52,12 +68,17 @@ class DataController: ObservableObject {
 //            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.rafaelsoh.dime")
 //        }
 
-        description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.rafaelsoh.dime")
+        if inMemory {
+            description.url = URL(fileURLWithPath: "/dev/null")
+            description.cloudKitContainerOptions = nil
+        } else {
+            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.rafaelsoh.dime")
 
-        let groupID = "group.com.rafaelsoh.dime"
+            let groupID = "group.com.rafaelsoh.dime"
 
-        if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID) {
-            description.url = url.appendingPathComponent("Main.sqlite")
+            if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID) {
+                description.url = url.appendingPathComponent("Main.sqlite")
+            }
         }
 
         container.persistentStoreDescriptions = [description]
@@ -136,10 +157,10 @@ class DataController: ObservableObject {
     }
 
     func updateRecurringTransaction(transaction: Transaction) {
-        if transaction.nextTransactionDate < Calendar.current.startOfDay(for: Date.now) {
+        if transaction.nextTransactionDate < injectedCalendar.startOfDay(for: now()) {
             var holdingDate = transaction.nextTransactionDate
 
-            while holdingDate <= Calendar.current.startOfDay(for: Date.now) {
+            while holdingDate <= injectedCalendar.startOfDay(for: now()) {
                 let newTransaction = Transaction(context: container.viewContext)
                 newTransaction.note = transaction.wrappedNote
                 newTransaction.category = transaction.category
@@ -160,14 +181,14 @@ class DataController: ObservableObject {
                 var newDate: Date?
 
                 if transaction.recurringType == 1 {
-                    newDate = Calendar.current.date(byAdding: .day, value: Int(transaction.recurringCoefficient), to: holdingDate)!
+                    newDate = injectedCalendar.date(byAdding: .day, value: Int(transaction.recurringCoefficient), to: holdingDate)!
                 } else if transaction.recurringType == 2 {
-                    newDate = Calendar.current.date(byAdding: .day, value: Int(transaction.recurringCoefficient * 7), to: holdingDate)!
+                    newDate = injectedCalendar.date(byAdding: .day, value: Int(transaction.recurringCoefficient * 7), to: holdingDate)!
                 } else if transaction.recurringType == 3 {
-                    newDate = Calendar.current.date(byAdding: .month, value: Int(transaction.recurringCoefficient), to: holdingDate)!
+                    newDate = injectedCalendar.date(byAdding: .month, value: Int(transaction.recurringCoefficient), to: holdingDate)!
                 }
 
-                if newDate! > Calendar.current.startOfDay(for: Date.now) {
+                if newDate! > injectedCalendar.startOfDay(for: now()) {
                     newTransaction.recurringType = transaction.recurringType
                     newTransaction.recurringCoefficient = transaction.recurringCoefficient
                 } else {
@@ -181,7 +202,7 @@ class DataController: ObservableObject {
 
             save()
 
-        } else if Calendar.current.isDateInToday(transaction.nextTransactionDate) {
+        } else if injectedCalendar.isDate(transaction.nextTransactionDate, inSameDayAs: now()) {
             let newTransaction = Transaction(context: container.viewContext)
             newTransaction.note = transaction.wrappedNote
             newTransaction.category = transaction.category
@@ -220,13 +241,13 @@ class DataController: ObservableObject {
         let mainBudget = results(for: fetchRequestForMainBudget())
 
         budgets.forEach { budget in
-            while budget.endDate <= Date.now {
+            while budget.endDate <= now() {
                 budget.startDate = budget.endDate
             }
         }
 
         mainBudget.forEach { budget in
-            while budget.endDate <= Date.now {
+            while budget.endDate <= now() {
                 budget.startDate = budget.endDate
             }
         }
@@ -1199,7 +1220,7 @@ class DataController: ObservableObject {
             // calendar initialization
             var calendar = Calendar(identifier: .gregorian)
 
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.integer(forKey: "firstWeekday")
+            calendar.firstWeekday = sharedDefaults.integer(forKey: "firstWeekday")
             calendar.minimumDaysInFirstWeek = 4
 
             var dictionary = [Date: Double]()
@@ -1237,14 +1258,14 @@ class DataController: ObservableObject {
                 iterativeDate = nextDate
             }
 
-            let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: Date.now)
+            let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: now())
 
             let currentWeek = calendar.date(from: dateComponents)!
 
             if currentWeek == date {
 //                let fromDate = Calendar.current.startOfDay(for: currentWeek)
 //                let toDate = Calendar.current.startOfDay(for: Date.now)
-                let numberOfDays = Calendar.current.dateComponents([.day], from: currentWeek, to: Date.now)
+                let numberOfDays = Calendar.current.dateComponents([.day], from: currentWeek, to: now())
 
                 weekAverage = totalForWeek / Double((numberOfDays.day! + 1))
             } else {
@@ -1295,10 +1316,10 @@ class DataController: ObservableObject {
                 iterativeDate = nextDate
             }
 
-            let next = calendar.date(byAdding: .month, value: 1, to: date) ?? Date.now
+            let next = calendar.date(byAdding: .month, value: 1, to: date) ?? now()
 
-            if next > Date.now {
-                let numDays = Calendar.current.dateComponents([.day], from: date, to: Date.now)
+            if next > now() {
+                let numDays = Calendar.current.dateComponents([.day], from: date, to: now())
 
                 monthAverage = totalForMonth / Double((numDays.day! + 1))
             } else {
@@ -1348,13 +1369,13 @@ class DataController: ObservableObject {
                 iterativeDate = nextDate
             }
 
-            let dateComponents = calendar.dateComponents([.year], from: Date.now)
+            let dateComponents = calendar.dateComponents([.year], from: now())
 
             let currentYear = calendar.date(from: dateComponents)!
 
             if currentYear == date {
                 let fromDate = Calendar.current.startOfDay(for: currentYear)
-                let toDate = Calendar.current.startOfDay(for: Date.now)
+                let toDate = Calendar.current.startOfDay(for: now())
                 let numDays = Calendar.current.dateComponents([.month], from: fromDate, to: toDate)
 
                 monthAverage = totalForYear / Double((numDays.month! + 1))
@@ -1373,7 +1394,7 @@ class DataController: ObservableObject {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = sharedDefaults.integer(forKey: "firstWeekday")
         calendar.minimumDaysInFirstWeek = 4
 
         let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), date as CVarArg)
@@ -1381,19 +1402,19 @@ class DataController: ObservableObject {
         let endPredicate: NSPredicate
 
         if type == 1 {
-            if calendar.isDate(date, equalTo: Date.now, toGranularity: .weekOfYear) {
-                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
+            if calendar.isDate(date, equalTo: now(), toGranularity: .weekOfYear) {
+                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), now() as CVarArg)
             } else {
-                let next = calendar.date(byAdding: .day, value: 7, to: date) ?? Date.now
+                let next = calendar.date(byAdding: .day, value: 7, to: date) ?? now()
                 endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), next as CVarArg)
             }
         } else if type == 2 {
-            let next = calendar.date(byAdding: .month, value: 1, to: date) ?? Date.now
+            let next = calendar.date(byAdding: .month, value: 1, to: date) ?? now()
 
 //            let endOfPeriod = calendar.date(byAdding: .day, value: -1, to: next) ?? Date.now
 //
-            if next > Date.now {
-                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
+            if next > now() {
+                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), now() as CVarArg)
             } else {
                 endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), next as CVarArg)
             }
@@ -1405,10 +1426,10 @@ class DataController: ObservableObject {
 //                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), next as CVarArg)
 //            }
         } else {
-            if calendar.isDate(date, equalTo: Date.now, toGranularity: .year) {
-                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
+            if calendar.isDate(date, equalTo: now(), toGranularity: .year) {
+                endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), now() as CVarArg)
             } else {
-                let next = calendar.date(byAdding: .year, value: 1, to: date) ?? Date.now
+                let next = calendar.date(byAdding: .year, value: 1, to: date) ?? now()
                 endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), next as CVarArg)
             }
         }

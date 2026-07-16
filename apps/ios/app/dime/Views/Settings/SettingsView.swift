@@ -564,23 +564,7 @@ struct SettingsView: View {
 
     let fileName = "export.csv"
     let path = NSURL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
-    var csvText = "Date,Note,Amount,Category,Type\n"
-
-    for transaction in transactions {
-      var string = transaction.wrappedNote
-      let type: String
-
-      if transaction.income {
-        type = "Income"
-      } else {
-        type = "Expense"
-      }
-
-      string.removeAll(where: { $0 == "," })
-
-      csvText +=
-        "\(transaction.wrappedDate),\(string),\(String(format: "%.2f", transaction.wrappedAmount)),\(transaction.category?.wrappedName ?? ""),\(type)\n"
-    }
+    let csvText = TransactionCSV.export(transactions)
 
     do {
       try csvText.write(to: path!, atomically: true, encoding: String.Encoding.utf8)
