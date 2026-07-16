@@ -46,11 +46,37 @@ jobs:
       - name: Build (device, code signing disabled)
         run: pnpm turbo run build --filter=@outlayr/ios
 
-  # test:
-  #   The `test` job runs `xcodebuild test` against the `dimeTests` XCTest target.
-  #   That target does not exist yet — it lands in slice B3 — so running it now
-  #   would fail and turn this PR red. Enable this job in B3 once the target
-  #   exists, using default/ad-hoc simulator signing. It MUST NOT set
-  #   CODE_SIGNING_ALLOWED=NO (the simulator TEST_HOST needs default signing),
-  #   and it runs `pnpm turbo run test --filter=@outlayr/ios` (turbo serializes
-  #   build -> test via the root `test` task's dependsOn: ["build"]).
+  test:
+    name: xcodebuild test (dimeTests)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Pick a concrete simulator that exists on this runner's Xcode, newest first,
+      # so the destination is not pinned to a device a given Xcode may not ship.
+      - name: Select an available iOS simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available \
+            | grep -oE 'iPhone [0-9]+( Pro( Max)?| Plus)?' \
+            | sort -Vr | head -1)
+          echo "Using simulator: ${DEVICE:-iPhone 16}"
+          echo "IOS_SIMULATOR=${DEVICE:-iPhone 16}" >> "$GITHUB_ENV"
+
+      # Uses default/ad-hoc simulator signing — MUST NOT set CODE_SIGNING_ALLOWED=NO
+      # (the simulator TEST_HOST needs default signing). turbo serializes
+      # build -> test via the root `test` task's dependsOn: ["build"].
+      - name: Test (simulator, default signing)
+        run: pnpm turbo run test --filter=@outlayr/ios

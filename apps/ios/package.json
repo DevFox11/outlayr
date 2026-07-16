@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "build": "xcodebuild build -project app/dime.xcodeproj -scheme dime -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO",
-    "test": "xcodebuild test -project app/dime.xcodeproj -scheme dime -destination 'platform=iOS Simulator,name=iPhone 17'"
+    "test": "xcodebuild test -project app/dime.xcodeproj -scheme dime -destination \"platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 16}\""
   }
 }
