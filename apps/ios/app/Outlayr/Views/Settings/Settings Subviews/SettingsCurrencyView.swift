@@ -12,84 +12,60 @@ struct SettingsCurrencyView: View {
   @AppStorage("currency", store: AppIdentifiers.sharedDefaults)
   var currencyCode: String = Locale.current.currency!.identifier
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
-  @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
   let currencies = Currency.allCurrencies
 
-  @Namespace var animation
+  @State private var searchText = ""
+
+  private var filteredCurrencies: [Currency] {
+    guard !searchText.isEmpty else { return currencies }
+    return currencies.filter {
+      $0.code.localizedCaseInsensitiveContains(searchText)
+        || $0.name.localizedCaseInsensitiveContains(searchText)
+    }
+  }
 
   var body: some View {
-    VStack(spacing: 10) {
-      Text("Currencies")
-        .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundStyle(Color.PrimaryText)
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .leading) {
-          Button {
-            self.presentationMode.wrappedValue.dismiss()
-          } label: {
-            SettingsBackButton()
-          }
-        }
-        .padding(.bottom, 10)
+    List {
+      Section {
+        ForEach(filteredCurrencies, id: \.self) { currency in
+          HStack {
+            Text(currency.code)
+              .foregroundStyle(Color.SubtitleText)
 
-      ScrollView(showsIndicators: false) {
-        ScrollViewReader { value in
-          VStack(spacing: 0) {
-            ForEach(currencies, id: \.self) { currency in
-              HStack(spacing: 10) {
-                Text(currency.code)
-                  .font(.system(.body, design: .rounded).weight(.semibold))
-                  .foregroundStyle(Color.SubtitleText)
-                  .lineLimit(1)
-                  //                                    .layoutPriority(1)
-                  .frame(width: dynamicTypeSize > .xLarge ? 55 : 45, alignment: .leading)
-                Text(currency.name)
-                  .font(.system(.body, design: .rounded))
-                  .foregroundStyle(Color.PrimaryText)
-                  .lineLimit(1)
+            Text(currency.name)
+              .foregroundStyle(Color.PrimaryText)
 
-                Spacer()
+            Spacer()
 
-                if currency.code == currencyCode {
-                  Image(systemName: "checkmark")
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(Color.DarkIcon.opacity(0.6))
-                    .matchedGeometryEffect(id: "tick", in: animation)
-                }
-              }
-              .frame(maxWidth: .infinity)
-              .contentShape(Rectangle())
-              .onTapGesture {
-                withAnimation(.easeIn(duration: 0.15)) {
-                  currencyCode = currency.code
-                }
-
-                NSUbiquitousKeyValueStore.default.set(currency.code, forKey: "currency")
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                  self.presentationMode.wrappedValue.dismiss()
-                }
-              }
-              .padding(.vertical, 9)
-              .overlay(alignment: .bottom) {
-                if currency != currencies.last {
-                  Divider()
-                }
-              }
-              .padding(.horizontal, 15)
-              .id(currency.code)
+            if currency.code == currencyCode {
+              Image(systemName: "checkmark")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.tint)
             }
           }
-          .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-          .padding(.bottom, 60)
-          .onAppear {
-            value.scrollTo(currencyCode, anchor: .center)
+          .contentShape(Rectangle())
+          .onTapGesture {
+            select(currency)
           }
         }
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    .modifier(SettingsSubviewModifier())
+    .listStyle(.insetGrouped)
+    .contentMargins(.top, 0, for: .scrollContent)
+    .contentMargins(.bottom, 90, for: .scrollContent)
+    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+    .navigationTitle("Currencies")
+    .navigationBarTitleDisplayMode(.inline)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+  }
+
+  private func select(_ currency: Currency) {
+    currencyCode = currency.code
+    NSUbiquitousKeyValueStore.default.set(currency.code, forKey: "currency")
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+      self.presentationMode.wrappedValue.dismiss()
+    }
   }
 }

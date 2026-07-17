@@ -127,7 +127,6 @@
 		53D6BDC12AF6648300F5728E /* AlertButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC02AF6648300F5728E /* AlertButtons.swift */; };
 		53D6BDC32AF668E700F5728E /* DetailedBudgetViewTopBarButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC22AF668E700F5728E /* DetailedBudgetViewTopBarButtons.swift */; };
 		53D6BDC52AF6B32C00F5728E /* StepperButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */; };
-		53D6BDC82AF73B4800F5728E /* SettingsAppearanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */; };
 		53D6BDCA2AF73B7A00F5728E /* SettingsAppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */; };
 		53D6BDCC2AF73BC800F5728E /* SettingsCurrencyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */; };
 		53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */; };
@@ -138,7 +137,6 @@
 		53D6BDD82AF73CFC00F5728E /* SettingsEraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDD72AF73CFC00F5728E /* SettingsEraseView.swift */; };
 		53D6BDDA2AF73DE900F5728E /* SettingsCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDD92AF73DE900F5728E /* SettingsCloudView.swift */; };
 		53D6BDDD2AF73E4300F5728E /* SettingsBackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDDC2AF73E4300F5728E /* SettingsBackButton.swift */; };
-		53D6BDDF2AF73EF100F5728E /* SettingsHapticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDDE2AF73EF100F5728E /* SettingsHapticsView.swift */; };
 		53D6BDE12AF73FAB00F5728E /* SettingsSubviewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDE02AF73FAB00F5728E /* SettingsSubviewModifier.swift */; };
 		53DCFAA12A498FBF0063FCDE /* CloudKitSyncMonitor in Frameworks */ = {isa = PBXBuildFile; productRef = 53DCFAA02A498FBF0063FCDE /* CloudKitSyncMonitor */; };
 		53E832E52B0A2CAF000CBBA0 /* InsightsSummaryBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E832E42B0A2CAF000CBBA0 /* InsightsSummaryBlock.swift */; };
@@ -177,6 +175,9 @@
 		7A875E5F3009D63F00819E25 /* LogFilteredViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E5E3009D63F00819E25 /* LogFilteredViews.swift */; };
 		7A875E613009D67100819E25 /* LogStepperViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E603009D67100819E25 /* LogStepperViews.swift */; };
 		7A875E633009D68200819E25 /* LogComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E623009D68200819E25 /* LogComponents.swift */; };
+		7A875E66300A90B400819E25 /* HugeiconsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A875E65300A90B400819E25 /* HugeiconsCore */; };
+		7A875E68300A90B400819E25 /* HugeiconsSolidRounded in Frameworks */ = {isa = PBXBuildFile; productRef = 7A875E67300A90B400819E25 /* HugeiconsSolidRounded */; };
+		7A875E6A300A90B400819E25 /* HugeiconsStrokeRounded in Frameworks */ = {isa = PBXBuildFile; productRef = 7A875E69300A90B400819E25 /* HugeiconsStrokeRounded */; };
 		7B9C8801231DD991ABF50E3D /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */; };
 		88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */; };
@@ -359,7 +360,6 @@
 		53D6BDC02AF6648300F5728E /* AlertButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertButtons.swift; sourceTree = "<group>"; };
 		53D6BDC22AF668E700F5728E /* DetailedBudgetViewTopBarButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedBudgetViewTopBarButtons.swift; sourceTree = "<group>"; };
 		53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperButtons.swift; sourceTree = "<group>"; };
-		53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppearanceView.swift; sourceTree = "<group>"; };
 		53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppIconView.swift; sourceTree = "<group>"; };
 		53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCurrencyView.swift; sourceTree = "<group>"; };
 		53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWeekStartView.swift; sourceTree = "<group>"; };
@@ -370,7 +370,6 @@
 		53D6BDD72AF73CFC00F5728E /* SettingsEraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsEraseView.swift; sourceTree = "<group>"; };
 		53D6BDD92AF73DE900F5728E /* SettingsCloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCloudView.swift; sourceTree = "<group>"; };
 		53D6BDDC2AF73E4300F5728E /* SettingsBackButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsBackButton.swift; sourceTree = "<group>"; };
-		53D6BDDE2AF73EF100F5728E /* SettingsHapticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHapticsView.swift; sourceTree = "<group>"; };
 		53D6BDE02AF73FAB00F5728E /* SettingsSubviewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSubviewModifier.swift; sourceTree = "<group>"; };
 		53E832E42B0A2CAF000CBBA0 /* InsightsSummaryBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsSummaryBlock.swift; sourceTree = "<group>"; };
 		53E832E62B0B067B000CBBA0 /* TransactionCategoryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionCategoryPicker.swift; sourceTree = "<group>"; };
@@ -452,8 +451,11 @@
 				53A4148028B7DA4C008C30E7 /* ConfettiSwiftUI in Frameworks */,
 				5383D85E287D9A0100D1B9BA /* CloudKit.framework in Frameworks */,
 				53DCFAA12A498FBF0063FCDE /* CloudKitSyncMonitor in Frameworks */,
+				7A875E6A300A90B400819E25 /* HugeiconsStrokeRounded in Frameworks */,
 				5327D2E6287C6CC300F76ADF /* Popovers in Frameworks */,
+				7A875E68300A90B400819E25 /* HugeiconsSolidRounded in Frameworks */,
 				7A875E2D3009C3AD00819E25 /* HugeiconsStrokeRounded in Frameworks */,
+				7A875E66300A90B400819E25 /* HugeiconsCore in Frameworks */,
 				7A875E2B3009C3AD00819E25 /* HugeiconsSolidRounded in Frameworks */,
 				536715ED28E1E9A3008461F2 /* StoreKit.framework in Frameworks */,
 				7A875E293009C3AD00819E25 /* HugeiconsCore in Frameworks */,
@@ -767,8 +769,6 @@
 				53D6BDD92AF73DE900F5728E /* SettingsCloudView.swift */,
 				53D6BDD72AF73CFC00F5728E /* SettingsEraseView.swift */,
 				53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */,
-				53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */,
-				53D6BDDE2AF73EF100F5728E /* SettingsHapticsView.swift */,
 				53D6BDCF2AF73C4300F5728E /* SettingsNumberEntryView.swift */,
 				53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */,
 				C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */,
@@ -885,6 +885,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				7A875E6F300A921900819E25 /* PBXTargetDependency */,
 				53B1D196288ED87000E28062 /* PBXTargetDependency */,
 				5313EC7128ACE941000EAB0C /* PBXTargetDependency */,
 				5313EC7428ACE941000EAB0C /* PBXTargetDependency */,
@@ -897,6 +898,9 @@
 				7A875E283009C3AD00819E25 /* HugeiconsCore */,
 				7A875E2A3009C3AD00819E25 /* HugeiconsSolidRounded */,
 				7A875E2C3009C3AD00819E25 /* HugeiconsStrokeRounded */,
+				7A875E65300A90B400819E25 /* HugeiconsCore */,
+				7A875E67300A90B400819E25 /* HugeiconsSolidRounded */,
+				7A875E69300A90B400819E25 /* HugeiconsStrokeRounded */,
 			);
 			productName = Outlayr;
 			productReference = 5327D283287C697400F76ADF /* Outlayr.app */;
@@ -978,7 +982,8 @@
 				5327D2E4287C6CC300F76ADF /* XCRemoteSwiftPackageReference "Popovers" */,
 				53A4147E28B7DA4C008C30E7 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
 				53DCFA9F2A498FBF0063FCDE /* XCRemoteSwiftPackageReference "CloudKitSyncMonitor" */,
-				7A875E273009C3AD00819E25 /* XCLocalSwiftPackageReference "../../../../../Downloads/hugeicons-swift" */,
+				7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "Packages/hugeicons-swift" */,
+				7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 			);
 			productRefGroup = 5327D284287C697400F76ADF /* Products */;
 			projectDirPath = "";
@@ -1168,7 +1173,6 @@
 				53D250702AA6331600016013 /* TemplateTransactionView.swift in Sources */,
 				5327D2AD287C6AD200F76ADF /* DataController.swift in Sources */,
 				53D0298028C5BC0300443F2B /* Currency.swift in Sources */,
-				53D6BDDF2AF73EF100F5728E /* SettingsHapticsView.swift in Sources */,
 				7A875E333009CF5F00819E25 /* CategoryTextFields.swift in Sources */,
 				53D6BDD02AF73C4300F5728E /* SettingsNumberEntryView.swift in Sources */,
 				AEADEF712AE94DA8006EB614 /* BackButton.swift in Sources */,
@@ -1204,7 +1208,6 @@
 				7A875E2F3009CF3D00819E25 /* CategoryAlerts.swift in Sources */,
 				7A875E5F3009D63F00819E25 /* LogFilteredViews.swift in Sources */,
 				53A4147D28B7C70D008C30E7 /* AppVersion.swift in Sources */,
-				53D6BDC82AF73B4800F5728E /* SettingsAppearanceView.swift in Sources */,
 				53B822AA2A6D50CC000FC7C9 /* NewTransactionIntent.swift in Sources */,
 				5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */,
 				5327D2D8287C6B5F00F76ADF /* SettingsView.swift in Sources */,
@@ -1283,6 +1286,10 @@
 			isa = PBXTargetDependency;
 			target = 53B1D189288ED7E400E28062 /* ExpenditureWidgetExtension */;
 			targetProxy = 53B1D195288ED87000E28062 /* PBXContainerItemProxy */;
+		};
+		7A875E6F300A921900819E25 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 7A875E6E300A921900819E25 /* SwiftLintBuildToolPlugin */;
 		};
 		CC2C5856EAA3CC56746ECC3F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1811,9 +1818,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7A875E273009C3AD00819E25 /* XCLocalSwiftPackageReference "../../../../../Downloads/hugeicons-swift" */ = {
+		7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "Packages/hugeicons-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../../../Downloads/hugeicons-swift";
+			relativePath = "Packages/hugeicons-swift";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1840,6 +1847,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.2.1;
+			};
+		};
+		7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.65.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -1871,6 +1886,23 @@
 		7A875E2C3009C3AD00819E25 /* HugeiconsStrokeRounded */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = HugeiconsStrokeRounded;
+		};
+		7A875E65300A90B400819E25 /* HugeiconsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HugeiconsCore;
+		};
+		7A875E67300A90B400819E25 /* HugeiconsSolidRounded */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HugeiconsSolidRounded;
+		};
+		7A875E69300A90B400819E25 /* HugeiconsStrokeRounded */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HugeiconsStrokeRounded;
+		};
+		7A875E6E300A921900819E25 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
 		};
 /* End XCSwiftPackageProductDependency section */
 

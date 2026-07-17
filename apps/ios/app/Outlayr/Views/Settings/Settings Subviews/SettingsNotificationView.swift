@@ -9,8 +9,6 @@ import Foundation
 import SwiftUI
 
 struct SettingsNotificationsView: View {
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
-
   @AppStorage("showNotifications", store: AppIdentifiers.sharedDefaults)
   var showNotifications: Bool = false
   @AppStorage("notificationsEnabled", store: AppIdentifiers.sharedDefaults)
@@ -20,147 +18,24 @@ struct SettingsNotificationsView: View {
 
   var center = UNUserNotificationCenter.current()
 
-  @Namespace var animation
+  private var notificationsBinding: Binding<Bool> {
+    Binding(get: { showNotifications }, set: { setNotifications(enabled: $0) })
+  }
 
   var body: some View {
-    VStack {
-      Text("Notifications")
-        .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundStyle(Color.PrimaryText)
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .leading) {
-          Button {
-            self.presentationMode.wrappedValue.dismiss()
-          } label: {
-            SettingsBackButton()
-          }
-        }
-        .padding(.bottom, 20)
-
-      VStack(spacing: 0) {
-        HStack {
-          Text("Enable Notifications")
-            .font(.system(.body, design: .rounded))
-            .foregroundStyle(Color.PrimaryText)
-
-          Spacer()
-
-          ZStack(alignment: showNotifications ? .trailing : .leading) {
-            Capsule()
-              .frame(width: 42, height: 28)
-              .foregroundStyle(showNotifications ? .green : .gray.opacity(0.8))
-
-            Circle()
-              .foregroundStyle(Color.white)
-              .padding(2)
-              .frame(width: 28, height: 28)
-              .matchedGeometryEffect(id: "toggle", in: animation)
-          }
-          .onTapGesture {
-            if showNotifications {
-              withAnimation(.easeInOut(duration: 0.2)) {
-                center.removeAllPendingNotificationRequests()
-                showNotifications.toggle()
-              }
-            } else {
-              center.getNotificationSettings { settings in
-                if settings.authorizationStatus == .notDetermined {
-                  center.requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
-                    if success {
-                      withAnimation(.easeInOut(duration: 0.2)) {
-                        showNotifications.toggle()
-                        newNotification()
-                      }
-                    } else if let error = error {
-                      print(error.localizedDescription)
-                      notificationsEnabled = false
-                    }
-                  }
-                } else if settings.authorizationStatus == .denied {
-                  notificationsEnabled = false
-
-                  DispatchQueue.main.async {
-                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                      UIApplication.shared.open(settingsURL)
-                    }
-                  }
-
-                } else {
-                  withAnimation(.easeInOut(duration: 0.2)) {
-                    showNotifications.toggle()
-                    if showNotifications {
-                      newNotification()
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
+    List {
+      Section {
+        Toggle("Enable Notifications", isOn: notificationsBinding)
+          .foregroundStyle(Color.PrimaryText)
       }
-      .padding(.horizontal, 15)
-      .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-      .padding(.bottom, 20)
 
       if showNotifications {
-        VStack(spacing: 0) {
-          HStack {
-            Text("Every morning (8:00 AM)")
-              .font(.system(.body, design: .rounded))
-              .foregroundStyle(Color.PrimaryText)
-
-            Spacer()
-
-            if option == 1 {
-              Image(systemName: "checkmark")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(Color.DarkIcon.opacity(0.6))
-                .matchedGeometryEffect(id: "tick", in: animation)
-            }
-          }
-          .frame(maxWidth: .infinity)
-          .contentShape(Rectangle())
-          .onTapGesture {
-            withAnimation(.easeIn(duration: 0.15)) {
-              option = 1
-            }
-          }
-          .padding(.vertical, 9)
-          .overlay(alignment: .bottom) {
-            Divider()
-          }
-
-          HStack {
-            Text("Every evening (8:00 PM)")
-              .font(.system(.body, design: .rounded))
-              .foregroundStyle(Color.PrimaryText)
-
-            Spacer()
-
-            if option == 2 {
-              Image(systemName: "checkmark")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(Color.DarkIcon.opacity(0.6))
-                .matchedGeometryEffect(id: "tick", in: animation)
-            }
-          }
-          .frame(maxWidth: .infinity)
-          .contentShape(Rectangle())
-          .onTapGesture {
-            withAnimation(.easeIn(duration: 0.15)) {
-              option = 2
-            }
-          }
-          .padding(.vertical, 9)
-          .overlay(alignment: .bottom) {
-            Divider()
-          }
+        Section {
+          optionRow("Every morning (8:00 AM)", tag: 1)
+          optionRow("Every evening (8:00 PM)", tag: 2)
 
           HStack {
             Text("Custom Time")
-              .font(.system(.body, design: .rounded))
               .foregroundStyle(Color.PrimaryText)
 
             Spacer()
@@ -171,71 +46,106 @@ struct SettingsNotificationsView: View {
                 displayedComponents: .hourAndMinute
               )
               .labelsHidden()
-
-              Image(systemName: "checkmark")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(Color.DarkIcon.opacity(0.6))
-                .matchedGeometryEffect(id: "tick", in: animation)
             }
           }
-          .frame(maxWidth: .infinity)
           .contentShape(Rectangle())
           .onTapGesture {
-            withAnimation(.easeIn(duration: 0.15)) {
-              option = 3
-            }
+            option = 3
           }
-          .padding(.vertical, 9)
         }
-        .padding(.horizontal, 15)
-        .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
         .onChange(of: option) { _, newValue in
-          AppIdentifiers.sharedDefaults!.set(
-            option, forKey: "notificationOption")
+          AppIdentifiers.sharedDefaults!.set(option, forKey: "notificationOption")
 
           if newValue == 3 {
             let components = Calendar.current.dateComponents([.hour, .minute], from: customTime)
-
-            AppIdentifiers.sharedDefaults!.set(
-              components.hour!, forKey: "customHour")
-            AppIdentifiers.sharedDefaults!.set(
-              components.minute!, forKey: "customMinute")
+            AppIdentifiers.sharedDefaults!.set(components.hour!, forKey: "customHour")
+            AppIdentifiers.sharedDefaults!.set(components.minute!, forKey: "customMinute")
           }
 
           newNotification()
         }
         .onChange(of: customTime) { _, _ in
           let components = Calendar.current.dateComponents([.hour, .minute], from: customTime)
-
-          AppIdentifiers.sharedDefaults!.set(
-            components.hour!, forKey: "customHour")
-          AppIdentifiers.sharedDefaults!.set(
-            components.minute!, forKey: "customMinute")
+          AppIdentifiers.sharedDefaults!.set(components.hour!, forKey: "customHour")
+          AppIdentifiers.sharedDefaults!.set(components.minute!, forKey: "customMinute")
 
           newNotification()
         }
         .onAppear {
-          if AppIdentifiers.sharedDefaults!.object(
-            forKey: "notificationOption") != nil {
-            option = AppIdentifiers.sharedDefaults!.integer(
-              forKey: "notificationOption")
+          if AppIdentifiers.sharedDefaults!.object(forKey: "notificationOption") != nil {
+            option = AppIdentifiers.sharedDefaults!.integer(forKey: "notificationOption")
           }
 
-          if AppIdentifiers.sharedDefaults!.object(forKey: "customHour")
-            != nil
-            && AppIdentifiers.sharedDefaults!.object(forKey: "customMinute")
-              != nil {
+          if AppIdentifiers.sharedDefaults!.object(forKey: "customHour") != nil
+            && AppIdentifiers.sharedDefaults!.object(forKey: "customMinute") != nil {
             var components = DateComponents()
-            components.hour = AppIdentifiers.sharedDefaults!.integer(
-              forKey: "customHour")
-            components.minute = AppIdentifiers.sharedDefaults!.integer(
-              forKey: "customMinute")
+            components.hour = AppIdentifiers.sharedDefaults!.integer(forKey: "customHour")
+            components.minute = AppIdentifiers.sharedDefaults!.integer(forKey: "customMinute")
             customTime = Calendar.current.date(from: components)!
           }
         }
       }
     }
-    .modifier(SettingsSubviewModifier())
+    .navigationTitle("Notifications")
+    .navigationBarTitleDisplayMode(.inline)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+  }
+
+  @ViewBuilder
+  private func optionRow(_ title: LocalizedStringKey, tag: Int) -> some View {
+    HStack {
+      Text(title)
+        .foregroundStyle(Color.PrimaryText)
+
+      Spacer()
+
+      if option == tag {
+        Image(systemName: "checkmark")
+          .font(.body.weight(.semibold))
+          .foregroundStyle(.tint)
+      }
+    }
+    .contentShape(Rectangle())
+    .onTapGesture {
+      option = tag
+    }
+  }
+
+  private func setNotifications(enabled: Bool) {
+    if !enabled {
+      center.removeAllPendingNotificationRequests()
+      showNotifications = false
+      return
+    }
+
+    center.getNotificationSettings { settings in
+      switch settings.authorizationStatus {
+      case .notDetermined:
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
+          if success {
+            DispatchQueue.main.async {
+              showNotifications = true
+              newNotification()
+            }
+          } else if let error {
+            print(error.localizedDescription)
+            DispatchQueue.main.async { notificationsEnabled = false }
+          }
+        }
+      case .denied:
+        DispatchQueue.main.async {
+          notificationsEnabled = false
+          if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
+          }
+        }
+      default:
+        DispatchQueue.main.async {
+          showNotifications = true
+          newNotification()
+        }
+      }
+    }
   }
 }
 
@@ -251,10 +161,8 @@ func newNotification() {
   var components = DateComponents()
   var option = 1
 
-  if AppIdentifiers.sharedDefaults!.object(forKey: "notificationOption")
-    != nil {
-    option = AppIdentifiers.sharedDefaults!.integer(
-      forKey: "notificationOption")
+  if AppIdentifiers.sharedDefaults!.object(forKey: "notificationOption") != nil {
+    option = AppIdentifiers.sharedDefaults!.integer(forKey: "notificationOption")
   }
 
   if option == 1 {
@@ -266,10 +174,8 @@ func newNotification() {
   } else {
     if AppIdentifiers.sharedDefaults!.object(forKey: "customHour") != nil,
       AppIdentifiers.sharedDefaults!.object(forKey: "customMinute") != nil {
-      components.hour = AppIdentifiers.sharedDefaults!.integer(
-        forKey: "customHour")
-      components.minute = AppIdentifiers.sharedDefaults!.integer(
-        forKey: "customMinute")
+      components.hour = AppIdentifiers.sharedDefaults!.integer(forKey: "customHour")
+      components.minute = AppIdentifiers.sharedDefaults!.integer(forKey: "customMinute")
     } else {
       components.hour = 8
       components.minute = 0

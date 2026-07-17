@@ -15,107 +15,55 @@ struct SettingsUpcomingView: View {
   @State private var showSoon: Bool = false
   @Environment(DataController.self) private var dataController
 
-  @Namespace var animation
+  private var showFutureBinding: Binding<Bool> {
+    Binding(
+      get: { showFuture },
+      set: { newValue in
+        showFuture = newValue
+        AppIdentifiers.sharedDefaults!.set(newValue, forKey: "showUpcomingTransactions")
+
+        if !newValue {
+          showSoon = false
+          AppIdentifiers.sharedDefaults!.set(
+            false, forKey: "showUpcomingTransactionsWhenUpcoming")
+        }
+      }
+    )
+  }
+
+  private var showSoonBinding: Binding<Bool> {
+    Binding(
+      get: { showSoon },
+      set: { newValue in
+        showSoon = newValue
+        AppIdentifiers.sharedDefaults!.set(
+          newValue, forKey: "showUpcomingTransactionsWhenUpcoming")
+      }
+    )
+  }
 
   var body: some View {
-    VStack(spacing: 10) {
-      Text("Upcoming Logs")
-        .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundStyle(Color.PrimaryText)
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .leading) {
-          Button {
-            self.presentationMode.wrappedValue.dismiss()
-          } label: {
-            SettingsBackButton()
-          }
-        }
-        .padding(.bottom, 20)
+    List {
+      Section {
+        Toggle("Display on Log Page", isOn: showFutureBinding)
+          .foregroundStyle(Color.PrimaryText)
 
-      VStack(spacing: 0) {
-        HStack {
-          Text("Display on Log Page")
-            .font(.system(.body, design: .rounded))
-            .foregroundStyle(Color.PrimaryText)
-
-          Spacer()
-
-          ZStack(alignment: showFuture ? .trailing : .leading) {
-            Capsule()
-              .frame(width: 42, height: 28)
-              .foregroundStyle(showFuture ? .green : .gray.opacity(0.8))
-
-            Circle()
-              .foregroundStyle(Color.white)
-              .padding(2)
-              .frame(width: 28, height: 28)
-              .matchedGeometryEffect(id: "toggle1", in: animation)
-          }
-          .onTapGesture {
-            showFuture.toggle()
-          }
-          .onChange(of: showFuture) { _, newValue in
-            AppIdentifiers.sharedDefaults!.set(
-              newValue, forKey: "showUpcomingTransactions")
-
-            if !newValue {
-              showSoon = false
-              AppIdentifiers.sharedDefaults!.set(
-                false, forKey: "showUpcomingTransactionsWhenUpcoming")
-            }
-          }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
-
-        HStack {
-          Text("Limit to 14-Day Outlook")
-            .font(.system(.body, design: .rounded))
-            .foregroundStyle(Color.PrimaryText)
-
-          Spacer()
-
-          ZStack(alignment: showSoon ? .trailing : .leading) {
-            Capsule()
-              .frame(width: 42, height: 28)
-              .foregroundStyle(showSoon ? .green : .gray.opacity(0.8))
-
-            Circle()
-              .foregroundStyle(Color.white)
-              .padding(2)
-              .frame(width: 28, height: 28)
-              .matchedGeometryEffect(id: "toggle2", in: animation)
-          }
-          .onTapGesture {
-            showSoon.toggle()
-          }
-          .onChange(of: showSoon) { _, newValue in
-            AppIdentifiers.sharedDefaults!.set(
-              newValue, forKey: "showUpcomingTransactionsWhenUpcoming")
-          }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
+        Toggle("Limit to 14-Day Outlook", isOn: showSoonBinding)
+          .foregroundStyle(Color.PrimaryText)
+      } footer: {
+        Text(
+          "Don't worry, even if you do hide them there, you will always be able to find all upcoming transactions right here."
+        )
       }
-      .padding(.horizontal, 15)
-      .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
 
-      Text(
-        "Don't worry, even if you do hide them there, you will aways be able to find all upcoming transactions right here."
-      )
-      .font(.system(.caption, design: .rounded).weight(.medium))
-      .multilineTextAlignment(.leading)
-      .foregroundStyle(Color.SubtitleText)
-      .padding(.horizontal, 15)
-      .padding(.bottom, 30)
-      .frame(maxWidth: .infinity, alignment: .leading)
-
-      ScrollView(showsIndicators: false) {
+      Section {
         FutureListView(dataController: dataController, filterMode: false, limitedMode: false)
-          .padding(.bottom, 70)
       }
     }
-    .modifier(SettingsSubviewModifier())
+    .listStyle(.insetGrouped)
+    .navigationTitle("Upcoming Logs")
+    .navigationBarTitleDisplayMode(.inline)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     .onAppear {
       showFuture = AppIdentifiers.sharedDefaults!.bool(
         forKey: "showUpcomingTransactions")

@@ -14,42 +14,23 @@ struct SettingsEraseView: View {
   @State var showAlert = false
 
   var body: some View {
-    VStack(spacing: 10) {
-      Text("Erase Data")
-        .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundStyle(Color.PrimaryText)
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .leading) {
-          Button {
-            self.presentationMode.wrappedValue.dismiss()
-          } label: {
-            SettingsBackButton()
-          }
+    List {
+      Section {
+        Button(role: .destructive) {
+          showAlert = true
+        } label: {
+          Text("Permanently Delete Everythin'")
         }
-        .padding(.bottom, 20)
-
-      Button {
-        showAlert = true
-      } label: {
-        Text("Permanently Delete Everythin'")
-          .font(.system(.body, design: .rounded))
-          .foregroundStyle(Color.PrimaryText)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.vertical, 12)
-          .padding(.horizontal, 15)
-          .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+      } footer: {
+        Text(
+          "This action would delete all existing transactions, categories, and budgets, and cannot be undone."
+        )
       }
-
-      Text(
-        "This action would delete all existing transactions, categories, and budgets, and cannot be undone."
-      )
-      .font(.system(.caption, design: .rounded).weight(.medium))
-      .multilineTextAlignment(.leading)
-      .foregroundStyle(Color.SubtitleText)
-      .padding(.horizontal, 15)
-      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .modifier(SettingsSubviewModifier())
+    .listStyle(.insetGrouped)
+    .navigationTitle("Erase Data")
+    .navigationBarTitleDisplayMode(.inline)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     .fullScreenCover(isPresented: $showAlert) {
       DeleteAllAlert()
     }

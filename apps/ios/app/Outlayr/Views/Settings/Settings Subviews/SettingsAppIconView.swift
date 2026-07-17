@@ -38,81 +38,55 @@ struct SettingsAppIconView: View {
       displaySubtitle: "Paper on paper. The mark reads only in its shadow.")
   ]
 
-  @State private var position: Int?
-
-  @Namespace var animation
-
   var body: some View {
-    VStack(spacing: 10) {
-      Text("App Icon")
-        .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundStyle(Color.PrimaryText)
-        .frame(maxWidth: .infinity)
-        .overlay(alignment: .leading) {
-          Button {
-            self.presentationMode.wrappedValue.dismiss()
-          } label: {
-            SettingsBackButton()
-          }
-        }
-        .padding(.bottom, 20)
-
-      VStack(spacing: 0) {
+    List {
+      Section {
         ForEach(options.indices, id: \.self) { index in
-          HStack(spacing: 13) {
-            Image(options[index].exampleFileName)
-              .resizable()
-              .aspectRatio(contentMode: .fill)
-              .frame(width: 70, height: 70)
-              .clipShape(RoundedRectangle(cornerRadius: 18))
-              .shadow(color: .black.opacity(0.15), radius: 5, x: 5, y: 5)
-
-            VStack(alignment: .leading, spacing: 3) {
-              Text(options[index].displayName)
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(Color.PrimaryText)
-
-              Text(options[index].displaySubtitle)
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(Color.SubtitleText)
-            }
-
-            Spacer()
-
-            if activeIcon == options[index].actualFileName {
-              Image(systemName: "checkmark")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(Color.DarkIcon.opacity(0.6))
-                .matchedGeometryEffect(id: "tick", in: animation)
-            } else {
-              Image(systemName: "checkmark")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(Color.SettingsBackground)
-            }
-          }
-          .frame(maxWidth: .infinity)
-          .contentShape(Rectangle())
-          .onTapGesture {
-            withAnimation {
-              activeIcon = options[index].actualFileName
-            }
-          }
-          .padding(.vertical, 15)
-          .overlay(alignment: .bottom) {
-            if index < (options.count - 1) {
-              Divider()
-            }
-          }
+          iconRow(options[index])
         }
-      }
-      .padding(.horizontal, 15)
-      .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-      .onChange(of: activeIcon) { _, newValue in
-        // "AppIcon" is the primary on Release, so it is absent from CFBundleAlternateIcons
-        // there and only nil restores it. Passing the name would fail outside Debug.
-        UIApplication.shared.setAlternateIconName(newValue == "AppIcon" ? nil : newValue)
       }
     }
-    .modifier(SettingsSubviewModifier())
+    .listStyle(.insetGrouped)
+    .onChange(of: activeIcon) { _, newValue in
+      // "AppIcon" is the primary on Release, so it is absent from CFBundleAlternateIcons
+      // there and only nil restores it. Passing the name would fail outside Debug.
+      UIApplication.shared.setAlternateIconName(newValue == "AppIcon" ? nil : newValue)
+    }
+    .navigationTitle("App Icon")
+    .navigationBarTitleDisplayMode(.inline)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+  }
+
+  @ViewBuilder
+  private func iconRow(_ option: AppIconBundle) -> some View {
+    HStack(spacing: 13) {
+      Image(option.exampleFileName)
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+        .frame(width: 44, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(option.displayName)
+          .font(.system(.body, design: .rounded))
+          .foregroundStyle(Color.PrimaryText)
+
+        Text(option.displaySubtitle)
+          .font(.system(.caption, design: .rounded))
+          .foregroundStyle(Color.SubtitleText)
+      }
+
+      Spacer()
+
+      if activeIcon == option.actualFileName {
+        Image(systemName: "checkmark")
+          .font(.body.weight(.semibold))
+          .foregroundStyle(.tint)
+      }
+    }
+    .contentShape(Rectangle())
+    .onTapGesture {
+      activeIcon = option.actualFileName
+    }
   }
 }

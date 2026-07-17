@@ -195,7 +195,7 @@ struct CategoryListView: View {
         VStack(spacing: 5) {
             if showToast {
                 toastBanner
-            } else {
+            } else if mode != .settings {
                 header
             }
 
@@ -203,6 +203,27 @@ struct CategoryListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.PrimaryBackground)
+        .toolbar {
+            if mode == .settings {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation { showSuggestions.toggle() }
+                    } label: {
+                        Image(systemName: showSuggestions ? "eye.slash" : "eye")
+                    }
+
+                    if categories.count > 1 {
+                        Button {
+                            withAnimation { isEditing.toggle() }
+                        } label: {
+                            Image(systemName: isEditing ? "checkmark" : "arrow.up.arrow.down")
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(mode == .settings ? "Categories" : "")
+        .navigationBarTitleDisplayMode(.inline)
         .animation(.easeOut(duration: 0.2), value: showToast)
         .onChange(of: toDelete) { _, _ in
             if toDelete != nil {
