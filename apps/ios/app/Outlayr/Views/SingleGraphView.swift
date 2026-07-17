@@ -16,7 +16,7 @@ struct SingleGraphView: View {
     @Binding var selectedDate: Date?
 
     @AppStorage("incomeTracking", store: AppIdentifiers.sharedDefaults) var incomeTracking: Bool = true
-    let language = Locale.current.languageCode
+    let language = Locale.current.language.languageCode?.identifier
 
     var selectedDateString: String {
         if let unwrappedDate = selectedDate {

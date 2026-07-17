@@ -757,7 +757,7 @@ public extension View {
 
     @ViewBuilder fileprivate func valueChanged<T: Equatable>(value: T, onChange: @escaping (T) -> Void) -> some View {
         if #available(iOS 14.0, *) {
-            self.onChange(of: value, perform: onChange)
+            self.onChange(of: value) { _, newValue in onChange(newValue) }
         } else {
             onReceive(Just(value)) { value in
                 onChange(value)

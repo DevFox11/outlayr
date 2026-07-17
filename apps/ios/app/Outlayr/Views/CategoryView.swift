@@ -8,6 +8,7 @@
 import Combine
 import CoreHaptics
 import Popovers
+import CoreData
 import SwiftUI
 import UIKit
 
@@ -754,11 +755,7 @@ struct CategoryListView: View {
             categories[itemToMove].order = newOrder
         }
 
-        do {
-            dataController.save()
-        } catch {
-            print(error.localizedDescription)
-        }
+        dataController.save()
     }
 
     init(income: Binding<Bool>, mode: CategoryViewMode, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>) {

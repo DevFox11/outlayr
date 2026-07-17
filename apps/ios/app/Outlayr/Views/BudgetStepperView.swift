@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import CoreData
 import SwiftUI
 
 struct BudgetStepperView: View {

@@ -3,6 +3,7 @@
 //  Outlayr
 //
 
+import CoreData
 import Foundation
 import Popovers
 import SwiftUI

@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import Popovers
+import CoreData
 import SwiftUI
 
 struct TransactionView: View {

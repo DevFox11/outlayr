@@ -15,7 +15,7 @@ struct Currency: Hashable {
 
 extension Locale {
     func localizedCurrencySymbol(forCurrencyCode currencyCode: String) -> String? {
-        guard let languageCode = languageCode, let regionCode = regionCode else { return nil }
+        guard let languageCode = language.languageCode?.identifier, let regionCode = region?.identifier else { return nil }
 
         let components: [String: String] = [
             NSLocale.Key.languageCode.rawValue: languageCode,

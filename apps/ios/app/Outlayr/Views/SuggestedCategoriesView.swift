@@ -6,6 +6,7 @@
 import Combine
 import CoreHaptics
 import Popovers
+import CoreData
 import SwiftUI
 import UIKit
 

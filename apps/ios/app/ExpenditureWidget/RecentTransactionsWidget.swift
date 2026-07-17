@@ -19,14 +19,12 @@ struct RecentExpenditureWidget: Widget {
                 .systemSmall,
                 .systemLarge
             ]
-        } else if #available(iOSApplicationExtension 16, *) {
+        } else {
             return [
                 .accessoryRectangular,
                 .accessoryInline,
                 .systemSmall
             ]
-        } else {
-            return [.systemSmall]
         }
     }
 
