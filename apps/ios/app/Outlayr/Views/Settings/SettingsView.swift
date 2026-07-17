@@ -137,7 +137,6 @@ struct SettingsView: View {
   // popups
 
   @State var showImportGuide = false
-  @State var showUpdate: Bool = false
 
   @EnvironmentObject var tabBarManager: TabBarManager
 
@@ -444,26 +443,9 @@ struct SettingsView: View {
           .padding(.bottom, 15)
 
           VStack(spacing: 5) {
-            HStack(spacing: 3) {
-              Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-
-                //                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundColor(Color.SubtitleText)
-
-              Text("·")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-
-                .foregroundColor(Color.SubtitleText)
-
-              Text("What's New")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-
-                .foregroundColor(Color.PrimaryText)
-                .onTapGesture {
-                  showUpdate = true
-                }
-            }
+            Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
+              .font(.system(.footnote, design: .rounded).weight(.medium))
+              .foregroundColor(Color.SubtitleText)
 
             Text("Made with ❤️ by \(makeAttributedString()) from 🇸🇬")
               .font(.system(.footnote, design: .rounded).weight(.medium))
@@ -480,9 +462,6 @@ struct SettingsView: View {
       .navigationBarTitle("")
       .navigationBarHidden(true)
       .background(Color.PrimaryBackground)
-      .fullScreenCover(isPresented: $showUpdate) {
-        UpdateAlert()
-      }
       .fullScreenCover(isPresented: $showImportGuide) {
         ImportDataView()
       }

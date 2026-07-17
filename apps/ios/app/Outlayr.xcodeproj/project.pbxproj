@@ -127,7 +127,6 @@
 		53D0298128C62BF600443F2B /* Currency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D0297F28C5BC0300443F2B /* Currency.swift */; };
 		53D0298228C62E1A00443F2B /* StringExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B4287C6AFB00F76ADF /* StringExtension.swift */; };
 		53D250702AA6331600016013 /* TemplateTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D2506F2AA6331600016013 /* TemplateTransactionView.swift */; };
-		53D40B652AB1B2DB001D3866 /* UpdateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D40B642AB1B2DB001D3866 /* UpdateSheet.swift */; };
 		53D520FC2AAF1190000AC055 /* TemplateTransactionWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D520FB2AAF1190000AC055 /* TemplateTransactionWidget.swift */; };
 		53D5F02328A8E0E4004573C8 /* InsightsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D5F02228A8E0E4004573C8 /* InsightsWidget.swift */; };
 		53D5F02428A8E0E4004573C8 /* InsightsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D5F02228A8E0E4004573C8 /* InsightsWidget.swift */; };
@@ -331,7 +330,6 @@
 		53BC2A412A8B21920019E4A8 /* MainModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MainModel.xcdatamodel; sourceTree = "<group>"; };
 		53D0297F28C5BC0300443F2B /* Currency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Currency.swift; sourceTree = "<group>"; };
 		53D2506F2AA6331600016013 /* TemplateTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTransactionView.swift; sourceTree = "<group>"; };
-		53D40B642AB1B2DB001D3866 /* UpdateSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateSheet.swift; sourceTree = "<group>"; };
 		53D520FB2AAF1190000AC055 /* TemplateTransactionWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTransactionWidget.swift; sourceTree = "<group>"; };
 		53D5F02228A8E0E4004573C8 /* InsightsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsWidget.swift; sourceTree = "<group>"; };
 		53D6BDC02AF6648300F5728E /* AlertButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertButtons.swift; sourceTree = "<group>"; };
@@ -571,7 +569,6 @@
 				53A4147628B3B559008C30E7 /* WelcomeSheetView.swift */,
 				5327D2CE287C6B5E00F76ADF /* TransactionView.swift */,
 				53D2506F2AA6331600016013 /* TemplateTransactionView.swift */,
-				53D40B642AB1B2DB001D3866 /* UpdateSheet.swift */,
 				5362CF312A92750800244744 /* ImportDataView.swift */,
 				5327D2D0287C6B5E00F76ADF /* HomeView.swift */,
 				5327D2D1287C6B5E00F76ADF /* TestView.swift */,
@@ -1082,7 +1079,6 @@
 				53A32B3828AB6C6400628905 /* Line.swift in Sources */,
 				5327D2C7287C6B2500F76ADF /* FilterType.swift in Sources */,
 				5321E1DC291FE02C00D5A931 /* CategoryCreationErrors.swift in Sources */,
-				53D40B652AB1B2DB001D3866 /* UpdateSheet.swift in Sources */,
 				5327D2BA287C6AFB00F76ADF /* ViewExtension.swift in Sources */,
 				5327D2DB287C6B5F00F76ADF /* LogView.swift in Sources */,
 				5362CF322A92750800244744 /* ImportDataView.swift in Sources */,
