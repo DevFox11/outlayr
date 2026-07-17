@@ -68,22 +68,115 @@ struct SingleTransactionView: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            Image(systemName: "xmark")
-//                .font(.system(size: 13, weight: .bold))
-                .font(.system(.caption, design: .rounded).weight(.bold))
-                .dynamicTypeSize(...DynamicTypeSize.xLarge)
-                .foregroundStyle(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
-                .padding(5)
-                .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.SecondaryBackground, in: Circle())
-//                .scaleEffect(imageScale)
-                .scaleEffect(deleteConfirm ? 1.1 : 1)
-                .contentShape(Circle())
-                .opacity(deleted ? 0 : 1)
-                .padding(.horizontal, 10)
-                .offset(x: 80)
-                .offset(x: max(-80, offset))
+            deleteIndicator
 
-            HStack(spacing: 12) {
+            rowContent
+        }
+        .onChange(of: deletePopup) { _ in
+            if deletePopup {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        }
+        .onChange(of: deleteConfirm) { _ in
+            if deleteConfirm {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+        }
+        .animation(.easeInOut, value: deletePopup)
+        .simultaneousGesture(
+            DragGesture()
+                .updating($isDragging, body: { _, state, _ in
+                    state = true
+                })
+                .onChanged { value in
+                    if value.translation.width < 0 {
+                        withAnimation {
+                            offset = value.translation.width
+                        }
+                    }
+                }
+                .onEnded { _ in
+                    if deleteConfirm {
+                        deleted = true
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            offset -= UIScreen.main.bounds.width
+                        }
+
+                        if future, transaction.wrappedDate < Date.now, transaction.recurringType > 0 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    transaction.recurringType = 0
+                                    dataController.save()
+                                }
+                            }
+                        } else {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                withAnimation {
+                                    moc.delete(transaction)
+                                    transactionManager.showToast = true
+                                    transactionManager.toDelete = transaction
+//                                    transactionManager.future = future
+//                                    transactionManager.toDelete = transaction
+//                                    transactionManager.deletionType = .instant
+                                }
+                            }
+                        }
+
+                    } else if deletePopup {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            offset = 0
+                        }
+
+                        transactionManager.future = future
+                        transactionManager.toDelete = transaction
+                        transactionManager.showPopup = true
+//
+//                        toDelete = transaction
+//                        deleteMode = true
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            offset = 0
+                        }
+                    }
+                }
+        )
+        .onChange(of: isDragging) { _ in
+            if !isDragging && !deleted {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    offset = 0
+                }
+            }
+        }
+        .onChange(of: transactionManager.toDelete) { newValue in
+            if newValue == nil {
+                deleted = false
+                offset = 0
+//                withAnimation(.easeInOut(duration: 0.3)){
+//                   offset = 0
+//                }
+            }
+        }
+    }
+
+    private var deleteIndicator: some View {
+        Image(systemName: "xmark")
+//                .font(.system(size: 13, weight: .bold))
+            .font(.system(.caption, design: .rounded).weight(.bold))
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
+            .foregroundStyle(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
+            .padding(5)
+            .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.SecondaryBackground, in: Circle())
+//                .scaleEffect(imageScale)
+            .scaleEffect(deleteConfirm ? 1.1 : 1)
+            .contentShape(Circle())
+            .opacity(deleted ? 0 : 1)
+            .padding(.horizontal, 10)
+            .offset(x: 80)
+            .offset(x: max(-80, offset))
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
                 EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
                              colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
                     .fixedSize(horizontal: true, vertical: true)
@@ -171,91 +264,6 @@ struct SingleTransactionView: View {
             .offset(x: offset)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Transaction Category: \(transaction.category?.wrappedName ?? "Unknown"), Transaction made at \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
-        }
-        .onChange(of: deletePopup) { _ in
-            if deletePopup {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
-        }
-        .onChange(of: deleteConfirm) { _ in
-            if deleteConfirm {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-        }
-        .animation(.easeInOut, value: deletePopup)
-        .simultaneousGesture(
-            DragGesture()
-                .updating($isDragging, body: { _, state, _ in
-                    state = true
-                })
-                .onChanged { value in
-                    if value.translation.width < 0 {
-                        withAnimation {
-                            offset = value.translation.width
-                        }
-                    }
-                }
-                .onEnded { _ in
-                    if deleteConfirm {
-                        deleted = true
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            offset -= UIScreen.main.bounds.width
-                        }
-
-                        if future, transaction.wrappedDate < Date.now, transaction.recurringType > 0 {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                withAnimation(.easeInOut(duration: 0.5)) {
-                                    transaction.recurringType = 0
-                                    dataController.save()
-                                }
-                            }
-                        } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                withAnimation {
-                                    moc.delete(transaction)
-                                    transactionManager.showToast = true
-                                    transactionManager.toDelete = transaction
-//                                    transactionManager.future = future
-//                                    transactionManager.toDelete = transaction
-//                                    transactionManager.deletionType = .instant
-                                }
-                            }
-                        }
-
-                    } else if deletePopup {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            offset = 0
-                        }
-
-                        transactionManager.future = future
-                        transactionManager.toDelete = transaction
-                        transactionManager.showPopup = true
-//
-//                        toDelete = transaction
-//                        deleteMode = true
-                    } else {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            offset = 0
-                        }
-                    }
-                }
-        )
-        .onChange(of: isDragging) { _ in
-            if !isDragging && !deleted {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    offset = 0
-                }
-            }
-        }
-        .onChange(of: transactionManager.toDelete) { newValue in
-            if newValue == nil {
-                deleted = false
-                offset = 0
-//                withAnimation(.easeInOut(duration: 0.3)){
-//                   offset = 0
-//                }
-            }
-        }
     }
 
     func getSubtitle() -> String {

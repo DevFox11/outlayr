@@ -209,104 +209,35 @@ struct HorizontalPieChartView: View {
     var body: some View {
         if !categories.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                if !categoryFilterMode {
-                    Text("Categories")
-                        .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .foregroundStyle(Color.SubtitleText)
+                barGraphSection
 
-                    GeometryReader { proxy in
-                        HStack(spacing: proxy.size.width * 0.015) {
-                            ForEach(categories) { category in
-                                if category.percent < 0.005 {
-                                    EmptyView()
-                                } else {
-                                    AnimatedHorizontalBarGraph(category: category, index: categories.firstIndex(of: category) ?? 0)
-                                        .frame(width: (proxy.size.width * (1.0 - (0.015 * Double(categories.count - 1)))) * category.percent)
-                                        .onTapGesture {
-                                            withAnimation(.easeInOut) {
-                                                if categoryFilter == category.category {
-                                                    selectedDate = nil
-                                                    categoryFilterMode = false
-                                                    categoryFilter = nil
-                                                } else {
-                                                    selectedDate = nil
-                                                    categoryFilterMode = true
-                                                    categoryFilter = category.category
-                                                    chosenAmount = category.percent * total
-                                                    chosenName = category.category.wrappedName
-                                                }
-                                            }
-                                        }
-                                        .opacity(categoryFilterMode ? (categoryFilter == category.category ? 1 : 0.5) : 1)
-                                        .overlay {
-                                            if categoryFilterMode && categoryFilter == category.category {
-                                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                    .stroke(Color.DarkBackground, lineWidth: 1.5)
-                                            }
-                                        }
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 17)
-                    .padding(.bottom, 10)
-                }
+                categoryListSection
+            }
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        }
+    }
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 10) {
-                        ForEach(categories, id: \.self) { category in
-                            if !categoryFilterMode || categoryFilter == category.category {
-                                let boxColor = category.category.income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.category.wrappedColour)
+    @ViewBuilder private var barGraphSection: some View {
+        if !categoryFilterMode {
+            Text("Categories")
+                .font(.system(.callout, design: .rounded).weight(.semibold))
+                .foregroundStyle(Color.SubtitleText)
 
-                                HStack(spacing: 10) {
-
-                                    Text(category.category.fullName)
-                                        .font(.system(.title3, design: .rounded).weight(.semibold))
-                                        .foregroundStyle(Color.PrimaryText)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    Text("\(currencySymbol)\(category.amount, specifier: (showCents && category.amount < 100) ? "%.2f" : "%.0f")")
-                                        .font(.system(categoryFilterMode && categoryFilter == category.category ? .title3 : .body, design: .rounded).weight(.medium))
-                                        .foregroundStyle(Color.SubtitleText)
-                                        .lineLimit(1)
-                                        .layoutPriority(1)
-
-                                    if categoryFilterMode && categoryFilter == category.category {
-                                        Button {
-                                            withAnimation(.easeInOut) {
-                                                selectedDate = nil
-                                                categoryFilterMode = false
-                                                categoryFilter = nil
-                                            }
-                                        } label: {
-                                            Image(systemName: "xmark")
-                                                .font(.system(.footnote, design: .rounded).weight(.bold))
-                                                .foregroundStyle(Color.SubtitleText)
-                                                .padding(5)
-                                                .background(Color.SecondaryBackground, in: Circle())
-                                        }
-
-                                    } else {
-
-                                        Text("\(category.percent * 100, specifier: "%.0f")%")
-                                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                            .foregroundStyle(boxColor)
-                                            .padding(.vertical, 3)
-                                            .frame(width: percentWidth)
-                                            .background(boxColor.opacity(0.23), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                    }
-                                }
-                                .padding(.vertical, categoryFilterMode && categoryFilter == category.category ? 10 : 5)
-                                .padding(.horizontal, categoryFilterMode && categoryFilter == category.category ? 10 : 0)
-                                .background(RoundedRectangle(cornerRadius: 12).fill(categoryFilterMode && categoryFilter == category.category ? Color.TertiaryBackground : Color.PrimaryBackground))
-                                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(categoryFilterMode && categoryFilter == category.category ? Color.Outline : Color.clear, lineWidth: 1.3))
-                                .fixedSize(horizontal: false, vertical: true)
-                                .contentShape(Rectangle())
-                                .drawingGroup()
+            GeometryReader { proxy in
+                HStack(spacing: proxy.size.width * 0.015) {
+                    ForEach(categories) { category in
+                        if category.percent < 0.005 {
+                            EmptyView()
+                        } else {
+                            AnimatedHorizontalBarGraph(category: category, index: categories.firstIndex(of: category) ?? 0)
+                                .frame(width: (proxy.size.width * (1.0 - (0.015 * Double(categories.count - 1)))) * category.percent)
                                 .onTapGesture {
                                     withAnimation(.easeInOut) {
-                                        if !categoryFilterMode {
+                                        if categoryFilter == category.category {
+                                            selectedDate = nil
+                                            categoryFilterMode = false
+                                            categoryFilter = nil
+                                        } else {
                                             selectedDate = nil
                                             categoryFilterMode = true
                                             categoryFilter = category.category
@@ -315,14 +246,91 @@ struct HorizontalPieChartView: View {
                                         }
                                     }
                                 }
-
-                            }
-
+                                .opacity(categoryFilterMode ? (categoryFilter == category.category ? 1 : 0.5) : 1)
+                                .overlay {
+                                    if categoryFilterMode && categoryFilter == category.category {
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .stroke(Color.DarkBackground, lineWidth: 1.5)
+                                    }
+                                }
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .frame(height: 17)
+            .padding(.bottom, 10)
+        }
+    }
+
+    private var categoryListSection: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 10) {
+                ForEach(categories, id: \.self) { category in
+                    if !categoryFilterMode || categoryFilter == category.category {
+                        let boxColor = category.category.income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.category.wrappedColour)
+
+                        HStack(spacing: 10) {
+
+                            Text(category.category.fullName)
+                                .font(.system(.title3, design: .rounded).weight(.semibold))
+                                .foregroundStyle(Color.PrimaryText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Text("\(currencySymbol)\(category.amount, specifier: (showCents && category.amount < 100) ? "%.2f" : "%.0f")")
+                                .font(.system(categoryFilterMode && categoryFilter == category.category ? .title3 : .body, design: .rounded).weight(.medium))
+                                .foregroundStyle(Color.SubtitleText)
+                                .lineLimit(1)
+                                .layoutPriority(1)
+
+                            if categoryFilterMode && categoryFilter == category.category {
+                                Button {
+                                    withAnimation(.easeInOut) {
+                                        selectedDate = nil
+                                        categoryFilterMode = false
+                                        categoryFilter = nil
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(.footnote, design: .rounded).weight(.bold))
+                                        .foregroundStyle(Color.SubtitleText)
+                                        .padding(5)
+                                        .background(Color.SecondaryBackground, in: Circle())
+                                }
+
+                            } else {
+
+                                Text("\(category.percent * 100, specifier: "%.0f")%")
+                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                    .foregroundStyle(boxColor)
+                                    .padding(.vertical, 3)
+                                    .frame(width: percentWidth)
+                                    .background(boxColor.opacity(0.23), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                        }
+                        .padding(.vertical, categoryFilterMode && categoryFilter == category.category ? 10 : 5)
+                        .padding(.horizontal, categoryFilterMode && categoryFilter == category.category ? 10 : 0)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(categoryFilterMode && categoryFilter == category.category ? Color.TertiaryBackground : Color.PrimaryBackground))
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(categoryFilterMode && categoryFilter == category.category ? Color.Outline : Color.clear, lineWidth: 1.3))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .contentShape(Rectangle())
+                        .drawingGroup()
+                        .onTapGesture {
+                            withAnimation(.easeInOut) {
+                                if !categoryFilterMode {
+                                    selectedDate = nil
+                                    categoryFilterMode = true
+                                    categoryFilter = category.category
+                                    chosenAmount = category.percent * total
+                                    chosenName = category.category.wrappedName
+                                }
+                            }
+                        }
+
+                    }
+
+                }
+            }
         }
     }
 

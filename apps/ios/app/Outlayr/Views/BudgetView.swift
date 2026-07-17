@@ -386,65 +386,9 @@ struct MainBudgetView: View {
 
     var body: some View {
         VStack(spacing: 5) {
-            ZStack(alignment: .bottom) {
-                ZStack {
-                    DonutSemicircle(percent: 1, cornerRadius: 6.5, width: soloBudget ? 35 : 25)
-                        .fill(Color.SecondaryBackground)
-                        .frame(width: width, height: width / 2)
+            gaugeSection
 
-                    if totalSpent / budgetAmount < 0.97 {
-                        AnimatedCurvedBarGraphMainBudget(transactions: transactions, budgetTotal: budgetAmount, cornerRadius: 6.5, width: soloBudget ? 35 : 25)
-                            .frame(width: width, height: width / 2)
-                    }
-                }
-                .overlay(alignment: .top) {
-                    if budget.type != 1 && totalSpent < budgetAmount && targetPercent > 0 {
-                        RoundedTriangle(cornerRadius: 2)
-
-                            .fill((targetPercent * budgetAmount) < (budgetAmount - totalSpent) ? Color.SubtitleText : Color.BudgetRed)
-                            .frame(width: 20, height: 10)
-                            .rotationEffect(Angle(degrees: triangleRotation), anchor: .bottom)
-                            .offset(x: triangleOffset.x, y: triangleOffset.y)
-                    }
-                }
-
-                CurvedText(text: String(localized: "OVERALL SPENT: \(percentString1)"), radius: width / 2 + 8)
-                    .font(.system(.footnote, design: .rounded).weight(.medium))
-//                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.SubtitleText)
-                    .frame(width: width, height: 10)
-
-                VStack(spacing: -4) {
-                    let internalWidth = soloBudget ? width - 90 : width - 60
-                    BudgetDollarView(amount: difference, red: totalSpent >= budgetAmount, scale: 3, size: internalWidth)
-                        .frame(width: internalWidth)
-
-                    Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
-                        .font(.system(.subheadline, design: .rounded).weight(.medium))
-//                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText)
-                }
-            }
-
-            HStack {
-                if totalSpent < 1000 && budgetAmount < 1000 {
-                    Text("\(totalSpent, specifier: "%.2f")")
-                        .frame(width: 60, alignment: .leading)
-                    Spacer()
-                    Text("\(budgetAmount, specifier: "%.2f")")
-                        .frame(width: 60, alignment: .trailing)
-                } else {
-                    Text("\(Int(round(totalSpent)))")
-                        .frame(width: 60, alignment: .leading)
-                    Spacer()
-                    Text("\(Int(round(budgetAmount)))")
-                        .frame(width: 60, alignment: .trailing)
-                }
-            }
-            .font(.system(.caption2, design: .rounded).weight(.medium))
-//            .font(.system(size: 10, weight: .medium, design: .rounded))
-            .frame(width: width)
-            .foregroundStyle(Color.SubtitleText)
+            amountLabels
         }
         .padding(.bottom)
         .frame(width: width + 30, height: soloBudget ? 230 : 200, alignment: .bottom)
@@ -486,6 +430,70 @@ struct MainBudgetView: View {
         }) { budget in
             DeleteMainBudgetAlert(toDelete: budget)
         }
+    }
+
+    private var gaugeSection: some View {
+        ZStack(alignment: .bottom) {
+                ZStack {
+                    DonutSemicircle(percent: 1, cornerRadius: 6.5, width: soloBudget ? 35 : 25)
+                        .fill(Color.SecondaryBackground)
+                        .frame(width: width, height: width / 2)
+
+                    if totalSpent / budgetAmount < 0.97 {
+                        AnimatedCurvedBarGraphMainBudget(transactions: transactions, budgetTotal: budgetAmount, cornerRadius: 6.5, width: soloBudget ? 35 : 25)
+                            .frame(width: width, height: width / 2)
+                    }
+                }
+                .overlay(alignment: .top) {
+                    if budget.type != 1 && totalSpent < budgetAmount && targetPercent > 0 {
+                        RoundedTriangle(cornerRadius: 2)
+
+                            .fill((targetPercent * budgetAmount) < (budgetAmount - totalSpent) ? Color.SubtitleText : Color.BudgetRed)
+                            .frame(width: 20, height: 10)
+                            .rotationEffect(Angle(degrees: triangleRotation), anchor: .bottom)
+                            .offset(x: triangleOffset.x, y: triangleOffset.y)
+                    }
+                }
+
+                CurvedText(text: String(localized: "OVERALL SPENT: \(percentString1)"), radius: width / 2 + 8)
+                    .font(.system(.footnote, design: .rounded).weight(.medium))
+//                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.SubtitleText)
+                    .frame(width: width, height: 10)
+
+                VStack(spacing: -4) {
+                    let internalWidth = soloBudget ? width - 90 : width - 60
+                    BudgetDollarView(amount: difference, red: totalSpent >= budgetAmount, scale: 3, size: internalWidth)
+                        .frame(width: internalWidth)
+
+                    Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
+                        .font(.system(.subheadline, design: .rounded).weight(.medium))
+//                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.SubtitleText)
+                }
+            }
+    }
+
+    private var amountLabels: some View {
+        HStack {
+                if totalSpent < 1000 && budgetAmount < 1000 {
+                    Text("\(totalSpent, specifier: "%.2f")")
+                        .frame(width: 60, alignment: .leading)
+                    Spacer()
+                    Text("\(budgetAmount, specifier: "%.2f")")
+                        .frame(width: 60, alignment: .trailing)
+                } else {
+                    Text("\(Int(round(totalSpent)))")
+                        .frame(width: 60, alignment: .leading)
+                    Spacer()
+                    Text("\(Int(round(budgetAmount)))")
+                        .frame(width: 60, alignment: .trailing)
+                }
+            }
+            .font(.system(.caption2, design: .rounded).weight(.medium))
+//            .font(.system(size: 10, weight: .medium, design: .rounded))
+            .frame(width: width)
+            .foregroundStyle(Color.SubtitleText)
     }
 
     init(budget: MainBudget, solo: Bool) {
@@ -659,7 +667,27 @@ struct SingleBudgetView: View {
     var body: some View {
         Group {
             if budgetRows {
-                ZStack(alignment: .trailing) {
+                rowLayout
+            } else {
+                cardLayout
+            }
+        }
+        .onAppear {
+            if budget.isFault {
+                return
+            }
+
+            var holdingTotal = 0.0
+            transactions.forEach { transaction in
+                holdingTotal += transaction.wrappedAmount
+            }
+
+            totalSpent = holdingTotal
+        }
+    }
+
+    private var rowLayout: some View {
+        ZStack(alignment: .trailing) {
                     Image(systemName: "xmark")
                         .font(.system(.footnote, design: .rounded).weight(.bold))
 //                        .font(.system(size: 13, weight: .bold))
@@ -786,8 +814,10 @@ struct SingleBudgetView: View {
                         }
                     }
                 }
-            } else {
-                VStack {
+    }
+
+    private var cardLayout: some View {
+        VStack {
                     HStack {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
@@ -881,20 +911,6 @@ struct SingleBudgetView: View {
                         Label("Delete", systemImage: "xmark.bin")
                     }
                 }
-            }
-        }
-        .onAppear {
-            if budget.isFault {
-                return
-            }
-
-            var holdingTotal = 0.0
-            transactions.forEach { transaction in
-                holdingTotal += transaction.wrappedAmount
-            }
-
-            totalSpent = holdingTotal
-        }
     }
 
     init(budget: Budget, toDelete: Binding<Budget?>?, toEdit: Binding<Budget?>?, budgetRows: Bool) {
