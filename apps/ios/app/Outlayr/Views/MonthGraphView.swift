@@ -216,7 +216,7 @@ struct MonthGraphView: View {
                     categoryFilterMode = false
                 }
                 .padding(.bottom, incomeFiltering ? 5 : 20)
-                
+
                 Group {
                     if !incomeFiltering {
                         FilteredInsightsView(startDate: showingMonth, type: 2)

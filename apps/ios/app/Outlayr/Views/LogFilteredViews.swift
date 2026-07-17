@@ -119,7 +119,7 @@ struct FilteredDateView: View {
     @AppStorage("swapTimeLabel", store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
 
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
-    
+
     @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
     var showExpenseOrIncomeSign: Bool = true
 

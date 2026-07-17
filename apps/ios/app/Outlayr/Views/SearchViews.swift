@@ -59,7 +59,7 @@ struct SearchView: View {
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                 }
             }
-            
+
             ScrollView {
                 if searchQuery == "" {
                     EmptyView()

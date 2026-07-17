@@ -66,7 +66,7 @@ struct ListView: View {
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
-    
+
     @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
     var showExpenseOrIncomeSign: Bool = true
 
@@ -205,7 +205,7 @@ struct FutureListView: View {
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
-    
+
     @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
     var showExpenseOrIncomeSign: Bool = true
 
