@@ -61,68 +61,53 @@ class AppLockViewModel {
         return isBiometricAvailable
     }
 
-    // This method used to change the AppLock state.
-    // If user is going to enable the AppLock then 'appLockState' should be 'true' and vice versa
-    func appLockStateChange(appLockState: Bool) {
+    // This method is used to change the AppLock state.
+    // If the user is going to enable the AppLock then 'appLockState' should be 'true' and vice versa
+    func appLockStateChange(appLockState: Bool) async {
         let laContext = LAContext()
-        if checkIfBioMetricAvailable() {
-            var reason = ""
-            if appLockState {
-                reason = "Provice Touch ID/Face ID to enable App Lock"
-            } else {
-                reason = "Provice Touch ID/Face ID to disable App Lock"
-            }
-
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, error in
-                if success {
-                    if appLockState {
-                        DispatchQueue.main.async {
-                            self.enableAppLock()
-                            self.isAppUnLocked = true
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            self.disableAppLock()
-                            self.isAppUnLocked = true
-                        }
-                    }
-                } else {
-                    if let error = error {
-                        DispatchQueue.main.async {
-                            print(error.localizedDescription)
-                        }
-                    }
-                }
-            }
-        } else {
+        guard checkIfBioMetricAvailable() else {
             if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(settingsURL)
+                _ = await UIApplication.shared.open(settingsURL)
             }
+            return
+        }
+
+        let reason = appLockState
+            ? "Provice Touch ID/Face ID to enable App Lock"
+            : "Provice Touch ID/Face ID to disable App Lock"
+
+        do {
+            let didSucceed = try await laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
+            if didSucceed {
+                if appLockState {
+                    enableAppLock()
+                } else {
+                    disableAppLock()
+                }
+                isAppUnLocked = true
+            }
+        } catch {
+            print(error.localizedDescription)
         }
     }
 
-    // This method will call on every launch of the app if user has enabled AppLock
-    func appLockValidation() {
+    // This method is called on every launch of the app if the user has enabled AppLock
+    func appLockValidation() async {
         let laContext = LAContext()
-        if checkIfBioMetricAvailable() {
-            let reason = "Enable App Lock"
-            laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, error in
-                if success {
-                    DispatchQueue.main.async {
-                        self.isAppUnLocked = true
-                    }
-                } else {
-                    if let error = error {
-                        DispatchQueue.main.async {
-                            print(error.localizedDescription)
-                        }
-                    }
-                }
-            }
-        } else {
+        guard checkIfBioMetricAvailable() else {
             if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(settingsURL)
+                _ = await UIApplication.shared.open(settingsURL)
             }
+            return
+        }
+
+        do {
+            let didSucceed = try await laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Enable App Lock")
+            if didSucceed {
+                isAppUnLocked = true
+            }
+        } catch {
+            print(error.localizedDescription)
         }
     }
 }

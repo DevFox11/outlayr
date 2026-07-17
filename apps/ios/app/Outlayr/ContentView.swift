@@ -54,7 +54,7 @@ struct ContentView: View {
 //            WidgetCenter.shared.reloadTimelines(ofKind: "TemplateTransactions")
 
             if appLockVM.isAppLockEnabled {
-                appLockVM.appLockValidation()
+                Task { await appLockVM.appLockValidation() }
             }
 
             let defaults =

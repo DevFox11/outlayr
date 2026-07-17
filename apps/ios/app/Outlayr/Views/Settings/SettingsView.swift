@@ -203,7 +203,7 @@ struct SettingsView: View {
                 icon: "faceid", color: "105", text: "Authentication",
                 bool: appLockVM.isAppLockEnabled,
                 onTap: {
-                  appLockVM.appLockStateChange(appLockState: !appLockVM.isAppLockEnabled)
+                  Task { await appLockVM.appLockStateChange(appLockState: !appLockVM.isAppLockEnabled) }
                 })
 
               ToggleRow(

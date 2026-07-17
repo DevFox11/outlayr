@@ -201,7 +201,7 @@ struct AppLockView: View {
                 .padding(.bottom, 30)
 
             Button {
-                appLockVM.appLockValidation()
+                Task { await appLockVM.appLockValidation() }
             } label: {
                 HStack {
                     Image(systemName: "faceid")
