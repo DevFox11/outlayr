@@ -161,6 +161,13 @@
 		7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */; };
 		7A875E413009D29100819E25 /* BudgetAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E403009D29100819E25 /* BudgetAlerts.swift */; };
 		7A875E433009D2A000819E25 /* BudgetStepperView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E423009D2A000819E25 /* BudgetStepperView.swift */; };
+		7A875E453009D3BE00819E25 /* FilteredInsightsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E443009D3BE00819E25 /* FilteredInsightsViews.swift */; };
+		7A875E473009D3EA00819E25 /* SingleGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E463009D3EA00819E25 /* SingleGraphView.swift */; };
+		7A875E493009D41E00819E25 /* WeekGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E483009D41E00819E25 /* WeekGraphView.swift */; };
+		7A875E4B3009D45200819E25 /* MonthGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E4A3009D45200819E25 /* MonthGraphView.swift */; };
+		7A875E4D3009D48000819E25 /* YearGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E4C3009D48000819E25 /* YearGraphView.swift */; };
+		7A875E4F3009D49E00819E25 /* InsightsChartComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E4E3009D49E00819E25 /* InsightsChartComponents.swift */; };
+		7A875E513009D4A900819E25 /* InsightsHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E503009D4A900819E25 /* InsightsHelpers.swift */; };
 		7B9C8801231DD991ABF50E3D /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */; };
 		88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */; };
@@ -372,6 +379,13 @@
 		7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDollarView.swift; sourceTree = "<group>"; };
 		7A875E403009D29100819E25 /* BudgetAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetAlerts.swift; sourceTree = "<group>"; };
 		7A875E423009D2A000819E25 /* BudgetStepperView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStepperView.swift; sourceTree = "<group>"; };
+		7A875E443009D3BE00819E25 /* FilteredInsightsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilteredInsightsViews.swift; sourceTree = "<group>"; };
+		7A875E463009D3EA00819E25 /* SingleGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleGraphView.swift; sourceTree = "<group>"; };
+		7A875E483009D41E00819E25 /* WeekGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekGraphView.swift; sourceTree = "<group>"; };
+		7A875E4A3009D45200819E25 /* MonthGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthGraphView.swift; sourceTree = "<group>"; };
+		7A875E4C3009D48000819E25 /* YearGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearGraphView.swift; sourceTree = "<group>"; };
+		7A875E4E3009D49E00819E25 /* InsightsChartComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsChartComponents.swift; sourceTree = "<group>"; };
+		7A875E503009D4A900819E25 /* InsightsHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsHelpers.swift; sourceTree = "<group>"; };
 		7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSVExportCharacterizationTests.swift; sourceTree = "<group>"; };
 		86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppIdentifiers.swift; sourceTree = "<group>"; };
 		871417FF7CEC87B666036AF3 /* BudgetRolloverCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetRolloverCharacterizationTests.swift; sourceTree = "<group>"; };
@@ -617,6 +631,13 @@
 				7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */,
 				7A875E403009D29100819E25 /* BudgetAlerts.swift */,
 				7A875E423009D2A000819E25 /* BudgetStepperView.swift */,
+				7A875E443009D3BE00819E25 /* FilteredInsightsViews.swift */,
+				7A875E463009D3EA00819E25 /* SingleGraphView.swift */,
+				7A875E483009D41E00819E25 /* WeekGraphView.swift */,
+				7A875E4A3009D45200819E25 /* MonthGraphView.swift */,
+				7A875E4C3009D48000819E25 /* YearGraphView.swift */,
+				7A875E4E3009D49E00819E25 /* InsightsChartComponents.swift */,
+				7A875E503009D4A900819E25 /* InsightsHelpers.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1054,6 +1075,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A875E513009D4A900819E25 /* InsightsHelpers.swift in Sources */,
 				536A2A152A59C47400D81E02 /* Wiggle.swift in Sources */,
 				AEADEF742AE94DC3006EB614 /* ToolbarButton.swift in Sources */,
 				53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */,
@@ -1075,6 +1097,7 @@
 				53B7D0D129701DB700F81002 /* MainBudgetWidget.swift in Sources */,
 				AEADEF752AE94DC3006EB614 /* Toolbar.swift in Sources */,
 				5327D2C8287C6B2500F76ADF /* ChartTimeFrame.swift in Sources */,
+				7A875E4D3009D48000819E25 /* YearGraphView.swift in Sources */,
 				536FA6C12A7E05C600C52490 /* GetInsightsIntent.swift in Sources */,
 				533D1C3E2AE8023B00894764 /* PencilShape.swift in Sources */,
 				532C58BC2A629C3900DA2C81 /* NewBudgetView.swift in Sources */,
@@ -1088,6 +1111,7 @@
 				53B1D1A5289383B100E28062 /* FontExtension.swift in Sources */,
 				5327D2C5287C6B2500F76ADF /* PowerCategory.swift in Sources */,
 				5358E9172AC86DA1003E8CA9 /* SingleTransactionPhotoView.swift in Sources */,
+				7A875E4F3009D49E00819E25 /* InsightsChartComponents.swift in Sources */,
 				530C9DFD28ACE14A0038535F /* BudgetWidget.swift in Sources */,
 				53D6BDE12AF73FAB00F5728E /* SettingsSubviewModifier.swift in Sources */,
 				5327D2C6287C6B2500F76ADF /* BudgetTimeFrame.swift in Sources */,
@@ -1097,6 +1121,7 @@
 				53E832E72B0B067B000CBBA0 /* TransactionCategoryPicker.swift in Sources */,
 				7A875E3B3009D25E00819E25 /* TimeBudgetViews.swift in Sources */,
 				5327D2D6287C6B5E00F76ADF /* CategoryView.swift in Sources */,
+				7A875E453009D3BE00819E25 /* FilteredInsightsViews.swift in Sources */,
 				53B9079B2AE818710001F496 /* RoundedTriangle.swift in Sources */,
 				533D1C3C2AE7BB6900894764 /* DynamicType.swift in Sources */,
 				53A839C128D732E1006F227C /* TabBarHiding.swift in Sources */,
@@ -1104,6 +1129,7 @@
 				53E832E52B0A2CAF000CBBA0 /* InsightsSummaryBlock.swift in Sources */,
 				5327D2C9287C6B2500F76ADF /* SupportEmail.swift in Sources */,
 				5327D2DC287C6B5F00F76ADF /* BudgetView.swift in Sources */,
+				7A875E473009D3EA00819E25 /* SingleGraphView.swift in Sources */,
 				5327D2DE287C6B5F00F76ADF /* CustomTabBar.swift in Sources */,
 				5327D2D7287C6B5F00F76ADF /* TransactionView.swift in Sources */,
 				53D6BDDA2AF73DE900F5728E /* SettingsCloudView.swift in Sources */,
@@ -1126,6 +1152,7 @@
 				AEADEF6F2AE94DA3006EB614 /* Toast.swift in Sources */,
 				53A32B3828AB6C6400628905 /* Line.swift in Sources */,
 				5327D2C7287C6B2500F76ADF /* FilterType.swift in Sources */,
+				7A875E4B3009D45200819E25 /* MonthGraphView.swift in Sources */,
 				5321E1DC291FE02C00D5A931 /* CategoryCreationErrors.swift in Sources */,
 				7A875E413009D29100819E25 /* BudgetAlerts.swift in Sources */,
 				5327D2BA287C6AFB00F76ADF /* ViewExtension.swift in Sources */,
@@ -1151,6 +1178,7 @@
 				53A4147928B6625D008C30E7 /* AppDelegate.swift in Sources */,
 				7A875E433009D2A000819E25 /* BudgetStepperView.swift in Sources */,
 				5327D2DD287C6B5F00F76ADF /* InsightsView.swift in Sources */,
+				7A875E493009D41E00819E25 /* WeekGraphView.swift in Sources */,
 				0612B7529D9963A96A87270F /* CSVExport.swift in Sources */,
 				DC98064B534B0D575C4C0710 /* CurvedText.swift in Sources */,
 				6D266457A008415544313BFE /* AppIdentifiers.swift in Sources */,
