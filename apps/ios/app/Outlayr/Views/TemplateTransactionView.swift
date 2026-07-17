@@ -71,7 +71,7 @@ struct TemplateTransactionView: View {
     @State var showCategoryPicker = false
     @State var showCategorySheet = false
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -544,7 +544,7 @@ struct TemplateTransactionView: View {
         .frame(maxHeight: .infinity)
         .background(Color.PrimaryBackground)
         .edgesIgnoringSafeArea(.all)
-        .onChange(of: showToast) { newValue in
+        .onChange(of: showToast) { _, newValue in
             if newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showToast = false
@@ -813,7 +813,7 @@ struct CategoryRowPickerView: View {
                                         }
                                     }
                                 }
-                                .onChange(of: income) { newValue in
+                                .onChange(of: income) { _, newValue in
                                     if newValue {
                                         if let firstCategory = incomeCategories.first {
                                             value.scrollTo(firstCategory.id, anchor: .leading)
@@ -950,7 +950,7 @@ struct SettingsQuickAddWidgetView: View {
 struct SettingsQuickAddWidgetDraggingView: View {
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
 
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!

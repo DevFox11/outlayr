@@ -52,7 +52,7 @@ struct SettingsCloudView: View {
           .onTapGesture {
             iCloudStorage.toggle()
           }
-          .onChange(of: iCloudStorage) { newValue in
+          .onChange(of: iCloudStorage) { _, newValue in
             NSUbiquitousKeyValueStore.default.set(newValue, forKey: "icloud_sync")
           }
         }

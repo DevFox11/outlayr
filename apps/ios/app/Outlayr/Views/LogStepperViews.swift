@@ -121,7 +121,7 @@ struct CategoryStepperView: View {
                 categoryFilter = categories[0]
             }
         }
-        .onChange(of: income) { _ in
+        .onChange(of: income) { _, _ in
             if categories.isEmpty {
                 categoryFilter = nil
             } else {

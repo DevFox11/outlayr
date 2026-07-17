@@ -140,7 +140,7 @@ struct DeleteAllAlert: View {
               self.completedLongPress.toggle()
             }
         )
-        .onChange(of: completedLongPress) { _ in
+        .onChange(of: completedLongPress) { _, _ in
           if completedLongPress {
             let impactMed = UIImpactFeedbackGenerator(style: .heavy)
             impactMed.impactOccurred()

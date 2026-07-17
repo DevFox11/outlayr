@@ -85,7 +85,7 @@ struct SettingsHapticsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .modifier(SettingsSubviewModifier())
-        .onChange(of: hapticType) { newValue in
+        .onChange(of: hapticType) { _, newValue in
             if newValue == 2 {
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
 

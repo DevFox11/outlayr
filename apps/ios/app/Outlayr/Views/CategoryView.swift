@@ -203,7 +203,7 @@ struct CategoryListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.PrimaryBackground)
         .animation(.easeOut(duration: 0.2), value: showToast)
-        .onChange(of: toDelete) { _ in
+        .onChange(of: toDelete) { _, _ in
             if toDelete != nil {
                 deleteMode = true
             }
@@ -223,14 +223,14 @@ struct CategoryListView: View {
                 EditCategoryAlert(toEdit: category, showRootToast: $showToast, rootToastTitle: $toastTitle, rootToastImage: $toastImage, positive: $positive, bottomSpacers: true)
             }
         }
-        .onChange(of: showToast) { newValue in
+        .onChange(of: showToast) { _, newValue in
             if newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showToast = false
                 }
             }
         }
-        .onChange(of: showSuggestions) { newValue in
+        .onChange(of: showSuggestions) { _, newValue in
             if !newValue {
                 toastTitle = "Suggestions Hidden"
                 toastImage = "eye.slash"

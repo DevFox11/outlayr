@@ -148,7 +148,7 @@ struct DetailedBudgetDollarView: View {
     var amount: Double
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -176,7 +176,7 @@ struct DetailedBudgetDifferenceDollarView: View {
 
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

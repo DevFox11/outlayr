@@ -5,6 +5,7 @@
 //  Created by Rafael Soh on 20/5/22.
 //
 
+import CoreData
 import Foundation
 import SwiftUI
 
@@ -283,7 +284,7 @@ struct MainBudgetView: View {
         }
     }
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -605,7 +606,7 @@ struct SingleBudgetView: View {
         }
     }
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -760,12 +761,12 @@ struct SingleBudgetView: View {
                     .offset(x: offset)
                 }
                 .padding(.horizontal, 30)
-                .onChange(of: deletePopup) { _ in
+                .onChange(of: deletePopup) { _, _ in
                     if deletePopup {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
                 }
-                .onChange(of: deleteConfirm) { _ in
+                .onChange(of: deleteConfirm) { _, _ in
                     if deleteConfirm {
                         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                     }
@@ -807,7 +808,7 @@ struct SingleBudgetView: View {
                             }
                         }
                 )
-                .onChange(of: isDragging) { _ in
+                .onChange(of: isDragging) { _, _ in
                     if !isDragging && !deleted {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             offset = 0

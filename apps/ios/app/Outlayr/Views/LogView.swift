@@ -25,7 +25,7 @@ struct LogView: View {
 
     var topEdge: CGFloat
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -100,7 +100,7 @@ struct LogView: View {
         .fullScreenCover(isPresented: $searchMode) {
             SearchView()
         }
-        .onChange(of: syncMonitor.syncStateSummary) { newState in
+        .onChange(of: syncMonitor.syncStateSummary) { _, newState in
             if newState == .succeeded && !updatedRecurring {
                 dataController.updateRecurringTransactions()
                 updatedRecurring = true
@@ -122,7 +122,7 @@ struct LogView: View {
                 dataController.updateRecurringTransactions()
             }
         }
-        .onChange(of: launchSearch) { _ in
+        .onChange(of: launchSearch) { _, _ in
             searchMode = true
         }
         .onAppear {
@@ -286,7 +286,7 @@ struct NumberView: AnimatableModifier {
 
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

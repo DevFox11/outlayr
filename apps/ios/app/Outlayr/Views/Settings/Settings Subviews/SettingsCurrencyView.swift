@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SettingsCurrencyView: View {
   @AppStorage("currency", store: AppIdentifiers.sharedDefaults)
-  var currencyCode: String = Locale.current.currencyCode!
+  var currencyCode: String = Locale.current.currency!.identifier
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
   @Environment(\.dynamicTypeSize) var dynamicTypeSize
 

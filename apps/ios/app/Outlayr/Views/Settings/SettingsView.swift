@@ -101,7 +101,7 @@ struct SettingsView: View {
     Bool = true
 
   @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency:
-    String = Locale.current.currencyCode!
+    String = Locale.current.currency!.identifier
 
   @AppStorage("incomeTracking", store: AppIdentifiers.sharedDefaults)
   var incomeTracking: Bool = true
@@ -229,13 +229,13 @@ struct SettingsView: View {
           }
           .padding(.horizontal, 20)
           .padding(.bottom, 25)
-          .onChange(of: currency) { _ in
+          .onChange(of: currency) { _, _ in
             WidgetCenter.shared.reloadAllTimelines()
           }
-          .onChange(of: firstWeekday) { _ in
+          .onChange(of: firstWeekday) { _, _ in
             WidgetCenter.shared.reloadAllTimelines()
           }
-          .onChange(of: showCents) { _ in
+          .onChange(of: showCents) { _, _ in
             WidgetCenter.shared.reloadAllTimelines()
           }
 
@@ -291,13 +291,13 @@ struct SettingsView: View {
           }
           .padding(.horizontal, 20)
           .padding(.bottom, 25)
-          .onChange(of: currency) { _ in
+          .onChange(of: currency) { _, _ in
             WidgetCenter.shared.reloadAllTimelines()
           }
-          .onChange(of: firstWeekday) { _ in
+          .onChange(of: firstWeekday) { _, _ in
             WidgetCenter.shared.reloadAllTimelines()
           }
-          .onChange(of: showCents) { _ in
+          .onChange(of: showCents) { _, _ in
             WidgetCenter.shared.reloadAllTimelines()
           }
 

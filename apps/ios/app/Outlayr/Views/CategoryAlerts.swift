@@ -283,19 +283,19 @@ struct NewCategoryAlert: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Color.PrimaryBackground)
         .animation(.easeOut(duration: 0.2), value: showToast)
-        .onChange(of: expenseCategories.count) { _ in
+        .onChange(of: expenseCategories.count) { _, _ in
             if expenseCategories.count == 24 {
                 dismiss()
             }
         }
-        .onChange(of: showToast) { newValue in
+        .onChange(of: showToast) { _, newValue in
             if newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showToast = false
                 }
             }
         }
-        .onChange(of: customSelectedColor) { _ in
+        .onChange(of: customSelectedColor) { _, _ in
             selectedColour = customSelectedColor.toHex() ?? "#FFFFFF"
         }
         .colorPickerSheet(isPresented: $showNativePicker, selection: $customSelectedColor, supportsAlpha: false, title: "")
@@ -683,7 +683,7 @@ struct EditCategoryAlert: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Color.PrimaryBackground)
         .animation(.easeOut(duration: 0.2), value: showToast)
-        .onChange(of: showToast) { newValue in
+        .onChange(of: showToast) { _, newValue in
             if newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showToast = false
@@ -695,17 +695,17 @@ struct EditCategoryAlert: View {
         }) { category in
             DeleteCategoryAlert(toDelete: category, deleted: $deleteMode)
         }
-        .onChange(of: expenseCategories.count) { _ in
+        .onChange(of: expenseCategories.count) { _, _ in
             if expenseCategories.count == 24 {
                 dismiss()
             }
         }
-        .onChange(of: customSelectedColor) { _ in
+        .onChange(of: customSelectedColor) { _, _ in
             print("changed")
             selectedColour = customSelectedColor.toHex() ?? "#FFFFFF"
         }
         .colorPickerSheet(isPresented: $showNativePicker, selection: $customSelectedColor, supportsAlpha: false, title: "")
-        .onChange(of: deleteMode) { _ in
+        .onChange(of: deleteMode) { _, _ in
             dismiss()
         }
         .onAppear {

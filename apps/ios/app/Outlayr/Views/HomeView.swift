@@ -6,6 +6,7 @@
 //
 
 import ConfettiSwiftUI
+import CoreData
 import Foundation
 import SwiftUI
 
@@ -136,7 +137,7 @@ struct HomeView: View {
             dataController.save()
             transactionManager.toDelete = nil
         })
-        .onChange(of: transactionManager.showPopup) { newValue in
+        .onChange(of: transactionManager.showPopup) { _, newValue in
             withAnimation {
                 showPopup = newValue
             }

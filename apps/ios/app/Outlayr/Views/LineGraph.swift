@@ -199,7 +199,7 @@ struct LineGraph: View {
             }))
         }
         .padding(.horizontal, 10)
-        .onChange(of: isDrag) { _ in
+        .onChange(of: isDrag) { _, _ in
             if !isDrag {
                 showPlot = false
             }
@@ -211,7 +211,7 @@ struct LineGraph: View {
                 }
             }
         }
-        .onChange(of: data) { _ in
+        .onChange(of: data) { _, _ in
 
             // MARK: ReAnimating When ever Plot Data Updates
 

@@ -93,15 +93,15 @@ struct CustomTabBar: View {
         }, content: {
             TransactionView(toEdit: nil)
         })
-        .onChange(of: launchAdd) { _ in
+        .onChange(of: launchAdd) { _, _ in
             addTransaction = true
         }
-        .onChange(of: addTransaction) { _ in
+        .onChange(of: addTransaction) { _, _ in
             if addTransaction {
                 count = transactions.count
             }
         }
-        .onChange(of: transactions.count) { _ in
+        .onChange(of: transactions.count) { _, _ in
             if !transactions.isEmpty {
                 self.animate = false
             } else {

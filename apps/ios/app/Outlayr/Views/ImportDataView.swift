@@ -362,7 +362,7 @@ struct ImportDataView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 0) {
                                 VStack(spacing: 0) {
-                                    ForEach(0 ..< (numberOfRows + 1)) { number in
+                                    ForEach(0 ..< (numberOfRows + 1), id: \.self) { number in
                                         if number == 0 {
                                             Rectangle()
                                                 .fill(Color.PrimaryBackground)
@@ -518,7 +518,7 @@ struct ImportDataView: View {
                                 .stroke(Color.SubtitleText, lineWidth: 2)
                                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                         }
-                        .onChange(of: dateFormatString) { newValue in
+                        .onChange(of: dateFormatString) { _, newValue in
                             let dateFormatter = DateFormatter()
                             dateFormatter.dateFormat = newValue
 
@@ -809,14 +809,14 @@ struct ImportDataView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: showToast)
-        .onChange(of: showToast) { newValue in
+        .onChange(of: showToast) { _, newValue in
             if newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showToast = false
                 }
             }
         }
-        .onChange(of: processingState) { newValue in
+        .onChange(of: processingState) { _, newValue in
             if newValue == .success {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     dismiss()

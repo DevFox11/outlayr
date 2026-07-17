@@ -189,7 +189,7 @@ struct SettingsNotificationsView: View {
         }
         .padding(.horizontal, 15)
         .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-        .onChange(of: option) { newValue in
+        .onChange(of: option) { _, newValue in
           AppIdentifiers.sharedDefaults!.set(
             option, forKey: "notificationOption")
 
@@ -204,7 +204,7 @@ struct SettingsNotificationsView: View {
 
           newNotification()
         }
-        .onChange(of: customTime) { _ in
+        .onChange(of: customTime) { _, _ in
           let components = Calendar.current.dateComponents([.hour, .minute], from: customTime)
 
           AppIdentifiers.sharedDefaults!.set(

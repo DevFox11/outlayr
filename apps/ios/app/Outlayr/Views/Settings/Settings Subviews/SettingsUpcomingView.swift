@@ -54,7 +54,7 @@ struct SettingsUpcomingView: View {
           .onTapGesture {
             showFuture.toggle()
           }
-          .onChange(of: showFuture) { newValue in
+          .onChange(of: showFuture) { _, newValue in
             AppIdentifiers.sharedDefaults!.set(
               newValue, forKey: "showUpcomingTransactions")
 
@@ -89,7 +89,7 @@ struct SettingsUpcomingView: View {
           .onTapGesture {
             showSoon.toggle()
           }
-          .onChange(of: showSoon) { newValue in
+          .onChange(of: showSoon) { _, newValue in
             AppIdentifiers.sharedDefaults!.set(
               newValue, forKey: "showUpcomingTransactionsWhenUpcoming")
           }

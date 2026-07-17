@@ -107,7 +107,7 @@ struct SettingsAppIconView: View {
       }
       .padding(.horizontal, 15)
       .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-      .onChange(of: activeIcon) { newValue in
+      .onChange(of: activeIcon) { _, newValue in
         // "AppIcon" is the primary on Release, so it is absent from CFBundleAlternateIcons
         // there and only nil restores it. Passing the name would fail outside Debug.
         UIApplication.shared.setAlternateIconName(newValue == "AppIcon" ? nil : newValue)

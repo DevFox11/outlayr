@@ -17,7 +17,7 @@ struct WeekGraphView: View {
         SortDescriptor(\.day)
     ]) private var transactions: FetchedResults<Transaction>
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -192,12 +192,12 @@ struct WeekGraphView: View {
                             }
                         }
                 )
-                .onChange(of: changeTime) { _ in
+                .onChange(of: changeTime) { _, _ in
                     if changeTime {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
                 }
-                .onChange(of: isDragging) { _ in
+                .onChange(of: isDragging) { _, _ in
                     if !isDragging && !changeDate {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             offset = 0
@@ -205,16 +205,16 @@ struct WeekGraphView: View {
                     }
                 }
                 .animation(.easeInOut, value: changeTime)
-                .onChange(of: showingWeek) { _ in
+                .onChange(of: showingWeek) { _, _ in
                     selectedDate = nil
                     categoryFilterMode = false
                     refreshID1 = UUID()
                 }
-                .onChange(of: income) { _ in
+                .onChange(of: income) { _, _ in
                     selectedDate = nil
                     categoryFilterMode = false
                 }
-                .onChange(of: incomeFiltering) { _ in
+                .onChange(of: incomeFiltering) { _, _ in
                     selectedDate = nil
                     categoryFilterMode = false
                 }
@@ -401,7 +401,7 @@ struct SingleWeekBarGraphView: View {
                 .id(refreshID)
 
         }
-        .onChange(of: selectedDate) { _ in
+        .onChange(of: selectedDate) { _, _ in
             selectedDateAmount = dayDictionary[selectedDate ?? Date.now] ?? 0.0
             refreshID = UUID()
         }

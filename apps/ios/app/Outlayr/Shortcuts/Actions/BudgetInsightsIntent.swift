@@ -100,7 +100,7 @@ struct ShortcutBudgetView: View {
 
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
 
     var budgetType: String {
         switch type {

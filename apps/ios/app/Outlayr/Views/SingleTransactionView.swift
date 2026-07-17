@@ -72,12 +72,12 @@ struct SingleTransactionView: View {
 
             rowContent
         }
-        .onChange(of: deletePopup) { _ in
+        .onChange(of: deletePopup) { _, _ in
             if deletePopup {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
-        .onChange(of: deleteConfirm) { _ in
+        .onChange(of: deleteConfirm) { _, _ in
             if deleteConfirm {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             }
@@ -140,14 +140,14 @@ struct SingleTransactionView: View {
                     }
                 }
         )
-        .onChange(of: isDragging) { _ in
+        .onChange(of: isDragging) { _, _ in
             if !isDragging && !deleted {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     offset = 0
                 }
             }
         }
-        .onChange(of: transactionManager.toDelete) { newValue in
+        .onChange(of: transactionManager.toDelete) { _, newValue in
             if newValue == nil {
                 deleted = false
                 offset = 0

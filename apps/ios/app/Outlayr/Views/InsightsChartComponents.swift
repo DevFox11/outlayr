@@ -65,7 +65,7 @@ struct ChartTimePickerView: View {
         .frame(width: 120)
         .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
-        .onChange(of: timeframe) { _ in
+        .onChange(of: timeframe) { _, _ in
             if timeframe == .week {
                 chartType = 1
             } else if timeframe == .month {

@@ -75,7 +75,7 @@ struct CustomRefreshView<Content: View>: View {
         .coordinateSpace(name: "SCROLL")
         .onAppear(perform: scrollDelegate.addGesture)
         .onDisappear(perform: scrollDelegate.removeGesture)
-        .onChange(of: scrollDelegate.isRefreshing) { _ in
+        .onChange(of: scrollDelegate.isRefreshing) { _, _ in
             if scrollDelegate.isRefreshing {
 //                scrollDelegate.vibrateAt25 = false
 //                scrollDelegate.vibrateAt50 = false

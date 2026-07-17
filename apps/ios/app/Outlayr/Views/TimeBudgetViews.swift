@@ -65,7 +65,7 @@ struct TimeBudgetView: View {
         }
     }
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -315,7 +315,7 @@ struct TimeBudgetView: View {
 struct FilteredCategoryDayBudgetView: View {
     @FetchRequest private var transactions: FetchedResults<Transaction>
     @Binding var totalSpent: Double
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -350,7 +350,7 @@ struct FilteredCategoryDayBudgetView: View {
                 totalSpent = holding
             }
         }
-        .onChange(of: date) { _ in
+        .onChange(of: date) { _, _ in
             DispatchQueue.main.async {
                 var holding = 0.0
                 transactions.forEach { transaction in
@@ -429,7 +429,7 @@ struct FilteredBudgetView: View {
                 totalSpent = holding
             }
         }
-        .onChange(of: date) { _ in
+        .onChange(of: date) { _, _ in
             DispatchQueue.main.async {
                 var holding = 0.0
                 transactions.forEach { day in
@@ -559,7 +559,7 @@ struct TimeMainBudgetView: View {
         }
     }
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
