@@ -422,15 +422,6 @@ struct SettingsView: View {
                   .frame(maxWidth: .infinity)
               }
 
-              Button {
-                if let url = URL(string: "https://www.x.com/rarfell") {
-                  UIApplication.shared.open(url)
-                }
-              } label: {
-                SettingsRowView(
-                  systemImage: "camera.fill", title: "Follow Rafael on X", colour: 129)
-              }
-
               NavigationLink(destination: SettingsAboutView()) {
                 SettingsRowView(
                   systemImage: "info.circle.fill", title: "About & Credits", colour: 130)
@@ -442,19 +433,11 @@ struct SettingsView: View {
           .padding(.horizontal, 20)
           .padding(.bottom, 15)
 
-          VStack(spacing: 5) {
-            Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
-              .font(.system(.footnote, design: .rounded).weight(.medium))
-              .foregroundColor(Color.SubtitleText)
-
-            Text("Made with ❤️ by \(makeAttributedString()) from 🇸🇬")
-              .font(.system(.footnote, design: .rounded).weight(.medium))
-
-              .foregroundColor(Color.SubtitleText)
-              .multilineTextAlignment(.center)
-          }
-          .padding(.horizontal, 25)
-          .padding(.bottom, 95)
+          Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
+            .font(.system(.footnote, design: .rounded).weight(.medium))
+            .foregroundColor(Color.SubtitleText)
+            .padding(.horizontal, 25)
+            .padding(.bottom, 95)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -506,14 +489,6 @@ struct SettingsView: View {
       }
     }
     .frame(maxWidth: .infinity)
-  }
-
-  func makeAttributedString() -> AttributedString {
-    var string = AttributedString("Rafael")
-    string.foregroundColor = Color.PrimaryText
-    string.link = URL(string: "https://www.x.com/rarfell")
-
-    return string
   }
 
   func shareSheet(url: String) {

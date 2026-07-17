@@ -40,10 +40,22 @@ struct SettingsAboutView: View {
           .foregroundColor(Color.PrimaryText)
           .fixedSize(horizontal: false, vertical: true)
 
-          Text("Based on Dime by Rafael Soh.")
-            .font(.system(.footnote, design: .rounded).weight(.medium))
-            .foregroundColor(Color.SubtitleText)
-            .fixedSize(horizontal: false, vertical: true)
+          // GPL-3.0 section 0 requires the interactive UI to carry a copyright
+          // notice, the no-warranty statement, the right to convey, and how to
+          // read the license. Section 5(a) requires marking the work modified
+          // and dating it. This block is where the app discharges that.
+          VStack(alignment: .leading, spacing: 8) {
+            Text("Outlayr is a modified version of Dime, forked in 2026 and changed since.")
+
+            Text("Copyright © 2022–2023 Rafael Soh and Dime contributors.\nModifications copyright © 2026 Daniel Esteves.")
+
+            Text(
+              "Outlayr comes with ABSOLUTELY NO WARRANTY, to the extent permitted by law. You may redistribute it under the terms of the GNU General Public License v3.0."
+            )
+          }
+          .font(.system(.footnote, design: .rounded).weight(.medium))
+          .foregroundColor(Color.SubtitleText)
+          .fixedSize(horizontal: false, vertical: true)
 
           VStack(spacing: 0) {
             LinkRow(icon: "chevron.left.forwardslash.chevron.right", title: "Outlayr on GitHub", url: outlayrRepo)
