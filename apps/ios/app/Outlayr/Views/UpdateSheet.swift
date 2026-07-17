@@ -22,7 +22,7 @@ struct UpdateAlert: View {
         WelcomeSheetFeatureRow(icon: "appclip", header: "Siri Shorcuts", subtitle: "3 new Siri shortcuts allow you to conveniently add new transactions or access insights."),
         WelcomeSheetFeatureRow(icon: "arrow.down.doc.fill", header: "Data Import", subtitle: "Transfer pre-existing logs from other applications with a step-by-step guide."),
         WelcomeSheetFeatureRow(icon: "sun.haze.fill", header: "Future Transactions", subtitle: "With date restrictions lifted, log and view upcoming expenses/incomes."),
-        WelcomeSheetFeatureRow(icon: "app.gift.fill", header: "App Icons", subtitle: "Choose from 3 new skeuomorphic icons beautifully crafted by the talented @rudra_dsigns."),
+        WelcomeSheetFeatureRow(icon: "app.gift.fill", header: "App Icons", subtitle: "Choose from 4 tonal variants of the mark: Ink, Hairline, Mono and Emboss."),
         WelcomeSheetFeatureRow(icon: "circle.grid.2x2.fill", header: "Re-designed Screens", subtitle: "Budget and category creation screens have been completely reworked."),
         WelcomeSheetFeatureRow(icon: "swatchpalette.fill", header: "Custom Category Colors", subtitle: "Using the stock iOS color picker, give your categories a long-awaited aesthetic refresh."),
         WelcomeSheetFeatureRow(icon: "exclamationmark.octagon.fill", header: "New Toasts", subtitle: "Similarly, alert toasts across the app have been re-designed."),

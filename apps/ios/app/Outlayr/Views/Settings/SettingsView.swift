@@ -30,14 +30,12 @@ struct SettingsView: View {
   @AppStorage("activeIcon", store: AppIdentifiers.sharedDefaults)
   var activeIcon: String = "AppIcon"
   var appIconString: String {
-    if activeIcon == "AppIcon1" {
-      return "v2.0"
-    } else if activeIcon == "AppIcon2" {
-      return "Unicorn"
-    } else if activeIcon == "AppIcon3" {
-      return "v1.5"
-    } else {
-      return "O.G."
+    switch activeIcon {
+    case "AppIcon1": return "Ink"
+    case "AppIcon2": return "Hairline"
+    case "AppIcon3": return "Mono"
+    case "AppIcon4": return "Emboss"
+    default: return "Default"
     }
   }
 

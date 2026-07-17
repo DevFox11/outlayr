@@ -22,17 +22,20 @@ struct SettingsAppIconView: View {
 
   let options: [AppIconBundle] = [
     AppIconBundle(
-      actualFileName: "AppIcon1", exampleFileName: "AppIcon1_EG", displayName: "V2.0",
-      displaySubtitle: "Designed by the brilliant @rudra_dsigns, check out his work on Twitter."),
+      actualFileName: "AppIcon", exampleFileName: "AppIcon_EG", displayName: "Default",
+      displaySubtitle: "The Outlayr mark on paper. The icon the app ships with."),
     AppIconBundle(
-      actualFileName: "AppIcon2", exampleFileName: "AppIcon2_EG", displayName: "Unicorn",
-      displaySubtitle: "Outlayr definitely isn't becoming one but it never hurts to keep dreaming."),
+      actualFileName: "AppIcon1", exampleFileName: "AppIcon1_EG", displayName: "Ink",
+      displaySubtitle: "The mark inverted — paper on ink, for darker home screens."),
     AppIconBundle(
-      actualFileName: "AppIcon3", exampleFileName: "AppIcon3_EG", displayName: "V1.5",
-      displaySubtitle: "An early prototype also designed by @rudra_dsigns that I kinda fancy."),
+      actualFileName: "AppIcon2", exampleFileName: "AppIcon2_EG", displayName: "Hairline",
+      displaySubtitle: "Outline only, drawn in a single ink hairline."),
     AppIconBundle(
-      actualFileName: "AppIcon4", exampleFileName: "AppIcon4_EG", displayName: "O.G.",
-      displaySubtitle: "Haphazardly put together in under 30 minutes, the original icon.")
+      actualFileName: "AppIcon3", exampleFileName: "AppIcon3_EG", displayName: "Mono",
+      displaySubtitle: "A flat grey field with the ink mark. Quiet and neutral."),
+    AppIconBundle(
+      actualFileName: "AppIcon4", exampleFileName: "AppIcon4_EG", displayName: "Emboss",
+      displaySubtitle: "Paper on paper. The mark reads only in its shadow.")
   ]
 
   @State private var position: Int?
@@ -105,7 +108,9 @@ struct SettingsAppIconView: View {
       .padding(.horizontal, 15)
       .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
       .onChange(of: activeIcon) { newValue in
-        UIApplication.shared.setAlternateIconName(newValue)
+        // "AppIcon" is the primary on Release, so it is absent from CFBundleAlternateIcons
+        // there and only nil restores it. Passing the name would fail outside Debug.
+        UIApplication.shared.setAlternateIconName(newValue == "AppIcon" ? nil : newValue)
       }
     }
     .modifier(SettingsSubviewModifier())

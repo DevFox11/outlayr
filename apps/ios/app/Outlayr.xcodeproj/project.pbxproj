@@ -34,6 +34,10 @@
 		5327D295287C698900F76ADF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D294287C698900F76ADF /* Assets.xcassets */; };
 		C5A1C0FF1C04DE01ABCDEF02 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */; };
 		C5A1C0FF1C04DE01ABCDEF04 /* AppIconTesting.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */; };
+		C5A1C0FF1C04DE01ABCDEF06 /* AppIcon1.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */; };
+		C5A1C0FF1C04DE01ABCDEF08 /* AppIcon2.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */; };
+		C5A1C0FF1C04DE01ABCDEF0A /* AppIcon3.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */; };
+		C5A1C0FF1C04DE01ABCDEF0C /* AppIcon4.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */; };
 		5327D2AD287C6AD200F76ADF /* DataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AC287C6AD200F76ADF /* DataController.swift */; };
 		5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AF287C6AFB00F76ADF /* Authentication.swift */; };
 		5327D2B7287C6AFB00F76ADF /* KeyboardHeightHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */; };
@@ -251,6 +255,10 @@
 		5327D294287C698900F76ADF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconTesting.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon1.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon2.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon3.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon4.icon; sourceTree = "<group>"; };
 		5327D2AC287C6AD200F76ADF /* DataController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataController.swift; sourceTree = "<group>"; };
 		5327D2AF287C6AFB00F76ADF /* Authentication.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Authentication.swift; sourceTree = "<group>"; };
 		5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyboardHeightHelper.swift; sourceTree = "<group>"; };
@@ -497,6 +505,10 @@
 				5327D294287C698900F76ADF /* Assets.xcassets */,
 				C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */,
 				C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */,
+				C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */,
+				C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */,
+				C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */,
+				C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */,
 				530C89D42A793B4400B5028D /* Shortcuts */,
 				5327D298287C69B800F76ADF /* Views */,
 				5327D299287C69C100F76ADF /* Models */,
@@ -921,6 +933,10 @@
 				5327D295287C698900F76ADF /* Assets.xcassets in Resources */,
 				C5A1C0FF1C04DE01ABCDEF02 /* AppIcon.icon in Resources */,
 				C5A1C0FF1C04DE01ABCDEF04 /* AppIconTesting.icon in Resources */,
+				C5A1C0FF1C04DE01ABCDEF06 /* AppIcon1.icon in Resources */,
+				C5A1C0FF1C04DE01ABCDEF08 /* AppIcon2.icon in Resources */,
+				C5A1C0FF1C04DE01ABCDEF0A /* AppIcon3.icon in Resources */,
+				C5A1C0FF1C04DE01ABCDEF0C /* AppIcon4.icon in Resources */,
 				53756F632AC3C25E0065D0C2 /* sample.csv in Resources */,
 				5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */,
 			);
