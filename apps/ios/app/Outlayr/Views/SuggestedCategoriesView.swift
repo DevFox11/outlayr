@@ -3,166 +3,92 @@
 //  Outlayr
 //
 
-import Combine
-import CoreHaptics
-import Popovers
 import CoreData
 import SwiftUI
-import UIKit
 
 struct SuggestedCategoriesView: View {
     let income: Bool
-    @FetchRequest private var categories: FetchedResults<Category>
 
-    @Environment(\.managedObjectContext) var moc
+    @FetchRequest private var categories: FetchedResults<Category>
+    @Environment(\.managedObjectContext) private var moc
     @Environment(DataController.self) private var dataController
 
-    var nameArray: [String] {
-        var emptyArray = [String]()
-
-        categories.forEach { category in
-            emptyArray.append(category.wrappedName)
-        }
-
-        return emptyArray
+    init(income: Bool) {
+        self.income = income
+        _categories = FetchRequest<Category>(
+            sortDescriptors: [SortDescriptor(\.order)],
+            predicate: NSPredicate(format: "income = %d", income)
+        )
     }
 
-    var emojiArray: [String] {
-        var emptyArray = [String]()
-
-        categories.forEach { category in
-            emptyArray.append(category.wrappedEmoji)
-        }
-
-        return emptyArray
+    private var suggestions: [SuggestedCategory] {
+        let usedNames = Set(categories.map(\.wrappedName))
+        let usedEmoji = Set(categories.map(\.wrappedEmoji))
+        let pool = income ? SuggestedCategory.incomes : SuggestedCategory.expenses
+        return pool.filter { !usedNames.contains($0.name) && !usedEmoji.contains($0.emoji) }
     }
-
-    var suggestions: [SuggestedCategory] {
-        var holding = [SuggestedCategory]()
-
-        if income {
-            SuggestedCategory.incomes.forEach { category in
-                if !nameArray.contains(category.name) && !emojiArray.contains(category.emoji) {
-                    holding.append(category)
-                }
-            }
-        } else {
-            SuggestedCategory.expenses.forEach { category in
-                if !nameArray.contains(category.name) && !emojiArray.contains(category.emoji) {
-                    holding.append(category)
-                }
-            }
-        }
-
-        return holding
-    }
-
-    @State private var availableColours: [String] = Color.colorArray
-    @State private var selectedColour = "1"
 
     var body: some View {
         if !suggestions.isEmpty {
-            Section(header: Text("SUGGESTED").foregroundStyle(Color.SubtitleText)) {
-                ForEach(suggestions, id: \.self) { category in
-                    HStack(spacing: 8) {
-                        Text(category.emoji)
-//                            .font(.system(size: 15))
-                            .font(.system(.subheadline, design: .rounded))
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        Text(LocalizedStringKey(category.name))
-                            .font(.system(.body, design: .rounded))
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                            .font(.system(size: 18.5, weight: .regular, design: .rounded))
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        Image(systemName: "plus")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Color.SubtitleText)
-                            .padding(4)
-                            .background(Color.SecondaryBackground, in: Circle())
-                            .contentShape(Circle())
-                    }
-                    .padding(.vertical, 5)
-                    .foregroundStyle(Color.PrimaryText)
-                    .listRowBackground(Color.SettingsBackground)
-                    .listRowSeparatorTint(Color.Outline)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        // double check
-
-                        let (outcome, _) = dataController.categoryCheck(name: category.name, emoji: category.emoji, income: income)
-
-                        if outcome != .none {
-                            return
-                        }
-
-                        let impactMed = UIImpactFeedbackGenerator(style: .light)
-                        impactMed.impactOccurred()
-
-                        if !income {
-                            let suggestedCategory = Category(context: moc)
-                            suggestedCategory.name = NSLocalizedString(category.name, comment: "category name")
-                            suggestedCategory.emoji = category.emoji
-                            suggestedCategory.dateCreated = Date.now
-                            suggestedCategory.id = UUID()
-                            suggestedCategory.colour = selectedColour
-                            suggestedCategory.order = (categories.last?.order ?? 0) + 1
-                            suggestedCategory.income = false
-                            dataController.save()
-
-                            availableColours = Color.colorArray
-                            categories.forEach { category in
-                                if availableColours.contains(category.wrappedColour) {
-                                    availableColours.remove(at: availableColours.firstIndex(of: category.wrappedColour) ?? 0)
-                                }
-                            }
-
-                            if availableColours.isEmpty {
-                                selectedColour = "#FFFFFF"
-                            } else {
-                                selectedColour = availableColours[0]
-                            }
-                        } else {
-                            let suggestedCategory = Category(context: moc)
-                            suggestedCategory.name = NSLocalizedString(category.name, comment: "category name")
-                            suggestedCategory.emoji = category.emoji
-                            suggestedCategory.dateCreated = Date.now
-                            suggestedCategory.id = UUID()
-                            suggestedCategory.colour = "#76FBB0"
-                            suggestedCategory.order = (categories.last?.order ?? 0) + 1
-                            suggestedCategory.income = true
-                            dataController.save()
-                        }
-                    }
-                }
-            }
-            .onAppear {
-                if !income {
-                    categories.forEach { category in
-                        if availableColours.contains(category.wrappedColour) {
-                            availableColours.remove(at: availableColours.firstIndex(of: category.wrappedColour) ?? 0)
-                        }
-                    }
-
-                    if availableColours.isEmpty {
-                        selectedColour = "#FFFFFF"
-                    } else {
-                        selectedColour = availableColours[0]
+            Section("SUGGESTED") {
+                ForEach(suggestions, id: \.self) { suggestion in
+                    SuggestedCategoryRow(name: suggestion.name, emoji: suggestion.emoji) {
+                        add(suggestion)
                     }
                 }
             }
         }
     }
 
-    init(income: Bool) {
-        _categories = FetchRequest<Category>(sortDescriptors: [
-            SortDescriptor(\.order)
-        ], predicate: NSPredicate(format: "income = %d", income))
+    private func add(_ suggestion: SuggestedCategory) {
+        guard dataController.categoryCheck(name: suggestion.name, emoji: suggestion.emoji, income: income).error == .none else {
+            return
+        }
 
-        self.income = income
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let category = Category(context: moc)
+        category.name = NSLocalizedString(suggestion.name, comment: "category name")
+        category.emoji = suggestion.emoji
+        category.dateCreated = .now
+        category.id = UUID()
+        category.income = income
+        category.order = (categories.last?.order ?? 0) + 1
+        category.colour = income ? "#76FBB0" : nextAvailableColour()
+
+        dataController.save()
+    }
+
+    private func nextAvailableColour() -> String {
+        let used = Set(categories.map(\.wrappedColour))
+        return Color.colorArray.first { !used.contains($0) } ?? "#FFFFFF"
+    }
+}
+
+private struct SuggestedCategoryRow: View {
+    let name: String
+    let emoji: String
+    let add: () -> Void
+
+    var body: some View {
+        Button(action: add) {
+            HStack(spacing: 10) {
+                Text(emoji)
+                    .font(.system(.subheadline, design: .rounded))
+                Text(LocalizedStringKey(name))
+                    .font(.system(.body, design: .rounded))
+                    .lineLimit(1)
+                    .foregroundStyle(Color.PrimaryText)
+
+                Spacer()
+
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(.title3, design: .rounded))
+                    .foregroundStyle(Color.SubtitleText)
+                    .symbolRenderingMode(.hierarchical)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Add \(name)"))
     }
 }

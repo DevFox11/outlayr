@@ -3,128 +3,74 @@
 //  Outlayr
 //
 
-import Combine
-import CoreHaptics
-import Popovers
 import SwiftUI
-import UIKit
 
+/// A native swatch grid for choosing a category colour, plus a system
+/// `ColorPicker` for a fully custom colour. Colours already used by other
+/// expense categories are dimmed and cannot be re-selected.
 struct ColourPickerView: View {
-    var selectedColours: [String]
-
-    @Binding var showMenu: Bool
     @Binding var selectedColour: String
+    let usedColours: Set<String>
 
-    @Binding var showNativePicker: Bool
+    @State private var customColour: Color
 
-    @State var customMode: Bool = false
-    @State var customSelectedColor = Color.white
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 6)
 
-    @State var testing = false
-    let columns = [
-        GridItem(.fixed(40), spacing: 6),
-        GridItem(.fixed(40), spacing: 6),
-        GridItem(.fixed(40), spacing: 6),
-        GridItem(.fixed(40), spacing: 6),
-        GridItem(.fixed(40), spacing: 6),
-        GridItem(.fixed(40))
-    ]
-
-    @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults) var colourScheme: Int = 0
-
-    @Environment(\.colorScheme) var systemColorScheme
-
-    var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
+    init(selectedColour: Binding<String>, usedColours: Set<String>) {
+        _selectedColour = selectedColour
+        self.usedColours = usedColours
+        _customColour = State(initialValue: Color(hex: selectedColour.wrappedValue))
     }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 6) {
-            ForEach(Color.colorArray, id: \.self) { suggestedColor in
-                if suggestedColor == "#" {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .pink]), center: .center))
-
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground"))
-                            .padding(4)
-
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(customSelectedColor)
-                            .padding(8)
-
-                        if customMode {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(customSelectedColor.luminance() > 0.5 ? Color.black : Color.white)
-                        } else {
-                            Image(systemName: "plus")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(Color.black)
-                        }
+        VStack(alignment: .leading, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(Color.colorArray, id: \.self) { hex in
+                    ColourSwatch(
+                        hex: hex,
+                        isSelected: selectedColour == hex,
+                        isUsed: usedColours.contains(hex)
+                    ) {
+                        selectedColour = hex
+                        customColour = Color(hex: hex)
                     }
-                    .frame(width: 40, height: 40, alignment: .center)
-                    .onTapGesture {
-                        showMenu = false
-                        showNativePicker = true
-                    }
-                } else {
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(Color(hex: suggestedColor))
-                        .frame(height: 40)
-                        .opacity(selectedColours.contains(suggestedColor) ? 0.2 : 1)
-                        .onTapGesture {
-                            if !selectedColours.contains(suggestedColor) {
-                                withAnimation {
-                                    selectedColour = suggestedColor
-                                    customMode = false
-                                    showMenu = false
-                                }
-                            }
-                        }
-                        .overlay {
-                            if selectedColour == suggestedColor && !customMode {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(Color.black)
-                            }
-                        }
                 }
             }
+
+            ColorPicker("Custom Colour", selection: $customColour)
+                .font(.system(.body, design: .rounded, weight: .medium))
+                .onChange(of: customColour) { _, newValue in
+                    if let hex = newValue.toHex() {
+                        selectedColour = hex
+                    }
+                }
         }
-        .padding(6)
-        .frame(width: 282)
-        .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
     }
+}
 
-    init(selectedColor: Binding<String>, showMenu: Binding<Bool>, showNativePicker: Binding<Bool>, toEdit: Category? = nil) {
-        _selectedColour = selectedColor
-        _showMenu = showMenu
-        _showNativePicker = showNativePicker
+private struct ColourSwatch: View {
+    let hex: String
+    let isSelected: Bool
+    let isUsed: Bool
+    let action: () -> Void
 
-        if !Color.colorArray.contains(selectedColor.wrappedValue) {
-            _customMode = State(initialValue: true)
-            _customSelectedColor = State(initialValue: Color(hex: selectedColor.wrappedValue))
+    var body: some View {
+        Button(action: action) {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color(hex: hex))
+                .aspectRatio(1, contentMode: .fit)
+                .overlay {
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(Color(hex: hex).luminance() > 0.5 ? .black : .white)
+                    }
+                }
+                .opacity(isUsed && !isSelected ? 0.25 : 1)
         }
-
-        var selectedColours = [String]()
-
-        let dataController = DataController.shared
-
-        let categories = dataController.getAllCategories(income: false)
-
-        categories.forEach { category in
-            selectedColours.append(category.wrappedColour)
-        }
-
-        if let editted = toEdit {
-            if !selectedColours.isEmpty {
-                selectedColours.remove(at: selectedColours.firstIndex(of: editted.wrappedColour) ?? 0)
-            }
-        }
-
-        self.selectedColours = selectedColours
+        .buttonStyle(.plain)
+        .disabled(isUsed && !isSelected)
+        .accessibilityLabel(Text(verbatim: hex))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

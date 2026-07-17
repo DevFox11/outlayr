@@ -683,12 +683,7 @@ struct BrandNewBudgetView: View {
             }
         }
         .sheet(isPresented: $showingCategoryView) {
-            if #available(iOS 16.0, *) {
-                NewCategoryAlert(income: Binding.constant(false), bottomSpacers: false, budgetMode: true)
-                    .presentationDetents([.height(270)])
-            } else {
-                NewCategoryAlert(income: Binding.constant(false), bottomSpacers: true, budgetMode: true)
-            }
+            NewCategoryAlert(income: Binding.constant(false), bottomSpacers: true, budgetMode: true)
         }
         .animation(.easeOut(duration: 0.2), value: showToast)
         .onChange(of: showToast) { _, newValue in

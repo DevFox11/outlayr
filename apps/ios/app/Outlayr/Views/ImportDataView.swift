@@ -801,12 +801,7 @@ struct ImportDataView: View {
             }
         }
         .sheet(isPresented: $showingCategoryView) {
-            if #available(iOS 16.0, *) {
-                NewCategoryAlert(income: $income, bottomSpacers: false, budgetMode: false)
-                    .presentationDetents([.height(270)])
-            } else {
-                NewCategoryAlert(income: $income, bottomSpacers: true, budgetMode: false)
-            }
+            NewCategoryAlert(income: $income, bottomSpacers: false, budgetMode: false)
         }
         .animation(.easeOut(duration: 0.2), value: showToast)
         .onChange(of: showToast) { _, newValue in
