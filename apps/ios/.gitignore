@@ -7,3 +7,6 @@ xcuserdata/
 
 ## MacOS
 .DS_Store
+
+## Hugeicons Pro (licensed local package — fetch via Pro subscription, do not commit)
+app/Packages/
