@@ -7,9 +7,11 @@
 
 import Foundation
 
-class TabBarManager: ObservableObject {
-    @Published var hideTab = false
-    @Published var inNavigationLink = false
+@MainActor
+@Observable
+class TabBarManager {
+    var hideTab = false
+    var inNavigationLink = false
 
     func navigationHideTab() {
         inNavigationLink = true

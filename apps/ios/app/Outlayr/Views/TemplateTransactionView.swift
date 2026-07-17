@@ -13,7 +13,7 @@ import WidgetKit
 
 struct TemplateTransactionView: View {
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
 
     @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
@@ -83,7 +83,7 @@ struct TemplateTransactionView: View {
     @State var toastTitle = ""
     @State var toastImage = ""
 
-    @ObservedObject var keyboardHeightHelper = KeyboardHeightHelper()
+    @State private var keyboardHeightHelper = KeyboardHeightHelper()
 
     @AppStorage("firstTransactionViewLaunch", store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
 
@@ -175,11 +175,11 @@ struct TemplateTransactionView: View {
                         HStack(spacing: 6.5) {
                             Image(systemName: toastImage)
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Color.AlertRed)
+                                .foregroundStyle(Color.AlertRed)
 
                             Text(toastTitle)
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color.AlertRed)
+                                .foregroundStyle(Color.AlertRed)
                         }
                         .padding(8)
                         .background(Color.AlertRed.opacity(0.23), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -189,7 +189,7 @@ struct TemplateTransactionView: View {
                         HStack(spacing: 0) {
                             Text("Expense")
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundColor(income == false ? Color.PrimaryText : Color.SubtitleText)
+                                .foregroundStyle(income == false ? Color.PrimaryText : Color.SubtitleText)
                                 .padding(6)
                                 .padding(.horizontal, 8)
                                 .background {
@@ -211,7 +211,7 @@ struct TemplateTransactionView: View {
 
                             Text("transaction-view-income-picker")
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundColor(income == true ? Color.PrimaryText : Color.SubtitleText)
+                                .foregroundStyle(income == true ? Color.PrimaryText : Color.SubtitleText)
                                 .padding(6)
                                 .padding(.horizontal, 8)
                                 .background {
@@ -244,7 +244,7 @@ struct TemplateTransactionView: View {
                         } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .padding(7)
                                 .background(Color.SecondaryBackground, in: Circle())
                                 .contentShape(Circle())
@@ -260,7 +260,7 @@ struct TemplateTransactionView: View {
                             } label: {
                                 Image(systemName: "trash.fill")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color.AlertRed)
+                                    .foregroundStyle(Color.AlertRed)
                                     .padding(7)
                                     .background(Color.AlertRed.opacity(0.23), in: Circle())
                                     .contentShape(Circle())
@@ -277,18 +277,18 @@ struct TemplateTransactionView: View {
                                     .overlay(alignment: .topTrailing) {
                                         Text(repeatOverlays[repeatType - 1])
                                             .font(.system(size: 6, weight: .black, design: .rounded))
-                                            .foregroundColor(Color.IncomeGreen)
+                                            .foregroundStyle(Color.IncomeGreen)
                                             .frame(width: 10, alignment: .leading)
                                             .offset(x: 5.7, y: 1.5)
                                     }
-                                    .foregroundColor(Color.IncomeGreen)
+                                    .foregroundStyle(Color.IncomeGreen)
                                     .padding(7)
                                     .background(Color.IncomeGreen.opacity(0.23), in: Circle())
                                     .contentShape(Circle())
                             } else {
                                 Image(systemName: "repeat")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color.SubtitleText)
+                                    .foregroundStyle(Color.SubtitleText)
                                     .padding(7)
                                     .background(Color.SecondaryBackground, in: Circle())
                                     .contentShape(Circle())
@@ -321,33 +321,33 @@ struct TemplateTransactionView: View {
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(currencySymbol)
                                 .font(.system(size: downsize.small, weight: .light, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
                             Text("\(transactionValue, specifier: "%.2f")")
                                 .font(.system(size: downsize.big, weight: .regular, design: .rounded))
-                                .foregroundColor(Color.PrimaryText)
+                                .foregroundStyle(Color.PrimaryText)
                         }
                     } else {
                         if numbers1.isEmpty {
                             HStack(alignment: .lastTextBaseline, spacing: 4) {
                                 Text(currencySymbol)
                                     .font(.system(size: 32, weight: .light, design: .rounded))
-                                    .foregroundColor(Color.SubtitleText)
+                                    .foregroundStyle(Color.SubtitleText)
                                     .baselineOffset(getDollarOffset(big: 56, small: 32))
                                 Text("0")
                                     .font(.system(size: 56, weight: .regular, design: .rounded))
-                                    .foregroundColor(Color.PrimaryText)
+                                    .foregroundStyle(Color.PrimaryText)
                             }
                             .frame(maxWidth: .infinity)
                         } else {
                             HStack(alignment: .lastTextBaseline, spacing: 4) {
                                 Text(currencySymbol)
                                     .font(.system(size: downsize.small, weight: .light, design: .rounded))
-                                    .foregroundColor(Color.SubtitleText)
+                                    .foregroundStyle(Color.SubtitleText)
                                     .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
                                 Text(amount)
                                     .font(.system(size: downsize.big, weight: .regular, design: .rounded))
-                                    .foregroundColor(Color.PrimaryText)
+                                    .foregroundStyle(Color.PrimaryText)
                             }
                             .frame(maxWidth: .infinity)
                             .overlay(alignment: .trailing) {
@@ -390,7 +390,7 @@ struct TemplateTransactionView: View {
                                         .frame(width: 32, height: 32)
                                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                         .background(Color.DarkBackground)
-                                        .foregroundColor(Color.LightIcon)
+                                        .foregroundStyle(Color.LightIcon)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                 }
                                 .buttonStyle(NumPadButton())
@@ -409,7 +409,7 @@ struct TemplateTransactionView: View {
                                         .font(.system(size: 34, weight: .regular, design: .rounded))
                                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                         .background(Color.SecondaryBackground)
-                                        .foregroundColor(Color.PrimaryText)
+                                        .foregroundStyle(Color.PrimaryText)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .opacity(numbers1.contains(".") ? 0.6 : 1)
                                 }
@@ -434,7 +434,7 @@ struct TemplateTransactionView: View {
                                     }
                                 }
                                 .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .foregroundColor(Color.LightIcon)
+                                .foregroundStyle(Color.LightIcon)
                                 .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                             .buttonStyle(NumPadButton())
@@ -464,11 +464,11 @@ struct TemplateTransactionView: View {
                     VStack(alignment: .leading, spacing: 1.5) {
                         Text("Delete Expense?")
                             .font(.system(size: 20, weight: .medium, design: .rounded))
-                            .foregroundColor(.PrimaryText)
+                            .foregroundStyle(Color.PrimaryText)
 
                         Text("This action cannot be undone.")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundColor(.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(.bottom, 15)
 
                         Button {
@@ -486,7 +486,7 @@ struct TemplateTransactionView: View {
                         } label: {
                             Text("Delete")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundStyle(.white)
                                 .frame(height: 45)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.AlertRed, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -502,7 +502,7 @@ struct TemplateTransactionView: View {
                         } label: {
                             Text("Cancel")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color.PrimaryText.opacity(0.9))
+                                .foregroundStyle(Color.PrimaryText.opacity(0.9))
                                 .frame(height: 45)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -598,7 +598,7 @@ struct TemplateTransactionView: View {
         } label: {
             Image(systemName: "delete.left.fill")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
                 .padding(7)
                 .background(Color.SecondaryBackground, in: Circle())
                 .contentShape(Circle())
@@ -636,7 +636,7 @@ struct TemplateTransactionView: View {
                 .font(.system(size: 34, weight: .regular, design: .rounded))
                 .frame(width: size.width * 0.3, height: size.height * 0.22)
                 .background(Color.SecondaryBackground)
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .opacity(numberArrayCount == 9 ? 0.6 : 1)
         }
@@ -796,7 +796,7 @@ struct CategoryRowPickerView: View {
                                         .id(item.id)
                                         .padding(.horizontal, 10)
                                         .frame(height: 36)
-                                        .foregroundColor(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColour)) : Color.PrimaryText)
+                                        .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColour)) : Color.PrimaryText)
                                         .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .overlay {
                                             if selectedCategory != item {
@@ -857,11 +857,11 @@ struct CategoryRowPickerView: View {
                 if empty {
                     Image(systemName: "plus")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 } else {
                     Image(systemName: "pencil")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
 
 //                        Text("Edit")
@@ -918,7 +918,7 @@ struct SettingsQuickAddWidgetView: View {
         VStack(spacing: 10) {
             Text("Quick Add Widget")
                 .font(.system(size: 20, weight: .semibold, design: .rounded))
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .leading) {
                     Button {
@@ -930,7 +930,7 @@ struct SettingsQuickAddWidgetView: View {
                             .overlay {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color.SubtitleText)
+                                    .foregroundStyle(Color.SubtitleText)
                             }
                     }
                 }
@@ -956,7 +956,7 @@ struct SettingsQuickAddWidgetDraggingView: View {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @StateObject var gridData = GridViewModel()
+    @State private var gridData = GridViewModel()
     @State var selectedItem: Grid?
     @State var lastSelectedIndex: Int = 0
 
@@ -1102,12 +1102,12 @@ struct SingleTemplateButton: View {
             HStack(alignment: .lastTextBaseline, spacing: 1.3) {
                 Text(currencySymbol)
                     .font(.system(size: downsize.small, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
                     .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
 
                 Text(downsize.amountText)
                     .font(.system(size: downsize.big, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -1140,11 +1140,13 @@ struct Grid: Identifiable {
     }
 }
 
-class GridViewModel: ObservableObject {
-    @Published var currentGrid: Grid?
-    @Published var dragging = false
+@MainActor
+@Observable
+class GridViewModel {
+    var currentGrid: Grid?
+    var dragging = false
 
-    @Published var gridItems = [
+    var gridItems = [
         Grid(index: 0),
         Grid(index: 1),
         Grid(index: 2),

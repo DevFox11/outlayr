@@ -36,7 +36,7 @@ struct NewCategoryPickerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 11)
                     .padding(.vertical, 9)
-                    .foregroundColor(Color(hex: item.wrappedColour))
+                    .foregroundStyle(Color(hex: item.wrappedColour))
                     .background(
                         Color(hex: item.wrappedColour).opacity(0.35),
                         in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
@@ -76,7 +76,7 @@ struct NewCategoryPickerView: View {
             }
             .padding(.vertical, 9)
             .padding(.horizontal, 18)
-            .foregroundColor(Color.SubtitleText)
+            .foregroundStyle(Color.SubtitleText)
             .background(
                 RoundedRectangle(cornerRadius: 11.5, style: .continuous).fill(Color.SecondaryBackground).shadow(
                     color: colorScheme == .light ? Color.Outline  : Color.clear, radius: 6)

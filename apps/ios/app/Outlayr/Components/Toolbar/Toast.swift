@@ -12,13 +12,13 @@ struct Toast: View {
                 Image(systemName: toastImage)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                    .foregroundColor(toastColor)
+                    .foregroundStyle(toastColor)
 
                 Text(toastTitle)
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .lineLimit(1)
-                    .foregroundColor(toastColor)
+                    .foregroundStyle(toastColor)
             }
             .padding(8)
             .background(

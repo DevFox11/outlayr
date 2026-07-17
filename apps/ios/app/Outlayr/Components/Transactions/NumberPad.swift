@@ -48,7 +48,7 @@ struct NumberPad: View {
                                 .frame(width: 32, height: 32)
                                 .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                 .background(Color.DarkBackground)
-                                .foregroundColor(Color.LightIcon)
+                                .foregroundStyle(Color.LightIcon)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(NumPadButton())
@@ -60,7 +60,7 @@ struct NumberPad: View {
                                 .font(.system(size: 34, weight: .regular, design: .rounded))
                                 .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                 .background(Color.SecondaryBackground)
-                                .foregroundColor(Color.PrimaryText)
+                                .foregroundStyle(Color.PrimaryText)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(NumPadButton())
@@ -82,7 +82,7 @@ struct NumberPad: View {
                             }
                         }
                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                        .foregroundColor(Color.LightIcon)
+                        .foregroundStyle(Color.LightIcon)
                         .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(NumPadButton())
@@ -214,7 +214,7 @@ struct NumberPad: View {
                 .font(.system(size: 34, weight: .regular, design: .rounded))
                 .frame(width: size.width * 0.3, height: size.height * 0.22)
                 .background(Color.SecondaryBackground)
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .opacity(disabled ? 0.6 : 1)
         }
@@ -297,18 +297,18 @@ struct NumberPadTextView: View {
             Group {
                 Text(currencySymbol)
                     .font(.system(.largeTitle, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
 
 //                ForEach(displayNumbers, id: \.self) { number in
 //                    Text(number)
 //                        .font(.system(size: largerFontSize, weight: .regular, design: .rounded))
-//                        .foregroundColor(Color.PrimaryText)
+//                        .foregroundStyle(Color.PrimaryText)
 //                        .transition(AnyTransition.opacity.combined(with: .scale).combined(with: .move(edge: .trailing)))
 //                }
 
                 + Text(amount)
                     .font(.system(size: largerFontSize, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
 
             }
         }
@@ -331,7 +331,7 @@ struct NumberPadTextView: View {
        } label: {
          Image(systemName: "delete.left.fill")
            .font(.system(size: 16, weight: .semibold))
-           .foregroundColor(Color.SubtitleText)
+           .foregroundStyle(Color.SubtitleText)
            .padding(7)
            .background(Color.SecondaryBackground, in: Circle())
            .contentShape(Circle())

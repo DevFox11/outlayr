@@ -38,7 +38,7 @@ struct SettingsNumberEntryView: View {
       Text("Number Entry Method")
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -53,7 +53,7 @@ struct SettingsNumberEntryView: View {
           Text(LocalizedStringKey(options[option]))
             .font(.system(.body, design: .rounded).weight(.semibold))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .foregroundColor(
+            .foregroundStyle(
               numberEntryType == (option + 1) ? Color.PrimaryText : Color.SubtitleText
             )
             .padding(6)
@@ -91,24 +91,24 @@ struct SettingsNumberEntryView: View {
           Text("\"Pre-dotted\"")
             .font(.system(.title2, design: .rounded).weight(.semibold))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
 
           Text("If you're too lazy to add a decimal point, I gotchu covered.")
             .font(.system(.subheadline, design: .rounded).weight(.medium))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .multilineTextAlignment(.center)
-            .foregroundColor(Color.SubtitleText)
+            .foregroundStyle(Color.SubtitleText)
         } else {
           Text("\"Cent-less\"")
             .font(.system(.title2, design: .rounded).weight(.semibold))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
 
           Text("If your transactions usually amount to whole numbers - this one is for you.")
             .font(.system(.subheadline, design: .rounded).weight(.medium))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .multilineTextAlignment(.center)
-            .foregroundColor(Color.SubtitleText)
+            .foregroundStyle(Color.SubtitleText)
         }
       }
       .padding(.horizontal, 25)

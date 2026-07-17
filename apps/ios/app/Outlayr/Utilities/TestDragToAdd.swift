@@ -28,7 +28,7 @@ struct CustomRefreshView<Content: View>: View {
         self.onRefresh = onRefresh
     }
 
-    @StateObject var scrollDelegate: ScrollViewModel = .init()
+    @State private var scrollDelegate = ScrollViewModel()
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: showsIndicator) {
@@ -108,17 +108,19 @@ struct CustomRefreshView_Previews: PreviewProvider {
     }
 }
 
-class ScrollViewModel: NSObject, ObservableObject, UIGestureRecognizerDelegate {
+@MainActor
+@Observable
+class ScrollViewModel: NSObject, UIGestureRecognizerDelegate {
     // MARK: Properties
 
-    @Published var isEligible: Bool = false
-    @Published var isRefreshing: Bool = false
+    var isEligible: Bool = false
+    var isRefreshing: Bool = false
 
     // MARK: Gesture Properties
 
-    @Published var scrollOffset: CGFloat = 0
-    @Published var contentOffset: CGFloat = 0
-    @Published var progress: CGFloat = 0
+    var scrollOffset: CGFloat = 0
+    var contentOffset: CGFloat = 0
+    var progress: CGFloat = 0
     let gestureID: String = UUID().uuidString
 
     // MARK: Haptic Feedback Properties
@@ -225,12 +227,12 @@ struct CustomProgressView: View {
                 // V1 with simple plus
                 /*  Image(systemName: "plus")
                  .font(.system(size: 16 * (0.6 + progress), weight: .semibold))
-                 .foregroundColor(.accentColorPrimary).opacity((0.3 + progress) > 1 ? 1 : (0.3 + progress)) */
+                 .foregroundStyle(.accentColorPrimary).opacity((0.3 + progress) > 1 ? 1 : (0.3 + progress)) */
 
                 // Var 2: Filled
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 32 * (0.6 + progress)))
-                    .foregroundColor(Color.Outline).opacity((0.6 + progress) > 1 ? 1 : (0.6 + progress))
+                    .foregroundStyle(Color.Outline).opacity((0.6 + progress) > 1 ? 1 : (0.6 + progress))
             }
             Text("Pull to add update")
         }

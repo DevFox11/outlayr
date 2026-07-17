@@ -13,7 +13,7 @@ struct SettingsUpcomingView: View {
   @State private var showFuture: Bool = true
 
   @State private var showSoon: Bool = false
-  @EnvironmentObject var dataController: DataController
+  @Environment(DataController.self) private var dataController
 
   @Namespace var animation
 
@@ -21,7 +21,7 @@ struct SettingsUpcomingView: View {
     VStack(spacing: 10) {
       Text("Upcoming Logs")
         .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -36,17 +36,17 @@ struct SettingsUpcomingView: View {
         HStack {
           Text("Display on Log Page")
             .font(.system(.body, design: .rounded))
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
 
           Spacer()
 
           ZStack(alignment: showFuture ? .trailing : .leading) {
             Capsule()
               .frame(width: 42, height: 28)
-              .foregroundColor(showFuture ? .green : .gray.opacity(0.8))
+              .foregroundStyle(showFuture ? .green : .gray.opacity(0.8))
 
             Circle()
-              .foregroundColor(Color.white)
+              .foregroundStyle(Color.white)
               .padding(2)
               .frame(width: 28, height: 28)
               .matchedGeometryEffect(id: "toggle1", in: animation)
@@ -71,17 +71,17 @@ struct SettingsUpcomingView: View {
         HStack {
           Text("Limit to 14-Day Outlook")
             .font(.system(.body, design: .rounded))
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
 
           Spacer()
 
           ZStack(alignment: showSoon ? .trailing : .leading) {
             Capsule()
               .frame(width: 42, height: 28)
-              .foregroundColor(showSoon ? .green : .gray.opacity(0.8))
+              .foregroundStyle(showSoon ? .green : .gray.opacity(0.8))
 
             Circle()
-              .foregroundColor(Color.white)
+              .foregroundStyle(Color.white)
               .padding(2)
               .frame(width: 28, height: 28)
               .matchedGeometryEffect(id: "toggle2", in: animation)
@@ -105,7 +105,7 @@ struct SettingsUpcomingView: View {
       )
       .font(.system(.caption, design: .rounded).weight(.medium))
       .multilineTextAlignment(.leading)
-      .foregroundColor(Color.SubtitleText)
+      .foregroundStyle(Color.SubtitleText)
       .padding(.horizontal, 15)
       .padding(.bottom, 30)
       .frame(maxWidth: .infinity, alignment: .leading)

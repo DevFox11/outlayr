@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct CustomTabBar: View {
-    @EnvironmentObject var appLockVM: AppLockViewModel
+    @Environment(AppLockViewModel.self) private var appLockVM
     @Binding var currentTab: String
     var topEdge: CGFloat
     var bottomEdge: CGFloat
@@ -125,7 +125,7 @@ struct MyButtonStyle: ButtonStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
         configuration.label
             .font(.system(size: 20, weight: .bold))
-            .foregroundColor(Color.LightIcon)
+            .foregroundStyle(Color.LightIcon)
             .frame(width: 65, height: 38)
             .background(configuration.isPressed ? Color.SubtitleText : Color.DarkBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
@@ -160,7 +160,7 @@ struct TabButton: View {
                 .frame(maxWidth: 28, maxHeight: 28)
                 .animation(.easeInOut(duration: 0.3), value: currentTab)
                 .frame(maxWidth: .infinity)
-                .foregroundColor(currentTab == image ? Color.DarkIcon : Color.GreyIcon)
+                .foregroundStyle(currentTab == image ? Color.DarkIcon : Color.GreyIcon)
         }
         .buttonStyle(BouncyButton(duration: 0.3, scale: 0.6))
         .accessibilityLabel("\(image) tab")

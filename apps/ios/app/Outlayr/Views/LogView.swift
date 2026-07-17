@@ -18,7 +18,7 @@ struct LogView: View {
 
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
 
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.managedObjectContext) var moc
 
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
@@ -79,13 +79,13 @@ struct LogView: View {
                     .font(.system(.title2, design: .rounded).weight(.medium))
 //                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(Color.PrimaryText.opacity(0.8))
+                    .foregroundStyle(Color.PrimaryText.opacity(0.8))
 
                 Text("Press the plus button\nto add your first entry")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(Color.SubtitleText.opacity(0.7))
+                    .foregroundStyle(Color.SubtitleText.opacity(0.7))
             }
             .padding(.horizontal, 30)
             .frame(height: 250, alignment: .top)
@@ -103,7 +103,7 @@ struct LogView: View {
 //                                .font(.system(size: 23, weight: .regular))
                                 .font(.system(.title2, design: .rounded).weight(.regular))
                                 .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.DarkIcon)
+                                .foregroundStyle(Color.DarkIcon)
                                 .padding(5)
                                 .contentShape(Rectangle())
                                 .background {
@@ -147,7 +147,7 @@ struct LogView: View {
                             Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
                                 .font(.system(.title2, design: .rounded).weight(.regular))
                                 .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.DarkIcon)
+                                .foregroundStyle(Color.DarkIcon)
                                 .rotationEffect(Angle(degrees: 180))
                                 .padding(5)
                                 .contentShape(Rectangle())
@@ -333,7 +333,7 @@ struct LogView: View {
 //                    .frame(width: 11, height: 11)
                     .font(.system(.caption, design: .rounded).weight(.regular))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                    .foregroundColor(Color.PrimaryText.opacity(0.7))
+                    .foregroundStyle(Color.PrimaryText.opacity(0.7))
             }
             .accessibilityLabel("remove filter")
         }
@@ -341,7 +341,7 @@ struct LogView: View {
         .padding(.horizontal, 6)
         .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 //        .font(.system(size: 17, weight: .medium, design: .rounded))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
     }
 }
 
@@ -388,11 +388,11 @@ struct NumberView: AnimatableModifier {
             Group {
                 Text(netTotal ? (positive ? "+\(currencySymbol)" : "-\(currencySymbol)") : currencySymbol)
                     .font(.system(.largeTitle, design: .rounded))
-                    .foregroundColor(Color.SubtitleText) +
+                    .foregroundStyle(Color.SubtitleText) +
 
                 Text("\(number, specifier: showCents  ? "%.2f" : "%.0f")")
                     .font(.system(size: fontSize, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
             }
         }
         .minimumScaleFactor(0.5)
@@ -402,7 +402,7 @@ struct NumberView: AnimatableModifier {
 }
 
 struct LogInsightsView: View {
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
     @Binding var navBarText: String
@@ -506,7 +506,7 @@ struct LogInsightsView: View {
                 HStack(spacing: 4) {
                     Text(LocalizedStringKey(headingText))
                         .font(.system(.body, design: .rounded).weight(.medium))
-                        .foregroundColor(Color.PrimaryText.opacity(0.9))
+                        .foregroundStyle(Color.PrimaryText.opacity(0.9))
                     Button {
                         showMenu1 = true
                     } label: {
@@ -514,7 +514,7 @@ struct LogInsightsView: View {
                             .padding(2)
                             .padding(.horizontal, 6)
                             .font(.system(.body, design: .rounded).weight(.medium))
-                            .foregroundColor(Color.PrimaryText.opacity(9))
+                            .foregroundStyle(Color.PrimaryText.opacity(9))
                             .overlay(Capsule().stroke(Color.Outline, lineWidth: 1.3))
                     }
                     .popover(present: $showMenu1, attributes: {
@@ -567,12 +567,12 @@ struct LogInsightsView: View {
 //                    if showCents {
 //                        Text("+\(totalIncome, specifier: "%.2f")")
 //                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundColor(Color.IncomeGreen)
+//                            .foregroundStyle(Color.IncomeGreen)
 //                            .lineLimit(1)
 //                    } else {
 //                        Text("+\(Int(floor(totalIncome)))")
 //                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundColor(Color.IncomeGreen)
+//                            .foregroundStyle(Color.IncomeGreen)
 //                            .lineLimit(1)
 //                    }
 
@@ -580,30 +580,30 @@ struct LogInsightsView: View {
                         .font(.system(.title2, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.IncomeGreen)
+                        .foregroundStyle(Color.IncomeGreen)
                         .lineLimit(1)
 
                     DottedLine()
                         .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round))
                         .frame(width: 1.7, height: 15)
-                        .foregroundColor(Color.Outline)
+                        .foregroundStyle(Color.Outline)
 
                     Text("-\(formatNumber(showCents: showCents, number: totalSpent))")
                         .font(.system(.title2, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.AlertRed)
+                        .foregroundStyle(Color.AlertRed)
                         .lineLimit(1)
 
 //                    if showCents {
 //                        Text("-\(totalSpent, specifier: "%.2f")")
 //                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundColor(Color.AlertRed)
+//                            .foregroundStyle(Color.AlertRed)
 //                            .lineLimit(1)
 //                    } else {
 //                        Text("-\(Int(floor(totalSpent)))")
 //                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundColor(Color.AlertRed)
+//                            .foregroundStyle(Color.AlertRed)
 //                            .lineLimit(1)
 //                    }
                 }
@@ -645,14 +645,14 @@ struct SearchView: View {
 //                        .font(.system(size: 17))
                         .font(.system(.body, design: .rounded).weight(.regular))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(Color.DarkIcon.opacity(0.8))
+                        .foregroundStyle(Color.DarkIcon.opacity(0.8))
                         .accessibility(hidden: true)
                     TextField("Search entry by note", text: $searchQuery)
                         .focused($searchFieldFocused)
                         .font(.system(.body, design: .rounded).weight(.regular))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 17, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
 
                     if searchQuery != "" {
                         Button {
@@ -662,7 +662,7 @@ struct SearchView: View {
                                 .font(.system(.subheadline, design: .rounded).weight(.regular))
                                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                                .font(.system(size: 15))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .background(Color.SecondaryBackground)
                         }
                     }
@@ -675,7 +675,7 @@ struct SearchView: View {
                     dismiss()
                 } label: {
                     Text("Cancel")
-                        .foregroundColor(Color.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
                         .font(.system(.body, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
@@ -717,12 +717,12 @@ struct FilteredSearchView: View {
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
                     Text("Try a different search query!")
                         .font(.system(.subheadline, design: .rounded).weight(.regular))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 14, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
                 .frame(alignment: .center)
                 .opacity(0.8)
@@ -823,7 +823,7 @@ struct TimePickerView: View {
                 .accessibilityElement(children: .ignore)
             }
         }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
+        .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
         .padding(4)
         .frame(width: dynamicTypeSize > .xxLarge ? 185 : 160)
         .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
@@ -898,7 +898,7 @@ struct FilterPickerView: View {
                 .accessibilityElement(children: .ignore)
             }
         }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
+        .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
         .padding(4)
         .frame(width: dynamicTypeSize > .xLarge ? 220 : 190)
         .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
@@ -917,7 +917,7 @@ struct TransactionsList: View {
     @AppStorage("showUpcomingTransactions", store: AppIdentifiers.sharedDefaults) var showUpcoming: Bool = true
     @AppStorage("showUpcomingTransactionsWhenUpcoming", store: AppIdentifiers.sharedDefaults) var showSoon: Bool = false
 
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
 
     @SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
         SortDescriptor(\.day, order: .reverse),
@@ -969,7 +969,7 @@ struct ListView: View {
 
     @AppStorage("swapTimeLabel", store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
 
-    @EnvironmentObject var toastPresenter: OverallToastPresenter
+    @Environment(OverallToastPresenter.self) private var toastPresenter
 
     var body: some View {
         LazyVStack(spacing: 0) {
@@ -989,7 +989,7 @@ struct ListView: View {
                         .font(.system(.callout, design: .rounded).weight(.semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(currencySymbol)\(String(format: "%.2f", filtered.string)) was spent \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
 
@@ -1060,7 +1060,7 @@ struct ListView: View {
 }
 
 struct FutureListView: View {
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
 
     @FetchRequest private var fetchedResults: FetchedResults<Transaction>
     var filterMode: Bool
@@ -1149,7 +1149,7 @@ struct FutureListView: View {
                     .font(.system(.callout, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .accessibilityElement(children: .ignore)
 
                     Line()
@@ -1194,8 +1194,8 @@ struct SingleTransactionView: View {
     @State var refreshID = UUID()
 
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
-    @EnvironmentObject var transactionManager: OverallTransactionManager
+    @Environment(DataController.self) private var dataController
+    @Environment(OverallTransactionManager.self) private var transactionManager
 
     // delete mode
 //    @State private var toDelete: Transaction?
@@ -1245,7 +1245,7 @@ struct SingleTransactionView: View {
 //                .font(.system(size: 13, weight: .bold))
                 .font(.system(.caption, design: .rounded).weight(.bold))
                 .dynamicTypeSize(...DynamicTypeSize.xLarge)
-                .foregroundColor(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
+                .foregroundStyle(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
                 .padding(5)
                 .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.SecondaryBackground, in: Circle())
 //                .scaleEffect(imageScale)
@@ -1264,7 +1264,7 @@ struct SingleTransactionView: View {
                         if transaction.recurringType > 0 {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(Color.DarkIcon)
+                                .foregroundStyle(Color.DarkIcon)
                                 .padding(3)
                                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
                                 .offset(x: 5, y: 5)
@@ -1275,13 +1275,13 @@ struct SingleTransactionView: View {
                     Text(transaction.wrappedNote)
                         .font(.system(.body, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                        .foregroundStyle(future ? Color.SubtitleText : Color.PrimaryText)
                         .lineLimit(1)
 
                     Text(getSubtitle())
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .foregroundColor(future ? Color.EvenLighterText : Color.SubtitleText)
+                        .foregroundStyle(future ? Color.EvenLighterText : Color.SubtitleText)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1290,7 +1290,7 @@ struct SingleTransactionView: View {
                     Text(showExpenseOrIncomeSign ? "+\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(future ? Color.SubtitleText : Color.IncomeGreen)
+                        .foregroundStyle(future ? Color.SubtitleText : Color.IncomeGreen)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -1299,7 +1299,7 @@ struct SingleTransactionView: View {
                     Text(showExpenseOrIncomeSign ? "-\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                        .foregroundStyle(future ? Color.SubtitleText : Color.PrimaryText)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -1469,7 +1469,7 @@ struct EmojiLogView: View {
             if future {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .stroke(Color(hex: colour).opacity(0.73), lineWidth: 2)
-                    .foregroundColor(.clear)
+                    .foregroundStyle(.clear)
             } else {
                 RoundedRectangle(cornerRadius: huge ? 20 : 9, style: .continuous)
                     .fill(blend(over: Color(hex: colour), withAlpha: 0.73))
@@ -1500,9 +1500,9 @@ struct EmojiLogView: View {
 
 struct DeleteTransactionAlert: View {
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var transactionManager: OverallTransactionManager
+    @Environment(OverallTransactionManager.self) private var transactionManager
 
     var stopRecurring: Bool {
         if let unwrapped = transactionManager.toDelete {
@@ -1525,14 +1525,14 @@ struct DeleteTransactionAlert: View {
                     .font(.system(.title2, design: .rounded).weight(.medium))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 25, weight: .medium, design: .rounded))
-                    .foregroundColor(.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
                     .accessibilityLabel("Delete \(unwrappedToDelete.wrappedNote) transaction confirmation. This action cannot be undone.")
 
                 Text(stopRecurring ? "The transaction will no longer be automatically logged." : "This action cannot be undone.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 20, weight: .medium, design: .rounded))
-                    .foregroundColor(.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .padding(.bottom, 25)
                     .accessibility(hidden: true)
 
@@ -1757,13 +1757,13 @@ struct NoResultsView: View {
                     .font(.system(.largeTitle, design: .rounded))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 38, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
 
                 Text("No entries found.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 21, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
 
                 Spacer()
             }
@@ -1781,11 +1781,11 @@ struct NoResultsView: View {
 
                 Image(systemName: "tray.full.fill")
                     .font(.system(size: 38, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
 
                 Text("No entries found.")
                     .font(.system(size: 21, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
 
                 Spacer()
             }
@@ -1798,7 +1798,7 @@ struct NoResultsView: View {
 
 struct CategoryStepperView: View {
     @Binding var categoryFilter: Category?
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @State var income = false
     @State var categories = [Category]()
 
@@ -1809,7 +1809,7 @@ struct CategoryStepperView: View {
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color.IncomeGreen)
+                    .foregroundStyle(Color.IncomeGreen)
                     .padding(7)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .aspectRatio(1.0, contentMode: .fit)
@@ -1833,7 +1833,7 @@ struct CategoryStepperView: View {
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color.AlertRed)
+                    .foregroundStyle(Color.AlertRed)
                     .padding(7)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .aspectRatio(1.0, contentMode: .fit)
@@ -1873,7 +1873,7 @@ struct CategoryStepperView: View {
                             .padding(.vertical, 7)
                             .fixedSize(horizontal: false, vertical: true)
 //                            .frame(height: 36)
-                            .foregroundColor(categoryFilter == item ? Color(hex: item.wrappedColour) : Color.PrimaryText)
+                            .foregroundStyle(categoryFilter == item ? Color(hex: item.wrappedColour) : Color.PrimaryText)
                             .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay {
                                 if categoryFilter != item {
@@ -1941,7 +1941,7 @@ struct IncomeFilterToggleView: View {
 //                .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .font(.system(.body, design: .rounded).weight(.semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .foregroundColor(income == false ? Color.PrimaryText : Color.SubtitleText)
+                .foregroundStyle(income == false ? Color.PrimaryText : Color.SubtitleText)
                 .padding(5.5)
                 .padding(.horizontal, 8)
                 .background {
@@ -1964,7 +1964,7 @@ struct IncomeFilterToggleView: View {
 //                .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .font(.system(.body, design: .rounded).weight(.semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .foregroundColor(income == true ? Color.PrimaryText : Color.SubtitleText)
+                .foregroundStyle(income == true ? Color.PrimaryText : Color.SubtitleText)
                 .padding(5.5)
                 .padding(.horizontal, 8)
                 .background {

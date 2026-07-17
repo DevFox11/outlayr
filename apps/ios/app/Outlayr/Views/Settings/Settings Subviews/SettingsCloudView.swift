@@ -19,7 +19,7 @@ struct SettingsCloudView: View {
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         //                .font(.system(size: 20, weight: .semibold, design: .rounded))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -34,17 +34,17 @@ struct SettingsCloudView: View {
         HStack {
           Text("Enable Sync")
             .font(.system(.body, design: .rounded))
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
 
           Spacer()
 
           ZStack(alignment: iCloudStorage ? .trailing : .leading) {
             Capsule()
               .frame(width: 42, height: 28)
-              .foregroundColor(iCloudStorage ? .green : .gray.opacity(0.8))
+              .foregroundStyle(iCloudStorage ? .green : .gray.opacity(0.8))
 
             Circle()
-              .foregroundColor(Color.white)
+              .foregroundStyle(Color.white)
               .padding(2)
               .frame(width: 28, height: 28)
               .matchedGeometryEffect(id: "toggle", in: animation)
@@ -65,7 +65,7 @@ struct SettingsCloudView: View {
       Text("Close and reload app for change to take effect.")
         .font(.system(.caption, design: .rounded).weight(.medium))
         .multilineTextAlignment(.leading)
-        .foregroundColor(Color.SubtitleText)
+        .foregroundStyle(Color.SubtitleText)
         .padding(.horizontal, 15)
         .frame(maxWidth: .infinity, alignment: .leading)
     }

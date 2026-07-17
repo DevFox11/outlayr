@@ -25,13 +25,13 @@ struct BudgetView: View {
                     .font(.system(.title2, design: .rounded).weight(.medium))
 //                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(Color.PrimaryText.opacity(0.8))
+                    .foregroundStyle(Color.PrimaryText.opacity(0.8))
 
                 Text("Link budgets to categories and set appropriate expenditure goals")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(Color.SubtitleText.opacity(0.7))
+                    .foregroundStyle(Color.SubtitleText.opacity(0.7))
             }
             .padding(.horizontal, 30)
             .frame(height: 250, alignment: .top)
@@ -54,8 +54,8 @@ struct ActualBudgetView: View {
     ]) private var budgets: FetchedResults<Budget>
     @FetchRequest(sortDescriptors: []) private var mainBudget: FetchedResults<MainBudget>
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
-    @EnvironmentObject var tabBarManager: TabBarManager
+    @Environment(DataController.self) private var dataController
+    @Environment(TabBarManager.self) private var tabBarManager
 
     @State var newBudget = false
 
@@ -93,7 +93,7 @@ struct ActualBudgetView: View {
                         Image(systemName: "plus")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
 //                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(4)
                             .background(Color.SecondaryBackground, in: Circle())
                             .contentShape(Circle())
@@ -198,13 +198,13 @@ struct ActualBudgetView: View {
                             .font(.system(.title2, design: .rounded).weight(.medium))
 //                            .font(.system(size: 23.5, weight: .medium, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(Color.PrimaryText.opacity(0.8))
+                            .foregroundStyle(Color.PrimaryText.opacity(0.8))
 
                         Text("Add your first budget today!")
                             .font(.system(.body, design: .rounded).weight(.medium))
 //                            .font(.system(size: 18, weight: .medium, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(Color.SubtitleText.opacity(0.7))
+                            .foregroundStyle(Color.SubtitleText.opacity(0.7))
 
                         Spacer()
                         Spacer()
@@ -248,7 +248,7 @@ struct MainBudgetView: View {
     @FetchRequest<Transaction> private var transactions: FetchedResults<Transaction>
 
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
 
     @State var toEdit: MainBudget?
     @State var toDelete: MainBudget?
@@ -411,7 +411,7 @@ struct MainBudgetView: View {
                 CurvedText(text: String(localized: "OVERALL SPENT: \(percentString1)"), radius: width / 2 + 8)
                     .font(.system(.footnote, design: .rounded).weight(.medium))
 //                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .frame(width: width, height: 10)
 
                 VStack(spacing: -4) {
@@ -422,7 +422,7 @@ struct MainBudgetView: View {
                     Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
             }
 
@@ -444,7 +444,7 @@ struct MainBudgetView: View {
             .font(.system(.caption2, design: .rounded).weight(.medium))
 //            .font(.system(size: 10, weight: .medium, design: .rounded))
             .frame(width: width)
-            .foregroundColor(Color.SubtitleText)
+            .foregroundStyle(Color.SubtitleText)
         }
         .padding(.bottom)
         .frame(width: width + 30, height: soloBudget ? 230 : 200, alignment: .bottom)
@@ -642,7 +642,7 @@ struct SingleBudgetView: View {
 
     // swipe to delete
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @State private var offset: CGFloat = 0
     @State private var deleted: Bool = false
 
@@ -663,7 +663,7 @@ struct SingleBudgetView: View {
                     Image(systemName: "xmark")
                         .font(.system(.footnote, design: .rounded).weight(.bold))
 //                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
+                        .foregroundStyle(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
                         .padding(5)
                         .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.SecondaryBackground, in: Circle())
                         .scaleEffect(deleteConfirm ? 1.1 : 1)
@@ -693,13 +693,13 @@ struct SingleBudgetView: View {
                                     .font(.system(.body, design: .rounded).weight(.semibold))
 //                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
                                     .lineLimit(1)
-                                    .foregroundColor(Color.PrimaryText)
+                                    .foregroundStyle(Color.PrimaryText)
 
                                 Text("\(timeLeft) • \(percentString1) spent")
                                     .font(.system(.footnote, design: .rounded).weight(.medium))
 //                                    .font(.system(size: 13, weight: .medium, design: .rounded))
                                     .lineLimit(1)
-                                    .foregroundColor(Color.SubtitleText)
+                                    .foregroundStyle(Color.SubtitleText)
                             }
                         }
 
@@ -710,7 +710,7 @@ struct SingleBudgetView: View {
 
                             Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
                                 .font(.system(.caption2, design: .rounded).weight(.medium))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                         }
                     }
                     .padding(10)
@@ -799,13 +799,13 @@ struct SingleBudgetView: View {
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
 //                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                                     .lineLimit(1)
-                                    .foregroundColor(Color.PrimaryText)
+                                    .foregroundStyle(Color.PrimaryText)
                             }
 
                             Text(timeLeft)
                                 .font(.system(.footnote, design: .rounded).weight(.semibold))
 //                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .multilineTextAlignment(.leading)
                         }
 
@@ -822,7 +822,7 @@ struct SingleBudgetView: View {
                                     .font(.system(.caption2, design: .rounded).weight(.semibold))
 //                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
                                     .lineLimit(1)
-                                    .foregroundColor(totalSpent / budgetAmount > 1 ? Color("BudgetRed") : Color.IncomeGreen)
+                                    .foregroundStyle(totalSpent / budgetAmount > 1 ? Color("BudgetRed") : Color.IncomeGreen)
                                     .padding(.bottom, 5)
                             }
 
@@ -830,7 +830,7 @@ struct SingleBudgetView: View {
 
                             Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
                                 .font(.system(.footnote, design: .rounded).weight(.medium))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .minimumScaleFactor(0.7)
                                 .lineLimit(1)
                         }
@@ -992,11 +992,11 @@ struct BudgetDollarView: View {
             Group {
                 Text(currencySymbol)
                     .font(.system(dynamicTypeSizes.symbol, design: .rounded).weight(.medium))
-                    .foregroundColor(red ? Color("BudgetRed") : Color.SubtitleText) +
+                    .foregroundStyle(red ? Color("BudgetRed") : Color.SubtitleText) +
 
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(dynamicTypeSizes.amount, design: .rounded).weight(.medium))
-                    .foregroundColor(red ? Color("BudgetRed") : Color.PrimaryText)
+                    .foregroundStyle(red ? Color("BudgetRed") : Color.PrimaryText)
             }
         }
         .minimumScaleFactor(0.5)
@@ -1018,11 +1018,11 @@ struct DetailedBudgetDollarView: View {
             Group {
                 Text(currencySymbol)
                     .font(.system(.title2, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.SubtitleText) +
+                    .foregroundStyle(Color.SubtitleText) +
 
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(.largeTitle, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
             }
         }
         .minimumScaleFactor(0.5)
@@ -1046,11 +1046,11 @@ struct DetailedBudgetDifferenceDollarView: View {
             Group {
                 Text(currencySymbol)
                     .font(.system(.title2, design: .rounded).weight(.medium))
-                    .foregroundColor(red ? Color("BudgetRed") : Color.SubtitleText) +
+                    .foregroundStyle(red ? Color("BudgetRed") : Color.SubtitleText) +
 
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(.largeTitle, design: .rounded).weight(.medium))
-                    .foregroundColor(red ? Color("BudgetRed") : Color.PrimaryText)
+                    .foregroundStyle(red ? Color("BudgetRed") : Color.PrimaryText)
             }
         }
         .minimumScaleFactor(0.5)
@@ -1060,7 +1060,7 @@ struct DetailedBudgetDifferenceDollarView: View {
 
 struct DeleteBudgetAlert: View {
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     let toDelete: Budget
@@ -1082,11 +1082,11 @@ struct DeleteBudgetAlert: View {
             VStack(alignment: .leading, spacing: 1.5) {
                 Text("Delete the '\(toDelete.category?.wrappedName ?? "")' budget?")
                     .font(.system(.title2, design: .rounded).weight(.medium))
-                    .foregroundColor(.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
 
                 Text("This action cannot be undone.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .padding(.bottom, 25)
 
                 Button {
@@ -1145,7 +1145,7 @@ struct DeleteBudgetAlert: View {
 
 struct DeleteMainBudgetAlert: View {
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
     let toDelete: MainBudget
     @Environment(\.colorScheme) var systemColorScheme
@@ -1166,11 +1166,11 @@ struct DeleteMainBudgetAlert: View {
             VStack(alignment: .leading, spacing: 1.5) {
                 Text("Delete your overall budget?")
                     .font(.system(.title2, design: .rounded).weight(.medium))
-                    .foregroundColor(.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
 
                 Text("This action cannot be undone.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .padding(.bottom, 25)
 
                 Button {
@@ -1231,7 +1231,7 @@ struct DeleteMainBudgetAlert: View {
 struct DetailedBudgetView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     let budget: Budget
 
     @State private var toDelete: Budget?
@@ -1249,11 +1249,11 @@ struct DetailedBudgetView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
 
                         Text("Back")
                             .font(.system(.body, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
@@ -1304,7 +1304,7 @@ struct DetailedBudgetView: View {
 struct DetailedMainBudgetView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     let budget: MainBudget
 
     @State private var toDelete: MainBudget?
@@ -1320,11 +1320,11 @@ struct DetailedMainBudgetView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
 
                         Text("Back")
                             .font(.system(.body, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
@@ -1561,11 +1561,11 @@ struct TimeBudgetView: View {
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .lineLimit(1)
                 }
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
 
                 Text(subtitleText)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .padding(4)
                     .padding(.horizontal, 7)
                     .background(Color.SecondaryBackground, in: Capsule())
@@ -1581,7 +1581,7 @@ struct TimeBudgetView: View {
 
                         Text(differenceSubtitle)
                             .font(.system(.subheadline, design: .rounded).weight(.medium))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                     }
                     .frame(maxWidth: .infinity, alignment: showExtraDetails ? .leading : .center)
 
@@ -1592,7 +1592,7 @@ struct TimeBudgetView: View {
                             Text("left each day")
                                 .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                                .font(.system(size: 15, weight: .medium, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
@@ -1606,7 +1606,7 @@ struct TimeBudgetView: View {
                     Text(differenceSubtitle)
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
                 .padding(.horizontal, 25)
             }
@@ -1638,7 +1638,7 @@ struct TimeBudgetView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .font(.system(.caption, design: .rounded))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
             }
             .padding(.bottom, budgetType >= 2 ? 20 : 0)
             .padding(.horizontal, 25)
@@ -1683,7 +1683,7 @@ struct FilteredCategoryDayBudgetView: View {
     var date: Date
 
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
     @AppStorage("swapTimeLabel", store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
     @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
@@ -2051,11 +2051,11 @@ struct TimeMainBudgetView: View {
                 Text("Overall Budget")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .lineLimit(1)
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
 
                 Text(subtitleText)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .padding(4)
                     .padding(.horizontal, 7)
                     .background(Color.SecondaryBackground, in: Capsule())
@@ -2071,7 +2071,7 @@ struct TimeMainBudgetView: View {
 
                         Text(differenceSubtitle)
                             .font(.system(.subheadline, design: .rounded).weight(.medium))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                     }
                     .frame(maxWidth: .infinity, alignment: showExtraDetails ? .leading : .center)
 
@@ -2081,7 +2081,7 @@ struct TimeMainBudgetView: View {
 
                             Text("left each day")
                                 .font(.system(.subheadline, design: .rounded).weight(.medium))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
@@ -2094,7 +2094,7 @@ struct TimeMainBudgetView: View {
 
                     Text(differenceSubtitle)
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
                 .padding(.horizontal, 25)
             }
@@ -2124,7 +2124,7 @@ struct TimeMainBudgetView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .font(.system(.caption, design: .rounded))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
             }
             .padding(.bottom, budgetType >= 2 ? 20 : 0)
             .padding(.horizontal, 25)
@@ -2165,7 +2165,7 @@ struct AnimatedHorizontalBarGraphBudget: View {
     var body: some View {
         HStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                .foregroundColor(Color(hex: category.wrappedColour))
+                .foregroundStyle(Color(hex: category.wrappedColour))
                 .frame(width: showBar ? nil : 0, alignment: .leading)
 
             Spacer(minLength: 0)

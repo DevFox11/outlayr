@@ -235,7 +235,7 @@ struct ShortcutTransactionView: View {
                     if transaction.recurringType > 0 {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color.DarkIcon)
+                            .foregroundStyle(Color.DarkIcon)
                             .padding(3)
                             .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
                             .offset(x: 5, y: 5)
@@ -245,26 +245,26 @@ struct ShortcutTransactionView: View {
             VStack(alignment: .leading) {
                 Text(transaction.wrappedNote)
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
                     .lineLimit(1)
 
                 Text(transaction.wrappedDate, format: .dateTime.hour().minute())
                     .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .lineLimit(1)
             }
             Spacer()
             if transaction.income {
                 Text("+\(transactionAmountString)")
                     .font(.system(size: 19, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.IncomeGreen)
+                    .foregroundStyle(Color.IncomeGreen)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                     .layoutPriority(1)
             } else {
                 Text("-\(transactionAmountString)")
                     .font(.system(size: 19, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                     .layoutPriority(1)

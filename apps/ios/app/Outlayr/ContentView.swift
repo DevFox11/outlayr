@@ -8,8 +8,8 @@ import SwiftUI
 import WidgetKit
 
 struct ContentView: View {
-    @EnvironmentObject var appLockVM: AppLockViewModel
-    @EnvironmentObject var dataController: DataController
+    @Environment(AppLockViewModel.self) private var appLockVM
+    @Environment(DataController.self) private var dataController
 
     @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults) var colourScheme: Int = 0
     @Environment(\.scenePhase) var scenePhase

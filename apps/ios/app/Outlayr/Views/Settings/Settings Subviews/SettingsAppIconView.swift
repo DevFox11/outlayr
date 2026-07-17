@@ -46,7 +46,7 @@ struct SettingsAppIconView: View {
     VStack(spacing: 10) {
       Text("App Icon")
         .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -70,11 +70,11 @@ struct SettingsAppIconView: View {
             VStack(alignment: .leading, spacing: 3) {
               Text(options[index].displayName)
                 .font(.system(.body, design: .rounded))
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
 
               Text(options[index].displaySubtitle)
                 .font(.system(.caption, design: .rounded))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
             }
 
             Spacer()
@@ -82,12 +82,12 @@ struct SettingsAppIconView: View {
             if activeIcon == options[index].actualFileName {
               Image(systemName: "checkmark")
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundColor(.DarkIcon.opacity(0.6))
+                .foregroundStyle(Color.DarkIcon.opacity(0.6))
                 .matchedGeometryEffect(id: "tick", in: animation)
             } else {
               Image(systemName: "checkmark")
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundColor(.SettingsBackground)
+                .foregroundStyle(Color.SettingsBackground)
             }
           }
           .frame(maxWidth: .infinity)

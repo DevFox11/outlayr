@@ -44,13 +44,13 @@ struct InsightsView: View {
                 Text("Analyse Your Expenditure")
                     .font(.system(.title2, design: .rounded).weight(.medium))
 //                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.PrimaryText.opacity(0.8))
+                    .foregroundStyle(Color.PrimaryText.opacity(0.8))
                     .multilineTextAlignment(.center)
 
                 Text("As transactions start piling up")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText.opacity(0.7))
+                    .foregroundStyle(Color.SubtitleText.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 30)
@@ -80,7 +80,7 @@ struct InsightsView: View {
                         }
                         .padding(3)
                         .padding(.horizontal, 6)
-                        .foregroundColor(Color.PrimaryText.opacity(0.9))
+                        .foregroundStyle(Color.PrimaryText.opacity(0.9))
                         .background(Color.Outline, in: RoundedRectangle(cornerRadius: 6))
                     }
                     .popover(present: $showTimeMenu, attributes: {
@@ -212,7 +212,7 @@ struct HorizontalPieChartView: View {
                 if !categoryFilterMode {
                     Text("Categories")
                         .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
 
                     GeometryReader { proxy in
                         HStack(spacing: proxy.size.width * 0.015) {
@@ -263,12 +263,12 @@ struct HorizontalPieChartView: View {
 
                                     Text(category.category.fullName)
                                         .font(.system(.title3, design: .rounded).weight(.semibold))
-                                        .foregroundColor(Color.PrimaryText)
+                                        .foregroundStyle(Color.PrimaryText)
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
                                     Text("\(currencySymbol)\(category.amount, specifier: (showCents && category.amount < 100) ? "%.2f" : "%.0f")")
                                         .font(.system(categoryFilterMode && categoryFilter == category.category ? .title3 : .body, design: .rounded).weight(.medium))
-                                        .foregroundColor(Color.SubtitleText)
+                                        .foregroundStyle(Color.SubtitleText)
                                         .lineLimit(1)
                                         .layoutPriority(1)
 
@@ -282,7 +282,7 @@ struct HorizontalPieChartView: View {
                                         } label: {
                                             Image(systemName: "xmark")
                                                 .font(.system(.footnote, design: .rounded).weight(.bold))
-                                                .foregroundColor(Color.SubtitleText)
+                                                .foregroundStyle(Color.SubtitleText)
                                                 .padding(5)
                                                 .background(Color.SecondaryBackground, in: Circle())
                                         }
@@ -291,7 +291,7 @@ struct HorizontalPieChartView: View {
 
                                         Text("\(category.percent * 100, specifier: "%.0f")%")
                                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                            .foregroundColor(boxColor)
+                                            .foregroundStyle(boxColor)
                                             .padding(.vertical, 3)
                                             .frame(width: percentWidth)
                                             .background(boxColor.opacity(0.23), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -565,7 +565,7 @@ struct FilteredInsightsView: View {
 }
 
 struct SingleGraphView: View {
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     var date: Date
     let type: Int
 
@@ -735,7 +735,7 @@ struct SingleGraphView: View {
                     Text(dateString)
                         .lineLimit(1)
                         .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                         .layoutPriority(1)
 
                     HStack(spacing: 10) {
@@ -745,7 +745,7 @@ struct SingleGraphView: View {
                         if showPercentage {
                             Text(percentageDifference)
                                 .font(.system(.footnote, design: .rounded).weight(.medium))
-                                .foregroundColor(currentNet < lastNet ? Color.AlertRed : Color.IncomeGreen)
+                                .foregroundStyle(currentNet < lastNet ? Color.AlertRed : Color.IncomeGreen)
                                 .padding(3)
                                 .padding(.horizontal, 3)
                                 .background(currentNet < lastNet ? Color.AlertRed.opacity(0.23) : Color.IncomeGreen.opacity(0.23), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
@@ -762,7 +762,7 @@ struct SingleGraphView: View {
                             .lineLimit(1)
                             .font(.system(.callout, design: .rounded).weight(.semibold))
 //                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
 
                         InsightsDollarView(amount: selectedCategoryAmount, currencySymbol: currencySymbol, showCents: showCents)
                             .layoutPriority(1)
@@ -772,7 +772,7 @@ struct SingleGraphView: View {
                         Text(selectedDateString)
                             .lineLimit(1)
                             .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                         InsightsDollarView(amount: selectedDateAmount, currencySymbol: currencySymbol, showCents: showCents)
                             .layoutPriority(1)
                     }
@@ -781,7 +781,7 @@ struct SingleGraphView: View {
                         Text(type == 3 ? (income ? "Income/Mth" : "Spent/Mth") : (income ? "Income/Day" : "Spent/Day"))
                             .lineLimit(1)
                             .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                         InsightsDollarView(amount: incomeAverage, currencySymbol: currencySymbol, showCents: showCents)
                             .layoutPriority(1)
                     }
@@ -790,7 +790,7 @@ struct SingleGraphView: View {
                         Text(type == 3 ? "AVG/MTH" : "AVG/DAY")
                             .lineLimit(1)
                             .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                         InsightsDollarView(amount: average, currencySymbol: currencySymbol, showCents: showCents, net: netPositive)
                             .layoutPriority(1)
                     }
@@ -912,7 +912,7 @@ struct SingleGraphView: View {
 }
 
 struct WeekGraphView: View {
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
 
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
@@ -1250,13 +1250,13 @@ struct SingleWeekBarGraphView: View {
                 VStack(alignment: .leading) {
                     Text(getMaxText(maxi: getMax))
                         .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
 
                     Spacer()
 
                     Text("0")
                         .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
                 .frame(height: barHeight)
                 .padding(.trailing, 3)
@@ -1277,7 +1277,7 @@ struct SingleWeekBarGraphView: View {
 
                             Text(getWeekday(day: day).prefix(1))
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                         }
                         .opacity(day > Date.now ? 0.3 : 1)
                         .frame(maxWidth: .infinity)
@@ -1336,7 +1336,7 @@ struct SingleWeekBarGraphView: View {
 }
 
 struct MonthGraphView: View {
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
 
@@ -1632,13 +1632,13 @@ struct SingleMonthBarGraphView: View {
                 VStack(alignment: .leading) {
                     Text(getMaxText(maxi: getMax))
                         .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
 
                     Spacer()
 
                     Text("0")
                         .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
 
                 }
                 .frame(height: barHeight)
@@ -1661,7 +1661,7 @@ struct SingleMonthBarGraphView: View {
                                     if numberArray.contains(((daysOfMonth.firstIndex(of: day) ?? -1) + 1)) && firstDayOfMonth == 1 {
                                         Text("\((daysOfMonth.firstIndex(of: day) ?? -1) + 1)")
                                             .font(.system(size: 12, weight: .bold, design: .rounded))
-                                            .foregroundColor(Color.SubtitleText)
+                                            .foregroundStyle(Color.SubtitleText)
                                             .frame(width: 20, alignment: .center)
                                             .offset(y: 20)
                                     }
@@ -1719,7 +1719,7 @@ struct SingleMonthBarGraphView: View {
 }
 
 struct YearGraphView: View {
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
 
@@ -1988,13 +1988,13 @@ struct SingleYearBarGraphView: View {
                 VStack(alignment: .leading) {
                     Text(getMaxText(maxi: getMax))
                         .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
 
                     Spacer()
 
                     Text("0")
                         .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
 
                 }
                 .frame(height: barHeight)
@@ -2017,7 +2017,7 @@ struct SingleYearBarGraphView: View {
                                     if numberArray.contains(((monthsOfYear.firstIndex(of: month) ?? 0) + 1)) {
                                         Text(LocalizedStringKey(monthNames[((monthsOfYear.firstIndex(of: month) ?? 0) + 1)] ?? ""))
                                             .font(.system(size: 12, weight: .bold, design: .rounded))
-                                            .foregroundColor(Color.SubtitleText)
+                                            .foregroundStyle(Color.SubtitleText)
                                             .frame(width: 30)
                                             .offset(y: 20)
                                     }
@@ -2159,7 +2159,7 @@ struct ChartTimePickerView: View {
                 }
             }
         }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
+        .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
         .padding(4)
         .frame(width: 120)
         .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
@@ -2265,11 +2265,11 @@ struct InsightsDollarView: View {
             Group {
                 Text(symbol)
                     .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.SubtitleText) +
+                    .foregroundStyle(Color.SubtitleText) +
 
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(.title, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
             }
         }
         .minimumScaleFactor(0.5)
@@ -2334,13 +2334,13 @@ struct SwipeArrowView: View {
                 .font(.system(.body, design: .rounded).weight(.medium))
 //                                        .font(.system(size: 18, weight: .medium))
                 //                                .scaleEffect(changeTime ? 1.3 : 1)
-                .foregroundColor(changeTime ? Color.PrimaryText : Color.SecondaryBackground)
+                .foregroundStyle(changeTime ? Color.PrimaryText : Color.SecondaryBackground)
 
             Text(swipeString)
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
 //                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .multilineTextAlignment(.center)
-                .foregroundColor(changeTime ? Color.PrimaryText : Color.SecondaryBackground)
+                .foregroundStyle(changeTime ? Color.PrimaryText : Color.SecondaryBackground)
         }
         .drawingGroup()
     }
@@ -2354,14 +2354,14 @@ struct SwipeEndView: View {
             Image(systemName: left ? "eyeglasses" : "sun.haze.fill")
                 .font(.system(.title2, design: .rounded).weight(.medium))
 //                                        .font(.system(size: 22, weight: .medium))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
 
             Text(left ? "That's all, buddy." : "Into the unknown.")
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
 //                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .frame(width: 90)
                 .multilineTextAlignment(.center)
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
         }
         .opacity(0.8)
         .drawingGroup()

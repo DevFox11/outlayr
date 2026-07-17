@@ -19,7 +19,7 @@ struct DetailedBudgetViewTopBarButton: View {
         }) {
             Image(systemName: imageName)
                 .font(.system(.callout, design: .rounded).weight(.semibold))
-                .foregroundColor(color)
+                .foregroundStyle(color)
                 .padding(8)
 //                .frame(width: 30, height: 30)
                 .background(color.opacity(0.23), in: Circle())

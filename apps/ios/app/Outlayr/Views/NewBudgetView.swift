@@ -32,7 +32,7 @@ struct BrandNewBudgetView: View {
     @AppStorage("firstDayOfMonth", store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
 
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
 
     @Environment(\.dismiss) var dismiss
 
@@ -172,7 +172,7 @@ struct BrandNewBudgetView: View {
                         Image(systemName: showBackButton ? "chevron.left" : "xmark")
                             .font(.system(.callout, design: .rounded).weight(.semibold))
 
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(8)
                             .background(Color.SecondaryBackground, in: Circle())
                     }
@@ -195,7 +195,7 @@ struct BrandNewBudgetView: View {
                     } label: {
                         Image(systemName: showBackButton ? "chevron.left" : "xmark")
                             .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(8)
                             .background(Color.SecondaryBackground, in: Circle())
                     }
@@ -213,11 +213,11 @@ struct BrandNewBudgetView: View {
                     HStack(spacing: 6.5) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.AlertRed)
+                            .foregroundStyle(Color.AlertRed)
 
                         Text(toastMessage)
                             .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.AlertRed)
+                            .foregroundStyle(Color.AlertRed)
                     }
                     .padding(8)
                     .background(Color.AlertRed.opacity(0.23), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -231,7 +231,7 @@ struct BrandNewBudgetView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
                     Text(instructions[progress - 1].title)
-                        .foregroundColor(.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
                         .font(.system(.title2, design: .rounded).weight(.semibold))
 
                     if progress == 2 {
@@ -240,7 +240,7 @@ struct BrandNewBudgetView: View {
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(.footnote, design: .rounded).weight(.semibold))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .padding(4)
                                 .background(Color.SecondaryBackground, in: Circle())
                                 .contentShape(Circle())
@@ -252,7 +252,7 @@ struct BrandNewBudgetView: View {
                 .frame(maxWidth: .infinity)
 
                 Text(instructions[progress - 1].subtitle)
-                    .foregroundColor(.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .font(.system(.body, design: .rounded).weight(.medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -270,7 +270,7 @@ struct BrandNewBudgetView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .foregroundColor(Color.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
                         .font(.system(.title3, design: .rounded).weight(.medium))
 //                        .font(.system(size: 20, weight: .medium, design: .rounded))
                         .padding(8)
@@ -298,7 +298,7 @@ struct BrandNewBudgetView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .foregroundColor(Color.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .padding(8)
 //                        .frame(height: 40)
@@ -328,14 +328,14 @@ struct BrandNewBudgetView: View {
                             Image(systemName: "tray.full.fill")
                                 .font(.system(.largeTitle, design: .rounded))
 //                                .font(.system(size: 38, weight: .regular, design: .rounded))
-                                .foregroundColor(Color.SubtitleText.opacity(0.7))
+                                .foregroundStyle(Color.SubtitleText.opacity(0.7))
                                 .padding(.top, 20)
 
                             Text("No remaining\ncategories.")
                                 .font(.system(.title3, design: .rounded).weight(.medium))
 //                                .font(.system(size: 21, weight: .medium, design: .rounded))
                                 .multilineTextAlignment(.center)
-                                .foregroundColor(Color.SubtitleText.opacity(0.7))
+                                .foregroundStyle(Color.SubtitleText.opacity(0.7))
                                 .padding(.bottom, 20)
 
                             Spacer()
@@ -378,7 +378,7 @@ struct BrandNewBudgetView: View {
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .foregroundColor(Color.PrimaryText)
+                            .foregroundStyle(Color.PrimaryText)
                             .font(.system(.title3, design: .rounded).weight(.medium))
 //                            .font(.system(size: 20, weight: .medium, design: .rounded))
                             .padding(8)
@@ -422,7 +422,7 @@ struct BrandNewBudgetView: View {
                                             }
                                         }
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .foregroundColor(Color.PrimaryText)
+                                        .foregroundStyle(Color.PrimaryText)
                                         .font(.system(.title3, design: .rounded).weight(.medium))
 //                                        .font(.system(size: 20, weight: .medium, design: .rounded))
                                         .padding(8)
@@ -469,7 +469,7 @@ struct BrandNewBudgetView: View {
                                             }
                                         }
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .foregroundColor(Color.PrimaryText)
+                                        .foregroundStyle(Color.PrimaryText)
                                         .font(.system(.title3, design: .rounded).weight(.medium))
                                         .padding(8)
                                         .background {
@@ -519,7 +519,7 @@ struct BrandNewBudgetView: View {
                         Text(amountPerDayString)
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
 //                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(4)
                             .padding(.horizontal, 7)
                             .background(Color.SecondaryBackground, in: Capsule())
@@ -576,7 +576,7 @@ struct BrandNewBudgetView: View {
 
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
-                        .foregroundColor((selectedCategory == nil && progress == 2) ? Color.SubtitleText : Color.LightIcon)
+                        .foregroundStyle((selectedCategory == nil && progress == 2) ? Color.SubtitleText : Color.LightIcon)
                         .background((selectedCategory == nil && progress == 2) ? Color.clear : Color.DarkBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                         .overlay {
                             if selectedCategory == nil && progress == 2 {
@@ -870,7 +870,7 @@ struct BrandNewBudgetView: View {
             }
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
-            .foregroundColor(selectedCategory == category ? Color(hex: category.wrappedColour) : Color.PrimaryText)
+            .foregroundStyle(selectedCategory == category ? Color(hex: category.wrappedColour) : Color.PrimaryText)
             .background(selectedCategory == category ? Color(hex: category.wrappedColour).opacity(0.35) : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
                 if selectedCategory != category {
@@ -955,12 +955,12 @@ struct RowProgressIndicator: View {
     var body: some View {
 //        ZStack(alignment: .leading) {
 //            Rectangle()
-//                .foregroundColor(Color.SecondaryBackground)
+//                .foregroundStyle(Color.SecondaryBackground)
 //                .frame(maxWidth: .infinity)
 //
 //            GeometryReader { proxy in
 //                Rectangle()
-//                    .foregroundColor(Color.DarkBackground)
+//                    .foregroundStyle(Color.DarkBackground)
 //                    .frame(width: proxy.size.width * CGFloat((Double(progress) - initialProgess + 1)/count), height: 5)
 //            }
 //            .frame(maxWidth: .infinity)
@@ -986,7 +986,7 @@ struct RowProgressIndicator: View {
             ForEach(0 ..< Int(count), id: \.self) { num in
                 Capsule()
                     .frame(width: 15, height: 5)
-                    .foregroundColor(num == progress - Int(initialProgess) ? Color.DarkBackground : Color.SecondaryBackground)
+                    .foregroundStyle(num == progress - Int(initialProgess) ? Color.DarkBackground : Color.SecondaryBackground)
 
 //                    .transaction { transaction in
 //                        transaction.animation = .easeIn.delay(0.2)
@@ -1001,7 +1001,7 @@ struct RowProgressIndicator: View {
 //            Capsule()
 //                .frame(width: 30, height: 5)
 //                .offset(x: CGFloat((progress - Int(initialProgess)) * 11))
-//                .foregroundColor(Color.DarkBackground)
+//                .foregroundStyle(Color.DarkBackground)
 //        }
     }
 }

@@ -26,7 +26,7 @@ struct SettingsHapticsView: View {
         VStack(spacing: 10) {
             Text("Haptic Feedback")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .leading) {
                     Button {
@@ -42,14 +42,14 @@ struct SettingsHapticsView: View {
                     HStack {
                         Text(LocalizedStringKey(options[option]))
                             .font(.system(.body, design: .rounded))
-                            .foregroundColor(Color.PrimaryText)
+                            .foregroundStyle(Color.PrimaryText)
 
                         Spacer()
 
                         if hapticType == option {
                             Image(systemName: "checkmark")
                                 .font(.system(.subheadline, design: .rounded))
-                                .foregroundColor(.DarkIcon.opacity(0.6))
+                                .foregroundStyle(Color.DarkIcon.opacity(0.6))
                                 .matchedGeometryEffect(id: "tick", in: animation)
                         }
                     }
@@ -80,7 +80,7 @@ struct SettingsHapticsView: View {
 
             Text("The 'Excessive' mode makes the entire numpad haptic.")
                 .font(.system(.caption, design: .rounded).weight(.medium))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
                 .padding(.horizontal, 15)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

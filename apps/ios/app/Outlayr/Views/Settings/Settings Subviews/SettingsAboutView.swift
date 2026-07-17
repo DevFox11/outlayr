@@ -20,7 +20,7 @@ struct SettingsAboutView: View {
     VStack(spacing: 10) {
       Text("About & Credits")
         .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -37,7 +37,7 @@ struct SettingsAboutView: View {
             "Outlayr is open source and free forever. It is built on the foundation of Dime, a beautiful expense tracker created by Rafael Soh, and is distributed under the GNU General Public License v3.0."
           )
           .font(.system(.subheadline, design: .rounded))
-          .foregroundColor(Color.PrimaryText)
+          .foregroundStyle(Color.PrimaryText)
           .fixedSize(horizontal: false, vertical: true)
 
           // GPL-3.0 section 0 requires the interactive UI to carry a copyright
@@ -54,7 +54,7 @@ struct SettingsAboutView: View {
             )
           }
           .font(.system(.footnote, design: .rounded).weight(.medium))
-          .foregroundColor(Color.SubtitleText)
+          .foregroundStyle(Color.SubtitleText)
           .fixedSize(horizontal: false, vertical: true)
 
           VStack(spacing: 0) {
@@ -81,18 +81,18 @@ struct SettingsAboutView: View {
       HStack(spacing: 12) {
         Image(systemName: icon)
           .font(.system(.subheadline, design: .rounded))
-          .foregroundColor(Color.SubtitleText)
+          .foregroundStyle(Color.SubtitleText)
           .frame(width: 26, alignment: .center)
 
         Text(title)
           .font(.system(.body, design: .rounded).weight(.medium))
-          .foregroundColor(Color.PrimaryText)
+          .foregroundStyle(Color.PrimaryText)
 
         Spacer()
 
         Image(systemName: "arrow.up.right")
           .font(.system(.subheadline, design: .rounded))
-          .foregroundColor(.DarkIcon.opacity(0.6))
+          .foregroundStyle(Color.DarkIcon.opacity(0.6))
       }
       .frame(maxWidth: .infinity)
       .contentShape(Rectangle())

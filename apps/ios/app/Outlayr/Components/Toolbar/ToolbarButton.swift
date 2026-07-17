@@ -12,7 +12,7 @@ struct ToolbarButton: View {
                 Image(systemName: systemName)
                     .font(.system(.callout, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .offset(y: 0.8)
             }
             .onTapGesture {

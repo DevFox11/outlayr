@@ -140,11 +140,11 @@ struct ShortcutBudgetView: View {
             if amount > 0 {
                 Text("left \(budgetType)")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
             } else {
                 Text("over \(budgetType)")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
             }
         }
         .padding(20)

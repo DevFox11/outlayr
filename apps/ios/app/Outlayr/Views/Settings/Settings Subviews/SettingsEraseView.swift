@@ -17,7 +17,7 @@ struct SettingsEraseView: View {
     VStack(spacing: 10) {
       Text("Erase Data")
         .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -33,7 +33,7 @@ struct SettingsEraseView: View {
       } label: {
         Text("Permanently Delete Everythin'")
           .font(.system(.body, design: .rounded))
-          .foregroundColor(Color.PrimaryText)
+          .foregroundStyle(Color.PrimaryText)
           .frame(maxWidth: .infinity, alignment: .leading)
           .padding(.vertical, 12)
           .padding(.horizontal, 15)
@@ -45,7 +45,7 @@ struct SettingsEraseView: View {
       )
       .font(.system(.caption, design: .rounded).weight(.medium))
       .multilineTextAlignment(.leading)
-      .foregroundColor(Color.SubtitleText)
+      .foregroundStyle(Color.SubtitleText)
       .padding(.horizontal, 15)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -57,7 +57,7 @@ struct SettingsEraseView: View {
 }
 
 struct DeleteAllAlert: View {
-  @EnvironmentObject var dataController: DataController
+  @Environment(DataController.self) private var dataController
   @Environment(\.dismiss) var dismiss
   @Environment(\.colorScheme) var systemColorScheme
 
@@ -98,11 +98,11 @@ struct DeleteAllAlert: View {
           Text("Danger Zone")
             .font(.system(.title2, design: .rounded).weight(.medium))
         }
-        .foregroundColor(.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
 
         Text("This action genuinely cannot be undone. Long press to confirm.")
           .font(.system(.title3, design: .rounded).weight(.medium))
-          .foregroundColor(.SubtitleText)
+          .foregroundStyle(Color.SubtitleText)
           .padding(.bottom, 15)
 
         GeometryReader { proxy in
@@ -119,7 +119,7 @@ struct DeleteAllAlert: View {
 
             Text("Delete Literally Everything")
               .font(.system(.title3, design: .rounded).weight(.semibold))
-              .foregroundColor(.white)
+              .foregroundStyle(.white)
               .frame(width: proxy.size.width, alignment: .center)
           }
           .frame(height: proxy.size.height)

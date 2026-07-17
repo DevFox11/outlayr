@@ -9,8 +9,10 @@ import ConfettiSwiftUI
 import Foundation
 import SwiftUI
 
-class OverallToastPresenter: ObservableObject {
-    @Published var showToast: Bool = false
+@MainActor
+@Observable
+class OverallToastPresenter {
+    var showToast: Bool = false
 }
 
 enum DeletionType {
@@ -18,21 +20,23 @@ enum DeletionType {
     case prompt
 }
 
-class OverallTransactionManager: ObservableObject {
-    @Published var toEdit: Transaction?
-    @Published var toDelete: Transaction?
-    @Published var showToast: Bool = false
-    @Published var showPopup: Bool = false
-    @Published var future: Bool = false
+@MainActor
+@Observable
+class OverallTransactionManager {
+    var toEdit: Transaction?
+    var toDelete: Transaction?
+    var showToast: Bool = false
+    var showPopup: Bool = false
+    var future: Bool = false
 }
 
 struct HomeView: View {
-    @EnvironmentObject var appLockVM: AppLockViewModel
+    @Environment(AppLockViewModel.self) private var appLockVM
 
-    @StateObject var toastPresenter = OverallToastPresenter()
-    @StateObject var transactionManager = OverallTransactionManager()
+    @State var toastPresenter = OverallToastPresenter()
+    @State var transactionManager = OverallTransactionManager()
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
 
     @State var currentTab = "Log"
 
@@ -49,7 +53,7 @@ struct HomeView: View {
 
     @State var counter = 0
 
-    @EnvironmentObject var tabBarManager: TabBarManager
+    @Environment(TabBarManager.self) private var tabBarManager
 
     @State var showPopup = false
 
@@ -81,8 +85,8 @@ struct HomeView: View {
                     .tag("Settings")
             }
             .allowsHitTesting(showPopup ? false : true)
-            .environmentObject(toastPresenter)
-            .environmentObject(transactionManager)
+            .environment(toastPresenter)
+            .environment(transactionManager)
 
             CustomTabBar(currentTab: $currentTab, topEdge: topEdge, bottomEdge: bottomEdge, counter: $counter, launchAdd: launchAdd)
                 .offset(y: tabBarManager.hideTab ? (70 + bottomEdge) : 0)
@@ -99,7 +103,7 @@ struct HomeView: View {
 
             DeleteTransactionAlert()
                 .offset(y: showPopup ? 0 : 300)
-                .environmentObject(transactionManager)
+                .environment(transactionManager)
 
             if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
                 AppLockView()
@@ -183,17 +187,17 @@ struct HomeView: View {
 }
 
 struct AppLockView: View {
-    @EnvironmentObject var appLockVM: AppLockViewModel
+    @Environment(AppLockViewModel.self) private var appLockVM
 
     var body: some View {
         VStack(spacing: 15) {
             Image(systemName: "lock.fill")
                 .font(.system(size: 65))
-                .foregroundColor(Color.DarkIcon.opacity(0.7))
+                .foregroundStyle(Color.DarkIcon.opacity(0.7))
 
             Text("App Locked")
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .padding(.bottom, 30)
 
             Button {
@@ -205,7 +209,7 @@ struct AppLockView: View {
                     Text("Unlock App")
                 }
                 .font(.system(size: 20, weight: .medium, design: .rounded))
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .padding(.horizontal, 40)
                 .padding(.vertical, 15)
                 .overlay {
@@ -217,7 +221,7 @@ struct AppLockView: View {
             if appLockVM.enrollmentError {
                 Text("Please re-enable Face ID access in the Settings app to unlock application.")
                     .font(.system(size: 15, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
                     .multilineTextAlignment(.center)
             }
         }

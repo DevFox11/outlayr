@@ -112,16 +112,16 @@ struct LineGraph: View {
                         if type < 4 {
                             Text(currentPlot?.dateString ?? "")
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                         } else {
                             Text(currentPlot?.monthString ?? "")
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                         }
 
                         Text(currentPlot?.amountString ?? "")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.PrimaryText)
+                            .foregroundStyle(Color.PrimaryText)
                     }
                     .frame(height: 33)
                     .padding(.horizontal, 7)
@@ -129,7 +129,7 @@ struct LineGraph: View {
                     .padding(.bottom, 4)
 //                    Text(currentPlot?.dateString ?? "")
 //                        .font(.caption.bold())
-//                        .foregroundColor(Color.PrimaryText)
+//                        .foregroundStyle(Color.PrimaryText)
 //                        .padding(.vertical,6)
 //                        .frame(width: 100)
 //                        .background(Color.SecondaryBackground,in: Capsule())
@@ -144,7 +144,7 @@ struct LineGraph: View {
 
                         .stroke(style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                         .frame(width: 2.5, height: 25)
-                        .foregroundColor(overlayColor)
+                        .foregroundStyle(overlayColor)
 
                     Circle()
                         .stroke(Color.PrimaryBackground, lineWidth: 2.5)

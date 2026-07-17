@@ -17,7 +17,7 @@ struct TransactionView: View {
     var incomeCategories: FetchedResults<Category>
 
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
+    @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
 
     @Environment(\.colorScheme) var colorScheme
@@ -66,7 +66,7 @@ struct TransactionView: View {
     @State var categoryButtonOutlineColor = Color.Outline
     @State var shake: Bool = false
 
-    @ObservedObject var keyboardHeightHelper = KeyboardHeightHelper()
+    @State private var keyboardHeightHelper = KeyboardHeightHelper()
 
     @AppStorage(
         "firstTransactionViewLaunch", store: AppIdentifiers.sharedDefaults)
@@ -233,12 +233,12 @@ struct TransactionView: View {
                         HStack(spacing: 6.5) {
                             Image(systemName: toastImage)
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                .foregroundColor(Color.AlertRed)
+                                .foregroundStyle(Color.AlertRed)
 
                             Text(toastTitle)
                                 .font(.system(.body, design: .rounded).weight(.semibold))
                                 .lineLimit(1)
-                                .foregroundColor(Color.AlertRed)
+                                .foregroundStyle(Color.AlertRed)
                         }
                         .padding(8)
                         .background(
@@ -259,7 +259,7 @@ struct TransactionView: View {
                                     .font(.system(.body, design: .rounded).weight(.semibold))
 
                                     .lineLimit(1)
-                                    .foregroundColor(income == false ? Color.PrimaryText : Color.SubtitleText)
+                                    .foregroundStyle(income == false ? Color.PrimaryText : Color.SubtitleText)
                                     .padding(6)
                                     .frame(width: capsuleWidth)
                                     .contentShape(Rectangle())
@@ -277,7 +277,7 @@ struct TransactionView: View {
 
                                     .lineLimit(1)
                                 //                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                    .foregroundColor(income == true ? Color.PrimaryText : Color.SubtitleText)
+                                    .foregroundStyle(income == true ? Color.PrimaryText : Color.SubtitleText)
                                     .padding(6)
                                     .frame(width: capsuleWidth)
                                     .contentShape(Rectangle())
@@ -307,7 +307,7 @@ struct TransactionView: View {
                             //                                .font(.system(size: 16, weight: .semibold))
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.SubtitleText)
+                                .foregroundStyle(Color.SubtitleText)
                                 .padding(7)
                                 .background(Color.SecondaryBackground, in: Circle())
                                 .contentShape(Circle())
@@ -325,7 +325,7 @@ struct TransactionView: View {
                                 //                                    .font(.system(size: 16, weight: .semibold))
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                    .foregroundColor(Color.AlertRed)
+                                    .foregroundStyle(Color.AlertRed)
                                     .padding(7)
                                     .background(Color.AlertRed.opacity(0.23), in: Circle())
                                     .contentShape(Circle())
@@ -344,18 +344,18 @@ struct TransactionView: View {
                                     .overlay(alignment: .topTrailing) {
                                         Text(repeatOverlays[repeatType - 1])
                                             .font(.system(size: 6, weight: .black, design: .rounded))
-                                            .foregroundColor(Color.IncomeGreen)
+                                            .foregroundStyle(Color.IncomeGreen)
                                             .frame(width: 10, alignment: .leading)
                                             .offset(x: 5.7, y: 1.5)
                                     }
-                                    .foregroundColor(Color.IncomeGreen)
+                                    .foregroundStyle(Color.IncomeGreen)
                                     .padding(7)
                                     .background(Color.IncomeGreen.opacity(0.23), in: Circle())
                                     .contentShape(Circle())
                             } else {
                                 Image(systemName: "repeat")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color.SubtitleText)
+                                    .foregroundStyle(Color.SubtitleText)
                                     .padding(7)
                                     .background(Color.SecondaryBackground, in: Circle())
                                     .contentShape(Circle())
@@ -504,11 +504,11 @@ struct TransactionView: View {
                                                 options: .repeating, value: animateIcon)
                                     } else {
                                         Image(systemName: "slowmo")
-                                            .foregroundColor(Color.SubtitleText)
+                                            .foregroundStyle(Color.SubtitleText)
                                     }
                                 }
                             }
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
 
                             Group {
@@ -529,7 +529,7 @@ struct TransactionView: View {
                                     .font(.system(.body, design: .rounded).weight(.semibold))
                             }
                         }
-                        .foregroundColor(Color.PrimaryText)
+                        .foregroundStyle(Color.PrimaryText)
                         .padding(.vertical, 8.5)
                         .padding(.horizontal, 10)
                         .animation(.default, value: isDateToday(date: date))
@@ -555,7 +555,7 @@ struct TransactionView: View {
                             }
                             .padding(.vertical, 8.5)
                             .padding(.horizontal, 10)
-                            .foregroundColor(categoryButtonTextColor)
+                            .foregroundStyle(categoryButtonTextColor)
                             .background(
                                 categoryButtonBackgroundColor,
                                 in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
@@ -587,7 +587,7 @@ struct TransactionView: View {
                                     .padding(.vertical, 8.5)
                                     .padding(.horizontal, 10)
                                     .frame(width: widthOfCategoryButton)
-                                    .foregroundColor(Color.AlertRed)
+                                    .foregroundStyle(Color.AlertRed)
                                     .background(Color.AlertRed.opacity(0.23),
                                         in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
                                     )
@@ -603,7 +603,7 @@ struct TransactionView: View {
                                         }
                                         .padding(.vertical, 8.5)
                                         .padding(.horizontal, 10)
-                                        .foregroundColor(Color(hex: unwrappedCategory.wrappedColour))
+                                        .foregroundStyle(Color(hex: unwrappedCategory.wrappedColour))
                                         .background(
                                             Color(hex: unwrappedCategory.wrappedColour).opacity(0.35),
                                             in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
@@ -649,7 +649,7 @@ struct TransactionView: View {
                                         .padding(.vertical, 8.5)
                                         .padding(.horizontal, 10)
                                         .frame(width: widthOfCategoryButton)
-                                        .foregroundColor(categoryButtonTextColor)
+                                        .foregroundStyle(categoryButtonTextColor)
                                         .background(
                                             categoryButtonBackgroundColor,
                                             in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
@@ -738,11 +738,11 @@ struct TransactionView: View {
                     VStack(alignment: .leading, spacing: 1.5) {
                         Text("Delete Expense?")
                             .font(.system(size: 20, weight: .medium, design: .rounded))
-                            .foregroundColor(.PrimaryText)
+                            .foregroundStyle(Color.PrimaryText)
 
                         Text("This action cannot be undone.")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundColor(.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(.bottom, 15)
 
                         Button {
@@ -760,7 +760,7 @@ struct TransactionView: View {
                         } label: {
                             Text("Delete")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundStyle(.white)
                                 .frame(height: 45)
                                 .frame(maxWidth: .infinity)
                                 .background(
@@ -777,7 +777,7 @@ struct TransactionView: View {
                         } label: {
                             Text("Cancel")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color.PrimaryText.opacity(0.9))
+                                .foregroundStyle(Color.PrimaryText.opacity(0.9))
                                 .frame(height: 45)
                                 .frame(maxWidth: .infinity)
                                 .background(
@@ -1283,7 +1283,7 @@ struct CategoryPickerView: View {
                 }
                 .padding(.horizontal, 11)
                 .padding(.vertical, 7)
-                .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
+                .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
                 .background(
                     RoundedRectangle(cornerRadius: 11.5, style: .continuous)
                         .fill(
@@ -1317,7 +1317,7 @@ struct CategoryPickerView: View {
                                     .id(item.id)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 7)
-                                    .foregroundColor(
+                                    .foregroundStyle(
                                         darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground")
                                     )
                                     .background(
@@ -1420,17 +1420,17 @@ struct NoteView: View {
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             //                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
 
             ZStack(alignment: .leading) {
                 TextField("", text: $note)
                     .onReceive(Just(note)) { _ in limitText(characterLimit) }
                     .focused($textFocused)
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
 
                 if note.isEmpty {
                     Text("Add Note")
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                 }
             }
             .font(.system(.body, design: .rounded).weight(.semibold))
@@ -1595,7 +1595,7 @@ struct RecurringPickerView: View {
                 }
             }
         }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
+        .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
         .padding(4)
         .frame(width: 150)
         .background(
@@ -1637,7 +1637,7 @@ struct CustomRecurringView: View {
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     //                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundStyle(Color.SubtitleText)
                         .padding(7)
                         .background(Color.SecondaryBackground, in: Circle())
                         .contentShape(Circle())
@@ -1665,7 +1665,7 @@ struct CustomRecurringView: View {
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     //                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color.IncomeGreen)
+                        .foregroundStyle(Color.IncomeGreen)
                         .padding(7)
                         .background(Color.IncomeGreen.opacity(0.23), in: Circle())
                         .contentShape(Circle())
@@ -1675,7 +1675,7 @@ struct CustomRecurringView: View {
             HStack(spacing: 10) {
                 Text("Repeats every")
                     .font(.system(size: 23, weight: .medium, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
                     .padding(.trailing, 3)
 
                 VStack {
@@ -1684,7 +1684,7 @@ struct CustomRecurringView: View {
                     } label: {
                         Image(systemName: "chevron.up")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
                                 Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -1708,7 +1708,7 @@ struct CustomRecurringView: View {
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
                                 Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -1725,7 +1725,7 @@ struct CustomRecurringView: View {
                     } label: {
                         Image(systemName: "chevron.up")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
                                 Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -1757,7 +1757,7 @@ struct CustomRecurringView: View {
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
+                            .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
                                 Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -1788,7 +1788,7 @@ struct ButtonView: View {
             .font(.system(size: 34, weight: .regular, design: .rounded))
             .frame(width: size.width * 0.3, height: size.height * 0.22)
             .background(Color.SecondaryBackground)
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
             .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }

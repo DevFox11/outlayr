@@ -9,9 +9,9 @@ import SwiftUI
 
 @main
 struct OutlayrApp: App {
-    @StateObject var dataController: DataController
-    @StateObject var appLockVM = AppLockViewModel()
-    @StateObject var tabBarManager = TabBarManager()
+    @State var dataController: DataController
+    @State var appLockVM = AppLockViewModel()
+    @State var tabBarManager = TabBarManager()
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -22,9 +22,9 @@ struct OutlayrApp: App {
             } else {
                 ContentView()
                     .environment(\.managedObjectContext, dataController.container.viewContext)
-                    .environmentObject(appLockVM)
-                    .environmentObject(dataController)
-                    .environmentObject(tabBarManager)
+                    .environment(appLockVM)
+                    .environment(dataController)
+                    .environment(tabBarManager)
             }
         }
     }
@@ -33,7 +33,7 @@ struct OutlayrApp: App {
         let dataController = DataController.shared
 //        let dataController = DataController()
 
-        _dataController = StateObject(wrappedValue: dataController)
+        _dataController = State(wrappedValue: dataController)
 
         UITableView.appearance().backgroundColor = .clear
     }
@@ -47,7 +47,7 @@ struct DataStoreUnavailableView: View {
         VStack(spacing: 14) {
             Image(systemName: "externaldrive.badge.xmark")
                 .font(.system(size: 46, weight: .semibold))
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             Text("Storage Unavailable")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -55,7 +55,7 @@ struct DataStoreUnavailableView: View {
             Text("The shared app group container could not be opened, so your data can't be loaded safely. Please relaunch the app. If the problem continues, contact support.")
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

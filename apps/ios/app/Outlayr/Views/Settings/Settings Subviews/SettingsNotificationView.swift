@@ -26,7 +26,7 @@ struct SettingsNotificationsView: View {
     VStack {
       Text("Notifications")
         .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -41,17 +41,17 @@ struct SettingsNotificationsView: View {
         HStack {
           Text("Enable Notifications")
             .font(.system(.body, design: .rounded))
-            .foregroundColor(Color.PrimaryText)
+            .foregroundStyle(Color.PrimaryText)
 
           Spacer()
 
           ZStack(alignment: showNotifications ? .trailing : .leading) {
             Capsule()
               .frame(width: 42, height: 28)
-              .foregroundColor(showNotifications ? .green : .gray.opacity(0.8))
+              .foregroundStyle(showNotifications ? .green : .gray.opacity(0.8))
 
             Circle()
-              .foregroundColor(Color.white)
+              .foregroundStyle(Color.white)
               .padding(2)
               .frame(width: 28, height: 28)
               .matchedGeometryEffect(id: "toggle", in: animation)
@@ -109,14 +109,14 @@ struct SettingsNotificationsView: View {
           HStack {
             Text("Every morning (8:00 AM)")
               .font(.system(.body, design: .rounded))
-              .foregroundColor(Color.PrimaryText)
+              .foregroundStyle(Color.PrimaryText)
 
             Spacer()
 
             if option == 1 {
               Image(systemName: "checkmark")
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundColor(.DarkIcon.opacity(0.6))
+                .foregroundStyle(Color.DarkIcon.opacity(0.6))
                 .matchedGeometryEffect(id: "tick", in: animation)
             }
           }
@@ -135,14 +135,14 @@ struct SettingsNotificationsView: View {
           HStack {
             Text("Every evening (8:00 PM)")
               .font(.system(.body, design: .rounded))
-              .foregroundColor(Color.PrimaryText)
+              .foregroundStyle(Color.PrimaryText)
 
             Spacer()
 
             if option == 2 {
               Image(systemName: "checkmark")
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundColor(.DarkIcon.opacity(0.6))
+                .foregroundStyle(Color.DarkIcon.opacity(0.6))
                 .matchedGeometryEffect(id: "tick", in: animation)
             }
           }
@@ -161,7 +161,7 @@ struct SettingsNotificationsView: View {
           HStack {
             Text("Custom Time")
               .font(.system(.body, design: .rounded))
-              .foregroundColor(Color.PrimaryText)
+              .foregroundStyle(Color.PrimaryText)
 
             Spacer()
 
@@ -174,7 +174,7 @@ struct SettingsNotificationsView: View {
 
               Image(systemName: "checkmark")
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundColor(.DarkIcon.opacity(0.6))
+                .foregroundStyle(Color.DarkIcon.opacity(0.6))
                 .matchedGeometryEffect(id: "tick", in: animation)
             }
           }

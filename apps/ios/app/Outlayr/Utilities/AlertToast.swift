@@ -293,16 +293,16 @@ public struct AlertToast: View {
                     switch type {
                     case let .complete(color):
                         Image(systemName: "checkmark")
-                            .foregroundColor(color)
+                            .foregroundStyle(color)
                     case let .error(color):
                         Image(systemName: "xmark")
-                            .foregroundColor(color)
+                            .foregroundStyle(color)
                     case let .systemImage(name, color):
                         Image(systemName: name)
-                            .foregroundColor(color)
+                            .foregroundStyle(color)
                     case let .image(name, color):
                         Image(name)
-                            .foregroundColor(color)
+                            .foregroundStyle(color)
                     case .loading:
                         ActivityIndicator()
                     case .regular:
@@ -337,18 +337,18 @@ public struct AlertToast: View {
                 case let .complete(color):
                     Image(systemName: "checkmark")
                         .hudModifier()
-                        .foregroundColor(color)
+                        .foregroundStyle(color)
                 case let .error(color):
                     Image(systemName: "xmark")
                         .hudModifier()
-                        .foregroundColor(color)
+                        .foregroundStyle(color)
                 case let .systemImage(name, color):
 //                    Image(systemName: name)
 //                        .hudModifier()
-//                        .foregroundColor(color)
+//                        .foregroundStyle(color)
 
                     Image(systemName: name)
-                        .foregroundColor(color)
+                        .foregroundStyle(color)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .frame(width: 31, height: 31, alignment: .center)
                         .background(color.opacity(0.23), in: Circle())
@@ -358,7 +358,7 @@ public struct AlertToast: View {
                 case let .image(name, color):
                     Image(name)
                         .hudModifier()
-                        .foregroundColor(color)
+                        .foregroundStyle(color)
                 case .loading:
                     ActivityIndicator()
                 case .regular:
@@ -418,7 +418,7 @@ public struct AlertToast: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .scaledToFit()
-                    .foregroundColor(color)
+                    .foregroundStyle(color)
                     .padding(.bottom)
                 Spacer()
             case let .image(name, color):
@@ -427,7 +427,7 @@ public struct AlertToast: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .scaledToFit()
-                    .foregroundColor(color)
+                    .foregroundStyle(color)
                     .padding(.bottom)
                 Spacer()
             case .loading:
@@ -703,9 +703,9 @@ private struct TextForegroundModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if color != nil {
+        if let color {
             content
-                .foregroundColor(color)
+                .foregroundStyle(color)
         } else {
             content
         }

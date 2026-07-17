@@ -193,7 +193,7 @@ struct ShortcutInsightsView: View {
         VStack(spacing: 2) {
             Text(leftText + " " + rightText)
                 .font(.system(size: 17, weight: .medium, design: .rounded))
-                .foregroundColor(Color.SubtitleText)
+                .foregroundStyle(Color.SubtitleText)
 
             Text(amountString)
                 .font(.system(size: 32, weight: .medium, design: .rounded))

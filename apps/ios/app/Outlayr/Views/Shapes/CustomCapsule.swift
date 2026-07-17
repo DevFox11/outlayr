@@ -39,7 +39,7 @@ struct CustomCapsuleProgress: View {
 
     var body: some View {
         ZStack {
-            CustomCapsule().foregroundColor(Color.PrimaryBackground)
+            CustomCapsule().foregroundStyle(Color.PrimaryBackground)
                 .shadow(color: percent == 1 ? Color.IncomeGreen.opacity(0.6) : Color.clear, radius: 5)
 
             CustomCapsule()
@@ -50,7 +50,7 @@ struct CustomCapsuleProgress: View {
                 .stroke(percent == 1 ? Color.IncomeGreen : topStroke, style: StrokeStyle(lineWidth: width, lineCap: .round))
 
             Text(percentString)
-                .foregroundColor(percent == 1 ? Color.IncomeGreen : topStroke)
+                .foregroundStyle(percent == 1 ? Color.IncomeGreen : topStroke)
                 .font(.system(.footnote, design: .rounded).weight(.bold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                .font(.system(size: 12, weight: .bold, design: .rounded))

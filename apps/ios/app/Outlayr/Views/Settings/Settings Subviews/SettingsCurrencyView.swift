@@ -22,7 +22,7 @@ struct SettingsCurrencyView: View {
     VStack(spacing: 10) {
       Text("Currencies")
         .font(.system(.title3, design: .rounded).weight(.semibold))
-        .foregroundColor(Color.PrimaryText)
+        .foregroundStyle(Color.PrimaryText)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .leading) {
           Button {
@@ -40,13 +40,13 @@ struct SettingsCurrencyView: View {
               HStack(spacing: 10) {
                 Text(currency.code)
                   .font(.system(.body, design: .rounded).weight(.semibold))
-                  .foregroundColor(Color.SubtitleText)
+                  .foregroundStyle(Color.SubtitleText)
                   .lineLimit(1)
                   //                                    .layoutPriority(1)
                   .frame(width: dynamicTypeSize > .xLarge ? 55 : 45, alignment: .leading)
                 Text(currency.name)
                   .font(.system(.body, design: .rounded))
-                  .foregroundColor(Color.PrimaryText)
+                  .foregroundStyle(Color.PrimaryText)
                   .lineLimit(1)
 
                 Spacer()
@@ -54,7 +54,7 @@ struct SettingsCurrencyView: View {
                 if currency.code == currencyCode {
                   Image(systemName: "checkmark")
                     .font(.system(.subheadline, design: .rounded))
-                    .foregroundColor(.DarkIcon.opacity(0.6))
+                    .foregroundStyle(Color.DarkIcon.opacity(0.6))
                     .matchedGeometryEffect(id: "tick", in: animation)
                 }
               }

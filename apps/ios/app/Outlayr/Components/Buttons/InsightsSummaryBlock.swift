@@ -22,7 +22,7 @@ struct InsightsSummaryBlockView: View {
         HStack(spacing: 6) {
             Image(systemName: income ? "arrow.up.right" : "arrow.down.right")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(color)
+                .foregroundStyle(color)
                 .padding(5)
                 .frame(width: 30, height: 30)
                 .background(color.opacity(0.23), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -32,11 +32,11 @@ struct InsightsSummaryBlockView: View {
                 Text(income ? "Income" : "Expenses")
                     .font(.system(.caption, design: .rounded).weight(.semibold))
                     .lineLimit(1)
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundStyle(Color.SubtitleText)
 
                 Text(amountString)
                     .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.PrimaryText)
+                    .foregroundStyle(Color.PrimaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
