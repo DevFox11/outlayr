@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -32,12 +32,6 @@
 		5327D287287C697400F76ADF /* OutlayrApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D286287C697400F76ADF /* OutlayrApp.swift */; };
 		5327D28E287C697C00F76ADF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D28D287C697C00F76ADF /* Preview Assets.xcassets */; };
 		5327D295287C698900F76ADF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D294287C698900F76ADF /* Assets.xcassets */; };
-		C5A1C0FF1C04DE01ABCDEF02 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */; };
-		C5A1C0FF1C04DE01ABCDEF04 /* AppIconTesting.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */; };
-		C5A1C0FF1C04DE01ABCDEF06 /* AppIcon1.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */; };
-		C5A1C0FF1C04DE01ABCDEF08 /* AppIcon2.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */; };
-		C5A1C0FF1C04DE01ABCDEF0A /* AppIcon3.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */; };
-		C5A1C0FF1C04DE01ABCDEF0C /* AppIcon4.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */; };
 		5327D2AD287C6AD200F76ADF /* DataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AC287C6AD200F76ADF /* DataController.swift */; };
 		5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AF287C6AFB00F76ADF /* Authentication.swift */; };
 		5327D2B7287C6AFB00F76ADF /* KeyboardHeightHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */; };
@@ -135,7 +129,6 @@
 		53D6BDC52AF6B32C00F5728E /* StepperButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */; };
 		53D6BDC82AF73B4800F5728E /* SettingsAppearanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */; };
 		53D6BDCA2AF73B7A00F5728E /* SettingsAppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */; };
-		C5B7A0011D0E0F0000ABCDE2 /* SettingsAboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */; };
 		53D6BDCC2AF73BC800F5728E /* SettingsCurrencyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */; };
 		53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */; };
 		53D6BDD02AF73C4300F5728E /* SettingsNumberEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCF2AF73C4300F5728E /* SettingsNumberEntryView.swift */; };
@@ -154,6 +147,9 @@
 		53EB930F28A65B250026BE28 /* FontExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B1D1A4289383B100E28062 /* FontExtension.swift */; };
 		5A9636689B7473BBCAC9AE3E /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		6D266457A008415544313BFE /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
+		7A875E293009C3AD00819E25 /* HugeiconsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A875E283009C3AD00819E25 /* HugeiconsCore */; };
+		7A875E2B3009C3AD00819E25 /* HugeiconsSolidRounded in Frameworks */ = {isa = PBXBuildFile; productRef = 7A875E2A3009C3AD00819E25 /* HugeiconsSolidRounded */; };
+		7A875E2D3009C3AD00819E25 /* HugeiconsStrokeRounded in Frameworks */ = {isa = PBXBuildFile; productRef = 7A875E2C3009C3AD00819E25 /* HugeiconsStrokeRounded */; };
 		7B9C8801231DD991ABF50E3D /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */; };
 		88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */; };
@@ -166,6 +162,13 @@
 		AECE7F9E2AED1A6800B57267 /* SuggestedTransactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */; };
 		BEC5A28F219BB14E49C60264 /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		C212A44B6F8F6230264669CD /* AppGroupBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7754C3185DAFE6D938265668 /* AppGroupBridgeTests.swift */; };
+		C5A1C0FF1C04DE01ABCDEF02 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */; };
+		C5A1C0FF1C04DE01ABCDEF04 /* AppIconTesting.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */; };
+		C5A1C0FF1C04DE01ABCDEF06 /* AppIcon1.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */; };
+		C5A1C0FF1C04DE01ABCDEF08 /* AppIcon2.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */; };
+		C5A1C0FF1C04DE01ABCDEF0A /* AppIcon3.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */; };
+		C5A1C0FF1C04DE01ABCDEF0C /* AppIcon4.icon in Resources */ = {isa = PBXBuildFile; fileRef = C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */; };
+		C5B7A0011D0E0F0000ABCDE2 /* SettingsAboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */; };
 		D4D87152C47C52BBC9A56D83 /* InsightsBucketingCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB08D25A084EA1AB577838F /* InsightsBucketingCharacterizationTests.swift */; };
 		D63B204A2D8728C300CAFB20 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20462D8728C300CAFB20 /* Localizable.strings */; };
 		D63B204B2D8728C300CAFB20 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = D63B20482D8728C300CAFB20 /* Localizable.stringsdict */; };
@@ -252,12 +255,6 @@
 		5327D286287C697400F76ADF /* OutlayrApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlayrApp.swift; sourceTree = "<group>"; };
 		5327D28D287C697C00F76ADF /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		5327D294287C698900F76ADF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
-		C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconTesting.icon; sourceTree = "<group>"; };
-		C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon1.icon; sourceTree = "<group>"; };
-		C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon2.icon; sourceTree = "<group>"; };
-		C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon3.icon; sourceTree = "<group>"; };
-		C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon4.icon; sourceTree = "<group>"; };
 		5327D2AC287C6AD200F76ADF /* DataController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataController.swift; sourceTree = "<group>"; };
 		5327D2AF287C6AFB00F76ADF /* Authentication.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Authentication.swift; sourceTree = "<group>"; };
 		5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyboardHeightHelper.swift; sourceTree = "<group>"; };
@@ -337,7 +334,6 @@
 		53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperButtons.swift; sourceTree = "<group>"; };
 		53D6BDC72AF73B4800F5728E /* SettingsAppearanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppearanceView.swift; sourceTree = "<group>"; };
 		53D6BDC92AF73B7A00F5728E /* SettingsAppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAppIconView.swift; sourceTree = "<group>"; };
-		C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutView.swift; sourceTree = "<group>"; };
 		53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCurrencyView.swift; sourceTree = "<group>"; };
 		53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWeekStartView.swift; sourceTree = "<group>"; };
 		53D6BDCF2AF73C4300F5728E /* SettingsNumberEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNumberEntryView.swift; sourceTree = "<group>"; };
@@ -355,7 +351,7 @@
 		54A09C1A0656A3477F173D65 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		7754C3185DAFE6D938265668 /* AppGroupBridgeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppGroupBridgeTests.swift; sourceTree = "<group>"; };
 		7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSVExportCharacterizationTests.swift; sourceTree = "<group>"; };
-		86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppIdentifiers.swift; path = AppIdentifiers.swift; sourceTree = "<group>"; };
+		86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppIdentifiers.swift; sourceTree = "<group>"; };
 		871417FF7CEC87B666036AF3 /* BudgetRolloverCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetRolloverCharacterizationTests.swift; sourceTree = "<group>"; };
 		A83D1F812EC5DC7BF733B848 /* DataControllerPersistenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataControllerPersistenceTests.swift; sourceTree = "<group>"; };
 		A9A9959DD9E3D87C020B9E38 /* CurvedText.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurvedText.swift; sourceTree = "<group>"; };
@@ -366,6 +362,13 @@
 		AEADEF722AE94DC3006EB614 /* ToolbarButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ToolbarButton.swift; sourceTree = "<group>"; };
 		AEADEF732AE94DC3006EB614 /* Toolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Toolbar.swift; sourceTree = "<group>"; };
 		AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedTransactions.swift; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconTesting.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon1.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF07 /* AppIcon2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon2.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon3.icon; sourceTree = "<group>"; };
+		C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon4.icon; sourceTree = "<group>"; };
+		C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutView.swift; sourceTree = "<group>"; };
 		D63B20472D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Localizations/en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D63B20492D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = Localizations/en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CharacterizationSupport.swift; sourceTree = "<group>"; };
@@ -396,7 +399,10 @@
 				5383D85E287D9A0100D1B9BA /* CloudKit.framework in Frameworks */,
 				53DCFAA12A498FBF0063FCDE /* CloudKitSyncMonitor in Frameworks */,
 				5327D2E6287C6CC300F76ADF /* Popovers in Frameworks */,
+				7A875E2D3009C3AD00819E25 /* HugeiconsStrokeRounded in Frameworks */,
+				7A875E2B3009C3AD00819E25 /* HugeiconsSolidRounded in Frameworks */,
 				536715ED28E1E9A3008461F2 /* StoreKit.framework in Frameworks */,
+				7A875E293009C3AD00819E25 /* HugeiconsCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -425,7 +431,6 @@
 			children = (
 				86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */,
 			);
-			name = Shared;
 			path = Shared;
 			sourceTree = "<group>";
 		};
@@ -714,7 +719,6 @@
 				7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */,
 				7754C3185DAFE6D938265668 /* AppGroupBridgeTests.swift */,
 			);
-			name = OutlayrTests;
 			path = OutlayrTests;
 			sourceTree = "<group>";
 		};
@@ -809,6 +813,9 @@
 				5327D2E5287C6CC300F76ADF /* Popovers */,
 				53A4147F28B7DA4C008C30E7 /* ConfettiSwiftUI */,
 				53DCFAA02A498FBF0063FCDE /* CloudKitSyncMonitor */,
+				7A875E283009C3AD00819E25 /* HugeiconsCore */,
+				7A875E2A3009C3AD00819E25 /* HugeiconsSolidRounded */,
+				7A875E2C3009C3AD00819E25 /* HugeiconsStrokeRounded */,
 			);
 			productName = Outlayr;
 			productReference = 5327D283287C697400F76ADF /* Outlayr.app */;
@@ -890,6 +897,7 @@
 				5327D2E4287C6CC300F76ADF /* XCRemoteSwiftPackageReference "Popovers" */,
 				53A4147E28B7DA4C008C30E7 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
 				53DCFA9F2A498FBF0063FCDE /* XCRemoteSwiftPackageReference "CloudKitSyncMonitor" */,
+				7A875E273009C3AD00819E25 /* XCLocalSwiftPackageReference "../../../../../Downloads/hugeicons-swift" */,
 			);
 			productRefGroup = 5327D284287C697400F76ADF /* Products */;
 			projectDirPath = "";
@@ -1694,6 +1702,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		7A875E273009C3AD00819E25 /* XCLocalSwiftPackageReference "../../../../../Downloads/hugeicons-swift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../../../Downloads/hugeicons-swift";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		5327D2E4287C6CC300F76ADF /* XCRemoteSwiftPackageReference "Popovers" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -1736,6 +1751,18 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 53DCFA9F2A498FBF0063FCDE /* XCRemoteSwiftPackageReference "CloudKitSyncMonitor" */;
 			productName = CloudKitSyncMonitor;
+		};
+		7A875E283009C3AD00819E25 /* HugeiconsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HugeiconsCore;
+		};
+		7A875E2A3009C3AD00819E25 /* HugeiconsSolidRounded */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HugeiconsSolidRounded;
+		};
+		7A875E2C3009C3AD00819E25 /* HugeiconsStrokeRounded */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HugeiconsStrokeRounded;
 		};
 /* End XCSwiftPackageProductDependency section */
 
