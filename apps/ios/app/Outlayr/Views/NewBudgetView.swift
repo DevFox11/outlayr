@@ -36,6 +36,10 @@ struct BrandNewBudgetView: View {
     // category
     @State var selectedCategory: Category?
     @State private var showingCategoryView = false
+    @State private var showingCategorySheet = false
+
+    // name
+    @State private var name = ""
 
     // period
     @State var budgetTimeFrame = BudgetTimeFrame.week
@@ -104,20 +108,29 @@ struct BrandNewBudgetView: View {
         return editMode ? String(localized: "Edit budget") : String(localized: "New budget")
     }
 
-    private var subtitleText: String {
-        step == 2
-            ? String(localized: "Try to stay under this limit — you can change it anytime.")
-            : String(localized: "Choose what to track and when it resets.")
+    private var trimmedName: String? {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private var defaultName: String {
+        if let selectedCategory { return selectedCategory.wrappedName }
+        return categoryBudget ? String(localized: "Budget name") : String(localized: "Overall Budget")
+    }
+
+    private var previewName: String {
+        if let trimmedName { return trimmedName }
+        if let selectedCategory { return selectedCategory.wrappedName }
+        return categoryBudget ? String(localized: "Pick a category") : String(localized: "Overall Budget")
+    }
+
+    private var previewEmoji: String {
+        selectedCategory?.wrappedEmoji ?? (categoryBudget ? "🏷️" : "💰")
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                titleBlock
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, step == 1 ? 6 : 18)
-
                 if step == 1 {
                     whatAndWhenContent
 
@@ -126,7 +139,7 @@ struct BrandNewBudgetView: View {
                 } else {
                     amountStep
                         .padding(.horizontal, 20)
-                        .padding(.top, 4)
+                        .padding(.top, 16)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -168,15 +181,11 @@ struct BrandNewBudgetView: View {
             .sheet(isPresented: $showingCategoryView) {
                 NewCategoryAlert(income: Binding.constant(false), bottomSpacers: true, budgetMode: true)
             }
+            .sheet(isPresented: $showingCategorySheet) {
+                BudgetCategoryPickerSheet(selectedCategory: $selectedCategory)
+            }
             .onAppear(perform: restoreEditState)
         }
-    }
-
-    private var titleBlock: some View {
-        Text(subtitleText)
-            .font(.system(.body, design: .rounded).weight(.medium))
-            .foregroundStyle(Color.SubtitleText)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var progressDots: some View {
@@ -221,6 +230,10 @@ struct BrandNewBudgetView: View {
                         }
                     }
 
+                    section("Name") {
+                        nameField
+                    }
+
                     section("Time frame") {
                         SegmentedSelector(
                             selection: $budgetTimeFrame,
@@ -239,7 +252,7 @@ struct BrandNewBudgetView: View {
                     livePreview
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .padding(.top, 16)
                 .padding(.bottom, 20)
                 .frame(minHeight: proxy.size.height, alignment: .top)
             }
@@ -269,16 +282,17 @@ struct BrandNewBudgetView: View {
                     .fill(color.opacity(0.85))
                     .frame(width: 140, height: 70)
 
-                Text(selectedCategory?.wrappedEmoji ?? "💰")
+                Text(previewEmoji)
                     .font(.system(size: 24))
                     .offset(y: 6)
             }
             .animation(.snappy(duration: 0.3), value: selectedCategory)
 
             VStack(spacing: 2) {
-                Text(selectedCategory?.wrappedName ?? String(localized: "Overall Budget"))
+                Text(previewName)
                     .font(.system(.headline, design: .rounded).weight(.semibold))
                     .foregroundStyle(Color.PrimaryText)
+                    .lineLimit(1)
 
                 Text("\(previewPeriodText) · set your limit next")
                     .font(.system(.footnote, design: .rounded).weight(.medium))
@@ -296,6 +310,17 @@ struct BrandNewBudgetView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.SubtitleText.opacity(0.12), lineWidth: 1)
         )
+    }
+
+    private var nameField: some View {
+        TextField(defaultName, text: $name)
+            .font(.system(.body, design: .rounded).weight(.medium))
+            .foregroundStyle(Color.PrimaryText)
+            .tint(Color.PrimaryText)
+            .submitLabel(.done)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func section<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
@@ -322,6 +347,9 @@ struct BrandNewBudgetView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         newCategoryChip
+                        if categories.count > 8 {
+                            browseChip
+                        }
                         ForEach(categories) { category in
                             categoryChip(category)
                         }
@@ -369,6 +397,25 @@ struct BrandNewBudgetView: View {
             HStack(spacing: 4) {
                 Image(systemName: "plus")
                 Text("New")
+            }
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundStyle(Color.SubtitleText)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 9)
+            .overlay {
+                Capsule().stroke(Color.Outline, lineWidth: 1.5)
+            }
+        }
+        .buttonStyle(BouncyButton(duration: 0.2, scale: 0.9))
+    }
+
+    private var browseChip: some View {
+        Button {
+            showingCategorySheet = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "magnifyingglass")
+                Text("All")
             }
             .font(.system(.subheadline, design: .rounded).weight(.semibold))
             .foregroundStyle(Color.SubtitleText)
@@ -502,6 +549,7 @@ struct BrandNewBudgetView: View {
     private func restoreEditState() {
         if let unwrappedEditedBudget = toEditBudget {
             selectedCategory = unwrappedEditedBudget.category
+            name = unwrappedEditedBudget.name ?? ""
             switch unwrappedEditedBudget.type {
             case 1:
                 budgetTimeFrame = .day
@@ -525,6 +573,7 @@ struct BrandNewBudgetView: View {
                 decimalValuesAssigned = .second
             }
         } else if let unwrappedEditedMainBudget = toEditMainBudget {
+            name = unwrappedEditedMainBudget.name ?? ""
             switch unwrappedEditedMainBudget.type {
             case 1:
                 budgetTimeFrame = .day
@@ -611,6 +660,7 @@ struct BrandNewBudgetView: View {
             unwrappedEditedBudget.startDate = startDate
             unwrappedEditedBudget.amount = price
             unwrappedEditedBudget.type = Int16(budgetType)
+            unwrappedEditedBudget.name = trimmedName
 
             dataController.save()
             dismiss()
@@ -621,6 +671,7 @@ struct BrandNewBudgetView: View {
             unwrappedEditedMainBudget.startDate = startDate
             unwrappedEditedMainBudget.amount = price
             unwrappedEditedMainBudget.type = Int16(budgetType)
+            unwrappedEditedMainBudget.name = trimmedName
 
             dataController.save()
             dismiss()
@@ -639,11 +690,13 @@ struct BrandNewBudgetView: View {
             newBudget.dateCreated = Date.now
             newBudget.type = Int16(budgetType)
             newBudget.id = UUID()
+            newBudget.name = trimmedName
         } else {
             let newBudget = MainBudget(context: moc)
             newBudget.startDate = startDate
             newBudget.amount = price
             newBudget.type = Int16(budgetType)
+            newBudget.name = trimmedName
         }
 
         dataController.save()
@@ -693,6 +746,66 @@ struct BrandNewBudgetView: View {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: andPredicate)
+    }
+}
+
+private struct BudgetCategoryPickerSheet: View {
+    @Binding var selectedCategory: Category?
+    @Environment(\.dismiss) private var dismiss
+    @FetchRequest private var categories: FetchedResults<Category>
+    @State private var search = ""
+
+    init(selectedCategory: Binding<Category?>) {
+        _selectedCategory = selectedCategory
+        let budgetPredicate = NSPredicate(format: "%K == nil", #keyPath(Category.budget))
+        let incomePredicate = NSPredicate(format: "income = %d", false)
+        _categories = FetchRequest(
+            sortDescriptors: [SortDescriptor(\.order)],
+            predicate: NSCompoundPredicate(type: .and, subpredicates: [budgetPredicate, incomePredicate])
+        )
+    }
+
+    private var filtered: [Category] {
+        let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !query.isEmpty else { return Array(categories) }
+        return categories.filter { $0.wrappedName.lowercased().contains(query) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List(filtered, id: \.self) { category in
+                Button {
+                    selectedCategory = category
+                    dismiss()
+                } label: {
+                    HStack(spacing: 12) {
+                        Text(category.wrappedEmoji)
+                            .font(.system(.body, design: .rounded))
+                        Text(category.wrappedName)
+                            .font(.system(.body, design: .rounded).weight(.medium))
+                            .foregroundStyle(Color.PrimaryText)
+                        Spacer()
+                        if selectedCategory == category {
+                            Image(systemName: "checkmark")
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .foregroundStyle(Color.IncomeGreen)
+                        }
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+            .listStyle(.plain)
+            .navigationTitle("Choose Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Color.PrimaryText)
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search categories")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
     }
 }
 
