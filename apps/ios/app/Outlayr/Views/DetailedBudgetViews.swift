@@ -3,134 +3,103 @@
 //  Outlayr
 //
 
-import Foundation
 import CoreData
+import Foundation
 import SwiftUI
 
 struct DetailedBudgetView: View {
-    @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
     let budget: Budget
 
     @State private var toDelete: Budget?
-
-    @State var newTransaction = false
-
+    @State private var newTransaction = false
     @State private var toEdit: Budget?
 
     var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundStyle(Color.SubtitleText)
+        TimeBudgetView(budget: budget)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Color.PrimaryBackground)
+            .navigationTitle("\(budget.wrappedEmoji) \(budget.wrappedName)")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Color.PrimaryText)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            newTransaction = true
+                        } label: {
+                            Label("New Transaction", systemImage: "plus")
+                        }
 
-                        Text("Back")
-                            .font(.system(.body, design: .rounded).weight(.semibold))
-                            .foregroundStyle(Color.SubtitleText)
+                        Button {
+                            toEdit = budget
+                        } label: {
+                            Label("Edit Budget", systemImage: "pencil")
+                        }
+
+                        Button(role: .destructive) {
+                            toDelete = budget
+                        } label: {
+                            Label("Delete Budget", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .background(Color.SecondaryBackground, in: Capsule())
-                }
-
-                Spacer()
-
-                DetailedBudgetViewTopBarButton(imageName: "plus", color: Color("110")) {
-                    newTransaction = true
-                }
-
-                DetailedBudgetViewTopBarButton(imageName: "pencil", color: Color("6")) {
-                    toEdit = budget
-                }
-
-                DetailedBudgetViewTopBarButton(imageName: "trash.fill", color: Color.AlertRed) {
-                    toDelete = budget
                 }
             }
-            .padding(.horizontal, 20)
-
-            TimeBudgetView(budget: budget)
-        }
-        .padding(.vertical, 15)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .background(Color.PrimaryBackground)
-        .sheet(item: $toEdit, onDismiss: {
-            toEdit = nil
-        }) { budget in
-            BrandNewBudgetView(overallBudgetCreated: false, toEditBudget: budget)
-        }
-        .fullScreenCover(isPresented: $newTransaction) {
-            TransactionView(category: budget.category)
-        }
-        .deleteBudgetConfirmation($toDelete)
+            .sheet(item: $toEdit, onDismiss: {
+                toEdit = nil
+            }) { budget in
+                BrandNewBudgetView(overallBudgetCreated: false, toEditBudget: budget)
+            }
+            .fullScreenCover(isPresented: $newTransaction) {
+                TransactionView(category: budget.category)
+            }
+            .deleteBudgetConfirmation($toDelete)
     }
 }
 
 struct DetailedMainBudgetView: View {
-    @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
     let budget: MainBudget
 
     @State private var toDelete: MainBudget?
-
     @State private var toEdit: MainBudget?
 
     var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundStyle(Color.SubtitleText)
+        TimeMainBudgetView(budget: budget)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Color.PrimaryBackground)
+            .navigationTitle("Overall Budget")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Color.PrimaryText)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            toEdit = budget
+                        } label: {
+                            Label("Edit Budget", systemImage: "pencil")
+                        }
 
-                        Text("Back")
-                            .font(.system(.body, design: .rounded).weight(.semibold))
-                            .foregroundStyle(Color.SubtitleText)
+                        Button(role: .destructive) {
+                            toDelete = budget
+                        } label: {
+                            Label("Delete Budget", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .background(Color.SecondaryBackground, in: Capsule())
-                }
-
-                Spacer()
-
-                DetailedBudgetViewTopBarButton(imageName: "pencil", color: Color("6")) {
-                    toEdit = budget
-                }
-
-                DetailedBudgetViewTopBarButton(imageName: "trash.fill", color: Color.AlertRed) {
-                    toDelete = budget
                 }
             }
-            .padding(.horizontal, 20)
-
-            TimeMainBudgetView(budget: budget)
-        }
-        .padding(.vertical, 15)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .background(Color.PrimaryBackground)
-        .fullScreenCover(item: $toEdit, onDismiss: {
-            toEdit = nil
-        }) { budget in
-            BrandNewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
-        }
-        .deleteMainBudgetConfirmation($toDelete)
+            .fullScreenCover(item: $toEdit, onDismiss: {
+                toEdit = nil
+            }) { budget in
+                BrandNewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
+            }
+            .deleteMainBudgetConfirmation($toDelete)
     }
 }
 

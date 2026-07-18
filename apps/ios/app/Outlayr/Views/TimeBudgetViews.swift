@@ -193,25 +193,14 @@ struct TimeBudgetView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // budget name and emoji and time left
-            VStack(spacing: 10) {
-                HStack(spacing: 7.5) {
-                    Text(budget.wrappedEmoji)
-                        .font(.system(.subheadline, design: .rounded))
-                    Text(budget.wrappedName)
-                        .font(.system(.title3, design: .rounded).weight(.medium))
-                        .lineLimit(1)
-                }
-                .foregroundStyle(Color.PrimaryText)
-
-                Text(subtitleText)
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.SubtitleText)
-                    .padding(4)
-                    .padding(.horizontal, 7)
-                    .background(Color.SecondaryBackground, in: Capsule())
-            }
-            .padding(.bottom, 15)
+            Text(subtitleText)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(Color.SubtitleText)
+                .padding(4)
+                .padding(.horizontal, 7)
+                .background(Color.SecondaryBackground, in: Capsule())
+                .padding(.top, 12)
+                .padding(.bottom, 15)
 
             // amount left and averages
 
@@ -675,21 +664,14 @@ struct TimeMainBudgetView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // budget name and emoji and time left
-            VStack(spacing: 10) {
-                Text("Overall Budget")
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .lineLimit(1)
-                    .foregroundStyle(Color.PrimaryText)
-
-                Text(subtitleText)
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.SubtitleText)
-                    .padding(4)
-                    .padding(.horizontal, 7)
-                    .background(Color.SecondaryBackground, in: Capsule())
-            }
-            .padding(.bottom, 15)
+            Text(subtitleText)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(Color.SubtitleText)
+                .padding(4)
+                .padding(.horizontal, 7)
+                .background(Color.SecondaryBackground, in: Capsule())
+                .padding(.top, 12)
+                .padding(.bottom, 15)
 
             // amount left and averages
 
