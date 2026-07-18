@@ -85,13 +85,16 @@ struct CategoryListView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .safeAreaInset(edge: .top) { typePicker }
         .navigationTitle("Categories")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar { toolbarContent }
         .safeAreaInset(edge: .bottom) {
-            if mode == .welcome {
-                continueButton
+            VStack(spacing: 8) {
+                floatingTypePicker
+                if mode == .welcome {
+                    continueButton
+                }
             }
         }
         .sheet(isPresented: $newCategory) {
@@ -124,9 +127,19 @@ struct CategoryListView: View {
             Text("Income").tag(true)
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+    }
+
+    private var floatingTypePicker: some View {
+        typePicker
+            .padding(6)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.Outline.opacity(0.4), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
+            .padding(.horizontal)
+            .padding(.bottom, 6)
     }
 
     @ToolbarContentBuilder
