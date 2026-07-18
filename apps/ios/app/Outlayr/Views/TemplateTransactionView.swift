@@ -5,10 +5,9 @@
 //  Created by Rafael Soh on 4/9/23.
 //
 
-import Combine
 import Foundation
-import Popovers
 import CoreData
+import Popovers
 import SwiftUI
 import WidgetKit
 
@@ -164,8 +163,6 @@ struct TemplateTransactionView: View {
 
     let order: Int
 
-    @Namespace var animation
-
     var body: some View {
 //        ScrollView {
         GeometryReader { proxy in
@@ -187,53 +184,12 @@ struct TemplateTransactionView: View {
                         .transition(AnyTransition.opacity.combined(with: .move(edge: .top)))
                         .frame(maxWidth: 200)
                     } else {
-                        HStack(spacing: 0) {
-                            Text("Expense")
-                                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundStyle(income == false ? Color.PrimaryText : Color.SubtitleText)
-                                .padding(6)
-                                .padding(.horizontal, 8)
-                                .background {
-                                    if income == false {
-                                        Capsule()
-                                            .fill(Color.SecondaryBackground)
-                                            .matchedGeometryEffect(id: "TAB1", in: animation)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    DispatchQueue.main.async {
-                                        withAnimation(.easeIn(duration: 0.15)) {
-                                            income = false
-                                            category = nil
-                                        }
-                                    }
-                                }
-
-                            Text("transaction-view-income-picker")
-                                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundStyle(income == true ? Color.PrimaryText : Color.SubtitleText)
-                                .padding(6)
-                                .padding(.horizontal, 8)
-                                .background {
-                                    if income == true {
-                                        Capsule()
-                                            .fill(Color.SecondaryBackground)
-                                            .matchedGeometryEffect(id: "TAB1", in: animation)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    DispatchQueue.main.async {
-                                        withAnimation(.easeIn(duration: 0.15)) {
-                                            income = true
-                                            category = nil
-                                        }
-                                    }
-                                }
+                        Picker("Type", selection: $income) {
+                            Text("Expense").tag(false)
+                            Text("transaction-view-income-picker").tag(true)
                         }
-                        .padding(3)
-                        .overlay(Capsule().stroke(Color.Outline.opacity(0.4), lineWidth: 1.3))
+                        .pickerStyle(.segmented)
+                        .onChange(of: income) { _, _ in category = nil }
                     }
                 }
                 .frame(height: 35)
@@ -536,7 +492,7 @@ struct TemplateTransactionView: View {
                     .padding(.horizontal, 17)
                     .padding(.bottom, bottomEdge == 0 ? 12 : bottomEdge - 3)
                 }
-                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
                 .background(BackgroundBlurView())
             }
         }
@@ -544,31 +500,30 @@ struct TemplateTransactionView: View {
         .ignoresSafeArea(.keyboard, edges: .all)
         .frame(maxHeight: .infinity)
         .background(Color.PrimaryBackground)
-        .edgesIgnoringSafeArea(.all)
+        .ignoresSafeArea()
         .onChange(of: showToast) { _, newValue in
             if newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
                     showToast = false
                 }
             }
         }
         .onAppear {
-            DispatchQueue.main.async {
-                if let transaction = toEdit {
-                    let string = String(format: "%.2f", transaction.wrappedAmount)
+            if let transaction = toEdit {
+                let string = String(format: "%.2f", transaction.wrappedAmount)
 
-                    var stringArray = string.compactMap { String($0) }
+                var stringArray = string.compactMap { String($0) }
 
-                    numbers = stringArray.compactMap { Int($0) }
+                numbers = stringArray.compactMap { Int($0) }
 
-                    if round(transaction.wrappedAmount) == transaction.wrappedAmount {
-                        stringArray.removeLast()
-                        stringArray.removeLast()
-                        stringArray.removeLast()
-                        numbers1 = stringArray
-                    } else {
-                        numbers1 = stringArray
-                    }
+                if round(transaction.wrappedAmount) == transaction.wrappedAmount {
+                    stringArray.removeLast()
+                    stringArray.removeLast()
+                    stringArray.removeLast()
+                    numbers1 = stringArray
+                } else {
+                    numbers1 = stringArray
                 }
             }
         }
@@ -913,7 +868,7 @@ struct CategoryRowPickerView: View {
 }
 
 struct SettingsQuickAddWidgetView: View {
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 10) {
@@ -923,7 +878,7 @@ struct SettingsQuickAddWidgetView: View {
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .leading) {
                     Button {
-                        self.presentationMode.wrappedValue.dismiss()
+                        dismiss()
                     } label: {
                         Circle()
                             .fill(Color.SecondaryBackground)
@@ -1042,9 +997,9 @@ struct SettingsQuickAddWidgetDraggingView: View {
         .fullScreenCover(item: $selectedItem, onDismiss: {
             gridData.reset()
             refreshID = UUID()
-        }) { grid in
+        }, content: { grid in
             TemplateTransactionView(order: grid.index)
-        }
+        })
     }
 }
 

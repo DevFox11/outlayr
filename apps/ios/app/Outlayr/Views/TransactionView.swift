@@ -5,10 +5,9 @@
 //  Created by Rafael Soh on 14/5/22.
 //
 
-import Combine
 import Foundation
-import Popovers
 import CoreData
+import Popovers
 import SwiftUI
 
 struct TransactionView: View {
@@ -233,11 +232,11 @@ struct TransactionView: View {
                     if showToast {
                         HStack(spacing: 6.5) {
                             Image(systemName: toastImage)
-                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                 .foregroundStyle(Color.AlertRed)
 
                             Text(toastTitle)
-                                .font(.system(.body, design: .rounded).weight(.semibold))
+                                .font(.system(.body, design: .rounded, weight: .semibold))
                                 .lineLimit(1)
                                 .foregroundStyle(Color.AlertRed)
                         }
@@ -249,52 +248,12 @@ struct TransactionView: View {
                         .transition(AnyTransition.opacity.combined(with: .move(edge: .top)))
                         .frame(maxWidth: dynamicTypeSize > .xLarge ? 250 : 200)
                     } else {
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.SecondaryBackground)
-                                .frame(width: capsuleWidth)
-                                .offset(x: swipingOffset)
-
-                            HStack(spacing: 0) {
-                                Text("Expense")
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
-
-                                    .lineLimit(1)
-                                    .foregroundStyle(income == false ? Color.PrimaryText : Color.SubtitleText)
-                                    .padding(6)
-                                    .frame(width: capsuleWidth)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        DispatchQueue.main.async {
-                                            withAnimation(.easeIn(duration: 0.15)) {
-                                                income = false
-                                                swipingOffset = 0
-                                            }
-                                        }
-                                    }
-
-                                Text("transaction-view-income-picker")
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
-
-                                    .lineLimit(1)
-                                //                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(income == true ? Color.PrimaryText : Color.SubtitleText)
-                                    .padding(6)
-                                    .frame(width: capsuleWidth)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        DispatchQueue.main.async {
-                                            withAnimation(.easeIn(duration: 0.15)) {
-                                                income = true
-                                                swipingOffset = capsuleWidth
-                                            }
-                                        }
-                                    }
-                            }
+                        Picker("Type", selection: $income) {
+                            Text("Expense").tag(false)
+                            Text("transaction-view-income-picker").tag(true)
                         }
-                        .padding(3)
+                        .pickerStyle(.segmented)
                         .fixedSize(horizontal: true, vertical: true)
-                        .overlay(Capsule().stroke(Color.Outline.opacity(0.4), lineWidth: 1.3))
                     }
                 }
                 //                .frame(height: 50, alignment: .top)
@@ -306,7 +265,7 @@ struct TransactionView: View {
                         } label: {
                             Image(systemName: "xmark")
                             //                                .font(.system(size: 16, weight: .semibold))
-                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                 .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                                 .foregroundStyle(Color.SubtitleText)
                                 .padding(7)
@@ -324,7 +283,7 @@ struct TransactionView: View {
                             } label: {
                                 Image(systemName: "trash.fill")
                                 //                                    .font(.system(size: 16, weight: .semibold))
-                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                                     .foregroundStyle(Color.AlertRed)
                                     .padding(7)
@@ -339,7 +298,7 @@ struct TransactionView: View {
                         } label: {
                             if repeatType > 0 {
                                 Image(systemName: "repeat")
-                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                                 //                                    .font(.system(size: 16, weight: .semibold))
                                     .overlay(alignment: .topTrailing) {
@@ -481,7 +440,7 @@ struct TransactionView: View {
                                                 Color(hex: transaction.wrappedColour).opacity(0.23),
                                                 in: RoundedRectangle(cornerRadius: 6.5, style: .continuous))
                                     }
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .font(.system(.body, design: .rounded, weight: .semibold))
                                     .padding(5)
                                     .background(
                                         Color.SecondaryBackground,
@@ -510,7 +469,7 @@ struct TransactionView: View {
                                 }
                             }
                             .foregroundStyle(Color.SubtitleText)
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
 
                             Group {
                                 if isDateToday(date: date) {
@@ -521,13 +480,13 @@ struct TransactionView: View {
                                         .lineLimit(1)
                                 }
                             }
-                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .font(.system(.body, design: .rounded, weight: .semibold))
 
                             if showTime {
                                 Spacer()
 
                                 Text(getTimeString(date: date))
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .font(.system(.body, design: .rounded, weight: .semibold))
                             }
                         }
                         .foregroundStyle(Color.PrimaryText)
@@ -548,10 +507,10 @@ struct TransactionView: View {
                         if (expenseCategories.count == 0 && !income) || (incomeCategories.count == 0 && income) {
                             HStack(spacing: 4) {
                                 Image(systemName: "plus")
-                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
 
                                 Text("Category")
-                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .font(.system(.body, design: .rounded, weight: .semibold))
                                     .lineLimit(1)
                             }
                             .padding(.vertical, 8.5)
@@ -579,11 +538,11 @@ struct TransactionView: View {
                                     HStack(spacing: 10) {
 
                                         Text("Close")
-                                            .font(.system(.body, design: .rounded).weight(.semibold))
+                                            .font(.system(.body, design: .rounded, weight: .semibold))
                                             .lineLimit(1)
 
 //                                        Image(systemName: "xmark.circle.fill")
-//                                            .font(.system(.footnote, design: .rounded).weight(.bold))
+//                                            .font(.system(.footnote, design: .rounded, weight: .bold))
                                     }
                                     .padding(.vertical, 8.5)
                                     .padding(.horizontal, 10)
@@ -596,10 +555,10 @@ struct TransactionView: View {
                                     if let unwrappedCategory = category {
                                         HStack(spacing: 5) {
                                             Text(unwrappedCategory.wrappedEmoji)
-                                                .font(.system(.footnote, design: .rounded).weight(.semibold))
+                                                .font(.system(.footnote, design: .rounded, weight: .semibold))
 
                                             Text(unwrappedCategory.wrappedName)
-                                                .font(.system(.body, design: .rounded).weight(.semibold))
+                                                .font(.system(.body, design: .rounded, weight: .semibold))
                                                 .lineLimit(1)
                                         }
                                         .padding(.vertical, 8.5)
@@ -634,17 +593,17 @@ struct TransactionView: View {
                                         HStack(spacing: 5.5) {
                                             if #available(iOS 17.0, *) {
                                                 Image(systemName: "circle.grid.2x2")
-                                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                                     .symbolEffect(
                                                         .bounce.up.byLayer, options: .repeating.speed(0.5),
                                                         value: showCategoryPicker)
                                             } else {
                                                 Image(systemName: "circle.grid.2x2")
-                                                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                             }
 
                                             Text("Category")
-                                                .font(.system(.body, design: .rounded).weight(.semibold))
+                                                .font(.system(.body, design: .rounded, weight: .semibold))
                                                 .lineLimit(1)
                                         }
                                         .padding(.vertical, 8.5)
@@ -819,7 +778,7 @@ struct TransactionView: View {
                     .padding(.horizontal, 17)
                     .padding(.bottom, bottomEdge == 0 ? 12 : bottomEdge - 3)
                 }
-                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
                 .background(BackgroundBlurView())
             }
             .overlay {
@@ -841,7 +800,8 @@ struct TransactionView: View {
                         .padding(17)
                         .onChange(of: dateString) { _, _ in
 
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            Task {
+                                try? await Task.sleep(for: .seconds(0.3))
                                 showingDatePicker = false
                             }
 
@@ -864,17 +824,21 @@ struct TransactionView: View {
         .ignoresSafeArea(.keyboard, edges: .all)
         .frame(maxHeight: .infinity)
         .background(Color.PrimaryBackground)
-        .edgesIgnoringSafeArea(.all)
+        .ignoresSafeArea()
         .onChange(of: showToast) { _, newValue in
             if newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
                     showToast = false
                 }
             }
         }
-        .onChange(of: income) { _, _ in
+        .onChange(of: income) { _, newValue in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             category = nil
+            withAnimation(.easeIn(duration: 0.15)) {
+                swipingOffset = newValue ? capsuleWidth : 0
+            }
         }
         .onChange(of: isDragging) { _, _ in
             if !isDragging {
@@ -890,20 +854,18 @@ struct TransactionView: View {
             }
         }
         .onAppear {
-            DispatchQueue.main.async {
-                if let transaction = toEdit {
-                    repeatType = Int(transaction.recurringType)
-                    repeatCoefficient = Int(transaction.recurringCoefficient)
-                    price = transaction.wrappedAmount
+            if let transaction = toEdit {
+                repeatType = Int(transaction.recurringType)
+                repeatCoefficient = Int(transaction.recurringCoefficient)
+                price = transaction.wrappedAmount
 
-                    if transaction.wrappedAmount.truncatingRemainder(dividingBy: 1) > 0 && numberEntryType == 2 {
-                        isEditingDecimal = true
-                        decimalValuesAssigned = .second
-                    }
+                if transaction.wrappedAmount.truncatingRemainder(dividingBy: 1) > 0 && numberEntryType == 2 {
+                    isEditingDecimal = true
+                    decimalValuesAssigned = .second
+                }
 
-                    if transaction.wrappedDate > Date.now {
-                        animateIcon = true
-                    }
+                if transaction.wrappedDate > Date.now {
+                    animateIcon = true
                 }
             }
         }
@@ -973,7 +935,8 @@ struct TransactionView: View {
             withAnimation(.easeInOut(duration: 0.1).repeatCount(5)) {
                 shake = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.5))
                 withAnimation(.easeInOut(duration: 0.1)) {
                     shake = false
                 }
@@ -1029,7 +992,8 @@ struct TransactionView: View {
                 editedTransaction.category = unwrappedCategory
             }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.3))
                 withAnimation(.easeInOut(duration: 0.5)) {
                     editedTransaction.amount = price
                     editedTransaction.date = date
@@ -1279,7 +1243,7 @@ struct CategoryPickerView: View {
                     Image(systemName: "pencil")
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                     Text("Edit")
-                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .font(.system(.body, design: .rounded, weight: .semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
                 .padding(.horizontal, 11)
@@ -1310,7 +1274,7 @@ struct CategoryPickerView: View {
                                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                         //                                                    .font(.system(size: 14))
                                         Text(item.wrappedName)
-                                            .font(.system(.body, design: .rounded).weight(.semibold))
+                                            .font(.system(.body, design: .rounded, weight: .semibold))
                                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                         //                                                    .font(.system(size: 17.5, weight: .semibold, design: .rounded))
                                             .lineLimit(1)
@@ -1418,14 +1382,14 @@ struct NoteView: View {
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: "text.alignleft")
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             //                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.SubtitleText)
 
             ZStack(alignment: .leading) {
                 TextField("", text: $note)
-                    .onReceive(Just(note)) { _ in limitText(characterLimit) }
+                    .onChange(of: note) { _, _ in limitText(characterLimit) }
                     .focused($textFocused)
                     .foregroundStyle(Color.PrimaryText)
 
@@ -1434,7 +1398,7 @@ struct NoteView: View {
                         .foregroundStyle(Color.SubtitleText)
                 }
             }
-            .font(.system(.body, design: .rounded).weight(.semibold))
+            .font(.system(.body, design: .rounded, weight: .semibold))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             //            .font(.system(size: 16, weight: .semibold, design: .rounded))
             .frame(width: min(noteWidth, UIScreen.main.bounds.width / 1.5), alignment: .center)
@@ -1493,14 +1457,14 @@ struct RecurringPickerView: View {
             ForEach(stringArray, id: \.self) { string in
                 HStack {
                     Text(LocalizedStringKey(string))
-                        .font(.system(.body, design: .rounded).weight(.medium))
+                        .font(.system(.body, design: .rounded, weight: .medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .lineLimit(1)
                     Spacer()
 
                     if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
                         Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
+                            .font(.system(.footnote, design: .rounded, weight: .medium))
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         //                            .font(.system(size: 14, weight: .medium))
                     }
@@ -1528,7 +1492,8 @@ struct RecurringPickerView: View {
                             repeatCoefficient = 1
                         }
 
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        Task {
+                            try? await Task.sleep(for: .seconds(0.4))
                             showMenu = false
                         }
                     }
@@ -1552,14 +1517,14 @@ struct RecurringPickerView: View {
 
                 if repeatCoefficient > 1 {
                     Image(systemName: "checkmark")
-                        .font(.system(.footnote, design: .rounded).weight(.medium))
+                        .font(.system(.footnote, design: .rounded, weight: .medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     //                        .font(.system(size: 14, weight: .medium))
                 }
             }
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .font(.system(.body, design: .rounded).weight(.medium))
+            .font(.system(.body, design: .rounded, weight: .medium))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             //            .font(.system(size: 18, weight: .medium, design: .rounded))
             .padding(5)
@@ -1590,7 +1555,8 @@ struct RecurringPickerView: View {
             .onChange(of: showPicker) { _, newValue in
                 // holdingType != repeatType || holdingCoefficient != repeatCoefficient
                 if !newValue {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    Task {
+                        try? await Task.sleep(for: .seconds(0.4))
                         showMenu = false
                     }
                 }
@@ -1635,7 +1601,7 @@ struct CustomRecurringView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     //                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.SubtitleText)
@@ -1647,7 +1613,7 @@ struct CustomRecurringView: View {
                 Spacer()
 
                 Text("Custom Interval")
-                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .font(.system(.body, design: .rounded, weight: .semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 //                    .font(.system(size: 18, weight: .semibold, design: .rounded))
 
@@ -1663,7 +1629,7 @@ struct CustomRecurringView: View {
 
                 } label: {
                     Image(systemName: "checkmark")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     //                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.IncomeGreen)
