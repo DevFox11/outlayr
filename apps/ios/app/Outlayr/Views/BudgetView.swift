@@ -80,29 +80,6 @@ struct ActualBudgetView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack {
-                    Text("Budgets")
-                        .font(.system(.title, design: .rounded).weight(.semibold))
-                        .accessibility(addTraits: .isHeader)
-
-                    Button {
-                        newBudget = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundStyle(Color.SubtitleText)
-                            .padding(4)
-                            .background(Color.SecondaryBackground, in: Circle())
-                            .contentShape(Circle())
-                    }
-
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 20)
-                .padding(.horizontal, 30)
-                .padding(.bottom, 20)
-
                 if !budgets.isEmpty || !mainBudget.isEmpty {
                     ScrollView(showsIndicators: false) {
                         VStack {
@@ -209,8 +186,17 @@ struct ActualBudgetView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .navigationBarTitle("")
-            .navigationBarHidden(true)
+            .navigationTitle("Budgets")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        newBudget = true
+                    } label: {
+                        Label("New Budget", systemImage: "plus")
+                    }
+                }
+            }
             .background(Color.PrimaryBackground)
             .sheet(item: $toEdit, onDismiss: {
                 toEdit = nil
