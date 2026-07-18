@@ -150,15 +150,12 @@ struct BrandNewBudgetView: View {
                 }
 
                 ToolbarItem(placement: .principal) {
-                    HStack(spacing: 6) {
-                        ForEach(1 ... 2, id: \.self) { index in
-                            Capsule()
-                                .fill(index <= step ? Color.PrimaryText : Color.SecondaryBackground)
-                                .frame(width: index <= step ? 20 : 12, height: 5)
-                        }
-                    }
-                    .animation(.easeInOut, value: step)
+                    Text(titleText)
+                        .font(.system(.headline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Color.PrimaryText)
                 }
+
+                progressDotsItem
             }
             .animation(.easeOut(duration: 0.2), value: showToast)
             .onChange(of: showToast) { _, newValue in
@@ -176,16 +173,31 @@ struct BrandNewBudgetView: View {
     }
 
     private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(titleText)
-                .font(.system(.title2, design: .rounded).weight(.semibold))
-                .foregroundStyle(Color.PrimaryText)
+        Text(subtitleText)
+            .font(.system(.body, design: .rounded).weight(.medium))
+            .foregroundStyle(Color.SubtitleText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
 
-            Text(subtitleText)
-                .font(.system(.body, design: .rounded).weight(.medium))
-                .foregroundStyle(Color.SubtitleText)
+    private var progressDots: some View {
+        HStack(spacing: 6) {
+            ForEach(1 ... 2, id: \.self) { index in
+                Capsule()
+                    .fill(index <= step ? Color.PrimaryText : Color.SecondaryBackground)
+                    .frame(width: index <= step ? 20 : 12, height: 5)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.easeInOut, value: step)
+    }
+
+    @ToolbarContentBuilder
+    private var progressDotsItem: some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            ToolbarItem(placement: .topBarTrailing) { progressDots }
+                .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .topBarTrailing) { progressDots }
+        }
     }
 
     // MARK: - Step 1: what & when
