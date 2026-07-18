@@ -3,174 +3,63 @@
 //  Outlayr
 //
 
-import Foundation
 import CoreData
 import SwiftUI
 
-struct DeleteBudgetAlert: View {
-    @Environment(\.managedObjectContext) var moc
+struct DeleteBudgetConfirmation: ViewModifier {
+    @Binding var budget: Budget?
+    @Environment(\.managedObjectContext) private var moc
     @Environment(DataController.self) private var dataController
-    @Environment(\.dismiss) var dismiss
-    let toDelete: Budget
-    @Environment(\.colorScheme) var systemColorScheme
 
-    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
-
-    @State private var offset: CGFloat = 0
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    dismiss()
-                }
-
-            VStack(alignment: .leading, spacing: 1.5) {
-                Text("Delete the '\(toDelete.category?.wrappedName ?? "")' budget?")
-                    .font(.system(.title2, design: .rounded).weight(.medium))
-                    .foregroundStyle(Color.PrimaryText)
-
-                Text("This action cannot be undone.")
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundStyle(Color.SubtitleText)
-                    .padding(.bottom, 25)
-
-                Button {
-                    dismiss()
-
-                    withAnimation {
-                        moc.delete(toDelete)
-                        dataController.save()
-                    }
-
-                } label: {
-                    DeleteButton(text: "Delete", red: true)
-                }
-                .padding(.bottom, 8)
-
-                Button {
-                    withAnimation(.easeOut(duration: 0.7)) {
-                        dismiss()
-                    }
-
-                } label: {
-                    DeleteButton(text: "Cancel", red: false)
+    func body(content: Content) -> some View {
+        content.alert(
+            "Delete the '\(budget?.category?.wrappedName ?? "")' budget?",
+            isPresented: Binding(get: { budget != nil }, set: { if !$0 { budget = nil } }),
+            presenting: budget
+        ) { budget in
+            Button("Delete", role: .destructive) {
+                withAnimation {
+                    moc.delete(budget)
+                    dataController.save()
                 }
             }
-            .padding(13)
-            .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
-            .offset(y: offset)
-            .gesture(
-                DragGesture()
-                    .onChanged { gesture in
-                        if gesture.translation.height < 0 {
-                            offset = gesture.translation.height / 3
-                        } else {
-                            offset = gesture.translation.height
-                        }
-                    }
-                    .onEnded { value in
-                        if value.translation.height > 20 {
-                            dismiss()
-                        } else {
-                            withAnimation {
-                                offset = 0
-                            }
-                        }
-                    }
-            )
-            .padding(.horizontal, 17)
-            .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("This action cannot be undone.")
         }
-        .ignoresSafeArea()
-        .background(BackgroundBlurView())
     }
 }
 
-struct DeleteMainBudgetAlert: View {
-    @Environment(\.managedObjectContext) var moc
+struct DeleteMainBudgetConfirmation: ViewModifier {
+    @Binding var budget: MainBudget?
+    @Environment(\.managedObjectContext) private var moc
     @Environment(DataController.self) private var dataController
-    @Environment(\.dismiss) var dismiss
-    let toDelete: MainBudget
-    @Environment(\.colorScheme) var systemColorScheme
 
-    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
-
-    @State private var offset: CGFloat = 0
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    dismiss()
-                }
-
-            VStack(alignment: .leading, spacing: 1.5) {
-                Text("Delete your overall budget?")
-                    .font(.system(.title2, design: .rounded).weight(.medium))
-                    .foregroundStyle(Color.PrimaryText)
-
-                Text("This action cannot be undone.")
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundStyle(Color.SubtitleText)
-                    .padding(.bottom, 25)
-
-                Button {
-                    dismiss()
-
-                    withAnimation {
-                        moc.delete(toDelete)
-                        dataController.save()
-                    }
-
-                } label: {
-                    DeleteButton(text: "Delete", red: true)
-                }
-                .padding(.bottom, 8)
-
-                Button {
-                    withAnimation(.easeOut(duration: 0.7)) {
-                        dismiss()
-                    }
-
-                } label: {
-                    DeleteButton(text: "Cancel", red: false)
+    func body(content: Content) -> some View {
+        content.alert(
+            "Delete your overall budget?",
+            isPresented: Binding(get: { budget != nil }, set: { if !$0 { budget = nil } }),
+            presenting: budget
+        ) { budget in
+            Button("Delete", role: .destructive) {
+                withAnimation {
+                    moc.delete(budget)
+                    dataController.save()
                 }
             }
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(13)
-            .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
-            .offset(y: offset)
-            .gesture(
-                DragGesture()
-                    .onChanged { gesture in
-                        if gesture.translation.height < 0 {
-                            offset = gesture.translation.height / 3
-                        } else {
-                            offset = gesture.translation.height
-                        }
-                    }
-                    .onEnded { value in
-                        if value.translation.height > 20 {
-                            dismiss()
-                        } else {
-                            withAnimation {
-                                offset = 0
-                            }
-                        }
-                    }
-            )
-            .padding(.horizontal, 17)
-            .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("This action cannot be undone.")
         }
-        .ignoresSafeArea()
-        .background(BackgroundBlurView())
+    }
+}
+
+extension View {
+    func deleteBudgetConfirmation(_ budget: Binding<Budget?>) -> some View {
+        modifier(DeleteBudgetConfirmation(budget: budget))
+    }
+
+    func deleteMainBudgetConfirmation(_ budget: Binding<MainBudget?>) -> some View {
+        modifier(DeleteMainBudgetConfirmation(budget: budget))
     }
 }

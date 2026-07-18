@@ -36,7 +36,7 @@ struct DetailedBudgetView: View {
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
-                    .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+                    .fixedSize(horizontal: false, vertical: true)
                     .background(Color.SecondaryBackground, in: Capsule())
                 }
 
@@ -71,11 +71,7 @@ struct DetailedBudgetView: View {
         .fullScreenCover(isPresented: $newTransaction) {
             TransactionView(category: budget.category)
         }
-        .fullScreenCover(item: $toDelete, onDismiss: {
-            toDelete = nil
-        }) { budget in
-            DeleteBudgetAlert(toDelete: budget)
-        }
+        .deleteBudgetConfirmation($toDelete)
     }
 }
 
@@ -106,7 +102,7 @@ struct DetailedMainBudgetView: View {
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
-                    .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+                    .fixedSize(horizontal: false, vertical: true)
                     .background(Color.SecondaryBackground, in: Capsule())
                 }
 
@@ -134,11 +130,7 @@ struct DetailedMainBudgetView: View {
         }) { budget in
             BrandNewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
         }
-        .fullScreenCover(item: $toDelete, onDismiss: {
-            toDelete = nil
-        }) { budget in
-            DeleteMainBudgetAlert(toDelete: budget)
-        }
+        .deleteMainBudgetConfirmation($toDelete)
     }
 }
 
