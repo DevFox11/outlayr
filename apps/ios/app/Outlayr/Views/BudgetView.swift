@@ -167,7 +167,7 @@ struct ActualBudgetView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .navigationTitle("Budgets")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
