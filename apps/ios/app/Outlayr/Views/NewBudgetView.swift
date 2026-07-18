@@ -198,47 +198,99 @@ struct BrandNewBudgetView: View {
     // MARK: - Step 1: what & when
 
     private var whatAndWhenContent: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 26) {
-                if showTypePicker {
-                    section("Budget type") {
-                        SegmentedSelector(selection: $categoryBudget, options: [
-                            (value: false, label: "Overall"),
-                            (value: true, label: "Category")
-                        ])
-                    }
-                }
-
-                if showCategoryPicker {
-                    section("Category") {
-                        categoryChips
-                    }
-                }
-
-                section("Time frame") {
-                    SegmentedSelector(
-                        selection: $budgetTimeFrame,
-                        options: BudgetTimeFrame.allCases.map { (value: $0, label: LocalizedStringKey($0.rawValue)) }
-                    )
-                }
-
-                if budgetTimeFrame != .day {
-                    section(budgetTimeFrame == .year ? "Start date" : "Starts on") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            startDaySelector
-
-                            Text("Your budget refreshes each \(timeFrameString).")
-                                .font(.system(.footnote, design: .rounded).weight(.medium))
-                                .foregroundStyle(Color.SubtitleText)
+        GeometryReader { proxy in
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 26) {
+                    if showTypePicker {
+                        section("Budget type") {
+                            SegmentedSelector(selection: $categoryBudget, options: [
+                                (value: false, label: "Overall"),
+                                (value: true, label: "Category")
+                            ])
                         }
                     }
+
+                    if showCategoryPicker {
+                        section("Category") {
+                            categoryChips
+                        }
+                    }
+
+                    section("Time frame") {
+                        SegmentedSelector(
+                            selection: $budgetTimeFrame,
+                            options: BudgetTimeFrame.allCases.map { (value: $0, label: LocalizedStringKey($0.rawValue)) }
+                        )
+                    }
+
+                    if budgetTimeFrame != .day {
+                        section(budgetTimeFrame == .year ? "Start date" : "Starts on") {
+                            startDaySelector
+                        }
+                    }
+
+                    Spacer(minLength: 24)
+
+                    livePreview
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 20)
+                .frame(minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var previewPeriodText: String {
+        switch budgetTimeFrame {
+        case .day: return String(localized: "Resets daily")
+        case .week: return String(localized: "Resets weekly")
+        case .month: return String(localized: "Resets monthly")
+        case .year: return String(localized: "Resets yearly")
+        }
+    }
+
+    private var livePreview: some View {
+        let color = selectedCategory.map { Color(hex: $0.wrappedColour) } ?? Color.PrimaryText
+
+        return VStack(spacing: 12) {
+            ZStack {
+                DonutSemicircle(percent: 1, cornerRadius: 6, width: 18)
+                    .fill(Color.SubtitleText.opacity(0.12))
+                    .frame(width: 140, height: 70)
+
+                DonutSemicircle(percent: 0.66, cornerRadius: 6, width: 18)
+                    .fill(color.opacity(0.85))
+                    .frame(width: 140, height: 70)
+
+                Text(selectedCategory?.wrappedEmoji ?? "💰")
+                    .font(.system(size: 24))
+                    .offset(y: 6)
+            }
+            .animation(.snappy(duration: 0.3), value: selectedCategory)
+
+            VStack(spacing: 2) {
+                Text(selectedCategory?.wrappedName ?? String(localized: "Overall Budget"))
+                    .font(.system(.headline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Color.PrimaryText)
+
+                Text("\(previewPeriodText) · set your limit next")
+                    .font(.system(.footnote, design: .rounded).weight(.medium))
+                    .foregroundStyle(Color.SubtitleText)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.SubtitleText.opacity(0.05))
+                .shadow(color: Color.PrimaryText.opacity(0.05), radius: 12, y: 5)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.SubtitleText.opacity(0.12), lineWidth: 1)
+        )
     }
 
     private func section<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
