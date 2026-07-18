@@ -203,6 +203,7 @@
 		D63B204B2D8728C300CAFB20 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = D63B20482D8728C300CAFB20 /* Localizable.stringsdict */; };
 		D82A22382BB31284D884EDB2 /* CSVExportCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */; };
 		DC98064B534B0D575C4C0710 /* CurvedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A9959DD9E3D87C020B9E38 /* CurvedText.swift */; };
+		DE259ACA9B8C565CB5DA74D5 /* ToolbarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99ABDD12006D98B217DD6DC8 /* ToolbarIcon.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -408,6 +409,7 @@
 		7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSVExportCharacterizationTests.swift; sourceTree = "<group>"; };
 		86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppIdentifiers.swift; sourceTree = "<group>"; };
 		871417FF7CEC87B666036AF3 /* BudgetRolloverCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetRolloverCharacterizationTests.swift; sourceTree = "<group>"; };
+		99ABDD12006D98B217DD6DC8 /* ToolbarIcon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToolbarIcon.swift; sourceTree = "<group>"; };
 		A83D1F812EC5DC7BF733B848 /* DataControllerPersistenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataControllerPersistenceTests.swift; sourceTree = "<group>"; };
 		A9A9959DD9E3D87C020B9E38 /* CurvedText.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurvedText.swift; sourceTree = "<group>"; };
 		ABB08D25A084EA1AB577838F /* InsightsBucketingCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightsBucketingCharacterizationTests.swift; sourceTree = "<group>"; };
@@ -823,6 +825,7 @@
 				AEADEF722AE94DC3006EB614 /* ToolbarButton.swift */,
 				AEADEF6E2AE94DA3006EB614 /* Toast.swift */,
 				AEADEF702AE94DA8006EB614 /* BackButton.swift */,
+				99ABDD12006D98B217DD6DC8 /* ToolbarIcon.swift */,
 			);
 			path = Toolbar;
 			sourceTree = "<group>";
@@ -985,7 +988,7 @@
 				5327D2E4287C6CC300F76ADF /* XCRemoteSwiftPackageReference "Popovers" */,
 				53A4147E28B7DA4C008C30E7 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
 				53DCFA9F2A498FBF0063FCDE /* XCRemoteSwiftPackageReference "CloudKitSyncMonitor" */,
-				7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "Packages/hugeicons-swift" */,
+				7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "hugeicons-swift" */,
 				7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 			);
 			productRefGroup = 5327D284287C697400F76ADF /* Products */;
@@ -1225,6 +1228,7 @@
 				0612B7529D9963A96A87270F /* CSVExport.swift in Sources */,
 				DC98064B534B0D575C4C0710 /* CurvedText.swift in Sources */,
 				6D266457A008415544313BFE /* AppIdentifiers.swift in Sources */,
+				DE259ACA9B8C565CB5DA74D5 /* ToolbarIcon.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1293,7 +1297,7 @@
 		};
 		7A875E6F300A921900819E25 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = 7A875E6E300A921900819E25 /* SwiftLintBuildToolPlugin */;
+			productRef = 7A875E6E300A921900819E25 /* plugin:SwiftLintBuildToolPlugin */;
 		};
 		CC2C5856EAA3CC56746ECC3F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1822,7 +1826,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "Packages/hugeicons-swift" */ = {
+		7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "hugeicons-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "Packages/hugeicons-swift";
 		};
@@ -1903,7 +1907,7 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = HugeiconsStrokeRounded;
 		};
-		7A875E6E300A921900819E25 /* SwiftLintBuildToolPlugin */ = {
+		7A875E6E300A921900819E25 /* plugin:SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
 			productName = "plugin:SwiftLintBuildToolPlugin";

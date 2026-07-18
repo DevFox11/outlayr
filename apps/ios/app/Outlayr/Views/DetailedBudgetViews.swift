@@ -5,8 +5,6 @@
 
 import CoreData
 import Foundation
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
 
 struct DetailedBudgetView: View {
@@ -46,13 +44,7 @@ struct DetailedBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        HugeIcon(
-                            codepoint: 0xF2195,
-                            font: HugeiconsSolidRounded.font(size: 22),
-                            color: Color.PrimaryText,
-                        )
-                        // 12 = nav-bar glass height − padding; keeps the toolbar button circular (not a typo — larger widths render an oval)
-                        .frame(width: 12, height: 12)
+                        ToolbarIcon(codepoint: 0xF2195, pinnedWidth: 12)
                     }
                 }
             }
@@ -98,13 +90,7 @@ struct DetailedMainBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        HugeIcon(
-                            codepoint: 0xF2195,
-                            font: HugeiconsSolidRounded.font(size: 22),
-                            color: Color.PrimaryText
-                        )
-                        // 12 = nav-bar glass height − padding; keeps the toolbar button circular (not a typo — larger widths render an oval)
-                        .frame(width: 12, height: 12)
+                        ToolbarIcon(codepoint: 0xF2195, pinnedWidth: 12)
                     }
                 }
             }
