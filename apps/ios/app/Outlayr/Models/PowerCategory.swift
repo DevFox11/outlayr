@@ -46,7 +46,7 @@ struct SuggestedCategory: Hashable {
         SuggestedCategory(name: "Healthcare", emoji: "🩺", colour: "#2FBFA4"),
         SuggestedCategory(name: "Fitness", emoji: "🏋️", colour: "#FF5630"),
         SuggestedCategory(name: "Fashion", emoji: "👗", colour: "#FF4FA3"),
-        SuggestedCategory(name: "Sneakers", emoji: "👟", colour: "#7C4DFF"),
+        SuggestedCategory(name: "Sneakers", emoji: "👟", colour: "#C13BF0"),
         SuggestedCategory(name: "Entertainment", emoji: "🎬", colour: "#AF52DE"),
         SuggestedCategory(name: "Travel", emoji: "✈️", colour: "#32ADE6"),
         SuggestedCategory(name: "Education", emoji: "🎓", colour: "#3A5BD9"),

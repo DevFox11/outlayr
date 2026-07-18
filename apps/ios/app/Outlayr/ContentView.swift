@@ -24,7 +24,7 @@ struct ContentView: View {
     // converts category colors to hex codes
     @AppStorage("dataMigration2", store: AppIdentifiers.sharedDefaults) var dataMigration2: Bool = true
 
-    @AppStorage("categoryPaletteMigration", store: AppIdentifiers.sharedDefaults) var categoryPaletteMigration: Bool = true
+    @AppStorage("categoryPaletteMigrationV2", store: AppIdentifiers.sharedDefaults) var categoryPaletteMigration: Bool = true
 
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
 
