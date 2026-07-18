@@ -53,6 +53,7 @@ struct DetailedBudgetView: View {
                             font: HugeiconsSolidRounded.font(size: 22),
                             color: Color.PrimaryText
                         )
+                        .frame(width: 24, height: 24)
                     }
                 }
             }
@@ -105,6 +106,7 @@ struct DetailedMainBudgetView: View {
                             font: HugeiconsSolidRounded.font(size: 22),
                             color: Color.PrimaryText
                         )
+                        .frame(width: 24, height: 24)
                     }
                 }
             }
