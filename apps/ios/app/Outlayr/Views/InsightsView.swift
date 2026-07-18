@@ -122,6 +122,13 @@ struct InsightsView: View {
     }
 }
 
+private struct BreakdownEntry: Identifiable {
+    let id: String
+    let emoji: String
+    let name: String
+    let amount: Double
+}
+
 struct HorizontalPieChartView: View {
     @FetchRequest private var allCategories: FetchedResults<Category>
     @FetchRequest private var transactions: FetchedResults<Transaction>
@@ -186,7 +193,7 @@ struct HorizontalPieChartView: View {
             var holdingTotal = 0.0
 
             transactions.forEach { transaction in
-                if transaction.category == category {
+                if transaction.category == category || transaction.category?.parent == category {
                     holdingTotal += transaction.wrappedAmount
                 }
             }
@@ -328,11 +335,67 @@ struct HorizontalPieChartView: View {
                             }
                         }
 
+                        if categoryFilterMode, categoryFilter == category.category, category.category.hasChildren {
+                            childrenBreakdown(for: category.category, parentTotal: category.amount, accent: boxColor)
+                        }
                     }
 
                 }
             }
         }
+    }
+
+    private func childrenBreakdown(for parent: Category, parentTotal: Double, accent: Color) -> some View {
+        var entries: [BreakdownEntry] = []
+
+        let directAmount = transactions
+            .filter { $0.category == parent }
+            .reduce(0) { $0 + $1.wrappedAmount }
+        if directAmount > 0 {
+            entries.append(BreakdownEntry(
+                id: parent.objectID.uriRepresentation().absoluteString + "-direct",
+                emoji: parent.wrappedEmoji, name: "Direct", amount: directAmount
+            ))
+        }
+
+        for child in parent.sortedChildren {
+            let amount = transactions
+                .filter { $0.category == child }
+                .reduce(0) { $0 + $1.wrappedAmount }
+            if amount > 0 {
+                entries.append(BreakdownEntry(
+                    id: child.objectID.uriRepresentation().absoluteString,
+                    emoji: child.wrappedEmoji, name: child.wrappedName, amount: amount
+                ))
+            }
+        }
+
+        entries.sort { $0.amount > $1.amount }
+
+        return VStack(spacing: 8) {
+            ForEach(entries) { entry in
+                HStack(spacing: 10) {
+                    Text(entry.emoji)
+                        .font(.system(.subheadline, design: .rounded))
+                    Text(entry.name)
+                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .foregroundStyle(Color.PrimaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("\(currencySymbol)\(entry.amount, specifier: (showCents && entry.amount < 100) ? "%.2f" : "%.0f")")
+                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .foregroundStyle(Color.SubtitleText)
+                        .lineLimit(1)
+                    Text("\(parentTotal > 0 ? entry.amount / parentTotal * 100 : 0, specifier: "%.0f")%")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(accent)
+                        .frame(width: percentWidth)
+                        .padding(.vertical, 3)
+                        .background(accent.opacity(0.23), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
     init(date: Date, categoryFilter: Binding<Category?>?, categoryFilterMode: Binding<Bool>, selectedDate: Binding<Date?>?, chosenAmount: Binding<Double>, chosenName: Binding<String>, type: ChartTimeFrame, income: Bool) {
@@ -346,7 +409,7 @@ struct HorizontalPieChartView: View {
 
         // fetching categories
 
-        _allCategories = FetchRequest<Category>(sortDescriptors: [], predicate: NSPredicate(format: "income = %d", income))
+        _allCategories = FetchRequest<Category>(sortDescriptors: [], predicate: NSPredicate(format: "income = %d AND parent == nil", income))
 
         // fetching transactions
 

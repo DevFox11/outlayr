@@ -97,7 +97,7 @@ struct BudgetStepperView: View {
         if let unwrappedCategory = category {
             _transactions = FetchRequest<Transaction>(sortDescriptors: [
                 SortDescriptor(\.day)
-            ], predicate: NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory))
+            ], predicate: NSPredicate(format: "category == %@ OR category.parent == %@", unwrappedCategory, unwrappedCategory))
         } else {
             _transactions = FetchRequest<Transaction>(sortDescriptors: [
                 SortDescriptor(\.day)

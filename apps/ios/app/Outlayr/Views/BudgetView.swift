@@ -870,7 +870,7 @@ struct SingleBudgetView: View {
         let andPredicate: NSCompoundPredicate
 
         if let category = budget.category {
-            let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), category)
+            let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", category, category)
             andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate])
 
             _transactions = FetchRequest<Transaction>(sortDescriptors: [], predicate: andPredicate)

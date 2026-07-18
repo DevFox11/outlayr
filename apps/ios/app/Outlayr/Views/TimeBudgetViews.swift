@@ -360,7 +360,7 @@ struct FilteredCategoryDayBudgetView: View {
         let incomePredicate = NSPredicate(format: "income = %d", false)
 
         if let unwrappedCategory = category {
-            let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory)
+            let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", unwrappedCategory, unwrappedCategory)
 
             let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [datePredicate, categoryPredicate, incomePredicate, dateCapPredicate])
 
@@ -457,7 +457,7 @@ struct FilteredBudgetView: View {
         }
 
         if let unwrappedCategory = category {
-            let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory)
+            let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", unwrappedCategory, unwrappedCategory)
 
             let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate])
 

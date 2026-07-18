@@ -31,11 +31,13 @@ struct NewCategoryAlert: View {
     @Binding var income: Bool
     let budgetMode: Bool
     let bottomSpacers: Bool
+    let parent: Category?
 
-    init(income: Binding<Bool>, bottomSpacers: Bool, budgetMode: Bool = false) {
+    init(income: Binding<Bool>, bottomSpacers: Bool, budgetMode: Bool = false, parent: Category? = nil) {
         _income = income
         self.bottomSpacers = bottomSpacers
         self.budgetMode = budgetMode
+        self.parent = parent
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -53,7 +55,8 @@ struct NewCategoryAlert: View {
     @FocusState private var focusedField: CategoryField?
 
     private var atExpenseLimit: Bool { expenseCategories.count >= 24 }
-    private var typePickerHidden: Bool { budgetMode || atExpenseLimit }
+    private var isSubcategory: Bool { parent != nil }
+    private var typePickerHidden: Bool { budgetMode || atExpenseLimit || isSubcategory }
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !emoji.isEmpty
@@ -80,7 +83,7 @@ struct NewCategoryAlert: View {
                     add()
                 }
 
-                if !income {
+                if !income && !isSubcategory {
                     Section("COLOUR") {
                         ColourPickerView(selectedColour: $selectedColour, usedColours: usedColours)
                     }
@@ -94,7 +97,7 @@ struct NewCategoryAlert: View {
                     }
                 }
             }
-            .navigationTitle("New Category")
+            .navigationTitle(isSubcategory ? "New Subcategory" : "New Category")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -112,11 +115,16 @@ struct NewCategoryAlert: View {
                 Text(message)
             }
             .onAppear {
-                if atExpenseLimit { income = true }
-                selectedColour = firstAvailableColour()
+                if let parent {
+                    income = parent.income
+                    selectedColour = parent.wrappedColour
+                } else {
+                    if atExpenseLimit { income = true }
+                    selectedColour = firstAvailableColour()
+                }
             }
             .onChange(of: expenseCategories.count) { _, count in
-                if count >= 24, !income { dismiss() }
+                if !isSubcategory, count >= 24, !income { dismiss() }
             }
         }
     }
@@ -150,13 +158,19 @@ struct NewCategoryAlert: View {
         category.dateCreated = .now
         category.id = UUID()
         category.income = income
-        category.order = result.order
-        category.colour = income ? "IncomeGreen" : selectedColour
+        category.parent = parent
+        if let parent {
+            category.order = (parent.sortedChildren.last?.order ?? -1) + 1
+            category.colour = income ? "IncomeGreen" : parent.wrappedColour
+        } else {
+            category.order = result.order
+            category.colour = income ? "IncomeGreen" : selectedColour
+        }
         dataController.save()
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
 
-        if budgetMode {
+        if budgetMode || parent != nil {
             dismiss()
             return
         }
@@ -199,6 +213,18 @@ struct EditCategoryAlert: View {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !emoji.isEmpty
     }
 
+    private var editTitle: LocalizedStringKey {
+        if toEdit.isSubcategory { return "Subcategory" }
+        return toEdit.income ? "Income Category" : "Expense Category"
+    }
+
+    private var deleteMessage: LocalizedStringKey {
+        if toEdit.hasChildren {
+            return "This can't be undone. \(toEdit.wrappedName) transactions will be deleted; its subcategories will be moved to the top level."
+        }
+        return "This can't be undone. All \(toEdit.wrappedName) transactions will be deleted too."
+    }
+
     private var usedColours: Set<String> {
         Set(expenseCategories.filter { $0 != toEdit }.map(\.wrappedColour))
     }
@@ -210,20 +236,20 @@ struct EditCategoryAlert: View {
                     save()
                 }
 
-                if !toEdit.income {
+                if !toEdit.income && !toEdit.isSubcategory {
                     Section("COLOUR") {
                         ColourPickerView(selectedColour: $selectedColour, usedColours: usedColours)
                     }
                 }
 
                 Section {
-                    Button("Delete Category", role: .destructive) {
+                    Button(toEdit.isSubcategory ? "Delete Subcategory" : "Delete Category", role: .destructive) {
                         confirmingDelete = true
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
-            .navigationTitle(toEdit.income ? "Income Category" : "Expense Category")
+            .navigationTitle(editTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -244,7 +270,7 @@ struct EditCategoryAlert: View {
                 Button("Delete", role: .destructive) { delete() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This can't be undone. All \(toEdit.wrappedName) transactions will be deleted too.")
+                Text(deleteMessage)
             }
             .onAppear {
                 name = toEdit.wrappedName

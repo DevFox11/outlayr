@@ -501,6 +501,14 @@ class DataController {
         return results(for: request)
     }
 
+    /// Top-level categories only (those without a parent), for the card grid.
+    func fetchRequestForTopLevelCategories(income: Bool) -> NSFetchRequest<Category> {
+        let request: NSFetchRequest<Category> = Category.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
+        request.predicate = NSPredicate(format: "income = %d AND parent == nil", income)
+        return request
+    }
+
     func getSuggestedNotes(searchQuery: String, category: Category?, income: Bool) -> [Transaction] {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
         itemRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Transaction.date, ascending: false)]
@@ -729,7 +737,7 @@ class DataController {
             var categoryPredicates = [NSPredicate]()
 
             for category in categoryFilters {
-                categoryPredicates.append(NSPredicate(format: "%K == %@", #keyPath(Transaction.category), category))
+                categoryPredicates.append(NSPredicate(format: "category == %@ OR category.parent == %@", category, category))
             }
 
             let categoryCompoundPredicate = NSCompoundPredicate(type: .or, subpredicates: categoryPredicates)
@@ -780,7 +788,7 @@ class DataController {
             var categoryPredicates = [NSPredicate]()
 
             for category in categoryFilters {
-                categoryPredicates.append(NSPredicate(format: "%K == %@", #keyPath(Transaction.category), category))
+                categoryPredicates.append(NSPredicate(format: "category == %@ OR category.parent == %@", category, category))
             }
 
             let categoryCompoundPredicate = NSCompoundPredicate(type: .or, subpredicates: categoryPredicates)
@@ -1226,7 +1234,7 @@ class DataController {
 
         let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), budget.startDate! as CVarArg)
         let endPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
-        let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), budget.category!)
+        let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", budget.category!, budget.category!)
         let incomePredicate = NSPredicate(format: "income = %d", false)
 
         let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate])

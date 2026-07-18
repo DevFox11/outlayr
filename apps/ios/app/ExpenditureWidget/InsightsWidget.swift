@@ -61,7 +61,7 @@ struct InsightsProvider: IntentTimelineProvider {
 //        let dataController = DataController()
         let dataController = DataController.shared
         let itemRequest = dataController.fetchRequestForWidgetInsights(type: type, income: income)
-        let categoryRequest = dataController.fetchRequestForCategories(income: income)
+        let categoryRequest = dataController.fetchRequestForTopLevelCategories(income: income)
 
         let categories = dataController.results(for: categoryRequest)
         let transactions = dataController.results(for: itemRequest.fetchRequest)
@@ -120,7 +120,7 @@ struct InsightsProvider: IntentTimelineProvider {
 
             for category in categories {
                 let holding = transactions.filter {
-                    $0.category == category
+                    $0.category == category || $0.category?.parent == category
                 }
 
                 var total = 0.0
@@ -190,7 +190,7 @@ struct InsightsProvider: IntentTimelineProvider {
 
             for category in categories {
                 let holding = transactions.filter {
-                    $0.category == category
+                    $0.category == category || $0.category?.parent == category
                 }
 
                 var total = 0.0
@@ -260,7 +260,7 @@ struct InsightsProvider: IntentTimelineProvider {
 
             for category in categories {
                 let holding = transactions.filter {
-                    $0.category == category
+                    $0.category == category || $0.category?.parent == category
                 }
 
                 var total = 0.0

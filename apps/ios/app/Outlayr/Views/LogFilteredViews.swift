@@ -86,7 +86,7 @@ struct FilteredCategoryView: View {
 
     init(category: Category?) {
         if let unwrappedCategory = category {
-            let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory)
+            let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", unwrappedCategory, unwrappedCategory)
             let datePredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
 
             let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [categoryPredicate, datePredicate])

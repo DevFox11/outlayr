@@ -19,6 +19,8 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="order" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="budget" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="Budget" inverseName="category" inverseEntity="Budget"/>
+        <relationship name="children" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Category" inverseName="parent" inverseEntity="Category"/>
+        <relationship name="parent" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Category" inverseName="children" inverseEntity="Category"/>
         <relationship name="templates" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TemplateTransaction" inverseName="category" inverseEntity="TemplateTransaction"/>
         <relationship name="transactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Transaction" inverseName="category" inverseEntity="Transaction"/>
     </entity>

@@ -6,6 +6,8 @@
 //
 
 import CoreData
+import HugeiconsCore
+import HugeiconsSolidRounded
 import SwiftUI
 
 enum CategoryViewMode {
@@ -34,6 +36,7 @@ struct CategoryListView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var moc
+    @Environment(\.editMode) private var editMode
     @Environment(DataController.self) private var dataController
 
     @AppStorage("categorySuggestions", store: AppIdentifiers.sharedDefaults)
@@ -47,52 +50,33 @@ struct CategoryListView: View {
     @State private var newCategory = false
     @State private var toEdit: Category?
     @State private var toDelete: Category?
+    @State private var addChildTo: Category?
+    @State private var reordering = false
 
     init(mode: CategoryViewMode, income: Binding<Bool>) {
         self.mode = mode
         _income = income
         _categories = FetchRequest<Category>(
             sortDescriptors: [SortDescriptor(\.order)],
-            predicate: NSPredicate(format: "income = %d", income.wrappedValue)
+            predicate: NSPredicate(format: "income = %d AND parent == nil", income.wrappedValue)
         )
-    }
-
-    private var sectionHeader: LocalizedStringKey {
-        income ? "INCOME CATEGORIES" : "EXPENSE CATEGORIES"
     }
 
     var body: some View {
         List {
-            Section(header: Text(sectionHeader).foregroundStyle(Color.SubtitleText)) {
-                if categories.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(categories) { category in
-                        CategoryRow(
-                            emoji: category.wrappedEmoji,
-                            name: category.wrappedName,
-                            colourHex: category.wrappedColour,
-                            showsColour: !income
-                        )
-                        .contentShape(.rect)
-                        .onTapGesture { toEdit = category }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                toDelete = category
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .swipeActions(edge: .leading) {
-                            Button {
-                                toEdit = category
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            .tint(Color("Yellow"))
-                        }
-                    }
-                    .onMove(perform: moveItem)
+            if categories.isEmpty {
+                Section { emptyState }
+            } else {
+                ForEach(categories) { parent in
+                    ParentSection(
+                        parent: parent,
+                        income: income,
+                        onEditParent: { toEdit = parent },
+                        onEditChild: { toEdit = $0 },
+                        onDeleteParent: { toDelete = parent },
+                        onDeleteChild: { toDelete = $0 },
+                        onAddChild: { addChildTo = parent }
+                    )
                 }
             }
 
@@ -100,6 +84,7 @@ struct CategoryListView: View {
                 SuggestedCategoriesView(income: income)
             }
         }
+        .listStyle(.insetGrouped)
         .safeAreaInset(edge: .top) { typePicker }
         .navigationTitle("Categories")
         .navigationBarTitleDisplayMode(.inline)
@@ -115,6 +100,12 @@ struct CategoryListView: View {
         .sheet(item: $toEdit) { category in
             EditCategoryAlert(toEdit: category)
         }
+        .sheet(item: $addChildTo) { parent in
+            NewCategoryAlert(income: $income, bottomSpacers: false, parent: parent)
+        }
+        .sheet(isPresented: $reordering) {
+            ReorderCategoriesSheet(income: income)
+        }
         .alert(
             "Delete '\(toDelete?.wrappedName ?? "")'?",
             isPresented: deleteBinding,
@@ -123,7 +114,7 @@ struct CategoryListView: View {
             Button("Delete", role: .destructive) { delete(category) }
             Button("Cancel", role: .cancel) {}
         } message: { category in
-            Text("This can't be undone. All \(category.wrappedName) transactions will be deleted too.")
+            Text(deleteMessage(for: category))
         }
     }
 
@@ -146,26 +137,50 @@ struct CategoryListView: View {
             }
         }
 
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if categories.count > 1 {
-                EditButton()
-            }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button {
+                    newCategory = true
+                } label: {
+                    Label("New Category", systemImage: "plus")
+                }
 
-            Button {
-                withAnimation { showSuggestions.toggle() }
+                if categories.count > 1 {
+                    Button {
+                        withAnimation { editMode?.wrappedValue = isEditing ? .inactive : .active }
+                    } label: {
+                        Label(isEditing ? "Done" : "Edit", systemImage: "pencil")
+                    }
+
+                    Button {
+                        reordering = true
+                    } label: {
+                        Label("Reorder Categories", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+
+                Button {
+                    withAnimation { showSuggestions.toggle() }
+                } label: {
+                    Label(
+                        showSuggestions ? "Hide Suggestions" : "Show Suggestions",
+                        systemImage: showSuggestions ? "eye.slash" : "eye"
+                    )
+                }
             } label: {
-                Label(
-                    showSuggestions ? "Hide Suggestions" : "Show Suggestions",
-                    systemImage: showSuggestions ? "eye.slash" : "eye"
+                HugeIcon(
+                    codepoint: 0xF2195,
+                    font: HugeiconsSolidRounded.font(size: 22),
+                    color: Color.PrimaryText,
                 )
-            }
-
-            Button {
-                newCategory = true
-            } label: {
-                Label("New Category", systemImage: "plus")
+                // 12 = nav-bar glass height − padding; keeps the toolbar button circular (not a typo — larger widths render an oval)
+                .frame(width: 12, height: 12)
             }
         }
+    }
+
+    private var isEditing: Bool {
+        editMode?.wrappedValue.isEditing == true
     }
 
     private var continueButton: some View {
@@ -203,6 +218,13 @@ struct CategoryListView: View {
         Binding(get: { toDelete != nil }, set: { if !$0 { toDelete = nil } })
     }
 
+    private func deleteMessage(for category: Category) -> LocalizedStringKey {
+        if category.hasChildren {
+            return "This can't be undone. \(category.wrappedName) transactions will be deleted; its subcategories will be moved to the top level."
+        }
+        return "This can't be undone. All \(category.wrappedName) transactions will be deleted too."
+    }
+
     private func delete(_ category: Category) {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
         withAnimation {
@@ -210,60 +232,260 @@ struct CategoryListView: View {
             dataController.save()
         }
     }
-
-    private func moveItem(at sets: IndexSet, destination: Int) {
-        guard let itemToMove = sets.first else { return }
-
-        if itemToMove < destination {
-            var startIndex = itemToMove + 1
-            let endIndex = destination - 1
-            var startOrder = categories[itemToMove].order
-            while startIndex <= endIndex {
-                categories[startIndex].order = startOrder
-                startOrder += 1
-                startIndex += 1
-            }
-            categories[itemToMove].order = startOrder
-        } else if destination < itemToMove {
-            var startIndex = destination
-            let endIndex = itemToMove - 1
-            var startOrder = categories[destination].order + 1
-            let newOrder = categories[destination].order
-            while startIndex <= endIndex {
-                categories[startIndex].order = startOrder
-                startOrder += 1
-                startIndex += 1
-            }
-            categories[itemToMove].order = newOrder
-        }
-
-        dataController.save()
-    }
 }
 
-private struct CategoryRow: View {
-    let emoji: String
-    let name: String
-    let colourHex: String
-    let showsColour: Bool
+/// A single top-level category rendered as a card: parent header, its subcategories,
+/// and an "Add Subcategory" row. Children come from a scoped `@FetchRequest` so that
+/// drag-reordering (which rewrites `order`) refreshes reliably. Child rows are
+/// draggable, and the header is a drop target so a subcategory can be moved into
+/// another parent.
+private struct ParentSection: View {
+    @ObservedObject var parent: Category
+    let income: Bool
+    let onEditParent: () -> Void
+    let onEditChild: (Category) -> Void
+    let onDeleteParent: () -> Void
+    let onDeleteChild: (Category) -> Void
+    let onAddChild: () -> Void
+
+    @Environment(\.managedObjectContext) private var moc
+    @Environment(DataController.self) private var dataController
+
+    @AppStorage("currency", store: AppIdentifiers.sharedDefaults)
+    private var currency: String = Locale.current.currency?.identifier ?? "USD"
+
+    @FetchRequest private var children: FetchedResults<Category>
+
+    init(
+        parent: Category,
+        income: Bool,
+        onEditParent: @escaping () -> Void,
+        onEditChild: @escaping (Category) -> Void,
+        onDeleteParent: @escaping () -> Void,
+        onDeleteChild: @escaping (Category) -> Void,
+        onAddChild: @escaping () -> Void
+    ) {
+        self.parent = parent
+        self.income = income
+        self.onEditParent = onEditParent
+        self.onEditChild = onEditChild
+        self.onDeleteParent = onDeleteParent
+        self.onDeleteChild = onDeleteChild
+        self.onAddChild = onAddChild
+        _children = FetchRequest<Category>(
+            sortDescriptors: [SortDescriptor(\.order)],
+            predicate: NSPredicate(format: "parent == %@", parent)
+        )
+    }
+
+    private var accent: Color {
+        income ? Color.IncomeGreen : Color(hex: parent.wrappedColour)
+    }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(emoji)
-                .font(.system(.subheadline, design: .rounded))
-            Text(name)
-                .font(.system(.body, design: .rounded))
+        Section {
+            headerRow
+                .contentShape(.rect)
+                .onTapGesture { onEditParent() }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) { onDeleteParent() } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .dropDestination(for: String.self) { items, _ in
+                    reparent(items)
+                }
+
+            ForEach(children) { child in
+                childRow(child)
+                    .contentShape(.rect)
+                    .onTapGesture { onEditChild(child) }
+                    .draggable(child.objectID.uriRepresentation().absoluteString)
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) { onDeleteChild(child) } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+            }
+            .onMove(perform: moveChildren)
+
+            addRow
+        }
+    }
+
+    private var headerRow: some View {
+        HStack(spacing: 12) {
+            Text(parent.wrappedEmoji)
+                .font(.system(.title3, design: .rounded))
+
+            Text(parent.wrappedName)
+                .font(.system(.body, design: .rounded, weight: .semibold))
                 .lineLimit(1)
                 .foregroundStyle(Color.PrimaryText)
 
             Spacer()
 
-            if showsColour {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Color(hex: colourHex))
-                    .frame(width: 20, height: 20)
+            amountLabel(rolledUpTotal)
+
+            if !income {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(accent)
+                    .frame(width: 22, height: 22)
             }
+
+            Image(systemName: "chevron.right")
+                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                .foregroundStyle(Color.SubtitleText)
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 4)
+    }
+
+    private func childRow(_ child: Category) -> some View {
+        HStack(spacing: 10) {
+            Text(child.wrappedEmoji)
+                .font(.system(.subheadline, design: .rounded))
+
+            Text(child.wrappedName)
+                .font(.system(.subheadline, design: .rounded))
+                .lineLimit(1)
+                .foregroundStyle(Color.PrimaryText)
+
+            Spacer()
+
+            amountLabel(total(of: child.allTransactions))
+
+            Image(systemName: "chevron.right")
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .foregroundStyle(Color.SubtitleText)
+        }
+        .padding(.vertical, 3)
+        .padding(.leading, 16)
+    }
+
+    private var addRow: some View {
+        Button {
+            onAddChild()
+        } label: {
+            Label("Add Subcategory", systemImage: "plus.circle.fill")
+                .font(.system(.subheadline, design: .rounded, weight: .medium))
+                .foregroundStyle(income ? Color.accentColor : accent)
+        }
+        .padding(.leading, 16)
+    }
+
+    @ViewBuilder
+    private func amountLabel(_ amount: Double) -> some View {
+        if amount > 0 {
+            Text(amount, format: .currency(code: currency).precision(.fractionLength(0)))
+                .font(.system(.subheadline, design: .rounded, weight: .medium))
+                .foregroundStyle(Color.SubtitleText)
+                .lineLimit(1)
+        }
+    }
+
+    private var rolledUpTotal: Double {
+        total(of: parent.allTransactionsIncludingChildren)
+    }
+
+    private func total(of transactions: [Transaction]) -> Double {
+        transactions.reduce(0) { $0 + $1.wrappedAmount }
+    }
+
+    private func moveChildren(at source: IndexSet, to destination: Int) {
+        var items = Array(children)
+        items.move(fromOffsets: source, toOffset: destination)
+        for (index, child) in items.enumerated() {
+            child.order = Int64(index)
+        }
+        dataController.save()
+    }
+
+    /// Moves dropped subcategories under this parent, appended after existing children.
+    private func reparent(_ identifiers: [String]) -> Bool {
+        guard let coordinator = moc.persistentStoreCoordinator else { return false }
+        var next = (children.last?.order ?? -1) + 1
+        var moved = false
+
+        for identifier in identifiers {
+            guard let url = URL(string: identifier),
+                  let objectID = coordinator.managedObjectID(forURIRepresentation: url),
+                  let child = try? moc.existingObject(with: objectID) as? Category,
+                  child != parent,
+                  child.parent != parent
+            else { continue }
+
+            child.parent = parent
+            child.income = parent.income
+            child.colour = parent.wrappedColour
+            child.order = next
+            next += 1
+            moved = true
+        }
+
+        if moved {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dataController.save()
+        }
+        return moved
+    }
+}
+
+/// Dedicated sheet for reordering the top-level category cards. Classic `.onMove`
+/// reorders rows within one collection but not whole List sections, so parent
+/// reordering lives here as a flat, always-editing list.
+private struct ReorderCategoriesSheet: View {
+    let income: Bool
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(DataController.self) private var dataController
+    @FetchRequest private var parents: FetchedResults<Category>
+
+    init(income: Bool) {
+        self.income = income
+        _parents = FetchRequest<Category>(
+            sortDescriptors: [SortDescriptor(\.order)],
+            predicate: NSPredicate(format: "income = %d AND parent == nil", income)
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(parents) { parent in
+                    HStack(spacing: 12) {
+                        Text(parent.wrappedEmoji)
+                            .font(.system(.body, design: .rounded))
+                        Text(parent.wrappedName)
+                            .font(.system(.body, design: .rounded, weight: .medium))
+                            .foregroundStyle(Color.PrimaryText)
+                        Spacer()
+                        if !income {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(Color(hex: parent.wrappedColour))
+                                .frame(width: 18, height: 18)
+                        }
+                    }
+                }
+                .onMove(perform: move)
+            }
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle("Reorder Categories")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    private func move(at source: IndexSet, to destination: Int) {
+        var items = Array(parents)
+        items.move(fromOffsets: source, toOffset: destination)
+        for (index, item) in items.enumerated() {
+            item.order = Int64(index)
+        }
+        dataController.save()
     }
 }

@@ -46,6 +46,7 @@ struct TransactionView: View {
 
     @State var showCategoryPicker = false
     @State var showCategorySheet = false
+    @State private var pickerWantsEdit = false
 
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
@@ -659,23 +660,14 @@ struct TransactionView: View {
 
                 // date and category picker
 
-                if showCategoryPicker {
-                    NewCategoryPickerView(
-                        category: $category, showPicker: $showCategoryPicker,
-                        showSheet: $showCategorySheet, income: income
-                    )
-                    .transition(AnyTransition.move(edge: .trailing).combined(with: .opacity))
-                } else {
-                    NumberPad(
-                        price: $price,
-                        category: $category,
-                        isEditingDecimal: $isEditingDecimal,
-                        decimalValuesAssigned: $decimalValuesAssigned,
-                        showingNotePicker: showingNotePicker
-                    ) {
-                        submit()
-                    }
-                    .transition(AnyTransition.move(edge: .leading).combined(with: .opacity))
+                NumberPad(
+                    price: $price,
+                    category: $category,
+                    isEditingDecimal: $isEditingDecimal,
+                    decimalValuesAssigned: $decimalValuesAssigned,
+                    showingNotePicker: showingNotePicker
+                ) {
+                    submit()
                 }
 
             }
@@ -871,6 +863,14 @@ struct TransactionView: View {
         }
         .sheet(isPresented: $showCategorySheet) {
             CategoryView(mode: .transaction, income: income)
+        }
+        .sheet(isPresented: $showCategoryPicker, onDismiss: {
+            if pickerWantsEdit {
+                pickerWantsEdit = false
+                showCategorySheet = true
+            }
+        }) {
+            CategoryPickerSheet(category: $category, showEdit: $pickerWantsEdit, income: income)
         }
         .sheet(isPresented: $showPicker) {
             if #available(iOS 16.0, *) {

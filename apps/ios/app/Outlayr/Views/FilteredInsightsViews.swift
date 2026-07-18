@@ -25,7 +25,7 @@ struct FilteredCategoryInsightsView: View {
     init(category: Category?, date: Date, type: ChartTimeFrame) {
         if let unwrappedCategory = category {
             let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), date as CVarArg)
-            let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory)
+            let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", unwrappedCategory, unwrappedCategory)
             let incomePredicate = NSPredicate(format: "income = %d", unwrappedCategory.income)
 
             let endPredicate: NSPredicate

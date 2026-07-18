@@ -90,6 +90,28 @@ extension Category {
     var transactionCount: Int {
         transactions?.count ?? 0
     }
+
+    var sortedChildren: [Category] {
+        let set = children as? Set<Category> ?? []
+        return set.sorted { $0.order < $1.order }
+    }
+
+    var hasChildren: Bool {
+        (children?.count ?? 0) > 0
+    }
+
+    var isSubcategory: Bool {
+        parent != nil
+    }
+
+    /// Own transactions plus every subcategory's transactions, for rolled-up parent totals.
+    var allTransactionsIncludingChildren: [Transaction] {
+        var result = allTransactions
+        for child in sortedChildren {
+            result.append(contentsOf: child.allTransactions)
+        }
+        return result.sorted { $0.wrappedDate < $1.wrappedDate }
+    }
 }
 
 public extension Budget {
