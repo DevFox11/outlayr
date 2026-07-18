@@ -278,6 +278,9 @@ struct TimeBudgetView: View {
             }
 
             if let category = budget.category {
+                BudgetStepperView(category: category, date: $startDate, startDate: budget.wrappedDate, budgetType: budgetType)
+                    .padding(.horizontal, 25)
+
                 ScrollView(showsIndicators: false) {
                     if budgetType == 1 {
                         FilteredCategoryDayBudgetView(category: category, day: startDate, totalSpent: $totalSpent)
@@ -288,9 +291,6 @@ struct TimeBudgetView: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
-
-                BudgetStepperView(category: category, date: $startDate, startDate: budget.wrappedDate, budgetType: budgetType)
-                    .padding(.horizontal, 25)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -746,6 +746,9 @@ struct TimeMainBudgetView: View {
                     .padding(.horizontal, 25)
             }
 
+            BudgetStepperView(category: nil, date: $startDate, startDate: budget.wrappedDate, budgetType: budgetType)
+                .padding(.horizontal, 25)
+
             ScrollView(showsIndicators: false) {
                 if budgetType == 1 {
                     FilteredCategoryDayBudgetView(category: nil, day: startDate, totalSpent: $totalSpent)
@@ -756,9 +759,6 @@ struct TimeMainBudgetView: View {
                 }
             }
             .frame(maxHeight: .infinity)
-
-            BudgetStepperView(category: nil, date: $startDate, startDate: budget.wrappedDate, budgetType: budgetType)
-                .padding(.horizontal, 25)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {

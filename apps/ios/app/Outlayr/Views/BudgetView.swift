@@ -814,7 +814,7 @@ struct SingleBudgetView: View {
                     GeometryReader { proxy in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.SubtitleText.opacity(0.15))
                                 .frame(width: proxy.size.width)
 
                             if totalSpent / budgetAmount < 0.98 {
