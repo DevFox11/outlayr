@@ -119,10 +119,10 @@ struct BrandNewBudgetView: View {
             titleBlock
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
-                .padding(.bottom, step == 1 ? 4 : 18)
+                .padding(.bottom, step == 1 ? 6 : 18)
 
             if step == 1 {
-                whatAndWhenForm
+                whatAndWhenContent
 
                 continueButton
                     .padding(20)
@@ -197,85 +197,175 @@ struct BrandNewBudgetView: View {
 
     // MARK: - Step 1: what & when
 
-    private var whatAndWhenForm: some View {
-        Form {
-            if showTypePicker {
-                Section {
-                    Picker("Budget type", selection: $categoryBudget) {
-                        Text("Overall").tag(false)
-                        Text("Category").tag(true)
+    private var whatAndWhenContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 26) {
+                if showTypePicker {
+                    section("Budget type") {
+                        SegmentedSelector(selection: $categoryBudget, options: [
+                            (value: false, label: "Overall"),
+                            (value: true, label: "Category")
+                        ])
                     }
-                    .pickerStyle(.segmented)
-                } footer: {
-                    Text("An overall budget tracks every expense; a category budget tracks a single category.")
                 }
-            }
 
-            if showCategoryPicker {
-                Section("Category") {
-                    if categories.isEmpty {
-                        Text("No remaining categories")
-                            .foregroundStyle(Color.SubtitleText)
-                    } else {
-                        Picker("Category", selection: $selectedCategory) {
-                            Text("Select…").tag(Category?.none)
-                            ForEach(categories) { category in
-                                Text("\(category.wrappedEmoji)  \(category.wrappedName)")
-                                    .tag(Category?.some(category))
-                            }
+                if showCategoryPicker {
+                    section("Category") {
+                        categoryChips
+                    }
+                }
+
+                section("Time frame") {
+                    SegmentedSelector(
+                        selection: $budgetTimeFrame,
+                        options: BudgetTimeFrame.allCases.map { (value: $0, label: LocalizedStringKey($0.rawValue)) }
+                    )
+                }
+
+                if budgetTimeFrame != .day {
+                    section(budgetTimeFrame == .year ? "Start date" : "Starts on") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            startDaySelector
+
+                            Text("Your budget refreshes each \(timeFrameString).")
+                                .font(.system(.footnote, design: .rounded).weight(.medium))
+                                .foregroundStyle(Color.SubtitleText)
                         }
-                        .pickerStyle(.menu)
-                    }
-
-                    Button {
-                        showingCategoryView = true
-                    } label: {
-                        Label("New Category", systemImage: "plus")
                     }
                 }
             }
-
-            Section {
-                Picker("Time frame", selection: $budgetTimeFrame) {
-                    ForEach(BudgetTimeFrame.allCases, id: \.self) { time in
-                        Text(LocalizedStringKey(time.rawValue)).tag(time)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                startDayField
-            } header: {
-                Text("Period")
-            } footer: {
-                Text("Your budget refreshes each \(timeFrameString).")
-            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
-        .scrollContentBackground(.hidden)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func section<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(Color.SubtitleText)
+
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var categoryChips: some View {
+        Group {
+            if categories.isEmpty {
+                HStack(spacing: 10) {
+                    newCategoryChip
+                    Text("Create a category to link it.")
+                        .font(.system(.footnote, design: .rounded).weight(.medium))
+                        .foregroundStyle(Color.SubtitleText)
+                }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(categories) { category in
+                            categoryChip(category)
+                        }
+                        newCategoryChip
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+    }
+
+    private func categoryChip(_ category: Category) -> some View {
+        let selected = selectedCategory == category
+        let color = Color(hex: category.wrappedColour)
+
+        return Button {
+            withAnimation(.snappy(duration: 0.2)) {
+                selectedCategory = selected ? nil : category
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(category.wrappedEmoji)
+                    .font(.system(.subheadline, design: .rounded))
+                Text(category.wrappedName)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 9)
+            .foregroundStyle(selected ? color : Color.PrimaryText)
+            .background(selected ? color.opacity(0.3) : Color.clear, in: Capsule())
+            .overlay {
+                if !selected {
+                    Capsule().stroke(Color.Outline, lineWidth: 1.5)
+                }
+            }
+        }
+        .buttonStyle(BouncyButton(duration: 0.2, scale: 0.9))
+    }
+
+    private var newCategoryChip: some View {
+        Button {
+            showingCategoryView = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "plus")
+                Text("New")
+            }
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundStyle(Color.SubtitleText)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 9)
+            .overlay {
+                Capsule().stroke(Color.Outline, lineWidth: 1.5)
+            }
+        }
+        .buttonStyle(BouncyButton(duration: 0.2, scale: 0.9))
+    }
+
     @ViewBuilder
-    private var startDayField: some View {
+    private var startDaySelector: some View {
         switch budgetTimeFrame {
         case .day:
             EmptyView()
         case .week:
-            Picker("Starts on", selection: $chosenDayWeek) {
-                ForEach(Array(weekdays.enumerated()), id: \.offset) { index, day in
-                    Text(LocalizedStringKey(day)).tag(index + 1)
+            let symbols = Calendar.current.veryShortStandaloneWeekdaySymbols
+            HStack(spacing: 5) {
+                ForEach(Array(symbols.enumerated()), id: \.offset) { index, symbol in
+                    let value = index + 1
+                    dayCircle(label: symbol, selected: chosenDayWeek == value) {
+                        chosenDayWeek = value
+                    }
                 }
             }
-            .pickerStyle(.menu)
         case .month:
-            Picker("Starts on", selection: $chosenDayMonth) {
-                ForEach(1 ..< 29, id: \.self) { day in
-                    Text(day == 1 ? String(localized: "Start of month") : "\(getOrdinal(day)) of month").tag(day)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(1 ..< 29, id: \.self) { day in
+                        dayCircle(label: "\(day)", selected: chosenDayMonth == day) {
+                            chosenDayMonth = day
+                        }
+                    }
                 }
+                .padding(.vertical, 2)
             }
-            .pickerStyle(.menu)
         case .year:
-            DatePicker("Start date", selection: $chosenDayYear, in: oneYearAgo ... Date.now, displayedComponents: .date)
+            DatePicker("", selection: $chosenDayYear, in: oneYearAgo ... Date.now, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .tint(Color.PrimaryText)
         }
+    }
+
+    private func dayCircle(label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Text(label)
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundStyle(selected ? Color.PrimaryBackground : Color.PrimaryText)
+            .frame(width: 40, height: 40)
+            .background(Circle().fill(selected ? Color.PrimaryText : Color.SecondaryBackground))
+            .contentShape(Circle())
+            .onTapGesture {
+                withAnimation(.snappy(duration: 0.2)) { action() }
+            }
     }
 
     private var continueButton: some View {
@@ -544,5 +634,40 @@ struct BrandNewBudgetView: View {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: andPredicate)
+    }
+}
+
+private struct SegmentedSelector<T: Hashable>: View {
+    @Binding var selection: T
+    let options: [(value: T, label: LocalizedStringKey)]
+
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(options.indices, id: \.self) { index in
+                let option = options[index]
+                let selected = option.value == selection
+
+                Text(option.label)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(selected ? Color.PrimaryBackground : Color.PrimaryText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background {
+                        if selected {
+                            Capsule()
+                                .fill(Color.PrimaryText)
+                                .matchedGeometryEffect(id: "segmentedSelection", in: namespace)
+                        }
+                    }
+                    .contentShape(Capsule())
+                    .onTapGesture {
+                        withAnimation(.snappy(duration: 0.25)) { selection = option.value }
+                    }
+            }
+        }
+        .padding(4)
+        .background(Color.SecondaryBackground, in: Capsule())
     }
 }
