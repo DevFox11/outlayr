@@ -232,7 +232,6 @@ struct TimeBudgetView: View {
 
                             Text("left each day")
                                 .font(.system(.subheadline, design: .rounded).weight(.medium))
-//                                .font(.system(size: 15, weight: .medium, design: .rounded))
                                 .foregroundStyle(Color.SubtitleText)
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -246,7 +245,6 @@ struct TimeBudgetView: View {
 
                     Text(differenceSubtitle)
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
-//                        .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundStyle(Color.SubtitleText)
                 }
                 .padding(.horizontal, 25)
@@ -362,16 +360,6 @@ struct FilteredCategoryDayBudgetView: View {
                 totalSpent = holding
             }
         }
-//        .fullScreenCover(item: $toDelete, onDismiss: {
-//            toDelete = nil
-//        }) { transaction in
-//            DeleteTransactionAlert(toDelete: transaction, stopRecurring: false)
-//        }
-//        .fullScreenCover(item: $toEdit, onDismiss: {
-//            toEdit = nil
-//        }) { transaction in
-//            TransactionView(toEdit: transaction)
-//        }
         .frame(maxHeight: .infinity)
     }
 

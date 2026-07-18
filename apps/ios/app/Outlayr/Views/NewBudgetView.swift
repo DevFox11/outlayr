@@ -273,7 +273,6 @@ struct BrandNewBudgetView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .foregroundStyle(Color.PrimaryText)
                         .font(.system(.title3, design: .rounded).weight(.medium))
-//                        .font(.system(size: 20, weight: .medium, design: .rounded))
                         .padding(8)
                         .background {
                             if !categoryBudget {
@@ -328,13 +327,11 @@ struct BrandNewBudgetView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "tray.full.fill")
                                 .font(.system(.largeTitle, design: .rounded))
-//                                .font(.system(size: 38, weight: .regular, design: .rounded))
                                 .foregroundStyle(Color.SubtitleText.opacity(0.7))
                                 .padding(.top, 20)
 
                             Text("No remaining\ncategories.")
                                 .font(.system(.title3, design: .rounded).weight(.medium))
-//                                .font(.system(size: 21, weight: .medium, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(Color.SubtitleText.opacity(0.7))
                                 .padding(.bottom, 20)
@@ -381,7 +378,6 @@ struct BrandNewBudgetView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(Color.PrimaryText)
                             .font(.system(.title3, design: .rounded).weight(.medium))
-//                            .font(.system(size: 20, weight: .medium, design: .rounded))
                             .padding(8)
 //                            .frame(height: 40)
                             .background {
@@ -425,7 +421,6 @@ struct BrandNewBudgetView: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .foregroundStyle(Color.PrimaryText)
                                         .font(.system(.title3, design: .rounded).weight(.medium))
-//                                        .font(.system(size: 20, weight: .medium, design: .rounded))
                                         .padding(8)
 //                                        .frame(height: 40)
                                         .background {
@@ -519,7 +514,6 @@ struct BrandNewBudgetView: View {
                     if budgetTimeFrame != .day && price > 0 {
                         Text(amountPerDayString)
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
-//                            .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.SubtitleText)
                             .padding(4)
                             .padding(.horizontal, 7)
@@ -573,7 +567,6 @@ struct BrandNewBudgetView: View {
                 } label: {
                     Text("Continue")
                         .font(.system(.title3, design: .rounded).weight(.semibold))
-//                        .font(.system(size: 19, weight: .semibold, design: .rounded))
 
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
@@ -862,7 +855,6 @@ struct BrandNewBudgetView: View {
                     .font(.system(size: 15))
                 Text(category.wrappedName)
                     .font(.system(.title3, design: .rounded).weight(.semibold))
-//                    .font(.system(size: 19, weight: .semibold, design: .rounded))
             }
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
@@ -968,7 +960,7 @@ struct RowProgressIndicator: View {
 //                ForEach(0..<Int(count), id: \.self) { num in
 //                    Capsule()
 //                        .frame(height: 5)
-//                        .frame(maxWidth: /*@START_MENU_TOKEN@*/.infinity/*@END_MENU_TOKEN@*/)
+//                        .frame(maxWidth: .infinity)
 //                        .onTapGesture {
 //                            print("tapped")
 //                        }
