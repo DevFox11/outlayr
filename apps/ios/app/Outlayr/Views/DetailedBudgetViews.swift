@@ -46,14 +46,13 @@ struct DetailedBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        // more-vertical-square-01 glyph in the SolidRounded font; the
-                        // ligature name renders the wrong glyph, so map the codepoint directly.
                         HugeIcon(
                             codepoint: 0xF2195,
                             font: HugeiconsSolidRounded.font(size: 22),
-                            color: Color.PrimaryText
+                            color: Color.PrimaryText,
                         )
-                        .frame(width: 24, height: 24)
+                        // 12 = nav-bar glass height − padding; keeps the toolbar button circular (not a typo — larger widths render an oval)
+                        .frame(width: 12, height: 12)
                     }
                 }
             }
@@ -99,14 +98,13 @@ struct DetailedMainBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        // more-vertical-square-01 glyph in the SolidRounded font; the
-                        // ligature name renders the wrong glyph, so map the codepoint directly.
                         HugeIcon(
                             codepoint: 0xF2195,
                             font: HugeiconsSolidRounded.font(size: 22),
                             color: Color.PrimaryText
                         )
-                        .frame(width: 24, height: 24)
+                        // 12 = nav-bar glass height − padding; keeps the toolbar button circular (not a typo — larger widths render an oval)
+                        .frame(width: 12, height: 12)
                     }
                 }
             }
