@@ -98,7 +98,8 @@ public extension Budget {
     }
 
     var wrappedName: String {
-        category?.wrappedName ?? ""
+        if let name, !name.isEmpty { return name }
+        return category?.wrappedName ?? ""
     }
 
     var wrappedEmoji: String {
@@ -128,6 +129,11 @@ public extension Budget {
 }
 
 public extension MainBudget {
+    var wrappedName: String {
+        if let name, !name.isEmpty { return name }
+        return String(localized: "Overall Budget")
+    }
+
     var wrappedDate: Date {
         return startDate ?? Date.now
     }
