@@ -41,10 +41,10 @@ struct BudgetEmptyStateView: View {
             Button(action: create) {
                 Text("Create a Budget")
                     .font(.system(.body, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.PrimaryBackground)
                     .padding(.vertical, 13)
                     .padding(.horizontal, 28)
-                    .background(Color.IncomeGreen, in: Capsule())
+                    .background(Color.PrimaryText, in: Capsule())
             }
             .buttonStyle(.plain)
         }
