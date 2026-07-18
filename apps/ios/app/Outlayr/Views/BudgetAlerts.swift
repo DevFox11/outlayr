@@ -11,7 +11,6 @@ struct DeleteBudgetAlert: View {
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     let toDelete: Budget
     @Environment(\.colorScheme) var systemColorScheme
 
@@ -40,7 +39,6 @@ struct DeleteBudgetAlert: View {
 
                 Button {
                     dismiss()
-                    self.presentationMode.wrappedValue.dismiss()
 
                     withAnimation {
                         moc.delete(toDelete)
@@ -87,7 +85,7 @@ struct DeleteBudgetAlert: View {
             .padding(.horizontal, 17)
             .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
         }
-        .edgesIgnoringSafeArea(.all)
+        .ignoresSafeArea()
         .background(BackgroundBlurView())
     }
 }
@@ -172,7 +170,7 @@ struct DeleteMainBudgetAlert: View {
             .padding(.horizontal, 17)
             .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
         }
-        .edgesIgnoringSafeArea(.all)
+        .ignoresSafeArea()
         .background(BackgroundBlurView())
     }
 }

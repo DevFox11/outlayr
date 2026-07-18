@@ -8,7 +8,7 @@ import CoreData
 import SwiftUI
 
 struct DetailedBudgetView: View {
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
     let budget: Budget
@@ -23,7 +23,7 @@ struct DetailedBudgetView: View {
         VStack(spacing: 15) {
             HStack {
                 Button {
-                    self.presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
@@ -61,8 +61,7 @@ struct DetailedBudgetView: View {
         .padding(.vertical, 15)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .navigationBarBackButtonHidden(true)
-        .navigationBarTitle("")
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .background(Color.PrimaryBackground)
         .sheet(item: $toEdit, onDismiss: {
             toEdit = nil
@@ -81,7 +80,7 @@ struct DetailedBudgetView: View {
 }
 
 struct DetailedMainBudgetView: View {
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
     let budget: MainBudget
@@ -94,7 +93,7 @@ struct DetailedMainBudgetView: View {
         VStack(spacing: 15) {
             HStack {
                 Button {
-                    self.presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
@@ -108,7 +107,6 @@ struct DetailedMainBudgetView: View {
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
                     .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-//                    .frame(height: 30, alignment: .center)
                     .background(Color.SecondaryBackground, in: Capsule())
                 }
 
@@ -129,8 +127,7 @@ struct DetailedMainBudgetView: View {
         .padding(.vertical, 15)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .navigationBarBackButtonHidden(true)
-        .navigationBarTitle("")
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .background(Color.PrimaryBackground)
         .fullScreenCover(item: $toEdit, onDismiss: {
             toEdit = nil
