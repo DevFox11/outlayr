@@ -111,75 +111,68 @@ struct BrandNewBudgetView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-
-            titleBlock
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, step == 1 ? 6 : 18)
-
-            if step == 1 {
-                whatAndWhenContent
-
-                continueButton
-                    .padding(20)
-            } else {
-                amountStep
+        NavigationStack {
+            VStack(spacing: 0) {
+                titleBlock
                     .padding(.horizontal, 20)
-                    .padding(.top, 4)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .background(Color.PrimaryBackground)
-        .overlay(alignment: .top) { toast }
-        .animation(.easeOut(duration: 0.2), value: showToast)
-        .onChange(of: showToast) { _, newValue in
-            if newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    showToast = false
-                }
-            }
-        }
-        .sheet(isPresented: $showingCategoryView) {
-            NewCategoryAlert(income: Binding.constant(false), bottomSpacers: true, budgetMode: true)
-        }
-        .onAppear(perform: restoreEditState)
-    }
+                    .padding(.top, 12)
+                    .padding(.bottom, step == 1 ? 6 : 18)
 
-    // MARK: - Header
+                if step == 1 {
+                    whatAndWhenContent
 
-    private var header: some View {
-        HStack {
-            Button {
-                if step > 1 {
-                    withAnimation(.interactiveSpring(response: 0.5, dampingFraction: 0.85)) { step -= 1 }
+                    continueButton
+                        .padding(20)
                 } else {
-                    dismiss()
-                }
-            } label: {
-                Image(systemName: step > 1 ? "chevron.left" : "xmark")
-                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.SubtitleText)
-                    .padding(8)
-                    .background(Color.SecondaryBackground, in: Circle())
-            }
-            .contentTransition(.symbolEffect(.replace.downUp.wholeSymbol))
-
-            Spacer()
-
-            HStack(spacing: 6) {
-                ForEach(1 ... 2, id: \.self) { index in
-                    Capsule()
-                        .fill(index <= step ? Color.PrimaryText : Color.SecondaryBackground)
-                        .frame(width: index <= step ? 20 : 12, height: 5)
+                    amountStep
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .background(Color.PrimaryBackground)
+            .overlay(alignment: .top) { toast }
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Color.PrimaryText)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if step > 1 {
+                            withAnimation(.interactiveSpring(response: 0.5, dampingFraction: 0.85)) { step -= 1 }
+                        } else {
+                            dismiss()
+                        }
+                    } label: {
+                        Image(systemName: step > 1 ? "chevron.left" : "xmark")
+                    }
+                    .contentTransition(.symbolEffect(.replace.downUp.wholeSymbol))
+                }
+
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        ForEach(1 ... 2, id: \.self) { index in
+                            Capsule()
+                                .fill(index <= step ? Color.PrimaryText : Color.SecondaryBackground)
+                                .frame(width: index <= step ? 20 : 12, height: 5)
+                        }
+                    }
+                    .animation(.easeInOut, value: step)
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: showToast)
+            .onChange(of: showToast) { _, newValue in
+                if newValue {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showToast = false
+                    }
+                }
+            }
+            .sheet(isPresented: $showingCategoryView) {
+                NewCategoryAlert(income: Binding.constant(false), bottomSpacers: true, budgetMode: true)
+            }
+            .onAppear(perform: restoreEditState)
         }
-        .animation(.easeInOut, value: step)
     }
 
     private var titleBlock: some View {
@@ -316,13 +309,15 @@ struct BrandNewBudgetView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
+                        newCategoryChip
                         ForEach(categories) { category in
                             categoryChip(category)
                         }
-                        newCategoryChip
                     }
                     .padding(.vertical, 2)
                 }
+                .contentMargins(.horizontal, 20, for: .scrollContent)
+                .padding(.horizontal, -20)
             }
         }
     }
