@@ -161,27 +161,7 @@ struct ActualBudgetView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .id(refreshID)
                 } else {
-                    VStack(spacing: 5) {
-                        Spacer()
-                        Text("🙈")
-                            .font(.system(.largeTitle, design: .rounded))
-                            .padding(.bottom, 9)
-
-                        Text("No Budgets Found")
-                            .font(.system(.title2, design: .rounded).weight(.medium))
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(Color.PrimaryText.opacity(0.8))
-
-                        Text("Add your first budget today!")
-                            .font(.system(.body, design: .rounded).weight(.medium))
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(Color.SubtitleText.opacity(0.7))
-
-                        Spacer()
-                        Spacer()
-                    }
-                    .padding(20)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    BudgetEmptyStateView { newBudget = true }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
