@@ -24,6 +24,8 @@ struct ContentView: View {
     // converts category colors to hex codes
     @AppStorage("dataMigration2", store: AppIdentifiers.sharedDefaults) var dataMigration2: Bool = true
 
+    @AppStorage("categoryPaletteMigration", store: AppIdentifiers.sharedDefaults) var categoryPaletteMigration: Bool = true
+
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
 
     @State var showIntro: Bool = false
@@ -123,6 +125,26 @@ struct ContentView: View {
                 dataController.save()
 
                 dataMigration2 = false
+            }
+
+            if categoryPaletteMigration {
+                let categoryFetch = dataController.fetchRequestForCategoriesMigration()
+                let categories = dataController.results(for: categoryFetch)
+
+                let expenseMap = Dictionary(SuggestedCategory.expenses.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+                let incomeMap = Dictionary(SuggestedCategory.incomes.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+
+                categories.forEach { category in
+                    let map = category.income ? incomeMap : expenseMap
+                    if let match = map[category.wrappedName] {
+                        category.colour = match.colour
+                        category.emoji = match.emoji
+                    }
+                }
+
+                dataController.save()
+
+                categoryPaletteMigration = false
             }
 
             center.getNotificationSettings { settings in

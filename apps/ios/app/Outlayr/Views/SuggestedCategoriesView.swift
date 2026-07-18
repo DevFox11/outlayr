@@ -54,14 +54,9 @@ struct SuggestedCategoriesView: View {
         category.id = UUID()
         category.income = income
         category.order = (categories.last?.order ?? 0) + 1
-        category.colour = income ? "#76FBB0" : nextAvailableColour()
+        category.colour = suggestion.colour
 
         dataController.save()
-    }
-
-    private func nextAvailableColour() -> String {
-        let used = Set(categories.map(\.wrappedColour))
-        return Color.colorArray.first { !used.contains($0) } ?? "#FFFFFF"
     }
 }
 
