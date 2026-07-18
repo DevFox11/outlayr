@@ -5,6 +5,8 @@
 
 import CoreData
 import Foundation
+import HugeiconsCore
+import HugeiconsSolidRounded
 import SwiftUI
 
 struct DetailedBudgetView: View {
@@ -44,7 +46,13 @@ struct DetailedBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        // more-vertical-square-01 glyph in the SolidRounded font; the
+                        // ligature name renders the wrong glyph, so map the codepoint directly.
+                        HugeIcon(
+                            codepoint: 0xF2195,
+                            font: HugeiconsSolidRounded.font(size: 22),
+                            color: Color.PrimaryText
+                        )
                     }
                 }
             }
@@ -90,7 +98,13 @@ struct DetailedMainBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        // more-vertical-square-01 glyph in the SolidRounded font; the
+                        // ligature name renders the wrong glyph, so map the codepoint directly.
+                        HugeIcon(
+                            codepoint: 0xF2195,
+                            font: HugeiconsSolidRounded.font(size: 22),
+                            color: Color.PrimaryText
+                        )
                     }
                 }
             }
