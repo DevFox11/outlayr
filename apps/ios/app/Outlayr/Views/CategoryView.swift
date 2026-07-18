@@ -6,9 +6,8 @@
 //
 
 import CoreData
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
+import UIKit
 
 enum CategoryViewMode {
     case welcome, settings, transaction
@@ -36,7 +35,6 @@ struct CategoryListView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var moc
-    @Environment(\.editMode) private var editMode
     @Environment(DataController.self) private var dataController
 
     @AppStorage("categorySuggestions", store: AppIdentifiers.sharedDefaults)
@@ -85,16 +83,15 @@ struct CategoryListView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .contentMargins(.top, 8, for: .scrollContent)
+        .modifier(SoftBottomScrollEdge())
         .navigationTitle("Categories")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar { toolbarContent }
+        .onChange(of: income) { UISelectionFeedbackGenerator().selectionChanged() }
         .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 8) {
-                floatingTypePicker
-                if mode == .welcome {
-                    continueButton
-                }
+            if mode == .welcome {
+                continueButton
             }
         }
         .sheet(isPresented: $newCategory) {
@@ -121,27 +118,6 @@ struct CategoryListView: View {
         }
     }
 
-    private var typePicker: some View {
-        Picker("Type", selection: $income) {
-            Text("Expense").tag(false)
-            Text("Income").tag(true)
-        }
-        .pickerStyle(.segmented)
-    }
-
-    private var floatingTypePicker: some View {
-        typePicker
-            .padding(6)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.Outline.opacity(0.4), lineWidth: 0.5)
-            )
-            .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
-            .padding(.horizontal)
-            .padding(.bottom, 6)
-    }
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         if mode == .transaction {
@@ -150,50 +126,73 @@ struct CategoryListView: View {
             }
         }
 
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button {
-                    newCategory = true
-                } label: {
-                    Label("New Category", systemImage: "plus")
-                }
-
-                if categories.count > 1 {
-                    Button {
-                        withAnimation { editMode?.wrappedValue = isEditing ? .inactive : .active }
-                    } label: {
-                        Label(isEditing ? "Done" : "Edit", systemImage: "pencil")
-                    }
-
-                    Button {
-                        reordering = true
-                    } label: {
-                        Label("Reorder Categories", systemImage: "arrow.up.arrow.down")
-                    }
-                }
-
-                Button {
-                    withAnimation { showSuggestions.toggle() }
-                } label: {
-                    Label(
-                        showSuggestions ? "Hide Suggestions" : "Show Suggestions",
-                        systemImage: showSuggestions ? "eye.slash" : "eye"
-                    )
-                }
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Button {
+                withAnimation { showSuggestions.toggle() }
             } label: {
-                HugeIcon(
-                    codepoint: 0xF2195,
-                    font: HugeiconsSolidRounded.font(size: 22),
-                    color: Color.PrimaryText,
-                )
-                // 12 = nav-bar glass height − padding; keeps the toolbar button circular (not a typo — larger widths render an oval)
-                .frame(width: 12, height: 12)
+                ToolbarIcon(showSuggestions ? .viewOffSlash : .view)
+            }
+            .accessibilityLabel(showSuggestions ? "Hide Suggestions" : "Show Suggestions")
+
+            if categories.count > 1 {
+                Button {
+                    reordering = true
+                } label: {
+                    ToolbarIcon(.arrowUpDown)
+                }
+                .accessibilityLabel("Reorder Categories")
+            }
+        }
+
+        if #available(iOS 26, *) {
+            // The picker draws its own background, so the toolbar must not wrap it
+            // in a second glass capsule.
+            ToolbarItem(placement: .bottomBar) {
+                typePicker
+                    .frame(width: 190)
+            }
+            .sharedBackgroundVisibility(.hidden)
+
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+
+            ToolbarItem(placement: .bottomBar) {
+                newCategoryButton
+            }
+        } else {
+            ToolbarItemGroup(placement: .bottomBar) {
+                typePicker
+                    .frame(width: 190)
+
+                Spacer()
+
+                newCategoryButton
             }
         }
     }
 
-    private var isEditing: Bool {
-        editMode?.wrappedValue.isEditing == true
+    private var newCategoryButton: some View {
+        Button {
+            newCategory = true
+        } label: {
+            ToolbarIcon(.plusSign)
+        }
+        .accessibilityLabel("New Category")
+    }
+
+    private var basePicker: some View {
+        Picker("Category Type", selection: $income) {
+            Text("Expense").tag(false)
+            Text("Income").tag(true)
+        }
+    }
+
+    @ViewBuilder
+    private var typePicker: some View {
+        if #available(iOS 27.0, *) {
+            basePicker.pickerStyle(.tabs)
+        } else {
+            basePicker.pickerStyle(.segmented)
+        }
     }
 
     private var continueButton: some View {
@@ -243,6 +242,19 @@ struct CategoryListView: View {
         withAnimation {
             moc.delete(category)
             dataController.save()
+        }
+    }
+}
+
+/// Hiding a toolbar item's shared background makes the bar fall back to a hard-edged
+/// scroll effect, which reads as an opaque band clipping the content. Soft restores
+/// the transparent bar.
+private struct SoftBottomScrollEdge: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.scrollEdgeEffectStyle(.soft, for: .bottom)
+        } else {
+            content
         }
     }
 }
@@ -320,7 +332,6 @@ private struct ParentSection: View {
                         }
                     }
             }
-            .onMove(perform: moveChildren)
 
             addRow
         }
@@ -404,15 +415,6 @@ private struct ParentSection: View {
         transactions.reduce(0) { $0 + $1.wrappedAmount }
     }
 
-    private func moveChildren(at source: IndexSet, to destination: Int) {
-        var items = Array(children)
-        items.move(fromOffsets: source, toOffset: destination)
-        for (index, child) in items.enumerated() {
-            child.order = Int64(index)
-        }
-        dataController.save()
-    }
-
     /// Moves dropped subcategories under this parent, appended after existing children.
     private func reparent(_ identifiers: [String]) -> Bool {
         guard let coordinator = moc.persistentStoreCoordinator else { return false }
@@ -478,9 +480,14 @@ private struct ReorderCategoriesSheet: View {
                                 .frame(width: 18, height: 18)
                         }
                     }
+                    // Re-flip row content to LTR; the enclosing List is RTL only to
+                    // move the system reorder grip to the leading (left) edge.
+                    .environment(\.layoutDirection, .leftToRight)
                 }
                 .onMove(perform: move)
             }
+            .contentMargins(.top, 8, for: .scrollContent)
+            .environment(\.layoutDirection, .rightToLeft)
             .environment(\.editMode, .constant(.active))
             .navigationTitle("Reorder Categories")
             .navigationBarTitleDisplayMode(.inline)
