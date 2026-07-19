@@ -339,8 +339,7 @@ private struct ParentSection: View {
 
     private var headerRow: some View {
         HStack(spacing: 12) {
-            Text(parent.wrappedEmoji)
-                .font(.system(.title3, design: .rounded))
+            CategoryIconTile(icon: parent.wrappedIcon, tint: accent)
 
             Text(parent.wrappedName)
                 .font(.system(.body, design: .rounded, weight: .semibold))
@@ -351,12 +350,6 @@ private struct ParentSection: View {
 
             amountLabel(rolledUpTotal)
 
-            if !income {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(accent)
-                    .frame(width: 22, height: 22)
-            }
-
             Image(systemName: "chevron.right")
                 .font(.system(.footnote, design: .rounded, weight: .semibold))
                 .foregroundStyle(Color.SubtitleText)
@@ -366,8 +359,7 @@ private struct ParentSection: View {
 
     private func childRow(_ child: Category) -> some View {
         HStack(spacing: 10) {
-            Text(child.wrappedEmoji)
-                .font(.system(.subheadline, design: .rounded))
+            CategoryIconTile(icon: child.wrappedIcon, tint: accent, size: .small)
 
             Text(child.wrappedName)
                 .font(.system(.subheadline, design: .rounded))
@@ -468,17 +460,14 @@ private struct ReorderCategoriesSheet: View {
             List {
                 ForEach(parents) { parent in
                     HStack(spacing: 12) {
-                        Text(parent.wrappedEmoji)
-                            .font(.system(.body, design: .rounded))
+                        CategoryIconTile(
+                            icon: parent.wrappedIcon,
+                            tint: income ? Color.IncomeGreen : Color(hex: parent.wrappedColour)
+                        )
                         Text(parent.wrappedName)
                             .font(.system(.body, design: .rounded, weight: .medium))
                             .foregroundStyle(Color.PrimaryText)
                         Spacer()
-                        if !income {
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Color(hex: parent.wrappedColour))
-                                .frame(width: 18, height: 18)
-                        }
                     }
                     // Re-flip row content to LTR; the enclosing List is RTL only to
                     // move the system reorder grip to the leading (left) edge.

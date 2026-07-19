@@ -744,8 +744,7 @@ struct CategoryRowPickerView: View {
                                 HStack(spacing: 8) {
                                     ForEach(income ? incomeCategories : expenseCategories, id: \.self) { item in
                                         HStack(spacing: 5) {
-                                            Text(item.wrappedEmoji)
-                                                .font(.system(size: 13))
+                                            CategoryIconGlyph(icon: item.wrappedIcon, size: 14)
                                             Text(item.wrappedName)
                                                 .font(.system(size: 17.5, weight: .medium, design: .rounded))
                                         }
@@ -1043,8 +1042,8 @@ struct SingleTemplateButton: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: -2) {
-            Text(transaction.wrappedEmoji)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+            CategoryIconGlyph(icon: transaction.wrappedIcon, size: 14)
+                .foregroundStyle(transactionColor)
                 .padding(5)
                 .background(blend(over: transactionColor, withAlpha: 0.3), in: RoundedRectangle(cornerRadius: 8))
 

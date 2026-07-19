@@ -121,7 +121,10 @@ struct TransactionView: View {
             dateSize = (getDateString(date: date) as NSString).size(withAttributes: attributes)
         }
 
-        let categorySize = (category?.fullName ?? "X Category").size(withAttributes: attributes)
+        // The category label renders its icon glyph alongside the name, so the
+        // fit test has to budget for the glyph plus its stack spacing.
+        let categoryGlyphWidth: CGFloat = 14 + 5
+        let categorySize = (category?.wrappedName ?? "X Category").size(withAttributes: attributes)
         let timeSize = (getTimeString(date: date) as NSString).size(withAttributes: attributes)
 
         let screenWidth: CGFloat
@@ -132,7 +135,7 @@ struct TransactionView: View {
             screenWidth = (UIScreen.main.bounds.width - 150)
         }
 
-        if (dateSize.width + categorySize.width + timeSize.width) > screenWidth {
+        if (dateSize.width + categorySize.width + categoryGlyphWidth + timeSize.width) > screenWidth {
             return false
         } else {
             return true
@@ -555,8 +558,7 @@ struct TransactionView: View {
                                 } else {
                                     if let unwrappedCategory = category {
                                         HStack(spacing: 5) {
-                                            Text(unwrappedCategory.wrappedEmoji)
-                                                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                                            CategoryIconGlyph(icon: unwrappedCategory.wrappedIcon, size: 14)
 
                                             Text(unwrappedCategory.wrappedName)
                                                 .font(.system(.body, design: .rounded, weight: .semibold))
@@ -1269,10 +1271,7 @@ struct CategoryPickerView: View {
                             ForEach(categories) { item in
                                 if item != initialCategory {
                                     HStack(spacing: 7) {
-                                        Text(item.wrappedEmoji)
-                                            .font(.system(.footnote, design: .rounded))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                                        //                                                    .font(.system(size: 14))
+                                        CategoryIconGlyph(icon: item.wrappedIcon, size: 14)
                                         Text(item.wrappedName)
                                             .font(.system(.body, design: .rounded, weight: .semibold))
                                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)

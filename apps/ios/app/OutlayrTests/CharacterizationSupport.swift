@@ -72,14 +72,14 @@ class CharacterizationTestCase: XCTestCase {
     func makeCategory(
         in context: NSManagedObjectContext,
         name: String,
-        emoji: String = "💸",
+        icon: String? = "sale-tag-01",
         income: Bool = false,
         order: Int64 = 0
     ) -> Outlayr.Category {
         let category = Outlayr.Category(context: context)
         category.id = UUID()
         category.name = name
-        category.emoji = emoji
+        category.icon = icon
         category.colour = "#000000"
         category.income = income
         category.order = order

@@ -72,10 +72,7 @@ struct CategoryStepperView: View {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { item in
                             HStack(spacing: 5) {
-                                Text(item.wrappedEmoji)
-                                    .font(.system(.footnote, design: .rounded).weight(.medium))
-                                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                    .font(.system(size: 13))
+                                CategoryIconGlyph(icon: item.wrappedIcon, size: 14)
                                 Text(item.wrappedName)
 //                                    .font(.system(size: 17.5, weight: .medium, design: .rounded))
                                     .font(.system(.body, design: .rounded).weight(.medium))

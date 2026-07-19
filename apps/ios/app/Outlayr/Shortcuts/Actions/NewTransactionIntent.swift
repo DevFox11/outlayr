@@ -228,8 +228,8 @@ struct ShortcutTransactionView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
-                         colour: (transaction.category?.wrappedColour ?? ""), future: false)
+            CategoryIconLogTile(icon: transaction.wrappedIcon,
+                                colour: (transaction.category?.wrappedColour ?? ""), future: false)
                 .frame(width: 35, height: 35, alignment: .center)
                 .overlay(alignment: .bottomTrailing) {
                     if transaction.recurringType > 0 {

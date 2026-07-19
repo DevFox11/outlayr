@@ -660,8 +660,8 @@ struct SingleBudgetView: View {
                             }
                             .frame(width: 40, height: 40)
                             .overlay {
-                                Text(budget.wrappedEmoji)
-                                    .font(.system(size: 20))
+                                CategoryIconGlyph(icon: budget.wrappedIcon, size: 20)
+                                    .foregroundStyle(Color(hex: budget.wrappedColour))
                             }
 
                             VStack(alignment: .leading, spacing: -0.5) {
@@ -767,8 +767,8 @@ struct SingleBudgetView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
-                                Text(budget.wrappedEmoji)
-                                    .font(.system(.caption, design: .rounded))
+                                CategoryIconGlyph(icon: budget.wrappedIcon, size: 12)
+                                    .foregroundStyle(Color(hex: budget.wrappedColour))
 
                                 Text(budget.wrappedName)
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))

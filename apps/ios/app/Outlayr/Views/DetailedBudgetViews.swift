@@ -20,7 +20,7 @@ struct DetailedBudgetView: View {
         TimeBudgetView(budget: budget)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color.PrimaryBackground)
-            .navigationTitle("\(budget.wrappedEmoji) \(budget.wrappedName)")
+            .navigationTitle(budget.wrappedName)
             .navigationBarTitleDisplayMode(.inline)
             .tint(Color.PrimaryText)
             .toolbar {

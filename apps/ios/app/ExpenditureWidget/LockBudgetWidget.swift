@@ -5,6 +5,8 @@
 //  Created by Rafael Soh on 9/9/22.
 //
 
+import HugeiconsCore
+import HugeiconsSolidRounded
 import SwiftUI
 import WidgetKit
 
@@ -67,7 +69,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
             // Broken app group: do not touch the store (avoids a crash on the
             // force-unwrapped objectID lookup). The entry view shows the error
             // placeholder via `guardedByDataStore()`.
-            return (0, "", HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0))
+            return (0, "", HoldingBudget.failed)
         }
 
 //        let dataController = DataController()
@@ -88,7 +90,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), emoji: budget.wrappedEmoji, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), icon: budget.wrappedIcon, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
 
             let timeLeft: String
 
@@ -115,7 +117,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
 
             return (holdingTotal, timeLeft, returnBudget)
         } else {
-            let budget = HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0)
+            let budget = HoldingBudget.failed
             return (0, "", budget)
         }
     }
@@ -180,8 +182,12 @@ struct LockBudgetWidgetEntryView: View {
         case .accessoryInline:
             if entry.configuration.budget == nil {
                 Text("Select budget in widget options")
+            } else if entry.budget.missing {
+                Text("Budget no longer exists")
             } else {
-                Text("\(entry.budget.emoji) \(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle)")
+                // accessoryInline renders plain system text only, so there is no
+                // glyph here — the name is what tells two inline widgets apart.
+                Text("\(entry.budget.name) \(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle)")
                     .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget?budget=\(entry.budget.name)"))
             }
 
@@ -196,9 +202,22 @@ struct LockBudgetWidgetEntryView: View {
                             .multilineTextAlignment(.center)
                     }
                     .containerBackground(for: .widget) { AccessoryWidgetBackground() }
+                } else if entry.budget.missing {
+                    ZStack {
+                        AccessoryWidgetBackground()
+
+                        Text("NO BUDGET")
+                            .font(.system(size: 8, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                    }
+                    .containerBackground(for: .widget) { AccessoryWidgetBackground() }
                 } else {
                     Gauge(value: percent < 1 ? percent : 1) {
-                        Text(entry.budget.emoji)
+                        HugeIcon(
+                            codepoint: entry.budget.icon.codepoint,
+                            font: HugeiconsSolidRounded.font(size: 11)
+                        )
                     } currentValueLabel: {
                         Text("\(Int(round(percent * 100)))%")
                     }
@@ -210,6 +229,12 @@ struct LockBudgetWidgetEntryView: View {
         case .accessoryRectangular:
                 if entry.configuration.budget == nil {
                     Text("SELECT BUDGET IN WIDGET OPTIONS")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                        .containerBackground(for: .widget) { Color.clear }
+                } else if entry.budget.missing {
+                    Text("BUDGET NO LONGER EXISTS - SELECT NEW BUDGET IN WIDGET OPTIONS")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)

@@ -131,14 +131,9 @@ struct ContentView: View {
                 let categoryFetch = dataController.fetchRequestForCategoriesMigration()
                 let categories = dataController.results(for: categoryFetch)
 
-                let expenseMap = Dictionary(SuggestedCategory.expenses.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
-                let incomeMap = Dictionary(SuggestedCategory.incomes.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
-
                 categories.forEach { category in
-                    let map = category.income ? incomeMap : expenseMap
-                    if let match = map[category.wrappedName] {
+                    if let match = SuggestedCategory.match(name: category.wrappedName, income: category.income) {
                         category.colour = match.colour
-                        category.emoji = match.emoji
                     }
                 }
 
@@ -146,6 +141,8 @@ struct ContentView: View {
 
                 categoryPaletteMigration = false
             }
+
+            dataController.migrateCategoryIcons()
 
             center.getNotificationSettings { settings in
                 if settings.authorizationStatus == .authorized {

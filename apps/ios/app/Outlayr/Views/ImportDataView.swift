@@ -564,9 +564,7 @@ struct ImportDataView: View {
                                                     .foregroundStyle(Color.SubtitleText)
 
                                                 HStack(spacing: 5) {
-                                                    Text(unwrappedCategory.wrappedEmoji)
-//                                                        .font(.system(size: 15))
-                                                        .font(.system(.subheadline, design: .rounded))
+                                                    CategoryIconGlyph(icon: unwrappedCategory.wrappedIcon)
 
                                                     Text(unwrappedCategory.wrappedName)
                                                         .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -1086,12 +1084,15 @@ struct MatchCategoryStepperView: View {
 
             let attributes = [NSAttributedString.Key.font: roundedFont]
 
-            let size = (category.fullName as NSString).size(withAttributes: attributes)
+            let size = (category.wrappedName as NSString).size(withAttributes: attributes)
 
-            totalWidth += (size.width + 10 + 10 + 8)
+            // Chip width: name + icon glyph + stack spacing + horizontal padding.
+            let chipWidth = size.width + 14 + 5 + 10 + 10 + 8
+
+            totalWidth += chipWidth
 
             if totalWidth > screenWidth {
-                totalWidth = (!currentRow.isEmpty || rows.isEmpty ? (size.width + 10 + 10 + 8) : 0)
+                totalWidth = (!currentRow.isEmpty || rows.isEmpty ? chipWidth : 0)
 
                 rows.append(currentRow)
                 currentRow.removeAll()
@@ -1130,10 +1131,7 @@ struct MatchCategoryStepperView: View {
 
         } label: {
             HStack(spacing: 5) {
-                Text(categoryInput.wrappedEmoji)
-                    .font(.system(.footnote, design: .rounded))
-
-//                    .font(.system(size: 13))
+                CategoryIconGlyph(icon: categoryInput.wrappedIcon, size: 14)
                 Text(categoryInput.wrappedName)
                     .font(.system(.body, design: .rounded).weight(.semibold))
 

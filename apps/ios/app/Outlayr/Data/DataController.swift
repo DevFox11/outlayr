@@ -587,123 +587,55 @@ class DataController {
         }
     }
 
-    func categoryCheck(name: String, emoji: String, income: Bool) -> (error: CategoryError, order: Int64) {
-        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && emoji == "" {
+    func categoryCheck(name: String, icon: String, income: Bool) -> (error: CategoryError, order: Int64) {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && icon == "" {
             return (CategoryError.incomplete, 0)
         } else if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
             return (CategoryError.missingName, 0)
-        } else if emoji == "" {
-            return (CategoryError.missingEmoji, 0)
+        } else if icon == "" {
+            return (CategoryError.missingIcon, 0)
         }
 
-        if income {
-            let fetchRequest = fetchRequestForCategories(income: true)
-            let incomeCategories = results(for: fetchRequest)
-
-            var emojiArray = [String]()
-            var nameArray = [String]()
-
-            incomeCategories.forEach { category in
-                emojiArray.append(category.wrappedEmoji)
-                nameArray.append(category.wrappedName)
-            }
-
-            if emojiArray.contains(emoji) && nameArray.contains(name) {
-                return (CategoryError.duplicate, 0)
-            } else if emojiArray.contains(emoji) {
-                return (CategoryError.duplicateEmoji, 0)
-            } else if nameArray.contains(name) {
-                return (CategoryError.duplicateName, 0)
-            } else {
-                let newItemOrder = (incomeCategories.last?.order ?? 0) + 1
-                return (CategoryError.none, newItemOrder)
-            }
-        } else {
-            let fetchRequest = fetchRequestForCategories(income: false)
-            let expenseCategories = results(for: fetchRequest)
-
-            var emojiArray = [String]()
-            var nameArray = [String]()
-
-            expenseCategories.forEach { category in
-                emojiArray.append(category.wrappedEmoji)
-                nameArray.append(category.wrappedName)
-            }
-
-            if emojiArray.contains(emoji) && nameArray.contains(name) {
-                return (CategoryError.duplicate, 0)
-            } else if emojiArray.contains(emoji) {
-                return (CategoryError.duplicateEmoji, 0)
-            } else if nameArray.contains(name) {
-                return (CategoryError.duplicateName, 0)
-            } else {
-                let newItemOrder = (expenseCategories.last?.order ?? 0) + 1
-                return (CategoryError.none, newItemOrder)
-            }
-        }
+        let siblings = results(for: fetchRequestForCategories(income: income))
+        return collision(name: name, icon: icon, against: siblings)
     }
 
-    func categoryCheckEdit(name: String, emoji: String, toEdit: Category) -> (error: CategoryError, order: Int64) {
-        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && emoji == "" {
+    func categoryCheckEdit(name: String, icon: String, toEdit: Category) -> (error: CategoryError, order: Int64) {
+        // A category migrated from the emoji era has no stored icon. Demanding one
+        // now would make an unrelated edit — a rename, a recolour — unsavable.
+        let iconRequired = toEdit.icon != nil
+
+        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && icon == "" && iconRequired {
             return (CategoryError.incomplete, 0)
         } else if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
             return (CategoryError.missingName, 0)
-        } else if emoji == "" {
-            return (CategoryError.missingEmoji, 0)
+        } else if icon == "" && iconRequired {
+            return (CategoryError.missingIcon, 0)
         }
 
-        if toEdit.income {
-            let fetchRequest = fetchRequestForCategories(income: true)
-            var incomeCategories = results(for: fetchRequest)
+        let siblings = results(for: fetchRequestForCategories(income: toEdit.income))
+            .filter { $0 != toEdit }
+        return collision(name: name, icon: icon, against: siblings)
+    }
 
-            if let position = incomeCategories.firstIndex(of: toEdit) {
-                incomeCategories.remove(at: position)
-            }
+    private func collision(name: String, icon: String, against siblings: [Category]) -> (error: CategoryError, order: Int64) {
+        // Raw stored icons, not `wrappedIcon`: unset and future-version names all
+        // resolve to the same fallback glyph, which would fabricate collisions
+        // between categories that have no icon in common.
+        let iconArray = siblings.compactMap(\.icon)
+        let nameArray = siblings.map(\.wrappedName)
 
-            var emojiArray = [String]()
-            var nameArray = [String]()
+        let iconTaken = !icon.isEmpty && iconArray.contains(icon)
+        let nameTaken = nameArray.contains(name)
 
-            incomeCategories.forEach { category in
-                emojiArray.append(category.wrappedEmoji)
-                nameArray.append(category.wrappedName)
-            }
-
-            if emojiArray.contains(emoji) && nameArray.contains(name) {
-                return (CategoryError.duplicate, 0)
-            } else if emojiArray.contains(emoji) {
-                return (CategoryError.duplicateEmoji, 0)
-            } else if nameArray.contains(name) {
-                return (CategoryError.duplicateName, 0)
-            } else {
-                let newItemOrder = (incomeCategories.last?.order ?? 0) + 1
-                return (CategoryError.none, newItemOrder)
-            }
+        if iconTaken && nameTaken {
+            return (CategoryError.duplicate, 0)
+        } else if iconTaken {
+            return (CategoryError.duplicateIcon, 0)
+        } else if nameTaken {
+            return (CategoryError.duplicateName, 0)
         } else {
-            let fetchRequest = fetchRequestForCategories(income: false)
-            var expenseCategories = results(for: fetchRequest)
-
-            if let position = expenseCategories.firstIndex(of: toEdit) {
-                expenseCategories.remove(at: position)
-            }
-
-            var emojiArray = [String]()
-            var nameArray = [String]()
-
-            expenseCategories.forEach { category in
-                emojiArray.append(category.wrappedEmoji)
-                nameArray.append(category.wrappedName)
-            }
-
-            if emojiArray.contains(emoji) && nameArray.contains(name) {
-                return (CategoryError.duplicate, 0)
-            } else if emojiArray.contains(emoji) {
-                return (CategoryError.duplicateEmoji, 0)
-            } else if nameArray.contains(name) {
-                return (CategoryError.duplicateName, 0)
-            } else {
-                let newItemOrder = (expenseCategories.last?.order ?? 0) + 1
-                return (CategoryError.none, newItemOrder)
-            }
+            return (CategoryError.none, (siblings.last?.order ?? 0) + 1)
         }
     }
 

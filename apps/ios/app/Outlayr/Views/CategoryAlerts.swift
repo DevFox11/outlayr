@@ -8,18 +8,18 @@ import SwiftUI
 import UIKit
 
 private enum CategoryField: Hashable {
-    case emoji, name
+    case name
 }
 
 private extension CategoryError {
     var alertMessage: LocalizedStringKey? {
         switch self {
         case .none: return nil
-        case .incomplete: return "Please enter both an emoji and a name."
-        case .missingEmoji: return "Please choose an emoji for this category."
+        case .incomplete: return "Please choose both an icon and a name."
+        case .missingIcon: return "Please choose an icon for the category."
         case .missingName: return "Please enter a name for this category."
-        case .duplicate: return "A category with this emoji and name already exists."
-        case .duplicateEmoji: return "Another category already uses this emoji."
+        case .duplicate: return "A category with this icon and name already exists."
+        case .duplicateIcon: return "Another category already uses this icon."
         case .duplicateName: return "Another category already uses this name."
         }
     }
@@ -48,7 +48,7 @@ struct NewCategoryAlert: View {
     private var expenseCategories: FetchedResults<Category>
 
     @State private var name = ""
-    @State private var emoji = ""
+    @State private var iconName = ""
     @State private var selectedColour = "#FFFFFF"
     @State private var errorMessage: LocalizedStringKey?
     @State private var justAdded = false
@@ -59,7 +59,7 @@ struct NewCategoryAlert: View {
     private var typePickerHidden: Bool { budgetMode || atExpenseLimit || isSubcategory }
 
     private var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !emoji.isEmpty
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !iconName.isEmpty
     }
 
     private var usedColours: Set<String> {
@@ -79,7 +79,7 @@ struct NewCategoryAlert: View {
                     }
                 }
 
-                CategoryFieldsSection(emoji: $emoji, name: $name, focusedField: $focusedField, autoFocusEmoji: true) {
+                CategoryFieldsSection(iconName: $iconName, name: $name, income: income, colour: selectedColour, focusedField: $focusedField) {
                     add()
                 }
 
@@ -139,13 +139,12 @@ struct NewCategoryAlert: View {
     }
 
     private func add() {
-        let result = dataController.categoryCheck(name: name, emoji: emoji, income: income)
+        let result = dataController.categoryCheck(name: name, icon: iconName, income: income)
 
         guard result.error == .none else {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = result.error.alertMessage
             switch result.error {
-            case .missingEmoji, .duplicateEmoji: focusedField = .emoji
             case .missingName, .duplicateName: focusedField = .name
             default: break
             }
@@ -154,7 +153,7 @@ struct NewCategoryAlert: View {
 
         let category = Category(context: moc)
         category.name = name.trimmingCharacters(in: .whitespaces).capitalized
-        category.emoji = emoji
+        category.icon = iconName
         category.dateCreated = .now
         category.id = UUID()
         category.income = income
@@ -176,9 +175,8 @@ struct NewCategoryAlert: View {
         }
 
         name = ""
-        emoji = ""
+        iconName = ""
         selectedColour = firstAvailableColour()
-        focusedField = .emoji
         flashAddedConfirmation()
     }
 
@@ -203,14 +201,17 @@ struct EditCategoryAlert: View {
     private var expenseCategories: FetchedResults<Category>
 
     @State private var name = ""
-    @State private var emoji = ""
+    @State private var iconName = ""
     @State private var selectedColour = "#FFFFFF"
     @State private var errorMessage: LocalizedStringKey?
     @State private var confirmingDelete = false
     @FocusState private var focusedField: CategoryField?
 
+    /// A category migrated from the emoji era has no stored icon; requiring one
+    /// here would block every unrelated edit until the user picked a glyph.
     private var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !emoji.isEmpty
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (!iconName.isEmpty || toEdit.icon == nil)
     }
 
     private var editTitle: LocalizedStringKey {
@@ -232,7 +233,7 @@ struct EditCategoryAlert: View {
     var body: some View {
         NavigationStack {
             Form {
-                CategoryFieldsSection(emoji: $emoji, name: $name, focusedField: $focusedField, autoFocusEmoji: false) {
+                CategoryFieldsSection(iconName: $iconName, name: $name, income: toEdit.income, colour: selectedColour, focusedField: $focusedField) {
                     save()
                 }
 
@@ -274,7 +275,10 @@ struct EditCategoryAlert: View {
             }
             .onAppear {
                 name = toEdit.wrappedName
-                emoji = toEdit.wrappedEmoji
+                // The raw stored value, not `wrappedIcon`: seeding the resolved
+                // fallback would let an unrecognised icon from a newer version be
+                // silently overwritten with the fallback name on save.
+                iconName = toEdit.icon ?? ""
                 selectedColour = toEdit.wrappedColour
             }
         }
@@ -285,13 +289,12 @@ struct EditCategoryAlert: View {
     }
 
     private func save() {
-        let result = dataController.categoryCheckEdit(name: name, emoji: emoji, toEdit: toEdit)
+        let result = dataController.categoryCheckEdit(name: name, icon: iconName, toEdit: toEdit)
 
         guard result.error == .none else {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = result.error.alertMessage
             switch result.error {
-            case .missingEmoji, .duplicateEmoji: focusedField = .emoji
             case .missingName, .duplicateName: focusedField = .name
             default: break
             }
@@ -299,7 +302,7 @@ struct EditCategoryAlert: View {
         }
 
         toEdit.name = name.trimmingCharacters(in: .whitespaces).capitalized
-        toEdit.emoji = emoji
+        toEdit.icon = iconName.isEmpty ? nil : iconName
         if !toEdit.income {
             toEdit.colour = selectedColour
         }
@@ -320,35 +323,45 @@ struct EditCategoryAlert: View {
 // MARK: - Shared fields
 
 private struct CategoryFieldsSection: View {
-    @Binding var emoji: String
+    @Binding var iconName: String
     @Binding var name: String
+    let income: Bool
+    let colour: String
     var focusedField: FocusState<CategoryField?>.Binding
-    let autoFocusEmoji: Bool
     let onSubmit: () -> Void
+
+    @State private var choosingIcon = false
+
+    private var tint: Color {
+        income ? Color.IncomeGreen : Color(hex: colour)
+    }
+
+    private var previewIcon: CategoryIcon {
+        CategoryIconCatalog.icon(named: iconName) ?? CategoryIconCatalog.fallback(income: income)
+    }
+
+    /// Until an icon is picked the tile stays neutral, so the colour swatch below
+    /// remains the only colour affordance.
+    private var previewTint: Color {
+        iconName.isEmpty ? Color.SubtitleText : tint
+    }
 
     var body: some View {
         Section {
-            ZStack {
-                EmojiTextField(text: $emoji, autoFocus: autoFocusEmoji)
-                    .focused(focusedField, equals: .emoji)
-                    .frame(width: 84, height: 84)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.SecondaryBackground)
-                    )
-
-                if emoji.isEmpty {
-                    Image("emoji-happy")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 34, height: 34)
-                        .foregroundStyle(Color.SubtitleText)
-                        .allowsHitTesting(false)
-                }
+            Button {
+                choosingIcon = true
+            } label: {
+                CategoryIconTile(
+                    icon: previewIcon,
+                    tint: previewTint,
+                    size: .large
+                )
             }
+            .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
             .listRowBackground(Color.clear)
+            .accessibilityLabel("Category icon")
 
             TextField("Category Name", text: $name)
                 .font(.system(.body, design: .rounded))
@@ -356,6 +369,9 @@ private struct CategoryFieldsSection: View {
                 .submitLabel(.done)
                 .focused(focusedField, equals: .name)
                 .onSubmit(onSubmit)
+        }
+        .sheet(isPresented: $choosingIcon) {
+            IconPickerView(selection: $iconName, tint: tint)
         }
     }
 }

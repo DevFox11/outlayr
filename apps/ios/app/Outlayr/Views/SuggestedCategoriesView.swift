@@ -23,16 +23,16 @@ struct SuggestedCategoriesView: View {
 
     private var suggestions: [SuggestedCategory] {
         let usedNames = Set(categories.map(\.wrappedName))
-        let usedEmoji = Set(categories.map(\.wrappedEmoji))
+        let usedIcons = Set(categories.compactMap(\.icon))
         let pool = income ? SuggestedCategory.incomes : SuggestedCategory.expenses
-        return pool.filter { !usedNames.contains($0.name) && !usedEmoji.contains($0.emoji) }
+        return pool.filter { !usedNames.contains($0.name) && !usedIcons.contains($0.icon) }
     }
 
     var body: some View {
         if !suggestions.isEmpty {
             Section("SUGGESTED") {
                 ForEach(suggestions, id: \.self) { suggestion in
-                    SuggestedCategoryRow(name: suggestion.name, emoji: suggestion.emoji) {
+                    SuggestedCategoryRow(suggestion: suggestion, income: income) {
                         add(suggestion)
                     }
                 }
@@ -41,7 +41,7 @@ struct SuggestedCategoriesView: View {
     }
 
     private func add(_ suggestion: SuggestedCategory) {
-        guard dataController.categoryCheck(name: suggestion.name, emoji: suggestion.emoji, income: income).error == .none else {
+        guard dataController.categoryCheck(name: suggestion.name, icon: suggestion.icon, income: income).error == .none else {
             return
         }
 
@@ -49,7 +49,7 @@ struct SuggestedCategoriesView: View {
 
         let category = Category(context: moc)
         category.name = NSLocalizedString(suggestion.name, comment: "category name")
-        category.emoji = suggestion.emoji
+        category.icon = suggestion.icon
         category.dateCreated = .now
         category.id = UUID()
         category.income = income
@@ -61,16 +61,20 @@ struct SuggestedCategoriesView: View {
 }
 
 private struct SuggestedCategoryRow: View {
-    let name: String
-    let emoji: String
+    let suggestion: SuggestedCategory
+    let income: Bool
     let add: () -> Void
+
+    private var icon: CategoryIcon {
+        CategoryIconCatalog.icon(named: suggestion.icon) ?? CategoryIconCatalog.fallback(income: income)
+    }
 
     var body: some View {
         Button(action: add) {
             HStack(spacing: 10) {
-                Text(emoji)
-                    .font(.system(.subheadline, design: .rounded))
-                Text(LocalizedStringKey(name))
+                CategoryIconTile(icon: icon, colour: suggestion.colour)
+
+                Text(LocalizedStringKey(suggestion.name))
                     .font(.system(.body, design: .rounded))
                     .lineLimit(1)
                     .foregroundStyle(Color.PrimaryText)
@@ -84,6 +88,6 @@ private struct SuggestedCategoryRow: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("Add \(name)"))
+        .accessibilityLabel(Text("Add \(suggestion.name)"))
     }
 }

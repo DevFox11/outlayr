@@ -124,8 +124,8 @@ struct BrandNewBudgetView: View {
         return categoryBudget ? String(localized: "Pick a category") : String(localized: "Overall Budget")
     }
 
-    private var previewEmoji: String {
-        selectedCategory?.wrappedEmoji ?? (categoryBudget ? "🏷️" : "💰")
+    private var previewIcon: CategoryIcon {
+        selectedCategory?.wrappedIcon ?? CategoryIconCatalog.fallback(income: !categoryBudget)
     }
 
     var body: some View {
@@ -282,8 +282,8 @@ struct BrandNewBudgetView: View {
                     .fill(color.opacity(0.85))
                     .frame(width: 140, height: 70)
 
-                Text(previewEmoji)
-                    .font(.system(size: 24))
+                CategoryIconGlyph(icon: previewIcon, size: 24)
+                    .foregroundStyle(color)
                     .offset(y: 6)
             }
             .animation(.snappy(duration: 0.3), value: selectedCategory)
@@ -372,8 +372,7 @@ struct BrandNewBudgetView: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Text(category.wrappedEmoji)
-                    .font(.system(.subheadline, design: .rounded))
+                CategoryIconGlyph(icon: category.wrappedIcon)
                 Text(category.wrappedName)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
             }
@@ -840,8 +839,8 @@ private struct BudgetCategoryPickerSheet: View {
             dismiss()
         } label: {
             HStack(spacing: 7) {
-                Text(category.wrappedEmoji)
-                    .font(.system(.subheadline, design: .rounded))
+                CategoryIconGlyph(icon: category.wrappedIcon)
+                    .foregroundStyle(colour)
                 Text(category.wrappedName)
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .lineLimit(1)

@@ -54,7 +54,7 @@ struct NewCategoryPickerView: View {
 
     private func chip(for item: Category, isChild: Bool) -> some View {
         CategoryChip(
-            emoji: item.wrappedEmoji,
+            icon: item.wrappedIcon,
             name: item.wrappedName,
             colourHex: item.wrappedColour,
             isChild: isChild,
@@ -95,7 +95,7 @@ struct NewCategoryPickerView: View {
 }
 
 private struct CategoryChip: View {
-    let emoji: String
+    let icon: CategoryIcon
     let name: String
     let colourHex: String
     let isChild: Bool
@@ -113,8 +113,7 @@ private struct CategoryChip: View {
                         .font(.system(.caption2, design: .rounded, weight: .semibold))
                         .opacity(0.7)
                 }
-                Text(emoji)
-                    .font(.system(.subheadline, design: .rounded))
+                CategoryIconGlyph(icon: icon)
                 Text(name)
                     .font(.system(isChild ? .subheadline : .body, design: .rounded, weight: .semibold))
                     .lineLimit(1)
@@ -200,8 +199,8 @@ struct CategoryPickerSheet: View {
                 select(parent)
             } label: {
                 HStack(spacing: 10) {
-                    Text(parent.wrappedEmoji)
-                        .font(.system(.title3, design: .rounded))
+                    CategoryIconGlyph(icon: parent.wrappedIcon, size: 20)
+                        .foregroundStyle(accent)
                     Text(parent.wrappedName)
                         .font(.system(.body, design: .rounded, weight: .semibold))
                         .foregroundStyle(Color.PrimaryText)
@@ -240,8 +239,7 @@ struct CategoryPickerSheet: View {
             select(child)
         } label: {
             HStack(spacing: 6) {
-                Text(child.wrappedEmoji)
-                    .font(.system(.subheadline, design: .rounded))
+                CategoryIconGlyph(icon: child.wrappedIcon)
                 Text(child.wrappedName)
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
                     .lineLimit(1)

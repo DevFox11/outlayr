@@ -5,6 +5,8 @@
 //  Created by Rafael Soh on 17/8/22.
 //
 
+import HugeiconsCore
+import HugeiconsSolidRounded
 import SwiftUI
 import WidgetKit
 
@@ -86,7 +88,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
             // Broken app group: do not touch the store (avoids a crash on the
             // force-unwrapped objectID lookup). The entry view shows the error
             // placeholder via `guardedByDataStore()`.
-            return (0, 0, HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0))
+            return (0, 0, HoldingBudget.failed)
         }
 
 //        let dataController = DataController()
@@ -107,7 +109,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), emoji: budget.wrappedEmoji, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), icon: budget.wrappedIcon, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
 
             let percentageOfDays: Double
 
@@ -128,7 +130,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
 
             return (holdingTotal, percentageOfDays, returnBudget)
         } else {
-            let budget = HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0)
+            let budget = HoldingBudget.failed
             return (0, 0, budget)
         }
     }
@@ -144,10 +146,17 @@ struct BudgetWidgetEntry: TimelineEntry {
 
 struct HoldingBudget {
     let type: Int
-    let emoji: String
+    let icon: CategoryIcon
     let name: String
     let colour: String
     let budgetAmount: Double
+    var missing: Bool = false
+
+    /// Stands in when the configured budget no longer exists.
+    static let failed = HoldingBudget(
+        type: 1, icon: CategoryIconCatalog.fallback(income: false),
+        name: "", colour: "", budgetAmount: 0, missing: true
+    )
 }
 
 struct BudgetWidgetEntryView: View {
@@ -200,7 +209,7 @@ struct BudgetWidgetEntryView: View {
                         Color.PrimaryBackground
                     }
 
-        } else if entry.budget.emoji == "failed" {
+        } else if entry.budget.missing {
                 Text("Budget no longer exists - please select new budget from widget options.")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -216,8 +225,11 @@ struct BudgetWidgetEntryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2.4) {
                             HStack(spacing: 5) {
-                                Text(entry.budget.emoji)
-                                    .font(.system(size: 9))
+                                HugeIcon(
+                                    codepoint: entry.budget.icon.codepoint,
+                                    font: HugeiconsSolidRounded.font(size: 10),
+                                    color: Color.PrimaryText
+                                )
                                 Text(entry.budget.name.uppercased())
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                                     .lineLimit(1)

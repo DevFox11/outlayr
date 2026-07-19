@@ -28,6 +28,10 @@ extension Transaction {
         category?.wrappedColour ?? ""
     }
 
+    var wrappedIcon: CategoryIcon {
+        category?.wrappedIcon ?? CategoryIconCatalog.fallback(income: category?.income ?? false)
+    }
+
     var nextTransactionDate: Date {
         if recurringType == 1 {
             return Calendar.current.date(byAdding: .day, value: Int(recurringCoefficient), to: day ?? Date.now)!
@@ -50,8 +54,8 @@ extension TemplateTransaction {
         note ?? ""
     }
 
-    var wrappedEmoji: String {
-        category?.wrappedEmoji ?? ""
+    var wrappedIcon: CategoryIcon {
+        category?.wrappedIcon ?? CategoryIconCatalog.fallback(income: category?.income ?? false)
     }
 
     var wrappedColour: String {
@@ -64,8 +68,8 @@ extension Category {
         colour ?? "#FFFFFF"
     }
 
-    var wrappedEmoji: String {
-        emoji ?? "😄️"
+    var wrappedIcon: CategoryIcon {
+        CategoryIconCatalog.icon(named: icon ?? "") ?? CategoryIconCatalog.fallback(income: income)
     }
 
     var wrappedName: String {
@@ -74,10 +78,6 @@ extension Category {
 
     var wrappedDate: Date {
         dateCreated ?? Date.now
-    }
-
-    var fullName: String {
-        wrappedEmoji + "  " + wrappedName
     }
 
     var allTransactions: [Transaction] {
@@ -124,12 +124,9 @@ public extension Budget {
         return category?.wrappedName ?? ""
     }
 
-    var wrappedEmoji: String {
-        category?.wrappedEmoji ?? ""
-    }
-
-    var fullName: String {
-        return wrappedEmoji + " " + wrappedName
+    // internal is required: a public extension would try to export the internal CategoryIcon
+    internal var wrappedIcon: CategoryIcon {
+        category?.wrappedIcon ?? CategoryIconCatalog.fallback(income: category?.income ?? false)
     }
 
     var wrappedDate: Date {
