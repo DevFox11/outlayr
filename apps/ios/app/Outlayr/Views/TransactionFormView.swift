@@ -296,12 +296,13 @@ struct TransactionFormView: View {
                         .foregroundStyle(categoryErrored ? AnyShapeStyle(Color.AlertRed) : AnyShapeStyle(.secondary))
                 }
                 Spacer()
-                Text(category == nil ? "Choose" : "Change")
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(Color.SubtitleText)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.SubtitleText)
+                HStack(spacing: 5) {
+                    Text(category == nil ? "Choose" : "Change")
+                        .font(.system(.body, design: .rounded))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Color.SubtitleText)
             }
             .formRow()
             .contentShape(.rect)
