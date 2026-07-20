@@ -330,7 +330,7 @@ final class TransactionIdentityTests: CharacterizationTestCase {
 
     // These cover the chain as it ships TODAY. The V2 XML was edited in place
     // historically, so a store written by the pre-edit build wouldn't match it —
-    // but those stores are Dime-era and unreachable under the Outlayr bundle,
+    // but those stores are pre-fork-era and unreachable under the Outlayr bundle,
     // app group, and CloudKit container (docs/decisions/rebrand-identity.md:
     // no user-data migration, a fresh container is provisioned).
 
