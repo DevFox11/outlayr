@@ -336,12 +336,6 @@ struct EditCategoryAlert: View {
                         save()
                     }
 
-                    Section {
-                        Button(toEdit.isSubcategory ? "Delete Subcategory" : "Delete Category", role: .destructive) {
-                            confirmingDelete = true
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
                 }
                 .safeAreaInset(edge: .bottom) {
                     Button {
@@ -363,13 +357,24 @@ struct EditCategoryAlert: View {
             .navigationBarTitleDisplayMode(.inline)
             .presentationDetents([.medium, .large], selection: $detent)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {
                         ToolbarIcon(.cancel, pinnedWidth: 12)
                     }
                     .accessibilityLabel("Cancel")
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        confirmingDelete = true
+                    } label: {
+                        // Wide-ink glyph in a circular slot: pin the width for
+                        // the circle, shrink the glyph so the ink fits unclipped.
+                        ToolbarIcon(.delete, size: 20, color: Color.AlertRed, pinnedWidth: 15)
+                    }
+                    .accessibilityLabel(toEdit.isSubcategory ? "Delete Subcategory" : "Delete Category")
                 }
             }
             .alert("Couldn't Save Category", isPresented: errorBinding, presenting: errorMessage) { _ in
@@ -642,12 +647,19 @@ private struct CategorySheetSurface<FormContent: View>: View {
         Color(.systemGroupedBackground)
             .overlay(alignment: .top) {
                 curtain
+                    // Hues must NEVER animate: mesh colours interpolate
+                    // column-by-column, which reads as a left-to-right sweep.
+                    // Stripping the transaction here is the only reliable way —
+                    // removing .animation modifiers is not enough, because the
+                    // descend's animation rides the same transaction as the hue
+                    // change and would animate the colours too.
+                    .transaction { $0.animation = nil }
                     .frame(height: 260)
                     .frame(maxWidth: .infinity)
                     .opacity(glowOpacity)
-                    .animation(.easeInOut(duration: 0.3), value: glowOpacity)
-                    .animation(.easeInOut(duration: 0.3), value: tint)
-                    .animation(.easeInOut(duration: 0.3), value: symbol.emoji)
+                    // The only animated motion: descending from the top edge.
+                    .offset(y: hasSymbol ? 0 : -260)
+                    .animation(.easeInOut(duration: 0.45), value: hasSymbol)
             }
             .ignoresSafeArea()
     }

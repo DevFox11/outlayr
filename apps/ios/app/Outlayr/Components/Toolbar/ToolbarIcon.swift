@@ -11,6 +11,7 @@ struct ToolbarIcon: View {
         case arrowUpDown = 0xF1639
         case plusSign = 0xF235A
         case cancel = 0xF18BC
+        case delete = 0xF1B35
     }
 
     /// Hugeicons ships eleven styles; the app's icon system uses rounded only — stroke
