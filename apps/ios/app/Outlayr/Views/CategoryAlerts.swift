@@ -343,17 +343,33 @@ struct EditCategoryAlert: View {
                         .frame(maxWidth: .infinity)
                     }
                 }
+                .safeAreaInset(edge: .bottom) {
+                    Button {
+                        save()
+                    } label: {
+                        Text(toEdit.isSubcategory ? "Save Subcategory" : "Save Category")
+                            .font(.system(.body, design: .rounded, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(Color.PrimaryText)
+                    .disabled(!isValid)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                }
             }
             .navigationTitle(editTitle)
             .navigationBarTitleDisplayMode(.inline)
             .presentationDetents([.medium, .large], selection: $detent)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .disabled(!isValid)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        ToolbarIcon(.cancel, pinnedWidth: 12)
+                    }
+                    .accessibilityLabel("Cancel")
                 }
             }
             .alert("Couldn't Save Category", isPresented: errorBinding, presenting: errorMessage) { _ in
