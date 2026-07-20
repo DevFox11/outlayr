@@ -297,7 +297,7 @@ struct TransactionFormView: View {
                 }
                 Spacer()
                 Text(category == nil ? "Choose" : "Change")
-                    .font(.system(.subheadline, design: .rounded))
+                    .font(.system(.body, design: .rounded))
                     .foregroundStyle(Color.SubtitleText)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.system(size: 12, weight: .semibold))
