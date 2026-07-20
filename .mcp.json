@@ -15,6 +15,10 @@
     "hugeicons": {
       "command": "npx",
       "args": ["-y", "@hugeicons/mcp-server"]
+    },
+    "xcode": {
+      "command": "xcrun",
+      "args": ["mcpbridge"]
     }
   }
 }
