@@ -72,7 +72,7 @@ struct CategoryStepperView: View {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { item in
                             HStack(spacing: 5) {
-                                CategoryIconGlyph(icon: item.wrappedIcon, size: 14)
+                                CategoryIconGlyph(symbol: item.displaySymbol, size: 14)
                                 Text(item.wrappedName)
 //                                    .font(.system(size: 17.5, weight: .medium, design: .rounded))
                                     .font(.system(.body, design: .rounded).weight(.medium))

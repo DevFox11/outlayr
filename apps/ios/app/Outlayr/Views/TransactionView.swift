@@ -558,7 +558,7 @@ struct TransactionView: View {
                                 } else {
                                     if let unwrappedCategory = category {
                                         HStack(spacing: 5) {
-                                            CategoryIconGlyph(icon: unwrappedCategory.wrappedIcon, size: 14)
+                                            CategoryIconGlyph(symbol: unwrappedCategory.displaySymbol, size: 14)
 
                                             Text(unwrappedCategory.wrappedName)
                                                 .font(.system(.body, design: .rounded, weight: .semibold))
@@ -1271,7 +1271,7 @@ struct CategoryPickerView: View {
                             ForEach(categories) { item in
                                 if item != initialCategory {
                                     HStack(spacing: 7) {
-                                        CategoryIconGlyph(icon: item.wrappedIcon, size: 14)
+                                        CategoryIconGlyph(symbol: item.displaySymbol, size: 14)
                                         Text(item.wrappedName)
                                             .font(.system(.body, design: .rounded, weight: .semibold))
                                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)

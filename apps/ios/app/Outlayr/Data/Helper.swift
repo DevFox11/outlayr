@@ -32,6 +32,10 @@ extension Transaction {
         category?.wrappedIcon ?? CategoryIconCatalog.fallback(income: category?.income ?? false)
     }
 
+    var displaySymbol: CategorySymbol {
+        category?.displaySymbol ?? .icon(CategoryIconCatalog.fallback(income: category?.income ?? false))
+    }
+
     var nextTransactionDate: Date {
         if recurringType == 1 {
             return Calendar.current.date(byAdding: .day, value: Int(recurringCoefficient), to: day ?? Date.now)!
@@ -58,6 +62,10 @@ extension TemplateTransaction {
         category?.wrappedIcon ?? CategoryIconCatalog.fallback(income: category?.income ?? false)
     }
 
+    var displaySymbol: CategorySymbol {
+        category?.displaySymbol ?? .icon(CategoryIconCatalog.fallback(income: category?.income ?? false))
+    }
+
     var wrappedColour: String {
         category?.wrappedColour ?? ""
     }
@@ -70,6 +78,19 @@ extension Category {
 
     var wrappedIcon: CategoryIcon {
         CategoryIconCatalog.icon(named: icon ?? "") ?? CategoryIconCatalog.fallback(income: income)
+    }
+
+    var wrappedEmoji: String? {
+        guard let emoji, !emoji.isEmpty else { return nil }
+        return emoji
+    }
+
+    /// Storage is `icon` XOR `emoji`, so precedence only matters for legacy rows
+    /// that predate the rule: a stored icon wins, then emoji, then the fallback.
+    var displaySymbol: CategorySymbol {
+        if icon != nil { return .icon(wrappedIcon) }
+        if let wrappedEmoji { return .emoji(wrappedEmoji) }
+        return .icon(CategoryIconCatalog.fallback(income: income))
     }
 
     var wrappedName: String {
@@ -127,6 +148,10 @@ public extension Budget {
     // internal is required: a public extension would try to export the internal CategoryIcon
     internal var wrappedIcon: CategoryIcon {
         category?.wrappedIcon ?? CategoryIconCatalog.fallback(income: category?.income ?? false)
+    }
+
+    internal var displaySymbol: CategorySymbol {
+        category?.displaySymbol ?? .icon(CategoryIconCatalog.fallback(income: category?.income ?? false))
     }
 
     var wrappedDate: Date {

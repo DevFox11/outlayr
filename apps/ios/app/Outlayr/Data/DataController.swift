@@ -587,51 +587,75 @@ class DataController {
         }
     }
 
-    func categoryCheck(name: String, icon: String, income: Bool) -> (error: CategoryError, order: Int64) {
-        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && icon == "" {
+    func categoryCheck(
+        name: String,
+        icon: String,
+        emoji: String,
+        income: Bool
+    ) -> (error: CategoryError, order: Int64) {
+        // "Missing icon" now means no symbol at all: either kind satisfies it.
+        let symbolMissing = icon.isEmpty && emoji.isEmpty
+
+        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && symbolMissing {
             return (CategoryError.incomplete, 0)
         } else if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
             return (CategoryError.missingName, 0)
-        } else if icon == "" {
+        } else if symbolMissing {
             return (CategoryError.missingIcon, 0)
         }
 
         let siblings = results(for: fetchRequestForCategories(income: income))
-        return collision(name: name, icon: icon, against: siblings)
+        return collision(name: name, icon: icon, emoji: emoji, against: siblings)
     }
 
-    func categoryCheckEdit(name: String, icon: String, toEdit: Category) -> (error: CategoryError, order: Int64) {
+    func categoryCheckEdit(
+        name: String,
+        icon: String,
+        emoji: String,
+        toEdit: Category
+    ) -> (error: CategoryError, order: Int64) {
         // A category migrated from the emoji era has no stored icon. Demanding one
         // now would make an unrelated edit — a rename, a recolour — unsavable.
-        let iconRequired = toEdit.icon != nil
+        let symbolRequired = toEdit.icon != nil || toEdit.wrappedEmoji != nil
+        let symbolMissing = icon.isEmpty && emoji.isEmpty
 
-        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && icon == "" && iconRequired {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && symbolMissing && symbolRequired {
             return (CategoryError.incomplete, 0)
         } else if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
             return (CategoryError.missingName, 0)
-        } else if icon == "" && iconRequired {
+        } else if symbolMissing && symbolRequired {
             return (CategoryError.missingIcon, 0)
         }
 
         let siblings = results(for: fetchRequestForCategories(income: toEdit.income))
             .filter { $0 != toEdit }
-        return collision(name: name, icon: icon, against: siblings)
+        return collision(name: name, icon: icon, emoji: emoji, against: siblings)
     }
 
-    private func collision(name: String, icon: String, against siblings: [Category]) -> (error: CategoryError, order: Int64) {
+    private func collision(
+        name: String,
+        icon: String,
+        emoji: String,
+        against siblings: [Category]
+    ) -> (error: CategoryError, order: Int64) {
         // Raw stored icons, not `wrappedIcon`: unset and future-version names all
         // resolve to the same fallback glyph, which would fabricate collisions
         // between categories that have no icon in common.
         let iconArray = siblings.compactMap(\.icon)
+        let emojiKeys = siblings.compactMap(\.wrappedEmoji).map(\.emojiComparisonKey)
         let nameArray = siblings.map(\.wrappedName)
 
+        // Icons and emoji are independent namespaces: only like collides with like.
         let iconTaken = !icon.isEmpty && iconArray.contains(icon)
+        let emojiTaken = !emoji.isEmpty && emojiKeys.contains(emoji.emojiComparisonKey)
         let nameTaken = nameArray.contains(name)
 
-        if iconTaken && nameTaken {
+        if (iconTaken || emojiTaken) && nameTaken {
             return (CategoryError.duplicate, 0)
         } else if iconTaken {
             return (CategoryError.duplicateIcon, 0)
+        } else if emojiTaken {
+            return (CategoryError.duplicateEmoji, 0)
         } else if nameTaken {
             return (CategoryError.duplicateName, 0)
         } else {

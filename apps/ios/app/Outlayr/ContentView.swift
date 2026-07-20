@@ -142,8 +142,6 @@ struct ContentView: View {
                 categoryPaletteMigration = false
             }
 
-            dataController.migrateCategoryIcons()
-
             center.getNotificationSettings { settings in
                 if settings.authorizationStatus == .authorized {
                     if !showNotifications && notificationsEnabled == false {

@@ -14,6 +14,10 @@ extension StringProtocol {
 }
 
 extension String {
+    func onlyEmoji() -> String {
+        return filter { $0.isEmoji }
+    }
+
     var containsDigits: Bool {
         return rangeOfCharacter(from: CharacterSet.decimalDigits) != nil
     }
@@ -60,5 +64,16 @@ extension String {
         UIGraphicsEndImageContext() //  end image context
 
         return image ?? UIImage()
+    }
+}
+
+extension Character {
+    var isEmoji: Bool {
+        guard let scalar = unicodeScalars.first else { return false }
+        // Default-presentation emoji (⌚, ⌛) are single-scalar and would be missed by
+        // a count check alone; digits and #/* are `isEmoji` but need the VS16 or
+        // keycap scalar that follows to actually render as emoji.
+        return scalar.properties.isEmojiPresentation
+            || (scalar.properties.isEmoji && unicodeScalars.count > 1)
     }
 }

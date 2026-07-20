@@ -10,6 +10,7 @@ struct ToolbarIcon: View {
         case viewOffSlash = 0xF296D
         case arrowUpDown = 0xF1639
         case plusSign = 0xF235A
+        case cancel = 0xF18BC
     }
 
     /// Hugeicons ships eleven styles; the app's icon system uses rounded only — stroke

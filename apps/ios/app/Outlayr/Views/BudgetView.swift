@@ -660,7 +660,7 @@ struct SingleBudgetView: View {
                             }
                             .frame(width: 40, height: 40)
                             .overlay {
-                                CategoryIconGlyph(icon: budget.wrappedIcon, size: 20)
+                                CategoryIconGlyph(symbol: budget.displaySymbol, size: 20)
                                     .foregroundStyle(Color(hex: budget.wrappedColour))
                             }
 
@@ -767,7 +767,7 @@ struct SingleBudgetView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
-                                CategoryIconGlyph(icon: budget.wrappedIcon, size: 12)
+                                CategoryIconGlyph(symbol: budget.displaySymbol, size: 12)
                                     .foregroundStyle(Color(hex: budget.wrappedColour))
 
                                 Text(budget.wrappedName)

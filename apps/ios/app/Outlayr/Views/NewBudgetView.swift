@@ -179,7 +179,7 @@ struct BrandNewBudgetView: View {
                 }
             }
             .sheet(isPresented: $showingCategoryView) {
-                NewCategoryAlert(income: Binding.constant(false), bottomSpacers: true, budgetMode: true)
+                NewCategoryAlert(income: Binding.constant(false), budgetMode: true)
             }
             .sheet(isPresented: $showingCategorySheet) {
                 BudgetCategoryPickerSheet(selectedCategory: $selectedCategory)
@@ -372,7 +372,7 @@ struct BrandNewBudgetView: View {
             }
         } label: {
             HStack(spacing: 5) {
-                CategoryIconGlyph(icon: category.wrappedIcon)
+                CategoryIconGlyph(symbol: category.displaySymbol)
                 Text(category.wrappedName)
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
             }
@@ -839,7 +839,7 @@ private struct BudgetCategoryPickerSheet: View {
             dismiss()
         } label: {
             HStack(spacing: 7) {
-                CategoryIconGlyph(icon: category.wrappedIcon)
+                CategoryIconGlyph(symbol: category.displaySymbol)
                     .foregroundStyle(colour)
                 Text(category.wrappedName)
                     .font(.system(.body, design: .rounded).weight(.semibold))

@@ -564,7 +564,7 @@ struct ImportDataView: View {
                                                     .foregroundStyle(Color.SubtitleText)
 
                                                 HStack(spacing: 5) {
-                                                    CategoryIconGlyph(icon: unwrappedCategory.wrappedIcon)
+                                                    CategoryIconGlyph(symbol: unwrappedCategory.displaySymbol)
 
                                                     Text(unwrappedCategory.wrappedName)
                                                         .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -799,7 +799,7 @@ struct ImportDataView: View {
             }
         }
         .sheet(isPresented: $showingCategoryView) {
-            NewCategoryAlert(income: $income, bottomSpacers: false, budgetMode: false)
+            NewCategoryAlert(income: $income, budgetMode: false)
         }
         .animation(.easeOut(duration: 0.2), value: showToast)
         .onChange(of: showToast) { _, newValue in
@@ -1131,7 +1131,7 @@ struct MatchCategoryStepperView: View {
 
         } label: {
             HStack(spacing: 5) {
-                CategoryIconGlyph(icon: categoryInput.wrappedIcon, size: 14)
+                CategoryIconGlyph(symbol: categoryInput.displaySymbol, size: 14)
                 Text(categoryInput.wrappedName)
                     .font(.system(.body, design: .rounded).weight(.semibold))
 

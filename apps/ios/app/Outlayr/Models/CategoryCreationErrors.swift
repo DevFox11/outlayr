@@ -8,5 +8,5 @@
 import Foundation
 
 enum CategoryError {
-    case none, incomplete, missingIcon, missingName, duplicate, duplicateIcon, duplicateName
+    case none, incomplete, missingIcon, missingName, duplicate, duplicateIcon, duplicateEmoji, duplicateName
 }

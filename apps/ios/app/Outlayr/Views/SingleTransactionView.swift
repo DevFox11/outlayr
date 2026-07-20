@@ -179,7 +179,7 @@ struct SingleTransactionView: View {
 
     private var rowContent: some View {
         HStack(spacing: 12) {
-                CategoryIconLogTile(icon: transaction.wrappedIcon,
+                CategoryIconLogTile(symbol: transaction.displaySymbol,
                                     colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
                     .fixedSize(horizontal: true, vertical: true)
                     .overlay(alignment: .bottomTrailing) {
@@ -311,10 +311,12 @@ struct CategoryIconLogTile: View {
         }
     }
 
-    let icon: CategoryIcon
+    let symbol: CategorySymbol
     let colour: String
     let future: Bool
     let scale: Scale
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var tint: Color { Color(hex: colour) }
 
@@ -331,18 +333,29 @@ struct CategoryIconLogTile: View {
                     .fill(tint.opacity(0.18))
             }
 
-            HugeIcon(
-                codepoint: icon.codepoint,
-                font: HugeiconsSolidRounded.font(size: scale.glyph),
-                color: tint
-            )
-            .padding(8)
+            switch symbol {
+            case let .icon(icon):
+                HugeIcon(
+                    codepoint: icon.codepoint,
+                    font: HugeiconsSolidRounded.font(size: scale.glyph),
+                    color: CategoryTileShading.glyph(for: tint, in: colorScheme, washOpacity: 0.18)
+                )
+                .padding(8)
+            case let .emoji(emoji):
+                Text(emoji)
+                    .font(.system(size: scale.glyph))
+                    .padding(8)
+            }
         }
         .opacity(future ? 0.6 : 1)
     }
 
     init(icon: CategoryIcon, colour: String, future: Bool, scale: Scale = .row) {
-        self.icon = icon
+        self.init(symbol: .icon(icon), colour: colour, future: future, scale: scale)
+    }
+
+    init(symbol: CategorySymbol, colour: String, future: Bool, scale: Scale = .row) {
+        self.symbol = symbol
         self.colour = colour
         self.future = future
         self.scale = scale

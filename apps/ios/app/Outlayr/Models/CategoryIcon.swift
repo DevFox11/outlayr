@@ -21,6 +21,130 @@ struct CategoryIcon: Hashable, Identifiable {
     }
 }
 
+/// What a category renders as. Storage is `icon` XOR `emoji`; this is the
+/// resolved form the render path consumes.
+enum CategorySymbol: Hashable {
+    case icon(CategoryIcon)
+    case emoji(String)
+}
+
+/// The in-flight symbol choice on the category sheets. Kept as a value type so
+/// the XOR rule is enforced (and testable) outside the view layer: there is no
+/// way to construct or mutate one that holds both an icon and an emoji.
+struct CategorySymbolSelection: Equatable {
+    private(set) var icon: String
+    private(set) var emoji: String
+
+    private init(icon: String, emoji: String) {
+        self.icon = icon
+        self.emoji = emoji
+    }
+
+    init() {
+        self.init(icon: "", emoji: "")
+    }
+
+    /// Seeds from stored values, normalising legacy rows that hold both: the icon
+    /// wins, matching `displaySymbol` precedence, and the emoji is dropped.
+    init(category: Category) {
+        let storedIcon = category.icon ?? ""
+        if storedIcon.isEmpty {
+            self.init(icon: "", emoji: category.wrappedEmoji ?? "")
+        } else {
+            self.init(icon: storedIcon, emoji: "")
+        }
+    }
+
+    var isEmpty: Bool { icon.isEmpty && emoji.isEmpty }
+
+    mutating func selectIcon(_ name: String) {
+        icon = name
+        emoji = ""
+    }
+
+    mutating func selectEmoji(_ value: String) {
+        emoji = value
+        icon = ""
+    }
+
+    /// Writes the selection back, mapping empty to nil so an unset symbol is
+    /// absent rather than an empty string.
+    func apply(to category: Category) {
+        category.icon = icon.isEmpty ? nil : icon
+        category.emoji = emoji.isEmpty ? nil : emoji
+    }
+}
+
+extension String {
+    /// Collation key for comparing two stored emoji. Text- and emoji-presentation
+    /// forms of the same glyph ("☕" vs "☕️") must count as one symbol, while skin
+    /// tone and ZWJ variants stay distinct because they read as different glyphs.
+    /// Comparison only — stored values keep exactly what the user picked.
+    ///
+    /// Lives here rather than in StringExtension.swift because the intent targets
+    /// compile DataController without that file.
+    var emojiComparisonKey: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .precomposedStringWithCanonicalMapping
+            .unicodeScalars
+            .filter { $0.value != 0xFE0F }
+            .reduce(into: "") { $0.unicodeScalars.append($1) }
+    }
+}
+
+/// The curated emoji palette for the picker's Emoji tab. Grouped to mirror
+/// `CategoryIconCatalog.groups` so the two tabs read as one system. There are no
+/// keywords for emoji, so the picker hides search on this tab; anything outside
+/// this list is reachable through the system emoji keyboard.
+enum CategoryEmojiCatalog {
+    struct Group: Identifiable {
+        let title: String
+        let emojis: [String]
+
+        var id: String { title }
+    }
+
+    static let groups: [Group] = [
+        Group(title: "Food & Drink", emojis: [
+            "🍎", "🍞", "🥐", "🍔", "🍕", "🌮", "🍣", "🥗",
+            "🍜", "🍦", "🍰", "☕️", "🍺", "🍷", "🥤", "🛒"
+        ]),
+        Group(title: "Shopping", emojis: [
+            "🛍️", "👕", "👗", "👟", "👜", "💄", "💍", "🎁",
+            "📦", "🧾"
+        ]),
+        Group(title: "Transport & Travel", emojis: [
+            "🚗", "🚕", "🚌", "🚆", "🚲", "🛵", "✈️", "⛽️",
+            "🅿️", "🚢", "🧳", "🗺️", "🏖️", "🏝️", "🎒"
+        ]),
+        Group(title: "Home & Utilities", emojis: [
+            "🏠", "🏡", "🔑", "🛋️", "🛏️", "🚿", "🧹", "🧺",
+            "💡", "🔌", "🔥", "💧", "📶", "🛠️", "🪴"
+        ]),
+        Group(title: "Health & Fitness", emojis: [
+            "💊", "🩺", "🏥", "🦷", "👓", "🧘", "🏋️", "🏃",
+            "⚽️", "🚴", "🧴", "💇"
+        ]),
+        Group(title: "Leisure", emojis: [
+            "🎬", "🎮", "🎧", "🎵", "📚", "🎨", "🎤", "🎭",
+            "📺", "🎲", "🎪", "📸"
+        ]),
+        Group(title: "Money & Work", emojis: [
+            "💰", "💵", "💳", "🏦", "📈", "📉", "💼", "🧑‍💻",
+            "🏢", "🧮", "🪙", "🤝", "📊", "🎓", "✏️", "🏫"
+        ]),
+        Group(title: "Life & Other", emojis: [
+            "🐶", "🐱", "🐾", "👶", "👨‍👩‍👧", "❤️", "🎉", "🎂",
+            "⭐️", "🌍", "☂️", "🔔", "📱", "💻", "✉️", "❓"
+        ])
+    ]
+
+    static let all: [String] = groups.flatMap(\.emojis)
+
+    /// Pinned so a change to the curated palette is a deliberate edit, not a drift.
+    static let curatedCount = 112
+}
+
 enum CategoryIconCatalog {
     struct Group: Identifiable {
         let title: String

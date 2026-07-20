@@ -42,7 +42,6 @@ struct NewTransactionIntent: AppIntent {
 //        func results() async throws -> ItemCollection<CategoryEntity> {
 //            let dataController = DataController()
 //
-//            let categories = dataController.getAllCategories().map { CategoryEntity(id: $0.id!, name: $0.wrappedName, emoji: $0.wrappedEmoji, income: $0.income)
 //            }
 //
 //            let incomeCategories = categories.filter { $0.income }
@@ -228,7 +227,7 @@ struct ShortcutTransactionView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            CategoryIconLogTile(icon: transaction.wrappedIcon,
+            CategoryIconLogTile(symbol: transaction.displaySymbol,
                                 colour: (transaction.category?.wrappedColour ?? ""), future: false)
                 .frame(width: 35, height: 35, alignment: .center)
                 .overlay(alignment: .bottomTrailing) {

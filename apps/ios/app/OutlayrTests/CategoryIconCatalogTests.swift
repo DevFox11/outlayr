@@ -53,84 +53,18 @@ final class CategoryIconCatalogTests: CharacterizationTestCase {
         XCTAssertEqual(income.wrappedIcon, CategoryIconCatalog.fallbackIncome)
     }
 
-    func testMigrationAdoptsSuggestionIcon() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let context = controller.container.viewContext
-
-        let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
-        let paycheck = makeCategory(in: context, name: "Paycheck", icon: nil, income: true)
-
-        controller.migrateCategoryIcons()
-
-        XCTAssertEqual(groceries.icon, "shopping-cart-01")
-        XCTAssertEqual(paycheck.icon, "money-bag-01")
-    }
-
-    // An icon backfill has no business touching colour: a user who recoloured a
-    // suggestion-named category must not lose that choice on update.
-    func testMigrationNeverWritesColour() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let context = controller.container.viewContext
-
-        let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
-        groceries.colour = "#123456"
-
-        controller.migrateCategoryIcons()
-
-        XCTAssertEqual(groceries.colour, "#123456")
-    }
-
-    // Persisting a fallback name here would give every unmatched category the same
-    // stored icon, which the duplicate-icon check then reads as a collision.
-    func testMigrationLeavesUnknownNamesUnset() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let context = controller.container.viewContext
-
-        let custom = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false)
-        custom.colour = "#123456"
-
-        controller.migrateCategoryIcons()
-
-        XCTAssertNil(custom.icon)
-        XCTAssertEqual(custom.wrappedIcon, CategoryIconCatalog.fallback(income: false))
-        XCTAssertEqual(custom.colour, "#123456")
-    }
-
-    // The regression this whole rewrite exists to prevent: two unmatched categories
+    // The regression this contract exists to prevent: two categories with no icon
     // used to collide on the shared fallback name and become permanently unsavable.
-    func testMigratedUnknownCategoriesRemainEditable() throws {
+    func testIconlessCategoriesRemainEditable() throws {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext
 
         let sailboat = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
-        let wedding = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
+        _ = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
         controller.save()
 
-        controller.migrateCategoryIcons()
-
-        XCTAssertNil(sailboat.icon)
-        XCTAssertNil(wedding.icon)
-
-        let result = controller.categoryCheckEdit(name: "Sailboat Fund", icon: "", toEdit: sailboat)
+        let result = controller.categoryCheckEdit(name: "Sailboat Fund", icon: "", emoji: "", toEdit: sailboat)
         XCTAssertEqual(result.error, .none)
-    }
-
-    // Categories are persisted with the localized suggestion name, so a non-English
-    // store must still match back to its suggestion.
-    //
-    // Under an English test host the localized form equals the raw literal, so this
-    // pins the path the migration takes rather than proving translation works; a
-    // real non-English assertion needs the suite run under another locale.
-    func testMigrationMatchesLocalizedSuggestionNames() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let context = controller.container.viewContext
-
-        let localizedName = NSLocalizedString("Groceries", comment: "category name")
-        let groceries = makeCategory(in: context, name: localizedName, icon: nil, income: false)
-
-        controller.migrateCategoryIcons()
-
-        XCTAssertEqual(groceries.icon, "shopping-cart-01")
     }
 
     func testSuggestionLookupAcceptsRawAndLocalizedNames() {
@@ -144,36 +78,6 @@ final class CategoryIconCatalogTests: CharacterizationTestCase {
     func testSuggestionLookupIsScopedToTheIncomeFlag() {
         XCTAssertNil(SuggestedCategory.match(name: "Groceries", income: true))
         XCTAssertNil(SuggestedCategory.match(name: "Paycheck", income: false))
-    }
-
-    // The migration runs on every launch now, so re-running must be a no-op.
-    func testMigrationIsIdempotent() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let context = controller.container.viewContext
-
-        let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
-        let custom = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false)
-
-        controller.migrateCategoryIcons()
-        controller.migrateCategoryIcons()
-
-        XCTAssertEqual(groceries.icon, "shopping-cart-01")
-        XCTAssertNil(custom.icon)
-    }
-
-    func testMigrationLeavesAlreadyMigratedCategoriesUntouched() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let context = controller.container.viewContext
-
-        // A user who renamed a category onto a suggestion name after picking their
-        // own icon must not have that choice overwritten on a later launch.
-        let category = makeCategory(in: context, name: "Groceries", icon: "apple", income: false)
-        category.colour = "#123456"
-
-        controller.migrateCategoryIcons()
-
-        XCTAssertEqual(category.icon, "apple")
-        XCTAssertEqual(category.colour, "#123456")
     }
 
     func testSearchMatchesKeywordSynonymsNotJustNames() {

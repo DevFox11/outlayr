@@ -124,7 +124,7 @@ struct InsightsView: View {
 
 private struct BreakdownEntry: Identifiable {
     let id: String
-    let icon: CategoryIcon
+    let symbol: CategorySymbol
     let name: String
     let amount: Double
 }
@@ -281,7 +281,7 @@ struct HorizontalPieChartView: View {
                         HStack(spacing: 10) {
 
                             HStack(spacing: 8) {
-                                CategoryIconGlyph(icon: category.category.wrappedIcon, size: 20)
+                                CategoryIconGlyph(symbol: category.category.displaySymbol, size: 20)
                                     .foregroundStyle(boxColor)
 
                                 Text(category.category.wrappedName)
@@ -359,7 +359,7 @@ struct HorizontalPieChartView: View {
         if directAmount > 0 {
             entries.append(BreakdownEntry(
                 id: parent.objectID.uriRepresentation().absoluteString + "-direct",
-                icon: parent.wrappedIcon, name: "Direct", amount: directAmount
+                symbol: parent.displaySymbol, name: "Direct", amount: directAmount
             ))
         }
 
@@ -370,7 +370,7 @@ struct HorizontalPieChartView: View {
             if amount > 0 {
                 entries.append(BreakdownEntry(
                     id: child.objectID.uriRepresentation().absoluteString,
-                    icon: child.wrappedIcon, name: child.wrappedName, amount: amount
+                    symbol: child.displaySymbol, name: child.wrappedName, amount: amount
                 ))
             }
         }
@@ -380,7 +380,7 @@ struct HorizontalPieChartView: View {
         return VStack(spacing: 8) {
             ForEach(entries) { entry in
                 HStack(spacing: 10) {
-                    CategoryIconGlyph(icon: entry.icon)
+                    CategoryIconGlyph(symbol: entry.symbol)
                         .foregroundStyle(accent)
                     Text(entry.name)
                         .font(.system(.subheadline, design: .rounded, weight: .medium))

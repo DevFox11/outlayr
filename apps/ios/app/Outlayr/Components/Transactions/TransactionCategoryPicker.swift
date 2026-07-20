@@ -54,7 +54,7 @@ struct NewCategoryPickerView: View {
 
     private func chip(for item: Category, isChild: Bool) -> some View {
         CategoryChip(
-            icon: item.wrappedIcon,
+            symbol: item.displaySymbol,
             name: item.wrappedName,
             colourHex: item.wrappedColour,
             isChild: isChild,
@@ -95,13 +95,15 @@ struct NewCategoryPickerView: View {
 }
 
 private struct CategoryChip: View {
-    let icon: CategoryIcon
+    let symbol: CategorySymbol
     let name: String
     let colourHex: String
     let isChild: Bool
     let isSelected: Bool
     let isDimmed: Bool
     let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var colour: Color { Color(hex: colourHex) }
 
@@ -113,7 +115,7 @@ private struct CategoryChip: View {
                         .font(.system(.caption2, design: .rounded, weight: .semibold))
                         .opacity(0.7)
                 }
-                CategoryIconGlyph(icon: icon)
+                CategoryIconGlyph(symbol: symbol)
                 Text(name)
                     .font(.system(isChild ? .subheadline : .body, design: .rounded, weight: .semibold))
                     .lineLimit(1)
@@ -121,7 +123,9 @@ private struct CategoryChip: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 11)
             .padding(.vertical, isChild ? 7 : 9)
-            .foregroundStyle(colour)
+            .foregroundStyle(
+                CategoryTileShading.glyph(for: colour, in: colorScheme, washOpacity: isChild ? 0.2 : 0.35)
+            )
             .background(colour.opacity(isChild ? 0.2 : 0.35), in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
             .overlay {
                 if isSelected {
@@ -199,7 +203,7 @@ struct CategoryPickerSheet: View {
                 select(parent)
             } label: {
                 HStack(spacing: 10) {
-                    CategoryIconGlyph(icon: parent.wrappedIcon, size: 20)
+                    CategoryIconGlyph(symbol: parent.displaySymbol, size: 20)
                         .foregroundStyle(accent)
                     Text(parent.wrappedName)
                         .font(.system(.body, design: .rounded, weight: .semibold))
@@ -239,7 +243,7 @@ struct CategoryPickerSheet: View {
             select(child)
         } label: {
             HStack(spacing: 6) {
-                CategoryIconGlyph(icon: child.wrappedIcon)
+                CategoryIconGlyph(symbol: child.displaySymbol)
                 Text(child.wrappedName)
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
                     .lineLimit(1)

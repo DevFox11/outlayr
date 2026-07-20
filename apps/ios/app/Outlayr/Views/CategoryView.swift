@@ -95,13 +95,13 @@ struct CategoryListView: View {
             }
         }
         .sheet(isPresented: $newCategory) {
-            NewCategoryAlert(income: $income, bottomSpacers: false)
+            NewCategoryAlert(income: $income)
         }
         .sheet(item: $toEdit) { category in
             EditCategoryAlert(toEdit: category)
         }
         .sheet(item: $addChildTo) { parent in
-            NewCategoryAlert(income: $income, bottomSpacers: false, parent: parent)
+            NewCategoryAlert(income: $income, parent: parent)
         }
         .sheet(isPresented: $reordering) {
             ReorderCategoriesSheet(income: income)
@@ -148,7 +148,7 @@ struct CategoryListView: View {
             // The picker draws its own background, so the toolbar must not wrap it
             // in a second glass capsule.
             ToolbarItem(placement: .bottomBar) {
-                typePicker
+                CategoryTypePicker(income: $income)
                     .frame(width: 190)
             }
             .sharedBackgroundVisibility(.hidden)
@@ -160,7 +160,7 @@ struct CategoryListView: View {
             }
         } else {
             ToolbarItemGroup(placement: .bottomBar) {
-                typePicker
+                CategoryTypePicker(income: $income)
                     .frame(width: 190)
 
                 Spacer()
@@ -177,22 +177,6 @@ struct CategoryListView: View {
             ToolbarIcon(.plusSign)
         }
         .accessibilityLabel("New Category")
-    }
-
-    private var basePicker: some View {
-        Picker("Category Type", selection: $income) {
-            Text("Expense").tag(false)
-            Text("Income").tag(true)
-        }
-    }
-
-    @ViewBuilder
-    private var typePicker: some View {
-        if #available(iOS 27.0, *) {
-            basePicker.pickerStyle(.tabs)
-        } else {
-            basePicker.pickerStyle(.segmented)
-        }
     }
 
     private var continueButton: some View {
@@ -339,7 +323,7 @@ private struct ParentSection: View {
 
     private var headerRow: some View {
         HStack(spacing: 12) {
-            CategoryIconTile(icon: parent.wrappedIcon, tint: accent)
+            CategoryIconTile(symbol: parent.displaySymbol, tint: accent)
 
             Text(parent.wrappedName)
                 .font(.system(.body, design: .rounded, weight: .semibold))
@@ -359,7 +343,7 @@ private struct ParentSection: View {
 
     private func childRow(_ child: Category) -> some View {
         HStack(spacing: 10) {
-            CategoryIconTile(icon: child.wrappedIcon, tint: accent, size: .small)
+            CategoryIconTile(symbol: child.displaySymbol, tint: accent, size: .small)
 
             Text(child.wrappedName)
                 .font(.system(.subheadline, design: .rounded))
@@ -461,7 +445,7 @@ private struct ReorderCategoriesSheet: View {
                 ForEach(parents) { parent in
                     HStack(spacing: 12) {
                         CategoryIconTile(
-                            icon: parent.wrappedIcon,
+                            symbol: parent.displaySymbol,
                             tint: income ? Color.IncomeGreen : Color(hex: parent.wrappedColour)
                         )
                         Text(parent.wrappedName)
