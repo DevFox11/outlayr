@@ -90,7 +90,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), icon: budget.wrappedIcon, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
 
             let timeLeft: String
 
@@ -214,10 +214,7 @@ struct LockBudgetWidgetEntryView: View {
                     .containerBackground(for: .widget) { AccessoryWidgetBackground() }
                 } else {
                     Gauge(value: percent < 1 ? percent : 1) {
-                        HugeIcon(
-                            codepoint: entry.budget.icon.codepoint,
-                            font: HugeiconsSolidRounded.font(size: 11)
-                        )
+                        WidgetSymbolGlyph(symbol: entry.budget.symbol, size: 11)
                     } currentValueLabel: {
                         Text("\(Int(round(percent * 100)))%")
                     }

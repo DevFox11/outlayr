@@ -109,7 +109,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), icon: budget.wrappedIcon, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
 
             let percentageOfDays: Double
 
@@ -144,9 +144,40 @@ struct BudgetWidgetEntry: TimelineEntry {
     let configuration: BudgetWidgetConfigurationIntent
 }
 
+/// Renders a budget's category symbol at widget scale: a Hugeicons glyph in
+/// the given colour, or the emoji itself (emoji carry their own colours; on
+/// lock-screen rendering modes the system desaturates them, as it does for
+/// every widget image).
+struct WidgetSymbolGlyph: View {
+    let symbol: CategorySymbol
+    let size: CGFloat
+    var color: Color?
+
+    var body: some View {
+        switch symbol {
+        case let .icon(icon):
+            if let color {
+                HugeIcon(
+                    codepoint: icon.codepoint,
+                    font: HugeiconsSolidRounded.font(size: size),
+                    color: color
+                )
+            } else {
+                HugeIcon(
+                    codepoint: icon.codepoint,
+                    font: HugeiconsSolidRounded.font(size: size)
+                )
+            }
+        case let .emoji(emoji):
+            Text(emoji)
+                .font(.system(size: size))
+        }
+    }
+}
+
 struct HoldingBudget {
     let type: Int
-    let icon: CategoryIcon
+    let symbol: CategorySymbol
     let name: String
     let colour: String
     let budgetAmount: Double
@@ -154,7 +185,7 @@ struct HoldingBudget {
 
     /// Stands in when the configured budget no longer exists.
     static let failed = HoldingBudget(
-        type: 1, icon: CategoryIconCatalog.fallback(income: false),
+        type: 1, symbol: .icon(CategoryIconCatalog.fallback(income: false)),
         name: "", colour: "", budgetAmount: 0, missing: true
     )
 }
@@ -225,9 +256,9 @@ struct BudgetWidgetEntryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2.4) {
                             HStack(spacing: 5) {
-                                HugeIcon(
-                                    codepoint: entry.budget.icon.codepoint,
-                                    font: HugeiconsSolidRounded.font(size: 10),
+                                WidgetSymbolGlyph(
+                                    symbol: entry.budget.symbol,
+                                    size: 10,
                                     color: Color.PrimaryText
                                 )
                                 Text(entry.budget.name.uppercased())
