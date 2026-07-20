@@ -19,10 +19,17 @@ struct TransactionHero: View {
     let tint: Color
     let income: Bool
     var showsReset: Bool = true
+    /// When the identity picker is open the tile floats above it: scaled to
+    /// `IdentityHero.scale` and offset by `tileOffsetY`, while the caption fades.
+    /// Only the tile transforms (the header keeps its resting layout), matching
+    /// `CategorySheetSurface`.
+    var tileScale: CGFloat = 1
+    var tileOffsetY: CGFloat = 0
     var onTap: () -> Void = {}
     var onReset: () -> Void = {}
 
     private var tileSide: CGFloat { CategoryIconTile.Size.large.tile }
+    private var isFloating: Bool { tileScale > 1.001 }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -37,10 +44,14 @@ struct TransactionHero: View {
             }
             .accessibilityLabel("Transaction logo")
             .accessibilityHint("Opens the logo picker")
+            .scaleEffect(tileScale)
+            .offset(y: tileOffsetY)
+            .zIndex(1)
 
             Text(selection.isEmpty ? "Add a logo or icon" : "Tap to change")
                 .font(.system(.footnote, design: .rounded, weight: .medium))
                 .foregroundStyle(Color.SubtitleText)
+                .opacity(isFloating ? 0 : 1)
         }
     }
 

@@ -54,14 +54,9 @@ struct AmountEntrySheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule()
-                .fill(Color.PrimaryText.opacity(0.22))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-
             header
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
+                .padding(.top, 18)
 
             amountDisplay
                 .padding(.vertical, 14)

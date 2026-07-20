@@ -80,7 +80,7 @@ struct CustomTabBar: View {
         .padding(.bottom, bottomEdge - 10)
         .frame(maxWidth: .infinity)
         .background(Color.PrimaryBackground)
-        .fullScreenCover(isPresented: $addTransaction, onDismiss: {
+        .sheet(isPresented: $addTransaction, onDismiss: {
             if confetti {
                 if count != transactions.count {
                     counter += 1

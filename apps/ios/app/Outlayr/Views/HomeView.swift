@@ -142,7 +142,7 @@ struct HomeView: View {
                 showPopup = newValue
             }
         }
-        .fullScreenCover(item: $transactionManager.toEdit, onDismiss: {
+        .sheet(item: $transactionManager.toEdit, onDismiss: {
             transactionManager.toEdit = nil
         }) { transaction in
             TransactionView(toEdit: transaction)

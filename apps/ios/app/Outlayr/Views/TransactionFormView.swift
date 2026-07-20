@@ -88,34 +88,26 @@ struct TransactionFormView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                Color(.systemGroupedBackground).ignoresSafeArea()
-                curtain
+            GeometryReader { proxy in
+                ZStack(alignment: .bottom) {
+                    Color(.systemGroupedBackground).ignoresSafeArea()
+                    curtain
 
-                ScrollView {
-                    VStack(spacing: 18) {
-                        TransactionHero(
-                            selection: draft.identity,
-                            tint: tint,
-                            income: draft.income,
-                            onTap: { showingIdentityPicker = true },
-                            onReset: { withAnimation(IdentityHero.motion) { draft.identity.clear() } }
-                        )
-                        .padding(.top, 8)
+                    // The hero lives OUTSIDE the blurred form so it stays sharp and
+                    // can float over the identity picker, mirroring
+                    // CategorySheetSurface. Only the scrolling form content blurs.
+                    VStack(spacing: 0) {
+                        heroHeader(in: proxy)
+                            .zIndex(1)
 
-                        kindPicker
-                        detailsGroup
-                        categoryGroup
-                        scheduleGroup
+                        formScroll
+                            .blur(radius: showingIdentityPicker ? formBlurRadius : 0)
+                            .allowsHitTesting(!showingIdentityPicker)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .blur(radius: showingIdentityPicker ? formBlurRadius : 0)
-                .allowsHitTesting(!showingIdentityPicker)
 
-                cta
+                    cta
+                }
+                .animation(IdentityHero.motion, value: showingIdentityPicker)
             }
             .navigationTitle(draft.isSubscription ? "Subscription" : "Transaction")
             .navigationBarTitleDisplayMode(.inline)
@@ -165,6 +157,50 @@ struct TransactionFormView: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea()
         .allowsHitTesting(false)
+    }
+
+    /// The sharp, fixed hero header. Its tile floats over the identity picker
+    /// (scale + downward offset) while the picker is open; the header itself
+    /// keeps its resting layout so the form below doesn't reflow.
+    private func heroHeader(in proxy: GeometryProxy) -> some View {
+        TransactionHero(
+            selection: draft.identity,
+            tint: tint,
+            income: draft.income,
+            showsReset: !showingIdentityPicker,
+            tileScale: showingIdentityPicker ? IdentityHero.scale : 1,
+            tileOffsetY: showingIdentityPicker ? openHeroOffset(in: proxy) : 0,
+            onTap: { if !showingIdentityPicker { showingIdentityPicker = true } },
+            onReset: { withAnimation(IdentityHero.motion) { draft.identity.clear() } }
+        )
+        .padding(.top, IdentityHero.topPadding)
+        .padding(.bottom, IdentityHero.bottomPadding)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var formScroll: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                kindPicker
+                detailsGroup
+                categoryGroup
+                scheduleGroup
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 120)
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    /// Mirrors `CategorySheetSurface.openHeroOffset`: how far the tile travels
+    /// down to sit centred in the free area above the `.height(pickerHeight)`
+    /// identity picker detent.
+    private func openHeroOffset(in proxy: GeometryProxy) -> CGFloat {
+        let restingCenter = IdentityHero.restingCenterY
+        let heroHalf = CategoryIconTile.Size.large.tile * IdentityHero.scale / 2
+        let free = proxy.size.height - IdentityHero.pickerHeight
+        let target = max(free / 2, 16 + heroHalf)
+        return target - restingCenter
     }
 
     @ToolbarContentBuilder

@@ -52,7 +52,7 @@ struct DetailedBudgetView: View {
             }) { budget in
                 BrandNewBudgetView(overallBudgetCreated: false, toEditBudget: budget)
             }
-            .fullScreenCover(isPresented: $newTransaction) {
+            .sheet(isPresented: $newTransaction) {
                 TransactionView(category: budget.category)
             }
             .deleteBudgetConfirmation($toDelete)
