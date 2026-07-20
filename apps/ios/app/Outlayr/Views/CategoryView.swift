@@ -130,7 +130,7 @@ struct CategoryListView: View {
             Button {
                 withAnimation { showSuggestions.toggle() }
             } label: {
-                ToolbarIcon(showSuggestions ? .viewOffSlash : .view)
+                ToolbarIcon(showSuggestions ? "view-off-slash" : "view")
             }
             .accessibilityLabel(showSuggestions ? "Hide Suggestions" : "Show Suggestions")
 
@@ -138,7 +138,7 @@ struct CategoryListView: View {
                 Button {
                     reordering = true
                 } label: {
-                    ToolbarIcon(.arrowUpDown)
+                    ToolbarIcon("arrow-up-down")
                 }
                 .accessibilityLabel("Reorder Categories")
             }
@@ -174,7 +174,7 @@ struct CategoryListView: View {
         Button {
             newCategory = true
         } label: {
-            ToolbarIcon(.plusSign)
+            ToolbarIcon("plus-sign")
         }
         .accessibilityLabel("New Category")
     }

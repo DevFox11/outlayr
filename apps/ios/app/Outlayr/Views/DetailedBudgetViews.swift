@@ -44,9 +44,8 @@ struct DetailedBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        ToolbarIcon(codepoint: 0xF2195, pinnedWidth: 12)
-                    }
-                }
+                        ToolbarIcon("more-vertical-square-01")
+                    }                }
             }
             .sheet(item: $toEdit, onDismiss: {
                 toEdit = nil
@@ -90,9 +89,8 @@ struct DetailedMainBudgetView: View {
                             Label("Delete Budget", systemImage: "trash")
                         }
                     } label: {
-                        ToolbarIcon(codepoint: 0xF2195, pinnedWidth: 12)
-                    }
-                }
+                        ToolbarIcon("more-vertical-square-01")
+                    }                }
             }
             .fullScreenCover(item: $toEdit, onDismiss: {
                 toEdit = nil

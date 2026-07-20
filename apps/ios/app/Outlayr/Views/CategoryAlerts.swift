@@ -6,6 +6,7 @@
 import CoreData
 import HugeiconsCore
 import HugeiconsSolidRounded
+import HugeiconsStrokeRounded
 import SwiftUI
 import UIKit
 
@@ -149,9 +150,8 @@ struct NewCategoryAlert: View {
                     Button {
                         dismiss()
                     } label: {
-                        ToolbarIcon(.cancel, pinnedWidth: 12)
-                    }
-                    .accessibilityLabel("Cancel")
+                        ToolbarIcon("cancel-01")
+                    }                    .accessibilityLabel("Cancel")
                 }
             }
             .alert("Couldn't Add Category", isPresented: errorBinding, presenting: errorMessage) { _ in
@@ -361,20 +361,16 @@ struct EditCategoryAlert: View {
                     Button {
                         dismiss()
                     } label: {
-                        ToolbarIcon(.cancel, pinnedWidth: 12)
-                    }
-                    .accessibilityLabel("Cancel")
+                        ToolbarIcon("cancel-01")
+                    }                    .accessibilityLabel("Cancel")
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         confirmingDelete = true
                     } label: {
-                        // Wide-ink glyph in a circular slot: pin the width for
-                        // the circle, shrink the glyph so the ink fits unclipped.
-                        ToolbarIcon(.delete, size: 20, color: Color.AlertRed, pinnedWidth: 15)
-                    }
-                    .accessibilityLabel(toEdit.isSubcategory ? "Delete Subcategory" : "Delete Category")
+                        ToolbarIcon("delete-02", color: Color.AlertRed)
+                    }                    .accessibilityLabel(toEdit.isSubcategory ? "Delete Subcategory" : "Delete Category")
                 }
             }
             .alert("Couldn't Save Category", isPresented: errorBinding, presenting: errorMessage) { _ in
@@ -556,7 +552,7 @@ private struct CategorySheetSurface<FormContent: View>: View {
                 .fill(Color.AlertRed)
                 .frame(width: 26, height: 26)
                 .overlay {
-                    ToolbarIcon(.cancel, size: 14, color: .white)
+                    ToolbarIcon("cancel-01", size: 14, color: .white)
                 }
         }
         .buttonStyle(.plain)
@@ -603,7 +599,7 @@ private struct CategorySheetSurface<FormContent: View>: View {
                 .fill(Color.PrimaryText)
                 .frame(width: 26, height: 26)
                 .overlay {
-                    ToolbarIcon(.plusSign, style: .solidRounded, size: 14, color: Color.PrimaryBackground)
+                    ToolbarIcon("plus-sign", style: .solidRounded, size: 14, color: Color.PrimaryBackground)
                 }
                 .offset(
                     x: CategoryIconTile.Size.large.tile / 2 - 6,
