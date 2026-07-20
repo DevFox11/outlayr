@@ -55,6 +55,40 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         XCTAssertNil(transaction.recurringEndDate)
     }
 
+    func testDetailsWrittenAndEmptyMapsToNil() {
+        let category = makeCategory(in: context, name: "Streaming", order: 1)
+
+        var withNotes = TransactionFormDraft()
+        withNotes.amount = 10
+        withNotes.details = "  Split with Alex\nmonthly  "
+        let t1 = Transaction(context: context)
+        withNotes.apply(to: t1, category: category)
+        XCTAssertEqual(t1.details, "Split with Alex\nmonthly")
+
+        var blankNotes = TransactionFormDraft()
+        blankNotes.amount = 10
+        blankNotes.details = "   \n  "
+        let t2 = Transaction(context: context)
+        blankNotes.apply(to: t2, category: category)
+        XCTAssertNil(t2.details, "whitespace-only notes map to nil")
+    }
+
+    func testDetailsRoundTripsOnEdit() {
+        let category = makeCategory(in: context, name: "Streaming", order: 1)
+        let original = Transaction(context: context)
+        original.note = "Netflix"
+        original.category = category
+        original.amount = 15.99
+        original.details = "Family plan"
+
+        let draft = TransactionFormDraft.from(original)
+        XCTAssertEqual(draft.details, "Family plan")
+
+        let rewritten = Transaction(context: context)
+        draft.apply(to: rewritten, category: category)
+        XCTAssertEqual(rewritten.details, "Family plan")
+    }
+
     func testEmptyNameFallsBackToCategoryName() {
         let category = makeCategory(in: context, name: "Groceries", order: 1)
         var draft = TransactionFormDraft()

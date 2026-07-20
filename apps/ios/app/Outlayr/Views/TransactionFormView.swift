@@ -34,7 +34,6 @@ struct TransactionFormView: View {
     @State private var showingAmountSheet = false
     @State private var showingCategorySheet = false
     @State private var showingCustomSchedule = false
-    @State private var activeDatePicker: DatePickerTarget?
 
     @State private var showToast = false
     @State private var categoryShake = false
@@ -48,11 +47,6 @@ struct TransactionFormView: View {
     private let formBlurRadius: CGFloat = 8
     /// Matches the amount sheet's resting height so the numpad detent lines up.
     private let amountSheetHeight: CGFloat = 560
-
-    enum DatePickerTarget: Identifiable {
-        case date, time, firstPayment, endDate
-        var id: Int { hashValue }
-    }
 
     init(toEdit: Transaction? = nil, category: Category? = nil) {
         self.toEdit = toEdit
@@ -109,7 +103,7 @@ struct TransactionFormView: View {
                 }
                 .animation(IdentityHero.motion, value: showingIdentityPicker)
             }
-            .navigationTitle(draft.isSubscription ? "Subscription" : "Transaction")
+            .navigationTitle(isEditing ? "Edit Transaction" : "Create Transaction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
             .animation(.easeInOut(duration: 0.25), value: draft.isSubscription)
@@ -129,9 +123,6 @@ struct TransactionFormView: View {
         }
         .sheet(isPresented: $showingCustomSchedule) {
             CustomScheduleSheet(recurringType: $draft.recurringType, recurringCoefficient: $draft.recurringCoefficient)
-        }
-        .sheet(item: $activeDatePicker) { target in
-            datePickerSheet(target)
         }
         .overlay(alignment: .bottom) { toast }
         .confirmationDialog("Delete transaction?", isPresented: $deleteConfirm, titleVisibility: .visible) {
@@ -185,6 +176,7 @@ struct TransactionFormView: View {
                 detailsGroup
                 categoryGroup
                 scheduleGroup
+                notesGroup
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 120)
@@ -238,7 +230,7 @@ struct TransactionFormView: View {
             HStack {
                 Text("Name")
                     .font(.system(.body, design: .rounded))
-                    .foregroundStyle(Color.PrimaryText)
+                    .foregroundStyle(.secondary)
                 TextField("Netflix, Groceries…", text: $draft.name)
                     .font(.system(.body, design: .rounded))
                     .multilineTextAlignment(.trailing)
@@ -250,13 +242,11 @@ struct TransactionFormView: View {
 
             rowDivider
 
-            Menu {
+            menuFieldRow(label: "Type", value: draft.income ? "Income" : "Expense") {
                 Picker("Type", selection: $draft.income) {
                     Text("Expense").tag(false)
                     Text("Income").tag(true)
                 }
-            } label: {
-                menuRow(label: "Type", value: draft.income ? "Income" : "Expense")
             }
 
             rowDivider
@@ -265,14 +255,14 @@ struct TransactionFormView: View {
                 HStack {
                     Text("Amount")
                         .font(.system(.body, design: .rounded))
-                        .foregroundStyle(Color.PrimaryText)
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Text(formattedAmount)
                         .font(.system(.body, design: .rounded, weight: .medium))
                         .foregroundStyle(draft.amount > 0 ? (draft.income ? Color.IncomeGreen : Color.PrimaryText) : Color.SubtitleText)
                     Text(effectiveCurrency)
                         .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText)
+                        .foregroundStyle(.tertiary)
                 }
                 .formRow()
                 .contentShape(.rect)
@@ -303,7 +293,7 @@ struct TransactionFormView: View {
                 } else {
                     Text("Category")
                         .font(.system(.body, design: .rounded))
-                        .foregroundStyle(categoryErrored ? Color.AlertRed : Color.PrimaryText)
+                        .foregroundStyle(categoryErrored ? AnyShapeStyle(Color.AlertRed) : AnyShapeStyle(.secondary))
                 }
                 Spacer()
                 Text(category == nil ? "Choose" : "Change")
@@ -333,43 +323,58 @@ struct TransactionFormView: View {
     private var scheduleGroup: some View {
         if draft.isSubscription {
             VStack(spacing: 0) {
-                Menu {
+                menuFieldRow(label: "Schedule", value: scheduleLabel) {
                     Picker("Schedule", selection: scheduleSelection) {
                         ForEach(RecurringCadence.selectable, id: \.self) { cadence in
                             Text(cadence.label).tag(Int(cadence.rawValue))
                         }
                     }
                     Button("Custom…") { showingCustomSchedule = true }
-                } label: {
-                    menuRow(label: "Schedule", value: scheduleLabel)
                 }
 
                 rowDivider
-                dateRow(label: "First Payment", value: draft.date.formatted(.dateTime.day().month().year()), target: .firstPayment)
+                compactDateRow(label: "First Payment", selection: $draft.date, components: [.date])
                 rowDivider
 
                 Toggle(isOn: $draft.hasEndDate.animation()) {
                     Text("End Date")
                         .font(.system(.body, design: .rounded))
-                        .foregroundStyle(Color.PrimaryText)
+                        .foregroundStyle(.secondary)
                 }
                 .tint(Color.IncomeGreen)
                 .formRow()
 
                 if draft.hasEndDate {
                     rowDivider
-                    dateRow(label: "Ends", value: draft.endDate.formatted(.dateTime.day().month().year()), target: .endDate)
+                    compactDateRow(label: "Ends", selection: $draft.endDate, components: [.date])
                 }
             }
             .groupedCard()
         } else {
             VStack(spacing: 0) {
-                dateRow(label: "Date", value: draft.date.formatted(.dateTime.weekday().day().month()), target: .date)
+                compactDateRow(label: "Date", selection: $draft.date, components: [.date])
                 rowDivider
-                dateRow(label: "Time", value: draft.date.formatted(.dateTime.hour().minute()), target: .time)
+                compactDateRow(label: "Time", selection: $draft.date, components: [.hourAndMinute])
             }
             .groupedCard()
         }
+    }
+
+    // MARK: - Notes
+
+    private var notesGroup: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notes")
+                .font(.system(.body, design: .rounded))
+                .foregroundStyle(.secondary)
+            TextField("Optional", text: $draft.details, axis: .vertical)
+                .font(.system(.body, design: .rounded))
+                .foregroundStyle(Color.PrimaryText)
+                .lineLimit(3...6)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .groupedCard()
     }
 
     /// Selecting a named schedule resets the coefficient to 1; custom intervals
@@ -386,49 +391,19 @@ struct TransactionFormView: View {
         return cadence.scheduleLabel(coefficient: Int16(draft.recurringCoefficient))
     }
 
-    private func dateRow(label: LocalizedStringKey, value: String, target: DatePickerTarget) -> some View {
-        Button { activeDatePicker = target } label: {
-            HStack {
-                Text(label)
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(Color.PrimaryText)
-                Spacer()
-                Text(value)
-                    .font(.system(.subheadline, design: .rounded, weight: .medium))
-                    .foregroundStyle(Color.PrimaryText)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 6)
-                    .background(Color.PrimaryText.opacity(0.07), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            }
-            .formRow()
-            .contentShape(.rect)
+    /// A row whose value is a native compact `DatePicker` — tapping the trailing
+    /// pill opens the OS floating calendar/time popover inline, no custom sheet.
+    private func compactDateRow(label: LocalizedStringKey, selection: Binding<Date>, components: DatePickerComponents) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(.body, design: .rounded))
+                .foregroundStyle(.secondary)
+            Spacer()
+            DatePicker("", selection: selection, displayedComponents: components)
+                .labelsHidden()
+                .datePickerStyle(.compact)
         }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private func datePickerSheet(_ target: DatePickerTarget) -> some View {
-        let binding: Binding<Date> = (target == .endDate) ? $draft.endDate : $draft.date
-        NavigationStack {
-            Group {
-                if target == .time {
-                    DatePicker("", selection: binding, displayedComponents: [.hourAndMinute])
-                        .datePickerStyle(.wheel)
-                } else {
-                    DatePicker("", selection: binding, displayedComponents: [.date])
-                        .datePickerStyle(.graphical)
-                }
-            }
-            .labelsHidden()
-            .padding()
-            .frame(maxHeight: .infinity, alignment: .top)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { activeDatePicker = nil }
-                }
-            }
-        }
-        .presentationDetents([.medium])
+        .formRow()
     }
 
     // MARK: - CTA + toast
@@ -631,18 +606,32 @@ private extension TransactionFormView {
         Divider().overlay(Color.PrimaryText.opacity(0.08)).padding(.leading, 16)
     }
 
-    func menuRow(label: LocalizedStringKey, value: String) -> some View {
+    /// A row whose value is a `Menu`. The label sits OUTSIDE the menu so it stays
+    /// a plain secondary Text like every other row label — a label inside the
+    /// menu inherits the control's accent tint (`.secondary` resolves to blue),
+    /// while the value keeps its primary emphasis via an explicit colour.
+    func menuFieldRow<MenuContent: View>(
+        label: LocalizedStringKey,
+        value: String,
+        @ViewBuilder menu: () -> MenuContent
+    ) -> some View {
         HStack {
             Text(label)
                 .font(.system(.body, design: .rounded))
-                .foregroundStyle(Color.PrimaryText)
+                .foregroundStyle(.secondary)
             Spacer()
-            Text(value)
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(Color.PrimaryText)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.SubtitleText)
+            Menu {
+                menu()
+            } label: {
+                HStack(spacing: 4) {
+                    Text(value)
+                        .font(.system(.body, design: .rounded))
+                        .foregroundStyle(Color.PrimaryText)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.SubtitleText)
+                }
+            }
         }
         .formRow()
         .contentShape(.rect)

@@ -16,6 +16,8 @@ import Foundation
 struct TransactionFormDraft: Equatable {
     var identity = TransactionIdentitySelection()
     var name = ""
+    /// Free-form notes, stored in the `details` attribute. Empty maps to nil.
+    var details = ""
     var income = false
     var amount: Decimal = 0
     var currency: String?
@@ -47,6 +49,8 @@ struct TransactionFormDraft: Equatable {
         transaction.income = income
         transaction.amount = NSDecimalNumber(decimal: amount).doubleValue
         transaction.currency = currency
+        let trimmedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        transaction.details = trimmedDetails.isEmpty ? nil : trimmedDetails
         transaction.date = date
 
         transaction.day = calendar.date(bySettingHour: 0, minute: 0, second: 0, of: date) ?? date
@@ -72,6 +76,7 @@ struct TransactionFormDraft: Equatable {
         var draft = TransactionFormDraft()
         draft.identity = TransactionIdentitySelection(transaction: transaction)
         draft.name = transaction.wrappedNote
+        draft.details = transaction.details ?? ""
         draft.income = transaction.income
         draft.amount = Decimal(transaction.amount)
         draft.currency = transaction.wrappedCurrency

@@ -327,6 +327,7 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         XCTAssertNil(migrated.value(forKey: "customColour"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "currency"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "recurringEndDate"), file: file, line: line)
+        XCTAssertNil(migrated.value(forKey: "details"), file: file, line: line)
     }
 
     // These cover the chain as it ships TODAY. The V2 XML was edited in place
@@ -349,5 +350,9 @@ final class TransactionIdentityTests: CharacterizationTestCase {
 
     func testStoreCreatedWithVersion4OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 4")
+    }
+
+    func testStoreCreatedWithVersion5OpensUnderCurrentModel() throws {
+        try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 5")
     }
 }
