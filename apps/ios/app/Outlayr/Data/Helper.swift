@@ -5,7 +5,20 @@
 //  Created by Rafael Soh on 13/8/22.
 //
 
+import CoreData
 import Foundation
+
+extension Category {
+    /// The categories the transaction form's picker offers: top-level only,
+    /// scoped to the expense/income mode, ordered by `order`. Shared by the sheet
+    /// and its tests so the ordering/hierarchy contract has one definition.
+    static func transactionPickerFetchRequest(income: Bool) -> NSFetchRequest<Category> {
+        let request = NSFetchRequest<Category>(entityName: "Category")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Category.order, ascending: true)]
+        request.predicate = NSPredicate(format: "income = %d AND parent == nil", income)
+        return request
+    }
+}
 
 extension Transaction {
     var wrappedAmount: Double {
@@ -81,14 +94,10 @@ extension Transaction {
     }
 
     var nextTransactionDate: Date {
-        if recurringType == 1 {
-            return Calendar.current.date(byAdding: .day, value: Int(recurringCoefficient), to: day ?? Date.now)!
-        } else if recurringType == 2 {
-            return Calendar.current.date(byAdding: .day, value: Int(recurringCoefficient * 7), to: day ?? Date.now)!
-        } else if recurringType == 3 {
-            return Calendar.current.date(byAdding: .month, value: Int(recurringCoefficient), to: day ?? Date.now)!
+        if let next = RecurringCadence(rawValue: recurringType)?
+            .next(from: day ?? Date.now, coefficient: recurringCoefficient, calendar: .current) {
+            return next
         }
-
         return date ?? Date.now
     }
 }

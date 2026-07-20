@@ -64,7 +64,7 @@ struct ListView: View {
 
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
-        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
+        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency) ?? currency
     }
 
     @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
@@ -203,7 +203,7 @@ struct FutureListView: View {
 
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
-        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
+        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency) ?? currency
     }
 
     @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)

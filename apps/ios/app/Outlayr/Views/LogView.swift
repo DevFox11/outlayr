@@ -27,7 +27,7 @@ struct LogView: View {
 
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
-        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
+        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency) ?? currency
     }
 
     @State var addTransaction = false
@@ -288,7 +288,7 @@ struct NumberView: AnimatableModifier {
 
     @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
-        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
+        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency) ?? currency
     }
 
     var fontSize: CGFloat {

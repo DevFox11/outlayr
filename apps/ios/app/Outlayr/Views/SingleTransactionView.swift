@@ -54,10 +54,18 @@ struct SingleTransactionView: View {
         return min(1, 1 + (abs(Double(offset) + 40) / 100))
     }
 
+    /// The transaction's own currency overrides the ambient global one, so a row
+    /// stored in another currency renders in it.
+    private var effectiveCurrency: String { transaction.wrappedCurrency ?? currency }
+
+    private var effectiveCurrencySymbol: String {
+        transaction.wrappedCurrency.flatMap { Locale.current.localizedCurrencySymbol(forCurrencyCode: $0) } ?? currencySymbol
+    }
+
     var transactionAmountString: String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = currency
+        numberFormatter.currencyCode = effectiveCurrency
 
         if showCents {
             numberFormatter.maximumFractionDigits = 2
@@ -180,7 +188,10 @@ struct SingleTransactionView: View {
     private var rowContent: some View {
         HStack(spacing: 12) {
                 CategoryIconLogTile(symbol: transaction.displaySymbol,
-                                    colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
+                                    colour: transaction.effectiveColour,
+                                    future: future,
+                                    imageData: transaction.imageData,
+                                    imageCacheKey: transaction.objectID)
                     .fixedSize(horizontal: true, vertical: true)
                     .overlay(alignment: .bottomTrailing) {
                         if transaction.recurringType > 0 {
@@ -265,7 +276,7 @@ struct SingleTransactionView: View {
             }
             .offset(x: offset)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Transaction Category: \(transaction.category?.wrappedName ?? "Unknown"), Transaction made at \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
+            .accessibilityLabel("\(transaction.wrappedNote), \(effectiveCurrencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Transaction Category: \(transaction.category?.wrappedName ?? "Unknown"), Transaction made at \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
     }
 
     func getSubtitle() -> String {
@@ -315,12 +326,64 @@ struct CategoryIconLogTile: View {
     let colour: String
     let future: Bool
     let scale: Scale
+    /// When present, a stored photo identity renders as a circular thumbnail in
+    /// place of the glyph. Decoded once and cached (see `TransactionThumbnailCache`).
+    let imageData: Data?
+    let imageCacheKey: NSManagedObjectID?
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var thumbnail: UIImage?
 
     private var tint: Color { Color(hex: colour) }
 
+    private var thumbnailSide: CGFloat { scale.glyph + 16 }
+
+    /// Re-runs the decode task whenever the identity bytes change.
+    private var thumbnailToken: String {
+        "\(imageCacheKey?.uriRepresentation().absoluteString ?? "none")-\(imageData?.count ?? 0)-\(Int(thumbnailSide))"
+    }
+
     var body: some View {
+        ZStack {
+            if let thumbnail {
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: thumbnailSide, height: thumbnailSide)
+                    .clipShape(Circle())
+                    .overlay { Circle().strokeBorder(tint.opacity(future ? 0.73 : 0.2), lineWidth: future ? 2 : 1) }
+            } else {
+                glyphTile
+            }
+        }
+        .opacity(future ? 0.6 : 1)
+        .task(id: thumbnailToken) { await loadThumbnail() }
+    }
+
+    /// Decodes the photo thumbnail off the main thread (with a synchronous cache
+    /// hit for already-decoded rows, so scrolling back doesn't flash the glyph).
+    private func loadThumbnail() async {
+        guard let imageData, !imageData.isEmpty else {
+            thumbnail = nil
+            return
+        }
+        let side = thumbnailSide
+        let key = imageCacheKey
+        // UIScreen access must stay on the main actor; capture before detaching.
+        let screenScale = UIScreen.main.scale
+        if let cached = TransactionThumbnailCache.shared.cached(for: imageData, key: key, side: side) {
+            thumbnail = cached
+            return
+        }
+        let decoded = await Task.detached(priority: .userInitiated) {
+            TransactionThumbnailCache.shared.decodeAndStore(for: imageData, key: key, side: side, scale: screenScale)
+        }.value
+        guard !Task.isCancelled else { return }
+        thumbnail = decoded
+    }
+
+    @ViewBuilder
+    private var glyphTile: some View {
         ZStack {
             if future {
                 RoundedRectangle(cornerRadius: scale.radius, style: .continuous)
@@ -347,17 +410,66 @@ struct CategoryIconLogTile: View {
                     .padding(8)
             }
         }
-        .opacity(future ? 0.6 : 1)
     }
 
     init(icon: CategoryIcon, colour: String, future: Bool, scale: Scale = .row) {
         self.init(symbol: .icon(icon), colour: colour, future: future, scale: scale)
     }
 
-    init(symbol: CategorySymbol, colour: String, future: Bool, scale: Scale = .row) {
+    init(
+        symbol: CategorySymbol,
+        colour: String,
+        future: Bool,
+        scale: Scale = .row,
+        imageData: Data? = nil,
+        imageCacheKey: NSManagedObjectID? = nil
+    ) {
         self.symbol = symbol
         self.colour = colour
         self.future = future
         self.scale = scale
+        self.imageData = imageData
+        self.imageCacheKey = imageCacheKey
+    }
+}
+
+/// A tiny decode cache for transaction photo thumbnails so scrolling the log
+/// doesn't re-decode the same JPEG every row. Keyed by object id plus the stored
+/// byte count, so an edited photo (new bytes) misses and re-decodes.
+/// NSCache is thread-safe, so both the synchronous peek and the off-main decode
+/// touch it directly.
+final class TransactionThumbnailCache {
+    static let shared = TransactionThumbnailCache()
+    private let cache = NSCache<NSString, UIImage>()
+
+    private init() { cache.countLimit = 120 }
+
+    private func key(_ key: NSManagedObjectID?, _ data: Data, _ side: CGFloat) -> NSString {
+        "\(key?.uriRepresentation().absoluteString ?? "anon")-\(data.count)-\(Int(side))" as NSString
+    }
+
+    /// A cache-only lookup (no decode) — cheap enough to call on the main actor.
+    func cached(for data: Data, key objectID: NSManagedObjectID?, side: CGFloat) -> UIImage? {
+        cache.object(forKey: key(objectID, data, side))
+    }
+
+    /// Decodes + downscales the thumbnail and stores it. Runs off the main thread
+    /// (the JPEG decode and CoreGraphics draw are the expensive part). `scale` is
+    /// captured on the main actor by the caller so UIScreen isn't touched here.
+    func decodeAndStore(for data: Data, key objectID: NSManagedObjectID?, side: CGFloat, scale: CGFloat) -> UIImage? {
+        let cacheKey = key(objectID, data, side)
+        if let cached = cache.object(forKey: cacheKey) { return cached }
+        guard let full = UIImage(data: data) else { return nil }
+        let target = CGSize(width: side * scale, height: side * scale)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let thumb = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            let aspect = max(target.width / full.size.width, target.height / full.size.height)
+            let size = CGSize(width: full.size.width * aspect, height: full.size.height * aspect)
+            let origin = CGPoint(x: (target.width - size.width) / 2, y: (target.height - size.height) / 2)
+            full.draw(in: CGRect(origin: origin, size: size))
+        }
+        cache.setObject(thumb, forKey: cacheKey)
+        return thumb
     }
 }

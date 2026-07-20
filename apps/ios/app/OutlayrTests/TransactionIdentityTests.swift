@@ -326,6 +326,7 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         XCTAssertNil(migrated.value(forKey: "imageColour"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "customColour"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "currency"), file: file, line: line)
+        XCTAssertNil(migrated.value(forKey: "recurringEndDate"), file: file, line: line)
     }
 
     // These cover the chain as it ships TODAY. The V2 XML was edited in place
@@ -334,15 +335,19 @@ final class TransactionIdentityTests: CharacterizationTestCase {
     // app group, and CloudKit container (docs/decisions/rebrand-identity.md:
     // no user-data migration, a fresh container is provisioned).
 
-    func testStoreCreatedWithVersion1OpensUnderVersion4() throws {
+    func testStoreCreatedWithVersion1OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel")
     }
 
-    func testStoreCreatedWithVersion2OpensUnderVersion4() throws {
+    func testStoreCreatedWithVersion2OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 2")
     }
 
-    func testStoreCreatedWithVersion3OpensUnderVersion4() throws {
+    func testStoreCreatedWithVersion3OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 3")
+    }
+
+    func testStoreCreatedWithVersion4OpensUnderCurrentModel() throws {
+        try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 4")
     }
 }

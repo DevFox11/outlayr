@@ -14,6 +14,7 @@
 		25368BBFB4D8535A12266632 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A09C1A0656A3477F173D65 /* Foundation.framework */; };
 		2D7FC2580B072E9E0316E0D6 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
 		37FB79DD7768AA736DF6D4C1 /* BudgetRolloverCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 871417FF7CEC87B666036AF3 /* BudgetRolloverCharacterizationTests.swift */; };
+		3B7D43873A86E6AD2C86FD15 /* RecurringCadence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7AAAE440146815E16958A8 /* RecurringCadence.swift */; };
 		50409C4E4B9A4A08B2FB3258 /* TransactionIdentitySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B9326D3AE75026F19FF673A /* TransactionIdentitySelection.swift */; };
 		51838023ADC1F78E07210E5C /* HugeiconsSolidRounded in Frameworks */ = {isa = PBXBuildFile; productRef = BD7C6B0626C2163CF30F2380 /* HugeiconsSolidRounded */; };
 		530C89D62A793B6C00B5028D /* ShortcutsEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530C89D52A793B6C00B5028D /* ShortcutsEntities.swift */; };
@@ -156,10 +157,12 @@
 		5D5BA8C2B5864ADA4B66DC77 /* AmountEntryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1103F501EB24FABD37C357C1 /* AmountEntryModel.swift */; };
 		5E734127418292590AD1A803 /* CategorySheetSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D1E2B045E9364C79DCFAFFB /* CategorySheetSurface.swift */; };
 		63277BFF4A871965D4F09DA2 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
+		6A9AF43A5B5C0791AEF0012D /* TransactionFormDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4707E3549D3286CF8E211881 /* TransactionFormDraft.swift */; };
 		6CBF70A6F1B77E05572B634E /* AmountEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9505FB5830F960796D4AFE9 /* AmountEntrySheet.swift */; };
 		6D266457A008415544313BFE /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		6E1AE0176A2E11EA5232A590 /* TransactionImageIngestionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AD725B2A313B7C48518A4B /* TransactionImageIngestionTests.swift */; };
 		6EF0069F98D1C12036A1F04E /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
+		70B45A21B185D27043DEACBA /* TransactionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 488BA035A313CC8E427A936C /* TransactionFormView.swift */; };
 		7A875E2F3009CF3D00819E25 /* CategoryAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E2E3009CF3D00819E25 /* CategoryAlerts.swift */; };
 		7A875E313009CF5200819E25 /* SuggestedCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */; };
 		7A875E353009CF7200819E25 /* ColourPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E343009CF7200819E25 /* ColourPickerView.swift */; };
@@ -194,12 +197,16 @@
 		7D81220C8D799BF204BA2F3B /* HugeiconsCore in Frameworks */ = {isa = PBXBuildFile; productRef = F8097FE7BD48D39593A9DEC1 /* HugeiconsCore */; };
 		80A6BE4AC7A4C45FF2C795C4 /* TransactionHero.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80C8DBE794EA99C35918637 /* TransactionHero.swift */; };
 		81CC0138D8438F1D2A58655F /* TransactionPhotoLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */; };
+		8419A844FE27EE39A3F0F47F /* RecurringCadence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7AAAE440146815E16958A8 /* RecurringCadence.swift */; };
 		86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */; };
 		88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */; };
 		89566659E8FCC68B5825C501 /* AmountEntryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */; };
+		9133B30885589860E1DEF50B /* RecurringCadenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8AF1E95B6896B2903214A1 /* RecurringCadenceTests.swift */; };
 		9418AB19C3A05DD76DB28AC3 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
 		976D81620EBBF0F6D1FC00A1 /* TransactionIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA532F352DBE169472E6398C /* TransactionIdentityTests.swift */; };
+		98C3CB5089F7824EA1972F8E /* RecurringCadence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7AAAE440146815E16958A8 /* RecurringCadence.swift */; };
 		9D70062859410F6D4DB97778 /* TransactionIdentitySelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78EFBDBBCE822C84A3B777F9 /* TransactionIdentitySelectionTests.swift */; };
+		9EFE4A7DC258E7D7D3DEBB35 /* RecurringCadence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7AAAE440146815E16958A8 /* RecurringCadence.swift */; };
 		A2D9EFB926D95F61A7827583 /* IdentityCurtain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FF5C4A194D0B86D1AB59AC6 /* IdentityCurtain.swift */; };
 		A91E3F326B399F401F8D6608 /* CategoryIconValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45938619B0B0C5B582BA39C5 /* CategoryIconValidationTests.swift */; };
 		A9F10202263C2C4B7B08F659 /* DataControllerPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83D1F812EC5DC7BF733B848 /* DataControllerPersistenceTests.swift */; };
@@ -210,6 +217,7 @@
 		AEADEF752AE94DC3006EB614 /* Toolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEADEF732AE94DC3006EB614 /* Toolbar.swift */; };
 		AECE7F9E2AED1A6800B57267 /* SuggestedTransactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */; };
 		B154073174C3799973444B98 /* TransactionImageIngestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7C45E04801E844C7A0E621 /* TransactionImageIngestion.swift */; };
+		B2E3890EC5E4DF14E75993D1 /* TransactionFormDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE56D491CBE9DB23D4C860F0 /* TransactionFormDraftTests.swift */; };
 		B8EA13DA6DE3894F6DFA5F1D /* ColourHexRoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DB7496780377764915F7DE /* ColourHexRoundTripTests.swift */; };
 		BEC5A28F219BB14E49C60264 /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		C212A44B6F8F6230264669CD /* AppGroupBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7754C3185DAFE6D938265668 /* AppGroupBridgeTests.swift */; };
@@ -230,6 +238,7 @@
 		D82A22382BB31284D884EDB2 /* CSVExportCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */; };
 		DC98064B534B0D575C4C0710 /* CurvedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A9959DD9E3D87C020B9E38 /* CurvedText.swift */; };
 		DE259ACA9B8C565CB5DA74D5 /* ToolbarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99ABDD12006D98B217DD6DC8 /* ToolbarIcon.swift */; };
+		DE95FE9617413DBD0566EA73 /* TransactionCategorySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20696C395B93F6A503B5E89 /* TransactionCategorySheet.swift */; };
 		E684386679DF083BA201830F /* HapticTapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A6538D5586CF57B7CA4149 /* HapticTapper.swift */; };
 /* End PBXBuildFile section */
 
@@ -296,12 +305,14 @@
 		1103F501EB24FABD37C357C1 /* AmountEntryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmountEntryModel.swift; sourceTree = "<group>"; };
 		1C899935BC0A4B821A02E61E /* CategoryIconTile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIconTile.swift; sourceTree = "<group>"; };
 		2101780E8A9E93764904EE87 /* CSVExport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSVExport.swift; sourceTree = "<group>"; };
-		245E407B32D4AF4E6D5511D6 /* MainModel 4.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 4.xcdatamodel"; sourceTree = "<group>"; };
 		2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionPhotoLoadTests.swift; sourceTree = "<group>"; };
+		26A5C77DB04E845097F3F26A /* MainModel 4.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 4.xcdatamodel"; sourceTree = "<group>"; };
 		30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecurringTransactionCharacterizationTests.swift; sourceTree = "<group>"; };
 		360254ED205628F984B8625B /* MainModel 3.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 3.xcdatamodel"; sourceTree = "<group>"; };
 		37A6538D5586CF57B7CA4149 /* HapticTapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HapticTapper.swift; sourceTree = "<group>"; };
 		45938619B0B0C5B582BA39C5 /* CategoryIconValidationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIconValidationTests.swift; sourceTree = "<group>"; };
+		4707E3549D3286CF8E211881 /* TransactionFormDraft.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionFormDraft.swift; sourceTree = "<group>"; };
+		488BA035A313CC8E427A936C /* TransactionFormView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionFormView.swift; sourceTree = "<group>"; };
 		4C022AF97617B85C70FBA55D /* CategoryTypePicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryTypePicker.swift; sourceTree = "<group>"; };
 		4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIcon.swift; sourceTree = "<group>"; };
 		530C89D52A793B6C00B5028D /* ShortcutsEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsEntities.swift; sourceTree = "<group>"; };
@@ -454,6 +465,7 @@
 		99ABDD12006D98B217DD6DC8 /* ToolbarIcon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToolbarIcon.swift; sourceTree = "<group>"; };
 		9BF1A3F7917ACFAACE8EAF35 /* TransactionIdentityPickerSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionIdentityPickerSheet.swift; sourceTree = "<group>"; };
 		9CF4206344CBE8732A64585E /* CategoryIconCatalogTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIconCatalogTests.swift; sourceTree = "<group>"; };
+		A20696C395B93F6A503B5E89 /* TransactionCategorySheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionCategorySheet.swift; sourceTree = "<group>"; };
 		A83D1F812EC5DC7BF733B848 /* DataControllerPersistenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataControllerPersistenceTests.swift; sourceTree = "<group>"; };
 		A9A9959DD9E3D87C020B9E38 /* CurvedText.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurvedText.swift; sourceTree = "<group>"; };
 		ABB08D25A084EA1AB577838F /* InsightsBucketingCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightsBucketingCharacterizationTests.swift; sourceTree = "<group>"; };
@@ -464,6 +476,7 @@
 		AEADEF732AE94DC3006EB614 /* Toolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Toolbar.swift; sourceTree = "<group>"; };
 		AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedTransactions.swift; sourceTree = "<group>"; };
 		B9505FB5830F960796D4AFE9 /* AmountEntrySheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmountEntrySheet.swift; sourceTree = "<group>"; };
+		BE56D491CBE9DB23D4C860F0 /* TransactionFormDraftTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionFormDraftTests.swift; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconTesting.icon; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon1.icon; sourceTree = "<group>"; };
@@ -472,10 +485,13 @@
 		C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon4.icon; sourceTree = "<group>"; };
 		C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutView.swift; sourceTree = "<group>"; };
 		CA7C45E04801E844C7A0E621 /* TransactionImageIngestion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionImageIngestion.swift; sourceTree = "<group>"; };
+		CC8AF1E95B6896B2903214A1 /* RecurringCadenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecurringCadenceTests.swift; sourceTree = "<group>"; };
+		CE7AAAE440146815E16958A8 /* RecurringCadence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecurringCadence.swift; sourceTree = "<group>"; };
 		D2F7E4C1513A8E910FA94CC2 /* CategorySymbolTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategorySymbolTests.swift; sourceTree = "<group>"; };
 		D63B20472D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Localizations/en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D63B20492D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = Localizations/en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		D80C8DBE794EA99C35918637 /* TransactionHero.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionHero.swift; sourceTree = "<group>"; };
+		D931812885163653620CD68C /* MainModel 5.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 5.xcdatamodel"; sourceTree = "<group>"; };
 		DA532F352DBE169472E6398C /* TransactionIdentityTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionIdentityTests.swift; sourceTree = "<group>"; };
 		E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmountEntryModelTests.swift; sourceTree = "<group>"; };
 		E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CharacterizationSupport.swift; sourceTree = "<group>"; };
@@ -724,6 +740,7 @@
 				7A875E4C3009D48000819E25 /* YearGraphView.swift */,
 				53D6BDC62AF73B1D00F5728E /* Settings */,
 				53B907972AE817D50001F496 /* Shapes */,
+				488BA035A313CC8E427A936C /* TransactionFormView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -742,6 +759,8 @@
 				53D0297F28C5BC0300443F2B /* Currency.swift */,
 				4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */,
 				8B9326D3AE75026F19FF673A /* TransactionIdentitySelection.swift */,
+				4707E3549D3286CF8E211881 /* TransactionFormDraft.swift */,
+				CE7AAAE440146815E16958A8 /* RecurringCadence.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -869,6 +888,8 @@
 				0ECECAA1CC798CE87A1DB4D1 /* TransactionGlowTests.swift */,
 				2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */,
 				E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */,
+				BE56D491CBE9DB23D4C860F0 /* TransactionFormDraftTests.swift */,
+				CC8AF1E95B6896B2903214A1 /* RecurringCadenceTests.swift */,
 			);
 			path = OutlayrTests;
 			sourceTree = "<group>";
@@ -922,6 +943,7 @@
 				53E832E62B0B067B000CBBA0 /* TransactionCategoryPicker.swift */,
 				1103F501EB24FABD37C357C1 /* AmountEntryModel.swift */,
 				B9505FB5830F960796D4AFE9 /* AmountEntrySheet.swift */,
+				A20696C395B93F6A503B5E89 /* TransactionCategorySheet.swift */,
 			);
 			path = Transactions;
 			sourceTree = "<group>";
@@ -1178,6 +1200,7 @@
 				5321E1E0291FE2D000D5A931 /* CategoryCreationErrors.swift in Sources */,
 				5A9636689B7473BBCAC9AE3E /* AppIdentifiers.swift in Sources */,
 				9418AB19C3A05DD76DB28AC3 /* CategoryIcon.swift in Sources */,
+				9EFE4A7DC258E7D7D3DEBB35 /* RecurringCadence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1194,6 +1217,7 @@
 				5321E1DF291FE2D000D5A931 /* CategoryCreationErrors.swift in Sources */,
 				BEC5A28F219BB14E49C60264 /* AppIdentifiers.swift in Sources */,
 				2D7FC2580B072E9E0316E0D6 /* CategoryIcon.swift in Sources */,
+				3B7D43873A86E6AD2C86FD15 /* RecurringCadence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1330,6 +1354,10 @@
 				5D5BA8C2B5864ADA4B66DC77 /* AmountEntryModel.swift in Sources */,
 				6CBF70A6F1B77E05572B634E /* AmountEntrySheet.swift in Sources */,
 				E684386679DF083BA201830F /* HapticTapper.swift in Sources */,
+				70B45A21B185D27043DEACBA /* TransactionFormView.swift in Sources */,
+				DE95FE9617413DBD0566EA73 /* TransactionCategorySheet.swift in Sources */,
+				6A9AF43A5B5C0791AEF0012D /* TransactionFormDraft.swift in Sources */,
+				98C3CB5089F7824EA1972F8E /* RecurringCadence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1362,6 +1390,7 @@
 				53A32B3928AB6C8700628905 /* Line.swift in Sources */,
 				7B9C8801231DD991ABF50E3D /* AppIdentifiers.swift in Sources */,
 				63277BFF4A871965D4F09DA2 /* CategoryIcon.swift in Sources */,
+				8419A844FE27EE39A3F0F47F /* RecurringCadence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1387,6 +1416,8 @@
 				0A41C8946EBBDDCB3CF3E41F /* TransactionGlowTests.swift in Sources */,
 				81CC0138D8438F1D2A58655F /* TransactionPhotoLoadTests.swift in Sources */,
 				89566659E8FCC68B5825C501 /* AmountEntryModelTests.swift in Sources */,
+				B2E3890EC5E4DF14E75993D1 /* TransactionFormDraftTests.swift in Sources */,
+				9133B30885589860E1DEF50B /* RecurringCadenceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2041,9 +2072,10 @@
 				53BC2A412A8B21920019E4A8 /* MainModel.xcdatamodel */,
 				E8893E6D0A5473A61041F178 /* MainModel 2.xcdatamodel */,
 				360254ED205628F984B8625B /* MainModel 3.xcdatamodel */,
-				245E407B32D4AF4E6D5511D6 /* MainModel 4.xcdatamodel */,
+				26A5C77DB04E845097F3F26A /* MainModel 4.xcdatamodel */,
+				D931812885163653620CD68C /* MainModel 5.xcdatamodel */,
 			);
-			currentVersion = 245E407B32D4AF4E6D5511D6 /* MainModel 4.xcdatamodel */;
+			currentVersion = D931812885163653620CD68C /* MainModel 5.xcdatamodel */;
 			path = MainModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

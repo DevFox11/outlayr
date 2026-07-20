@@ -204,11 +204,29 @@ class DataController {
         }
     }
 
+    /// The next occurrence date for a recurring transaction's type/coefficient,
+    /// resolved through `RecurringCadence` (daily/weekly/monthly/yearly). Returns
+    /// nil for an unrecognised type or `.none` so callers stop advancing instead
+    /// of force-unwrapping. The coefficient is clamped to ≥1 inside the cadence,
+    /// and month/year addition clamps to the last valid day of the month (see
+    /// `RecurringCadence.next`).
+    private func advanceRecurringDate(from date: Date, type: Int16, coefficient: Int16) -> Date? {
+        RecurringCadence(rawValue: type)?.next(from: date, coefficient: coefficient, calendar: injectedCalendar)
+    }
+
     func updateRecurringTransaction(transaction: Transaction) {
+        // The recurrence stops after this day (inclusive): occurrences ON the end
+        // date are generated, occurrences past it are not. nil means open-ended.
+        let endLimit = transaction.recurringEndDate.map { injectedCalendar.startOfDay(for: $0) }
+        func withinEndLimit(_ date: Date) -> Bool {
+            guard let endLimit else { return true }
+            return injectedCalendar.startOfDay(for: date) <= endLimit
+        }
+
         if transaction.nextTransactionDate < injectedCalendar.startOfDay(for: now()) {
             var holdingDate = transaction.nextTransactionDate
 
-            while holdingDate <= injectedCalendar.startOfDay(for: now()) {
+            while holdingDate <= injectedCalendar.startOfDay(for: now()), withinEndLimit(holdingDate) {
                 let newTransaction = Transaction(context: container.viewContext)
                 newTransaction.note = transaction.wrappedNote
                 newTransaction.category = transaction.category
@@ -226,24 +244,35 @@ class DataController {
 
                 newTransaction.onceRecurring = true
 
-                var newDate: Date?
-
-                if transaction.recurringType == 1 {
-                    newDate = injectedCalendar.date(byAdding: .day, value: Int(transaction.recurringCoefficient), to: holdingDate)!
-                } else if transaction.recurringType == 2 {
-                    newDate = injectedCalendar.date(byAdding: .day, value: Int(transaction.recurringCoefficient * 7), to: holdingDate)!
-                } else if transaction.recurringType == 3 {
-                    newDate = injectedCalendar.date(byAdding: .month, value: Int(transaction.recurringCoefficient), to: holdingDate)!
+                guard let newDate = advanceRecurringDate(
+                    from: holdingDate,
+                    type: transaction.recurringType,
+                    coefficient: transaction.recurringCoefficient
+                ) else {
+                    newTransaction.recurringType = 0
+                    break
                 }
 
-                if newDate! > injectedCalendar.startOfDay(for: now()) {
+                // Forward-progress invariant: if the advance did not move the
+                // date past the current occurrence (a malformed/zero coefficient
+                // that survived clamping, or a calendar edge), retire the row
+                // rather than loop forever inserting on the same day.
+                guard newDate > holdingDate else {
+                    newTransaction.recurringType = 0
+                    break
+                }
+
+                // Carry the recurrence forward only if the next occurrence is both
+                // still ahead of today and within the (inclusive) end date.
+                if newDate > injectedCalendar.startOfDay(for: now()), withinEndLimit(newDate) {
                     newTransaction.recurringType = transaction.recurringType
                     newTransaction.recurringCoefficient = transaction.recurringCoefficient
+                    newTransaction.recurringEndDate = transaction.recurringEndDate
                 } else {
                     newTransaction.recurringType = 0
                 }
 
-                holdingDate = newDate!
+                holdingDate = newDate
             }
 
             transaction.recurringType = 0
@@ -251,24 +280,42 @@ class DataController {
             save()
 
         } else if injectedCalendar.isDate(transaction.nextTransactionDate, inSameDayAs: now()) {
-            let newTransaction = Transaction(context: container.viewContext)
-            newTransaction.note = transaction.wrappedNote
-            newTransaction.category = transaction.category
-            newTransaction.amount = transaction.wrappedAmount
-            newTransaction.date = transaction.nextTransactionDate
-            newTransaction.id = UUID()
-            newTransaction.income = transaction.income
-            newTransaction.day = transaction.nextTransactionDate
+            // The next occurrence is today. Generate it only if it is within the
+            // (inclusive) end date; either way retire the source row — a same-day
+            // occurrence past the end date is done, not left lingering.
+            if withinEndLimit(transaction.nextTransactionDate) {
+                let newTransaction = Transaction(context: container.viewContext)
+                newTransaction.note = transaction.wrappedNote
+                newTransaction.category = transaction.category
+                newTransaction.amount = transaction.wrappedAmount
+                newTransaction.date = transaction.nextTransactionDate
+                newTransaction.id = UUID()
+                newTransaction.income = transaction.income
+                newTransaction.day = transaction.nextTransactionDate
 
-            let calendar = Calendar(identifier: .gregorian)
+                let calendar = Calendar(identifier: .gregorian)
 
-            let dateComponents = calendar.dateComponents([.month, .year], from: transaction.nextTransactionDate)
+                let dateComponents = calendar.dateComponents([.month, .year], from: transaction.nextTransactionDate)
 
-            newTransaction.month = calendar.date(from: dateComponents)!
+                newTransaction.month = calendar.date(from: dateComponents)!
 
-            newTransaction.onceRecurring = true
-            newTransaction.recurringType = transaction.recurringType
-            newTransaction.recurringCoefficient = transaction.recurringCoefficient
+                newTransaction.onceRecurring = true
+
+                // Carry forward only if the occurrence after today is still within the
+                // (inclusive) end date; otherwise this is the final occurrence.
+                let nextAfter = advanceRecurringDate(
+                    from: transaction.nextTransactionDate,
+                    type: transaction.recurringType,
+                    coefficient: transaction.recurringCoefficient
+                )
+                if let nextAfter, withinEndLimit(nextAfter) {
+                    newTransaction.recurringType = transaction.recurringType
+                    newTransaction.recurringCoefficient = transaction.recurringCoefficient
+                    newTransaction.recurringEndDate = transaction.recurringEndDate
+                } else {
+                    newTransaction.recurringType = 0
+                }
+            }
 
             transaction.recurringType = 0
 
@@ -333,7 +380,9 @@ class DataController {
         if repeatType > 0 {
             transaction.onceRecurring = true
             transaction.recurringType = Int16(repeatType)
-            transaction.recurringCoefficient = Int16(repeatCoefficient)
+            // Clamp defensively so a malformed coefficient can never stall the
+            // back-fill loop (mirrors TransactionFormDraft + RecurringCadence).
+            transaction.recurringCoefficient = Int16(max(1, repeatCoefficient))
             updateRecurringTransaction(transaction: transaction)
         }
 

@@ -120,7 +120,7 @@ struct Provider: IntentTimelineProvider {
         var sending = [HoldingTransaction]()
 
         holding.forEach { transaction in
-            let t = HoldingTransaction(colour: transaction.category?.wrappedColour ?? "", note: transaction.wrappedNote, amount: transaction.wrappedAmount, income: transaction.income)
+            let t = HoldingTransaction(colour: transaction.effectiveColour, note: transaction.wrappedNote, amount: transaction.wrappedAmount, income: transaction.income)
 
             sending.append(t)
         }

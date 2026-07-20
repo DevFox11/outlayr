@@ -228,7 +228,7 @@ struct ShortcutTransactionView: View {
     var body: some View {
         HStack(spacing: 12) {
             CategoryIconLogTile(symbol: transaction.displaySymbol,
-                                colour: (transaction.category?.wrappedColour ?? ""), future: false)
+                                colour: transaction.effectiveColour, future: false)
                 .frame(width: 35, height: 35, alignment: .center)
                 .overlay(alignment: .bottomTrailing) {
                     if transaction.recurringType > 0 {
