@@ -560,11 +560,12 @@ struct CategoryIconBrowser: View {
 struct GridPressStyle: ButtonStyle {
     var scale: CGFloat = 0.96
     var pressedOpacity: Double? = 0.85
+    var animation: Animation = .spring(response: 0.25, dampingFraction: 0.7)
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
             .opacity(configuration.isPressed ? (pressedOpacity ?? 1) : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(animation, value: configuration.isPressed)
     }
 }

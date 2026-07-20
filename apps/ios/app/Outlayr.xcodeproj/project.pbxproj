@@ -153,8 +153,10 @@
 		548833D01E6E472EE57E227D /* CategoryIconTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C899935BC0A4B821A02E61E /* CategoryIconTile.swift */; };
 		59494639F88E1A6193B5737A /* SymbolBrowsers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E2BEC43EBA7FF0ADD740326 /* SymbolBrowsers.swift */; };
 		5A9636689B7473BBCAC9AE3E /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
+		5D5BA8C2B5864ADA4B66DC77 /* AmountEntryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1103F501EB24FABD37C357C1 /* AmountEntryModel.swift */; };
 		5E734127418292590AD1A803 /* CategorySheetSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D1E2B045E9364C79DCFAFFB /* CategorySheetSurface.swift */; };
 		63277BFF4A871965D4F09DA2 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
+		6CBF70A6F1B77E05572B634E /* AmountEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9505FB5830F960796D4AFE9 /* AmountEntrySheet.swift */; };
 		6D266457A008415544313BFE /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A702F92DDF56EA383CB2C8 /* AppIdentifiers.swift */; };
 		6E1AE0176A2E11EA5232A590 /* TransactionImageIngestionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AD725B2A313B7C48518A4B /* TransactionImageIngestionTests.swift */; };
 		6EF0069F98D1C12036A1F04E /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
@@ -194,6 +196,7 @@
 		81CC0138D8438F1D2A58655F /* TransactionPhotoLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */; };
 		86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */; };
 		88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */; };
+		89566659E8FCC68B5825C501 /* AmountEntryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */; };
 		9418AB19C3A05DD76DB28AC3 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */; };
 		976D81620EBBF0F6D1FC00A1 /* TransactionIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA532F352DBE169472E6398C /* TransactionIdentityTests.swift */; };
 		9D70062859410F6D4DB97778 /* TransactionIdentitySelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78EFBDBBCE822C84A3B777F9 /* TransactionIdentitySelectionTests.swift */; };
@@ -219,6 +222,7 @@
 		C5B7A0011D0E0F0000ABCDE2 /* SettingsAboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B7A0011D0E0F0000ABCDE1 /* SettingsAboutView.swift */; };
 		C64950680B62A02C101DDC6B /* ImageDominantColorsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88790DCD3BAA669FFCF16479 /* ImageDominantColorsTests.swift */; };
 		CBFC6F94C1F7401E00B47CAD /* CategoryTypePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C022AF97617B85C70FBA55D /* CategoryTypePicker.swift */; };
+		CC4527F012B3E503D286A8A6 /* NumberFlow in Frameworks */ = {isa = PBXBuildFile; productRef = 6C5332F53C5EE2F1B4EAE085 /* NumberFlow */; };
 		D365A14F19359C69662CCE0F /* CategorySymbolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F7E4C1513A8E910FA94CC2 /* CategorySymbolTests.swift */; };
 		D4D87152C47C52BBC9A56D83 /* InsightsBucketingCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB08D25A084EA1AB577838F /* InsightsBucketingCharacterizationTests.swift */; };
 		D63B204A2D8728C300CAFB20 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20462D8728C300CAFB20 /* Localizable.strings */; };
@@ -226,6 +230,7 @@
 		D82A22382BB31284D884EDB2 /* CSVExportCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAEF34CA29C5A4E9DCAF28C /* CSVExportCharacterizationTests.swift */; };
 		DC98064B534B0D575C4C0710 /* CurvedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A9959DD9E3D87C020B9E38 /* CurvedText.swift */; };
 		DE259ACA9B8C565CB5DA74D5 /* ToolbarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99ABDD12006D98B217DD6DC8 /* ToolbarIcon.swift */; };
+		E684386679DF083BA201830F /* HapticTapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A6538D5586CF57B7CA4149 /* HapticTapper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -288,12 +293,14 @@
 /* Begin PBXFileReference section */
 		0BDC8E41E49D3FE803886005 /* OutlayrTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OutlayrTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0ECECAA1CC798CE87A1DB4D1 /* TransactionGlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionGlowTests.swift; sourceTree = "<group>"; };
+		1103F501EB24FABD37C357C1 /* AmountEntryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmountEntryModel.swift; sourceTree = "<group>"; };
 		1C899935BC0A4B821A02E61E /* CategoryIconTile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIconTile.swift; sourceTree = "<group>"; };
 		2101780E8A9E93764904EE87 /* CSVExport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CSVExport.swift; sourceTree = "<group>"; };
 		245E407B32D4AF4E6D5511D6 /* MainModel 4.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 4.xcdatamodel"; sourceTree = "<group>"; };
 		2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionPhotoLoadTests.swift; sourceTree = "<group>"; };
 		30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecurringTransactionCharacterizationTests.swift; sourceTree = "<group>"; };
 		360254ED205628F984B8625B /* MainModel 3.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 3.xcdatamodel"; sourceTree = "<group>"; };
+		37A6538D5586CF57B7CA4149 /* HapticTapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HapticTapper.swift; sourceTree = "<group>"; };
 		45938619B0B0C5B582BA39C5 /* CategoryIconValidationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIconValidationTests.swift; sourceTree = "<group>"; };
 		4C022AF97617B85C70FBA55D /* CategoryTypePicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryTypePicker.swift; sourceTree = "<group>"; };
 		4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIcon.swift; sourceTree = "<group>"; };
@@ -456,6 +463,7 @@
 		AEADEF722AE94DC3006EB614 /* ToolbarButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ToolbarButton.swift; sourceTree = "<group>"; };
 		AEADEF732AE94DC3006EB614 /* Toolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Toolbar.swift; sourceTree = "<group>"; };
 		AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedTransactions.swift; sourceTree = "<group>"; };
+		B9505FB5830F960796D4AFE9 /* AmountEntrySheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmountEntrySheet.swift; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF01 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF03 /* AppIconTesting.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconTesting.icon; sourceTree = "<group>"; };
 		C5A1C0FF1C04DE01ABCDEF05 /* AppIcon1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon1.icon; sourceTree = "<group>"; };
@@ -469,6 +477,7 @@
 		D63B20492D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = Localizations/en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		D80C8DBE794EA99C35918637 /* TransactionHero.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionHero.swift; sourceTree = "<group>"; };
 		DA532F352DBE169472E6398C /* TransactionIdentityTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionIdentityTests.swift; sourceTree = "<group>"; };
+		E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmountEntryModelTests.swift; sourceTree = "<group>"; };
 		E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CharacterizationSupport.swift; sourceTree = "<group>"; };
 		E8893E6D0A5473A61041F178 /* MainModel 2.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 2.xcdatamodel"; sourceTree = "<group>"; };
 		F4AD725B2A313B7C48518A4B /* TransactionImageIngestionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionImageIngestionTests.swift; sourceTree = "<group>"; };
@@ -504,6 +513,7 @@
 				7A875E68300A90B400819E25 /* HugeiconsSolidRounded in Frameworks */,
 				7A875E66300A90B400819E25 /* HugeiconsCore in Frameworks */,
 				536715ED28E1E9A3008461F2 /* StoreKit.framework in Frameworks */,
+				CC4527F012B3E503D286A8A6 /* NumberFlow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -858,6 +868,7 @@
 				78EFBDBBCE822C84A3B777F9 /* TransactionIdentitySelectionTests.swift */,
 				0ECECAA1CC798CE87A1DB4D1 /* TransactionGlowTests.swift */,
 				2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */,
+				E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */,
 			);
 			path = OutlayrTests;
 			sourceTree = "<group>";
@@ -886,6 +897,7 @@
 				9E8CD6DB45E35F5850F2CF32 /* IdentitySheet */,
 				6AA7023484F454A508D2CEE2 /* ImageDominantColors.swift */,
 				CA7C45E04801E844C7A0E621 /* TransactionImageIngestion.swift */,
+				37A6538D5586CF57B7CA4149 /* HapticTapper.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -908,6 +920,8 @@
 				AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */,
 				AE5B3D782AEE99E000AB364E /* NumberPad.swift */,
 				53E832E62B0B067B000CBBA0 /* TransactionCategoryPicker.swift */,
+				1103F501EB24FABD37C357C1 /* AmountEntryModel.swift */,
+				B9505FB5830F960796D4AFE9 /* AmountEntrySheet.swift */,
 			);
 			path = Transactions;
 			sourceTree = "<group>";
@@ -973,6 +987,7 @@
 				5327D2E5287C6CC300F76ADF /* Popovers */,
 				53A4147F28B7DA4C008C30E7 /* ConfettiSwiftUI */,
 				53DCFAA02A498FBF0063FCDE /* CloudKitSyncMonitor */,
+				6C5332F53C5EE2F1B4EAE085 /* NumberFlow */,
 			);
 			productName = Outlayr;
 			productReference = 5327D283287C697400F76ADF /* Outlayr.app */;
@@ -1060,6 +1075,7 @@
 				53DCFA9F2A498FBF0063FCDE /* XCRemoteSwiftPackageReference "CloudKitSyncMonitor" */,
 				7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "hugeicons-swift" */,
 				7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+				10ACCFABA18ED74A85E906A9 /* XCLocalSwiftPackageReference "numberflow" */,
 			);
 			productRefGroup = 5327D284287C697400F76ADF /* Products */;
 			projectDirPath = "";
@@ -1311,6 +1327,9 @@
 				A2D9EFB926D95F61A7827583 /* IdentityCurtain.swift in Sources */,
 				80A6BE4AC7A4C45FF2C795C4 /* TransactionHero.swift in Sources */,
 				533E2931202101A21B933808 /* TransactionIdentityPickerSheet.swift in Sources */,
+				5D5BA8C2B5864ADA4B66DC77 /* AmountEntryModel.swift in Sources */,
+				6CBF70A6F1B77E05572B634E /* AmountEntrySheet.swift in Sources */,
+				E684386679DF083BA201830F /* HapticTapper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1367,6 +1386,7 @@
 				9D70062859410F6D4DB97778 /* TransactionIdentitySelectionTests.swift in Sources */,
 				0A41C8946EBBDDCB3CF3E41F /* TransactionGlowTests.swift in Sources */,
 				81CC0138D8438F1D2A58655F /* TransactionPhotoLoadTests.swift in Sources */,
+				89566659E8FCC68B5825C501 /* AmountEntryModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1919,6 +1939,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		10ACCFABA18ED74A85E906A9 /* XCLocalSwiftPackageReference "numberflow" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/numberflow;
+		};
 		7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "hugeicons-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "Packages/hugeicons-swift";
@@ -1975,6 +1999,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 53DCFA9F2A498FBF0063FCDE /* XCRemoteSwiftPackageReference "CloudKitSyncMonitor" */;
 			productName = CloudKitSyncMonitor;
+		};
+		6C5332F53C5EE2F1B4EAE085 /* NumberFlow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10ACCFABA18ED74A85E906A9 /* XCLocalSwiftPackageReference "numberflow" */;
+			productName = NumberFlow;
 		};
 		7A875E65300A90B400819E25 /* HugeiconsCore */ = {
 			isa = XCSwiftPackageProductDependency;

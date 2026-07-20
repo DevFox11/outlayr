@@ -32,6 +32,17 @@ extension Locale {
 extension Currency {
     static var currencyCodes: [String] = ["AED", "AFN", "ALL", "AMD", "ANG", "AOA", "ARS", "AUD", "AWG", "AZN", "BAM", "BBD", "BDT", "BGN", "BHD", "BIF", "BMD", "BND", "BOB", "BOV", "BRL", "BSD", "BTN", "BWP", "BYN", "BZD", "CAD", "CDF", "CHE", "CHF", "CHW", "CLF", "CLP", "CNY", "COP", "COU", "CRC", "CUC", "CUP", "CVE", "CZK", "DJF", "DKK", "DOP", "DZD", "EGP", "ERN", "ETB", "EUR", "FJD", "FKP", "GBP", "GEL", "GHS", "GIP", "GMD", "GNF", "GTQ", "GYD", "HKD", "HNL", "HRK", "HTG", "HUF", "IDR", "ILS", "INR", "IQD", "IRR", "ISK", "JMD", "JOD", "JPY", "KES", "KGS", "KHR", "KMF", "KPW", "KRW", "KWD", "KYD", "KZT", "LAK", "LBP", "LKR", "LRD", "LSL", "LTL", "LVL", "LYD", "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MUR", "MVR", "MWK", "MXN", "MXV", "MYR", "MZN", "NAD", "NGN", "NIO", "NOK", "NPR", "NZD", "OMR", "PAB", "PEN", "PGK", "PHP", "PKR", "PLN", "PYG", "QAR", "RON", "RSD", "RUB", "RWF", "SAR", "SBD", "SCR", "SDG", "SEK", "SGD", "SHP", "SLL", "SOS", "SRD", "SSP", "STD", "SYP", "SZL", "THB", "TJS", "TMT", "TND", "TOP", "TRY", "TTD", "TWD", "TZS", "UAH", "UGX", "USD", "UYU", "UZS", "VED", "VES", "VND", "VUV", "WST", "XAF", "XAG", "XAU", "XBA", "XBB", "XCD", "XDR", "XFU", "XOF", "XPD", "XPF", "XPT", "YER", "ZAR", "ZMW"]
 
+    /// ISO minor units for a currency (USD 2, JPY 0, BHD 3), derived from the
+    /// system's currency formatting data rather than a hardcoded list. The
+    /// locale is pinned so the derivation never depends on device settings.
+    static func minorUnits(for code: String) -> Int {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .currency
+        formatter.currencyCode = code
+        return formatter.maximumFractionDigits
+    }
+
     static var allCurrencies: [Currency] {
         let currencies: [Currency] = currencyCodes.compactMap {
             let name = Locale.current.localizedString(forCurrencyCode: $0) ?? ""
@@ -39,5 +50,18 @@ extension Currency {
             return Currency(name: name, code: $0, symbol: symbol)
         }
         return currencies
+    }
+}
+
+/// Single source of truth for the global currency preference: its storage key
+/// and the fallback chain used everywhere a currency code must be resolved.
+enum CurrencyPreference {
+    static let storageKey = "currency"
+
+    static func resolve(override: String? = nil) -> String {
+        override
+            ?? AppIdentifiers.sharedDefaults?.string(forKey: storageKey)
+            ?? Locale.current.currency?.identifier
+            ?? "USD"
     }
 }
