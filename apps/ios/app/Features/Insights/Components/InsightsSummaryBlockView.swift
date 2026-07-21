@@ -1,5 +1,5 @@
 //
-//  InsightsSummaryBlock.swift
+//  InsightsSummaryBlockView.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 19/11/23.

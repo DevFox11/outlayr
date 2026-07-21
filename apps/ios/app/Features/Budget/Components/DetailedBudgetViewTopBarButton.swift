@@ -1,5 +1,5 @@
 //
-//  DetailedBudgetViewTopBarButtons.swift
+//  DetailedBudgetViewTopBarButton.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 4/11/23.

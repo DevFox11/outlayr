@@ -8,7 +8,7 @@
 import CoreData
 import SwiftUI
 
-struct BrandNewBudgetView: View {
+struct NewBudgetView: View {
     @FetchRequest private var categories: FetchedResults<Category>
 
     @AppStorage("firstWeekday", store: AppIdentifiers.sharedDefaults) var firstWeekday: Int = 1

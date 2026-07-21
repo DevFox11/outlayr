@@ -49,7 +49,7 @@ struct DetailedBudgetView: View {
             .sheet(item: $toEdit, onDismiss: {
                 toEdit = nil
             }) { budget in
-                BrandNewBudgetView(overallBudgetCreated: false, toEditBudget: budget)
+                NewBudgetView(overallBudgetCreated: false, toEditBudget: budget)
             }
             .sheet(isPresented: $newTransaction) {
                 TransactionView(category: budget.category)

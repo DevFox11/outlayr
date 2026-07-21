@@ -42,7 +42,7 @@ struct DetailedMainBudgetView: View {
             .fullScreenCover(item: $toEdit, onDismiss: {
                 toEdit = nil
             }) { budget in
-                BrandNewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
+                NewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
             }
             .deleteMainBudgetConfirmation($toDelete)
     }

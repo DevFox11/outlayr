@@ -8,7 +8,7 @@
 import SwiftUI
 import WidgetKit
 
-struct RecentExpenditureWidget: Widget {
+struct RecentTransactionsWidget: Widget {
     let kind: String = "ExpenditureWidget"
 
     private var supportedFamilies: [WidgetFamily] {

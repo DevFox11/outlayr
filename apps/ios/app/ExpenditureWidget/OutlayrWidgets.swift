@@ -1,5 +1,5 @@
 //
-//  ExpenditureWidget.swift
+//  OutlayrWidgets.swift
 //  ExpenditureWidget
 //
 //  Created by Rafael Soh on 25/7/22.
@@ -11,7 +11,7 @@ import WidgetKit
 @main
 struct OutlayrWidgets: WidgetBundle {
     var body: some Widget {
-        RecentExpenditureWidget()
+        RecentTransactionsWidget()
         InsightsWidget()
         BudgetWidget()
         LockBudgetWidget()

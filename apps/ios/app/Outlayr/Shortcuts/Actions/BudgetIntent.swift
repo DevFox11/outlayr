@@ -1,5 +1,5 @@
 //
-//  BudgetInsightsIntent.swift
+//  BudgetIntent.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 6/8/23.

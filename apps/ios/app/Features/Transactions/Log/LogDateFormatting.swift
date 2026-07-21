@@ -1,5 +1,5 @@
 //
-//  LogDateHelpers.swift
+//  LogDateFormatting.swift
 //  Outlayr
 //
 

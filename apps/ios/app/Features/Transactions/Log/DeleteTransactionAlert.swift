@@ -1,5 +1,5 @@
 //
-//  LogAlerts.swift
+//  DeleteTransactionAlert.swift
 //  Outlayr
 //
 

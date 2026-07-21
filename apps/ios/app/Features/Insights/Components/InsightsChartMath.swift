@@ -1,5 +1,5 @@
 //
-//  InsightsHelpers.swift
+//  InsightsChartMath.swift
 //  Outlayr
 //
 

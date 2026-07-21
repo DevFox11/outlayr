@@ -1,5 +1,5 @@
 //
-//  ShortcutsProvider.swift
+//  OutlayrShortcuts.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 5/8/23.

@@ -1,5 +1,5 @@
 //
-//  Authentication.swift
+//  AppLockViewModel.swift
 //  Bonsai
 //
 //  Created by Rafael Soh on 7/7/22.

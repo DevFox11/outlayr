@@ -270,7 +270,7 @@ struct SettingsView: View {
             }
           }
 
-          NavigationLink(destination: SettingsGoofyView()) {
+          NavigationLink(destination: SettingsFeatureLabView()) {
             SettingsRow(icon: "test-tube", color: 122, title: "Feature Lab")
           }
 

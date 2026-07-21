@@ -1,5 +1,5 @@
 //
-//  CategoryCreationErrors.swift
+//  CategoryError.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 12/11/22.

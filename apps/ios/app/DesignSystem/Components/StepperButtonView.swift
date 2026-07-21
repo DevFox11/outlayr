@@ -1,5 +1,5 @@
 //
-//  StepperButtons.swift
+//  StepperButtonView.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 5/11/23.

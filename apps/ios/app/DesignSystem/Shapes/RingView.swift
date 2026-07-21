@@ -1,5 +1,5 @@
 //
-//  Ring.swift
+//  RingView.swift
 //  Outlayr
 //
 //  Created by Rafael Soh on 24/10/23.

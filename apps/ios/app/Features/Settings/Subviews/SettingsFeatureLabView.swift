@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct SettingsGoofyView: View {
+struct SettingsFeatureLabView: View {
   @AppStorage("confetti", store: AppIdentifiers.sharedDefaults) var confetti:
     Bool = false
 

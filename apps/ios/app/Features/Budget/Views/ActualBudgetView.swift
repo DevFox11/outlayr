@@ -146,13 +146,13 @@ struct ActualBudgetView: View {
             .sheet(item: $toEdit, onDismiss: {
                 toEdit = nil
             }) { budget in
-                BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty, toEditBudget: budget)
+                NewBudgetView(overallBudgetCreated: !mainBudget.isEmpty, toEditBudget: budget)
             }
             .onAppear {
                 dataController.budgets.updateBudgetDates()
             }
             .sheet(isPresented: $newBudget) {
-                BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
+                NewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
             }
             .deleteBudgetConfirmation($toDelete)
             .onReceive(self.didSave) { _ in // the listener
