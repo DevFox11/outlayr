@@ -8,8 +8,6 @@ import CoreData
 import SwiftUI
 
 struct WeekGraphView: View {
-    @Environment(DataController.self) private var dataController
-
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
 
@@ -103,7 +101,7 @@ struct WeekGraphView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
                 ZStack {
-                    SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
+                    SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, income: $income, incomeFiltering: $incomeFiltering, type: 1)
                         .drawingGroup()
                         .id(refreshID)
                         .onAppear {

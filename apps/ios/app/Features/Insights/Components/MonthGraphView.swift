@@ -8,7 +8,6 @@ import CoreData
 import SwiftUI
 
 struct MonthGraphView: View {
-    @Environment(DataController.self) private var dataController
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
 
@@ -99,7 +98,7 @@ struct MonthGraphView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
                 ZStack {
-                    SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
+                    SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, income: $income, incomeFiltering: $incomeFiltering, type: 2)
                         .drawingGroup()
                         .id(refreshID)
                         .onAppear {

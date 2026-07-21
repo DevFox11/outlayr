@@ -8,12 +8,24 @@ import Foundation
 
 struct BudgetRepository {
     let dataController: DataController
+    private let context: NSManagedObjectContext
 
-    private var context: NSManagedObjectContext { dataController.container.viewContext }
+    init(dataController: DataController) {
+        self.init(dataController: dataController, context: dataController.container.viewContext)
+    }
+
+    /// Private because write paths save the view context via `DataController.save()`:
+    /// a repository built on a background context must stay read-only, and only the
+    /// async overloads below construct one.
+    private init(dataController: DataController, context: NSManagedObjectContext) {
+        self.dataController = dataController
+        self.context = context
+    }
+
     private var now: () -> Date { dataController.now }
 
     private func results<T: NSManagedObject>(for fetchRequest: NSFetchRequest<T>) -> [T] {
-        dataController.results(for: fetchRequest)
+        (try? context.fetch(fetchRequest)) ?? []
     }
 
     private func save() {
@@ -163,5 +175,111 @@ struct BudgetRepository {
         } else {
             return (false, 0, 0, 0, 0, Date.now)
         }
+    }
+
+    /// Runs `work` against a copy of this repository bound to a background
+    /// context, so callers hop threads once instead of repeating the plumbing.
+    private func onBackground<T>(_ work: @escaping (BudgetRepository) throws -> T) async rethrows -> T {
+        let dataController = self.dataController
+        return try await dataController.performBackground { context in
+            try work(BudgetRepository(dataController: dataController, context: context))
+        }
+    }
+
+    func getBudgetLeftover(budget: Budget? = nil, overallBudget: MainBudget? = nil) async throws -> Double {
+        // Managed objects must not cross into the background context; carry their
+        // IDs across the boundary and rematerialize them inside it.
+        let budgetID = budget?.objectID
+        let overallBudgetID = overallBudget?.objectID
+        return try await onBackground { repository in
+            let budget = budgetID.flatMap { (try? repository.context.existingObject(with: $0)) as? Budget }
+            let overallBudget = overallBudgetID.flatMap { (try? repository.context.existingObject(with: $0)) as? MainBudget }
+            // A failed rematerialization must not fall through to the nil/nil
+            // branch, whose unfiltered zero-amount fetch would return the negated
+            // sum of every transaction in the store.
+            if (budgetID != nil && budget == nil) || (overallBudgetID != nil && overallBudget == nil) {
+                throw CustomError.notFound
+            }
+            return repository.getBudgetLeftover(budget: budget, overallBudget: overallBudget)
+        }
+    }
+
+    func getMainBudgetWidgetSnapshot() async -> (found: Bool, totalSpent: Double, budgetAmount: Double, percentage: Double, type: Int, startDate: Date) {
+        await onBackground { $0.fetchRequestForMainBudgetWidget() }
+    }
+
+    /// Value-type view of one budget for the budget widgets: the spent total plus
+    /// the fields their date math and rendering need.
+    struct WidgetSnapshot: Equatable {
+        let totalSpent: Double
+        let type: Int
+        let symbol: CategorySymbol
+        let name: String
+        let color: String
+        let budgetAmount: Double
+        let startDate: Date
+        let endDate: Date
+    }
+
+    func getWidgetSnapshot(identifier: String) throws -> WidgetSnapshot {
+        // The widget configuration stores the budget's objectID URI. A budget
+        // deleted since then must surface as notFound, never as a broadened fetch.
+        guard let objectIDURL = URL(string: identifier),
+              let objectID = dataController.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: objectIDURL),
+              let budget = (try? context.existingObject(with: objectID)) as? Budget
+        else {
+            throw CustomError.notFound
+        }
+
+        // CloudKit can commit a Budget row before its attributes arrive; a
+        // half-synced budget must surface as notFound, not crash the widget
+        // process on a force-unwrap.
+        guard let startDate = budget.startDate, budget.category != nil else {
+            throw CustomError.notFound
+        }
+
+        let transactions = results(for: fetchRequestForBudgetTransactions(budget: budget))
+
+        var totalSpent = 0.0
+
+        transactions.forEach { transaction in
+            totalSpent += transaction.wrappedAmount
+        }
+
+        return WidgetSnapshot(
+            totalSpent: totalSpent,
+            type: Int(budget.type),
+            symbol: budget.displaySymbol,
+            name: budget.wrappedName,
+            color: budget.wrappedColor,
+            budgetAmount: budget.amount,
+            startDate: startDate,
+            endDate: budget.endDate
+        )
+    }
+
+    /// Resolves the configured budget and sums its transactions on the background
+    /// context, so widget timeline callbacks never touch the view context.
+    func getWidgetSnapshot(identifier: String) async throws -> WidgetSnapshot {
+        try await onBackground { try $0.getWidgetSnapshot(identifier: identifier) }
+    }
+
+    struct WidgetOption {
+        let identifier: String
+        let name: String
+    }
+
+    func getWidgetBudgetOptions() -> [WidgetOption] {
+        let request = fetchRequestForBudgets()
+        // The configuration list is user-visible; mirror the app's budget-list
+        // order instead of the store's arbitrary unsorted order.
+        request.sortDescriptors = [NSSortDescriptor(key: "dateCreated", ascending: true)]
+        return results(for: request).map {
+            WidgetOption(identifier: $0.objectID.uriRepresentation().absoluteString, name: $0.wrappedName)
+        }
+    }
+
+    func getWidgetBudgetOptions() async -> [WidgetOption] {
+        await onBackground { $0.getWidgetBudgetOptions() }
     }
 }

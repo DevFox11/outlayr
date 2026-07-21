@@ -19,14 +19,16 @@ class IntentHandler: INExtension, BudgetWidgetConfigurationIntentHandling {
             return
         }
 
-        let budgetFetchRequest = dataController.budgets.fetchRequestForBudgets()
+        Task {
+            // Fetch and map inside one background closure so no managed object
+            // crosses the thread boundary into this intent callback.
+            let budgets = await dataController.budgets.getWidgetBudgetOptions().map {
+                WidgetBudget(identifier: $0.identifier, display: $0.name)
+            }
 
-        let budgets = dataController.results(for: budgetFetchRequest).map {
-            WidgetBudget(identifier: $0.objectID.uriRepresentation().absoluteString, display: $0.wrappedName)
+            let collection = INObjectCollection(items: budgets)
+            completion(collection, nil)
         }
-
-        let collection = INObjectCollection(items: budgets)
-        completion(collection, nil)
     }
 
     override func handler(for _: INIntent) -> Any {

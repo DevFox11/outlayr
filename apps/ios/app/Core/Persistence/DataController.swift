@@ -182,6 +182,19 @@ class DataController {
     func results<T: NSManagedObject>(for fetchRequest: NSFetchRequest<T>) -> [T] {
         return (try? container.viewContext.fetch(fetchRequest)) ?? []
     }
+
+    func newBackgroundContext() -> NSManagedObjectContext {
+        let context = container.newBackgroundContext()
+        context.automaticallyMergesChangesFromParent = true
+        return context
+    }
+
+    /// Single funnel for background reads: runs `work` on a fresh background
+    /// context's queue so fetches never block (or violate) the main thread.
+    func performBackground<T>(_ work: @escaping (NSManagedObjectContext) throws -> T) async rethrows -> T {
+        let context = newBackgroundContext()
+        return try await context.perform { try work(context) }
+    }
 }
 
 public extension NSManagedObjectContext {

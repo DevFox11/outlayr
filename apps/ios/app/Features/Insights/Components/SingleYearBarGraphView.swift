@@ -23,10 +23,8 @@ struct SingleYearBarGraphView: View {
         return Int(ceil(maximum / 10) * 10)
     }
 
-    var yearTotal: Double = 0
     var yearAverage: Double = 0
     var actualMonths: Int = 0
-    var pastYearTotal: Double = 0
 
     let numberArray = [1, 4, 7, 10]
     let monthNames: [Int: String] = [1: "Jan", 4: "Apr", 7: "Jul", 10: "Oct"]
@@ -114,18 +112,15 @@ struct SingleYearBarGraphView: View {
         return dateFormatter.string(from: month)
     }
 
-    init(year: Date, date: Binding<Date?>?, mode: Binding<Bool>, amount: Binding<Double>, dataController: DataController, income: Bool) {
+    init(insights: TransactionRepository.GraphViewInsights.PeriodBreakdown, date: Binding<Date?>?, mode: Binding<Bool>, amount: Binding<Double>) {
         _selectedDate = date ?? Binding.constant(nil)
         _categoryFilterMode = mode
         _selectedDateAmount = amount
 
-        let loaded = dataController.transactions.getInsights(type: 3, date: year, income: income)
-
-        monthsOfYear = loaded.dates
-        monthDictionary = loaded.dateDictionary
-        self.max = loaded.maximum
-        yearTotal = loaded.amount
-        yearAverage = loaded.average
-        actualMonths = loaded.numberOfDays
+        monthsOfYear = insights.dates
+        monthDictionary = insights.dateDictionary
+        self.max = insights.maximum
+        yearAverage = insights.average
+        actualMonths = insights.numberOfDays
     }
 }

@@ -95,18 +95,30 @@ struct SingleGraphView: View {
     @Binding var income: Bool
     @Binding var incomeFiltering: Bool
 
-    let totalIncome: Double
-    let totalSpent: Double
-    let totalNet: Double
-    let netPositive: Bool
-    let currentNet: Double
-    let lastNet: Double
-    let average: Double
-
-    var incomeAverage: Double {
-        let loaded = dataController.transactions.getInsights(type: type, date: date, income: income)
-        return loaded.average
+    private struct LoadKey: Equatable {
+        let type: Int
+        let date: Date
+        let income: Bool
     }
+
+    @State private var insights: TransactionRepository.GraphViewInsights = .empty
+    @State private var loadedKey: LoadKey?
+
+    var totalIncome: Double { insights.summary.income }
+    var totalSpent: Double { insights.summary.spent }
+    var totalNet: Double { insights.summary.net }
+    var netPositive: Bool { insights.summary.positive }
+    var average: Double { insights.summary.average }
+
+    var currentNet: Double {
+        insights.summary.positive ? insights.summary.net : -insights.summary.net
+    }
+
+    var lastNet: Double {
+        insights.priorSummary.positive ? insights.priorSummary.net : -insights.priorSummary.net
+    }
+
+    var incomeAverage: Double { insights.breakdown.average }
 
     var percentageDifference: String {
         if lastNet == 0 {
@@ -275,14 +287,42 @@ struct SingleGraphView: View {
 
             if incomeFiltering {
                 if type == 1 {
-                    SingleWeekBarGraphView(week: date, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount, dataController: dataController, income: income)
+                    SingleWeekBarGraphView(insights: insights.breakdown, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount)
                 } else if type == 2 {
-                    SingleMonthBarGraphView(month: date, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount, dataController: dataController, income: income)
+                    SingleMonthBarGraphView(insights: insights.breakdown, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount)
                 } else if type == 3 {
-                    SingleYearBarGraphView(year: date, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount, dataController: dataController, income: income)
+                    SingleYearBarGraphView(insights: insights.breakdown, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount)
                 }
             }
         }
+        .task(id: LoadKey(type: type, date: date, income: income)) {
+            // Capture the inputs once: a cancelled-but-still-running load must
+            // never pick up a newer selection mid-flight.
+            let key = LoadKey(type: type, date: date, income: income)
+
+            // Showing another period's numbers under the new date label would be
+            // wrong; blank them and let the load fill in. An income toggle keeps
+            // the summaries because the period is the same, but the breakdown is
+            // income-dependent, so it must blank too.
+            if let loadedKey, loadedKey.type != key.type || loadedKey.date != key.date {
+                insights = .empty
+            } else if let loadedKey, loadedKey.income != key.income {
+                insights = TransactionRepository.GraphViewInsights(summary: insights.summary, priorSummary: insights.priorSummary, breakdown: .zero)
+            }
+
+            // Saves refresh this view via the parents' refreshID identity reset,
+            // so the view itself doesn't observe NSManagedObjectContextDidSave.
+            await loadInsights(key: key)
+        }
+    }
+
+    private func loadInsights(key: LoadKey) async {
+        let loaded = await dataController.transactions.getGraphViewInsights(type: key.type, date: key.date, income: key.income)
+
+        guard !Task.isCancelled else { return }
+
+        insights = loaded
+        loadedKey = key
     }
 
     func stringGenerator(amount: Double) -> String {
@@ -307,7 +347,7 @@ struct SingleGraphView: View {
         }
     }
 
-    init(showingDate: Date, date: Binding<Date?>?, mode: Binding<Bool>, categoryName: String, categoryAmount: Double, currencySymbol: String, showCents: Bool, dataController: DataController, income: Binding<Bool>, incomeFiltering: Binding<Bool>, type: Int) {
+    init(showingDate: Date, date: Binding<Date?>?, mode: Binding<Bool>, categoryName: String, categoryAmount: Double, currencySymbol: String, showCents: Bool, income: Binding<Bool>, incomeFiltering: Binding<Bool>, type: Int) {
         _selectedDate = date ?? Binding.constant(nil)
         _categoryFilterMode = mode
         _income = income
@@ -318,37 +358,5 @@ struct SingleGraphView: View {
         self.currencySymbol = currencySymbol
         self.showCents = showCents
         self.type = type
-
-        let loaded = dataController.transactions.getInsightsSummary(type: type, date: showingDate)
-
-        totalIncome = loaded.income
-        totalSpent = loaded.spent
-        netPositive = loaded.positive
-        totalNet = loaded.net
-        average = loaded.average
-
-        if loaded.positive {
-            currentNet = loaded.net
-        } else {
-            currentNet = -loaded.net
-        }
-
-        let lastDate: Date
-
-        if type == 1 {
-            lastDate = Calendar.current.date(byAdding: .day, value: -7, to: showingDate) ?? Date.now
-        } else if type == 2 {
-            lastDate = Calendar.current.date(byAdding: .month, value: -1, to: showingDate) ?? Date.now
-        } else {
-            lastDate = Calendar.current.date(byAdding: .year, value: -1, to: showingDate) ?? Date.now
-        }
-
-        let lastDateData = dataController.transactions.getInsightsSummary(type: type, date: lastDate)
-
-        if lastDateData.positive {
-            lastNet = lastDateData.net
-        } else {
-            lastNet = -lastDateData.net
-        }
     }
 }

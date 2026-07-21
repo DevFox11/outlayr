@@ -12,7 +12,7 @@ struct CategoryRepository {
     private var context: NSManagedObjectContext { dataController.container.viewContext }
 
     private func results<T: NSManagedObject>(for fetchRequest: NSFetchRequest<T>) -> [T] {
-        dataController.results(for: fetchRequest)
+        (try? context.fetch(fetchRequest)) ?? []
     }
 
     func fetchRequestForCategoriesMigration(income: Bool? = nil) -> NSFetchRequest<Category> {

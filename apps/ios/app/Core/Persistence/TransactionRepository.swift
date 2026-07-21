@@ -8,14 +8,26 @@ import Foundation
 
 struct TransactionRepository {
     let dataController: DataController
+    private let context: NSManagedObjectContext
 
-    private var context: NSManagedObjectContext { dataController.container.viewContext }
+    init(dataController: DataController) {
+        self.init(dataController: dataController, context: dataController.container.viewContext)
+    }
+
+    /// Private because write paths save the view context via `DataController.save()`:
+    /// a repository built on a background context must stay read-only, and only the
+    /// async overloads below construct one.
+    private init(dataController: DataController, context: NSManagedObjectContext) {
+        self.dataController = dataController
+        self.context = context
+    }
+
     private var now: () -> Date { dataController.now }
     private var injectedCalendar: Calendar { dataController.injectedCalendar }
     private var sharedDefaults: UserDefaults { dataController.sharedDefaults }
 
     private func results<T: NSManagedObject>(for fetchRequest: NSFetchRequest<T>) -> [T] {
-        dataController.results(for: fetchRequest)
+        (try? context.fetch(fetchRequest)) ?? []
     }
 
     private func save() {
@@ -1140,10 +1152,10 @@ struct TransactionRepository {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = sharedDefaults.integer(forKey: "firstWeekday")
         calendar.minimumDaysInFirstWeek = 4
 
-        let endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
+        let endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), now() as CVarArg)
 
         let incomePredicate = NSPredicate(format: "income = %d", income)
 
@@ -1152,22 +1164,22 @@ struct TransactionRepository {
 
         switch type {
         case .unknown:
-            startDate = Date.now
-            startPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
+            startDate = now()
+            startPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), now() as CVarArg)
         case .week:
-            let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: Date.now)
+            let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: now())
 
             startDate = calendar.date(from: dateComponents)!
 
             startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         case .month:
-            let startOfMonth = AppIdentifiers.sharedDefaults!.integer(forKey: "firstDayOfMonth")
+            let startOfMonth = sharedDefaults.integer(forKey: "firstDayOfMonth")
 
             startDate = getStartOfMonth(startDay: startOfMonth)
 
             startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         case .year:
-            let dateComponents = calendar.dateComponents([.year], from: Date.now)
+            let dateComponents = calendar.dateComponents([.year], from: now())
 
             startDate = calendar.date(from: dateComponents)!
 
@@ -1262,5 +1274,324 @@ struct TransactionRepository {
 
             return itemRequest
         }
+    }
+
+    struct LogViewInsights {
+        let netTotal: Double
+        let isNetPositive: Bool
+        let totalSpent: Double
+        let totalIncome: Double
+        let lineGraphData: [LineGraphDataPoint]
+    }
+
+    /// Runs `work` against a copy of this repository bound to a background
+    /// context, so callers hop threads once instead of repeating the plumbing.
+    private func onBackground<T>(_ work: @escaping (TransactionRepository) throws -> T) async rethrows -> T {
+        let dataController = self.dataController
+        return try await dataController.performBackground { context in
+            try work(TransactionRepository(dataController: dataController, context: context))
+        }
+    }
+
+    /// Computes every LogView header value in one background-context pass so all
+    /// four come from a single store snapshot and stay mutually consistent
+    /// (income − spent always equals net).
+    func getLogViewInsights(type: Int, insightsType: Int) async -> LogViewInsights {
+        await onBackground { repository in
+            let net = repository.getLogViewTotalNet(type: type)
+
+            let lineGraphData: [LineGraphDataPoint]
+            if insightsType == 1 {
+                lineGraphData = repository.getLineGraphDataNet(type: type)
+            } else if insightsType == 2 {
+                lineGraphData = repository.getLineGraphData(income: true, type: type)
+            } else {
+                lineGraphData = repository.getLineGraphData(income: false, type: type)
+            }
+
+            return LogViewInsights(
+                netTotal: net.value,
+                isNetPositive: net.positive,
+                totalSpent: repository.getLogViewTotalSpent(type: type),
+                totalIncome: repository.getLogViewTotalIncome(type: type),
+                lineGraphData: lineGraphData
+            )
+        }
+    }
+
+    struct GraphViewInsights: Equatable {
+        struct Summary: Equatable {
+            let spent: Double
+            let income: Double
+            let net: Double
+            let positive: Bool
+            let average: Double
+
+            static let zero = Summary(spent: 0, income: 0, net: 0, positive: true, average: 0)
+        }
+
+        struct PeriodBreakdown: Equatable {
+            let amount: Double
+            let maximum: Double
+            let average: Double
+            let numberOfDays: Int
+            let dates: [Date]
+            let dateDictionary: [Date: Double]
+
+            static let zero = PeriodBreakdown(amount: 0, maximum: 0, average: 0, numberOfDays: 0, dates: [], dateDictionary: [:])
+        }
+
+        let summary: Summary
+        let priorSummary: Summary
+        let breakdown: PeriodBreakdown
+
+        static let empty = GraphViewInsights(summary: .zero, priorSummary: .zero, breakdown: .zero)
+    }
+
+    /// Computes the insights graph header (current + prior-period summaries for
+    /// the percentage comparison) and the bar-graph breakdown in one
+    /// background-context pass so all values come from a single store snapshot.
+    func getGraphViewInsights(type: Int, date: Date, income: Bool) async -> GraphViewInsights {
+        await onBackground { repository in
+            let priorDate: Date
+
+            if type == 1 {
+                priorDate = Calendar.current.date(byAdding: .day, value: -7, to: date) ?? Date.now
+            } else if type == 2 {
+                priorDate = Calendar.current.date(byAdding: .month, value: -1, to: date) ?? Date.now
+            } else {
+                priorDate = Calendar.current.date(byAdding: .year, value: -1, to: date) ?? Date.now
+            }
+
+            func summary(for summaryDate: Date) -> GraphViewInsights.Summary {
+                let loaded = repository.getInsightsSummary(type: type, date: summaryDate)
+                return GraphViewInsights.Summary(spent: loaded.spent, income: loaded.income, net: loaded.net, positive: loaded.positive, average: loaded.average)
+            }
+
+            let breakdown = repository.getInsights(type: type, date: date, income: income)
+
+            return GraphViewInsights(
+                summary: summary(for: date),
+                priorSummary: summary(for: priorDate),
+                breakdown: GraphViewInsights.PeriodBreakdown(
+                    amount: breakdown.amount,
+                    maximum: breakdown.maximum,
+                    average: breakdown.average,
+                    numberOfDays: breakdown.numberOfDays,
+                    dates: breakdown.dates,
+                    dateDictionary: breakdown.dateDictionary
+                )
+            )
+        }
+    }
+
+    func getShortcutInsights(type: Int, timeframe: Int, optionalIncome: Bool?, categories: [Category]) async throws -> Double {
+        // Managed objects must not cross into the background context; carry their
+        // IDs across the boundary and rematerialize them inside it.
+        let categoryIDs = categories.map(\.objectID)
+        return try await onBackground { repository in
+            let rematerialized = categoryIDs.compactMap { (try? repository.context.existingObject(with: $0)) as? Category }
+            // A dropped category must not silently widen the filter: an empty list
+            // makes fetchRequestForLogView omit the category predicate entirely.
+            guard rematerialized.count == categoryIDs.count else {
+                throw CustomError.notFound
+            }
+            return repository.getShortcutInsights(type: type, timeframe: timeframe, optionalIncome: optionalIncome, categories: rematerialized)
+        }
+    }
+
+    func getLogViewTotalSpent(type: Int) async -> Double {
+        await onBackground { $0.getLogViewTotalSpent(type: type) }
+    }
+
+    func getLogViewTotalIncome(type: Int) async -> Double {
+        await onBackground { $0.getLogViewTotalIncome(type: type) }
+    }
+
+    func getLogViewTotalNet(type: Int) async -> (value: Double, positive: Bool) {
+        await onBackground { $0.getLogViewTotalNet(type: type) }
+    }
+
+    func getLineGraphDataNet(type: Int) async -> [LineGraphDataPoint] {
+        await onBackground { $0.getLineGraphDataNet(type: type) }
+    }
+
+    func getLineGraphData(income: Bool, type: Int) async -> [LineGraphDataPoint] {
+        await onBackground { $0.getLineGraphData(income: income, type: type) }
+    }
+
+    func getInsights(type: Int, date: Date, income: Bool) async -> (amount: Double, maximum: Double, average: Double, numberOfDays: Int, dates: [Date], dateDictionary: [Date: Double]) {
+        await onBackground { $0.getInsights(type: type, date: date, income: income) }
+    }
+
+    func getInsightsSummary(type: Int, date: Date) async -> (spent: Double, income: Double, net: Double, positive: Bool, average: Double) {
+        await onBackground { $0.getInsightsSummary(type: type, date: date) }
+    }
+
+    /// Fetches recent transactions and maps them to a value type inside the
+    /// background context, so no managed object crosses the thread boundary.
+    func getRecentTransactions<T>(type: TimePeriod, count: Int, map transform: @escaping (Transaction) -> T) async -> [T] {
+        await onBackground { repository in
+            let request = repository.fetchRequestForRecentTransactionsWithCount(type: type, count: count)
+            return repository.results(for: request).map(transform)
+        }
+    }
+
+    struct WidgetInsights: Equatable {
+        struct CategoryShare: Equatable {
+            let color: String
+            let name: String
+            let percent: Double
+        }
+
+        let amount: Double
+        let maximum: Double
+        let average: Double
+        let numberOfDays: Int
+        let dates: [Date]
+        let dateDictionary: [Date: Double]
+        let categories: [CategoryShare]
+    }
+
+    func getWidgetInsights(type: InsightsTimePeriod, income: Bool) -> WidgetInsights {
+        let itemRequest = fetchRequestForWidgetInsights(type: type, income: income)
+        let categoryRequest = dataController.categories.fetchRequestForTopLevelCategories(income: income)
+
+        let categories = results(for: categoryRequest)
+        let transactions = results(for: itemRequest.fetchRequest)
+        var iterativeDate = itemRequest.date
+
+        // Buckets a period's transactions by day (or month, for a year) and
+        // computes each top-level category's share, child spending included.
+        func bucket(intervals: Int, step: Calendar.Component, calendar: Calendar) -> (total: Double, maximum: Double, numberOfDays: Int, dates: [Date], dictionary: [Date: Double]) {
+            var dates = [Date]()
+            var nextDate = iterativeDate
+            var dictionary = [Date: Double]()
+            var total = 0.0
+            var maximum = 0.0
+            var numberOfDays = 0
+
+            for _ in 1 ... intervals {
+                nextDate = calendar.date(byAdding: step, value: 1, to: iterativeDate)!
+
+                let holding = transactions.filter {
+                    $0.wrappedDate >= iterativeDate && $0.wrappedDate < nextDate
+                }
+
+                var intervalTotal = 0.0
+
+                holding.forEach { transaction in
+                    intervalTotal += transaction.wrappedAmount
+                }
+
+                total += intervalTotal
+
+                dictionary[iterativeDate] = intervalTotal
+
+                if intervalTotal > maximum {
+                    maximum = intervalTotal
+                }
+
+                if intervalTotal != 0 {
+                    numberOfDays += 1
+                }
+
+                dates.append(iterativeDate)
+                iterativeDate = nextDate
+            }
+
+            return (total, maximum, numberOfDays, dates, dictionary)
+        }
+
+        func categoryShares(total: Double) -> [WidgetInsights.CategoryShare] {
+            var shares = [WidgetInsights.CategoryShare]()
+
+            for category in categories {
+                let holding = transactions.filter {
+                    $0.category == category || $0.category?.parent == category
+                }
+
+                var categoryTotal = 0.0
+
+                holding.forEach { transaction in
+                    categoryTotal += transaction.wrappedAmount
+                }
+
+                if categoryTotal == 0 {
+                    continue
+                }
+
+                shares.append(WidgetInsights.CategoryShare(color: category.wrappedColor, name: category.wrappedName, percent: categoryTotal / total))
+            }
+
+            shares.sort(by: { lhs, rhs in
+                lhs.percent > rhs.percent
+            })
+
+            return shares
+        }
+
+        switch type {
+        case .unknown:
+            return WidgetInsights(amount: 0, maximum: 0, average: 0, numberOfDays: 0, dates: [Date](), dateDictionary: [Date: Double](), categories: [])
+        case .week:
+            var calendar = Calendar(identifier: .gregorian)
+
+            calendar.firstWeekday = sharedDefaults.integer(forKey: "firstWeekday")
+            calendar.minimumDaysInFirstWeek = 4
+
+            let bucketed = bucket(intervals: 7, step: .day, calendar: calendar)
+
+            let numberOfDaysPast = Calendar.current.dateComponents([.day], from: itemRequest.date, to: now())
+
+            return WidgetInsights(
+                amount: bucketed.total,
+                maximum: bucketed.maximum,
+                average: bucketed.total / Double(numberOfDaysPast.day! + 1),
+                numberOfDays: bucketed.numberOfDays,
+                dates: bucketed.dates,
+                dateDictionary: bucketed.dictionary,
+                categories: categoryShares(total: bucketed.total)
+            )
+        case .month:
+            let calendar = Calendar(identifier: .gregorian)
+            let range = calendar.range(of: .day, in: .month, for: iterativeDate)!
+
+            let bucketed = bucket(intervals: range.count, step: .day, calendar: calendar)
+
+            let numDays = Calendar.current.dateComponents([.day], from: itemRequest.date, to: now())
+
+            return WidgetInsights(
+                amount: bucketed.total,
+                maximum: bucketed.maximum,
+                average: bucketed.total / Double(numDays.day! + 1),
+                numberOfDays: bucketed.numberOfDays,
+                dates: bucketed.dates,
+                dateDictionary: bucketed.dictionary,
+                categories: categoryShares(total: bucketed.total)
+            )
+        case .year:
+            let calendar = Calendar(identifier: .gregorian)
+
+            let bucketed = bucket(intervals: 12, step: .month, calendar: calendar)
+
+            let numDays = Calendar.current.dateComponents([.month], from: itemRequest.date, to: now())
+
+            return WidgetInsights(
+                amount: bucketed.total,
+                maximum: bucketed.maximum,
+                average: bucketed.total / Double(numDays.month! + 1),
+                numberOfDays: bucketed.numberOfDays,
+                dates: bucketed.dates,
+                dateDictionary: bucketed.dictionary,
+                categories: categoryShares(total: bucketed.total)
+            )
+        }
+    }
+
+    /// Fetches and buckets the insights widget's whole payload in one background
+    /// pass, so only value types cross back into the timeline callback.
+    func getWidgetInsights(type: InsightsTimePeriod, income: Bool) async -> WidgetInsights {
+        await onBackground { $0.getWidgetInsights(type: type, income: income) }
     }
 }

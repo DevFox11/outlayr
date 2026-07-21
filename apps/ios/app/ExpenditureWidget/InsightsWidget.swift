@@ -5,6 +5,7 @@
 //  Created by Rafael Soh on 14/8/22.
 //
 
+import AppIntents
 import Foundation
 import SwiftUI
 import WidgetKit
@@ -13,7 +14,7 @@ struct InsightsWidget: Widget {
     let kind: String = "InsightsWidget"
 
     var body: some WidgetConfiguration {
-        IntentConfiguration(kind: kind, intent: InsightsWidgetConfigurationIntent.self, provider: InsightsProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: InsightsWidgetConfiguration.self, provider: InsightsProvider()) { entry in
             InsightsWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
@@ -23,267 +24,129 @@ struct InsightsWidget: Widget {
     }
 }
 
-struct InsightsProvider: IntentTimelineProvider {
-    typealias Intent = InsightsWidgetConfigurationIntent
+struct InsightsWidgetConfiguration: WidgetConfigurationIntent, CustomIntentMigratedAppIntent {
+    // Existing widgets were configured through the SiriKit
+    // InsightsWidgetConfigurationIntent; the system migrates their stored
+    // parameters onto this intent by matching this class name plus the
+    // parameter names and types below, so none of them may change.
+    static let intentClassName = "InsightsWidgetConfigurationIntent"
+
+    static var title: LocalizedStringResource = "Insights Widget Configuration"
+
+    @Parameter(title: "Time Period", default: .week)
+    var duration: InsightsTimePeriodAppEnum
+
+    @Parameter(title: "Insights Type", default: .expenses)
+    var income: IncomeAppEnum
+}
+
+// Raw values mirror the INEnumValueIndex values in
+// WidgetConfiguration.intentdefinition so migrated configurations resolve to
+// the same case the user originally picked.
+enum InsightsTimePeriodAppEnum: Int, AppEnum {
+    case week = 1
+    case month = 2
+    case year = 3
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Insights Time Period")
+    static var caseDisplayRepresentations: [InsightsTimePeriodAppEnum: DisplayRepresentation] = [
+        .week: DisplayRepresentation(title: "Week"),
+        .month: DisplayRepresentation(title: "Month"),
+        .year: DisplayRepresentation(title: "Year")
+    ]
+
+    var timePeriod: InsightsTimePeriod {
+        InsightsTimePeriod(rawValue: rawValue) ?? .week
+    }
+}
+
+enum IncomeAppEnum: Int, AppEnum {
+    case income = 1
+    case expenses = 2
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Income")
+    static var caseDisplayRepresentations: [IncomeAppEnum: DisplayRepresentation] = [
+        .income: DisplayRepresentation(title: "Income"),
+        .expenses: DisplayRepresentation(title: "Expenses")
+    ]
+}
+
+struct InsightsProvider: AppIntentTimelineProvider {
+    typealias Intent = InsightsWidgetConfiguration
 
     public typealias Entry = InsightsWidgetEntry
 
     func placeholder(in _: Context) -> InsightsWidgetEntry {
-        let results = loadData(type: .week, income: true)
-
-        return InsightsWidgetEntry(date: Date(), amount: results.amount, duration: .week, maximum: results.maximum, dates: results.dates, dictionary: results.dateDictionary, numberOfDays: results.numberOfDays, average: results.average, categories: results.categories, income: true)
+        // Placeholder must return synchronously and is rendered redacted, so it
+        // uses a static sample week instead of a store fetch (which would read
+        // the view context off the main thread in this timeline callback).
+        sampleEntry(duration: .week, income: true)
     }
 
-    func getSnapshot(for configuration: InsightsWidgetConfigurationIntent, in _: Context, completion: @escaping (InsightsWidgetEntry) -> Void) {
-        let loaded = loadData(type: configuration.duration, income: configuration.income == .income)
+    private func sampleEntry(duration: InsightsTimePeriod, income: Bool) -> InsightsWidgetEntry {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let amounts: [Double] = [12, 5.5, 20, 0, 9, 14, 2.5]
+        let dates = (0 ..< 7).map { calendar.date(byAdding: .day, value: $0 - 6, to: start)! }
+        let total = amounts.reduce(0, +)
 
-        let entry = InsightsWidgetEntry(date: Date(), amount: loaded.amount, duration: configuration.duration, maximum: loaded.maximum, dates: loaded.dates, dictionary: loaded.dateDictionary, numberOfDays: loaded.numberOfDays, average: loaded.average, categories: loaded.categories, income: configuration.income == .income)
-        completion(entry)
+        return InsightsWidgetEntry(
+            date: Date(),
+            amount: total,
+            duration: duration,
+            maximum: amounts.max()!,
+            dates: dates,
+            dictionary: Dictionary(uniqueKeysWithValues: zip(dates, amounts)),
+            numberOfDays: 6,
+            average: total / 7,
+            categories: [
+                HoldingCategory(color: "#A0A0A0", name: "Food", percent: 0.45),
+                HoldingCategory(color: "#C0C0C0", name: "Transport", percent: 0.35),
+                HoldingCategory(color: "#E0E0E0", name: "Rent", percent: 0.2)
+            ],
+            income: income
+        )
     }
 
-    func getTimeline(for configuration: InsightsWidgetConfigurationIntent, in _: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-        let loaded = loadData(type: configuration.duration, income: configuration.income == .income)
+    func snapshot(for configuration: InsightsWidgetConfiguration, in context: Context) async -> InsightsWidgetEntry {
+        if context.isPreview {
+            // The gallery preview must honor the chosen configuration, not the
+            // placeholder's hardcoded earned-this-week sample.
+            return sampleEntry(duration: configuration.duration.timePeriod, income: configuration.income == .income)
+        }
 
-        let entry = InsightsWidgetEntry(date: Date(), amount: loaded.amount, duration: configuration.duration, maximum: loaded.maximum, dates: loaded.dates, dictionary: loaded.dateDictionary, numberOfDays: loaded.numberOfDays, average: loaded.average, categories: loaded.categories, income: configuration.income == .income)
-
-        let timeline = Timeline(entries: [entry], policy: .atEnd)
-
-        completion(timeline)
+        return await entry(for: configuration)
     }
 
-    func loadData(type: InsightsTimePeriod, income: Bool) -> (amount: Double, maximum: Double, average: Double, numberOfDays: Int, dates: [Date], dateDictionary: [Date: Double], categories: [HoldingCategory]) {
+    func timeline(for configuration: InsightsWidgetConfiguration, in _: Context) async -> Timeline<InsightsWidgetEntry> {
+        Timeline(entries: [await entry(for: configuration)], policy: .atEnd)
+    }
+
+    private func entry(for configuration: InsightsWidgetConfiguration) async -> InsightsWidgetEntry {
+        let duration = configuration.duration.timePeriod
+        let income = configuration.income == .income
+
+        let loaded = await loadData(type: duration, income: income)
+
+        return InsightsWidgetEntry(date: Date(), amount: loaded.amount, duration: duration, maximum: loaded.maximum, dates: loaded.dates, dictionary: loaded.dateDictionary, numberOfDays: loaded.numberOfDays, average: loaded.average, categories: loaded.categories, income: income)
+    }
+
+    func loadData(type: InsightsTimePeriod, income: Bool) async -> (amount: Double, maximum: Double, average: Double, numberOfDays: Int, dates: [Date], dateDictionary: [Date: Double], categories: [HoldingCategory]) {
         guard DataController.storeIsAvailable else {
             // Broken app group: skip the store read. The entry view shows the error
             // placeholder via `guardedByDataStore()`; return the existing empty default.
             return (0, 0, 0, 0, [Date](), [Date: Double](), [HoldingCategory]())
         }
 
-//        let dataController = DataController()
-        let dataController = DataController.shared
-        let itemRequest = dataController.transactions.fetchRequestForWidgetInsights(type: type, income: income)
-        let categoryRequest = dataController.categories.fetchRequestForTopLevelCategories(income: income)
-
-        let categories = dataController.results(for: categoryRequest)
-        let transactions = dataController.results(for: itemRequest.fetchRequest)
-        var iterativeDate = itemRequest.date
-
-        switch type {
-        case .unknown:
-            return (0, 0, 0, 0, [Date](), [Date: Double](), [HoldingCategory]())
-        case .week:
-            var dates = [Date]()
-            var nextDate = iterativeDate
-
-            // calendar initialization
-            var calendar = Calendar(identifier: .gregorian)
-
-            calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
-            calendar.minimumDaysInFirstWeek = 4
-
-            var dictionary = [Date: Double]()
-            var totalForWeek = 0.0
-            var maximum = 0.0
-            var numberOfDays = 0
-
-            for _ in 1 ... 7 {
-                nextDate = calendar.date(byAdding: .day, value: 1, to: iterativeDate)!
-
-                let holding = transactions.filter {
-                    $0.wrappedDate >= iterativeDate && $0.wrappedDate < nextDate
-                }
-
-                var total = 0.0
-
-                holding.forEach { transaction in
-                    total += transaction.wrappedAmount
-                }
-
-                totalForWeek += total
-
-                dictionary[iterativeDate] = total
-
-                if total > maximum {
-                    maximum = total
-                }
-
-                if total != 0 {
-                    numberOfDays += 1
-                }
-
-                dates.append(iterativeDate)
-                iterativeDate = nextDate
-            }
-
-            let numberOfDaysPast = Calendar.current.dateComponents([.day], from: itemRequest.date, to: Date.now)
-
-            var holdingCat = [HoldingCategory]()
-
-            for category in categories {
-                let holding = transactions.filter {
-                    $0.category == category || $0.category?.parent == category
-                }
-
-                var total = 0.0
-
-                holding.forEach { transaction in
-                    total += transaction.wrappedAmount
-                }
-
-                if total == 0 {
-                    continue
-                }
-
-                let newCategory = HoldingCategory(color: category.wrappedColor, name: category.wrappedName, percent: total / totalForWeek)
-
-                holdingCat.append(newCategory)
-            }
-
-            holdingCat.sort(by: { lhs, rhs in
-                lhs.percent > rhs.percent
-            })
-
-            return (totalForWeek, maximum, totalForWeek / Double((numberOfDaysPast.day! + 1)), numberOfDays, dates, dictionary, holdingCat)
-        case .month:
-            var dates = [Date]()
-            var nextDate = iterativeDate
-
-            let calendar = Calendar(identifier: .gregorian)
-            let range = calendar.range(of: .day, in: .month, for: iterativeDate)!
-
-            var dictionary = [Date: Double]()
-            var totalForMonth = 0.0
-            var maximum = 0.0
-            var numberOfDays = 0
-
-            for _ in 1 ... range.count {
-                nextDate = calendar.date(byAdding: .day, value: 1, to: iterativeDate)!
-
-                let holding = transactions.filter {
-                    $0.wrappedDate >= iterativeDate && $0.wrappedDate < nextDate
-                }
-
-                var total = 0.0
-
-                holding.forEach { transaction in
-                    total += transaction.wrappedAmount
-                }
-
-                totalForMonth += total
-
-                dictionary[iterativeDate] = total
-
-                if total > maximum {
-                    maximum = total
-                }
-
-                if total != 0 {
-                    numberOfDays += 1
-                }
-
-                dates.append(iterativeDate)
-                iterativeDate = nextDate
-            }
-
-            let numDays = Calendar.current.dateComponents([.day], from: itemRequest.date, to: Date.now)
-
-            var holdingCat = [HoldingCategory]()
-
-            for category in categories {
-                let holding = transactions.filter {
-                    $0.category == category || $0.category?.parent == category
-                }
-
-                var total = 0.0
-
-                holding.forEach { transaction in
-                    total += transaction.wrappedAmount
-                }
-
-                if total == 0 {
-                    continue
-                }
-
-                let newCategory = HoldingCategory(color: category.wrappedColor, name: category.wrappedName, percent: total / totalForMonth)
-
-                holdingCat.append(newCategory)
-            }
-
-            holdingCat.sort(by: { lhs, rhs in
-                lhs.percent > rhs.percent
-            })
-
-            return (totalForMonth, maximum, totalForMonth / Double((numDays.day! + 1)), numberOfDays, dates, dictionary, holdingCat)
-        case .year:
-            // trackin dates
-            var dates = [Date]()
-            var nextDate = iterativeDate
-
-            let calendar = Calendar(identifier: .gregorian)
-
-            var dictionary = [Date: Double]()
-            var totalForYear = 0.0
-            var maximum = 0.0
-            var numberOfDays = 0
-
-            for _ in 1 ... 12 {
-                nextDate = calendar.date(byAdding: .month, value: 1, to: iterativeDate)!
-
-                let holding = transactions.filter {
-                    $0.wrappedDate >= iterativeDate && $0.wrappedDate < nextDate
-                }
-
-                var total = 0.0
-
-                holding.forEach { transaction in
-                    total += transaction.wrappedAmount
-                }
-
-                totalForYear += total
-
-                dictionary[iterativeDate] = total
-
-                if total > maximum {
-                    maximum = total
-                }
-
-                if total != 0 {
-                    numberOfDays += 1
-                }
-
-                dates.append(iterativeDate)
-                iterativeDate = nextDate
-            }
-
-            let numDays = Calendar.current.dateComponents([.month], from: itemRequest.date, to: Date.now)
-
-            var holdingCat = [HoldingCategory]()
-
-            for category in categories {
-                let holding = transactions.filter {
-                    $0.category == category || $0.category?.parent == category
-                }
-
-                var total = 0.0
-
-                holding.forEach { transaction in
-                    total += transaction.wrappedAmount
-                }
-
-                if total == 0 {
-                    continue
-                }
-
-                let newCategory = HoldingCategory(color: category.wrappedColor, name: category.wrappedName, percent: total / totalForYear)
-
-                holdingCat.append(newCategory)
-            }
-
-            holdingCat.sort(by: { lhs, rhs in
-                lhs.percent > rhs.percent
-            })
-
-            return (totalForYear, maximum, totalForYear / Double((numDays.month! + 1)), numberOfDays, dates, dictionary, holdingCat)
+        // Fetch and bucket inside one background closure so no managed object
+        // crosses the thread boundary into this timeline callback.
+        let insights = await DataController.shared.transactions.getWidgetInsights(type: type, income: income)
+
+        let categories = insights.categories.map {
+            HoldingCategory(color: $0.color, name: $0.name, percent: $0.percent)
         }
+
+        return (insights.amount, insights.maximum, insights.average, insights.numberOfDays, insights.dates, insights.dateDictionary, categories)
     }
 }
 

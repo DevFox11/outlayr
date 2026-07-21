@@ -18,7 +18,6 @@ struct SingleWeekBarGraphView: View {
     var dayDictionary = [Date: Double]()
 
     var max: Double = 0
-    var weekTotal: Double = 0
     var weekAverage: Double = 0
     var actualDays: Int = 0
 
@@ -104,18 +103,15 @@ struct SingleWeekBarGraphView: View {
         return dateFormatter.string(from: day)
     }
 
-    init(week: Date, date: Binding<Date?>?, mode: Binding<Bool>, amount: Binding<Double>, dataController: DataController, income: Bool) {
+    init(insights: TransactionRepository.GraphViewInsights.PeriodBreakdown, date: Binding<Date?>?, mode: Binding<Bool>, amount: Binding<Double>) {
         _selectedDate = date ?? Binding.constant(nil)
         _categoryFilterMode = mode
         _selectedDateAmount = amount
 
-        let loaded = dataController.transactions.getInsights(type: 1, date: week, income: income)
-
-        daysOfWeek = loaded.dates
-        dayDictionary = loaded.dateDictionary
-        self.max = loaded.maximum
-        weekTotal = loaded.amount
-        weekAverage = loaded.average
-        actualDays = loaded.numberOfDays
+        daysOfWeek = insights.dates
+        dayDictionary = insights.dateDictionary
+        self.max = insights.maximum
+        weekAverage = insights.average
+        actualDays = insights.numberOfDays
     }
 }

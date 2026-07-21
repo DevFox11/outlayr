@@ -3,6 +3,7 @@
 //  Outlayr
 //
 
+import CoreData
 import Foundation
 import Popovers
 import SwiftUI
@@ -24,9 +25,10 @@ struct LogInsightsView: View {
 
     @AppStorage("logViewLineGraph", store: AppIdentifiers.sharedDefaults) var lineGraph: Bool = false
 
-    var netTotal: (value: Double, positive: Bool) {
-        dataController.transactions.getLogViewTotalNet(type: timeframe)
-    }
+    @State private var netTotal: (value: Double, positive: Bool) = (0, true)
+    @State private var totalSpent: Double = 0
+    @State private var totalIncome: Double = 0
+    @State private var lineGraphData: [LineGraphDataPoint] = []
 
     var range: Int {
         var calendar = Calendar(identifier: .gregorian)
@@ -55,24 +57,6 @@ struct LogInsightsView: View {
             let numberOfDays = calendar.dateComponents([.day], from: thisWeek, to: Date.now)
 
             return (numberOfDays.day ?? 0) + 1
-        }
-    }
-
-    var totalSpent: Double {
-        return dataController.transactions.getLogViewTotalSpent(type: timeframe)
-    }
-
-    var totalIncome: Double {
-        return dataController.transactions.getLogViewTotalIncome(type: timeframe)
-    }
-
-    var lineGraphData: [LineGraphDataPoint] {
-        if insightsType == 1 {
-            return dataController.transactions.getLineGraphDataNet(type: timeframe)
-        } else if insightsType == 2 {
-            return dataController.transactions.getLineGraphData(income: true, type: timeframe)
-        } else {
-            return dataController.transactions.getLineGraphData(income: false, type: timeframe)
         }
     }
 
@@ -226,6 +210,38 @@ struct LogInsightsView: View {
         .padding([.bottom, .horizontal], 20)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(height: lineGraph ? 240 : 170)
+        .task(id: [timeframe, insightsType]) {
+            // Capture the selection once: a cancelled-but-still-running load must
+            // never pick up a newer selection mid-flight.
+            let timeframe = timeframe
+            let insightsType = insightsType
+
+            // Subscribe before the initial load so a save landing mid-load still
+            // triggers a refresh. No object filter: CloudKit imports save the
+            // mirroring delegate's own background context, and the view context
+            // only merges those changes without posting didSave itself.
+            let saves = NotificationCenter.default.notifications(named: .NSManagedObjectContextDidSave)
+
+            await loadInsights(timeframe: timeframe, insightsType: insightsType)
+
+            // Reload whenever any context saves (edits, deletes, CloudKit imports);
+            // the values are @State, so nothing recomputes on its own.
+            for await _ in saves {
+                guard !Task.isCancelled else { return }
+                await loadInsights(timeframe: timeframe, insightsType: insightsType)
+            }
+        }
+    }
+
+    private func loadInsights(timeframe: Int, insightsType: Int) async {
+        let insights = await dataController.transactions.getLogViewInsights(type: timeframe, insightsType: insightsType)
+
+        guard !Task.isCancelled else { return }
+
+        netTotal = (insights.netTotal, insights.isNetPositive)
+        totalSpent = insights.totalSpent
+        totalIncome = insights.totalIncome
+        lineGraphData = insights.lineGraphData
     }
 
     func formatNumber(showCents: Bool, number: Double) -> String {

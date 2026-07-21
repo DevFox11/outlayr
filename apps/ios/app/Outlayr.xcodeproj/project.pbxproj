@@ -1330,10 +1330,8 @@
 		7A0436D7300F273A00FBF257 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */,
 				5321E1DB291FE02B00D5A931 /* CategoryError.swift */,
 				5327D2BF287C6B2500F76ADF /* PowerCategory.swift */,
-				7A04374F300F306000FBF257 /* CategorySymbol.swift */,
 				7A043754300F306900FBF257 /* CategorySymbolSelection.swift */,
 				7A043759300F306E00FBF257 /* EmojiComparisonKey.swift */,
 				7A04375E300F307D00FBF257 /* CategoryEmojiCatalog.swift */,
@@ -1442,6 +1440,8 @@
 				5327D2C1287C6B2500F76ADF /* FilterType.swift */,
 				CE7AAAE440146815E16958A8 /* RecurringCadence.swift */,
 				7A0437F1300F3A5400FBF257 /* CurrencyPreference.swift */,
+				7A04374F300F306000FBF257 /* CategorySymbol.swift */,
+				4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";

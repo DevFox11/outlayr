@@ -1,5 +1,5 @@
 //
-//  CategoryIcon.swift
+//  CategorySymbol.swift
 //  Outlayr
 //
 

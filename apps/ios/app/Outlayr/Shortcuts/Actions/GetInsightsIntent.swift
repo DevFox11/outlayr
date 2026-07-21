@@ -50,8 +50,10 @@ struct GetInsightsIntent: AppIntent {
             typeInt = 1
         case .income:
             if let unwrappedCategories = incomeCategories {
-                categories = unwrappedCategories.compactMap { category in
-                    try? dataController.categories.findCategory(withId: category.id)
+                // A stale shortcut category must fail loudly: dropping it would
+                // silently widen the fetch past the requested filter.
+                categories = try unwrappedCategories.map { category in
+                    try dataController.categories.findCategory(withId: category.id)
                 }
             } else {
                 categories = []
@@ -61,8 +63,10 @@ struct GetInsightsIntent: AppIntent {
             typeInt = 2
         case .spent:
             if let unwrappedCategories = expenseCategories {
-                categories = unwrappedCategories.compactMap { category in
-                    try? dataController.categories.findCategory(withId: category.id)
+                // A stale shortcut category must fail loudly: dropping it would
+                // silently widen the fetch past the requested filter.
+                categories = try unwrappedCategories.map { category in
+                    try dataController.categories.findCategory(withId: category.id)
                 }
             } else {
                 categories = []
@@ -71,7 +75,7 @@ struct GetInsightsIntent: AppIntent {
             typeInt = 3
         }
 
-        let result = dataController.transactions.getShortcutInsights(type: typeInt, timeframe: timeframe.rawValue, optionalIncome: optionalIncome, categories: categories)
+        let result = try await dataController.transactions.getShortcutInsights(type: typeInt, timeframe: timeframe.rawValue, optionalIncome: optionalIncome, categories: categories)
 
         return .result(value: result, dialog: "Here you go!") {
             ShortcutInsightsView(amount: result, type: type, timeframe: timeframe)

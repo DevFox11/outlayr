@@ -38,29 +38,39 @@ struct MainBudgetWidgetProvider: TimelineProvider {
     typealias Entry = MainBudgetWidgetEntry
 
     func placeholder(in _: Context) -> MainBudgetWidgetEntry {
-        let loaded = loadData()
-
-        return MainBudgetWidgetEntry(date: Date(), totalSpent: loaded.totalSpent, percentageOfDays: loaded.percentage, type: loaded.type, budgetAmount: loaded.budgetAmount, startDate: loaded.startDate, found: loaded.found)
+        // Placeholder must return synchronously and is rendered redacted, so it
+        // uses a static sample budget instead of a store fetch (which would read
+        // the view context off the main thread in this timeline callback).
+        MainBudgetWidgetEntry(date: Date(), totalSpent: 250, percentageOfDays: 0.5, type: 3, budgetAmount: 500, startDate: Date(), found: true)
     }
 
-    func getSnapshot(in _: Context, completion: @escaping (MainBudgetWidgetEntry) -> Void) {
-        let loaded = loadData()
+    func getSnapshot(in context: Context, completion: @escaping (MainBudgetWidgetEntry) -> Void) {
+        if context.isPreview {
+            completion(placeholder(in: context))
+            return
+        }
 
-        let entry = MainBudgetWidgetEntry(date: Date(), totalSpent: loaded.totalSpent, percentageOfDays: loaded.percentage, type: loaded.type, budgetAmount: loaded.budgetAmount, startDate: loaded.startDate, found: loaded.found)
-        completion(entry)
+        Task {
+            let loaded = await loadData()
+
+            let entry = MainBudgetWidgetEntry(date: Date(), totalSpent: loaded.totalSpent, percentageOfDays: loaded.percentage, type: loaded.type, budgetAmount: loaded.budgetAmount, startDate: loaded.startDate, found: loaded.found)
+            completion(entry)
+        }
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<MainBudgetWidgetEntry>) -> Void) {
-        let loaded = loadData()
+        Task {
+            let loaded = await loadData()
 
-        let entry = MainBudgetWidgetEntry(date: Date(), totalSpent: loaded.totalSpent, percentageOfDays: loaded.percentage, type: loaded.type, budgetAmount: loaded.budgetAmount, startDate: loaded.startDate, found: loaded.found)
+            let entry = MainBudgetWidgetEntry(date: Date(), totalSpent: loaded.totalSpent, percentageOfDays: loaded.percentage, type: loaded.type, budgetAmount: loaded.budgetAmount, startDate: loaded.startDate, found: loaded.found)
 
-        let timeline = Timeline(entries: [entry], policy: .atEnd)
+            let timeline = Timeline(entries: [entry], policy: .atEnd)
 
-        completion(timeline)
+            completion(timeline)
+        }
     }
 
-    func loadData() -> (found: Bool, totalSpent: Double, budgetAmount: Double, percentage: Double, type: Int, startDate: Date) {
+    func loadData() async -> (found: Bool, totalSpent: Double, budgetAmount: Double, percentage: Double, type: Int, startDate: Date) {
         guard DataController.storeIsAvailable else {
             // Broken app group: skip the store read; the entry view shows the error
             // placeholder via `guardedByDataStore()`. Return the existing not-found
@@ -68,10 +78,7 @@ struct MainBudgetWidgetProvider: TimelineProvider {
             return (found: false, totalSpent: 0, budgetAmount: 0, percentage: 0, type: 0, startDate: Date())
         }
 
-//        let dataController = DataController()
-        let dataController = DataController.shared
-
-        return dataController.budgets.fetchRequestForMainBudgetWidget()
+        return await DataController.shared.budgets.getMainBudgetWidgetSnapshot()
     }
 }
 

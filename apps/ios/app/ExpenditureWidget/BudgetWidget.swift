@@ -5,6 +5,7 @@
 //  Created by Rafael Soh on 17/8/22.
 //
 
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -12,7 +13,7 @@ struct BudgetWidget: Widget {
     let kind: String = "BudgetWidget"
 
     var body: some WidgetConfiguration {
-        IntentConfiguration(kind: kind, intent: BudgetWidgetConfigurationIntent.self, provider: BudgetWidgetProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: BudgetWidgetConfiguration.self, provider: BudgetWidgetProvider()) { entry in
             BudgetWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
@@ -22,84 +23,126 @@ struct BudgetWidget: Widget {
     }
 }
 
-struct BudgetWidgetProvider: IntentTimelineProvider {
-    typealias Intent = BudgetWidgetConfigurationIntent
+struct BudgetWidgetConfiguration: WidgetConfigurationIntent, CustomIntentMigratedAppIntent {
+    // Existing widgets (BudgetWidget and LockBudgetWidget share this intent)
+    // were configured through the SiriKit BudgetWidgetConfigurationIntent; the
+    // system migrates their stored parameters onto this intent by matching this
+    // class name plus the parameter name and type below, so none of them may
+    // change.
+    static let intentClassName = "BudgetWidgetConfigurationIntent"
+
+    static var title: LocalizedStringResource = "Budget Widget Configuration"
+
+    @Parameter(title: "Budget")
+    var budget: WidgetBudgetEntity?
+}
+
+struct WidgetBudgetEntity: AppEntity, Identifiable {
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Budget")
+    static var defaultQuery: WidgetBudgetQuery = .init()
+
+    /// The budget's objectID URI string — the same identifier the SiriKit
+    /// WidgetBudget INObject stored and `getWidgetSnapshot(identifier:)`
+    /// parses — so migrated configurations keep resolving to the same budget.
+    var id: String
+    var name: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(name)")
+    }
+}
+
+struct WidgetBudgetQuery: EntityQuery {
+    func entities(for identifiers: [WidgetBudgetEntity.ID]) async throws -> [WidgetBudgetEntity] {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: resolve to nothing instead of touching the store.
+            return []
+        }
+
+        return await DataController.shared.budgets.getWidgetBudgetOptions()
+            .filter { identifiers.contains($0.identifier) }
+            .map { WidgetBudgetEntity(id: $0.identifier, name: $0.name) }
+    }
+
+    func suggestedEntities() async throws -> [WidgetBudgetEntity] {
+        guard DataController.storeIsAvailable else {
+            // Broken app group: fail the options request instead of returning an
+            // empty budget list that looks like the user has no budgets.
+            throw DataController.appGroupUnavailableError
+        }
+
+        return await DataController.shared.budgets.getWidgetBudgetOptions().map {
+            WidgetBudgetEntity(id: $0.identifier, name: $0.name)
+        }
+    }
+}
+
+struct BudgetWidgetProvider: AppIntentTimelineProvider {
+    typealias Intent = BudgetWidgetConfiguration
 
     public typealias Entry = BudgetWidgetEntry
 
     func placeholder(in _: Context) -> BudgetWidgetEntry {
-        let loaded = loadData(budgetId: "")
-
-        return BudgetWidgetEntry(date: Date(), totalSpent: loaded.total, percentageOfDays: loaded.percentage, budget: loaded.budget, configuration: BudgetWidgetConfigurationIntent())
+        // Placeholder must return synchronously, so it skips the store read. A
+        // fresh configuration has no budget, so the entry view renders its
+        // select-a-budget message.
+        BudgetWidgetEntry(date: Date(), totalSpent: 0, percentageOfDays: 0, budget: .failed, configuration: BudgetWidgetConfiguration())
     }
 
-    func getSnapshot(for configuration: BudgetWidgetConfigurationIntent, in _: Context, completion: @escaping (BudgetWidgetEntry) -> Void) {
-        let loaded = loadData(budgetId: configuration.budget?.identifier ?? "")
+    func snapshot(for configuration: BudgetWidgetConfiguration, in context: Context) async -> BudgetWidgetEntry {
+        if context.isPreview {
+            return placeholder(in: context)
+        }
 
-        let entry = BudgetWidgetEntry(date: Date(), totalSpent: loaded.total, percentageOfDays: loaded.percentage, budget: loaded.budget, configuration: configuration)
-        completion(entry)
+        return await entry(for: configuration)
     }
 
-    func getTimeline(for configuration: BudgetWidgetConfigurationIntent, in _: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-        let loaded = loadData(budgetId: configuration.budget?.identifier ?? "")
-
-        let entry = BudgetWidgetEntry(date: Date(), totalSpent: loaded.total, percentageOfDays: loaded.percentage, budget: loaded.budget, configuration: configuration)
-
-        let timeline = Timeline(entries: [entry], policy: .atEnd)
-
-        completion(timeline)
+    func timeline(for configuration: BudgetWidgetConfiguration, in _: Context) async -> Timeline<BudgetWidgetEntry> {
+        Timeline(entries: [await entry(for: configuration)], policy: .atEnd)
     }
 
-    func loadData(budgetId: String) -> (total: Double, percentage: Double, budget: HoldingBudget) {
+    private func entry(for configuration: BudgetWidgetConfiguration) async -> BudgetWidgetEntry {
+        let loaded = await loadData(budgetId: configuration.budget?.id ?? "")
+
+        return BudgetWidgetEntry(date: Date(), totalSpent: loaded.total, percentageOfDays: loaded.percentage, budget: loaded.budget, configuration: configuration)
+    }
+
+    func loadData(budgetId: String) async -> (total: Double, percentage: Double, budget: HoldingBudget) {
         guard DataController.storeIsAvailable else {
-            // Broken app group: do not touch the store (avoids a crash on the
-            // force-unwrapped objectID lookup). The entry view shows the error
-            // placeholder via `guardedByDataStore()`.
+            // Broken app group: do not touch the store. The entry view shows the
+            // error placeholder via `guardedByDataStore()`.
             return (0, 0, HoldingBudget.failed)
         }
 
-//        let dataController = DataController()
-        let dataController = DataController.shared
+        let snapshot: BudgetRepository.WidgetSnapshot
 
-        if let objectIDURL = URL(string: budgetId) {
-            let managedObjectID = dataController.container.persistentStoreCoordinator.managedObjectID(forURIRepresentation: objectIDURL)!
-
-            let budget = dataController.container.viewContext.object(with: managedObjectID) as! Budget
-
-            let fetchRequest = dataController.budgets.fetchRequestForBudgetTransactions(budget: budget)
-
-            let transactions = dataController.results(for: fetchRequest)
-
-            var holdingTotal = 0.0
-
-            transactions.forEach { transaction in
-                holdingTotal += transaction.wrappedAmount
-            }
-
-            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, color: budget.wrappedColor, budgetAmount: budget.amount)
-
-            let percentageOfDays: Double
-
-            let calendar = Calendar.current
-
-            if budget.type == 1 {
-                let components = calendar.dateComponents([.minute], from: budget.startDate!, to: Date.now)
-                percentageOfDays = Double(components.minute!) / 1440
-            } else {
-                let components1 = calendar.dateComponents([.day], from: budget.startDate!, to: budget.endDate)
-                let numberOfDays = components1.day!
-
-                let components2 = calendar.dateComponents([.day], from: budget.startDate!, to: Date.now)
-                let numberOfDaysPast = components2.day!
-
-                percentageOfDays = Double(numberOfDaysPast) / Double(numberOfDays)
-            }
-
-            return (holdingTotal, percentageOfDays, returnBudget)
-        } else {
-            let budget = HoldingBudget.failed
-            return (0, 0, budget)
+        do {
+            snapshot = try await DataController.shared.budgets.getWidgetSnapshot(identifier: budgetId)
+        } catch {
+            // Unconfigured or since-deleted budget renders as the missing-budget entry.
+            return (0, 0, HoldingBudget.failed)
         }
+
+        let returnBudget = HoldingBudget(type: snapshot.type, symbol: snapshot.symbol, name: snapshot.name, color: snapshot.color, budgetAmount: snapshot.budgetAmount)
+
+        let percentageOfDays: Double
+
+        let calendar = Calendar.current
+
+        if snapshot.type == 1 {
+            let components = calendar.dateComponents([.minute], from: snapshot.startDate, to: Date.now)
+            percentageOfDays = Double(components.minute!) / 1440
+        } else {
+            let components1 = calendar.dateComponents([.day], from: snapshot.startDate, to: snapshot.endDate)
+            let numberOfDays = components1.day!
+
+            let components2 = calendar.dateComponents([.day], from: snapshot.startDate, to: Date.now)
+            let numberOfDaysPast = components2.day!
+
+            percentageOfDays = Double(numberOfDaysPast) / Double(numberOfDays)
+        }
+
+        return (snapshot.totalSpent, percentageOfDays, returnBudget)
     }
 }
 
@@ -108,7 +151,7 @@ struct BudgetWidgetEntry: TimelineEntry {
     let totalSpent: Double
     let percentageOfDays: Double
     let budget: HoldingBudget
-    let configuration: BudgetWidgetConfigurationIntent
+    let configuration: BudgetWidgetConfiguration
 }
 
 struct BudgetWidgetEntryView: View {
