@@ -88,7 +88,7 @@ struct Provider: IntentTimelineProvider {
 
         switch insightsType {
         case .net:
-            let (amount, positive) = dataController.getLogViewTotalNet(type: timeframe)
+            let (amount, positive) = dataController.transactions.getLogViewTotalNet(type: timeframe)
 
             if positive {
                 return amount
@@ -97,9 +97,9 @@ struct Provider: IntentTimelineProvider {
             }
 
         case .income:
-            return dataController.getLogViewTotalIncome(type: timeframe)
+            return dataController.transactions.getLogViewTotalIncome(type: timeframe)
         case .expense:
-            return dataController.getLogViewTotalSpent(type: timeframe)
+            return dataController.transactions.getLogViewTotalSpent(type: timeframe)
         default:
             return 0
         }
@@ -114,7 +114,7 @@ struct Provider: IntentTimelineProvider {
 
 //        let dataController = DataController()
         let dataController = DataController.shared
-        let itemRequest = dataController.fetchRequestForRecentTransactionsWithCount(type: type, count: count)
+        let itemRequest = dataController.transactions.fetchRequestForRecentTransactionsWithCount(type: type, count: count)
         let holding = dataController.results(for: itemRequest)
 
         var sending = [HoldingTransaction]()

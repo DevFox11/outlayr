@@ -25,7 +25,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
     func testDuplicateIconInSamePoolIsRejected() {
         let controller = makeSeededController()
 
-        let result = controller.categoryCheck(name: "Supermarket", icon: "shopping-cart-01", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "Supermarket", icon: "shopping-cart-01", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .duplicateIcon)
     }
@@ -33,7 +33,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
     func testSameIconIsAllowedAcrossIncomeAndExpensePools() {
         let controller = makeSeededController()
 
-        let result = controller.categoryCheck(name: "Refunds", icon: "shopping-cart-01", emoji: "", income: true)
+        let result = controller.categories.categoryCheck(name: "Refunds", icon: "shopping-cart-01", emoji: "", income: true)
 
         XCTAssertEqual(result.error, .none)
     }
@@ -41,7 +41,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
     func testDuplicateIconAndNameTogetherReportsDuplicate() {
         let controller = makeSeededController()
 
-        let result = controller.categoryCheck(name: "Groceries", icon: "shopping-cart-01", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "Groceries", icon: "shopping-cart-01", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .duplicate)
     }
@@ -49,7 +49,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
     func testMissingIconIsRejected() {
         let controller = makeSeededController()
 
-        let result = controller.categoryCheck(name: "Travel", icon: "", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "Travel", icon: "", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .missingIcon)
     }
@@ -57,7 +57,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
     func testMissingIconAndNameReportsIncomplete() {
         let controller = makeSeededController()
 
-        let result = controller.categoryCheck(name: "  ", icon: "", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "  ", icon: "", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .incomplete)
     }
@@ -65,7 +65,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
     func testFreshIconIsAccepted() {
         let controller = makeSeededController()
 
-        let result = controller.categoryCheck(name: "Travel", icon: "airplane-01", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "Travel", icon: "airplane-01", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .none)
     }
@@ -76,7 +76,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Groceries", icon: "shopping-cart-01", emoji: "", toEdit: groceries)
+        let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "shopping-cart-01", emoji: "", toEdit: groceries)
 
         XCTAssertEqual(result.error, .none)
     }
@@ -88,7 +88,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         makeCategory(in: context, name: "Travel", icon: "airplane-01", income: false, order: 1)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Groceries", icon: "airplane-01", emoji: "", toEdit: groceries)
+        let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "airplane-01", emoji: "", toEdit: groceries)
 
         XCTAssertEqual(result.error, .duplicateIcon)
     }
@@ -102,7 +102,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let wedding = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Wedding Fund", icon: "", emoji: "", toEdit: wedding)
+        let result = controller.categories.categoryCheckEdit(name: "Wedding Fund", icon: "", emoji: "", toEdit: wedding)
 
         XCTAssertEqual(result.error, .none)
     }
@@ -113,7 +113,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         controller.save()
 
-        let result = controller.categoryCheck(name: "Market", icon: "shopping-cart-01", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "Market", icon: "shopping-cart-01", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .duplicateIcon)
     }
@@ -125,7 +125,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let legacy = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Sailboat Renamed", icon: "", emoji: "", toEdit: legacy)
+        let result = controller.categories.categoryCheckEdit(name: "Sailboat Renamed", icon: "", emoji: "", toEdit: legacy)
 
         XCTAssertEqual(result.error, .none)
     }
@@ -136,7 +136,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Groceries", icon: "", emoji: "", toEdit: groceries)
+        let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "", emoji: "", toEdit: groceries)
 
         XCTAssertEqual(result.error, .missingIcon)
     }
@@ -149,7 +149,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let future = makeCategory(in: context, name: "Garage", icon: "car-02-from-a-newer-version", income: false, order: 0)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Garage", icon: "car-02-from-a-newer-version", emoji: "", toEdit: future)
+        let result = controller.categories.categoryCheckEdit(name: "Garage", icon: "car-02-from-a-newer-version", emoji: "", toEdit: future)
 
         XCTAssertEqual(result.error, .none)
     }
@@ -162,7 +162,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         child.parent = parent
         controller.save()
 
-        let result = controller.categoryCheck(name: "Cafes", icon: "coffee-02", emoji: "", income: false)
+        let result = controller.categories.categoryCheck(name: "Cafes", icon: "coffee-02", emoji: "", income: false)
 
         XCTAssertEqual(result.error, .duplicateIcon)
     }
@@ -177,7 +177,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         sailing.emoji = "⛵️"
         controller.save()
 
-        let result = controller.categoryCheck(name: "Boats", icon: "", emoji: "⛵️", income: false)
+        let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: "⛵️", income: false)
         XCTAssertEqual(result.error, .duplicateEmoji)
     }
 
@@ -189,14 +189,14 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         sailing.emoji = "⛵️"
         controller.save()
 
-        let result = controller.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
+        let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
         XCTAssertEqual(result.error, .duplicate)
     }
 
     func testEmojiOnlyCategoryPassesTheSymbolGate() throws {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
 
-        let result = controller.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
+        let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
         XCTAssertEqual(result.error, .none)
     }
 }

@@ -58,7 +58,7 @@
 //
 //    func loadData() -> (transactions:[HoldingTemplateTransaction], added: Bool) {
 //        let dataController = DataController.shared
-//        let fetchedTemplates = dataController.getAllTemplateTransactions()
+//        let fetchedTemplates = dataController.transactions.getAllTemplateTransactions()
 //
 //        var holding = [HoldingTemplateTransaction]()
 //
@@ -259,7 +259,7 @@
 //    func perform() async throws -> some IntentResult & ProvidesDialog {
 //        let dataController = DataController.shared
 //
-//        dataController.newTemplateTransaction(order: order)
+//        dataController.transactions.newTemplateTransaction(order: order)
 //
 //        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
 //            dataController.addedTransaction = false

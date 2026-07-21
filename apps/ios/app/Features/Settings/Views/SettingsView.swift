@@ -355,7 +355,7 @@ struct SettingsView: View {
   }
 
   func exportData() {
-    let fetchRequest = dataController.fetchRequestForExport()
+    let fetchRequest = dataController.transactions.fetchRequestForExport()
     let transactions = dataController.results(for: fetchRequest)
 
     let fileName = "export.csv"

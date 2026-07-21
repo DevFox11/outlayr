@@ -71,7 +71,7 @@ struct MainBudgetWidgetProvider: TimelineProvider {
 //        let dataController = DataController()
         let dataController = DataController.shared
 
-        return dataController.fetchRequestForMainBudgetWidget()
+        return dataController.budgets.fetchRequestForMainBudgetWidget()
     }
 }
 

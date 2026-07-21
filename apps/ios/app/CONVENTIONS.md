@@ -65,10 +65,14 @@ Current features: `Budget`, `Transactions`, `Insights`, `Categories`,
 - `Core/Persistence/DataController.swift` and `Shortcuts/ShortcutsEntities.swift`
   declare helper types (`CustomError`, `LineGraphDataPoint`, the App Intent
   entities) that are compiled into the widget/intent extension targets too.
-  A file added via Xcode's tooling only joins ONE target, so extracting those
-  types into new files silently breaks the extension builds. Split them only
-  while also fixing multi-target membership. `DataController` additionally wants
-  a real repository refactor, not just a mechanical split.
+  Extract types from them only while also verifying multi-target membership —
+  a new file must join every target that compiles its siblings, or the
+  extension builds silently break. `DataController`'s domain fetches and
+  mutations live in `CategoryRepository`/`BudgetRepository`/
+  `TransactionRepository` (members of all four targets, reached via
+  `dataController.categories/.budgets/.transactions`); `DataController` itself
+  owns only the Core Data stack, `save()`/`results(for:)`, and the shared
+  helper types.
 - Widget files (`ExpenditureWidget/*Widget.swift`) keep the idiomatic WidgetKit
   cluster (`Widget` + `TimelineProvider` + `Entry` + `EntryView`) together;
   several are members of both the app and widget targets, so the same

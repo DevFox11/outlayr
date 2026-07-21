@@ -102,7 +102,7 @@ struct LogView: View {
         }
         .onChange(of: syncMonitor.syncStateSummary) { _, newState in
             if newState == .succeeded && !updatedRecurring {
-                dataController.updateRecurringTransactions()
+                dataController.transactions.updateRecurringTransactions()
                 updatedRecurring = true
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
@@ -112,14 +112,14 @@ struct LogView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             if syncMonitor.syncStateSummary == .succeeded && !updatedRecurring {
-                dataController.updateRecurringTransactions()
+                dataController.transactions.updateRecurringTransactions()
                 updatedRecurring = true
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
                     updatedRecurring = false
                 }
             } else if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
-                dataController.updateRecurringTransactions()
+                dataController.transactions.updateRecurringTransactions()
             }
         }
         .onChange(of: launchSearch) { _, _ in
@@ -127,7 +127,7 @@ struct LogView: View {
         }
         .onAppear {
             if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
-                dataController.updateRecurringTransactions()
+                dataController.transactions.updateRecurringTransactions()
             }
         }
         .onOpenURL { url in

@@ -63,7 +63,7 @@ final class CategoryIconCatalogTests: CharacterizationTestCase {
         _ = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
         controller.save()
 
-        let result = controller.categoryCheckEdit(name: "Sailboat Fund", icon: "", emoji: "", toEdit: sailboat)
+        let result = controller.categories.categoryCheckEdit(name: "Sailboat Fund", icon: "", emoji: "", toEdit: sailboat)
         XCTAssertEqual(result.error, .none)
     }
 

@@ -105,7 +105,7 @@ struct SingleGraphView: View {
     let average: Double
 
     var incomeAverage: Double {
-        let loaded = dataController.getInsights(type: type, date: date, income: income)
+        let loaded = dataController.transactions.getInsights(type: type, date: date, income: income)
         return loaded.average
     }
 
@@ -320,7 +320,7 @@ struct SingleGraphView: View {
         self.showCents = showCents
         self.type = type
 
-        let loaded = dataController.getInsightsSummary(type: type, date: showingDate)
+        let loaded = dataController.transactions.getInsightsSummary(type: type, date: showingDate)
 
         totalIncome = loaded.income
         totalSpent = loaded.spent
@@ -344,7 +344,7 @@ struct SingleGraphView: View {
             lastDate = Calendar.current.date(byAdding: .year, value: -1, to: showingDate) ?? Date.now
         }
 
-        let lastDateData = dataController.getInsightsSummary(type: type, date: lastDate)
+        let lastDateData = dataController.transactions.getInsightsSummary(type: type, date: lastDate)
 
         if lastDateData.positive {
             lastNet = lastDateData.net

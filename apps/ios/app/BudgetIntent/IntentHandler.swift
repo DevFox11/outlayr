@@ -19,7 +19,7 @@ class IntentHandler: INExtension, BudgetWidgetConfigurationIntentHandling {
             return
         }
 
-        let budgetFetchRequest = dataController.fetchRequestForBudgets()
+        let budgetFetchRequest = dataController.budgets.fetchRequestForBudgets()
 
         let budgets = dataController.results(for: budgetFetchRequest).map {
             WidgetBudget(identifier: $0.objectID.uriRepresentation().absoluteString, display: $0.wrappedName)

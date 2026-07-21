@@ -43,16 +43,16 @@ struct BudgetIntent: AppIntent {
 
         switch type {
         case .overall:
-            if let mainBudget = dataController.results(for: dataController.fetchRequestForMainBudget()).first {
-                amount = dataController.getBudgetLeftover(overallBudget: mainBudget)
+            if let mainBudget = dataController.results(for: dataController.budgets.fetchRequestForMainBudget()).first {
+                amount = dataController.budgets.getBudgetLeftover(overallBudget: mainBudget)
 
                 budgetType = mainBudget.type
             }
         case .category:
             if let unwrappedBudget = budget {
-                let categoryBudget = try dataController.findBudget(withId: unwrappedBudget.id)
+                let categoryBudget = try dataController.budgets.findBudget(withId: unwrappedBudget.id)
 
-                amount = dataController.getBudgetLeftover(budget: categoryBudget)
+                amount = dataController.budgets.getBudgetLeftover(budget: categoryBudget)
 
                 budgetType = categoryBudget.type
             }

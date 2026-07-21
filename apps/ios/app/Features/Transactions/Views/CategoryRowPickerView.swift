@@ -165,7 +165,7 @@ struct CategoryRowPickerView: View {
         _selectedCategory = category ?? Binding.constant(nil)
 //        self.categories = categories
 //        let dataController = DataController.shared
-//        let fetchRequest = dataController.fetchRequestForCategories(income: income)
+//        let fetchRequest = dataController.categories.fetchRequestForCategories(income: income)
 //        self.categories = dataController.results(for: fetchRequest)
         self.income = income
     }

@@ -536,7 +536,7 @@ struct TransactionFormView: View {
         draft.apply(to: transaction, category: category)
 
         if draft.needsRecurrenceBackfill {
-            dataController.updateRecurringTransaction(transaction: transaction)
+            dataController.transactions.updateRecurringTransaction(transaction: transaction)
         }
 
         dataController.save()

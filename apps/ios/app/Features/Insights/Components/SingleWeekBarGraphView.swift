@@ -111,7 +111,7 @@ struct SingleWeekBarGraphView: View {
         _categoryFilterMode = mode
         _selectedDateAmount = amount
 
-        let loaded = dataController.getInsights(type: 1, date: week, income: income)
+        let loaded = dataController.transactions.getInsights(type: 1, date: week, income: income)
 
         daysOfWeek = loaded.dates
         dayDictionary = loaded.dateDictionary

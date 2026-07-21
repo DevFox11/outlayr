@@ -80,7 +80,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
 
             let budget = dataController.container.viewContext.object(with: managedObjectID) as! Budget
 
-            let fetchRequest = dataController.fetchRequestForBudgetTransactions(budget: budget)
+            let fetchRequest = dataController.budgets.fetchRequestForBudgetTransactions(budget: budget)
 
             let transactions = dataController.results(for: fetchRequest)
 

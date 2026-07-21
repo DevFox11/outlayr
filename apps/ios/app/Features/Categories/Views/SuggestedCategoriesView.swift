@@ -41,7 +41,7 @@ struct SuggestedCategoriesView: View {
     }
 
     private func add(_ suggestion: SuggestedCategory) {
-        guard dataController.categoryCheck(name: suggestion.name, icon: suggestion.icon, emoji: "", income: income).error == .none else {
+        guard dataController.categories.categoryCheck(name: suggestion.name, icon: suggestion.icon, emoji: "", income: income).error == .none else {
             return
         }
 

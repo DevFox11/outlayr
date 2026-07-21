@@ -60,8 +60,8 @@ struct InsightsProvider: IntentTimelineProvider {
 
 //        let dataController = DataController()
         let dataController = DataController.shared
-        let itemRequest = dataController.fetchRequestForWidgetInsights(type: type, income: income)
-        let categoryRequest = dataController.fetchRequestForTopLevelCategories(income: income)
+        let itemRequest = dataController.transactions.fetchRequestForWidgetInsights(type: type, income: income)
+        let categoryRequest = dataController.categories.fetchRequestForTopLevelCategories(income: income)
 
         let categories = dataController.results(for: categoryRequest)
         let transactions = dataController.results(for: itemRequest.fetchRequest)

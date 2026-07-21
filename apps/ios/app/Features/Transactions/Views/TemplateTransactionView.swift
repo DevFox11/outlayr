@@ -680,7 +680,7 @@ struct TemplateTransactionView: View {
 
         let dataController = DataController.shared
 
-        let toEdit = dataController.getTemplateTransaction(order: order)
+        let toEdit = dataController.transactions.getTemplateTransaction(order: order)
 
         if let transaction = toEdit {
             _note = State(initialValue: transaction.wrappedNote)

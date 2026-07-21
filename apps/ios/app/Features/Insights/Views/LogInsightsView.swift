@@ -27,7 +27,7 @@ struct LogInsightsView: View {
     @AppStorage("logViewLineGraph", store: AppIdentifiers.sharedDefaults) var lineGraph: Bool = false
 
     var netTotal: (value: Double, positive: Bool) {
-        dataController.getLogViewTotalNet(type: timeframe)
+        dataController.transactions.getLogViewTotalNet(type: timeframe)
     }
 
     var range: Int {
@@ -61,20 +61,20 @@ struct LogInsightsView: View {
     }
 
     var totalSpent: Double {
-        return dataController.getLogViewTotalSpent(type: timeframe)
+        return dataController.transactions.getLogViewTotalSpent(type: timeframe)
     }
 
     var totalIncome: Double {
-        return dataController.getLogViewTotalIncome(type: timeframe)
+        return dataController.transactions.getLogViewTotalIncome(type: timeframe)
     }
 
     var lineGraphData: [LineGraphDataPoint] {
         if insightsType == 1 {
-            return dataController.getLineGraphDataNet(type: timeframe)
+            return dataController.transactions.getLineGraphDataNet(type: timeframe)
         } else if insightsType == 2 {
-            return dataController.getLineGraphData(income: true, type: timeframe)
+            return dataController.transactions.getLineGraphData(income: true, type: timeframe)
         } else {
-            return dataController.getLineGraphData(income: false, type: timeframe)
+            return dataController.transactions.getLineGraphData(income: false, type: timeframe)
         }
     }
 

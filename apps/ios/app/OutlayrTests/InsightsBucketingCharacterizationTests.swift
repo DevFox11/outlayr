@@ -27,7 +27,7 @@ final class InsightsBucketingCharacterizationTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 999, date: date(2024, 5, 2, 12, 0), income: false, category: category)
         controller.save()
 
-        let result = controller.getInsights(type: 2, date: date(2024, 4, 1), income: false)
+        let result = controller.transactions.getInsights(type: 2, date: date(2024, 4, 1), income: false)
 
         XCTAssertEqual(result.amount, 22, accuracy: 0.0001)
         XCTAssertEqual(result.maximum, 15, accuracy: 0.0001)
@@ -49,7 +49,7 @@ final class InsightsBucketingCharacterizationTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 500, date: date(2024, 6, 20, 9, 0), income: false, category: category)
         controller.save()
 
-        let result = controller.getInsights(type: 2, date: date(2024, 6, 1), income: false)
+        let result = controller.transactions.getInsights(type: 2, date: date(2024, 6, 1), income: false)
 
         XCTAssertEqual(result.amount, 20, accuracy: 0.0001)
         XCTAssertEqual(result.maximum, 12, accuracy: 0.0001)

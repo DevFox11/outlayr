@@ -30,7 +30,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 6, 12, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let all = controller.results(for: Transaction.fetchRequest())
         XCTAssertEqual(all.count, 4, "original + one back-filled entry per missed day (06-13, 06-14, 06-15)")
@@ -70,7 +70,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 6, 14, 12, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let all = controller.results(for: Transaction.fetchRequest())
         XCTAssertEqual(all.count, 2, "original + a single entry dated today")
@@ -115,7 +115,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2022, 6, 15, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let all = controller.results(for: Transaction.fetchRequest())
         let generated = all.filter { $0.onceRecurring }
@@ -151,7 +151,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.recurringEndDate = date(2023, 6, 15, 12, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         // 2022 and 2023 (inclusive of the end date) are generated; 2024 is not.
@@ -182,7 +182,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.recurringEndDate = date(2024, 6, 10, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let all = controller.results(for: Transaction.fetchRequest())
         XCTAssertEqual(all.count, 1, "no occurrences generated past the end date")
@@ -207,7 +207,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.recurringEndDate = nil
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -230,7 +230,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 5, 25, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -252,7 +252,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 3, 15, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -273,7 +273,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 5, 4, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -294,7 +294,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2023, 12, 15, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -319,7 +319,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 1, 31, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         let days = generated.compactMap { $0.day }.sorted()
@@ -346,7 +346,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2020, 2, 29, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -373,7 +373,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.recurringEndDate = date(2024, 6, 10, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let all = controller.results(for: Transaction.fetchRequest())
         XCTAssertEqual(all.count, 1)
@@ -395,7 +395,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 6, 12, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let generated = controller.results(for: Transaction.fetchRequest()).filter { $0.onceRecurring }
         XCTAssertEqual(generated.compactMap { $0.day }.sorted(), [
@@ -416,7 +416,7 @@ final class RecurringTransactionCharacterizationTests: CharacterizationTestCase 
         original.day = date(2024, 6, 12, 0, 0)
         controller.save()
 
-        controller.updateRecurringTransaction(transaction: original)
+        controller.transactions.updateRecurringTransaction(transaction: original)
 
         let all = controller.results(for: Transaction.fetchRequest())
         // Bounded (does not run away) and terminates.

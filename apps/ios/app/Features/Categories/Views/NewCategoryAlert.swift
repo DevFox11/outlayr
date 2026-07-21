@@ -177,7 +177,7 @@ struct NewCategoryAlert: View {
     }
 
     private func add() {
-        let result = dataController.categoryCheck(
+        let result = dataController.categories.categoryCheck(
             name: name,
             icon: symbol.icon,
             emoji: symbol.emoji,

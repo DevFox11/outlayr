@@ -102,9 +102,9 @@ struct NewTransactionIntent: AppIntent {
 
             if income == .expense {
                 if let unwrappedExpenseCategory = expenseCategory {
-                    let category = try dataController.findCategory(withId: unwrappedExpenseCategory.id)
+                    let category = try dataController.categories.findCategory(withId: unwrappedExpenseCategory.id)
 
-                    let transaction = dataController.newTransaction(note: note ?? "", category: category, income: false, amount: amount, date: Date.now, repeatType: repeatType, repeatCoefficient: 1, delay: false)
+                    let transaction = dataController.transactions.newTransaction(note: note ?? "", category: category, income: false, amount: amount, date: Date.now, repeatType: repeatType, repeatCoefficient: 1, delay: false)
 
                     return .result(dialog: "Expense successfully logged.") {
                         ShortcutTransactionView(transaction: transaction)
@@ -114,9 +114,9 @@ struct NewTransactionIntent: AppIntent {
                 }
             } else {
                 if let unwrappedIncomeCategory = incomeCategory {
-                    let category = try dataController.findCategory(withId: unwrappedIncomeCategory.id)
+                    let category = try dataController.categories.findCategory(withId: unwrappedIncomeCategory.id)
 
-                    let transaction = dataController.newTransaction(note: note ?? "", category: category, income: true, amount: amount, date: Date.now, repeatType: repeatType, repeatCoefficient: 1, delay: false)
+                    let transaction = dataController.transactions.newTransaction(note: note ?? "", category: category, income: true, amount: amount, date: Date.now, repeatType: repeatType, repeatCoefficient: 1, delay: false)
 
                     return .result(dialog: "Income successfully logged.") {
                         ShortcutTransactionView(transaction: transaction)

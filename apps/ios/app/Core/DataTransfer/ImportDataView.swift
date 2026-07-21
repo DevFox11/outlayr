@@ -102,11 +102,11 @@ struct ImportDataView: View {
     let pointers = ["Ensure that the values in the 'Amount' column do not contain any currency symbols.", "All dates should be of a consistent, recognizable format. If no timestamps are provided, the time of transaction will default to 12:00 am.", "Remove all commas in the 'Note' and 'Category' columns as they would disrupt the parsing of your file."]
 
     var incomeCategories: [Category] {
-        dataController.getAllCategories(income: true)
+        dataController.categories.getAllCategories(income: true)
     }
 
     var expenseCategories: [Category] {
-        dataController.getAllCategories(income: false)
+        dataController.categories.getAllCategories(income: false)
     }
 
     var body: some View {
@@ -873,7 +873,7 @@ struct ImportDataView: View {
             if let transactionDate = dateFormatter.date(from: row[dateColumnIndex]) {
                 if let rowCategory = categoryDictionary[row[categoryColumnIndex]] {
                     if let transactionAmount = Double(row[amountColumnIndex]) {
-                        _ = dataController.newTransaction(note: row[noteColumnIndex], category: rowCategory, income: rowCategory.income, amount: abs(transactionAmount), date: transactionDate, repeatType: 0, repeatCoefficient: 1, delay: false)
+                        _ = dataController.transactions.newTransaction(note: row[noteColumnIndex], category: rowCategory, income: rowCategory.income, amount: abs(transactionAmount), date: transactionDate, repeatType: 0, repeatCoefficient: 1, delay: false)
                     } else {
                         processingState = .error
                         errorMessage = "Invalid values in amount column."

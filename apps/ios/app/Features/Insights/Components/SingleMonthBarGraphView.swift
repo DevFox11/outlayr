@@ -114,7 +114,7 @@ struct SingleMonthBarGraphView: View {
         _categoryFilterMode = mode
         _selectedDateAmount = amount
 
-        let loaded = dataController.getInsights(type: 2, date: month, income: income)
+        let loaded = dataController.transactions.getInsights(type: 2, date: month, income: income)
 
         daysOfMonth = loaded.dates
         dayDictionary = loaded.dateDictionary

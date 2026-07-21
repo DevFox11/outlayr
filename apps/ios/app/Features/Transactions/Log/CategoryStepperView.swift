@@ -30,7 +30,7 @@ struct CategoryStepperView: View {
                     .background(Color.IncomeGreen.opacity(0.23), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        let fetchRequest = dataController.fetchRequestForCategories(income: false)
+                        let fetchRequest = dataController.categories.fetchRequestForCategories(income: false)
                         let holding = dataController.results(for: fetchRequest)
 
                         if holding.isEmpty {
@@ -54,7 +54,7 @@ struct CategoryStepperView: View {
                     .background(Color.AlertRed.opacity(0.23), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        let fetchRequest = dataController.fetchRequestForCategories(income: true)
+                        let fetchRequest = dataController.categories.fetchRequestForCategories(income: true)
                         let holding = dataController.results(for: fetchRequest)
 
                         if holding.isEmpty {
@@ -109,7 +109,7 @@ struct CategoryStepperView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 30)
         .onAppear {
-            let fetchRequest = dataController.fetchRequestForCategories(income: income)
+            let fetchRequest = dataController.categories.fetchRequestForCategories(income: income)
             categories = dataController.results(for: fetchRequest)
 
             if categories.isEmpty {

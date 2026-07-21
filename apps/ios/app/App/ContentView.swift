@@ -96,7 +96,7 @@ struct ContentView: View {
             }
 
             if dataMigration1 {
-                let categoryFetch = dataController.fetchRequestForCategoriesMigration(income: false)
+                let categoryFetch = dataController.categories.fetchRequestForCategoriesMigration(income: false)
                 let categories = dataController.results(for: categoryFetch)
 
                 categories.forEach { category in
@@ -109,7 +109,7 @@ struct ContentView: View {
             }
 
             if dataMigration2 {
-                let categoryFetch = dataController.fetchRequestForCategoriesMigration()
+                let categoryFetch = dataController.categories.fetchRequestForCategoriesMigration()
                 let categories = dataController.results(for: categoryFetch)
 
                 categories.forEach { category in
@@ -128,7 +128,7 @@ struct ContentView: View {
             }
 
             if categoryPaletteMigration {
-                let categoryFetch = dataController.fetchRequestForCategoriesMigration()
+                let categoryFetch = dataController.categories.fetchRequestForCategoriesMigration()
                 let categories = dataController.results(for: categoryFetch)
 
                 categories.forEach { category in

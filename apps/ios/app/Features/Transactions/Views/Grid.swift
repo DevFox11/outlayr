@@ -21,7 +21,7 @@ struct Grid: Identifiable {
 
         let dataController = DataController.shared
 
-        transaction = dataController.getTemplateTransaction(order: index)
+        transaction = dataController.transactions.getTemplateTransaction(order: index)
         self.index = index
     }
 }

@@ -40,7 +40,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let category = makeCategory(in: context, name: "Food", income: false, order: 1)
         let txDate = date(2024, 3, 9, 14, 30)
 
-        let transaction = controller.newTransaction(
+        let transaction = controller.transactions.newTransaction(
             note: "Lunch",
             category: category,
             income: false,
@@ -61,7 +61,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         XCTAssertEqual(transaction.month, date(2024, 3, 1, 0, 0))
         XCTAssertNotNil(transaction.id)
 
-        let stored = controller.results(for: controller.fetchRequestForExport())
+        let stored = controller.results(for: controller.transactions.fetchRequestForExport())
         XCTAssertEqual(stored.count, 1)
         XCTAssertEqual(stored.first, transaction)
     }
@@ -71,7 +71,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         let category = makeCategory(in: context, name: "Transport", order: 1)
 
-        let transaction = controller.newTransaction(
+        let transaction = controller.transactions.newTransaction(
             note: "   ",
             category: category,
             income: false,
@@ -95,7 +95,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 3, date: date(2024, 2, 1), category: category)
         controller.save()
 
-        let stored = controller.results(for: controller.fetchRequestForExport())
+        let stored = controller.results(for: controller.transactions.fetchRequestForExport())
         let dates = stored.compactMap { $0.date }
         XCTAssertEqual(dates, [date(2024, 3, 1), date(2024, 2, 1), date(2024, 1, 1)])
     }

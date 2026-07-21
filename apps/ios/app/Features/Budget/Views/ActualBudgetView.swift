@@ -149,7 +149,7 @@ struct ActualBudgetView: View {
                 BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty, toEditBudget: budget)
             }
             .onAppear {
-                dataController.updateBudgetDates()
+                dataController.budgets.updateBudgetDates()
             }
             .sheet(isPresented: $newBudget) {
                 BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)

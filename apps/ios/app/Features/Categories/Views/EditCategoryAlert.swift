@@ -148,7 +148,7 @@ struct EditCategoryAlert: View {
     }
 
     private func save() {
-        let result = dataController.categoryCheckEdit(
+        let result = dataController.categories.categoryCheckEdit(
             name: name,
             icon: symbol.icon,
             emoji: symbol.emoji,
