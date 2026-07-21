@@ -956,7 +956,6 @@
 				C5A1C0FF1C04DE01ABCDEF09 /* AppIcon3.icon */,
 				C5A1C0FF1C04DE01ABCDEF0B /* AppIcon4.icon */,
 				530C89D42A793B4400B5028D /* Shortcuts */,
-				5327D297287C69A900F76ADF /* Data */,
 				5327D28C287C697C00F76ADF /* Preview Content */,
 			);
 			path = Outlayr;
@@ -968,14 +967,6 @@
 				5327D28D287C697C00F76ADF /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		5327D297287C69A900F76ADF /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				53BC2A3F2A8B21920019E4A8 /* MainModel.xcdatamodeld */,
-			);
-			path = Data;
 			sourceTree = "<group>";
 		};
 		536FA6BD2A7DFDBE00C52490 /* Actions */ = {
@@ -1438,6 +1429,7 @@
 				7A04381D300F430800FBF257 /* CategoryRepository.swift */,
 				7A043822300F432200FBF257 /* BudgetRepository.swift */,
 				7A043827300F43BF00FBF257 /* TransactionRepository.swift */,
+				53BC2A3F2A8B21920019E4A8 /* MainModel.xcdatamodeld */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
