@@ -151,7 +151,7 @@ struct AmountEntrySheet: View {
 
     private var closeButton: some View {
         Button(action: onDone) {
-            ToolbarIcon("cancel-01", size: 16)
+            ToolbarIcon("cancel-01", size: 22)
         }
         .accessibilityLabel("Close")
     }
