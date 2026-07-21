@@ -45,8 +45,9 @@ struct TransactionFormView: View {
     /// The form dims and stops responding behind the identity picker sheet,
     /// mirroring `CategorySheetSurface`.
     private let formBlurRadius: CGFloat = 8
-    /// Matches the amount sheet's resting height so the numpad detent lines up.
-    private let amountSheetHeight: CGFloat = 560
+    /// Fits the amount sheet's content (native header, amount, 72pt gap, keypad,
+    /// Done) so the Done button hugs the safe area rather than floating mid-sheet.
+    private let amountSheetHeight: CGFloat = 601
 
     init(toEdit: Transaction? = nil, category: Category? = nil) {
         self.toEdit = toEdit
@@ -281,26 +282,27 @@ struct TransactionFormView: View {
     private var categoryGroup: some View {
         Button { showingCategorySheet = true } label: {
             HStack(spacing: 12) {
-                if let category {
-                    CategoryIconTile(
-                        symbol: category.displaySymbol,
-                        tint: category.income ? Color.IncomeGreen : Color(hex: category.wrappedColour),
-                        size: .small
-                    )
-                    Text(category.wrappedName)
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(Color.PrimaryText)
-                } else {
-                    Text("Category")
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(categoryErrored ? AnyShapeStyle(Color.AlertRed) : AnyShapeStyle(.secondary))
-                }
+                Text("Category")
+                    .font(.system(.body, design: .rounded))
+                    .foregroundStyle(categoryErrored ? AnyShapeStyle(Color.AlertRed) : AnyShapeStyle(.secondary))
                 Spacer()
                 HStack(spacing: 5) {
-                    Text(category == nil ? "Choose" : "Change")
-                        .font(.system(.body, design: .rounded))
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                    if let category {
+                        CategoryIconGlyph(symbol: category.displaySymbol, size: 18)
+                            .foregroundStyle(category.income ? Color.IncomeGreen : Color(hex: category.wrappedColour))
+                        Text(category.wrappedName)
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(Color.PrimaryText)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.SubtitleText)
+                    } else {
+                        Text("Choose")
+                            .font(.system(.body, design: .rounded))
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
                 }
                 .foregroundStyle(Color.SubtitleText)
             }
@@ -421,10 +423,17 @@ struct TransactionFormView: View {
         .controlSize(.large)
         .disabled(!draft.canSave)
         .padding(.horizontal, 20)
+        .padding(.top, 36)
         .padding(.bottom, 12)
         .background(
+            // A scrim that reaches full opacity above the button so scrolling
+            // content fades out under it instead of colliding. systemGroupedBackground
+            // is dynamic, so both colour schemes are respected.
             LinearGradient(
-                colors: [Color(.systemGroupedBackground).opacity(0), Color(.systemGroupedBackground)],
+                stops: [
+                    .init(color: Color(.systemGroupedBackground).opacity(0), location: 0),
+                    .init(color: Color(.systemGroupedBackground), location: 0.45)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )

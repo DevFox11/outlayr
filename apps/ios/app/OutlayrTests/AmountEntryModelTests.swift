@@ -65,6 +65,35 @@ final class AmountEntryDisplayStyleTests: XCTestCase {
             .locale(Locale(identifier: "en_US"))
         XCTAssertEqual(style.format(Decimal(string: "12.34")!), "$12.34")
     }
+
+    func testNarrowSymbolDropsCurrencyPrefixForMXN() {
+        let style = AmountEntryDisplayStyle(code: "MXN", fractionLength: 2, pendingSeparator: false)
+            .locale(Locale(identifier: "en_US"))
+        let formatted = style.format(Decimal(string: "12.34")!)
+        XCTAssertEqual(formatted, "$12.34", "narrow presentation renders the compact symbol, not MX$: \(formatted)")
+        XCTAssertFalse(formatted.contains("MX"), "the MX$ prefix must be gone: \(formatted)")
+    }
+}
+
+final class AmountDisplayMetricsTests: XCTestCase {
+    func testBaseSizeIs40AndStepsDownForLongStrings() {
+        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 5), 40, "short amounts use the 40pt base")
+        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 15), 40, "the max-cap amount still uses the base")
+        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 16), 37)
+        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 17), 34)
+        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 24), 31)
+    }
+
+    func testFontSizeIsMonotonicNonIncreasing() {
+        let sizes = (1...24).map { AmountDisplayMetrics.fontSize(forCharacterCount: $0) }
+        XCTAssertEqual(sizes, sizes.sorted(by: >), "font size must never grow as the amount lengthens")
+    }
+
+    /// The max-cap amount "$100,000,000.00" (15 chars, narrow) fits at the 40pt
+    /// base on a ~345pt display, so it does not need to step down.
+    func testMaxCapAmountFitsAtBaseSize() {
+        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 15), 40)
+    }
 }
 
 final class AmountEntryModelTests: XCTestCase {

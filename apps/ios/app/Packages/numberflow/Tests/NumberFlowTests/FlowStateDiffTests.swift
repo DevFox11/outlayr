@@ -204,6 +204,43 @@ final class FlowStateDiffTests: XCTestCase {
         XCTAssertTrue(down.exiting.isEmpty)
     }
 
+    /// Regression for the "large amount → overlapping glyphs" report: driving the
+    /// exact repro sequence (MXN, 3 → 36,055,580 → with decimals) must never yield
+    /// two slots with the same id at any point in the animated lifecycle — a
+    /// duplicate id is what would make ForEach stack glyphs on top of each other.
+    /// (The visual overlap was app-side font scaling, not the package; this pins
+    /// that the package layout stays sound under rapid N-digit growth.)
+    func testLargeCurrencyGrowthKeepsSlotIdsUnique() {
+        let mxn = Decimal.FormatStyle.Currency(code: "MXN").locale(Locale(identifier: "en_US"))
+        func parts(_ value: Decimal) -> [KeyedPart] {
+            NumberFlowFormatter.decompose(mxn.attributedString(for: value))
+        }
+        let sequence: [Decimal] = [
+            3, 36, 360, 3605, 36055, 360555, 3_605_558, 36_055_580,
+            Decimal(string: "36055580.5")!, Decimal(string: "36055580.55")!,
+            36_055_580, 3605, 3
+        ]
+
+        var state = FlowState(parts: parts(sequence[0]))
+        for value in sequence.dropFirst() {
+            let newParts = parts(value)
+            let diff = state.prepare(parts: newParts)
+
+            // Peak slot count: entering + updating + still-exiting all coexist here,
+            // exactly the frame the HStack renders. Ids must be unique.
+            let ids = state.slots.map(\.id)
+            XCTAssertEqual(Set(ids).count, ids.count, "duplicate slot id at \(value): \(ids)")
+            XCTAssertNotNil(slot(state, "integer:0"), "ones place must always exist at \(value)")
+
+            state.roll(diff, parts: newParts, direction: .signOfDiff)
+            state.fade(diff)
+            state.prune(diff.exiting)
+
+            let settled = state.slots.map(\.id)
+            XCTAssertEqual(Set(settled).count, settled.count, "duplicate after prune at \(value): \(settled)")
+        }
+    }
+
     func testHiINLakhGroupingGainsSecondSeparator() {
         let hi = Decimal.FormatStyle.number.locale(Locale(identifier: "hi_IN"))
         let before = NumberFlowFormatter.decompose(hi.attributedString(for: 99999))

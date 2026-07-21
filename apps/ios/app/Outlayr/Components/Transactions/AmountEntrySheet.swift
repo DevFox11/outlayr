@@ -17,6 +17,40 @@ private enum NumpadKeyMetrics {
     static let morphDuration: Double = 0.25
 }
 
+/// The amount sheet's vertical rhythm, in points, from the user's layout spec.
+private enum NumpadLayout {
+    static let horizontalInset: CGFloat = 16
+    /// Below the native header, before the "Amount" label.
+    static let headerToLabel: CGFloat = 12
+    /// "Amount" caption → the rolling number.
+    static let labelToAmount: CGFloat = 16
+    /// The rolling number → the keypad.
+    static let amountToKeypad: CGFloat = 72
+    /// The keypad → the Done button.
+    static let keypadToDone: CGFloat = 24
+    /// Done button → the safe-area edge: a standard CTA hug, not a floating gap.
+    static let doneToSafeArea: CGFloat = 8
+}
+
+/// Steps the amount font down by formatted length so a max-cap amount
+/// (100M + fraction + symbol) fits the sheet width. NumberFlow's digit columns
+/// are fixed-metric, so `minimumScaleFactor` mis-scales them (glyphs overlap);
+/// discrete size steps keyed to character count are the correct fit strategy.
+enum AmountDisplayMetrics {
+    /// Base step size (40pt ≈ 48pt line height). The max-cap amount
+    /// "$100,000,000.00" (15 chars, narrow) already fits at the base on a ~345pt
+    /// display; the down-steps are defensive for pathological longer strings
+    /// (wide symbols / non-narrow locales). SF Rounded medium.
+    static func fontSize(forCharacterCount count: Int) -> CGFloat {
+        switch count {
+        case ..<16: return 40
+        case 16: return 37
+        case 17: return 34
+        default: return 31
+        }
+    }
+}
+
 struct AmountEntrySheet: View {
     @Binding var amount: Decimal
     @Binding var currency: String?
@@ -53,21 +87,30 @@ struct AmountEntrySheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.horizontal, 16)
-                .padding(.top, 18)
+        NavigationStack {
+            VStack(spacing: 0) {
+                amountDisplay
+                    .padding(.top, NumpadLayout.headerToLabel)
 
-            amountDisplay
-                .padding(.vertical, 14)
+                keypad
+                    .padding(.top, NumpadLayout.amountToKeypad)
+                    .padding(.horizontal, NumpadLayout.horizontalInset)
 
-            keypad
-                .padding(.horizontal, 16)
+                // At the fitted detent the spacer rests at its 24pt minimum
+                // (keypad → Done); if the sheet is taller the Done still hugs the
+                // bottom rather than floating mid-sheet.
+                Spacer(minLength: NumpadLayout.keypadToDone)
 
-            doneButton
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 24)
+                doneButton
+                    .padding(.horizontal, NumpadLayout.horizontalInset)
+                    .padding(.bottom, NumpadLayout.doneToSafeArea)
+            }
+            .frame(maxHeight: .infinity)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { currencyChip }
+                ToolbarItem(placement: .topBarTrailing) { closeButton }
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
         .onChange(of: model) {
             amount = model.amount
@@ -90,57 +133,63 @@ struct AmountEntrySheet: View {
         .onDisappear { haptics.stop() }
     }
 
-    private var header: some View {
-        HStack {
-            Button {
-                showingCurrencyPicker = true
-            } label: {
-                HStack(spacing: 6) {
-                    Text("\(effectiveCurrency) (\(currencySymbol))")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.PrimaryText)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.SubtitleText)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(Color.SecondaryBackground, in: Capsule())
-            }
-            .accessibilityLabel("Currency, \(effectiveCurrency)")
-
-            Spacer()
-
-            Button(action: onDone) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .semibold))
+    private var currencyChip: some View {
+        Button {
+            showingCurrencyPicker = true
+        } label: {
+            HStack(spacing: 6) {
+                Text("\(effectiveCurrency) (\(currencySymbol))")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.PrimaryText)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.SubtitleText)
-                    .padding(10)
-                    .background(Color.SecondaryBackground, in: Circle())
             }
-            .accessibilityLabel("Close")
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(Color.SecondaryBackground, in: Capsule())
         }
+        .accessibilityLabel("Currency, \(effectiveCurrency)")
+    }
+
+    private var closeButton: some View {
+        Button(action: onDone) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 24))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(Color.SubtitleText, Color.SecondaryBackground)
+        }
+        .accessibilityLabel("Close")
+    }
+
+    private var amountDisplayStyle: AmountEntryDisplayStyle {
+        AmountEntryDisplayStyle(
+            code: effectiveCurrency,
+            fractionLength: model.displayFractionLength,
+            pendingSeparator: model.showsTrailingSeparator
+        )
+    }
+
+    /// Length of the rendered amount, used to pick the font step so long amounts
+    /// fit rather than being scaled (which mis-lays NumberFlow's fixed columns).
+    private var amountFontSize: CGFloat {
+        let rendered = amountDisplayStyle.locale(.current).format(model.amount)
+        return AmountDisplayMetrics.fontSize(forCharacterCount: rendered.count)
     }
 
     private var amountDisplay: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: NumpadLayout.labelToAmount) {
             Text("Amount")
-                .font(.system(size: 14, design: .rounded))
+                // Footnote (~13pt) renders at the competitor-measured 16pt line height.
+                .font(.system(.footnote, design: .rounded))
                 .foregroundStyle(Color.SubtitleText)
 
-            NumberFlow(
-                model.amount,
-                format: AmountEntryDisplayStyle(
-                    code: effectiveCurrency,
-                    fractionLength: model.displayFractionLength,
-                    pendingSeparator: model.showsTrailingSeparator
-                )
-            )
-            .font(.system(size: 52, weight: .medium, design: .rounded))
-            .foregroundStyle(income ? Color.IncomeGreen : Color.PrimaryText)
-            .minimumScaleFactor(0.5)
-            .lineLimit(1)
-            .padding(.horizontal, 24)
+            NumberFlow(model.amount, format: amountDisplayStyle)
+                .font(.system(size: amountFontSize, weight: .medium, design: .rounded))
+                .foregroundStyle(income ? Color.IncomeGreen : Color.PrimaryText)
+                .lineLimit(1)
+                .animation(.easeInOut(duration: NumpadKeyMetrics.morphDuration), value: amountFontSize)
+                .padding(.horizontal, 24)
         }
     }
 
@@ -225,7 +274,9 @@ struct AmountEntryDisplayStyle: NumberFlowFormatStyle {
     var pendingSeparator: Bool
 
     init(code: String, fractionLength: Int, pendingSeparator: Bool) {
-        base = .currency(code: code).precision(.fractionLength(fractionLength))
+        // Narrow presentation renders the compact symbol ("$" for MXN, not "MX$")
+        // — the header chip already shows the ISO code, so the display stays lean.
+        base = .currency(code: code).precision(.fractionLength(fractionLength)).presentation(.narrow)
         self.pendingSeparator = pendingSeparator
     }
 
