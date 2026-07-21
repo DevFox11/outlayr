@@ -103,6 +103,9 @@ struct TransactionFormView: View {
                     cta
                 }
                 .animation(IdentityHero.motion, value: showingIdentityPicker)
+                // The keyboard slides over the CTA instead of pushing it up —
+                // the button has no business floating above active text entry.
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
             .navigationTitle(isEditing ? "Edit Transaction" : "Create Transaction")
             .navigationBarTitleDisplayMode(.inline)

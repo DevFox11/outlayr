@@ -145,19 +145,13 @@ struct AmountEntrySheet: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.SubtitleText)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(Color.SecondaryBackground, in: Capsule())
         }
         .accessibilityLabel("Currency, \(effectiveCurrency)")
     }
 
     private var closeButton: some View {
         Button(action: onDone) {
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 24))
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(Color.SubtitleText, Color.SecondaryBackground)
+            ToolbarIcon("cancel-01", size: 16)
         }
         .accessibilityLabel("Close")
     }
@@ -180,8 +174,7 @@ struct AmountEntrySheet: View {
     private var amountDisplay: some View {
         VStack(spacing: NumpadLayout.labelToAmount) {
             Text("Amount")
-                // Footnote (~13pt) renders at the competitor-measured 16pt line height.
-                .font(.system(.footnote, design: .rounded))
+                .font(.system(size: 16, design: .rounded))
                 .foregroundStyle(Color.SubtitleText)
 
             NumberFlow(model.amount, format: amountDisplayStyle)
