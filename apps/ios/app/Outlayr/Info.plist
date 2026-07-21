@@ -15,13 +15,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSUserActivityTypes</key>
-	<array>
-		<string>BudgetWidgetConfigurationIntent</string>
-		<string>InsightsWidgetConfigurationIntent</string>
-		<string>RecentTransactionConfigurationIntent</string>
-		<string>RecentWidgetConfigurationIntent</string>
-	</array>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>
