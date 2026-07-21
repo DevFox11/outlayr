@@ -1335,7 +1335,6 @@
 				7A043754300F306900FBF257 /* CategorySymbolSelection.swift */,
 				7A043759300F306E00FBF257 /* EmojiComparisonKey.swift */,
 				7A04375E300F307D00FBF257 /* CategoryEmojiCatalog.swift */,
-				7A043763300F30DA00FBF257 /* CategoryIconCatalog.swift */,
 				7A043768300F30FD00FBF257 /* SuggestedCategory.swift */,
 			);
 			path = Models;
@@ -1442,6 +1441,7 @@
 				7A0437F1300F3A5400FBF257 /* CurrencyPreference.swift */,
 				7A04374F300F306000FBF257 /* CategorySymbol.swift */,
 				4D22984DCD56F1BDE3BB93E4 /* CategoryIcon.swift */,
+				7A043763300F30DA00FBF257 /* CategoryIconCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
