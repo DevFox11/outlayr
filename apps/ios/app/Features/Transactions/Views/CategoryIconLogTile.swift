@@ -3,12 +3,10 @@
 //  Outlayr
 //
 
-import CloudKitSyncMonitor
 import CoreData
 import Foundation
 import HugeiconsCore
 import HugeiconsSolidRounded
-import Popovers
 import SwiftUI
 
 /// The transaction-log variant of the category glyph: unlike `CategoryIconTile`

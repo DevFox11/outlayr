@@ -7,10 +7,7 @@
 //  (private → internal) so both sheets render the same palette chrome.
 //
 
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
-import UIKit
 
 /// The curated emoji palette, grouped to mirror the icon catalogue, with a
 /// trailing cell that hands off to the system emoji keyboard.

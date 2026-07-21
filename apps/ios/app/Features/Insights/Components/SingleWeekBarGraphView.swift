@@ -4,8 +4,6 @@
 //
 
 import Foundation
-import Popovers
-import CoreData
 import SwiftUI
 
 struct SingleWeekBarGraphView: View {

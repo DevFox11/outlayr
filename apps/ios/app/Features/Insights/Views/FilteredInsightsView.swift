@@ -5,7 +5,6 @@
 
 import CoreData
 import Foundation
-import Popovers
 import SwiftUI
 
 struct FilteredInsightsView: View {

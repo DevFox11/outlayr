@@ -6,10 +6,7 @@
 //
 
 import Foundation
-import CoreData
-import Popovers
 import SwiftUI
-import WidgetKit
 
 struct DropViewDelegate: DropDelegate {
     var grid: Grid

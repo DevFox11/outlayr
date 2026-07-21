@@ -5,10 +5,7 @@
 //  Created by Rafael Soh on 19/5/22.
 //
 
-import CloudKitSyncMonitor
-import CoreData
 import Foundation
-import Popovers
 import SwiftUI
 
 struct NumberView: AnimatableModifier {

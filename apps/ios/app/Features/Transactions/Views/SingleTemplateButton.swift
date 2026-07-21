@@ -6,10 +6,7 @@
 //
 
 import Foundation
-import CoreData
-import Popovers
 import SwiftUI
-import WidgetKit
 
 struct SingleTemplateButton: View {
     let transaction: TemplateTransaction

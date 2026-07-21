@@ -3,8 +3,6 @@
 //  Outlayr
 //
 
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
 import UIKit
 

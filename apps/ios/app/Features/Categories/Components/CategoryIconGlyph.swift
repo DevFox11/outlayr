@@ -6,7 +6,6 @@
 import HugeiconsCore
 import HugeiconsSolidRounded
 import SwiftUI
-import UIKit
 
 /// A bare category glyph for the text-adjacent rows where an emoji used to sit
 /// inline. Unlike `HugeIcon` it inherits the ambient foreground style, so it

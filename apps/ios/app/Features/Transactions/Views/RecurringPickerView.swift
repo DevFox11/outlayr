@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import CoreData
-import Popovers
 import SwiftUI
 
 struct RecurringPickerView: View {

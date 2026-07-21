@@ -3,7 +3,6 @@
 //  Outlayr
 //
 
-import CoreData
 import SwiftUI
 
 struct DeleteMainBudgetConfirmation: ViewModifier {

@@ -3,10 +3,8 @@
 //  Outlayr
 //
 
-import CloudKitSyncMonitor
 import CoreData
 import Foundation
-import Popovers
 import SwiftUI
 
 struct TransactionsList: View {

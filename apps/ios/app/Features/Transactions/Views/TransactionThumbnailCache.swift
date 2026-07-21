@@ -3,12 +3,8 @@
 //  Outlayr
 //
 
-import CloudKitSyncMonitor
 import CoreData
 import Foundation
-import HugeiconsCore
-import HugeiconsSolidRounded
-import Popovers
 import SwiftUI
 
 /// A tiny decode cache for transaction photo thumbnails so scrolling the log

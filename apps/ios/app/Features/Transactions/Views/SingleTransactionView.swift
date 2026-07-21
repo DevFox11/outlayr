@@ -3,12 +3,7 @@
 //  Outlayr
 //
 
-import CloudKitSyncMonitor
-import CoreData
 import Foundation
-import HugeiconsCore
-import HugeiconsSolidRounded
-import Popovers
 import SwiftUI
 
 struct SingleTransactionView: View {

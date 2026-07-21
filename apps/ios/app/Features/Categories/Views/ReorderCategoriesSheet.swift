@@ -7,7 +7,6 @@
 
 import CoreData
 import SwiftUI
-import UIKit
 
 /// Dedicated sheet for reordering the top-level category cards. Classic `.onMove`
 /// reorders rows within one collection but not whole List sections, so parent

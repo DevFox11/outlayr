@@ -11,7 +11,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 /// The conic spectrum used by the auto-colour hints — the empty hero's spinning
 /// ring and the picker's Auto-detected swatch — so both read as one thing and

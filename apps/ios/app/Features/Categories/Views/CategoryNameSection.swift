@@ -3,12 +3,7 @@
 //  Outlayr
 //
 
-import CoreData
-import HugeiconsCore
-import HugeiconsSolidRounded
-import HugeiconsStrokeRounded
 import SwiftUI
-import UIKit
 
 struct CategoryNameSection: View {
     @Binding var name: String

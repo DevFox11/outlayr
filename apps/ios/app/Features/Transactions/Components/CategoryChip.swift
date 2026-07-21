@@ -5,9 +5,7 @@
 //  Created by Rafael Soh on 20/11/23.
 //
 
-import CoreData
 import SwiftUI
-import UIKit
 
 struct CategoryChip: View {
     let symbol: CategorySymbol

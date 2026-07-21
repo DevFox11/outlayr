@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreData
 import SwiftUI
 
 struct MyButtonStyle: ButtonStyle {

@@ -6,7 +6,6 @@
 import HugeiconsCore
 import HugeiconsSolidRounded
 import SwiftUI
-import UIKit
 
 /// The canonical category glyph: a tinted rounded tile with the category's icon.
 struct CategoryIconTile: View {

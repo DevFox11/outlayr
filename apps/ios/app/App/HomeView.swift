@@ -6,7 +6,6 @@
 //
 
 import ConfettiSwiftUI
-import CoreData
 import Foundation
 import SwiftUI
 

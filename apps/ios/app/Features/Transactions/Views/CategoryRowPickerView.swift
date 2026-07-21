@@ -7,9 +7,7 @@
 
 import Foundation
 import CoreData
-import Popovers
 import SwiftUI
-import WidgetKit
 
 struct CategoryRowPickerView: View {
     @FetchRequest(sortDescriptors: [SortDescriptor(\.order)], predicate: NSPredicate(format: "income = %d", false)) private var expenseCategories: FetchedResults<Category>

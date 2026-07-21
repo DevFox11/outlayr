@@ -10,7 +10,6 @@
 //  `writesRecurrence` tells the caller whether to run that engine afterwards.
 //
 
-import CoreData
 import Foundation
 
 struct TransactionFormDraft: Equatable {

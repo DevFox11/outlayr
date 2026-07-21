@@ -8,7 +8,6 @@
 //  construct or mutate one that holds two symbol kinds at once.
 //
 
-import CoreData
 import Foundation
 
 struct TransactionIdentitySelection: Equatable {

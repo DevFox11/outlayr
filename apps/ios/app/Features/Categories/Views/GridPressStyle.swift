@@ -3,12 +3,7 @@
 //  Outlayr
 //
 
-import CoreData
-import HugeiconsCore
-import HugeiconsSolidRounded
-import HugeiconsStrokeRounded
 import SwiftUI
-import UIKit
 
 /// The shared press feedback for the category hero: a brief squeeze, no ripple.
 struct GridPressStyle: ButtonStyle {

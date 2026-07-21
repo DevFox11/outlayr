@@ -13,7 +13,6 @@
 //  minus "group."; container = "iCloud." + root).
 //
 
-import CoreData
 import XCTest
 
 @testable import Outlayr

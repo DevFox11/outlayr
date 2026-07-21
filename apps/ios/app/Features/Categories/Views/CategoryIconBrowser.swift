@@ -3,12 +3,7 @@
 //  Outlayr
 //
 
-import CoreData
-import HugeiconsCore
-import HugeiconsSolidRounded
-import HugeiconsStrokeRounded
 import SwiftUI
-import UIKit
 
 /// The full category glyph catalogue, grouped by theme, with search.
 struct CategoryIconBrowser: View {

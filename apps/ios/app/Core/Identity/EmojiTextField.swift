@@ -7,8 +7,6 @@
 //  (private → internal) so both sheets render the same palette chrome.
 //
 
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
 import UIKit
 

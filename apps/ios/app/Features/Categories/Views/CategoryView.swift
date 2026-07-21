@@ -5,9 +5,7 @@
 //  Created by Rafael Soh on 10/5/22.
 //
 
-import CoreData
 import SwiftUI
-import UIKit
 
 struct CategoryView: View {
     var mode: CategoryViewMode

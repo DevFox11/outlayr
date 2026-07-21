@@ -6,7 +6,6 @@
 //
 
 import AppIntents
-import CoreData
 import Foundation
 
 @available(iOS 16, *)

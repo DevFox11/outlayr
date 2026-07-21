@@ -5,12 +5,8 @@
 //  Created by Rafael Soh on 20/5/22.
 //
 
-import ConfettiSwiftUI
 import Foundation
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
-import UserNotifications
 import WidgetKit
 
 struct SettingsView: View {
