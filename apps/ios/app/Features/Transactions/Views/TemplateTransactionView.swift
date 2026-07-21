@@ -434,7 +434,7 @@ struct TemplateTransactionView: View {
                                 if let itemToDelete = toDelete {
                                     moc.delete(itemToDelete)
                                 }
-                                dataController.save()
+                                try? dataController.save()
                             }
 
                             dismiss()
@@ -642,7 +642,7 @@ struct TemplateTransactionView: View {
             editedTransaction.recurringType = Int16(repeatType)
             editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
 
-            dataController.save()
+            try? dataController.save()
 
             dismiss()
 
@@ -667,7 +667,7 @@ struct TemplateTransactionView: View {
             transaction.recurringType = Int16(repeatType)
             transaction.recurringCoefficient = Int16(repeatCoefficient)
 
-            dataController.save()
+            try? dataController.save()
 
             dismiss()
         }

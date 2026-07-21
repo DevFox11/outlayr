@@ -112,7 +112,7 @@ struct HomeView: View {
             }
             transactionManager.toDelete = nil
         }, completion: {
-            dataController.save()
+            try? dataController.save()
             transactionManager.toDelete = nil
         })
         .onChange(of: transactionManager.showPopup) { _, newValue in

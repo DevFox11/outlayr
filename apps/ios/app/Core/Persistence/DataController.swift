@@ -154,28 +154,35 @@ class DataController {
         }
     }
 
-    func deleteAll() {
-        let fetchRequest1: NSFetchRequest<NSFetchRequestResult> = Transaction.fetchRequest()
-        let batchDeleteRequest1 = NSBatchDeleteRequest(fetchRequest: fetchRequest1)
-        _ = try? container.viewContext.executeAndMergeChanges(using: batchDeleteRequest1)
-
-        let fetchRequest2: NSFetchRequest<NSFetchRequestResult> = Category.fetchRequest()
-        let batchDeleteRequest2 = NSBatchDeleteRequest(fetchRequest: fetchRequest2)
-        _ = try? container.viewContext.executeAndMergeChanges(using: batchDeleteRequest2)
-
-        let fetchRequest3: NSFetchRequest<NSFetchRequestResult> = Budget.fetchRequest()
-        let batchDeleteRequest3 = NSBatchDeleteRequest(fetchRequest: fetchRequest3)
-        _ = try? container.viewContext.executeAndMergeChanges(using: batchDeleteRequest3)
-
-        let fetchRequest4: NSFetchRequest<NSFetchRequestResult> = MainBudget.fetchRequest()
-        let batchDeleteRequest4 = NSBatchDeleteRequest(fetchRequest: fetchRequest4)
-        _ = try? container.viewContext.executeAndMergeChanges(using: batchDeleteRequest4)
+    func deleteAll() throws {
+        let logger = Logger(subsystem: AppIdentifiers.bundleIdRoot, category: "persistence")
+        let fetchRequests: [NSFetchRequest<NSFetchRequestResult>] = [
+            Transaction.fetchRequest(),
+            Category.fetchRequest(),
+            Budget.fetchRequest(),
+            MainBudget.fetchRequest(),
+        ]
+        var firstError: Error?
+        for request in fetchRequests {
+            do {
+                try container.viewContext.executeAndMergeChanges(using: NSBatchDeleteRequest(fetchRequest: request))
+            } catch {
+                logger.error("deleteAll batch delete failed: \(error)")
+                if firstError == nil { firstError = error }
+            }
+        }
+        if let error = firstError { throw error }
     }
 
-    func save() {
-        if container.viewContext.hasChanges {
-            try? container.viewContext.save()
+    func save() throws {
+        guard container.viewContext.hasChanges else { return }
+        do {
+            try container.viewContext.save()
             WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            Logger(subsystem: AppIdentifiers.bundleIdRoot, category: "persistence")
+                .error("viewContext.save() failed: \(error)")
+            throw error
         }
     }
 

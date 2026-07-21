@@ -19,7 +19,7 @@ struct DeleteMainBudgetConfirmation: ViewModifier {
             Button("Delete", role: .destructive) {
                 withAnimation {
                     moc.delete(budget)
-                    dataController.save()
+                    try? dataController.save()
                 }
             }
             Button("Cancel", role: .cancel) {}

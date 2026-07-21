@@ -98,7 +98,7 @@ struct DeleteAllAlert: View {
             impactMed.impactOccurred()
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-              dataController.deleteAll()
+              try? dataController.deleteAll()
 
               dismiss()
             }

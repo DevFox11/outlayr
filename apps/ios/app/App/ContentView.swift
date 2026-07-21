@@ -103,7 +103,7 @@ struct ContentView: View {
                     category.order = Int64(categories.firstIndex(of: category) ?? 0)
                 }
 
-                dataController.save()
+                try? dataController.save()
 
                 dataMigration1 = false
             }
@@ -122,7 +122,7 @@ struct ContentView: View {
                     }
                 }
 
-                dataController.save()
+                try? dataController.save()
 
                 dataMigration2 = false
             }
@@ -137,7 +137,7 @@ struct ContentView: View {
                     }
                 }
 
-                dataController.save()
+                try? dataController.save()
 
                 categoryPaletteMigration = false
             }

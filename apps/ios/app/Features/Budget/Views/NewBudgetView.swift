@@ -656,7 +656,7 @@ struct NewBudgetView: View {
             unwrappedEditedBudget.type = Int16(budgetType)
             unwrappedEditedBudget.name = trimmedName
 
-            dataController.save()
+            try? dataController.save()
             dismiss()
             return
         }
@@ -667,7 +667,7 @@ struct NewBudgetView: View {
             unwrappedEditedMainBudget.type = Int16(budgetType)
             unwrappedEditedMainBudget.name = trimmedName
 
-            dataController.save()
+            try? dataController.save()
             dismiss()
             return
         }
@@ -693,7 +693,7 @@ struct NewBudgetView: View {
             newBudget.name = trimmedName
         }
 
-        dataController.save()
+        try? dataController.save()
         dismiss()
     }
 

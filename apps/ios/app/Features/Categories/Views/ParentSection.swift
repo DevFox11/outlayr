@@ -181,7 +181,7 @@ struct ParentSection: View {
 
         if moved {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            dataController.save()
+            try? dataController.save()
         }
         return moved
     }

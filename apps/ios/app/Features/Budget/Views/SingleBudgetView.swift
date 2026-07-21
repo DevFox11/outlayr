@@ -286,7 +286,7 @@ struct SingleBudgetView: View {
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                                     withAnimation {
                                         moc.delete(budget)
-                                        dataController.save()
+                                        try? dataController.save()
                                     }
                                 }
 

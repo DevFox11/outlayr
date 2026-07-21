@@ -539,7 +539,7 @@ struct TransactionFormView: View {
             dataController.transactions.updateRecurringTransaction(transaction: transaction)
         }
 
-        dataController.save()
+        try? dataController.save()
 
         if isEditing {
             dismiss()
@@ -566,7 +566,7 @@ struct TransactionFormView: View {
         guard let toEdit else { return }
         withAnimation {
             moc.delete(toEdit)
-            dataController.save()
+            try? dataController.save()
         }
         dismiss()
     }

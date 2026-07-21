@@ -66,6 +66,6 @@ struct ReorderCategoriesSheet: View {
         for (index, item) in items.enumerated() {
             item.order = Int64(index)
         }
-        dataController.save()
+        try? dataController.save()
     }
 }

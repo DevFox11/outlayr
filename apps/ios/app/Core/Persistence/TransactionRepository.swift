@@ -31,7 +31,7 @@ struct TransactionRepository {
     }
 
     private func save() {
-        dataController.save()
+        try? dataController.save()
     }
 
     /// The next occurrence date for a recurring transaction's type/coefficient,

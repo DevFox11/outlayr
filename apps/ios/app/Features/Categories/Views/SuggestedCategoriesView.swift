@@ -56,7 +56,7 @@ struct SuggestedCategoriesView: View {
         category.order = (categories.last?.order ?? 0) + 1
         category.color = suggestion.color
 
-        dataController.save()
+        try? dataController.save()
     }
 }
 

@@ -891,7 +891,7 @@ struct ImportDataView: View {
             }
         }
 
-        dataController.save()
+        try? dataController.save()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {

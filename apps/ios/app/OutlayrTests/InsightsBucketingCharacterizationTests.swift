@@ -25,7 +25,7 @@ final class InsightsBucketingCharacterizationTests: CharacterizationTestCase {
         // Excluded: income within range, and an expense outside the month.
         makeTransaction(in: context, amount: 100, date: date(2024, 4, 10, 12, 0), income: true, category: category)
         makeTransaction(in: context, amount: 999, date: date(2024, 5, 2, 12, 0), income: false, category: category)
-        controller.save()
+        try? controller.save()
 
         let result = controller.transactions.getInsights(type: 2, date: date(2024, 4, 1), income: false)
 
@@ -47,7 +47,7 @@ final class InsightsBucketingCharacterizationTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 8, date: date(2024, 6, 10, 9, 0), income: false, category: category)
         // Dated after "now" — excluded by the current-period end predicate.
         makeTransaction(in: context, amount: 500, date: date(2024, 6, 20, 9, 0), income: false, category: category)
-        controller.save()
+        try? controller.save()
 
         let result = controller.transactions.getInsights(type: 2, date: date(2024, 6, 1), income: false)
 

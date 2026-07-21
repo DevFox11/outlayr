@@ -18,7 +18,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         makeCategory(in: context, name: "Salary", icon: "money-bag-01", income: true, order: 0)
-        controller.save()
+        try? controller.save()
         return controller
     }
 
@@ -74,7 +74,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext
         let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "shopping-cart-01", emoji: "", toEdit: groceries)
 
@@ -86,7 +86,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         makeCategory(in: context, name: "Travel", icon: "airplane-01", income: false, order: 1)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "airplane-01", emoji: "", toEdit: groceries)
 
@@ -100,7 +100,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
         let wedding = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Wedding Fund", icon: "", emoji: "", toEdit: wedding)
 
@@ -111,7 +111,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext
         makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Market", icon: "shopping-cart-01", emoji: "", income: false)
 
@@ -123,7 +123,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext
         let legacy = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Sailboat Renamed", icon: "", emoji: "", toEdit: legacy)
 
@@ -134,7 +134,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext
         let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "", emoji: "", toEdit: groceries)
 
@@ -147,7 +147,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
         let context = controller.container.viewContext
         let future = makeCategory(in: context, name: "Garage", icon: "car-02-from-a-newer-version", income: false, order: 0)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Garage", icon: "car-02-from-a-newer-version", emoji: "", toEdit: future)
 
@@ -160,7 +160,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
         let parent = makeCategory(in: context, name: "Food", icon: "restaurant-01", income: false, order: 0)
         let child = makeCategory(in: context, name: "Coffee", icon: "coffee-02", income: false, order: 1)
         child.parent = parent
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Cafes", icon: "coffee-02", emoji: "", income: false)
 
@@ -175,7 +175,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
 
         let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: "⛵️", income: false)
         XCTAssertEqual(result.error, .duplicateEmoji)
@@ -187,7 +187,7 @@ final class CategoryIconValidationTests: CharacterizationTestCase {
 
         let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
         XCTAssertEqual(result.error, .duplicate)

@@ -101,7 +101,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let existing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         existing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: "⛵️", income: false)
         XCTAssertEqual(result.error, .duplicateEmoji)
@@ -113,7 +113,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let existing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         existing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Coffee", icon: "", emoji: "☕️", income: false)
         XCTAssertEqual(result.error, .none)
@@ -125,7 +125,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
         let context = controller.container.viewContext
 
         _ = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Market", icon: "", emoji: "🛒", income: false)
         XCTAssertEqual(result.error, .none)
@@ -137,7 +137,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let expense = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         expense.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Charter Income", icon: "", emoji: "⛵️", income: true)
         XCTAssertEqual(result.error, .none)
@@ -174,7 +174,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Sailing", icon: "", emoji: "", toEdit: sailing)
         XCTAssertEqual(result.error, .missingIcon)
@@ -186,7 +186,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(
             name: "Sailing",
@@ -203,7 +203,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
         let context = controller.container.viewContext
 
         let legacy = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false)
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Renamed", icon: "", emoji: "", toEdit: legacy)
         XCTAssertEqual(result.error, .none)
@@ -300,7 +300,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let existing = makeCategory(in: context, name: "Cafe", icon: nil, income: false)
         existing.emoji = "☕️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Coffee", icon: "", emoji: "☕", income: false)
         XCTAssertEqual(result.error, .duplicateEmoji)
@@ -312,7 +312,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let existing = makeCategory(in: context, name: "Thumbs", icon: nil, income: false)
         existing.emoji = "👍"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Approval", icon: "", emoji: "👍🏽", income: false)
         XCTAssertEqual(result.error, .none)
@@ -324,7 +324,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let existing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         existing.emoji = "⛵️"
-        controller.save()
+        try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: " ⛵️ ", income: false)
         XCTAssertEqual(result.error, .duplicateEmoji)
@@ -339,7 +339,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
         let context = controller.container.viewContext
 
         let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
-        controller.save()
+        try? controller.save()
 
         XCTAssertNil(groceries.icon)
         XCTAssertEqual(groceries.displaySymbol, .icon(CategoryIconCatalog.fallbackExpense))
@@ -351,7 +351,7 @@ final class CategorySymbolTests: CharacterizationTestCase {
 
         let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
         groceries.emoji = "🍎"
-        controller.save()
+        try? controller.save()
 
         XCTAssertNil(groceries.icon)
         XCTAssertEqual(groceries.displaySymbol, .emoji("🍎"))

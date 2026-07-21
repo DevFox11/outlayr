@@ -40,6 +40,6 @@ class GridViewModel {
                 transaction.order = Int16(index)
             }
         }
-        dataController.save()
+        try? dataController.save()
     }
 }

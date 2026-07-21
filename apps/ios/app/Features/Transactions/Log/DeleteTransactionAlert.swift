@@ -50,7 +50,7 @@ struct DeleteTransactionAlert: View {
                     if stopRecurring {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             unwrappedToDelete.recurringType = 0
-                            dataController.save()
+                            try? dataController.save()
                         }
                     } else {
                         withAnimation(.easeInOut(duration: 0.5)) {

@@ -167,7 +167,7 @@ struct EditCategoryAlert: View {
         if !toEdit.income {
             toEdit.color = selectedColor
         }
-        dataController.save()
+        try? dataController.save()
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
@@ -176,7 +176,7 @@ struct EditCategoryAlert: View {
     private func delete() {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
         dataController.container.viewContext.delete(toEdit)
-        dataController.save()
+        try? dataController.save()
         dismiss()
     }
 }

@@ -205,7 +205,7 @@ struct CategoryListView: View {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
         withAnimation {
             moc.delete(category)
-            dataController.save()
+            try? dataController.save()
         }
     }
 }

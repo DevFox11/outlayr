@@ -205,7 +205,7 @@ struct NewCategoryAlert: View {
             category.order = result.order
             category.color = income ? "IncomeGreen" : selectedColor
         }
-        dataController.save()
+        try? dataController.save()
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
 

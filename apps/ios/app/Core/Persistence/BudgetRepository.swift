@@ -29,7 +29,7 @@ struct BudgetRepository {
     }
 
     private func save() {
-        dataController.save()
+        try? dataController.save()
     }
 
     func getAllBudgets() -> [Budget] {

@@ -19,7 +19,7 @@ final class BudgetRolloverCharacterizationTests: CharacterizationTestCase {
 
         // Monthly (type 3) budget three periods stale.
         let budget = makeBudget(in: context, amount: 200, startDate: date(2024, 3, 15), type: 3, category: category)
-        controller.save()
+        try? controller.save()
 
         controller.budgets.updateBudgetDates()
 
@@ -32,7 +32,7 @@ final class BudgetRolloverCharacterizationTests: CharacterizationTestCase {
 
         // Weekly (type 2) main budget starting 2024-06-01.
         let main = makeMainBudget(in: context, amount: 1000, startDate: date(2024, 6, 1), type: 2)
-        controller.save()
+        try? controller.save()
 
         controller.budgets.updateBudgetDates()
 
@@ -54,7 +54,7 @@ final class BudgetRolloverCharacterizationTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 99, date: date(2024, 5, 20), income: false, category: food)
         makeTransaction(in: context, amount: 40, date: date(2024, 6, 4), income: false, category: transport)
         makeTransaction(in: context, amount: 55, date: date(2024, 6, 5), income: true, category: food)
-        controller.save()
+        try? controller.save()
 
         let leftover = controller.budgets.getBudgetLeftover(budget: budget)
         XCTAssertEqual(leftover, 50, accuracy: 0.0001)

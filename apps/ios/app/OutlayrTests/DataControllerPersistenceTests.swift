@@ -93,7 +93,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 1, date: date(2024, 1, 1), category: category)
         makeTransaction(in: context, amount: 2, date: date(2024, 3, 1), category: category)
         makeTransaction(in: context, amount: 3, date: date(2024, 2, 1), category: category)
-        controller.save()
+        try? controller.save()
 
         let stored = controller.results(for: controller.transactions.fetchRequestForExport())
         let dates = stored.compactMap { $0.date }
@@ -107,9 +107,9 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 10, date: date(2024, 2, 1), category: category)
         makeBudget(in: context, amount: 100, startDate: date(2024, 2, 1), type: 3, category: category)
         makeMainBudget(in: context, amount: 500, startDate: date(2024, 2, 1), type: 3)
-        controller.save()
+        try? controller.save()
 
-        controller.deleteAll()
+        try? controller.deleteAll()
 
         XCTAssertTrue(controller.results(for: Transaction.fetchRequest()).isEmpty)
         XCTAssertTrue(controller.results(for: Outlayr.Category.fetchRequest()).isEmpty)
@@ -136,7 +136,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: category)
         makeTransaction(in: context, amount: 40, date: date(2024, 6, 14), income: true, category: category)
         makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: category)
-        controller.save()
+        try? controller.save()
         return category
     }
 
@@ -222,7 +222,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let category = seedLedger(on: controller)
         let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
         let mainBudget = makeMainBudget(in: context, amount: 500, startDate: date(2024, 6, 1), type: 3)
-        controller.save()
+        try? controller.save()
 
         let syncBudget = syncBaseline { controller.budgets.getBudgetLeftover(budget: budget) }
         let backgroundBudget = try await controller.budgets.getBudgetLeftover(budget: budget)
@@ -298,7 +298,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         makeTransaction(in: context, amount: 5.5, date: date(2024, 6, 5), category: category)
         makeTransaction(in: context, amount: 9, date: date(2023, 3, 10), category: category)
-        controller.save()
+        try? controller.save()
 
         let payload = await controller.transactions.getGraphViewInsights(type: 2, date: date(2024, 6, 1), income: false)
 
@@ -348,7 +348,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         _ = seedLedger(on: controller)
         makeMainBudget(in: context, amount: 500, startDate: date(2024, 6, 1), type: 3)
-        controller.save()
+        try? controller.save()
 
         let sync = syncBaseline { controller.budgets.fetchRequestForMainBudgetWidget() }
         let background = await controller.budgets.getMainBudgetWidgetSnapshot()
@@ -385,7 +385,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: parent)
         makeTransaction(in: context, amount: 40, date: date(2024, 6, 11), income: true, category: parent)
         makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: parent)
-        controller.save()
+        try? controller.save()
 
         let sync = syncBaseline { controller.transactions.getWidgetInsights(type: .week, income: false) }
         let insights = await controller.transactions.getWidgetInsights(type: .week, income: false)
@@ -429,7 +429,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 7.25, date: monthStart, category: parent)
         makeTransaction(in: context, amount: 40, date: monthStart, income: true, category: parent)
         makeTransaction(in: context, amount: 3, date: monthStart.addingTimeInterval(-3600), category: parent)
-        controller.save()
+        try? controller.save()
 
         let sync = syncBaseline { controller.transactions.getWidgetInsights(type: .month, income: false) }
         let insights = await controller.transactions.getWidgetInsights(type: .month, income: false)
@@ -467,7 +467,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: parent)
         makeTransaction(in: context, amount: 40, date: date(2024, 6, 11), income: true, category: parent)
         makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: parent)
-        controller.save()
+        try? controller.save()
 
         let sync = syncBaseline { controller.transactions.getWidgetInsights(type: .year, income: false) }
         let insights = await controller.transactions.getWidgetInsights(type: .year, income: false)
@@ -505,7 +505,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         makeTransaction(in: context, amount: 40, date: date(2024, 6, 11), income: true, category: parent)
         makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: parent)
         let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: parent)
-        controller.save()
+        try? controller.save()
 
         let identifier = budget.objectID.uriRepresentation().absoluteString
         let snapshot = try await controller.budgets.getWidgetSnapshot(identifier: identifier)
@@ -531,12 +531,12 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         let category = makeCategory(in: context, name: "Food", order: 1)
         let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
-        controller.save()
+        try? controller.save()
 
         // CloudKit can commit a Budget row before its optional attributes arrive;
         // a half-synced budget must surface as notFound, not crash the widget.
         budget.startDate = nil
-        controller.save()
+        try? controller.save()
 
         do {
             _ = try await controller.budgets.getWidgetSnapshot(identifier: budget.objectID.uriRepresentation().absoluteString)
@@ -554,11 +554,11 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         let context = controller.container.viewContext
         let category = makeCategory(in: context, name: "Food", order: 1)
         let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
-        controller.save()
+        try? controller.save()
 
         let identifier = budget.objectID.uriRepresentation().absoluteString
         context.delete(budget)
-        controller.save()
+        try? controller.save()
 
         do {
             _ = try await controller.budgets.getWidgetSnapshot(identifier: identifier)
@@ -594,7 +594,7 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         // options list's sort key.
         let first = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: food)
         let second = makeBudget(in: context, amount: 900, startDate: date(2024, 6, 2), type: 3, category: rent)
-        controller.save()
+        try? controller.save()
 
         let options = await controller.budgets.getWidgetBudgetOptions()
 
