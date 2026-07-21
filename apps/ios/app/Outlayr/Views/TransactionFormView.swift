@@ -31,6 +31,9 @@ struct TransactionFormView: View {
     @State private var category: Category?
 
     @State private var showingIdentityPicker = false
+    @State private var heroScrollCenterY: CGFloat = IdentityHero.restingCenterY
+
+    private static let heroSpace = "transactionFormHeroSpace"
     @State private var showingAmountSheet = false
     @State private var showingCategorySheet = false
     @State private var showingCustomSchedule = false
@@ -88,19 +91,21 @@ struct TransactionFormView: View {
                     Color(.systemGroupedBackground).ignoresSafeArea()
                     curtain
 
-                    // The hero lives OUTSIDE the blurred form so it stays sharp and
-                    // can float over the identity picker, mirroring
-                    // CategorySheetSurface. Only the scrolling form content blurs.
-                    VStack(spacing: 0) {
-                        heroHeader(in: proxy)
-                            .zIndex(1)
-
-                        formScroll
-                            .blur(radius: showingIdentityPicker ? formBlurRadius : 0)
-                            .allowsHitTesting(!showingIdentityPicker)
-                    }
+                    formScroll
+                        .blur(radius: showingIdentityPicker ? formBlurRadius : 0)
+                        .allowsHitTesting(!showingIdentityPicker)
 
                     cta
+                }
+                // The hero scrolls with the form, so the picker's floating hero is
+                // an overlay twin: it rests (invisible) on the in-scroll hero's
+                // captured frame and springs from there to the centred float. The
+                // frame can't shift mid-flight — the form is hit-test-disabled
+                // while the picker is open.
+                .overlay(alignment: .top) { floatingHero(in: proxy) }
+                .coordinateSpace(name: Self.heroSpace)
+                .onPreferenceChange(HeroCenterPreference.self) { center in
+                    if !showingIdentityPicker { heroScrollCenterY = center }
                 }
                 .animation(IdentityHero.motion, value: showingIdentityPicker)
                 // The keyboard slides over the CTA instead of pushing it up —
@@ -154,28 +159,62 @@ struct TransactionFormView: View {
         .allowsHitTesting(false)
     }
 
-    /// The sharp, fixed hero header. Its tile floats over the identity picker
-    /// (scale + downward offset) while the picker is open; the header itself
-    /// keeps its resting layout so the form below doesn't reflow.
-    private func heroHeader(in proxy: GeometryProxy) -> some View {
+    /// The in-scroll hero: scrolls with the form and publishes its tile centre so
+    /// the overlay twin can take over from the exact on-screen position. Hidden
+    /// (but keeping its layout) while the picker's floating twin is showing.
+    private var scrollingHero: some View {
         TransactionHero(
             selection: draft.identity,
             tint: tint,
             income: draft.income,
             showsReset: !showingIdentityPicker,
-            tileScale: showingIdentityPicker ? IdentityHero.scale : 1,
-            tileOffsetY: showingIdentityPicker ? openHeroOffset(in: proxy) : 0,
+            tileScale: 1,
+            tileOffsetY: 0,
             onTap: { if !showingIdentityPicker { showingIdentityPicker = true } },
             onReset: { withAnimation(IdentityHero.motion) { draft.identity.clear() } }
         )
         .padding(.top, IdentityHero.topPadding)
         .padding(.bottom, IdentityHero.bottomPadding)
         .frame(maxWidth: .infinity)
+        .opacity(showingIdentityPicker ? 0 : 1)
+        .background(
+            GeometryReader { g in
+                Color.clear.preference(
+                    key: HeroCenterPreference.self,
+                    value: g.frame(in: .named(Self.heroSpace)).midY
+                )
+            }
+        )
+    }
+
+    /// The overlay twin behind the floating choreography: rests invisibly on the
+    /// in-scroll hero's captured frame, springs to the centred float while the
+    /// picker is open, then returns and hands back to the scrolling hero.
+    private func floatingHero(in proxy: GeometryProxy) -> some View {
+        TransactionHero(
+            selection: draft.identity,
+            tint: tint,
+            income: draft.income,
+            showsReset: false,
+            tileScale: showingIdentityPicker ? IdentityHero.scale : 1,
+            tileOffsetY: 0,
+            onTap: {},
+            onReset: {}
+        )
+        .padding(.top, IdentityHero.topPadding)
+        .padding(.bottom, IdentityHero.bottomPadding)
+        .frame(maxWidth: .infinity)
+        .offset(y: showingIdentityPicker
+            ? openHeroOffset(in: proxy)
+            : heroScrollCenterY - IdentityHero.restingCenterY)
+        .opacity(showingIdentityPicker ? 1 : 0)
+        .allowsHitTesting(false)
     }
 
     private var formScroll: some View {
         ScrollView {
             VStack(spacing: 18) {
+                scrollingHero
                 kindPicker
                 detailsGroup
                 categoryGroup
@@ -203,14 +242,14 @@ struct TransactionFormView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button { dismiss() } label: {
-                ToolbarIcon("cancel-01", size: 16)
+                ToolbarIcon("cancel-01")
             }
             .accessibilityLabel("Cancel")
         }
         if isEditing {
             ToolbarItem(placement: .confirmationAction) {
                 Button { deleteConfirm = true } label: {
-                    ToolbarIcon("delete-02", size: 18, color: .AlertRed)
+                    ToolbarIcon("delete-02", color: .AlertRed)
                 }
                 .accessibilityLabel("Delete")
             }
@@ -664,4 +703,11 @@ private extension TransactionFormView {
         .environment(\.managedObjectContext, controller.container.viewContext)
         .environment(controller)
         .preferredColorScheme(.dark)
+}
+
+private struct HeroCenterPreference: PreferenceKey {
+    static var defaultValue: CGFloat = IdentityHero.restingCenterY
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }
