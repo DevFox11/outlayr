@@ -114,7 +114,12 @@ struct BudgetRepository {
     func fetchRequestForMainBudgetTransactions(budget: MainBudget) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
 
-        let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), budget.startDate! as CVarArg)
+        guard let startDate = budget.startDate else {
+            itemRequest.predicate = NSPredicate(value: false)
+            return itemRequest
+        }
+
+        let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         let endPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
         let incomePredicate = NSPredicate(format: "income = %d", false)
 
@@ -128,9 +133,14 @@ struct BudgetRepository {
     func fetchRequestForBudgetTransactions(budget: Budget) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
 
-        let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), budget.startDate! as CVarArg)
+        guard let startDate = budget.startDate, let category = budget.category else {
+            itemRequest.predicate = NSPredicate(value: false)
+            return itemRequest
+        }
+
+        let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         let endPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
-        let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", budget.category!, budget.category!)
+        let categoryPredicate = NSPredicate(format: "category == %@ OR category.parent == %@", category, category)
         let incomePredicate = NSPredicate(format: "income = %d", false)
 
         let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate])
@@ -143,7 +153,7 @@ struct BudgetRepository {
     func fetchRequestForMainBudgetWidget() -> (found: Bool, totalSpent: Double, budgetAmount: Double, percentage: Double, type: Int, startDate: Date) {
         let holding = results(for: fetchRequestForMainBudget())
 
-        if let budget = holding.first {
+        if let budget = holding.first, let startDate = budget.startDate {
             let itemRequest = fetchRequestForMainBudgetTransactions(budget: budget)
 
             let transactions = results(for: itemRequest)
@@ -158,19 +168,19 @@ struct BudgetRepository {
             let calendar = Calendar.current
 
             if budget.type == 1 {
-                let components = calendar.dateComponents([.minute], from: budget.startDate!, to: Date.now)
-                percentageOfDays = Double(components.minute!) / 1440
+                let components = calendar.dateComponents([.minute], from: startDate, to: Date.now)
+                percentageOfDays = Double(components.minute ?? 0) / 1440
             } else {
-                let components1 = calendar.dateComponents([.day], from: budget.startDate!, to: budget.endDate)
-                let numberOfDays = components1.day!
+                let components1 = calendar.dateComponents([.day], from: startDate, to: budget.endDate)
+                let numberOfDays = components1.day ?? 0
 
-                let components2 = calendar.dateComponents([.day], from: budget.startDate!, to: Date.now)
-                let numberOfDaysPast = components2.day!
+                let components2 = calendar.dateComponents([.day], from: startDate, to: Date.now)
+                let numberOfDaysPast = components2.day ?? 0
 
-                percentageOfDays = Double(numberOfDaysPast) / Double(numberOfDays)
+                percentageOfDays = numberOfDays > 0 ? Double(numberOfDaysPast) / Double(numberOfDays) : 0
             }
 
-            return (true, holdingTotal, budget.amount, percentageOfDays, Int(budget.type), budget.startDate!)
+            return (true, holdingTotal, budget.amount, percentageOfDays, Int(budget.type), startDate)
 
         } else {
             return (false, 0, 0, 0, 0, Date.now)

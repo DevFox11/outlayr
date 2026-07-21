@@ -89,19 +89,19 @@ struct LockBudgetWidgetProvider: AppIntentTimelineProvider {
         if snapshot.type == 1 {
             let components = calendar.dateComponents([.hour], from: snapshot.startDate, to: Date.now)
 
-            timeLeft = String(localized: "\(24 - components.hour!) hours left")
+            timeLeft = String(localized: "\(24 - (components.hour ?? 0)) hours left")
         } else if snapshot.type == 2 {
             let components = calendar.dateComponents([.day], from: snapshot.startDate, to: Date.now)
 
-            timeLeft = String(localized: "\(7 - components.day!) days left")
+            timeLeft = String(localized: "\(7 - (components.day ?? 0)) days left")
         } else {
             let components1 = calendar.dateComponents([.day], from: snapshot.startDate, to: snapshot.endDate)
-            let numberOfDays = components1.day!
+            let numberOfDays = components1.day ?? 0
 
             let components2 = calendar.dateComponents([.day], from: snapshot.startDate, to: Date.now)
-            let numberOfDaysPast = components2.day!
+            let numberOfDaysPast = components2.day ?? 0
 
-            let daysLeftNumber = Int(numberOfDays - numberOfDaysPast)
+            let daysLeftNumber = numberOfDays - numberOfDaysPast
             timeLeft = String(localized: "\(daysLeftNumber) days left")
         }
 

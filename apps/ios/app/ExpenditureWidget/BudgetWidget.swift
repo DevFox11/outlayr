@@ -131,15 +131,15 @@ struct BudgetWidgetProvider: AppIntentTimelineProvider {
 
         if snapshot.type == 1 {
             let components = calendar.dateComponents([.minute], from: snapshot.startDate, to: Date.now)
-            percentageOfDays = Double(components.minute!) / 1440
+            percentageOfDays = Double(components.minute ?? 0) / 1440
         } else {
             let components1 = calendar.dateComponents([.day], from: snapshot.startDate, to: snapshot.endDate)
-            let numberOfDays = components1.day!
+            let numberOfDays = components1.day ?? 0
 
             let components2 = calendar.dateComponents([.day], from: snapshot.startDate, to: Date.now)
-            let numberOfDaysPast = components2.day!
+            let numberOfDaysPast = components2.day ?? 0
 
-            percentageOfDays = Double(numberOfDaysPast) / Double(numberOfDays)
+            percentageOfDays = numberOfDays > 0 ? Double(numberOfDaysPast) / Double(numberOfDays) : 0
         }
 
         return (snapshot.totalSpent, percentageOfDays, returnBudget)
