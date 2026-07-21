@@ -43,16 +43,16 @@ struct CategoryIconTile: View {
     private let tint: Color
     private let size: Size
 
-    init(icon: CategoryIcon, colour: String, size: Size = .medium) {
-        self.init(symbol: .icon(icon), tint: Color(hex: colour), size: size)
+    init(icon: CategoryIcon, color: String, size: Size = .medium) {
+        self.init(symbol: .icon(icon), tint: Color(hex: color), size: size)
     }
 
     init(icon: CategoryIcon, tint: Color, size: Size = .medium) {
         self.init(symbol: .icon(icon), tint: tint, size: size)
     }
 
-    init(symbol: CategorySymbol, colour: String, size: Size = .medium) {
-        self.init(symbol: symbol, tint: Color(hex: colour), size: size)
+    init(symbol: CategorySymbol, color: String, size: Size = .medium) {
+        self.init(symbol: symbol, tint: Color(hex: color), size: size)
     }
 
     init(symbol: CategorySymbol, tint: Color, size: Size = .medium) {

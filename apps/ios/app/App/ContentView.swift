@@ -11,7 +11,7 @@ struct ContentView: View {
     @Environment(AppLockViewModel.self) private var appLockVM
     @Environment(DataController.self) private var dataController
 
-    @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults) var colourScheme: Int = 0
+    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
     @Environment(\.scenePhase) var scenePhase
     @AppStorage("showNotifications", store: AppIdentifiers.sharedDefaults) var showNotifications: Bool = false
     @AppStorage("notificationsEnabled", store: AppIdentifiers.sharedDefaults) var notificationsEnabled: Bool = true
@@ -42,7 +42,7 @@ struct ContentView: View {
 
             HomeView(topEdge: topEdge, bottomEdge: bottomEdge == 0 ? 15 : bottomEdge)
                 .ignoresSafeArea(.all, edges: .bottom)
-                .preferredColorScheme(colourScheme == 1 ? .light : colourScheme == 2 ? .dark : nil)
+                .preferredColorScheme(colorScheme == 1 ? .light : colorScheme == 2 ? .dark : nil)
                 .fullScreenCover(isPresented: $showIntro) {
                     WelcomeSheetView()
                 }
@@ -114,10 +114,10 @@ struct ContentView: View {
 
                 categories.forEach { category in
                     if category.income {
-                        category.colour = "#76FBB1"
+                        category.color = "#76FBB1"
                     } else {
-                        if Double(category.wrappedColour) != nil {
-                            category.colour = Color.colourMigrationDictionary[category.wrappedColour] ?? "#FFFFFF"
+                        if Double(category.wrappedColor) != nil {
+                            category.color = Color.colorMigrationDictionary[category.wrappedColor] ?? "#FFFFFF"
                         }
                     }
                 }
@@ -133,7 +133,7 @@ struct ContentView: View {
 
                 categories.forEach { category in
                     if let match = SuggestedCategory.match(name: category.wrappedName, income: category.income) {
-                        category.colour = match.colour
+                        category.color = match.color
                     }
                 }
 

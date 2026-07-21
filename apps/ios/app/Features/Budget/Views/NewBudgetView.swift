@@ -265,7 +265,7 @@ struct BrandNewBudgetView: View {
     }
 
     private var livePreview: some View {
-        let color = selectedCategory.map { Color(hex: $0.wrappedColour) } ?? Color.PrimaryText
+        let color = selectedCategory.map { Color(hex: $0.wrappedColor) } ?? Color.PrimaryText
 
         return VStack(spacing: 12) {
             ZStack {
@@ -359,7 +359,7 @@ struct BrandNewBudgetView: View {
 
     private func categoryChip(_ category: Category) -> some View {
         let selected = selectedCategory == category
-        let color = Color(hex: category.wrappedColour)
+        let color = Color(hex: category.wrappedColor)
 
         return Button {
             withAnimation(.snappy(duration: 0.2)) {

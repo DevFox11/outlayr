@@ -61,21 +61,21 @@ struct TransactionFormView: View {
     private var effectiveCurrency: String { draft.currency ?? globalCurrency }
 
     private var tint: Color {
-        if let hex = draft.identity.effectiveColour, !hex.isEmpty { return Color(hex: hex) }
+        if let hex = draft.identity.effectiveColor, !hex.isEmpty { return Color(hex: hex) }
         if draft.income { return Color.IncomeGreen }
-        if let category { return Color(hex: category.wrappedColour) }
+        if let category { return Color(hex: category.wrappedColor) }
         return Color.PrimaryText
     }
 
-    /// Curtain hues: a photo leads with its extracted colour, an emoji blends its
+    /// Curtain hues: a photo leads with its extracted color, an emoji blends its
     /// own dominant hues, an icon glows in the effective tint alone — padded to
     /// the three the mesh needs. Mirrors `CategorySheetSurface`.
     private var glowColors: [Color] {
         switch draft.identity.symbol {
         case .none:
             return [tint]
-        case let .photo(_, colour):
-            return [colour.isEmpty ? tint : Color(hex: colour)]
+        case let .photo(_, color):
+            return [color.isEmpty ? tint : Color(hex: color)]
         case let .emoji(value):
             let derived = EmojiGlow.colors(for: value)
             return derived.isEmpty ? [tint] : derived + [tint]
@@ -331,7 +331,7 @@ struct TransactionFormView: View {
                 HStack(spacing: 5) {
                     if let category {
                         CategoryIconGlyph(symbol: category.displaySymbol, size: 18)
-                            .foregroundStyle(category.income ? Color.IncomeGreen : Color(hex: category.wrappedColour))
+                            .foregroundStyle(category.income ? Color.IncomeGreen : Color(hex: category.wrappedColor))
                         Text(category.wrappedName)
                             .font(.system(.body, design: .rounded))
                             .foregroundStyle(Color.PrimaryText)
@@ -470,7 +470,7 @@ struct TransactionFormView: View {
         .background(
             // A scrim that reaches full opacity above the button so scrolling
             // content fades out under it instead of colliding. systemGroupedBackground
-            // is dynamic, so both colour schemes are respected.
+            // is dynamic, so both color schemes are respected.
             LinearGradient(
                 stops: [
                     .init(color: Color(.systemGroupedBackground).opacity(0), location: 0),
@@ -661,7 +661,7 @@ private extension TransactionFormView {
     /// A row whose value is a `Menu`. The label sits OUTSIDE the menu so it stays
     /// a plain secondary Text like every other row label — a label inside the
     /// menu inherits the control's accent tint (`.secondary` resolves to blue),
-    /// while the value keeps its primary emphasis via an explicit colour.
+    /// while the value keeps its primary emphasis via an explicit color.
     func menuFieldRow<MenuContent: View>(
         label: LocalizedStringKey,
         value: String,

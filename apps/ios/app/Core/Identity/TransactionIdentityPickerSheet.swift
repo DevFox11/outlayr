@@ -4,8 +4,8 @@
 //
 //  The transaction identity picker: Photo | Emoji | Icons. Extends the category
 //  picker's Icons|Emoji pattern with a Photo tab that imports via PhotosPicker,
-//  crops through Zoom/Horizontal/Vertical sliders, extracts the dominant colour,
-//  and lets the user override it from a colour rail (or restore auto). Emoji and
+//  crops through Zoom/Horizontal/Vertical sliders, extracts the dominant color,
+//  and lets the user override it from a color rail (or restore auto). Emoji and
 //  Icons reuse the extracted browsers, writing to a `TransactionIdentitySelection`
 //  instead of a category.
 //
@@ -17,7 +17,7 @@ import UIKit
 struct TransactionIdentityPickerSheet: View {
     @Binding var selection: TransactionIdentitySelection
     let income: Bool
-    /// Wash/highlight colour for the emoji and icon browsers.
+    /// Wash/highlight color for the emoji and icon browsers.
     var tint: Color = Color.PrimaryText
 
     @Environment(\.dismiss) private var dismiss
@@ -51,8 +51,8 @@ struct TransactionIdentityPickerSheet: View {
         }
     }
 
-    private var autoColour: String { dominants.first ?? "" }
-    private var isAuto: Bool { selection.customColour == nil }
+    private var autoColor: String { dominants.first ?? "" }
+    private var isAuto: Bool { selection.customColor == nil }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -113,7 +113,7 @@ struct TransactionIdentityPickerSheet: View {
                     .accessibilityLabel("Photo error: \(photoError)")
             }
 
-            colourSection
+            colorSection
 
             slidersCard
 
@@ -157,15 +157,15 @@ struct TransactionIdentityPickerSheet: View {
         .padding(.top, 4)
     }
 
-    private var colourSection: some View {
+    private var colorSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Colour")
+            Text("Color")
                 .font(.system(.caption, design: .rounded, weight: .semibold))
                 .foregroundStyle(Color.SubtitleText)
                 .textCase(.uppercase)
 
             Button {
-                selection.restoreAutoColour()
+                selection.restoreAutoColor()
             } label: {
                 HStack(spacing: 12) {
                     if isAuto {
@@ -178,12 +178,12 @@ struct TransactionIdentityPickerSheet: View {
                             .font(.system(.subheadline, design: .rounded))
                             .foregroundStyle(Color.PrimaryText)
                         Text(sourceImage == nil ? "Pick a photo first"
-                             : (isAuto ? "Primary colour from image" : "Overridden by custom colour"))
+                             : (isAuto ? "Primary color from image" : "Overridden by custom color"))
                             .font(.system(.caption2, design: .rounded))
                             .foregroundStyle(Color.SubtitleText)
                     }
                     Spacer()
-                    // The system colour well doubles as the override picker — the
+                    // The system color well doubles as the override picker — the
                     // photo tab needs no palette rail on top of it.
                     ColorPicker("", selection: overrideWellBinding, supportsOpacity: false)
                         .labelsHidden()
@@ -200,17 +200,17 @@ struct TransactionIdentityPickerSheet: View {
 
     private var overrideWellBinding: Binding<Color> {
         Binding(
-            get: { Color(hex: selection.customColour ?? autoColour) },
-            set: { if let hex = $0.toHex() { selection.overrideColour(hex) } }
+            get: { Color(hex: selection.customColor ?? autoColor) },
+            set: { if let hex = $0.toHex() { selection.overrideColor(hex) } }
         )
     }
 
-    /// Selecting a swatch or the wheel overrides the auto colour; the binding
+    /// Selecting a swatch or the wheel overrides the auto color; the binding
     /// surfaces the current override (or the detected primary while on auto).
-    private var customColourBinding: Binding<String> {
+    private var customColorBinding: Binding<String> {
         Binding(
-            get: { selection.customColour ?? autoColour },
-            set: { selection.overrideColour($0) }
+            get: { selection.customColor ?? autoColor },
+            set: { selection.overrideColor($0) }
         )
     }
 
@@ -252,7 +252,7 @@ struct TransactionIdentityPickerSheet: View {
 
     private var emojiPanel: some View {
         VStack(spacing: 10) {
-            ColourPickerView(selectedColour: customColourBinding, usedColours: [])
+            ColorPickerView(selectedColor: customColorBinding, usedColors: [])
                 .padding(.horizontal, 20)
 
             IdentityEmojiBrowser(
@@ -267,7 +267,7 @@ struct TransactionIdentityPickerSheet: View {
 
     private var iconPanel: some View {
         VStack(spacing: 10) {
-            ColourPickerView(selectedColour: customColourBinding, usedColours: [])
+            ColorPickerView(selectedColor: customColorBinding, usedColors: [])
                 .padding(.horizontal, 20)
 
             CategoryIconBrowser(
@@ -391,8 +391,8 @@ struct TransactionIdentityPickerSheet: View {
         // clobber an emoji or icon the user chose on another tab.
         guard tab == .photo, let sourceImage else { return }
         let crop = self.crop
-        let auto = autoColour
-        let saved = selection.customColour
+        let auto = autoColor
+        let saved = selection.customColor
 
         // Crop + JPEG encode is heavy: run it off the main actor, and let a rapid
         // re-drag cancel the in-flight commit so only the latest crop is stored.
@@ -406,9 +406,9 @@ struct TransactionIdentityPickerSheet: View {
                 photoError = "That photo couldn't be processed. Try another."
                 return
             }
-            let primary = prepared.colour.isEmpty ? auto : prepared.colour
-            selection.selectPhoto(imageData: prepared.data, imageColour: primary)
-            if let saved { selection.overrideColour(saved) }
+            let primary = prepared.color.isEmpty ? auto : prepared.color
+            selection.selectPhoto(imageData: prepared.data, imageColor: primary)
+            if let saved { selection.overrideColor(saved) }
         }
     }
 }

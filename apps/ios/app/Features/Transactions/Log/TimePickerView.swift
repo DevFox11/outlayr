@@ -15,12 +15,12 @@ struct TimePickerView: View {
     @Binding var timeframe: Int
     @State var holdingTimeframe = 0
 
-    @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults) var colourScheme: Int = 0
+    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
 
     var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
+        (colorScheme == 0 && systemColorScheme == .dark) || colorScheme == 2
     }
 
     @Environment(\.dynamicTypeSize) var dynamicTypeSize

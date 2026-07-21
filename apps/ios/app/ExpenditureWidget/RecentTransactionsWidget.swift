@@ -120,7 +120,7 @@ struct Provider: IntentTimelineProvider {
         var sending = [HoldingTransaction]()
 
         holding.forEach { transaction in
-            let t = HoldingTransaction(colour: transaction.effectiveColour, note: transaction.wrappedNote, amount: transaction.wrappedAmount, income: transaction.income)
+            let t = HoldingTransaction(color: transaction.effectiveColor, note: transaction.wrappedNote, amount: transaction.wrappedAmount, income: transaction.income)
 
             sending.append(t)
         }
@@ -279,7 +279,7 @@ struct ExpenditureWidgetEntryView: View {
                                 ForEach(entry.transactions.prefix(3), id: \.self) { transaction in
                                     HStack(spacing: 5) {
                                         Capsule()
-                                            .fill(Color(hex: transaction.colour))
+                                            .fill(Color(hex: transaction.color))
                                             .frame(width: 4, height: 12)
 
                                         Text(transaction.note)
@@ -379,7 +379,7 @@ struct ExpenditureWidgetEntryView: View {
                                 ForEach(entry.transactions, id: \.self) { transaction in
                                     HStack(spacing: 8) {
                                         RoundedRectangle(cornerRadius: 5)
-                                            .fill(Color(hex: transaction.colour))
+                                            .fill(Color(hex: transaction.color))
                                             .frame(width: 15, height: 15)
 
                                         Text(transaction.note)

@@ -460,11 +460,11 @@ final class ManagedObjectModelVersionTests: XCTestCase {
 
 /// Pins the self-calibrating glyph guarantee: for ANY tint — palette or
 /// custom-picked — the derived glyph clears WCAG's 3:1 graphics contrast
-/// against its own wash, in both colour schemes.
+/// against its own wash, in both color schemes.
 final class CategoryTileShadingTests: XCTestCase {
     private let extremes = ["#FFFFFF", "#000000", "#FFFF00", "#F6D24A", "#B8D6FA", "#0B0B0B"]
 
-    func testEveryPaletteColourClearsGraphicsContrastInBothSchemes() {
+    func testEveryPaletteColorClearsGraphicsContrastInBothSchemes() {
         for hex in Color.colorArray {
             for scheme in [ColorScheme.light, .dark] {
                 let achieved = CategoryTileShading.achievedContrast(for: Color(hex: hex), in: scheme)
@@ -476,7 +476,7 @@ final class CategoryTileShadingTests: XCTestCase {
         }
     }
 
-    func testCustomExtremeColoursClearGraphicsContrast() {
+    func testCustomExtremeColorsClearGraphicsContrast() {
         for hex in extremes {
             for scheme in [ColorScheme.light, .dark] {
                 let achieved = CategoryTileShading.achievedContrast(for: Color(hex: hex), in: scheme)

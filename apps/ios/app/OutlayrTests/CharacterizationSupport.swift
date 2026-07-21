@@ -80,7 +80,7 @@ class CharacterizationTestCase: XCTestCase {
         category.id = UUID()
         category.name = name
         category.icon = icon
-        category.colour = "#000000"
+        category.color = "#000000"
         category.income = income
         category.order = order
         category.dateCreated = referenceDate

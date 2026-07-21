@@ -30,7 +30,7 @@ struct CategoryIconGlyph: View {
                 Text(icon.glyph)
                     .font(HugeiconsSolidRounded.font(size: size))
             case let .emoji(emoji):
-                // Emoji carry their own colour, so they only need the metric.
+                // Emoji carry their own color, so they only need the metric.
                 Text(emoji)
                     .font(.system(size: size))
             }

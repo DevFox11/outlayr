@@ -7,12 +7,12 @@ import SwiftUI
 import UIKit
 
 /// Extracts an emoji's dominant hues so ambient effects can glow in the
-/// emoji's own colours instead of the category tint. Icons stay monochrome;
+/// emoji's own colors instead of the category tint. Icons stay monochrome;
 /// emoji bring a palette, and the glow should listen to it.
 enum EmojiGlow {
     private static var cache: [String: [Color]] = [:]
 
-    /// Up to two dominant colours, most-present first. Empty when the emoji
+    /// Up to two dominant colors, most-present first. Empty when the emoji
     /// renders without any saturated ink (callers fall back to the tint).
     static func colors(for emoji: String) -> [Color] {
         if let hit = cache[emoji] { return hit }
@@ -42,7 +42,7 @@ enum EmojiGlow {
         UIGraphicsPopContext()
 
         // Hue histogram over saturated, opaque pixels: 12 buckets, each
-        // accumulating a weighted mean colour.
+        // accumulating a weighted mean color.
         let buckets = 12
         var weight = [Double](repeating: 0, count: buckets)
         var sum = [SIMD3<Double>](repeating: .zero, count: buckets)

@@ -3,7 +3,7 @@
 //  Outlayr
 //
 //  The in-flight identity choice on the transaction sheet. A value type so the
-//  "photo XOR emoji XOR icon XOR none" rule and the custom-colour override are
+//  "photo XOR emoji XOR icon XOR none" rule and the custom-color override are
 //  enforced — and unit-testable — outside the view layer. There is no way to
 //  construct or mutate one that holds two symbol kinds at once.
 //
@@ -12,24 +12,24 @@ import Foundation
 
 struct TransactionIdentitySelection: Equatable {
     /// The mutually exclusive symbol kinds a transaction can carry. `.photo`
-    /// pairs the stored JPEG with the colour extracted from it; `.icon` only
+    /// pairs the stored JPEG with the color extracted from it; `.icon` only
     /// ever holds a catalog-resolvable name (the reducer refuses the rest).
     enum Symbol: Equatable {
         case none
-        case photo(imageData: Data, imageColour: String)
+        case photo(imageData: Data, imageColor: String)
         case emoji(String)
         case icon(String)
     }
 
     private(set) var symbol: Symbol
-    /// A user-picked colour that overrides whatever the identity would derive.
-    /// `nil` means "auto": fall back to the photo's extracted colour, then the
-    /// category's. Restored by `restoreAutoColour()`.
-    private(set) var customColour: String?
+    /// A user-picked color that overrides whatever the identity would derive.
+    /// `nil` means "auto": fall back to the photo's extracted color, then the
+    /// category's. Restored by `restoreAutoColor()`.
+    private(set) var customColor: String?
 
     init() {
         symbol = .none
-        customColour = nil
+        customColor = nil
     }
 
     /// Seeds from stored transaction attributes, applying the same precedence as
@@ -41,14 +41,14 @@ struct TransactionIdentitySelection: Equatable {
         } else if let emoji = transaction.emoji, !emoji.isEmpty {
             symbol = .emoji(emoji)
         } else if let data = transaction.imageData, !data.isEmpty {
-            symbol = .photo(imageData: data, imageColour: transaction.imageColour ?? "")
+            symbol = .photo(imageData: data, imageColor: transaction.imageColor ?? "")
         } else {
             symbol = .none
         }
-        if let custom = transaction.customColour, !custom.isEmpty {
-            customColour = custom
+        if let custom = transaction.customColor, !custom.isEmpty {
+            customColor = custom
         } else {
-            customColour = nil
+            customColor = nil
         }
     }
 
@@ -57,27 +57,27 @@ struct TransactionIdentitySelection: Equatable {
         return false
     }
 
-    /// The colour the identity resolves to on its own, before the category
-    /// behind it: the override wins, then a photo's extracted colour, else nil
+    /// The color the identity resolves to on its own, before the category
+    /// behind it: the override wins, then a photo's extracted color, else nil
     /// (icons and emoji inherit — their glow comes from derived hues elsewhere).
-    var effectiveColour: String? {
-        if let customColour, !customColour.isEmpty { return customColour }
-        if case let .photo(_, colour) = symbol, !colour.isEmpty { return colour }
+    var effectiveColor: String? {
+        if let customColor, !customColor.isEmpty { return customColor }
+        if case let .photo(_, color) = symbol, !color.isEmpty { return color }
         return nil
     }
 
     // MARK: - Reducer
 
-    /// Choosing a fresh identity always resets the colour to auto — the newly
-    /// detected (or inherited) colour should show until the user overrides again.
-    mutating func selectPhoto(imageData: Data, imageColour: String) {
-        symbol = .photo(imageData: imageData, imageColour: imageColour)
-        customColour = nil
+    /// Choosing a fresh identity always resets the color to auto — the newly
+    /// detected (or inherited) color should show until the user overrides again.
+    mutating func selectPhoto(imageData: Data, imageColor: String) {
+        symbol = .photo(imageData: imageData, imageColor: imageColor)
+        customColor = nil
     }
 
     mutating func selectEmoji(_ value: String) {
         symbol = .emoji(value)
-        customColour = nil
+        customColor = nil
     }
 
     /// Refuses names the catalog can't resolve: an unstorable icon must never
@@ -89,21 +89,21 @@ struct TransactionIdentitySelection: Equatable {
     mutating func selectIcon(_ name: String) -> Bool {
         guard CategoryIconCatalog.icon(named: name) != nil else { return false }
         symbol = .icon(name)
-        customColour = nil
+        customColor = nil
         return true
     }
 
     mutating func clear() {
         symbol = .none
-        customColour = nil
+        customColor = nil
     }
 
-    mutating func overrideColour(_ hex: String) {
-        customColour = hex
+    mutating func overrideColor(_ hex: String) {
+        customColor = hex
     }
 
-    mutating func restoreAutoColour() {
-        customColour = nil
+    mutating func restoreAutoColor() {
+        customColor = nil
     }
 
     /// Writes the selection back to a managed transaction, mapping empty to nil
@@ -115,23 +115,23 @@ struct TransactionIdentitySelection: Equatable {
             transaction.icon = nil
             transaction.emoji = nil
             transaction.imageData = nil
-            transaction.imageColour = nil
+            transaction.imageColor = nil
         case let .icon(name):
             transaction.icon = name
             transaction.emoji = nil
             transaction.imageData = nil
-            transaction.imageColour = nil
+            transaction.imageColor = nil
         case let .emoji(value):
             transaction.emoji = value
             transaction.icon = nil
             transaction.imageData = nil
-            transaction.imageColour = nil
-        case let .photo(imageData, imageColour):
+            transaction.imageColor = nil
+        case let .photo(imageData, imageColor):
             transaction.imageData = imageData
-            transaction.imageColour = imageColour.isEmpty ? nil : imageColour
+            transaction.imageColor = imageColor.isEmpty ? nil : imageColor
             transaction.icon = nil
             transaction.emoji = nil
         }
-        transaction.customColour = customColour?.isEmpty == false ? customColour : nil
+        transaction.customColor = customColor?.isEmpty == false ? customColor : nil
     }
 }

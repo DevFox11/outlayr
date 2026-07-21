@@ -96,8 +96,8 @@ Current features: `Budget`, `Transactions`, `Insights`, `Categories`,
 | Protocols | capability (`-able`) or role noun | `Identifiable`, `TransactionStore` |
 | Booleans | `is/has/should` prefix | `isRecurring`, `hasBudget` |
 
-- Use British/American spelling **consistently with the existing symbol**
-  (`Colour…` already exists — don't rename in this pass; new code prefers `Color`).
+- Use American English spelling everywhere: symbols, Core Data attributes,
+  UserDefaults keys, UI copy, and comments (e.g. `Color`, `normalize`).
 - No abbreviations except well-known ones (`URL`, `ID`, `CSV`).
 
 ## 5. SwiftUI & state

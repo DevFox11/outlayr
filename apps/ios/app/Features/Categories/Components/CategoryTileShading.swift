@@ -7,7 +7,7 @@ import SwiftUI
 import UIKit
 
 /// Derives a legible glyph shade from any tint — palette or custom-picked.
-/// Rather than fixed recipes per colour, it composites the tint's wash over the
+/// Rather than fixed recipes per color, it composites the tint's wash over the
 /// sheet, then shades the glyph toward ink (or paper, on dark) exactly as far
 /// as needed to clear WCAG's 3:1 graphics contrast against that wash.
 enum CategoryTileShading {
@@ -42,7 +42,7 @@ enum CategoryTileShading {
     }
 
     /// The contrast the derived glyph actually achieves against the wash —
-    /// exists so tests can pin the guarantee for any input colour.
+    /// exists so tests can pin the guarantee for any input color.
     static func achievedContrast(for tint: Color, in scheme: ColorScheme) -> Double {
         let tintRGB = components(of: tint)
         let sheet: SIMD3<Double> = scheme == .dark

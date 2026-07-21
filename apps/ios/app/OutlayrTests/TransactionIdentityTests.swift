@@ -3,7 +3,7 @@
 //  OutlayrTests
 //
 //  Covers the MainModel 4 transaction identity attributes (emoji, icon,
-//  imageData, imageColour, customColour, currency) and the storage-level
+//  imageData, imageColor, customColor, currency) and the storage-level
 //  accessors that resolve them against the owning category.
 //
 
@@ -24,8 +24,8 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         XCTAssertNil(transaction.emoji)
         XCTAssertNil(transaction.icon)
         XCTAssertNil(transaction.imageData)
-        XCTAssertNil(transaction.imageColour)
-        XCTAssertNil(transaction.customColour)
+        XCTAssertNil(transaction.imageColor)
+        XCTAssertNil(transaction.customColor)
         XCTAssertNil(transaction.currency)
     }
 
@@ -36,8 +36,8 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         transaction.emoji = "🍎"
         transaction.icon = "sale-tag-01"
         transaction.imageData = payload
-        transaction.imageColour = "#123456"
-        transaction.customColour = "#ABCDEF"
+        transaction.imageColor = "#123456"
+        transaction.customColor = "#ABCDEF"
         transaction.currency = "JPY"
         try context.save()
 
@@ -48,8 +48,8 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         XCTAssertEqual(stored.emoji, "🍎")
         XCTAssertEqual(stored.icon, "sale-tag-01")
         XCTAssertEqual(stored.imageData, payload)
-        XCTAssertEqual(stored.imageColour, "#123456")
-        XCTAssertEqual(stored.customColour, "#ABCDEF")
+        XCTAssertEqual(stored.imageColor, "#123456")
+        XCTAssertEqual(stored.customColor, "#ABCDEF")
         XCTAssertEqual(stored.currency, "JPY")
     }
 
@@ -87,30 +87,30 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         }
     }
 
-    func testEffectiveColourPrefersCustomThenImageThenCategory() {
+    func testEffectiveColorPrefersCustomThenImageThenCategory() {
         let context = makeContext()
         let category = makeCategory(in: context, name: "Groceries")
-        category.colour = "#111111"
+        category.color = "#111111"
         let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
 
-        XCTAssertEqual(transaction.effectiveColour, "#111111")
+        XCTAssertEqual(transaction.effectiveColor, "#111111")
 
-        transaction.imageColour = "#222222"
-        XCTAssertEqual(transaction.effectiveColour, "#222222")
+        transaction.imageColor = "#222222"
+        XCTAssertEqual(transaction.effectiveColor, "#222222")
 
-        transaction.customColour = "#333333"
-        XCTAssertEqual(transaction.effectiveColour, "#333333")
+        transaction.customColor = "#333333"
+        XCTAssertEqual(transaction.effectiveColor, "#333333")
     }
 
-    func testEffectiveColourIgnoresBlankOverrides() {
+    func testEffectiveColorIgnoresBlankOverrides() {
         let context = makeContext()
         let category = makeCategory(in: context, name: "Groceries")
-        category.colour = "#111111"
+        category.color = "#111111"
         let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
-        transaction.customColour = ""
-        transaction.imageColour = ""
+        transaction.customColor = ""
+        transaction.imageColor = ""
 
-        XCTAssertEqual(transaction.effectiveColour, "#111111")
+        XCTAssertEqual(transaction.effectiveColor, "#111111")
     }
 
     func testOwnSymbolIsNilWithoutStoredIdentity() {
@@ -323,8 +323,8 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         XCTAssertNil(migrated.value(forKey: "emoji"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "icon"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "imageData"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "imageColour"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "customColour"), file: file, line: line)
+        XCTAssertNil(migrated.value(forKey: "imageColor"), file: file, line: line)
+        XCTAssertNil(migrated.value(forKey: "customColor"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "currency"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "recurringEndDate"), file: file, line: line)
         XCTAssertNil(migrated.value(forKey: "details"), file: file, line: line)

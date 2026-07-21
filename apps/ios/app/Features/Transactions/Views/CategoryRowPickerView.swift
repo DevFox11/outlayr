@@ -54,7 +54,7 @@ struct CategoryRowPickerView: View {
                                         .id(item.id)
                                         .padding(.horizontal, 10)
                                         .frame(height: 36)
-                                        .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColour)) : Color.PrimaryText)
+                                        .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColor)) : Color.PrimaryText)
                                         .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .overlay {
                                             if selectedCategory != item {
@@ -152,7 +152,7 @@ struct CategoryRowPickerView: View {
             }
         } else {
             if category == selectedCategory {
-                return Color(hex: category.wrappedColour).opacity(0.3)
+                return Color(hex: category.wrappedColor).opacity(0.3)
             } else {
                 return Color.PrimaryBackground
             }

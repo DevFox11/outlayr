@@ -19,7 +19,7 @@ struct IdentityCurtain: View {
 
     /// Pads or trims any hue list to exactly the three the mesh top row needs,
     /// applying the pastel curtain mix. Emoji-style multi-hue lists lead, the
-    /// last colour closes — matching the category surface's `curtainHues`.
+    /// last color closes — matching the category surface's `curtainHues`.
     static func meshHues(from colors: [Color], in scheme: ColorScheme) -> [Color] {
         let shades = colors.map { CategoryTileShading.curtain($0, in: scheme) }
         switch shades.count {
@@ -32,7 +32,7 @@ struct IdentityCurtain: View {
 
     var body: some View {
         mesh
-            // Hues must NEVER animate: mesh colours interpolate column-by-column,
+            // Hues must NEVER animate: mesh colors interpolate column-by-column,
             // which reads as a left-to-right sweep. Stripping the transaction is
             // the only reliable way — the reveal rides the same transaction.
             .transaction { $0.animation = nil }

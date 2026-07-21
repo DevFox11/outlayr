@@ -148,17 +148,17 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         XCTAssertEqual(transaction.month, date(2024, 3, 1, 0, 0))
     }
 
-    func testPhotoIdentityAppliesImageDataAndColour() {
+    func testPhotoIdentityAppliesImageDataAndColor() {
         let category = makeCategory(in: context, name: "Streaming", order: 1)
         var draft = TransactionFormDraft()
         draft.amount = 10
-        draft.identity.selectPhoto(imageData: Data([0x1, 0x2, 0x3]), imageColour: "#3AD6B2")
+        draft.identity.selectPhoto(imageData: Data([0x1, 0x2, 0x3]), imageColor: "#3AD6B2")
 
         let transaction = Transaction(context: context)
         draft.apply(to: transaction, category: category)
 
         XCTAssertEqual(transaction.imageData, Data([0x1, 0x2, 0x3]))
-        XCTAssertEqual(transaction.imageColour, "#3AD6B2")
+        XCTAssertEqual(transaction.imageColor, "#3AD6B2")
         XCTAssertNil(transaction.emoji)
         XCTAssertNil(transaction.icon)
     }

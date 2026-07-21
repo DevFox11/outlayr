@@ -10,7 +10,7 @@ import SwiftUI
 struct CategoryChip: View {
     let symbol: CategorySymbol
     let name: String
-    let colourHex: String
+    let colorHex: String
     let isChild: Bool
     let isSelected: Bool
     let isDimmed: Bool
@@ -18,7 +18,7 @@ struct CategoryChip: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
-    private var colour: Color { Color(hex: colourHex) }
+    private var color: Color { Color(hex: colorHex) }
 
     var body: some View {
         Button(action: action) {
@@ -37,13 +37,13 @@ struct CategoryChip: View {
             .padding(.horizontal, 11)
             .padding(.vertical, isChild ? 7 : 9)
             .foregroundStyle(
-                CategoryTileShading.glyph(for: colour, in: colorScheme, washOpacity: isChild ? 0.2 : 0.35)
+                CategoryTileShading.glyph(for: color, in: colorScheme, washOpacity: isChild ? 0.2 : 0.35)
             )
-            .background(colour.opacity(isChild ? 0.2 : 0.35), in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
+            .background(color.opacity(isChild ? 0.2 : 0.35), in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                        .strokeBorder(colour, style: StrokeStyle(lineWidth: 2))
+                        .strokeBorder(color, style: StrokeStyle(lineWidth: 2))
                 }
             }
             .opacity(isDimmed ? 0.5 : 1)

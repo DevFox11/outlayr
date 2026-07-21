@@ -33,7 +33,7 @@ struct SingleTransactionPhotoView: View {
     var body: some View {
         HStack(spacing: 25) {
             CategoryIconLogTile(symbol: transaction.displaySymbol,
-                                colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future, scale: .hero)
+                                color: (transaction.category?.wrappedColor ?? "#FFFFFF"), future: future, scale: .hero)
                 .frame(width: 100, height: 100, alignment: .center)
                 .overlay(alignment: .bottomTrailing) {
                     if transaction.recurringType > 0 {

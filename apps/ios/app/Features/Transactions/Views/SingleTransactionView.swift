@@ -183,7 +183,7 @@ struct SingleTransactionView: View {
     private var rowContent: some View {
         HStack(spacing: 12) {
                 CategoryIconLogTile(symbol: transaction.displaySymbol,
-                                    colour: transaction.effectiveColour,
+                                    color: transaction.effectiveColor,
                                     future: future,
                                     imageData: transaction.imageData,
                                     imageCacheKey: transaction.objectID)

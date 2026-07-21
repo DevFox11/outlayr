@@ -76,7 +76,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, color: budget.wrappedColor, budgetAmount: budget.amount)
 
             let percentageOfDays: Double
 
@@ -211,7 +211,7 @@ struct BudgetWidgetEntryView: View {
 
                                     if entry.totalSpent / entry.budget.budgetAmount < 0.97 {
                                         DonutSemicircle(percent: 1 - (entry.totalSpent / entry.budget.budgetAmount), cornerRadius: 4, width: 15)
-                                            .fill(Color(hex: entry.budget.colour))
+                                            .fill(Color(hex: entry.budget.color))
                                             .frame(width: proxy.size.width, height: proxy.size.width / 2)
                                     }
                                 }

@@ -12,9 +12,9 @@
 import SwiftUI
 
 /// Assembles the three curtain slots a transaction's identity feeds the mesh:
-/// its two dominant image hues lead, the chosen (auto or overridden) colour
+/// its two dominant image hues lead, the chosen (auto or overridden) color
 /// closes — `[dom1, dom2, chosen]`. A single dominant repeats into slot two; no
-/// dominants and every slot is the chosen colour.
+/// dominants and every slot is the chosen color.
 enum TransactionGlow {
     static func curtainInputs(dominants: [String], chosen: String) -> [String] {
         let dom1 = dominants.first ?? chosen

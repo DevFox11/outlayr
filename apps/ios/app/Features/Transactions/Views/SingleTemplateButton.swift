@@ -42,7 +42,7 @@ struct SingleTemplateButton: View {
         if transaction.category?.income ?? false {
             return Color.IncomeGreen
         } else {
-            return Color(hex: transaction.wrappedColour)
+            return Color(hex: transaction.wrappedColor)
         }
     }
 

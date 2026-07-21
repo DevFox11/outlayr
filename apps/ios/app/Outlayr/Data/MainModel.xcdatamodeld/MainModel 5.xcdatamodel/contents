@@ -11,7 +11,7 @@
         <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Category" inverseName="budget" inverseEntity="Category"/>
     </entity>
     <entity name="Category" representedClassName="Category" syncable="YES" codeGenerationType="class">
-        <attribute name="colour" optional="YES" attributeType="String"/>
+        <attribute name="color" optional="YES" attributeType="String"/>
         <attribute name="dateCreated" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="emoji" optional="YES" attributeType="String"/>
         <attribute name="icon" optional="YES" attributeType="String"/>
@@ -46,13 +46,13 @@
     <entity name="Transaction" representedClassName="Transaction" syncable="YES" codeGenerationType="class">
         <attribute name="amount" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="currency" optional="YES" attributeType="String"/>
-        <attribute name="customColour" optional="YES" attributeType="String"/>
+        <attribute name="customColor" optional="YES" attributeType="String"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="day" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="emoji" optional="YES" attributeType="String"/>
         <attribute name="icon" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="imageColour" optional="YES" attributeType="String"/>
+        <attribute name="imageColor" optional="YES" attributeType="String"/>
         <attribute name="imageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="income" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="month" optional="YES" attributeType="Date" usesScalarValueType="NO"/>

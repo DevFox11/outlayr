@@ -3,7 +3,7 @@
 //  Outlayr
 //
 //  Extracts an image's dominant hues so the transaction glow can bloom in the
-//  logo's own colours — the same 12-bucket hue histogram `EmojiGlow` runs on a
+//  logo's own colors — the same 12-bucket hue histogram `EmojiGlow` runs on a
 //  rendered emoji, lifted to arbitrary CGImages. Deterministic: the same pixels
 //  always yield the same hexes, so it can be pinned in tests.
 //
@@ -16,7 +16,7 @@ enum ImageDominantColors {
     /// to be cheap and stable, large enough to survive a logo's accents.
     static let sampleSide = 24
 
-    /// Up to two dominant colours, most-present first, as `#RRGGBB`. Empty when
+    /// Up to two dominant colors, most-present first, as `#RRGGBB`. Empty when
     /// the image carries no saturated, opaque ink (callers fall back to a tint).
     static func extract(from image: CGImage) -> [String] {
         let side = sampleSide

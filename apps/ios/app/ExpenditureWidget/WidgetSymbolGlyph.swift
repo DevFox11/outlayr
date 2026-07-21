@@ -8,7 +8,7 @@ import HugeiconsSolidRounded
 import SwiftUI
 
 /// Renders a budget's category symbol at widget scale: a Hugeicons glyph in
-/// the given colour, or the emoji itself (emoji carry their own colours; on
+/// the given color, or the emoji itself (emoji carry their own colors; on
 /// lock-screen rendering modes the system desaturates them, as it does for
 /// every widget image).
 struct WidgetSymbolGlyph: View {

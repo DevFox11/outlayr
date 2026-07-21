@@ -550,8 +550,8 @@ struct ImportDataView: View {
                                                 .padding(.vertical, 6)
                                                 .padding(.horizontal, 10)
 //                                                .frame(height: 36)
-                                                .foregroundStyle(Color(hex: unwrappedCategory.wrappedColour))
-                                                .background(Color(hex: unwrappedCategory.wrappedColour).opacity(0.35), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                                .foregroundStyle(Color(hex: unwrappedCategory.wrappedColor))
+                                                .background(Color(hex: unwrappedCategory.wrappedColor).opacity(0.35), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                                 .minimumScaleFactor(0.7)
                                             }
                                             .transition(.opacity)

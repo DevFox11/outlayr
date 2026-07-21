@@ -94,7 +94,7 @@ struct CategoryRepository {
         toEdit: Category
     ) -> (error: CategoryError, order: Int64) {
         // A category migrated from the emoji era has no stored icon. Demanding one
-        // now would make an unrelated edit — a rename, a recolour — unsavable.
+        // now would make an unrelated edit — a rename, a recolor — unsavable.
         let symbolRequired = toEdit.icon != nil || toEdit.wrappedEmoji != nil
         let symbolMissing = icon.isEmpty && emoji.isEmpty
 

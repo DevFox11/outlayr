@@ -33,7 +33,7 @@ struct CategoryIconLogTile: View {
     }
 
     let symbol: CategorySymbol
-    let colour: String
+    let color: String
     let future: Bool
     let scale: Scale
     /// When present, a stored photo identity renders as a circular thumbnail in
@@ -44,7 +44,7 @@ struct CategoryIconLogTile: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var thumbnail: UIImage?
 
-    private var tint: Color { Color(hex: colour) }
+    private var tint: Color { Color(hex: color) }
 
     private var thumbnailSide: CGFloat { scale.glyph + 16 }
 
@@ -122,20 +122,20 @@ struct CategoryIconLogTile: View {
         }
     }
 
-    init(icon: CategoryIcon, colour: String, future: Bool, scale: Scale = .row) {
-        self.init(symbol: .icon(icon), colour: colour, future: future, scale: scale)
+    init(icon: CategoryIcon, color: String, future: Bool, scale: Scale = .row) {
+        self.init(symbol: .icon(icon), color: color, future: future, scale: scale)
     }
 
     init(
         symbol: CategorySymbol,
-        colour: String,
+        color: String,
         future: Bool,
         scale: Scale = .row,
         imageData: Data? = nil,
         imageCacheKey: NSManagedObjectID? = nil
     ) {
         self.symbol = symbol
-        self.colour = colour
+        self.color = color
         self.future = future
         self.scale = scale
         self.imageData = imageData

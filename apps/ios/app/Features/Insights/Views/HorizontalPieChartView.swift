@@ -163,7 +163,7 @@ struct HorizontalPieChartView: View {
             VStack(spacing: 10) {
                 ForEach(categories, id: \.self) { category in
                     if !categoryFilterMode || categoryFilter == category.category {
-                        let boxColor = category.category.income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.category.wrappedColour)
+                        let boxColor = category.category.income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.category.wrappedColor)
 
                         HStack(spacing: 10) {
 

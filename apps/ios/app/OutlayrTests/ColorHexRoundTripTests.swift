@@ -1,8 +1,8 @@
 //
-//  ColourHexRoundTripTests.swift
+//  ColorHexRoundTripTests.swift
 //  OutlayrTests
 //
-//  The used-colour contract compares stored hex strings, so a colour that does
+//  The used-color contract compares stored hex strings, so a color that does
 //  not survive Color(hex:) -> toHex() unchanged would silently escape the
 //  duplicate check and let two categories share a swatch.
 //
@@ -12,14 +12,14 @@ import XCTest
 
 @testable import Outlayr
 
-final class ColourHexRoundTripTests: XCTestCase {
-    func testEveryPaletteColourSurvivesHexRoundTrip() {
+final class ColorHexRoundTripTests: XCTestCase {
+    func testEveryPaletteColorSurvivesHexRoundTrip() {
         for hex in Color.colorArray {
             let roundTripped = Color(hex: hex).toHex()
             XCTAssertEqual(
                 roundTripped,
                 hex,
-                "Palette colour \(hex) round-tripped to \(roundTripped ?? "nil")"
+                "Palette color \(hex) round-tripped to \(roundTripped ?? "nil")"
             )
         }
     }
@@ -29,11 +29,11 @@ final class ColourHexRoundTripTests: XCTestCase {
             var current = hex
             for _ in 0 ..< 3 {
                 guard let next = Color(hex: current).toHex() else {
-                    return XCTFail("Palette colour \(hex) produced a nil hex")
+                    return XCTFail("Palette color \(hex) produced a nil hex")
                 }
                 current = next
             }
-            XCTAssertEqual(current, hex, "Palette colour \(hex) drifted to \(current) after repeated conversions")
+            XCTAssertEqual(current, hex, "Palette color \(hex) drifted to \(current) after repeated conversions")
         }
     }
 }

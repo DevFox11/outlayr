@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 extension Color {
-    static let colourMigrationDictionary: [String: String] = [
+    static let colorMigrationDictionary: [String: String] = [
         "1": "#279AF4",
         "2": "#EC7A58",
         "3": "#A6678A",

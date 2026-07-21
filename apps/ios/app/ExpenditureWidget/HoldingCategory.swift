@@ -6,7 +6,7 @@
 import Foundation
 
 struct HoldingCategory: Hashable {
-    let colour: String
+    let color: String
     let name: String
     let percent: Double
 }

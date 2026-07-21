@@ -156,8 +156,8 @@ struct MatchCategoryStepperView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .foregroundStyle(category == categoryInput ? Color(hex: categoryInput.wrappedColour) : Color.PrimaryText)
-            .background(category == categoryInput ? Color(hex: categoryInput.wrappedColour).opacity(0.35) : Color.PrimaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .foregroundStyle(category == categoryInput ? Color(hex: categoryInput.wrappedColor) : Color.PrimaryText)
+            .background(category == categoryInput ? Color(hex: categoryInput.wrappedColor).opacity(0.35) : Color.PrimaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
                 if category != categoryInput {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)

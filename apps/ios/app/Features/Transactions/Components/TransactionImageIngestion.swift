@@ -42,7 +42,7 @@ enum TransactionImageIngestion {
 
     struct Prepared: Equatable {
         let data: Data
-        let colour: String
+        let color: String
     }
 
     /// Crops, downscales, and encodes. Returns nil if the image has no drawable
@@ -52,8 +52,8 @@ enum TransactionImageIngestion {
         guard let rendered = renderCroppedSquare(image, crop: crop.clamped),
               let cg = rendered.cgImage else { return nil }
         guard let data = encodeUnderCeiling(rendered) else { return nil }
-        let colour = ImageDominantColors.extract(from: cg).first ?? ""
-        return Prepared(data: data, colour: colour)
+        let color = ImageDominantColors.extract(from: cg).first ?? ""
+        return Prepared(data: data, color: color)
     }
 
     /// Draws the selected square region into a target no larger than

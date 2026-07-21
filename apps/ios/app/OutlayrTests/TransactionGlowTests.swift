@@ -3,7 +3,7 @@
 //  OutlayrTests
 //
 //  Pins the curtain-hue derivation: the two image dominants lead, the chosen
-//  colour closes — [dom1, dom2, chosen] — with sensible fallbacks when the image
+//  color closes — [dom1, dom2, chosen] — with sensible fallbacks when the image
 //  offers fewer than two hues.
 //
 

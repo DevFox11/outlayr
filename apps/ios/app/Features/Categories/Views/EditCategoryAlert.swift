@@ -18,7 +18,7 @@ struct EditCategoryAlert: View {
 
     @State private var name = ""
     @State private var symbol = CategorySymbolSelection()
-    @State private var selectedColour = "#FFFFFF"
+    @State private var selectedColor = "#FFFFFF"
     @State private var errorMessage: LocalizedStringKey?
     @State private var confirmingDelete = false
     @State private var choosingIcon = false
@@ -44,19 +44,19 @@ struct EditCategoryAlert: View {
         return "This can't be undone. All \(toEdit.wrappedName) transactions will be deleted too."
     }
 
-    private var usedColours: Set<String> {
-        Set(expenseCategories.filter { $0 != toEdit }.map(\.wrappedColour))
+    private var usedColors: Set<String> {
+        Set(expenseCategories.filter { $0 != toEdit }.map(\.wrappedColor))
     }
 
     var body: some View {
         NavigationStack {
             CategorySheetSurface(
                 symbol: $symbol,
-                selectedColour: $selectedColour,
+                selectedColor: $selectedColor,
                 choosingIcon: $choosingIcon,
                 income: toEdit.income,
-                showsColourRow: !toEdit.income && !toEdit.isSubcategory,
-                usedColours: usedColours,
+                showsColorRow: !toEdit.income && !toEdit.isSubcategory,
+                usedColors: usedColors,
                 onHeroTap: openPicker
             ) {
                 Form {
@@ -125,7 +125,7 @@ struct EditCategoryAlert: View {
                 // fallback would let an unrecognised icon from a newer version be
                 // silently overwritten with the fallback name on save.
                 symbol = CategorySymbolSelection(category: toEdit)
-                selectedColour = toEdit.wrappedColour
+                selectedColor = toEdit.wrappedColor
             }
         }
     }
@@ -165,7 +165,7 @@ struct EditCategoryAlert: View {
         toEdit.name = name.trimmingCharacters(in: .whitespaces).capitalized
         symbol.apply(to: toEdit)
         if !toEdit.income {
-            toEdit.colour = selectedColour
+            toEdit.color = selectedColor
         }
         dataController.save()
 

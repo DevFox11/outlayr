@@ -15,7 +15,7 @@ struct AnimatedHorizontalBarGraphBudget: View {
     var body: some View {
         HStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                .foregroundStyle(Color(hex: category.wrappedColour))
+                .foregroundStyle(Color(hex: category.wrappedColor))
                 .frame(width: showBar ? nil : 0, alignment: .leading)
 
             Spacer(minLength: 0)

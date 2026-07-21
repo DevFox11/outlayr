@@ -35,7 +35,7 @@ struct InsightsWidgetCategoryBreakdownView: View {
                     ForEach(Array(categories.prefix(3)), id: \.self) { category in
                         HStack(spacing: 7) {
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.colour))
+                                .fill(income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.color))
                                 .frame(width: 8, height: 8)
                             Text(category.name)
                                 .lineLimit(1)

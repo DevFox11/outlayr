@@ -12,7 +12,7 @@ import SwiftUI
 
 struct SettingsRow: View {
   var icon: String
-  var colour: Int
+  var color: Int
   var title: String
   var value: String?
 
@@ -20,7 +20,7 @@ struct SettingsRow: View {
     HStack(spacing: 12) {
       HugeiconsText(icon, font: HugeiconsSolidRounded.hugeiconsFont(size: 18), color: .white)
         .frame(width: 29, height: 29)
-        .background(Color("\(colour)"), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .background(Color("\(color)"), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
 
       Text(LocalizedStringKey(title))
         .foregroundStyle(Color.PrimaryText)

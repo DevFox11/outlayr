@@ -54,7 +54,7 @@ struct ParentSection: View {
     }
 
     private var accent: Color {
-        income ? Color.IncomeGreen : Color(hex: parent.wrappedColour)
+        income ? Color.IncomeGreen : Color(hex: parent.wrappedColor)
     }
 
     var body: some View {
@@ -173,7 +173,7 @@ struct ParentSection: View {
 
             child.parent = parent
             child.income = parent.income
-            child.colour = parent.wrappedColour
+            child.color = parent.wrappedColor
             child.order = next
             next += 1
             moved = true

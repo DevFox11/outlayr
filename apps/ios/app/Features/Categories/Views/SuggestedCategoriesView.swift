@@ -54,7 +54,7 @@ struct SuggestedCategoriesView: View {
         category.id = UUID()
         category.income = income
         category.order = (categories.last?.order ?? 0) + 1
-        category.colour = suggestion.colour
+        category.color = suggestion.color
 
         dataController.save()
     }
@@ -72,7 +72,7 @@ private struct SuggestedCategoryRow: View {
     var body: some View {
         Button(action: add) {
             HStack(spacing: 10) {
-                CategoryIconTile(icon: icon, colour: suggestion.colour)
+                CategoryIconTile(icon: icon, color: suggestion.color)
 
                 Text(LocalizedStringKey(suggestion.name))
                     .font(.system(.body, design: .rounded))

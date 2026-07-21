@@ -88,7 +88,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), symbol: budget.displaySymbol, name: budget.wrappedName, color: budget.wrappedColor, budgetAmount: budget.amount)
 
             let timeLeft: String
 

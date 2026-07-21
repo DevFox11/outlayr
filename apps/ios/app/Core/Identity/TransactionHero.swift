@@ -6,7 +6,7 @@
 //  a hairline ring; an emoji or icon keeps the 90pt rounded-20 tile with the
 //  0.22 tint wash from categories. The empty state borrows the app's ghost-tile
 //  dialect but circular and transaction-specific — a dashed ring, sparkles, a
-//  faint spinning spectrum ring hinting at the auto-colour detection, and a "+"
+//  faint spinning spectrum ring hinting at the auto-color detection, and a "+"
 //  badge inviting a logo.
 //
 
@@ -15,7 +15,7 @@ import UIKit
 
 struct TransactionHero: View {
     let selection: TransactionIdentitySelection
-    /// Effective colour for the emoji/icon wash and the filled ring.
+    /// Effective color for the emoji/icon wash and the filled ring.
     let tint: Color
     let income: Bool
     var showsReset: Bool = true
@@ -152,7 +152,7 @@ struct TransactionHero: View {
 }
 
 /// A faint conic spectrum ring that rotates slowly — the empty-state hint that
-/// dropping in a photo will detect its colour. Decorative only.
+/// dropping in a photo will detect its color. Decorative only.
 private struct SpectrumRing: View {
     @State private var spinning = false
 

@@ -80,7 +80,7 @@ struct CategoryStepperView: View {
                             .padding(.vertical, 7)
                             .fixedSize(horizontal: false, vertical: true)
 //                            .frame(height: 36)
-                            .foregroundStyle(categoryFilter == item ? Color(hex: item.wrappedColour) : Color.PrimaryText)
+                            .foregroundStyle(categoryFilter == item ? Color(hex: item.wrappedColor) : Color.PrimaryText)
                             .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay {
                                 if categoryFilter != item {
@@ -126,7 +126,7 @@ struct CategoryStepperView: View {
 
     func getBackground(category: Category) -> Color {
         if category == categoryFilter {
-            return Color(hex: category.wrappedColour).opacity(0.3)
+            return Color(hex: category.wrappedColor).opacity(0.3)
         } else {
             return Color.PrimaryBackground
         }

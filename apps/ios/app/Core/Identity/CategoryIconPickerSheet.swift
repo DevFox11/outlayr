@@ -12,10 +12,10 @@ import SwiftUI
 
 struct CategoryIconPickerSheet: View {
     @Binding var symbol: CategorySymbolSelection
-    @Binding var selectedColour: String
+    @Binding var selectedColor: String
     let tint: Color
-    let showsColourRow: Bool
-    let usedColours: Set<String>
+    let showsColorRow: Bool
+    let usedColors: Set<String>
 
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
@@ -54,8 +54,8 @@ struct CategoryIconPickerSheet: View {
                 searchField
             }
 
-            if showsColourRow {
-                ColourPickerView(selectedColour: $selectedColour, usedColours: usedColours)
+            if showsColorRow {
+                ColorPickerView(selectedColor: $selectedColor, usedColors: usedColors)
                     .padding(.bottom, 8)
             }
 

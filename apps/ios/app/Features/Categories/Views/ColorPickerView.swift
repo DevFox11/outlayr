@@ -1,63 +1,63 @@
 //
-//  ColourPickerView.swift
+//  ColorPickerView.swift
 //  Outlayr
 //
 
 import SwiftUI
 import UIKit
 
-/// The colour rail above the icon grid in the category picker panel: the palette
-/// as circles, then the system picker for a fully custom colour. Colours already
+/// The color rail above the icon grid in the category picker panel: the palette
+/// as circles, then the system picker for a fully custom color. Colors already
 /// used by other expense categories are dimmed and cannot be re-selected.
-struct ColourPickerView: View {
-    @Binding var selectedColour: String
-    let usedColours: Set<String>
+struct ColorPickerView: View {
+    @Binding var selectedColor: String
+    let usedColors: Set<String>
 
-    @State private var customColour: Color
+    @State private var customColor: Color
 
-    init(selectedColour: Binding<String>, usedColours: Set<String>) {
-        _selectedColour = selectedColour
-        self.usedColours = usedColours
-        _customColour = State(initialValue: Color(hex: selectedColour.wrappedValue))
+    init(selectedColor: Binding<String>, usedColors: Set<String>) {
+        _selectedColor = selectedColor
+        self.usedColors = usedColors
+        _customColor = State(initialValue: Color(hex: selectedColor.wrappedValue))
     }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(Color.colorArray, id: \.self) { hex in
-                    ColourSwatch(
+                    ColorSwatch(
                         hex: hex,
-                        isSelected: selectedColour == hex,
-                        isUsed: usedColours.contains(hex)
+                        isSelected: selectedColor == hex,
+                        isUsed: usedColors.contains(hex)
                     ) {
-                        guard selectedColour != hex else { return }
+                        guard selectedColor != hex else { return }
                         UISelectionFeedbackGenerator().selectionChanged()
-                        selectedColour = hex
-                        customColour = Color(hex: hex)
+                        selectedColor = hex
+                        customColor = Color(hex: hex)
                     }
                 }
 
                 // No selection haptic here: the system picker streams values while the
                 // user drags, which would fire a continuous buzz.
-                ColorPicker("", selection: $customColour)
+                ColorPicker("", selection: $customColor)
                     .labelsHidden()
                     .fixedSize()
-                    .onChange(of: customColour) { _, newValue in
+                    .onChange(of: customColor) { _, newValue in
                         if let hex = newValue.toHex() {
-                            selectedColour = hex
+                            selectedColor = hex
                         }
                     }
-                    .accessibilityLabel("Custom colour")
+                    .accessibilityLabel("Custom color")
             }
             // The selection ring stands off the circle; without this the first and
             // last rings clip against the scroll view's bounds.
             .padding(.horizontal, 20)
-            .padding(.vertical, ColourSwatch.ringInset)
+            .padding(.vertical, ColorSwatch.ringInset)
         }
     }
 }
 
-private struct ColourSwatch: View {
+private struct ColorSwatch: View {
     let hex: String
     let isSelected: Bool
     let isUsed: Bool

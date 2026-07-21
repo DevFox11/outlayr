@@ -141,12 +141,12 @@ struct TemplateTransactionView: View {
         }
     }
 
-    @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults) var colourScheme: Int = 0
+    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var selectedAppearance: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
 
     var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
+        (selectedAppearance == 0 && systemColorScheme == .dark) || selectedAppearance == 2
     }
 
     var backgroundColor: Color {

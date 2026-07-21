@@ -59,12 +59,12 @@ struct CategoryPickerSheet: View {
         }
     }
 
-    private func colour(for item: Category) -> Color {
-        item.income ? Color.IncomeGreen : Color(hex: item.wrappedColour)
+    private func color(for item: Category) -> Color {
+        item.income ? Color.IncomeGreen : Color(hex: item.wrappedColor)
     }
 
     private func parentCard(_ parent: Category) -> some View {
-        let accent = colour(for: parent)
+        let accent = color(for: parent)
         let isSelected = parent == category
 
         return VStack(alignment: .leading, spacing: 10) {
@@ -92,7 +92,7 @@ struct CategoryPickerSheet: View {
             if parent.hasChildren {
                 LazyVGrid(columns: chipColumns, alignment: .leading, spacing: 8) {
                     ForEach(parent.sortedChildren) { child in
-                        childChip(child, accent: colour(for: child))
+                        childChip(child, accent: color(for: child))
                     }
                 }
             }

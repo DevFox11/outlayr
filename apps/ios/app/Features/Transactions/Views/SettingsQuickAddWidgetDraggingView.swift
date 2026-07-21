@@ -54,7 +54,7 @@ struct SettingsQuickAddWidgetDraggingView: View {
                             if grid.id == gridData.currentGrid?.id && gridData.dragging {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 15)
-                                        .fill(blend(over: Color(hex: transaction.wrappedColour), withAlpha: 0.7))
+                                        .fill(blend(over: Color(hex: transaction.wrappedColor), withAlpha: 0.7))
 
                                     RoundedRectangle(cornerRadius: 15)
                                         .strokeBorder(Color.DarkIcon, lineWidth: 2)

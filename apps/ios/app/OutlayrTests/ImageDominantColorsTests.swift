@@ -13,7 +13,7 @@ import XCTest
 
 final class ImageDominantColorsTests: XCTestCase {
     /// Builds a `side`×`side` opaque image split into vertical bands of the given
-    /// RGB colours (0–255), left to right in equal widths.
+    /// RGB colors (0–255), left to right in equal widths.
     private func bandedImage(_ bands: [(Int, Int, Int)], side: Int = 48) -> CGImage {
         var pixels = [UInt8](repeating: 0, count: side * side * 4)
         for y in 0..<side {
@@ -47,17 +47,17 @@ final class ImageDominantColorsTests: XCTestCase {
     }
 
     func testSolidSaturatedImageYieldsThatHue() throws {
-        let colours = ImageDominantColors.extract(from: bandedImage([(220, 40, 40)]))
-        let first = try XCTUnwrap(colours.first)
+        let colors = ImageDominantColors.extract(from: bandedImage([(220, 40, 40)]))
+        let first = try XCTUnwrap(colors.first)
         // Red sits near 0°/360°; accept either end of the wrap.
         let h = hue(first)
         XCTAssertTrue(h < 20 || h > 340, "expected red hue, got \(h)° from \(first)")
     }
 
     func testTwoToneImageYieldsBothDominants() {
-        let colours = ImageDominantColors.extract(from: bandedImage([(220, 30, 30), (30, 60, 220)]))
-        XCTAssertEqual(colours.count, 2)
-        let hues = colours.map(hue).sorted()
+        let colors = ImageDominantColors.extract(from: bandedImage([(220, 30, 30), (30, 60, 220)]))
+        XCTAssertEqual(colors.count, 2)
+        let hues = colors.map(hue).sorted()
         // One red (~0/360), one blue (~240).
         XCTAssertTrue(hues.contains { $0 < 25 || $0 > 335 }, "no red hue in \(hues)")
         XCTAssertTrue(hues.contains { abs($0 - 240) < 40 }, "no blue hue in \(hues)")
@@ -75,7 +75,7 @@ final class ImageDominantColorsTests: XCTestCase {
 
     /// A uniform saturated fill has one exact weighted mean — pin the hex so the
     /// determinism claim is a value, not just intra-run equality.
-    func testSolidColourPinsExactHex() {
+    func testSolidColorPinsExactHex() {
         XCTAssertEqual(ImageDominantColors.extract(from: bandedImage([(200, 50, 90)])), ["#C8325A"])
     }
 
@@ -92,7 +92,7 @@ final class ImageDominantColorsTests: XCTestCase {
     func testSinglePixelSaturatedImageIsHandled() {
         // A 1×1 saturated source scales up to the 24×24 sample without crashing
         // and yields its own hue.
-        let colours = ImageDominantColors.extract(from: bandedImage([(0, 0, 255)], side: 1))
-        XCTAssertEqual(colours, ["#0000FF"])
+        let colors = ImageDominantColors.extract(from: bandedImage([(0, 0, 255)], side: 1))
+        XCTAssertEqual(colors, ["#0000FF"])
     }
 }

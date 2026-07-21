@@ -19,16 +19,16 @@ import SwiftUI
 /// with a plain deterministic offset+scale spring.
 struct CategorySheetSurface<FormContent: View>: View {
     @Binding var symbol: CategorySymbolSelection
-    @Binding var selectedColour: String
+    @Binding var selectedColor: String
     @Binding var choosingIcon: Bool
     let income: Bool
-    let showsColourRow: Bool
-    let usedColours: Set<String>
+    let showsColorRow: Bool
+    let usedColors: Set<String>
     let onHeroTap: () -> Void
     @ViewBuilder let form: FormContent
 
     private var tint: Color {
-        income ? Color.IncomeGreen : Color(hex: selectedColour)
+        income ? Color.IncomeGreen : Color(hex: selectedColor)
     }
 
     private var hasSymbol: Bool { !symbol.isEmpty }
@@ -68,10 +68,10 @@ struct CategorySheetSurface<FormContent: View>: View {
         .sheet(isPresented: $choosingIcon) {
             CategoryIconPickerSheet(
                 symbol: $symbol,
-                selectedColour: $selectedColour,
+                selectedColor: $selectedColor,
                 tint: tint,
-                showsColourRow: showsColourRow,
-                usedColours: usedColours
+                showsColorRow: showsColorRow,
+                usedColors: usedColors
             )
         }
     }
@@ -163,7 +163,7 @@ struct CategorySheetSurface<FormContent: View>: View {
                     y: CategoryIconTile.Size.large.tile / 2 - 6
                 )
 
-            Text("Choose an icon & colour")
+            Text("Choose an icon & color")
                 .font(.system(.footnote, design: .rounded, weight: .medium))
                 .foregroundStyle(Color.SubtitleText)
                 .fixedSize()
@@ -182,7 +182,7 @@ struct CategorySheetSurface<FormContent: View>: View {
     }
 
     /// Icons glow in the category tint alone; emoji blend their own dominant
-    /// hues at the core with the chosen category colour at the rim.
+    /// hues at the core with the chosen category color at the rim.
     private var glowColors: [Color] {
         if case let .emoji(emoji) = previewSymbol, hasSymbol {
             let derived = EmojiGlow.colors(for: emoji)
@@ -193,7 +193,7 @@ struct CategorySheetSurface<FormContent: View>: View {
 
     /// The Health-app treatment, measured from the real app: pastel accents
     /// (pre-mixed toward white) morphing horizontally across the top — the way
-    /// Health blends pinned sections' colours — dissolving by 260pt, before the
+    /// Health blends pinned sections' colors — dissolving by 260pt, before the
     /// first card. Rendered by the shared `IdentityCurtain` so the category and
     /// (forthcoming) transaction sheets can never drift apart.
     private var backgroundLayer: some View {

@@ -91,7 +91,7 @@ struct BudgetCategoryPickerSheet: View {
     }
 
     private func tile(_ category: Category) -> some View {
-        let colour = Color(hex: category.wrappedColour)
+        let color = Color(hex: category.wrappedColor)
         let selected = selectedCategory == category
 
         return Button {
@@ -100,7 +100,7 @@ struct BudgetCategoryPickerSheet: View {
         } label: {
             HStack(spacing: 7) {
                 CategoryIconGlyph(symbol: category.displaySymbol)
-                    .foregroundStyle(colour)
+                    .foregroundStyle(color)
                 Text(category.wrappedName)
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .lineLimit(1)
@@ -113,12 +113,12 @@ struct BudgetCategoryPickerSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
-            .foregroundStyle(colour)
-            .background(colour.opacity(0.3), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .foregroundStyle(color)
+            .background(color.opacity(0.3), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             .overlay {
                 if selected {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .strokeBorder(colour, lineWidth: 2)
+                        .strokeBorder(color, lineWidth: 2)
                 }
             }
         }

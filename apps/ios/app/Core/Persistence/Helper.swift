@@ -37,8 +37,8 @@ extension Transaction {
         category?.wrappedName ?? ""
     }
 
-    var wrappedColour: String {
-        category?.wrappedColour ?? ""
+    var wrappedColor: String {
+        category?.wrappedColor ?? ""
     }
 
     /// ISO 4217 code stored on the transaction, or nil to mean "whatever the
@@ -52,12 +52,12 @@ extension Transaction {
         return normalised
     }
 
-    /// Colour the transaction should render in: an explicit user override wins,
-    /// then the colour auto-detected from its image, then the category's colour.
-    var effectiveColour: String {
-        if let customColour, !customColour.isEmpty { return customColour }
-        if let imageColour, !imageColour.isEmpty { return imageColour }
-        return wrappedColour
+    /// Color the transaction should render in: an explicit user override wins,
+    /// then the color auto-detected from its image, then the category's color.
+    var effectiveColor: String {
+        if let customColor, !customColor.isEmpty { return customColor }
+        if let imageColor, !imageColor.isEmpty { return imageColor }
+        return wrappedColor
     }
 
     /// The transaction's own symbol, or nil when it has none and should inherit
@@ -119,14 +119,14 @@ extension TemplateTransaction {
         category?.displaySymbol ?? .icon(CategoryIconCatalog.fallback(income: category?.income ?? false))
     }
 
-    var wrappedColour: String {
-        category?.wrappedColour ?? ""
+    var wrappedColor: String {
+        category?.wrappedColor ?? ""
     }
 }
 
 extension Category {
-    var wrappedColour: String {
-        colour ?? "#FFFFFF"
+    var wrappedColor: String {
+        color ?? "#FFFFFF"
     }
 
     var wrappedIcon: CategoryIcon {
@@ -189,8 +189,8 @@ extension Category {
 }
 
 public extension Budget {
-    var wrappedColour: String {
-        category?.wrappedColour ?? "#FFFFFF"
+    var wrappedColor: String {
+        category?.wrappedColor ?? "#FFFFFF"
     }
 
     var wrappedName: String {

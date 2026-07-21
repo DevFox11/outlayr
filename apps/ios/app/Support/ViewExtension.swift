@@ -49,7 +49,7 @@ extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
 }
 
 class Utilities {
-    @AppStorage("colourScheme") var selectedAppearance = 0
+    @AppStorage("colorScheme") var selectedAppearance = 0
     var userInterfaceStyle: ColorScheme? = .dark
 
     func overrideDisplayMode() {

@@ -133,7 +133,7 @@ struct InsightsProvider: IntentTimelineProvider {
                     continue
                 }
 
-                let newCategory = HoldingCategory(colour: category.wrappedColour, name: category.wrappedName, percent: total / totalForWeek)
+                let newCategory = HoldingCategory(color: category.wrappedColor, name: category.wrappedName, percent: total / totalForWeek)
 
                 holdingCat.append(newCategory)
             }
@@ -203,7 +203,7 @@ struct InsightsProvider: IntentTimelineProvider {
                     continue
                 }
 
-                let newCategory = HoldingCategory(colour: category.wrappedColour, name: category.wrappedName, percent: total / totalForMonth)
+                let newCategory = HoldingCategory(color: category.wrappedColor, name: category.wrappedName, percent: total / totalForMonth)
 
                 holdingCat.append(newCategory)
             }
@@ -273,7 +273,7 @@ struct InsightsProvider: IntentTimelineProvider {
                     continue
                 }
 
-                let newCategory = HoldingCategory(colour: category.wrappedColour, name: category.wrappedName, percent: total / totalForYear)
+                let newCategory = HoldingCategory(color: category.wrappedColor, name: category.wrappedName, percent: total / totalForYear)
 
                 holdingCat.append(newCategory)
             }

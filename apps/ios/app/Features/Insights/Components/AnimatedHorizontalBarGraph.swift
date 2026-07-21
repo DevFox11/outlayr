@@ -16,7 +16,7 @@ struct AnimatedHorizontalBarGraph: View {
     var body: some View {
         HStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(category.category.income ? Color(hex: Color.colorArray[index]) : Color(hex: category.category.wrappedColour))
+                .fill(category.category.income ? Color(hex: Color.colorArray[index]) : Color(hex: category.category.wrappedColor))
                 .frame(width: showBar ? nil : 0, alignment: .leading)
 
             Spacer(minLength: 0)

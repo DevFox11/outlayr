@@ -27,7 +27,7 @@ struct NewCategoryAlert: View {
 
     @State private var name = ""
     @State private var symbol = CategorySymbolSelection()
-    @State private var selectedColour = "#FFFFFF"
+    @State private var selectedColor = "#FFFFFF"
     @State private var errorMessage: LocalizedStringKey?
     @State private var justAdded = false
     @State private var flashTask: Task<Void, Never>?
@@ -45,16 +45,16 @@ struct NewCategoryAlert: View {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !symbol.isEmpty
     }
 
-    private var usedColours: Set<String> {
-        Set(expenseCategories.map(\.wrappedColour))
+    private var usedColors: Set<String> {
+        Set(expenseCategories.map(\.wrappedColor))
     }
 
-    private var colourCaption: Text? {
+    private var colorCaption: Text? {
         if let parent {
-            return Text("Inherits \(parent.wrappedName)'s colour.")
+            return Text("Inherits \(parent.wrappedName)'s color.")
         }
         if income {
-            return Text("Income categories use the income colour.")
+            return Text("Income categories use the income color.")
         }
         return nil
     }
@@ -70,11 +70,11 @@ struct NewCategoryAlert: View {
         NavigationStack {
             CategorySheetSurface(
                 symbol: $symbol,
-                selectedColour: $selectedColour,
+                selectedColor: $selectedColor,
                 choosingIcon: $choosingIcon,
                 income: income,
-                showsColourRow: !income && !isSubcategory,
-                usedColours: usedColours,
+                showsColorRow: !income && !isSubcategory,
+                usedColors: usedColors,
                 onHeroTap: openPicker
             ) {
                 Form {
@@ -82,7 +82,7 @@ struct NewCategoryAlert: View {
                         name: $name,
                         typeSelection: typePickerHidden ? nil : $income,
                         placeholder: namePlaceholder,
-                        caption: colourCaption,
+                        caption: colorCaption,
                         focusedField: $focusedField
                     ) {
                         add()
@@ -124,10 +124,10 @@ struct NewCategoryAlert: View {
             .onAppear {
                 if let parent {
                     income = parent.income
-                    selectedColour = parent.wrappedColour
+                    selectedColor = parent.wrappedColor
                 } else {
                     if atExpenseLimit { income = true }
-                    selectedColour = firstAvailableColour()
+                    selectedColor = firstAvailableColor()
                 }
             }
             .onChange(of: expenseCategories.count) { _, count in
@@ -168,8 +168,8 @@ struct NewCategoryAlert: View {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
     }
 
-    private func firstAvailableColour() -> String {
-        let used = usedColours
+    private func firstAvailableColor() -> String {
+        let used = usedColors
         return Color.colorArray.first { !used.contains($0) } ?? "#FFFFFF"
     }
 
@@ -200,10 +200,10 @@ struct NewCategoryAlert: View {
         category.parent = parent
         if let parent {
             category.order = (parent.sortedChildren.last?.order ?? -1) + 1
-            category.colour = income ? "IncomeGreen" : parent.wrappedColour
+            category.color = income ? "IncomeGreen" : parent.wrappedColor
         } else {
             category.order = result.order
-            category.colour = income ? "IncomeGreen" : selectedColour
+            category.color = income ? "IncomeGreen" : selectedColor
         }
         dataController.save()
 
@@ -216,7 +216,7 @@ struct NewCategoryAlert: View {
 
         name = ""
         symbol = CategorySymbolSelection()
-        selectedColour = firstAvailableColour()
+        selectedColor = firstAvailableColor()
         flashAddedConfirmation()
     }
 

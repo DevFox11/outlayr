@@ -56,7 +56,7 @@ struct NewCategoryPickerView: View {
         CategoryChip(
             symbol: item.displaySymbol,
             name: item.wrappedName,
-            colourHex: item.wrappedColour,
+            colorHex: item.wrappedColor,
             isChild: isChild,
             isSelected: item == category,
             isDimmed: category != nil && category != item

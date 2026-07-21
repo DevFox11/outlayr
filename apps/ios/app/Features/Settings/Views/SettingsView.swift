@@ -10,8 +10,8 @@ import SwiftUI
 import WidgetKit
 
 struct SettingsView: View {
-  @AppStorage("colourScheme", store: AppIdentifiers.sharedDefaults)
-  var colourScheme: Int = 0
+  @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults)
+  var colorScheme: Int = 0
 
   @AppStorage("activeIcon", store: AppIdentifiers.sharedDefaults)
   var activeIcon: String = "AppIcon"
@@ -129,13 +129,13 @@ struct SettingsView: View {
         Section {
           NavigationLink(destination: SettingsNotificationsView()) {
             SettingsRow(
-              icon: "notification-03", colour: 102, title: "Notifications",
+              icon: "notification-03", color: 102, title: "Notifications",
               value: notificationString)
           }
 
           NavigationLink(destination: SettingsCurrencyView()) {
             SettingsRow(
-              icon: "dollar-circle", colour: 103, title: "Currency",
+              icon: "dollar-circle", color: 103, title: "Currency",
               value: currency)
           }
 
@@ -153,16 +153,16 @@ struct SettingsView: View {
               }
           ) {
             SettingsRow(
-              icon: "keyboard", colour: 104, title: "Number Entry",
+              icon: "keyboard", color: 104, title: "Number Entry",
               value: numberEntryString)
           }
 
           Toggle(isOn: authenticationBinding) {
-            SettingsRow(icon: "biometric-access", colour: 105, title: "Authentication")
+            SettingsRow(icon: "biometric-access", color: 105, title: "Authentication")
           }
 
           Toggle(isOn: $incomeTracking) {
-            SettingsRow(icon: "money-receive-01", colour: 106, title: "Income Tracking")
+            SettingsRow(icon: "money-receive-01", color: 106, title: "Income Tracking")
           }
           .onChange(of: incomeTracking) { _, newValue in
             if !newValue {
@@ -172,43 +172,43 @@ struct SettingsView: View {
           }
 
           NavigationLink(destination: SettingsWeekStartView()) {
-            SettingsRow(icon: "calendar-01", colour: 109, title: "Time Frames")
+            SettingsRow(icon: "calendar-01", color: 109, title: "Time Frames")
           }
         }
 
         Section {
-          Picker(selection: $colourScheme) {
+          Picker(selection: $colorScheme) {
             Text("System").tag(0)
             Text("Light").tag(1)
             Text("Dark").tag(2)
           } label: {
-            SettingsRow(icon: "dark-mode", colour: 100, title: "Theme")
+            SettingsRow(icon: "dark-mode", color: 100, title: "Theme")
           }
           .pickerStyle(.menu)
           .tint(.secondary)
 
           NavigationLink(destination: SettingsAppIconView()) {
             SettingsRow(
-              icon: "mobile-programming-01", colour: 101, title: "App Icon",
+              icon: "mobile-programming-01", color: 101, title: "App Icon",
               value: appIconString)
           }
 
           Toggle(isOn: $showCents) {
-            SettingsRow(icon: "coins-01", colour: 107, title: "Display Cents")
+            SettingsRow(icon: "coins-01", color: 107, title: "Display Cents")
           }
 
           NavigationLink(destination: SettingsUpcomingView()) {
             SettingsRow(
-              icon: "sunrise", colour: 108, title: "Upcoming Logs",
+              icon: "sunrise", color: 108, title: "Upcoming Logs",
               value: upcomingString)
           }
 
           Toggle(isOn: $showExpenseOrIncomeSign) {
-            SettingsRow(icon: "plus-minus", colour: 123, title: "Display +/- Symbol")
+            SettingsRow(icon: "plus-minus", color: 123, title: "Display +/- Symbol")
           }
 
           Toggle(isOn: $animated) {
-            SettingsRow(icon: "analytics-01", colour: 121, title: "Animated Charts")
+            SettingsRow(icon: "analytics-01", color: 121, title: "Animated Charts")
           }
         }
 
@@ -226,29 +226,29 @@ struct SettingsView: View {
                 }
               }
           ) {
-            SettingsRow(icon: "dashboard-square-01", colour: 110, title: "Categories")
+            SettingsRow(icon: "dashboard-square-01", color: 110, title: "Categories")
           }
 
           NavigationLink(destination: SettingsCloudView()) {
             SettingsRow(
-              icon: "cloud", colour: 111, title: "iCloud Sync",
+              icon: "cloud", color: 111, title: "iCloud Sync",
               value: iCloudString)
           }
 
           Button {
             showImportGuide = true
           } label: {
-            SettingsRow(icon: "file-import", colour: 112, title: "Import Data")
+            SettingsRow(icon: "file-import", color: 112, title: "Import Data")
           }
 
           Button {
             exportData()
           } label: {
-            SettingsRow(icon: "file-export", colour: 113, title: "Export Data")
+            SettingsRow(icon: "file-export", color: 113, title: "Export Data")
           }
 
           NavigationLink(destination: SettingsEraseView()) {
-            SettingsRow(icon: "delete-02", colour: 114, title: "Erase Data")
+            SettingsRow(icon: "delete-02", color: 114, title: "Erase Data")
           }
         }
 
@@ -258,7 +258,7 @@ struct SettingsView: View {
             Text("Subtle").tag(1)
             Text("Excessive").tag(2)
           } label: {
-            SettingsRow(icon: "tap-01", colour: 100, title: "Haptics")
+            SettingsRow(icon: "tap-01", color: 100, title: "Haptics")
           }
           .pickerStyle(.menu)
           .tint(.secondary)
@@ -271,19 +271,19 @@ struct SettingsView: View {
           }
 
           NavigationLink(destination: SettingsGoofyView()) {
-            SettingsRow(icon: "test-tube", colour: 122, title: "Feature Lab")
+            SettingsRow(icon: "test-tube", color: 122, title: "Feature Lab")
           }
 
           Button {
             supportEmail.send(openURL: openURL)
           } label: {
-            SettingsRow(icon: "bug-01", colour: 124, title: "Report Bug")
+            SettingsRow(icon: "bug-01", color: 124, title: "Report Bug")
           }
 
           Button {
             featureRequestEmail.send(openURL: openURL)
           } label: {
-            SettingsRow(icon: "idea-01", colour: 125, title: "Feature Request")
+            SettingsRow(icon: "idea-01", color: 125, title: "Feature Request")
           }
 
           Button {
@@ -292,13 +292,13 @@ struct SettingsView: View {
             else { fatalError("Expected a valid URL") }
             UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
           } label: {
-            SettingsRow(icon: "star", colour: 126, title: "Rate on App Store")
+            SettingsRow(icon: "star", color: 126, title: "Rate on App Store")
           }
 
           Button {
             shareSheet(url: "https://tryoutlayr.com")
           } label: {
-            SettingsRow(icon: "share-08", colour: 127, title: "Share with Friends")
+            SettingsRow(icon: "share-08", color: 127, title: "Share with Friends")
           }
 
           Button {
@@ -306,11 +306,11 @@ struct SettingsView: View {
               UIApplication.shared.open(url)
             }
           } label: {
-            SettingsRow(icon: "new-twitter", colour: 128, title: "Follow Outlayr on X")
+            SettingsRow(icon: "new-twitter", color: 128, title: "Follow Outlayr on X")
           }
 
           NavigationLink(destination: SettingsAboutView()) {
-            SettingsRow(icon: "information-circle", colour: 130, title: "About & Credits")
+            SettingsRow(icon: "information-circle", color: 130, title: "About & Credits")
           }
         } footer: {
           Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")

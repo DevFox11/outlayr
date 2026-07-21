@@ -33,7 +33,7 @@ struct ReorderCategoriesSheet: View {
                     HStack(spacing: 12) {
                         CategoryIconTile(
                             symbol: parent.displaySymbol,
-                            tint: income ? Color.IncomeGreen : Color(hex: parent.wrappedColour)
+                            tint: income ? Color.IncomeGreen : Color(hex: parent.wrappedColor)
                         )
                         Text(parent.wrappedName)
                             .font(.system(.body, design: .rounded, weight: .medium))

@@ -13,7 +13,7 @@ import XCTest
 @testable import Outlayr
 
 final class TransactionImageIngestionTests: XCTestCase {
-    /// A `w`×`h` opaque image of high-frequency colour noise — the worst case
+    /// A `w`×`h` opaque image of high-frequency color noise — the worst case
     /// for JPEG, so the byte ceiling is exercised honestly. Deterministic.
     private func noisyImage(width: Int, height: Int) -> UIImage {
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
@@ -64,11 +64,11 @@ final class TransactionImageIngestionTests: XCTestCase {
         XCTAssertEqual(crop.offsetY, -0.3, accuracy: 0.0001)
     }
 
-    func testPreparedColourIsAHexOrEmpty() throws {
+    func testPreparedColorIsAHexOrEmpty() throws {
         let prepared = try XCTUnwrap(TransactionImageIngestion.prepare(noisyImage(width: 300, height: 300)))
-        if !prepared.colour.isEmpty {
-            XCTAssertTrue(prepared.colour.hasPrefix("#"))
-            XCTAssertEqual(prepared.colour.count, 7)
+        if !prepared.color.isEmpty {
+            XCTAssertTrue(prepared.color.hasPrefix("#"))
+            XCTAssertEqual(prepared.color.count, 7)
         }
     }
 

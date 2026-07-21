@@ -84,7 +84,7 @@ struct TransactionCategorySheet: View {
         onToggle: @escaping () -> Void
     ) -> some View {
         let isSelected = item == category
-        let tint = item.income ? Color.IncomeGreen : Color(hex: item.wrappedColour)
+        let tint = item.income ? Color.IncomeGreen : Color(hex: item.wrappedColor)
 
         return HStack(spacing: 12) {
             Button(action: onSelect) {
