@@ -183,7 +183,11 @@ struct TransactionIdentityPickerSheet: View {
                             .foregroundStyle(Color.SubtitleText)
                     }
                     Spacer()
-                    AutoColourSwatch(colour: autoColour, dimmed: !isAuto || autoColour.isEmpty)
+                    // The system colour well doubles as the override picker — the
+                    // photo tab needs no palette rail on top of it.
+                    ColorPicker("", selection: overrideWellBinding, supportsOpacity: false)
+                        .labelsHidden()
+                        .disabled(sourceImage == nil)
                 }
                 .padding(.horizontal, 15)
                 .padding(.vertical, 13)
@@ -191,9 +195,14 @@ struct TransactionIdentityPickerSheet: View {
             }
             .buttonStyle(.plain)
             .disabled(sourceImage == nil)
-
-            ColourPickerView(selectedColour: customColourBinding, usedColours: [])
         }
+    }
+
+    private var overrideWellBinding: Binding<Color> {
+        Binding(
+            get: { Color(hex: selection.customColour ?? autoColour) },
+            set: { if let hex = $0.toHex() { selection.overrideColour(hex) } }
+        )
     }
 
     /// Selecting a swatch or the wheel overrides the auto colour; the binding
@@ -242,27 +251,37 @@ struct TransactionIdentityPickerSheet: View {
     // MARK: - Emoji / Icons
 
     private var emojiPanel: some View {
-        IdentityEmojiBrowser(
-            selection: currentEmoji,
-            tint: tint,
-            headerBackground: Color(.systemGroupedBackground),
-            onSelect: { selection.selectEmoji($0) },
-            onRequestKeyboard: { emojiKeyboardFocused = true }
-        )
+        VStack(spacing: 10) {
+            ColourPickerView(selectedColour: customColourBinding, usedColours: [])
+                .padding(.horizontal, 20)
+
+            IdentityEmojiBrowser(
+                selection: currentEmoji,
+                tint: tint,
+                headerBackground: Color(.systemGroupedBackground),
+                onSelect: { selection.selectEmoji($0) },
+                onRequestKeyboard: { emojiKeyboardFocused = true }
+            )
+        }
     }
 
     private var iconPanel: some View {
-        CategoryIconBrowser(
-            selection: Binding(
-                get: { currentIcon },
-                // The browser only ever emits catalog names, so resolution can't
-                // fail here; discard the result explicitly rather than hide it.
-                set: { _ = selection.selectIcon($0) }
-            ),
-            tint: tint,
-            query: query,
-            headerBackground: Color(.systemGroupedBackground)
-        )
+        VStack(spacing: 10) {
+            ColourPickerView(selectedColour: customColourBinding, usedColours: [])
+                .padding(.horizontal, 20)
+
+            CategoryIconBrowser(
+                selection: Binding(
+                    get: { currentIcon },
+                    // The browser only ever emits catalog names, so resolution can't
+                    // fail here; discard the result explicitly rather than hide it.
+                    set: { _ = selection.selectIcon($0) }
+                ),
+                tint: tint,
+                query: query,
+                headerBackground: Color(.systemGroupedBackground)
+            )
+        }
     }
 
     private var currentEmoji: String {
@@ -391,25 +410,6 @@ struct TransactionIdentityPickerSheet: View {
             selection.selectPhoto(imageData: prepared.data, imageColour: primary)
             if let saved { selection.overrideColour(saved) }
         }
-    }
-}
-
-/// The auto-detected primary as a swatch inside a conic spectrum ring — the same
-/// hint the empty hero carries, shrunk to the colour row.
-private struct AutoColourSwatch: View {
-    let colour: String
-    let dimmed: Bool
-
-    var body: some View {
-        Circle()
-            .fill(colour.isEmpty ? Color.SubtitleText.opacity(0.3) : Color(hex: colour))
-            .frame(width: 30, height: 30)
-            .overlay {
-                Circle()
-                    .strokeBorder(AngularGradient(colors: SpectrumHint.colors, center: .center), lineWidth: 2.5)
-                    .padding(-4)
-                    .opacity(dimmed ? 0.25 : 1)
-            }
     }
 }
 
