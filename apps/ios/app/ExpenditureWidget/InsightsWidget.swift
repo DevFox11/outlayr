@@ -40,9 +40,30 @@ struct InsightsWidgetConfiguration: WidgetConfigurationIntent, CustomIntentMigra
     var income: IncomeAppEnum
 }
 
-// Raw values mirror the INEnumValueIndex values in
-// WidgetConfiguration.intentdefinition so migrated configurations resolve to
-// the same case the user originally picked.
+enum InsightsTimePeriod: Int {
+    case unknown = 0
+    case week = 1
+    case month = 2
+    case year = 3
+}
+
+enum TimePeriod: Int {
+    case unknown = 0
+    case day = 1
+    case week = 2
+    case month = 3
+    case year = 4
+}
+
+enum InsightsType: Int {
+    case unknown = 0
+    case net = 1
+    case income = 2
+    case expense = 3
+}
+
+// Raw values mirror the original SiriKit INEnumValueIndex values so migrated
+// configurations resolve to the same case the user originally picked.
 enum InsightsTimePeriodAppEnum: Int, AppEnum {
     case week = 1
     case month = 2

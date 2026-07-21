@@ -56,9 +56,8 @@ struct RecentWidgetConfiguration: WidgetConfigurationIntent, CustomIntentMigrate
     var insightsType: InsightsTypeAppEnum
 }
 
-// Raw values mirror the INEnumValueIndex values in
-// WidgetConfiguration.intentdefinition so migrated configurations resolve to
-// the same case the user originally picked.
+// Raw values mirror the original SiriKit INEnumValueIndex values so migrated
+// configurations resolve to the same case the user originally picked.
 enum TimePeriodAppEnum: Int, AppEnum {
     case day = 1
     case week = 2
