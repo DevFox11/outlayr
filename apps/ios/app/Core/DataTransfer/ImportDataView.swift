@@ -13,19 +13,19 @@ import UniformTypeIdentifiers
 
 struct ImportDataView: View {
     @Environment(\.dismiss) var dismiss
-    @Environment(DataController.self) private var dataController
+    @Environment(DataController.self) var dataController
 
     @State private var exportSample = false
     @State private var importing = false
 
-    @State private var data = ""
-    @State private var rows = [[String]]()
-    @State private var numberOfRows: Int = 0
-    @State private var displayedColumns = [[String]]()
-    @State private var columns = [[String]]()
+    @State var data = ""
+    @State var rows = [[String]]()
+    @State var numberOfRows: Int = 0
+    @State var displayedColumns = [[String]]()
+    @State var columns = [[String]]()
 
-    @State private var remainingColumns = [Int]()
-    @State private var selectedColumns = [Int]()
+    @State var remainingColumns = [Int]()
+    @State var selectedColumns = [Int]()
 
     var indexColumnWidth: CGFloat {
         let additionalPadding: Double
@@ -793,163 +793,4 @@ struct ImportDataView: View {
         .confettiCannon(counter: $confettiNumber, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
     }
 
-    func validateDoubles(strings: [String]) -> Bool {
-        for string in strings {
-            if let _ = Double(string) {
-                // Valid double
-            } else {
-                return false // Invalid double found
-            }
-        }
-        return true // All strings are valid doubles
-    }
-
-    func processCSV() {
-        guard data.containsDigits else {
-            showToast = true
-            toastMessage = "Invalid File"
-            return
-        }
-
-        var holdingRows = data.components(separatedBy: .newlines).filter { $0 != "" }
-
-        if !holdingRows[0].containsDigits {
-            holdingRows.removeFirst()
-        }
-
-        guard !holdingRows.isEmpty else {
-            showToast = true
-            toastMessage = "Invalid File"
-            return
-        }
-
-        let values = holdingRows.map { $0.components(separatedBy: ",") }.filter { !$0.isEmpty }
-
-        rows = values
-
-        // Transpose rows to columns
-        let maxColumnCount = values.map { $0.count }.max() ?? 0
-//
-        guard maxColumnCount > 3 else {
-            showToast = true
-            toastMessage = "Invalid File"
-            return
-        }
-
-        var holdingColumns: [[String]] = Array(repeating: [], count: maxColumnCount)
-
-        for row in values {
-            for (index, value) in row.enumerated() {
-                holdingColumns[index].append(value)
-            }
-        }
-
-        columns = holdingColumns
-
-        displayedColumns = holdingColumns.map { $0.prefix(8).map { $0 } }
-
-        numberOfRows = displayedColumns[0].count
-
-        remainingColumns = Array(0 ..< maxColumnCount)
-
-        withAnimation {
-            progress += 1
-        }
-    }
-
-    func importData() {
-        let categoryColumnIndex = selectedColumns[0]
-        let noteColumnIndex = selectedColumns[1]
-        let dateColumnIndex = selectedColumns[2]
-        let amountColumnIndex = selectedColumns[3]
-
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = dateFormatString
-
-        let categoryDictionary: [String: Category] = Dictionary(uniqueKeysWithValues: uniqueCategories.map { ($0.excelValue, $0.category!) })
-
-        rows.forEach { row in
-//            let rowCategory = categoryDictionary[row[categoryColumnIndex]]
-            if let transactionDate = dateFormatter.date(from: row[dateColumnIndex]) {
-                if let rowCategory = categoryDictionary[row[categoryColumnIndex]] {
-                    if let transactionAmount = Double(row[amountColumnIndex]) {
-                        _ = dataController.transactions.newTransaction(note: row[noteColumnIndex], category: rowCategory, income: rowCategory.income, amount: abs(transactionAmount), date: transactionDate, repeatType: 0, repeatCoefficient: 1, delay: false)
-                    } else {
-                        processingState = .error
-                        errorMessage = "Invalid values in amount column."
-                        return
-                    }
-                } else {
-                    processingState = .error
-                    errorMessage = "Error occurred while matching categories."
-                    return
-                }
-            } else {
-                processingState = .error
-                errorMessage = "Invalid dates in date column."
-                return
-            }
-        }
-
-        try? dataController.save()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation {
-                processingState = .success
-                confettiNumber += 1
-            }
-        }
-    }
-
-    func deduceDateFormat(from dateString: String) -> String? {
-        let dateFormats = ["yyyy-MM-dd", "dd-MM-yyyy", "MM-dd-yyyy",
-                           "yyyy/MM/dd", "dd/MM/yyyy", "MM/dd/yyyy",
-                           "yyyyMMdd", "ddMMyyyy", "MMddyyyy", "yyyy-MM-dd HH:mm:ss Z",
-                           "dd/MM/yyyy HH:mm:ss"]
-
-        let dateFormatter = DateFormatter()
-
-        for dateFormat in dateFormats {
-            dateFormatter.dateFormat = dateFormat
-            if let _ = dateFormatter.date(from: dateString) {
-                return dateFormat
-            }
-        }
-
-        return nil
-    }
-
-    func makeAttributedString() -> AttributedString {
-        var string = AttributedString("this article")
-        string.foregroundColor = Color.PrimaryText
-        string.link = URL(string: "https://pro.arcgis.com/en/pro-app/latest/help/mapping/time/convert-string-or-numeric-time-values-into-data-format.htm")
-        string.underlineColor = UIColor(Color.PrimaryText)
-        string.underlineStyle = .single
-
-        return string
-    }
-
-    @ViewBuilder
-    func PointerView(number: Int, text: String) -> some View {
-        HStack(alignment: .top, spacing: 15) {
-            ZStack {
-                Circle()
-                    .fill(Color.SecondaryBackground)
-
-                Text("\(number)")
-                    .font(.system(.body, design: .rounded).weight(.bold))
-
-//                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.SubtitleText)
-            }
-            .frame(width: 25, height: 25)
-
-            Text(text)
-                .font(.system(.body, design: .rounded).weight(.medium))
-
-//                .font(.system(size: 17, weight: .medium, design: .rounded))
-                .foregroundStyle(Color.PrimaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
 }
