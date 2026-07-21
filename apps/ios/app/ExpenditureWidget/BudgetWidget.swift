@@ -5,41 +5,8 @@
 //  Created by Rafael Soh on 17/8/22.
 //
 
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
 import WidgetKit
-
-/// Placeholder rendered by every widget when the shared Core Data store failed to
-/// open (broken app group). Shows an explicit error instead of letting a widget
-/// masquerade as working-but-empty. Defined here (a file shared by the app and the
-/// widget-extension targets) so `guardedByDataStore()` is visible in both.
-struct WidgetDataStoreUnavailableView: View {
-    var body: some View {
-        Text("Storage unavailable")
-            .font(.system(size: 12, weight: .medium, design: .rounded))
-            .multilineTextAlignment(.center)
-            .foregroundColor(Color.SubtitleText)
-            .padding(8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .containerBackground(for: .widget) {
-                Color.PrimaryBackground
-            }
-    }
-}
-
-extension View {
-    /// Refuses to render real widget content when the shared store is unavailable,
-    /// showing `WidgetDataStoreUnavailableView` instead of stale/empty data.
-    @ViewBuilder
-    func guardedByDataStore() -> some View {
-        if DataController.storeIsAvailable {
-            self
-        } else {
-            WidgetDataStoreUnavailableView()
-        }
-    }
-}
 
 struct BudgetWidget: Widget {
     let kind: String = "BudgetWidget"
@@ -142,52 +109,6 @@ struct BudgetWidgetEntry: TimelineEntry {
     let percentageOfDays: Double
     let budget: HoldingBudget
     let configuration: BudgetWidgetConfigurationIntent
-}
-
-/// Renders a budget's category symbol at widget scale: a Hugeicons glyph in
-/// the given colour, or the emoji itself (emoji carry their own colours; on
-/// lock-screen rendering modes the system desaturates them, as it does for
-/// every widget image).
-struct WidgetSymbolGlyph: View {
-    let symbol: CategorySymbol
-    let size: CGFloat
-    var color: Color?
-
-    var body: some View {
-        switch symbol {
-        case let .icon(icon):
-            if let color {
-                HugeIcon(
-                    codepoint: icon.codepoint,
-                    font: HugeiconsSolidRounded.font(size: size),
-                    color: color
-                )
-            } else {
-                HugeIcon(
-                    codepoint: icon.codepoint,
-                    font: HugeiconsSolidRounded.font(size: size)
-                )
-            }
-        case let .emoji(emoji):
-            Text(emoji)
-                .font(.system(size: size))
-        }
-    }
-}
-
-struct HoldingBudget {
-    let type: Int
-    let symbol: CategorySymbol
-    let name: String
-    let colour: String
-    let budgetAmount: Double
-    var missing: Bool = false
-
-    /// Stands in when the configured budget no longer exists.
-    static let failed = HoldingBudget(
-        type: 1, symbol: .icon(CategoryIconCatalog.fallback(income: false)),
-        name: "", colour: "", budgetAmount: 0, missing: true
-    )
 }
 
 struct BudgetWidgetEntryView: View {
@@ -347,34 +268,5 @@ struct BudgetWidgetEntryView: View {
                 }
                 .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget?budget=\(entry.budget.name)"))
         }
-    }
-}
-
-struct WidgetBudgetDollarView: View {
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
-
-    var amount: Double
-    var red: Bool
-
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
-    var currencySymbol: String {
-        return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
-    }
-
-    var body: some View {
-        HStack(alignment: .lastTextBaseline, spacing: 1.3) {
-            Group {
-                Text(currencySymbol)
-                    .font(.system(.subheadline, design: .rounded).weight(.medium))
-                    .foregroundColor(red ? Color("BudgetRed") : Color.SubtitleText) +
-
-                Text("\(amount, specifier: showCents && amount < 100  ? "%.2f" : "%.0f")")
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(red ? Color("BudgetRed") : Color.PrimaryText)
-            }
-
-        }
-        .minimumScaleFactor(0.5)
-        .lineLimit(1)
     }
 }

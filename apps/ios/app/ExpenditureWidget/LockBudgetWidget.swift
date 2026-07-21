@@ -5,8 +5,6 @@
 //  Created by Rafael Soh on 9/9/22.
 //
 
-import HugeiconsCore
-import HugeiconsSolidRounded
 import SwiftUI
 import WidgetKit
 
