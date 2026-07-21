@@ -30,7 +30,7 @@ struct NumberFlowMask: ViewModifier {
                     .init(color: .clear, location: 0),
                     .init(color: .black, location: edge),
                     .init(color: .black, location: 1 - edge),
-                    .init(color: .clear, location: 1),
+                    .init(color: .clear, location: 1)
                 ],
                 startPoint: vertical ? .top : .leading,
                 endPoint: vertical ? .bottom : .trailing

@@ -181,7 +181,7 @@ final class FormatterDecompositionTests: XCTestCase {
             let styles: [any NumberFlowFormatStyle] = [
                 Decimal.FormatStyle.number.locale(locale),
                 Decimal.FormatStyle.Currency(code: code).locale(locale),
-                Decimal.FormatStyle.Percent.percent.locale(locale),
+                Decimal.FormatStyle.Percent.percent.locale(locale)
             ]
             for style in styles {
                 for value in values {
