@@ -26,7 +26,7 @@ struct ParentSection: View {
     @Environment(\.managedObjectContext) private var moc
     @Environment(DataController.self) private var dataController
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults)
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults)
     private var currency: String = Locale.current.currency?.identifier ?? "USD"
 
     @FetchRequest private var children: FetchedResults<Category>

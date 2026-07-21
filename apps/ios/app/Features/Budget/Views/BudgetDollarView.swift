@@ -7,14 +7,14 @@ import Foundation
 import SwiftUI
 
 struct BudgetDollarView: View {
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
+    @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
     var amount: Double
     var red: Bool
     var scale: Int
     var size: CGFloat
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

@@ -1,7 +1,6 @@
 //
 //  InsightsChartComponents.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
@@ -11,9 +10,9 @@ struct ChartTimePickerView: View {
     @State var timeframe = ChartTimeFrame.week
     @Binding var showMenu: Bool
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
-    @AppStorage("chartTimeFrame", store: AppIdentifiers.sharedDefaults) var chartType = 1
+    @AppStorage(DefaultsKey.chartTimeFrame, store: AppIdentifiers.sharedDefaults) var chartType = 1
 
     @Environment(\.colorScheme) var systemColorScheme
 

@@ -9,9 +9,9 @@ import Foundation
 import SwiftUI
 
 struct SettingsNotificationsView: View {
-  @AppStorage("showNotifications", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.showNotifications, store: AppIdentifiers.sharedDefaults)
   var showNotifications: Bool = false
-  @AppStorage("notificationsEnabled", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.notificationsEnabled, store: AppIdentifiers.sharedDefaults)
   var notificationsEnabled: Bool = true
   @State var option = 1
   @State var customTime = Date.now
@@ -54,33 +54,33 @@ struct SettingsNotificationsView: View {
           }
         }
         .onChange(of: option) { _, newValue in
-          AppIdentifiers.sharedDefaults!.set(option, forKey: "notificationOption")
+          AppIdentifiers.defaults.set(option, forKey: DefaultsKey.notificationOption)
 
           if newValue == 3 {
             let components = Calendar.current.dateComponents([.hour, .minute], from: customTime)
-            AppIdentifiers.sharedDefaults!.set(components.hour!, forKey: "customHour")
-            AppIdentifiers.sharedDefaults!.set(components.minute!, forKey: "customMinute")
+            AppIdentifiers.defaults.set(components.hour!, forKey: DefaultsKey.customHour)
+            AppIdentifiers.defaults.set(components.minute!, forKey: DefaultsKey.customMinute)
           }
 
           newNotification()
         }
         .onChange(of: customTime) { _, _ in
           let components = Calendar.current.dateComponents([.hour, .minute], from: customTime)
-          AppIdentifiers.sharedDefaults!.set(components.hour!, forKey: "customHour")
-          AppIdentifiers.sharedDefaults!.set(components.minute!, forKey: "customMinute")
+          AppIdentifiers.defaults.set(components.hour!, forKey: DefaultsKey.customHour)
+          AppIdentifiers.defaults.set(components.minute!, forKey: DefaultsKey.customMinute)
 
           newNotification()
         }
         .onAppear {
-          if AppIdentifiers.sharedDefaults!.object(forKey: "notificationOption") != nil {
-            option = AppIdentifiers.sharedDefaults!.integer(forKey: "notificationOption")
+          if AppIdentifiers.defaults.object(forKey: DefaultsKey.notificationOption) != nil {
+            option = AppIdentifiers.defaults.integer(forKey: DefaultsKey.notificationOption)
           }
 
-          if AppIdentifiers.sharedDefaults!.object(forKey: "customHour") != nil
-            && AppIdentifiers.sharedDefaults!.object(forKey: "customMinute") != nil {
+          if AppIdentifiers.defaults.object(forKey: DefaultsKey.customHour) != nil
+            && AppIdentifiers.defaults.object(forKey: DefaultsKey.customMinute) != nil {
             var components = DateComponents()
-            components.hour = AppIdentifiers.sharedDefaults!.integer(forKey: "customHour")
-            components.minute = AppIdentifiers.sharedDefaults!.integer(forKey: "customMinute")
+            components.hour = AppIdentifiers.defaults.integer(forKey: DefaultsKey.customHour)
+            components.minute = AppIdentifiers.defaults.integer(forKey: DefaultsKey.customMinute)
             customTime = Calendar.current.date(from: components)!
           }
         }
@@ -161,8 +161,8 @@ func newNotification() {
   var components = DateComponents()
   var option = 1
 
-  if AppIdentifiers.sharedDefaults!.object(forKey: "notificationOption") != nil {
-    option = AppIdentifiers.sharedDefaults!.integer(forKey: "notificationOption")
+  if AppIdentifiers.defaults.object(forKey: DefaultsKey.notificationOption) != nil {
+    option = AppIdentifiers.defaults.integer(forKey: DefaultsKey.notificationOption)
   }
 
   if option == 1 {
@@ -172,10 +172,10 @@ func newNotification() {
     components.hour = 20
     components.minute = 0
   } else {
-    if AppIdentifiers.sharedDefaults!.object(forKey: "customHour") != nil,
-      AppIdentifiers.sharedDefaults!.object(forKey: "customMinute") != nil {
-      components.hour = AppIdentifiers.sharedDefaults!.integer(forKey: "customHour")
-      components.minute = AppIdentifiers.sharedDefaults!.integer(forKey: "customMinute")
+    if AppIdentifiers.defaults.object(forKey: DefaultsKey.customHour) != nil,
+      AppIdentifiers.defaults.object(forKey: DefaultsKey.customMinute) != nil {
+      components.hour = AppIdentifiers.defaults.integer(forKey: DefaultsKey.customHour)
+      components.minute = AppIdentifiers.defaults.integer(forKey: DefaultsKey.customMinute)
     } else {
       components.hour = 8
       components.minute = 0

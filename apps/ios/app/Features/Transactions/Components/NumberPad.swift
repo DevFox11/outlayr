@@ -15,8 +15,8 @@ struct NumberPad: View {
     var showingNotePicker: Bool = false
     var submit: () -> Void
 
-    @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
-    @AppStorage("haptics", store: AppIdentifiers.sharedDefaults)
+    @AppStorage(DefaultsKey.numberEntryType, store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
+    @AppStorage(DefaultsKey.haptics, store: AppIdentifiers.sharedDefaults)
         var hapticType: Int = 1
 
     var numPadNumbers = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]

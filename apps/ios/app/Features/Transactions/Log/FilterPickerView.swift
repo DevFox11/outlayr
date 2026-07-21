@@ -1,7 +1,6 @@
 //
 //  FilterPickerView.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
@@ -12,7 +11,7 @@ struct FilterPickerView: View {
     @Binding var filterType: FilterType
     @Binding var showMenu: Bool
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
     @Environment(\.dynamicTypeSize) var dynamicTypeSize

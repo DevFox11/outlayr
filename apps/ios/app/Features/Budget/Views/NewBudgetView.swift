@@ -11,8 +11,8 @@ import SwiftUI
 struct NewBudgetView: View {
     @FetchRequest private var categories: FetchedResults<Category>
 
-    @AppStorage("firstWeekday", store: AppIdentifiers.sharedDefaults) var firstWeekday: Int = 1
-    @AppStorage("firstDayOfMonth", store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
+    @AppStorage(DefaultsKey.firstWeekday, store: AppIdentifiers.sharedDefaults) var firstWeekday: Int = 1
+    @AppStorage(DefaultsKey.firstDayOfMonth, store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
 
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
@@ -45,13 +45,13 @@ struct NewBudgetView: View {
     let weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
     // amount
-    @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
+    @AppStorage(DefaultsKey.numberEntryType, store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
     @State private var price: Double = 0
     @State private var category: Category?
     @State var isEditingDecimal = false
     @State var decimalValuesAssigned: AssignedDecimal = .none
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

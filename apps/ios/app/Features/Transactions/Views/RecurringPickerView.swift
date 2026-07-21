@@ -19,7 +19,7 @@ struct RecurringPickerView: View {
     let stringArray = ["none", "daily", "weekly", "monthly"]
     let stringArray2 = ["", "days", "weeks", "months"]
 
-    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults)
+    @AppStorage(DefaultsKey.bottomEdge, store: AppIdentifiers.sharedDefaults)
     var bottomEdge: Double = 15
 
     @State private var offset: CGFloat = 0
@@ -27,7 +27,7 @@ struct RecurringPickerView: View {
     @State var holdingType = 0
     @State var holdingCoefficient = 0
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults)
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults)
     var colorScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme

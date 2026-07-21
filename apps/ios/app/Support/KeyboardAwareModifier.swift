@@ -11,7 +11,7 @@ import SwiftUI
 import UIKit
 
 struct KeyboardAwareModifier: ViewModifier {
-    @AppStorage("keyboard", store: AppIdentifiers.sharedDefaults) var savedKeyboardHeight: Double = .init(UIScreen.main.bounds.height / 2.5)
+    @AppStorage(DefaultsKey.keyboard, store: AppIdentifiers.sharedDefaults) var savedKeyboardHeight: Double = .init(UIScreen.main.bounds.height / 2.5)
     var showToolbar: Bool
 //    @State private var keyboardHeight: CGFloat = 250
 

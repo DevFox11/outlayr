@@ -1,7 +1,6 @@
 //
 //  TransactionsList.swift
 //  Outlayr
-//
 
 import CoreData
 import Foundation
@@ -15,8 +14,8 @@ struct TransactionsList: View {
     var month: Date
     var income: Bool
 
-    @AppStorage("showUpcomingTransactions", store: AppIdentifiers.sharedDefaults) var showUpcoming: Bool = true
-    @AppStorage("showUpcomingTransactionsWhenUpcoming", store: AppIdentifiers.sharedDefaults) var showSoon: Bool = false
+    @AppStorage(DefaultsKey.showUpcomingTransactions, store: AppIdentifiers.sharedDefaults) var showUpcoming: Bool = true
+    @AppStorage(DefaultsKey.showUpcomingTransactionsWhenUpcoming, store: AppIdentifiers.sharedDefaults) var showSoon: Bool = false
 
     @Environment(DataController.self) private var dataController
 

@@ -25,8 +25,8 @@ struct CustomTabBar: View {
 
     var launchAdd: Bool
 
-    @AppStorage("confetti", store: AppIdentifiers.sharedDefaults) var confetti: Bool = false
-    @AppStorage("firstTransactionViewLaunch", store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
+    @AppStorage(DefaultsKey.confetti, store: AppIdentifiers.sharedDefaults) var confetti: Bool = false
+    @AppStorage(DefaultsKey.firstTransactionViewLaunch, store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
 
     @State var animate = false
 

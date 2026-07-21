@@ -9,16 +9,16 @@ import Foundation
 import SwiftUI
 
 struct SettingsFeatureLabView: View {
-  @AppStorage("confetti", store: AppIdentifiers.sharedDefaults) var confetti:
+  @AppStorage(DefaultsKey.confetti, store: AppIdentifiers.sharedDefaults) var confetti:
     Bool = false
 
-  @AppStorage("logViewLineGraph", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.logViewLineGraph, store: AppIdentifiers.sharedDefaults)
   var lineGraph: Bool = false
 
-  @AppStorage("budgetViewStyle", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.budgetViewStyle, store: AppIdentifiers.sharedDefaults)
   var budgetRows: Bool = false
 
-  @AppStorage("swapTimeLabel", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.swapTimeLabel, store: AppIdentifiers.sharedDefaults)
   var swapTimeLabel: Bool = false
 
   @AppStorage(

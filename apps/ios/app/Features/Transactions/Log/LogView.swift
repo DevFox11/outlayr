@@ -21,11 +21,11 @@ struct LogView: View {
     @Environment(DataController.self) private var dataController
     @Environment(\.managedObjectContext) var moc
 
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
+    @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
     var topEdge: CGFloat
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency) ?? currency
     }
@@ -38,7 +38,7 @@ struct LogView: View {
     // top bar
     @State var navBarText = ""
     @State var showMenu = false
-    @AppStorage("logTimeFrame", store: AppIdentifiers.sharedDefaults) var logTimeFrame = 2
+    @AppStorage(DefaultsKey.logTimeFrame, store: AppIdentifiers.sharedDefaults) var logTimeFrame = 2
     let subtitleText = ["today", "this week", "this month", "this year"]
 
     // show filter menu

@@ -11,29 +11,29 @@ struct ContentView: View {
     @Environment(AppLockViewModel.self) private var appLockVM
     @Environment(DataController.self) private var dataController
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
     @Environment(\.scenePhase) var scenePhase
-    @AppStorage("showNotifications", store: AppIdentifiers.sharedDefaults) var showNotifications: Bool = false
-    @AppStorage("notificationsEnabled", store: AppIdentifiers.sharedDefaults) var notificationsEnabled: Bool = true
+    @AppStorage(DefaultsKey.showNotifications, store: AppIdentifiers.sharedDefaults) var showNotifications: Bool = false
+    @AppStorage(DefaultsKey.notificationsEnabled, store: AppIdentifiers.sharedDefaults) var notificationsEnabled: Bool = true
 
-    @AppStorage("firstLaunch", store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
+    @AppStorage(DefaultsKey.firstLaunch, store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
 
     // adds category orders
-    @AppStorage("dataMigration1", store: AppIdentifiers.sharedDefaults) var dataMigration1: Bool = true
+    @AppStorage(DefaultsKey.dataMigration1, store: AppIdentifiers.sharedDefaults) var dataMigration1: Bool = true
 
     // converts category colors to hex codes
-    @AppStorage("dataMigration2", store: AppIdentifiers.sharedDefaults) var dataMigration2: Bool = true
+    @AppStorage(DefaultsKey.dataMigration2, store: AppIdentifiers.sharedDefaults) var dataMigration2: Bool = true
 
-    @AppStorage("categoryPaletteMigrationV2", store: AppIdentifiers.sharedDefaults) var categoryPaletteMigration: Bool = true
+    @AppStorage(DefaultsKey.categoryPaletteMigrationV2, store: AppIdentifiers.sharedDefaults) var categoryPaletteMigration: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
 
     @State var showIntro: Bool = false
 
     var center = UNUserNotificationCenter.current()
 
-    @AppStorage("topEdge", store: AppIdentifiers.sharedDefaults) var savedTopEdge: Double = 30
-    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults) var savedBottomEdge: Double = 15
+    @AppStorage(DefaultsKey.topEdge, store: AppIdentifiers.sharedDefaults) var savedTopEdge: Double = 30
+    @AppStorage(DefaultsKey.bottomEdge, store: AppIdentifiers.sharedDefaults) var savedBottomEdge: Double = 15
 
     var body: some View {
         GeometryReader { proxy in
@@ -62,22 +62,22 @@ struct ContentView: View {
             let defaults =
                 AppIdentifiers.sharedDefaults ?? UserDefaults.standard
 
-            if defaults.object(forKey: "firstDayOfMonth") == nil {
-                defaults.set(1, forKey: "firstDayOfMonth")
+            if defaults.object(forKey: DefaultsKey.firstDayOfMonth) == nil {
+                defaults.set(1, forKey: DefaultsKey.firstDayOfMonth)
             }
 
             if firstLaunch {
                 showIntro = true
                 firstLaunch = false
 
-                defaults.set(1, forKey: "firstWeekday")
-                defaults.set(1, forKey: "haptics")
-                defaults.set(1, forKey: "firstDayOfMonth")
-                defaults.set(1, forKey: "notificationOption")
-                defaults.set(false, forKey: "confetti")
-                defaults.set(false, forKey: "chromatic")
-                defaults.set(true, forKey: "showCents")
-                defaults.set(true, forKey: "animated")
+                defaults.set(1, forKey: DefaultsKey.firstWeekday)
+                defaults.set(1, forKey: DefaultsKey.haptics)
+                defaults.set(1, forKey: DefaultsKey.firstDayOfMonth)
+                defaults.set(1, forKey: DefaultsKey.notificationOption)
+                defaults.set(false, forKey: DefaultsKey.confetti)
+                defaults.set(false, forKey: DefaultsKey.chromatic)
+                defaults.set(true, forKey: DefaultsKey.showCents)
+                defaults.set(true, forKey: DefaultsKey.animated)
 
                 if NSUbiquitousKeyValueStore.default.string(forKey: "currency") == nil {
                     NSUbiquitousKeyValueStore.default.set(Locale.current.currency!.identifier, forKey: "currency")
@@ -85,7 +85,7 @@ struct ContentView: View {
                     currency = NSUbiquitousKeyValueStore.default.string(forKey: "currency")!
                 }
 
-                defaults.set(2, forKey: "numberEntryType")
+                defaults.set(2, forKey: DefaultsKey.numberEntryType)
             } else {
                 if let holdingCurrency = NSUbiquitousKeyValueStore.default.string(forKey: "currency") {
                     currency = holdingCurrency

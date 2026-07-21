@@ -58,7 +58,7 @@ struct FilteredBudgetView: View {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = AppIdentifiers.defaults.integer(forKey: DefaultsKey.firstWeekday)
         calendar.minimumDaysInFirstWeek = 4
 
         if type == 1 {

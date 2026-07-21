@@ -1,7 +1,6 @@
 //
 //  SingleGraphView.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
@@ -14,7 +13,7 @@ struct SingleGraphView: View {
     @Binding var categoryFilterMode: Bool
     @Binding var selectedDate: Date?
 
-    @AppStorage("incomeTracking", store: AppIdentifiers.sharedDefaults) var incomeTracking: Bool = true
+    @AppStorage(DefaultsKey.incomeTracking, store: AppIdentifiers.sharedDefaults) var incomeTracking: Bool = true
     let language = Locale.current.language.languageCode?.identifier
 
     var selectedDateString: String {
@@ -40,10 +39,10 @@ struct SingleGraphView: View {
     @State var selectedDateAmount: Double = 0
 
     var currencySymbol: String
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var showCents: Bool
 
-    @AppStorage("firstDayOfMonth", store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
+    @AppStorage(DefaultsKey.firstDayOfMonth, store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
 
     var dateString: String {
         let dateFormatter = DateFormatter()

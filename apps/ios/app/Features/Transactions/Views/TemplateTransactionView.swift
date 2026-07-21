@@ -15,11 +15,11 @@ struct TemplateTransactionView: View {
     @Environment(DataController.self) private var dataController
     @Environment(\.dismiss) var dismiss
 
-    @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
+    @AppStorage(DefaultsKey.numberEntryType, store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
 
     @Environment(\.colorScheme) var colorScheme
 
-    @AppStorage("topEdge", store: AppIdentifiers.sharedDefaults) var topEdge: Double = 30
+    @AppStorage(DefaultsKey.topEdge, store: AppIdentifiers.sharedDefaults) var topEdge: Double = 30
 
     @State private var note = ""
     @State var category: Category?
@@ -70,7 +70,7 @@ struct TemplateTransactionView: View {
     @State var showCategoryPicker = false
     @State var showCategorySheet = false
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -84,7 +84,7 @@ struct TemplateTransactionView: View {
 
     @State private var keyboardHeightHelper = KeyboardHeightHelper()
 
-    @AppStorage("firstTransactionViewLaunch", store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
+    @AppStorage(DefaultsKey.firstTransactionViewLaunch, store: AppIdentifiers.sharedDefaults) var firstLaunch: Bool = true
 
     // edit mode
     let toEdit: TemplateTransaction?
@@ -94,7 +94,7 @@ struct TemplateTransactionView: View {
     @State var toDelete: TemplateTransaction?
     @State var deleteMode = false
 
-    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
+    @AppStorage(DefaultsKey.bottomEdge, store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
 
     @State private var offset: CGFloat = 0
 
@@ -141,7 +141,7 @@ struct TemplateTransactionView: View {
         }
     }
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var selectedAppearance: Int = 0
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var selectedAppearance: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
 

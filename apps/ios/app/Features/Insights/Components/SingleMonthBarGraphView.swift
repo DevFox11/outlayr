@@ -1,13 +1,12 @@
 //
 //  MonthGraphView.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
 
 struct SingleMonthBarGraphView: View {
-    @AppStorage("firstDayOfMonth", store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
+    @AppStorage(DefaultsKey.firstDayOfMonth, store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
 
     @Binding var selectedDate: Date?
     @Binding var categoryFilterMode: Bool

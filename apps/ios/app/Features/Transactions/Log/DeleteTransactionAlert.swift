@@ -1,7 +1,6 @@
 //
 //  DeleteTransactionAlert.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
@@ -22,7 +21,7 @@ struct DeleteTransactionAlert: View {
 
     @Environment(\.colorScheme) var systemColorScheme
 
-    @AppStorage("bottomEdge", store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
+    @AppStorage(DefaultsKey.bottomEdge, store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
 
     @State private var offset: CGFloat = 0
 

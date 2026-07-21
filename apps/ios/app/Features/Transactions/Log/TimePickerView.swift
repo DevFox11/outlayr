@@ -1,7 +1,6 @@
 //
 //  TimePickerView.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
@@ -15,7 +14,7 @@ struct TimePickerView: View {
     @Binding var timeframe: Int
     @State var holdingTimeframe = 0
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
 

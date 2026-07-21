@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsAppIconView: View {
-  @AppStorage("activeIcon", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.activeIcon, store: AppIdentifiers.sharedDefaults)
   var activeIcon: String = "AppIcon"
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 

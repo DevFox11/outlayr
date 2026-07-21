@@ -39,7 +39,7 @@ struct AmountEntrySheet: View {
     let onDone: () -> Void
 
     @AppStorage(CurrencyPreference.storageKey, store: AppIdentifiers.sharedDefaults) var globalCurrency: String = CurrencyPreference.resolve()
-    @AppStorage("haptics", store: AppIdentifiers.sharedDefaults) var hapticType: Int = HapticSetting.subtle.rawValue
+    @AppStorage(DefaultsKey.haptics, store: AppIdentifiers.sharedDefaults) var hapticType: Int = HapticSetting.subtle.rawValue
 
     @State private var model: AmountEntryModel
     @State private var showingCurrencyPicker = false

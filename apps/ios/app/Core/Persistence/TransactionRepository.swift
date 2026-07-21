@@ -251,7 +251,7 @@ struct TransactionRepository {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = AppIdentifiers.defaults.integer(forKey: DefaultsKey.firstWeekday)
         calendar.minimumDaysInFirstWeek = 4
 
         switch type {
@@ -373,7 +373,7 @@ struct TransactionRepository {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = AppIdentifiers.defaults.integer(forKey: DefaultsKey.firstWeekday)
         calendar.minimumDaysInFirstWeek = 4
 
         let dateCapPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
@@ -421,7 +421,7 @@ struct TransactionRepository {
                 let thisWeek = calendar.date(from: dateComponents)!
                 startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), thisWeek as CVarArg)
             } else if type == 3 {
-                let startOfMonth = AppIdentifiers.sharedDefaults!.integer(forKey: "firstDayOfMonth")
+                let startOfMonth = AppIdentifiers.defaults.integer(forKey: DefaultsKey.firstDayOfMonth)
 
                 let thisMonth = getStartOfMonth(startDay: startOfMonth)
                 startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), thisMonth as CVarArg)
@@ -1201,7 +1201,7 @@ struct TransactionRepository {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = AppIdentifiers.defaults.integer(forKey: DefaultsKey.firstWeekday)
         calendar.minimumDaysInFirstWeek = 4
 
         switch type {

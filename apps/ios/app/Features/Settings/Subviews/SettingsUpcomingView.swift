@@ -20,12 +20,12 @@ struct SettingsUpcomingView: View {
       get: { showFuture },
       set: { newValue in
         showFuture = newValue
-        AppIdentifiers.sharedDefaults!.set(newValue, forKey: "showUpcomingTransactions")
+        AppIdentifiers.defaults.set(newValue, forKey: DefaultsKey.showUpcomingTransactions)
 
         if !newValue {
           showSoon = false
-          AppIdentifiers.sharedDefaults!.set(
-            false, forKey: "showUpcomingTransactionsWhenUpcoming")
+          AppIdentifiers.defaults.set(
+            false, forKey: DefaultsKey.showUpcomingTransactionsWhenUpcoming)
         }
       }
     )
@@ -36,8 +36,8 @@ struct SettingsUpcomingView: View {
       get: { showSoon },
       set: { newValue in
         showSoon = newValue
-        AppIdentifiers.sharedDefaults!.set(
-          newValue, forKey: "showUpcomingTransactionsWhenUpcoming")
+        AppIdentifiers.defaults.set(
+          newValue, forKey: DefaultsKey.showUpcomingTransactionsWhenUpcoming)
       }
     )
   }
@@ -65,10 +65,10 @@ struct SettingsUpcomingView: View {
     .navigationBarTitleDisplayMode(.inline)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     .onAppear {
-      showFuture = AppIdentifiers.sharedDefaults!.bool(
-        forKey: "showUpcomingTransactions")
-      showSoon = AppIdentifiers.sharedDefaults!.bool(
-        forKey: "showUpcomingTransactionsWhenUpcoming")
+      showFuture = AppIdentifiers.defaults.bool(
+        forKey: DefaultsKey.showUpcomingTransactions)
+      showSoon = AppIdentifiers.defaults.bool(
+        forKey: DefaultsKey.showUpcomingTransactionsWhenUpcoming)
     }
   }
 }

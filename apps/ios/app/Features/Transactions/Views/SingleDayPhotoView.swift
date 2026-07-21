@@ -18,7 +18,7 @@ struct SingleDayPhotoView: View {
     let swapTimeLabel: Bool
     let future: Bool
 
-    @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
+    @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
 

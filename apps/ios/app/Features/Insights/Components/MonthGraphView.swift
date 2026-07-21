@@ -1,7 +1,6 @@
 //
 //  MonthGraphView.swift
 //  Outlayr
-//
 
 import Foundation
 import CoreData
@@ -15,14 +14,14 @@ struct MonthGraphView: View {
         SortDescriptor(\.day)
     ]) private var transactions: FetchedResults<Transaction>
 
-    @AppStorage("firstDayOfMonth", store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
+    @AppStorage(DefaultsKey.firstDayOfMonth, store: AppIdentifiers.sharedDefaults) var firstDayOfMonth: Int = 1
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
+    @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
     @State var categoryFilterMode = false
     @State var categoryFilter: Category?
@@ -87,8 +86,8 @@ struct MonthGraphView: View {
     @State var chosenCategoryName = ""
     @State var chosenCategoryAmount = 0.0
 
-    @AppStorage("insightsViewIncomeFiltering", store: AppIdentifiers.sharedDefaults) var income: Bool = true
-    @AppStorage("incomeTracking", store: AppIdentifiers.sharedDefaults) var incomeTracking: Bool = true
+    @AppStorage(DefaultsKey.insightsViewIncomeFiltering, store: AppIdentifiers.sharedDefaults) var income: Bool = true
+    @AppStorage(DefaultsKey.incomeTracking, store: AppIdentifiers.sharedDefaults) var incomeTracking: Bool = true
 
 //    @Environment(\.dynamicTypeMultiplier) var multiplier
 

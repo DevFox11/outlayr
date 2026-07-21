@@ -10,10 +10,10 @@ import SwiftUI
 import WidgetKit
 
 struct SettingsView: View {
-  @AppStorage("colorScheme", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults)
   var colorScheme: Int = 0
 
-  @AppStorage("activeIcon", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.activeIcon, store: AppIdentifiers.sharedDefaults)
   var activeIcon: String = "AppIcon"
   var appIconString: String {
     switch activeIcon {
@@ -25,7 +25,7 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("firstWeekday", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.firstWeekday, store: AppIdentifiers.sharedDefaults)
   var firstWeekday: Int = 1
   var firstWeekdayString: String {
     if firstWeekday == 1 {
@@ -35,9 +35,9 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("showNotifications", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.showNotifications, store: AppIdentifiers.sharedDefaults)
   var showNotifications: Bool = false
-  @AppStorage("notificationOption", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.notificationOption, store: AppIdentifiers.sharedDefaults)
   var option: Int = 1
   var notificationString: String {
     if showNotifications {
@@ -68,7 +68,7 @@ struct SettingsView: View {
   let featureRequestEmail = SupportEmail(
     toAddress: "support@tryoutlayr.com", subject: "Feature Request")
 
-  @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.numberEntryType, store: AppIdentifiers.sharedDefaults)
   var numberEntryType: Int = 2
 
   var numberEntryString: String {
@@ -79,19 +79,19 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("showCents", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults)
   var showCents: Bool = true
 
-  @AppStorage("animated", store: AppIdentifiers.sharedDefaults) var animated:
+  @AppStorage(DefaultsKey.animated, store: AppIdentifiers.sharedDefaults) var animated:
     Bool = true
 
-  @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency:
+  @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency:
     String = Locale.current.currency!.identifier
 
-  @AppStorage("incomeTracking", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.incomeTracking, store: AppIdentifiers.sharedDefaults)
   var incomeTracking: Bool = true
 
-  @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.showExpenseOrIncomeSign, store: AppIdentifiers.sharedDefaults)
   var showExpenseOrIncomeSign: Bool = true
 
   @AppStorage(
@@ -106,7 +106,7 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("haptics", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.haptics, store: AppIdentifiers.sharedDefaults)
   var hapticType: Int = 1
 
   @State var showImportGuide = false
@@ -166,8 +166,8 @@ struct SettingsView: View {
           }
           .onChange(of: incomeTracking) { _, newValue in
             if !newValue {
-              AppIdentifiers.sharedDefaults!.set(false, forKey: "insightsViewIncomeFiltering")
-              AppIdentifiers.sharedDefaults!.set(3, forKey: "logInsightsType")
+              AppIdentifiers.defaults.set(false, forKey: DefaultsKey.insightsViewIncomeFiltering)
+              AppIdentifiers.defaults.set(3, forKey: DefaultsKey.logInsightsType)
             }
           }
 

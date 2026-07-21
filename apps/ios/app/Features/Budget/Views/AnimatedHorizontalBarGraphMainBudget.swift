@@ -8,7 +8,7 @@ import SwiftUI
 
 struct AnimatedHorizontalBarGraphMainBudget: View {
     @State var showBar: Bool = false
-    @AppStorage("animated", store: AppIdentifiers.sharedDefaults) var animated: Bool = true
+    @AppStorage(DefaultsKey.animated, store: AppIdentifiers.sharedDefaults) var animated: Bool = true
 
     var body: some View {
         HStack(spacing: 0) {

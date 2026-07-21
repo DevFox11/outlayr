@@ -10,7 +10,7 @@ import SwiftUI
 struct FilteredCategoryDayBudgetView: View {
     @FetchRequest private var transactions: FetchedResults<Transaction>
     @Binding var totalSpent: Double
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -19,9 +19,9 @@ struct FilteredCategoryDayBudgetView: View {
 
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
-    @AppStorage("swapTimeLabel", store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
-    @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
+    @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
+    @AppStorage(DefaultsKey.swapTimeLabel, store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
+    @AppStorage(DefaultsKey.showExpenseOrIncomeSign, store: AppIdentifiers.sharedDefaults)
     var showExpenseOrIncomeSign: Bool = true
 
     var body: some View {

@@ -1,7 +1,6 @@
 //
 //  InsightsChartComponents.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
@@ -9,7 +8,7 @@ import SwiftUI
 struct AnimatedBarGraph: View {
     var index: Int
 
-    @AppStorage("animated", store: AppIdentifiers.sharedDefaults) var animated: Bool = true
+    @AppStorage(DefaultsKey.animated, store: AppIdentifiers.sharedDefaults) var animated: Bool = true
     @State var showBar: Bool = false
 
     var body: some View {

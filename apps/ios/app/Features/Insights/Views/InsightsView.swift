@@ -14,7 +14,7 @@ struct InsightsView: View {
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
 
     @State private var showTimeMenu = false
-    @AppStorage("chartTimeFrame", store: AppIdentifiers.sharedDefaults) var chartType = 1
+    @AppStorage(DefaultsKey.chartTimeFrame, store: AppIdentifiers.sharedDefaults) var chartType = 1
 
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()

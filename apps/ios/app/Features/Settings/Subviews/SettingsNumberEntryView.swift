@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsNumberEntryView: View {
-  @AppStorage("numberEntryType", store: AppIdentifiers.sharedDefaults)
+  @AppStorage(DefaultsKey.numberEntryType, store: AppIdentifiers.sharedDefaults)
   var numberEntryType: Int = 1
 
   var body: some View {

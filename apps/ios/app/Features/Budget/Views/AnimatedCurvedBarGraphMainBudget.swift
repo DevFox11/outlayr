@@ -15,7 +15,7 @@ struct AnimatedCurvedBarGraphMainBudget: View {
 
     @State var percent: Double = 0
 
-    @AppStorage("animated", store: AppIdentifiers.sharedDefaults) var animated: Bool = true
+    @AppStorage(DefaultsKey.animated, store: AppIdentifiers.sharedDefaults) var animated: Bool = true
 
     var body: some View {
         DonutSemicircle(percent: percent, cornerRadius: cornerRadius, width: width)

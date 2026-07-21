@@ -146,11 +146,11 @@ class DataController {
 
     var addedTransaction: Bool {
         get {
-            AppIdentifiers.sharedDefaults!.bool(forKey: "newTransactionAdded")
+            AppIdentifiers.defaults.bool(forKey: DefaultsKey.newTransactionAdded)
         }
 
         set {
-            AppIdentifiers.sharedDefaults!.set(newValue, forKey: "newTransactionAdded")
+            AppIdentifiers.defaults.set(newValue, forKey: DefaultsKey.newTransactionAdded)
         }
     }
 

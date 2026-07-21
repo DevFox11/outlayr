@@ -20,12 +20,12 @@ struct HorizontalPieChartView: View {
     @FetchRequest private var allCategories: FetchedResults<Category>
     @FetchRequest private var transactions: FetchedResults<Transaction>
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
+    @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
     var income: Bool
     var date: Date
@@ -312,7 +312,7 @@ struct HorizontalPieChartView: View {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = AppIdentifiers.defaults.integer(forKey: DefaultsKey.firstWeekday)
         calendar.minimumDaysInFirstWeek = 4
 
         switch type {

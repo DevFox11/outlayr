@@ -1,13 +1,12 @@
 //
 //  InsightsChartComponents.swift
 //  Outlayr
-//
 
 import Foundation
 import SwiftUI
 
 struct AnimatedHorizontalBarGraph: View {
-    @AppStorage("animated", store: AppIdentifiers.sharedDefaults) var animated: Bool = true
+    @AppStorage(DefaultsKey.animated, store: AppIdentifiers.sharedDefaults) var animated: Bool = true
     var category: PowerCategory
     var index: Int
 

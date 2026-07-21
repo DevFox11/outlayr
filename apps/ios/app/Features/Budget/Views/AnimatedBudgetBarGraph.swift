@@ -10,7 +10,7 @@ struct AnimatedBudgetBarGraph: View {
     var color: Color
     var percent: Double
 
-    @AppStorage("animated", store: AppIdentifiers.sharedDefaults) var animated: Bool = true
+    @AppStorage(DefaultsKey.animated, store: AppIdentifiers.sharedDefaults) var animated: Bool = true
     @State var showBar: Bool = false
 
     var body: some View {

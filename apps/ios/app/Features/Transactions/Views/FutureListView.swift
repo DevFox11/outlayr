@@ -1,7 +1,6 @@
 //
 //  FutureListView.swift
 //  Outlayr
-//
 
 import CoreData
 import Foundation
@@ -44,17 +43,17 @@ struct FutureListView: View {
         }
     }
 
-    @AppStorage("showCents", store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
+    @AppStorage(DefaultsKey.showCents, store: AppIdentifiers.sharedDefaults) var showCents: Bool = true
 
-    @AppStorage("currency", store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
+    @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency) ?? currency
     }
 
-    @AppStorage("showExpenseOrIncomeSign", store: AppIdentifiers.sharedDefaults)
+    @AppStorage(DefaultsKey.showExpenseOrIncomeSign, store: AppIdentifiers.sharedDefaults)
     var showExpenseOrIncomeSign: Bool = true
 
-    @AppStorage("swapTimeLabel", store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
+    @AppStorage(DefaultsKey.swapTimeLabel, store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
 
     var totalString: String {
         let numberFormatter = NumberFormatter()

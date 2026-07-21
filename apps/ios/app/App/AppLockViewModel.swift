@@ -26,19 +26,19 @@ class AppLockViewModel {
 
     // To enable the AppLock in UserDefaults
     func enableAppLock() {
-        UserDefaults.standard.set(true, forKey: "appLockEnabled")
+        UserDefaults.standard.set(true, forKey: DefaultsKey.appLockEnabled)
         isAppLockEnabled = true
     }
 
     // To disable the AppLock in UserDefaults
     func disableAppLock() {
-        UserDefaults.standard.set(false, forKey: "appLockEnabled")
+        UserDefaults.standard.set(false, forKey: DefaultsKey.appLockEnabled)
         isAppLockEnabled = false
     }
 
     // To Publish the AppLock state
     func getAppLockState() {
-        isAppLockEnabled = UserDefaults.standard.bool(forKey: "appLockEnabled")
+        isAppLockEnabled = UserDefaults.standard.bool(forKey: DefaultsKey.appLockEnabled)
     }
 
     // Checking if the device is having BioMetric hardware and enrolled

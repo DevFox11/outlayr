@@ -1,7 +1,6 @@
 //
 //  LogInsightsView.swift
 //  Outlayr
-//
 
 import CoreData
 import Foundation
@@ -20,10 +19,10 @@ struct LogInsightsView: View {
     @State var showMenu1 = false
     let subtitleText = ["today", "this week", "this month", "this year", "all time"]
 
-    @AppStorage("logInsightsTimeFrame", store: AppIdentifiers.sharedDefaults) var timeframe = 2
-    @AppStorage("logInsightsType", store: AppIdentifiers.sharedDefaults) var insightsType = 1
+    @AppStorage(DefaultsKey.logInsightsTimeFrame, store: AppIdentifiers.sharedDefaults) var timeframe = 2
+    @AppStorage(DefaultsKey.logInsightsType, store: AppIdentifiers.sharedDefaults) var insightsType = 1
 
-    @AppStorage("logViewLineGraph", store: AppIdentifiers.sharedDefaults) var lineGraph: Bool = false
+    @AppStorage(DefaultsKey.logViewLineGraph, store: AppIdentifiers.sharedDefaults) var lineGraph: Bool = false
 
     @State private var netTotal: (value: Double, positive: Bool) = (0, true)
     @State private var totalSpent: Double = 0

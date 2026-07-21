@@ -34,6 +34,12 @@ enum AppIdentifiers {
     /// Optional to mirror the literal `UserDefaults(suiteName:)` it replaces.
     static let sharedDefaults = UserDefaults(suiteName: appGroup)
 
+    /// Non-optional access to the shared defaults suite.
+    /// Falls back to `.standard` only when `UserDefaults(suiteName:)` returns
+    /// nil — which doesn't happen in production but can occur in misconfigured
+    /// test hosts. Prefer this over force-unwrapping `sharedDefaults`.
+    static var defaults: UserDefaults { sharedDefaults ?? .standard }
+
     /// Bundle-id suffixes of the three extension targets, appended to
     /// `bundleIdRoot` to form each extension's bundle identifier.
     static let extensionSuffixes = [".ExpenditureWidget", ".BudgetIntent", ".BudgetIntentUI"]
@@ -45,4 +51,69 @@ enum AppIdentifiers {
     /// entitlements. Rule: literal `$(TeamIdentifierPrefix)` (expanded at build
     /// time) + `bundleIdRoot`.
     static let ubiquityKVStore = "$(TeamIdentifierPrefix)com.tryoutlayr.app"
+}
+
+/// Typed keys for the shared `UserDefaults` suite.
+/// Use these constants instead of raw string literals to prevent
+/// typo-induced desync between the app, widgets, and intent extensions.
+/// Accessible in every target that compiles AppIdentifiers.swift.
+enum DefaultsKey {
+    // Display & formatting
+    static let currency = "currency"
+    static let showCents = "showCents"
+    static let colorScheme = "colorScheme"
+    static let animated = "animated"
+    static let activeIcon = "activeIcon"
+    static let chromatic = "chromatic"
+
+    // Calendar & timing
+    static let firstWeekday = "firstWeekday"
+    static let firstDayOfMonth = "firstDayOfMonth"
+
+    // UI behavior
+    static let numberEntryType = "numberEntryType"
+    static let haptics = "haptics"
+    static let confetti = "confetti"
+    static let topEdge = "topEdge"
+    static let bottomEdge = "bottomEdge"
+    static let swapTimeLabel = "swapTimeLabel"
+    static let budgetViewStyle = "budgetViewStyle"
+    static let showExpenseOrIncomeSign = "showExpenseOrIncomeSign"
+    static let incomeTracking = "incomeTracking"
+    static let keyboard = "keyboard"
+
+    // Logs & insights
+    static let logTimeFrame = "logTimeFrame"
+    static let chartTimeFrame = "chartTimeFrame"
+    static let logInsightsTimeFrame = "logInsightsTimeFrame"
+    static let logInsightsType = "logInsightsType"
+    static let logViewLineGraph = "logViewLineGraph"
+    static let insightsViewIncomeFiltering = "insightsViewIncomeFiltering"
+
+    // Upcoming transactions
+    static let showUpcomingTransactions = "showUpcomingTransactions"
+    static let showUpcomingTransactionsWhenUpcoming = "showUpcomingTransactionsWhenUpcoming"
+
+    // Notifications
+    static let showNotifications = "showNotifications"
+    static let notificationsEnabled = "notificationsEnabled"
+    static let notificationOption = "notificationOption"
+    static let customHour = "customHour"
+    static let customMinute = "customMinute"
+
+    // Onboarding & migrations
+    static let firstLaunch = "firstLaunch"
+    static let firstTransactionViewLaunch = "firstTransactionViewLaunch"
+    static let dataMigration1 = "dataMigration1"
+    static let dataMigration2 = "dataMigration2"
+    static let categoryPaletteMigrationV2 = "categoryPaletteMigrationV2"
+
+    // Categories
+    static let categorySuggestions = "categorySuggestions"
+
+    // Internal widget/app bridge flag
+    static let newTransactionAdded = "newTransactionAdded"
+
+    // App lock — stored in `UserDefaults.standard`, not the shared suite
+    static let appLockEnabled = "appLockEnabled"
 }

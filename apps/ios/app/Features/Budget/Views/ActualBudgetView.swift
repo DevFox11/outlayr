@@ -33,7 +33,7 @@ struct ActualBudgetView: View {
         GridItem(.flexible(), spacing: 15)
     ]
 
-    @AppStorage("budgetViewStyle", store: AppIdentifiers.sharedDefaults) var budgetRows: Bool = false
+    @AppStorage(DefaultsKey.budgetViewStyle, store: AppIdentifiers.sharedDefaults) var budgetRows: Bool = false
 
     @Namespace var animation
 
