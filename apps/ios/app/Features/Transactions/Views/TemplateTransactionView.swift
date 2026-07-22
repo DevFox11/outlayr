@@ -489,83 +489,72 @@ private struct TemplateTransactionNumPad: View {
     @Binding var numbers1: [String]
     let submit: () -> Void
 
-    let numberArray = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-
     var numberArrayCount: Int {
         numberEntryType == 1 ? numbers.count : numbers1.count
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            VStack(spacing: proxy.size.height * 0.04) {
-                ForEach(numberArray, id: \.self) { array in
-                    HStack(spacing: proxy.size.width * 0.05) {
-                        ForEach(array, id: \.self) { singleNumber in
-                            numberButton(number: singleNumber, size: proxy.size)
-                        }
-                    }
-                }
-
-                HStack(spacing: proxy.size.width * 0.05) {
-                    if numberEntryType == 1 {
-                        Button {
-                            if numbers.count == 3 {
-                                numbers.remove(at: numbers.count - 1)
-                                numbers.insert(0, at: 0)
-                            } else {
-                                numbers.remove(at: numbers.count - 1)
-                            }
-                        } label: {
-                            Image("tag-cross")
-                                .resizable()
-                                .frame(width: 32, height: 32)
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .background(Color.DarkBackground)
-                                .foregroundStyle(Color.LightIcon)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        }
-                        .buttonStyle(NumPadButton())
+        NumPadGrid(
+            onDigit: { number in
+                if numberEntryType == 1 {
+                    if numbers[0] == 0 {
+                        numbers.append(number)
+                        numbers.remove(at: 0)
                     } else {
-                        Button {
-                            if numbers1.isEmpty {
-                                numbers1.append("0")
-                                numbers1.append(".")
-                            } else if numbers1.contains(".") {
-                                return
-                            } else {
-                                numbers1.append(".")
-                            }
-                        } label: {
-                            Text(".")
-                                .scaledFont(34, weight: .regular, design: .rounded)
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .background(Color.SecondaryBackground)
-                                .foregroundStyle(Color.PrimaryText)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .opacity(numbers1.contains(".") ? 0.6 : 1)
+                        numbers.append(number)
+                    }
+                } else {
+                    if number == 0 && numbers1.isEmpty { return }
+                    if numbers1.contains(".") {
+                        if numbers1.count - numbers1.firstIndex(of: ".")! < 3 {
+                            numbers1.append(String(number))
                         }
-                        .disabled(numbers1.contains("."))
-                        .buttonStyle(NumPadButton())
+                    } else {
+                        numbers1.append(String(number))
                     }
-
-                    numberButton(number: 0, size: proxy.size)
-
-                    Button {
-                        submit()
-                    } label: {
-                        Image(systemName: "checkmark.square.fill")
-                            .scaledFont(30, weight: .medium, design: .rounded)
-                            .symbolEffect(.bounce.up.byLayer, value: numberArrayCount != 0)
-                            .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                        .foregroundStyle(Color.LightIcon)
-                        .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    }
-                    .buttonStyle(NumPadButton())
                 }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-        }
-        .padding(.bottom, 15)
+            },
+            onLeftKey: {
+                if numberEntryType == 1 {
+                    if numbers.count == 3 {
+                        numbers.remove(at: numbers.count - 1)
+                        numbers.insert(0, at: 0)
+                    } else {
+                        numbers.remove(at: numbers.count - 1)
+                    }
+                } else {
+                    if numbers1.isEmpty {
+                        numbers1.append("0")
+                        numbers1.append(".")
+                    } else if !numbers1.contains(".") {
+                        numbers1.append(".")
+                    }
+                }
+            },
+            onSubmit: submit,
+            leftKeyLabel: { size in
+                if numberEntryType == 1 {
+                    Image("tag-cross")
+                        .resizable()
+                        .frame(width: 32, height: 32)
+                        .frame(width: size.width * 0.3, height: size.height * 0.22)
+                        .background(Color.DarkBackground)
+                        .foregroundStyle(Color.LightIcon)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                } else {
+                    Text(".")
+                        .scaledFont(34, weight: .regular, design: .rounded)
+                        .frame(width: size.width * 0.3, height: size.height * 0.22)
+                        .background(Color.SecondaryBackground)
+                        .foregroundStyle(Color.PrimaryText)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .opacity(numbers1.contains(".") ? 0.6 : 1)
+                }
+            },
+            digitsDisabled: numberArrayCount == 9,
+            leftKeyDisabled: numberEntryType == 2 && numbers1.contains("."),
+            submitBounceValue: numberArrayCount != 0
+        )
     }
 
     @ViewBuilder
@@ -588,44 +577,6 @@ private struct TemplateTransactionNumPad: View {
                 .contentShape(Circle())
         }
         .disabled(numbers1.isEmpty)
-    }
-
-    @ViewBuilder
-    private func numberButton(number: Int, size: CGSize) -> some View {
-        Button {
-            if numberEntryType == 1 {
-                if numbers[0] == 0 {
-                    numbers.append(number)
-                    numbers.remove(at: 0)
-                } else {
-                    numbers.append(number)
-                }
-            } else {
-                if number == 0 && numbers1.isEmpty {
-                    return
-                } else {
-                    if numbers1.contains(".") {
-                        if numbers1.count - numbers1.firstIndex(of: ".")! < 3 {
-                            numbers1.append(String(number))
-                        } else {
-                            return
-                        }
-                    } else {
-                        numbers1.append(String(number))
-                    }
-                }
-            }
-        } label: {
-            Text("\(number)")
-                .scaledFont(34, weight: .regular, design: .rounded)
-                .frame(width: size.width * 0.3, height: size.height * 0.22)
-                .background(Color.SecondaryBackground)
-                .foregroundStyle(Color.PrimaryText)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .opacity(numberArrayCount == 9 ? 0.6 : 1)
-        }
-        .disabled(numberArrayCount == 9)
-        .buttonStyle(NumPadButton())
     }
 
     @ViewBuilder

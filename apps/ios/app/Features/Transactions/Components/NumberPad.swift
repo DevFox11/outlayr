@@ -19,68 +19,64 @@ struct NumberPad: View {
     @AppStorage(DefaultsKey.haptics, store: AppIdentifiers.sharedDefaults)
         var hapticType: Int = 1
 
-    var numPadNumbers = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-
     @State private var haptics = HapticTapper()
 
     var body: some View {
-        GeometryReader { proxy in
-            VStack(spacing: proxy.size.height * 0.04) {
-                ForEach(numPadNumbers, id: \.self) { array in
-                    HStack(spacing: proxy.size.width * 0.05) {
-                        ForEach(array, id: \.self) { singleNumber in
-                            NumberButton(number: singleNumber, size: proxy.size)
+        NumPadGrid(
+            onDigit: { number in
+                guard price < 100000000 else { return }
+                if hapticType == HapticSetting.excessive.rawValue { haptics.tap() }
+                if numberEntryType == 1 {
+                    price *= 10
+                    price += Double(number) / 100
+                } else {
+                    if isEditingDecimal {
+                        switch decimalValuesAssigned {
+                        case .none:
+                            price += Double(number) / 10
+                            decimalValuesAssigned = .first
+                        case .first:
+                            price += Double(number) / 100
+                            decimalValuesAssigned = .second
+                        case .second:
+                            return
                         }
-                    }
-                }
-                HStack(spacing: proxy.size.width * 0.05) {
-                    if numberEntryType == 1 {
-                        Button {
-                            deleteLastDigit()
-                        } label: {
-                            Image("tag-cross")
-                                .resizable()
-                                .frame(width: 32, height: 32)
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .background(Color.DarkBackground)
-                                .foregroundStyle(Color.LightIcon)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        }
-                        .buttonStyle(NumPadButton())
-                        .accessibilityLabel("Delete")
                     } else {
-                        Button {
-                            isEditingDecimal = true
-                        } label: {
-                            Text(".")
-                                .scaledFont(34, weight: .regular, design: .rounded)
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .background(Color.SecondaryBackground)
-                                .foregroundStyle(Color.PrimaryText)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        }
-                        .buttonStyle(NumPadButton())
+                        price *= 10
+                        price += Double(number)
                     }
-
-                    NumberButton(number: 0, size: proxy.size)
-
-                    Button {
-                        submit()
-                    } label: {
-                        Image(systemName: "checkmark.square.fill")
-                            .scaledFont(30, weight: .medium, design: .rounded)
-                            .symbolEffect(.bounce.up.byLayer, value: price != 0 && category != nil)
-                            .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                        .foregroundStyle(Color.LightIcon)
-                        .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    }
-                    .buttonStyle(NumPadButton())
-                    .accessibilityLabel("Submit")
                 }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-        }
-        .padding(.bottom, 15)
+            },
+            onLeftKey: {
+                if numberEntryType == 1 {
+                    deleteLastDigit()
+                } else {
+                    isEditingDecimal = true
+                }
+            },
+            onSubmit: submit,
+            leftKeyLabel: { size in
+                if numberEntryType == 1 {
+                    Image("tag-cross")
+                        .resizable()
+                        .frame(width: 32, height: 32)
+                        .frame(width: size.width * 0.3, height: size.height * 0.22)
+                        .background(Color.DarkBackground)
+                        .foregroundStyle(Color.LightIcon)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                } else {
+                    Text(".")
+                        .scaledFont(34, weight: .regular, design: .rounded)
+                        .frame(width: size.width * 0.3, height: size.height * 0.22)
+                        .background(Color.SecondaryBackground)
+                        .foregroundStyle(Color.PrimaryText)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+            },
+            leftKeyAccessibilityLabel: numberEntryType == 1 ? "Delete" : nil,
+            digitsDisabled: price >= 100000000,
+            submitBounceValue: price != 0 && category != nil
+        )
         .keyboardAwareHeight(showToolbar: showingNotePicker)
         .onAppear { haptics.prepare() }
         .onDisappear { haptics.stop() }
@@ -104,54 +100,6 @@ struct NumberPad: View {
                     decimalValuesAssigned = .first
             }
         }
-    }
-
-    @ViewBuilder
-    private func NumberButton(number: Int, size: CGSize) -> some View {
-        var disabled: Bool {
-            price >= 100000000
-        }
-
-        Button {
-            if disabled {
-                return
-            }
-
-            if hapticType == HapticSetting.excessive.rawValue {
-                haptics.tap()
-            }
-
-            if numberEntryType == 1 {
-                price *= 10
-                price += Double(number) / 100
-            } else {
-                if isEditingDecimal {
-                    switch decimalValuesAssigned {
-                        case .none:
-                            price += Double(number) / 10
-                            decimalValuesAssigned = .first
-                        case .first:
-                            price += Double(number) / 100
-                            decimalValuesAssigned = .second
-                        case .second:
-                            return
-                    }
-                } else {
-                    price *= 10
-                    price += Double(number)
-                }
-            }
-        } label: {
-            Text("\(number)")
-                .scaledFont(34, weight: .regular, design: .rounded)
-                .frame(width: size.width * 0.3, height: size.height * 0.22)
-                .background(Color.SecondaryBackground)
-                .foregroundStyle(Color.PrimaryText)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .opacity(disabled ? 0.6 : 1)
-        }
-        .disabled(disabled)
-        .buttonStyle(NumPadButton())
     }
 }
 
