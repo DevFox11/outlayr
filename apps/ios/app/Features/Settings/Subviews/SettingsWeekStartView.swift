@@ -13,7 +13,7 @@ struct SettingsWeekStartView: View {
   var firstWeekday: Int = 1
   @AppStorage(DefaultsKey.firstDayOfMonth, store: AppIdentifiers.sharedDefaults)
   var firstDayOfMonth: Int = 1
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+  @Environment(\.dismiss) var dismiss
 
   let options = ["Sunday", "Monday"]
   @State private var dismissTask: Task<Void, Never>?
@@ -48,7 +48,7 @@ struct SettingsWeekStartView: View {
       firstWeekday = tag
       dismissTask = Task {
         try? await Task.sleep(for: .seconds(0.4))
-        presentationMode.wrappedValue.dismiss()
+        dismiss()
       }
     } label: {
       HStack {
@@ -74,7 +74,7 @@ struct SettingsWeekStartView: View {
       firstDayOfMonth = day
       dismissTask = Task {
         try? await Task.sleep(for: .seconds(0.4))
-        presentationMode.wrappedValue.dismiss()
+        dismiss()
       }
     } label: {
       HStack {

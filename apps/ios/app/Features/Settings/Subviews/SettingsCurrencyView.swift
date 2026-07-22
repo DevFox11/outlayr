@@ -11,7 +11,7 @@ import SwiftUI
 struct SettingsCurrencyView: View {
   @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults)
   var currencyCode: String = Locale.current.currency!.identifier
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+  @Environment(\.dismiss) var dismiss
 
   let currencies = Currency.allCurrencies
 
@@ -70,7 +70,7 @@ struct SettingsCurrencyView: View {
 
     dismissTask = Task {
       try? await Task.sleep(for: .seconds(0.4))
-      presentationMode.wrappedValue.dismiss()
+      dismiss()
     }
   }
 }

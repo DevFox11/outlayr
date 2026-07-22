@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsCloudView: View {
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+  @Environment(\.dismiss) var dismiss
   @State private var iCloudStorage: Bool = false
 
   private var iCloudBinding: Binding<Bool> {

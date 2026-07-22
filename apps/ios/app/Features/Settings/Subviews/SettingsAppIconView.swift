@@ -11,7 +11,7 @@ import SwiftUI
 struct SettingsAppIconView: View {
   @AppStorage(DefaultsKey.activeIcon, store: AppIdentifiers.sharedDefaults)
   var activeIcon: String = "AppIcon"
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+  @Environment(\.dismiss) var dismiss
 
   let options: [AppIconBundle] = [
     AppIconBundle(

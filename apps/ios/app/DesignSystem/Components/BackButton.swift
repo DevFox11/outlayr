@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct BackButton: View {
-    var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ToolbarButton(systemName: "chevron.left") {
-            presentationMode.wrappedValue.dismiss()
+            dismiss()
         }
     }
 }

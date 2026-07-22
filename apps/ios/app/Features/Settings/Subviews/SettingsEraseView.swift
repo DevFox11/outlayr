@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsEraseView: View {
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+  @Environment(\.dismiss) var dismiss
 
   @State var showAlert = false
 

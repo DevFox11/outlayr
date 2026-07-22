@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsUpcomingView: View {
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+  @Environment(\.dismiss) var dismiss
   @State private var showFuture: Bool = true
 
   @State private var showSoon: Bool = false
