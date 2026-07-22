@@ -23,6 +23,7 @@ import XCTest
 
 @testable import Outlayr
 
+@MainActor
 class CharacterizationTestCase: XCTestCase {
     private var createdSuiteNames: [String] = []
 

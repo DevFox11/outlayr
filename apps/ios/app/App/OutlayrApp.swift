@@ -30,11 +30,7 @@ struct OutlayrApp: App {
     }
 
     init() {
-        let dataController = DataController.shared
-//        let dataController = DataController()
-
-        _dataController = State(wrappedValue: dataController)
-
+        _dataController = State(wrappedValue: DataController())
         UITableView.appearance().backgroundColor = .clear
     }
 }

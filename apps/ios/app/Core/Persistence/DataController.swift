@@ -29,22 +29,29 @@ enum CustomError: Swift.Error, CustomLocalizedStringResourceConvertible {
 }
 
 @Observable
+@MainActor
 class DataController {
     static let shared = DataController()
 
-    var container = NSPersistentCloudKitContainer(name: "MainModel")
+    // nonisolated so the background-context helpers below can call
+    // container.newBackgroundContext() without a main-actor hop. Callers must never
+    // access container.viewContext from a background thread.
+    nonisolated let container = NSPersistentCloudKitContainer(name: "MainModel")
 
     // Characterization seams (flagged mechanical, B3). Production defaults keep
     // behavior byte-for-byte identical; tests inject a frozen clock, a pinned
     // calendar, and an isolated UserDefaults suite for deterministic date math.
-    let now: () -> Date
-    let injectedCalendar: Calendar
-    let sharedDefaults: UserDefaults
+    // nonisolated so repositories can read them from background-context closures.
+    nonisolated let now: () -> Date
+    nonisolated let injectedCalendar: Calendar
+    nonisolated(unsafe) let sharedDefaults: UserDefaults
 
     /// Whether the persistent store loaded from the shared app-group container.
     /// `.appGroupUnavailable` means the app↔widget↔extension bridge is broken and
     /// every process must surface a visible error instead of a silent empty store.
-    let storeState: StoreState
+    // nonisolated so widgets and shortcuts can read it synchronously without hopping
+    // to the main actor. It is a `let`, so it is immutable after init.
+    nonisolated let storeState: StoreState
 
     enum StoreState: Equatable {
         case loaded
@@ -53,10 +60,13 @@ class DataController {
 
     /// `true` when the shared store loaded normally. Widget and app-extension entry
     /// points read this to refuse rendering stale/empty data on a broken bridge.
-    static var storeIsAvailable: Bool { shared.storeState == .loaded }
+    // Written once during `shared` initialization; read-only afterwards, so
+    // nonisolated(unsafe) is safe — no concurrent writes ever occur.
+    private nonisolated(unsafe) static var _storeIsAvailable = false
+    nonisolated static var storeIsAvailable: Bool { _storeIsAvailable }
 
     /// Error returned by intent extensions when the shared store is unavailable.
-    static let appGroupUnavailableError = NSError(
+    nonisolated static let appGroupUnavailableError = NSError(
         domain: "DataStore.AppGroupUnavailable",
         code: 1,
         userInfo: [NSLocalizedDescriptionKey: "The shared app group container is unavailable, so data cannot be loaded."]
@@ -66,7 +76,7 @@ class DataController {
     /// without a real `FileManager` or a fatal build: a `nil` container URL means
     /// the shared app-group container could not be resolved, so the store must
     /// refuse to open a private per-process fallback. Any resolved URL is `.loaded`.
-    static func storeState(for containerURL: URL?) -> StoreState {
+    nonisolated static func storeState(for containerURL: URL?) -> StoreState {
         containerURL == nil ? .appGroupUnavailable : .loaded
     }
 
@@ -117,6 +127,7 @@ class DataController {
         }
 
         storeState = .loaded
+        DataController._storeIsAvailable = true
 
         container.persistentStoreDescriptions = [description]
 
@@ -190,7 +201,7 @@ class DataController {
         return (try? container.viewContext.fetch(fetchRequest)) ?? []
     }
 
-    func newBackgroundContext() -> NSManagedObjectContext {
+    nonisolated func newBackgroundContext() -> NSManagedObjectContext {
         let context = container.newBackgroundContext()
         context.automaticallyMergesChangesFromParent = true
         return context
@@ -198,7 +209,7 @@ class DataController {
 
     /// Single funnel for background reads: runs `work` on a fresh background
     /// context's queue so fetches never block (or violate) the main thread.
-    func performBackground<T>(_ work: @escaping (NSManagedObjectContext) throws -> T) async rethrows -> T {
+    nonisolated func performBackground<T>(_ work: @escaping (NSManagedObjectContext) throws -> T) async rethrows -> T {
         let context = newBackgroundContext()
         return try await context.perform { try work(context) }
     }

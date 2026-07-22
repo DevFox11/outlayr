@@ -158,8 +158,6 @@ struct Provider: AppIntentTimelineProvider {
             return 0
         }
 
-        let dataController = DataController.shared
-
         let timeframe: Int
 
         switch type {
@@ -177,18 +175,12 @@ struct Provider: AppIntentTimelineProvider {
 
         switch insightsType {
         case .net:
-            let (amount, positive) = await dataController.transactions.getLogViewTotalNet(type: timeframe)
-
-            if positive {
-                return amount
-            } else {
-                return -amount
-            }
-
+            let (amount, positive) = await DataController.shared.transactions.getLogViewTotalNet(type: timeframe)
+            return positive ? amount : -amount
         case .income:
-            return await dataController.transactions.getLogViewTotalIncome(type: timeframe)
+            return await DataController.shared.transactions.getLogViewTotalIncome(type: timeframe)
         case .expense:
-            return await dataController.transactions.getLogViewTotalSpent(type: timeframe)
+            return await DataController.shared.transactions.getLogViewTotalSpent(type: timeframe)
         default:
             return 0
         }

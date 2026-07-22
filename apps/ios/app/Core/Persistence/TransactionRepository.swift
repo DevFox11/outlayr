@@ -31,7 +31,7 @@ struct TransactionRepository {
     }
 
     private func save() {
-        try? dataController.save()
+        MainActor.assumeIsolated { try? dataController.save() }
     }
 
     /// The next occurrence date for a recurring transaction's type/coefficient,
@@ -207,7 +207,7 @@ struct TransactionRepository {
             if let unwrappedCategory = match.category {
                 _ = newTransaction(note: match.note ?? "", category: unwrappedCategory, income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
 
-                dataController.addedTransaction = true
+                MainActor.assumeIsolated { dataController.addedTransaction = true }
             }
         }
     }
@@ -1455,7 +1455,9 @@ struct TransactionRepository {
 
     func getWidgetInsights(type: InsightsTimePeriod, income: Bool) -> WidgetInsights {
         let itemRequest = fetchRequestForWidgetInsights(type: type, income: income)
-        let categoryRequest = dataController.categories.fetchRequestForTopLevelCategories(income: income)
+        let categoryRequest: NSFetchRequest<Category> = Category.fetchRequest()
+        categoryRequest.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
+        categoryRequest.predicate = NSPredicate(format: "income = %d AND parent == nil", income)
 
         let categories = results(for: categoryRequest)
         let transactions = results(for: itemRequest.fetchRequest)

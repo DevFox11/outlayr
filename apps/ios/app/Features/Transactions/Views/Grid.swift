@@ -13,12 +13,10 @@ struct Grid: Identifiable {
     var index: Int
     var transaction: TemplateTransaction?
 
+    @MainActor
     init(index: Int) {
         id = UUID()
-
-        let dataController = DataController.shared
-
-        transaction = dataController.transactions.getTemplateTransaction(order: index)
+        transaction = DataController.shared.transactions.getTemplateTransaction(order: index)
         self.index = index
     }
 }

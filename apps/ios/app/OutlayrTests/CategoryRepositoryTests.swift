@@ -10,6 +10,7 @@ import CoreData
 import Testing
 @testable import Outlayr
 
+@MainActor
 @Suite("CategoryRepository")
 struct CategoryRepositoryTests {
 

@@ -13,6 +13,7 @@ import XCTest
 
 @testable import Outlayr
 
+@MainActor
 final class CategorySymbolTests: CharacterizationTestCase {
     // MARK: - Precedence
 
@@ -440,6 +441,7 @@ final class ManagedObjectModelVersionTests: XCTestCase {
     }
 
     // The attribute the emoji feature reuses; losing it would be a silent data break.
+    @MainActor
     func testCurrentModelStillDefinesTheCategoryEmojiAttribute() throws {
         let controller = DataController(
             inMemory: true,

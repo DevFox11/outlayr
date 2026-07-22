@@ -11,6 +11,7 @@ import Foundation
 @testable import Outlayr
 
 /// In-memory Core Data stack with an injected frozen clock and isolated UserDefaults.
+@MainActor
 struct RepositoryFixture {
     let controller: DataController
     var context: NSManagedObjectContext { controller.container.viewContext }
