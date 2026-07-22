@@ -331,6 +331,8 @@
 		7A3E385E3010B41B00801CCB /* ContrastAdaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E385D3010B41B00801CCB /* ContrastAdaptive.swift */; };
 		7A3E385F3010B41B00801CCB /* ContrastAdaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E385D3010B41B00801CCB /* ContrastAdaptive.swift */; };
 		7A3E38613010B4AD00801CCB /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38603010B4AD00801CCB /* ActivityView.swift */; };
+		7A3E38643011256B00801CCB /* OutlayrCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A3E38633011256B00801CCB /* OutlayrCore */; };
+		7A3E38663011259600801CCB /* OutlayrCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A3E38653011259600801CCB /* OutlayrCore */; };
 		7A875E313009CF5200819E25 /* SuggestedCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */; };
 		7A875E353009CF7200819E25 /* ColorPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E343009CF7200819E25 /* ColorPickerView.swift */; };
 		7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */; };
@@ -791,6 +793,7 @@
 				7A875E6A300A90B400819E25 /* HugeiconsStrokeRounded in Frameworks */,
 				5327D2E6287C6CC300F76ADF /* Popovers in Frameworks */,
 				7A875E68300A90B400819E25 /* HugeiconsSolidRounded in Frameworks */,
+				7A3E38643011256B00801CCB /* OutlayrCore in Frameworks */,
 				7A875E66300A90B400819E25 /* HugeiconsCore in Frameworks */,
 				536715ED28E1E9A3008461F2 /* StoreKit.framework in Frameworks */,
 				CC4527F012B3E503D286A8A6 /* NumberFlow in Frameworks */,
@@ -802,6 +805,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				53B1D18E288ED7E500E28062 /* SwiftUI.framework in Frameworks */,
+				7A3E38663011259600801CCB /* OutlayrCore in Frameworks */,
 				53B1D18C288ED7E500E28062 /* WidgetKit.framework in Frameworks */,
 				7D81220C8D799BF204BA2F3B /* HugeiconsCore in Frameworks */,
 				51838023ADC1F78E07210E5C /* HugeiconsSolidRounded in Frameworks */,
@@ -1558,6 +1562,7 @@
 				53A4147F28B7DA4C008C30E7 /* ConfettiSwiftUI */,
 				53DCFAA02A498FBF0063FCDE /* CloudKitSyncMonitor */,
 				6C5332F53C5EE2F1B4EAE085 /* NumberFlow */,
+				7A3E38633011256B00801CCB /* OutlayrCore */,
 			);
 			productName = Outlayr;
 			productReference = 5327D283287C697400F76ADF /* Outlayr.app */;
@@ -1579,6 +1584,7 @@
 			packageProductDependencies = (
 				F8097FE7BD48D39593A9DEC1 /* HugeiconsCore */,
 				BD7C6B0626C2163CF30F2380 /* HugeiconsSolidRounded */,
+				7A3E38653011259600801CCB /* OutlayrCore */,
 			);
 			productName = ExpenditureWidgetExtension;
 			productReference = 53B1D18A288ED7E400E28062 /* ExpenditureWidgetExtension.appex */;
@@ -1641,6 +1647,7 @@
 				7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "Packages/hugeicons-swift" */,
 				7A875E6B300A920F00819E25 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				10ACCFABA18ED74A85E906A9 /* XCLocalSwiftPackageReference "Packages/numberflow" */,
+				7A3E38623011256B00801CCB /* XCLocalSwiftPackageReference "Packages/OutlayrCore" */,
 			);
 			productRefGroup = 5327D284287C697400F76ADF /* Products */;
 			projectDirPath = "";
@@ -2460,6 +2467,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/numberflow;
 		};
+		7A3E38623011256B00801CCB /* XCLocalSwiftPackageReference "Packages/OutlayrCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/OutlayrCore;
+		};
 		7A875E64300A90B400819E25 /* XCLocalSwiftPackageReference "Packages/hugeicons-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "Packages/hugeicons-swift";
@@ -2521,6 +2532,15 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 10ACCFABA18ED74A85E906A9 /* XCLocalSwiftPackageReference "Packages/numberflow" */;
 			productName = NumberFlow;
+		};
+		7A3E38633011256B00801CCB /* OutlayrCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OutlayrCore;
+		};
+		7A3E38653011259600801CCB /* OutlayrCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A3E38623011256B00801CCB /* XCLocalSwiftPackageReference "Packages/OutlayrCore" */;
+			productName = OutlayrCore;
 		};
 		7A875E65300A90B400819E25 /* HugeiconsCore */ = {
 			isa = XCSwiftPackageProductDependency;
