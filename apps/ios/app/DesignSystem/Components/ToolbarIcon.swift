@@ -73,6 +73,18 @@ struct ToolbarIcon: View {
             context: nil
         )
         guard bounds.width > 0, bounds.height > 0 else { return nil }
+
+        // A resolved ligature collapses the whole name into one roughly square
+        // glyph. If the font carries no ligature for the name, the string draws
+        // as literal characters instead — far wider than tall, and often blank,
+        // since the icon font has no Latin glyphs. That renders as an empty
+        // toolbar button with no error, so fail loudly in development.
+        // The bundled hgi-stroke-rounded.ttf is missing the calendar-03
+        // ligature even though the glyph itself ships at U+F18D3.
+        assert(
+            bounds.width <= bounds.height * 2,
+            "No ligature for Hugeicons name '\(name)' in the bundled font — it would draw as literal text."
+        )
         let renderer = UIGraphicsImageRenderer(size: bounds.size)
         return renderer.image { _ in
             attributed.draw(
