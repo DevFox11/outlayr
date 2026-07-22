@@ -48,7 +48,9 @@ struct NewExpenseProvider: TimelineProvider {
     func getTimeline(in _: Context, completion: @escaping (Timeline<NewExpenseWidgetEntry>) -> Void) {
         let entry = NewExpenseWidgetEntry(date: Date())
 
-        let timeline = Timeline(entries: [entry], policy: .atEnd)
+        // This widget is a static action button with no time-derived values; it
+        // never needs a scheduled refresh.
+        let timeline = Timeline(entries: [entry], policy: .never)
 
         completion(timeline)
     }

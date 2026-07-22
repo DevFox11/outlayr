@@ -98,7 +98,10 @@ struct BudgetWidgetProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: BudgetWidgetConfiguration, in _: Context) async -> Timeline<BudgetWidgetEntry> {
-        Timeline(entries: [await entry(for: configuration)], policy: .atEnd)
+        let loaded = await loadData(budgetId: configuration.budget?.id ?? "")
+        let entry = BudgetWidgetEntry(date: Date(), totalSpent: loaded.total, percentageOfDays: loaded.percentage, budget: loaded.budget, configuration: configuration)
+        let policy: TimelineReloadPolicy = loaded.budget.missing ? .atEnd : .after(loaded.nextRefresh)
+        return Timeline(entries: [entry], policy: policy)
     }
 
     private func entry(for configuration: BudgetWidgetConfiguration) async -> BudgetWidgetEntry {
@@ -107,11 +110,11 @@ struct BudgetWidgetProvider: AppIntentTimelineProvider {
         return BudgetWidgetEntry(date: Date(), totalSpent: loaded.total, percentageOfDays: loaded.percentage, budget: loaded.budget, configuration: configuration)
     }
 
-    func loadData(budgetId: String) async -> (total: Double, percentage: Double, budget: HoldingBudget) {
+    func loadData(budgetId: String) async -> (total: Double, percentage: Double, budget: HoldingBudget, nextRefresh: Date) {
         guard DataController.storeIsAvailable else {
             // Broken app group: do not touch the store. The entry view shows the
             // error placeholder via `guardedByDataStore()`.
-            return (0, 0, HoldingBudget.failed)
+            return (0, 0, HoldingBudget.failed, .distantFuture)
         }
 
         let snapshot: BudgetRepository.WidgetSnapshot
@@ -120,7 +123,7 @@ struct BudgetWidgetProvider: AppIntentTimelineProvider {
             snapshot = try await DataController.shared.budgets.getWidgetSnapshot(identifier: budgetId)
         } catch {
             // Unconfigured or since-deleted budget renders as the missing-budget entry.
-            return (0, 0, HoldingBudget.failed)
+            return (0, 0, HoldingBudget.failed, .distantFuture)
         }
 
         let returnBudget = HoldingBudget(type: snapshot.type, symbol: snapshot.symbol, name: snapshot.name, color: snapshot.color, budgetAmount: snapshot.budgetAmount)
@@ -142,7 +145,25 @@ struct BudgetWidgetProvider: AppIntentTimelineProvider {
             percentageOfDays = numberOfDays > 0 ? Double(numberOfDaysPast) / Double(numberOfDays) : 0
         }
 
-        return (snapshot.totalSpent, percentageOfDays, returnBudget)
+        let nextRefresh = nextBudgetRefresh(type: snapshot.type, startDate: snapshot.startDate)
+
+        return (snapshot.totalSpent, percentageOfDays, returnBudget, nextRefresh)
+    }
+
+    private func nextBudgetRefresh(type: Int, startDate: Date) -> Date {
+        let calendar = Calendar.current
+        switch type {
+        case 1:
+            return calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now)!)
+        case 2:
+            return calendar.startOfDay(for: calendar.date(byAdding: .day, value: 7, to: startDate)!)
+        case 3:
+            return calendar.startOfDay(for: calendar.date(byAdding: .month, value: 1, to: startDate)!)
+        case 4:
+            return calendar.startOfDay(for: calendar.date(byAdding: .year, value: 1, to: startDate)!)
+        default:
+            return calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now)!)
+        }
     }
 }
 

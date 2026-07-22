@@ -125,7 +125,23 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: RecentWidgetConfiguration, in _: Context) async -> Timeline<RecentWidgetEntry> {
-        Timeline(entries: [await entry(for: configuration)], policy: .atEnd)
+        let entry = await entry(for: configuration)
+        let nextRefresh = nextPeriodBoundary(for: configuration.duration.timePeriod)
+        return Timeline(entries: [entry], policy: .after(nextRefresh))
+    }
+
+    private func nextPeriodBoundary(for duration: TimePeriod) -> Date {
+        let calendar = Calendar.current
+        let now = Date.now
+        let unit: Calendar.Component
+        switch duration {
+        case .day: unit = .day
+        case .week: unit = .weekOfYear
+        case .month: unit = .month
+        case .year: unit = .year
+        default: unit = .day
+        }
+        return calendar.dateInterval(of: unit, for: now)?.end ?? calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: now)!)
     }
 
     private func entry(for configuration: RecentWidgetConfiguration) async -> RecentWidgetEntry {

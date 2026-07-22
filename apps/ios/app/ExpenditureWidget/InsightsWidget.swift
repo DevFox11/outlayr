@@ -140,7 +140,9 @@ struct InsightsProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: InsightsWidgetConfiguration, in _: Context) async -> Timeline<InsightsWidgetEntry> {
-        Timeline(entries: [await entry(for: configuration)], policy: .atEnd)
+        let entry = await entry(for: configuration)
+        let nextMidnight = Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: .now)!)
+        return Timeline(entries: [entry], policy: .after(nextMidnight))
     }
 
     private func entry(for configuration: InsightsWidgetConfiguration) async -> InsightsWidgetEntry {

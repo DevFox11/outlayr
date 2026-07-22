@@ -64,9 +64,30 @@ struct MainBudgetWidgetProvider: TimelineProvider {
 
             let entry = MainBudgetWidgetEntry(date: Date(), totalSpent: loaded.totalSpent, percentageOfDays: loaded.percentage, type: loaded.type, budgetAmount: loaded.budgetAmount, startDate: loaded.startDate, found: loaded.found)
 
-            let timeline = Timeline(entries: [entry], policy: .atEnd)
+            let policy: TimelineReloadPolicy
+            if loaded.found {
+                policy = .after(nextBudgetRefresh(type: loaded.type, startDate: loaded.startDate))
+            } else {
+                policy = .atEnd
+            }
 
-            completion(timeline)
+            completion(Timeline(entries: [entry], policy: policy))
+        }
+    }
+
+    private func nextBudgetRefresh(type: Int, startDate: Date) -> Date {
+        let calendar = Calendar.current
+        switch type {
+        case 1:
+            return calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now)!)
+        case 2:
+            return calendar.startOfDay(for: calendar.date(byAdding: .day, value: 7, to: startDate)!)
+        case 3:
+            return calendar.startOfDay(for: calendar.date(byAdding: .month, value: 1, to: startDate)!)
+        case 4:
+            return calendar.startOfDay(for: calendar.date(byAdding: .year, value: 1, to: startDate)!)
+        default:
+            return calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now)!)
         }
     }
 
