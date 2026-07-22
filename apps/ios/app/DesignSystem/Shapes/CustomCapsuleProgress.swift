@@ -40,5 +40,8 @@ struct CustomCapsuleProgress: View {
 //                .font(.system(size: 12, weight: .bold, design: .rounded))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Progress")
+        .accessibilityValue(percentString)
     }
 }

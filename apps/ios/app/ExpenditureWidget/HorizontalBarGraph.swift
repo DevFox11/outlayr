@@ -9,6 +9,13 @@ struct HorizontalBarGraph: View {
     var categories: [HoldingCategory]
     let income: Bool
 
+    private var summary: String {
+        categories
+            .filter { $0.percent >= 0.02 }
+            .map { "\($0.name) \(Int($0.percent * 100))%" }
+            .joined(separator: ", ")
+    }
+
     var body: some View {
         GeometryReader { proxy in
             HStack(spacing: proxy.size.width * 0.015) {
@@ -29,5 +36,8 @@ struct HorizontalBarGraph: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Category breakdown")
+        .accessibilityValue(summary)
     }
 }

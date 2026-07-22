@@ -3,6 +3,7 @@
 //  Outlayr
 //
 
+import Accessibility
 import Foundation
 import SwiftUI
 
@@ -102,6 +103,10 @@ struct SingleYearBarGraphView: View {
         .onChange(of: selectedDate) { _, _ in
             selectedDateAmount = monthDictionary[selectedDate ?? Date.now] ?? 0.0
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityChartDescriptor(self)
+        .accessibilityLabel("Yearly spending chart")
+        .accessibilityValue(actualMonths > 1 ? "Average \(String(format: "%.0f", yearAverage)) per month" : "No data")
     }
 
     func getMonth(month: Date) -> String {
@@ -122,5 +127,39 @@ struct SingleYearBarGraphView: View {
         self.max = insights.maximum
         yearAverage = insights.average
         actualMonths = insights.numberOfDays
+    }
+}
+
+extension SingleYearBarGraphView: AXChartDescriptorRepresentable {
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+
+        let pastMonths = monthsOfYear.filter { $0 <= Date.now }.sorted()
+        let labels = pastMonths.map { formatter.string(from: $0) }
+
+        let xAxis = AXCategoricalDataAxisDescriptor(title: "Month", categoryOrder: labels)
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: "Amount",
+            range: 0...Swift.max(1, max * 1.1),
+            gridlinePositions: []
+        ) { String(format: "%.0f", $0) }
+
+        let series = AXDataSeriesDescriptor(
+            name: "Spending",
+            isContinuous: false,
+            dataPoints: zip(labels, pastMonths).map { label, month in
+                AXDataPoint(x: label, y: monthDictionary[month] ?? 0)
+            }
+        )
+
+        return AXChartDescriptor(
+            title: "Yearly spending",
+            summary: actualMonths > 1 ? "Average \(String(format: "%.0f", yearAverage)) per month" : nil,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            additionalAxes: [],
+            series: [series]
+        )
     }
 }

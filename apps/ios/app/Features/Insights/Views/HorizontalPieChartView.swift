@@ -73,6 +73,12 @@ struct HorizontalPieChartView: View {
         return "100%".widthOfRoundedString(size: fontSize, weight: .medium) + 4
     }
 
+    private var categorySummary: String {
+        categories
+            .map { "\($0.category.wrappedName) \(Int($0.percent * 100))%" }
+            .joined(separator: ", ")
+    }
+
     var categories: [PowerCategory] {
         var holding = [PowerCategory]()
 
@@ -155,6 +161,9 @@ struct HorizontalPieChartView: View {
             }
             .frame(height: 17)
             .padding(.bottom, 10)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Category breakdown chart")
+            .accessibilityValue(categorySummary)
         }
     }
 

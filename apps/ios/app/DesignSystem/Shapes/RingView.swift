@@ -13,6 +13,7 @@ struct RingView: View {
     var width: Double
     var topStroke: Color
     var bottomStroke: Color
+    var label: String = "Progress"
 
     var body: some View {
         ZStack {
@@ -31,5 +32,8 @@ struct RingView: View {
         }
         .rotationEffect(.init(degrees: -90))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(Int(min(percent, 0.95) * 100))%")
     }
 }

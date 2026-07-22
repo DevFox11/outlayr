@@ -3,6 +3,7 @@
 //  Outlayr
 //
 
+import Accessibility
 import Foundation
 import SwiftUI
 
@@ -93,6 +94,10 @@ struct SingleWeekBarGraphView: View {
             selectedDateAmount = dayDictionary[selectedDate ?? Date.now] ?? 0.0
             refreshID = UUID()
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityChartDescriptor(self)
+        .accessibilityLabel("Weekly spending chart")
+        .accessibilityValue(actualDays > 1 ? "Average \(String(format: "%.0f", weekAverage)) per day" : "No data")
     }
 
     func getWeekday(day: Date) -> String {
@@ -113,5 +118,39 @@ struct SingleWeekBarGraphView: View {
         self.max = insights.maximum
         weekAverage = insights.average
         actualDays = insights.numberOfDays
+    }
+}
+
+extension SingleWeekBarGraphView: AXChartDescriptorRepresentable {
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE d"
+
+        let pastDays = daysOfWeek.filter { $0 <= Date.now }.sorted()
+        let labels = pastDays.map { formatter.string(from: $0) }
+
+        let xAxis = AXCategoricalDataAxisDescriptor(title: "Day", categoryOrder: labels)
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: "Amount",
+            range: 0...Swift.max(1, max * 1.1),
+            gridlinePositions: []
+        ) { String(format: "%.0f", $0) }
+
+        let series = AXDataSeriesDescriptor(
+            name: "Spending",
+            isContinuous: false,
+            dataPoints: zip(labels, pastDays).map { label, day in
+                AXDataPoint(x: label, y: dayDictionary[day] ?? 0)
+            }
+        )
+
+        return AXChartDescriptor(
+            title: "Weekly spending",
+            summary: actualDays > 1 ? "Average \(String(format: "%.0f", weekAverage)) per day" : nil,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            additionalAxes: [],
+            series: [series]
+        )
     }
 }

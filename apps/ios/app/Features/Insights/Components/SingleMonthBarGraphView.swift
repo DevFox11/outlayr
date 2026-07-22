@@ -2,6 +2,7 @@
 //  MonthGraphView.swift
 //  Outlayr
 
+import Accessibility
 import Foundation
 import SwiftUI
 
@@ -103,6 +104,10 @@ struct SingleMonthBarGraphView: View {
         .onChange(of: selectedDate) { _, _ in
             selectedDateAmount = dayDictionary[selectedDate ?? Date.now] ?? 0.0
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityChartDescriptor(self)
+        .accessibilityLabel("Monthly spending chart")
+        .accessibilityValue(actualDays > 1 ? "Average \(String(format: "%.0f", monthAverage)) per day" : "No data")
     }
 
     init(insights: TransactionRepository.GraphViewInsights.PeriodBreakdown, date: Binding<Date?>?, mode: Binding<Bool>, amount: Binding<Double>) {
@@ -115,5 +120,39 @@ struct SingleMonthBarGraphView: View {
         self.max = insights.maximum
         monthAverage = insights.average
         actualDays = insights.numberOfDays
+    }
+}
+
+extension SingleMonthBarGraphView: AXChartDescriptorRepresentable {
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+
+        let pastDays = daysOfMonth.filter { $0 <= Date.now }.sorted()
+        let labels = pastDays.map { formatter.string(from: $0) }
+
+        let xAxis = AXCategoricalDataAxisDescriptor(title: "Day", categoryOrder: labels)
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: "Amount",
+            range: 0...Swift.max(1, max * 1.1),
+            gridlinePositions: []
+        ) { String(format: "%.0f", $0) }
+
+        let series = AXDataSeriesDescriptor(
+            name: "Spending",
+            isContinuous: false,
+            dataPoints: zip(labels, pastDays).map { label, day in
+                AXDataPoint(x: label, y: dayDictionary[day] ?? 0)
+            }
+        )
+
+        return AXChartDescriptor(
+            title: "Monthly spending",
+            summary: actualDays > 1 ? "Average \(String(format: "%.0f", monthAverage)) per day" : nil,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            additionalAxes: [],
+            series: [series]
+        )
     }
 }

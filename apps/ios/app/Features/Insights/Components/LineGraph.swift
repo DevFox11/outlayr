@@ -5,10 +5,10 @@
 //  Created by Rafael Soh on 25/11/22.
 //
 
+import Accessibility
 import Foundation
 import SwiftUI
 
-// Custom View....
 struct LineGraph: View {
     var data: [LineGraphDataPoint]
     var green: Bool
@@ -222,23 +222,41 @@ struct LineGraph: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityChartDescriptor(self)
+        .accessibilityLabel(green ? "Income history" : "Spending history")
     }
 
-//    @ViewBuilder
-//    func FillBG()->some View{
-//        let color = green ? Color.IncomeGreen : Color.AlertRed
-//        Color.red
-    ////        LinearGradient(colors: [
-    ////
-    ////            color
-    ////                .opacity(0.3),
-    ////            color
-    ////                .opacity(0.2),
-    ////            color
-    ////                .opacity(0.1)]
-    ////            + Array(repeating: color
-    ////                .opacity(0.1), count: 4)
-    ////            + Array(repeating:                     Color.clear, count: 2)
-    ////            , startPoint: .top, endPoint: .bottom)
-//    }
+}
+
+extension LineGraph: AXChartDescriptorRepresentable {
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let title = green ? "Income history" : "Spending history"
+        let maxValue = data.map(\.amount).max() ?? 0
+        let labels = data.map { type < 4 ? $0.dateString : $0.monthString }
+
+        let xAxis = AXCategoricalDataAxisDescriptor(title: "Date", categoryOrder: labels)
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: "Amount",
+            range: 0...Swift.max(1, maxValue * 1.1),
+            gridlinePositions: []
+        ) { String(format: "%.0f", $0) }
+
+        let series = AXDataSeriesDescriptor(
+            name: green ? "Income" : "Spending",
+            isContinuous: true,
+            dataPoints: zip(labels, data).map { label, point in
+                AXDataPoint(x: label, y: point.amount)
+            }
+        )
+
+        return AXChartDescriptor(
+            title: title,
+            summary: nil,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            additionalAxes: [],
+            series: [series]
+        )
+    }
 }
