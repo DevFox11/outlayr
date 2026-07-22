@@ -110,6 +110,8 @@ struct SettingsView: View {
   var hapticType: Int = 1
 
   @State var showImportGuide = false
+  @State private var exportFileURL: URL?
+  @State private var showExportSheet = false
 
   @Environment(TabBarManager.self) private var tabBarManager
 
@@ -242,7 +244,7 @@ struct SettingsView: View {
           }
 
           Button {
-            exportData()
+            exportFile()
           } label: {
             SettingsRow(icon: "file-export", color: 113, title: "Export Data")
           }
@@ -294,9 +296,7 @@ struct SettingsView: View {
             SettingsRow(icon: "star", color: 126, title: "Rate on App Store")
           }
 
-          Button {
-            shareSheet(url: "https://tryoutlayr.com")
-          } label: {
+          ShareLink(item: URL(string: "https://tryoutlayr.com")!) {
             SettingsRow(icon: "share-08", color: 127, title: "Share with Friends")
           }
 
@@ -333,46 +333,29 @@ struct SettingsView: View {
       .fullScreenCover(isPresented: $showImportGuide) {
         ImportDataView()
       }
+      .sheet(isPresented: $showExportSheet) {
+        if let url = exportFileURL {
+          ActivityView(items: [url])
+            .ignoresSafeArea()
+        }
+      }
     }
   }
 
-  func shareSheet(url: String) {
-    guard let url = URL(string: url) else { return }
-    let activityView = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-
-    let allScenes = UIApplication.shared.connectedScenes
-    let scene = allScenes.first { $0.activationState == .foregroundActive }
-
-    if let windowScene = scene as? UIWindowScene {
-      windowScene.keyWindow?.rootViewController?.present(
-        activityView, animated: true, completion: nil)
-    }
-  }
-
-  func exportData() {
+  func exportFile() {
     let fetchRequest = dataController.transactions.fetchRequestForExport()
     let transactions = dataController.results(for: fetchRequest)
 
     let fileName = "export.csv"
-    let path = NSURL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
+    guard let path = NSURL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName) else { return }
     let csvText = TransactionCSV.export(transactions)
 
     do {
-      try csvText.write(to: path!, atomically: true, encoding: String.Encoding.utf8)
+      try csvText.write(to: path, atomically: true, encoding: .utf8)
+      exportFileURL = path
+      showExportSheet = true
     } catch {
       print("\(error)")
-    }
-
-    var filesToShare = [Any]()
-    filesToShare.append(path!)
-
-    let av = UIActivityViewController(activityItems: filesToShare, applicationActivities: nil)
-
-    let allScenes = UIApplication.shared.connectedScenes
-    let scene = allScenes.first { $0.activationState == .foregroundActive }
-
-    if let windowScene = scene as? UIWindowScene {
-      windowScene.keyWindow?.rootViewController?.present(av, animated: true, completion: nil)
     }
   }
 }
