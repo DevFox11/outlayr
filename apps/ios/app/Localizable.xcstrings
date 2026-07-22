@@ -1154,6 +1154,22 @@
         }
       }
     },
+    "accessibility.period" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period"
+          }
+        },
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periodo"
+          }
+        }
+      }
+    },
     "accessibility.hideSuggestions" : {
       "localizations" : {
         "en" : {

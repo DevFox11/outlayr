@@ -53,6 +53,7 @@ struct LogView: View {
                         .navigationSubtitleIfAvailable(subtitle)
                         .toolbar {
                             searchButton
+                            periodMenu
                             filterMenu
                         }
                 }
@@ -142,6 +143,28 @@ struct LogView: View {
         }
     }
 
+    /// Which period the figures cover. Kept apart from the filter: they answer
+    /// different questions, and one menu holding both scrolled past the fold.
+    private var periodMenu: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Picker(selection: $timeframe) {
+                    ForEach(LogPeriod.allCases) { option in
+                        Text(LocalizedStringKey(option.titleKey)).tag(option.rawValue)
+                    }
+                } label: {
+                    Text("Period")
+                }
+                .pickerStyle(.inline)
+            } label: {
+                ToolbarIcon("calendar-01")
+            }
+            .accessibilityLabel(String(localized: "accessibility.period"))
+        }
+    }
+
+    /// Which entries are listed. Solid glyph while a filter is on, so the
+    /// toolbar says so without the chip row having to be on screen.
     private var filterMenu: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
@@ -155,15 +178,6 @@ struct LogView: View {
                     }
                 } label: {
                     Text("Show")
-                }
-                .pickerStyle(.inline)
-
-                Picker(selection: $timeframe) {
-                    ForEach(LogPeriod.allCases) { option in
-                        Text(LocalizedStringKey(option.titleKey)).tag(option.rawValue)
-                    }
-                } label: {
-                    Text("Period")
                 }
                 .pickerStyle(.inline)
             } label: {
