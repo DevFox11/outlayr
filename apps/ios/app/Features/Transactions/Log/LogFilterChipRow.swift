@@ -49,7 +49,8 @@ struct LogFilterChipRow: View {
                         .font(.system(.caption2, design: .rounded).weight(.bold))
                         .foregroundStyle(Color.SubtitleText)
                         .padding(.vertical, 4)
-                        .contentShape(Rectangle())
+                        // Grows the hit region past the glyph without moving it.
+                        .contentShape(Rectangle().inset(by: -12))
                 }
                 .accessibilityLabel(String(localized: "accessibility.removeFilter"))
             }

@@ -70,6 +70,8 @@ struct NumberView: AnimatableModifier {
                 .monospacedDigit()
                 .foregroundStyle(Color.PrimaryText)
         }
+        // Symbol and digits are one figure, not two things to swipe between.
+        .accessibilityElement(children: .combine)
         .minimumScaleFactor(0.5)
         .lineLimit(1)
     }

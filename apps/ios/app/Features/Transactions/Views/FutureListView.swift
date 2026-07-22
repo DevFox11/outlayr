@@ -80,7 +80,7 @@ struct FutureListView: View {
                     .accessibilityLabel(accessibilityTotal)
 
                     Line()
-                        .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+                        .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
                 }
                 .padding(.horizontal, 10)
 
@@ -104,7 +104,7 @@ struct FutureListView: View {
             ForEach(Array(totals.buckets.enumerated()), id: \.element.id) { index, bucket in
                 if index > 0 {
                     Text(verbatim: "/")
-                        .foregroundStyle(Color.Outline)
+                        .foregroundStyle(Color.EvenLighterText)
                 }
 
                 Text(verbatim: CurrencyAmountFormatter(currencyCode: bucket.currencyCode, showCents: showCents)

@@ -67,18 +67,12 @@ struct SingleTransactionView: View {
         return code
     }
 
+    private var amountFormatter: CurrencyAmountFormatter {
+        CurrencyAmountFormatter(currencyCode: effectiveCurrency, showCents: showCents)
+    }
+
     var transactionAmountString: String {
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = effectiveCurrency
-
-        if showCents {
-            numberFormatter.maximumFractionDigits = 2
-        } else {
-            numberFormatter.maximumFractionDigits = 0
-        }
-
-        return numberFormatter.string(from: NSNumber(value: transaction.amount)) ?? "$0"
+        amountFormatter.magnitudeString(transaction.amount)
     }
 
     var body: some View {
@@ -292,7 +286,23 @@ struct SingleTransactionView: View {
             }
             .offset(x: offset)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(transaction.wrappedNote), \(effectiveCurrencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Transaction Category: \(transaction.category?.wrappedName ?? "Unknown"), Transaction made at \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(accessibilityDescription)
+    }
+
+    /// The sign is the one thing a ledger row cannot afford to drop: without it
+    /// a refund and a purchase of the same size are indistinguishable.
+    private var accessibilityDescription: String {
+        let amount = amountFormatter.signedString(
+            magnitude: transaction.wrappedAmount,
+            isPositive: transaction.income
+        )
+        let currency = foreignCurrencyCode.map { " \($0)" } ?? ""
+        let category = transaction.category?.wrappedName ?? String(localized: "Unknown")
+
+        return String(
+            localized: "\(transaction.wrappedNote), \(amount)\(currency), Transaction Category: \(category), Transaction made at \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))"
+        )
     }
 
     func getSubtitle() -> String {

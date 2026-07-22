@@ -28,18 +28,18 @@ struct ListView: View {
         LazyVStack(spacing: 0) {
             ForEach(transactions) { day in
                 let filtered = filterOutDupes(day: day)
-                let dominant = filtered.totals.dominant
-                let totalText = dayTotalText(for: dominant)
+                let totalText = dayTotalText(for: filtered.totals.dominant)
                 let dateText = dateConverter(date: day.id ?? Date.now).uppercased()
 
                 VStack(spacing: 0) {
                     VStack(spacing: 5) {
                         dayHeader(dateText: dateText, totals: filtered.totals)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(symbol(for: dominant.currencyCode))\(String(format: "%.2f", dominant.magnitude)) was spent \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
+                        .accessibilityLabel("\(dateConverterAccessibilityLabel(date: day.id ?? Date.now)), \(accessibilityTotal(for: filtered.totals))")
 
                         Line()
-                            .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+                            .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
                     }
                     .padding(.horizontal, 10)
                     .padding(.top, 10)
@@ -118,7 +118,7 @@ struct ListView: View {
             ForEach(Array(totals.buckets.enumerated()), id: \.element.id) { index, bucket in
                 if index > 0 {
                     Text(verbatim: "/")
-                        .foregroundStyle(Color.Outline)
+                        .foregroundStyle(Color.EvenLighterText)
                 }
 
                 Text(verbatim: dayTotalText(for: bucket))
@@ -131,8 +131,10 @@ struct ListView: View {
         .minimumScaleFactor(0.7)
     }
 
-    private func symbol(for currencyCode: String) -> String {
-        Locale.current.localizedCurrencySymbol(forCurrencyCode: currencyCode) ?? currencyCode
+    /// Every bucket, signed — a day that netted positive must not be announced
+    /// as spending, and the second currency must not vanish.
+    private func accessibilityTotal(for totals: CurrencyTotals) -> String {
+        totals.buckets.map { dayTotalText(for: $0) }.joined(separator: ", ")
     }
 
     private func dayTotalText(for bucket: CurrencyTotals.Bucket) -> String {

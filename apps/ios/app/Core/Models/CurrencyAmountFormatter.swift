@@ -16,14 +16,15 @@ struct CurrencyAmountFormatter {
     /// the ones it asked for rather than the ones the device happens to use.
     let locale: Locale
 
+    /// Resolved once: `Currency.minorUnits(for:)` builds a formatter and a locale
+    /// of its own, and this was being read twice per formatter built.
+    private let fractionDigits: Int
+
     init(currencyCode: String, showCents: Bool, locale: Locale = .current) {
         self.currencyCode = currencyCode
         self.showCents = showCents
         self.locale = locale
-    }
-
-    private var fractionDigits: Int {
-        showCents ? Currency.minorUnits(for: currencyCode) : 0
+        fractionDigits = showCents ? Currency.minorUnits(for: currencyCode) : 0
     }
 
     private var currencyFormatter: NumberFormatter {

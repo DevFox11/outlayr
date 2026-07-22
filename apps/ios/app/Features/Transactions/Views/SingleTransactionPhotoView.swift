@@ -17,17 +17,8 @@ struct SingleTransactionPhotoView: View {
     let future: Bool
 
     var transactionAmountString: String {
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = currency
-
-        if showCents {
-            numberFormatter.maximumFractionDigits = 2
-        } else {
-            numberFormatter.maximumFractionDigits = 0
-        }
-
-        return numberFormatter.string(from: NSNumber(value: transaction.amount)) ?? "$0"
+        CurrencyAmountFormatter(currencyCode: currency, showCents: showCents)
+            .magnitudeString(transaction.amount)
     }
 
     var body: some View {

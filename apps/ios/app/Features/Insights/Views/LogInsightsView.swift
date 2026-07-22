@@ -126,7 +126,8 @@ struct LogInsightsView: View {
     private var eyebrow: some View {
         MonoLabel(
             Text(LocalizedStringKey(measure.titleKey))
-                + Text(verbatim: " · ")
+                // Non-breaking before the middot so a wrap never orphans it.
+                + Text(verbatim: "\u{00A0}· ")
                 + Text(LocalizedStringKey(period.titleKey))
         )
         .fixedSize(horizontal: false, vertical: true)
@@ -285,6 +286,7 @@ struct LogInsightsView: View {
             .contentShape(Capsule())
         }
         .accessibilityLabel("Currency shown")
+        .accessibilityValue(Text(verbatim: figures?.currencyCode ?? insights.dominant.currencyCode))
     }
 
     private var scopeSelection: Binding<String> {
