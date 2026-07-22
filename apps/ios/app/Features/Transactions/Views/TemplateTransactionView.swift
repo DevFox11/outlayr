@@ -161,11 +161,11 @@ struct TemplateTransactionView: View {
                     if showToast {
                         HStack(spacing: 6.5) {
                             Image(systemName: toastImage)
-                                .font(.system(size: 15, weight: .semibold))
+                                .scaledFont(15, weight: .semibold)
                                 .foregroundStyle(Color.AlertRed)
 
                             Text(toastTitle)
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .scaledFont(16, weight: .semibold, design: .rounded)
                                 .foregroundStyle(Color.AlertRed)
                         }
                         .padding(8)
@@ -189,7 +189,7 @@ struct TemplateTransactionView: View {
                             dismiss()
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .semibold))
+                                .scaledFont(16, weight: .semibold)
                                 .foregroundStyle(Color.SubtitleText)
                                 .padding(7)
                                 .background(Color.SecondaryBackground, in: Circle())
@@ -205,7 +205,7 @@ struct TemplateTransactionView: View {
 
                             } label: {
                                 Image(systemName: "trash.fill")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .scaledFont(16, weight: .semibold)
                                     .foregroundStyle(Color.AlertRed)
                                     .padding(7)
                                     .background(Color.AlertRed.opacity(0.23), in: Circle())
@@ -219,10 +219,10 @@ struct TemplateTransactionView: View {
                         } label: {
                             if repeatType > 0 {
                                 Image(systemName: "repeat")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .scaledFont(16, weight: .semibold)
                                     .overlay(alignment: .topTrailing) {
                                         Text(repeatOverlays[repeatType - 1])
-                                            .font(.system(size: 6, weight: .black, design: .rounded))
+                                            .scaledFont(6, weight: .black, design: .rounded)
                                             .foregroundStyle(Color.IncomeGreen)
                                             .frame(width: 10, alignment: .leading)
                                             .offset(x: 5.7, y: 1.5)
@@ -233,7 +233,7 @@ struct TemplateTransactionView: View {
                                     .contentShape(Circle())
                             } else {
                                 Image(systemName: "repeat")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .scaledFont(16, weight: .semibold)
                                     .foregroundStyle(Color.SubtitleText)
                                     .padding(7)
                                     .background(Color.SecondaryBackground, in: Circle())
@@ -266,33 +266,33 @@ struct TemplateTransactionView: View {
                     if numberEntryType == 1 {
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(currencySymbol)
-                                .font(.system(size: downsize.small, weight: .light, design: .rounded))
+                                .scaledFont(downsize.small, weight: .light, design: .rounded)
                                 .foregroundStyle(Color.SubtitleText)
                                 .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
                             Text("\(transactionValue, specifier: "%.2f")")
-                                .font(.system(size: downsize.big, weight: .regular, design: .rounded))
+                                .scaledFont(downsize.big, weight: .regular, design: .rounded)
                                 .foregroundStyle(Color.PrimaryText)
                         }
                     } else {
                         if numbers1.isEmpty {
                             HStack(alignment: .lastTextBaseline, spacing: 4) {
                                 Text(currencySymbol)
-                                    .font(.system(size: 32, weight: .light, design: .rounded))
+                                    .scaledFont(32, weight: .light, design: .rounded)
                                     .foregroundStyle(Color.SubtitleText)
                                     .baselineOffset(getDollarOffset(big: 56, small: 32))
                                 Text("0")
-                                    .font(.system(size: 56, weight: .regular, design: .rounded))
+                                    .scaledFont(56, weight: .regular, design: .rounded)
                                     .foregroundStyle(Color.PrimaryText)
                             }
                             .frame(maxWidth: .infinity)
                         } else {
                             HStack(alignment: .lastTextBaseline, spacing: 4) {
                                 Text(currencySymbol)
-                                    .font(.system(size: downsize.small, weight: .light, design: .rounded))
+                                    .scaledFont(downsize.small, weight: .light, design: .rounded)
                                     .foregroundStyle(Color.SubtitleText)
                                     .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
                                 Text(amount)
-                                    .font(.system(size: downsize.big, weight: .regular, design: .rounded))
+                                    .scaledFont(downsize.big, weight: .regular, design: .rounded)
                                     .foregroundStyle(Color.PrimaryText)
                             }
                             .frame(maxWidth: .infinity)
@@ -543,7 +543,7 @@ private struct TemplateTransactionNumPad: View {
                             }
                         } label: {
                             Text(".")
-                                .font(.system(size: 34, weight: .regular, design: .rounded))
+                                .scaledFont(34, weight: .regular, design: .rounded)
                                 .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                 .background(Color.SecondaryBackground)
                                 .foregroundStyle(Color.PrimaryText)
@@ -562,12 +562,12 @@ private struct TemplateTransactionNumPad: View {
                         Group {
                             if #available(iOS 17.0, *) {
                                 Image(systemName: "checkmark.square.fill")
-                                    .font(.system(size: 30, weight: .medium, design: .rounded))
+                                    .scaledFont(30, weight: .medium, design: .rounded)
                                     .symbolEffect(.bounce.up.byLayer, value: numberArrayCount != 0)
 //                                            .symbolEffectsRemoved()
                             } else {
                                 Image(systemName: "checkmark.square.fill")
-                                    .font(.system(size: 30, weight: .medium, design: .rounded))
+                                    .scaledFont(30, weight: .medium, design: .rounded)
                             }
                         }
                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
@@ -595,7 +595,7 @@ private struct TemplateTransactionNumPad: View {
 
         } label: {
             Image(systemName: "delete.left.fill")
-                .font(.system(size: 16, weight: .semibold))
+                .scaledFont(16, weight: .semibold)
                 .foregroundStyle(Color.SubtitleText)
                 .padding(7)
                 .background(Color.SecondaryBackground, in: Circle())
@@ -631,7 +631,7 @@ private struct TemplateTransactionNumPad: View {
             }
         } label: {
             Text("\(number)")
-                .font(.system(size: 34, weight: .regular, design: .rounded))
+                .scaledFont(34, weight: .regular, design: .rounded)
                 .frame(width: size.width * 0.3, height: size.height * 0.22)
                 .background(Color.SecondaryBackground)
                 .foregroundStyle(Color.PrimaryText)
@@ -655,7 +655,7 @@ private struct TemplateTransactionNumPad: View {
 
         } label: {
             Image(systemName: "delete.left.fill")
-                .font(.system(size: 16, weight: .semibold))
+                .scaledFont(16, weight: .semibold)
                 .foregroundStyle(Color.SubtitleText)
                 .padding(7)
                 .background(Color.SecondaryBackground, in: Circle())
@@ -686,11 +686,11 @@ private struct TemplateTransactionDeleteSheet: View {
 
             VStack(alignment: .leading, spacing: 1.5) {
                 Text("Delete Expense?")
-                    .font(.system(size: 20, weight: .medium, design: .rounded))
+                    .scaledFont(20, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.PrimaryText)
 
                 Text("This action cannot be undone.")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .scaledFont(16, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
                     .padding(.bottom, 15)
 
@@ -699,7 +699,7 @@ private struct TemplateTransactionDeleteSheet: View {
 
                 } label: {
                     Text("Delete")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .scaledFont(20, weight: .semibold, design: .rounded)
                         .foregroundStyle(.white)
                         .frame(height: 45)
                         .frame(maxWidth: .infinity)
@@ -715,7 +715,7 @@ private struct TemplateTransactionDeleteSheet: View {
 
                 } label: {
                     Text("Cancel")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .scaledFont(20, weight: .semibold, design: .rounded)
                         .foregroundStyle(Color.PrimaryText.opacity(0.9))
                         .frame(height: 45)
                         .frame(maxWidth: .infinity)

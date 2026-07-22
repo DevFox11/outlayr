@@ -21,7 +21,7 @@ struct InsightsSummaryBlockView: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: income ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 18, weight: .semibold))
+                .scaledFont(18, weight: .semibold)
                 .foregroundStyle(color)
                 .padding(5)
                 .frame(width: 30, height: 30)

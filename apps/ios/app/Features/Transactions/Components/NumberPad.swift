@@ -52,7 +52,7 @@ struct NumberPad: View {
                             isEditingDecimal = true
                         } label: {
                             Text(".")
-                                .font(.system(size: 34, weight: .regular, design: .rounded))
+                                .scaledFont(34, weight: .regular, design: .rounded)
                                 .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                 .background(Color.SecondaryBackground)
                                 .foregroundStyle(Color.PrimaryText)
@@ -69,11 +69,11 @@ struct NumberPad: View {
                         Group {
                             if #available(iOS 17.0, *) {
                                 Image(systemName: "checkmark.square.fill")
-                                    .font(.system(size: 30, weight: .medium, design: .rounded))
+                                    .scaledFont(30, weight: .medium, design: .rounded)
                                     .symbolEffect(.bounce.up.byLayer, value: price != 0 && category != nil)
                             } else {
                                 Image(systemName: "checkmark.square.fill")
-                                    .font(.system(size: 30, weight: .medium, design: .rounded))
+                                    .scaledFont(30, weight: .medium, design: .rounded)
                             }
                         }
                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
@@ -148,7 +148,7 @@ struct NumberPad: View {
             }
         } label: {
             Text("\(number)")
-                .font(.system(size: 34, weight: .regular, design: .rounded))
+                .scaledFont(34, weight: .regular, design: .rounded)
                 .frame(width: size.width * 0.3, height: size.height * 0.22)
                 .background(Color.SecondaryBackground)
                 .foregroundStyle(Color.PrimaryText)

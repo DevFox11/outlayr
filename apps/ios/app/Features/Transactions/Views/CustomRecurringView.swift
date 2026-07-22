@@ -73,7 +73,7 @@ struct CustomRecurringView: View {
 
             HStack(spacing: 10) {
                 Text("Repeats every")
-                    .font(.system(size: 23, weight: .medium, design: .rounded))
+                    .scaledFont(23, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.PrimaryText)
                     .padding(.trailing, 3)
 
@@ -82,7 +82,7 @@ struct CustomRecurringView: View {
                         holdingCoefficient += 1
                     } label: {
                         Image(systemName: "chevron.up")
-                            .font(.system(size: 16, weight: .semibold))
+                            .scaledFont(16, weight: .semibold)
                             .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
@@ -94,7 +94,7 @@ struct CustomRecurringView: View {
                     .disabled(holdingCoefficient == 30)
 
                     Text("\(holdingCoefficient)")
-                        .font(.system(size: 23, weight: .medium, design: .rounded))
+                        .scaledFont(23, weight: .medium, design: .rounded)
                         .padding(7)
                         .background {
                             RoundedRectangle(cornerRadius: 9, style: .continuous)
@@ -106,7 +106,7 @@ struct CustomRecurringView: View {
                         holdingCoefficient -= 1
                     } label: {
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 16, weight: .semibold))
+                            .scaledFont(16, weight: .semibold)
                             .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
@@ -123,7 +123,7 @@ struct CustomRecurringView: View {
                         holdingType -= 1
                     } label: {
                         Image(systemName: "chevron.up")
-                            .font(.system(size: 16, weight: .semibold))
+                            .scaledFont(16, weight: .semibold)
                             .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(
@@ -143,7 +143,7 @@ struct CustomRecurringView: View {
                             Text("\(holdingCoefficient) months")
                         }
                     }
-                    .font(.system(size: 23, weight: .medium, design: .rounded))
+                    .scaledFont(23, weight: .medium, design: .rounded)
                     .padding(7)
                     .background {
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
@@ -155,7 +155,7 @@ struct CustomRecurringView: View {
                         holdingType += 1
                     } label: {
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 16, weight: .semibold))
+                            .scaledFont(16, weight: .semibold)
                             .foregroundStyle(Color.SubtitleText)
                             .padding(7)
                             .background(

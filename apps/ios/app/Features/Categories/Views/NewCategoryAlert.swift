@@ -140,7 +140,7 @@ struct NewCategoryAlert: View {
                         Image(systemName: "checkmark.circle.fill")
                         Text("Category added")
                     }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .scaledFont(14, weight: .semibold, design: .rounded)
                     .foregroundStyle(Color.IncomeGreen)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)

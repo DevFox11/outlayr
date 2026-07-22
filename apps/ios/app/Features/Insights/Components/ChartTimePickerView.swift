@@ -29,11 +29,11 @@ struct ChartTimePickerView: View {
 
                     if time == timeframe {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .medium))
+                            .scaledFont(14, weight: .medium)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .scaledFont(18, weight: .medium, design: .rounded)
                 .padding(5)
                 .background {
                     if time == timeframe {

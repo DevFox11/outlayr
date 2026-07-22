@@ -87,7 +87,7 @@ struct LineGraph: View {
 
 //                 Path Bacground Coloring...
 //                FillBG()
-//                // Clipping the shape...
+//                // Clipping the shape..
 //                    .clipShape(
 //
 //                        Path{path in
@@ -111,16 +111,16 @@ struct LineGraph: View {
                     VStack(spacing: 1) {
                         if type < 4 {
                             Text(currentPlot?.dateString ?? "")
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .scaledFont(10, weight: .medium, design: .rounded)
                                 .foregroundStyle(Color.SubtitleText)
                         } else {
                             Text(currentPlot?.monthString ?? "")
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .scaledFont(10, weight: .medium, design: .rounded)
                                 .foregroundStyle(Color.SubtitleText)
                         }
 
                         Text(currentPlot?.amountString ?? "")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .scaledFont(12, weight: .semibold, design: .rounded)
                             .foregroundStyle(Color.PrimaryText)
                     }
                     .frame(height: 33)

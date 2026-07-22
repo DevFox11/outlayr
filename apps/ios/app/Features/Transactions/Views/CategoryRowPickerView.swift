@@ -29,7 +29,7 @@ struct CategoryRowPickerView: View {
         HStack(spacing: 8) {
             if empty {
                 Text("No categories found")
-                    .font(.system(size: 17.5, weight: .medium, design: .rounded))
+                    .scaledFont(17.5, weight: .medium, design: .rounded)
                     .padding(.horizontal, 13)
                     .foregroundStyle(Color.SubtitleText)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -49,7 +49,7 @@ struct CategoryRowPickerView: View {
                                         HStack(spacing: 5) {
                                             CategoryIconGlyph(symbol: item.displaySymbol, size: 14)
                                             Text(item.wrappedName)
-                                                .font(.system(size: 17.5, weight: .medium, design: .rounded))
+                                                .scaledFont(17.5, weight: .medium, design: .rounded)
                                         }
                                         .id(item.id)
                                         .padding(.horizontal, 10)
@@ -114,11 +114,11 @@ struct CategoryRowPickerView: View {
             Group {
                 if empty {
                     Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .scaledFont(16, weight: .semibold, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
                 } else {
                     Image(systemName: "pencil")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .scaledFont(16, weight: .semibold, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
                 }
 

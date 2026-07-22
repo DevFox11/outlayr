@@ -216,7 +216,7 @@ struct BudgetWidgetEntryView: View {
     var body: some View {
         if entry.configuration.budget == nil {
                 Text("Select budget in widget options")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .scaledFont(14, weight: .medium, design: .rounded)
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
                     .padding(15)
@@ -227,7 +227,7 @@ struct BudgetWidgetEntryView: View {
 
         } else if entry.budget.missing {
                 Text("Budget no longer exists - please select new budget from widget options.")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .scaledFont(14, weight: .medium, design: .rounded)
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
                     .padding(15)
@@ -247,13 +247,13 @@ struct BudgetWidgetEntryView: View {
                                     color: Color.PrimaryText
                                 )
                                 Text(entry.budget.name.uppercased())
-                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .scaledFont(12, weight: .semibold, design: .rounded)
                                     .lineLimit(1)
                             }
                             .foregroundColor(Color.PrimaryText)
 
                             Text("SPENT: \(percentString1)")
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .scaledFont(10, weight: .medium, design: .rounded)
                                 .foregroundColor(Color.SubtitleText)
                         }
 
@@ -287,16 +287,16 @@ struct BudgetWidgetEntryView: View {
 
                                     if showTimeFrame(size: proxy.size.width - 50) {
                                         Text(systemSmallWidgetText)
-                                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                                            .scaledFont(10, weight: .medium, design: .rounded)
                                             .foregroundColor(Color.SubtitleText)
                                     } else {
                                         if entry.budget.budgetAmount >= entry.totalSpent {
                                             Text("left")
-                                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                                .scaledFont(10, weight: .medium, design: .rounded)
                                                 .foregroundColor(Color.SubtitleText)
                                         } else {
                                             Text("over")
-                                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                                .scaledFont(10, weight: .medium, design: .rounded)
                                                 .foregroundColor(Color.SubtitleText)
                                         }
                                     }
@@ -319,7 +319,7 @@ struct BudgetWidgetEntryView: View {
                                         .frame(width: 50, alignment: .trailing)
                                 }
                             }
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .scaledFont(10, weight: .medium, design: .rounded)
                             .foregroundColor(Color.SubtitleText)
                         }
                         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)

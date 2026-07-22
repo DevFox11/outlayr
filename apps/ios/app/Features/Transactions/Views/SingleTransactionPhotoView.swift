@@ -38,7 +38,7 @@ struct SingleTransactionPhotoView: View {
                 .overlay(alignment: .bottomTrailing) {
                     if transaction.recurringType > 0 {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .medium))
+                            .scaledFont(12, weight: .medium)
                             .foregroundStyle(Color.DarkIcon)
                             .padding(3)
                             .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
@@ -48,19 +48,19 @@ struct SingleTransactionPhotoView: View {
 
             VStack(alignment: .leading, spacing: 5.5) {
                 Text(transaction.wrappedNote)
-                    .font(.system(size: 42, weight: .medium, design: .rounded))
+                    .scaledFont(42, weight: .medium, design: .rounded)
                     .foregroundStyle(future ? Color.SubtitleText : Color.PrimaryText)
                     .lineLimit(1)
 
                 if future {
                     if transaction.wrappedDate > Date.now {
                         Text(dateFormatter(date: transaction.wrappedDate))
-                            .font(.system(size: 35, weight: .medium, design: .rounded))
+                            .scaledFont(35, weight: .medium, design: .rounded)
                             .foregroundStyle(Color.EvenLighterText)
                             .lineLimit(1)
                     } else {
                         Text(dateFormatter(date: transaction.nextTransactionDate))
-                            .font(.system(size: 35, weight: .medium, design: .rounded))
+                            .scaledFont(35, weight: .medium, design: .rounded)
                             .foregroundStyle(Color.EvenLighterText)
                             .lineLimit(1)
                     }
@@ -68,12 +68,12 @@ struct SingleTransactionPhotoView: View {
                 } else {
                     if swapTimeLabel {
                         Text(transaction.wrappedCategoryName)
-                            .font(.system(size: 35, weight: .medium, design: .rounded))
+                            .scaledFont(35, weight: .medium, design: .rounded)
                             .foregroundStyle(Color.SubtitleText)
                             .lineLimit(1)
                     } else {
                         Text(transaction.wrappedDate, format: .dateTime.hour().minute())
-                            .font(.system(size: 35, weight: .medium, design: .rounded))
+                            .scaledFont(35, weight: .medium, design: .rounded)
                             .foregroundStyle(Color.SubtitleText)
                             .lineLimit(1)
                     }
@@ -84,14 +84,14 @@ struct SingleTransactionPhotoView: View {
 
             if transaction.income {
                 Text("+\(transactionAmountString)")
-                    .font(.system(size: 45, weight: .medium, design: .rounded))
+                    .scaledFont(45, weight: .medium, design: .rounded)
                     .foregroundStyle(future ? Color.SubtitleText : Color.IncomeGreen)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                     .layoutPriority(1)
             } else {
                 Text("-\(transactionAmountString)")
-                    .font(.system(size: 45, weight: .medium, design: .rounded))
+                    .scaledFont(45, weight: .medium, design: .rounded)
                     .foregroundStyle(future ? Color.SubtitleText : Color.PrimaryText)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)

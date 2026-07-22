@@ -143,12 +143,12 @@ struct CategorySheetSurface<FormContent: View>: View {
     private var heroInvitation: some View {
         ZStack {
             Image(systemName: "sparkle")
-                .font(.system(size: 12))
+                .scaledFont(12)
                 .foregroundStyle(Color.SubtitleText.opacity(0.45))
                 .offset(x: -62, y: -30)
 
             Image(systemName: "sparkle")
-                .font(.system(size: 9))
+                .scaledFont(9)
                 .foregroundStyle(Color.SubtitleText.opacity(0.45))
                 .offset(x: 60, y: 8)
 

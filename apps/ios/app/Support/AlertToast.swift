@@ -5,7 +5,6 @@
 //  Created by Rafael Soh on 1/7/22.
 //
 
-import Combine
 import Foundation
 import SwiftUI
 
@@ -324,7 +323,7 @@ public struct AlertToast: View {
             .padding()
             .frame(maxWidth: 400, alignment: .leading)
             .alertBackground(style?.backgroundColor ?? nil)
-            .cornerRadius(10)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding([.horizontal, .bottom])
         }
     }
@@ -343,13 +342,9 @@ public struct AlertToast: View {
                         .hudModifier()
                         .foregroundStyle(color)
                 case let .systemImage(name, color):
-//                    Image(systemName: name)
-//                        .hudModifier()
-//                        .foregroundStyle(color)
-
                     Image(systemName: name)
                         .foregroundStyle(color)
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .scaledFont(14, weight: .medium, design: .rounded)
                         .frame(width: 31, height: 31, alignment: .center)
                         .background(color.opacity(0.23), in: Circle())
                         .onTapGesture {
@@ -369,13 +364,13 @@ public struct AlertToast: View {
                     VStack(alignment: .center, spacing: 1) {
                         if title != nil {
                             Text(LocalizedStringKey(title ?? ""))
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .scaledFont(14, weight: .medium, design: .rounded)
                                 .multilineTextAlignment(.center)
                                 .textColor(style?.titleColor ?? nil)
                         }
                         if subTitle != nil {
                             Text(LocalizedStringKey(subTitle ?? ""))
-                                .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                                .scaledFont(11.5, weight: .medium, design: .rounded)
                                 .opacity(0.7)
                                 .multilineTextAlignment(.center)
                                 .textColor(style?.subtitleColor ?? nil)
@@ -385,11 +380,8 @@ public struct AlertToast: View {
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
-//            .padding(.horizontal, 20)
-//            .padding(.vertical, 7)
             .padding(7)
             .frame(height: 45)
-//            .background(Color("Light Red"))
             .alertBackground(style?.backgroundColor ?? nil)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Color.gray.opacity(0.06), lineWidth: 1))
@@ -456,7 +448,7 @@ public struct AlertToast: View {
         .padding()
         .withFrame(type != .regular && type != .loading)
         .alertBackground(style?.backgroundColor ?? nil)
-        .cornerRadius(10)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     /// Body init determine by `displayMode`
@@ -494,25 +486,6 @@ public struct AlertToastModifier: ViewModifier {
 
     @State private var workItem: DispatchWorkItem?
 
-    @State private var hostRect: CGRect = .zero
-    @State private var alertRect: CGRect = .zero
-
-    private var screen: CGRect {
-        #if os(iOS)
-            return UIScreen.main.bounds
-        #else
-            return NSScreen.main?.frame ?? .zero
-        #endif
-    }
-
-    private var offset: CGFloat {
-        #if os(iOS)
-            return -hostRect.midY + alertRect.height
-        #else
-            return (-hostRect.midY + screen.midY) + alertRect.height
-        #endif
-    }
-
     @ViewBuilder
     public func main() -> some View {
         if isPresenting {
@@ -535,18 +508,6 @@ public struct AlertToastModifier: ViewModifier {
                     .transition(AnyTransition.scale(scale: 0.8).combined(with: .opacity))
             case .hud:
                 alert()
-                    .overlay(
-                        GeometryReader { geo -> AnyView in
-                            let rect = geo.frame(in: .global)
-
-                            if rect.integral != alertRect.integral {
-                                DispatchQueue.main.async {
-                                    self.alertRect = rect
-                                }
-                            }
-                            return AnyView(EmptyView())
-                        }
-                    )
                     .onTapGesture {
                         onTap?()
                         if tapToDismiss {
@@ -592,50 +553,33 @@ public struct AlertToastModifier: ViewModifier {
                 }
                 .animation(Animation.spring(), value: isPresenting)
                 )
-                .valueChanged(value: isPresenting, onChange: { presented in
+                .onChange(of: isPresenting) { _, presented in
                     if presented { onAppearAction() }
-                })
+                }
         case .hud:
             content
-                .overlay(
-                    GeometryReader { geo -> AnyView in
-                        let rect = geo.frame(in: .global)
-
-                        if rect.integral != hostRect.integral {
-                            DispatchQueue.main.async {
-                                self.hostRect = rect
-                            }
-                        }
-
-                        return AnyView(EmptyView())
-                    }
-                    .overlay(ZStack {
+                .overlay(alignment: .top) {
+                    ZStack {
                         main()
                             .offset(y: offsetY)
                     }
-                    .frame(maxWidth: screen.width, maxHeight: screen.height)
-                    .offset(y: offset)
-                    .animation(Animation.spring(), value: isPresenting))
-                )
-                .valueChanged(value: isPresenting, onChange: { presented in
-                    if presented {
-                        onAppearAction()
-                    }
-                })
+                    .animation(Animation.spring(), value: isPresenting)
+                }
+                .onChange(of: isPresenting) { _, presented in
+                    if presented { onAppearAction() }
+                }
         case .alert:
             content
                 .overlay(ZStack {
                     main()
                         .offset(y: offsetY)
                 }
-                .frame(maxWidth: screen.width, maxHeight: screen.height, alignment: .center)
-                .edgesIgnoringSafeArea(.all)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .ignoresSafeArea()
                 .animation(Animation.spring(), value: isPresenting))
-                .valueChanged(value: isPresenting, onChange: { presented in
-                    if presented {
-                        onAppearAction()
-                    }
-                })
+                .onChange(of: isPresenting) { _, presented in
+                    if presented { onAppearAction() }
+                }
         }
     }
 
@@ -753,15 +697,5 @@ public extension View {
     /// - Returns: some View
     fileprivate func textColor(_ color: Color? = nil) -> some View {
         modifier(TextForegroundModifier(color: color))
-    }
-
-    @ViewBuilder fileprivate func valueChanged<T: Equatable>(value: T, onChange: @escaping (T) -> Void) -> some View {
-        if #available(iOS 14.0, *) {
-            self.onChange(of: value) { _, newValue in onChange(newValue) }
-        } else {
-            onReceive(Just(value)) { value in
-                onChange(value)
-            }
-        }
     }
 }

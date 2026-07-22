@@ -61,11 +61,11 @@ struct ShortcutInsightsView: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(leftText + " " + rightText)
-                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .scaledFont(17, weight: .medium, design: .rounded)
                 .foregroundStyle(Color.SubtitleText)
 
             Text(amountString)
-                .font(.system(size: 32, weight: .medium, design: .rounded))
+                .scaledFont(32, weight: .medium, design: .rounded)
                 .lineLimit(1)
         }
         .padding(20)

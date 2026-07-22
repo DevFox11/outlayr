@@ -49,16 +49,16 @@ struct ShortcutBudgetView: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(amountString)
-                .font(.system(size: 32, weight: .medium, design: .rounded))
+                .scaledFont(32, weight: .medium, design: .rounded)
                 .lineLimit(1)
 
             if amount > 0 {
                 Text("left \(budgetType)")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .scaledFont(16, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
             } else {
                 Text("over \(budgetType)")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .scaledFont(16, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
             }
         }

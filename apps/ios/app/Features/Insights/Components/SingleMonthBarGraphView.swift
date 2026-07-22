@@ -34,13 +34,13 @@ struct SingleMonthBarGraphView: View {
                 // axes
                 VStack(alignment: .leading) {
                     Text(getMaxText(maxi: getMax))
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .scaledFont(12, weight: .regular, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
 
                     Spacer()
 
                     Text("0")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .scaledFont(12, weight: .regular, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
 
                 }
@@ -63,7 +63,7 @@ struct SingleMonthBarGraphView: View {
                                 .overlay(alignment: .bottom) {
                                     if numberArray.contains(((daysOfMonth.firstIndex(of: day) ?? -1) + 1)) && firstDayOfMonth == 1 {
                                         Text("\((daysOfMonth.firstIndex(of: day) ?? -1) + 1)")
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                            .scaledFont(12, weight: .bold, design: .rounded)
                                             .foregroundStyle(Color.SubtitleText)
                                             .frame(width: 20, alignment: .center)
                                             .offset(y: 20)

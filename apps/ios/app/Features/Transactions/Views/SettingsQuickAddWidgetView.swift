@@ -15,7 +15,7 @@ struct SettingsQuickAddWidgetView: View {
     var body: some View {
         VStack(spacing: 10) {
             Text("Quick Add Widget")
-                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .scaledFont(20, weight: .semibold, design: .rounded)
                 .foregroundStyle(Color.PrimaryText)
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .leading) {
@@ -27,7 +27,7 @@ struct SettingsQuickAddWidgetView: View {
                             .frame(width: 30, height: 30)
                             .overlay {
                                 Image(systemName: "chevron.left")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .scaledFont(16, weight: .semibold)
                                     .foregroundStyle(Color.SubtitleText)
                             }
                     }

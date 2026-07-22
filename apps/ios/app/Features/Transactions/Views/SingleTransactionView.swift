@@ -191,7 +191,7 @@ struct SingleTransactionView: View {
                     .overlay(alignment: .bottomTrailing) {
                         if transaction.recurringType > 0 {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12, weight: .medium))
+                                .scaledFont(12, weight: .medium)
                                 .foregroundStyle(Color.DarkIcon)
                                 .padding(3)
                                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))

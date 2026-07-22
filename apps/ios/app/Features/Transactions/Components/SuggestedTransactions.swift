@@ -44,14 +44,14 @@ struct SuggestedTransactions: View {
                     } label: {
                         HStack(spacing: 3) {
                             Text(transaction.wrappedNote)
-                                .font(.system(size: 17.5, weight: .semibold, design: .rounded))
+                                .scaledFont(17.5, weight: .semibold, design: .rounded)
                                 .foregroundStyle(Color.PrimaryText)
                                 .lineLimit(1)
                                 .padding(.vertical, 3.5)
                                 .padding(.horizontal, 7)
 
                             Text("\(currencySymbol)\(Int(round(transaction.wrappedAmount)))")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .scaledFont(17, weight: .semibold, design: .rounded)
                                 .lineLimit(1)
                                 .foregroundStyle(Color(hex: transaction.effectiveColor))
                                 .padding(.vertical, 3.5)

@@ -251,7 +251,7 @@ struct InsightsWidgetEntryView: View {
                     VStack(spacing: 8) {
                         VStack(alignment: .leading, spacing: -1) {
                             Text(verbText + subtitleText)
-                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .scaledFont(10, weight: .semibold, design: .rounded)
                                 .foregroundColor(Color.SubtitleText)
 
                             InsightsWidgetDollarView(currencySymbol: currencySymbol, dollarText: dollarText)
@@ -265,13 +265,13 @@ struct InsightsWidgetEntryView: View {
                                     VStack(alignment: .leading) {
                                         Text(getMaxText())
                                             .lineLimit(1)
-                                            .font(.system(size: 8, weight: .regular, design: .rounded))
+                                            .scaledFont(8, weight: .regular, design: .rounded)
                                             .foregroundColor(Color.SubtitleText)
 
                                         Spacer()
 
                                         Text("0")
-                                            .font(.system(size: 8, weight: .regular, design: .rounded))
+                                            .scaledFont(8, weight: .regular, design: .rounded)
                                             .foregroundColor(Color.SubtitleText)
                                     }
                                     .frame(height: proxy.size.height * 0.85)
@@ -290,7 +290,7 @@ struct InsightsWidgetEntryView: View {
                                                     }
 
                                                     Text(getWeekday(day: day).prefix(1))
-                                                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                                                        .scaledFont(8, weight: .bold, design: .rounded)
                                                         .foregroundColor(Color.SubtitleText)
                                                 }
                                                 .opacity(day > Date.now ? 0.3 : 1)
@@ -311,7 +311,7 @@ struct InsightsWidgetEntryView: View {
                                                         .overlay(alignment: .bottom) {
                                                             if numberArray.contains((entry.dates.firstIndex(of: day) ?? -1) + 1) && firstDayOfMonth == 1 {
                                                                 Text("\((entry.dates.firstIndex(of: day) ?? -1) + 1)")
-                                                                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                                                                    .scaledFont(8, weight: .bold, design: .rounded)
                                                                     .foregroundColor(Color.SubtitleText)
                                                                     .frame(width: 20, alignment: .center)
                                                                     .offset(y: 15)
@@ -337,7 +337,7 @@ struct InsightsWidgetEntryView: View {
                                                         .overlay(alignment: .bottom) {
                                                             if monthNumberArray.contains((entry.dates.firstIndex(of: day) ?? -1) + 1) {
                                                                 Text(LocalizedStringKey(monthNames[(entry.dates.firstIndex(of: day)! + 1)] ?? ""))
-                                                                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                                                                    .scaledFont(8, weight: .bold, design: .rounded)
                                                                     .foregroundColor(Color.SubtitleText)
                                                                     .frame(width: 20, alignment: .center)
                                                                     .offset(y: 15)
@@ -358,7 +358,7 @@ struct InsightsWidgetEntryView: View {
                                 HStack(spacing: 4) {
                                     Text(getAverageText())
                                         .lineLimit(1)
-                                        .font(.system(size: 8, weight: .regular, design: .rounded))
+                                        .scaledFont(8, weight: .regular, design: .rounded)
                                         .foregroundColor(Color.PrimaryText)
                                         .opacity((entry.average / Double(getMax())) < 0.2 || (entry.average / Double(getMax())) > 0.8 ? 0 : 1)
 

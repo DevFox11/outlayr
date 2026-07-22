@@ -39,11 +39,11 @@ struct WelcomeSheetView: View {
                             .padding(.bottom, 20)
 
                         Text("outlayr_name")
-                            .font(.system(size: 30, weight: .medium, design: .rounded))
+                            .scaledFont(30, weight: .medium, design: .rounded)
                             .foregroundStyle(Color.PrimaryText)
 
                         Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .scaledFont(14, weight: .medium, design: .rounded)
                             .foregroundStyle(Color.SubtitleText)
                             .padding(.bottom, 15)
                     }
@@ -55,18 +55,18 @@ struct WelcomeSheetView: View {
                             if rowIndex < visibleLines {
                                 HStack(alignment: .top, spacing: 15) {
                                     Image(systemName: welcomeFeatures[rowIndex].icon)
-                                        .font(.system(size: 25, weight: .regular))
+                                        .scaledFont(25, weight: .regular)
                                         .foregroundStyle(Color.SubtitleText)
                                         .frame(width: 40, alignment: .leading)
                                         .offset(y: 2)
 
                                     VStack(alignment: .leading, spacing: 5) {
                                         Text(LocalizedStringKey(welcomeFeatures[rowIndex].header))
-                                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                                            .scaledFont(18, weight: .medium, design: .rounded)
                                             .foregroundStyle(Color.PrimaryText)
 
                                         Text(LocalizedStringKey(welcomeFeatures[rowIndex].subtitle))
-                                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                                            .scaledFont(16, weight: .regular, design: .rounded)
                                             .fixedSize(horizontal: false, vertical: true)
                                             .foregroundStyle(Color.SubtitleText)
                                     }
@@ -93,7 +93,7 @@ struct WelcomeSheetView: View {
                         }
                     } label: {
                         Text("Get Started")
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .scaledFont(20, weight: .semibold, design: .rounded)
                             .foregroundStyle(Color.LightIcon)
                             .padding(.vertical, 12)
                             .frame(maxWidth: .infinity)

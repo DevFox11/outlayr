@@ -33,7 +33,7 @@ struct WidgetSymbolGlyph: View {
             }
         case let .emoji(emoji):
             Text(emoji)
-                .font(.system(size: size))
+                .scaledFont(size)
         }
     }
 }

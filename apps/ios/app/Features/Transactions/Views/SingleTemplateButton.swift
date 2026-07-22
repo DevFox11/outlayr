@@ -56,18 +56,18 @@ struct SingleTemplateButton: View {
             Spacer()
 
             Text(transaction.wrappedNote)
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .scaledFont(15, weight: .semibold, design: .rounded)
                 .foregroundStyle(Color.PrimaryText)
                 .lineLimit(1)
 
             HStack(alignment: .lastTextBaseline, spacing: 1.3) {
                 Text(currencySymbol)
-                    .font(.system(size: downsize.small, weight: .medium, design: .rounded))
+                    .scaledFont(downsize.small, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.PrimaryText)
                     .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
 
                 Text(downsize.amountText)
-                    .font(.system(size: downsize.big, weight: .semibold, design: .rounded))
+                    .scaledFont(downsize.big, weight: .semibold, design: .rounded)
                     .foregroundStyle(Color.PrimaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

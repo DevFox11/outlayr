@@ -149,7 +149,7 @@ struct TransactionIdentityPickerSheet: View {
                     .frame(width: side, height: side)
                     .overlay {
                         Image(systemName: "photo")
-                            .font(.system(size: 34))
+                            .scaledFont(34)
                             .foregroundStyle(Color.SubtitleText)
                     }
             }
@@ -170,7 +170,7 @@ struct TransactionIdentityPickerSheet: View {
                 HStack(spacing: 12) {
                     if isAuto {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .scaledFont(14, weight: .bold)
                             .foregroundStyle(Color.IncomeGreen)
                     }
                     VStack(alignment: .leading, spacing: 1) {
@@ -237,7 +237,7 @@ struct TransactionIdentityPickerSheet: View {
                     .foregroundStyle(Color.SubtitleText)
                 Spacer()
                 Image(systemName: systemImage)
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Color.SubtitleText)
             }
             Slider(value: value, in: range) { editing in

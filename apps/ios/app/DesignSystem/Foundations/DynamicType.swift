@@ -24,7 +24,17 @@ extension EnvironmentValues {
             1.1
         case .xxxLarge:
             1.15
-        default:
+        case .accessibility1:
+            1.25
+        case .accessibility2:
+            1.4
+        case .accessibility3:
+            1.6
+        case .accessibility4:
+            1.8
+        case .accessibility5:
+            2.0
+        @unknown default:
             1.0
         }
     }

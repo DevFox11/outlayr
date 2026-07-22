@@ -32,7 +32,7 @@ struct CategoryIconGlyph: View {
             case let .emoji(emoji):
                 // Emoji carry their own color, so they only need the metric.
                 Text(emoji)
-                    .font(.system(size: size))
+                    .scaledFont(size)
             }
         }
         .accessibilityHidden(true)

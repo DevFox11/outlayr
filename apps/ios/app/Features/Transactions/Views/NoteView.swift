@@ -15,23 +15,13 @@ struct NoteView: View {
     @FocusState private var textFocused: Bool
     let characterLimit = 50
 
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var noteWidth: CGFloat {
-        let fontSize: CGFloat = UIFont.getBodyFontSize(dynamicTypeSize: dynamicTypeSize)
-        //        let fontSize: CGFloat = fontSize
-        let systemFont = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
-        let roundedFont: UIFont
-        if let descriptor = systemFont.fontDescriptor.withDesign(.rounded) {
-            roundedFont = UIFont(descriptor: descriptor, size: fontSize)
-        } else {
-            roundedFont = systemFont
-        }
-
+        let roundedFont = UIFont.roundedSpecial(ofStyle: .body, weight: .semibold, size: 17)
         let attributes = [NSAttributedString.Key.font: roundedFont]
 
         let size = (note as NSString).size(withAttributes: attributes)
-
         let placeholder = String(localized: "Add Note")
         let placeholderSize = (placeholder as NSString).size(withAttributes: attributes)
 
@@ -40,8 +30,6 @@ struct NoteView: View {
         } else {
             return placeholderSize.width
         }
-
-        //        return max(size.width + 2, (placeholderSize.width + 1))
     }
 
     var body: some View {
@@ -49,7 +37,6 @@ struct NoteView: View {
             Image(systemName: "text.alignleft")
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            //                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.SubtitleText)
 
             ZStack(alignment: .leading) {
@@ -65,7 +52,6 @@ struct NoteView: View {
             }
             .font(.system(.body, design: .rounded, weight: .semibold))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            //            .font(.system(size: 16, weight: .semibold, design: .rounded))
             .frame(width: min(noteWidth, UIScreen.main.bounds.width / 1.5), alignment: .center)
         }
         .onTapGesture {

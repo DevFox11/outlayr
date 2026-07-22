@@ -501,13 +501,13 @@ private struct TransactionFormCategorySection: View {
                             .foregroundStyle(Color.PrimaryText)
                             .lineLimit(1)
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
+                            .scaledFont(12, weight: .semibold)
                             .foregroundStyle(Color.SubtitleText)
                     } else {
                         Text("Choose")
                             .font(.system(.body, design: .rounded))
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
+                            .scaledFont(12, weight: .semibold)
                     }
                 }
                 .foregroundStyle(Color.SubtitleText)
@@ -692,7 +692,7 @@ private extension View {
                         .font(.system(.body, design: .rounded))
                         .foregroundStyle(Color.PrimaryText)
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                        .scaledFont(12, weight: .semibold)
                         .foregroundStyle(Color.SubtitleText)
                 }
             }

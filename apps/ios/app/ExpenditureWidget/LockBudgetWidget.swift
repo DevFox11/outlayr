@@ -204,7 +204,7 @@ struct LockBudgetWidgetEntryView: View {
                         AccessoryWidgetBackground()
 
                         Text("SELECT BUDGET")
-                            .font(.system(size: 8, weight: .semibold, design: .rounded))
+                            .scaledFont(8, weight: .semibold, design: .rounded)
                             .frame(maxWidth: .infinity)
                             .multilineTextAlignment(.center)
                     }
@@ -214,7 +214,7 @@ struct LockBudgetWidgetEntryView: View {
                         AccessoryWidgetBackground()
 
                         Text("NO BUDGET")
-                            .font(.system(size: 8, weight: .semibold, design: .rounded))
+                            .scaledFont(8, weight: .semibold, design: .rounded)
                             .frame(maxWidth: .infinity)
                             .multilineTextAlignment(.center)
                     }
@@ -233,13 +233,13 @@ struct LockBudgetWidgetEntryView: View {
         case .accessoryRectangular:
                 if entry.configuration.budget == nil {
                     Text("SELECT BUDGET IN WIDGET OPTIONS")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .scaledFont(12, weight: .semibold, design: .rounded)
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                         .containerBackground(for: .widget) { Color.clear }
                 } else if entry.budget.missing {
                     Text("BUDGET NO LONGER EXISTS - SELECT NEW BUDGET IN WIDGET OPTIONS")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .scaledFont(12, weight: .semibold, design: .rounded)
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                         .containerBackground(for: .widget) { Color.clear }
@@ -254,10 +254,10 @@ struct LockBudgetWidgetEntryView: View {
                                     Text(percentString)
                                 }
                             }
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .scaledFont(15, weight: .semibold, design: .rounded)
 
                             Text("\(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle) \(budgetType)")
-                                .font(.system(size: 14, weight: .regular, design: .rounded))
+                                .scaledFont(14, weight: .regular, design: .rounded)
                                 .foregroundColor(Color.SubtitleText)
 
                             Gauge(value: percent, in: 0 ... 1) {
@@ -266,10 +266,10 @@ struct LockBudgetWidgetEntryView: View {
                                 EmptyView()
                             } minimumValueLabel: {
                                 Text("\(entry.totalSpent, specifier: (showCents && entry.totalSpent < 100) ? "%.2f" : "%.0f")")
-                                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                                    .scaledFont(10, weight: .regular, design: .rounded)
                             } maximumValueLabel: {
                                 Text("\(entry.budget.budgetAmount, specifier: (showCents && entry.budget.budgetAmount < 100) ? "%.2f" : "%.0f")")
-                                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                                    .scaledFont(10, weight: .regular, design: .rounded)
                             }
                             .frame(height: 5)
                             .gaugeStyle(.accessoryLinear)

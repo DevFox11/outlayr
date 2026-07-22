@@ -127,16 +127,16 @@ struct TransactionHero: View {
                 .frame(width: tileSide, height: tileSide)
 
             Image(systemName: "photo")
-                .font(.system(size: 30, weight: .regular))
+                .scaledFont(30, weight: .regular)
                 .foregroundStyle(Color.SubtitleText)
 
             Image(systemName: "sparkle")
-                .font(.system(size: 12))
+                .scaledFont(12)
                 .foregroundStyle(Color.SubtitleText.opacity(0.45))
                 .offset(x: -tileSide / 2 - 8, y: -tileSide / 2 + 12)
 
             Image(systemName: "sparkle")
-                .font(.system(size: 9))
+                .scaledFont(9)
                 .foregroundStyle(Color.SubtitleText.opacity(0.45))
                 .offset(x: tileSide / 2 + 6, y: 8)
 

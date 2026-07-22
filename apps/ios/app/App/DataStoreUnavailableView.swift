@@ -14,14 +14,14 @@ struct DataStoreUnavailableView: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "externaldrive.badge.xmark")
-                .font(.system(size: 46, weight: .semibold))
+                .scaledFont(46, weight: .semibold)
                 .foregroundStyle(.secondary)
 
             Text("Storage Unavailable")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .scaledFont(20, weight: .bold, design: .rounded)
 
             Text("The shared app group container could not be opened, so your data can't be loaded safely. Please relaunch the app. If the problem continues, contact support.")
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .scaledFont(15, weight: .medium, design: .rounded)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
         }

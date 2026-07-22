@@ -806,7 +806,7 @@ private struct ImportCategoryMatchStep: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "triangle.fill")
                                         .rotationEffect(Angle(degrees: 90))
-                                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                                        .scaledFont(12, weight: .regular, design: .rounded)
                                         .foregroundStyle(Color.SubtitleText)
 
                                     HStack(spacing: 5) {
@@ -840,7 +840,7 @@ private struct ImportCategoryMatchStep: View {
                                         .fill(Color.PrimaryBackground)
 
                                     Image(systemName: income ? "plus" : "minus")
-                                        .font(.system(size: 18, weight: .semibold))
+                                        .scaledFont(18, weight: .semibold)
                                         .foregroundStyle(income ? Color.IncomeGreen : Color.AlertRed)
                                         .frame(width: 30, height: 30)
                                         .background(income ? Color.IncomeGreen.opacity(0.23) : Color.AlertRed.opacity(0.23), in: RoundedRectangle(cornerRadius: 9, style: .continuous))

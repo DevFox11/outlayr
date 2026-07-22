@@ -77,7 +77,7 @@ struct CategoryIconTile: View {
                     )
                 case let .emoji(emoji):
                     Text(emoji)
-                        .font(.system(size: size.icon))
+                        .scaledFont(size.icon)
                 }
             }
     }

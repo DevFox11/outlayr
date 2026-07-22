@@ -100,7 +100,7 @@ struct TransactionCategorySheet: View {
 
                     if isSelected {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .scaledFont(15, weight: .bold, design: .rounded)
                             .foregroundStyle(Color.IncomeGreen)
                     }
                 }
@@ -113,7 +113,7 @@ struct TransactionCategorySheet: View {
             if let isExpanded = chevron {
                 Button(action: onToggle) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                        .scaledFont(13, weight: .semibold)
                         .foregroundStyle(Color.SubtitleText)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .frame(width: 36, height: 36)

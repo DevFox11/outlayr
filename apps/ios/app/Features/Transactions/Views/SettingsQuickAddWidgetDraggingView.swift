@@ -37,7 +37,7 @@ struct SettingsQuickAddWidgetDraggingView: View {
                 ForEach(0 ..< 4) { index in
 
                     Image(systemName: "plus")
-                        .font(.system(size: 25, weight: .semibold, design: .rounded))
+                        .scaledFont(25, weight: .semibold, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(RoundedRectangle(cornerRadius: 15).fill(Color.SecondaryBackground).shadow(color: gridData.gridItems[index].transaction == nil ? Color.gray.opacity(0.25) : Color.clear, radius: 6))

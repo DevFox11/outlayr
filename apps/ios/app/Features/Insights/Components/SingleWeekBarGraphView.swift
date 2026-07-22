@@ -33,13 +33,13 @@ struct SingleWeekBarGraphView: View {
                 // axes
                 VStack(alignment: .leading) {
                     Text(getMaxText(maxi: getMax))
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .scaledFont(12, weight: .regular, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
 
                     Spacer()
 
                     Text("0")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .scaledFont(12, weight: .regular, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
                 }
                 .frame(height: barHeight)
@@ -60,7 +60,7 @@ struct SingleWeekBarGraphView: View {
                             }
 
                             Text(getWeekday(day: day).prefix(1))
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .scaledFont(12, weight: .bold, design: .rounded)
                                 .foregroundStyle(Color.SubtitleText)
                         }
                         .opacity(day > Date.now ? 0.3 : 1)

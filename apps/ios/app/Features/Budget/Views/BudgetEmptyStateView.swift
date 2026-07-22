@@ -125,6 +125,6 @@ struct BudgetEmptyStateView: View {
 
     private func sparkle(size: CGFloat) -> some View {
         Image(systemName: "sparkle")
-            .font(.system(size: size))
+            .scaledFont(size)
     }
 }

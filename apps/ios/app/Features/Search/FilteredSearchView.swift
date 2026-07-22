@@ -17,7 +17,7 @@ struct FilteredSearchView: View {
             if searchQuery != "" && transactions.count == 0 {
                 VStack(spacing: 2) {
                     Text("📭️")
-                        .font(.system(size: 50))
+                        .scaledFont(50)
                         .padding(.bottom, 15)
                     Text("No entries found.")
                         .font(.system(.title3, design: .rounded).weight(.medium))

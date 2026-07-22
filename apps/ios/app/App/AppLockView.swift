@@ -14,11 +14,11 @@ struct AppLockView: View {
     var body: some View {
         VStack(spacing: 15) {
             Image(systemName: "lock.fill")
-                .font(.system(size: 65))
+                .scaledFont(65)
                 .foregroundStyle(Color.DarkIcon.opacity(0.7))
 
             Text("App Locked")
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
+                .scaledFont(28, weight: .semibold, design: .rounded)
                 .foregroundStyle(Color.PrimaryText)
                 .padding(.bottom, 30)
 
@@ -30,7 +30,7 @@ struct AppLockView: View {
 
                     Text("Unlock App")
                 }
-                .font(.system(size: 20, weight: .medium, design: .rounded))
+                .scaledFont(20, weight: .medium, design: .rounded)
                 .foregroundStyle(Color.PrimaryText)
                 .padding(.horizontal, 40)
                 .padding(.vertical, 15)
@@ -42,7 +42,7 @@ struct AppLockView: View {
 
             if appLockVM.enrollmentError {
                 Text("Please re-enable Face ID access in the Settings app to unlock application.")
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .scaledFont(15, weight: .regular, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
                     .multilineTextAlignment(.center)
             }

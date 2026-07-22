@@ -41,11 +41,11 @@ struct NoResultsView: View {
                 //                .accessibility(hidden: true)
 
                 Image(systemName: "tray.full.fill")
-                    .font(.system(size: 38, weight: .regular, design: .rounded))
+                    .scaledFont(38, weight: .regular, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
 
                 Text("No entries found.")
-                    .font(.system(size: 21, weight: .medium, design: .rounded))
+                    .scaledFont(21, weight: .medium, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
 
                 Spacer()

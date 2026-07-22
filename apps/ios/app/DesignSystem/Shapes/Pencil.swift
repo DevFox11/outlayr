@@ -26,7 +26,7 @@ struct PencilView: View {
                     .frame(width: width, height: 20)
 
                 Text(text)
-                    .font(.system(size: fontSize, weight: .bold, design: .rounded))
+                    .scaledFont(fontSize, weight: .bold, design: .rounded)
                     .foregroundStyle(Color.PrimaryText)
                     .padding(.horizontal, horizontalPadding)
 

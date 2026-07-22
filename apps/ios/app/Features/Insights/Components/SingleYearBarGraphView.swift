@@ -35,13 +35,13 @@ struct SingleYearBarGraphView: View {
                 // axes
                 VStack(alignment: .leading) {
                     Text(getMaxText(maxi: getMax))
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .scaledFont(12, weight: .regular, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
 
                     Spacer()
 
                     Text("0")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .scaledFont(12, weight: .regular, design: .rounded)
                         .foregroundStyle(Color.SubtitleText)
 
                 }
@@ -64,7 +64,7 @@ struct SingleYearBarGraphView: View {
                                 .overlay(alignment: .bottom) {
                                     if numberArray.contains(((monthsOfYear.firstIndex(of: month) ?? 0) + 1)) {
                                         Text(LocalizedStringKey(monthNames[((monthsOfYear.firstIndex(of: month) ?? 0) + 1)] ?? ""))
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                            .scaledFont(12, weight: .bold, design: .rounded)
                                             .foregroundStyle(Color.SubtitleText)
                                             .frame(width: 30)
                                             .offset(y: 20)

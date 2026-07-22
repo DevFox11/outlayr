@@ -60,7 +60,7 @@ struct IdentityEmojiBrowser: View {
                 .aspectRatio(1, contentMode: .fit)
                 .overlay {
                     Image(systemName: "keyboard")
-                        .font(.system(size: 18, weight: .medium))
+                        .scaledFont(18, weight: .medium)
                         .foregroundStyle(Color.SubtitleText)
                 }
         }

@@ -39,12 +39,12 @@ struct InsightsWidgetCategoryBreakdownView: View {
                                 .frame(width: 8, height: 8)
                             Text(category.name)
                                 .lineLimit(1)
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .scaledFont(12, weight: .semibold, design: .rounded)
                                 .foregroundColor(Color.PrimaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             Text("\(Int(round(category.percent * 100)))%")
-                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .scaledFont(12, weight: .regular, design: .rounded)
                                 .foregroundColor(Color.SubtitleText)
                         }
                     }
@@ -52,8 +52,7 @@ struct InsightsWidgetCategoryBreakdownView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 Text("NO TRANSACTIONS\n\(subtitleText1)")
-                    .font(.system(size: 10,
-                                  weight: .medium, design: .rounded))
+                    .scaledFont(10, weight: .medium, design: .rounded)
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
                     .frame(maxHeight: .infinity)
@@ -62,10 +61,10 @@ struct InsightsWidgetCategoryBreakdownView: View {
             Link(destination: URL(string: AppIdentifiers.urlScheme + "newExpense")!) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .scaledFont(9, weight: .medium, design: .rounded)
 
                     Text("New Expense")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .scaledFont(12, weight: .medium, design: .rounded)
                         .foregroundColor(Color.PrimaryText)
                 }
                 .padding(.vertical, 4)

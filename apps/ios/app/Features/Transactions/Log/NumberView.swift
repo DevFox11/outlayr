@@ -37,7 +37,17 @@ struct NumberView: AnimatableModifier {
             return 58
         case .xxxLarge:
             return 62
-        default:
+        case .accessibility1:
+            return 70
+        case .accessibility2:
+            return 80
+        case .accessibility3:
+            return 95
+        case .accessibility4:
+            return 110
+        case .accessibility5:
+            return 125
+        @unknown default:
             return 50
         }
     }

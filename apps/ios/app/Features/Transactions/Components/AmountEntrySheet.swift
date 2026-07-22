@@ -120,10 +120,10 @@ struct AmountEntrySheet: View {
         } label: {
             HStack(spacing: 6) {
                 Text("\(effectiveCurrency) (\(currencySymbol))")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .scaledFont(14, weight: .semibold, design: .rounded)
                     .foregroundStyle(Color.PrimaryText)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
+                    .scaledFont(10, weight: .semibold)
                     .foregroundStyle(Color.SubtitleText)
             }
         }
@@ -155,11 +155,11 @@ struct AmountEntrySheet: View {
     private var amountDisplay: some View {
         VStack(spacing: NumpadLayout.labelToAmount) {
             Text("Amount")
-                .font(.system(size: 16, design: .rounded))
+                .scaledFont(16, design: .rounded)
                 .foregroundStyle(Color.SubtitleText)
 
             NumberFlow(model.amount, format: amountDisplayStyle)
-                .font(.system(size: amountFontSize, weight: .medium, design: .rounded))
+                .scaledFont(amountFontSize, weight: .medium, design: .rounded)
                 .foregroundStyle(income ? Color.IncomeGreen : Color.PrimaryText)
                 .lineLimit(1)
                 .animation(.easeInOut(duration: NumpadKeyMetrics.morphDuration), value: amountFontSize)
@@ -174,7 +174,7 @@ struct AmountEntrySheet: View {
                     ForEach(row, id: \.self) { digit in
                         key(.digit(digit)) {
                             Text("\(digit)")
-                                .font(.system(size: 30, weight: .medium, design: .rounded))
+                                .scaledFont(30, weight: .medium, design: .rounded)
                         }
                     }
                 }
@@ -182,7 +182,7 @@ struct AmountEntrySheet: View {
             HStack(spacing: 9) {
                 key(.separator) {
                     Text(Locale.current.decimalSeparator ?? ".")
-                        .font(.system(size: 30, weight: .medium, design: .rounded))
+                        .scaledFont(30, weight: .medium, design: .rounded)
                 }
                 .opacity(showsDecimalKey ? 1 : 0)
                 .scaleEffect(showsDecimalKey ? 1 : 0.85)
@@ -192,12 +192,12 @@ struct AmountEntrySheet: View {
 
                 key(.digit(0)) {
                     Text("0")
-                        .font(.system(size: 30, weight: .medium, design: .rounded))
+                        .scaledFont(30, weight: .medium, design: .rounded)
                 }
 
                 key(.backspace) {
                     Image(systemName: "delete.left")
-                        .font(.system(size: 24, weight: .medium))
+                        .scaledFont(24, weight: .medium)
                 }
                 .accessibilityLabel("Delete")
             }
@@ -284,7 +284,7 @@ private struct CurrencyPickerSheet: View {
                             .foregroundStyle(Color.SubtitleText)
                         if currency.code == selected {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .semibold))
+                                .scaledFont(14, weight: .semibold)
                                 .foregroundStyle(Color.PrimaryText)
                         }
                     }

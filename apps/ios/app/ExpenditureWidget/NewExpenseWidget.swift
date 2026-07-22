@@ -73,7 +73,7 @@ struct NewExpenseWidgetEntryView: View {
                 AccessoryWidgetBackground()
 
                 Text("\(currencySymbol.count < 3 ? "+" : "")\(currencySymbol)")
-                    .font(.system(size: currencySymbol.count < 3 ? 13 : 11, weight: .bold, design: .rounded))
+                    .scaledFont(currencySymbol.count < 3 ? 13 : 11, weight: .bold, design: .rounded)
                     .foregroundColor(Color.SecondaryBackground)
                     .padding(.vertical, 2)
                     .frame(maxWidth: .infinity)

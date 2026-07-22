@@ -16,10 +16,6 @@ struct NumberPadTextView: View {
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
-//
-//    var displayNumbers: [String] {
-//        return splitDouble(price)
-//    }
 
     @AppStorage(DefaultsKey.numberEntryType, store: AppIdentifiers.sharedDefaults) var numberEntryType: Int = 1
 
@@ -40,28 +36,7 @@ struct NumberPadTextView: View {
         return String(format: "%.0f", price)
     }
 
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-    var largerFontSize: CGFloat {
-        switch dynamicTypeSize {
-        case .xSmall:
-            return 46
-        case .small:
-            return 47
-        case .medium:
-            return 48
-        case .large:
-            return 50
-        case .xLarge:
-            return 56
-        case .xxLarge:
-            return 58
-        case .xxxLarge:
-            return 62
-        default:
-            return 50
-        }
-    }
+    @ScaledMetric(relativeTo: .largeTitle) private var largerFontSize: CGFloat = 50
 
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: 0) {
@@ -69,13 +44,6 @@ struct NumberPadTextView: View {
                 Text(currencySymbol)
                     .font(.system(.largeTitle, design: .rounded))
                     .foregroundStyle(Color.SubtitleText)
-
-//                ForEach(displayNumbers, id: \.self) { number in
-//                    Text(number)
-//                        .font(.system(size: largerFontSize, weight: .regular, design: .rounded))
-//                        .foregroundStyle(Color.PrimaryText)
-//                        .transition(AnyTransition.opacity.combined(with: .scale).combined(with: .move(edge: .trailing)))
-//                }
 
                 + Text(amount)
                     .font(.system(size: largerFontSize, weight: .regular, design: .rounded))
@@ -92,7 +60,6 @@ struct NumberPadTextView: View {
                 DeleteButton()
             }
         }
-//        .animation(.snappy.delay(0.1), value: displayNumbers)
     }
 
     @ViewBuilder
@@ -101,7 +68,7 @@ struct NumberPadTextView: View {
          deleteLastDigit()
        } label: {
          Image(systemName: "delete.left.fill")
-           .font(.system(size: 16, weight: .semibold))
+           .scaledFont(16, weight: .semibold)
            .foregroundStyle(Color.SubtitleText)
            .padding(7)
            .background(Color.SecondaryBackground, in: Circle())

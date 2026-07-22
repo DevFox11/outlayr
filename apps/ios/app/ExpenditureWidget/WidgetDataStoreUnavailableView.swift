@@ -13,7 +13,7 @@ import WidgetKit
 struct WidgetDataStoreUnavailableView: View {
     var body: some View {
         Text("Storage unavailable")
-            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .scaledFont(12, weight: .medium, design: .rounded)
             .multilineTextAlignment(.center)
             .foregroundColor(Color.SubtitleText)
             .padding(8)

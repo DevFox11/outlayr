@@ -22,7 +22,7 @@ struct SymbolEmojiCell: View {
                 .aspectRatio(1, contentMode: .fit)
                 .overlay {
                     Text(emoji)
-                        .font(.system(size: 26))
+                        .scaledFont(26)
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)

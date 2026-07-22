@@ -36,7 +36,7 @@ struct SingleDayPhotoView: View {
 
                         Text(amountText)
                     }
-                    .font(.system(size: 35, weight: .semibold, design: .rounded))
+                    .scaledFont(35, weight: .semibold, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
 
                     Line()

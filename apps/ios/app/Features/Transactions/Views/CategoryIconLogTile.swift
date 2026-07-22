@@ -116,7 +116,7 @@ struct CategoryIconLogTile: View {
                 .padding(8)
             case let .emoji(emoji):
                 Text(emoji)
-                    .font(.system(size: scale.glyph))
+                    .scaledFont(scale.glyph)
                     .padding(8)
             }
         }
