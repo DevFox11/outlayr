@@ -7,6 +7,7 @@
 //  matched to a suggestion or left unset for the render-path fallback.
 //
 
+import Foundation
 import CoreData
 import Testing
 

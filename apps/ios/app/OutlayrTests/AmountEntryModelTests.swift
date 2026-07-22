@@ -7,6 +7,7 @@
 //  currency-switch renormalization, and exact Decimal round-trips.
 //
 
+import Foundation
 import Testing
 
 @testable import Outlayr

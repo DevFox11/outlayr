@@ -6,6 +6,7 @@
 //  error state instead of silently doing nothing.
 //
 
+import Foundation
 import UIKit
 import Testing
 

@@ -7,6 +7,7 @@
 //  accessors that resolve them against the owning category.
 //
 
+import Foundation
 import CoreData
 import Testing
 

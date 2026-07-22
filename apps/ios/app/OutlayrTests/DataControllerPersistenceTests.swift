@@ -5,6 +5,7 @@
 //  Characterizes DataController persistence/CRUD against an in-memory store.
 //
 
+import Foundation
 import CoreData
 import Testing
 

@@ -6,6 +6,7 @@
 //  hierarchical category rollup, and widget fetch helpers.
 //
 
+import Foundation
 import CoreData
 import Testing
 @testable import Outlayr

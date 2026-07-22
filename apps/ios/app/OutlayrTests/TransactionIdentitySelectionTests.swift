@@ -7,11 +7,13 @@
 //  the custom-color override restores cleanly to auto.
 //
 
+import Foundation
 import CoreData
 import Testing
 
 @testable import Outlayr
 
+@MainActor
 struct TransactionIdentitySelectionTests {
     private let sampleData = Data([0x01, 0x02, 0x03, 0x04])
 
@@ -38,7 +40,8 @@ struct TransactionIdentitySelectionTests {
     @Test func selectingIconClearsEmojiAndPhoto() {
         var selection = TransactionIdentitySelection()
         selection.selectPhoto(imageData: sampleData, imageColor: "#112233")
-        #expect(selection.selectIcon("shopping-cart-01"))
+        let accepted = selection.selectIcon("shopping-cart-01")
+        #expect(accepted)
         #expect(selection.symbol == .icon("shopping-cart-01"))
     }
 
@@ -52,13 +55,15 @@ struct TransactionIdentitySelectionTests {
     @Test func unresolvableIconNameIsRejectedAndLeavesSelectionUnchanged() {
         var selection = TransactionIdentitySelection()
         selection.selectEmoji("🍿")
-        #expect(selection.selectIcon("not-a-real-icon") == false)
+        let rejected = selection.selectIcon("not-a-real-icon")
+        #expect(rejected == false)
         #expect(selection.symbol == .emoji("🍿"), "a rejected icon must not mutate the selection")
     }
 
     @Test func validIconNameIsAccepted() {
         var selection = TransactionIdentitySelection()
-        #expect(selection.selectIcon("coins-01"))
+        let accepted = selection.selectIcon("coins-01")
+        #expect(accepted)
         #expect(selection.symbol == .icon("coins-01"))
     }
 

@@ -6,6 +6,7 @@
 //  hue, a two-tone image yields both, and a desaturated image yields nothing.
 //
 
+import Foundation
 import CoreGraphics
 import Testing
 

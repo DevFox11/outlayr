@@ -7,6 +7,7 @@
 //  independent of the pinned TZ.
 //
 
+import Foundation
 import CoreData
 import Testing
 

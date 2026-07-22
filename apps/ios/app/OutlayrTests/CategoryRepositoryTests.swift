@@ -6,6 +6,7 @@
 //  categoryCheckEdit), fetch-request predicates, and income-mode scoping.
 //
 
+import Foundation
 import CoreData
 import Testing
 @testable import Outlayr

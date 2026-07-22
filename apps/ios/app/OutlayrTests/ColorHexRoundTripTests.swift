@@ -7,6 +7,7 @@
 //  duplicate check and let two categories share a swatch.
 //
 
+import Foundation
 import SwiftUI
 import Testing
 

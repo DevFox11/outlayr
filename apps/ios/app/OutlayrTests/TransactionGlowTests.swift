@@ -7,6 +7,7 @@
 //  offers fewer than two hues.
 //
 
+import Foundation
 import SwiftUI
 import Testing
 

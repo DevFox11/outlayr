@@ -8,6 +8,7 @@
 //  category-fetch ordering/hierarchy contract the form's picker relies on.
 //
 
+import Foundation
 import CoreData
 import Testing
 @testable import Outlayr

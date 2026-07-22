@@ -6,6 +6,7 @@
 //  note suggestions, log-view totals, and hierarchical category filtering.
 //
 
+import Foundation
 import CoreData
 import Testing
 @testable import Outlayr

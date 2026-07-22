@@ -7,6 +7,7 @@
 //  ceiling. Raw picker bytes must never reach the store.
 //
 
+import Foundation
 import UIKit
 import Testing
 

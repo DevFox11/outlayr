@@ -6,6 +6,7 @@
 //  clamping, day arithmetic, and human labels.
 //
 
+import Foundation
 import Testing
 @testable import Outlayr
 

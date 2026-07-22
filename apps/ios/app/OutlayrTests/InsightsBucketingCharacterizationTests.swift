@@ -7,6 +7,7 @@
 //  Frozen clock: 2024-06-15 12:00 (referenceDate).
 //
 
+import Foundation
 import CoreData
 import Testing
 

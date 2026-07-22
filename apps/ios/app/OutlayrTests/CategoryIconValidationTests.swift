@@ -7,6 +7,7 @@
 //  top-level categories, and the two flags never collide with each other.
 //
 
+import Foundation
 import CoreData
 import Testing
 

@@ -7,6 +7,7 @@
 //  namespaces.
 //
 
+import Foundation
 import CoreData
 import SwiftUI
 import Testing
