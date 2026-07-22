@@ -26,6 +26,12 @@ struct TransactionRepository {
     private var injectedCalendar: Calendar { dataController.injectedCalendar }
     private var sharedDefaults: UserDefaults { dataController.sharedDefaults }
 
+    /// The bucket a row with no currency of its own belongs to. Read through the
+    /// injected defaults so tests never reach the real app-group suite.
+    private var globalCurrency: String {
+        CurrencyPreference.resolve(override: sharedDefaults.string(forKey: CurrencyPreference.storageKey))
+    }
+
     private func results<T: NSManagedObject>(for fetchRequest: NSFetchRequest<T>) -> [T] {
         (try? context.fetch(fetchRequest)) ?? []
     }
@@ -491,50 +497,65 @@ struct TransactionRepository {
         }
     }
 
-    func getLogViewTotalSpent(type: Int) -> Double {
+    private func currencyTotals(for transactions: [Transaction], amount: (Transaction) -> Double) -> CurrencyTotals {
+        CurrencyTotals(
+            globalCurrency: globalCurrency,
+            entries: transactions.map { CurrencyTotals.Entry(currency: $0.wrappedCurrency, amount: amount($0)) }
+        )
+    }
+
+    func getLogViewTotalSpent(type: Int) -> CurrencyTotals {
         let fetchRequest = fetchRequestForLogView(type: type, optionalIncome: false)
-        let allTransactions = results(for: fetchRequest)
 
-        var total = 0.0
-
-        allTransactions.forEach { transaction in
-            total += transaction.amount
-        }
-
-        return total
+        return currencyTotals(for: results(for: fetchRequest)) { $0.amount }
     }
 
-    func getLogViewTotalIncome(type: Int) -> Double {
+    func getLogViewTotalIncome(type: Int) -> CurrencyTotals {
         let fetchRequest = fetchRequestForLogView(type: type, optionalIncome: true)
-        let allTransactions = results(for: fetchRequest)
 
-        var total = 0.0
-
-        allTransactions.forEach { transaction in
-            total += transaction.amount
-        }
-
-        return total
+        return currencyTotals(for: results(for: fetchRequest)) { $0.amount }
     }
 
-    func getLogViewTotalNet(type: Int) -> (value: Double, positive: Bool) {
+    /// Signed inside each bucket: that currency's income minus that currency's
+    /// spend. One bucket's sign says nothing about another's — nothing here is
+    /// converted or combined.
+    func getLogViewTotalNet(type: Int) -> CurrencyTotals {
+        let fetchRequest = fetchRequestForLogView(type: type, optionalIncome: nil)
+
+        return currencyTotals(for: results(for: fetchRequest)) { $0.income ? $0.amount : -$0.amount }
+    }
+
+    /// Per-currency income and spend for a Log period, ranked by the same rule
+    /// `CurrencyTotals` uses so a header and its breakdown always agree on which
+    /// currency leads.
+    func getLogViewFigures(type: Int) -> [LogViewInsights.Figures] {
         let fetchRequest = fetchRequestForLogView(type: type, optionalIncome: nil)
         let allTransactions = results(for: fetchRequest)
+        let global = globalCurrency
 
-        var total = 0.0
+        var income = [String: Double]()
+        var spent = [String: Double]()
+        var counts = [String: Int]()
 
         allTransactions.forEach { transaction in
+            let code = transaction.wrappedCurrency ?? global
+
+            counts[code, default: 0] += 1
+
             if transaction.income {
-                total += transaction.amount
+                income[code, default: 0] += transaction.amount
             } else {
-                total -= transaction.amount
+                spent[code, default: 0] += transaction.amount
             }
         }
 
-        if total >= 0 {
-            return (total, true)
-        } else {
-            return (abs(total), false)
+        return CurrencyTotals.dominanceOrder(counts: counts, globalCurrency: global).map {
+            LogViewInsights.Figures(
+                currencyCode: $0,
+                totalIncome: income[$0] ?? 0,
+                totalSpent: spent[$0] ?? 0,
+                transactionCount: counts[$0] ?? 0
+            )
         }
     }
 
@@ -1276,12 +1297,46 @@ struct TransactionRepository {
         }
     }
 
-    struct LogViewInsights {
-        let netTotal: Double
-        let isNetPositive: Bool
-        let totalSpent: Double
-        let totalIncome: Double
+    struct LogViewInsights: Equatable {
+        /// A period's figures inside one currency. `netTotal` is this bucket's
+        /// income minus this bucket's spend; no figure here crosses currencies.
+        struct Figures: Equatable, Identifiable {
+            let currencyCode: String
+            let totalIncome: Double
+            let totalSpent: Double
+            let transactionCount: Int
+
+            var id: String { currencyCode }
+            var netTotal: Double { totalIncome - totalSpent }
+            var isNetPositive: Bool { netTotal >= 0 }
+            /// Unsigned net, for UI that renders the sign itself.
+            var netMagnitude: Double { abs(netTotal) }
+        }
+
+        /// The currency the period mostly speaks — what a single-figure header
+        /// should show. Never absent: an empty period yields zeroes in the
+        /// global currency.
+        let dominant: Figures
+
+        /// Every other currency the period used, in the same dominance order.
+        let others: [Figures]
+
         let lineGraphData: [LineGraphDataPoint]
+
+        init(figures: [Figures], globalCurrency: String, lineGraphData: [LineGraphDataPoint]) {
+            dominant = figures.first ?? Figures(currencyCode: globalCurrency, totalIncome: 0, totalSpent: 0, transactionCount: 0)
+            others = Array(figures.dropFirst())
+            self.lineGraphData = lineGraphData
+        }
+
+        /// Dominant first, then the rest — the order a multi-currency breakdown reads in.
+        var perCurrency: [Figures] { [dominant] + others }
+
+        var isMultiCurrency: Bool { !others.isEmpty }
+
+        func figures(for currencyCode: String) -> Figures? {
+            perCurrency.first { $0.currencyCode == currencyCode }
+        }
     }
 
     /// Runs `work` against a copy of this repository bound to a background
@@ -1294,12 +1349,10 @@ struct TransactionRepository {
     }
 
     /// Computes every LogView header value in one background-context pass so all
-    /// four come from a single store snapshot and stay mutually consistent
-    /// (income − spent always equals net).
+    /// of them come from a single store snapshot and stay mutually consistent
+    /// (inside each currency, income − spent always equals net).
     func getLogViewInsights(type: Int, insightsType: Int) async -> LogViewInsights {
         await onBackground { repository in
-            let net = repository.getLogViewTotalNet(type: type)
-
             let lineGraphData: [LineGraphDataPoint]
             if insightsType == 1 {
                 lineGraphData = repository.getLineGraphDataNet(type: type)
@@ -1310,10 +1363,8 @@ struct TransactionRepository {
             }
 
             return LogViewInsights(
-                netTotal: net.value,
-                isNetPositive: net.positive,
-                totalSpent: repository.getLogViewTotalSpent(type: type),
-                totalIncome: repository.getLogViewTotalIncome(type: type),
+                figures: repository.getLogViewFigures(type: type),
+                globalCurrency: repository.globalCurrency,
                 lineGraphData: lineGraphData
             )
         }
@@ -1400,16 +1451,20 @@ struct TransactionRepository {
         }
     }
 
-    func getLogViewTotalSpent(type: Int) async -> Double {
+    func getLogViewTotalSpent(type: Int) async -> CurrencyTotals {
         await onBackground { $0.getLogViewTotalSpent(type: type) }
     }
 
-    func getLogViewTotalIncome(type: Int) async -> Double {
+    func getLogViewTotalIncome(type: Int) async -> CurrencyTotals {
         await onBackground { $0.getLogViewTotalIncome(type: type) }
     }
 
-    func getLogViewTotalNet(type: Int) async -> (value: Double, positive: Bool) {
+    func getLogViewTotalNet(type: Int) async -> CurrencyTotals {
         await onBackground { $0.getLogViewTotalNet(type: type) }
+    }
+
+    func getLogViewFigures(type: Int) async -> [LogViewInsights.Figures] {
+        await onBackground { $0.getLogViewFigures(type: type) }
     }
 
     func getLineGraphDataNet(type: Int) async -> [LineGraphDataPoint] {

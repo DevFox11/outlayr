@@ -211,9 +211,9 @@ struct LogInsightsView: View {
 
         guard !Task.isCancelled else { return }
 
-        netTotal = (insights.netTotal, insights.isNetPositive)
-        totalSpent = insights.totalSpent
-        totalIncome = insights.totalIncome
+        netTotal = (insights.dominant.netMagnitude, insights.dominant.isNetPositive)
+        totalSpent = insights.dominant.totalSpent
+        totalIncome = insights.dominant.totalIncome
         lineGraphData = insights.lineGraphData
     }
 

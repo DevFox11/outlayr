@@ -161,8 +161,8 @@ struct DataControllerPersistenceTests {
         let sync = syncBaseline { controller.transactions.getLogViewTotalSpent(type: 5) }
         let background = await controller.transactions.getLogViewTotalSpent(type: 5)
 
-        #expect(abs(sync - 22.75) < 0.0001)
-        #expect(abs(background - sync) < 0.0001)
+        #expect(abs(sync.dominant.amount - 22.75) < 0.0001)
+        #expect(background == sync)
     }
 
     @Test func asyncGetLogViewTotalIncomeMatchesSync() async {
@@ -174,8 +174,8 @@ struct DataControllerPersistenceTests {
         let sync = syncBaseline { controller.transactions.getLogViewTotalIncome(type: 5) }
         let background = await controller.transactions.getLogViewTotalIncome(type: 5)
 
-        #expect(abs(sync - 40) < 0.0001)
-        #expect(abs(background - sync) < 0.0001)
+        #expect(abs(sync.dominant.amount - 40) < 0.0001)
+        #expect(background == sync)
     }
 
     @Test func asyncGetLogViewTotalNetMatchesSync() async {
@@ -187,8 +187,7 @@ struct DataControllerPersistenceTests {
         let sync = syncBaseline { controller.transactions.getLogViewTotalNet(type: 5) }
         let background = await controller.transactions.getLogViewTotalNet(type: 5)
 
-        #expect(abs(background.value - sync.value) < 0.0001)
-        #expect(background.positive == sync.positive)
+        #expect(background == sync)
     }
 
     @Test func asyncGetLineGraphDataNetMatchesSync() async {
@@ -291,10 +290,13 @@ struct DataControllerPersistenceTests {
         let expense = await controller.transactions.getLogViewInsights(type: 2, insightsType: 3)
 
         let syncNet = syncBaseline { controller.transactions.getLogViewTotalNet(type: 2) }
-        #expect(abs(net.netTotal - syncNet.value) < 0.0001)
-        #expect(net.isNetPositive == syncNet.positive)
-        #expect(abs(net.totalSpent - syncBaseline { controller.transactions.getLogViewTotalSpent(type: 2) }) < 0.0001)
-        #expect(abs(net.totalIncome - syncBaseline { controller.transactions.getLogViewTotalIncome(type: 2) }) < 0.0001)
+        let syncSpent = syncBaseline { controller.transactions.getLogViewTotalSpent(type: 2) }
+        let syncIncome = syncBaseline { controller.transactions.getLogViewTotalIncome(type: 2) }
+
+        #expect(abs(net.dominant.netTotal - syncNet.dominant.amount) < 0.0001)
+        #expect(net.dominant.isNetPositive == syncNet.dominant.isPositive)
+        #expect(abs(net.dominant.totalSpent - syncSpent.dominant.amount) < 0.0001)
+        #expect(abs(net.dominant.totalIncome - syncIncome.dominant.amount) < 0.0001)
         #expect(net.lineGraphData == syncBaseline { controller.transactions.getLineGraphDataNet(type: 2) })
         #expect(expense.lineGraphData == syncBaseline { controller.transactions.getLineGraphData(income: false, type: 2) })
     }

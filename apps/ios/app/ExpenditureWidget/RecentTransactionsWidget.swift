@@ -165,14 +165,15 @@ struct RecentTransactionsWidgetProvider: AppIntentTimelineProvider {
             timeframe = 0
         }
 
+        // The widget renders one figure in the global currency symbol, so it can
+        // only show the dominant bucket; other currencies stay on the Log screen.
         switch insightsType {
         case .net:
-            let (amount, positive) = await DataController.shared.transactions.getLogViewTotalNet(type: timeframe)
-            return positive ? amount : -amount
+            return await DataController.shared.transactions.getLogViewTotalNet(type: timeframe).dominant.amount
         case .income:
-            return await DataController.shared.transactions.getLogViewTotalIncome(type: timeframe)
+            return await DataController.shared.transactions.getLogViewTotalIncome(type: timeframe).dominant.amount
         case .expense:
-            return await DataController.shared.transactions.getLogViewTotalSpent(type: timeframe)
+            return await DataController.shared.transactions.getLogViewTotalSpent(type: timeframe).dominant.amount
         default:
             return 0
         }

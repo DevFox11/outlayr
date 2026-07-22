@@ -21,7 +21,8 @@ struct RepositoryFixture {
     init(
         now: Date = referenceDate,
         firstWeekday: Int = 1,
-        firstDayOfMonth: Int = 1
+        firstDayOfMonth: Int = 1,
+        currency: String = "USD"
     ) {
         let suiteName = "test.repo.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -29,6 +30,8 @@ struct RepositoryFixture {
         }
         defaults.set(firstWeekday, forKey: "firstWeekday")
         defaults.set(firstDayOfMonth, forKey: "firstDayOfMonth")
+        // Pinned so currency bucketing never depends on the machine's locale.
+        defaults.set(currency, forKey: DefaultsKey.currency)
         self.controller = DataController(inMemory: true, now: { now }, calendar: .current, sharedDefaults: defaults)
     }
 
@@ -60,7 +63,8 @@ struct RepositoryFixture {
         date: Date,
         income: Bool = false,
         note: String = "",
-        category: Outlayr.Category? = nil
+        category: Outlayr.Category? = nil,
+        currency: String? = nil
     ) -> Transaction {
         let txn = Transaction(context: context)
         txn.id = UUID()
@@ -71,6 +75,7 @@ struct RepositoryFixture {
         txn.income = income
         txn.note = note
         txn.category = category
+        txn.currency = currency
         return txn
     }
 

@@ -155,7 +155,9 @@ struct TransactionRepositoryTests {
         f.save()
 
         let total = f.controller.transactions.getLogViewTotalSpent(type: 5)
-        #expect(abs(total - 100) < 0.001)
+        #expect(total.dominant.currencyCode == "USD")
+        #expect(abs(total.dominant.amount - 100) < 0.001)
+        #expect(total.isMultiCurrency == false)
     }
 
     @Test("getLogViewTotalIncome sums only income transactions across all time")
@@ -167,7 +169,8 @@ struct TransactionRepositoryTests {
         f.save()
 
         let total = f.controller.transactions.getLogViewTotalIncome(type: 5)
-        #expect(abs(total - 500) < 0.001)
+        #expect(abs(total.dominant.amount - 500) < 0.001)
+        #expect(total.isMultiCurrency == false)
     }
 
     @Test("getLogViewTotalNet returns positive value and true when income > expenses")
@@ -178,8 +181,8 @@ struct TransactionRepositoryTests {
         f.save()
 
         let net = f.controller.transactions.getLogViewTotalNet(type: 5)
-        #expect(abs(net.value - 60) < 0.001)
-        #expect(net.positive == true)
+        #expect(abs(net.dominant.magnitude - 60) < 0.001)
+        #expect(net.dominant.isPositive == true)
     }
 
     @Test("getLogViewTotalNet returns positive value and false when expenses > income")
@@ -190,8 +193,123 @@ struct TransactionRepositoryTests {
         f.save()
 
         let net = f.controller.transactions.getLogViewTotalNet(type: 5)
-        #expect(abs(net.value - 70) < 0.001)
-        #expect(net.positive == false)
+        #expect(abs(net.dominant.magnitude - 70) < 0.001)
+        #expect(net.dominant.isPositive == false)
+    }
+
+    // MARK: - Currency bucketing (scope, never convert)
+
+    @Test("log-view totals put rows with no currency of their own in the global bucket")
+    func logView_nilCurrency_fallsIntoGlobalBucket() {
+        let f = RepositoryFixture(currency: "GBP")
+        f.makeTransaction(amount: 60, date: testDate(2024, 6, 5), income: false, currency: nil)
+        f.makeTransaction(amount: 40, date: testDate(2024, 6, 8), income: false, currency: "GBP")
+        f.save()
+
+        let total = f.controller.transactions.getLogViewTotalSpent(type: 5)
+        #expect(total.buckets.count == 1)
+        #expect(total.dominant.currencyCode == "GBP")
+        #expect(total.dominant.transactionCount == 2)
+        #expect(abs(total.dominant.amount - 100) < 0.001)
+    }
+
+    @Test("log-view totals never add across currencies")
+    func logView_mixedCurrencies_bucketSeparately() {
+        let f = RepositoryFixture(currency: "USD")
+        f.makeTransaction(amount: 10, date: testDate(2024, 6, 5), income: false, currency: "USD")
+        f.makeTransaction(amount: 20, date: testDate(2024, 6, 6), income: false, currency: "USD")
+        f.makeTransaction(amount: 90, date: testDate(2024, 6, 7), income: false, currency: "EUR")
+        f.save()
+
+        let total = f.controller.transactions.getLogViewTotalSpent(type: 5)
+        #expect(total.isMultiCurrency)
+        #expect(abs(total.amount(in: "USD") - 30) < 0.001)
+        #expect(abs(total.amount(in: "EUR") - 90) < 0.001)
+        // The larger EUR figure must not win: dominance counts rows, not money.
+        #expect(total.dominant.currencyCode == "USD")
+        #expect(total.others.map(\.currencyCode) == ["EUR"])
+    }
+
+    @Test("net totals sign each currency bucket independently")
+    func logView_net_signedPerCurrency() {
+        let f = RepositoryFixture(currency: "USD")
+        f.makeTransaction(amount: 100, date: testDate(2024, 6, 5), income: true, currency: "USD")
+        f.makeTransaction(amount: 40, date: testDate(2024, 6, 6), income: false, currency: "USD")
+        f.makeTransaction(amount: 25, date: testDate(2024, 6, 7), income: false, currency: "EUR")
+        f.save()
+
+        let net = f.controller.transactions.getLogViewTotalNet(type: 5)
+        #expect(abs(net.amount(in: "USD") - 60) < 0.001)
+        #expect(abs(net.amount(in: "EUR") + 25) < 0.001)
+        #expect(net.bucket(for: "EUR")?.isPositive == false)
+    }
+
+    @Test("an empty period still reports a zero bucket in the global currency")
+    func logView_emptyPeriod_zeroGlobalBucket() {
+        let f = RepositoryFixture(currency: "JPY")
+
+        let total = f.controller.transactions.getLogViewTotalSpent(type: 5)
+        #expect(total.isEmpty)
+        #expect(total.isMultiCurrency == false)
+        #expect(total.dominant.currencyCode == "JPY")
+        #expect(total.dominant.amount == 0)
+        #expect(total.dominant.transactionCount == 0)
+    }
+
+    @Test("getLogViewFigures reports income and spend per currency, dominant first")
+    func logView_figures_perCurrency() throws {
+        let f = RepositoryFixture(currency: "USD")
+        f.makeTransaction(amount: 100, date: testDate(2024, 6, 5), income: true, currency: "USD")
+        f.makeTransaction(amount: 40, date: testDate(2024, 6, 6), income: false, currency: "USD")
+        f.makeTransaction(amount: 15, date: testDate(2024, 6, 7), income: false, currency: "USD")
+        f.makeTransaction(amount: 25, date: testDate(2024, 6, 8), income: false, currency: "EUR")
+        f.save()
+
+        let figures = f.controller.transactions.getLogViewFigures(type: 5)
+        #expect(figures.map(\.currencyCode) == ["USD", "EUR"])
+
+        let usd = try #require(figures.first)
+        #expect(abs(usd.totalIncome - 100) < 0.001)
+        #expect(abs(usd.totalSpent - 55) < 0.001)
+        #expect(abs(usd.netTotal - 45) < 0.001)
+        #expect(usd.isNetPositive)
+        #expect(usd.transactionCount == 3)
+
+        let eur = try #require(figures.last)
+        #expect(eur.totalIncome == 0)
+        #expect(abs(eur.totalSpent - 25) < 0.001)
+        #expect(abs(eur.netMagnitude - 25) < 0.001)
+        #expect(eur.isNetPositive == false)
+    }
+
+    @Test("getLogViewInsights keeps the whole header on one dominant currency")
+    func logView_insights_dominantCurrencyIsConsistent() async {
+        let f = RepositoryFixture(currency: "USD")
+        // Every expense is in EUR and every income in USD: a per-metric dominance
+        // rule would disagree with itself, so dominance is decided once over all rows.
+        f.makeTransaction(amount: 100, date: testDate(2024, 6, 5), income: true, currency: "USD")
+        f.makeTransaction(amount: 10, date: testDate(2024, 6, 6), income: false, currency: "EUR")
+        f.makeTransaction(amount: 20, date: testDate(2024, 6, 7), income: false, currency: "EUR")
+        f.save()
+
+        let insights = await f.controller.transactions.getLogViewInsights(type: 5, insightsType: 1)
+        #expect(insights.dominant.currencyCode == "EUR")
+        #expect(insights.dominant.totalIncome == 0)
+        #expect(abs(insights.dominant.totalSpent - 30) < 0.001)
+        #expect(insights.isMultiCurrency)
+        #expect(insights.perCurrency.map(\.currencyCode) == ["EUR", "USD"])
+        #expect(insights.figures(for: "USD")?.totalIncome == 100)
+    }
+
+    @Test("getLogViewInsights falls back to the global currency for an empty period")
+    func logView_insights_emptyPeriodUsesGlobalCurrency() async {
+        let f = RepositoryFixture(currency: "CHF")
+
+        let insights = await f.controller.transactions.getLogViewInsights(type: 5, insightsType: 1)
+        #expect(insights.dominant.currencyCode == "CHF")
+        #expect(insights.dominant.netTotal == 0)
+        #expect(insights.dominant.isNetPositive)
+        #expect(insights.isMultiCurrency == false)
     }
 
     // MARK: - Hierarchical category rollup via fetchRequestForLogView

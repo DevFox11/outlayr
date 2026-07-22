@@ -41,7 +41,7 @@ struct CharacterizationFixture {
     }
 
     /// An isolated, uniquely-named UserDefaults suite. Never the real app-group suite.
-    mutating func makeIsolatedDefaults(firstWeekday: Int = 1, firstDayOfMonth: Int = 1) -> UserDefaults {
+    mutating func makeIsolatedDefaults(firstWeekday: Int = 1, firstDayOfMonth: Int = 1, currency: String = "USD") -> UserDefaults {
         let name = "test.characterization.\(UUID().uuidString)"
         createdSuiteNames.append(name)
         guard let defaults = UserDefaults(suiteName: name) else {
@@ -49,6 +49,8 @@ struct CharacterizationFixture {
         }
         defaults.set(firstWeekday, forKey: "firstWeekday")
         defaults.set(firstDayOfMonth, forKey: "firstDayOfMonth")
+        // Pinned so currency bucketing never depends on the machine's locale.
+        defaults.set(currency, forKey: DefaultsKey.currency)
         return defaults
     }
 
