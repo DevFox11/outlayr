@@ -16,6 +16,7 @@ struct MatchCategoryStepperView: View {
     var maxIndex: Int
     @Environment(\.colorScheme) private var colorScheme
     @State private var pageTask: Task<Void, Never>?
+    @State private var containerWidth: CGFloat = 0
 //
 //    @Environment(\.dynamicTypeSize) var dynamicTypeSize
 //
@@ -86,6 +87,7 @@ struct MatchCategoryStepperView: View {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .stroke(Color.Outline, lineWidth: 2)
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
 //        .background(Color.PrimaryBackground, in: )
     }
 
@@ -95,7 +97,7 @@ struct MatchCategoryStepperView: View {
 
         var totalWidth: CGFloat = 0
 
-        let screenWidth: CGFloat = UIScreen.main.bounds.width - 80
+        let screenWidth: CGFloat = containerWidth > 0 ? containerWidth - 80 : 300
 
         categories.forEach { category in
 

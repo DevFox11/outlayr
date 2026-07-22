@@ -17,15 +17,16 @@ struct SingleBudgetView: View {
     @Binding var toEdit: Budget?
 
     @State var totalSpent: Double = 0
+    @State private var screenWidth: CGFloat = 0
 
     var budgetRows: Bool
 
     var width: CGFloat {
-        ((UIScreen.main.bounds.width - 75) / 2) - 30
+        ((screenWidth - 75) / 2) - 30
     }
 
     var rowWidth: CGFloat {
-        (UIScreen.main.bounds.width - 80) / 2
+        (screenWidth - 80) / 2
     }
 
     var budgetAmount: Double {
@@ -155,11 +156,11 @@ struct SingleBudgetView: View {
     @State private var deleteTask: Task<Void, Never>?
 
     var deletePopup: Bool {
-        return abs(offset) > UIScreen.main.bounds.width * 0.15
+        return abs(offset) > screenWidth * 0.15
     }
 
     var deleteConfirm: Bool {
-        return abs(offset) > UIScreen.main.bounds.width * 0.50
+        return abs(offset) > screenWidth * 0.50
     }
 
     @GestureState var isDragging = false
@@ -172,6 +173,7 @@ struct SingleBudgetView: View {
                 cardLayout
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
         .onAppear {
             if budget.isFault {
                 return
@@ -281,7 +283,7 @@ struct SingleBudgetView: View {
                             if deleteConfirm {
                                 deleted = true
                                 withAnimation(.easeInOut(duration: 0.3)) {
-                                    offset -= UIScreen.main.bounds.width
+                                    offset -= screenWidth
                                 }
 
                                 deleteTask = Task {

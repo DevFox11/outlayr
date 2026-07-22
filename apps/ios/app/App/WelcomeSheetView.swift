@@ -18,6 +18,7 @@ struct WelcomeSheetView: View {
 
     @State var firstPage = true
     @State var visibleLines: Int = 0
+    @State private var containerHeight: CGFloat = 0
 
     let timer = Timer.publish(every: 0.16, on: .main, in: .common).autoconnect()
 
@@ -47,7 +48,7 @@ struct WelcomeSheetView: View {
                             .foregroundStyle(Color.SubtitleText)
                             .padding(.bottom, 15)
                     }
-                    .frame(height: UIScreen.main.bounds.height / 3.4, alignment: .bottom)
+                    .frame(height: containerHeight / 3.4, alignment: .bottom)
                     .frame(maxWidth: .infinity, alignment: .center)
 
                     VStack(alignment: .leading, spacing: 22) {
@@ -108,5 +109,6 @@ struct WelcomeSheetView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.PrimaryBackground)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { containerHeight = $0 }
     }
 }

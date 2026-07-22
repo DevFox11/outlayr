@@ -64,19 +64,20 @@ struct WeekGraphView: View {
         return (dateFormatter.string(from: startOfLastWeek), dateFormatter.string(from: startOfNextWeek))
     }
 
+    @State private var screenWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
     @State private var changeDate: Bool = false
     @GestureState var isDragging = false
     var changeTime: Bool {
-        if offset < -(UIScreen.main.bounds.width * 0.25) && showingWeek != startOfCurrentWeek {
+        if offset < -(screenWidth * 0.25) && showingWeek != startOfCurrentWeek {
             return true
-        } else if offset > (UIScreen.main.bounds.width * 0.25) && showingWeek != startOfLastWeek {
+        } else if offset > (screenWidth * 0.25) && showingWeek != startOfLastWeek {
             return true
         } else {
             return false
         }
 //
-//        return abs(offset) > UIScreen.main.bounds.width * 0.3
+//        return abs(offset) > screenWidth * 0.3
     }
 
     @State var showingWeek = Date.now
@@ -156,7 +157,7 @@ struct WeekGraphView: View {
                                 if offset < 0, showingWeek != startOfCurrentWeek {
                                     changeDate = true
 
-                                    offset = UIScreen.main.bounds.width
+                                    offset = screenWidth
 
                                     showingWeek = Calendar.current.date(byAdding: .day, value: 7, to: showingWeek) ?? Date.now
 
@@ -166,7 +167,7 @@ struct WeekGraphView: View {
                                 } else if offset > 0, showingWeek != startOfLastWeek {
                                     changeDate = true
 
-                                    offset = -UIScreen.main.bounds.width
+                                    offset = -screenWidth
 
                                     showingWeek = Calendar.current.date(byAdding: .day, value: -7, to: showingWeek) ?? Date.now
 
@@ -241,5 +242,6 @@ struct WeekGraphView: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
     }
 }

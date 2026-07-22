@@ -1,4 +1,6 @@
 import CloudKitSyncMonitor
+import CoreData
+import Foundation
 import Observation
 
 @MainActor @Observable
@@ -8,7 +10,7 @@ final class CloudKitSyncObserver {
     private var observationTask: Task<Void, Never>?
 
     init() {
-        observationTask = Task {
+        observationTask = Task { @MainActor in
             for await _ in NotificationCenter.default.notifications(
                 named: NSPersistentCloudKitContainer.eventChangedNotification
             ) {
@@ -18,6 +20,8 @@ final class CloudKitSyncObserver {
     }
 
     deinit {
-        observationTask?.cancel()
+        MainActor.assumeIsolated {
+            observationTask?.cancel()
+        }
     }
 }

@@ -29,7 +29,7 @@ struct NoResultsView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, alignment: .center)
-            .frame(height: UIScreen.main.bounds.height * 0.7)
+            .containerRelativeFrame(.vertical, count: 10, span: 7, spacing: 0)
             .opacity(0.7)
         } else {
             VStack(spacing: 12) {

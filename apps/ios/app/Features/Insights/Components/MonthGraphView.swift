@@ -61,19 +61,20 @@ struct MonthGraphView: View {
         return (dateFormatter.string(from: startOfLastMonth), dateFormatter.string(from: startOfNextMonth))
     }
 
+    @State private var screenWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
     @State private var changeDate: Bool = false
     @GestureState var isDragging = false
     var changeTime: Bool {
-        if offset < -(UIScreen.main.bounds.width * 0.25) && showingMonth != startOfCurrentMonth {
+        if offset < -(screenWidth * 0.25) && showingMonth != startOfCurrentMonth {
             return true
-        } else if offset > (UIScreen.main.bounds.width * 0.25) && showingMonth != startOfLastMonth {
+        } else if offset > (screenWidth * 0.25) && showingMonth != startOfLastMonth {
             return true
         } else {
             return false
         }
 //
-//        return abs(offset) > UIScreen.main.bounds.width * 0.3
+//        return abs(offset) > screenWidth * 0.3
     }
 
     @State var showingMonth = Date.now
@@ -153,7 +154,7 @@ struct MonthGraphView: View {
                                 if offset < 0, showingMonth != startOfCurrentMonth {
                                     changeDate = true
 
-                                    offset = UIScreen.main.bounds.width
+                                    offset = screenWidth
 
                                     showingMonth = Calendar.current.date(byAdding: .month, value: 1, to: showingMonth) ?? Date.now
 
@@ -163,7 +164,7 @@ struct MonthGraphView: View {
                                 } else if offset > 0, showingMonth != startOfLastMonth {
                                     changeDate = true
 
-                                    offset = -UIScreen.main.bounds.width
+                                    offset = -screenWidth
 
                                     showingMonth = Calendar.current.date(byAdding: .month, value: -1, to: showingMonth) ?? Date.now
 
@@ -258,5 +259,6 @@ struct MonthGraphView: View {
 //                }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
     }
 }

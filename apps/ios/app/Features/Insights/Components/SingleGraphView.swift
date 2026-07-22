@@ -102,6 +102,7 @@ struct SingleGraphView: View {
 
     @State private var insights: TransactionRepository.GraphViewInsights = .empty
     @State private var loadedKey: LoadKey?
+    @State private var screenWidth: CGFloat = 0
 
     var totalIncome: Double { insights.summary.income }
     var totalSpent: Double { insights.summary.spent }
@@ -176,9 +177,9 @@ struct SingleGraphView: View {
         let averageWidth = supplementalText.widthOfRoundedString(size: UIFont.textStyleSize(.title1), weight: .medium)
         let percentageWidth = percentageDifference.widthOfRoundedString(size: UIFont.textStyleSize(.footnote), weight: .medium) + 10
 
-        let screenWidth = UIScreen.main.bounds.width - 60
+        let availableWidth = screenWidth > 0 ? screenWidth - 60 : 300
 
-        return totalWidth + averageWidth + percentageWidth + 40 < screenWidth
+        return totalWidth + averageWidth + percentageWidth + 40 < availableWidth
     }
 
     var body: some View {
@@ -294,6 +295,7 @@ struct SingleGraphView: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
         .task(id: LoadKey(type: type, date: date, income: income)) {
             // Capture the inputs once: a cancelled-but-still-running load must
             // never pick up a newer selection mid-flight.

@@ -19,6 +19,7 @@ struct MainBudgetView: View {
     @State var toEdit: MainBudget?
     @State var toDelete: MainBudget?
     @State var totalSpent: Double = 0
+    @State private var containerWidth: CGFloat = 0
 
     var soloBudget: Bool
 
@@ -142,7 +143,7 @@ struct MainBudgetView: View {
 
     var width: CGFloat {
         if soloBudget {
-            return UIScreen.main.bounds.width - 90
+            return containerWidth > 0 ? containerWidth - 90 : 250
         } else {
             return 250
         }
@@ -192,6 +193,7 @@ struct MainBudgetView: View {
             NewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
         }
         .deleteMainBudgetConfirmation($toDelete)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
     }
 
     private var gaugeSection: some View {

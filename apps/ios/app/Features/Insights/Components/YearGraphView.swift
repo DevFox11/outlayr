@@ -57,19 +57,20 @@ struct YearGraphView: View {
         return (dateFormatter.string(from: startOfLastYear), dateFormatter.string(from: startOfNextYear))
     }
 
+    @State private var screenWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
     @State private var changeDate: Bool = false
     @GestureState var isDragging = false
     var changeTime: Bool {
-        if offset < -(UIScreen.main.bounds.width * 0.25) && showingYear != startOfCurrentYear {
+        if offset < -(screenWidth * 0.25) && showingYear != startOfCurrentYear {
             return true
-        } else if offset > (UIScreen.main.bounds.width * 0.25) && showingYear != startOfLastYear {
+        } else if offset > (screenWidth * 0.25) && showingYear != startOfLastYear {
             return true
         } else {
             return false
         }
 //
-//        return abs(offset) > UIScreen.main.bounds.width * 0.3
+//        return abs(offset) > screenWidth * 0.3
     }
 
     @State var showingYear = Date.now
@@ -149,7 +150,7 @@ struct YearGraphView: View {
                                 if offset < 0, showingYear != startOfCurrentYear {
                                     changeDate = true
 
-                                    offset = UIScreen.main.bounds.width
+                                    offset = screenWidth
 
                                     showingYear = Calendar.current.date(byAdding: .year, value: 1, to: showingYear) ?? Date.now
 
@@ -159,7 +160,7 @@ struct YearGraphView: View {
                                 } else if offset > 0, showingYear != startOfLastYear {
                                     changeDate = true
 
-                                    offset = -UIScreen.main.bounds.width
+                                    offset = -screenWidth
 
                                     showingYear = Calendar.current.date(byAdding: .year, value: -1, to: showingYear) ?? Date.now
 
@@ -230,5 +231,6 @@ struct YearGraphView: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
     }
 }

@@ -96,9 +96,9 @@ struct TemplateTransactionView: View {
 
     let repeatOverlays = ["D", "W", "M"]
 
-    var downsize: (big: CGFloat, small: CGFloat) {
+    func downsize(availableWidth: CGFloat) -> (big: CGFloat, small: CGFloat) {
         let amountText: String
-        let size = UIScreen.main.bounds.width - 105
+        let size = availableWidth - 105
 
         if numberEntryType == 2 {
             amountText = amount
@@ -264,11 +264,11 @@ struct TemplateTransactionView: View {
                     if numberEntryType == 1 {
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(currencySymbol)
-                                .scaledFont(downsize.small, weight: .light, design: .rounded)
+                                .scaledFont(downsize(availableWidth: proxy.size.width).small, weight: .light, design: .rounded)
                                 .foregroundStyle(Color.SubtitleText)
-                                .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
+                                .baselineOffset(getDollarOffset(big: downsize(availableWidth: proxy.size.width).big, small: downsize(availableWidth: proxy.size.width).small))
                             Text("\(transactionValue, specifier: "%.2f")")
-                                .scaledFont(downsize.big, weight: .regular, design: .rounded)
+                                .scaledFont(downsize(availableWidth: proxy.size.width).big, weight: .regular, design: .rounded)
                                 .foregroundStyle(Color.PrimaryText)
                         }
                     } else {
@@ -286,11 +286,11 @@ struct TemplateTransactionView: View {
                         } else {
                             HStack(alignment: .lastTextBaseline, spacing: 4) {
                                 Text(currencySymbol)
-                                    .scaledFont(downsize.small, weight: .light, design: .rounded)
+                                    .scaledFont(downsize(availableWidth: proxy.size.width).small, weight: .light, design: .rounded)
                                     .foregroundStyle(Color.SubtitleText)
-                                    .baselineOffset(getDollarOffset(big: downsize.big, small: downsize.small))
+                                    .baselineOffset(getDollarOffset(big: downsize(availableWidth: proxy.size.width).big, small: downsize(availableWidth: proxy.size.width).small))
                                 Text(amount)
-                                    .scaledFont(downsize.big, weight: .regular, design: .rounded)
+                                    .scaledFont(downsize(availableWidth: proxy.size.width).big, weight: .regular, design: .rounded)
                                     .foregroundStyle(Color.PrimaryText)
                             }
                             .frame(maxWidth: .infinity)

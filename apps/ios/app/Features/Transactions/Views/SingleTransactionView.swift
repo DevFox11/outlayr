@@ -17,6 +17,7 @@ struct SingleTransactionView: View {
 
     @State var refreshID = UUID()
     @State private var deleteTask: Task<Void, Never>?
+    @State private var screenWidth: CGFloat = 0
 
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
@@ -32,11 +33,11 @@ struct SingleTransactionView: View {
     @State private var offset: CGFloat = 0
     @State private var deleted: Bool = false
     var deletePopup: Bool {
-        return abs(offset) > UIScreen.main.bounds.width * 0.2
+        return abs(offset) > screenWidth * 0.2
     }
 
     var deleteConfirm: Bool {
-        return abs(offset) > UIScreen.main.bounds.width * 0.42
+        return abs(offset) > screenWidth * 0.42
     }
 
     @GestureState var isDragging = false
@@ -78,6 +79,7 @@ struct SingleTransactionView: View {
 
             rowContent
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { screenWidth = $0 }
         .onChange(of: deletePopup) { _, _ in
             if deletePopup {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -105,7 +107,7 @@ struct SingleTransactionView: View {
                     if deleteConfirm {
                         deleted = true
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            offset -= UIScreen.main.bounds.width
+                            offset -= screenWidth
                         }
 
                         if future, transaction.wrappedDate < Date.now, transaction.recurringType > 0 {

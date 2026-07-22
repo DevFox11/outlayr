@@ -31,7 +31,7 @@ struct CustomTabBar: View {
     @State var animate = false
 
     private var isZoomed: Bool {
-        UIScreen.main.scale != UIScreen.main.nativeScale
+        UITraitCollection.current.displayScale != UIScreen.main.nativeScale
     }
 
     var body: some View {

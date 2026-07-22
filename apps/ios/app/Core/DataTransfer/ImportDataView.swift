@@ -75,6 +75,7 @@ struct ImportDataView: View {
     @State var income = false
 
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @State private var containerHeight: CGFloat = 0
 
     var columnWidth: CGFloat {
         if dynamicTypeSize > .xLarge {
@@ -233,7 +234,7 @@ struct ImportDataView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .frame(height: UIScreen.main.bounds.size.height / (dynamicTypeSize > .xLarge ? 5.3 : 5.8), alignment: .top)
+                .frame(height: containerHeight / (dynamicTypeSize > .xLarge ? 5.3 : 5.8), alignment: .top)
                 .padding(.bottom, 10)
 
                 if progress == 1 {
@@ -491,6 +492,7 @@ struct ImportDataView: View {
             }
         }
         .confettiCannon(counter: $confettiNumber, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { containerHeight = $0 }
     }
 
 }

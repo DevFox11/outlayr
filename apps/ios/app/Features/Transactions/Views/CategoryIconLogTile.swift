@@ -79,8 +79,7 @@ struct CategoryIconLogTile: View {
         }
         let side = thumbnailSide
         let key = imageCacheKey
-        // UIScreen access must stay on the main actor; capture before detaching.
-        let screenScale = UIScreen.main.scale
+        let screenScale = UITraitCollection.current.displayScale
         if let cached = TransactionThumbnailCache.shared.cached(for: imageData, key: key, side: side) {
             thumbnail = cached
             return

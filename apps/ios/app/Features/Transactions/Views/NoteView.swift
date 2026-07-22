@@ -14,6 +14,7 @@ struct NoteView: View {
 
     @FocusState private var textFocused: Bool
     let characterLimit = 50
+    @State private var containerWidth: CGFloat = 0
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -52,7 +53,7 @@ struct NoteView: View {
             }
             .font(.system(.body, design: .rounded, weight: .semibold))
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .frame(width: min(noteWidth, UIScreen.main.bounds.width / 1.5), alignment: .center)
+            .frame(width: min(noteWidth, containerWidth > 0 ? containerWidth / 1.5 : noteWidth), alignment: .center)
         }
         .onTapGesture {
             textFocused = true
@@ -63,6 +64,7 @@ struct NoteView: View {
             RoundedRectangle(cornerRadius: 11.5, style: .continuous)
                 .stroke(Color.Outline, lineWidth: 1.5)
         )
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
         .onChange(of: textFocused) { _, newValue in
             focused = newValue
         }
