@@ -106,8 +106,8 @@ struct SingleMonthBarGraphView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityChartDescriptor(self)
-        .accessibilityLabel("Monthly spending chart")
-        .accessibilityValue(actualDays > 1 ? "Average \(String(format: "%.0f", monthAverage)) per day" : "No data")
+        .accessibilityLabel(String(localized: "accessibility.monthlySpendingChart"))
+        .accessibilityValue(actualDays > 1 ? String(format: String(localized: "accessibility.averagePerDay"), String(format: "%.0f", monthAverage)) : String(localized: "accessibility.noData"))
     }
 
     init(insights: TransactionRepository.GraphViewInsights.PeriodBreakdown, date: Binding<Date?>?, mode: Binding<Bool>, amount: Binding<Double>) {

@@ -127,14 +127,14 @@ struct AmountEntrySheet: View {
                     .foregroundStyle(Color.SubtitleText)
             }
         }
-        .accessibilityLabel("Currency, \(effectiveCurrency)")
+        .accessibilityLabel(String(format: String(localized: "accessibility.currency"), effectiveCurrency))
     }
 
     private var closeButton: some View {
         Button(action: onDone) {
             ToolbarIcon("cancel-01", size: 22)
         }
-        .accessibilityLabel("Close")
+        .accessibilityLabel(String(localized: "accessibility.close"))
     }
 
     private var amountDisplayStyle: AmountEntryDisplayStyle {
@@ -199,7 +199,7 @@ struct AmountEntrySheet: View {
                     Image(systemName: "delete.left")
                         .scaledFont(24, weight: .medium)
                 }
-                .accessibilityLabel("Delete")
+                .accessibilityLabel(String(localized: "accessibility.delete"))
             }
         }
     }

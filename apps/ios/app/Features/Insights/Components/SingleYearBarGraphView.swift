@@ -105,8 +105,8 @@ struct SingleYearBarGraphView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityChartDescriptor(self)
-        .accessibilityLabel("Yearly spending chart")
-        .accessibilityValue(actualMonths > 1 ? "Average \(String(format: "%.0f", yearAverage)) per month" : "No data")
+        .accessibilityLabel(String(localized: "accessibility.yearlySpendingChart"))
+        .accessibilityValue(actualMonths > 1 ? String(format: String(localized: "accessibility.averagePerMonth"), String(format: "%.0f", yearAverage)) : String(localized: "accessibility.noData"))
     }
 
     func getMonth(month: Date) -> String {

@@ -209,7 +209,7 @@ struct TemplateTransactionView: View {
                                     .background(Color.AlertRed.opacity(0.23), in: Circle())
                                     .contentShape(Circle())
                             }
-                            .accessibilityLabel("delete transaction")
+                            .accessibilityLabel(String(localized: "accessibility.deleteTransaction"))
                         }
 
                         Button {

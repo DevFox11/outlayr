@@ -112,7 +112,7 @@ struct CategoryListView: View {
             } label: {
                 ToolbarIcon(showSuggestions ? "view-off-slash" : "view")
             }
-            .accessibilityLabel(showSuggestions ? "Hide Suggestions" : "Show Suggestions")
+            .accessibilityLabel(showSuggestions ? String(localized: "accessibility.hideSuggestions") : String(localized: "accessibility.showSuggestions"))
 
             if categories.count > 1 {
                 Button {
@@ -120,7 +120,7 @@ struct CategoryListView: View {
                 } label: {
                     ToolbarIcon("arrow-up-down")
                 }
-                .accessibilityLabel("Reorder Categories")
+                .accessibilityLabel(String(localized: "accessibility.reorderCategories"))
             }
         }
 
@@ -156,7 +156,7 @@ struct CategoryListView: View {
         } label: {
             ToolbarIcon("plus-sign")
         }
-        .accessibilityLabel("New Category")
+        .accessibilityLabel(String(localized: "accessibility.newCategory"))
     }
 
     private var continueButton: some View {

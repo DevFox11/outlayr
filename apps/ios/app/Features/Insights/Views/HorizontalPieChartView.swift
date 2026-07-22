@@ -163,7 +163,7 @@ struct HorizontalPieChartView: View {
             .frame(height: 17)
             .padding(.bottom, 10)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Category breakdown chart")
+            .accessibilityLabel(String(localized: "accessibility.categoryBreakdownChart"))
             .accessibilityValue(categorySummary)
         }
     }

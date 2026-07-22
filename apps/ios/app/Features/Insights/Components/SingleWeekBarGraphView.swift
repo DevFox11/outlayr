@@ -96,8 +96,8 @@ struct SingleWeekBarGraphView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityChartDescriptor(self)
-        .accessibilityLabel("Weekly spending chart")
-        .accessibilityValue(actualDays > 1 ? "Average \(String(format: "%.0f", weekAverage)) per day" : "No data")
+        .accessibilityLabel(String(localized: "accessibility.weeklySpendingChart"))
+        .accessibilityValue(actualDays > 1 ? String(format: String(localized: "accessibility.averagePerDay"), String(format: "%.0f", weekAverage)) : String(localized: "accessibility.noData"))
     }
 
     func getWeekday(day: Date) -> String {

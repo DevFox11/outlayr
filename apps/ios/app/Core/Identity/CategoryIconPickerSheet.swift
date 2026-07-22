@@ -131,7 +131,7 @@ struct CategoryIconPickerSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
+                .accessibilityLabel(String(localized: "accessibility.clearSearch"))
             }
         }
         .padding(.horizontal, 10)

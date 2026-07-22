@@ -113,7 +113,7 @@ struct NewCategoryAlert: View {
                         dismiss()
                     } label: {
                         ToolbarIcon("cancel-01")
-                    }                    .accessibilityLabel("Cancel")
+                    }                    .accessibilityLabel(String(localized: "accessibility.cancel"))
                 }
             }
             .alert("Couldn't Add Category", isPresented: errorBinding, presenting: errorMessage) { _ in

@@ -136,7 +136,7 @@ struct CategoryRowPickerView: View {
                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(empty ? "Add category" : "Edit categories")
+            .accessibilityLabel(empty ? String(localized: "accessibility.addCategory") : String(localized: "accessibility.editCategories"))
         }
         .frame(maxWidth: .infinity)
         .sheet(isPresented: $showCategorySheet) {

@@ -33,7 +33,7 @@ struct DeleteTransactionAlert: View {
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 25, weight: .medium, design: .rounded))
                     .foregroundStyle(Color.PrimaryText)
-                    .accessibilityLabel("Delete \(unwrappedToDelete.wrappedNote) transaction confirmation. This action cannot be undone.")
+                    .accessibilityLabel(String(format: String(localized: "accessibility.deleteTransactionConfirmation"), unwrappedToDelete.wrappedNote))
 
                 Text(stopRecurring ? "The transaction will no longer be automatically logged." : "This action cannot be undone.")
                     .font(.system(.title3, design: .rounded).weight(.medium))

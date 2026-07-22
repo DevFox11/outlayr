@@ -110,7 +110,7 @@ struct TransactionIdentityPickerSheet: View {
                     .font(.system(.footnote, design: .rounded, weight: .medium))
                     .foregroundStyle(Color.AlertRed)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("Photo error: \(photoError)")
+                    .accessibilityLabel(String(format: String(localized: "accessibility.photoError"), photoError))
             }
 
             colorSection
@@ -329,7 +329,7 @@ struct TransactionIdentityPickerSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
+                .accessibilityLabel(String(localized: "accessibility.clearSearch"))
             }
         }
         .padding(.horizontal, 10)

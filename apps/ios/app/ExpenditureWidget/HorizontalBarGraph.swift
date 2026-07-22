@@ -46,7 +46,7 @@ struct HorizontalBarGraph: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Category breakdown")
+        .accessibilityLabel(String(localized: "accessibility.categoryBreakdown"))
         .accessibilityValue(summary)
     }
 }

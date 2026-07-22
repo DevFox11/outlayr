@@ -44,7 +44,7 @@ struct NumPadGrid<LeftKey: View>: View {
                             )
                     }
                     .buttonStyle(NumPadButton())
-                    .accessibilityLabel("Submit")
+                    .accessibilityLabel(String(localized: "accessibility.submit"))
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)

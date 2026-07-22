@@ -47,7 +47,7 @@ struct ColorPickerView: View {
                             selectedColor = hex
                         }
                     }
-                    .accessibilityLabel("Custom color")
+                    .accessibilityLabel(String(localized: "accessibility.customColor"))
             }
             // The selection ring stands off the circle; without this the first and
             // last rings clip against the scroll view's bounds.
@@ -90,6 +90,6 @@ private struct ColorSwatch: View {
         .disabled(isUsed && !isSelected)
         .accessibilityLabel(Text(verbatim: hex))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-        .accessibilityHint(isDimmed ? "Already used by another category" : "")
+        .accessibilityHint(isDimmed ? String(localized: "accessibility.alreadyUsedByAnotherCategory") : "")
     }
 }

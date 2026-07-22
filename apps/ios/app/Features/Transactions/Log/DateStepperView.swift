@@ -38,7 +38,7 @@ struct DateStepperView: View {
                     date = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? Date.now
                 }
             }
-            .accessibilityLabel("previous day")
+            .accessibilityLabel(String(localized: "accessibility.previousDay"))
 
             Spacer()
 
@@ -46,7 +46,7 @@ struct DateStepperView: View {
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .accessibilityLabel("showing transactions on \(dateString)")
+                .accessibilityLabel(String(format: String(localized: "accessibility.showingTransactionsOn"), dateString))
 
             Spacer()
 
@@ -55,7 +55,7 @@ struct DateStepperView: View {
                     date = Calendar.current.date(byAdding: .day, value: 1, to: date) ?? Date.now
                 }
             }
-            .accessibilityLabel("next day")
+            .accessibilityLabel(String(localized: "accessibility.nextDay"))
         }
         .frame(maxWidth: .infinity)
         .onAppear {

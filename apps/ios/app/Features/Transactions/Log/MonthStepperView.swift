@@ -48,13 +48,13 @@ struct MonthStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .month, value: -1, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("previous month")
+            .accessibilityLabel(String(localized: "accessibility.previousMonth"))
 
             Spacer()
 
             Text(dateString)
                 .font(.system(.title3, design: .rounded).weight(.bold))
-                .accessibilityLabel("showing transactions in \(dateString)")
+                .accessibilityLabel(String(format: String(localized: "accessibility.showingTransactionsIn"), dateString))
 
             Spacer()
 
@@ -63,7 +63,7 @@ struct MonthStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .month, value: 1, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("next month")
+            .accessibilityLabel(String(localized: "accessibility.nextMonth"))
         }
         .frame(maxWidth: .infinity)
         .onAppear {

@@ -62,7 +62,7 @@ struct CustomTabBar: View {
                 }
                 .buttonStyle(MyButtonStyle())
                 .padding(15)
-                .accessibilityLabel("Add New Transaction")
+                .accessibilityLabel(String(localized: "accessibility.addNewTransaction"))
             }
             .onAppear {
                 if transactions.isEmpty {

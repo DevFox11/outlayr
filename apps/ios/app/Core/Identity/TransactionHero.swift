@@ -42,8 +42,8 @@ struct TransactionHero: View {
                     resetBadge
                 }
             }
-            .accessibilityLabel("Transaction logo")
-            .accessibilityHint("Opens the logo picker")
+            .accessibilityLabel(String(localized: "accessibility.transactionLogo"))
+            .accessibilityHint(String(localized: "accessibility.opensLogoPicker"))
             .scaleEffect(tileScale)
             .offset(y: tileOffsetY)
             .zIndex(1)
@@ -100,7 +100,7 @@ struct TransactionHero: View {
         }
         .buttonStyle(.plain)
         .offset(x: 8, y: -8)
-        .accessibilityLabel("Remove logo")
+        .accessibilityLabel(String(localized: "accessibility.removeLogo"))
     }
 
     private var emptyTile: some View {

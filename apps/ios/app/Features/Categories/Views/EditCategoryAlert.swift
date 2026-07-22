@@ -97,7 +97,7 @@ struct EditCategoryAlert: View {
                         dismiss()
                     } label: {
                         ToolbarIcon("cancel-01")
-                    }                    .accessibilityLabel("Cancel")
+                    }                    .accessibilityLabel(String(localized: "accessibility.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -105,7 +105,7 @@ struct EditCategoryAlert: View {
                         confirmingDelete = true
                     } label: {
                         ToolbarIcon("delete-02", color: Color.AlertRed)
-                    }                    .accessibilityLabel(toEdit.isSubcategory ? "Delete Subcategory" : "Delete Category")
+                    }                    .accessibilityLabel(toEdit.isSubcategory ? String(localized: "accessibility.deleteSubcategory") : String(localized: "accessibility.deleteCategory"))
                 }
             }
             .alert("Couldn't Save Category", isPresented: errorBinding, presenting: errorMessage) { _ in

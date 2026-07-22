@@ -198,7 +198,7 @@ struct LineGraph: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityChartDescriptor(self)
-        .accessibilityLabel(green ? "Income history" : "Spending history")
+        .accessibilityLabel(green ? String(localized: "accessibility.incomeHistory") : String(localized: "accessibility.spendingHistory"))
     }
 
 }

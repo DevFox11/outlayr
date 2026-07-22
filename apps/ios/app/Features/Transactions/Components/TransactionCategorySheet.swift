@@ -120,7 +120,7 @@ struct TransactionCategorySheet: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isExpanded ? "Collapse \(item.wrappedName)" : "Expand \(item.wrappedName)")
+                .accessibilityLabel(isExpanded ? String(format: String(localized: "accessibility.collapseCategory"), item.wrappedName) : String(format: String(localized: "accessibility.expandCategory"), item.wrappedName))
             }
         }
         .padding(.horizontal, 14)

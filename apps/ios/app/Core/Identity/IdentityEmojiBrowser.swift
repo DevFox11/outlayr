@@ -65,7 +65,7 @@ struct IdentityEmojiBrowser: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("More emoji")
-        .accessibilityHint("Opens the emoji keyboard")
+        .accessibilityLabel(String(localized: "accessibility.moreEmoji"))
+        .accessibilityHint(String(localized: "accessibility.opensEmojiKeyboard"))
     }
 }

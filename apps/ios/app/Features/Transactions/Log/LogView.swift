@@ -163,7 +163,7 @@ struct LogView: View {
                                 .opacity(progress)
                         }
                 }
-                .accessibilityLabel("Search")
+                .accessibilityLabel(String(localized: "accessibility.search"))
 
                 Spacer()
 
@@ -205,7 +205,7 @@ struct LogView: View {
                             }
                         }
                 }
-                .accessibilityLabel("Filter")
+                .accessibilityLabel(String(localized: "accessibility.filter"))
                 .popover(present: $showFilter, attributes: {
                     $0.position = .absolute(
                         originAnchor: .bottomRight,
@@ -275,7 +275,7 @@ struct LogView: View {
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundStyle(Color.PrimaryText.opacity(0.7))
             }
-            .accessibilityLabel("remove filter")
+            .accessibilityLabel(String(localized: "accessibility.removeFilter"))
         }
         .padding(4)
         .padding(.horizontal, 6)

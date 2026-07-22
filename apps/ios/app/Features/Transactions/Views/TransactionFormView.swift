@@ -257,14 +257,14 @@ struct TransactionFormView: View {
             Button { dismiss() } label: {
                 ToolbarIcon("cancel-01")
             }
-            .accessibilityLabel("Cancel")
+            .accessibilityLabel(String(localized: "accessibility.cancel"))
         }
         if isEditing {
             ToolbarItem(placement: .confirmationAction) {
                 Button { deleteConfirm = true } label: {
                     ToolbarIcon("delete-02", color: .AlertRed)
                 }
-                .accessibilityLabel("Delete")
+                .accessibilityLabel(String(localized: "accessibility.delete"))
             }
         }
     }

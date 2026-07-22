@@ -34,7 +34,7 @@ struct CategoryStepperView: View {
                         .background(Color.IncomeGreen.opacity(0.23), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Show expense categories")
+                .accessibilityLabel(String(localized: "accessibility.showExpenseCategories"))
             } else {
                 Button {
                     let fetchRequest = dataController.categories.fetchRequestForCategories(income: true)
@@ -54,7 +54,7 @@ struct CategoryStepperView: View {
                         .background(Color.AlertRed.opacity(0.23), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Show income categories")
+                .accessibilityLabel(String(localized: "accessibility.showIncomeCategories"))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {

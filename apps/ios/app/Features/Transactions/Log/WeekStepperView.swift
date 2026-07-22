@@ -64,7 +64,7 @@ struct WeekStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .day, value: -7, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("previous week")
+            .accessibilityLabel(String(localized: "accessibility.previousWeek"))
 
             Spacer()
 
@@ -79,7 +79,7 @@ struct WeekStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .day, value: 7, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("next week")
+            .accessibilityLabel(String(localized: "accessibility.nextWeek"))
         }
         .frame(maxWidth: .infinity)
         .onAppear {

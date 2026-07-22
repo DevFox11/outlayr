@@ -86,8 +86,8 @@ struct CategorySheetSurface<FormContent: View>: View {
         }
         .buttonStyle(GridPressStyle())
         .disabled(choosingIcon)
-        .accessibilityLabel("Category icon")
-        .accessibilityHint("Opens the icon picker")
+        .accessibilityLabel(String(localized: "accessibility.categoryIcon"))
+        .accessibilityHint(String(localized: "accessibility.opensIconPicker"))
         .overlay(alignment: .topTrailing) {
             if hasSymbol && !choosingIcon {
                 resetBadge
@@ -114,7 +114,7 @@ struct CategorySheetSurface<FormContent: View>: View {
         }
         .buttonStyle(.plain)
         .offset(x: 8, y: -8)
-        .accessibilityLabel("Remove icon")
+        .accessibilityLabel(String(localized: "accessibility.removeIcon"))
     }
 
     /// Speaks the Budgets empty state's ghost dialect: soft fill, gentle dashed

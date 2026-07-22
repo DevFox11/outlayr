@@ -26,7 +26,7 @@ struct TabButton: View {
                 .foregroundStyle(currentTab == image ? Color.DarkIcon : Color.GreyIcon)
         }
         .buttonStyle(BouncyButton(duration: 0.3, scale: 0.6))
-        .accessibilityLabel("\(image) tab")
+        .accessibilityLabel(String(format: String(localized: "accessibility.tab"), image))
         .accessibilityAddTraits(
             currentTab == image
                 ? [.isButton, .isSelected]
