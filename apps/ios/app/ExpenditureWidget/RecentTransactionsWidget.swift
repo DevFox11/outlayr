@@ -25,8 +25,8 @@ struct RecentTransactionsWidget: Widget {
             ExpenditureWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
-        .configurationDisplayName("Recent Transactions")
-        .description("View your latest expenses.")
+        .configurationDisplayName(LocalizedStringResource("Recent Transactions", table: "Localizable"))
+        .description(LocalizedStringResource("View your latest expenses.", table: "Localizable"))
         .supportedFamilies(supportedFamilies)
     }
 }

@@ -17,8 +17,8 @@ struct BudgetWidget: Widget {
             BudgetWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
-        .configurationDisplayName("Budget")
-        .description("Monitor how you are sticking to your budgets.")
+        .configurationDisplayName(LocalizedStringResource("Budget", table: "Localizable"))
+        .description(LocalizedStringResource("Monitor how you are sticking to your budgets.", table: "Localizable"))
         .supportedFamilies([.systemSmall])
     }
 }

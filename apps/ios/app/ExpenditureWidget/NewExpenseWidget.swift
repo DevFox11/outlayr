@@ -26,8 +26,8 @@ struct NewExpenseWidget: Widget {
             NewExpenseWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
-        .configurationDisplayName("New Expense")
-        .description("A convenient button to log new purchases.")
+        .configurationDisplayName(LocalizedStringResource("New Expense", table: "Localizable"))
+        .description(LocalizedStringResource("A convenient button to log new purchases.", table: "Localizable"))
         .supportedFamilies(supportedFamilies)
     }
 }

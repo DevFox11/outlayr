@@ -23,8 +23,8 @@ struct MainBudgetWidget: Widget {
                 .guardedByDataStore()
         }
         .supportedFamilies(supportedFamilies)
-        .configurationDisplayName("Overall Budget")
-        .description("Monitor how you are sticking to your overall budgets.")
+        .configurationDisplayName(LocalizedStringResource("Overall Budget", table: "Localizable"))
+        .description(LocalizedStringResource("Monitor how you are sticking to your overall budgets.", table: "Localizable"))
     }
 }
 

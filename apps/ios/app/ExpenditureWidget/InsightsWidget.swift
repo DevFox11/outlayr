@@ -18,8 +18,8 @@ struct InsightsWidget: Widget {
             InsightsWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
-        .configurationDisplayName("Insights")
-        .description("Analyse your expenditure breakdowns over various time periods.")
+        .configurationDisplayName(LocalizedStringResource("Insights", table: "Localizable"))
+        .description(LocalizedStringResource("Analyse your expenditure breakdowns over various time periods.", table: "Localizable"))
         .supportedFamilies([.systemMedium])
     }
 }
