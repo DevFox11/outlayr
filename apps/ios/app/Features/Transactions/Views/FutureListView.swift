@@ -55,52 +55,32 @@ struct FutureListView: View {
 
     @AppStorage(DefaultsKey.swapTimeLabel, store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
 
-    var totalString: String {
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = currency
-
-        if showCents {
-            numberFormatter.maximumFractionDigits = 2
-        } else {
-            numberFormatter.maximumFractionDigits = 0
-        }
-
-        var total = 0.0
-
-        transactions.forEach { transaction in
-            if transaction.income {
-                total += transaction.amount
-            } else {
-                total -= transaction.amount
+    var totals: CurrencyTotals {
+        CurrencyTotals(
+            globalCurrency: currency,
+            entries: transactions.map {
+                CurrencyTotals.Entry(currency: $0.wrappedCurrency, amount: $0.income ? $0.amount : -$0.amount)
             }
-        }
-
-        if total >= 0 {
-            return "+" + (numberFormatter.string(from: NSNumber(value: total)) ?? "$0")
-        } else {
-            return numberFormatter.string(from: NSNumber(value: total)) ?? "$0"
-        }
+        )
     }
 
     var body: some View {
         if !transactions.isEmpty {
             VStack(spacing: 0) {
-                VStack(spacing: 4) {
-                    HStack {
-                        Text("UPCOMING")
-                        Spacer()
+                VStack(spacing: 5) {
+                    HStack(alignment: .firstTextBaseline) {
+                        MonoLabel(verbatim: String(localized: "UPCOMING"))
+                            .layoutPriority(1)
 
-                        Text(totalString)
+                        Spacer(minLength: 8)
+
+                        upcomingTotals
                     }
-                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.SubtitleText)
                     .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilityTotal)
 
                     Line()
-                        .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+                        .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
                 }
                 .padding(.horizontal, 10)
 
@@ -114,6 +94,33 @@ struct FutureListView: View {
         } else {
             EmptyView()
         }
+    }
+
+    /// Upcoming entries can be denominated in several currencies, so they are
+    /// listed side by side rather than added: there is no rate here, and a single
+    /// figure would be an invention.
+    private var upcomingTotals: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            ForEach(Array(totals.buckets.enumerated()), id: \.element.id) { index, bucket in
+                if index > 0 {
+                    Text(verbatim: "/")
+                        .foregroundStyle(Color.Outline)
+                }
+
+                Text(verbatim: CurrencyAmountFormatter(currencyCode: bucket.currencyCode, showCents: showCents)
+                    .signedString(bucket.amount))
+                    .monospacedDigit()
+            }
+        }
+        .font(.system(.callout, design: .rounded).weight(.semibold))
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .foregroundStyle(Color.SubtitleText)
+    }
+
+    private var accessibilityTotal: String {
+        totals.buckets
+            .map { CurrencyAmountFormatter(currencyCode: $0.currencyCode, showCents: showCents).signedString($0.amount) }
+            .joined(separator: ", ")
     }
 
     init(dataController _: DataController, filterMode: Bool, limitedMode: Bool) {
