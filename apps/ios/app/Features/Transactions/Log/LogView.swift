@@ -157,7 +157,14 @@ struct LogView: View {
                 }
                 .pickerStyle(.inline)
             } label: {
-                ToolbarIcon("calendar-01")
+                // calendar-03, addressed by codepoint rather than by name: its
+                // glyph ships in hgi-stroke-rounded.ttf at U+F1853 with real
+                // artwork, but that build is missing the ligature entry that
+                // maps the name to it — calendar-01, -02, -04 and -05 all have
+                // theirs, so the gap is specific to this icon. By name it would
+                // draw as literal text. Switch back to the name when the font
+                // is re-vendored with the ligature present.
+                ToolbarIcon(codepoint: "\u{F1853}")
             }
             .accessibilityLabel(String(localized: "accessibility.period"))
         }

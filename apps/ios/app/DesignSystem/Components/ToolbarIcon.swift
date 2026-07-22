@@ -48,6 +48,25 @@ struct ToolbarIcon: View {
         self.color = color
     }
 
+    /// Addresses a glyph by codepoint instead of by name.
+    ///
+    /// Naming is the normal route, but a name only resolves if the bundled font
+    /// carries a ligature for it, and some builds ship a glyph without one. The
+    /// codepoint reaches the same glyph through the character map, which has no
+    /// such gap. Prefer the name wherever it works — a name survives the font
+    /// being re-vendored, a codepoint has to be rechecked.
+    init(
+        codepoint: Unicode.Scalar,
+        style: Style = .strokeRounded,
+        size: CGFloat = 22,
+        color: Color = Color.PrimaryText
+    ) {
+        name = String(codepoint)
+        self.style = style
+        self.size = size
+        self.color = color
+    }
+
     var body: some View {
         if let image = glyphImage {
             Image(uiImage: image)
