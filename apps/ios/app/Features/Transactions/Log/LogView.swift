@@ -5,14 +5,13 @@
 //  Created by Rafael Soh on 19/5/22.
 //
 
-import CloudKitSyncMonitor
 import CoreData
 import Foundation
 import Popovers
 import SwiftUI
 
 struct LogView: View {
-    @ObservedObject var syncMonitor = SyncMonitor.shared
+    @State private var syncObserver = CloudKitSyncObserver()
 
     @State var updatedRecurring = false
 
@@ -101,7 +100,7 @@ struct LogView: View {
         .fullScreenCover(isPresented: $searchMode) {
             SearchView()
         }
-        .onChange(of: syncMonitor.syncStateSummary) { _, newState in
+        .onChange(of: syncObserver.syncStateSummary) { _, newState in
             if newState == .succeeded && !updatedRecurring {
                 dataController.transactions.updateRecurringTransactions()
                 updatedRecurring = true
@@ -115,7 +114,7 @@ struct LogView: View {
         }
         .task {
             for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
-                if syncMonitor.syncStateSummary == .succeeded && !updatedRecurring {
+                if syncObserver.syncStateSummary == .succeeded && !updatedRecurring {
                     dataController.transactions.updateRecurringTransactions()
                     updatedRecurring = true
 
