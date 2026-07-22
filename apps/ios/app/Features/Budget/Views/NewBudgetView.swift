@@ -132,9 +132,17 @@ struct NewBudgetView: View {
                     continueButton
                         .padding(20)
                 } else {
-                    amountStep
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                    NewBudgetAmountStep(
+                        price: $price,
+                        category: $category,
+                        isEditingDecimal: $isEditingDecimal,
+                        decimalValuesAssigned: $decimalValuesAssigned,
+                        budgetTimeFrame: budgetTimeFrame,
+                        amountPerDayString: amountPerDayString,
+                        submit: submit
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -203,8 +211,6 @@ struct NewBudgetView: View {
             ToolbarItem(placement: .topBarTrailing) { progressDots }
         }
     }
-
-    // MARK: - Step 1: what & when
 
     private var whatAndWhenContent: some View {
         GeometryReader { proxy in
@@ -484,41 +490,6 @@ struct NewBudgetView: View {
         .disabled(!canContinue)
     }
 
-    // MARK: - Step 2: amount
-
-    private var amountStep: some View {
-        VStack(spacing: 10) {
-            NumberPadTextView(
-                price: $price,
-                isEditingDecimal: $isEditingDecimal,
-                decimalValuesAssigned: $decimalValuesAssigned
-            )
-
-            if budgetTimeFrame != .day && price > 0 {
-                Text(amountPerDayString)
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.SubtitleText)
-                    .padding(4)
-                    .padding(.horizontal, 7)
-                    .background(Color.SecondaryBackground, in: Capsule())
-            }
-
-            Spacer()
-
-            NumberPad(
-                price: $price,
-                category: $category,
-                isEditingDecimal: $isEditingDecimal,
-                decimalValuesAssigned: $decimalValuesAssigned
-            ) {
-                submit()
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Toast
-
     @ViewBuilder
     private var toast: some View {
         if showToast {
@@ -537,8 +508,6 @@ struct NewBudgetView: View {
             .padding(.top, 8)
         }
     }
-
-    // MARK: - Logic
 
     private func restoreEditState() {
         if let unwrappedEditedBudget = toEditBudget {
@@ -740,5 +709,46 @@ struct NewBudgetView: View {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: andPredicate)
+    }
+}
+
+private struct NewBudgetAmountStep: View {
+    @Binding var price: Double
+    @Binding var category: Category?
+    @Binding var isEditingDecimal: Bool
+    @Binding var decimalValuesAssigned: AssignedDecimal
+    let budgetTimeFrame: BudgetTimeFrame
+    let amountPerDayString: String
+    let submit: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            NumberPadTextView(
+                price: $price,
+                isEditingDecimal: $isEditingDecimal,
+                decimalValuesAssigned: $decimalValuesAssigned
+            )
+
+            if budgetTimeFrame != .day && price > 0 {
+                Text(amountPerDayString)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Color.SubtitleText)
+                    .padding(4)
+                    .padding(.horizontal, 7)
+                    .background(Color.SecondaryBackground, in: Capsule())
+            }
+
+            Spacer()
+
+            NumberPad(
+                price: $price,
+                category: $category,
+                isEditingDecimal: $isEditingDecimal,
+                decimalValuesAssigned: $decimalValuesAssigned
+            ) {
+                submit()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

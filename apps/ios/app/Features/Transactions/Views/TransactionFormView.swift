@@ -216,9 +216,22 @@ struct TransactionFormView: View {
             VStack(spacing: 18) {
                 scrollingHero
                 kindPicker
-                detailsGroup
-                categoryGroup
-                scheduleGroup
+                TransactionFormDetailsSection(
+                    draft: $draft,
+                    showingAmountSheet: $showingAmountSheet,
+                    nameLimit: nameLimit,
+                    globalCurrency: globalCurrency
+                )
+                TransactionFormCategorySection(
+                    category: $category,
+                    showingCategorySheet: $showingCategorySheet,
+                    categoryErrored: categoryErrored,
+                    categoryShake: categoryShake
+                )
+                TransactionFormScheduleSection(
+                    draft: $draft,
+                    showingCustomSchedule: $showingCustomSchedule
+                )
                 notesGroup
             }
             .padding(.horizontal, 20)
@@ -266,145 +279,6 @@ struct TransactionFormView: View {
         .pickerStyle(.segmented)
     }
 
-    // MARK: - Details
-
-    private var detailsGroup: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Name")
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(.secondary)
-                TextField("Netflix, Groceries…", text: $draft.name)
-                    .font(.system(.body, design: .rounded))
-                    .multilineTextAlignment(.trailing)
-                    .onChange(of: draft.name) { _, value in
-                        if value.count > nameLimit { draft.name = String(value.prefix(nameLimit)) }
-                    }
-            }
-            .formRow()
-
-            rowDivider
-
-            menuFieldRow(label: "Type", value: draft.income ? "Income" : "Expense") {
-                Picker("Type", selection: $draft.income) {
-                    Text("Expense").tag(false)
-                    Text("Income").tag(true)
-                }
-            }
-
-            rowDivider
-
-            Button { showingAmountSheet = true } label: {
-                HStack {
-                    Text("Amount")
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(formattedAmount)
-                        .font(.system(.body, design: .rounded, weight: .medium))
-                        .foregroundStyle(draft.amount > 0 ? (draft.income ? Color.IncomeGreen : Color.PrimaryText) : Color.SubtitleText)
-                    Text(effectiveCurrency)
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.tertiary)
-                }
-                .formRow()
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-        }
-        .groupedCard()
-    }
-
-    private var formattedAmount: String {
-        draft.amount.formatted(.currency(code: effectiveCurrency).presentation(.narrow))
-    }
-
-    // MARK: - Category
-
-    private var categoryGroup: some View {
-        Button { showingCategorySheet = true } label: {
-            HStack(spacing: 12) {
-                Text("Category")
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(categoryErrored ? AnyShapeStyle(Color.AlertRed) : AnyShapeStyle(.secondary))
-                Spacer()
-                HStack(spacing: 5) {
-                    if let category {
-                        CategoryIconGlyph(symbol: category.displaySymbol, size: 18)
-                            .foregroundStyle(category.income ? Color.IncomeGreen : Color(hex: category.wrappedColor))
-                        Text(category.wrappedName)
-                            .font(.system(.body, design: .rounded))
-                            .foregroundStyle(Color.PrimaryText)
-                            .lineLimit(1)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color.SubtitleText)
-                    } else {
-                        Text("Choose")
-                            .font(.system(.body, design: .rounded))
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                }
-                .foregroundStyle(Color.SubtitleText)
-            }
-            .formRow()
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .groupedCard()
-        .overlay {
-            if categoryErrored {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.AlertRed, lineWidth: 1.5)
-            }
-        }
-        .offset(x: categoryShake ? -5 : 0)
-    }
-
-    // MARK: - Schedule
-
-    @ViewBuilder
-    private var scheduleGroup: some View {
-        if draft.isSubscription {
-            VStack(spacing: 0) {
-                menuFieldRow(label: "Schedule", value: scheduleLabel) {
-                    Picker("Schedule", selection: scheduleSelection) {
-                        ForEach(RecurringCadence.selectable, id: \.self) { cadence in
-                            Text(cadence.label).tag(Int(cadence.rawValue))
-                        }
-                    }
-                    Button("Custom…") { showingCustomSchedule = true }
-                }
-
-                rowDivider
-                compactDateRow(label: "First Payment", selection: $draft.date, components: [.date])
-                rowDivider
-
-                Toggle(isOn: $draft.hasEndDate.animation()) {
-                    Text("End Date")
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .tint(Color.IncomeGreen)
-                .formRow()
-
-                if draft.hasEndDate {
-                    rowDivider
-                    compactDateRow(label: "Ends", selection: $draft.endDate, components: [.date])
-                }
-            }
-            .groupedCard()
-        } else {
-            VStack(spacing: 0) {
-                compactDateRow(label: "Date", selection: $draft.date, components: [.date])
-                rowDivider
-                compactDateRow(label: "Time", selection: $draft.date, components: [.hourAndMinute])
-            }
-            .groupedCard()
-        }
-    }
-
     // MARK: - Notes
 
     private var notesGroup: some View {
@@ -420,35 +294,6 @@ struct TransactionFormView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .groupedCard()
-    }
-
-    /// Selecting a named schedule resets the coefficient to 1; custom intervals
-    /// come from the stepper sheet instead.
-    private var scheduleSelection: Binding<Int> {
-        Binding(
-            get: { draft.recurringType },
-            set: { draft.recurringType = $0; draft.recurringCoefficient = 1 }
-        )
-    }
-
-    private var scheduleLabel: String {
-        let cadence = RecurringCadence(rawValue: Int16(draft.recurringType)) ?? .monthly
-        return cadence.scheduleLabel(coefficient: Int16(draft.recurringCoefficient))
-    }
-
-    /// A row whose value is a native compact `DatePicker` — tapping the trailing
-    /// pill opens the OS floating calendar/time popover inline, no custom sheet.
-    private func compactDateRow(label: LocalizedStringKey, selection: Binding<Date>, components: DatePickerComponents) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.secondary)
-            Spacer()
-            DatePicker("", selection: selection, displayedComponents: components)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-        }
-        .formRow()
     }
 
     // MARK: - CTA + toast
@@ -572,6 +417,175 @@ struct TransactionFormView: View {
     }
 }
 
+// MARK: - Section structs
+
+private struct TransactionFormDetailsSection: View {
+    @Binding var draft: TransactionFormDraft
+    @Binding var showingAmountSheet: Bool
+    let nameLimit: Int
+    let globalCurrency: String
+
+    private var effectiveCurrency: String { draft.currency ?? globalCurrency }
+
+    private var formattedAmount: String {
+        draft.amount.formatted(.currency(code: effectiveCurrency).presentation(.narrow))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Name")
+                    .font(.system(.body, design: .rounded))
+                    .foregroundStyle(.secondary)
+                TextField("Netflix, Groceries…", text: $draft.name)
+                    .font(.system(.body, design: .rounded))
+                    .multilineTextAlignment(.trailing)
+                    .onChange(of: draft.name) { _, value in
+                        if value.count > nameLimit { draft.name = String(value.prefix(nameLimit)) }
+                    }
+            }
+            .formRow()
+
+            rowDivider
+
+            menuFieldRow(label: "Type", value: draft.income ? "Income" : "Expense") {
+                Picker("Type", selection: $draft.income) {
+                    Text("Expense").tag(false)
+                    Text("Income").tag(true)
+                }
+            }
+
+            rowDivider
+
+            Button { showingAmountSheet = true } label: {
+                HStack {
+                    Text("Amount")
+                        .font(.system(.body, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(formattedAmount)
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(draft.amount > 0 ? (draft.income ? Color.IncomeGreen : Color.PrimaryText) : Color.SubtitleText)
+                    Text(effectiveCurrency)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.tertiary)
+                }
+                .formRow()
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+        }
+        .groupedCard()
+    }
+}
+
+private struct TransactionFormCategorySection: View {
+    @Binding var category: Category?
+    @Binding var showingCategorySheet: Bool
+    let categoryErrored: Bool
+    let categoryShake: Bool
+
+    var body: some View {
+        Button { showingCategorySheet = true } label: {
+            HStack(spacing: 12) {
+                Text("Category")
+                    .font(.system(.body, design: .rounded))
+                    .foregroundStyle(categoryErrored ? AnyShapeStyle(Color.AlertRed) : AnyShapeStyle(.secondary))
+                Spacer()
+                HStack(spacing: 5) {
+                    if let category {
+                        CategoryIconGlyph(symbol: category.displaySymbol, size: 18)
+                            .foregroundStyle(category.income ? Color.IncomeGreen : Color(hex: category.wrappedColor))
+                        Text(category.wrappedName)
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(Color.PrimaryText)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.SubtitleText)
+                    } else {
+                        Text("Choose")
+                            .font(.system(.body, design: .rounded))
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                }
+                .foregroundStyle(Color.SubtitleText)
+            }
+            .formRow()
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .groupedCard()
+        .overlay {
+            if categoryErrored {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.AlertRed, lineWidth: 1.5)
+            }
+        }
+        .offset(x: categoryShake ? -5 : 0)
+    }
+}
+
+private struct TransactionFormScheduleSection: View {
+    @Binding var draft: TransactionFormDraft
+    @Binding var showingCustomSchedule: Bool
+
+    /// Selecting a named schedule resets the coefficient to 1; custom intervals
+    /// come from the stepper sheet instead.
+    private var scheduleSelection: Binding<Int> {
+        Binding(
+            get: { draft.recurringType },
+            set: { draft.recurringType = $0; draft.recurringCoefficient = 1 }
+        )
+    }
+
+    private var scheduleLabel: String {
+        let cadence = RecurringCadence(rawValue: Int16(draft.recurringType)) ?? .monthly
+        return cadence.scheduleLabel(coefficient: Int16(draft.recurringCoefficient))
+    }
+
+    var body: some View {
+        if draft.isSubscription {
+            VStack(spacing: 0) {
+                menuFieldRow(label: "Schedule", value: scheduleLabel) {
+                    Picker("Schedule", selection: scheduleSelection) {
+                        ForEach(RecurringCadence.selectable, id: \.self) { cadence in
+                            Text(cadence.label).tag(Int(cadence.rawValue))
+                        }
+                    }
+                    Button("Custom…") { showingCustomSchedule = true }
+                }
+
+                rowDivider
+                compactDateRow(label: "First Payment", selection: $draft.date, components: [.date])
+                rowDivider
+
+                Toggle(isOn: $draft.hasEndDate.animation()) {
+                    Text("End Date")
+                        .font(.system(.body, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                .tint(Color.IncomeGreen)
+                .formRow()
+
+                if draft.hasEndDate {
+                    rowDivider
+                    compactDateRow(label: "Ends", selection: $draft.endDate, components: [.date])
+                }
+            }
+            .groupedCard()
+        } else {
+            VStack(spacing: 0) {
+                compactDateRow(label: "Date", selection: $draft.date, components: [.date])
+                rowDivider
+                compactDateRow(label: "Time", selection: $draft.date, components: [.hourAndMinute])
+            }
+            .groupedCard()
+        }
+    }
+}
+
 // MARK: - Custom schedule stepper sheet
 
 private struct CustomScheduleSheet: View {
@@ -651,9 +665,7 @@ private extension View {
     func groupedCard() -> some View {
         background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
-}
 
-private extension TransactionFormView {
     var rowDivider: some View {
         Divider().overlay(Color.PrimaryText.opacity(0.08)).padding(.leading, 16)
     }
@@ -687,6 +699,21 @@ private extension TransactionFormView {
         }
         .formRow()
         .contentShape(.rect)
+    }
+
+    /// A row whose value is a native compact `DatePicker` — tapping the trailing
+    /// pill opens the OS floating calendar/time popover inline, no custom sheet.
+    func compactDateRow(label: LocalizedStringKey, selection: Binding<Date>, components: DatePickerComponents) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(.body, design: .rounded))
+                .foregroundStyle(.secondary)
+            Spacer()
+            DatePicker("", selection: selection, displayedComponents: components)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+        }
+        .formRow()
     }
 }
 

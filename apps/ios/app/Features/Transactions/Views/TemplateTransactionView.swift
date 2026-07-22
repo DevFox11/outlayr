@@ -96,17 +96,7 @@ struct TemplateTransactionView: View {
 
     @AppStorage(DefaultsKey.bottomEdge, store: AppIdentifiers.sharedDefaults) var bottomEdge: Double = 15
 
-    @State private var offset: CGFloat = 0
-
     let repeatOverlays = ["D", "W", "M"]
-    let numberArray = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-    var numberArrayCount: Int {
-        if numberEntryType == 1 {
-            return numbers.count
-        } else {
-            return numbers1.count
-        }
-    }
 
     var downsize: (big: CGFloat, small: CGFloat) {
         let amountText: String
@@ -307,7 +297,7 @@ struct TemplateTransactionView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .overlay(alignment: .trailing) {
-                                DeleteButton()
+                                TemplateTransactionNumPad.DeleteButton(numbers1: $numbers1)
                             }
                         }
                     }
@@ -321,85 +311,12 @@ struct TemplateTransactionView: View {
                     .padding(.bottom, 5)
 
                 // num pad
-                GeometryReader { proxy in
-                    VStack(spacing: proxy.size.height * 0.04) {
-                        ForEach(numberArray, id: \.self) { array in
-                            HStack(spacing: proxy.size.width * 0.05) {
-                                ForEach(array, id: \.self) { singleNumber in
-                                    NumberButton(number: singleNumber, size: proxy.size)
-                                }
-                            }
-                        }
-
-                        HStack(spacing: proxy.size.width * 0.05) {
-                            if numberEntryType == 1 {
-                                Button {
-                                    if numbers.count == 3 {
-                                        numbers.remove(at: numbers.count - 1)
-                                        numbers.insert(0, at: 0)
-                                    } else {
-                                        numbers.remove(at: numbers.count - 1)
-                                    }
-                                } label: {
-                                    Image("tag-cross")
-                                        .resizable()
-                                        .frame(width: 32, height: 32)
-                                        .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                        .background(Color.DarkBackground)
-                                        .foregroundStyle(Color.LightIcon)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                }
-                                .buttonStyle(NumPadButton())
-                            } else {
-                                Button {
-                                    if numbers1.isEmpty {
-                                        numbers1.append("0")
-                                        numbers1.append(".")
-                                    } else if numbers1.contains(".") {
-                                        return
-                                    } else {
-                                        numbers1.append(".")
-                                    }
-                                } label: {
-                                    Text(".")
-                                        .font(.system(size: 34, weight: .regular, design: .rounded))
-                                        .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                        .background(Color.SecondaryBackground)
-                                        .foregroundStyle(Color.PrimaryText)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .opacity(numbers1.contains(".") ? 0.6 : 1)
-                                }
-                                .disabled(numbers1.contains("."))
-                                .buttonStyle(NumPadButton())
-                            }
-
-                            NumberButton(number: 0, size: proxy.size)
-
-                            Button {
-                                submit()
-                            } label: {
-                                Group {
-                                    if #available(iOS 17.0, *) {
-                                        Image(systemName: "checkmark.square.fill")
-                                            .font(.system(size: 30, weight: .medium, design: .rounded))
-                                            .symbolEffect(.bounce.up.byLayer, value: transactionValue != 0 && category != nil)
-//                                            .symbolEffectsRemoved()
-                                    } else {
-                                        Image(systemName: "checkmark.square.fill")
-                                            .font(.system(size: 30, weight: .medium, design: .rounded))
-                                    }
-                                }
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .foregroundStyle(Color.LightIcon)
-                                .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
-                            .buttonStyle(NumPadButton())
-                        }
-                    }
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                }
-                .padding(.bottom, 15)
-//                .keyboardAwareHeight()
+                TemplateTransactionNumPad(
+                    numberEntryType: numberEntryType,
+                    numbers: $numbers,
+                    numbers1: $numbers1,
+                    submit: submit
+                )
             }
             .padding(17)
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -408,91 +325,18 @@ struct TemplateTransactionView: View {
                 self.hideKeyboard()
             }
             .fullScreenCover(isPresented: $deleteMode) {
-                ZStack(alignment: .bottom) {
-                    Color.clear
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            deleteMode = false
-                            toDelete = nil
-                        }
-
-                    VStack(alignment: .leading, spacing: 1.5) {
-                        Text("Delete Expense?")
-                            .font(.system(size: 20, weight: .medium, design: .rounded))
-                            .foregroundStyle(Color.PrimaryText)
-
-                        Text("This action cannot be undone.")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundStyle(Color.SubtitleText)
-                            .padding(.bottom, 15)
-
-                        Button {
-                            deleteMode = false
-
-                            withAnimation {
-                                if let itemToDelete = toDelete {
-                                    moc.delete(itemToDelete)
-                                }
-                                try? dataController.save()
-                            }
-
-                            dismiss()
-
-                        } label: {
-                            Text("Delete")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.white)
-                                .frame(height: 45)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.AlertRed, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        }
-                        .padding(.bottom, 8)
-
-                        Button {
-                            withAnimation(.easeOut(duration: 0.7)) {
-                                deleteMode = false
-                                toDelete = nil
-                            }
-
-                        } label: {
-                            Text("Cancel")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundStyle(Color.PrimaryText.opacity(0.9))
-                                .frame(height: 45)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        }
+                TemplateTransactionDeleteSheet(
+                    isPresented: $deleteMode,
+                    toDelete: $toDelete,
+                    bottomEdge: bottomEdge,
+                    systemColorScheme: systemColorScheme
+                ) {
+                    if let itemToDelete = toDelete {
+                        moc.delete(itemToDelete)
                     }
-                    .padding(13)
-                    .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
-                    .offset(y: offset)
-                    .gesture(
-                        DragGesture()
-                            .onChanged { gesture in
-                                if gesture.translation.height < 0 {
-                                    offset = gesture.translation.height / 3
-                                } else {
-                                    offset = gesture.translation.height
-                                }
-                            }
-                            .onEnded { value in
-                                if value.translation.height > 20 {
-                                    deleteMode = false
-                                    toDelete = nil
-                                } else {
-                                    withAnimation {
-                                        offset = 0
-                                    }
-                                }
-                            }
-                    )
-                    .padding(.horizontal, 17)
-                    .padding(.bottom, bottomEdge == 0 ? 12 : bottomEdge - 3)
+                    try? dataController.save()
+                    dismiss()
                 }
-                .ignoresSafeArea()
-                .background(BackgroundBlurView())
             }
         }
         .animation(.easeOut(duration: 0.2), value: showToast)
@@ -537,66 +381,6 @@ struct TemplateTransactionView: View {
                 CustomRecurringView(repeatType: $repeatType, repeatCoefficient: $repeatCoefficient, showPicker: $showPicker)
             }
         }
-    }
-
-    @ViewBuilder
-    func DeleteButton() -> some View {
-        Button {
-            if !numbers1.isEmpty {
-                if numbers1.count == 2 && numbers1[0] == "0" && numbers1[1] == "." {
-                    numbers1.removeAll()
-                } else {
-                    numbers1.removeLast()
-                }
-            }
-
-        } label: {
-            Image(systemName: "delete.left.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.SubtitleText)
-                .padding(7)
-                .background(Color.SecondaryBackground, in: Circle())
-                .contentShape(Circle())
-        }
-        .disabled(numbers1.isEmpty)
-    }
-
-    @ViewBuilder
-    func NumberButton(number: Int, size: CGSize) -> some View {
-        Button {
-            if numberEntryType == 1 {
-                if numbers[0] == 0 {
-                    numbers.append(number)
-                    numbers.remove(at: 0)
-                } else {
-                    numbers.append(number)
-                }
-            } else {
-                if number == 0 && numbers1.isEmpty {
-                    return
-                } else {
-                    if numbers1.contains(".") {
-                        if numbers1.count - numbers1.firstIndex(of: ".")! < 3 {
-                            numbers1.append(String(number))
-                        } else {
-                            return
-                        }
-                    } else {
-                        numbers1.append(String(number))
-                    }
-                }
-            }
-        } label: {
-            Text("\(number)")
-                .font(.system(size: 34, weight: .regular, design: .rounded))
-                .frame(width: size.width * 0.3, height: size.height * 0.22)
-                .background(Color.SecondaryBackground)
-                .foregroundStyle(Color.PrimaryText)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .opacity(numberArrayCount == 9 ? 0.6 : 1)
-        }
-        .disabled(numberArrayCount == 9)
-        .buttonStyle(NumPadButton())
     }
 
     func submit() {
@@ -702,5 +486,270 @@ struct TemplateTransactionView: View {
 
         self.order = order
         self.toEdit = toEdit
+    }
+}
+
+private struct TemplateTransactionNumPad: View {
+    let numberEntryType: Int
+    @Binding var numbers: [Int]
+    @Binding var numbers1: [String]
+    let submit: () -> Void
+
+    let numberArray = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+    var numberArrayCount: Int {
+        numberEntryType == 1 ? numbers.count : numbers1.count
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            VStack(spacing: proxy.size.height * 0.04) {
+                ForEach(numberArray, id: \.self) { array in
+                    HStack(spacing: proxy.size.width * 0.05) {
+                        ForEach(array, id: \.self) { singleNumber in
+                            numberButton(number: singleNumber, size: proxy.size)
+                        }
+                    }
+                }
+
+                HStack(spacing: proxy.size.width * 0.05) {
+                    if numberEntryType == 1 {
+                        Button {
+                            if numbers.count == 3 {
+                                numbers.remove(at: numbers.count - 1)
+                                numbers.insert(0, at: 0)
+                            } else {
+                                numbers.remove(at: numbers.count - 1)
+                            }
+                        } label: {
+                            Image("tag-cross")
+                                .resizable()
+                                .frame(width: 32, height: 32)
+                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .background(Color.DarkBackground)
+                                .foregroundStyle(Color.LightIcon)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(NumPadButton())
+                    } else {
+                        Button {
+                            if numbers1.isEmpty {
+                                numbers1.append("0")
+                                numbers1.append(".")
+                            } else if numbers1.contains(".") {
+                                return
+                            } else {
+                                numbers1.append(".")
+                            }
+                        } label: {
+                            Text(".")
+                                .font(.system(size: 34, weight: .regular, design: .rounded))
+                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .background(Color.SecondaryBackground)
+                                .foregroundStyle(Color.PrimaryText)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .opacity(numbers1.contains(".") ? 0.6 : 1)
+                        }
+                        .disabled(numbers1.contains("."))
+                        .buttonStyle(NumPadButton())
+                    }
+
+                    numberButton(number: 0, size: proxy.size)
+
+                    Button {
+                        submit()
+                    } label: {
+                        Group {
+                            if #available(iOS 17.0, *) {
+                                Image(systemName: "checkmark.square.fill")
+                                    .font(.system(size: 30, weight: .medium, design: .rounded))
+                                    .symbolEffect(.bounce.up.byLayer, value: numberArrayCount != 0)
+//                                            .symbolEffectsRemoved()
+                            } else {
+                                Image(systemName: "checkmark.square.fill")
+                                    .font(.system(size: 30, weight: .medium, design: .rounded))
+                            }
+                        }
+                        .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                        .foregroundStyle(Color.LightIcon)
+                        .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(NumPadButton())
+                }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+        .padding(.bottom, 15)
+    }
+
+    @ViewBuilder
+    private func deleteButton() -> some View {
+        Button {
+            if !numbers1.isEmpty {
+                if numbers1.count == 2 && numbers1[0] == "0" && numbers1[1] == "." {
+                    numbers1.removeAll()
+                } else {
+                    numbers1.removeLast()
+                }
+            }
+
+        } label: {
+            Image(systemName: "delete.left.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.SubtitleText)
+                .padding(7)
+                .background(Color.SecondaryBackground, in: Circle())
+                .contentShape(Circle())
+        }
+        .disabled(numbers1.isEmpty)
+    }
+
+    @ViewBuilder
+    private func numberButton(number: Int, size: CGSize) -> some View {
+        Button {
+            if numberEntryType == 1 {
+                if numbers[0] == 0 {
+                    numbers.append(number)
+                    numbers.remove(at: 0)
+                } else {
+                    numbers.append(number)
+                }
+            } else {
+                if number == 0 && numbers1.isEmpty {
+                    return
+                } else {
+                    if numbers1.contains(".") {
+                        if numbers1.count - numbers1.firstIndex(of: ".")! < 3 {
+                            numbers1.append(String(number))
+                        } else {
+                            return
+                        }
+                    } else {
+                        numbers1.append(String(number))
+                    }
+                }
+            }
+        } label: {
+            Text("\(number)")
+                .font(.system(size: 34, weight: .regular, design: .rounded))
+                .frame(width: size.width * 0.3, height: size.height * 0.22)
+                .background(Color.SecondaryBackground)
+                .foregroundStyle(Color.PrimaryText)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .opacity(numberArrayCount == 9 ? 0.6 : 1)
+        }
+        .disabled(numberArrayCount == 9)
+        .buttonStyle(NumPadButton())
+    }
+
+    @ViewBuilder
+    static func DeleteButton(numbers1: Binding<[String]>) -> some View {
+        Button {
+            if !numbers1.wrappedValue.isEmpty {
+                if numbers1.wrappedValue.count == 2 && numbers1.wrappedValue[0] == "0" && numbers1.wrappedValue[1] == "." {
+                    numbers1.wrappedValue.removeAll()
+                } else {
+                    numbers1.wrappedValue.removeLast()
+                }
+            }
+
+        } label: {
+            Image(systemName: "delete.left.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.SubtitleText)
+                .padding(7)
+                .background(Color.SecondaryBackground, in: Circle())
+                .contentShape(Circle())
+        }
+        .disabled(numbers1.wrappedValue.isEmpty)
+    }
+}
+
+private struct TemplateTransactionDeleteSheet: View {
+    @Binding var isPresented: Bool
+    @Binding var toDelete: TemplateTransaction?
+    let bottomEdge: Double
+    let systemColorScheme: ColorScheme
+    let onDelete: () -> Void
+
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isPresented = false
+                    toDelete = nil
+                }
+
+            VStack(alignment: .leading, spacing: 1.5) {
+                Text("Delete Expense?")
+                    .font(.system(size: 20, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.PrimaryText)
+
+                Text("This action cannot be undone.")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.SubtitleText)
+                    .padding(.bottom, 15)
+
+                Button {
+                    onDelete()
+
+                } label: {
+                    Text("Delete")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(height: 45)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.AlertRed, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                }
+                .padding(.bottom, 8)
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.7)) {
+                        isPresented = false
+                        toDelete = nil
+                    }
+
+                } label: {
+                    Text("Cancel")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.PrimaryText.opacity(0.9))
+                        .frame(height: 45)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                }
+            }
+            .padding(13)
+            .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
+            .offset(y: offset)
+            .gesture(
+                DragGesture()
+                    .onChanged { gesture in
+                        if gesture.translation.height < 0 {
+                            offset = gesture.translation.height / 3
+                        } else {
+                            offset = gesture.translation.height
+                        }
+                    }
+                    .onEnded { value in
+                        if value.translation.height > 20 {
+                            isPresented = false
+                            toDelete = nil
+                        } else {
+                            withAnimation {
+                                offset = 0
+                            }
+                        }
+                    }
+            )
+            .padding(.horizontal, 17)
+            .padding(.bottom, bottomEdge == 0 ? 12 : bottomEdge - 3)
+        }
+        .ignoresSafeArea()
+        .background(BackgroundBlurView())
     }
 }
