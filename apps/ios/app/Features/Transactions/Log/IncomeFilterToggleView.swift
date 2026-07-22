@@ -60,6 +60,6 @@ struct IncomeFilterToggleView: View {
             .accessibilityAddTraits(income == true ? .isSelected : [])
         }
         .padding(3)
-        .overlay(Capsule().stroke(Color.Outline.opacity(0.4), lineWidth: 1.3))
+        .overlay(Capsule().stroke(Color.Outline.opacity(0.6), lineWidth: 1.3))
     }
 }

@@ -312,7 +312,7 @@ struct NewBudgetView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.SubtitleText.opacity(0.12), lineWidth: 1)
+                .stroke(Color.Outline.opacity(0.5), lineWidth: 1)
         )
     }
 

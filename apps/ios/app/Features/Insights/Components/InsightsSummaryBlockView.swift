@@ -51,7 +51,7 @@ struct InsightsSummaryBlockView: View {
         .overlay {
             if showOverlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.SubtitleText.opacity(0.7), lineWidth: 1.3)
+                    .stroke(Color.Outline, lineWidth: 1.3)
             }
         }
     }
