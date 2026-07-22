@@ -47,6 +47,7 @@ struct HorizontalPieChartView: View {
     @Binding var selectedDate: Date?
 
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
 
     var fontSize: CGFloat {
         switch dynamicTypeSize {
@@ -211,7 +212,7 @@ struct HorizontalPieChartView: View {
 
                                 Text("\(category.percent * 100, specifier: "%.0f")%")
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                    .foregroundStyle(boxColor)
+                                    .foregroundStyle(CategoryTileShading.glyph(for: boxColor, in: colorScheme, washOpacity: 0.23))
                                     .padding(.vertical, 3)
                                     .frame(width: percentWidth)
                                     .background(boxColor.opacity(0.23), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -288,7 +289,7 @@ struct HorizontalPieChartView: View {
                         .lineLimit(1)
                     Text("\(parentTotal > 0 ? entry.amount / parentTotal * 100 : 0, specifier: "%.0f")%")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(CategoryTileShading.glyph(for: accent, in: colorScheme, washOpacity: 0.23))
                         .frame(width: percentWidth)
                         .padding(.vertical, 3)
                         .background(accent.opacity(0.23), in: RoundedRectangle(cornerRadius: 8, style: .continuous))

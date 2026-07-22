@@ -16,6 +16,7 @@ struct CategoryRowPickerView: View {
     @Binding var selectedCategory: Category?
     @State var showCategorySheet = false
     let income: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     var empty: Bool {
         if income {
@@ -60,7 +61,7 @@ struct CategoryRowPickerView: View {
                                             .id(item.id)
                                             .padding(.horizontal, 10)
                                             .frame(height: 36)
-                                            .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColor)) : Color.PrimaryText)
+                                            .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : CategoryTileShading.glyph(for: Color(hex: item.wrappedColor), in: colorScheme, washOpacity: 0.3)) : Color.PrimaryText)
                                             .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                             .overlay {
                                                 if selectedCategory != item {

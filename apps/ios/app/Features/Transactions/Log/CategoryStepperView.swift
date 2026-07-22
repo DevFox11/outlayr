@@ -11,6 +11,7 @@ struct CategoryStepperView: View {
     @Environment(DataController.self) private var dataController
     @State var income = false
     @State var categories = [Category]()
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 8) {
@@ -76,7 +77,7 @@ struct CategoryStepperView: View {
                                 .padding(.horizontal, 11)
                                 .padding(.vertical, 7)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .foregroundStyle(categoryFilter == item ? Color(hex: item.wrappedColor) : Color.PrimaryText)
+                                .foregroundStyle(categoryFilter == item ? CategoryTileShading.glyph(for: Color(hex: item.wrappedColor), in: colorScheme, washOpacity: 0.3) : Color.PrimaryText)
                                 .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                 .overlay {
                                     if categoryFilter != item {

@@ -105,11 +105,12 @@ extension Color {
     }
 
     func luminance() -> Double {
-        let components = UIColor(self).cgColor.components
-        let r = components?[0] ?? 0
-        let g = components?[1] ?? 0
-        let b = components?[2] ?? 0
-        return 0.299 * Double(r) + 0.587 * Double(g) + 0.114 * Double(b)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        func linearize(_ c: Double) -> Double {
+            c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linearize(Double(r)) + 0.7152 * linearize(Double(g)) + 0.0722 * linearize(Double(b))
     }
 
     static var PrimaryBackground: Color {

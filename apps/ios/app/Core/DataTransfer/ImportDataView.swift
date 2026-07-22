@@ -774,6 +774,7 @@ private struct ImportCategoryMatchStep: View {
     let expenseCategories: [Category]
     let numberOfLinkedCategories: Int
     @Binding var pageIndex: Int
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 10) {
@@ -822,7 +823,7 @@ private struct ImportCategoryMatchStep: View {
                                     .padding(.vertical, 6)
                                     .padding(.horizontal, 10)
 //                                                .frame(height: 36)
-                                    .foregroundStyle(Color(hex: unwrappedCategory.wrappedColor))
+                                    .foregroundStyle(CategoryTileShading.glyph(for: Color(hex: unwrappedCategory.wrappedColor), in: colorScheme, washOpacity: 0.35))
                                     .background(Color(hex: unwrappedCategory.wrappedColor).opacity(0.35), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     .minimumScaleFactor(0.7)
                                 }

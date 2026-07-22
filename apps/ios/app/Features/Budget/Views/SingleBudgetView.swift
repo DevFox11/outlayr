@@ -211,7 +211,7 @@ struct SingleBudgetView: View {
                             .frame(width: 40, height: 40)
                             .overlay {
                                 CategoryIconGlyph(symbol: budget.displaySymbol, size: 20)
-                                    .foregroundStyle(Color(hex: budget.wrappedColor))
+                                    .foregroundStyle(CategoryTileShading.glyph(for: Color(hex: budget.wrappedColor), in: colorScheme, washOpacity: 0.3))
                             }
 
                             VStack(alignment: .leading, spacing: -0.5) {
@@ -318,7 +318,7 @@ struct SingleBudgetView: View {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
                                 CategoryIconGlyph(symbol: budget.displaySymbol, size: 12)
-                                    .foregroundStyle(Color(hex: budget.wrappedColor))
+                                    .foregroundStyle(CategoryTileShading.glyph(for: Color(hex: budget.wrappedColor), in: colorScheme, washOpacity: 0.0))
 
                                 Text(budget.wrappedName)
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))

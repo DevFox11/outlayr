@@ -14,6 +14,7 @@ struct MatchCategoryStepperView: View {
     @Binding var pageIndex: Int
     var categories: [Category]
     var maxIndex: Int
+    @Environment(\.colorScheme) private var colorScheme
 //
 //    @Environment(\.dynamicTypeSize) var dynamicTypeSize
 //
@@ -156,7 +157,7 @@ struct MatchCategoryStepperView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .foregroundStyle(category == categoryInput ? Color(hex: categoryInput.wrappedColor) : Color.PrimaryText)
+            .foregroundStyle(category == categoryInput ? CategoryTileShading.glyph(for: Color(hex: categoryInput.wrappedColor), in: colorScheme, washOpacity: 0.35) : Color.PrimaryText)
             .background(category == categoryInput ? Color(hex: categoryInput.wrappedColor).opacity(0.35) : Color.PrimaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
                 if category != categoryInput {
