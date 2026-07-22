@@ -317,6 +317,7 @@
 		7A3E383F301085B500801CCB /* BudgetRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E383E301085B500801CCB /* BudgetRepositoryTests.swift */; };
 		7A3E3841301085D600801CCB /* CategoryRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */; };
 		7A3E38433010860300801CCB /* TransactionRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */; };
+		7A3E384530109AEF00801CCB /* LaunchBootstrapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E384430109AEF00801CCB /* LaunchBootstrapService.swift */; };
 		7A875E313009CF5200819E25 /* SuggestedCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */; };
 		7A875E353009CF7200819E25 /* ColorPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E343009CF7200819E25 /* ColorPickerView.swift */; };
 		7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */; };
@@ -702,6 +703,7 @@
 		7A3E383E301085B500801CCB /* BudgetRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetRepositoryTests.swift; sourceTree = "<group>"; };
 		7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryRepositoryTests.swift; sourceTree = "<group>"; };
 		7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRepositoryTests.swift; sourceTree = "<group>"; };
+		7A3E384430109AEF00801CCB /* LaunchBootstrapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchBootstrapService.swift; sourceTree = "<group>"; };
 		7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedCategoriesView.swift; sourceTree = "<group>"; };
 		7A875E343009CF7200819E25 /* ColorPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPickerView.swift; sourceTree = "<group>"; };
 		7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDollarView.swift; sourceTree = "<group>"; };
@@ -962,6 +964,7 @@
 				7A0437C5300F351F00FBF257 /* TabButton.swift */,
 				7A043819300F3C5C00FBF257 /* WelcomeSheetFeatureRow.swift */,
 				7A04381B300F3C7500FBF257 /* DataStoreUnavailableView.swift */,
+				7A3E384430109AEF00801CCB /* LaunchBootstrapService.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -1897,6 +1900,7 @@
 				7A0436EC300F2BC400FBF257 /* MainBudgetView.swift in Sources */,
 				7A043716300F2E0B00FBF257 /* FilteredCategoryInsightsView.swift in Sources */,
 				7A043816300F3C4500FBF257 /* Pencil.swift in Sources */,
+				7A3E384530109AEF00801CCB /* LaunchBootstrapService.swift in Sources */,
 				7A04370E300F2CD700FBF257 /* InstructionHeadings.swift in Sources */,
 				7A0437B2300F343200FBF257 /* NumberPadTextView.swift in Sources */,
 				536FA6C32A7F941B00C52490 /* BudgetIntent.swift in Sources */,
