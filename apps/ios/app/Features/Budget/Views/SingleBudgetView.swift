@@ -147,6 +147,7 @@ struct SingleBudgetView: View {
     }
 
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.colorSchemeContrast) var colorSchemeContrast
 
     // swipe to delete
     @Environment(\.managedObjectContext) var moc
@@ -241,7 +242,7 @@ struct SingleBudgetView: View {
                         }
                     }
                     .padding(10)
-                    .background(colorScheme == .dark ? Color.Outline.opacity(0.2) : Color.Outline.opacity(0.35), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    .background(colorScheme == .dark ? Color.Outline.opacity(colorSchemeContrast == .increased ? 0.5 : 0.2) : Color.Outline.opacity(colorSchemeContrast == .increased ? 0.6 : 0.35), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .contentShape(RoundedRectangle(cornerRadius: 13))
                     .contextMenu {
                         Button {
@@ -392,7 +393,7 @@ struct SingleBudgetView: View {
                 }
                 .padding(15)
                 .frame(width: width + 30)
-                .background(colorScheme == .dark ? Color.Outline.opacity(0.2) : Color.Outline.opacity(0.35), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .background(colorScheme == .dark ? Color.Outline.opacity(colorSchemeContrast == .increased ? 0.5 : 0.2) : Color.Outline.opacity(colorSchemeContrast == .increased ? 0.6 : 0.35), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .contentShape(RoundedRectangle(cornerRadius: 13))
                 .contextMenu {
                     Button {

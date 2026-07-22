@@ -14,6 +14,8 @@ struct InsightsSummaryBlockView: View {
     let showOverlay: Bool
     var action: () -> Void
 
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
     var color: Color {
         return income ? Color.IncomeGreen : Color.AlertRed
     }
@@ -51,7 +53,7 @@ struct InsightsSummaryBlockView: View {
         .overlay {
             if showOverlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.Outline, lineWidth: 1.3)
+                    .stroke(Color.Outline, lineWidth: colorSchemeContrast == .increased ? 2.0 : 1.3)
             }
         }
     }

@@ -9,6 +9,8 @@ import SwiftUI
 struct IncomeFilterToggleView: View {
     @Binding var income: Bool
 
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
     @Namespace var animation
 
     var body: some View {
@@ -60,6 +62,6 @@ struct IncomeFilterToggleView: View {
             .accessibilityAddTraits(income == true ? .isSelected : [])
         }
         .padding(3)
-        .overlay(Capsule().stroke(Color.Outline.opacity(0.6), lineWidth: 1.3))
+        .overlay(Capsule().stroke(Color.Outline.opacity(colorSchemeContrast == .increased ? 1.0 : 0.6), lineWidth: colorSchemeContrast == .increased ? 2.0 : 1.3))
     }
 }
