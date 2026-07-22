@@ -27,7 +27,7 @@ struct TimePickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            ForEach(timeframes.indices, id: \.self) { index in
+            ForEach(Array(timeframes.enumerated()), id: \.element) { index, timeframe in
                 Button {
                     if holdingTimeframe == index + 1 {
                         showMenu = false
@@ -36,7 +36,7 @@ struct TimePickerView: View {
                             holdingTimeframe = index + 1
                         }
 
-                        timeframe = index + 1
+                        self.timeframe = index + 1
 
                         menuTask = Task {
                             try? await Task.sleep(for: .seconds(0.4))
@@ -45,7 +45,7 @@ struct TimePickerView: View {
                     }
                 } label: {
                     HStack {
-                        Text(LocalizedStringKey(timeframes[index]))
+                        Text(LocalizedStringKey(timeframe))
                             .font(.system(.body, design: .rounded).weight(.medium))
                             .dynamicTypeSize(...DynamicTypeSize.xxLarge)
 

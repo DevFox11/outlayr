@@ -256,8 +256,8 @@ struct ImportDataView: View {
 
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 22) {
-                            ForEach(pointers.indices, id: \.self) { index in
-                                PointerView(number: index + 1, text: pointers[index])
+                            ForEach(Array(pointers.enumerated()), id: \.element) { index, pointer in
+                                PointerView(number: index + 1, text: pointer)
                             }
                         }
                     }
@@ -596,7 +596,7 @@ private struct ImportColumnTable: View {
                     .background(Color.SecondaryBackground.opacity(0.6))
 
                     HStack(spacing: 0) {
-                        ForEach(displayedColumns.indices, id: \.self) { columnIndex in
+                        ForEach(Array(displayedColumns.enumerated()), id: \.offset) { columnIndex, column in
 
                             VStack(spacing: 0) {
                                 if selectedColumns.contains(columnIndex) {
@@ -625,7 +625,7 @@ private struct ImportColumnTable: View {
                                 }
 
                                 VStack(spacing: 0) {
-                                    ForEach(displayedColumns[columnIndex], id: \.self) { value in
+                                    ForEach(column, id: \.self) { value in
                                         Text(value)
                                             .foregroundStyle(Color.PrimaryText)
                                             .font(.system(.subheadline, design: .rounded).weight(.medium))
@@ -771,10 +771,10 @@ private struct ImportCategoryMatchStep: View {
                 .foregroundStyle(Color.SubtitleText)
 
             TabView(selection: $pageIndex) {
-                ForEach(uniqueCategories.indices, id: \.self) { categoryIndex in
+                ForEach(Array(uniqueCategories.enumerated()), id: \.element) { categoryIndex, matchedCategory in
                     VStack(spacing: 20) {
                         HStack(spacing: 8) {
-                            Text(uniqueCategories[categoryIndex].excelValue)
+                            Text(matchedCategory.excelValue)
                                 .font(.system(.title3, design: .rounded).weight(.semibold))
 
                                 .lineLimit(1)
@@ -789,7 +789,7 @@ private struct ImportCategoryMatchStep: View {
                                 )
                                 .minimumScaleFactor(0.7)
 
-                            if let unwrappedCategory = uniqueCategories[categoryIndex].category {
+                            if let unwrappedCategory = matchedCategory.category {
                                 HStack(spacing: 8) {
                                     Image(systemName: "triangle.fill")
                                         .rotationEffect(Angle(degrees: 90))
@@ -818,9 +818,9 @@ private struct ImportCategoryMatchStep: View {
                         }
                         .drawingGroup()
 
-                        MatchCategoryStepperView(category: $uniqueCategories[categoryIndex].category, categories: uniqueCategories[categoryIndex].income ? incomeCategories : expenseCategories, pageIndex: $pageIndex, maxIndex: uniqueCategories.count)
+                        MatchCategoryStepperView(category: $uniqueCategories[categoryIndex].category, categories: matchedCategory.income ? incomeCategories : expenseCategories, pageIndex: $pageIndex, maxIndex: uniqueCategories.count)
                             .overlay(alignment: .bottomTrailing) {
-                                let income = uniqueCategories[categoryIndex].income
+                                let income = matchedCategory.income
 
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 9, style: .continuous)

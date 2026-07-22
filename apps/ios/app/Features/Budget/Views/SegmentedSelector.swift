@@ -15,8 +15,7 @@ struct SegmentedSelector<T: Hashable>: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(options.indices, id: \.self) { index in
-                let option = options[index]
+            ForEach(options, id: \.value) { option in
                 let selected = option.value == selection
 
                 Button {

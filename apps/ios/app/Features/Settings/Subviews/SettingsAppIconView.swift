@@ -34,8 +34,8 @@ struct SettingsAppIconView: View {
   var body: some View {
     List {
       Section {
-        ForEach(options.indices, id: \.self) { index in
-          iconRow(options[index])
+        ForEach(options, id: \.self) { option in
+          iconRow(option)
         }
       }
     }

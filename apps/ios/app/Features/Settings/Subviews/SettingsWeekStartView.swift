@@ -21,8 +21,8 @@ struct SettingsWeekStartView: View {
   var body: some View {
     List {
       Section("Start of Week") {
-        ForEach(options.indices, id: \.self) { option in
-          weekdayRow(LocalizedStringKey(options[option]), tag: option + 1)
+        ForEach(Array(options.enumerated()), id: \.element) { index, option in
+          weekdayRow(LocalizedStringKey(option), tag: index + 1)
         }
       }
 

@@ -51,21 +51,21 @@ struct WelcomeSheetView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
 
                     VStack(alignment: .leading, spacing: 22) {
-                        ForEach(welcomeFeatures.indices, id: \.self) { rowIndex in
+                        ForEach(Array(welcomeFeatures.enumerated()), id: \.element) { rowIndex, feature in
                             if rowIndex < visibleLines {
                                 HStack(alignment: .top, spacing: 15) {
-                                    Image(systemName: welcomeFeatures[rowIndex].icon)
+                                    Image(systemName: feature.icon)
                                         .scaledFont(25, weight: .regular)
                                         .foregroundStyle(Color.SubtitleText)
                                         .frame(width: 40, alignment: .leading)
                                         .offset(y: 2)
 
                                     VStack(alignment: .leading, spacing: 5) {
-                                        Text(LocalizedStringKey(welcomeFeatures[rowIndex].header))
+                                        Text(LocalizedStringKey(feature.header))
                                             .scaledFont(18, weight: .medium, design: .rounded)
                                             .foregroundStyle(Color.PrimaryText)
 
-                                        Text(LocalizedStringKey(welcomeFeatures[rowIndex].subtitle))
+                                        Text(LocalizedStringKey(feature.subtitle))
                                             .scaledFont(16, weight: .regular, design: .rounded)
                                             .fixedSize(horizontal: false, vertical: true)
                                             .foregroundStyle(Color.SubtitleText)
