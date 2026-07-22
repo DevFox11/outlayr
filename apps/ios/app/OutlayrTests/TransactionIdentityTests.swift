@@ -242,8 +242,13 @@ struct TransactionIdentityTests {
     /// registers `Category` / `Transaction` ObjC class names against a fresh set
     /// of `NSEntityDescription` instances, making `+[Category entity]` ambiguous
     /// for the rest of the process — crashing fixture-based tests that run after.
+    /// The entities must be mutated on a copy: a model that has already backed a
+    /// coordinator is immutable, and loading `MainModel.momd` hands back entities
+    /// shared with the instance `DataController` opened earlier in the process.
+    /// Writing to those throws `NSInternalInconsistencyException`.
     private func isolatedModel(from url: URL) throws -> NSManagedObjectModel {
-        let model = try #require(NSManagedObjectModel(contentsOf: url))
+        let loaded = try #require(NSManagedObjectModel(contentsOf: url))
+        let model = try #require(loaded.copy() as? NSManagedObjectModel)
         for entity in model.entities {
             entity.managedObjectClassName = "NSManagedObject"
         }
