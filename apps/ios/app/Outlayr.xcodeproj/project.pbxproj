@@ -313,6 +313,10 @@
 		7A3E38363010692A00801CCB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A3E38343010692A00801CCB /* InfoPlist.xcstrings */; };
 		7A3E38373010692A00801CCB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A3E38353010692A00801CCB /* Localizable.xcstrings */; };
 		7A3E383A30106C0400801CCB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A3E383930106C0400801CCB /* Localizable.xcstrings */; };
+		7A3E383D3010859000801CCB /* RepositoryTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E383C3010859000801CCB /* RepositoryTestSupport.swift */; };
+		7A3E383F301085B500801CCB /* BudgetRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E383E301085B500801CCB /* BudgetRepositoryTests.swift */; };
+		7A3E3841301085D600801CCB /* CategoryRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */; };
+		7A3E38433010860300801CCB /* TransactionRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */; };
 		7A875E313009CF5200819E25 /* SuggestedCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */; };
 		7A875E353009CF7200819E25 /* ColorPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E343009CF7200819E25 /* ColorPickerView.swift */; };
 		7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */; };
@@ -694,6 +698,10 @@
 		7A3E38343010692A00801CCB /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		7A3E38353010692A00801CCB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		7A3E383930106C0400801CCB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		7A3E383C3010859000801CCB /* RepositoryTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTestSupport.swift; sourceTree = "<group>"; };
+		7A3E383E301085B500801CCB /* BudgetRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetRepositoryTests.swift; sourceTree = "<group>"; };
+		7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryRepositoryTests.swift; sourceTree = "<group>"; };
+		7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRepositoryTests.swift; sourceTree = "<group>"; };
 		7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedCategoriesView.swift; sourceTree = "<group>"; };
 		7A875E343009CF7200819E25 /* ColorPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPickerView.swift; sourceTree = "<group>"; };
 		7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDollarView.swift; sourceTree = "<group>"; };
@@ -1484,6 +1492,10 @@
 				E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */,
 				BE56D491CBE9DB23D4C860F0 /* TransactionFormDraftTests.swift */,
 				CC8AF1E95B6896B2903214A1 /* RecurringCadenceTests.swift */,
+				7A3E383C3010859000801CCB /* RepositoryTestSupport.swift */,
+				7A3E383E301085B500801CCB /* BudgetRepositoryTests.swift */,
+				7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */,
+				7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */,
 			);
 			path = OutlayrTests;
 			sourceTree = "<group>";
@@ -2004,13 +2016,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */,
+				7A3E3841301085D600801CCB /* CategoryRepositoryTests.swift in Sources */,
 				A9F10202263C2C4B7B08F659 /* DataControllerPersistenceTests.swift in Sources */,
 				86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */,
 				37FB79DD7768AA736DF6D4C1 /* BudgetRolloverCharacterizationTests.swift in Sources */,
 				D4D87152C47C52BBC9A56D83 /* InsightsBucketingCharacterizationTests.swift in Sources */,
 				D82A22382BB31284D884EDB2 /* CSVExportCharacterizationTests.swift in Sources */,
 				C212A44B6F8F6230264669CD /* AppGroupBridgeTests.swift in Sources */,
+				7A3E38433010860300801CCB /* TransactionRepositoryTests.swift in Sources */,
 				07EF215563C99C15EAFEC532 /* CategoryIconCatalogTests.swift in Sources */,
+				7A3E383D3010859000801CCB /* RepositoryTestSupport.swift in Sources */,
 				A91E3F326B399F401F8D6608 /* CategoryIconValidationTests.swift in Sources */,
 				B8EA13DA6DE3894F6DFA5F1D /* ColorHexRoundTripTests.swift in Sources */,
 				D365A14F19359C69662CCE0F /* CategorySymbolTests.swift in Sources */,
@@ -2018,6 +2033,7 @@
 				C64950680B62A02C101DDC6B /* ImageDominantColorsTests.swift in Sources */,
 				6E1AE0176A2E11EA5232A590 /* TransactionImageIngestionTests.swift in Sources */,
 				9D70062859410F6D4DB97778 /* TransactionIdentitySelectionTests.swift in Sources */,
+				7A3E383F301085B500801CCB /* BudgetRepositoryTests.swift in Sources */,
 				0A41C8946EBBDDCB3CF3E41F /* TransactionGlowTests.swift in Sources */,
 				81CC0138D8438F1D2A58655F /* TransactionPhotoLoadTests.swift in Sources */,
 				89566659E8FCC68B5825C501 /* AmountEntryModelTests.swift in Sources */,
