@@ -132,11 +132,11 @@ class DataController {
         container.persistentStoreDescriptions = [description]
 
         container.loadPersistentStores { description, error in
-
             if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo) for \(description)")
+                Logger(subsystem: AppIdentifiers.bundleIdRoot, category: "storage")
+                    .fault("loadPersistentStores failed for \(description, privacy: .public): \(error), \(error.userInfo)")
+                return
             }
-
             self.container.viewContext.automaticallyMergesChangesFromParent = true
         }
     }

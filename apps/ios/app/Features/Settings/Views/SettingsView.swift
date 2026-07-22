@@ -287,10 +287,9 @@ struct SettingsView: View {
           }
 
           Button {
-            let url = "https://tryoutlayr.com"
-            guard let writeReviewURL = URL(string: url)
-            else { fatalError("Expected a valid URL") }
-            UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
+            if let writeReviewURL = URL(string: "https://tryoutlayr.com") {
+              UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
+            }
           } label: {
             SettingsRow(icon: "star", color: 126, title: "Rate on App Store")
           }
@@ -338,8 +337,8 @@ struct SettingsView: View {
   }
 
   func shareSheet(url: String) {
-    let url = URL(string: url)
-    let activityView = UIActivityViewController(activityItems: [url!], applicationActivities: nil)
+    guard let url = URL(string: url) else { return }
+    let activityView = UIActivityViewController(activityItems: [url], applicationActivities: nil)
 
     let allScenes = UIApplication.shared.connectedScenes
     let scene = allScenes.first { $0.activationState == .foregroundActive }
