@@ -330,6 +330,7 @@
 		7A3E385C3010AEAF00801CCB /* PagedGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E385B3010AEAF00801CCB /* PagedGraphView.swift */; };
 		7A3E385E3010B41B00801CCB /* ContrastAdaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E385D3010B41B00801CCB /* ContrastAdaptive.swift */; };
 		7A3E385F3010B41B00801CCB /* ContrastAdaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E385D3010B41B00801CCB /* ContrastAdaptive.swift */; };
+		7A3E38613010B4AD00801CCB /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38603010B4AD00801CCB /* ActivityView.swift */; };
 		7A875E313009CF5200819E25 /* SuggestedCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */; };
 		7A875E353009CF7200819E25 /* ColorPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E343009CF7200819E25 /* ColorPickerView.swift */; };
 		7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */; };
@@ -723,6 +724,7 @@
 		7A3E38593010ABB800801CCB /* NumPadGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumPadGrid.swift; sourceTree = "<group>"; };
 		7A3E385B3010AEAF00801CCB /* PagedGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PagedGraphView.swift; sourceTree = "<group>"; };
 		7A3E385D3010B41B00801CCB /* ContrastAdaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContrastAdaptive.swift; sourceTree = "<group>"; };
+		7A3E38603010B4AD00801CCB /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedCategoriesView.swift; sourceTree = "<group>"; };
 		7A875E343009CF7200819E25 /* ColorPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPickerView.swift; sourceTree = "<group>"; };
 		7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDollarView.swift; sourceTree = "<group>"; };
@@ -1494,6 +1496,7 @@
 				7A0437CD300F355B00FBF257 /* AnimationUtils.swift */,
 				7A043811300F3C1B00FBF257 /* KeyboardAwareModifier.swift */,
 				7A043813300F3C2F00FBF257 /* HapticSetting.swift */,
+				7A3E38603010B4AD00801CCB /* ActivityView.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -1981,6 +1984,7 @@
 				0157B4F932E645A662535695 /* ImageDominantColors.swift in Sources */,
 				7A3E38533010A8A700801CCB /* BudgetExtensions.swift in Sources */,
 				B154073174C3799973444B98 /* TransactionImageIngestion.swift in Sources */,
+				7A3E38613010B4AD00801CCB /* ActivityView.swift in Sources */,
 				7A04372C300F2EAD00FBF257 /* SingleWeekBarGraphView.swift in Sources */,
 				A2D9EFB926D95F61A7827583 /* IdentityCurtain.swift in Sources */,
 				80A6BE4AC7A4C45FF2C795C4 /* TransactionHero.swift in Sources */,
