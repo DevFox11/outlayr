@@ -45,6 +45,11 @@ struct AppLockView: View {
                     .scaledFont(15, weight: .regular, design: .rounded)
                     .foregroundStyle(Color.SubtitleText)
                     .multilineTextAlignment(.center)
+            } else if let authError = appLockVM.authError {
+                Text(authError)
+                    .scaledFont(15, weight: .regular, design: .rounded)
+                    .foregroundStyle(Color.AlertRed)
+                    .multilineTextAlignment(.center)
             }
         }
         .padding(.horizontal, 30)

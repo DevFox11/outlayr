@@ -19,6 +19,7 @@ class AppLockViewModel {
     var isAppUnLocked: Bool = false
 
     var enrollmentError: Bool = false
+    var authError: String?
 
     init() {
         getAppLockState()
@@ -48,10 +49,6 @@ class AppLockViewModel {
 
         let isBiometricAvailable = laContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
 
-        if let error = error {
-            print(error.localizedDescription)
-        }
-
         if isBiometricAvailable {
             enrollmentError = false
         } else {
@@ -73,12 +70,13 @@ class AppLockViewModel {
         }
 
         let reason = appLockState
-            ? "Provice Touch ID/Face ID to enable App Lock"
-            : "Provice Touch ID/Face ID to disable App Lock"
+            ? "Provide Touch ID/Face ID to enable App Lock"
+            : "Provide Touch ID/Face ID to disable App Lock"
 
         do {
             let didSucceed = try await laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
             if didSucceed {
+                authError = nil
                 if appLockState {
                     enableAppLock()
                 } else {
@@ -87,7 +85,7 @@ class AppLockViewModel {
                 isAppUnLocked = true
             }
         } catch {
-            print(error.localizedDescription)
+            authError = error.localizedDescription
         }
     }
 
@@ -102,12 +100,13 @@ class AppLockViewModel {
         }
 
         do {
-            let didSucceed = try await laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Enable App Lock")
+            let didSucceed = try await laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Provide Touch ID/Face ID to unlock the app")
             if didSucceed {
+                authError = nil
                 isAppUnLocked = true
             }
         } catch {
-            print(error.localizedDescription)
+            authError = error.localizedDescription
         }
     }
 }
