@@ -11,17 +11,11 @@ import WidgetKit
 struct MainBudgetWidget: Widget {
     let kind: String = "MainBudgetWidget"
 
-    private var supportedFamilies: [WidgetFamily] {
-        if #available(iOS 16.0, *) {
-            return [
-                .accessoryCircular,
-                .accessoryRectangular,
-                .systemSmall
-            ]
-        } else {
-            return [.systemSmall]
-        }
-    }
+    private let supportedFamilies: [WidgetFamily] = [
+        .accessoryCircular,
+        .accessoryRectangular,
+        .systemSmall
+    ]
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: MainBudgetWidgetProvider()) { entry in

@@ -33,7 +33,6 @@ class GridViewModel {
     }
 
     func updateIndices() {
-//        let dataController = DataController()
         let dataController = DataController.shared
         for (index, element) in gridItems.enumerated() {
             if let transaction = element.transaction {

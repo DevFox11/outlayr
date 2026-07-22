@@ -153,22 +153,9 @@ struct LogInsightsView: View {
 
             if totalSpent != 0 && totalIncome != 0 && insightsType == 1 {
                 HStack {
-//                    if showCents {
-//                        Text("+\(totalIncome, specifier: "%.2f")")
-//                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundStyle(Color.IncomeGreen)
-//                            .lineLimit(1)
-//                    } else {
-//                        Text("+\(Int(floor(totalIncome)))")
-//                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundStyle(Color.IncomeGreen)
-//                            .lineLimit(1)
-//                    }
-
                     Text("+\(formatNumber(showCents: showCents, number: totalIncome))")
                         .font(.system(.title2, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundStyle(Color.IncomeGreen)
                         .lineLimit(1)
 
@@ -180,21 +167,8 @@ struct LogInsightsView: View {
                     Text("-\(formatNumber(showCents: showCents, number: totalSpent))")
                         .font(.system(.title2, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundStyle(Color.AlertRed)
                         .lineLimit(1)
-
-//                    if showCents {
-//                        Text("-\(totalSpent, specifier: "%.2f")")
-//                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundStyle(Color.AlertRed)
-//                            .lineLimit(1)
-//                    } else {
-//                        Text("-\(Int(floor(totalSpent)))")
-//                            .font(.system(size: 18, weight: .medium, design: .rounded))
-//                            .foregroundStyle(Color.AlertRed)
-//                            .lineLimit(1)
-//                    }
                 }
                 .padding(.bottom, 13)
             }

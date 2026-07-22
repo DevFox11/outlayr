@@ -17,6 +17,5 @@ struct OutlayrWidgets: WidgetBundle {
         LockBudgetWidget()
         MainBudgetWidget()
         NewExpenseWidget()
-//        TemplateTransactionWidget()
     }
 }

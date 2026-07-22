@@ -119,56 +119,37 @@ struct ImportDataView: View {
                     .frame(maxHeight: .infinity)
             } else {
                 HStack {
-                    if #available(iOS 17.0, *) {
-                        Button {
-                            if progress == 2 {
-                                withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
-                                    progress -= 1
-                                }
-                            } else if progress > 6 {
-                                withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
-                                    progress -= 1
-                                }
-                            } else if progress > 2 {
-                                withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
-                                    if let removedColumn = selectedColumns.popLast() {
-                                        remainingColumns.append(removedColumn)
-                                        remainingColumns.sort()
-                                        selectedColumn = remainingColumns[0]
-                                        columnSelectionCompleted = false
-
-                                        progress -= 1
-                                    }
-                                }
-                            } else {
-                                dismiss()
+                    Button {
+                        if progress == 2 {
+                            withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
+                                progress -= 1
                             }
-                        } label: {
-                            Image(systemName: progress > 1 ? "chevron.left" : "xmark")
-                                .font(.system(.callout, design: .rounded).weight(.semibold))
+                        } else if progress > 6 {
+                            withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
+                                progress -= 1
+                            }
+                        } else if progress > 2 {
+                            withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
+                                if let removedColumn = selectedColumns.popLast() {
+                                    remainingColumns.append(removedColumn)
+                                    remainingColumns.sort()
+                                    selectedColumn = remainingColumns[0]
+                                    columnSelectionCompleted = false
 
-                                .foregroundStyle(Color.SubtitleText)
-                                .padding(8)
-                                .background(Color.SecondaryBackground, in: Circle())
-                        }
-                        .contentTransition(.symbolEffect(.replace.downUp.wholeSymbol))
-                    } else {
-                        Button {
-                            if progress > 1 {
-                                withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.8)) {
                                     progress -= 1
                                 }
-                            } else {
-                                dismiss()
                             }
-                        } label: {
-                            Image(systemName: progress > 1 ? "chevron.left" : "xmark")
-                                .font(.system(.callout, design: .rounded).weight(.semibold))
-                                .foregroundStyle(Color.SubtitleText)
-                                .padding(8)
-                                .background(Color.SecondaryBackground, in: Circle())
+                        } else {
+                            dismiss()
                         }
+                    } label: {
+                        Image(systemName: progress > 1 ? "chevron.left" : "xmark")
+                            .font(.system(.callout, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Color.SubtitleText)
+                            .padding(8)
+                            .background(Color.SecondaryBackground, in: Circle())
                     }
+                    .contentTransition(.symbolEffect(.replace.downUp.wholeSymbol))
 
                     Spacer()
 

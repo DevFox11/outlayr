@@ -86,8 +86,6 @@ struct MonthGraphView: View {
     @AppStorage(DefaultsKey.insightsViewIncomeFiltering, store: AppIdentifiers.sharedDefaults) var income: Bool = true
     @AppStorage(DefaultsKey.incomeTracking, store: AppIdentifiers.sharedDefaults) var incomeTracking: Bool = true
 
-//    @Environment(\.dynamicTypeMultiplier) var multiplier
-
     @State var incomeFiltering: Bool = true
 
     var body: some View {

@@ -128,18 +128,6 @@ struct LineGraph: View {
                     .padding(.horizontal, 7)
                     .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
                     .padding(.bottom, 4)
-//                    Text(currentPlot?.dateString ?? "")
-//                        .font(.caption.bold())
-//                        .foregroundStyle(Color.PrimaryText)
-//                        .padding(.vertical,6)
-//                        .frame(width: 100)
-//                        .background(Color.SecondaryBackground,in: Capsule())
-//                        .offset(x: translation < 10 ? 30 : 0)
-//                        .offset(x: translation > (proxy.size.width - 60) ? -30 : 0)
-//
-//                    Rectangle()
-//                        .fill(Color.SecondaryBackground)
-//                        .frame(width: 1,height: 25)
 
                     DottedLine()
 
@@ -151,19 +139,6 @@ struct LineGraph: View {
                         .stroke(Color.PrimaryBackground, lineWidth: 2.5)
                         .background(Circle().fill(overlayColor))
                         .frame(width: 14, height: 11)
-//                    Circle()
-//                        .fill(color)
-
-//                        .overlay(
-//
-//                            Circle()
-//                                .fill(Color.DarkIcon.opacity(0.85))
-//                                .frame(width: 6.5, height: 6.5)
-//                        )
-
-//                    Rectangle()
-//                        .fill(Color.SecondaryBackground)
-//                        .frame(width: 1,height: 50)
                 }
                 // Fixed Frame..
                 // For Gesture Calculation...

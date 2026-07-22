@@ -17,7 +17,7 @@ struct CategoryNameSection: View {
         Section {
             HStack {
                 Text("Name")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 TextField(placeholder, text: $name)
                     .multilineTextAlignment(.trailing)
@@ -30,7 +30,7 @@ struct CategoryNameSection: View {
             if let typeSelection {
                 HStack {
                     Text("Type")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Picker("Type", selection: typeSelection) {
                         Text("Expense").tag(false)

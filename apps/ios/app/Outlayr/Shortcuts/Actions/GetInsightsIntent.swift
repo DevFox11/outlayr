@@ -37,7 +37,6 @@ struct GetInsightsIntent: AppIntent {
         }
 
         let dataController = DataController.shared
-//        let dataController = DataController()
 
         let categories: [Category]
         let optionalIncome: Bool?

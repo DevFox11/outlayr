@@ -10,27 +10,18 @@ import SwiftUI
 import WidgetKit
 
 struct RecentTransactionsWidget: Widget {
+    // Must stay "ExpenditureWidget" — changing the kind orphans installed widgets.
     let kind: String = "ExpenditureWidget"
 
-    private var supportedFamilies: [WidgetFamily] {
-        if #available(iOSApplicationExtension 17, *) {
-            return [
-                .accessoryRectangular,
-                .accessoryInline,
-                .systemSmall,
-                .systemLarge
-            ]
-        } else {
-            return [
-                .accessoryRectangular,
-                .accessoryInline,
-                .systemSmall
-            ]
-        }
-    }
+    private let supportedFamilies: [WidgetFamily] = [
+        .accessoryRectangular,
+        .accessoryInline,
+        .systemSmall,
+        .systemLarge
+    ]
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: RecentWidgetConfiguration.self, provider: Provider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: RecentWidgetConfiguration.self, provider: RecentTransactionsWidgetProvider()) { entry in
             ExpenditureWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
@@ -94,7 +85,7 @@ enum InsightsTypeAppEnum: Int, AppEnum {
     }
 }
 
-struct Provider: AppIntentTimelineProvider {
+struct RecentTransactionsWidgetProvider: AppIntentTimelineProvider {
     typealias Intent = RecentWidgetConfiguration
 
     public typealias Entry = RecentWidgetEntry
@@ -211,7 +202,7 @@ struct RecentWidgetEntry: TimelineEntry {
 
 struct ExpenditureWidgetEntryView: View {
     @Environment(\.widgetFamily) var widgetFamily
-    let entry: Provider.Entry
+    let entry: RecentWidgetEntry
 
     @AppStorage(DefaultsKey.currency, store: AppIdentifiers.sharedDefaults) var currency: String = Locale.current.currency!.identifier
     var currencySymbol: String {

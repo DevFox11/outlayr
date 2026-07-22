@@ -147,7 +147,7 @@ struct DeleteAllAlert: View {
       .padding(.horizontal, 17)
       .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
     }
-    .edgesIgnoringSafeArea(.all)
+    .ignoresSafeArea()
     .background(BackgroundBlurView())
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
