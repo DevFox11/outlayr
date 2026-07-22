@@ -88,9 +88,9 @@ struct TransactionRepositoryTests {
     func suggestedNotes_deduplicatesByNote() {
         let f = RepositoryFixture()
         let cat = f.makeCategory(name: "Food")
-        f.makeTransaction(amount: 10, date: testDate(2024, 6, 1), note: "Lunch",  category: cat)
-        f.makeTransaction(amount: 12, date: testDate(2024, 6, 2), note: "Lunch",  category: cat) // duplicate
-        f.makeTransaction(amount: 8,  date: testDate(2024, 6, 3), note: "Coffee", category: cat)
+        f.makeTransaction(amount: 10, date: testDate(2024, 6, 1), note: "Lunch", category: cat)
+        f.makeTransaction(amount: 12, date: testDate(2024, 6, 2), note: "Lunch", category: cat) // duplicate
+        f.makeTransaction(amount: 8, date: testDate(2024, 6, 3), note: "Coffee", category: cat)
         f.save()
 
         let results = f.controller.transactions.getSuggestedNotes(searchQuery: "L", category: nil, income: false)
@@ -102,9 +102,9 @@ struct TransactionRepositoryTests {
     func suggestedNotes_filtersByQuery() {
         let f = RepositoryFixture()
         let cat = f.makeCategory(name: "Food")
-        f.makeTransaction(amount: 10, date: testDate(2024, 6, 1), note: "Lunch",     category: cat)
-        f.makeTransaction(amount: 12, date: testDate(2024, 6, 2), note: "Coffee",    category: cat)
-        f.makeTransaction(amount: 8,  date: testDate(2024, 6, 3), note: "Brunch out", category: cat)
+        f.makeTransaction(amount: 10, date: testDate(2024, 6, 1), note: "Lunch", category: cat)
+        f.makeTransaction(amount: 12, date: testDate(2024, 6, 2), note: "Coffee", category: cat)
+        f.makeTransaction(amount: 8, date: testDate(2024, 6, 3), note: "Brunch out", category: cat)
         f.save()
 
         // "unch" matches "Lunch" (contains) and "Brunch out" (contains).
@@ -118,10 +118,10 @@ struct TransactionRepositoryTests {
     @Test("getSuggestedNotes restricts to the specified category when provided")
     func suggestedNotes_filtersByCategory() {
         let f = RepositoryFixture()
-        let food      = f.makeCategory(name: "Food",      order: 0)
+        let food      = f.makeCategory(name: "Food", order: 0)
         let transport = f.makeCategory(name: "Transport", order: 1)
         f.makeTransaction(amount: 10, date: testDate(2024, 6, 1), note: "Lunch", category: food)
-        f.makeTransaction(amount: 5,  date: testDate(2024, 6, 2), note: "Lunch", category: transport)
+        f.makeTransaction(amount: 5, date: testDate(2024, 6, 2), note: "Lunch", category: transport)
         f.save()
 
         let results = f.controller.transactions.getSuggestedNotes(searchQuery: "Lunch", category: food, income: false)
@@ -133,8 +133,8 @@ struct TransactionRepositoryTests {
     func suggestedNotes_filtersByIncome() {
         let f = RepositoryFixture()
         let cat = f.makeCategory(name: "Salary", income: true)
-        f.makeTransaction(amount: 100, date: testDate(2024, 6, 1), income: true,  note: "Paycheck", category: cat)
-        f.makeTransaction(amount: 50,  date: testDate(2024, 6, 2), income: false, note: "Paycheck", category: cat)
+        f.makeTransaction(amount: 100, date: testDate(2024, 6, 1), income: true, note: "Paycheck", category: cat)
+        f.makeTransaction(amount: 50, date: testDate(2024, 6, 2), income: false, note: "Paycheck", category: cat)
         f.save()
 
         let incomeResults  = f.controller.transactions.getSuggestedNotes(searchQuery: "Paycheck", category: nil, income: true)
@@ -162,7 +162,7 @@ struct TransactionRepositoryTests {
         let f = RepositoryFixture()
         f.makeTransaction(amount: 300, date: testDate(2024, 6, 5), income: true)
         f.makeTransaction(amount: 200, date: testDate(2024, 6, 8), income: true)
-        f.makeTransaction(amount: 50,  date: testDate(2024, 6, 9), income: false) // excluded
+        f.makeTransaction(amount: 50, date: testDate(2024, 6, 9), income: false) // excluded
         f.save()
 
         let total = f.controller.transactions.getLogViewTotalIncome(type: 5)
@@ -173,7 +173,7 @@ struct TransactionRepositoryTests {
     func logView_net_positiveWhenIncomeDominates() {
         let f = RepositoryFixture()
         f.makeTransaction(amount: 100, date: testDate(2024, 6, 5), income: true)   // +100
-        f.makeTransaction(amount: 40,  date: testDate(2024, 6, 8), income: false)  // -40
+        f.makeTransaction(amount: 40, date: testDate(2024, 6, 8), income: false)  // -40
         f.save()
 
         let net = f.controller.transactions.getLogViewTotalNet(type: 5)
@@ -184,8 +184,8 @@ struct TransactionRepositoryTests {
     @Test("getLogViewTotalNet returns positive value and false when expenses > income")
     func logView_net_negativeWhenExpensesDominate() {
         let f = RepositoryFixture()
-        f.makeTransaction(amount: 10,  date: testDate(2024, 6, 5), income: true)   // +10
-        f.makeTransaction(amount: 80,  date: testDate(2024, 6, 8), income: false)  // -80
+        f.makeTransaction(amount: 10, date: testDate(2024, 6, 5), income: true)   // +10
+        f.makeTransaction(amount: 80, date: testDate(2024, 6, 8), income: false)  // -80
         f.save()
 
         let net = f.controller.transactions.getLogViewTotalNet(type: 5)
@@ -198,8 +198,8 @@ struct TransactionRepositoryTests {
     @Test("getShortcutInsights (all-time) counts child-category transactions under their parent filter")
     func shortcutInsights_hierarchicalRollup() {
         let f = RepositoryFixture()
-        let parent = f.makeCategory(name: "Food",      order: 0)
-        let child  = f.makeCategory(name: "Coffee",    order: 1)
+        let parent = f.makeCategory(name: "Food", order: 0)
+        let child  = f.makeCategory(name: "Coffee", order: 1)
         child.parent = parent
         let other  = f.makeCategory(name: "Transport", order: 2)
         // All dates in 2024 — before wall-clock now, so they pass the `<= Date.now` cap.
@@ -223,7 +223,7 @@ struct TransactionRepositoryTests {
         let f = RepositoryFixture()
         let cat = f.makeCategory(name: "Food")
         f.makeTransaction(amount: 50, date: testDate(2024, 6, 5), income: false, category: cat)
-        f.makeTransaction(amount: 30, date: testDate(2024, 6, 7), income: true,  category: cat)
+        f.makeTransaction(amount: 30, date: testDate(2024, 6, 7), income: true, category: cat)
         f.save()
 
         let total = f.controller.transactions.getShortcutInsights(
@@ -270,7 +270,7 @@ struct TransactionRepositoryTests {
 
     @Test("amountString uses absolute value so negative amounts format the same as positive")
     func amountString_negative_usesAbsoluteValue() {
-        let positive = LineGraphDataPoint(date: testDate(2024, 6, 1), amount:  42.5)
+        let positive = LineGraphDataPoint(date: testDate(2024, 6, 1), amount: 42.5)
         let negative = LineGraphDataPoint(date: testDate(2024, 6, 1), amount: -42.5)
         #expect(positive.amountString == negative.amountString)
     }

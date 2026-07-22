@@ -8,195 +8,225 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class CategoryIconValidationTests: CharacterizationTestCase {
-    private func makeSeededController() -> DataController {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+@MainActor
+struct CategoryIconValidationTests {
+    private func makeSeededController() -> (DataController, CharacterizationFixture) {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
-        makeCategory(in: context, name: "Salary", icon: "money-bag-01", income: true, order: 0)
+        f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
+        f.makeCategory(in: context, name: "Salary", icon: "money-bag-01", income: true, order: 0)
         try? controller.save()
-        return controller
+        return (controller, f)
     }
 
-    func testDuplicateIconInSamePoolIsRejected() {
-        let controller = makeSeededController()
+    @Test func duplicateIconInSamePoolIsRejected() {
+        var (controller, f) = makeSeededController()
+        defer { f.cleanup() }
 
         let result = controller.categories.categoryCheck(name: "Supermarket", icon: "shopping-cart-01", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .duplicateIcon)
+        #expect(result.error == .duplicateIcon)
     }
 
-    func testSameIconIsAllowedAcrossIncomeAndExpensePools() {
-        let controller = makeSeededController()
+    @Test func sameIconIsAllowedAcrossIncomeAndExpensePools() {
+        var (controller, f) = makeSeededController()
+        defer { f.cleanup() }
 
         let result = controller.categories.categoryCheck(name: "Refunds", icon: "shopping-cart-01", emoji: "", income: true)
 
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testDuplicateIconAndNameTogetherReportsDuplicate() {
-        let controller = makeSeededController()
+    @Test func duplicateIconAndNameTogetherReportsDuplicate() {
+        var (controller, f) = makeSeededController()
+        defer { f.cleanup() }
 
         let result = controller.categories.categoryCheck(name: "Groceries", icon: "shopping-cart-01", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .duplicate)
+        #expect(result.error == .duplicate)
     }
 
-    func testMissingIconIsRejected() {
-        let controller = makeSeededController()
+    @Test func missingIconIsRejected() {
+        var (controller, f) = makeSeededController()
+        defer { f.cleanup() }
 
         let result = controller.categories.categoryCheck(name: "Travel", icon: "", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .missingIcon)
+        #expect(result.error == .missingIcon)
     }
 
-    func testMissingIconAndNameReportsIncomplete() {
-        let controller = makeSeededController()
+    @Test func missingIconAndNameReportsIncomplete() {
+        var (controller, f) = makeSeededController()
+        defer { f.cleanup() }
 
         let result = controller.categories.categoryCheck(name: "  ", icon: "", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .incomplete)
+        #expect(result.error == .incomplete)
     }
 
-    func testFreshIconIsAccepted() {
-        let controller = makeSeededController()
+    @Test func freshIconIsAccepted() {
+        var (controller, f) = makeSeededController()
+        defer { f.cleanup() }
 
         let result = controller.categories.categoryCheck(name: "Travel", icon: "airplane-01", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testEditKeepingOwnIconIsAllowed() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func editKeepingOwnIconIsAllowed() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
+        let groceries = f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "shopping-cart-01", emoji: "", toEdit: groceries)
 
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testEditTakingASiblingIconIsRejected() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func editTakingASiblingIconIsRejected() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
-        makeCategory(in: context, name: "Travel", icon: "airplane-01", income: false, order: 1)
+        let groceries = f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
+        f.makeCategory(in: context, name: "Travel", icon: "airplane-01", income: false, order: 1)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "airplane-01", emoji: "", toEdit: groceries)
 
-        XCTAssertEqual(result.error, .duplicateIcon)
+        #expect(result.error == .duplicateIcon)
     }
 
     // Two categories with no stored icon both *render* the fallback glyph, but they
     // share no stored value — comparing resolved names here fabricated collisions.
-    func testCategoriesWithoutIconsDoNotCollide() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func categoriesWithoutIconsDoNotCollide() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
-        let wedding = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
+        f.makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
+        let wedding = f.makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Wedding Fund", icon: "", emoji: "", toEdit: wedding)
 
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testExplicitDuplicateRawIconsStillCollide() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func explicitDuplicateRawIconsStillCollide() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
+        f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Market", icon: "shopping-cart-01", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .duplicateIcon)
+        #expect(result.error == .duplicateIcon)
     }
 
     // A legacy category must stay editable without being forced to pick an icon.
-    func testEditAllowsEmptyIconWhenStoredIconWasNil() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func editAllowsEmptyIconWhenStoredIconWasNil() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let legacy = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
+        let legacy = f.makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Sailboat Renamed", icon: "", emoji: "", toEdit: legacy)
 
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testEditStillRejectsEmptyIconWhenOneWasStored() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func editStillRejectsEmptyIconWhenOneWasStored() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let groceries = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
+        let groceries = f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false, order: 0)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Groceries", icon: "", emoji: "", toEdit: groceries)
 
-        XCTAssertEqual(result.error, .missingIcon)
+        #expect(result.error == .missingIcon)
     }
 
     // A name from a newer version must round-trip untouched rather than being
     // collapsed into the fallback it happens to render as.
-    func testUnknownButNonEmptyIconIsAcceptedOnEdit() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func unknownButNonEmptyIconIsAcceptedOnEdit() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let future = makeCategory(in: context, name: "Garage", icon: "car-02-from-a-newer-version", income: false, order: 0)
+        let future = f.makeCategory(in: context, name: "Garage", icon: "car-02-from-a-newer-version", income: false, order: 0)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Garage", icon: "car-02-from-a-newer-version", emoji: "", toEdit: future)
 
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testSubcategorySharesTheIconPoolWithTopLevelCategories() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func subcategorySharesTheIconPoolWithTopLevelCategories() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let parent = makeCategory(in: context, name: "Food", icon: "restaurant-01", income: false, order: 0)
-        let child = makeCategory(in: context, name: "Coffee", icon: "coffee-02", income: false, order: 1)
+        let parent = f.makeCategory(in: context, name: "Food", icon: "restaurant-01", income: false, order: 0)
+        let child = f.makeCategory(in: context, name: "Coffee", icon: "coffee-02", income: false, order: 1)
         child.parent = parent
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Cafes", icon: "coffee-02", emoji: "", income: false)
 
-        XCTAssertEqual(result.error, .duplicateIcon)
+        #expect(result.error == .duplicateIcon)
     }
 
     // The suite covers the symbol contract now, not just icons: the emoji path must
     // hit the same gates with its own error case.
-    func testDuplicateEmojiReportsTheEmojiError() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func duplicateEmojiReportsTheEmojiError() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let sailing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: "⛵️", income: false)
-        XCTAssertEqual(result.error, .duplicateEmoji)
+        #expect(result.error == .duplicateEmoji)
     }
 
-    func testDuplicateNameAndEmojiReportsTheCombinedError() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func duplicateNameAndEmojiReportsTheCombinedError() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let sailing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
-        XCTAssertEqual(result.error, .duplicate)
+        #expect(result.error == .duplicate)
     }
 
-    func testEmojiOnlyCategoryPassesTheSymbolGate() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emojiOnlyCategoryPassesTheSymbolGate() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
 
-        let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
-        XCTAssertEqual(result.error, .none)
+        let result = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+            .categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
+        #expect(result.error == .none)
     }
 }

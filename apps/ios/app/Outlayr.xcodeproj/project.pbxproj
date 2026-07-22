@@ -326,6 +326,7 @@
 		7A3E38553010A8AA00801CCB /* MainBudgetExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38543010A8AA00801CCB /* MainBudgetExtensions.swift */; };
 		7A3E38563010A8AA00801CCB /* MainBudgetExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38543010A8AA00801CCB /* MainBudgetExtensions.swift */; };
 		7A3E38583010A8AC00801CCB /* RoundedCorner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38573010A8AC00801CCB /* RoundedCorner.swift */; };
+		7A3E385A3010ABB800801CCB /* NumPadGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38593010ABB800801CCB /* NumPadGrid.swift */; };
 		7A875E313009CF5200819E25 /* SuggestedCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */; };
 		7A875E353009CF7200819E25 /* ColorPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E343009CF7200819E25 /* ColorPickerView.swift */; };
 		7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */; };
@@ -716,6 +717,7 @@
 		7A3E38513010A8A700801CCB /* BudgetExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetExtensions.swift; sourceTree = "<group>"; };
 		7A3E38543010A8AA00801CCB /* MainBudgetExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainBudgetExtensions.swift; sourceTree = "<group>"; };
 		7A3E38573010A8AC00801CCB /* RoundedCorner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
+		7A3E38593010ABB800801CCB /* NumPadGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumPadGrid.swift; sourceTree = "<group>"; };
 		7A875E303009CF5200819E25 /* SuggestedCategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedCategoriesView.swift; sourceTree = "<group>"; };
 		7A875E343009CF7200819E25 /* ColorPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPickerView.swift; sourceTree = "<group>"; };
 		7A875E3E3009D27B00819E25 /* BudgetDollarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDollarView.swift; sourceTree = "<group>"; };
@@ -1133,6 +1135,7 @@
 				7A0437B3300F346300FBF257 /* NewCategoryPickerView.swift */,
 				7A0437B5300F346C00FBF257 /* CategoryChip.swift */,
 				7A0437B7300F347D00FBF257 /* CategoryPickerSheet.swift */,
+				7A3E38593010ABB800801CCB /* NumPadGrid.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1893,6 +1896,7 @@
 				5362CF322A92750800244744 /* ImportDataView.swift in Sources */,
 				7A0437B8300F347D00FBF257 /* CategoryPickerSheet.swift in Sources */,
 				5327D287287C697400F76ADF /* OutlayrApp.swift in Sources */,
+				7A3E385A3010ABB800801CCB /* NumPadGrid.swift in Sources */,
 				7A875E3F3009D27B00819E25 /* BudgetDollarView.swift in Sources */,
 				53A4147728B3B559008C30E7 /* WelcomeSheetView.swift in Sources */,
 				53D6BDD82AF73CFC00F5728E /* SettingsEraseView.swift in Sources */,

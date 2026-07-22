@@ -8,116 +8,121 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class CategoryIconCatalogTests: CharacterizationTestCase {
-    func testEverySuggestedExpenseIconResolves() {
+@MainActor
+struct CategoryIconCatalogTests {
+    @Test func everySuggestedExpenseIconResolves() {
         for suggestion in SuggestedCategory.expenses {
-            XCTAssertNotNil(
-                CategoryIconCatalog.icon(named: suggestion.icon),
+            #expect(
+                CategoryIconCatalog.icon(named: suggestion.icon) != nil,
                 "Expense suggestion \(suggestion.name) references unknown icon \(suggestion.icon)"
             )
         }
     }
 
-    func testEverySuggestedIncomeIconResolves() {
+    @Test func everySuggestedIncomeIconResolves() {
         for suggestion in SuggestedCategory.incomes {
-            XCTAssertNotNil(
-                CategoryIconCatalog.icon(named: suggestion.icon),
+            #expect(
+                CategoryIconCatalog.icon(named: suggestion.icon) != nil,
                 "Income suggestion \(suggestion.name) references unknown icon \(suggestion.icon)"
             )
         }
     }
 
-    func testFallbacksResolveThroughTheCatalog() {
+    @Test func fallbacksResolveThroughTheCatalog() {
         for income in [true, false] {
             let fallback = CategoryIconCatalog.fallback(income: income)
-            XCTAssertEqual(CategoryIconCatalog.icon(named: fallback.name), fallback)
+            #expect(CategoryIconCatalog.icon(named: fallback.name) == fallback)
         }
     }
 
-    func testUnknownIconNameDoesNotResolve() {
-        XCTAssertNil(CategoryIconCatalog.icon(named: "not-a-real-glyph"))
+    @Test func unknownIconNameDoesNotResolve() {
+        #expect(CategoryIconCatalog.icon(named: "not-a-real-glyph") == nil)
     }
 
-    func testWrappedIconFallsBackWhenIconIsMissing() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func wrappedIconFallsBackWhenIconIsMissing() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let expense = makeCategory(in: context, name: "Legacy", icon: nil, income: false)
-        let income = makeCategory(in: context, name: "Legacy Income", icon: nil, income: true)
+        let expense = f.makeCategory(in: context, name: "Legacy", icon: nil, income: false)
+        let income = f.makeCategory(in: context, name: "Legacy Income", icon: nil, income: true)
 
-        XCTAssertEqual(expense.wrappedIcon, CategoryIconCatalog.fallbackExpense)
-        XCTAssertEqual(income.wrappedIcon, CategoryIconCatalog.fallbackIncome)
+        #expect(expense.wrappedIcon == CategoryIconCatalog.fallbackExpense)
+        #expect(income.wrappedIcon == CategoryIconCatalog.fallbackIncome)
     }
 
     // The regression this contract exists to prevent: two categories with no icon
     // used to collide on the shared fallback name and become permanently unsavable.
-    func testIconlessCategoriesRemainEditable() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func iconlessCategoriesRemainEditable() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let sailboat = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
-        _ = makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
+        let sailboat = f.makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false, order: 0)
+        _ = f.makeCategory(in: context, name: "Wedding Fund", icon: nil, income: false, order: 1)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Sailboat Fund", icon: "", emoji: "", toEdit: sailboat)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testSuggestionLookupAcceptsRawAndLocalizedNames() {
-        XCTAssertEqual(SuggestedCategory.match(name: "Groceries", income: false)?.icon, "shopping-cart-01")
-        XCTAssertEqual(
-            SuggestedCategory.match(name: NSLocalizedString("Groceries", comment: "category name"), income: false)?.icon,
-            "shopping-cart-01"
+    @Test func suggestionLookupAcceptsRawAndLocalizedNames() {
+        #expect(SuggestedCategory.match(name: "Groceries", income: false)?.icon == "shopping-cart-01")
+        #expect(
+            SuggestedCategory.match(name: NSLocalizedString("Groceries", comment: "category name"), income: false)?.icon
+                == "shopping-cart-01"
         )
     }
 
-    func testSuggestionLookupIsScopedToTheIncomeFlag() {
-        XCTAssertNil(SuggestedCategory.match(name: "Groceries", income: true))
-        XCTAssertNil(SuggestedCategory.match(name: "Paycheck", income: false))
+    @Test func suggestionLookupIsScopedToTheIncomeFlag() {
+        #expect(SuggestedCategory.match(name: "Groceries", income: true) == nil)
+        #expect(SuggestedCategory.match(name: "Paycheck", income: false) == nil)
     }
 
-    func testSearchMatchesKeywordSynonymsNotJustNames() {
+    @Test func searchMatchesKeywordSynonymsNotJustNames() {
         let money = CategoryIconCatalog.icons(matching: "money").map(\.name)
         for expected in ["money-bag-01", "wallet-01", "coins-01"] {
-            XCTAssertTrue(money.contains(expected), "\"money\" should surface \(expected)")
+            #expect(money.contains(expected), "\"money\" should surface \(expected)")
         }
 
-        XCTAssertTrue(CategoryIconCatalog.icons(matching: "lightning").map(\.name).contains("flash"))
-        XCTAssertTrue(CategoryIconCatalog.icons(matching: "subscription").map(\.name).contains("repeat"))
+        #expect(CategoryIconCatalog.icons(matching: "lightning").map(\.name).contains("flash"))
+        #expect(CategoryIconCatalog.icons(matching: "subscription").map(\.name).contains("repeat"))
     }
 
-    func testSearchIgnoresCaseAndSurroundingWhitespace() {
-        XCTAssertEqual(
-            CategoryIconCatalog.icons(matching: "  LIGHTNING ").map(\.name),
-            CategoryIconCatalog.icons(matching: "lightning").map(\.name)
+    @Test func searchIgnoresCaseAndSurroundingWhitespace() {
+        #expect(
+            CategoryIconCatalog.icons(matching: "  LIGHTNING ").map(\.name)
+                == CategoryIconCatalog.icons(matching: "lightning").map(\.name)
         )
     }
 
-    func testEmptySearchReturnsTheWholeDedupedCatalog() {
+    @Test func emptySearchReturnsTheWholeDedupedCatalog() {
         let all = CategoryIconCatalog.icons(matching: "")
         let names = all.map(\.name)
 
-        XCTAssertEqual(Set(names).count, all.count, "Search results must not repeat an icon")
+        #expect(Set(names).count == all.count, "Search results must not repeat an icon")
 
         // Compare against the raw catalog count, not a deduped one: if a name is
         // ever duplicated across groups both sides would otherwise shrink together
         // and the dedup contract would stop being pinned.
-        XCTAssertEqual(all.count, CategoryIconCatalog.groups.flatMap(\.icons).count)
-        XCTAssertEqual(Set(names), Set(CategoryIconCatalog.groups.flatMap(\.icons).map(\.name)))
+        #expect(all.count == CategoryIconCatalog.groups.flatMap(\.icons).count)
+        #expect(Set(names) == Set(CategoryIconCatalog.groups.flatMap(\.icons).map(\.name)))
     }
 
-    func testWhitespaceOnlySearchIsTreatedAsEmpty() {
-        XCTAssertEqual(
-            CategoryIconCatalog.icons(matching: "   ").map(\.name),
-            CategoryIconCatalog.icons(matching: "").map(\.name)
+    @Test func whitespaceOnlySearchIsTreatedAsEmpty() {
+        #expect(
+            CategoryIconCatalog.icons(matching: "   ").map(\.name)
+                == CategoryIconCatalog.icons(matching: "").map(\.name)
         )
     }
 
-    func testSearchWithNoMatchesReturnsNothing() {
-        XCTAssertTrue(CategoryIconCatalog.icons(matching: "zzzzz").isEmpty)
+    @Test func searchWithNoMatchesReturnsNothing() {
+        #expect(CategoryIconCatalog.icons(matching: "zzzzz").isEmpty)
     }
 }

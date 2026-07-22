@@ -7,11 +7,11 @@
 //
 
 import CoreGraphics
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class ImageDominantColorsTests: XCTestCase {
+struct ImageDominantColorsTests {
     /// Builds a `side`×`side` opaque image split into vertical bands of the given
     /// RGB colors (0–255), left to right in equal widths.
     private func bandedImage(_ bands: [(Int, Int, Int)], side: Int = 48) -> CGImage {
@@ -46,53 +46,53 @@ final class ImageDominantColorsTests: XCTestCase {
         return (h / 6 + 1).truncatingRemainder(dividingBy: 1) * 360
     }
 
-    func testSolidSaturatedImageYieldsThatHue() throws {
+    @Test func solidSaturatedImageYieldsThatHue() throws {
         let colors = ImageDominantColors.extract(from: bandedImage([(220, 40, 40)]))
-        let first = try XCTUnwrap(colors.first)
+        let first = try #require(colors.first)
         // Red sits near 0°/360°; accept either end of the wrap.
         let h = hue(first)
-        XCTAssertTrue(h < 20 || h > 340, "expected red hue, got \(h)° from \(first)")
+        #expect(h < 20 || h > 340, "expected red hue, got \(h)° from \(first)")
     }
 
-    func testTwoToneImageYieldsBothDominants() {
+    @Test func twoToneImageYieldsBothDominants() {
         let colors = ImageDominantColors.extract(from: bandedImage([(220, 30, 30), (30, 60, 220)]))
-        XCTAssertEqual(colors.count, 2)
+        #expect(colors.count == 2)
         let hues = colors.map(hue).sorted()
         // One red (~0/360), one blue (~240).
-        XCTAssertTrue(hues.contains { $0 < 25 || $0 > 335 }, "no red hue in \(hues)")
-        XCTAssertTrue(hues.contains { abs($0 - 240) < 40 }, "no blue hue in \(hues)")
+        #expect(hues.contains { $0 < 25 || $0 > 335 }, "no red hue in \(hues)")
+        #expect(hues.contains { abs($0 - 240) < 40 }, "no blue hue in \(hues)")
     }
 
-    func testDesaturatedImageYieldsNoDominants() {
+    @Test func desaturatedImageYieldsNoDominants() {
         // Mid grey: saturation ~0, below the 0.15 floor.
-        XCTAssertTrue(ImageDominantColors.extract(from: bandedImage([(128, 128, 128)])).isEmpty)
+        #expect(ImageDominantColors.extract(from: bandedImage([(128, 128, 128)])).isEmpty)
     }
 
-    func testExtractionIsDeterministic() {
+    @Test func extractionIsDeterministic() {
         let image = bandedImage([(200, 50, 90), (40, 180, 120)])
-        XCTAssertEqual(ImageDominantColors.extract(from: image), ImageDominantColors.extract(from: image))
+        #expect(ImageDominantColors.extract(from: image) == ImageDominantColors.extract(from: image))
     }
 
     /// A uniform saturated fill has one exact weighted mean — pin the hex so the
     /// determinism claim is a value, not just intra-run equality.
-    func testSolidColorPinsExactHex() {
-        XCTAssertEqual(ImageDominantColors.extract(from: bandedImage([(200, 50, 90)])), ["#C8325A"])
+    @Test func solidColorPinsExactHex() {
+        #expect(ImageDominantColors.extract(from: bandedImage([(200, 50, 90)])) == ["#C8325A"])
     }
 
-    func testFullyTransparentImageYieldsNoDominants() {
+    @Test func fullyTransparentImageYieldsNoDominants() {
         let side = 24
         var pixels = [UInt8](repeating: 0, count: side * side * 4) // all zero = transparent
         let context = CGContext(
             data: &pixels, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         )!
-        XCTAssertTrue(ImageDominantColors.extract(from: context.makeImage()!).isEmpty)
+        #expect(ImageDominantColors.extract(from: context.makeImage()!).isEmpty)
     }
 
-    func testSinglePixelSaturatedImageIsHandled() {
+    @Test func singlePixelSaturatedImageIsHandled() {
         // A 1×1 saturated source scales up to the 24×24 sample without crashing
         // and yields its own hue.
         let colors = ImageDominantColors.extract(from: bandedImage([(0, 0, 255)], side: 1))
-        XCTAssertEqual(colors, ["#0000FF"])
+        #expect(colors == ["#0000FF"])
     }
 }

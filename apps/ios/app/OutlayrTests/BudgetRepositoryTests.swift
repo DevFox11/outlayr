@@ -54,7 +54,7 @@ struct BudgetRepositoryTests {
         let cat = f.makeCategory(name: "Salary", income: true)
         let budget = f.makeBudget(amount: 500, startDate: testDate(2024, 6, 1), type: 3, category: cat)
         f.makeTransaction(amount: 100, date: testDate(2024, 6, 5), income: true, category: cat)
-        f.makeTransaction(amount: 80,  date: testDate(2024, 6, 8), income: true, category: cat)
+        f.makeTransaction(amount: 80, date: testDate(2024, 6, 8), income: true, category: cat)
         f.save()
 
         // Category budget predicate includes `income = false`, so income txns excluded.
@@ -71,9 +71,9 @@ struct BudgetRepositoryTests {
         let transport = f.makeCategory(name: "Transport", order: 1)
         let main = f.makeMainBudget(amount: 500, startDate: testDate(2024, 6, 1), type: 3)
         f.makeTransaction(amount: 100, date: testDate(2024, 6, 5), category: food)      // counted
-        f.makeTransaction(amount: 50,  date: testDate(2024, 6, 8), category: transport) // counted
+        f.makeTransaction(amount: 50, date: testDate(2024, 6, 8), category: transport) // counted
         f.makeTransaction(amount: 200, date: testDate(2024, 5, 20), category: food)     // before start
-        f.makeTransaction(amount: 75,  date: testDate(2024, 6, 6), income: true, category: food) // income
+        f.makeTransaction(amount: 75, date: testDate(2024, 6, 6), income: true, category: food) // income
         f.save()
 
         let leftover = f.controller.budgets.getBudgetLeftover(overallBudget: main)
@@ -155,7 +155,7 @@ struct BudgetRepositoryTests {
         _ = f.makeMainBudget(amount: 1000, startDate: testDate(2024, 6, 1), type: 3)
         f.makeTransaction(amount: 200, date: testDate(2024, 6, 5))    // counted
         f.makeTransaction(amount: 100, date: testDate(2024, 5, 20))   // before startDate
-        f.makeTransaction(amount: 50,  date: testDate(2024, 6, 8), income: true) // income excluded
+        f.makeTransaction(amount: 50, date: testDate(2024, 6, 8), income: true) // income excluded
         f.save()
 
         let result = f.controller.budgets.fetchRequestForMainBudgetWidget()
@@ -169,10 +169,10 @@ struct BudgetRepositoryTests {
     @Test("widget options: returned in dateCreated order, each with objectID URI identifier")
     func widgetBudgetOptions_orderedByDateCreated() {
         let f = RepositoryFixture()
-        let cat1 = f.makeCategory(name: "Food",      order: 0)
+        let cat1 = f.makeCategory(name: "Food", order: 0)
         let cat2 = f.makeCategory(name: "Transport", order: 1)
         // dateCreated = startDate in makeBudget: Food budget created first.
-        f.makeBudget(amount: 100, startDate: testDate(2024, 6, 1),  type: 3, category: cat1)
+        f.makeBudget(amount: 100, startDate: testDate(2024, 6, 1), type: 3, category: cat1)
         f.makeBudget(amount: 200, startDate: testDate(2024, 6, 15), type: 3, category: cat2)
         f.save()
 

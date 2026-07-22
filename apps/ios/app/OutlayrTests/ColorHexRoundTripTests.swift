@@ -8,32 +8,32 @@
 //
 
 import SwiftUI
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class ColorHexRoundTripTests: XCTestCase {
-    func testEveryPaletteColorSurvivesHexRoundTrip() {
+struct ColorHexRoundTripTests {
+    @Test func everyPaletteColorSurvivesHexRoundTrip() {
         for hex in Color.colorArray {
             let roundTripped = Color(hex: hex).toHex()
-            XCTAssertEqual(
-                roundTripped,
-                hex,
+            #expect(
+                roundTripped == hex,
                 "Palette color \(hex) round-tripped to \(roundTripped ?? "nil")"
             )
         }
     }
 
-    func testRoundTripIsStableAcrossRepeatedConversions() {
+    @Test func roundTripIsStableAcrossRepeatedConversions() {
         for hex in Color.colorArray {
             var current = hex
             for _ in 0 ..< 3 {
                 guard let next = Color(hex: current).toHex() else {
-                    return XCTFail("Palette color \(hex) produced a nil hex")
+                    Issue.record("Palette color \(hex) produced a nil hex")
+                    return
                 }
                 current = next
             }
-            XCTAssertEqual(current, hex, "Palette color \(hex) drifted to \(current) after repeated conversions")
+            #expect(current == hex, "Palette color \(hex) drifted to \(current) after repeated conversions")
         }
     }
 }

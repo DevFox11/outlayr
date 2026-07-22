@@ -8,40 +8,40 @@
 //
 
 import SwiftUI
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class TransactionGlowTests: XCTestCase {
-    func testTwoDominantsLeadAndChosenCloses() {
-        XCTAssertEqual(
-            TransactionGlow.curtainInputs(dominants: ["#AA0000", "#00BB00"], chosen: "#0000CC"),
+struct TransactionGlowTests {
+    @Test func twoDominantsLeadAndChosenCloses() {
+        #expect(
+            TransactionGlow.curtainInputs(dominants: ["#AA0000", "#00BB00"], chosen: "#0000CC") ==
             ["#AA0000", "#00BB00", "#0000CC"]
         )
     }
 
-    func testSingleDominantRepeatsIntoTheSecondSlot() {
-        XCTAssertEqual(
-            TransactionGlow.curtainInputs(dominants: ["#AA0000"], chosen: "#0000CC"),
+    @Test func singleDominantRepeatsIntoTheSecondSlot() {
+        #expect(
+            TransactionGlow.curtainInputs(dominants: ["#AA0000"], chosen: "#0000CC") ==
             ["#AA0000", "#AA0000", "#0000CC"]
         )
     }
 
-    func testNoDominantsFallsBackToChosenEverywhere() {
-        XCTAssertEqual(
-            TransactionGlow.curtainInputs(dominants: [], chosen: "#0000CC"),
+    @Test func noDominantsFallsBackToChosenEverywhere() {
+        #expect(
+            TransactionGlow.curtainInputs(dominants: [], chosen: "#0000CC") ==
             ["#0000CC", "#0000CC", "#0000CC"]
         )
     }
 
-    func testAlwaysYieldsExactlyThreeSlots() {
-        XCTAssertEqual(TransactionGlow.curtainInputs(dominants: ["#111111", "#222222", "#333333"], chosen: "#444444").count, 3)
+    @Test func alwaysYieldsExactlyThreeSlots() {
+        #expect(TransactionGlow.curtainInputs(dominants: ["#111111", "#222222", "#333333"], chosen: "#444444").count == 3)
     }
 
-    func testMeshHuesPadToThreeForTheMeshTopRow() {
+    @Test func meshHuesPadToThreeForTheMeshTopRow() {
         let scheme = ColorScheme.dark
-        XCTAssertEqual(IdentityCurtain.meshHues(from: [Color(hex: "#AA0000")], in: scheme).count, 3)
-        XCTAssertEqual(IdentityCurtain.meshHues(from: [Color(hex: "#AA0000"), Color(hex: "#00BB00")], in: scheme).count, 3)
-        XCTAssertTrue(IdentityCurtain.meshHues(from: [], in: scheme).isEmpty)
+        #expect(IdentityCurtain.meshHues(from: [Color(hex: "#AA0000")], in: scheme).count == 3)
+        #expect(IdentityCurtain.meshHues(from: [Color(hex: "#AA0000"), Color(hex: "#00BB00")], in: scheme).count == 3)
+        #expect(IdentityCurtain.meshHues(from: [], in: scheme).isEmpty)
     }
 }

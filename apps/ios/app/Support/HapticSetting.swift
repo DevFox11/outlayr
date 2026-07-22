@@ -3,7 +3,6 @@
 //  Outlayr
 //
 
-
 /// Values of the "haptics" AppStorage setting (Settings > Haptics picker).
 enum HapticSetting: Int {
     case none = 0

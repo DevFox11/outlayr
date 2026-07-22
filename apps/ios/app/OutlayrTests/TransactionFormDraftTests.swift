@@ -9,27 +9,26 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 @testable import Outlayr
 
-final class TransactionFormDraftTests: CharacterizationTestCase {
-    private var controller: DataController!
-    private var context: NSManagedObjectContext { controller.container.viewContext }
+@MainActor
+struct TransactionFormDraftTests {
+    let fixture: CharacterizationFixture
+    let controller: DataController
+    var context: NSManagedObjectContext { controller.container.viewContext }
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-    }
-
-    override func tearDownWithError() throws {
-        controller = nil
-        try super.tearDownWithError()
+    init() {
+        var tmp = CharacterizationFixture()
+        let defaults = tmp.makeIsolatedDefaults()
+        self.controller = tmp.makeController(now: tmp.referenceDate, defaults: defaults)
+        self.fixture = tmp
     }
 
     // MARK: - Create write-path
 
-    func testCreateWritesIdentityCurrencyAndRecurrence() throws {
-        let category = makeCategory(in: context, name: "Streaming", order: 1)
+    @Test func createWritesIdentityCurrencyAndRecurrence() throws {
+        let category = fixture.makeCategory(in: context, name: "Streaming", order: 1)
         var draft = TransactionFormDraft()
         draft.name = "Netflix"
         draft.amount = Decimal(string: "15.99")!
@@ -42,39 +41,39 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         let transaction = Transaction(context: context)
         draft.apply(to: transaction, category: category)
 
-        XCTAssertEqual(transaction.note, "Netflix")
-        XCTAssertEqual(transaction.category, category)
-        XCTAssertEqual(transaction.amount, 15.99, accuracy: 0.0001)
-        XCTAssertEqual(transaction.currency, "JPY")
-        XCTAssertEqual(transaction.emoji, "🍿")
-        XCTAssertNil(transaction.icon)
-        XCTAssertNil(transaction.imageData)
-        XCTAssertTrue(transaction.onceRecurring)
-        XCTAssertEqual(transaction.recurringType, 3)
-        XCTAssertEqual(transaction.recurringCoefficient, 2)
-        XCTAssertNil(transaction.recurringEndDate)
+        #expect(transaction.note == "Netflix")
+        #expect(transaction.category == category)
+        #expect(abs(transaction.amount - 15.99) < 0.0001)
+        #expect(transaction.currency == "JPY")
+        #expect(transaction.emoji == "🍿")
+        #expect(transaction.icon == nil)
+        #expect(transaction.imageData == nil)
+        #expect(transaction.onceRecurring)
+        #expect(transaction.recurringType == 3)
+        #expect(transaction.recurringCoefficient == 2)
+        #expect(transaction.recurringEndDate == nil)
     }
 
-    func testDetailsWrittenAndEmptyMapsToNil() {
-        let category = makeCategory(in: context, name: "Streaming", order: 1)
+    @Test func detailsWrittenAndEmptyMapsToNil() {
+        let category = fixture.makeCategory(in: context, name: "Streaming", order: 1)
 
         var withNotes = TransactionFormDraft()
         withNotes.amount = 10
         withNotes.details = "  Split with Alex\nmonthly  "
         let t1 = Transaction(context: context)
         withNotes.apply(to: t1, category: category)
-        XCTAssertEqual(t1.details, "Split with Alex\nmonthly")
+        #expect(t1.details == "Split with Alex\nmonthly")
 
         var blankNotes = TransactionFormDraft()
         blankNotes.amount = 10
         blankNotes.details = "   \n  "
         let t2 = Transaction(context: context)
         blankNotes.apply(to: t2, category: category)
-        XCTAssertNil(t2.details, "whitespace-only notes map to nil")
+        #expect(t2.details == nil, "whitespace-only notes map to nil")
     }
 
-    func testDetailsRoundTripsOnEdit() {
-        let category = makeCategory(in: context, name: "Streaming", order: 1)
+    @Test func detailsRoundTripsOnEdit() {
+        let category = fixture.makeCategory(in: context, name: "Streaming", order: 1)
         let original = Transaction(context: context)
         original.note = "Netflix"
         original.category = category
@@ -82,15 +81,15 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         original.details = "Family plan"
 
         let draft = TransactionFormDraft.from(original)
-        XCTAssertEqual(draft.details, "Family plan")
+        #expect(draft.details == "Family plan")
 
         let rewritten = Transaction(context: context)
         draft.apply(to: rewritten, category: category)
-        XCTAssertEqual(rewritten.details, "Family plan")
+        #expect(rewritten.details == "Family plan")
     }
 
-    func testEmptyNameFallsBackToCategoryName() {
-        let category = makeCategory(in: context, name: "Groceries", order: 1)
+    @Test func emptyNameFallsBackToCategoryName() {
+        let category = fixture.makeCategory(in: context, name: "Groceries", order: 1)
         var draft = TransactionFormDraft()
         draft.amount = 10
         draft.name = "   "
@@ -98,11 +97,11 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         let transaction = Transaction(context: context)
         draft.apply(to: transaction, category: category)
 
-        XCTAssertEqual(transaction.note, "Groceries")
+        #expect(transaction.note == "Groceries")
     }
 
-    func testOneTimeClearsRecurrenceFields() {
-        let category = makeCategory(in: context, name: "Groceries", order: 1)
+    @Test func oneTimeClearsRecurrenceFields() {
+        let category = fixture.makeCategory(in: context, name: "Groceries", order: 1)
         var draft = TransactionFormDraft()
         draft.amount = 10
         draft.isSubscription = false
@@ -113,43 +112,43 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         transaction.onceRecurring = true
         draft.apply(to: transaction, category: category)
 
-        XCTAssertFalse(transaction.onceRecurring)
-        XCTAssertEqual(transaction.recurringType, 0)
-        XCTAssertEqual(transaction.recurringCoefficient, 0)
-        XCTAssertNil(transaction.recurringEndDate)
+        #expect(transaction.onceRecurring == false)
+        #expect(transaction.recurringType == 0)
+        #expect(transaction.recurringCoefficient == 0)
+        #expect(transaction.recurringEndDate == nil)
     }
 
-    func testSubscriptionEndDateWrittenWhenEnabled() {
-        let category = makeCategory(in: context, name: "Gym", order: 1)
+    @Test func subscriptionEndDateWrittenWhenEnabled() {
+        let category = fixture.makeCategory(in: context, name: "Gym", order: 1)
         var draft = TransactionFormDraft()
         draft.amount = 30
         draft.isSubscription = true
         draft.recurringType = 4
         draft.hasEndDate = true
-        draft.endDate = date(2027, 1, 1, 0, 0)
+        draft.endDate = fixture.date(2027, 1, 1, 0, 0)
 
         let transaction = Transaction(context: context)
         draft.apply(to: transaction, category: category)
 
-        XCTAssertEqual(transaction.recurringEndDate, date(2027, 1, 1, 0, 0))
-        XCTAssertEqual(transaction.recurringType, 4)
+        #expect(transaction.recurringEndDate == fixture.date(2027, 1, 1, 0, 0))
+        #expect(transaction.recurringType == 4)
     }
 
-    func testDayAndMonthAreDerivedFromDate() {
-        let category = makeCategory(in: context, name: "Groceries", order: 1)
+    @Test func dayAndMonthAreDerivedFromDate() {
+        let category = fixture.makeCategory(in: context, name: "Groceries", order: 1)
         var draft = TransactionFormDraft()
         draft.amount = 10
-        draft.date = date(2024, 3, 17, 14, 30)
+        draft.date = fixture.date(2024, 3, 17, 14, 30)
 
         let transaction = Transaction(context: context)
         draft.apply(to: transaction, category: category)
 
-        XCTAssertEqual(transaction.day, date(2024, 3, 17, 0, 0))
-        XCTAssertEqual(transaction.month, date(2024, 3, 1, 0, 0))
+        #expect(transaction.day == fixture.date(2024, 3, 17, 0, 0))
+        #expect(transaction.month == fixture.date(2024, 3, 1, 0, 0))
     }
 
-    func testPhotoIdentityAppliesImageDataAndColor() {
-        let category = makeCategory(in: context, name: "Streaming", order: 1)
+    @Test func photoIdentityAppliesImageDataAndColor() {
+        let category = fixture.makeCategory(in: context, name: "Streaming", order: 1)
         var draft = TransactionFormDraft()
         draft.amount = 10
         draft.identity.selectPhoto(imageData: Data([0x1, 0x2, 0x3]), imageColor: "#3AD6B2")
@@ -157,69 +156,69 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         let transaction = Transaction(context: context)
         draft.apply(to: transaction, category: category)
 
-        XCTAssertEqual(transaction.imageData, Data([0x1, 0x2, 0x3]))
-        XCTAssertEqual(transaction.imageColor, "#3AD6B2")
-        XCTAssertNil(transaction.emoji)
-        XCTAssertNil(transaction.icon)
+        #expect(transaction.imageData == Data([0x1, 0x2, 0x3]))
+        #expect(transaction.imageColor == "#3AD6B2")
+        #expect(transaction.emoji == nil)
+        #expect(transaction.icon == nil)
     }
 
     // MARK: - Edit round-trip
 
-    func testEditRoundTripPreservesFields() {
-        let category = makeCategory(in: context, name: "Streaming", order: 1)
+    @Test func editRoundTripPreservesFields() {
+        let category = fixture.makeCategory(in: context, name: "Streaming", order: 1)
         let original = Transaction(context: context)
         original.note = "Spotify"
         original.category = category
         original.amount = 9.99
         original.currency = "EUR"
         original.income = false
-        original.date = date(2024, 6, 1, 8, 0)
+        original.date = fixture.date(2024, 6, 1, 8, 0)
         original.emoji = "🎧"
         original.recurringType = 3
         original.recurringCoefficient = 1
-        original.recurringEndDate = date(2025, 6, 1, 0, 0)
+        original.recurringEndDate = fixture.date(2025, 6, 1, 0, 0)
 
         let draft = TransactionFormDraft.from(original)
-        XCTAssertEqual(draft.name, "Spotify")
-        XCTAssertEqual(draft.amount, Decimal(9.99))
-        XCTAssertEqual(draft.currency, "EUR")
-        XCTAssertTrue(draft.isSubscription)
-        XCTAssertEqual(draft.recurringType, 3)
-        XCTAssertTrue(draft.hasEndDate)
-        XCTAssertEqual(draft.endDate, date(2025, 6, 1, 0, 0))
+        #expect(draft.name == "Spotify")
+        #expect(draft.amount == Decimal(9.99))
+        #expect(draft.currency == "EUR")
+        #expect(draft.isSubscription)
+        #expect(draft.recurringType == 3)
+        #expect(draft.hasEndDate)
+        #expect(draft.endDate == fixture.date(2025, 6, 1, 0, 0))
         if case let .emoji(value) = draft.identity.symbol {
-            XCTAssertEqual(value, "🎧")
+            #expect(value == "🎧")
         } else {
-            XCTFail("expected emoji identity")
+            Issue.record("expected emoji identity")
         }
 
         let rewritten = Transaction(context: context)
         draft.apply(to: rewritten, category: category)
-        XCTAssertEqual(rewritten.note, "Spotify")
-        XCTAssertEqual(rewritten.currency, "EUR")
-        XCTAssertEqual(rewritten.emoji, "🎧")
-        XCTAssertEqual(rewritten.recurringType, 3)
-        XCTAssertEqual(rewritten.recurringEndDate, date(2025, 6, 1, 0, 0))
+        #expect(rewritten.note == "Spotify")
+        #expect(rewritten.currency == "EUR")
+        #expect(rewritten.emoji == "🎧")
+        #expect(rewritten.recurringType == 3)
+        #expect(rewritten.recurringEndDate == fixture.date(2025, 6, 1, 0, 0))
     }
 
     // MARK: - Validation gating
 
-    func testCanSaveRequiresPositiveAmount() {
+    @Test func canSaveRequiresPositiveAmount() {
         var draft = TransactionFormDraft()
         draft.amount = 0
-        XCTAssertFalse(draft.canSave)
+        #expect(draft.canSave == false)
         draft.amount = Decimal(string: "0.01")!
-        XCTAssertTrue(draft.canSave)
+        #expect(draft.canSave)
     }
 
     // MARK: - Category fetch ordering + hierarchy
 
-    func testParentFetchIsOrderedAndScopedToModeAndTopLevel() throws {
-        let food = makeCategory(in: context, name: "Food", order: 2)
-        let bills = makeCategory(in: context, name: "Bills", order: 0)
-        let travel = makeCategory(in: context, name: "Travel", order: 1)
-        let salary = makeCategory(in: context, name: "Salary", income: true, order: 0)
-        let child = makeCategory(in: context, name: "Coffee", order: 5)
+    @Test func parentFetchIsOrderedAndScopedToModeAndTopLevel() throws {
+        let food = fixture.makeCategory(in: context, name: "Food", order: 2)
+        let bills = fixture.makeCategory(in: context, name: "Bills", order: 0)
+        let travel = fixture.makeCategory(in: context, name: "Travel", order: 1)
+        let salary = fixture.makeCategory(in: context, name: "Salary", income: true, order: 0)
+        let child = fixture.makeCategory(in: context, name: "Coffee", order: 5)
         child.parent = food
         try context.save()
 
@@ -227,28 +226,28 @@ final class TransactionFormDraftTests: CharacterizationTestCase {
         let parents = try context.fetch(request)
 
         // Ordered by `order`, income-scoped, top-level only (child + income excluded).
-        XCTAssertEqual(parents.map(\.wrappedName), ["Bills", "Travel", "Food"])
-        XCTAssertFalse(parents.contains(salary))
-        XCTAssertFalse(parents.contains(child))
-        XCTAssertEqual(bills.order, 0)
-        XCTAssertEqual(travel.order, 1)
+        #expect(parents.map(\.wrappedName) == ["Bills", "Travel", "Food"])
+        #expect(parents.contains(salary) == false)
+        #expect(parents.contains(child) == false)
+        #expect(bills.order == 0)
+        #expect(travel.order == 1)
     }
 
     /// The category sheet must let a parent-that-has-children be selected too (the
     /// row selects; the chevron only expands). A parent-with-children is a valid
     /// selection target: it appears in the fetch and assigns like any category.
-    func testParentWithChildrenIsASelectableTarget() throws {
-        let food = makeCategory(in: context, name: "Food", order: 0)
-        let coffee = makeCategory(in: context, name: "Coffee", order: 1)
+    @Test func parentWithChildrenIsASelectableTarget() throws {
+        let food = fixture.makeCategory(in: context, name: "Food", order: 0)
+        let coffee = fixture.makeCategory(in: context, name: "Coffee", order: 1)
         coffee.parent = food
         try context.save()
 
         let parents = try context.fetch(Outlayr.Category.transactionPickerFetchRequest(income: false))
-        let parentWithChildren = try XCTUnwrap(parents.first { $0.hasChildren })
-        XCTAssertEqual(parentWithChildren, food)
+        let parentWithChildren = try #require(parents.first { $0.hasChildren })
+        #expect(parentWithChildren == food)
 
         var selected: Outlayr.Category?
         selected = parentWithChildren
-        XCTAssertEqual(selected, food)
+        #expect(selected == food)
     }
 }

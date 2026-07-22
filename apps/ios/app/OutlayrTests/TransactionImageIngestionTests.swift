@@ -8,11 +8,11 @@
 //
 
 import UIKit
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class TransactionImageIngestionTests: XCTestCase {
+struct TransactionImageIngestionTests {
     /// A `w`×`h` opaque image of high-frequency color noise — the worst case
     /// for JPEG, so the byte ceiling is exercised honestly. Deterministic.
     private func noisyImage(width: Int, height: Int) -> UIImage {
@@ -33,60 +33,60 @@ final class TransactionImageIngestionTests: XCTestCase {
         return UIImage(cgImage: context.makeImage()!)
     }
 
-    func testLargeNoisySourceIsCappedInSizeAndBytes() throws {
-        let prepared = try XCTUnwrap(TransactionImageIngestion.prepare(noisyImage(width: 1600, height: 1200)))
+    @Test func largeNoisySourceIsCappedInSizeAndBytes() throws {
+        let prepared = try #require(TransactionImageIngestion.prepare(noisyImage(width: 1600, height: 1200)))
 
         // JPEG magic bytes.
-        XCTAssertEqual(Array(prepared.data.prefix(3)), [0xFF, 0xD8, 0xFF])
+        #expect(Array(prepared.data.prefix(3)) == [0xFF, 0xD8, 0xFF])
 
         // Under the ceiling.
-        XCTAssertLessThanOrEqual(prepared.data.count, TransactionImageIngestion.maxBytes)
+        #expect(prepared.data.count <= TransactionImageIngestion.maxBytes)
 
         // Both dimensions within the cap.
-        let decoded = try XCTUnwrap(UIImage(data: prepared.data))
-        XCTAssertLessThanOrEqual(decoded.size.width * decoded.scale, TransactionImageIngestion.maxDimension)
-        XCTAssertLessThanOrEqual(decoded.size.height * decoded.scale, TransactionImageIngestion.maxDimension)
+        let decoded = try #require(UIImage(data: prepared.data))
+        #expect(decoded.size.width * decoded.scale <= TransactionImageIngestion.maxDimension)
+        #expect(decoded.size.height * decoded.scale <= TransactionImageIngestion.maxDimension)
     }
 
-    func testCropProducesASquare() throws {
-        let prepared = try XCTUnwrap(
+    @Test func cropProducesASquare() throws {
+        let prepared = try #require(
             TransactionImageIngestion.prepare(noisyImage(width: 900, height: 600), crop: .init(zoom: 1.4, offsetX: 0.1, offsetY: -0.1))
         )
-        let decoded = try XCTUnwrap(UIImage(data: prepared.data))
-        XCTAssertEqual(decoded.size.width * decoded.scale, decoded.size.height * decoded.scale, accuracy: 1)
+        let decoded = try #require(UIImage(data: prepared.data))
+        #expect(abs(decoded.size.width * decoded.scale - decoded.size.height * decoded.scale) < 1)
     }
 
-    func testCropClampsOutOfRangeValues() {
+    @Test func cropClampsOutOfRangeValues() {
         // Extreme slider values must not crash or escape the source bounds.
         let crop = TransactionImageIngestion.Crop(zoom: 9, offsetX: 5, offsetY: -5).clamped
-        XCTAssertEqual(crop.zoom, 1.8, accuracy: 0.0001)
-        XCTAssertEqual(crop.offsetX, 0.3, accuracy: 0.0001)
-        XCTAssertEqual(crop.offsetY, -0.3, accuracy: 0.0001)
+        #expect(abs(crop.zoom - 1.8) < 0.0001)
+        #expect(abs(crop.offsetX - 0.3) < 0.0001)
+        #expect(abs(crop.offsetY - (-0.3)) < 0.0001)
     }
 
-    func testPreparedColorIsAHexOrEmpty() throws {
-        let prepared = try XCTUnwrap(TransactionImageIngestion.prepare(noisyImage(width: 300, height: 300)))
+    @Test func preparedColorIsAHexOrEmpty() throws {
+        let prepared = try #require(TransactionImageIngestion.prepare(noisyImage(width: 300, height: 300)))
         if !prepared.color.isEmpty {
-            XCTAssertTrue(prepared.color.hasPrefix("#"))
-            XCTAssertEqual(prepared.color.count, 7)
+            #expect(prepared.color.hasPrefix("#"))
+            #expect(prepared.color.count == 7)
         }
     }
 
-    func testDegenerateSinglePixelSourceStillProducesValidJpeg() throws {
-        let prepared = try XCTUnwrap(TransactionImageIngestion.prepare(noisyImage(width: 1, height: 1)))
-        XCTAssertEqual(Array(prepared.data.prefix(3)), [0xFF, 0xD8, 0xFF])
-        XCTAssertLessThanOrEqual(prepared.data.count, TransactionImageIngestion.maxBytes)
+    @Test func degenerateSinglePixelSourceStillProducesValidJpeg() throws {
+        let prepared = try #require(TransactionImageIngestion.prepare(noisyImage(width: 1, height: 1)))
+        #expect(Array(prepared.data.prefix(3)) == [0xFF, 0xD8, 0xFF])
+        #expect(prepared.data.count <= TransactionImageIngestion.maxBytes)
     }
 
     /// A rotated source must crop square in oriented space, not transpose: a
     /// landscape CGImage tagged `.right` (portrait when oriented) still yields a
     /// square JPEG within the cap.
-    func testExifRotatedSourceIsNotTransposed() throws {
+    @Test func exifRotatedSourceIsNotTransposed() throws {
         let landscape = noisyImage(width: 800, height: 400)
         let rotated = UIImage(cgImage: landscape.cgImage!, scale: 1, orientation: .right)
-        let prepared = try XCTUnwrap(TransactionImageIngestion.prepare(rotated))
-        let decoded = try XCTUnwrap(UIImage(data: prepared.data))
-        XCTAssertEqual(decoded.size.width * decoded.scale, decoded.size.height * decoded.scale, accuracy: 1)
-        XCTAssertLessThanOrEqual(decoded.size.width * decoded.scale, TransactionImageIngestion.maxDimension)
+        let prepared = try #require(TransactionImageIngestion.prepare(rotated))
+        let decoded = try #require(UIImage(data: prepared.data))
+        #expect(abs(decoded.size.width * decoded.scale - decoded.size.height * decoded.scale) < 1)
+        #expect(decoded.size.width * decoded.scale <= TransactionImageIngestion.maxDimension)
     }
 }

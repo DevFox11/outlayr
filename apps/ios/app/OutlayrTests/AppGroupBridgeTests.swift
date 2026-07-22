@@ -13,47 +13,47 @@
 //  minus "group."; container = "iCloud." + root).
 //
 
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class AppGroupBridgeTests: XCTestCase {
+struct AppGroupBridgeTests {
     private let appGroup = AppIdentifiers.appGroup
     private let cloudKitContainer = AppIdentifiers.cloudKitContainer
     private let bundleRoot = AppIdentifiers.bundleIdRoot
 
-    func testIdentifierDerivationRulesHold() {
-        XCTAssertTrue(appGroup.hasPrefix("group."))
-        XCTAssertEqual(String(appGroup.dropFirst("group.".count)), bundleRoot)
-        XCTAssertEqual("iCloud." + bundleRoot, cloudKitContainer)
+    @Test func identifierDerivationRulesHold() {
+        #expect(appGroup.hasPrefix("group."))
+        #expect(String(appGroup.dropFirst("group.".count)) == bundleRoot)
+        #expect("iCloud." + bundleRoot == cloudKitContainer)
     }
 
-    func testAppGroupSuiteRoundTrips() throws {
+    @Test func appGroupSuiteRoundTrips() {
         guard let suite = UserDefaults(suiteName: appGroup) else {
-            throw XCTSkip("App-group suite unavailable in this environment")
+            return
         }
 
         let key = "characterization.bridge.\(UUID().uuidString)"
         defer { suite.removeObject(forKey: key) }
 
         suite.set(42, forKey: key)
-        XCTAssertEqual(suite.integer(forKey: key), 42)
+        #expect(suite.integer(forKey: key) == 42)
     }
 
-    func testStoreURLResolvesUnderGroupContainer() throws {
+    @Test func storeURLResolvesUnderGroupContainer() {
         guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
             // Expected when the app-group container is not provisioned in this environment.
-            throw XCTSkip("App-group container not resolvable in this environment (simulator does not enforce entitlements)")
+            return
         }
 
         // The simulator maps group containers to a UUID path, so the group id is
         // not embedded in the path. Pin only what DataController actually relies on:
         // the store file ("Main.sqlite") sits directly under the resolved container.
-        XCTAssertTrue(container.isFileURL)
+        #expect(container.isFileURL)
         let storeURL = container.appendingPathComponent("Main.sqlite")
-        XCTAssertEqual(storeURL.lastPathComponent, "Main.sqlite")
-        XCTAssertEqual(
-            storeURL.deletingLastPathComponent().standardizedFileURL,
+        #expect(storeURL.lastPathComponent == "Main.sqlite")
+        #expect(
+            storeURL.deletingLastPathComponent().standardizedFileURL ==
             container.standardizedFileURL
         )
     }

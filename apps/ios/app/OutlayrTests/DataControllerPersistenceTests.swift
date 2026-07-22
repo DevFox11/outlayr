@@ -6,39 +6,44 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class DataControllerPersistenceTests: CharacterizationTestCase {
-    func testInMemoryStoreReportsLoadedState() throws {
+@MainActor
+struct DataControllerPersistenceTests {
+    @Test func inMemoryStoreReportsLoadedState() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
         // The C2b fail-loud guard must never misfire on a healthy store: the
         // in-memory path (and, by construction, the resolved app-group path) reports
         // `.loaded`. The unreachable nil-container path is verified on-device (C3.5).
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        XCTAssertEqual(controller.storeState, .loaded)
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        #expect(controller.storeState == .loaded)
     }
 
-    func testStoreStateForNilContainerReportsAppGroupUnavailable() {
+    @Test func storeStateForNilContainerReportsAppGroupUnavailable() {
         // Locks the fail-loud decision directly: a nil app-group container URL (a
         // broken App Groups entitlement / provisioning profile) must refuse the
         // silent per-process fallback store. Pure, so it needs no FileManager or
         // fatal build to exercise the branch the runtime guard can't reach on-sim.
-        XCTAssertEqual(DataController.storeState(for: nil), .appGroupUnavailable)
+        #expect(DataController.storeState(for: nil) == .appGroupUnavailable)
     }
 
-    func testStoreStateForResolvedContainerReportsLoaded() {
+    @Test func storeStateForResolvedContainerReportsLoaded() {
         // The complement: any resolved container URL keeps the store `.loaded`, so
         // the guard never misfires on a healthy app group.
-        XCTAssertEqual(DataController.storeState(for: URL(fileURLWithPath: "/tmp/x")), .loaded)
+        #expect(DataController.storeState(for: URL(fileURLWithPath: "/tmp/x")) == .loaded)
     }
 
-    func testNewTransactionPersistsWithDerivedDayAndMonth() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func newTransactionPersistsWithDerivedDayAndMonth() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Food", income: false, order: 1)
-        let txDate = date(2024, 3, 9, 14, 30)
+        let category = f.makeCategory(in: context, name: "Food", income: false, order: 1)
+        let txDate = f.date(2024, 3, 9, 14, 30)
 
         let transaction = controller.transactions.newTransaction(
             note: "Lunch",
@@ -51,70 +56,76 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
             delay: false
         )
 
-        XCTAssertEqual(transaction.note, "Lunch")
-        XCTAssertEqual(transaction.amount, 12.5, accuracy: 0.0001)
-        XCTAssertEqual(transaction.category, category)
-        XCTAssertFalse(transaction.income)
+        #expect(transaction.note == "Lunch")
+        #expect(abs(transaction.amount - 12.5) < 0.0001)
+        #expect(transaction.category == category)
+        #expect(transaction.income == false)
 
         // day is start-of-day of the transaction date; month is first-of-month.
-        XCTAssertEqual(transaction.day, date(2024, 3, 9, 0, 0))
-        XCTAssertEqual(transaction.month, date(2024, 3, 1, 0, 0))
-        XCTAssertNotNil(transaction.id)
+        #expect(transaction.day == f.date(2024, 3, 9, 0, 0))
+        #expect(transaction.month == f.date(2024, 3, 1, 0, 0))
+        #expect(transaction.id != nil)
 
         let stored = controller.results(for: controller.transactions.fetchRequestForExport())
-        XCTAssertEqual(stored.count, 1)
-        XCTAssertEqual(stored.first, transaction)
+        #expect(stored.count == 1)
+        #expect(stored.first == transaction)
     }
 
-    func testEmptyNoteFallsBackToCategoryName() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emptyNoteFallsBackToCategoryName() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Transport", order: 1)
+        let category = f.makeCategory(in: context, name: "Transport", order: 1)
 
         let transaction = controller.transactions.newTransaction(
             note: "   ",
             category: category,
             income: false,
             amount: 3,
-            date: date(2024, 3, 9),
+            date: f.date(2024, 3, 9),
             repeatType: 0,
             repeatCoefficient: 0,
             delay: false
         )
 
-        XCTAssertEqual(transaction.note, "Transport")
+        #expect(transaction.note == "Transport")
     }
 
-    func testFetchRequestForExportSortsByDateDescending() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func fetchRequestForExportSortsByDateDescending() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Food", order: 1)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
 
-        makeTransaction(in: context, amount: 1, date: date(2024, 1, 1), category: category)
-        makeTransaction(in: context, amount: 2, date: date(2024, 3, 1), category: category)
-        makeTransaction(in: context, amount: 3, date: date(2024, 2, 1), category: category)
+        f.makeTransaction(in: context, amount: 1, date: f.date(2024, 1, 1), category: category)
+        f.makeTransaction(in: context, amount: 2, date: f.date(2024, 3, 1), category: category)
+        f.makeTransaction(in: context, amount: 3, date: f.date(2024, 2, 1), category: category)
         try? controller.save()
 
         let stored = controller.results(for: controller.transactions.fetchRequestForExport())
         let dates = stored.compactMap { $0.date }
-        XCTAssertEqual(dates, [date(2024, 3, 1), date(2024, 2, 1), date(2024, 1, 1)])
+        #expect(dates == [f.date(2024, 3, 1), f.date(2024, 2, 1), f.date(2024, 1, 1)])
     }
 
-    func testDeleteAllClearsEveryEntity() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func deleteAllClearsEveryEntity() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Food", order: 1)
-        makeTransaction(in: context, amount: 10, date: date(2024, 2, 1), category: category)
-        makeBudget(in: context, amount: 100, startDate: date(2024, 2, 1), type: 3, category: category)
-        makeMainBudget(in: context, amount: 500, startDate: date(2024, 2, 1), type: 3)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
+        f.makeTransaction(in: context, amount: 10, date: f.date(2024, 2, 1), category: category)
+        f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 2, 1), type: 3, category: category)
+        f.makeMainBudget(in: context, amount: 500, startDate: f.date(2024, 2, 1), type: 3)
         try? controller.save()
 
         try? controller.deleteAll()
 
-        XCTAssertTrue(controller.results(for: Transaction.fetchRequest()).isEmpty)
-        XCTAssertTrue(controller.results(for: Outlayr.Category.fetchRequest()).isEmpty)
-        XCTAssertTrue(controller.results(for: Budget.fetchRequest()).isEmpty)
-        XCTAssertTrue(controller.results(for: MainBudget.fetchRequest()).isEmpty)
+        #expect(controller.results(for: Transaction.fetchRequest()).isEmpty)
+        #expect(controller.results(for: Outlayr.Category.fetchRequest()).isEmpty)
+        #expect(controller.results(for: Budget.fetchRequest()).isEmpty)
+        #expect(controller.results(for: MainBudget.fetchRequest()).isEmpty)
     }
 
     // MARK: - Async overload parity
@@ -129,262 +140,266 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
 
     /// Seeds a small mixed ledger on the view context and saves, so objectIDs are
     /// permanent and background contexts can rematerialize them.
-    private func seedLedger(on controller: DataController) -> Outlayr.Category {
+    private func seedLedger(on controller: DataController, f: inout CharacterizationFixture) -> Outlayr.Category {
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Food", order: 1)
-        makeTransaction(in: context, amount: 12.5, date: date(2024, 6, 10), category: category)
-        makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: category)
-        makeTransaction(in: context, amount: 40, date: date(2024, 6, 14), income: true, category: category)
-        makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: category)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
+        f.makeTransaction(in: context, amount: 12.5, date: f.date(2024, 6, 10), category: category)
+        f.makeTransaction(in: context, amount: 7.25, date: f.date(2024, 6, 12), category: category)
+        f.makeTransaction(in: context, amount: 40, date: f.date(2024, 6, 14), income: true, category: category)
+        f.makeTransaction(in: context, amount: 3, date: f.date(2024, 5, 20), category: category)
         try? controller.save()
         return category
     }
 
-    @MainActor
-    func testAsyncGetLogViewTotalSpentMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        _ = seedLedger(on: controller)
+    @Test func asyncGetLogViewTotalSpentMatchesSync() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        _ = seedLedger(on: controller, f: &f)
 
         let sync = syncBaseline { controller.transactions.getLogViewTotalSpent(type: 5) }
         let background = await controller.transactions.getLogViewTotalSpent(type: 5)
 
-        XCTAssertEqual(sync, 22.75, accuracy: 0.0001)
-        XCTAssertEqual(background, sync, accuracy: 0.0001)
+        #expect(abs(sync - 22.75) < 0.0001)
+        #expect(abs(background - sync) < 0.0001)
     }
 
-    @MainActor
-    func testAsyncGetLogViewTotalIncomeMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        _ = seedLedger(on: controller)
+    @Test func asyncGetLogViewTotalIncomeMatchesSync() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        _ = seedLedger(on: controller, f: &f)
 
         let sync = syncBaseline { controller.transactions.getLogViewTotalIncome(type: 5) }
         let background = await controller.transactions.getLogViewTotalIncome(type: 5)
 
-        XCTAssertEqual(sync, 40, accuracy: 0.0001)
-        XCTAssertEqual(background, sync, accuracy: 0.0001)
+        #expect(abs(sync - 40) < 0.0001)
+        #expect(abs(background - sync) < 0.0001)
     }
 
-    @MainActor
-    func testAsyncGetLogViewTotalNetMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        _ = seedLedger(on: controller)
+    @Test func asyncGetLogViewTotalNetMatchesSync() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        _ = seedLedger(on: controller, f: &f)
 
         let sync = syncBaseline { controller.transactions.getLogViewTotalNet(type: 5) }
         let background = await controller.transactions.getLogViewTotalNet(type: 5)
 
-        XCTAssertEqual(background.value, sync.value, accuracy: 0.0001)
-        XCTAssertEqual(background.positive, sync.positive)
+        #expect(abs(background.value - sync.value) < 0.0001)
+        #expect(background.positive == sync.positive)
     }
 
-    @MainActor
-    func testAsyncGetLineGraphDataNetMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        _ = seedLedger(on: controller)
+    @Test func asyncGetLineGraphDataNetMatchesSync() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        _ = seedLedger(on: controller, f: &f)
 
         let sync = syncBaseline { controller.transactions.getLineGraphDataNet(type: 2) }
         let background = await controller.transactions.getLineGraphDataNet(type: 2)
 
-        XCTAssertFalse(sync.isEmpty)
-        XCTAssertEqual(background, sync)
+        #expect(sync.isEmpty == false)
+        #expect(background == sync)
     }
 
-    @MainActor
-    func testAsyncGetInsightsSummaryMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        _ = seedLedger(on: controller)
+    @Test func asyncGetInsightsSummaryMatchesSync() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        _ = seedLedger(on: controller, f: &f)
 
-        let sync = syncBaseline { controller.transactions.getInsightsSummary(type: 2, date: date(2024, 6, 1)) }
-        let background = await controller.transactions.getInsightsSummary(type: 2, date: date(2024, 6, 1))
+        let sync = syncBaseline { controller.transactions.getInsightsSummary(type: 2, date: f.date(2024, 6, 1)) }
+        let background = await controller.transactions.getInsightsSummary(type: 2, date: f.date(2024, 6, 1))
 
-        XCTAssertEqual(background.spent, sync.spent, accuracy: 0.0001)
-        XCTAssertEqual(background.income, sync.income, accuracy: 0.0001)
-        XCTAssertEqual(background.net, sync.net, accuracy: 0.0001)
-        XCTAssertEqual(background.positive, sync.positive)
-        XCTAssertEqual(background.average, sync.average, accuracy: 0.0001)
+        #expect(abs(background.spent - sync.spent) < 0.0001)
+        #expect(abs(background.income - sync.income) < 0.0001)
+        #expect(abs(background.net - sync.net) < 0.0001)
+        #expect(background.positive == sync.positive)
+        #expect(abs(background.average - sync.average) < 0.0001)
     }
 
-    @MainActor
-    func testAsyncGetShortcutInsightsMatchesSyncWithCategoryFilter() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let category = seedLedger(on: controller)
+    @Test func asyncGetShortcutInsightsMatchesSyncWithCategoryFilter() async throws {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        let category = seedLedger(on: controller, f: &f)
 
         let sync = syncBaseline { controller.transactions.getShortcutInsights(type: 3, timeframe: 5, optionalIncome: false, categories: [category]) }
         let background = try await controller.transactions.getShortcutInsights(type: 3, timeframe: 5, optionalIncome: false, categories: [category])
 
-        XCTAssertEqual(sync, 22.75, accuracy: 0.0001)
-        XCTAssertEqual(background, sync, accuracy: 0.0001)
+        #expect(abs(sync - 22.75) < 0.0001)
+        #expect(abs(background - sync) < 0.0001)
     }
 
-    @MainActor
-    func testAsyncGetBudgetLeftoverMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetBudgetLeftoverMatchesSync() async throws {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = seedLedger(on: controller)
-        let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
-        let mainBudget = makeMainBudget(in: context, amount: 500, startDate: date(2024, 6, 1), type: 3)
+        let category = seedLedger(on: controller, f: &f)
+        let budget = f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 6, 1), type: 3, category: category)
+        let mainBudget = f.makeMainBudget(in: context, amount: 500, startDate: f.date(2024, 6, 1), type: 3)
         try? controller.save()
 
         let syncBudget = syncBaseline { controller.budgets.getBudgetLeftover(budget: budget) }
         let backgroundBudget = try await controller.budgets.getBudgetLeftover(budget: budget)
-        XCTAssertEqual(backgroundBudget, syncBudget, accuracy: 0.0001)
+        #expect(abs(backgroundBudget - syncBudget) < 0.0001)
 
         let syncOverall = syncBaseline { controller.budgets.getBudgetLeftover(overallBudget: mainBudget) }
         let backgroundOverall = try await controller.budgets.getBudgetLeftover(overallBudget: mainBudget)
-        XCTAssertEqual(backgroundOverall, syncOverall, accuracy: 0.0001)
+        #expect(abs(backgroundOverall - syncOverall) < 0.0001)
     }
 
-    @MainActor
-    func testAsyncGetBudgetLeftoverThrowsWhenBudgetCannotBeRematerialized() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetBudgetLeftoverThrowsWhenBudgetCannotBeRematerialized() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Food", order: 1)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
         // Never saved, so the objectID stays temporary and the background context
         // cannot rematerialize it.
-        let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
+        let budget = f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 6, 1), type: 3, category: category)
 
-        do {
+        await #expect(throws: (any Error).self) {
             _ = try await controller.budgets.getBudgetLeftover(budget: budget)
-            XCTFail("Expected CustomError.notFound for an unmaterializable budget")
-        } catch {
-            guard case CustomError.notFound = error else {
-                return XCTFail("Expected CustomError.notFound, got \(error)")
-            }
         }
     }
 
-    @MainActor
-    func testAsyncGetShortcutInsightsThrowsWhenCategoryCannotBeRematerialized() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetShortcutInsightsThrowsWhenCategoryCannotBeRematerialized() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
         // Never saved, so the objectID stays temporary and the background context
         // cannot rematerialize it.
-        let category = makeCategory(in: context, name: "Food", order: 1)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
 
-        do {
+        await #expect(throws: (any Error).self) {
             _ = try await controller.transactions.getShortcutInsights(type: 3, timeframe: 5, optionalIncome: false, categories: [category])
-            XCTFail("Expected CustomError.notFound for an unmaterializable category filter")
-        } catch {
-            guard case CustomError.notFound = error else {
-                return XCTFail("Expected CustomError.notFound, got \(error)")
-            }
         }
     }
 
-    @MainActor
-    func testGetLogViewInsightsMatchesIndividualSyncMethods() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        _ = seedLedger(on: controller)
+    @Test func getLogViewInsightsMatchesIndividualSyncMethods() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        _ = seedLedger(on: controller, f: &f)
 
         let net = await controller.transactions.getLogViewInsights(type: 2, insightsType: 1)
         let expense = await controller.transactions.getLogViewInsights(type: 2, insightsType: 3)
 
         let syncNet = syncBaseline { controller.transactions.getLogViewTotalNet(type: 2) }
-        XCTAssertEqual(net.netTotal, syncNet.value, accuracy: 0.0001)
-        XCTAssertEqual(net.isNetPositive, syncNet.positive)
-        XCTAssertEqual(net.totalSpent, syncBaseline { controller.transactions.getLogViewTotalSpent(type: 2) }, accuracy: 0.0001)
-        XCTAssertEqual(net.totalIncome, syncBaseline { controller.transactions.getLogViewTotalIncome(type: 2) }, accuracy: 0.0001)
-        XCTAssertEqual(net.lineGraphData, syncBaseline { controller.transactions.getLineGraphDataNet(type: 2) })
-        XCTAssertEqual(expense.lineGraphData, syncBaseline { controller.transactions.getLineGraphData(income: false, type: 2) })
+        #expect(abs(net.netTotal - syncNet.value) < 0.0001)
+        #expect(net.isNetPositive == syncNet.positive)
+        #expect(abs(net.totalSpent - syncBaseline { controller.transactions.getLogViewTotalSpent(type: 2) }) < 0.0001)
+        #expect(abs(net.totalIncome - syncBaseline { controller.transactions.getLogViewTotalIncome(type: 2) }) < 0.0001)
+        #expect(net.lineGraphData == syncBaseline { controller.transactions.getLineGraphDataNet(type: 2) })
+        #expect(expense.lineGraphData == syncBaseline { controller.transactions.getLineGraphData(income: false, type: 2) })
     }
 
-    @MainActor
-    func testGetGraphViewInsightsMatchesIndividualSyncMethods() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
-        let category = seedLedger(on: controller)
+    @Test func getGraphViewInsightsMatchesIndividualSyncMethods() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
+        let category = seedLedger(on: controller, f: &f)
 
         // The shared ledger has no rows in the prior week (Jun 3-9) or the prior
         // year, so without these the -7d/-1y prior windows would pass as zero
         // under a wrong prior-date derivation too.
         let context = controller.container.viewContext
-        makeTransaction(in: context, amount: 5.5, date: date(2024, 6, 5), category: category)
-        makeTransaction(in: context, amount: 9, date: date(2023, 3, 10), category: category)
+        f.makeTransaction(in: context, amount: 5.5, date: f.date(2024, 6, 5), category: category)
+        f.makeTransaction(in: context, amount: 9, date: f.date(2023, 3, 10), category: category)
         try? controller.save()
 
-        let payload = await controller.transactions.getGraphViewInsights(type: 2, date: date(2024, 6, 1), income: false)
+        let payload = await controller.transactions.getGraphViewInsights(type: 2, date: f.date(2024, 6, 1), income: false)
 
-        let syncSummary = syncBaseline { controller.transactions.getInsightsSummary(type: 2, date: date(2024, 6, 1)) }
-        XCTAssertEqual(payload.summary.spent, syncSummary.spent, accuracy: 0.0001)
-        XCTAssertEqual(payload.summary.income, syncSummary.income, accuracy: 0.0001)
-        XCTAssertEqual(payload.summary.net, syncSummary.net, accuracy: 0.0001)
-        XCTAssertEqual(payload.summary.positive, syncSummary.positive)
-        XCTAssertEqual(payload.summary.average, syncSummary.average, accuracy: 0.0001)
+        let syncSummary = syncBaseline { controller.transactions.getInsightsSummary(type: 2, date: f.date(2024, 6, 1)) }
+        #expect(abs(payload.summary.spent - syncSummary.spent) < 0.0001)
+        #expect(abs(payload.summary.income - syncSummary.income) < 0.0001)
+        #expect(abs(payload.summary.net - syncSummary.net) < 0.0001)
+        #expect(payload.summary.positive == syncSummary.positive)
+        #expect(abs(payload.summary.average - syncSummary.average) < 0.0001)
 
-        let syncPrior = syncBaseline { controller.transactions.getInsightsSummary(type: 2, date: date(2024, 5, 1)) }
-        XCTAssertEqual(payload.priorSummary.spent, syncPrior.spent, accuracy: 0.0001)
-        XCTAssertEqual(payload.priorSummary.net, syncPrior.net, accuracy: 0.0001)
-        XCTAssertEqual(payload.priorSummary.positive, syncPrior.positive)
+        let syncPrior = syncBaseline { controller.transactions.getInsightsSummary(type: 2, date: f.date(2024, 5, 1)) }
+        #expect(abs(payload.priorSummary.spent - syncPrior.spent) < 0.0001)
+        #expect(abs(payload.priorSummary.net - syncPrior.net) < 0.0001)
+        #expect(payload.priorSummary.positive == syncPrior.positive)
 
-        let syncBreakdown = syncBaseline { controller.transactions.getInsights(type: 2, date: date(2024, 6, 1), income: false) }
-        XCTAssertEqual(payload.breakdown.amount, syncBreakdown.amount, accuracy: 0.0001)
-        XCTAssertEqual(payload.breakdown.maximum, syncBreakdown.maximum, accuracy: 0.0001)
-        XCTAssertEqual(payload.breakdown.average, syncBreakdown.average, accuracy: 0.0001)
-        XCTAssertEqual(payload.breakdown.numberOfDays, syncBreakdown.numberOfDays)
-        XCTAssertEqual(payload.breakdown.dates, syncBreakdown.dates)
-        XCTAssertEqual(payload.breakdown.dateDictionary, syncBreakdown.dateDictionary)
+        let syncBreakdown = syncBaseline { controller.transactions.getInsights(type: 2, date: f.date(2024, 6, 1), income: false) }
+        #expect(abs(payload.breakdown.amount - syncBreakdown.amount) < 0.0001)
+        #expect(abs(payload.breakdown.maximum - syncBreakdown.maximum) < 0.0001)
+        #expect(abs(payload.breakdown.average - syncBreakdown.average) < 0.0001)
+        #expect(payload.breakdown.numberOfDays == syncBreakdown.numberOfDays)
+        #expect(payload.breakdown.dates == syncBreakdown.dates)
+        #expect(payload.breakdown.dateDictionary == syncBreakdown.dateDictionary)
 
         // The week type derives its prior period seven days back, not one month.
         // The Jun 5 seed makes that observable: the -1 month window (May 10-16)
         // is empty, so a wrong prior date would report zero here.
-        let weekPayload = await controller.transactions.getGraphViewInsights(type: 1, date: date(2024, 6, 10), income: false)
-        let syncWeekPrior = syncBaseline { controller.transactions.getInsightsSummary(type: 1, date: date(2024, 6, 3)) }
-        XCTAssertEqual(syncWeekPrior.spent, 5.5, accuracy: 0.0001)
-        XCTAssertEqual(weekPayload.priorSummary.spent, syncWeekPrior.spent, accuracy: 0.0001)
-        XCTAssertEqual(weekPayload.priorSummary.net, syncWeekPrior.net, accuracy: 0.0001)
-        XCTAssertEqual(weekPayload.priorSummary.positive, syncWeekPrior.positive)
+        let weekPayload = await controller.transactions.getGraphViewInsights(type: 1, date: f.date(2024, 6, 10), income: false)
+        let syncWeekPrior = syncBaseline { controller.transactions.getInsightsSummary(type: 1, date: f.date(2024, 6, 3)) }
+        #expect(abs(syncWeekPrior.spent - 5.5) < 0.0001)
+        #expect(abs(weekPayload.priorSummary.spent - syncWeekPrior.spent) < 0.0001)
+        #expect(abs(weekPayload.priorSummary.net - syncWeekPrior.net) < 0.0001)
+        #expect(weekPayload.priorSummary.positive == syncWeekPrior.positive)
 
         // The year type derives its prior period one year back; the 2023 seed
         // pins that window as non-empty.
-        let yearPayload = await controller.transactions.getGraphViewInsights(type: 3, date: date(2024, 1, 1), income: false)
-        let syncYearPrior = syncBaseline { controller.transactions.getInsightsSummary(type: 3, date: date(2023, 1, 1)) }
-        XCTAssertEqual(syncYearPrior.spent, 9, accuracy: 0.0001)
-        XCTAssertEqual(yearPayload.priorSummary.spent, syncYearPrior.spent, accuracy: 0.0001)
-        XCTAssertEqual(yearPayload.priorSummary.net, syncYearPrior.net, accuracy: 0.0001)
-        XCTAssertEqual(yearPayload.priorSummary.positive, syncYearPrior.positive)
+        let yearPayload = await controller.transactions.getGraphViewInsights(type: 3, date: f.date(2024, 1, 1), income: false)
+        let syncYearPrior = syncBaseline { controller.transactions.getInsightsSummary(type: 3, date: f.date(2023, 1, 1)) }
+        #expect(abs(syncYearPrior.spent - 9) < 0.0001)
+        #expect(abs(yearPayload.priorSummary.spent - syncYearPrior.spent) < 0.0001)
+        #expect(abs(yearPayload.priorSummary.net - syncYearPrior.net) < 0.0001)
+        #expect(yearPayload.priorSummary.positive == syncYearPrior.positive)
     }
 
-    @MainActor
-    func testGetMainBudgetWidgetSnapshotMatchesSync() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func getMainBudgetWidgetSnapshotMatchesSync() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        _ = seedLedger(on: controller)
-        makeMainBudget(in: context, amount: 500, startDate: date(2024, 6, 1), type: 3)
+        _ = seedLedger(on: controller, f: &f)
+        f.makeMainBudget(in: context, amount: 500, startDate: f.date(2024, 6, 1), type: 3)
         try? controller.save()
 
         let sync = syncBaseline { controller.budgets.fetchRequestForMainBudgetWidget() }
         let background = await controller.budgets.getMainBudgetWidgetSnapshot()
 
-        XCTAssertTrue(sync.found)
-        XCTAssertEqual(background.found, sync.found)
-        XCTAssertEqual(background.totalSpent, sync.totalSpent, accuracy: 0.0001)
-        XCTAssertEqual(background.budgetAmount, sync.budgetAmount, accuracy: 0.0001)
-        XCTAssertEqual(background.percentage, sync.percentage, accuracy: 0.0001)
-        XCTAssertEqual(background.type, sync.type)
-        XCTAssertEqual(background.startDate, sync.startDate)
+        #expect(sync.found)
+        #expect(background.found == sync.found)
+        #expect(abs(background.totalSpent - sync.totalSpent) < 0.0001)
+        #expect(abs(background.budgetAmount - sync.budgetAmount) < 0.0001)
+        #expect(abs(background.percentage - sync.percentage) < 0.0001)
+        #expect(background.type == sync.type)
+        #expect(background.startDate == sync.startDate)
     }
 
-    @MainActor
-    func testPerformBackgroundRunsOffMainThread() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func performBackgroundRunsOffMainThread() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
 
         let ranOnMainThread = await controller.performBackground { _ in Thread.isMainThread }
 
-        XCTAssertFalse(ranOnMainThread)
+        #expect(ranOnMainThread == false)
     }
 
     // MARK: - Widget payloads (background-context reads for extension processes)
 
-    @MainActor
-    func testAsyncGetWidgetInsightsMatchesSyncAndRollsChildIntoParent() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetInsightsMatchesSyncAndRollsChildIntoParent() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let parent = makeCategory(in: context, name: "Food", order: 1)
-        let child = makeCategory(in: context, name: "Snacks", order: 2)
+        let parent = f.makeCategory(in: context, name: "Food", order: 1)
+        let child = f.makeCategory(in: context, name: "Snacks", order: 2)
         child.parent = parent
-        makeCategory(in: context, name: "Rent", order: 3)
-        makeTransaction(in: context, amount: 12.5, date: date(2024, 6, 10), category: child)
-        makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: parent)
-        makeTransaction(in: context, amount: 40, date: date(2024, 6, 11), income: true, category: parent)
-        makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: parent)
+        f.makeCategory(in: context, name: "Rent", order: 3)
+        f.makeTransaction(in: context, amount: 12.5, date: f.date(2024, 6, 10), category: child)
+        f.makeTransaction(in: context, amount: 7.25, date: f.date(2024, 6, 12), category: parent)
+        f.makeTransaction(in: context, amount: 40, date: f.date(2024, 6, 11), income: true, category: parent)
+        f.makeTransaction(in: context, amount: 3, date: f.date(2024, 5, 20), category: parent)
         try? controller.save()
 
         let sync = syncBaseline { controller.transactions.getWidgetInsights(type: .week, income: false) }
@@ -392,43 +407,44 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
 
         // Frozen now is Sat 2024-06-15 12:00; with firstWeekday=1 the week starts
         // Sun 2024-06-09, so the May transaction and the income row are excluded.
-        XCTAssertEqual(insights.amount, 19.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.maximum, 12.5, accuracy: 0.0001)
-        XCTAssertEqual(insights.numberOfDays, 2)
-        XCTAssertEqual(insights.dates.count, 7)
-        XCTAssertEqual(insights.dates.first, date(2024, 6, 9))
-        XCTAssertEqual(insights.dateDictionary[date(2024, 6, 10)] ?? 0, 12.5, accuracy: 0.0001)
-        XCTAssertEqual(insights.average, 19.75 / 7, accuracy: 0.0001)
+        #expect(abs(insights.amount - 19.75) < 0.0001)
+        #expect(abs(insights.maximum - 12.5) < 0.0001)
+        #expect(insights.numberOfDays == 2)
+        #expect(insights.dates.count == 7)
+        #expect(insights.dates.first == f.date(2024, 6, 9))
+        #expect(abs((insights.dateDictionary[f.date(2024, 6, 10)] ?? 0) - 12.5) < 0.0001)
+        #expect(abs(insights.average - 19.75 / 7) < 0.0001)
 
         // The child category's spending rolls up into its top-level parent, and
         // zero-total categories (Rent) are omitted.
-        XCTAssertEqual(insights.categories.count, 1)
-        XCTAssertEqual(insights.categories.first?.name, "Food")
-        XCTAssertEqual(insights.categories.first?.color, "#000000")
-        XCTAssertEqual(insights.categories.first?.percent ?? 0, 1.0, accuracy: 0.0001)
+        #expect(insights.categories.count == 1)
+        #expect(insights.categories.first?.name == "Food")
+        #expect(insights.categories.first?.color == "#000000")
+        #expect(abs((insights.categories.first?.percent ?? 0) - 1.0) < 0.0001)
 
-        XCTAssertEqual(insights, sync)
+        #expect(insights == sync)
     }
 
-    @MainActor
-    func testAsyncGetWidgetInsightsMonthMatchesSyncAndRollsChildIntoParent() async throws {
+    @Test func asyncGetWidgetInsightsMonthMatchesSyncAndRollsChildIntoParent() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
         // The month window starts at getStartOfMonth, which reads the real clock
         // (Date.now) rather than the injected one, so this test freezes the
         // controller clock at the real now and seeds rows relative to the real
         // month start.
         let now = Date.now
-        let controller = makeController(now: now, defaults: makeIsolatedDefaults())
+        let controller = f.makeController(now: now, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let parent = makeCategory(in: context, name: "Food", order: 1)
-        let child = makeCategory(in: context, name: "Snacks", order: 2)
+        let parent = f.makeCategory(in: context, name: "Food", order: 1)
+        let child = f.makeCategory(in: context, name: "Snacks", order: 2)
         child.parent = parent
-        makeCategory(in: context, name: "Rent", order: 3)
+        f.makeCategory(in: context, name: "Rent", order: 3)
 
         let monthStart = getStartOfMonth(startDay: 1)
-        makeTransaction(in: context, amount: 12.5, date: monthStart, category: child)
-        makeTransaction(in: context, amount: 7.25, date: monthStart, category: parent)
-        makeTransaction(in: context, amount: 40, date: monthStart, income: true, category: parent)
-        makeTransaction(in: context, amount: 3, date: monthStart.addingTimeInterval(-3600), category: parent)
+        f.makeTransaction(in: context, amount: 12.5, date: monthStart, category: child)
+        f.makeTransaction(in: context, amount: 7.25, date: monthStart, category: parent)
+        f.makeTransaction(in: context, amount: 40, date: monthStart, income: true, category: parent)
+        f.makeTransaction(in: context, amount: 3, date: monthStart.addingTimeInterval(-3600), category: parent)
         try? controller.save()
 
         let sync = syncBaseline { controller.transactions.getWidgetInsights(type: .month, income: false) }
@@ -438,35 +454,36 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         // in-month rows land in the first day bucket.
         let daysInMonth = Calendar(identifier: .gregorian).range(of: .day, in: .month, for: monthStart)!.count
         let daysPast = Calendar.current.dateComponents([.day], from: monthStart, to: now).day!
-        XCTAssertEqual(insights.amount, 19.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.maximum, 19.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.numberOfDays, 1)
-        XCTAssertEqual(insights.dates.count, daysInMonth)
-        XCTAssertEqual(insights.dates.first, monthStart)
-        XCTAssertEqual(insights.dateDictionary[monthStart] ?? 0, 19.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.average, 19.75 / Double(daysPast + 1), accuracy: 0.0001)
+        #expect(abs(insights.amount - 19.75) < 0.0001)
+        #expect(abs(insights.maximum - 19.75) < 0.0001)
+        #expect(insights.numberOfDays == 1)
+        #expect(insights.dates.count == daysInMonth)
+        #expect(insights.dates.first == monthStart)
+        #expect(abs((insights.dateDictionary[monthStart] ?? 0) - 19.75) < 0.0001)
+        #expect(abs(insights.average - 19.75 / Double(daysPast + 1)) < 0.0001)
 
         // The child category's spending rolls up into its top-level parent, and
         // zero-total categories (Rent) are omitted.
-        XCTAssertEqual(insights.categories.count, 1)
-        XCTAssertEqual(insights.categories.first?.name, "Food")
-        XCTAssertEqual(insights.categories.first?.percent ?? 0, 1.0, accuracy: 0.0001)
+        #expect(insights.categories.count == 1)
+        #expect(insights.categories.first?.name == "Food")
+        #expect(abs((insights.categories.first?.percent ?? 0) - 1.0) < 0.0001)
 
-        XCTAssertEqual(insights, sync)
+        #expect(insights == sync)
     }
 
-    @MainActor
-    func testAsyncGetWidgetInsightsYearMatchesSyncAndRollsChildIntoParent() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetInsightsYearMatchesSyncAndRollsChildIntoParent() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let parent = makeCategory(in: context, name: "Food", order: 1)
-        let child = makeCategory(in: context, name: "Snacks", order: 2)
+        let parent = f.makeCategory(in: context, name: "Food", order: 1)
+        let child = f.makeCategory(in: context, name: "Snacks", order: 2)
         child.parent = parent
-        makeCategory(in: context, name: "Rent", order: 3)
-        makeTransaction(in: context, amount: 12.5, date: date(2024, 6, 10), category: child)
-        makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: parent)
-        makeTransaction(in: context, amount: 40, date: date(2024, 6, 11), income: true, category: parent)
-        makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: parent)
+        f.makeCategory(in: context, name: "Rent", order: 3)
+        f.makeTransaction(in: context, amount: 12.5, date: f.date(2024, 6, 10), category: child)
+        f.makeTransaction(in: context, amount: 7.25, date: f.date(2024, 6, 12), category: parent)
+        f.makeTransaction(in: context, amount: 40, date: f.date(2024, 6, 11), income: true, category: parent)
+        f.makeTransaction(in: context, amount: 3, date: f.date(2024, 5, 20), category: parent)
         try? controller.save()
 
         let sync = syncBaseline { controller.transactions.getWidgetInsights(type: .year, income: false) }
@@ -475,36 +492,37 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         // Frozen now is 2024-06-15, so the year window is 2024 bucketed by month:
         // the May row now counts, the income row stays excluded, and five full
         // months have elapsed (average divides by six).
-        XCTAssertEqual(insights.amount, 22.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.maximum, 19.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.numberOfDays, 2)
-        XCTAssertEqual(insights.dates.count, 12)
-        XCTAssertEqual(insights.dates.first, date(2024, 1, 1))
-        XCTAssertEqual(insights.dateDictionary[date(2024, 5, 1)] ?? 0, 3, accuracy: 0.0001)
-        XCTAssertEqual(insights.dateDictionary[date(2024, 6, 1)] ?? 0, 19.75, accuracy: 0.0001)
-        XCTAssertEqual(insights.average, 22.75 / 6, accuracy: 0.0001)
+        #expect(abs(insights.amount - 22.75) < 0.0001)
+        #expect(abs(insights.maximum - 19.75) < 0.0001)
+        #expect(insights.numberOfDays == 2)
+        #expect(insights.dates.count == 12)
+        #expect(insights.dates.first == f.date(2024, 1, 1))
+        #expect(abs((insights.dateDictionary[f.date(2024, 5, 1)] ?? 0) - 3) < 0.0001)
+        #expect(abs((insights.dateDictionary[f.date(2024, 6, 1)] ?? 0) - 19.75) < 0.0001)
+        #expect(abs(insights.average - 22.75 / 6) < 0.0001)
 
         // The child category's spending rolls up into its top-level parent, and
         // zero-total categories (Rent) are omitted.
-        XCTAssertEqual(insights.categories.count, 1)
-        XCTAssertEqual(insights.categories.first?.name, "Food")
-        XCTAssertEqual(insights.categories.first?.percent ?? 0, 1.0, accuracy: 0.0001)
+        #expect(insights.categories.count == 1)
+        #expect(insights.categories.first?.name == "Food")
+        #expect(abs((insights.categories.first?.percent ?? 0) - 1.0) < 0.0001)
 
-        XCTAssertEqual(insights, sync)
+        #expect(insights == sync)
     }
 
-    @MainActor
-    func testAsyncGetWidgetSnapshotMatchesBudgetTransactions() async throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetSnapshotMatchesBudgetTransactions() async throws {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let parent = makeCategory(in: context, name: "Food", order: 1)
-        let child = makeCategory(in: context, name: "Snacks", order: 2)
+        let parent = f.makeCategory(in: context, name: "Food", order: 1)
+        let child = f.makeCategory(in: context, name: "Snacks", order: 2)
         child.parent = parent
-        makeTransaction(in: context, amount: 12.5, date: date(2024, 6, 10), category: child)
-        makeTransaction(in: context, amount: 7.25, date: date(2024, 6, 12), category: parent)
-        makeTransaction(in: context, amount: 40, date: date(2024, 6, 11), income: true, category: parent)
-        makeTransaction(in: context, amount: 3, date: date(2024, 5, 20), category: parent)
-        let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: parent)
+        f.makeTransaction(in: context, amount: 12.5, date: f.date(2024, 6, 10), category: child)
+        f.makeTransaction(in: context, amount: 7.25, date: f.date(2024, 6, 12), category: parent)
+        f.makeTransaction(in: context, amount: 40, date: f.date(2024, 6, 11), income: true, category: parent)
+        f.makeTransaction(in: context, amount: 3, date: f.date(2024, 5, 20), category: parent)
+        let budget = f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 6, 1), type: 3, category: parent)
         try? controller.save()
 
         let identifier = budget.objectID.uriRepresentation().absoluteString
@@ -519,18 +537,19 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
             name: budget.wrappedName,
             color: budget.wrappedColor,
             budgetAmount: 100,
-            startDate: date(2024, 6, 1),
+            startDate: f.date(2024, 6, 1),
             endDate: budget.endDate
         )
-        XCTAssertEqual(snapshot, expected)
+        #expect(snapshot == expected)
     }
 
-    @MainActor
-    func testAsyncGetWidgetSnapshotThrowsNotFoundForBudgetMissingStartDate() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetSnapshotThrowsNotFoundForBudgetMissingStartDate() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Food", order: 1)
-        let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
+        let budget = f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 6, 1), type: 3, category: category)
         try? controller.save()
 
         // CloudKit can commit a Budget row before its optional attributes arrive;
@@ -538,71 +557,68 @@ final class DataControllerPersistenceTests: CharacterizationTestCase {
         budget.startDate = nil
         try? controller.save()
 
-        do {
+        await #expect {
             _ = try await controller.budgets.getWidgetSnapshot(identifier: budget.objectID.uriRepresentation().absoluteString)
-            XCTFail("Expected CustomError.notFound for a budget without a start date")
-        } catch {
-            guard case CustomError.notFound = error else {
-                return XCTFail("Expected CustomError.notFound, got \(error)")
-            }
+        } throws: { error in
+            if case CustomError.notFound = error { return true }
+            return false
         }
     }
 
-    @MainActor
-    func testAsyncGetWidgetSnapshotThrowsNotFoundForDeletedBudget() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetSnapshotThrowsNotFoundForDeletedBudget() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let category = makeCategory(in: context, name: "Food", order: 1)
-        let budget = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: category)
+        let category = f.makeCategory(in: context, name: "Food", order: 1)
+        let budget = f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 6, 1), type: 3, category: category)
         try? controller.save()
 
         let identifier = budget.objectID.uriRepresentation().absoluteString
         context.delete(budget)
         try? controller.save()
 
-        do {
+        await #expect {
             _ = try await controller.budgets.getWidgetSnapshot(identifier: identifier)
-            XCTFail("Expected CustomError.notFound for a deleted budget")
-        } catch {
-            guard case CustomError.notFound = error else {
-                return XCTFail("Expected CustomError.notFound, got \(error)")
-            }
+        } throws: { error in
+            if case CustomError.notFound = error { return true }
+            return false
         }
     }
 
-    @MainActor
-    func testAsyncGetWidgetSnapshotThrowsNotFoundForUnparsableIdentifier() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetSnapshotThrowsNotFoundForUnparsableIdentifier() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
 
-        do {
+        await #expect {
             _ = try await controller.budgets.getWidgetSnapshot(identifier: "")
-            XCTFail("Expected CustomError.notFound for an empty identifier")
-        } catch {
-            guard case CustomError.notFound = error else {
-                return XCTFail("Expected CustomError.notFound, got \(error)")
-            }
+        } throws: { error in
+            if case CustomError.notFound = error { return true }
+            return false
         }
     }
 
-    @MainActor
-    func testAsyncGetWidgetBudgetOptionsListsSavedBudgets() async {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func asyncGetWidgetBudgetOptionsListsSavedBudgets() async {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let food = makeCategory(in: context, name: "Food", order: 1)
-        let rent = makeCategory(in: context, name: "Rent", order: 2)
+        let food = f.makeCategory(in: context, name: "Food", order: 1)
+        let rent = f.makeCategory(in: context, name: "Rent", order: 2)
         // Distinct start dates give distinct dateCreated values, which is the
         // options list's sort key.
-        let first = makeBudget(in: context, amount: 100, startDate: date(2024, 6, 1), type: 3, category: food)
-        let second = makeBudget(in: context, amount: 900, startDate: date(2024, 6, 2), type: 3, category: rent)
+        let first = f.makeBudget(in: context, amount: 100, startDate: f.date(2024, 6, 1), type: 3, category: food)
+        let second = f.makeBudget(in: context, amount: 900, startDate: f.date(2024, 6, 2), type: 3, category: rent)
         try? controller.save()
 
         let options = await controller.budgets.getWidgetBudgetOptions()
 
         // The configuration list is user-visible, so its order matters.
-        XCTAssertEqual(options.map(\.name), [first.wrappedName, second.wrappedName])
-        XCTAssertEqual(
-            options.map(\.identifier),
-            [first, second].map { $0.objectID.uriRepresentation().absoluteString }
+        #expect(options.map(\.name) == [first.wrappedName, second.wrappedName])
+        #expect(
+            options.map(\.identifier)
+                == [first, second].map { $0.objectID.uriRepresentation().absoluteString }
         )
     }
 }

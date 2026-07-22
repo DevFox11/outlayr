@@ -7,37 +7,36 @@
 //  currency-switch renormalization, and exact Decimal round-trips.
 //
 
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class CurrencyMinorUnitsTests: XCTestCase {
-    func testDerivesTwoMinorUnitsForUSD() {
-        XCTAssertEqual(Currency.minorUnits(for: "USD"), 2)
+struct CurrencyMinorUnitsTests {
+    @Test func derivesTwoMinorUnitsForUSD() {
+        #expect(Currency.minorUnits(for: "USD") == 2)
     }
 
-    func testDerivesZeroMinorUnitsForJPY() {
-        XCTAssertEqual(Currency.minorUnits(for: "JPY"), 0)
+    @Test func derivesZeroMinorUnitsForJPY() {
+        #expect(Currency.minorUnits(for: "JPY") == 0)
     }
 
-    func testDerivesThreeMinorUnitsForBHD() {
-        XCTAssertEqual(Currency.minorUnits(for: "BHD"), 3)
+    @Test func derivesThreeMinorUnitsForBHD() {
+        #expect(Currency.minorUnits(for: "BHD") == 3)
     }
 
-    func testDerivesTwoMinorUnitsForEUR() {
-        XCTAssertEqual(Currency.minorUnits(for: "EUR"), 2)
+    @Test func derivesTwoMinorUnitsForEUR() {
+        #expect(Currency.minorUnits(for: "EUR") == 2)
     }
 
-    func testDerivationIsLocaleIndependent() {
+    @Test func derivationIsLocaleIndependent() {
         for code in ["JPY", "BHD"] {
             for identifier in ["de_DE", "ja_JP"] {
                 let formatter = NumberFormatter()
                 formatter.locale = Locale(identifier: identifier)
                 formatter.numberStyle = .currency
                 formatter.currencyCode = code
-                XCTAssertEqual(
-                    formatter.maximumFractionDigits,
-                    Currency.minorUnits(for: code),
+                #expect(
+                    formatter.maximumFractionDigits == Currency.minorUnits(for: code),
                     "\(code) minor units drifted under \(identifier)"
                 )
             }
@@ -45,58 +44,58 @@ final class CurrencyMinorUnitsTests: XCTestCase {
     }
 }
 
-final class AmountEntryDisplayStyleTests: XCTestCase {
-    func testPendingSeparatorFollowsIntegerForPrefixSymbol() {
+struct AmountEntryDisplayStyleTests {
+    @Test func pendingSeparatorFollowsIntegerForPrefixSymbol() {
         let style = AmountEntryDisplayStyle(code: "USD", fractionLength: 0, pendingSeparator: true)
             .locale(Locale(identifier: "en_US"))
-        XCTAssertEqual(style.format(12), "$12.")
+        #expect(style.format(12) == "$12.")
     }
 
-    func testPendingSeparatorStaysInsideSuffixSymbol() {
+    @Test func pendingSeparatorStaysInsideSuffixSymbol() {
         let style = AmountEntryDisplayStyle(code: "EUR", fractionLength: 0, pendingSeparator: true)
             .locale(Locale(identifier: "de_DE"))
         let formatted = style.format(12)
-        XCTAssertTrue(formatted.hasPrefix("12,"), "separator must sit against the digits: \(formatted)")
-        XCTAssertTrue(formatted.hasSuffix("€"), "suffix symbol must stay last: \(formatted)")
+        #expect(formatted.hasPrefix("12,"), "separator must sit against the digits: \(formatted)")
+        #expect(formatted.hasSuffix("€"), "suffix symbol must stay last: \(formatted)")
     }
 
-    func testNoPendingSeparatorMatchesPlainCurrencyFormatting() {
+    @Test func noPendingSeparatorMatchesPlainCurrencyFormatting() {
         let style = AmountEntryDisplayStyle(code: "USD", fractionLength: 2, pendingSeparator: false)
             .locale(Locale(identifier: "en_US"))
-        XCTAssertEqual(style.format(Decimal(string: "12.34")!), "$12.34")
+        #expect(style.format(Decimal(string: "12.34")!) == "$12.34")
     }
 
-    func testNarrowSymbolDropsCurrencyPrefixForMXN() {
+    @Test func narrowSymbolDropsCurrencyPrefixForMXN() {
         let style = AmountEntryDisplayStyle(code: "MXN", fractionLength: 2, pendingSeparator: false)
             .locale(Locale(identifier: "en_US"))
         let formatted = style.format(Decimal(string: "12.34")!)
-        XCTAssertEqual(formatted, "$12.34", "narrow presentation renders the compact symbol, not MX$: \(formatted)")
-        XCTAssertFalse(formatted.contains("MX"), "the MX$ prefix must be gone: \(formatted)")
+        #expect(formatted == "$12.34", "narrow presentation renders the compact symbol, not MX$: \(formatted)")
+        #expect(formatted.contains("MX") == false, "the MX$ prefix must be gone: \(formatted)")
     }
 }
 
-final class AmountDisplayMetricsTests: XCTestCase {
-    func testBaseSizeIs40AndStepsDownForLongStrings() {
-        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 5), 40, "short amounts use the 40pt base")
-        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 15), 40, "the max-cap amount still uses the base")
-        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 16), 37)
-        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 17), 34)
-        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 24), 31)
+struct AmountDisplayMetricsTests {
+    @Test func baseSizeIs40AndStepsDownForLongStrings() {
+        #expect(AmountDisplayMetrics.fontSize(forCharacterCount: 5) == 40, "short amounts use the 40pt base")
+        #expect(AmountDisplayMetrics.fontSize(forCharacterCount: 15) == 40, "the max-cap amount still uses the base")
+        #expect(AmountDisplayMetrics.fontSize(forCharacterCount: 16) == 37)
+        #expect(AmountDisplayMetrics.fontSize(forCharacterCount: 17) == 34)
+        #expect(AmountDisplayMetrics.fontSize(forCharacterCount: 24) == 31)
     }
 
-    func testFontSizeIsMonotonicNonIncreasing() {
+    @Test func fontSizeIsMonotonicNonIncreasing() {
         let sizes = (1...24).map { AmountDisplayMetrics.fontSize(forCharacterCount: $0) }
-        XCTAssertEqual(sizes, sizes.sorted(by: >), "font size must never grow as the amount lengthens")
+        #expect(sizes == sizes.sorted(by: >), "font size must never grow as the amount lengthens")
     }
 
     /// The max-cap amount "$100,000,000.00" (15 chars, narrow) fits at the 40pt
     /// base on a ~345pt display, so it does not need to step down.
-    func testMaxCapAmountFitsAtBaseSize() {
-        XCTAssertEqual(AmountDisplayMetrics.fontSize(forCharacterCount: 15), 40)
+    @Test func maxCapAmountFitsAtBaseSize() {
+        #expect(AmountDisplayMetrics.fontSize(forCharacterCount: 15) == 40)
     }
 }
 
-final class AmountEntryModelTests: XCTestCase {
+struct AmountEntryModelTests {
     private func model(minorUnits: Int = 2) -> AmountEntryModel {
         AmountEntryModel(minorUnits: minorUnits)
     }
@@ -109,180 +108,180 @@ final class AmountEntryModelTests: XCTestCase {
         return model
     }
 
-    func testStartsEmptyAtZero() {
+    @Test func startsEmptyAtZero() {
         let model = model()
-        XCTAssertEqual(model.amount, 0)
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == 0)
+        #expect(model.hasSeparator == false)
     }
 
-    func testAppendsIntegerDigits() {
+    @Test func appendsIntegerDigits() {
         let model = typed([.digit(1), .digit(2), .digit(3)])
-        XCTAssertEqual(model.amount, Decimal(string: "123"))
+        #expect(model.amount == Decimal(string: "123"))
     }
 
-    func testCollapsesLeadingZero() {
+    @Test func collapsesLeadingZero() {
         let model = typed([.digit(0), .digit(5)])
-        XCTAssertEqual(model.amount, Decimal(string: "5"))
+        #expect(model.amount == Decimal(string: "5"))
     }
 
-    func testAppendsFractionDigitsUpToUSDMinorUnits() {
+    @Test func appendsFractionDigitsUpToUSDMinorUnits() {
         let model = typed([.digit(1), .digit(2), .separator, .digit(3), .digit(4), .digit(5)])
-        XCTAssertEqual(model.amount, Decimal(string: "12.34"))
+        #expect(model.amount == Decimal(string: "12.34"))
     }
 
-    func testAllowsThreeFractionDigitsForBHD() {
+    @Test func allowsThreeFractionDigitsForBHD() {
         let model = typed([.digit(1), .separator, .digit(2), .digit(3), .digit(4)], minorUnits: 3)
-        XCTAssertEqual(model.amount, Decimal(string: "1.234"))
+        #expect(model.amount == Decimal(string: "1.234"))
     }
 
-    func testIgnoresSeparatorForZeroMinorUnitCurrency() {
+    @Test func ignoresSeparatorForZeroMinorUnitCurrency() {
         let model = typed([.digit(4), .separator, .digit(2)], minorUnits: 0)
-        XCTAssertFalse(model.hasSeparator)
-        XCTAssertEqual(model.amount, Decimal(string: "42"))
+        #expect(model.hasSeparator == false)
+        #expect(model.amount == Decimal(string: "42"))
     }
 
-    func testSecondSeparatorIsIgnored() {
+    @Test func secondSeparatorIsIgnored() {
         let model = typed([.digit(1), .separator, .separator, .digit(5)])
-        XCTAssertEqual(model.amount, Decimal(string: "1.5"))
+        #expect(model.amount == Decimal(string: "1.5"))
     }
 
-    func testCapsIntegerAtOneHundredMillion() {
+    @Test func capsIntegerAtOneHundredMillion() {
         var model = typed([.digit(1)] + Array(repeating: .digit(0), count: 8))
-        XCTAssertEqual(model.amount, Decimal(100_000_000))
+        #expect(model.amount == Decimal(100_000_000))
         model.press(.digit(0))
-        XCTAssertEqual(model.amount, Decimal(100_000_000))
+        #expect(model.amount == Decimal(100_000_000))
     }
 
-    func testRejectsDigitThatWouldExceedTheCap() {
+    @Test func rejectsDigitThatWouldExceedTheCap() {
         var model = typed(Array(repeating: .digit(9), count: 8))
-        XCTAssertEqual(model.amount, Decimal(99_999_999))
+        #expect(model.amount == Decimal(99_999_999))
         model.press(.digit(9))
-        XCTAssertEqual(model.amount, Decimal(99_999_999))
+        #expect(model.amount == Decimal(99_999_999))
     }
 
-    func testCapDoesNotBlockFractionEntry() {
+    @Test func capDoesNotBlockFractionEntry() {
         let model = typed([.digit(1)] + Array(repeating: .digit(0), count: 8) + [.separator, .digit(9), .digit(9)])
-        XCTAssertEqual(model.amount, Decimal(string: "100000000.99"))
+        #expect(model.amount == Decimal(string: "100000000.99"))
     }
 
-    func testBackspaceWalksFractionThenSeparatorThenIntegers() {
+    @Test func backspaceWalksFractionThenSeparatorThenIntegers() {
         var model = typed([.digit(1), .digit(2), .separator, .digit(3), .digit(4)])
         model.press(.backspace)
-        XCTAssertEqual(model.amount, Decimal(string: "12.3"))
+        #expect(model.amount == Decimal(string: "12.3"))
         model.press(.backspace)
-        XCTAssertEqual(model.amount, Decimal(string: "12"))
-        XCTAssertTrue(model.hasSeparator)
+        #expect(model.amount == Decimal(string: "12"))
+        #expect(model.hasSeparator)
         model.press(.backspace)
-        XCTAssertFalse(model.hasSeparator)
-        XCTAssertEqual(model.amount, Decimal(string: "12"))
+        #expect(model.hasSeparator == false)
+        #expect(model.amount == Decimal(string: "12"))
         model.press(.backspace)
-        XCTAssertEqual(model.amount, Decimal(string: "1"))
+        #expect(model.amount == Decimal(string: "1"))
         model.press(.backspace)
-        XCTAssertEqual(model.amount, 0)
+        #expect(model.amount == 0)
         model.press(.backspace)
-        XCTAssertEqual(model.amount, 0)
+        #expect(model.amount == 0)
     }
 
-    func testSwitchingToZeroMinorUnitsStripsFraction() {
+    @Test func switchingToZeroMinorUnitsStripsFraction() {
         var model = typed([.digit(1), .digit(2), .separator, .digit(3), .digit(4)])
         model.switchCurrency(minorUnits: 0)
-        XCTAssertEqual(model.amount, Decimal(string: "12"))
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == Decimal(string: "12"))
+        #expect(model.hasSeparator == false)
     }
 
-    func testSwitchingBackReenablesFractionEntry() {
+    @Test func switchingBackReenablesFractionEntry() {
         var model = typed([.digit(1), .digit(2), .separator, .digit(3), .digit(4)])
         model.switchCurrency(minorUnits: 0)
         model.switchCurrency(minorUnits: 2)
         model.press(.separator)
         model.press(.digit(5))
-        XCTAssertEqual(model.amount, Decimal(string: "12.5"))
+        #expect(model.amount == Decimal(string: "12.5"))
     }
 
-    func testSwitchingToFewerMinorUnitsTruncatesFraction() {
+    @Test func switchingToFewerMinorUnitsTruncatesFraction() {
         var model = typed([.digit(1), .separator, .digit(2), .digit(3), .digit(4)], minorUnits: 3)
         model.switchCurrency(minorUnits: 2)
-        XCTAssertEqual(model.amount, Decimal(string: "1.23"))
+        #expect(model.amount == Decimal(string: "1.23"))
     }
 
-    func testSwitchingToMoreMinorUnitsKeepsFraction() {
+    @Test func switchingToMoreMinorUnitsKeepsFraction() {
         var model = typed([.digit(1), .separator, .digit(2), .digit(3)])
         model.switchCurrency(minorUnits: 3)
-        XCTAssertEqual(model.amount, Decimal(string: "1.23"))
+        #expect(model.amount == Decimal(string: "1.23"))
         model.press(.digit(4))
-        XCTAssertEqual(model.amount, Decimal(string: "1.234"))
+        #expect(model.amount == Decimal(string: "1.234"))
     }
 
-    func testAmountIsExactDecimalNotDouble() {
+    @Test func amountIsExactDecimalNotDouble() {
         let model = typed([.digit(0), .separator, .digit(1)])
-        XCTAssertEqual(model.amount, Decimal(string: "0.1"))
-        XCTAssertEqual(model.amount * 10, Decimal(1))
+        #expect(model.amount == Decimal(string: "0.1"))
+        #expect(model.amount * 10 == Decimal(1))
     }
 
-    func testInitFromAmountRoundTrips() {
+    @Test func initFromAmountRoundTrips() {
         let model = AmountEntryModel(amount: Decimal(string: "45.67")!, minorUnits: 2)
-        XCTAssertEqual(model.amount, Decimal(string: "45.67"))
-        XCTAssertTrue(model.hasSeparator)
+        #expect(model.amount == Decimal(string: "45.67"))
+        #expect(model.hasSeparator)
     }
 
-    func testInitFromAmountStripsTrailingFractionZeros() {
+    @Test func initFromAmountStripsTrailingFractionZeros() {
         let model = AmountEntryModel(amount: Decimal(string: "45.60")!, minorUnits: 2)
-        XCTAssertEqual(model.amount, Decimal(string: "45.6"))
+        #expect(model.amount == Decimal(string: "45.6"))
     }
 
-    func testInitFromAmountTruncatesToMinorUnits() {
+    @Test func initFromAmountTruncatesToMinorUnits() {
         let model = AmountEntryModel(amount: Decimal(string: "45.67")!, minorUnits: 0)
-        XCTAssertEqual(model.amount, Decimal(string: "45"))
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == Decimal(string: "45"))
+        #expect(model.hasSeparator == false)
     }
 
-    func testInitFromZeroStartsEmpty() {
+    @Test func initFromZeroStartsEmpty() {
         let model = AmountEntryModel(amount: 0, minorUnits: 2)
-        XCTAssertEqual(model.amount, 0)
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == 0)
+        #expect(model.hasSeparator == false)
     }
 
-    func testInitClampsNegativeAmountsToZero() {
+    @Test func initClampsNegativeAmountsToZero() {
         let model = AmountEntryModel(amount: Decimal(string: "-5.25")!, minorUnits: 2)
-        XCTAssertEqual(model.amount, 0)
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == 0)
+        #expect(model.hasSeparator == false)
     }
 
-    func testInitClampsAboveCapIntegerToTheCap() {
+    @Test func initClampsAboveCapIntegerToTheCap() {
         let model = AmountEntryModel(amount: Decimal(999_999_999), minorUnits: 2)
-        XCTAssertEqual(model.amount, Decimal(100_000_000))
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == Decimal(100_000_000))
+        #expect(model.hasSeparator == false)
     }
 
-    func testInitKeepsFractionAtExactlyTheCap() {
+    @Test func initKeepsFractionAtExactlyTheCap() {
         let model = AmountEntryModel(amount: Decimal(string: "100000000.99")!, minorUnits: 2)
-        XCTAssertEqual(model.amount, Decimal(string: "100000000.99"))
+        #expect(model.amount == Decimal(string: "100000000.99"))
     }
 
-    func testInitTruncatesSubMinorAmountsToZero() {
+    @Test func initTruncatesSubMinorAmountsToZero() {
         let model = AmountEntryModel(amount: Decimal(string: "0.001")!, minorUnits: 2)
-        XCTAssertEqual(model.amount, 0)
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == 0)
+        #expect(model.hasSeparator == false)
     }
 
-    func testInitFromWholeAmountHasNoSeparator() {
+    @Test func initFromWholeAmountHasNoSeparator() {
         let model = AmountEntryModel(amount: Decimal(120), minorUnits: 2)
-        XCTAssertEqual(model.amount, Decimal(120))
-        XCTAssertFalse(model.hasSeparator)
+        #expect(model.amount == Decimal(120))
+        #expect(model.hasSeparator == false)
     }
 
-    func testDisplayFractionLengthPadsToTwoAtRest() {
-        XCTAssertEqual(model(minorUnits: 2).displayFractionLength, 2)
-        XCTAssertEqual(model(minorUnits: 3).displayFractionLength, 2)
-        XCTAssertEqual(model(minorUnits: 0).displayFractionLength, 0)
+    @Test func displayFractionLengthPadsToTwoAtRest() {
+        #expect(model(minorUnits: 2).displayFractionLength == 2)
+        #expect(model(minorUnits: 3).displayFractionLength == 2)
+        #expect(model(minorUnits: 0).displayFractionLength == 0)
     }
 
-    func testDisplayFractionLengthTracksTypedFraction() {
+    @Test func displayFractionLengthTracksTypedFraction() {
         var model = typed([.digit(1), .separator])
-        XCTAssertEqual(model.displayFractionLength, 0)
-        XCTAssertTrue(model.showsTrailingSeparator)
+        #expect(model.displayFractionLength == 0)
+        #expect(model.showsTrailingSeparator)
         model.press(.digit(5))
-        XCTAssertEqual(model.displayFractionLength, 1)
-        XCTAssertFalse(model.showsTrailingSeparator)
+        #expect(model.displayFractionLength == 1)
+        #expect(model.showsTrailingSeparator == false)
     }
 }

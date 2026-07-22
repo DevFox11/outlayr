@@ -9,183 +9,197 @@
 
 import CoreData
 import SwiftUI
-import XCTest
+import Testing
 
 @testable import Outlayr
 
 @MainActor
-final class CategorySymbolTests: CharacterizationTestCase {
+struct CategorySymbolTests {
     // MARK: - Precedence
 
-    func testStoredIconWinsOverEmoji() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func storedIconWinsOverEmoji() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
         category.emoji = "🍎"
 
         guard case let .icon(icon) = category.displaySymbol else {
-            return XCTFail("Expected the stored icon to win over the emoji")
+            Issue.record("Expected the stored icon to win over the emoji")
+            return
         }
-        XCTAssertEqual(icon.name, "shopping-cart-01")
+        #expect(icon.name == "shopping-cart-01")
     }
 
-    func testEmojiRendersWhenIconIsUnset() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emojiRendersWhenIconIsUnset() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let category = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         category.emoji = "⛵️"
 
-        XCTAssertEqual(category.displaySymbol, .emoji("⛵️"))
+        #expect(category.displaySymbol == .emoji("⛵️"))
     }
 
-    func testFallbackIconWhenNeitherSymbolIsSet() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func fallbackIconWhenNeitherSymbolIsSet() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let expense = makeCategory(in: context, name: "Legacy", icon: nil, income: false)
-        let income = makeCategory(in: context, name: "Legacy Income", icon: nil, income: true)
+        let expense = f.makeCategory(in: context, name: "Legacy", icon: nil, income: false)
+        let income = f.makeCategory(in: context, name: "Legacy Income", icon: nil, income: true)
 
-        XCTAssertEqual(expense.displaySymbol, .icon(CategoryIconCatalog.fallbackExpense))
-        XCTAssertEqual(income.displaySymbol, .icon(CategoryIconCatalog.fallbackIncome))
+        #expect(expense.displaySymbol == .icon(CategoryIconCatalog.fallbackExpense))
+        #expect(income.displaySymbol == .icon(CategoryIconCatalog.fallbackIncome))
     }
 
-    func testEmptyEmojiStringIsTreatedAsUnset() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emptyEmojiStringIsTreatedAsUnset() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Blank", icon: nil, income: false)
+        let category = f.makeCategory(in: context, name: "Blank", icon: nil, income: false)
         category.emoji = ""
 
-        XCTAssertNil(category.wrappedEmoji)
-        XCTAssertEqual(category.displaySymbol, .icon(CategoryIconCatalog.fallbackExpense))
+        #expect(category.wrappedEmoji == nil)
+        #expect(category.displaySymbol == .icon(CategoryIconCatalog.fallbackExpense))
     }
 
     // MARK: - XOR selection
 
-    func testSelectingAnIconClearsTheEmoji() {
+    @Test func selectingAnIconClearsTheEmoji() {
         var selection = CategorySymbolSelection()
         selection.selectEmoji("🍎")
         selection.selectIcon("shopping-cart-01")
 
-        XCTAssertEqual(selection.icon, "shopping-cart-01")
-        XCTAssertEqual(selection.emoji, "")
+        #expect(selection.icon == "shopping-cart-01")
+        #expect(selection.emoji == "")
     }
 
-    func testSelectingAnEmojiClearsTheIcon() {
+    @Test func selectingAnEmojiClearsTheIcon() {
         var selection = CategorySymbolSelection()
         selection.selectIcon("shopping-cart-01")
         selection.selectEmoji("🍎")
 
-        XCTAssertEqual(selection.emoji, "🍎")
-        XCTAssertEqual(selection.icon, "")
+        #expect(selection.emoji == "🍎")
+        #expect(selection.icon == "")
     }
 
-    func testSelectionIsEmptyOnlyWhenBothAreUnset() {
-        XCTAssertTrue(CategorySymbolSelection().isEmpty)
+    @Test func selectionIsEmptyOnlyWhenBothAreUnset() {
+        #expect(CategorySymbolSelection().isEmpty)
 
         var withIcon = CategorySymbolSelection()
         withIcon.selectIcon("shopping-cart-01")
-        XCTAssertFalse(withIcon.isEmpty)
+        #expect(withIcon.isEmpty == false)
 
         var withEmoji = CategorySymbolSelection()
         withEmoji.selectEmoji("🍎")
-        XCTAssertFalse(withEmoji.isEmpty)
+        #expect(withEmoji.isEmpty == false)
     }
 
     // MARK: - Duplicate detection
 
-    func testDuplicateEmojiIsRejected() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func duplicateEmojiIsRejected() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let existing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let existing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         existing.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: "⛵️", income: false)
-        XCTAssertEqual(result.error, .duplicateEmoji)
+        #expect(result.error == .duplicateEmoji)
     }
 
-    func testDistinctEmojiIsAccepted() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func distinctEmojiIsAccepted() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let existing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let existing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         existing.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Coffee", icon: "", emoji: "☕️", income: false)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
     // An emoji and an icon are different namespaces; sharing a "slot" is meaningless.
-    func testIconAndEmojiDoNotCollideWithEachOther() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func iconAndEmojiDoNotCollideWithEachOther() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        _ = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
+        _ = f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Market", icon: "", emoji: "🛒", income: false)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testEmojiDuplicateIsScopedToTheIncomeSide() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emojiDuplicateIsScopedToTheIncomeSide() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let expense = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let expense = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         expense.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Charter Income", icon: "", emoji: "⛵️", income: true)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
     // MARK: - Validation gates
 
-    func testEmojiAloneSatisfiesTheSymbolRequirement() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emojiAloneSatisfiesTheSymbolRequirement() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
 
         let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "⛵️", income: false)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testNoSymbolAtAllIsStillMissingIcon() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func noSymbolAtAllIsStillMissingIcon() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
 
         let result = controller.categories.categoryCheck(name: "Sailing", icon: "", emoji: "", income: false)
-        XCTAssertEqual(result.error, .missingIcon)
+        #expect(result.error == .missingIcon)
     }
 
-    func testNoNameAndNoSymbolIsIncomplete() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func noNameAndNoSymbolIsIncomplete() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
 
         let result = controller.categories.categoryCheck(name: "  ", icon: "", emoji: "", income: false)
-        XCTAssertEqual(result.error, .incomplete)
+        #expect(result.error == .incomplete)
     }
 
     // An emoji-only category is a legitimate symbol holder, so clearing it on edit
     // must be refused the same way clearing an icon is.
-    func testEditingAnEmojiCategoryStillRequiresASymbol() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func editingAnEmojiCategoryStillRequiresASymbol() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let sailing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Sailing", icon: "", emoji: "", toEdit: sailing)
-        XCTAssertEqual(result.error, .missingIcon)
+        #expect(result.error == .missingIcon)
     }
 
-    func testEditingAnEmojiCategoryAcceptsAnIconSwap() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func editingAnEmojiCategoryAcceptsAnIconSwap() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let sailing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let sailing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         sailing.emoji = "⛵️"
         try? controller.save()
 
@@ -195,223 +209,235 @@ final class CategorySymbolTests: CharacterizationTestCase {
             emoji: "",
             toEdit: sailing
         )
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
     // The migrated-emoji allowance: a legacy row with neither symbol stays editable.
-    func testSymbollessLegacyCategoryStaysEditable() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func symbollessLegacyCategoryStaysEditable() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let legacy = makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false)
+        let legacy = f.makeCategory(in: context, name: "Sailboat Fund", icon: nil, income: false)
         try? controller.save()
 
         let result = controller.categories.categoryCheckEdit(name: "Renamed", icon: "", emoji: "", toEdit: legacy)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
     // MARK: - Emoji catalogue
 
-    func testEmojiCatalogueHasNoDuplicates() {
+    @Test func emojiCatalogueHasNoDuplicates() {
         let all = CategoryEmojiCatalog.all
-        XCTAssertEqual(all.count, Set(all).count, "The curated emoji palette contains a repeated entry")
+        #expect(all.count == Set(all).count, "The curated emoji palette contains a repeated entry")
     }
 
-    func testEmojiCatalogueGroupTitlesMirrorTheIconCatalogue() {
+    @Test func emojiCatalogueGroupTitlesMirrorTheIconCatalogue() {
         let iconTitles = Set(CategoryIconCatalog.groups.map(\.title))
         let emojiTitles = Set(CategoryEmojiCatalog.groups.map(\.title))
-        XCTAssertEqual(emojiTitles, iconTitles, "The two picker tabs must present the same group vocabulary")
+        #expect(emojiTitles == iconTitles, "The two picker tabs must present the same group vocabulary")
     }
 
     // Pinned deliberately: the palette is curated, so a change in size is a change
     // in product surface and should require updating this number on purpose.
-    func testEmojiCatalogueSizeIsPinned() {
-        XCTAssertEqual(CategoryEmojiCatalog.all.count, CategoryEmojiCatalog.curatedCount)
+    @Test func emojiCatalogueSizeIsPinned() {
+        #expect(CategoryEmojiCatalog.all.count == CategoryEmojiCatalog.curatedCount)
     }
 
     // MARK: - Selection <-> storage round trip
 
-    func testSeedNormalisesLegacyRowsHoldingBothSymbols() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func seedNormalisesLegacyRowsHoldingBothSymbols() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "shopping-cart-01", income: false)
         category.emoji = "🍎"
 
         let selection = CategorySymbolSelection(category: category)
-        XCTAssertEqual(selection.icon, "shopping-cart-01")
-        XCTAssertEqual(selection.emoji, "")
+        #expect(selection.icon == "shopping-cart-01")
+        #expect(selection.emoji == "")
     }
 
-    func testSeedKeepsEmojiWhenNoIconIsStored() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func seedKeepsEmojiWhenNoIconIsStored() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let category = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         category.emoji = "⛵️"
 
         let selection = CategorySymbolSelection(category: category)
-        XCTAssertEqual(selection.emoji, "⛵️")
-        XCTAssertEqual(selection.icon, "")
+        #expect(selection.emoji == "⛵️")
+        #expect(selection.icon == "")
     }
 
-    func testApplyWritesTheIconAndClearsTheEmoji() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func applyWritesTheIconAndClearsTheEmoji() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let category = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         category.emoji = "⛵️"
 
         var selection = CategorySymbolSelection()
         selection.selectIcon("airplane-01")
         selection.apply(to: category)
 
-        XCTAssertEqual(category.icon, "airplane-01")
-        XCTAssertNil(category.emoji)
+        #expect(category.icon == "airplane-01")
+        #expect(category.emoji == nil)
     }
 
-    func testApplyMapsAnEmptySelectionToNil() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func applyMapsAnEmptySelectionToNil() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Sailing", icon: "airplane-01", income: false)
+        let category = f.makeCategory(in: context, name: "Sailing", icon: "airplane-01", income: false)
         CategorySymbolSelection().apply(to: category)
 
-        XCTAssertNil(category.icon)
-        XCTAssertNil(category.emoji)
+        #expect(category.icon == nil)
+        #expect(category.emoji == nil)
     }
 
-    func testSelectionSurvivesAnApplySeedRoundTrip() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func selectionSurvivesAnApplySeedRoundTrip() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let category = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let category = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         var selection = CategorySymbolSelection()
         selection.selectEmoji("⛵️")
         selection.apply(to: category)
 
-        XCTAssertEqual(CategorySymbolSelection(category: category), selection)
+        #expect(CategorySymbolSelection(category: category) == selection)
     }
 
     // MARK: - Emoji comparison
 
-    func testPresentationVariantsOfTheSameGlyphCollide() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func presentationVariantsOfTheSameGlyphCollide() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let existing = makeCategory(in: context, name: "Cafe", icon: nil, income: false)
+        let existing = f.makeCategory(in: context, name: "Cafe", icon: nil, income: false)
         existing.emoji = "☕️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Coffee", icon: "", emoji: "☕", income: false)
-        XCTAssertEqual(result.error, .duplicateEmoji)
+        #expect(result.error == .duplicateEmoji)
     }
 
-    func testSkinToneVariantsDoNotCollide() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func skinToneVariantsDoNotCollide() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let existing = makeCategory(in: context, name: "Thumbs", icon: nil, income: false)
+        let existing = f.makeCategory(in: context, name: "Thumbs", icon: nil, income: false)
         existing.emoji = "👍"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Approval", icon: "", emoji: "👍🏽", income: false)
-        XCTAssertEqual(result.error, .none)
+        #expect(result.error == .none)
     }
 
-    func testWhitespacePaddedEmojiStillCollides() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func whitespacePaddedEmojiStillCollides() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let existing = makeCategory(in: context, name: "Sailing", icon: nil, income: false)
+        let existing = f.makeCategory(in: context, name: "Sailing", icon: nil, income: false)
         existing.emoji = "⛵️"
         try? controller.save()
 
         let result = controller.categories.categoryCheck(name: "Boats", icon: "", emoji: " ⛵️ ", income: false)
-        XCTAssertEqual(result.error, .duplicateEmoji)
+        #expect(result.error == .duplicateEmoji)
     }
 
     // MARK: - Post-migration contract
 
     // The icon backfill is gone: a suggestion-named category with no icon must stay
     // symbol-less so a deliberately chosen emoji can never be overwritten.
-    func testSuggestionNamedCategoryIsNotAutoAssignedAnIcon() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func suggestionNamedCategoryIsNotAutoAssignedAnIcon() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
+        let groceries = f.makeCategory(in: context, name: "Groceries", icon: nil, income: false)
         try? controller.save()
 
-        XCTAssertNil(groceries.icon)
-        XCTAssertEqual(groceries.displaySymbol, .icon(CategoryIconCatalog.fallbackExpense))
+        #expect(groceries.icon == nil)
+        #expect(groceries.displaySymbol == .icon(CategoryIconCatalog.fallbackExpense))
     }
 
-    func testEmojiOnSuggestionNamedCategorySurvives() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+    @Test func emojiOnSuggestionNamedCategorySurvives() throws {
+        var f = CharacterizationFixture()
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
 
-        let groceries = makeCategory(in: context, name: "Groceries", icon: nil, income: false)
+        let groceries = f.makeCategory(in: context, name: "Groceries", icon: nil, income: false)
         groceries.emoji = "🍎"
         try? controller.save()
 
-        XCTAssertNil(groceries.icon)
-        XCTAssertEqual(groceries.displaySymbol, .emoji("🍎"))
+        #expect(groceries.icon == nil)
+        #expect(groceries.displaySymbol == .emoji("🍎"))
     }
 }
 
 // MARK: - Emoji detection boundaries
 
-final class EmojiDetectionTests: XCTestCase {
-    func testDefaultPresentationSingleScalarEmojiAreDetected() {
+struct EmojiDetectionTests {
+    @Test func defaultPresentationSingleScalarEmojiAreDetected() {
         // The regression F4 fixes: ⌚/⌛ are single-scalar emoji-presentation glyphs
         // that a "needs more than one scalar" rule silently dropped.
-        XCTAssertEqual("⌚".onlyEmoji(), "⌚")
-        XCTAssertEqual("⌛".onlyEmoji(), "⌛")
+        #expect("⌚".onlyEmoji() == "⌚")
+        #expect("⌛".onlyEmoji() == "⌛")
     }
 
-    func testVariationSelectorEmojiAreDetected() {
-        XCTAssertEqual("☕️".onlyEmoji(), "☕️")
+    @Test func variationSelectorEmojiAreDetected() {
+        #expect("☕️".onlyEmoji() == "☕️")
     }
 
-    func testCompositeEmojiSurviveIntact() {
-        XCTAssertEqual("🇦🇷".onlyEmoji(), "🇦🇷")
-        XCTAssertEqual("👨‍👩‍👧".onlyEmoji(), "👨‍👩‍👧")
-        XCTAssertEqual("👍🏽".onlyEmoji(), "👍🏽")
-        XCTAssertEqual("1️⃣".onlyEmoji(), "1️⃣")
+    @Test func compositeEmojiSurviveIntact() {
+        #expect("🇦🇷".onlyEmoji() == "🇦🇷")
+        #expect("👨‍👩‍👧".onlyEmoji() == "👨‍👩‍👧")
+        #expect("👍🏽".onlyEmoji() == "👍🏽")
+        #expect("1️⃣".onlyEmoji() == "1️⃣")
     }
 
-    func testPlainCharactersAreNotEmoji() {
-        XCTAssertEqual("a".onlyEmoji(), "")
-        XCTAssertEqual("1".onlyEmoji(), "")
-        XCTAssertEqual("#".onlyEmoji(), "")
-        XCTAssertEqual("".onlyEmoji(), "")
+    @Test func plainCharactersAreNotEmoji() {
+        #expect("a".onlyEmoji() == "")
+        #expect("1".onlyEmoji() == "")
+        #expect("#".onlyEmoji() == "")
+        #expect("".onlyEmoji() == "")
     }
 
-    func testMixedInputKeepsOnlyEmoji() {
-        XCTAssertEqual("a🍎b".onlyEmoji(), "🍎")
+    @Test func mixedInputKeepsOnlyEmoji() {
+        #expect("a🍎b".onlyEmoji() == "🍎")
     }
 
     // The picker keeps only the newest glyph, so a pasted run must truncate to one.
-    func testMultiEmojiPasteTruncatesToTheLast() {
-        XCTAssertEqual(String("🍎🍕🌮".onlyEmoji().suffix(1)), "🌮")
-        XCTAssertEqual(String("👍🏽".onlyEmoji().suffix(1)), "👍🏽")
+    @Test func multiEmojiPasteTruncatesToTheLast() {
+        #expect(String("🍎🍕🌮".onlyEmoji().suffix(1)) == "🌮")
+        #expect(String("👍🏽".onlyEmoji().suffix(1)) == "👍🏽")
     }
 
-    func testComparisonKeyFoldsPresentationVariantsOnly() {
-        XCTAssertEqual("☕️".emojiComparisonKey, "☕".emojiComparisonKey)
-        XCTAssertEqual(" ⛵️ ".emojiComparisonKey, "⛵️".emojiComparisonKey)
-        XCTAssertNotEqual("👍🏽".emojiComparisonKey, "👍".emojiComparisonKey)
+    @Test func comparisonKeyFoldsPresentationVariantsOnly() {
+        #expect("☕️".emojiComparisonKey == "☕".emojiComparisonKey)
+        #expect(" ⛵️ ".emojiComparisonKey == "⛵️".emojiComparisonKey)
+        #expect("👍🏽".emojiComparisonKey != "👍".emojiComparisonKey)
     }
 }
 
 // MARK: - Core Data model versions
 
-final class ManagedObjectModelVersionTests: XCTestCase {
+@MainActor
+struct ManagedObjectModelVersionTests {
     // Every prior .mom must keep shipping or existing stores can't migrate forward.
     // This machine-checks the convention that a pbxproj edit could silently break.
-    func testAllThreeModelVersionsShipInTheBundle() throws {
+    @Test func allThreeModelVersionsShipInTheBundle() throws {
         let bundle = Bundle(for: DataController.self)
-        let momdURL = try XCTUnwrap(
+        let momdURL = try #require(
             bundle.url(forResource: "MainModel", withExtension: "momd"),
             "MainModel.momd is missing from the app bundle"
         )
@@ -423,38 +449,37 @@ final class ManagedObjectModelVersionTests: XCTestCase {
         let momNames = Set(contents.filter { $0.pathExtension == "mom" }.map { $0.lastPathComponent })
 
         for expected in ["MainModel.mom", "MainModel 2.mom", "MainModel 3.mom"] {
-            XCTAssertTrue(momNames.contains(expected), "\(expected) is no longer shipped")
+            #expect(momNames.contains(expected), "\(expected) is no longer shipped")
         }
     }
 
-    func testEveryShippedModelVersionLoads() throws {
+    @Test func everyShippedModelVersionLoads() throws {
         let bundle = Bundle(for: DataController.self)
-        let momdURL = try XCTUnwrap(bundle.url(forResource: "MainModel", withExtension: "momd"))
+        let momdURL = try #require(bundle.url(forResource: "MainModel", withExtension: "momd"))
         let contents = try FileManager.default.contentsOfDirectory(at: momdURL, includingPropertiesForKeys: nil)
 
         for mom in contents where mom.pathExtension == "mom" {
-            XCTAssertNotNil(
-                NSManagedObjectModel(contentsOf: mom),
+            #expect(
+                NSManagedObjectModel(contentsOf: mom) != nil,
                 "\(mom.lastPathComponent) failed to load as a managed object model"
             )
         }
     }
 
     // The attribute the emoji feature reuses; losing it would be a silent data break.
-    @MainActor
-    func testCurrentModelStillDefinesTheCategoryEmojiAttribute() throws {
+    @Test func currentModelStillDefinesTheCategoryEmojiAttribute() throws {
         let controller = DataController(
             inMemory: true,
             now: { Date() },
             calendar: .current,
             sharedDefaults: UserDefaults(suiteName: "ManagedObjectModelVersionTests") ?? .standard
         )
-        let entity = try XCTUnwrap(
+        let entity = try #require(
             controller.container.managedObjectModel.entitiesByName["Category"],
             "Category entity missing from the current model"
         )
-        XCTAssertNotNil(entity.attributesByName["emoji"])
-        XCTAssertNotNil(entity.attributesByName["icon"])
+        #expect(entity.attributesByName["emoji"] != nil)
+        #expect(entity.attributesByName["icon"] != nil)
     }
 }
 
@@ -463,36 +488,36 @@ final class ManagedObjectModelVersionTests: XCTestCase {
 /// Pins the self-calibrating glyph guarantee: for ANY tint — palette or
 /// custom-picked — the derived glyph clears WCAG's 3:1 graphics contrast
 /// against its own wash, in both color schemes.
-final class CategoryTileShadingTests: XCTestCase {
+struct CategoryTileShadingTests {
     private let extremes = ["#FFFFFF", "#000000", "#FFFF00", "#F6D24A", "#B8D6FA", "#0B0B0B"]
 
-    func testEveryPaletteColorClearsGraphicsContrastInBothSchemes() {
+    @Test func everyPaletteColorClearsGraphicsContrastInBothSchemes() {
         for hex in Color.colorArray {
             for scheme in [ColorScheme.light, .dark] {
                 let achieved = CategoryTileShading.achievedContrast(for: Color(hex: hex), in: scheme)
-                XCTAssertGreaterThanOrEqual(
-                    achieved, 3.0,
+                #expect(
+                    achieved >= 3.0,
                     "\(hex) in \(scheme) only reaches \(achieved):1"
                 )
             }
         }
     }
 
-    func testCustomExtremeColorsClearGraphicsContrast() {
+    @Test func customExtremeColorsClearGraphicsContrast() {
         for hex in extremes {
             for scheme in [ColorScheme.light, .dark] {
                 let achieved = CategoryTileShading.achievedContrast(for: Color(hex: hex), in: scheme)
-                XCTAssertGreaterThanOrEqual(
-                    achieved, 3.0,
+                #expect(
+                    achieved >= 3.0,
                     "\(hex) in \(scheme) only reaches \(achieved):1"
                 )
             }
         }
     }
 
-    func testAlreadyLegibleTintIsLeftUnshaded() {
+    @Test func alreadyLegibleTintIsLeftUnshaded() {
         let navy = Color(hex: "#2D4B7B")
         let derived = CategoryTileShading.glyph(for: navy, in: .light)
-        XCTAssertEqual(derived.toHex(), navy.toHex(), "dark tints should keep their exact hue in light mode")
+        #expect(derived.toHex() == navy.toHex(), "dark tints should keep their exact hue in light mode")
     }
 }

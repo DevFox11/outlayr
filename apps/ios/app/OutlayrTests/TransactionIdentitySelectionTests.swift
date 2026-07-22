@@ -8,103 +8,105 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class TransactionIdentitySelectionTests: CharacterizationTestCase {
-    private func makeContext() -> NSManagedObjectContext {
-        makeController(now: referenceDate, defaults: makeIsolatedDefaults()).container.viewContext
-    }
-
+struct TransactionIdentitySelectionTests {
     private let sampleData = Data([0x01, 0x02, 0x03, 0x04])
 
-    func testFreshSelectionIsEmpty() {
-        let selection = TransactionIdentitySelection()
-        XCTAssertTrue(selection.isEmpty)
-        XCTAssertEqual(selection.symbol, .none)
-        XCTAssertNil(selection.customColor)
-        XCTAssertNil(selection.effectiveColor)
+    private func makeContext() -> NSManagedObjectContext {
+        var f = CharacterizationFixture()
+        return f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults()).container.viewContext
     }
 
-    func testSelectingEmojiClearsIconAndPhoto() {
+    @Test func freshSelectionIsEmpty() {
+        let selection = TransactionIdentitySelection()
+        #expect(selection.isEmpty)
+        #expect(selection.symbol == .none)
+        #expect(selection.customColor == nil)
+        #expect(selection.effectiveColor == nil)
+    }
+
+    @Test func selectingEmojiClearsIconAndPhoto() {
         var selection = TransactionIdentitySelection()
         selection.selectIcon("shopping-cart-01")
         selection.selectEmoji("🍿")
-        XCTAssertEqual(selection.symbol, .emoji("🍿"))
+        #expect(selection.symbol == .emoji("🍿"))
     }
 
-    func testSelectingIconClearsEmojiAndPhoto() {
+    @Test func selectingIconClearsEmojiAndPhoto() {
         var selection = TransactionIdentitySelection()
         selection.selectPhoto(imageData: sampleData, imageColor: "#112233")
-        XCTAssertTrue(selection.selectIcon("shopping-cart-01"))
-        XCTAssertEqual(selection.symbol, .icon("shopping-cart-01"))
+        #expect(selection.selectIcon("shopping-cart-01"))
+        #expect(selection.symbol == .icon("shopping-cart-01"))
     }
 
-    func testSelectingPhotoClearsIconAndEmoji() {
+    @Test func selectingPhotoClearsIconAndEmoji() {
         var selection = TransactionIdentitySelection()
         selection.selectEmoji("🍿")
         selection.selectPhoto(imageData: sampleData, imageColor: "#112233")
-        XCTAssertEqual(selection.symbol, .photo(imageData: sampleData, imageColor: "#112233"))
+        #expect(selection.symbol == .photo(imageData: sampleData, imageColor: "#112233"))
     }
 
-    func testUnresolvableIconNameIsRejectedAndLeavesSelectionUnchanged() {
+    @Test func unresolvableIconNameIsRejectedAndLeavesSelectionUnchanged() {
         var selection = TransactionIdentitySelection()
         selection.selectEmoji("🍿")
-        XCTAssertFalse(selection.selectIcon("not-a-real-icon"))
-        XCTAssertEqual(selection.symbol, .emoji("🍿"), "a rejected icon must not mutate the selection")
+        #expect(selection.selectIcon("not-a-real-icon") == false)
+        #expect(selection.symbol == .emoji("🍿"), "a rejected icon must not mutate the selection")
     }
 
-    func testValidIconNameIsAccepted() {
+    @Test func validIconNameIsAccepted() {
         var selection = TransactionIdentitySelection()
-        XCTAssertTrue(selection.selectIcon("coins-01"))
-        XCTAssertEqual(selection.symbol, .icon("coins-01"))
+        #expect(selection.selectIcon("coins-01"))
+        #expect(selection.symbol == .icon("coins-01"))
     }
 
-    func testCustomColorOverridesThenRestoresToAuto() {
+    @Test func customColorOverridesThenRestoresToAuto() {
         var selection = TransactionIdentitySelection()
         selection.selectPhoto(imageData: sampleData, imageColor: "#ABCDEF")
-        XCTAssertEqual(selection.effectiveColor, "#ABCDEF")
+        #expect(selection.effectiveColor == "#ABCDEF")
 
         selection.overrideColor("#FF0000")
-        XCTAssertEqual(selection.customColor, "#FF0000")
-        XCTAssertEqual(selection.effectiveColor, "#FF0000")
+        #expect(selection.customColor == "#FF0000")
+        #expect(selection.effectiveColor == "#FF0000")
 
         selection.restoreAutoColor()
-        XCTAssertNil(selection.customColor)
-        XCTAssertEqual(selection.effectiveColor, "#ABCDEF")
+        #expect(selection.customColor == nil)
+        #expect(selection.effectiveColor == "#ABCDEF")
     }
 
-    func testChoosingANewSymbolResetsTheColorOverride() {
+    @Test func choosingANewSymbolResetsTheColorOverride() {
         var selection = TransactionIdentitySelection()
         selection.selectPhoto(imageData: sampleData, imageColor: "#ABCDEF")
         selection.overrideColor("#FF0000")
         selection.selectEmoji("🍕")
-        XCTAssertNil(selection.customColor)
+        #expect(selection.customColor == nil)
     }
 
-    func testEmojiAndIconHaveNoAutoColor() {
+    @Test func emojiAndIconHaveNoAutoColor() {
         var selection = TransactionIdentitySelection()
         selection.selectEmoji("🍕")
-        XCTAssertNil(selection.effectiveColor)
+        #expect(selection.effectiveColor == nil)
         selection.selectIcon("coins-01")
-        XCTAssertNil(selection.effectiveColor)
+        #expect(selection.effectiveColor == nil)
     }
 
-    func testClearResetsEverything() {
+    @Test func clearResetsEverything() {
         var selection = TransactionIdentitySelection()
         selection.selectPhoto(imageData: sampleData, imageColor: "#ABCDEF")
         selection.overrideColor("#FF0000")
         selection.clear()
-        XCTAssertTrue(selection.isEmpty)
-        XCTAssertNil(selection.customColor)
+        #expect(selection.isEmpty)
+        #expect(selection.customColor == nil)
     }
 
     // MARK: - apply(to:)
 
-    func testApplyPhotoWritesImageFieldsAndClearsSymbols() {
+    @Test func applyPhotoWritesImageFieldsAndClearsSymbols() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
         transaction.emoji = "🎁"
 
@@ -112,15 +114,16 @@ final class TransactionIdentitySelectionTests: CharacterizationTestCase {
         selection.selectPhoto(imageData: sampleData, imageColor: "#123456")
         selection.apply(to: transaction)
 
-        XCTAssertEqual(transaction.imageData, sampleData)
-        XCTAssertEqual(transaction.imageColor, "#123456")
-        XCTAssertNil(transaction.icon)
-        XCTAssertNil(transaction.emoji)
+        #expect(transaction.imageData == sampleData)
+        #expect(transaction.imageColor == "#123456")
+        #expect(transaction.icon == nil)
+        #expect(transaction.emoji == nil)
     }
 
-    func testApplyIconWritesIconAndClearsImageAndEmoji() {
+    @Test func applyIconWritesIconAndClearsImageAndEmoji() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.imageData = sampleData
         transaction.emoji = "🎁"
 
@@ -128,68 +131,73 @@ final class TransactionIdentitySelectionTests: CharacterizationTestCase {
         selection.selectIcon("coins-01")
         selection.apply(to: transaction)
 
-        XCTAssertEqual(transaction.icon, "coins-01")
-        XCTAssertNil(transaction.imageData)
-        XCTAssertNil(transaction.emoji)
-        XCTAssertNil(transaction.imageColor)
+        #expect(transaction.icon == "coins-01")
+        #expect(transaction.imageData == nil)
+        #expect(transaction.emoji == nil)
+        #expect(transaction.imageColor == nil)
     }
 
-    func testApplyWritesAndClearsCustomColor() {
+    @Test func applyWritesAndClearsCustomColor() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
         var selection = TransactionIdentitySelection()
         selection.selectPhoto(imageData: sampleData, imageColor: "#123456")
         selection.overrideColor("#FF0000")
         selection.apply(to: transaction)
-        XCTAssertEqual(transaction.customColor, "#FF0000")
+        #expect(transaction.customColor == "#FF0000")
 
         selection.restoreAutoColor()
         selection.apply(to: transaction)
-        XCTAssertNil(transaction.customColor)
+        #expect(transaction.customColor == nil)
     }
 
-    func testInitFromTransactionRoundTripsIconEmojiAndPhoto() {
+    @Test func initFromTransactionRoundTripsIconEmojiAndPhoto() {
+        var f = CharacterizationFixture()
         let context = makeContext()
 
-        let iconTx = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let iconTx = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         iconTx.icon = "coins-01"
-        XCTAssertEqual(TransactionIdentitySelection(transaction: iconTx).symbol, .icon("coins-01"))
+        #expect(TransactionIdentitySelection(transaction: iconTx).symbol == .icon("coins-01"))
 
-        let emojiTx = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let emojiTx = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         emojiTx.emoji = "🍕"
-        XCTAssertEqual(TransactionIdentitySelection(transaction: emojiTx).symbol, .emoji("🍕"))
+        #expect(TransactionIdentitySelection(transaction: emojiTx).symbol == .emoji("🍕"))
 
-        let photoTx = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let photoTx = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         photoTx.imageData = sampleData
         photoTx.imageColor = "#654321"
         photoTx.customColor = "#0000FF"
         let restored = TransactionIdentitySelection(transaction: photoTx)
-        XCTAssertEqual(restored.symbol, .photo(imageData: sampleData, imageColor: "#654321"))
-        XCTAssertEqual(restored.customColor, "#0000FF")
+        #expect(restored.symbol == .photo(imageData: sampleData, imageColor: "#654321"))
+        #expect(restored.customColor == "#0000FF")
     }
 
-    func testInitFromTransactionTreatsUnresolvableIconAsAbsent() {
+    @Test func initFromTransactionTreatsUnresolvableIconAsAbsent() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "not-a-real-icon"
         transaction.emoji = "🍕"
-        XCTAssertEqual(TransactionIdentitySelection(transaction: transaction).symbol, .emoji("🍕"))
+        #expect(TransactionIdentitySelection(transaction: transaction).symbol == .emoji("🍕"))
     }
 
     /// A contradictory legacy row with both a valid icon AND an emoji resolves
     /// icon-first, matching `Transaction.ownSymbol`.
-    func testInitFromTransactionPrefersValidIconOverEmoji() {
+    @Test func initFromTransactionPrefersValidIconOverEmoji() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "coins-01"
         transaction.emoji = "🍕"
-        XCTAssertEqual(TransactionIdentitySelection(transaction: transaction).symbol, .icon("coins-01"))
+        #expect(TransactionIdentitySelection(transaction: transaction).symbol == .icon("coins-01"))
     }
 
-    func testApplyEmojiClearsImageAndIconFields() {
+    @Test func applyEmojiClearsImageAndIconFields() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
         transaction.imageData = sampleData
         transaction.imageColor = "#123456"
@@ -198,15 +206,16 @@ final class TransactionIdentitySelectionTests: CharacterizationTestCase {
         selection.selectEmoji("🎁")
         selection.apply(to: transaction)
 
-        XCTAssertEqual(transaction.emoji, "🎁")
-        XCTAssertNil(transaction.icon)
-        XCTAssertNil(transaction.imageData)
-        XCTAssertNil(transaction.imageColor)
+        #expect(transaction.emoji == "🎁")
+        #expect(transaction.icon == nil)
+        #expect(transaction.imageData == nil)
+        #expect(transaction.imageColor == nil)
     }
 
-    func testApplyNoneClearsEverything() {
+    @Test func applyNoneClearsEverything() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
         transaction.emoji = "🎁"
         transaction.imageData = sampleData
@@ -216,37 +225,38 @@ final class TransactionIdentitySelectionTests: CharacterizationTestCase {
         let selection = TransactionIdentitySelection()
         selection.apply(to: transaction)
 
-        XCTAssertNil(transaction.icon)
-        XCTAssertNil(transaction.emoji)
-        XCTAssertNil(transaction.imageData)
-        XCTAssertNil(transaction.imageColor)
-        XCTAssertNil(transaction.customColor)
+        #expect(transaction.icon == nil)
+        #expect(transaction.emoji == nil)
+        #expect(transaction.imageData == nil)
+        #expect(transaction.imageColor == nil)
+        #expect(transaction.customColor == nil)
     }
 
     /// The lifecycle contract the #38 form depends on: whatever a user picks,
     /// `apply(to:)` then `init(transaction:)` reproduces the same selection.
-    func testLifecycleRoundTripReproducesEachSymbol() {
+    @Test func lifecycleRoundTripReproducesEachSymbol() {
+        var f = CharacterizationFixture()
         let context = makeContext()
 
         var photo = TransactionIdentitySelection()
         photo.selectPhoto(imageData: sampleData, imageColor: "#654321")
         photo.overrideColor("#0000FF")
-        let photoTx = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let photoTx = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         photo.apply(to: photoTx)
         let photoBack = TransactionIdentitySelection(transaction: photoTx)
-        XCTAssertEqual(photoBack.symbol, .photo(imageData: sampleData, imageColor: "#654321"))
-        XCTAssertEqual(photoBack.customColor, "#0000FF")
+        #expect(photoBack.symbol == .photo(imageData: sampleData, imageColor: "#654321"))
+        #expect(photoBack.customColor == "#0000FF")
 
         var emoji = TransactionIdentitySelection()
         emoji.selectEmoji("🍕")
-        let emojiTx = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let emojiTx = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         emoji.apply(to: emojiTx)
-        XCTAssertEqual(TransactionIdentitySelection(transaction: emojiTx), emoji)
+        #expect(TransactionIdentitySelection(transaction: emojiTx) == emoji)
 
         var icon = TransactionIdentitySelection()
         icon.selectIcon("coins-01")
-        let iconTx = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let iconTx = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         icon.apply(to: iconTx)
-        XCTAssertEqual(TransactionIdentitySelection(transaction: iconTx), icon)
+        #expect(TransactionIdentitySelection(transaction: iconTx) == icon)
     }
 }

@@ -171,7 +171,7 @@ class DataController {
             Transaction.fetchRequest(),
             Category.fetchRequest(),
             Budget.fetchRequest(),
-            MainBudget.fetchRequest(),
+            MainBudget.fetchRequest()
         ]
         var firstError: Error?
         for request in fetchRequests {

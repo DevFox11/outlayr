@@ -19,27 +19,29 @@
 //
 
 import CoreData
-import XCTest
+import Foundation
+import Testing
 
 @testable import Outlayr
 
 @MainActor
-class CharacterizationTestCase: XCTestCase {
+struct CharacterizationFixture {
     private var createdSuiteNames: [String] = []
 
     /// Frozen reference "now" shared by the suite: 2024-06-15 12:00 in the pinned TZ.
     var referenceDate: Date { date(2024, 6, 15, 12, 0) }
 
-    override func tearDownWithError() throws {
+    /// Removes all isolated UserDefaults suites created during the test.
+    /// Call via `defer { f.cleanup() }` in tests that call `makeIsolatedDefaults()`.
+    mutating func cleanup() {
         for name in createdSuiteNames {
             UserDefaults(suiteName: name)?.removePersistentDomain(forName: name)
         }
         createdSuiteNames.removeAll()
-        try super.tearDownWithError()
     }
 
     /// An isolated, uniquely-named UserDefaults suite. Never the real app-group suite.
-    func makeIsolatedDefaults(firstWeekday: Int = 1, firstDayOfMonth: Int = 1) -> UserDefaults {
+    mutating func makeIsolatedDefaults(firstWeekday: Int = 1, firstDayOfMonth: Int = 1) -> UserDefaults {
         let name = "test.characterization.\(UUID().uuidString)"
         createdSuiteNames.append(name)
         guard let defaults = UserDefaults(suiteName: name) else {

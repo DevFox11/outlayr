@@ -8,20 +8,23 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class CSVExportCharacterizationTests: CharacterizationTestCase {
-    func testExportProducesHeaderAndRows() throws {
-        let controller = makeController(now: referenceDate, defaults: makeIsolatedDefaults())
+@MainActor
+struct CSVExportCharacterizationTests {
+    @Test func exportProducesHeaderAndRows() {
+        var f = CharacterizationFixture()
+        defer { f.cleanup() }
+        let controller = f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults())
         let context = controller.container.viewContext
-        let food = makeCategory(in: context, name: "Food", order: 1)
+        let food = f.makeCategory(in: context, name: "Food", order: 1)
 
         let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
 
         // Note contains a comma (must be stripped); amount formatted to 2 dp.
-        let expense = makeTransaction(
+        let expense = f.makeTransaction(
             in: context,
             amount: 3,
             date: fixedDate,
@@ -29,7 +32,7 @@ final class CSVExportCharacterizationTests: CharacterizationTestCase {
             note: "Milk, Eggs",
             category: food
         )
-        let income = makeTransaction(
+        let income = f.makeTransaction(
             in: context,
             amount: 4.5,
             date: fixedDate,
@@ -41,17 +44,17 @@ final class CSVExportCharacterizationTests: CharacterizationTestCase {
         let csv = TransactionCSV.export([expense, income])
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: false)
 
-        XCTAssertEqual(lines[0], "Date,Note,Amount,Category,Type")
-        XCTAssertEqual(lines[1], "\(fixedDate),Milk Eggs,3.00,Food,Expense")
-        XCTAssertEqual(lines[2], "\(fixedDate),Salary,4.50,,Income")
+        #expect(lines[0] == "Date,Note,Amount,Category,Type")
+        #expect(lines[1] == "\(fixedDate),Milk Eggs,3.00,Food,Expense")
+        #expect(lines[2] == "\(fixedDate),Salary,4.50,,Income")
 
         // Header + 2 rows, each row terminated by a newline.
-        XCTAssertTrue(csv.hasPrefix(TransactionCSV.header))
-        XCTAssertTrue(csv.hasSuffix("\n"))
+        #expect(csv.hasPrefix(TransactionCSV.header))
+        #expect(csv.hasSuffix("\n"))
     }
 
-    func testExportOfNoTransactionsIsHeaderOnly() throws {
+    @Test func exportOfNoTransactionsIsHeaderOnly() {
         let csv = TransactionCSV.export([])
-        XCTAssertEqual(csv, "Date,Note,Amount,Category,Type\n")
+        #expect(csv == "Date,Note,Amount,Category,Type\n")
     }
 }

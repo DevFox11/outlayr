@@ -7,11 +7,11 @@
 //
 
 import UIKit
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class TransactionPhotoLoadTests: XCTestCase {
+struct TransactionPhotoLoadTests {
     private func validPNG() -> Data {
         UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { ctx in
             UIColor.systemTeal.setFill()
@@ -21,36 +21,37 @@ final class TransactionPhotoLoadTests: XCTestCase {
 
     private func assertFailure(
         _ result: Result<UIImage, TransactionIdentityPickerSheet.PhotoLoadError>,
-        _ expected: TransactionIdentityPickerSheet.PhotoLoadError,
-        file: StaticString = #filePath, line: UInt = #line
+        _ expected: TransactionIdentityPickerSheet.PhotoLoadError
     ) {
         guard case let .failure(error) = result else {
-            return XCTFail("expected .failure(\(expected)), got \(result)", file: file, line: line)
+            Issue.record("expected .failure(\(expected)), got \(result)")
+            return
         }
-        XCTAssertEqual(error, expected, file: file, line: line)
+        #expect(error == expected)
     }
 
-    func testDecodeNilTransferFailsWithNoData() {
+    @Test func decodeNilTransferFailsWithNoData() {
         assertFailure(TransactionIdentityPickerSheet.decode(nil), .noData)
     }
 
-    func testDecodeEmptyTransferFailsWithNoData() {
+    @Test func decodeEmptyTransferFailsWithNoData() {
         assertFailure(TransactionIdentityPickerSheet.decode(Data()), .noData)
     }
 
-    func testDecodeGarbageBytesFailAsUndecodable() {
+    @Test func decodeGarbageBytesFailAsUndecodable() {
         assertFailure(TransactionIdentityPickerSheet.decode(Data([0x00, 0x01, 0x02, 0x03])), .undecodable)
     }
 
-    func testDecodeValidImageSucceeds() throws {
+    @Test func decodeValidImageSucceeds() {
         let result = TransactionIdentityPickerSheet.decode(validPNG())
         guard case .success = result else {
-            return XCTFail("expected a decoded image, got \(result)")
+            Issue.record("expected a decoded image, got \(result)")
+            return
         }
     }
 
-    func testErrorMessagesAreUserFacing() {
-        XCTAssertFalse(TransactionIdentityPickerSheet.PhotoLoadError.noData.message.isEmpty)
-        XCTAssertFalse(TransactionIdentityPickerSheet.PhotoLoadError.undecodable.message.isEmpty)
+    @Test func errorMessagesAreUserFacing() {
+        #expect(TransactionIdentityPickerSheet.PhotoLoadError.noData.message.isEmpty == false)
+        #expect(TransactionIdentityPickerSheet.PhotoLoadError.undecodable.message.isEmpty == false)
     }
 }

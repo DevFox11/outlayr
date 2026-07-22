@@ -90,8 +90,8 @@ struct CategoryRepositoryTests {
     @Test("none + correct next order when name and symbol are fresh")
     func check_fresh_returnsNoneAndNextOrder() {
         let f = RepositoryFixture()
-        f.makeCategory(name: "Food",      icon: "sale-tag-01", order: 0)
-        f.makeCategory(name: "Transport", icon: "car-01",      order: 5)
+        f.makeCategory(name: "Food", icon: "sale-tag-01", order: 0)
+        f.makeCategory(name: "Transport", icon: "car-01", order: 5)
         f.save()
 
         let result = f.controller.categories.categoryCheck(name: "Bills", icon: "tag-02", emoji: "", income: false)
@@ -148,8 +148,8 @@ struct CategoryRepositoryTests {
     @Test("edit: still detects collision against other siblings")
     func checkEdit_detectsCollisionWithSibling() {
         let f = RepositoryFixture()
-        let cat1 = f.makeCategory(name: "Food",  icon: "sale-tag-01", order: 0)
-        f.makeCategory(name: "Drinks", icon: "tag-02",      order: 1)
+        let cat1 = f.makeCategory(name: "Food", icon: "sale-tag-01", order: 0)
+        f.makeCategory(name: "Drinks", icon: "tag-02", order: 1)
         f.save()
 
         // Renaming Food to Drinks (name already taken by a sibling).
@@ -162,7 +162,7 @@ struct CategoryRepositoryTests {
     @Test("fetchRequestForTopLevelCategories excludes child categories")
     func topLevel_excludesChildren() throws {
         let f = RepositoryFixture()
-        let parent = f.makeCategory(name: "Food",   order: 0)
+        let parent = f.makeCategory(name: "Food", order: 0)
         let child  = f.makeCategory(name: "Coffee", order: 1)
         child.parent = parent
         try f.context.save()
@@ -175,8 +175,8 @@ struct CategoryRepositoryTests {
     @Test("fetchRequestForTopLevelCategories is scoped to income mode")
     func topLevel_scopedToIncomeMode() throws {
         let f = RepositoryFixture()
-        let expense = f.makeCategory(name: "Food",   income: false, order: 0)
-        let income  = f.makeCategory(name: "Salary", income: true,  order: 0)
+        let expense = f.makeCategory(name: "Food", income: false, order: 0)
+        let income  = f.makeCategory(name: "Salary", income: true, order: 0)
         try f.context.save()
 
         let expenseResults = try f.context.fetch(f.controller.categories.fetchRequestForTopLevelCategories(income: false))
@@ -191,9 +191,9 @@ struct CategoryRepositoryTests {
     @Test("getAllCategories filters by income flag and returns results sorted by order")
     func getAllCategories_incomeFilterAndOrder() {
         let f = RepositoryFixture()
-        f.makeCategory(name: "Salary",    income: true,  order: 0)
+        f.makeCategory(name: "Salary", income: true, order: 0)
         f.makeCategory(name: "Transport", income: false, order: 1)
-        f.makeCategory(name: "Food",      income: false, order: 0)
+        f.makeCategory(name: "Food", income: false, order: 0)
         f.save()
 
         let expenses = f.controller.categories.getAllCategories(income: false)
@@ -207,8 +207,8 @@ struct CategoryRepositoryTests {
     @Test("fetchRequestForCategoriesMigration returns all categories when income is nil")
     func migrationFetch_noFilter_returnsAll() throws {
         let f = RepositoryFixture()
-        f.makeCategory(name: "Food",   income: false, order: 0)
-        f.makeCategory(name: "Salary", income: true,  order: 0)
+        f.makeCategory(name: "Food", income: false, order: 0)
+        f.makeCategory(name: "Salary", income: true, order: 0)
         try f.context.save()
 
         let all = try f.context.fetch(f.controller.categories.fetchRequestForCategoriesMigration(income: nil))

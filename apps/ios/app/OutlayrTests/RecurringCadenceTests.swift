@@ -6,59 +6,60 @@
 //  clamping, day arithmetic, and human labels.
 //
 
-import XCTest
+import Testing
 @testable import Outlayr
 
-final class RecurringCadenceTests: XCTestCase {
+struct RecurringCadenceTests {
     private let calendar = Calendar(identifier: .gregorian)
+
     private func day(_ y: Int, _ m: Int, _ d: Int) -> Date {
         calendar.date(from: DateComponents(year: y, month: m, day: d))!
     }
 
-    func testRawValuesMatchCoreDataContract() {
-        XCTAssertEqual(RecurringCadence.none.rawValue, 0)
-        XCTAssertEqual(RecurringCadence.daily.rawValue, 1)
-        XCTAssertEqual(RecurringCadence.weekly.rawValue, 2)
-        XCTAssertEqual(RecurringCadence.monthly.rawValue, 3)
-        XCTAssertEqual(RecurringCadence.yearly.rawValue, 4)
+    @Test func rawValuesMatchCoreDataContract() {
+        #expect(RecurringCadence.none.rawValue == 0)
+        #expect(RecurringCadence.daily.rawValue == 1)
+        #expect(RecurringCadence.weekly.rawValue == 2)
+        #expect(RecurringCadence.monthly.rawValue == 3)
+        #expect(RecurringCadence.yearly.rawValue == 4)
     }
 
-    func testUnknownRawValueIsNil() {
-        XCTAssertNil(RecurringCadence(rawValue: 9))
+    @Test func unknownRawValueIsNil() {
+        #expect(RecurringCadence(rawValue: 9) == nil)
     }
 
-    func testSelectableExcludesNone() {
-        XCTAssertEqual(RecurringCadence.selectable, [.daily, .weekly, .monthly, .yearly])
+    @Test func selectableExcludesNone() {
+        #expect(RecurringCadence.selectable == [.daily, .weekly, .monthly, .yearly])
     }
 
-    func testNoneNeverAdvances() {
-        XCTAssertNil(RecurringCadence.none.next(from: day(2024, 6, 15), coefficient: 1, calendar: calendar))
+    @Test func noneNeverAdvances() {
+        #expect(RecurringCadence.none.next(from: day(2024, 6, 15), coefficient: 1, calendar: calendar) == nil)
     }
 
-    func testWeeklyAdvancesInDays() {
+    @Test func weeklyAdvancesInDays() {
         let next = RecurringCadence.weekly.next(from: day(2024, 6, 1), coefficient: 1, calendar: calendar)
-        XCTAssertEqual(next, day(2024, 6, 8))
+        #expect(next == day(2024, 6, 8))
     }
 
-    func testCoefficientClampedToAtLeastOne() {
+    @Test func coefficientClampedToAtLeastOne() {
         let base = day(2024, 6, 15)
-        XCTAssertEqual(RecurringCadence.daily.next(from: base, coefficient: 0, calendar: calendar), day(2024, 6, 16))
-        XCTAssertEqual(RecurringCadence.daily.next(from: base, coefficient: -5, calendar: calendar), day(2024, 6, 16))
+        #expect(RecurringCadence.daily.next(from: base, coefficient: 0, calendar: calendar) == day(2024, 6, 16))
+        #expect(RecurringCadence.daily.next(from: base, coefficient: -5, calendar: calendar) == day(2024, 6, 16))
     }
 
-    func testMonthEndClampIsIntentional() {
+    @Test func monthEndClampIsIntentional() {
         // Jan 31 + 1 month lands on Feb 29 (2024 leap), not March.
-        XCTAssertEqual(RecurringCadence.monthly.next(from: day(2024, 1, 31), coefficient: 1, calendar: calendar), day(2024, 2, 29))
+        #expect(RecurringCadence.monthly.next(from: day(2024, 1, 31), coefficient: 1, calendar: calendar) == day(2024, 2, 29))
         // Feb 29 + 1 year lands on Feb 28 in a common year.
-        XCTAssertEqual(RecurringCadence.yearly.next(from: day(2020, 2, 29), coefficient: 1, calendar: calendar), day(2021, 2, 28))
+        #expect(RecurringCadence.yearly.next(from: day(2020, 2, 29), coefficient: 1, calendar: calendar) == day(2021, 2, 28))
     }
 
-    func testScheduleLabels() {
-        XCTAssertEqual(RecurringCadence.monthly.scheduleLabel(coefficient: 1), "Monthly")
-        XCTAssertEqual(RecurringCadence.monthly.scheduleLabel(coefficient: 3), "Every 3 months")
-        XCTAssertEqual(RecurringCadence.weekly.scheduleLabel(coefficient: 2), "Every 2 weeks")
-        XCTAssertEqual(RecurringCadence.yearly.scheduleLabel(coefficient: 1), "Yearly")
+    @Test func scheduleLabels() {
+        #expect(RecurringCadence.monthly.scheduleLabel(coefficient: 1) == "Monthly")
+        #expect(RecurringCadence.monthly.scheduleLabel(coefficient: 3) == "Every 3 months")
+        #expect(RecurringCadence.weekly.scheduleLabel(coefficient: 2) == "Every 2 weeks")
+        #expect(RecurringCadence.yearly.scheduleLabel(coefficient: 1) == "Yearly")
         // A clamped coefficient reads as the singular cadence, not "Every 1 …".
-        XCTAssertEqual(RecurringCadence.daily.scheduleLabel(coefficient: 0), "Daily")
+        #expect(RecurringCadence.daily.scheduleLabel(coefficient: 0) == "Daily")
     }
 }

@@ -8,30 +8,33 @@
 //
 
 import CoreData
-import XCTest
+import Testing
 
 @testable import Outlayr
 
-final class TransactionIdentityTests: CharacterizationTestCase {
+struct TransactionIdentityTests {
     private func makeContext() -> NSManagedObjectContext {
-        makeController(now: referenceDate, defaults: makeIsolatedDefaults()).container.viewContext
+        var f = CharacterizationFixture()
+        return f.makeController(now: f.referenceDate, defaults: f.makeIsolatedDefaults()).container.viewContext
     }
 
-    func testFreshTransactionHasNilIdentityAttributes() {
+    @Test func freshTransactionHasNilIdentityAttributes() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 12, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 12, date: f.referenceDate)
 
-        XCTAssertNil(transaction.emoji)
-        XCTAssertNil(transaction.icon)
-        XCTAssertNil(transaction.imageData)
-        XCTAssertNil(transaction.imageColor)
-        XCTAssertNil(transaction.customColor)
-        XCTAssertNil(transaction.currency)
+        #expect(transaction.emoji == nil)
+        #expect(transaction.icon == nil)
+        #expect(transaction.imageData == nil)
+        #expect(transaction.imageColor == nil)
+        #expect(transaction.customColor == nil)
+        #expect(transaction.currency == nil)
     }
 
-    func testIdentityAttributesRoundTripThroughTheStore() throws {
+    @Test func identityAttributesRoundTripThroughTheStore() throws {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 42, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 42, date: f.referenceDate)
         let payload = Data([0xDE, 0xAD, 0xBE, 0xEF])
         transaction.emoji = "🍎"
         transaction.icon = "sale-tag-01"
@@ -43,187 +46,202 @@ final class TransactionIdentityTests: CharacterizationTestCase {
 
         context.refreshAllObjects()
         let request = Transaction.fetchRequest()
-        let stored = try XCTUnwrap(context.fetch(request).first)
+        let stored = try #require(context.fetch(request).first)
 
-        XCTAssertEqual(stored.emoji, "🍎")
-        XCTAssertEqual(stored.icon, "sale-tag-01")
-        XCTAssertEqual(stored.imageData, payload)
-        XCTAssertEqual(stored.imageColor, "#123456")
-        XCTAssertEqual(stored.customColor, "#ABCDEF")
-        XCTAssertEqual(stored.currency, "JPY")
+        #expect(stored.emoji == "🍎")
+        #expect(stored.icon == "sale-tag-01")
+        #expect(stored.imageData == payload)
+        #expect(stored.imageColor == "#123456")
+        #expect(stored.customColor == "#ABCDEF")
+        #expect(stored.currency == "JPY")
     }
 
-    func testWrappedCurrencyIsNilWhenUnsetOrBlank() {
+    @Test func wrappedCurrencyIsNilWhenUnsetOrBlank() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
-        XCTAssertNil(transaction.wrappedCurrency)
+        #expect(transaction.wrappedCurrency == nil)
 
         transaction.currency = ""
-        XCTAssertNil(transaction.wrappedCurrency)
+        #expect(transaction.wrappedCurrency == nil)
 
         transaction.currency = "EUR"
-        XCTAssertEqual(transaction.wrappedCurrency, "EUR")
+        #expect(transaction.wrappedCurrency == "EUR")
     }
 
-    func testWrappedCurrencyNormalisesCaseAndSurroundingWhitespace() {
+    @Test func wrappedCurrencyNormalisesCaseAndSurroundingWhitespace() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
         transaction.currency = "  usd  "
-        XCTAssertEqual(transaction.wrappedCurrency, "USD")
+        #expect(transaction.wrappedCurrency == "USD")
 
         transaction.currency = "eur"
-        XCTAssertEqual(transaction.wrappedCurrency, "EUR")
+        #expect(transaction.wrappedCurrency == "EUR")
     }
 
-    func testWrappedCurrencyRejectsAnythingThatIsNotThreeAsciiLetters() {
+    @Test func wrappedCurrencyRejectsAnythingThatIsNotThreeAsciiLetters() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
         for invalid in ["XX", "BITCOIN", " ", "12", "US1", "€€€"] {
             transaction.currency = invalid
-            XCTAssertNil(transaction.wrappedCurrency, "expected \(invalid) to be rejected")
+            #expect(transaction.wrappedCurrency == nil, "expected \(invalid) to be rejected")
         }
     }
 
-    func testEffectiveColorPrefersCustomThenImageThenCategory() {
+    @Test func effectiveColorPrefersCustomThenImageThenCategory() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Groceries")
+        let category = f.makeCategory(in: context, name: "Groceries")
         category.color = "#111111"
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
 
-        XCTAssertEqual(transaction.effectiveColor, "#111111")
+        #expect(transaction.effectiveColor == "#111111")
 
         transaction.imageColor = "#222222"
-        XCTAssertEqual(transaction.effectiveColor, "#222222")
+        #expect(transaction.effectiveColor == "#222222")
 
         transaction.customColor = "#333333"
-        XCTAssertEqual(transaction.effectiveColor, "#333333")
+        #expect(transaction.effectiveColor == "#333333")
     }
 
-    func testEffectiveColorIgnoresBlankOverrides() {
+    @Test func effectiveColorIgnoresBlankOverrides() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Groceries")
+        let category = f.makeCategory(in: context, name: "Groceries")
         category.color = "#111111"
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
         transaction.customColor = ""
         transaction.imageColor = ""
 
-        XCTAssertEqual(transaction.effectiveColor, "#111111")
+        #expect(transaction.effectiveColor == "#111111")
     }
 
-    func testOwnSymbolIsNilWithoutStoredIdentity() {
+    @Test func ownSymbolIsNilWithoutStoredIdentity() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
 
-        XCTAssertNil(transaction.ownSymbol)
-        XCTAssertEqual(transaction.displaySymbol, category.displaySymbol)
+        #expect(transaction.ownSymbol == nil)
+        #expect(transaction.displaySymbol == category.displaySymbol)
     }
 
-    func testOwnSymbolResolvesStoredIconThroughTheCatalog() throws {
+    @Test func ownSymbolResolvesStoredIconThroughTheCatalog() throws {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
 
-        let expected = try XCTUnwrap(CategoryIconCatalog.icon(named: "sale-tag-01"))
-        XCTAssertEqual(transaction.ownSymbol, .icon(expected))
-        XCTAssertEqual(transaction.displaySymbol, .icon(expected))
+        let expected = try #require(CategoryIconCatalog.icon(named: "sale-tag-01"))
+        #expect(transaction.ownSymbol == .icon(expected))
+        #expect(transaction.displaySymbol == .icon(expected))
     }
 
-    func testOwnSymbolFallsBackToEmojiWhenNoIconIsStored() {
+    @Test func ownSymbolFallsBackToEmojiWhenNoIconIsStored() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.emoji = "⛵️"
 
-        XCTAssertEqual(transaction.ownSymbol, .emoji("⛵️"))
-        XCTAssertEqual(transaction.displaySymbol, .emoji("⛵️"))
+        #expect(transaction.ownSymbol == .emoji("⛵️"))
+        #expect(transaction.displaySymbol == .emoji("⛵️"))
     }
 
-    func testStoredIconWinsOverStoredEmoji() throws {
+    @Test func storedIconWinsOverStoredEmoji() throws {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate)
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
         transaction.emoji = "⛵️"
 
-        let expected = try XCTUnwrap(CategoryIconCatalog.icon(named: "sale-tag-01"))
-        XCTAssertEqual(transaction.ownSymbol, .icon(expected))
+        let expected = try #require(CategoryIconCatalog.icon(named: "sale-tag-01"))
+        #expect(transaction.ownSymbol == .icon(expected))
     }
 
     /// `wrappedIcon` is the icon projection of `displaySymbol`, so the two can
     /// never disagree: an emoji-only transaction shows its emoji and, where an
     /// icon is structurally required, the income-appropriate fallback — never
     /// the category's icon, which would contradict what the user sees.
-    func testEmojiOnlyTransactionFallsBackToTheCatalogFallbackNotTheCategoryIcon() throws {
+    @Test func emojiOnlyTransactionFallsBackToTheCatalogFallbackNotTheCategoryIcon() throws {
+        var f = CharacterizationFixture()
         let context = makeContext()
         // A category icon distinct from fallbackExpense, so "not the category
         // icon" is a real assertion rather than a coincidence.
-        let category = makeCategory(in: context, name: "Groceries", icon: "coins-01")
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "coins-01")
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
         transaction.emoji = "⛵️"
 
-        XCTAssertEqual(transaction.displaySymbol, .emoji("⛵️"))
-        XCTAssertEqual(transaction.wrappedIcon, CategoryIconCatalog.fallbackExpense)
-        XCTAssertNotEqual(transaction.wrappedIcon, try XCTUnwrap(CategoryIconCatalog.icon(named: "coins-01")))
+        #expect(transaction.displaySymbol == .emoji("⛵️"))
+        #expect(transaction.wrappedIcon == CategoryIconCatalog.fallbackExpense)
+        #expect(transaction.wrappedIcon != (try #require(CategoryIconCatalog.icon(named: "coins-01"))))
     }
 
-    func testEmojiOnlyTransactionUsesTheIncomeFallbackUnderAnIncomeCategory() {
+    @Test func emojiOnlyTransactionUsesTheIncomeFallbackUnderAnIncomeCategory() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Salary", icon: "coins-01", income: true)
-        let transaction = makeTransaction(
-            in: context, amount: 1, date: referenceDate, income: true, category: category
+        let category = f.makeCategory(in: context, name: "Salary", icon: "coins-01", income: true)
+        let transaction = f.makeTransaction(
+            in: context, amount: 1, date: f.referenceDate, income: true, category: category
         )
         transaction.emoji = "⛵️"
 
-        XCTAssertEqual(transaction.wrappedIcon, CategoryIconCatalog.fallbackIncome)
+        #expect(transaction.wrappedIcon == CategoryIconCatalog.fallbackIncome)
     }
 
-    func testBlankIconNameIsTreatedAsNoIdentity() {
+    @Test func blankIconNameIsTreatedAsNoIdentity() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
         transaction.icon = ""
 
-        XCTAssertNil(transaction.ownSymbol)
-        XCTAssertEqual(transaction.displaySymbol, category.displaySymbol)
+        #expect(transaction.ownSymbol == nil)
+        #expect(transaction.displaySymbol == category.displaySymbol)
     }
 
     /// An unresolvable icon name must not manufacture a fallback glyph — the
     /// transaction has no identity of its own, so the category's symbol shows.
-    func testUnknownIconNameFallsThroughToEmojiThenCategory() {
+    @Test func unknownIconNameFallsThroughToEmojiThenCategory() {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
         transaction.icon = "not-a-real-icon"
 
-        XCTAssertNil(transaction.ownSymbol)
-        XCTAssertEqual(transaction.displaySymbol, category.displaySymbol)
+        #expect(transaction.ownSymbol == nil)
+        #expect(transaction.displaySymbol == category.displaySymbol)
 
         transaction.emoji = "⛵️"
-        XCTAssertEqual(transaction.ownSymbol, .emoji("⛵️"))
+        #expect(transaction.ownSymbol == .emoji("⛵️"))
     }
 
-    func testWrappedIconPrefersTheTransactionIconOverTheCategoryIcon() throws {
+    @Test func wrappedIconPrefersTheTransactionIconOverTheCategoryIcon() throws {
+        var f = CharacterizationFixture()
         let context = makeContext()
-        let category = makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
-        let transaction = makeTransaction(in: context, amount: 1, date: referenceDate, category: category)
+        let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
+        let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
         transaction.icon = "coins-01"
 
-        XCTAssertEqual(transaction.wrappedIcon, try XCTUnwrap(CategoryIconCatalog.icon(named: "coins-01")))
+        #expect(transaction.wrappedIcon == (try #require(CategoryIconCatalog.icon(named: "coins-01"))))
 
         transaction.icon = nil
-        XCTAssertEqual(transaction.wrappedIcon, category.wrappedIcon)
+        #expect(transaction.wrappedIcon == category.wrappedIcon)
     }
 
     /// The in-memory store used everywhere else never spills a blob to disk, so
     /// `allowsExternalBinaryDataStorage` only gets exercised against a real
     /// SQLite file. Round-trip only — the sidecar layout is Core Data's business.
-    func testLargeImageDataRoundTripsThroughAnOnDiskStore() throws {
-        let momd = try XCTUnwrap(
+    @Test func largeImageDataRoundTripsThroughAnOnDiskStore() throws {
+        var f = CharacterizationFixture()
+        let momd = try #require(
             Bundle(for: DataController.self).url(forResource: "MainModel", withExtension: "momd")
         )
-        let model = try XCTUnwrap(NSManagedObjectModel(contentsOf: momd))
+        let model = try #require(NSManagedObjectModel(contentsOf: momd))
         let storeDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("blob-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: storeDirectory, withIntermediateDirectories: true)
@@ -240,7 +258,7 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         writeContext.persistentStoreCoordinator = writeCoordinator
         let written = NSEntityDescription.insertNewObject(forEntityName: "Transaction", into: writeContext)
         written.setValue(1.0, forKey: "amount")
-        written.setValue(referenceDate, forKey: "date")
+        written.setValue(f.referenceDate, forKey: "date")
         written.setValue(payload, forKey: "imageData")
         try writeContext.save()
         for store in writeCoordinator.persistentStores {
@@ -253,36 +271,30 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         )
         let readContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
         readContext.persistentStoreCoordinator = readCoordinator
-        let reloaded = try XCTUnwrap(
+        let reloaded = try #require(
             readContext.fetch(NSFetchRequest<NSManagedObject>(entityName: "Transaction")).first
         )
 
-        XCTAssertEqual(reloaded.value(forKey: "imageData") as? Data, payload)
+        #expect(reloaded.value(forKey: "imageData") as? Data == payload)
     }
 
     /// Seeds a transaction into a store built from `momName`, then reopens that
     /// store under the current model with nothing but Core Data's inferred
     /// lightweight migration. Only `amount`/`date` are seeded — every shipped
     /// version has both, so one helper covers the whole chain.
-    private func assertLightweightMigrationToCurrentModel(
-        fromMomNamed momName: String,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) throws {
-        let momd = try XCTUnwrap(
+    private func assertLightweightMigrationToCurrentModel(fromMomNamed momName: String) throws {
+        var f = CharacterizationFixture()
+        let momd = try #require(
             Bundle(for: DataController.self).url(forResource: "MainModel", withExtension: "momd"),
-            "MainModel.momd is missing from the test bundle", file: file, line: line
+            "MainModel.momd is missing from the test bundle"
         )
         let legacyURL = momd.appendingPathComponent("\(momName).mom")
-        XCTAssertTrue(
+        #expect(
             FileManager.default.fileExists(atPath: legacyURL.path),
-            "\(momName).mom does not ship — its version is unregistered in the XCVersionGroup",
-            file: file, line: line
+            "\(momName).mom does not ship — its version is unregistered in the XCVersionGroup"
         )
-        let legacyModel = try XCTUnwrap(
-            NSManagedObjectModel(contentsOf: legacyURL), file: file, line: line
-        )
-        let currentModel = try XCTUnwrap(NSManagedObjectModel(contentsOf: momd), file: file, line: line)
+        let legacyModel = try #require(NSManagedObjectModel(contentsOf: legacyURL))
+        let currentModel = try #require(NSManagedObjectModel(contentsOf: momd))
 
         let storeURL = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("migration-\(UUID().uuidString).sqlite")
@@ -296,7 +308,7 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         legacyContext.persistentStoreCoordinator = legacyCoordinator
         let legacy = NSEntityDescription.insertNewObject(forEntityName: "Transaction", into: legacyContext)
         legacy.setValue(99.0, forKey: "amount")
-        legacy.setValue(referenceDate, forKey: "date")
+        legacy.setValue(f.referenceDate, forKey: "date")
         try legacyContext.save()
         for store in legacyCoordinator.persistentStores {
             try legacyCoordinator.remove(store)
@@ -314,20 +326,20 @@ final class TransactionIdentityTests: CharacterizationTestCase {
         )
         let migratedContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
         migratedContext.persistentStoreCoordinator = migratedCoordinator
-        let migrated = try XCTUnwrap(
+        let migrated = try #require(
             migratedContext.fetch(NSFetchRequest<NSManagedObject>(entityName: "Transaction")).first,
-            "the seeded transaction did not survive migration from \(momName)", file: file, line: line
+            "the seeded transaction did not survive migration from \(momName)"
         )
 
-        XCTAssertEqual(migrated.value(forKey: "amount") as? Double, 99.0, file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "emoji"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "icon"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "imageData"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "imageColor"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "customColor"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "currency"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "recurringEndDate"), file: file, line: line)
-        XCTAssertNil(migrated.value(forKey: "details"), file: file, line: line)
+        #expect(migrated.value(forKey: "amount") as? Double == 99.0)
+        #expect(migrated.value(forKey: "emoji") as? String == nil)
+        #expect(migrated.value(forKey: "icon") as? String == nil)
+        #expect(migrated.value(forKey: "imageData") as? Data == nil)
+        #expect(migrated.value(forKey: "imageColor") as? String == nil)
+        #expect(migrated.value(forKey: "customColor") as? String == nil)
+        #expect(migrated.value(forKey: "currency") as? String == nil)
+        #expect(migrated.value(forKey: "recurringEndDate") as? Date == nil)
+        #expect(migrated.value(forKey: "details") as? String == nil)
     }
 
     // These cover the chain as it ships TODAY. The V2 XML was edited in place
@@ -336,23 +348,23 @@ final class TransactionIdentityTests: CharacterizationTestCase {
     // app group, and CloudKit container (docs/decisions/rebrand-identity.md:
     // no user-data migration, a fresh container is provisioned).
 
-    func testStoreCreatedWithVersion1OpensUnderCurrentModel() throws {
+    @Test func storeCreatedWithVersion1OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel")
     }
 
-    func testStoreCreatedWithVersion2OpensUnderCurrentModel() throws {
+    @Test func storeCreatedWithVersion2OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 2")
     }
 
-    func testStoreCreatedWithVersion3OpensUnderCurrentModel() throws {
+    @Test func storeCreatedWithVersion3OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 3")
     }
 
-    func testStoreCreatedWithVersion4OpensUnderCurrentModel() throws {
+    @Test func storeCreatedWithVersion4OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 4")
     }
 
-    func testStoreCreatedWithVersion5OpensUnderCurrentModel() throws {
+    @Test func storeCreatedWithVersion5OpensUnderCurrentModel() throws {
         try assertLightweightMigrationToCurrentModel(fromMomNamed: "MainModel 5")
     }
 }
