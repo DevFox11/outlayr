@@ -24,6 +24,8 @@ struct LogView: View {
 
     @State private var showingSearch = false
 
+    @ScaledMetric(relativeTo: .body) private var menuIconSize: CGFloat = 17
+
     @State var filter = FilterType.all
 
     // filters
@@ -146,7 +148,8 @@ struct LogView: View {
     @ViewBuilder
     private func filterIcon(for option: FilterType) -> some View {
         if let name = FilterType.iconNames[option],
-           let glyph = HugeiconGlyph.image(name, style: .strokeRounded, size: 17) {
+           let glyph = HugeiconGlyph.image(name, style: .strokeRounded, size: menuIconSize) {
+            // No tint: the menu owns the row's colour, including selection.
             Image(uiImage: glyph).renderingMode(.template)
         }
     }

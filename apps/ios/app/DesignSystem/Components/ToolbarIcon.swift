@@ -11,8 +11,11 @@ struct ToolbarIcon: View {
 
     private let name: String
     private let style: Style
-    private let size: CGFloat
     private let color: Color
+
+    /// The glyph is drawn into a bitmap at a fixed point size, so it has to be
+    /// scaled here — unlike a font-backed symbol it will not grow on its own.
+    @ScaledMetric private var size: CGFloat
 
     init(
         _ name: String,
@@ -22,8 +25,8 @@ struct ToolbarIcon: View {
     ) {
         self.name = name
         self.style = style
-        self.size = size
         self.color = color
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
     }
 
     /// Addresses a glyph by codepoint instead of by name.
@@ -41,8 +44,8 @@ struct ToolbarIcon: View {
     ) {
         name = String(codepoint)
         self.style = style
-        self.size = size
         self.color = color
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
     }
 
     var body: some View {
