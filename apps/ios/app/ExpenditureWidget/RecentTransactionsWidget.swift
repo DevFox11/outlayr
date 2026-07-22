@@ -94,14 +94,15 @@ struct RecentTransactionsWidgetProvider: AppIntentTimelineProvider {
         // Placeholder must return synchronously and is rendered redacted, so it
         // uses static sample rows instead of a store fetch (which would read the
         // view context off the main thread in this timeline callback).
-        RecentWidgetEntry(
+        let sampleTransactions: [HoldingTransaction] = [
+            HoldingTransaction(color: "#A0A0A0", note: "Coffee", amount: 4.50, income: false),
+            HoldingTransaction(color: "#A0A0A0", note: "Groceries", amount: 32.00, income: false),
+            HoldingTransaction(color: "#A0A0A0", note: "Transport", amount: 12.00, income: false)
+        ]
+        return RecentWidgetEntry(
             date: Date(),
-            amount: 0,
-            transactions: [
-                HoldingTransaction(color: "#A0A0A0", note: "Coffee", amount: 4.5, income: false),
-                HoldingTransaction(color: "#A0A0A0", note: "Groceries", amount: 32, income: false),
-                HoldingTransaction(color: "#A0A0A0", note: "Transport", amount: 12, income: false)
-            ],
+            amount: sampleTransactions.reduce(0) { $0 + ($1.income ? $1.amount : -$1.amount) },
+            transactions: sampleTransactions,
             duration: .week,
             type: .net
         )
@@ -265,14 +266,17 @@ struct ExpenditureWidgetEntryView: View {
         case .accessoryInline:
             if entry.amount == 0 {
                 Text("\(currencySymbol)0 \(typeText) \(inlineSubtitleText)")
+                    .widgetURL(URL(string: AppIdentifiers.urlScheme))
             } else {
                 Text("\(positivityText)\(currencySymbol)\(abs(entry.amount), specifier: (showCents && entry.amount < 1000) ? "%.2f" : "%.0f") \(inlineSubtitleText)")
+                    .widgetURL(URL(string: AppIdentifiers.urlScheme))
             }
         case .accessoryRectangular:
                 if entry.transactions.count == 0 {
                     Text("NO RECENT EXPENSES")
                         .scaledFont(12, weight: .semibold, design: .rounded)
                         .multilineTextAlignment(.center)
+                        .widgetURL(URL(string: AppIdentifiers.urlScheme + "newExpense"))
                         .containerBackground(for: .widget) { Color.clear }
                 } else {
                     GeometryReader { proxy in
@@ -295,6 +299,7 @@ struct ExpenditureWidgetEntryView: View {
                         .frame(width: proxy.size.width, height: proxy.size.height)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .widgetURL(URL(string: AppIdentifiers.urlScheme))
                     .containerBackground(for: .widget) { Color.clear }
                 }
         case .systemSmall:
@@ -391,7 +396,7 @@ struct ExpenditureWidgetEntryView: View {
                 .containerBackground(for: .widget) {
                     Color.PrimaryBackground
                 }
-                .widgetURL(entry.transactions.count < 2 ? URL(string: AppIdentifiers.urlScheme + "newExpense") : nil)
+                .widgetURL(URL(string: entry.transactions.count < 2 ? AppIdentifiers.urlScheme + "newExpense" : AppIdentifiers.urlScheme))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 
         case .systemLarge:

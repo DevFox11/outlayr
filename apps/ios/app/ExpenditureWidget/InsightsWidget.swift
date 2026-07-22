@@ -380,7 +380,6 @@ struct InsightsWidgetEntryView: View {
                     .background(Color.PrimaryBackground)
 
                     InsightsWidgetCategoryBreakdownView(amount: entry.amount, income: entry.income, categories: entry.categories, duration: entry.duration, ios17: true)
-//                    .frame(width: proxy.size.width * 0.43)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

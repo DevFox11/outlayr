@@ -138,13 +138,11 @@ struct MainBudgetWidgetEntryView: View {
             let endComponents = DateComponents(day: 7, second: -1)
             let endWeekDate = Calendar.current.date(byAdding: endComponents, to: entry.startDate)!
             return formatDateRange(date1: entry.startDate, date2: endWeekDate)
-//            return dateFormatter.string(from: entry.startDate) + " - " + dateFormatter.string(from: endWeekDate)
         case 3:
             dateFormatter.dateFormat = "d MMM"
             let endComponents = DateComponents(month: 1, second: -1)
             let endWeekDate = Calendar.current.date(byAdding: endComponents, to: entry.startDate)!
             return formatDateRange(date1: entry.startDate, date2: endWeekDate)
-//            return dateFormatter.string(from: entry.startDate) + " - " + dateFormatter.string(from: endWeekDate)
         case 4:
             dateFormatter.dateFormat = "d MMM yy"
             return dateFormatter.string(from: entry.startDate)
@@ -214,6 +212,7 @@ struct MainBudgetWidgetEntryView: View {
                         Text("\(Int(round(percent * 100)))%")
                     }
                     .gaugeStyle(AccessoryCircularGaugeStyle())
+                    .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget"))
                     .containerBackground(for: .widget) { Color.clear }
                 }
 
@@ -257,6 +256,7 @@ struct MainBudgetWidgetEntryView: View {
                         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget"))
                     .containerBackground(for: .widget) { Color.clear }
                 }
 
@@ -268,6 +268,7 @@ struct MainBudgetWidgetEntryView: View {
                         .foregroundColor(Color.SubtitleText)
                         .padding(15)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget"))
                         .containerBackground(for: .widget) { Color.PrimaryBackground }
                 } else {
                     VStack(spacing: 12) {
@@ -353,6 +354,7 @@ struct MainBudgetWidgetEntryView: View {
                         .frame(maxHeight: .infinity, alignment: .bottom)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .widgetURL(URL(string: AppIdentifiers.urlScheme + "budget"))
                     .containerBackground(for: .widget) { Color.PrimaryBackground }
                 }
 

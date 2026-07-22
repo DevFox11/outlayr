@@ -26,7 +26,6 @@ struct NewExpenseWidget: Widget {
             NewExpenseWidgetEntryView(entry: entry)
                 .guardedByDataStore()
         }
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .configurationDisplayName("New Expense")
         .description("A convenient button to log new purchases.")
         .supportedFamilies(supportedFamilies)
