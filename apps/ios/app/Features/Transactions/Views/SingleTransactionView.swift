@@ -59,6 +59,14 @@ struct SingleTransactionView: View {
         transaction.wrappedCurrency.flatMap { Locale.current.localizedCurrencySymbol(forCurrencyCode: $0) } ?? currencySymbol
     }
 
+    /// Only rows that override the global currency get a tag. Symbols alone
+    /// don't separate a dollar from a dollar, and tagging every row would make
+    /// the common case shout.
+    private var foreignCurrencyCode: String? {
+        guard let code = transaction.wrappedCurrency, code != currency else { return nil }
+        return code
+    }
+
     var transactionAmountString: String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .currency
@@ -208,11 +216,22 @@ struct SingleTransactionView: View {
                         .foregroundStyle(future ? Color.SubtitleText : Color.PrimaryText)
                         .lineLimit(1)
 
-                    Text(getSubtitle())
-                        .font(.system(.subheadline, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .foregroundStyle(future ? Color.EvenLighterText : Color.SubtitleText)
-                        .lineLimit(1)
+                    HStack(spacing: 5) {
+                        Text(getSubtitle())
+                            .font(.system(.subheadline, design: .rounded).weight(.medium))
+                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                            .foregroundStyle(future ? Color.EvenLighterText : Color.SubtitleText)
+                            .lineLimit(1)
+
+                        if let foreignCurrencyCode {
+                            MonoLabel(verbatim: foreignCurrencyCode)
+                                .padding(.horizontal, 3)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                        .stroke(Color.Outline, lineWidth: 1)
+                                )
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

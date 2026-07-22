@@ -22,6 +22,7 @@ struct ListView: View {
     @AppStorage(DefaultsKey.swapTimeLabel, store: AppIdentifiers.sharedDefaults) var swapTimeLabel: Bool = false
 
     @Environment(OverallToastPresenter.self) private var toastPresenter
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         LazyVStack(spacing: 0) {
@@ -32,23 +33,13 @@ struct ListView: View {
                 let dateText = dateConverter(date: day.id ?? Date.now).uppercased()
 
                 VStack(spacing: 0) {
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(dateText)
-                            Spacer()
-
-                            Text(totalText)
-                                .layoutPriority(1)
-                        }
-                        .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText)
+                    VStack(spacing: 5) {
+                        dayHeader(dateText: dateText, totals: filtered.totals)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(symbol(for: dominant.currencyCode))\(String(format: "%.2f", dominant.magnitude)) was spent \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
 
                         Line()
-                            .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+                            .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
                     }
                     .padding(.horizontal, 10)
                     .padding(.top, 10)
@@ -97,18 +88,55 @@ struct ListView: View {
         return (filtered, totals)
     }
 
+    /// The date and the day's totals share a line until the type size makes one
+    /// of them squeeze the other out of existence.
+    @ViewBuilder
+    private func dayHeader(dateText: String, totals: CurrencyTotals) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 4) {
+                MonoLabel(verbatim: dateText)
+
+                dayTotals(for: totals)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                MonoLabel(verbatim: dateText)
+                    .layoutPriority(1)
+
+                Spacer(minLength: 8)
+
+                dayTotals(for: totals)
+            }
+        }
+    }
+
+    /// A day that spent two currencies gets two figures, separated but never
+    /// added: there is no rate here, so a single number would be an invention.
+    private func dayTotals(for totals: CurrencyTotals) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            ForEach(Array(totals.buckets.enumerated()), id: \.element.id) { index, bucket in
+                if index > 0 {
+                    Text(verbatim: "/")
+                        .foregroundStyle(Color.Outline)
+                }
+
+                Text(verbatim: dayTotalText(for: bucket))
+                    .foregroundStyle(Color.SubtitleText)
+            }
+        }
+        .font(.system(.footnote, design: .rounded).weight(.semibold))
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+    }
+
     private func symbol(for currencyCode: String) -> String {
         Locale.current.localizedCurrencySymbol(forCurrencyCode: currencyCode) ?? currencyCode
     }
 
     private func dayTotalText(for bucket: CurrencyTotals.Bucket) -> String {
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = bucket.currencyCode
-        numberFormatter.maximumFractionDigits = showCents ? 2 : 0
-
-        let formatted = numberFormatter.string(from: NSNumber(value: bucket.amount)) ?? "$0"
-
-        return bucket.isPositive ? "+" + formatted : formatted
+        CurrencyAmountFormatter(currencyCode: bucket.currencyCode, showCents: showCents)
+            .signedString(bucket.amount)
     }
 }

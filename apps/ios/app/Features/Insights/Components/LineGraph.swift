@@ -86,6 +86,16 @@ struct LineGraph: View {
                         LinearGradient(gradient: getGradient(totalPoints: Double(data.count), range: Double(range)), startPoint: .leading, endPoint: .trailing)
                     )
 
+                // The line needs a subject: unmarked, it reads as a texture
+                // rather than as where the period actually got to.
+                if let last = points.last {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 5, height: 5)
+                        .position(last)
+                        .opacity(graphProgress)
+                }
+
 //                 Path Bacground Coloring...
 //                FillBG()
 //                // Clipping the shape..

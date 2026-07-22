@@ -4,35 +4,47 @@
 
 import CoreData
 import Foundation
-import Popovers
 import SwiftUI
 
+/// The Log's ledger head: one promoted figure, the two it isn't, and every
+/// other currency the period holds listed beside them rather than folded into
+/// them. Nothing here does currency arithmetic — the repository buckets, and
+/// this view picks a bucket and renders it.
 struct LogInsightsView: View {
     @Environment(DataController.self) private var dataController
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-    @Binding var navBarText: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let showCents: Bool
-    let currencySymbol: String
 
-    @State var showMenu1 = false
-    let subtitleText = ["today", "this week", "this month", "this year", "all time"]
+    @AppStorage(DefaultsKey.logInsightsTimeFrame, store: AppIdentifiers.sharedDefaults) private var timeframe = 2
+    @AppStorage(DefaultsKey.logInsightsType, store: AppIdentifiers.sharedDefaults) private var insightsType = 1
+    @AppStorage(DefaultsKey.logViewLineGraph, store: AppIdentifiers.sharedDefaults) private var lineGraph: Bool = false
 
-    @AppStorage(DefaultsKey.logInsightsTimeFrame, store: AppIdentifiers.sharedDefaults) var timeframe = 2
-    @AppStorage(DefaultsKey.logInsightsType, store: AppIdentifiers.sharedDefaults) var insightsType = 1
+    @State private var insights: TransactionRepository.LogViewInsights?
+    /// Nil means "whichever currency the period leads with". A scope is only
+    /// pinned by choosing one, and the pin is dropped once that currency stops
+    /// appearing in the period.
+    @State private var scopeCurrency: String?
 
-    @AppStorage(DefaultsKey.logViewLineGraph, store: AppIdentifiers.sharedDefaults) var lineGraph: Bool = false
+    private var measure: LogMeasure { LogMeasure(storedValue: insightsType) }
+    private var period: LogPeriod { LogPeriod(storedValue: timeframe) }
 
-    @State private var netTotal: (value: Double, positive: Bool) = (0, true)
-    @State private var totalSpent: Double = 0
-    @State private var totalIncome: Double = 0
-    @State private var lineGraphData: [LineGraphDataPoint] = []
+    private var figures: TransactionRepository.LogViewInsights.Figures? {
+        guard let insights else { return nil }
+        guard let scopeCurrency else { return insights.dominant }
+        return insights.figures(for: scopeCurrency) ?? insights.dominant
+    }
+
+    /// Every currency the period holds that the hero is not currently showing.
+    private var alsoThisPeriod: [TransactionRepository.LogViewInsights.Figures] {
+        guard let insights, let figures else { return [] }
+        return insights.perCurrency.filter { $0.currencyCode != figures.currencyCode }
+    }
 
     var range: Int {
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = AppIdentifiers.sharedDefaults?.integer(forKey: "firstWeekday") ?? 0
+        calendar.firstWeekday = AppIdentifiers.sharedDefaults?.integer(forKey: DefaultsKey.firstWeekday) ?? 0
         calendar.minimumDaysInFirstWeek = 4
 
         if timeframe == 3 {
@@ -59,146 +71,51 @@ struct LogInsightsView: View {
         }
     }
 
-    var lineGraphGreen: Bool {
-        if insightsType == 1 {
-            return (lineGraphData.first?.amount ?? 0.0) < (lineGraphData.last?.amount ?? 0.0)
-        } else if insightsType == 2 {
-            return true
-        } else {
-            return false
-        }
-    }
+    private var lineGraphData: [LineGraphDataPoint] { insights?.lineGraphData ?? [] }
 
-    var amount: Double {
-        if insightsType == 1 {
-            return netTotal.value
-        } else if insightsType == 2 {
-            return totalIncome
-        } else {
-            return totalSpent
-        }
-    }
-
-    var headingText: String {
-        if insightsType == 1 {
-            return "Net total"
-        } else if insightsType == 2 {
-            return "Earned"
-        } else {
-            return "Spent"
-        }
+    private var lineGraphGreen: Bool {
+        measure.isTrendPositive(
+            firstPoint: lineGraphData.first?.amount ?? 0,
+            lastPoint: lineGraphData.last?.amount ?? 0
+        )
     }
 
     var body: some View {
-        VStack(spacing: -3) {
-            VStack(spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(LocalizedStringKey(headingText))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .foregroundStyle(Color.PrimaryText.opacity(0.9))
-                    Button {
-                        showMenu1 = true
-                    } label: {
-                        Text(LocalizedStringKey(subtitleText[timeframe - 1]))
-                            .padding(2)
-                            .padding(.horizontal, 6)
-                            .font(.system(.body, design: .rounded).weight(.medium))
-                            .foregroundStyle(Color.PrimaryText.opacity(9))
-                            .overlay(Capsule().stroke(Color.Outline, lineWidth: 1.3))
-                    }
-                    .popover(present: $showMenu1, attributes: {
-                        $0.position = .absolute(
-                            originAnchor: .bottom,
-                            popoverAnchor: .top
-                        )
-                        $0.rubberBandingMode = .none
-                        $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
-                        $0.presentation.animation = .easeInOut(duration: 0.2)
-                        $0.dismissal.animation = .easeInOut(duration: 0.3)
-                    }) {
-                        TimePickerView(showMenu: $showMenu1, timeframe: $timeframe)
-                    }
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            eyebrowRow
 
-                EmptyView()
-                    .modifier(NumberView(number: amount, dynamicTypeSize: _dynamicTypeSize.wrappedValue, netTotal: insightsType == 1, positive: netTotal.positive))
-            }
-            .padding(7)
-            .contentShape(Rectangle())
-            .contextMenu {
-                if insightsType != 3 {
-                    Button {
-                        insightsType = 3
-                    } label: {
-                        Label("Total Spent", systemImage: "minus")
-                    }
-                }
+            hero
 
-                if insightsType != 2 {
-                    Button {
-                        insightsType = 2
-                    } label: {
-                        Label("Total Income", systemImage: "plus")
-                    }
-                }
+            measureCells
 
-                if insightsType != 1 {
-                    Button {
-                        insightsType = 1
-                    } label: {
-                        Label("Net Total", systemImage: "alternatingcurrent")
-                    }
-                }
+            if !alsoThisPeriod.isEmpty {
+                alsoStrip
             }
 
-            if totalSpent != 0 && totalIncome != 0 && insightsType == 1 {
-                HStack {
-                    Text("+\(formatNumber(showCents: showCents, number: totalIncome))")
-                        .font(.system(.title2, design: .rounded).weight(.medium))
-                        .minimumScaleFactor(0.5)
-                        .foregroundStyle(Color.IncomeGreen)
-                        .lineLimit(1)
-
-                    DottedLine()
-                        .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round))
-                        .frame(width: 1.7, height: 15)
-                        .foregroundStyle(Color.Outline)
-
-                    Text("-\(formatNumber(showCents: showCents, number: totalSpent))")
-                        .font(.system(.title2, design: .rounded).weight(.medium))
-                        .minimumScaleFactor(0.5)
-                        .foregroundStyle(Color.AlertRed)
-                        .lineLimit(1)
-                }
-                .padding(.bottom, 13)
-            }
-
-            if lineGraph {
+            if lineGraph, lineGraphData.count > 1 {
                 LineGraph(data: lineGraphData, green: lineGraphGreen, type: timeframe, range: range)
-                    .frame(height: 25)
-                    .padding(.horizontal, 60)
+                    .frame(height: 34)
                     .padding(.top, 16)
+                    .padding(.bottom, 4)
             }
         }
-        .padding([.bottom, .horizontal], 20)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .frame(height: lineGraph ? 240 : 170)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
         .task(id: [timeframe, insightsType]) {
-            // Capture the selection once: a cancelled-but-still-running load must
-            // never pick up a newer selection mid-flight.
+            // Capture the selection once: a cancelled-but-still-running load
+            // must never pick up a newer selection mid-flight.
             let timeframe = timeframe
             let insightsType = insightsType
 
-            // Subscribe before the initial load so a save landing mid-load still
-            // triggers a refresh. No object filter: CloudKit imports save the
-            // mirroring delegate's own background context, and the view context
-            // only merges those changes without posting didSave itself.
+            // Subscribe before the initial load so a save landing mid-load
+            // still triggers a refresh. No object filter: background contexts
+            // save themselves and the view context only merges those changes
+            // without posting didSave itself.
             let saves = NotificationCenter.default.notifications(named: .NSManagedObjectContextDidSave)
 
             await loadInsights(timeframe: timeframe, insightsType: insightsType)
 
-            // Reload whenever any context saves (edits, deletes, CloudKit imports);
-            // the values are @State, so nothing recomputes on its own.
             for await _ in saves {
                 guard !Task.isCancelled else { return }
                 await loadInsights(timeframe: timeframe, insightsType: insightsType)
@@ -206,22 +123,186 @@ struct LogInsightsView: View {
         }
     }
 
+    private var eyebrow: some View {
+        MonoLabel(
+            Text(LocalizedStringKey(measure.titleKey))
+                + Text(verbatim: " · ")
+                + Text(LocalizedStringKey(period.titleKey))
+        )
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Side by side at ordinary sizes, stacked once the tracked mono label and
+    /// the chip can no longer share a line without one of them truncating.
+    @ViewBuilder
+    private var eyebrowRow: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                eyebrow
+
+                if let insights, insights.isMultiCurrency {
+                    currencyScopeChip(insights: insights)
+                }
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                eyebrow
+
+                Spacer(minLength: 0)
+
+                if let insights, insights.isMultiCurrency {
+                    currencyScopeChip(insights: insights)
+                }
+            }
+        }
+    }
+
+    private var hero: some View {
+        EmptyView()
+            .modifier(NumberView(
+                number: figures.map { measure.magnitude(in: $0) } ?? 0,
+                dynamicTypeSize: dynamicTypeSize,
+                positive: figures.map { measure.isPositive(in: $0) } ?? true,
+                currencyCode: figures?.currencyCode
+            ))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private var measureCells: some View {
+        let alternatives = measure.alternatives
+
+        if let figures, alternatives.count == 2 {
+            VStack(spacing: 0) {
+                hairline
+
+                // Two columns become two rows once a figure can no longer fit
+                // beside another: a truncated amount is worse than a taller block.
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 0) {
+                        cell(alternatives[0], figures: figures)
+
+                        cell(alternatives[1], figures: figures)
+                            .overlay(alignment: .top) { hairline }
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        cell(alternatives[0], figures: figures)
+
+                        cell(alternatives[1], figures: figures)
+                            .padding(.leading, 14)
+                            .overlay(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.Outline)
+                                    .frame(width: 1)
+                            }
+                    }
+                }
+            }
+            .padding(.top, 12)
+        }
+    }
+
+    private func cell(
+        _ measure: LogMeasure,
+        figures: TransactionRepository.LogViewInsights.Figures
+    ) -> some View {
+        LogMeasureCellView(measure: measure, figures: figures, showCents: showCents) {
+            insightsType = measure.rawValue
+        }
+    }
+
+    private var alsoStrip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            hairline
+                .padding(.bottom, 3)
+
+            MonoLabel(Text("Also") + Text(verbatim: " ") + Text(LocalizedStringKey(period.titleKey)))
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) { alsoPills }
+
+                VStack(alignment: .leading, spacing: 6) { alsoPills }
+            }
+        }
+        .padding(.top, 12)
+    }
+
+    private var alsoPills: some View {
+        ForEach(alsoThisPeriod) { entry in
+            let formatter = CurrencyAmountFormatter(currencyCode: entry.currencyCode, showCents: showCents)
+            let amount = formatter.signedString(
+                magnitude: measure.magnitude(in: entry),
+                isPositive: measure.isPositive(in: entry)
+            )
+
+            HStack(spacing: 6) {
+                MonoLabel(verbatim: entry.currencyCode)
+
+                Text(verbatim: amount)
+                    .font(.system(.footnote, design: .rounded).weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(measure.isIncome ? Color.IncomeGreen : Color.PrimaryText)
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: "\(entry.currencyCode), \(amount)"))
+        }
+    }
+
+    private var hairline: some View {
+        Rectangle()
+            .fill(Color.Outline)
+            .frame(height: 1)
+            .frame(maxWidth: .infinity)
+    }
+
+    private func currencyScopeChip(insights: TransactionRepository.LogViewInsights) -> some View {
+        Menu {
+            Picker(selection: scopeSelection) {
+                ForEach(insights.perCurrency) { entry in
+                    Text(verbatim: entry.currencyCode).tag(entry.currencyCode)
+                }
+            } label: {
+                Text("Currency")
+            }
+            .pickerStyle(.inline)
+        } label: {
+            HStack(spacing: 4) {
+                MonoLabel(verbatim: figures?.currencyCode ?? insights.dominant.currencyCode, color: Color.PrimaryText)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(.caption2, design: .rounded).weight(.bold))
+                    .foregroundStyle(Color.SubtitleText)
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 9)
+            .background(Color.SecondaryBackground, in: Capsule())
+            .contentShape(Capsule())
+        }
+        .accessibilityLabel("Currency shown")
+    }
+
+    private var scopeSelection: Binding<String> {
+        Binding(
+            get: { figures?.currencyCode ?? "" },
+            set: { scopeCurrency = $0 }
+        )
+    }
+
     private func loadInsights(timeframe: Int, insightsType: Int) async {
-        let insights = await dataController.transactions.getLogViewInsights(type: timeframe, insightsType: insightsType)
+        let loaded = await dataController.transactions.getLogViewInsights(type: timeframe, insightsType: insightsType)
 
         guard !Task.isCancelled else { return }
 
-        netTotal = (insights.dominant.netMagnitude, insights.dominant.isNetPositive)
-        totalSpent = insights.dominant.totalSpent
-        totalIncome = insights.dominant.totalIncome
-        lineGraphData = insights.lineGraphData
-    }
+        insights = loaded
 
-    func formatNumber(showCents: Bool, number: Double) -> String {
-        if showCents {
-            return String(format: "%.2f", number)
-        } else {
-            return String(format: "%d", Int(floor(number)))
+        if let scopeCurrency, loaded.figures(for: scopeCurrency) == nil {
+            self.scopeCurrency = nil
         }
     }
 }
