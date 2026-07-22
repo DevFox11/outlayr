@@ -12,6 +12,7 @@ import Testing
 
 @testable import Outlayr
 
+@MainActor
 struct TransactionIdentityTests {
     private func makeContext() -> NSManagedObjectContext {
         var f = CharacterizationFixture()
@@ -19,7 +20,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func freshTransactionHasNilIdentityAttributes() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 12, date: f.referenceDate)
 
@@ -32,7 +33,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func identityAttributesRoundTripThroughTheStore() throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 42, date: f.referenceDate)
         let payload = Data([0xDE, 0xAD, 0xBE, 0xEF])
@@ -57,7 +58,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func wrappedCurrencyIsNilWhenUnsetOrBlank() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
@@ -71,7 +72,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func wrappedCurrencyNormalisesCaseAndSurroundingWhitespace() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
@@ -83,7 +84,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func wrappedCurrencyRejectsAnythingThatIsNotThreeAsciiLetters() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
 
@@ -94,7 +95,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func effectiveColorPrefersCustomThenImageThenCategory() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Groceries")
         category.color = "#111111"
@@ -110,7 +111,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func effectiveColorIgnoresBlankOverrides() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Groceries")
         category.color = "#111111"
@@ -122,7 +123,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func ownSymbolIsNilWithoutStoredIdentity() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
@@ -132,7 +133,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func ownSymbolResolvesStoredIconThroughTheCatalog() throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
@@ -143,7 +144,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func ownSymbolFallsBackToEmojiWhenNoIconIsStored() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.emoji = "⛵️"
@@ -153,7 +154,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func storedIconWinsOverStoredEmoji() throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate)
         transaction.icon = "sale-tag-01"
@@ -168,7 +169,7 @@ struct TransactionIdentityTests {
     /// icon is structurally required, the income-appropriate fallback — never
     /// the category's icon, which would contradict what the user sees.
     @Test func emojiOnlyTransactionFallsBackToTheCatalogFallbackNotTheCategoryIcon() throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         // A category icon distinct from fallbackExpense, so "not the category
         // icon" is a real assertion rather than a coincidence.
@@ -182,7 +183,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func emojiOnlyTransactionUsesTheIncomeFallbackUnderAnIncomeCategory() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Salary", icon: "coins-01", income: true)
         let transaction = f.makeTransaction(
@@ -194,7 +195,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func blankIconNameIsTreatedAsNoIdentity() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
@@ -207,7 +208,7 @@ struct TransactionIdentityTests {
     /// An unresolvable icon name must not manufacture a fallback glyph — the
     /// transaction has no identity of its own, so the category's symbol shows.
     @Test func unknownIconNameFallsThroughToEmojiThenCategory() {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
@@ -221,7 +222,7 @@ struct TransactionIdentityTests {
     }
 
     @Test func wrappedIconPrefersTheTransactionIconOverTheCategoryIcon() throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let context = makeContext()
         let category = f.makeCategory(in: context, name: "Groceries", icon: "sale-tag-01")
         let transaction = f.makeTransaction(in: context, amount: 1, date: f.referenceDate, category: category)
@@ -233,15 +234,30 @@ struct TransactionIdentityTests {
         #expect(transaction.wrappedIcon == category.wrappedIcon)
     }
 
+    /// Loads an `NSManagedObjectModel` from `url` and strips all entity subclass
+    /// registrations by forcing `managedObjectClassName` to `"NSManagedObject"`.
+    /// Migration tests use KVC-only access, so they never need typed subclasses.
+    /// Without this, each coordinator initialised from a locally-loaded model
+    /// registers `Category` / `Transaction` ObjC class names against a fresh set
+    /// of `NSEntityDescription` instances, making `+[Category entity]` ambiguous
+    /// for the rest of the process — crashing fixture-based tests that run after.
+    private func isolatedModel(from url: URL) throws -> NSManagedObjectModel {
+        let model = try #require(NSManagedObjectModel(contentsOf: url))
+        for entity in model.entities {
+            entity.managedObjectClassName = "NSManagedObject"
+        }
+        return model
+    }
+
     /// The in-memory store used everywhere else never spills a blob to disk, so
     /// `allowsExternalBinaryDataStorage` only gets exercised against a real
     /// SQLite file. Round-trip only — the sidecar layout is Core Data's business.
     @Test func largeImageDataRoundTripsThroughAnOnDiskStore() throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let momd = try #require(
             Bundle(for: DataController.self).url(forResource: "MainModel", withExtension: "momd")
         )
-        let model = try #require(NSManagedObjectModel(contentsOf: momd))
+        let model = try isolatedModel(from: momd)
         let storeDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("blob-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: storeDirectory, withIntermediateDirectories: true)
@@ -283,7 +299,7 @@ struct TransactionIdentityTests {
     /// lightweight migration. Only `amount`/`date` are seeded — every shipped
     /// version has both, so one helper covers the whole chain.
     private func assertLightweightMigrationToCurrentModel(fromMomNamed momName: String) throws {
-        var f = CharacterizationFixture()
+        let f = CharacterizationFixture()
         let momd = try #require(
             Bundle(for: DataController.self).url(forResource: "MainModel", withExtension: "momd"),
             "MainModel.momd is missing from the test bundle"
@@ -293,8 +309,8 @@ struct TransactionIdentityTests {
             FileManager.default.fileExists(atPath: legacyURL.path),
             "\(momName).mom does not ship — its version is unregistered in the XCVersionGroup"
         )
-        let legacyModel = try #require(NSManagedObjectModel(contentsOf: legacyURL))
-        let currentModel = try #require(NSManagedObjectModel(contentsOf: momd))
+        let legacyModel = try isolatedModel(from: legacyURL)
+        let currentModel = try isolatedModel(from: momd)
 
         let storeURL = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("migration-\(UUID().uuidString).sqlite")
