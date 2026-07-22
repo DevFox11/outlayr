@@ -9,6 +9,8 @@ import Foundation
 import SwiftUI
 
 struct SingleTemplateButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let transaction: TemplateTransaction
     let showCents: Bool
     let currencySymbol: String
@@ -51,7 +53,7 @@ struct SingleTemplateButton: View {
             CategoryIconGlyph(symbol: transaction.displaySymbol, size: 14)
                 .foregroundStyle(transactionColor)
                 .padding(5)
-                .background(blend(over: transactionColor, withAlpha: 0.3), in: RoundedRectangle(cornerRadius: 8))
+                .background(blend(over: transactionColor, withAlpha: 0.3, colorScheme: colorScheme), in: RoundedRectangle(cornerRadius: 8))
 
             Spacer()
 
@@ -74,7 +76,7 @@ struct SingleTemplateButton: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .background(blend(over: transactionColor, withAlpha: 0.8), in: RoundedRectangle(cornerRadius: 15))
+        .background(blend(over: transactionColor, withAlpha: 0.8, colorScheme: colorScheme), in: RoundedRectangle(cornerRadius: 15))
         .shadow(color: transactionColor.opacity(0.8), radius: 6)
     }
 

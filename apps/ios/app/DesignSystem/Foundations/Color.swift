@@ -189,7 +189,7 @@ public extension View {
     }
 }
 
-func blend(over color: Color, withAlpha alpha: CGFloat) -> Color {
+func blend(over color: Color, withAlpha alpha: CGFloat, colorScheme: ColorScheme = .light) -> Color {
     let uiColor = UIColor(color)
     let alphaClamped = min(max(alpha, 0), 1)
 
@@ -201,15 +201,11 @@ func blend(over color: Color, withAlpha alpha: CGFloat) -> Color {
     let inputGreen = inputRGBComponents[1]
     let inputBlue = inputRGBComponents[2]
 
-    let whiteComponents: [CGFloat] = [1, 1, 1]
-    let whiteRed = whiteComponents[0]
-    let whiteGreen = whiteComponents[1]
-    let whiteBlue = whiteComponents[2]
+    let background: CGFloat = colorScheme == .dark ? 0 : 1
 
-    // alpha blending
-    let red = inputRed * alphaClamped + whiteRed * (1 - alphaClamped)
-    let green = inputGreen * alphaClamped + whiteGreen * (1 - alphaClamped)
-    let blue = inputBlue * alphaClamped + whiteBlue * (1 - alphaClamped)
+    let red = inputRed * alphaClamped + background * (1 - alphaClamped)
+    let green = inputGreen * alphaClamped + background * (1 - alphaClamped)
+    let blue = inputBlue * alphaClamped + background * (1 - alphaClamped)
 
     return Color(UIColor(red: red, green: green, blue: blue, alpha: 1))
 }
