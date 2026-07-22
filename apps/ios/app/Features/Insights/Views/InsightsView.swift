@@ -101,13 +101,13 @@ struct InsightsView: View {
                 .padding(.bottom, 20)
 
                 if chartType == 1 {
-                    WeekGraphView()
+                    PagedGraphView(unit: .week)
                         .id(refreshID)
                 } else if chartType == 2 {
-                    MonthGraphView()
+                    PagedGraphView(unit: .month)
                         .id(refreshID)
                 } else if chartType == 3 {
-                    YearGraphView()
+                    PagedGraphView(unit: .year)
                         .id(refreshID)
                 }
             }
