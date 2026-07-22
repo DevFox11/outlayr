@@ -113,18 +113,20 @@ struct LogView: View {
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            if syncMonitor.syncStateSummary == .succeeded && !updatedRecurring {
-                dataController.transactions.updateRecurringTransactions()
-                updatedRecurring = true
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
+                if syncMonitor.syncStateSummary == .succeeded && !updatedRecurring {
+                    dataController.transactions.updateRecurringTransactions()
+                    updatedRecurring = true
 
-                resetTask?.cancel()
-                resetTask = Task {
-                    try? await Task.sleep(for: .seconds(60))
-                    updatedRecurring = false
+                    resetTask?.cancel()
+                    resetTask = Task {
+                        try? await Task.sleep(for: .seconds(60))
+                        updatedRecurring = false
+                    }
+                } else if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
+                    dataController.transactions.updateRecurringTransactions()
                 }
-            } else if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
-                dataController.transactions.updateRecurringTransactions()
             }
         }
         .onChange(of: launchSearch) { _, _ in

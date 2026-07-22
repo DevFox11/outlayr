@@ -7,9 +7,6 @@ import CoreData
 import SwiftUI
 
 struct YearGraphView: View {
-    private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
-    @State private var refreshID = UUID()
-
     @FetchRequest(sortDescriptors: [
         SortDescriptor(\.day)
     ]) private var transactions: FetchedResults<Transaction>
@@ -96,7 +93,6 @@ struct YearGraphView: View {
                 ZStack {
                     SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, income: $income, incomeFiltering: $incomeFiltering, type: 3)
                         .drawingGroup()
-                        .id(refreshID)
                         .onAppear {
                             showingYear = startOfCurrentYear
                         }
@@ -236,10 +232,6 @@ struct YearGraphView: View {
                     }
                 }
             }
-        }
-        .onReceive(self.didSave) { _ in
-            self.refreshID = UUID()
-            self.refreshID1 = UUID()
         }
     }
 }

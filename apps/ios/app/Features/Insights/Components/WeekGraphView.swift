@@ -7,9 +7,6 @@ import CoreData
 import SwiftUI
 
 struct WeekGraphView: View {
-    private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
-    @State private var refreshID = UUID()
-
     @FetchRequest(sortDescriptors: [
         SortDescriptor(\.day)
     ]) private var transactions: FetchedResults<Transaction>
@@ -102,7 +99,6 @@ struct WeekGraphView: View {
                 ZStack {
                     SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, income: $income, incomeFiltering: $incomeFiltering, type: 1)
                         .drawingGroup()
-                        .id(refreshID)
                         .onAppear {
                             showingWeek = startOfCurrentWeek
                         }
@@ -246,10 +242,6 @@ struct WeekGraphView: View {
                     categoryFilterMode = false
                 }
             }
-        }
-        .onReceive(self.didSave) { _ in
-            self.refreshID = UUID()
-            self.refreshID1 = UUID()
         }
     }
 }

@@ -7,9 +7,6 @@ import CoreData
 import SwiftUI
 
 struct MonthGraphView: View {
-    private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
-    @State private var refreshID = UUID()
-
     @FetchRequest(sortDescriptors: [
         SortDescriptor(\.day)
     ]) private var transactions: FetchedResults<Transaction>
@@ -99,7 +96,6 @@ struct MonthGraphView: View {
                 ZStack {
                     SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, income: $income, incomeFiltering: $incomeFiltering, type: 2)
                         .drawingGroup()
-                        .id(refreshID)
                         .onAppear {
                             showingMonth = startOfCurrentMonth
                         }
@@ -263,10 +259,6 @@ struct MonthGraphView: View {
 //                    categoryFilterMode = false
 //                }
             }
-        }
-        .onReceive(self.didSave) { _ in
-            self.refreshID = UUID()
-            self.refreshID1 = UUID()
         }
     }
 }

@@ -16,7 +16,6 @@ struct InsightsView: View {
     @State private var showTimeMenu = false
     @AppStorage(DefaultsKey.chartTimeFrame, store: AppIdentifiers.sharedDefaults) var chartType = 1
 
-    private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
 
     var chartTypeString: String {
@@ -115,8 +114,11 @@ struct InsightsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.PrimaryBackground)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .onReceive(self.didSave) { _ in
-                self.refreshID = UUID()
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: .NSManagedObjectContextDidSave) {
+                    guard !Task.isCancelled else { return }
+                    refreshID = UUID()
+                }
             }
         }
     }

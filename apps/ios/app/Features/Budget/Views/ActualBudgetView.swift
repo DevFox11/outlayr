@@ -37,8 +37,7 @@ struct ActualBudgetView: View {
 
     @Namespace var animation
 
-    var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave) // the publisher
-    @AppStorage("UUID") var refreshID = UUID().uuidString
+    @State private var refreshID = UUID()
 
     @State var date = Date.now
 
@@ -155,9 +154,12 @@ struct ActualBudgetView: View {
                 NewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
             }
             .deleteBudgetConfirmation($toDelete)
-            .onReceive(self.didSave) { _ in // the listener
-                withAnimation {
-                    refreshID = UUID().uuidString
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: .NSManagedObjectContextDidSave) {
+                    guard !Task.isCancelled else { return }
+                    withAnimation {
+                        refreshID = UUID()
+                    }
                 }
             }
         }
