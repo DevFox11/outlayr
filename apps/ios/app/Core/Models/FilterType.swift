@@ -17,14 +17,16 @@ enum FilterType: String, CaseIterable {
     case recurring
     case upcoming
 
-    static var imageDictionary: [FilterType: String] = [
-        .all: "square.text.square.fill",
-        .type: "centsign.circle.fill",
-        .day: "d.square.fill",
-        .week: "w.square.fill",
-        .month: "m.square.fill",
-        .category: "circle.grid.2x2.fill",
-        .recurring: "repeat.circle.fill",
-        .upcoming: "sun.min.fill"
+    /// A name only renders if the bundled font carries a ligature for it.
+    /// calendar-03 has none, hence -04 for the month row.
+    static let iconNames: [FilterType: String] = [
+        .all: "invoice-01",
+        .type: "arrow-data-transfer-vertical",
+        .day: "calendar-01",
+        .week: "calendar-02",
+        .month: "calendar-04",
+        .category: "tags",
+        .recurring: "repeat",
+        .upcoming: "clock-01"
     ]
 }

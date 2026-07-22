@@ -403,6 +403,7 @@
 		E6183BFE0B2E74EBB18C14EE /* NavigationSubtitleModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51EEE153F1F17F5AB5E310E8 /* NavigationSubtitleModifier.swift */; };
 		E684386679DF083BA201830F /* HapticTapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A6538D5586CF57B7CA4149 /* HapticTapper.swift */; };
 		F3EAB6BF2E7B21CE07BC76B9 /* LogPeriodCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6293206F6DA784EC4AA60BE /* LogPeriodCursor.swift */; };
+		FC58BEA9332A802127DE6D7F /* HugeiconGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384EF96EF53E48DBC3462B89 /* HugeiconGlyph.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -459,6 +460,7 @@
 		30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecurringTransactionCharacterizationTests.swift; sourceTree = "<group>"; };
 		360254ED205628F984B8625B /* MainModel 3.xcdatamodel */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 3.xcdatamodel"; sourceTree = "<group>"; };
 		37A6538D5586CF57B7CA4149 /* HapticTapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HapticTapper.swift; sourceTree = "<group>"; };
+		384EF96EF53E48DBC3462B89 /* HugeiconGlyph.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HugeiconGlyph.swift; sourceTree = "<group>"; };
 		3EC275282B28A123A12A09CE /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		45938619B0B0C5B582BA39C5 /* CategoryIconValidationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryIconValidationTests.swift; sourceTree = "<group>"; };
 		465C0E0B927739DEBF03BE86 /* LogEmptyStateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LogEmptyStateView.swift; sourceTree = "<group>"; };
@@ -1484,6 +1486,7 @@
 				53D6BDC42AF6B32C00F5728E /* StepperButtonView.swift */,
 				9B72BAD284EF1FBF0869EFF5 /* MonoLabel.swift */,
 				51EEE153F1F17F5AB5E310E8 /* NavigationSubtitleModifier.swift */,
+				384EF96EF53E48DBC3462B89 /* HugeiconGlyph.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -2041,6 +2044,7 @@
 				682D4A6C9B58732EE4B78CB0 /* MonoLabel.swift in Sources */,
 				E6183BFE0B2E74EBB18C14EE /* NavigationSubtitleModifier.swift in Sources */,
 				D18ACA5E8864CA265F0040BB /* SearchView.swift in Sources */,
+				FC58BEA9332A802127DE6D7F /* HugeiconGlyph.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

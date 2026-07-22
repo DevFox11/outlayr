@@ -143,8 +143,14 @@ struct LogView: View {
         }
     }
 
-    /// Which period the figures cover. Kept apart from the filter: they answer
-    /// different questions, and one menu holding both scrolled past the fold.
+    @ViewBuilder
+    private func filterIcon(for option: FilterType) -> some View {
+        if let name = FilterType.iconNames[option],
+           let glyph = HugeiconGlyph.image(name, style: .strokeRounded, size: 17) {
+            Image(uiImage: glyph).renderingMode(.template)
+        }
+    }
+
     private var periodMenu: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
@@ -157,30 +163,24 @@ struct LogView: View {
                 }
                 .pickerStyle(.inline)
             } label: {
-                // calendar-03, addressed by codepoint rather than by name: its
-                // glyph ships in hgi-stroke-rounded.ttf at U+F1853 with real
-                // artwork, but that build is missing the ligature entry that
-                // maps the name to it — calendar-01, -02, -04 and -05 all have
-                // theirs, so the gap is specific to this icon. By name it would
-                // draw as literal text. Switch back to the name when the font
-                // is re-vendored with the ligature present.
+                // calendar-03. By codepoint because the bundled font ships the
+                // glyph without its ligature; use the name once that is fixed.
                 ToolbarIcon(codepoint: "\u{F1853}")
             }
             .accessibilityLabel(String(localized: "accessibility.period"))
         }
     }
 
-    /// Which entries are listed. Solid glyph while a filter is on, so the
-    /// toolbar says so without the chip row having to be on screen.
     private var filterMenu: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker(selection: $filter) {
                     ForEach(FilterType.allCases, id: \.self) { option in
-                        Label(
-                            LocalizedStringKey(option.rawValue),
-                            systemImage: FilterType.imageDictionary[option] ?? "line.3.horizontal.decrease"
-                        )
+                        Label {
+                            Text(LocalizedStringKey(option.rawValue))
+                        } icon: {
+                            filterIcon(for: option)
+                        }
                         .tag(option)
                     }
                 } label: {
