@@ -17,7 +17,7 @@ struct CategoryStepperView: View {
         HStack(spacing: 8) {
             if income {
                 Button {
-                    let fetchRequest = dataController.categories.fetchRequestForCategories(income: false)
+                    let fetchRequest = dataController.categories.fetchRequestForTopLevelCategories(income: false)
                     let holding = dataController.results(for: fetchRequest)
                     if holding.isEmpty { return }
                     income = false
@@ -37,7 +37,7 @@ struct CategoryStepperView: View {
                 .accessibilityLabel(String(localized: "accessibility.showExpenseCategories"))
             } else {
                 Button {
-                    let fetchRequest = dataController.categories.fetchRequestForCategories(income: true)
+                    let fetchRequest = dataController.categories.fetchRequestForTopLevelCategories(income: true)
                     let holding = dataController.results(for: fetchRequest)
                     if holding.isEmpty { return }
                     income = true
@@ -100,7 +100,7 @@ struct CategoryStepperView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 30)
         .onAppear {
-            let fetchRequest = dataController.categories.fetchRequestForCategories(income: income)
+            let fetchRequest = dataController.categories.fetchRequestForTopLevelCategories(income: income)
             categories = dataController.results(for: fetchRequest)
 
             if categories.isEmpty {
