@@ -120,7 +120,10 @@ struct LogView: View {
                 month: normalized(monthFilter, as: .month),
                 income: income
             )
-            .padding(.horizontal, 20)
+            // The rows and day headers carry their own 10pt inset as part of
+            // their tap target, so this is 10 rather than the hero's 20: both
+            // end up 20 from the screen edge.
+            .padding(.horizontal, 10)
             .padding(.top, 6)
             .padding(.bottom, 70 + bottomEdge)
         }

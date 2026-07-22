@@ -20,7 +20,7 @@ struct SearchView: View {
                 idleState
             } else {
                 FilteredSearchView(searchQuery: searchQuery)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 10)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
