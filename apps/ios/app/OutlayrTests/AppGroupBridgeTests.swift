@@ -19,13 +19,11 @@ import Testing
 
 struct AppGroupBridgeTests {
     private let appGroup = AppIdentifiers.appGroup
-    private let cloudKitContainer = AppIdentifiers.cloudKitContainer
     private let bundleRoot = AppIdentifiers.bundleIdRoot
 
     @Test func identifierDerivationRulesHold() {
         #expect(appGroup.hasPrefix("group."))
         #expect(String(appGroup.dropFirst("group.".count)) == bundleRoot)
-        #expect("iCloud." + bundleRoot == cloudKitContainer)
     }
 
     @Test func appGroupSuiteRoundTrips() {

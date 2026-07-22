@@ -36,7 +36,7 @@ class DataController {
     // nonisolated so the background-context helpers below can call
     // container.newBackgroundContext() without a main-actor hop. Callers must never
     // access container.viewContext from a background thread.
-    nonisolated let container = NSPersistentCloudKitContainer(name: "MainModel")
+    nonisolated let container = NSPersistentContainer(name: "MainModel")
 
     // Characterization seams (flagged mechanical, B3). Production defaults keep
     // behavior byte-for-byte identical; tests inject a frozen clock, a pinned
@@ -94,15 +94,10 @@ class DataController {
 
         description.shouldMigrateStoreAutomatically = true
         description.shouldInferMappingModelAutomatically = true
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
 
         if inMemory {
             description.url = URL(fileURLWithPath: "/dev/null")
-            description.cloudKitContainerOptions = nil
         } else {
-            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: AppIdentifiers.cloudKitContainer)
-
             let groupID = AppIdentifiers.appGroup
             let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID)
             let state = Self.storeState(for: containerURL)

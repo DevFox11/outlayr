@@ -11,8 +11,6 @@ import Popovers
 import SwiftUI
 
 struct LogView: View {
-    @State private var syncObserver = CloudKitSyncObserver()
-
     @State var updatedRecurring = false
 
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
@@ -100,21 +98,9 @@ struct LogView: View {
         .fullScreenCover(isPresented: $searchMode) {
             SearchView()
         }
-        .onChange(of: syncObserver.syncStateSummary) { _, newState in
-            if newState == .succeeded && !updatedRecurring {
-                dataController.transactions.updateRecurringTransactions()
-                updatedRecurring = true
-
-                resetTask?.cancel()
-                resetTask = Task {
-                    try? await Task.sleep(for: .seconds(60))
-                    updatedRecurring = false
-                }
-            }
-        }
         .task {
             for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
-                if syncObserver.syncStateSummary == .succeeded && !updatedRecurring {
+                if !updatedRecurring {
                     dataController.transactions.updateRecurringTransactions()
                     updatedRecurring = true
 
@@ -123,8 +109,6 @@ struct LogView: View {
                         try? await Task.sleep(for: .seconds(60))
                         updatedRecurring = false
                     }
-                } else if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
-                    dataController.transactions.updateRecurringTransactions()
                 }
             }
         }
@@ -132,9 +116,7 @@ struct LogView: View {
             searchMode = true
         }
         .onAppear {
-            if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
-                dataController.transactions.updateRecurringTransactions()
-            }
+            dataController.transactions.updateRecurringTransactions()
         }
         .onOpenURL { url in
             guard url.host == "search" else {

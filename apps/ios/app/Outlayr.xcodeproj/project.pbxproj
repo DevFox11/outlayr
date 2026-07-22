@@ -314,7 +314,6 @@
 		7A3E3841301085D600801CCB /* CategoryRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */; };
 		7A3E38433010860300801CCB /* TransactionRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */; };
 		7A3E384530109AEF00801CCB /* LaunchBootstrapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E384430109AEF00801CCB /* LaunchBootstrapService.swift */; };
-		7A3E384730109F1000801CCB /* CloudKitSyncObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E384630109F1000801CCB /* CloudKitSyncObserver.swift */; };
 		7A3E38493010A89000801CCB /* CategoryExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38483010A89000801CCB /* CategoryExtensions.swift */; };
 		7A3E384A3010A89000801CCB /* CategoryExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E38483010A89000801CCB /* CategoryExtensions.swift */; };
 		7A3E384C3010A8A000801CCB /* TransactionExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3E384B3010A8A000801CCB /* TransactionExtensions.swift */; };
@@ -716,7 +715,6 @@
 		7A3E3840301085D600801CCB /* CategoryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryRepositoryTests.swift; sourceTree = "<group>"; };
 		7A3E38423010860300801CCB /* TransactionRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRepositoryTests.swift; sourceTree = "<group>"; };
 		7A3E384430109AEF00801CCB /* LaunchBootstrapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchBootstrapService.swift; sourceTree = "<group>"; };
-		7A3E384630109F1000801CCB /* CloudKitSyncObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncObserver.swift; sourceTree = "<group>"; };
 		7A3E38483010A89000801CCB /* CategoryExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryExtensions.swift; sourceTree = "<group>"; };
 		7A3E384B3010A8A000801CCB /* TransactionExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionExtensions.swift; sourceTree = "<group>"; };
 		7A3E384E3010A8A200801CCB /* TemplateTransactionExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTransactionExtensions.swift; sourceTree = "<group>"; };
@@ -989,7 +987,6 @@
 				7A043819300F3C5C00FBF257 /* WelcomeSheetFeatureRow.swift */,
 				7A04381B300F3C7500FBF257 /* DataStoreUnavailableView.swift */,
 				7A3E384430109AEF00801CCB /* LaunchBootstrapService.swift */,
-				7A3E384630109F1000801CCB /* CloudKitSyncObserver.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -1810,7 +1807,6 @@
 				7A0437DA300F35D100FBF257 /* FilteredSearchView.swift in Sources */,
 				7A0437D0300F356E00FBF257 /* SettingsRow.swift in Sources */,
 				53D6BDD42AF73CA100F5728E /* SettingsFeatureLabView.swift in Sources */,
-				7A3E384730109F1000801CCB /* CloudKitSyncObserver.swift in Sources */,
 				7A0437BA300F34E400FBF257 /* OverallToastPresenter.swift in Sources */,
 				7A0437A8300F33C000FBF257 /* WeekStepperView.swift in Sources */,
 				7A043728300F2E6D00FBF257 /* SingleMonthBarGraphView.swift in Sources */,

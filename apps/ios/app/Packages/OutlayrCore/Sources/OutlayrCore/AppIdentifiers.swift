@@ -22,10 +22,6 @@ enum AppIdentifiers {
     /// store. Rule: `"group." + bundleIdRoot`.
     static let appGroup = "group.com.tryoutlayr.app"
 
-    /// CloudKit container backing `NSPersistentCloudKitContainer`.
-    /// Rule: `"iCloud." + bundleIdRoot`.
-    static let cloudKitContainer = "iCloud.com.tryoutlayr.app"
-
     /// Deep-link URL scheme, including the `://` separator. Rule: the bare
     /// Info.plist `CFBundleURLSchemes` entry is this value with `://` stripped.
     static let urlScheme = "outlayr://"
@@ -47,10 +43,6 @@ enum AppIdentifiers {
     /// Suffix of the unit-test bundle id (`bundleIdRoot + testTargetSuffix`).
     static let testTargetSuffix = ".OutlayrTests"
 
-    /// Ubiquity key-value store identifier declared in every target's
-    /// entitlements. Rule: literal `$(TeamIdentifierPrefix)` (expanded at build
-    /// time) + `bundleIdRoot`.
-    static let ubiquityKVStore = "$(TeamIdentifierPrefix)com.tryoutlayr.app"
 }
 
 /// Typed keys for the shared `UserDefaults` suite.
