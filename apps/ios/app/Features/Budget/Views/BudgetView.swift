@@ -30,7 +30,7 @@ struct BudgetView: View {
                 Text("Link budgets to categories and set appropriate expenditure goals")
                     .font(.system(.body, design: .rounded).weight(.medium))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.SubtitleText.opacity(0.7))
+                    .foregroundStyle(Color.SubtitleText)
             }
             .padding(.horizontal, 30)
             .frame(height: 250, alignment: .top)

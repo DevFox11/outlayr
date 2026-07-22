@@ -132,12 +132,12 @@ struct TransactionHero: View {
 
             Image(systemName: "sparkle")
                 .scaledFont(12)
-                .foregroundStyle(Color.SubtitleText.opacity(0.45))
+                .foregroundStyle(Color.SubtitleText)
                 .offset(x: -tileSide / 2 - 8, y: -tileSide / 2 + 12)
 
             Image(systemName: "sparkle")
                 .scaledFont(9)
-                .foregroundStyle(Color.SubtitleText.opacity(0.45))
+                .foregroundStyle(Color.SubtitleText)
                 .offset(x: tileSide / 2 + 6, y: 8)
 
             Circle()

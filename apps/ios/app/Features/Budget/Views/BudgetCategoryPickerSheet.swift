@@ -129,7 +129,7 @@ struct BudgetCategoryPickerSheet: View {
         VStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .font(.system(.title, design: .rounded))
-                .foregroundStyle(Color.SubtitleText.opacity(0.6))
+                .foregroundStyle(Color.SubtitleText)
             Text("No categories found")
                 .font(.system(.subheadline, design: .rounded).weight(.medium))
                 .foregroundStyle(Color.SubtitleText)

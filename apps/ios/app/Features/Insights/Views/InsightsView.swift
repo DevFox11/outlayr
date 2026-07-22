@@ -51,7 +51,7 @@ struct InsightsView: View {
                 Text("As transactions start piling up")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.SubtitleText.opacity(0.7))
+                    .foregroundStyle(Color.SubtitleText)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 30)

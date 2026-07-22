@@ -82,7 +82,7 @@ struct LogView: View {
             Text("Press the plus button\nto add your first entry")
                 .font(.system(.body, design: .rounded).weight(.medium))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color.SubtitleText.opacity(0.7))
+                .foregroundStyle(Color.SubtitleText)
         }
         .padding(.horizontal, 30)
         .frame(height: 250, alignment: .top)

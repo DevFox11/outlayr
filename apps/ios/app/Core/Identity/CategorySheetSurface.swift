@@ -144,12 +144,12 @@ struct CategorySheetSurface<FormContent: View>: View {
         ZStack {
             Image(systemName: "sparkle")
                 .scaledFont(12)
-                .foregroundStyle(Color.SubtitleText.opacity(0.45))
+                .foregroundStyle(Color.SubtitleText)
                 .offset(x: -62, y: -30)
 
             Image(systemName: "sparkle")
                 .scaledFont(9)
-                .foregroundStyle(Color.SubtitleText.opacity(0.45))
+                .foregroundStyle(Color.SubtitleText)
                 .offset(x: 60, y: 8)
 
             Circle()

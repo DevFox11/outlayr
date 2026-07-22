@@ -120,7 +120,7 @@ struct BudgetEmptyStateView: View {
             sparkle(size: 9).offset(x: 108, y: -44)
             sparkle(size: 10).offset(x: 96, y: 68)
         }
-        .foregroundStyle(Color.SubtitleText.opacity(0.45))
+        .foregroundStyle(Color.SubtitleText)
     }
 
     private func sparkle(size: CGFloat) -> some View {

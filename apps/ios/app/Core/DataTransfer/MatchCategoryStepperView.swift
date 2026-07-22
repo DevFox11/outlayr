@@ -47,7 +47,7 @@ struct MatchCategoryStepperView: View {
                         .font(.system(.title, design: .rounded))
 
 //                        .font(.system(size: 28, weight: .regular, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText.opacity(0.7))
+                        .foregroundStyle(Color.SubtitleText)
                         .padding(.top, 20)
 
                     Text("No remaining\ncategories.")
@@ -55,7 +55,7 @@ struct MatchCategoryStepperView: View {
 
 //                        .font(.system(size: 16, weight: .medium, design: .rounded))
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.SubtitleText.opacity(0.7))
+                        .foregroundStyle(Color.SubtitleText)
                         .padding(.bottom, 20)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
