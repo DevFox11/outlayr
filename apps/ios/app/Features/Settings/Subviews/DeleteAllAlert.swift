@@ -20,6 +20,7 @@ struct DeleteAllAlert: View {
 
   @GestureState var isDetectingLongPress = false
   @State var completedLongPress = false
+  @State private var deleteTask: Task<Void, Never>?
 
   var longPress: some Gesture {
     LongPressGesture(minimumDuration: 2)
@@ -97,9 +98,9 @@ struct DeleteAllAlert: View {
             let impactMed = UIImpactFeedbackGenerator(style: .heavy)
             impactMed.impactOccurred()
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            deleteTask = Task {
+              try? await Task.sleep(for: .seconds(0.5))
               try? dataController.deleteAll()
-
               dismiss()
             }
           }

@@ -125,24 +125,24 @@ struct SettingsNotificationsView: View {
       case .notDetermined:
         center.requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
           if success {
-            DispatchQueue.main.async {
+            Task { @MainActor in
               showNotifications = true
               newNotification()
             }
           } else if let error {
             print(error.localizedDescription)
-            DispatchQueue.main.async { notificationsEnabled = false }
+            Task { @MainActor in notificationsEnabled = false }
           }
         }
       case .denied:
-        DispatchQueue.main.async {
+        Task { @MainActor in
           notificationsEnabled = false
           if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(settingsURL)
           }
         }
       default:
-        DispatchQueue.main.async {
+        Task { @MainActor in
           showNotifications = true
           newNotification()
         }

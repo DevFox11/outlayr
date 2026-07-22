@@ -64,6 +64,9 @@ struct ImportDataView: View {
 
     @State var showToast = false
     @State var toastMessage: String = "Invalid File"
+    @State private var toastTask: Task<Void, Never>?
+    @State private var dismissTask: Task<Void, Never>?
+    @State private var progressTask: Task<Void, Never>?
 
     @State var showingCategoryView = false
     @State var pageIndex = 0
@@ -425,10 +428,9 @@ struct ImportDataView: View {
                                     }
 
                                     columnSelectionCompleted = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        withAnimation {
-                                            progress += 1
-                                        }
+                                    progressTask = Task {
+                                        try? await Task.sleep(for: .seconds(0.5))
+                                        withAnimation { progress += 1 }
                                     }
                                 } else {
                                     progress += 1
@@ -492,14 +494,17 @@ struct ImportDataView: View {
         .animation(.easeOut(duration: 0.2), value: showToast)
         .onChange(of: showToast) { _, newValue in
             if newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                toastTask?.cancel()
+                toastTask = Task {
+                    try? await Task.sleep(for: .seconds(2))
                     showToast = false
                 }
             }
         }
         .onChange(of: processingState) { _, newValue in
             if newValue == .success {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                dismissTask = Task {
+                    try? await Task.sleep(for: .seconds(1.5))
                     dismiss()
                 }
             }

@@ -8,6 +8,7 @@ import SwiftUI
 struct ChartTimePickerView: View {
     @Namespace var animation
     @State var timeframe = ChartTimeFrame.week
+    @State private var menuTask: Task<Void, Never>?
     @Binding var showMenu: Bool
 
     @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
@@ -30,7 +31,8 @@ struct ChartTimePickerView: View {
                         withAnimation(.easeIn(duration: 0.15)) {
                             timeframe = time
                         }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        menuTask = Task {
+                            try? await Task.sleep(for: .seconds(0.4))
                             showMenu = false
                         }
                     }

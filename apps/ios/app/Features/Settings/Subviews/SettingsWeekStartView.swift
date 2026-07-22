@@ -16,6 +16,7 @@ struct SettingsWeekStartView: View {
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 
   let options = ["Sunday", "Monday"]
+  @State private var dismissTask: Task<Void, Never>?
 
   var body: some View {
     List {
@@ -45,8 +46,9 @@ struct SettingsWeekStartView: View {
   private func weekdayRow(_ title: LocalizedStringKey, tag: Int) -> some View {
     Button {
       firstWeekday = tag
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-        self.presentationMode.wrappedValue.dismiss()
+      dismissTask = Task {
+        try? await Task.sleep(for: .seconds(0.4))
+        presentationMode.wrappedValue.dismiss()
       }
     } label: {
       HStack {
@@ -70,8 +72,9 @@ struct SettingsWeekStartView: View {
   private func dayRow(_ day: Int) -> some View {
     Button {
       firstDayOfMonth = day
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-        self.presentationMode.wrappedValue.dismiss()
+      dismissTask = Task {
+        try? await Task.sleep(for: .seconds(0.4))
+        presentationMode.wrappedValue.dismiss()
       }
     } label: {
       HStack {

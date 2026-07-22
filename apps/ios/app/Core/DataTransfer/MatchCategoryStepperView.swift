@@ -15,6 +15,7 @@ struct MatchCategoryStepperView: View {
     var categories: [Category]
     var maxIndex: Int
     @Environment(\.colorScheme) private var colorScheme
+    @State private var pageTask: Task<Void, Never>?
 //
 //    @Environment(\.dynamicTypeSize) var dynamicTypeSize
 //
@@ -138,9 +139,9 @@ struct MatchCategoryStepperView: View {
                 category = categoryInput
             }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            pageTask = Task {
+                try? await Task.sleep(for: .seconds(0.6))
                 withAnimation {
-                    // remember to check for cap
                     if pageIndex < maxIndex - 1 {
                         pageIndex += 1
                     }

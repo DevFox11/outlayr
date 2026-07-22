@@ -29,6 +29,7 @@ struct HomeView: View {
 
     @State var launchAdd: Bool = false
     @State var launchSearch: Bool = false
+    @State private var urlTask: Task<Void, Never>?
 
     @State var counter = 0
 
@@ -128,7 +129,8 @@ struct HomeView: View {
         .confettiCannon(counter: $counter, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
         .onAppear {
             if appLockVM.isAppLockEnabled && fromURL1 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                urlTask = Task {
+                    try? await Task.sleep(for: .seconds(0.5))
                     launchAdd.toggle()
                 }
 
@@ -138,7 +140,8 @@ struct HomeView: View {
             if appLockVM.isAppLockEnabled && fromURL2 {
                 currentTab = "Log"
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                urlTask = Task {
+                    try? await Task.sleep(for: .seconds(0.5))
                     launchSearch.toggle()
                 }
 

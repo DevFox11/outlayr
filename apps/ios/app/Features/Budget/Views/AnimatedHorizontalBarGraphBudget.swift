@@ -20,14 +20,12 @@ struct AnimatedHorizontalBarGraphBudget: View {
 
             Spacer(minLength: 0)
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now()) {
-                if !animated {
+        .task {
+            if !animated {
+                showBar = true
+            } else {
+                withAnimation(.easeInOut(duration: 0.7)) {
                     showBar = true
-                } else {
-                    withAnimation(.easeInOut(duration: 0.7)) {
-                        showBar = true
-                    }
                 }
             }
         }

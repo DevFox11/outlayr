@@ -152,6 +152,7 @@ struct SingleBudgetView: View {
     @Environment(DataController.self) private var dataController
     @State private var offset: CGFloat = 0
     @State private var deleted: Bool = false
+    @State private var deleteTask: Task<Void, Never>?
 
     var deletePopup: Bool {
         return abs(offset) > UIScreen.main.bounds.width * 0.15
@@ -283,7 +284,8 @@ struct SingleBudgetView: View {
                                     offset -= UIScreen.main.bounds.width
                                 }
 
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                deleteTask = Task {
+                                    try? await Task.sleep(for: .seconds(0.4))
                                     withAnimation {
                                         moc.delete(budget)
                                         try? dataController.save()

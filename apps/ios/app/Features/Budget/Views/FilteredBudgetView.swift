@@ -23,29 +23,25 @@ struct FilteredBudgetView: View {
         }
         .frame(maxHeight: .infinity)
         .onAppear {
-            DispatchQueue.main.async {
-                var holding = 0.0
-                transactions.forEach { day in
+            var holding = 0.0
+            transactions.forEach { day in
 
-                    day.forEach { transaction in
-                        holding += transaction.wrappedAmount
-                    }
+                day.forEach { transaction in
+                    holding += transaction.wrappedAmount
                 }
-
-                totalSpent = holding
             }
+
+            totalSpent = holding
         }
         .onChange(of: date) { _, _ in
-            DispatchQueue.main.async {
-                var holding = 0.0
-                transactions.forEach { day in
+            var holding = 0.0
+            transactions.forEach { day in
 
-                    day.forEach { transaction in
-                        holding += transaction.wrappedAmount
-                    }
+                day.forEach { transaction in
+                    holding += transaction.wrappedAmount
                 }
-                totalSpent = holding
             }
+            totalSpent = holding
         }
     }
 

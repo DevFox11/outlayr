@@ -14,10 +14,8 @@ struct IncomeFilterToggleView: View {
     var body: some View {
         HStack(spacing: 0) {
             Button {
-                DispatchQueue.main.async {
-                    withAnimation(.easeIn(duration: 0.15)) {
-                        income = false
-                    }
+                withAnimation(.easeIn(duration: 0.15)) {
+                    income = false
                 }
             } label: {
                 Text("Expense")
@@ -39,10 +37,8 @@ struct IncomeFilterToggleView: View {
             .accessibilityAddTraits(income == false ? .isSelected : [])
 
             Button {
-                DispatchQueue.main.async {
-                    withAnimation(.easeIn(duration: 0.15)) {
-                        income = true
-                    }
+                withAnimation(.easeIn(duration: 0.15)) {
+                    income = true
                 }
             } label: {
                 Text("filter-picker-income")

@@ -16,6 +16,7 @@ struct SettingsCurrencyView: View {
   let currencies = Currency.allCurrencies
 
   @State private var searchText = ""
+  @State private var dismissTask: Task<Void, Never>?
 
   private var filteredCurrencies: [Currency] {
     guard !searchText.isEmpty else { return currencies }
@@ -67,8 +68,9 @@ struct SettingsCurrencyView: View {
     currencyCode = currency.code
     NSUbiquitousKeyValueStore.default.set(currency.code, forKey: "currency")
 
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-      self.presentationMode.wrappedValue.dismiss()
+    dismissTask = Task {
+      try? await Task.sleep(for: .seconds(0.4))
+      presentationMode.wrappedValue.dismiss()
     }
   }
 }

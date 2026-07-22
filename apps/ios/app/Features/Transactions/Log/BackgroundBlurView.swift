@@ -9,7 +9,7 @@ import SwiftUI
 struct BackgroundBlurView: UIViewRepresentable {
     func makeUIView(context _: Context) -> UIView {
         let view = UIView()
-        DispatchQueue.main.async {
+        Task {
             view.superview?.superview?.backgroundColor = .clear
         }
         return view

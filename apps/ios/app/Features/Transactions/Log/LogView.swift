@@ -57,6 +57,7 @@ struct LogView: View {
     var launchSearch: Bool
 
     @State var progress = 0.0
+    @State private var resetTask: Task<Void, Never>?
 
     var body: some View {
         if transactions.isEmpty {
@@ -105,7 +106,9 @@ struct LogView: View {
                 dataController.transactions.updateRecurringTransactions()
                 updatedRecurring = true
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
+                resetTask?.cancel()
+                resetTask = Task {
+                    try? await Task.sleep(for: .seconds(60))
                     updatedRecurring = false
                 }
             }
@@ -115,7 +118,9 @@ struct LogView: View {
                 dataController.transactions.updateRecurringTransactions()
                 updatedRecurring = true
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
+                resetTask?.cancel()
+                resetTask = Task {
+                    try? await Task.sleep(for: .seconds(60))
                     updatedRecurring = false
                 }
             } else if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {

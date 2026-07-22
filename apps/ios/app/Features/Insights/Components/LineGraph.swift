@@ -45,6 +45,7 @@ struct LineGraph: View {
 
     // Animating Graph
     @State var graphProgress: CGFloat = 0
+    @State var animationTask: Task<Void, Never>?
 
     func getGradient(totalPoints: Double, range: Double) -> Gradient {
         let centreLocation = 1 - (range - 1) / (totalPoints - 1)
@@ -204,19 +205,17 @@ struct LineGraph: View {
                 showPlot = false
             }
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 1.2)) {
-                    graphProgress = 1
-                }
+        .task {
+            try? await Task.sleep(for: .milliseconds(100))
+            withAnimation(.easeInOut(duration: 1.2)) {
+                graphProgress = 1
             }
         }
         .onChange(of: data) { _, _ in
-
-            // MARK: ReAnimating When ever Plot Data Updates
-
             graphProgress = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            animationTask?.cancel()
+            animationTask = Task {
+                try? await Task.sleep(for: .milliseconds(100))
                 withAnimation(.easeInOut(duration: 1.2)) {
                     graphProgress = 1
                 }

@@ -16,6 +16,7 @@ struct SingleTransactionView: View {
     let showExpenseOrIncomeSign: Bool
 
     @State var refreshID = UUID()
+    @State private var deleteTask: Task<Void, Never>?
 
     @Environment(\.managedObjectContext) var moc
     @Environment(DataController.self) private var dataController
@@ -108,21 +109,20 @@ struct SingleTransactionView: View {
                         }
 
                         if future, transaction.wrappedDate < Date.now, transaction.recurringType > 0 {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            deleteTask = Task {
+                                try? await Task.sleep(for: .seconds(0.4))
                                 withAnimation(.easeInOut(duration: 0.5)) {
                                     transaction.recurringType = 0
                                     try? dataController.save()
                                 }
                             }
                         } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            deleteTask = Task {
+                                try? await Task.sleep(for: .seconds(0.4))
                                 withAnimation {
                                     moc.delete(transaction)
                                     transactionManager.showToast = true
                                     transactionManager.toDelete = transaction
-//                                    transactionManager.future = future
-//                                    transactionManager.toDelete = transaction
-//                                    transactionManager.deletionType = .instant
                                 }
                             }
                         }

@@ -15,9 +15,7 @@ struct TabButton: View {
 
     var body: some View {
         Button {
-            DispatchQueue.main.async {
-                currentTab = image
-            }
+            currentTab = image
         } label: {
             Image(image)
                 .resizable()

@@ -68,10 +68,9 @@ struct SearchView: View {
         }
         .padding(15)
         .background(Color.PrimaryBackground)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                searchFieldFocused = true
-            }
+        .task {
+            try? await Task.sleep(for: .seconds(0.5))
+            searchFieldFocused = true
         }
     }
 }

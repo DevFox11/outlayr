@@ -484,7 +484,7 @@ public struct AlertToastModifier: ViewModifier {
     var onTap: (() -> Void)?
     var completion: (() -> Void)?
 
-    @State private var workItem: DispatchWorkItem?
+    @State private var displayTask: Task<Void, Never>?
 
     @ViewBuilder
     public func main() -> some View {
@@ -495,11 +495,9 @@ public struct AlertToastModifier: ViewModifier {
                     .onTapGesture {
                         onTap?()
                         if tapToDismiss {
-                            withAnimation(Animation.spring()) {
-                                self.workItem?.cancel()
-                                isPresenting = false
-                                self.workItem = nil
-                            }
+                            displayTask?.cancel()
+                            displayTask = nil
+                            withAnimation(Animation.spring()) { isPresenting = false }
                         }
                     }
                     .onDisappear(perform: {
@@ -511,11 +509,9 @@ public struct AlertToastModifier: ViewModifier {
                     .onTapGesture {
                         onTap?()
                         if tapToDismiss {
-                            withAnimation(Animation.spring()) {
-                                self.workItem?.cancel()
-                                isPresenting = false
-                                self.workItem = nil
-                            }
+                            displayTask?.cancel()
+                            displayTask = nil
+                            withAnimation(Animation.spring()) { isPresenting = false }
                         }
                     }
                     .onDisappear(perform: {
@@ -527,11 +523,9 @@ public struct AlertToastModifier: ViewModifier {
                     .onTapGesture {
                         onTap?()
                         if tapToDismiss {
-                            withAnimation(Animation.spring()) {
-                                self.workItem?.cancel()
-                                isPresenting = false
-                                self.workItem = nil
-                            }
+                            displayTask?.cancel()
+                            displayTask = nil
+                            withAnimation(Animation.spring()) { isPresenting = false }
                         }
                     }
                     .onDisappear(perform: {
@@ -590,16 +584,14 @@ public struct AlertToastModifier: ViewModifier {
         }
 
         if duration > 0 {
-            workItem?.cancel()
-
-            let task = DispatchWorkItem {
+            displayTask?.cancel()
+            displayTask = Task {
+                try? await Task.sleep(for: .seconds(duration))
                 withAnimation(Animation.spring()) {
                     isPresenting = false
-                    workItem = nil
+                    displayTask = nil
                 }
             }
-            workItem = task
-            DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: task)
         }
     }
 }

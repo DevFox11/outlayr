@@ -13,6 +13,7 @@ struct TimePickerView: View {
     @Binding var showMenu: Bool
     @Binding var timeframe: Int
     @State var holdingTimeframe = 0
+    @State private var menuTask: Task<Void, Never>?
 
     @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
@@ -37,7 +38,8 @@ struct TimePickerView: View {
 
                         timeframe = index + 1
 
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        menuTask = Task {
+                            try? await Task.sleep(for: .seconds(0.4))
                             showMenu = false
                         }
                     }

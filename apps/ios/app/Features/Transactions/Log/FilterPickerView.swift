@@ -10,6 +10,7 @@ struct FilterPickerView: View {
     @Namespace var animation1
     @Binding var filterType: FilterType
     @Binding var showMenu: Bool
+    @State private var menuTask: Task<Void, Never>?
 
     @AppStorage(DefaultsKey.colorScheme, store: AppIdentifiers.sharedDefaults) var colorScheme: Int = 0
 
@@ -31,7 +32,8 @@ struct FilterPickerView: View {
                             filterType = filter
                         }
 
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        menuTask = Task {
+                            try? await Task.sleep(for: .seconds(0.5))
                             showMenu = false
                         }
                     }

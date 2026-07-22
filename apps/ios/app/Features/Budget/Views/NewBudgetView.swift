@@ -23,6 +23,7 @@ struct NewBudgetView: View {
 
     @State private var showToast = false
     @State private var toastMessage = "Missing Amount"
+    @State private var toastTask: Task<Void, Never>?
 
     // budget type
     @State var categoryBudget = false
@@ -176,7 +177,9 @@ struct NewBudgetView: View {
             .animation(.easeOut(duration: 0.2), value: showToast)
             .onChange(of: showToast) { _, newValue in
                 if newValue {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    toastTask?.cancel()
+                    toastTask = Task {
+                        try? await Task.sleep(for: .seconds(2))
                         showToast = false
                     }
                 }
