@@ -29,25 +29,28 @@ struct SettingsCurrencyView: View {
     List {
       Section {
         ForEach(filteredCurrencies, id: \.self) { currency in
-          HStack {
-            Text(currency.code)
-              .foregroundStyle(Color.SubtitleText)
+          Button {
+            select(currency)
+          } label: {
+            HStack {
+              Text(currency.code)
+                .foregroundStyle(Color.SubtitleText)
 
-            Text(currency.name)
-              .foregroundStyle(Color.PrimaryText)
+              Text(currency.name)
+                .foregroundStyle(Color.PrimaryText)
 
-            Spacer()
+              Spacer()
 
-            if currency.code == currencyCode {
-              Image(systemName: "checkmark")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.tint)
+              if currency.code == currencyCode {
+                Image(systemName: "checkmark")
+                  .font(.body.weight(.semibold))
+                  .foregroundStyle(.tint)
+              }
             }
           }
-          .contentShape(Rectangle())
-          .onTapGesture {
-            select(currency)
-          }
+          .buttonStyle(.plain)
+          .accessibilityAddTraits(currency.code == currencyCode ? .isSelected : [])
+          .accessibilityLabel("\(currency.code), \(currency.name)")
         }
       }
     }

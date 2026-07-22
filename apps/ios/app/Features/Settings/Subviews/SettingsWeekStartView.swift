@@ -43,48 +43,52 @@ struct SettingsWeekStartView: View {
 
   @ViewBuilder
   private func weekdayRow(_ title: LocalizedStringKey, tag: Int) -> some View {
-    HStack {
-      Text(title)
-        .foregroundStyle(Color.PrimaryText)
-
-      Spacer()
-
-      if firstWeekday == tag {
-        Image(systemName: "checkmark")
-          .font(.body.weight(.semibold))
-          .foregroundStyle(.tint)
-      }
-    }
-    .contentShape(Rectangle())
-    .onTapGesture {
+    Button {
       firstWeekday = tag
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
         self.presentationMode.wrappedValue.dismiss()
       }
+    } label: {
+      HStack {
+        Text(title)
+          .foregroundStyle(Color.PrimaryText)
+
+        Spacer()
+
+        if firstWeekday == tag {
+          Image(systemName: "checkmark")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.tint)
+        }
+      }
     }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(firstWeekday == tag ? .isSelected : [])
   }
 
   @ViewBuilder
   private func dayRow(_ day: Int) -> some View {
-    HStack {
-      Text("\(getOrdinal(day)) of month")
-        .foregroundStyle(Color.PrimaryText)
-
-      Spacer()
-
-      if firstDayOfMonth == day {
-        Image(systemName: "checkmark")
-          .font(.body.weight(.semibold))
-          .foregroundStyle(.tint)
-      }
-    }
-    .contentShape(Rectangle())
-    .onTapGesture {
+    Button {
       firstDayOfMonth = day
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
         self.presentationMode.wrappedValue.dismiss()
       }
+    } label: {
+      HStack {
+        Text("\(getOrdinal(day)) of month")
+          .foregroundStyle(Color.PrimaryText)
+
+        Spacer()
+
+        if firstDayOfMonth == day {
+          Image(systemName: "checkmark")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.tint)
+        }
+      }
     }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(firstDayOfMonth == day ? .isSelected : [])
   }
 
   func getOrdinal(_ number: Int) -> String {

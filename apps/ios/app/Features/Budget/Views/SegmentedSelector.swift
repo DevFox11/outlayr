@@ -19,22 +19,25 @@ struct SegmentedSelector<T: Hashable>: View {
                 let option = options[index]
                 let selected = option.value == selection
 
-                Text(option.label)
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(selected ? Color.PrimaryBackground : Color.PrimaryText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
-                    .background {
-                        if selected {
-                            Capsule()
-                                .fill(Color.PrimaryText)
-                                .matchedGeometryEffect(id: "segmentedSelection", in: namespace)
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) { selection = option.value }
+                } label: {
+                    Text(option.label)
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(selected ? Color.PrimaryBackground : Color.PrimaryText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background {
+                            if selected {
+                                Capsule()
+                                    .fill(Color.PrimaryText)
+                                    .matchedGeometryEffect(id: "segmentedSelection", in: namespace)
+                            }
                         }
-                    }
-                    .contentShape(Capsule())
-                    .onTapGesture {
-                        withAnimation(.snappy(duration: 0.25)) { selection = option.value }
-                    }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
         .padding(4)

@@ -33,21 +33,23 @@ struct SettingsNumberEntryView: View {
 
   @ViewBuilder
   private func optionRow(_ title: LocalizedStringKey, tag: Int) -> some View {
-    HStack {
-      Text(title)
-        .foregroundStyle(Color.PrimaryText)
+    Button {
+      numberEntryType = tag
+    } label: {
+      HStack {
+        Text(title)
+          .foregroundStyle(Color.PrimaryText)
 
-      Spacer()
+        Spacer()
 
-      if numberEntryType == tag {
-        Image(systemName: "checkmark")
-          .font(.body.weight(.semibold))
-          .foregroundStyle(.tint)
+        if numberEntryType == tag {
+          Image(systemName: "checkmark")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.tint)
+        }
       }
     }
-    .contentShape(Rectangle())
-    .onTapGesture {
-      numberEntryType = tag
-    }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(numberEntryType == tag ? .isSelected : [])
   }
 }

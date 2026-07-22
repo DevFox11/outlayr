@@ -62,6 +62,7 @@ struct CustomTabBar: View {
                 }
                 .buttonStyle(MyButtonStyle())
                 .padding(15)
+                .accessibilityLabel("Add New Transaction")
             }
             .onAppear {
                 if transactions.isEmpty {
@@ -70,7 +71,6 @@ struct CustomTabBar: View {
                     }
                 }
             }
-            .accessibilityLabel("Add New Transaction")
 
             TabButton(image: "Budget", zoomed: isZoomed, currentTab: $currentTab)
 

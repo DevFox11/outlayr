@@ -47,6 +47,7 @@ struct NumberPad: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(NumPadButton())
+                        .accessibilityLabel("Delete")
                     } else {
                         Button {
                             isEditingDecimal = true
@@ -81,6 +82,7 @@ struct NumberPad: View {
                         .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(NumPadButton())
+                    .accessibilityLabel("Submit")
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)

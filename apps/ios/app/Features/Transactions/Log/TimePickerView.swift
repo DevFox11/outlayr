@@ -27,32 +27,7 @@ struct TimePickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             ForEach(timeframes.indices, id: \.self) { index in
-                HStack {
-                    Text(LocalizedStringKey(timeframes[index]))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-
-                    Spacer()
-
-                    if holdingTimeframe == index + 1 {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-//                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-//                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .padding(5)
-                .background {
-                    if holdingTimeframe == index + 1 {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
+                Button {
                     if holdingTimeframe == index + 1 {
                         showMenu = false
                     } else {
@@ -66,8 +41,33 @@ struct TimePickerView: View {
                             showMenu = false
                         }
                     }
+                } label: {
+                    HStack {
+                        Text(LocalizedStringKey(timeframes[index]))
+                            .font(.system(.body, design: .rounded).weight(.medium))
+                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+
+                        Spacer()
+
+                        if holdingTimeframe == index + 1 {
+                            Image(systemName: "checkmark")
+                                .font(.system(.footnote, design: .rounded).weight(.medium))
+                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(5)
+                    .background {
+                        if holdingTimeframe == index + 1 {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
+                                .matchedGeometryEffect(id: "TAB", in: animation)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
-                .accessibilityElement(children: .ignore)
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(holdingTimeframe == index + 1 ? .isSelected : [])
             }
         }
         .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))

@@ -52,34 +52,37 @@ struct SettingsAppIconView: View {
 
   @ViewBuilder
   private func iconRow(_ option: AppIconBundle) -> some View {
-    HStack(spacing: 13) {
-      Image(option.exampleFileName)
-        .resizable()
-        .aspectRatio(contentMode: .fill)
-        .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-
-      VStack(alignment: .leading, spacing: 3) {
-        Text(option.displayName)
-          .font(.system(.body, design: .rounded))
-          .foregroundStyle(Color.PrimaryText)
-
-        Text(option.displaySubtitle)
-          .font(.system(.caption, design: .rounded))
-          .foregroundStyle(Color.SubtitleText)
-      }
-
-      Spacer()
-
-      if activeIcon == option.actualFileName {
-        Image(systemName: "checkmark")
-          .font(.body.weight(.semibold))
-          .foregroundStyle(.tint)
-      }
-    }
-    .contentShape(Rectangle())
-    .onTapGesture {
+    Button {
       activeIcon = option.actualFileName
+    } label: {
+      HStack(spacing: 13) {
+        Image(option.exampleFileName)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .frame(width: 44, height: 44)
+          .clipShape(RoundedRectangle(cornerRadius: 10))
+          .accessibilityHidden(true)
+
+        VStack(alignment: .leading, spacing: 3) {
+          Text(option.displayName)
+            .font(.system(.body, design: .rounded))
+            .foregroundStyle(Color.PrimaryText)
+
+          Text(option.displaySubtitle)
+            .font(.system(.caption, design: .rounded))
+            .foregroundStyle(Color.SubtitleText)
+        }
+
+        Spacer()
+
+        if activeIcon == option.actualFileName {
+          Image(systemName: "checkmark")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.tint)
+        }
+      }
     }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(activeIcon == option.actualFileName ? .isSelected : [])
   }
 }

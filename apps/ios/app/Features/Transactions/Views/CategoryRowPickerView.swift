@@ -46,29 +46,34 @@ struct CategoryRowPickerView: View {
                             ScrollViewReader { value in
                                 HStack(spacing: 8) {
                                     ForEach(income ? incomeCategories : expenseCategories, id: \.self) { item in
-                                        HStack(spacing: 5) {
-                                            CategoryIconGlyph(symbol: item.displaySymbol, size: 14)
-                                            Text(item.wrappedName)
-                                                .scaledFont(17.5, weight: .medium, design: .rounded)
-                                        }
-                                        .id(item.id)
-                                        .padding(.horizontal, 10)
-                                        .frame(height: 36)
-                                        .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColor)) : Color.PrimaryText)
-                                        .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .overlay {
-                                            if selectedCategory != item {
-                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                    .strokeBorder(Color.Outline,
-                                                                  style: StrokeStyle(lineWidth: 1.5))
-                                            }
-                                        }
-                                        .onTapGesture {
+                                        Button {
                                             selectedCategory = item
                                             withAnimation {
                                                 value.scrollTo(item.id, anchor: .leading)
                                             }
+                                        } label: {
+                                            HStack(spacing: 5) {
+                                                CategoryIconGlyph(symbol: item.displaySymbol, size: 14)
+                                                Text(item.wrappedName)
+                                                    .scaledFont(17.5, weight: .medium, design: .rounded)
+                                            }
+                                            .id(item.id)
+                                            .padding(.horizontal, 10)
+                                            .frame(height: 36)
+                                            .foregroundStyle(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColor)) : Color.PrimaryText)
+                                            .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                            .overlay {
+                                                if selectedCategory != item {
+                                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                        .strokeBorder(Color.Outline,
+                                                                      style: StrokeStyle(lineWidth: 1.5))
+                                                }
+                                            }
+                                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(item.wrappedName)
+                                        .accessibilityAddTraits(selectedCategory == item ? .isSelected : [])
                                     }
                                 }
                                 .onChange(of: income) { _, newValue in
@@ -111,31 +116,26 @@ struct CategoryRowPickerView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            Group {
-                if empty {
-                    Image(systemName: "plus")
-                        .scaledFont(16, weight: .semibold, design: .rounded)
-                        .foregroundStyle(Color.SubtitleText)
-                } else {
-                    Image(systemName: "pencil")
-                        .scaledFont(16, weight: .semibold, design: .rounded)
-                        .foregroundStyle(Color.SubtitleText)
-                }
-
-//                        Text("Edit")
-//                            .font(.system(size: 17.5, weight: .semibold, design: .rounded))
-//                            .lineLimit(1)
-            }
-            .padding(.horizontal, 9)
-            .frame(height: 36)
-            .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-//                    .overlay(
-//                        RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-//                            .stroke(Color.Outline, lineWidth: 1.5)
-//                    )
-            .onTapGesture {
+            Button {
                 showCategorySheet = true
+            } label: {
+                Group {
+                    if empty {
+                        Image(systemName: "plus")
+                            .scaledFont(16, weight: .semibold, design: .rounded)
+                            .foregroundStyle(Color.SubtitleText)
+                    } else {
+                        Image(systemName: "pencil")
+                            .scaledFont(16, weight: .semibold, design: .rounded)
+                            .foregroundStyle(Color.SubtitleText)
+                    }
+                }
+                .padding(.horizontal, 9)
+                .frame(height: 36)
+                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(empty ? "Add category" : "Edit categories")
         }
         .frame(maxWidth: .infinity)
         .sheet(isPresented: $showCategorySheet) {

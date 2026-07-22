@@ -23,37 +23,7 @@ struct FilterPickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             ForEach(FilterType.allCases, id: \.self) { filter in
-                HStack {
-                    Image(systemName: FilterType.imageDictionary[filter] ?? "")
-//                        .font(.system(size: 16))
-                        .font(.system(.callout, design: .rounded).weight(.regular))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .frame(width: 20)
-                    Text(LocalizedStringKey(filter.rawValue))
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .lineLimit(1)
-                    Spacer()
-
-                    if filterType == filter {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-//                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(5)
-                .background {
-                    if filterType == filter {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
+                Button {
                     if filterType == filter {
                         showMenu = false
                     } else {
@@ -65,8 +35,38 @@ struct FilterPickerView: View {
                             showMenu = false
                         }
                     }
+                } label: {
+                    HStack {
+                        Image(systemName: FilterType.imageDictionary[filter] ?? "")
+                            .font(.system(.callout, design: .rounded).weight(.regular))
+                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                            .frame(width: 20)
+                        Text(LocalizedStringKey(filter.rawValue))
+                            .font(.system(.body, design: .rounded).weight(.medium))
+                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                            .lineLimit(1)
+                        Spacer()
+
+                        if filterType == filter {
+                            Image(systemName: "checkmark")
+                                .font(.system(.footnote, design: .rounded).weight(.medium))
+                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(5)
+                    .background {
+                        if filterType == filter {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
+                                .matchedGeometryEffect(id: "TAB", in: animation)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
-                .accessibilityElement(children: .ignore)
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(filterType == filter ? .isSelected : [])
+                .accessibilityLabel(LocalizedStringKey(filter.rawValue))
             }
         }
         .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))

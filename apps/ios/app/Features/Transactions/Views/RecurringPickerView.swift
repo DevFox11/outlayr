@@ -39,35 +39,7 @@ struct RecurringPickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             ForEach(stringArray, id: \.self) { string in
-                HStack {
-                    Text(LocalizedStringKey(string))
-                        .font(.system(.body, design: .rounded, weight: .medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .lineLimit(1)
-                    Spacer()
-
-                    if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded, weight: .medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        //                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                //                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .padding(5)
-                .background {
-                    if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(
-                                darkMode
-                                ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground")
-                            )
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
+                Button {
                     if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
                         showMenu = false
                     } else {
@@ -81,49 +53,39 @@ struct RecurringPickerView: View {
                             showMenu = false
                         }
                     }
-                }
-            }
+                } label: {
+                    HStack {
+                        Text(LocalizedStringKey(string))
+                            .font(.system(.body, design: .rounded, weight: .medium))
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                            .lineLimit(1)
+                        Spacer()
 
-            HStack {
-                if repeatCoefficient == 1 {
-                    Text("custom")
-                } else {
-                    if repeatType == 1 {
-                        Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) days"))
-                    } else if repeatType == 2 {
-                        Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) weeks"))
-                    } else if repeatType == 3 {
-                        Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) months"))
+                        if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
+                            Image(systemName: "checkmark")
+                                .font(.system(.footnote, design: .rounded, weight: .medium))
+                                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(5)
+                    .background {
+                        if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(
+                                    darkMode
+                                    ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground")
+                                )
+                                .matchedGeometryEffect(id: "TAB", in: animation)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
-
-                Spacer()
-
-                if repeatCoefficient > 1 {
-                    Image(systemName: "checkmark")
-                        .font(.system(.footnote, design: .rounded, weight: .medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                    //                        .font(.system(size: 14, weight: .medium))
-                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 ? .isSelected : [])
             }
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .font(.system(.body, design: .rounded, weight: .medium))
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            //            .font(.system(size: 18, weight: .medium, design: .rounded))
-            .padding(5)
-            .background {
-                if repeatCoefficient > 1 {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(
-                            darkMode
-                            ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground")
-                        )
-                        .matchedGeometryEffect(id: "TAB", in: animation)
-                }
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
+
+            Button {
                 if repeatCoefficient == 1 {
                     repeatCoefficient = 2
                     repeatType = 2
@@ -135,7 +97,47 @@ struct RecurringPickerView: View {
                 withAnimation {
                     showPicker = true
                 }
+            } label: {
+                HStack {
+                    if repeatCoefficient == 1 {
+                        Text("custom")
+                    } else {
+                        if repeatType == 1 {
+                            Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) days"))
+                        } else if repeatType == 2 {
+                            Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) weeks"))
+                        } else if repeatType == 3 {
+                            Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) months"))
+                        }
+                    }
+
+                    Spacer()
+
+                    if repeatCoefficient > 1 {
+                        Image(systemName: "checkmark")
+                            .font(.system(.footnote, design: .rounded, weight: .medium))
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    }
+                }
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .font(.system(.body, design: .rounded, weight: .medium))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .padding(5)
+                .background {
+                    if repeatCoefficient > 1 {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(
+                                darkMode
+                                ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground")
+                            )
+                            .matchedGeometryEffect(id: "TAB", in: animation)
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(repeatCoefficient > 1 ? .isSelected : [])
             .onChange(of: showPicker) { _, newValue in
                 // holdingType != repeatType || holdingCoefficient != repeatCoefficient
                 if !newValue {

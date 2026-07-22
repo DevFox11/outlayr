@@ -23,39 +23,41 @@ struct ChartTimePickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             ForEach(ChartTimeFrame.allCases, id: \.self) { time in
-                HStack {
-                    Text(LocalizedStringKey(time.rawValue))
-                    Spacer()
-
-                    if time == timeframe {
-                        Image(systemName: "checkmark")
-                            .scaledFont(14, weight: .medium)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .scaledFont(18, weight: .medium, design: .rounded)
-                .padding(5)
-                .background {
-                    if time == timeframe {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
+                Button {
                     if timeframe == time {
                         showMenu = false
                     } else {
                         withAnimation(.easeIn(duration: 0.15)) {
                             timeframe = time
                         }
-
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                             showMenu = false
                         }
                     }
+                } label: {
+                    HStack {
+                        Text(LocalizedStringKey(time.rawValue))
+                        Spacer()
+
+                        if time == timeframe {
+                            Image(systemName: "checkmark")
+                                .scaledFont(14, weight: .medium)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .scaledFont(18, weight: .medium, design: .rounded)
+                    .padding(5)
+                    .background {
+                        if time == timeframe {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
+                                .matchedGeometryEffect(id: "TAB", in: animation)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(time == timeframe ? .isSelected : [])
             }
         }
         .foregroundStyle(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))

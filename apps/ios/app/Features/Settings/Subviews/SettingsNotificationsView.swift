@@ -35,11 +35,15 @@ struct SettingsNotificationsView: View {
           optionRow("Every evening (8:00 PM)", tag: 2)
 
           HStack {
-            Text("Custom Time")
-              .foregroundStyle(Color.PrimaryText)
-
+            Button {
+              option = 3
+            } label: {
+              Text("Custom Time")
+                .foregroundStyle(Color.PrimaryText)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(option == 3 ? .isSelected : [])
             Spacer()
-
             if option == 3 {
               DatePicker(
                 "Custom notification time", selection: $customTime,
@@ -47,10 +51,6 @@ struct SettingsNotificationsView: View {
               )
               .labelsHidden()
             }
-          }
-          .contentShape(Rectangle())
-          .onTapGesture {
-            option = 3
           }
         }
         .onChange(of: option) { _, newValue in
@@ -93,22 +93,24 @@ struct SettingsNotificationsView: View {
 
   @ViewBuilder
   private func optionRow(_ title: LocalizedStringKey, tag: Int) -> some View {
-    HStack {
-      Text(title)
-        .foregroundStyle(Color.PrimaryText)
+    Button {
+      option = tag
+    } label: {
+      HStack {
+        Text(title)
+          .foregroundStyle(Color.PrimaryText)
 
-      Spacer()
+        Spacer()
 
-      if option == tag {
-        Image(systemName: "checkmark")
-          .font(.body.weight(.semibold))
-          .foregroundStyle(.tint)
+        if option == tag {
+          Image(systemName: "checkmark")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.tint)
+        }
       }
     }
-    .contentShape(Rectangle())
-    .onTapGesture {
-      option = tag
-    }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(option == tag ? .isSelected : [])
   }
 
   private func setNotifications(enabled: Bool) {
