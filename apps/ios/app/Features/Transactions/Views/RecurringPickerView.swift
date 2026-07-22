@@ -103,11 +103,11 @@ struct RecurringPickerView: View {
                         Text("custom")
                     } else {
                         if repeatType == 1 {
-                            Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) days"))
+                            Text(String(localized: "\(repeatCoefficient) days"))
                         } else if repeatType == 2 {
-                            Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) weeks"))
+                            Text(String(localized: "\(repeatCoefficient) weeks"))
                         } else if repeatType == 3 {
-                            Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) months"))
+                            Text(String(localized: "\(repeatCoefficient) months"))
                         }
                     }
 

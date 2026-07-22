@@ -1,0 +1,808 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%.2f" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
+    "%@0 %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@0 %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld days left" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "1 day left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld days left"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "0 days left"
+                }
+              }
+            }
+          }
+        },
+        "es-419" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld día restante"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld días restantes"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld días restantes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld hours left" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "1 hour left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld hours left"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Empty"
+                }
+              }
+            }
+          }
+        },
+        "es-419" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld hora restante"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld horas restantes"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld horas restantes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+
+    },
+    "%lld%% spent" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld%% gastado"
+          }
+        }
+      }
+    },
+    "•" : {
+
+    },
+    "0" : {
+
+    },
+    "A convenient button to log new purchases." : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Un práctico botón para registrar nuevas compras."
+          }
+        }
+      }
+    },
+    "ADD\nBUDGET" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "AGREGAR\nPRESUPUESTO"
+          }
+        }
+      }
+    },
+    "ADD OVERALL BUDGET" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "AGREGAR PRESUPUESTO GENERAL"
+          }
+        }
+      }
+    },
+    "An unknown error occurred: %@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocurrió un error desconocido: %@"
+          }
+        }
+      }
+    },
+    "Analyse your expenditure breakdowns over various time periods." : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Analiza el desglose de tus gastos en distintos períodos de tiempo."
+          }
+        }
+      }
+    },
+    "Budget" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Presupuesto"
+          }
+        }
+      }
+    },
+    "Budget no longer exists" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El presupuesto ya no existe"
+          }
+        }
+      }
+    },
+    "Budget no longer exists - please select new budget from widget options." : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El presupuesto ya no existe. Selecciona uno nuevo en las opciones del widget."
+          }
+        }
+      }
+    },
+    "BUDGET NO LONGER EXISTS - SELECT NEW BUDGET IN WIDGET OPTIONS" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "EL PRESUPUESTO YA NO EXISTE - SELECCIONAR NUEVO PRESUPUESTO EN OPCIONES DEL WIDGET"
+          }
+        }
+      }
+    },
+    "Budget Widget Configuration" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Configuración del widget de presupuesto"
+          }
+        }
+      }
+    },
+    "Category" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Categoría"
+          }
+        }
+      }
+    },
+    "Category breakdown" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Desglose por categoría"
+          }
+        }
+      }
+    },
+    "Category not found" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Categoría no encontrada"
+          }
+        }
+      }
+    },
+    "Couldn't save to CoreData" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo guardar en CoreData"
+          }
+        }
+      }
+    },
+    "Create your overall budget in the app" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea tu presupuesto general en la app"
+          }
+        }
+      }
+    },
+    "Day" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Día"
+          }
+        }
+      }
+    },
+    "earned" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ganado"
+          }
+        }
+      }
+    },
+    "EARNED " : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "GANADO "
+          }
+        }
+      }
+    },
+    "Expenses" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gastos"
+          }
+        }
+      }
+    },
+    "in %@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "en %@"
+          }
+        }
+      }
+    },
+    "Income" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ingreso"
+          }
+        }
+      }
+    },
+    "Insights" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Estadísticas"
+          }
+        }
+      }
+    },
+    "Insights Time Period" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Período de tiempo de estadísticas"
+          }
+        }
+      }
+    },
+    "Insights Type" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tipo de estadísticas"
+          }
+        }
+      }
+    },
+    "Insights Widget Configuration" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Configuración del widget de estadísticas"
+          }
+        }
+      }
+    },
+    "left" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "restante"
+          }
+        }
+      }
+    },
+    "left %@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "restante %@"
+          }
+        }
+      }
+    },
+    "Monitor how you are sticking to your budgets." : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Controla cómo vas cumpliendo con tus presupuestos."
+          }
+        }
+      }
+    },
+    "Monitor how you are sticking to your overall budgets." : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Controla cómo vas cumpliendo con tus presupuestos generales."
+          }
+        }
+      }
+    },
+    "Month" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mes"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nombre"
+          }
+        }
+      }
+    },
+    "net" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "neto"
+          }
+        }
+      }
+    },
+    "Net Total" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Total neto"
+          }
+        }
+      }
+    },
+    "New Expense" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo gasto"
+          }
+        }
+      }
+    },
+    "NO BUDGET" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SIN PRESUPUESTO"
+          }
+        }
+      }
+    },
+    "No category with an ID matching: %@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se encontró una categoría con el ID: %@"
+          }
+        }
+      }
+    },
+    "NO RECENT EXPENSES" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SIN GASTOS RECIENTES"
+          }
+        }
+      }
+    },
+    "NO TRANSACTIONS\n%@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SIN TRANSACCIONES\n%@"
+          }
+        }
+      }
+    },
+    "over" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "excedido"
+          }
+        }
+      }
+    },
+    "over %@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "excedido %@"
+          }
+        }
+      }
+    },
+    "Overall Budget" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Presupuesto general"
+          }
+        }
+      }
+    },
+    "Percent Spent" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Porcentaje gastado"
+          }
+        }
+      }
+    },
+    "RECENT EXPENSES" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "GASTOS RECIENTES"
+          }
+        }
+      }
+    },
+    "Recent Transactions" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Transacciones recientes"
+          }
+        }
+      }
+    },
+    "Recent Widget Configuration" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Configuración del widget de transacciones recientes"
+          }
+        }
+      }
+    },
+    "SELECT BUDGET" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SELECCIONAR PRESUPUESTO"
+          }
+        }
+      }
+    },
+    "Select budget in widget options" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Seleccionar presupuesto en las opciones del widget"
+          }
+        }
+      }
+    },
+    "SELECT BUDGET IN WIDGET OPTIONS" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SELECCIONAR PRESUPUESTO EN OPCIONES DEL WIDGET"
+          }
+        }
+      }
+    },
+    "spent" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "gastado"
+          }
+        }
+      }
+    },
+    "SPENT " : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "GASTADO "
+          }
+        }
+      }
+    },
+    "SPENT: %@" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "GASTADO: %@"
+          }
+        }
+      }
+    },
+    "Storage unavailable" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Almacenamiento no disponible"
+          }
+        }
+      }
+    },
+    "this month" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "este mes"
+          }
+        }
+      }
+    },
+    "THIS MONTH" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ESTE MES"
+          }
+        }
+      }
+    },
+    "this week" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "esta semana"
+          }
+        }
+      }
+    },
+    "THIS WEEK" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ESTA SEMANA"
+          }
+        }
+      }
+    },
+    "this year" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "este año"
+          }
+        }
+      }
+    },
+    "THIS YEAR" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ESTE AÑO"
+          }
+        }
+      }
+    },
+    "Time Period" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Período de tiempo"
+          }
+        }
+      }
+    },
+    "today" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "hoy"
+          }
+        }
+      }
+    },
+    "Total Expenditure" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gasto Total"
+          }
+        }
+      }
+    },
+    "Total Income" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ingreso Total"
+          }
+        }
+      }
+    },
+    "View your latest expenses." : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Consulta tus gastos más recientes."
+          }
+        }
+      }
+    },
+    "Week" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Semana"
+          }
+        }
+      }
+    },
+    "Year" : {
+      "localizations" : {
+        "es-419" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Año"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}
