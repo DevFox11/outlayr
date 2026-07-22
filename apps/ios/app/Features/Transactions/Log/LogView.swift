@@ -22,8 +22,7 @@ struct LogView: View {
 
     @AppStorage(DefaultsKey.logInsightsTimeFrame, store: AppIdentifiers.sharedDefaults) private var timeframe = 2
 
-    @State private var searchQuery = ""
-    @State private var searchPresented = false
+    @State private var showingSearch = false
 
     @State var filter = FilterType.all
 
@@ -52,16 +51,16 @@ struct LogView: View {
                         .navigationTitle("Log")
                         .navigationBarTitleDisplayMode(.large)
                         .navigationSubtitleIfAvailable(subtitle)
-                        .toolbar { filterMenu }
-                        .searchable(
-                            text: $searchQuery,
-                            isPresented: $searchPresented,
-                            placement: .navigationBarDrawer(displayMode: .always),
-                            prompt: "Search entry by note"
-                        )
+                        .toolbar {
+                            searchButton
+                            filterMenu
+                        }
                 }
             }
             .background(Color.PrimaryBackground)
+            .navigationDestination(isPresented: $showingSearch) {
+                SearchView(bottomEdge: bottomEdge)
+            }
         }
         .task {
             for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
@@ -78,7 +77,7 @@ struct LogView: View {
             }
         }
         .onChange(of: launchSearch) { _, _ in
-            searchPresented = true
+            showingSearch = true
         }
         .onAppear {
             dataController.transactions.updateRecurringTransactions()
@@ -87,54 +86,59 @@ struct LogView: View {
             guard url.host == "search" else {
                 return
             }
-            searchPresented = true
+            showingSearch = true
         }
     }
 
     @ViewBuilder
     private var log: some View {
         ScrollView(showsIndicators: false) {
-            if searchQuery.isEmpty {
-                if filter == .all {
-                    LogInsightsView(showCents: showCents)
-                } else {
-                    LogFilterChipRow(
-                        filter: filter,
-                        detail: filterDetail,
-                        categoryFilter: $categoryFilter,
-                        cursor: cursorBinding,
-                        income: $income
-                    ) {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            filter = .all
-                        }
+            if filter == .all {
+                LogInsightsView(showCents: showCents)
+            } else {
+                LogFilterChipRow(
+                    filter: filter,
+                    detail: filterDetail,
+                    categoryFilter: $categoryFilter,
+                    cursor: cursorBinding,
+                    income: $income
+                ) {
+                    withAnimation(.easeIn(duration: 0.15)) {
+                        filter = .all
                     }
                 }
-
-                // The period filters fetch on an exact day, or on a week's or
-                // month's first instant, so the cursor is normalized here rather
-                // than trusted: an un-normalized one returns an empty screen.
-                TransactionsList(
-                    filter: filter,
-                    category: categoryFilter,
-                    date: normalized(dateFilter, as: .day),
-                    week: normalized(weekFilter, as: .week),
-                    month: normalized(monthFilter, as: .month),
-                    income: income
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 6)
-                .padding(.bottom, 70 + bottomEdge)
-            } else {
-                FilteredSearchView(searchQuery: searchQuery)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 70 + bottomEdge)
             }
+
+            // The period filters fetch on an exact day, or on a week's or
+            // month's first instant, so the cursor is normalized here rather
+            // than trusted: an un-normalized one returns an empty screen.
+            TransactionsList(
+                filter: filter,
+                category: categoryFilter,
+                date: normalized(dateFilter, as: .day),
+                week: normalized(weekFilter, as: .week),
+                month: normalized(monthFilter, as: .month),
+                income: income
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 70 + bottomEdge)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ToolbarContentBuilder
+    private var searchButton: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                showingSearch = true
+            } label: {
+                ToolbarIcon("search-01")
+            }
+            .accessibilityLabel(String(localized: "accessibility.search"))
+        }
+    }
+
     private var filterMenu: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
