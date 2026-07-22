@@ -1,11 +1,3 @@
-//
-//  RoundedCorner.swift
-//  Outlayr
-//
-//  Created by Rafael Soh on 21/8/23.
-//
-
-import Foundation
 import SwiftUI
 import UIKit
 
