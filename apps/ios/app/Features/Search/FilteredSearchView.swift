@@ -15,24 +15,7 @@ struct FilteredSearchView: View {
     var body: some View {
         VStack {
             if searchQuery != "" && transactions.count == 0 {
-                VStack(spacing: 2) {
-                    Text("📭️")
-                        .scaledFont(50)
-                        .padding(.bottom, 15)
-                    Text("No entries found.")
-                        .font(.system(.title3, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.PrimaryText)
-                    Text("Try a different search query!")
-                        .font(.system(.subheadline, design: .rounded).weight(.regular))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 14, weight: .regular, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText)
-                }
-                .frame(alignment: .center)
-                .opacity(0.8)
-                .padding(.top, 80)
+                SearchEmptyState(kind: .noResults(query: searchQuery))
             }
 
             ListView(transactions: _transactions)

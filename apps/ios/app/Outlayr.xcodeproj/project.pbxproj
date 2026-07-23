@@ -358,6 +358,7 @@
 		813AF8E637C3EB4E4A99FBAA /* LogPeriodCursorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD421367CB970450B81D2805 /* LogPeriodCursorTests.swift */; };
 		81CC0138D8438F1D2A58655F /* TransactionPhotoLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2687BB5EA78AF229EF0569A0 /* TransactionPhotoLoadTests.swift */; };
 		8419A844FE27EE39A3F0F47F /* RecurringCadence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7AAAE440146815E16958A8 /* RecurringCadence.swift */; };
+		8422723C22B7B30AD87A20D5 /* SearchEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9C0CC3ABDCB441B564B79 /* SearchEmptyState.swift */; };
 		86F6957EA6AC7F48F1627DC3 /* RecurringTransactionCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30697D29401F24D308BF5EBC /* RecurringTransactionCharacterizationTests.swift */; };
 		88CDE7AE4B39BEC6E3C95B62 /* CharacterizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E685475FDD299625B011B0E2 /* CharacterizationSupport.swift */; };
 		89566659E8FCC68B5825C501 /* AmountEntryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E09A2E6FE5DA1E5BA0D3C7D2 /* AmountEntryModelTests.swift */; };
@@ -449,6 +450,7 @@
 
 /* Begin PBXFileReference section */
 		01005D4218715EB2BB08B306 /* CurrencyAmountFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyAmountFormatter.swift; sourceTree = "<group>"; };
+		06E9C0CC3ABDCB441B564B79 /* SearchEmptyState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchEmptyState.swift; sourceTree = "<group>"; };
 		0BDC8E41E49D3FE803886005 /* OutlayrTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OutlayrTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0ECECAA1CC798CE87A1DB4D1 /* TransactionGlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TransactionGlowTests.swift; sourceTree = "<group>"; };
 		105B29C59F97192B61645609 /* CurrencyTotals.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CurrencyTotals.swift; sourceTree = "<group>"; };
@@ -1359,6 +1361,7 @@
 			children = (
 				7A0437D9300F35D100FBF257 /* FilteredSearchView.swift */,
 				3EC275282B28A123A12A09CE /* SearchView.swift */,
+				06E9C0CC3ABDCB441B564B79 /* SearchEmptyState.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -2045,6 +2048,7 @@
 				E6183BFE0B2E74EBB18C14EE /* NavigationSubtitleModifier.swift in Sources */,
 				D18ACA5E8864CA265F0040BB /* SearchView.swift in Sources */,
 				FC58BEA9332A802127DE6D7F /* HugeiconGlyph.swift in Sources */,
+				8422723C22B7B30AD87A20D5 /* SearchEmptyState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

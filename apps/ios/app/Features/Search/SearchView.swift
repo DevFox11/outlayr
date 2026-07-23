@@ -20,7 +20,7 @@ struct SearchView: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 if searchQuery.isEmpty {
-                    idleState
+                    SearchEmptyState(kind: .idle)
                 } else {
                     FilteredSearchView(searchQuery: searchQuery)
                         .padding(.horizontal, 10)
@@ -44,18 +44,4 @@ struct SearchView: View {
         }
     }
 
-    private var idleState: some View {
-        VStack(spacing: 12) {
-            MonoLabel(verbatim: String(localized: "SEARCH"))
-
-            Text("Find an entry by its note.")
-                .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(Color.SubtitleText)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 280)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 32)
-        .padding(.top, 80)
-    }
 }
