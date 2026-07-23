@@ -160,6 +160,26 @@ struct TransactionRepositoryTests {
         #expect(total.isMultiCurrency == false)
     }
 
+    @Test("the today window excludes transactions from earlier days")
+    func logView_today_excludesEarlierDays() {
+        // fetchRequestForLogView anchors the window to the wall clock (Date.now),
+        // not the injected fixture clock, so this seeds relative to now. Every
+        // other Log-window test uses all-time (type 5), which is why a broken
+        // day/week/month window shipped unnoticed.
+        let f = RepositoryFixture()
+        let now = Date()
+
+        f.makeTransaction(amount: 10, date: now.addingTimeInterval(-60), income: false)
+        f.makeTransaction(amount: 999, date: now.addingTimeInterval(-2 * 24 * 3600), income: false)
+        f.save()
+
+        let today = f.controller.transactions.getLogViewTotalSpent(type: 1)
+        let allTime = f.controller.transactions.getLogViewTotalSpent(type: 5)
+
+        #expect(abs(today.dominant.amount - 10) < 0.001)
+        #expect(abs(allTime.dominant.amount - 1009) < 0.001)
+    }
+
     @Test("getLogViewTotalIncome sums only income transactions across all time")
     func logView_totalIncome_allTime() {
         let f = RepositoryFixture()
