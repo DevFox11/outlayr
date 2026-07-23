@@ -1,15 +1,6 @@
 {
-  "originHash" : "b6d9b70e9b0f04a1875bd571e5dac44cdb97c4dafeb0410bdf50747b87406068",
+  "originHash" : "d44c34bf80b2d31f4eeb86686db5c37ba84d7a89fa16bc09c8367bb05757e88a",
   "pins" : [
-    {
-      "identity" : "cloudkitsyncmonitor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ggruen/CloudKitSyncMonitor.git",
-      "state" : {
-        "revision" : "8f8de8e71928df27bf023cc6ed808a8b6270a0d3",
-        "version" : "1.2.1"
-      }
-    },
     {
       "identity" : "confettiswiftui",
       "kind" : "remoteSourceControl",
