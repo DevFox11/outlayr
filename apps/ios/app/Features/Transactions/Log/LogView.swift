@@ -61,8 +61,8 @@ struct LogView: View {
                 }
             }
             .background(Color.PrimaryBackground)
-            .navigationDestination(isPresented: $showingSearch) {
-                SearchView(bottomEdge: bottomEdge)
+            .sheet(isPresented: $showingSearch) {
+                SearchView()
             }
         }
         .task {
@@ -203,7 +203,6 @@ struct LogView: View {
         let periodKey = LogPeriod(storedValue: timeframe).titleKey
 
         return LogSubtitle(
-            filter: filter,
             period: String(localized: String.LocalizationValue(stringLiteral: periodKey)),
             detail: filterDetail
         ).text
