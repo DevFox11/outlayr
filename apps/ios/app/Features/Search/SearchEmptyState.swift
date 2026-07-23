@@ -5,10 +5,6 @@
 
 import SwiftUI
 
-/// The two things the search screen shows when the list is empty: before a
-/// query, and after one that matched nothing. Both use the Grid empty-state
-/// grammar — a hairline mark with one solid stroke, a title, and a subtitle —
-/// so they read as one screen rather than two borrowed illustrations.
 struct SearchEmptyState: View {
     enum Kind: Equatable {
         case idle
@@ -29,13 +25,13 @@ struct SearchEmptyState: View {
         case .idle:
             String(localized: "Find an entry by its note, category, or amount.")
         case let .noResults(query):
-            String(localized: "No entry matches “\(query)”.")
+            String(localized: "No entry matches \u{201C}\(query)\u{201D}.")
         }
     }
 
     var body: some View {
         VStack(spacing: 14) {
-            SearchMark(found: kind == .idle)
+            mark
                 .padding(.bottom, 6)
 
             Text(verbatim: title)
@@ -53,16 +49,23 @@ struct SearchEmptyState: View {
         .padding(.horizontal, 32)
         .padding(.top, 80)
     }
+
+    @ViewBuilder
+    private var mark: some View {
+        switch kind {
+        case .idle:
+            SearchIdleMark()
+        case .noResults:
+            SearchNoResultsMark()
+        }
+    }
 }
 
-/// The Log's ledger page with a magnifier held over it — the app's own motif,
-/// not a generic glass. The hairlines draw the page and its rows; the one solid
-/// accent is the magnifier. When there is a match the framed row carries an
-/// entry; when there is not, the lens sits over a blank line.
-private struct SearchMark: View {
-    let found: Bool
-
-    @ScaledMetric(relativeTo: .largeTitle) private var side: CGFloat = 104
+/// A large magnifier held over the ledger — the promise of what search will
+/// surface. Five hairline rows are visible through the glass; the faint middle
+/// stroke is the ghost of an entry waiting to be found.
+private struct SearchIdleMark: View {
+    @ScaledMetric(relativeTo: .largeTitle) private var side: CGFloat = 120
 
     var body: some View {
         Canvas { context, size in
@@ -72,7 +75,7 @@ private struct SearchMark: View {
             let h = size.height
 
             let lensCenter = CGPoint(x: w * 0.42, y: h * 0.40)
-            let lensRadius = w * 0.32
+            let lensRadius = w * 0.34
             let lensRect = CGRect(
                 x: lensCenter.x - lensRadius,
                 y: lensCenter.y - lensRadius,
@@ -80,52 +83,96 @@ private struct SearchMark: View {
                 height: lensRadius * 2
             )
 
-            // The ledger lives inside the glass: ruled rows and a gutter, clipped
-            // to the lens so they read as paper seen through it. The middle row
-            // is a bold entry when there is a match, blank when there is not.
+            // Subtle glass tint so the lens reads as a surface
+            context.fill(Path(ellipseIn: lensRect), with: .color(ink.opacity(0.04)))
+
+            // Ledger rows and gutter, clipped inside the lens
             var glass = context
             glass.clip(to: Path(ellipseIn: lensRect))
 
-            let rowGap = lensRadius * 0.44
-            let gutterX = lensCenter.x - lensRadius * 0.36
-            var rules = Path()
-            for offset in [-1.0, 0.0, 1.0] {
-                let y = lensCenter.y + rowGap * offset
-                rules.move(to: CGPoint(x: lensCenter.x - lensRadius, y: y))
-                rules.addLine(to: CGPoint(x: lensCenter.x + lensRadius, y: y))
+            let rowCount = 5
+            let rowTop = lensCenter.y - lensRadius * 0.78
+            let rowBottom = lensCenter.y + lensRadius * 0.78
+            let rowGap = (rowBottom - rowTop) / CGFloat(rowCount - 1)
+            let gutterX = lensCenter.x - lensRadius * 0.30
+
+            var rows = Path()
+            for i in 0 ..< rowCount {
+                let y = rowTop + rowGap * CGFloat(i)
+                rows.move(to: CGPoint(x: lensCenter.x - lensRadius, y: y))
+                rows.addLine(to: CGPoint(x: lensCenter.x + lensRadius, y: y))
             }
-            rules.move(to: CGPoint(x: gutterX, y: lensCenter.y - lensRadius))
-            rules.addLine(to: CGPoint(x: gutterX, y: lensCenter.y + lensRadius))
-            glass.stroke(rules, with: .color(rule), lineWidth: 1)
+            rows.move(to: CGPoint(x: gutterX, y: lensCenter.y - lensRadius))
+            rows.addLine(to: CGPoint(x: gutterX, y: lensCenter.y + lensRadius))
+            glass.stroke(rows, with: .color(rule), lineWidth: 1)
 
-            if found {
-                var entry = Path()
-                entry.move(to: CGPoint(x: gutterX + lensRadius * 0.18, y: lensCenter.y))
-                entry.addLine(to: CGPoint(x: lensCenter.x + lensRadius * 0.72, y: lensCenter.y))
-                glass.stroke(entry, with: .color(ink), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            // Ghost entry centred on the middle row — the find waiting to happen
+            let midY = rowTop + rowGap * 2
+            var entry = Path()
+            entry.move(to: CGPoint(x: gutterX + lensRadius * 0.14, y: midY))
+            entry.addLine(to: CGPoint(x: lensCenter.x + lensRadius * 0.68, y: midY))
+            glass.stroke(entry, with: .color(ink.opacity(0.42)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
 
-                let dotRadius = lensRadius * 0.09
-                let dot = CGPoint(x: gutterX - lensRadius * 0.16, y: lensCenter.y)
-                glass.fill(
-                    Path(ellipseIn: CGRect(
-                        x: dot.x - dotRadius, y: dot.y - dotRadius,
-                        width: dotRadius * 2, height: dotRadius * 2
-                    )),
-                    with: .color(ink)
-                )
-            }
-
-            // The rim and handle, on top, in the app's one-bold-accent grammar.
+            // Lens rim — the one solid accent
             context.stroke(Path(ellipseIn: lensRect), with: .color(ink), lineWidth: 2.5)
 
+            // Handle
             let diagonal = CGPoint(x: 0.707, y: 0.707)
             var handle = Path()
             handle.move(to: CGPoint(
                 x: lensCenter.x + diagonal.x * lensRadius,
                 y: lensCenter.y + diagonal.y * lensRadius
             ))
-            handle.addLine(to: CGPoint(x: w * 0.9, y: h * 0.9))
+            handle.addLine(to: CGPoint(x: w * 0.91, y: h * 0.91))
             context.stroke(handle, with: .color(ink), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+        }
+        .frame(width: side, height: side)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The same ledger page searched — but with a single diagonal strike through
+/// it. The page structure is immediately recognisable; the diagonal is the one
+/// mark that says there is nothing to find here.
+private struct SearchNoResultsMark: View {
+    @ScaledMetric(relativeTo: .largeTitle) private var side: CGFloat = 96
+
+    var body: some View {
+        Canvas { context, size in
+            let rule = Color.Outline
+            let ink = Color.PrimaryText
+            let inset: CGFloat = 0.5
+            let page = CGRect(origin: .zero, size: size).insetBy(dx: inset, dy: inset)
+
+            // Page outline
+            context.stroke(
+                Path(roundedRect: page, cornerRadius: size.width * 0.09),
+                with: .color(rule),
+                lineWidth: 1
+            )
+
+            // Hairline rows and gutter
+            let rowCount = 4
+            let top = page.minY + page.height * 0.26
+            let spacing = (page.maxY - top) / CGFloat(rowCount)
+            let gutter = page.minX + page.width * 0.28
+
+            var lines = Path()
+            for row in 0 ..< rowCount {
+                let y = top + spacing * CGFloat(row)
+                lines.move(to: CGPoint(x: page.minX, y: y))
+                lines.addLine(to: CGPoint(x: page.maxX, y: y))
+            }
+            lines.move(to: CGPoint(x: gutter, y: top))
+            lines.addLine(to: CGPoint(x: gutter, y: page.maxY))
+            context.stroke(lines, with: .color(rule), lineWidth: 1)
+
+            // Diagonal strike — the single bold accent that means "not found"
+            let pad = page.width * 0.10
+            var strike = Path()
+            strike.move(to: CGPoint(x: page.minX + pad, y: page.minY + pad))
+            strike.addLine(to: CGPoint(x: page.maxX - pad, y: page.maxY - pad))
+            context.stroke(strike, with: .color(ink), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
         }
         .frame(width: side, height: side)
         .accessibilityHidden(true)
