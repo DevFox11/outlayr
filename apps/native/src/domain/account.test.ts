@@ -7,6 +7,7 @@ import {
 	accountLabel,
 	accountRowValue,
 	isSignInCancellation,
+	signInFailureDetail,
 	signInFailureMessage,
 } from "./account";
 
@@ -89,11 +90,21 @@ describe("sign-in failure message", () => {
 		);
 	});
 
-	it("carries the server's own wording when there is one", () => {
+	it("never shows the provider's own wording, which is developer-facing", () => {
+		// Verbatim from a simulator with no Apple account signed in.
+		const raw =
+			"RequestUnknownException: The authorization attempt failed for an unknown reason (at ExpoAppleAuthentication/AppleAuthenticationExceptions.swift:61)";
+		const shown = signInFailureMessage({ message: raw }, t);
+		assert.notEqual(shown, raw);
+		assert.doesNotMatch(shown, /Exception|\.swift|at Expo/);
+	});
+
+	it("keeps the provider's wording available for a log line", () => {
 		assert.equal(
-			signInFailureMessage({ message: "Account already linked" }, t),
+			signInFailureDetail({ message: "Account already linked" }),
 			"Account already linked",
 		);
+		assert.equal(signInFailureDetail({}), null);
 	});
 
 	it("never renders an empty or undefined string", () => {

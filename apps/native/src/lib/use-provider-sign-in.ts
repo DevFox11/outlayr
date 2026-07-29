@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { isSignInCancellation, signInFailureMessage } from "@/domain/account";
+import {
+	isSignInCancellation,
+	signInFailureDetail,
+	signInFailureMessage,
+} from "@/domain/account";
 import { useTranslation } from "@/i18n";
 import type { authClient } from "@/lib/auth-client";
 
@@ -41,11 +45,16 @@ export function useProviderSignIn(client: AuthClient): ProviderSignIn {
 					provider,
 				});
 				if (rejection) {
+					console.warn(
+						"[outlayr] sign-in rejected",
+						signInFailureDetail(rejection),
+					);
 					setError(signInFailureMessage(rejection, t));
 				}
 			})
 			.catch((cause: unknown) => {
 				if (!isSignInCancellation(cause)) {
+					console.warn("[outlayr] sign-in failed", signInFailureDetail(cause));
 					setError(signInFailureMessage(cause, t));
 				}
 			})

@@ -56,16 +56,28 @@ export function isSignInCancellation(error: unknown): boolean {
 	return code !== null && CANCELLATION_CODES.has(code);
 }
 
+/**
+ * Provider messages are developer-facing, not user-facing. Observed on a
+ * simulator with no Apple account signed in:
+ *
+ *   RequestUnknownException: The authorization attempt failed for an unknown
+ *   reason (at ExpoAppleAuthentication/AppleAuthenticationExceptions.swift:61)
+ *
+ * An earlier version passed that through on the reasoning that the OS had
+ * already localized it. It had not, and a user cannot act on a Swift file path,
+ * so the only thing shown is copy we wrote. The original is still worth having
+ * when something is actually wrong, so callers log it.
+ */
 export function signInFailureMessage(error: unknown, t: TranslateFn): string {
 	if (errorField(error, "code") === "PLAY_SERVICES_NOT_AVAILABLE") {
 		return t("settings.account.playServices");
 	}
-	// A provider's own message is already localized by the OS; only the fallback
-	// is ours to translate.
-	return (
-		firstNonBlank(errorField(error, "message")) ??
-		t("settings.account.genericFailure")
-	);
+	return t("settings.account.genericFailure");
+}
+
+/** The provider's own text, for a log line rather than a screen. */
+export function signInFailureDetail(error: unknown): string | null {
+	return firstNonBlank(errorField(error, "message"), errorField(error, "code"));
 }
 
 function errorField(error: unknown, field: string): string | null {

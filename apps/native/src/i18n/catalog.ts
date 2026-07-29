@@ -1,41 +1,63 @@
 import { getIntlayer } from "intlayer";
-import alerts from "@/content/alerts.content";
-import auth from "@/content/auth.content";
-import budgets from "@/content/budgets.content";
-import categories from "@/content/categories.content";
-import common from "@/content/common.content";
-import domain from "@/content/domain.content";
-import insights from "@/content/insights.content";
-import language from "@/content/language.content";
-import log from "@/content/log.content";
-import onboarding from "@/content/onboarding.content";
-import search from "@/content/search.content";
-import settings from "@/content/settings.content";
-import transaction from "@/content/transaction.content";
 import type { Language } from "./languages";
 import type { Catalog } from "./translate";
 
 /**
- * Every dictionary Intlayer builds, so the flat map below and the parity guard
- * both enumerate the same set. Adding a `.content.ts` file means adding it here.
+ * Type-only, and deliberately so. Intlayer blocklists `*.content.*` in Metro
+ * (`react-native-intlayer/metro`) because its model is to reference a
+ * dictionary by key and let `intlayer build` compile the source into
+ * `.intlayer/`. A value import of these files resolves under tsx and tsc and
+ * then fails to bundle, which is how it reached a device build.
  */
-export const DICTIONARIES = [
-	alerts,
-	auth,
-	budgets,
-	categories,
-	common,
-	domain,
-	insights,
-	language,
-	log,
-	onboarding,
-	search,
-	settings,
-	transaction,
+type Alerts = typeof import("@/content/alerts.content").default;
+type Auth = typeof import("@/content/auth.content").default;
+type Budgets = typeof import("@/content/budgets.content").default;
+type Categories = typeof import("@/content/categories.content").default;
+type Common = typeof import("@/content/common.content").default;
+type Domain = typeof import("@/content/domain.content").default;
+type Insights = typeof import("@/content/insights.content").default;
+type LanguageDict = typeof import("@/content/language.content").default;
+type Log = typeof import("@/content/log.content").default;
+type Onboarding = typeof import("@/content/onboarding.content").default;
+type Search = typeof import("@/content/search.content").default;
+type Settings = typeof import("@/content/settings.content").default;
+type Transaction = typeof import("@/content/transaction.content").default;
+
+/**
+ * Every dictionary Intlayer builds, by key. The flat map below and the parity
+ * guard both enumerate this, so adding a `.content.ts` file means adding it
+ * here.
+ */
+export const DICTIONARY_KEYS = [
+	"alerts",
+	"auth",
+	"budgets",
+	"categories",
+	"common",
+	"domain",
+	"insights",
+	"language",
+	"log",
+	"onboarding",
+	"search",
+	"settings",
+	"transaction",
 ] as const;
 
-type Content = (typeof DICTIONARIES)[number]["content"];
+type Content =
+	| Alerts["content"]
+	| Auth["content"]
+	| Budgets["content"]
+	| Categories["content"]
+	| Common["content"]
+	| Domain["content"]
+	| Insights["content"]
+	| LanguageDict["content"]
+	| Log["content"]
+	| Onboarding["content"]
+	| Search["content"]
+	| Settings["content"]
+	| Transaction["content"];
 
 /**
  * Keys stay fully qualified inside their dictionary (`log.empty.title` lives in
@@ -68,8 +90,8 @@ export type TranslatableKey =
 /** Flattens Intlayer's per-dictionary resolution into one lookup. */
 export function catalogFor(locale: Language): Catalog {
 	const flat: Record<string, string> = {};
-	for (const dictionary of DICTIONARIES) {
-		Object.assign(flat, getIntlayer(dictionary.key, locale));
+	for (const key of DICTIONARY_KEYS) {
+		Object.assign(flat, getIntlayer(key, locale));
 	}
 	return flat;
 }

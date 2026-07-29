@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getIntlayer } from "intlayer";
-import { CATALOGS, DICTIONARIES, EN, ES } from "./catalog";
+import { CATALOGS, DICTIONARY_KEYS, EN, ES } from "./catalog";
 import { SUPPORTED_LANGUAGES } from "./languages";
 import { interpolate } from "./translate";
 
@@ -42,8 +42,7 @@ describe("catalog parity", () => {
 	});
 
 	it("keeps each dictionary internally in parity", () => {
-		for (const dictionary of DICTIONARIES) {
-			const name = dictionary.key;
+		for (const name of DICTIONARY_KEYS) {
 			const en = Object.keys(getIntlayer(name, "en"));
 			const es = Object.keys(getIntlayer(name, "es"));
 			assert.deepEqual(
@@ -61,9 +60,8 @@ describe("catalog parity", () => {
 
 	it("declares every key in exactly one dictionary", () => {
 		const seen = new Map<string, string>();
-		for (const dictionary of DICTIONARIES) {
-			const name = dictionary.key;
-			for (const key of Object.keys(dictionary.content)) {
+		for (const name of DICTIONARY_KEYS) {
+			for (const key of Object.keys(getIntlayer(name, "en"))) {
 				const owner = seen.get(key);
 				assert.equal(
 					owner,
