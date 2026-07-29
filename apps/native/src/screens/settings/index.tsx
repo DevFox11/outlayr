@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import { Linking, Share } from "react-native";
+import { Linking, Platform, Share } from "react-native";
 import {
 	LinkRow,
 	SettingsSection,
@@ -20,6 +20,7 @@ import {
 	useNumberSetting,
 } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { themeLabel } from "@/theme/theme-preference";
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
@@ -49,6 +50,7 @@ function SettingsContent({ db }: { db: Database }) {
 
 	const version = Constants.expoConfig?.version ?? "1.0.0";
 	const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
+	const diagnostics = supportDiagnostics(version, build);
 
 	return (
 		<SettingsScreen footer={`Outlayr ${version} (${build})`}>
@@ -193,14 +195,18 @@ function SettingsContent({ db }: { db: Database }) {
 				<LinkRow
 					icon="Bug01"
 					onPress={() => {
-						Linking.openURL(mailto(SUPPORT_EMAIL, "Support Email"));
+						Linking.openURL(
+							supportMailto(SUPPORT_EMAIL, "Support Email", diagnostics),
+						);
 					}}
 					title="Report Bug"
 				/>
 				<LinkRow
 					icon="Idea01"
 					onPress={() => {
-						Linking.openURL(mailto(SUPPORT_EMAIL, "Feature Request"));
+						Linking.openURL(
+							supportMailto(SUPPORT_EMAIL, "Feature Request", diagnostics),
+						);
 					}}
 					title="Feature Request"
 				/>
@@ -238,6 +244,23 @@ function SettingsContent({ db }: { db: Database }) {
 	);
 }
 
-function mailto(address: string, subject: string): string {
-	return `mailto:${address}?subject=${encodeURIComponent(subject)}`;
+/**
+ * `expo-device` is not installed and adding it would force a dev-client rebuild,
+ * so the model comes from `Constants.deviceName` (`UIDevice.name`). Since iOS 16
+ * that reads back as the model — "iPhone" — unless the app holds the
+ * user-assigned-device-name entitlement, which is coarser than Swift's
+ * `modelName` but still narrows a report to a platform and OS release.
+ */
+function supportDiagnostics(
+	version: string,
+	build: string,
+): SupportDiagnostics {
+	return {
+		appName: Constants.expoConfig?.name ?? "Outlayr",
+		osName: Platform.select({ ios: "iOS", android: "Android" }) ?? Platform.OS,
+		osVersion: String(Platform.Version),
+		deviceName: Constants.deviceName ?? "",
+		appVersion: version,
+		appBuild: build,
+	};
 }

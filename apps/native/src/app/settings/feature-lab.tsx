@@ -11,11 +11,26 @@ export default function FeatureLabScreen() {
 
 function FeatureLabContent({ db }: { db: Database }) {
 	const settings = useAllSettings(db);
+	const confetti = settings.bool("confetti");
 	const lineGraph = settings.bool("logViewLineGraph");
 	const swapTimeLabel = settings.bool("swapTimeLabel");
 
 	return (
 		<SettingsScreen>
+			<SettingsSection
+				footer="Throws confetti over a transaction the moment you add it."
+				title="Adding a transaction"
+			>
+				<ToggleRow
+					icon="Sparkles"
+					onValueChange={(next) => {
+						setBoolSetting(db, "confetti", next);
+					}}
+					title="Celebrate Expenses"
+					value={confetti}
+				/>
+			</SettingsSection>
+
 			<SettingsSection
 				footer="Experimental — these can change or disappear."
 				title="The Log"

@@ -22,7 +22,10 @@ export type BoolSettingKey =
 	| "categorySuggestions"
 	// Swaps a Log row's time label for its category. No Settings row writes it
 	// yet, so it always resolves to the default.
-	| "swapTimeLabel";
+	| "swapTimeLabel"
+	// Swift's `DefaultsKey.confetti`: throws confetti over a newly created
+	// transaction.
+	| "confetti";
 export type NumberSettingKey =
 	| "firstWeekday"
 	| "firstDayOfMonth"
@@ -55,6 +58,7 @@ export const SETTING_DEFAULTS = {
 	showNotifications: false,
 	categorySuggestions: true,
 	swapTimeLabel: false,
+	confetti: false,
 	insightsTimeFrame: 1,
 	insightsMeasure: 1,
 	firstWeekday: 1,

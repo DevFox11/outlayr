@@ -40,6 +40,12 @@ describe("settings defaults", () => {
 		assert.equal(await readNumberSetting(db, "firstWeekday"), 1);
 		assert.equal(await readNumberSetting(db, "firstDayOfMonth"), 1);
 	});
+
+	it("keeps the celebration off until it is asked for", async () => {
+		assert.equal(await readBoolSetting(db, "confetti"), false);
+		await setBoolSetting(db, "confetti", true);
+		assert.equal(await readBoolSetting(db, "confetti"), true);
+	});
 });
 
 describe("settings read/write round-trip", () => {

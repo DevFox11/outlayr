@@ -26,6 +26,7 @@ import {
 	Share08Icon,
 	SmartPhone01Icon,
 	SourceCodeIcon,
+	SparklesIcon,
 	StarIcon,
 	SunriseIcon,
 	Tap01Icon,
@@ -68,6 +69,7 @@ const REGISTRY = {
 	Favourite: FavouriteIcon,
 	License: LicenseIcon,
 	SourceCode: SourceCodeIcon,
+	Sparkles: SparklesIcon,
 	TextFont: TextFontIcon,
 } satisfies Record<string, IconSvgElement>;
 

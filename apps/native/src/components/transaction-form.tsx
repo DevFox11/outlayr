@@ -54,6 +54,7 @@ import Animated, {
 	useDerivedValue,
 	useSharedValue,
 } from "react-native-reanimated";
+import { Confetti } from "@/components/confetti";
 import { menuTint } from "@/components/native/styles";
 import {
 	useIdentityDraft,
@@ -61,12 +62,14 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Category, getCategoryById } from "@/data/categories";
+import { useBoolSetting } from "@/data/settings";
 import {
 	backfillRecurring,
 	type Transaction,
 	transactionsRepo,
 } from "@/data/transactions";
 import type { Database } from "@/db/client";
+import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
@@ -246,6 +249,8 @@ export function TransactionForm({
 	const [categoryShake, setCategoryShake] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [showToast, setShowToast] = useState(false);
+	const celebrate = useBoolSetting(db, "confetti");
+	const [burstSeed, setBurstSeed] = useState(0);
 	// Shared values, not state: the fly-up is the only reader and it reads them from
 	// the UI thread, so measuring the form must not cost the SwiftUI tree a render.
 	const containerHeight = useSharedValue(0);
@@ -390,7 +395,17 @@ export function TransactionForm({
 				onDone();
 			} else {
 				setShowToast(true);
-				doneTimer.current = setTimeout(onDone, 600);
+				// The form owns the celebration, so it has to outlive its own
+				// dismissal: Swift fired the cannon on the screen behind the sheet,
+				// which has no equivalent here without hoisting state out of the
+				// route.
+				if (celebrate) {
+					setBurstSeed(Date.now());
+				}
+				doneTimer.current = setTimeout(
+					onDone,
+					celebrate ? CONFETTI_FLIGHT_MS : 600,
+				);
 			}
 		} catch (error) {
 			console.error("Failed to save transaction", error);
@@ -889,6 +904,10 @@ export function TransactionForm({
 						</Text>
 					</View>
 				</Animated.View>
+			) : null}
+
+			{celebrate && burstSeed !== 0 ? (
+				<Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
 			) : null}
 
 			<AmountEntrySheet

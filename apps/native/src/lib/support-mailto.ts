@@ -1,0 +1,42 @@
+/**
+ * Swift's `SupportEmail` prefilled the same five fields (`SupportEmail.swift`).
+ * It percent-encoded with `.urlPathAllowed`, which leaves `&` intact and lets a
+ * body containing one silently truncate the link — `encodeURIComponent` here.
+ */
+export interface SupportDiagnostics {
+	appName: string;
+	osName: string;
+	osVersion: string;
+	deviceName: string;
+	appVersion: string;
+	appBuild: string;
+}
+
+const RULE = "--------------------------------------";
+
+function known(value: string): string {
+	return value.trim() === "" ? "Unknown" : value.trim();
+}
+
+export function supportBody(info: SupportDiagnostics): string {
+	return [
+		`Application Name: ${known(info.appName)} |`,
+		`Platform: ${known(info.osName)} ${known(info.osVersion)} |`,
+		`Device: ${known(info.deviceName)} |`,
+		`App Version: ${known(info.appVersion)} |`,
+		`App Build: ${known(info.appBuild)} |`,
+		RULE,
+	].join("\n");
+}
+
+export function supportMailto(
+	address: string,
+	subject: string,
+	info: SupportDiagnostics,
+): string {
+	const query = [
+		`subject=${encodeURIComponent(subject)}`,
+		`body=${encodeURIComponent(supportBody(info))}`,
+	].join("&");
+	return `mailto:${address}?${query}`;
+}
