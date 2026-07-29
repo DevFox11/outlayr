@@ -12,7 +12,9 @@ import {
 } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 import {
+	backfillBudgetUsd,
 	backfillCanonicalUsd,
+	CANONICALIZE_BATCH,
 	hasUncanonicalized,
 	stampLedgerCurrency,
 } from "./canonicalize-backfill";
@@ -310,5 +312,217 @@ describe("stampLedgerCurrency over budgets", () => {
 		assert.equal(await stampLedgerCurrency(db), 0);
 		const [b] = await db.select({ currency: budgets.currency }).from(budgets);
 		assert.equal(b.currency, "GBP");
+	});
+});
+
+const JULY_1 = new Date(Date.UTC(2026, 6, 1, 12));
+
+async function seedJulyRates(db: SpendDb): Promise<void> {
+	await seedRate(db);
+	await db.insert(exchangeRates).values({
+		quote: "EUR",
+		date: "2026-07-01",
+		rateType: "official",
+		rate: 0.8,
+		source: "frankfurter",
+		fetchedAt: JULY_1.getTime(),
+	});
+}
+
+async function budgetUsd(db: SpendDb, id: string): Promise<number | null> {
+	const [row] = await db
+		.select({ amountUsd: budgets.amountUsd })
+		.from(budgets)
+		.where(eq(budgets.id, id));
+	return row?.amountUsd ?? null;
+}
+
+describe("backfillBudgetUsd", () => {
+	it("values a target at the day it was created, not at today's rate", async () => {
+		const db = makeDb();
+		await seedJulyRates(db);
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 1);
+		// 400 / 0.8, not 400 / 0.87775 — the divisor is currency-per-USD.
+		assert.equal(await budgetUsd(db, "b1"), 500);
+	});
+
+	it("falls back to the window start when no creation date was kept", async () => {
+		const db = makeDb();
+		await seedJulyRates(db);
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: null,
+			startDate: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 1);
+		assert.equal(await budgetUsd(db, "b1"), 500);
+	});
+
+	it("skips a target that names no currency", async () => {
+		// `stampLedgerCurrency` runs first; freezing it here would claim a currency
+		// the user never stated.
+		const db = makeDb();
+		await seedJulyRates(db);
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: null,
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 0);
+		assert.equal(await budgetUsd(db, "b1"), null);
+	});
+
+	it("leaves a target it cannot value for the next pass to retry", async () => {
+		const db = makeDb();
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 0);
+		assert.equal(await budgetUsd(db, "b1"), null);
+	});
+
+	it("freezes a USD target without consulting a rate", async () => {
+		const db = makeDb();
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "USD",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 1);
+		assert.equal(await budgetUsd(db, "b1"), 400);
+	});
+
+	it("covers the main budget alongside the per-category ones", async () => {
+		const db = makeDb();
+		await seedJulyRates(db);
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+		await db.insert(mainBudget).values({
+			id: "m1",
+			amount: 2400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 2);
+		const [m] = await db
+			.select({ amountUsd: mainBudget.amountUsd })
+			.from(mainBudget);
+		assert.equal(m.amountUsd, 3000);
+	});
+
+	it("is a no-op on a second pass", async () => {
+		const db = makeDb();
+		await seedJulyRates(db);
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+		});
+
+		await backfillBudgetUsd(db);
+		assert.equal(await backfillBudgetUsd(db), 0);
+	});
+
+	it("ignores a soft-deleted target", async () => {
+		const db = makeDb();
+		await seedJulyRates(db);
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 400,
+			type: 3,
+			currency: "EUR",
+			dateCreated: JULY_1,
+			updatedAt: JULY_28,
+			deletedAt: JULY_28,
+		});
+
+		assert.equal(await backfillBudgetUsd(db), 0);
+		assert.equal(await budgetUsd(db, "b1"), null);
+	});
+});
+
+describe("backfillCanonicalUsd over a backlog", () => {
+	async function addMany(
+		db: SpendDb,
+		count: number,
+		currency: string,
+		firstId: number,
+	): Promise<void> {
+		await db.insert(transactions).values(
+			Array.from({ length: count }, (_, i) => ({
+				id: `r${String(firstId + i).padStart(5, "0")}`,
+				amount: 100,
+				income: false,
+				currency,
+				date: JULY_28,
+				day: JULY_28,
+				month: JULY_28,
+				amountUsd: null,
+				updatedAt: JULY_28,
+			})),
+		);
+	}
+
+	it("drains a backlog wider than one batch in a single pass", async () => {
+		const db = makeDb();
+		await seedRate(db);
+		const total = CANONICALIZE_BATCH + 60;
+		await addMany(db, total, "EUR", 0);
+
+		assert.equal(await backfillCanonicalUsd(db), total);
+		assert.equal(await hasUncanonicalized(db), false);
+	});
+
+	it("steps past rows it cannot value rather than re-reading them", async () => {
+		// Unvaluable rows keep their place in the predicate, so a pass that does not
+		// advance past them re-reads the same page until the app is killed.
+		const db = makeDb();
+		await seedRate(db);
+		await addMany(db, CANONICALIZE_BATCH, "EUR", 0);
+		await addMany(db, 300, "JPY", 1000);
+		await addMany(db, 40, "EUR", 2000);
+
+		assert.equal(await backfillCanonicalUsd(db), CANONICALIZE_BATCH + 40);
+		assert.equal(await hasUncanonicalized(db), true);
 	});
 });

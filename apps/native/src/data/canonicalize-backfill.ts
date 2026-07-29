@@ -6,8 +6,22 @@ import { canonicalUsd } from "@/domain/canonical-usd";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { localRateLookup } from "./rates";
 
-/** Every row costs a rate lookup; what a pass misses the next one picks up. */
-const BATCH = 250;
+/**
+ * Rows per slice, not per foreground: a pass drains the whole backlog, but in
+ * slices so a ten-thousand-row ledger does not value itself in one burst. Every
+ * row costs a rate lookup and an UPDATE, both synchronous on this driver.
+ */
+export const CANONICALIZE_BATCH = 250;
+
+/**
+ * `await` on this driver only reaches the microtask queue, which runs to
+ * exhaustion before the UI gets a frame — a timer is what actually yields.
+ */
+function yieldToUi(): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+}
 
 /**
  * The ledger's currency when the user actually stated it, and null otherwise.
@@ -78,49 +92,63 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
  * Idempotent by construction: it only ever selects `amountUsd IS NULL`.
  */
 export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
-	const pending = await db
-		.select({
-			id: transactions.id,
-			amount: transactions.amount,
-			currency: transactions.currency,
-			date: transactions.date,
-		})
-		.from(transactions)
-		.where(
-			and(
-				isNull(transactions.amountUsd),
-				isNotNull(transactions.currency),
-				isNull(transactions.deletedAt),
-			),
-		)
-		.limit(BATCH);
-
-	if (pending.length === 0) {
-		return 0;
-	}
-
 	const lookup = localRateLookup(db);
 	let valued = 0;
+	// A row this pass cannot value keeps its place in the predicate, so the cursor
+	// steps over it. Without that, the next slice re-reads the same rows forever.
+	let cursor = 0;
 
-	for (const row of pending) {
-		const canonical = await canonicalUsd(lookup, {
-			amount: row.amount,
-			currency: row.currency,
-			displayCurrency: row.currency ?? DEFAULT_CURRENCY,
-			date: row.date,
-		});
-		if (canonical.amountUsd === null) {
-			// Still no rate for that day; left alone so the next pass retries it.
-			continue;
+	for (;;) {
+		const pending = await db
+			.select({
+				id: transactions.id,
+				amount: transactions.amount,
+				currency: transactions.currency,
+				date: transactions.date,
+			})
+			.from(transactions)
+			.where(
+				and(
+					isNull(transactions.amountUsd),
+					isNotNull(transactions.currency),
+					isNull(transactions.deletedAt),
+				),
+			)
+			.orderBy(transactions.id)
+			.limit(CANONICALIZE_BATCH)
+			.offset(cursor);
+
+		if (pending.length === 0) {
+			return valued;
 		}
-		await db
-			.update(transactions)
-			.set(canonical)
-			.where(eq(transactions.id, row.id));
-		valued += 1;
-	}
 
-	return valued;
+		let landed = 0;
+		for (const row of pending) {
+			const canonical = await canonicalUsd(lookup, {
+				amount: row.amount,
+				currency: row.currency,
+				displayCurrency: row.currency ?? DEFAULT_CURRENCY,
+				date: row.date,
+			});
+			if (canonical.amountUsd === null) {
+				// Still no rate for that day; left alone so the next pass retries it.
+				continue;
+			}
+			await db
+				.update(transactions)
+				.set(canonical)
+				.where(eq(transactions.id, row.id));
+			landed += 1;
+		}
+
+		valued += landed;
+		cursor += pending.length - landed;
+
+		if (pending.length < CANONICALIZE_BATCH) {
+			return valued;
+		}
+		await yieldToUi();
+	}
 }
 
 /**

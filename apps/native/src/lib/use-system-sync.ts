@@ -76,13 +76,12 @@ export function useSystemSync(db: Database | null): void {
 
 		catchUp();
 		void indexSpotlight(db);
-		// Republished explicitly, because the listener below does not cover it.
-		// Instrumenting that listener to record every table name it received showed
-		// it saw NOTHING across a pull that wrote 12,588 exchangeRates rows and an
-		// appMeta row — `appMeta` was in the watched set at the time. Writes issued
-		// inside a Drizzle transaction appear not to reach it. Adding exchangeRates
-		// to the set was tried and does nothing; this call is what keeps the tiles
-		// honest after a refresh.
+		// Republished explicitly, because the listener below does not cover it: a
+		// refresh opens with an unqualified `DELETE FROM exchangeRates`, and SQLite's
+		// truncate optimization exempts that statement from the update hook the
+		// listener is built on (expo-sqlite's vendored `sqlite3.h:7090-7095`). Adding
+		// exchangeRates to the watched set was tried and does not fix it; this call
+		// is what keeps the tiles honest after a refresh.
 		void refreshRates(db).then((changed) => {
 			if (changed) {
 				publish();

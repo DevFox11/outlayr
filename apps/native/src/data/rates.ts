@@ -2,7 +2,10 @@ import type { RateLookup } from "@outlayr/money";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { getMeta, setMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
+import { bumpRatesRevision } from "@/data/rates-revision";
+import type { Database } from "@/db/client";
 import { appMeta, exchangeRates } from "@/db/schema";
+import { withTransaction } from "@/db/transaction";
 
 /** 12 hours. */
 export const RATES_THROTTLE_MS = 43_200_000;
@@ -85,7 +88,7 @@ async function fetchAllRates(pull: PullRatesFn): Promise<RateWireRow[]> {
  * Answers whether a pull actually landed (false when throttled or empty).
  */
 export async function pullRatesIfDue(
-	db: SpendDb,
+	db: Database,
 	pull: PullRatesFn,
 	options: { force?: boolean; now?: number } = {},
 ): Promise<boolean> {
@@ -112,12 +115,12 @@ export async function pullRatesIfDue(
 		fetchedAt: row.fetchedAt,
 	}));
 
-	await db.transaction(async (tx) => {
-		await tx.delete(exchangeRates);
+	await withTransaction(db, async () => {
+		await db.delete(exchangeRates);
 		for (const part of chunkRows(mapped, RATE_ROWS_PER_CHUNK)) {
-			await tx.insert(exchangeRates).values(part);
+			await db.insert(exchangeRates).values(part);
 		}
-		await tx
+		await db
 			.insert(appMeta)
 			.values({ key: LAST_PULL_KEY, value: String(now) })
 			.onConflictDoUpdate({
@@ -125,6 +128,10 @@ export async function pullRatesIfDue(
 				set: { value: String(now) },
 			});
 	});
+
+	// After the commit, never inside it: a screen invalidated against a
+	// half-replaced cache would re-read rows that a rollback is about to remove.
+	bumpRatesRevision();
 
 	return true;
 }
