@@ -17,6 +17,14 @@ export interface Valuable {
 /** USD→currency rates; `get` answers with the newest rate on or before `dateKey`. */
 export interface RateTable {
 	get(code: string, dateKey: string): number | null;
+	/**
+	 * The oldest day the table holds for `code`, or null when it holds none.
+	 *
+	 * Every pull wipe-replaces the table with a bounded window, so a day before
+	 * this floor is not waiting on anything — it is the line between "not valued
+	 * yet" and "never will be". A code with no floor at all is the former.
+	 */
+	earliest(code: string): string | null;
 }
 
 export function buildRateTable(
@@ -49,6 +57,10 @@ export function buildRateTable(
 				}
 			}
 			return null;
+		},
+		earliest(code) {
+			const list = byCode.get(code);
+			return list?.length ? list[list.length - 1].date : null;
 		},
 	};
 }

@@ -10,12 +10,14 @@ import type { Database } from "@/db/client";
 import {
 	budgetPace,
 	budgetPeriodPhrase,
+	budgetWindowLabel,
 	isBehindPace,
 	leftPerDay,
 	shouldShowPaceMarker,
 } from "@/domain/budget-math";
 import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
+import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
 
 export default function BudgetDetailScreen() {
 	const router = useRouter();
@@ -39,7 +41,13 @@ function BudgetDetail({
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
 	const [nowMs] = useState(() => Date.now());
-	const { budget, transactions } = useCategoryBudget(db, id, nowMs);
+	const [periodOffset, setPeriodOffset] = useState(0);
+	const { budget, transactions, periodsBack } = useCategoryBudget(
+		db,
+		id,
+		nowMs,
+		periodOffset,
+	);
 
 	useEffect(() => {
 		if (budget === null) {
@@ -63,21 +71,25 @@ function BudgetDetail({
 	};
 
 	const now = new Date(nowMs);
+	const closed = periodOffset < 0;
 	const pace = budgetPace(budget.window, now);
-	const showMarker = shouldShowPaceMarker(
-		budget.type,
-		pace.remaining,
-		budget.overBudget,
-	);
+	const showMarker =
+		!closed &&
+		shouldShowPaceMarker(budget.type, pace.remaining, budget.overBudget);
 	const behind = isBehindPace(pace.remaining, budget.amount, budget.leftover);
-	const perDay = budget.overBudget
-		? null
-		: leftPerDay(budget.leftover, budget.window, now);
+	const perDay =
+		closed || budget.overBudget
+			? null
+			: leftPerDay(budget.leftover, budget.window, now);
 
 	return (
 		<>
 			<BudgetDetailView
-				period={budgetPeriodPhrase(budget.type)}
+				period={
+					closed
+						? budgetWindowLabel(budget.window, budget.type)
+						: budgetPeriodPhrase(budget.type)
+				}
 				spent={budget.spent}
 				amount={budget.amount}
 				leftover={budget.leftover}
@@ -86,10 +98,22 @@ function BudgetDetail({
 				transactions={transactions}
 				onPressTransaction={(txId) => router.push(`/transaction/${txId}`)}
 				paceRemaining={showMarker ? pace.remaining : null}
-				paceBehind={behind}
+				paceBehind={!closed && behind}
 				leftPerDayAmount={perDay}
 				showCents={showCents}
 				showSign={showSign}
+				closed={closed}
+				stepper={
+					periodsBack > 0 ? (
+						<BudgetPeriodStepper
+							maxBack={periodsBack}
+							offset={periodOffset}
+							onStep={setPeriodOffset}
+							type={budget.type}
+							window={budget.window}
+						/>
+					) : null
+				}
 			/>
 			<Stack.Screen.Title>{budget.name}</Stack.Screen.Title>
 			<Stack.Toolbar placement="right">

@@ -46,6 +46,14 @@ describe("settings defaults", () => {
 		await setBoolSetting(db, "confetti", true);
 		assert.equal(await readBoolSetting(db, "confetti"), true);
 	});
+
+	it("lists the budgets as rows until the grid is asked for", async () => {
+		// Inverted against Swift's `budgetViewStyle`, which defaulted to the grid:
+		// rows are the shipped budget list here, so the default must not flip it.
+		assert.equal(await readBoolSetting(db, "budgetViewStyle"), true);
+		await setBoolSetting(db, "budgetViewStyle", false);
+		assert.equal(await readBoolSetting(db, "budgetViewStyle"), false);
+	});
 });
 
 describe("settings read/write round-trip", () => {

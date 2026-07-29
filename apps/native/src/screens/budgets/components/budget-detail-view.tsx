@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { SectionList, View } from "react-native";
 import { HeroNumber } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
@@ -10,10 +10,11 @@ import type { TransactionWithCategory } from "@/data/transactions";
 import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { formatAmount } from "@/domain/money";
+import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
 import { BudgetProgressBar } from "./budget-progress-bar";
 
 interface BudgetDetailViewProps {
-	/** Lowercase period phrase, e.g. "this month". */
+	/** Lowercase period phrase, e.g. "this month", or a closed window's dates. */
 	period: string;
 	spent: number;
 	amount: number;
@@ -29,6 +30,9 @@ interface BudgetDetailViewProps {
 	leftPerDayAmount?: number | null;
 	showCents?: boolean;
 	showSign?: boolean;
+	/** The window has ended: nothing about it is still in play. */
+	closed?: boolean;
+	stepper?: ReactNode;
 }
 
 /** Matches the list hero's bleed, so both rails read as the same instrument. */
@@ -49,11 +53,20 @@ export function BudgetDetailView({
 	leftPerDayAmount = null,
 	showCents = true,
 	showSign = true,
+	closed = false,
+	stepper = null,
 }: BudgetDetailViewProps) {
-	const { rates } = useValuation(useDatabase());
+	const { displayCurrency, rates } = useValuation(useDatabase());
 	const sections = useMemo(
 		() => groupByDay(transactions, currency, rates),
 		[transactions, currency, rates],
+	);
+	// Scoped to the window on screen, not the ledger: a closed period is exactly
+	// where rows the rate history can no longer reach turn up, and a total that
+	// silently mixes them with converted ones reads as more solid than it is.
+	const note = useMemo(
+		() => coverageNote(coverageOf(transactions, displayCurrency, rates)),
+		[transactions, displayCurrency, rates],
 	);
 
 	return (
@@ -76,11 +89,16 @@ export function BudgetDetailView({
 					paceBehind={paceBehind}
 					leftPerDayAmount={leftPerDayAmount}
 					showCents={showCents}
+					closed={closed}
+					note={note}
+					stepper={stepper}
 				/>
 			}
 			ListEmptyComponent={
 				<Text className="py-3 text-muted text-subtitle">
-					No spending in this period yet.
+					{closed
+						? "Nothing was spent in this period."
+						: "No spending in this period yet."}
 				</Text>
 			}
 			renderSectionHeader={({ section }) => (
@@ -115,6 +133,9 @@ function BudgetSummary({
 	paceBehind,
 	leftPerDayAmount,
 	showCents,
+	closed,
+	note,
+	stepper,
 }: {
 	period: string;
 	spent: number;
@@ -126,11 +147,19 @@ function BudgetSummary({
 	paceBehind: boolean;
 	leftPerDayAmount: number | null;
 	showCents: boolean;
+	closed: boolean;
+	note: string | null;
+	stepper: ReactNode;
 }) {
 	const spentPct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
 	const difference = Math.abs(leftover);
 	const figureTone = overBudget ? "text-over-budget" : "text-foreground";
-	const label = overBudget ? `over ${period}` : `left ${period}`;
+	let label: string;
+	if (closed) {
+		label = overBudget ? "over budget" : "unspent";
+	} else {
+		label = overBudget ? `over ${period}` : `left ${period}`;
+	}
 
 	return (
 		<View>
@@ -173,6 +202,14 @@ function BudgetSummary({
 				<MonoLabel>{`${formatAmount(spent, currency, showCents)} spent`}</MonoLabel>
 				<MonoLabel>{`${formatAmount(amount, currency, showCents)} limit`}</MonoLabel>
 			</View>
+
+			{note ? (
+				<Text className="pt-3 text-footnote text-muted">{note}</Text>
+			) : null}
+
+			{stepper ? (
+				<View className="mt-6 border-border border-t pt-3">{stepper}</View>
+			) : null}
 
 			<View className="pt-7">
 				<MonoLabel>TRANSACTIONS</MonoLabel>

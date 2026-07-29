@@ -4,7 +4,11 @@ import {
 	advanceBudgetWindow,
 	BUDGET_TYPE,
 	budgetRail,
+	budgetWindowLabel,
 	periodEnd,
+	periodsBackTo,
+	previousPeriodStart,
+	shiftWindow,
 	startOfPeriod,
 } from "./budget-math";
 
@@ -199,5 +203,129 @@ describe("budgetRail", () => {
 	it("draws nothing for a zero limit rather than dividing to NaN", () => {
 		assert.deepEqual(budgetRail(0, 0), { fill: 0, over: false });
 		assert.deepEqual(budgetRail(100, 0), { fill: 0, over: true });
+	});
+});
+
+describe("previousPeriodStart", () => {
+	it("steps back one whole period of each type", () => {
+		assert.deepEqual(
+			previousPeriodStart(d(2025, 1, 11), BUDGET_TYPE.day),
+			d(2025, 1, 10),
+		);
+		assert.deepEqual(
+			previousPeriodStart(d(2025, 1, 12), BUDGET_TYPE.week),
+			d(2025, 1, 5),
+		);
+		assert.deepEqual(
+			previousPeriodStart(d(2025, 4, 15), BUDGET_TYPE.month),
+			d(2025, 3, 15),
+		);
+		assert.deepEqual(
+			previousPeriodStart(d(2026, 6, 1), BUDGET_TYPE.year),
+			d(2025, 6, 1),
+		);
+	});
+
+	it("stands still on an unknown type rather than running away", () => {
+		assert.deepEqual(previousPeriodStart(d(2025, 1, 11), 99), d(2025, 1, 11));
+	});
+});
+
+describe("shiftWindow", () => {
+	it("returns the window it was handed at offset zero", () => {
+		assert.deepEqual(shiftWindow(d(2025, 7, 1), BUDGET_TYPE.month, 0), {
+			start: d(2025, 7, 1),
+			end: d(2025, 8, 1),
+		});
+	});
+
+	it("steps back whole periods", () => {
+		assert.deepEqual(shiftWindow(d(2025, 7, 1), BUDGET_TYPE.month, -4), {
+			start: d(2025, 3, 1),
+			end: d(2025, 4, 1),
+		});
+		assert.deepEqual(shiftWindow(d(2025, 7, 21), BUDGET_TYPE.week, -3), {
+			start: d(2025, 6, 30),
+			end: d(2025, 7, 7),
+		});
+	});
+
+	it("round-trips a step back and forward", () => {
+		const back = shiftWindow(d(2025, 7, 1), BUDGET_TYPE.month, -1);
+		assert.deepEqual(shiftWindow(back.start, BUDGET_TYPE.month, 1), {
+			start: d(2025, 7, 1),
+			end: d(2025, 8, 1),
+		});
+	});
+});
+
+describe("periodsBackTo", () => {
+	it("offers no step back when nothing predates the current window", () => {
+		assert.equal(
+			periodsBackTo(d(2025, 7, 1), BUDGET_TYPE.month, d(2025, 7, 14)),
+			0,
+		);
+		assert.equal(periodsBackTo(d(2025, 7, 1), BUDGET_TYPE.month, null), 0);
+	});
+
+	it("counts the steps that reach the oldest entry", () => {
+		// March 12 sits inside the window starting March 1, four back from July.
+		assert.equal(
+			periodsBackTo(d(2025, 7, 1), BUDGET_TYPE.month, d(2025, 3, 12)),
+			4,
+		);
+	});
+
+	it("stops on the window that contains the oldest entry, not past it", () => {
+		assert.equal(
+			periodsBackTo(d(2025, 7, 1), BUDGET_TYPE.month, d(2025, 6, 1)),
+			1,
+		);
+	});
+
+	it("does not loop forever on a type with no period length", () => {
+		assert.equal(periodsBackTo(d(2025, 7, 1), 99, d(2000, 1, 1)), 0);
+	});
+});
+
+describe("budgetWindowLabel", () => {
+	it("names a single day with its year", () => {
+		assert.equal(
+			budgetWindowLabel(
+				{ start: d(2025, 7, 23), end: d(2025, 7, 24) },
+				BUDGET_TYPE.day,
+			),
+			"23 JUL 2025",
+		);
+	});
+
+	it("spans a month to its last day, not the next window's first", () => {
+		assert.equal(
+			budgetWindowLabel(
+				{ start: d(2025, 6, 1), end: d(2025, 7, 1) },
+				BUDGET_TYPE.month,
+			),
+			"1 JUN – 30 JUN",
+		);
+	});
+
+	it("spans a week inclusively", () => {
+		assert.equal(
+			budgetWindowLabel(
+				{ start: d(2025, 6, 30), end: d(2025, 7, 7) },
+				BUDGET_TYPE.week,
+			),
+			"30 JUN – 6 JUL",
+		);
+	});
+
+	it("carries two-digit years on a yearly window", () => {
+		assert.equal(
+			budgetWindowLabel(
+				{ start: d(2025, 1, 1), end: d(2026, 1, 1) },
+				BUDGET_TYPE.year,
+			),
+			"1 JAN 25 – 31 DEC 25",
+		);
 	});
 });

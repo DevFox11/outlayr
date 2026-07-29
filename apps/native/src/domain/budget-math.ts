@@ -1,6 +1,7 @@
 import {
 	type CalendarSettings,
 	DEFAULT_CALENDAR,
+	monthAbbrev,
 	monthPeriodStart,
 	startOfDay,
 	startOfWeek,
@@ -95,6 +96,90 @@ export function advanceBudgetWindow(
 		end = periodEnd(start, type);
 	}
 	return { start, end };
+}
+
+/** The start of the period immediately before the one beginning at `start`. */
+export function previousPeriodStart(start: Date, type: number): Date {
+	switch (type) {
+		case BUDGET_TYPE.day:
+			return addDays(start, -1);
+		case BUDGET_TYPE.week:
+			return addDays(start, -7);
+		case BUDGET_TYPE.month:
+			return addMonthsClamped(start, -1);
+		case BUDGET_TYPE.year:
+			return addMonthsClamped(start, -12);
+		default:
+			return new Date(start);
+	}
+}
+
+/** The window `offset` whole periods from the one at `start`; negative steps back. */
+export function shiftWindow(
+	start: Date,
+	type: number,
+	offset: number,
+): BudgetWindow {
+	let cursor = new Date(start);
+	for (let step = 0; step < Math.abs(offset); step += 1) {
+		const next =
+			offset < 0 ? previousPeriodStart(cursor, type) : periodEnd(cursor, type);
+		if (next.getTime() === cursor.getTime()) {
+			break;
+		}
+		cursor = next;
+	}
+	return { start: cursor, end: periodEnd(cursor, type) };
+}
+
+/** 100 years of months, or three of days — far past any window worth browsing. */
+const MAX_PERIODS_BACK = 1200;
+
+/**
+ * How many whole periods back from `currentStart` still reach `earliest` — the
+ * bound on stepping back through closed windows. Ports the Swift stepper's
+ * `firstDate` guard: before the oldest entry that could count there is nothing
+ * to show, and a budget's own anchor rolls forward, so it cannot be the floor.
+ */
+export function periodsBackTo(
+	currentStart: Date,
+	type: number,
+	earliest: Date | null,
+): number {
+	if (!earliest) {
+		return 0;
+	}
+	let steps = 0;
+	let start = currentStart;
+	while (steps < MAX_PERIODS_BACK && start.getTime() > earliest.getTime()) {
+		const previous = previousPeriodStart(start, type);
+		if (previous.getTime() >= start.getTime()) {
+			break;
+		}
+		start = previous;
+		steps += 1;
+	}
+	return steps;
+}
+
+function dayMonth(date: Date): string {
+	return `${date.getDate()} ${monthAbbrev(date)}`;
+}
+
+function twoDigitYear(date: Date): string {
+	return String(date.getFullYear() % 100).padStart(2, "0");
+}
+
+/** Ports the Swift stepper's `dateString`. Ends are exclusive; the label is not. */
+export function budgetWindowLabel(window: BudgetWindow, type: number): string {
+	if (type === BUDGET_TYPE.day) {
+		return `${dayMonth(window.start)} ${window.start.getFullYear()}`;
+	}
+	const last = addDays(window.end, -1);
+	if (type === BUDGET_TYPE.year) {
+		return `${dayMonth(window.start)} ${twoDigitYear(window.start)} – ${dayMonth(last)} ${twoDigitYear(last)}`;
+	}
+	return `${dayMonth(window.start)} – ${dayMonth(last)}`;
 }
 
 export function budgetPeriodPhrase(type: number): string {

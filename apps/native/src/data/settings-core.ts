@@ -25,7 +25,11 @@ export type BoolSettingKey =
 	| "swapTimeLabel"
 	// Swift's `DefaultsKey.confetti`: throws confetti over a newly created
 	// transaction.
-	| "confetti";
+	| "confetti"
+	// Swift's `DefaultsKey.budgetViewStyle`: true lists the budgets as rows,
+	// false as a two-up card grid. Swift defaulted to the grid; the Grid design
+	// pass made rows the shipped list here, so the default is inverted.
+	| "budgetViewStyle";
 export type NumberSettingKey =
 	| "firstWeekday"
 	| "firstDayOfMonth"
@@ -59,6 +63,7 @@ export const SETTING_DEFAULTS = {
 	categorySuggestions: true,
 	swapTimeLabel: false,
 	confetti: false,
+	budgetViewStyle: true,
 	insightsTimeFrame: 1,
 	insightsMeasure: 1,
 	firstWeekday: 1,

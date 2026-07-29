@@ -14,6 +14,7 @@ function FeatureLabContent({ db }: { db: Database }) {
 	const confetti = settings.bool("confetti");
 	const lineGraph = settings.bool("logViewLineGraph");
 	const swapTimeLabel = settings.bool("swapTimeLabel");
+	const budgetRows = settings.bool("budgetViewStyle");
 
 	return (
 		<SettingsScreen>
@@ -42,6 +43,20 @@ function FeatureLabContent({ db }: { db: Database }) {
 					}}
 					title="Show Line Graph"
 					value={lineGraph}
+				/>
+			</SettingsSection>
+
+			<SettingsSection
+				footer="Off lays the budgets out as a two-up grid of cards instead of a list."
+				title="Budgets"
+			>
+				<ToggleRow
+					icon="LayoutTable01"
+					onValueChange={(next) => {
+						setBoolSetting(db, "budgetViewStyle", next);
+					}}
+					title="Budget Rows"
+					value={budgetRows}
 				/>
 			</SettingsSection>
 

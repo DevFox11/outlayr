@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { appMeta, budgets, exchangeRates, mainBudget } from "@/db/schema";
-import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
+import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
 import { budgetsRepo, getBudgetById } from "./budgets-core";
 
@@ -443,5 +443,84 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 			.from(budgets)
 			.where(eq(budgets.id, id));
 		assert.equal(row.amount, 250);
+	});
+});
+
+describe("a budget stepped back to a closed window", () => {
+	it("values its limit at that window's day, not at the current one", async () => {
+		// The rule PR #157 settled: the target is subtracted from spending valued
+		// at the window's own days, so stepping back to March must restate the
+		// limit in March money or the leftover means nothing.
+		const db = makeDb();
+		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
+		await db.insert(exchangeRates).values([
+			{
+				quote: "EUR",
+				rateType: "official",
+				date: "2026-03-01",
+				rate: 0.9,
+				source: "frankfurter",
+				fetchedAt: 0,
+			},
+			{
+				quote: "EUR",
+				rateType: "official",
+				date: "2026-07-01",
+				rate: 0.5,
+				source: "frankfurter",
+				fetchedAt: 0,
+			},
+		]);
+		const rates = buildRateTable([
+			{ quote: "EUR", date: "2026-03-01", rate: 0.9 },
+			{ quote: "EUR", date: "2026-07-01", rate: 0.5 },
+		]);
+
+		const current = new Date(2026, 6, 1);
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 450,
+			type: BUDGET_TYPE.month,
+			startDate: current,
+		});
+		const row = getBudgetById(db, id);
+		assert.ok(row);
+
+		const july = shiftWindow(current, BUDGET_TYPE.month, 0);
+		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
+		assert.deepEqual(march.start, new Date(2026, 2, 1));
+
+		assert.equal(limitIn(row, july.start, "USD", rates), 900);
+		assert.equal(limitIn(row, march.start, "USD", rates), 500);
+	});
+
+	it("falls back to the frozen value when no rate reaches the window", async () => {
+		const db = makeDb();
+		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
+		await db.insert(exchangeRates).values({
+			quote: "EUR",
+			rateType: "official",
+			date: "2026-07-01",
+			rate: 0.5,
+			source: "frankfurter",
+			fetchedAt: 0,
+		});
+		const rates = buildRateTable([
+			{ quote: "EUR", date: "2026-07-01", rate: 0.5 },
+		]);
+
+		const current = new Date(2026, 6, 1);
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 450,
+			type: BUDGET_TYPE.month,
+			startDate: current,
+		});
+		const row = getBudgetById(db, id);
+		assert.ok(row);
+
+		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
+		// 450 / 0.5: the write-time freeze, since March predates every EUR rate.
+		assert.equal(limitIn(row, march.start, "USD", rates), 900);
 	});
 });

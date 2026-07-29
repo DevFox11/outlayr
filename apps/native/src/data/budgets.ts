@@ -13,7 +13,12 @@ import { useEffect, useMemo } from "react";
 import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions } from "@/db/schema";
 import { type Burndown, buildBurndown } from "@/domain/budget-burndown";
-import { advanceBudgetWindow, type BudgetWindow } from "@/domain/budget-math";
+import {
+	advanceBudgetWindow,
+	type BudgetWindow,
+	periodsBackTo,
+	shiftWindow,
+} from "@/domain/budget-math";
 import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
 import {
 	type ExpenseContribution,
@@ -59,6 +64,23 @@ export interface MainBudgetView {
 	spent: number;
 	leftover: number;
 	overBudget: boolean;
+	/** Whole closed periods behind the current window that hold spending. */
+	periodsBack: number;
+}
+
+/** The upper bound on a window's rows: its own end, or now if it has not closed. */
+export function windowEndMs(window: BudgetWindow, nowMs: number): number {
+	return Math.min(window.end.getTime() - 1, nowMs);
+}
+
+function earliestDate(rows: readonly { date: Date }[]): Date | null {
+	let earliest: Date | null = null;
+	for (const row of rows) {
+		if (earliest === null || row.date.getTime() < earliest.getTime()) {
+			earliest = row.date;
+		}
+	}
+	return earliest;
 }
 
 /**
@@ -101,11 +123,16 @@ export function useExpenseContributions(
 /**
  * Null means no budget is set, never "not read yet": the read runs in render.
  * Rolls the persisted window forward on access.
+ *
+ * A negative `periodOffset` reports a closed window instead of the current one.
+ * Only the current window is ever written back — browsing must not move the
+ * anchor the budget is actually running on.
  */
 export function useMainBudget(
 	db: Database,
 	nowMs: number,
 	contributions: readonly ExpenseContribution[],
+	periodOffset = 0,
 ): MainBudgetView | null {
 	const data = useLiveQuery(mainBudget, () =>
 		db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1),
@@ -128,8 +155,13 @@ export function useMainBudget(
 			return null;
 		}
 		const now = new Date(nowMs);
-		const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
-		const spent = spentForMain(contributions, window.start, now);
+		const current = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+		const window = shiftWindow(current.start, row.type, periodOffset);
+		const spent = spentForMain(
+			contributions,
+			window.start,
+			new Date(windowEndMs(window, nowMs)),
+		);
 		const amount = limitIn(row, window.start, displayCurrency, rates);
 		return {
 			id: row.id,
@@ -140,8 +172,13 @@ export function useMainBudget(
 			spent,
 			leftover: amount - spent,
 			overBudget: spent > amount,
+			periodsBack: periodsBackTo(
+				current.start,
+				row.type,
+				earliestDate(contributions),
+			),
 		};
-	}, [row, contributions, nowMs, displayCurrency, rates]);
+	}, [row, contributions, nowMs, periodOffset, displayCurrency, rates]);
 }
 
 /** A null `categoryId` scopes the series to the overall budget. */
@@ -261,12 +298,20 @@ export interface CategoryBudgetDetail {
 	budget: CategoryBudgetView | null;
 	/** Newest first. */
 	transactions: TransactionWithCategory[];
+	/** Whole closed periods behind the current window that hold spending. */
+	periodsBack: number;
 }
 
+/**
+ * A negative `periodOffset` reports a closed window instead of the current one.
+ * Only the current window is ever written back — browsing must not move the
+ * anchor the budget is actually running on.
+ */
 export function useCategoryBudget(
 	db: Database,
 	id: string,
 	nowMs: number,
+	periodOffset = 0,
 ): CategoryBudgetDetail {
 	const data = useLiveQuery(
 		budgets,
@@ -282,7 +327,7 @@ export function useCategoryBudget(
 	const categoryMeta = useCategoryMeta(db);
 	const { displayCurrency, rates } = useValuation(db);
 
-	const window = useMemo(() => {
+	const current = useMemo(() => {
 		if (!row) {
 			return null;
 		}
@@ -290,21 +335,31 @@ export function useCategoryBudget(
 		return advanceBudgetWindow(row.startDate ?? now, row.type, now);
 	}, [row, nowMs]);
 
+	const window = useMemo(
+		() =>
+			current && row
+				? shiftWindow(current.start, row.type, periodOffset)
+				: null,
+		[current, row, periodOffset],
+	);
+
 	useEffect(() => {
-		if (!row?.startDate || !window) {
+		if (!row?.startDate || !current) {
 			return;
 		}
-		if (window.start.getTime() !== row.startDate.getTime()) {
-			budgetsRepo.advanceBudgetStart(db, row.id, window.start);
+		if (current.start.getTime() !== row.startDate.getTime()) {
+			budgetsRepo.advanceBudgetStart(db, row.id, current.start);
 		}
-	}, [db, row, window]);
+	}, [db, row, current]);
 
 	const transactions = useBudgetContributions(
 		db,
 		row?.categoryId ?? null,
 		window?.start ?? null,
-		nowMs,
+		window ? windowEndMs(window, nowMs) : nowMs,
 	);
+
+	const earliest = useEarliestContribution(db, row?.categoryId ?? null);
 
 	const budget = useMemo(() => {
 		if (!row || !window) {
@@ -330,12 +385,76 @@ export function useCategoryBudget(
 		};
 	}, [row, window, transactions, categoryMeta, displayCurrency, rates]);
 
-	return { budget, transactions };
+	const periodsBack =
+		current && row ? periodsBackTo(current.start, row.type, earliest) : 0;
+
+	return { budget, transactions, periodsBack };
+}
+
+/**
+ * The oldest expense that could count toward `categoryId` — a null id meaning
+ * every expense. Null when the ledger holds none.
+ *
+ * Ports the Swift stepper's `firstDate`: a sorted fetch's first row rather than
+ * a `min()` aggregate, which comes back as a raw column value the driver does
+ * not map to a Date.
+ */
+export function useEarliestContribution(
+	db: Database,
+	categoryId: string | null,
+): Date | null {
+	const categoryMeta = useCategoryMeta(db);
+
+	const contributingIds = useMemo(
+		() => contributingCategoryIds(categoryId, categoryMeta),
+		[categoryId, categoryMeta],
+	);
+	const contributingKey = contributingIds?.join(",") ?? "";
+
+	const rows = useLiveQuery(
+		transactions,
+		() =>
+			db
+				.select({ date: transactions.date })
+				.from(transactions)
+				.where(
+					and(
+						eq(transactions.income, false),
+						isNull(transactions.deletedAt),
+						contributingIds
+							? inArray(transactions.categoryId, contributingIds)
+							: undefined,
+					),
+				)
+				.orderBy(asc(transactions.date))
+				.limit(1),
+		[contributingKey],
+	);
+
+	return rows[0]?.date ?? null;
+}
+
+/** Null means "every category" — the overall budget's scope. */
+function contributingCategoryIds(
+	categoryId: string | null,
+	categoryMeta: ReadonlyMap<string, { parentId: string | null }>,
+): string[] | null {
+	if (!categoryId) {
+		return null;
+	}
+	const ids = [categoryId];
+	for (const [id, meta] of categoryMeta) {
+		if (meta.parentId === categoryId) {
+			ids.push(id);
+		}
+	}
+	return ids;
 }
 
 /**
  * Newest first. `categoryId === null` means the overall budget (every expense);
- * returns [] until `start` is known.
+ * returns [] until `start` is known. `endMs` is the last instant that counts —
+ * now for a running window, the window's own last instant for a closed one.
  *
  * The category relationship is resolved through {@link useCategoryMeta} rather
  * than a join: expressing "this category or its children" as
@@ -348,24 +467,16 @@ export function useBudgetContributions(
 	db: Database,
 	categoryId: string | null,
 	start: Date | null,
-	nowMs: number,
+	endMs: number,
 ): TransactionWithCategory[] {
 	// A null start (budget not loaded yet) must match nothing, not everything.
-	const startMs = start ? start.getTime() : nowMs + 1;
+	const startMs = start ? start.getTime() : endMs + 1;
 	const categoryMeta = useCategoryMeta(db);
 
-	const contributingIds = useMemo(() => {
-		if (!categoryId) {
-			return null;
-		}
-		const ids = [categoryId];
-		for (const [id, meta] of categoryMeta) {
-			if (meta.parentId === categoryId) {
-				ids.push(id);
-			}
-		}
-		return ids;
-	}, [categoryId, categoryMeta]);
+	const contributingIds = useMemo(
+		() => contributingCategoryIds(categoryId, categoryMeta),
+		[categoryId, categoryMeta],
+	);
 
 	// A primitive so the subscription re-runs when the contributing set changes
 	// without re-subscribing on every render's fresh array identity.
@@ -382,14 +493,14 @@ export function useBudgetContributions(
 						eq(transactions.income, false),
 						isNull(transactions.deletedAt),
 						gte(transactions.date, new Date(startMs)),
-						lte(transactions.date, new Date(nowMs)),
+						lte(transactions.date, new Date(endMs)),
 						contributingIds
 							? inArray(transactions.categoryId, contributingIds)
 							: undefined,
 					),
 				)
 				.orderBy(desc(transactions.date)),
-		[contributingKey, startMs, nowMs],
+		[contributingKey, startMs, endMs],
 	);
 
 	return useMemo(

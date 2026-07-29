@@ -8,18 +8,21 @@ import {
 	useBudgetContributions,
 	useExpenseContributions,
 	useMainBudget,
+	windowEndMs,
 } from "@/data/budgets";
 import { useBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
 	budgetPeriodPhrase,
+	budgetWindowLabel,
 	isBehindPace,
 	leftPerDay,
 	shouldShowPaceMarker,
 } from "@/domain/budget-math";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
+import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
 
 /**
  * Lives under `/budgets/[id]` with the reserved id `overall` rather than its own
@@ -47,13 +50,14 @@ function MainBudgetDetail({
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
 	const [nowMs] = useState(() => Date.now());
+	const [periodOffset, setPeriodOffset] = useState(0);
 	const contributions = useExpenseContributions(db, nowMs);
-	const budget = useMainBudget(db, nowMs, contributions);
+	const budget = useMainBudget(db, nowMs, contributions, periodOffset);
 	const transactions = useBudgetContributions(
 		db,
 		null,
 		budget?.window.start ?? null,
-		nowMs,
+		budget ? windowEndMs(budget.window, nowMs) : nowMs,
 	);
 
 	useEffect(() => {
@@ -74,21 +78,25 @@ function MainBudgetDetail({
 	};
 
 	const now = new Date(nowMs);
+	const closed = periodOffset < 0;
 	const pace = budgetPace(budget.window, now);
-	const showMarker = shouldShowPaceMarker(
-		budget.type,
-		pace.remaining,
-		budget.overBudget,
-	);
+	const showMarker =
+		!closed &&
+		shouldShowPaceMarker(budget.type, pace.remaining, budget.overBudget);
 	const behind = isBehindPace(pace.remaining, budget.amount, budget.leftover);
-	const perDay = budget.overBudget
-		? null
-		: leftPerDay(budget.leftover, budget.window, now);
+	const perDay =
+		closed || budget.overBudget
+			? null
+			: leftPerDay(budget.leftover, budget.window, now);
 
 	return (
 		<>
 			<BudgetDetailView
-				period={budgetPeriodPhrase(budget.type)}
+				period={
+					closed
+						? budgetWindowLabel(budget.window, budget.type)
+						: budgetPeriodPhrase(budget.type)
+				}
 				spent={budget.spent}
 				amount={budget.amount}
 				leftover={budget.leftover}
@@ -97,10 +105,22 @@ function MainBudgetDetail({
 				transactions={transactions}
 				onPressTransaction={(txId) => router.push(`/transaction/${txId}`)}
 				paceRemaining={showMarker ? pace.remaining : null}
-				paceBehind={behind}
+				paceBehind={!closed && behind}
 				leftPerDayAmount={perDay}
 				showCents={showCents}
 				showSign={showSign}
+				closed={closed}
+				stepper={
+					budget.periodsBack > 0 ? (
+						<BudgetPeriodStepper
+							maxBack={budget.periodsBack}
+							offset={periodOffset}
+							onStep={setPeriodOffset}
+							type={budget.type}
+							window={budget.window}
+						/>
+					) : null
+				}
 			/>
 			<Stack.Screen.Title>Overall Budget</Stack.Screen.Title>
 			<Stack.Toolbar placement="right">
