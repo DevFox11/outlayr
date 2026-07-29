@@ -96,7 +96,7 @@ interface LinkRowProps {
 	destructive?: boolean;
 	/**
 	 * Tap handler. Omitted renders the row inert with no chevron — used for
-	 * unavailable features (e.g. iCloud Sync on the local-first stack).
+	 * unavailable features (e.g. Sync before an account exists).
 	 */
 	onPress?: () => void;
 }

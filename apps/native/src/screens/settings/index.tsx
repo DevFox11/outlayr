@@ -142,7 +142,7 @@ function SettingsContent({ db }: { db: Database }) {
 					onPress={() => router.push("/settings/categories")}
 					title="Categories"
 				/>
-				<LinkRow icon="Cloud" title="iCloud Sync" value="Not available" />
+				<LinkRow icon="Cloud" title="Sync" value="Not available" />
 				<LinkRow
 					icon="FileImport"
 					onPress={() => router.push("/settings/import")}
