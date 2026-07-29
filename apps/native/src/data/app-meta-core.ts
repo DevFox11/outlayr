@@ -22,6 +22,12 @@ export const META_KEYS = {
 	 * exactly once rather than on every sweep.
 	 */
 	recurrenceRepaired: "recurrenceRepaired",
+	/**
+	 * Written when the first-run flow finishes. `firstLaunch` cannot stand in for
+	 * it: bootstrap writes that one before any screen exists, so by the time the
+	 * flow could run it already reads as done.
+	 */
+	onboardingComplete: "onboardingComplete",
 } as const;
 
 export async function getMeta(

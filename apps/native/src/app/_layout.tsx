@@ -27,7 +27,12 @@ import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
 import { AppThemeProvider, useAppTheme } from "@/contexts/app-theme-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
-import { LocalDataProvider, useLocalData } from "@/contexts/local-data-context";
+import {
+	LocalDataProvider,
+	useDatabase,
+	useLocalData,
+} from "@/contexts/local-data-context";
+import { useOnboardingSettled } from "@/data/onboarding";
 import { convex } from "@/lib/convex";
 import {
 	CATEGORY_DETENT,
@@ -118,8 +123,6 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { status } = useLocalData();
 	const { isDark, isHydrated: themeReady } = useAppTheme();
-	const { height: windowHeight } = useWindowDimensions();
-	const pickerDetent = identityPickerDetent(windowHeight);
 	const colorScheme = useColorScheme();
 
 	// The app's one readiness gate: every screen below it can call `useDatabase()`
@@ -152,82 +155,112 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 			    flag, never from the device. Without it the bar is pinned light and
 			    renders light-mode Liquid Glass over dark content. */}
 			<ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-				<Stack>
-					<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-					<Stack.Screen
-						name="search"
-						options={{
-							presentation: "modal",
-							title: "Search",
-							sheetGrabberVisible: true,
-						}}
-					/>
-
-					{SETTINGS_SCREENS.map((screen) => (
-						<Stack.Screen key={screen.name} name={screen.name}>
-							<Stack.Header transparent />
-							<Stack.Screen.BackButton displayMode="minimal" />
-							<Stack.Screen.Title>{screen.title}</Stack.Screen.Title>
-						</Stack.Screen>
-					))}
-					<Stack.Screen name="settings/categories/index">
-						<Stack.Header transparent />
-						<Stack.Screen.BackButton displayMode="minimal" />
-						<Stack.Screen.Title>Categories</Stack.Screen.Title>
-					</Stack.Screen>
-					{CATEGORY_SHEETS.map((sheet) => (
-						<Stack.Screen
-							key={sheet.name}
-							name={sheet.name}
-							options={{
-								presentation: "formSheet",
-								title: sheet.title,
-								sheetAllowedDetents: [sheet.detent, 1],
-								sheetGrabberVisible: true,
-							}}
-						>
-							<Stack.Header transparent />
-							<Stack.Screen.BackButton displayMode="minimal" />
-							<Stack.Screen.Title>{sheet.title}</Stack.Screen.Title>
-						</Stack.Screen>
-					))}
-					<Stack.Screen
-						name="settings/category-symbol"
-						options={{
-							presentation: "formSheet",
-							headerShown: false,
-							sheetGrabberVisible: true,
-							sheetAllowedDetents: [pickerDetent, 1],
-							sheetLargestUndimmedDetentIndex: 0,
-							sheetCornerRadius: 40,
-							contentStyle: { backgroundColor: "transparent" },
-						}}
-					/>
-
-					<Stack.Screen
-						name="transaction/new"
-						options={{ presentation: "modal", title: "New Transaction" }}
-					/>
-					<Stack.Screen
-						name="transaction/[id]"
-						options={{ presentation: "modal", title: "Edit Transaction" }}
-					/>
-					<Stack.Screen
-						name="transaction/identity"
-						options={{
-							presentation: "formSheet",
-							headerShown: false,
-							sheetGrabberVisible: true,
-							sheetAllowedDetents: [pickerDetent, 1],
-							sheetLargestUndimmedDetentIndex: 0,
-							sheetCornerRadius: 40,
-							contentStyle: { backgroundColor: "transparent" },
-						}}
-					/>
-				</Stack>
+				<RootStack />
 			</ThemeProvider>
 		</>
+	);
+}
+
+/**
+ * Split from `RootNavigator` so `useDatabase` is only ever called below the
+ * splash gate, where the database is guaranteed open.
+ */
+function RootStack() {
+	const db = useDatabase();
+	const onboarded = useOnboardingSettled(db);
+	const { height: windowHeight } = useWindowDimensions();
+	const pickerDetent = identityPickerDetent(windowHeight);
+
+	return (
+		<Stack>
+			{/* Declared before `(tabs)`: with the anchor guarded away on a first run,
+			    the stack opens on whatever screen is left first. */}
+			<Stack.Protected guard={!onboarded}>
+				<Stack.Screen
+					name="onboarding/index"
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="onboarding/currency"
+					options={{ headerShown: false }}
+				/>
+			</Stack.Protected>
+
+			<Stack.Protected guard={onboarded}>
+				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+			</Stack.Protected>
+
+			<Stack.Screen
+				name="search"
+				options={{
+					presentation: "modal",
+					title: "Search",
+					sheetGrabberVisible: true,
+				}}
+			/>
+
+			{SETTINGS_SCREENS.map((screen) => (
+				<Stack.Screen key={screen.name} name={screen.name}>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{screen.title}</Stack.Screen.Title>
+				</Stack.Screen>
+			))}
+			<Stack.Screen name="settings/categories/index">
+				<Stack.Header transparent />
+				<Stack.Screen.BackButton displayMode="minimal" />
+				<Stack.Screen.Title>Categories</Stack.Screen.Title>
+			</Stack.Screen>
+			{CATEGORY_SHEETS.map((sheet) => (
+				<Stack.Screen
+					key={sheet.name}
+					name={sheet.name}
+					options={{
+						presentation: "formSheet",
+						title: sheet.title,
+						sheetAllowedDetents: [sheet.detent, 1],
+						sheetGrabberVisible: true,
+					}}
+				>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{sheet.title}</Stack.Screen.Title>
+				</Stack.Screen>
+			))}
+			<Stack.Screen
+				name="settings/category-symbol"
+				options={{
+					presentation: "formSheet",
+					headerShown: false,
+					sheetGrabberVisible: true,
+					sheetAllowedDetents: [pickerDetent, 1],
+					sheetLargestUndimmedDetentIndex: 0,
+					sheetCornerRadius: 40,
+					contentStyle: { backgroundColor: "transparent" },
+				}}
+			/>
+
+			<Stack.Screen
+				name="transaction/new"
+				options={{ presentation: "modal", title: "New Transaction" }}
+			/>
+			<Stack.Screen
+				name="transaction/[id]"
+				options={{ presentation: "modal", title: "Edit Transaction" }}
+			/>
+			<Stack.Screen
+				name="transaction/identity"
+				options={{
+					presentation: "formSheet",
+					headerShown: false,
+					sheetGrabberVisible: true,
+					sheetAllowedDetents: [pickerDetent, 1],
+					sheetLargestUndimmedDetentIndex: 0,
+					sheetCornerRadius: 40,
+					contentStyle: { backgroundColor: "transparent" },
+				}}
+			/>
+		</Stack>
 	);
 }
 
