@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
 	budgetLink,
 	DEEP_LINKS,
+	redirectLaunchPath,
 	resolveDeepLink,
 	transactionLink,
 } from "./deep-links";
@@ -59,5 +60,53 @@ describe("resolveDeepLink", () => {
 		assert.equal(resolveDeepLink("outlayr://"), null);
 		assert.equal(resolveDeepLink("/settings/currency"), null);
 		assert.equal(resolveDeepLink("exp://192.168.1.4:8081"), null);
+	});
+});
+
+describe("redirectLaunchPath", () => {
+	function drainSpy() {
+		const calls = { count: 0 };
+		return [
+			() => {
+				calls.count++;
+			},
+			calls,
+		] as const;
+	}
+
+	it("still routes the link the app was launched from", () => {
+		const [drain, calls] = drainSpy();
+		assert.equal(
+			redirectLaunchPath({ path: DEEP_LINKS.newExpense, initial: true }, drain),
+			"/transaction/new",
+		);
+		assert.equal(calls.count, 1);
+	});
+
+	it("drains a launch that carried no deep link", () => {
+		const [drain, calls] = drainSpy();
+		assert.equal(
+			redirectLaunchPath({ path: "outlayr:///", initial: true }, drain),
+			"outlayr:///",
+		);
+		assert.equal(calls.count, 1);
+	});
+
+	it("leaves the registry alone for a link arriving while the app runs", () => {
+		const [drain, calls] = drainSpy();
+		assert.equal(
+			redirectLaunchPath({ path: DEEP_LINKS.budgets, initial: false }, drain),
+			"/budgets",
+		);
+		assert.equal(calls.count, 0);
+	});
+
+	it("passes a null path through with nothing to drain", () => {
+		const [drain, calls] = drainSpy();
+		assert.equal(
+			redirectLaunchPath({ path: null, initial: true }, drain),
+			null,
+		);
+		assert.equal(calls.count, 0);
 	});
 });

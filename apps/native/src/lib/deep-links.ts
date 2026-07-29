@@ -105,3 +105,24 @@ export function resolveDeepLink(raw: string): string | null {
 
 	return `${base}${query}`;
 }
+
+/**
+ * `drainLaunchURL` empties expo-linking's launch-URL registry. expo-router never
+ * does, and it rebuilds its linking config on every render
+ * (`expo-router/build/global-state/useStore.js:47`), so the URL the app was
+ * launched from stays readable for the life of the process. React Navigation
+ * reads it only when it mounts, which is why a release build never notices and a
+ * dev reload lands back on the launch destination.
+ */
+export function redirectLaunchPath(
+	{ path, initial }: { path: string | null; initial: boolean },
+	drainLaunchURL: () => void,
+): string | null {
+	if (!path) {
+		return path;
+	}
+	if (initial) {
+		drainLaunchURL();
+	}
+	return resolveDeepLink(path) ?? path;
+}
