@@ -18,7 +18,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
-import type { InsightsWidgetProps } from "./props";
+import type { InsightsConfiguration, InsightsWidgetProps } from "./props";
 
 /**
  * Runs in the widget extension's `JSContext`, so only `props`, `environment` and
@@ -30,13 +30,20 @@ import type { InsightsWidgetProps } from "./props";
  */
 const InsightsWidget = (
 	props: InsightsWidgetProps,
-	environment: WidgetEnvironment,
+	environment: WidgetEnvironment<InsightsConfiguration>,
 ) => {
 	"widget";
 
 	const scheme = environment.colorScheme === "dark" ? "dark" : "light";
 	const palette = props.chrome[scheme];
 	const isSmall = environment.widgetFamily === "systemSmall";
+	// A configuration stored by an older build can name a period this one no
+	// longer publishes, and an undefined window renders as a blank tile with no
+	// error.
+	const chosen = environment.configuration?.period ?? "app";
+	const view =
+		(chosen === "app" ? undefined : props.windows[chosen]) ??
+		props.windows[props.defaultPeriod];
 
 	const eyebrow = (value: string) => (
 		<Text
@@ -54,7 +61,7 @@ const InsightsWidget = (
 	// — grey gridlines and a numeric scale down the side — and `@expo/ui` exposes
 	// no way to hide it, so the tile rendered "200 / 150 / 100 / 50" in system
 	// grey next to the hero.
-	const peak = props.bars.reduce((max, bar) => (bar.y > max ? bar.y : max), 0);
+	const peak = view.bars.reduce((max, bar) => (bar.y > max ? bar.y : max), 0);
 	const bars = (height: number, showLabels: boolean) => (
 		<VStack alignment="leading" spacing={4}>
 			<HStack alignment="bottom" spacing={3}>
@@ -63,7 +70,7 @@ const InsightsWidget = (
 				    Thursdays are genuinely indistinguishable by value. The series is
 				    fixed-length and never reordered, so the index is the stable
 				    identity here rather than a stand-in for one. */}
-				{props.bars.map((bar, index) => (
+				{view.bars.map((bar, index) => (
 					<Rectangle
 						key={index}
 						modifiers={[
@@ -80,9 +87,9 @@ const InsightsWidget = (
 			</HStack>
 			{/* Only a week is labelled: a month's 31 buckets collapse into an
 			    unreadable band, and the eyebrow already names the window. */}
-			{showLabels && props.bars.length <= 7 ? (
+			{showLabels && view.bars.length <= 7 ? (
 				<HStack spacing={3}>
-					{props.bars.map((bar, index) => (
+					{view.bars.map((bar, index) => (
 						<Text
 							key={index}
 							modifiers={[
@@ -135,7 +142,7 @@ const InsightsWidget = (
 		<VStack alignment="leading" spacing={1}>
 			{/* Period only, never the date range: medium splits its width with the
 			    chart column, and "THIS WEEK · 26 Jul - 1 Aug" truncates mid-range. */}
-			{eyebrow(props.periodLabel)}
+			{eyebrow(view.periodLabel)}
 			<HStack alignment="firstTextBaseline" spacing={5}>
 				<Text
 					modifiers={[
@@ -144,12 +151,12 @@ const InsightsWidget = (
 							size: isSmall ? 26 : 32,
 							weight: "semibold",
 						}),
-						foregroundStyle(props.netPositive ? palette.income : palette.ink),
+						foregroundStyle(view.netPositive ? palette.income : palette.ink),
 						lineLimit(1),
 						minimumScaleFactor(0.5),
 					]}
 				>
-					{props.netPositive ? props.net : `−${props.net}`}
+					{view.netPositive ? view.net : `−${view.net}`}
 				</Text>
 				{eyebrow("NET")}
 			</HStack>
@@ -161,7 +168,7 @@ const InsightsWidget = (
 			<VStack
 				alignment="leading"
 				modifiers={[
-					widgetURL(props.url),
+					widgetURL(view.url),
 					containerBackground(palette.background, "widget"),
 				]}
 				spacing={0}
@@ -176,7 +183,7 @@ const InsightsWidget = (
 	return (
 		<HStack
 			modifiers={[
-				widgetURL(props.url),
+				widgetURL(view.url),
 				containerBackground(palette.background, "widget"),
 			]}
 			spacing={14}
@@ -189,8 +196,8 @@ const InsightsWidget = (
 				/>
 				<Spacer modifiers={[frame({ height: 8 })]} />
 				<HStack spacing={0}>
-					{cell("SPENT", props.spent, true)}
-					{cell("IN", props.income, false)}
+					{cell("SPENT", view.spent, true)}
+					{cell("IN", view.income, false)}
 				</HStack>
 			</VStack>
 
@@ -203,7 +210,7 @@ const InsightsWidget = (
 				    stack renders as just the static child — the same shape the ledger
 				    uses, which is the one known to survive serialization. */}
 				<VStack alignment="leading" spacing={5}>
-					{props.slices.slice(0, 3).map((slice) => (
+					{view.slices.slice(0, 3).map((slice) => (
 						<HStack key={slice.name} spacing={6}>
 							<Circle
 								modifiers={[
@@ -230,4 +237,7 @@ const InsightsWidget = (
 	);
 };
 
-export default createWidget<InsightsWidgetProps>("Insights", InsightsWidget);
+export default createWidget<InsightsWidgetProps, InsightsConfiguration>(
+	"Insights",
+	InsightsWidget,
+);

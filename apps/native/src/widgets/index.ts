@@ -34,13 +34,19 @@ export async function publishWidgets(db: SpendDb): Promise<void> {
 		const props = await buildWidgetProps(db, now);
 
 		// An entry dated in the past is dropped, so the rollover is only scheduled
-		// while it is genuinely ahead of us.
-		const rollsOver =
-			props.Budget.present && props.Budget.endsAt > now.getTime();
+		// while it is genuinely ahead of us. Any of the published views can be the
+		// one a tile is configured to, so the earliest end wins — a later one would
+		// leave a differently-configured tile stale for a whole period.
+		const rollover = Object.values(props.Budget.views)
+			.filter((view) => view.present && view.endsAt > now.getTime())
+			.reduce(
+				(soonest, view) => Math.min(soonest, view.endsAt),
+				Number.POSITIVE_INFINITY,
+			);
 		BudgetWidget.updateTimeline([
 			{ date: now, props: props.Budget },
-			...(rollsOver
-				? [{ date: new Date(props.Budget.endsAt), props: props.Budget }]
+			...(Number.isFinite(rollover)
+				? [{ date: new Date(rollover), props: props.Budget }]
 				: []),
 		]);
 		LedgerWidget.updateSnapshot(props.Ledger);
@@ -48,26 +54,29 @@ export async function publishWidgets(db: SpendDb): Promise<void> {
 		LogWidget.updateSnapshot(props.Log);
 
 		// Siri reads from the App Group, not from WidgetKit, but off the same
-		// derivation — see `publishIntentSnapshot`.
+		// derivation — see `publishIntentSnapshot`. It has no configuration of its
+		// own, so it gets what an unconfigured tile shows.
+		const budget = props.Budget.views.auto;
+		const insights = props.Insights.windows[props.Insights.defaultPeriod];
 		publishIntentSnapshot({
 			budget: {
-				present: props.Budget.present,
-				name: props.Budget.name,
-				periodLabel: props.Budget.periodLabel,
-				remaining: props.Budget.remaining,
-				remainingCaption: props.Budget.remainingCaption,
-				spent: props.Budget.spent,
-				limit: props.Budget.limit,
-				percent: props.Budget.percent,
+				present: budget.present,
+				name: budget.name,
+				periodLabel: budget.periodLabel,
+				remaining: budget.remaining,
+				remainingCaption: budget.remainingCaption,
+				spent: budget.spent,
+				limit: budget.limit,
+				percent: budget.percent,
 			},
 			budgets: props.intentBudgets,
 			insights: {
-				periodLabel: props.Insights.periodLabel,
-				rangeLabel: props.Insights.rangeLabel,
-				net: props.Insights.net,
-				netPositive: props.Insights.netPositive,
-				spent: props.Insights.spent,
-				income: props.Insights.income,
+				periodLabel: insights.periodLabel,
+				rangeLabel: insights.rangeLabel,
+				net: insights.net,
+				netPositive: insights.netPositive,
+				spent: insights.spent,
+				income: insights.income,
 			},
 		});
 	} catch (error) {

@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, like } from "drizzle-orm";
 import { addDatabaseChangeListener } from "expo-sqlite";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AppState } from "react-native";
 import {
 	backfillBudgetUsd,
@@ -15,49 +15,35 @@ import { detectCurrency } from "@/domain/detect-currency";
 import { ratesPuller } from "@/lib/convex";
 import { publishWidgets } from "@/widgets";
 import { indexSpotlight } from "./spotlight";
+import {
+	affectsSpotlight,
+	affectsWidgets,
+	debounce,
+	PUBLISH_DEBOUNCE_MS,
+	SPOTLIGHT_DEBOUNCE_MS,
+} from "./sync-cadence";
 import { drainPendingWrites, type PendingWrite } from "./widget-bridge";
 
 /**
- * Collapses a burst of writes into one publish. A recurrence back-fill inserts a
- * row at a time and each one fires a change event, which without this would
- * spend the whole day's WidgetKit reload allowance on a single sweep.
- */
-const PUBLISH_DEBOUNCE_MS = 750;
-
-/** Only these tables change what a widget renders. */
-const WATCHED_TABLES = new Set([
-	"transactions",
-	"budgets",
-	"mainBudget",
-	"categories",
-	"appMeta",
-]);
-
-/**
- * Spotlight runs on a deliberately slower cadence than the widgets: on open and
- * on background, not on every write, because each index pass rewrites a whole
- * domain.
+ * Keeps the widget tiles and the Spotlight index current, each on its own
+ * cadence — see `sync-cadence.ts` for which tables reach which surface and why
+ * the index trails the tiles so far.
  *
  * `db` is nullable so this can be called before the database is open, matching
  * `useRecurrenceSweep`.
  */
 export function useSystemSync(db: Database | null): void {
-	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
 	useEffect(() => {
 		if (db == null) {
 			return;
 		}
 
-		const publish = () => {
-			if (timer.current) {
-				clearTimeout(timer.current);
-			}
-			timer.current = setTimeout(() => {
-				timer.current = null;
-				void publishWidgets(db);
-			}, PUBLISH_DEBOUNCE_MS);
-		};
+		const publish = debounce(PUBLISH_DEBOUNCE_MS, () => {
+			void publishWidgets(db);
+		});
+		const reindex = debounce(SPOTLIGHT_DEBOUNCE_MS, () => {
+			void indexSpotlight(db);
+		});
 
 		// Applying the queue writes rows, which trips the change listener below and
 		// publishes on its own — so this deliberately does not publish itself.
@@ -65,12 +51,12 @@ export function useSystemSync(db: Database | null): void {
 			applyPendingWrites(db)
 				.then((applied) => {
 					if (applied === 0) {
-						publish();
+						publish.schedule();
 					}
 				})
 				.catch((error) => {
 					console.warn("[outlayr] pending writes failed to apply", error);
-					publish();
+					publish.schedule();
 				});
 		};
 
@@ -84,13 +70,16 @@ export function useSystemSync(db: Database | null): void {
 		// is what keeps the tiles honest after a refresh.
 		void refreshRates(db).then((changed) => {
 			if (changed) {
-				publish();
+				publish.schedule();
 			}
 		});
 
 		const listener = addDatabaseChangeListener((event) => {
-			if (WATCHED_TABLES.has(event.tableName)) {
-				publish();
+			if (affectsWidgets(event.tableName)) {
+				publish.schedule();
+			}
+			if (affectsSpotlight(event.tableName)) {
+				reindex.schedule();
 			}
 		});
 
@@ -101,19 +90,20 @@ export function useSystemSync(db: Database | null): void {
 				catchUp();
 				void refreshRates(db).then((changed) => {
 					if (changed) {
-						publish();
+						publish.schedule();
 					}
 				});
 			} else if (state === "background") {
+				publish.cancel();
+				reindex.cancel();
 				void publishWidgets(db);
 				void indexSpotlight(db);
 			}
 		});
 
 		return () => {
-			if (timer.current) {
-				clearTimeout(timer.current);
-			}
+			publish.cancel();
+			reindex.cancel();
 			listener.remove();
 			subscription.remove();
 		};

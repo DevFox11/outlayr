@@ -22,7 +22,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
-import type { BudgetWidgetProps } from "./props";
+import type { BudgetConfiguration, BudgetWidgetProps } from "./props";
 
 /**
  * Everything inside the function body runs in the widget extension's own
@@ -40,14 +40,19 @@ import type { BudgetWidgetProps } from "./props";
  */
 const BudgetWidget = (
 	props: BudgetWidgetProps,
-	environment: WidgetEnvironment,
+	environment: WidgetEnvironment<BudgetConfiguration>,
 ) => {
 	"widget";
 
 	const scheme = environment.colorScheme === "dark" ? "dark" : "light";
 	const palette = props.chrome[scheme];
 	const family = environment.widgetFamily;
-	const accent = props.over ? palette.over : palette.ink;
+	// A configuration stored by an older build can name a view this one no longer
+	// publishes, and an undefined view renders as a blank tile with no error.
+	const view =
+		props.views[environment.configuration?.budget ?? "auto"] ??
+		props.views.auto;
+	const accent = view.over ? palette.over : palette.ink;
 
 	// Lock Screen families render vibrant — the system flattens everything to a
 	// single tint, so colour carries no meaning there and the copy has to.
@@ -70,9 +75,9 @@ const BudgetWidget = (
 
 	if (family === "accessoryInline") {
 		return (
-			<Text modifiers={[widgetURL(props.url)]}>
-				{props.present
-					? `${props.isOverall ? "" : `${props.name}: `}${props.remaining} ${props.remainingCaption.toLowerCase()} · ${props.percent}`
+			<Text modifiers={[widgetURL(view.url)]}>
+				{view.present
+					? `${view.isOverall ? "" : `${view.name}: `}${view.remaining} ${view.remainingCaption.toLowerCase()} · ${view.percent}`
 					: "No budget yet"}
 			</Text>
 		);
@@ -83,19 +88,19 @@ const BudgetWidget = (
 			<Gauge
 				max={1}
 				min={0}
-				modifiers={[gaugeStyle("circularCapacity"), widgetURL(props.url)]}
-				value={props.spentFraction}
+				modifiers={[gaugeStyle("circularCapacity"), widgetURL(view.url)]}
+				value={view.spentFraction}
 			>
-				<Text>{props.present ? props.percent : "—"}</Text>
+				<Text>{view.present ? view.percent : "—"}</Text>
 			</Gauge>
 		);
 	}
 
-	if (!props.present) {
+	if (!view.present) {
 		return (
 			<VStack
 				modifiers={[
-					widgetURL(props.url),
+					widgetURL(view.url),
 					containerBackground(palette.background, "widget"),
 				]}
 				spacing={4}
@@ -125,7 +130,7 @@ const BudgetWidget = (
 					minimumScaleFactor(0.5),
 				]}
 			>
-				{props.remaining}
+				{view.remaining}
 			</Text>
 			<Text
 				modifiers={[
@@ -134,7 +139,7 @@ const BudgetWidget = (
 					lineLimit(1),
 				]}
 			>
-				{props.remainingCaption}
+				{view.remainingCaption}
 			</Text>
 		</HStack>
 	);
@@ -142,21 +147,17 @@ const BudgetWidget = (
 	const rail = (
 		<ProgressView
 			modifiers={[progressViewStyle("linear"), tint(accent)]}
-			value={props.spentFraction}
+			value={view.spentFraction}
 		/>
 	);
 
 	if (family === "accessoryRectangular") {
 		return (
-			<VStack
-				alignment="leading"
-				modifiers={[widgetURL(props.url)]}
-				spacing={2}
-			>
+			<VStack alignment="leading" modifiers={[widgetURL(view.url)]} spacing={2}>
 				{eyebrow(
-					props.isOverall
-						? `${props.periodLabel} · ${props.percent}`
-						: `${props.name.toUpperCase()} · ${props.percent}`,
+					view.isOverall
+						? `${view.periodLabel} · ${view.percent}`
+						: `${view.name.toUpperCase()} · ${view.percent}`,
 				)}
 				{hero(20)}
 				{rail}
@@ -199,7 +200,7 @@ const BudgetWidget = (
 		<VStack
 			alignment="leading"
 			modifiers={[
-				widgetURL(props.url),
+				widgetURL(view.url),
 				containerBackground(palette.background, "widget"),
 			]}
 			spacing={0}
@@ -207,11 +208,11 @@ const BudgetWidget = (
 			{/* A per-category budget leads with its own name, or the tile is
 			    indistinguishable from the overall one. */}
 			{eyebrow(
-				props.isOverall
+				view.isOverall
 					? family === "systemSmall"
-						? props.periodLabel
-						: `${props.periodLabel} · ${props.rangeLabel}`
-					: `${props.name.toUpperCase()} · ${props.periodLabel}`,
+						? view.periodLabel
+						: `${view.periodLabel} · ${view.rangeLabel}`
+					: `${view.name.toUpperCase()} · ${view.periodLabel}`,
 			)}
 			<Spacer modifiers={[frame({ height: 6 })]} />
 			{hero(family === "systemSmall" ? 26 : 32)}
@@ -223,13 +224,13 @@ const BudgetWidget = (
 			/>
 			<Spacer modifiers={[frame({ height: 8 })]} />
 			<HStack spacing={0}>
-				{cell("SPENT", props.spent, true)}
-				{cell("LIMIT", props.limit, false)}
+				{cell("SPENT", view.spent, true)}
+				{cell("LIMIT", view.limit, false)}
 				{family === "systemSmall"
 					? null
 					: cell(
 							"ELAPSED",
-							`${Math.round(props.elapsedFraction * 100)}%`,
+							`${Math.round(view.elapsedFraction * 100)}%`,
 							false,
 						)}
 			</HStack>
@@ -237,4 +238,7 @@ const BudgetWidget = (
 	);
 };
 
-export default createWidget<BudgetWidgetProps>("Budget", BudgetWidget);
+export default createWidget<BudgetWidgetProps, BudgetConfiguration>(
+	"Budget",
+	BudgetWidget,
+);

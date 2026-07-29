@@ -30,8 +30,12 @@ const IOS_DEPLOYMENT_TARGET = "18.0";
  * Each widget is offered only the families it was actually composed for. A
  * layout stretched into a size it was not designed for is how the Grid hierarchy
  * (one hero figure, one supporting rank) collapses into evenly-spaced mush, so
- * the ledger has no small variant and the accessory families belong to Budget,
- * which is the only thing worth a glance from the Lock Screen.
+ * the ledger has no small variant — its rows need the width.
+ *
+ * An accessory family is a separate composition rather than a smaller tile: the
+ * system flattens it to a single tint and allows a couple of lines. A widget
+ * offered one has to branch on it, which `src/widgets/families.test.ts` enforces
+ * against this list.
  */
 const WIDGETS = [
 	{
@@ -60,20 +64,64 @@ const WIDGETS = [
 				"accessoryRectangular",
 				"accessoryInline",
 			],
+			// Every case has to exist in the published props before the tile can be
+			// pinned to it — see `BudgetWidgetProps.views`. The values are the keys
+			// of that record, and `expo-widgets` requires them to be Swift
+			// identifiers because each becomes an `AppEnum` case.
+			configuration: {
+				title: "Budget",
+				parameters: {
+					budget: {
+						title: "Budget",
+						type: "enum",
+						values: [
+							{ name: "Automatic", value: "auto" },
+							{ name: "Overall budget", value: "overall" },
+							{ name: "Closest to its limit", value: "worst" },
+						],
+						default: "auto",
+					},
+				},
+			},
 		},
 	},
 	{
 		name: "Ledger",
 		displayName: "Recent Entries",
 		description: "Your most recent entries, newest first.",
-		ios: { supportedFamilies: ["systemMedium", "systemLarge"] },
+		ios: {
+			supportedFamilies: [
+				"systemMedium",
+				"systemLarge",
+				"accessoryRectangular",
+				"accessoryInline",
+			],
+		},
 	},
 	{
 		name: "Insights",
 		displayName: "Insights",
 		description:
 			"Spend, income and net for the period, with where the money went.",
-		ios: { supportedFamilies: ["systemSmall", "systemMedium"] },
+		ios: {
+			supportedFamilies: ["systemSmall", "systemMedium"],
+			configuration: {
+				title: "Insights",
+				parameters: {
+					period: {
+						title: "Period",
+						type: "enum",
+						values: [
+							{ name: "Match the app", value: "app" },
+							{ name: "This week", value: "week" },
+							{ name: "This month", value: "month" },
+							{ name: "This year", value: "year" },
+						],
+						default: "app",
+					},
+				},
+			},
+		},
 	},
 ];
 

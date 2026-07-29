@@ -3,7 +3,13 @@ import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { SpendDb } from "@/data/budget-spent";
-import { categories, transactions } from "@/db/schema";
+import {
+	appMeta,
+	budgets,
+	categories,
+	mainBudget,
+	transactions,
+} from "@/db/schema";
 import { buildWidgetProps } from "./props";
 
 function makeDb(): SpendDb {
@@ -161,5 +167,115 @@ describe("the Ledger widget's entries", () => {
 		const props = await buildWidgetProps(db, NOW);
 
 		assert.equal(props.Ledger.entries[0]?.amount, "$18.50");
+	});
+});
+
+/**
+ * A configured tile picks its own view out of the published props: the widget
+ * body cannot query, so every selection has to be derived here whether or not
+ * this install ever configures the tile.
+ */
+describe("the Budget widget's selections", () => {
+	async function withBudgets(overall: boolean): Promise<SpendDb> {
+		const db = makeDb();
+		await db.insert(categories).values([
+			{ id: "cat-1", name: "Food", income: false, updatedAt: NOW },
+			{ id: "cat-2", name: "Transit", income: false, updatedAt: NOW },
+		]);
+		if (overall) {
+			await db.insert(mainBudget).values({
+				id: "main",
+				name: "Overall Budget",
+				amount: 1000,
+				type: 3,
+				startDate: new Date(Date.UTC(2026, 6, 1)),
+				updatedAt: NOW,
+			});
+		}
+		await db.insert(budgets).values([
+			{
+				id: "b-food",
+				amount: 100,
+				type: 3,
+				startDate: new Date(Date.UTC(2026, 6, 1)),
+				categoryId: "cat-1",
+				updatedAt: NOW,
+			},
+			{
+				id: "b-transit",
+				amount: 100,
+				type: 3,
+				startDate: new Date(Date.UTC(2026, 6, 1)),
+				categoryId: "cat-2",
+				updatedAt: NOW,
+			},
+		]);
+		await db.insert(transactions).values([
+			{
+				id: "t1",
+				amount: 90,
+				income: false,
+				note: "Groceries",
+				date: NOW,
+				day: NOW,
+				month: NOW,
+				categoryId: "cat-1",
+				updatedAt: NOW,
+			},
+			{
+				id: "t2",
+				amount: 10,
+				income: false,
+				note: "Bus",
+				date: NOW,
+				day: NOW,
+				month: NOW,
+				categoryId: "cat-2",
+				updatedAt: NOW,
+			},
+		]);
+		return db;
+	}
+
+	it("publishes the overall and the closest-to-its-limit budget side by side", async () => {
+		const props = await buildWidgetProps(await withBudgets(true), NOW);
+
+		assert.equal(props.Budget.views.overall.name, "Overall Budget");
+		assert.equal(props.Budget.views.worst.name, "Food");
+		// Unconfigured, the tile keeps showing what it always did.
+		assert.deepEqual(props.Budget.views.auto, props.Budget.views.overall);
+	});
+
+	it("leaves the automatic view on the worst budget when there is no overall one", async () => {
+		const props = await buildWidgetProps(await withBudgets(false), NOW);
+
+		assert.equal(props.Budget.views.overall.present, false);
+		assert.deepEqual(props.Budget.views.auto, props.Budget.views.worst);
+	});
+});
+
+describe("the Insights widget's windows", () => {
+	it("publishes every period so a tile can be configured to one", async () => {
+		const db = makeDb();
+		await db.insert(appMeta).values({ key: "insightsTimeFrame", value: "2" });
+
+		const props = await buildWidgetProps(db, NOW);
+
+		assert.deepEqual(Object.keys(props.Insights.windows).sort(), [
+			"month",
+			"week",
+			"year",
+		]);
+		assert.equal(props.Insights.windows.week.periodLabel, "THIS WEEK");
+		assert.equal(props.Insights.windows.year.periodLabel, "THIS YEAR");
+	});
+
+	it("keeps the app's own period as what an unconfigured tile shows", async () => {
+		const db = makeDb();
+		await db.insert(appMeta).values({ key: "insightsTimeFrame", value: "3" });
+
+		const props = await buildWidgetProps(db, NOW);
+
+		assert.equal(props.Insights.defaultPeriod, "year");
 	});
 });

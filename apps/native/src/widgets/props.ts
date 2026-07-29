@@ -48,8 +48,14 @@ const LEDGER_LIMIT = 8;
 /** Past five, the slices are thinner than the hairline between them. */
 const SLICE_LIMIT = 4;
 
-export interface BudgetWidgetProps {
-	chrome: WidgetChrome;
+/** Which budget a configured tile is pinned to. */
+export type BudgetSelection = "auto" | "overall" | "worst";
+
+export interface BudgetConfiguration {
+	budget: BudgetSelection;
+}
+
+export interface BudgetViewProps {
 	/** False when no budget of any kind exists — the layout pitches one instead. */
 	present: boolean;
 	name: string;
@@ -89,6 +95,18 @@ export interface BudgetWidgetProps {
 	url: string;
 }
 
+/**
+ * Every budget the tile can be pinned to, derived on every publish. A widget
+ * body cannot query, so a configuration can only ever choose between views that
+ * are already in the payload — which is also why `auto` is materialised rather
+ * than resolved in the layout: it is the one the tile shows unconfigured, and it
+ * has to stay byte-identical to what shipped before configuration existed.
+ */
+export interface BudgetWidgetProps {
+	chrome: WidgetChrome;
+	views: Record<BudgetSelection, BudgetViewProps>;
+}
+
 export interface LedgerEntryProps {
 	id: string;
 	note: string;
@@ -109,8 +127,14 @@ export interface LedgerWidgetProps {
 	url: string;
 }
 
-export interface InsightsWidgetProps {
-	chrome: WidgetChrome;
+/** `"app"` follows the app's own `insightsTimeFrame`; the rest pin the tile. */
+export type InsightsSelection = "app" | InsightsPeriod;
+
+export interface InsightsConfiguration {
+	period: InsightsSelection;
+}
+
+export interface InsightsViewProps {
 	periodLabel: string;
 	rangeLabel: string;
 	/** Net for the window, signed by `netPositive` rather than by a glyph. */
@@ -122,6 +146,13 @@ export interface InsightsWidgetProps {
 	bars: { x: string; y: number }[];
 	slices: { name: string; color: string; amount: string; fraction: number }[];
 	url: string;
+}
+
+export interface InsightsWidgetProps {
+	chrome: WidgetChrome;
+	/** The app's own `insightsTimeFrame` — what an unconfigured tile shows. */
+	defaultPeriod: InsightsPeriod;
+	windows: Record<InsightsPeriod, InsightsViewProps>;
 }
 
 export interface LogWidgetProps {
@@ -287,14 +318,36 @@ export async function buildWidgetProps(
 			whole,
 			valuation,
 		),
-		Insights: buildInsights(
-			contributions,
-			categoriesById,
-			period,
-			now,
-			calendar,
-			money,
-		),
+		Insights: {
+			chrome: CHROME,
+			defaultPeriod: period,
+			windows: {
+				week: buildInsights(
+					contributions,
+					categoriesById,
+					"week",
+					now,
+					calendar,
+					money,
+				),
+				month: buildInsights(
+					contributions,
+					categoriesById,
+					"month",
+					now,
+					calendar,
+					money,
+				),
+				year: buildInsights(
+					contributions,
+					categoriesById,
+					"year",
+					now,
+					calendar,
+					money,
+				),
+			},
+		},
 	};
 }
 
@@ -303,8 +356,8 @@ type Money = (value: number) => string;
 type EntryMoney = (value: number, code: string | null) => string;
 
 /**
- * The overall budget, falling back to the worst-off per-category budget when no
- * overall one is set.
+ * The overall budget and the worst-off per-category one, plus the automatic
+ * pick between them — the overall budget when there is one.
  */
 async function buildBudget(
 	db: SpendDb,
@@ -315,8 +368,7 @@ async function buildBudget(
 	whole: Money,
 	valuation: Valuation,
 ): Promise<BudgetWidgetProps> {
-	const empty: BudgetWidgetProps = {
-		chrome: CHROME,
+	const empty: BudgetViewProps = {
 		present: false,
 		name: "No budget yet",
 		isOverall: true,
@@ -341,9 +393,10 @@ async function buildBudget(
 		.limit(1);
 	const main = mainRows[0];
 
+	let overall = empty;
 	if (main) {
 		const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
-		return present(
+		overall = present(
 			main.name?.trim() ? main.name.trim() : "Overall Budget",
 			true,
 			limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
@@ -359,11 +412,9 @@ async function buildBudget(
 		.from(budgetsTable)
 		.where(isNull(budgetsTable.deletedAt))
 		.orderBy(asc(budgetsTable.dateCreated));
-	if (categoryRows.length === 0) {
-		return empty;
-	}
 
-	const worst = categoryRows
+	let worst = empty;
+	const ranked = categoryRows
 		.map((row) => {
 			const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
 			return {
@@ -379,22 +430,28 @@ async function buildBudget(
 			};
 		})
 		.sort((a, b) => b.spent / b.limit - a.spent / a.limit)[0];
+	if (ranked) {
+		// Name precedence mirrors `usePerCategoryBudgets`.
+		const rankedCategory = ranked.row.categoryId
+			? categoriesById.get(ranked.row.categoryId)
+			: undefined;
+		worst = present(
+			ranked.row.name?.trim()
+				? ranked.row.name.trim()
+				: (rankedCategory?.name ?? "Budget"),
+			false,
+			ranked.limit,
+			ranked.spent,
+			ranked.row.type,
+			ranked.window,
+			`${DEEP_LINKS.budgets}/${ranked.row.id}`,
+		);
+	}
 
-	// Name precedence mirrors `usePerCategoryBudgets`.
-	const worstCategory = worst.row.categoryId
-		? categoriesById.get(worst.row.categoryId)
-		: undefined;
-	return present(
-		worst.row.name?.trim()
-			? worst.row.name.trim()
-			: (worstCategory?.name ?? "Budget"),
-		false,
-		worst.limit,
-		worst.spent,
-		worst.row.type,
-		worst.window,
-		`${DEEP_LINKS.budgets}/${worst.row.id}`,
-	);
+	return {
+		chrome: CHROME,
+		views: { auto: overall.present ? overall : worst, overall, worst },
+	};
 
 	function present(
 		name: string,
@@ -404,12 +461,11 @@ async function buildBudget(
 		type: number,
 		window: { start: Date; end: Date },
 		url: string,
-	): BudgetWidgetProps {
+	): BudgetViewProps {
 		const over = spent > amount;
 		const span = window.end.getTime() - window.start.getTime();
 		const fraction = amount > 0 ? spent / amount : 0;
 		return {
-			chrome: CHROME,
 			present: true,
 			name,
 			isOverall,
@@ -601,7 +657,7 @@ function buildInsights(
 	now: Date,
 	calendar: InsightsCalendar,
 	money: Money,
-): InsightsWidgetProps {
+): InsightsViewProps {
 	const totals = windowTotals(contributions, period, now, 0, calendar);
 	const net = totals.income - totals.spent;
 	const slices = categoryBreakdown(
@@ -615,7 +671,6 @@ function buildInsights(
 	).slice(0, SLICE_LIMIT);
 
 	return {
-		chrome: CHROME,
 		periodLabel: PERIOD_EYEBROW[period],
 		rangeLabel: windowLabel(period, 0, now, calendar),
 		net: money(Math.abs(net)),
