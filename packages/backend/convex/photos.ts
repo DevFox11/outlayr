@@ -2,8 +2,10 @@ import { R2 } from "@convex-dev/r2";
 import { ConvexError, v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
 	action,
+	internalMutation,
 	internalQuery,
 	type MutationCtx,
 	mutation,
@@ -21,12 +23,46 @@ import { isPhotoName, ownsPhotoKey, photoKeyFor } from "./lib/photoKeys";
  * it. What replicates is the object key (`transactions.imageKey`); the bytes go
  * straight from the device to R2 over a signed url and come back the same way.
  *
- * Requires four Convex environment variables, read by the component itself:
- * `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
- * The client is constructed lazily, so a deployment missing them serves every
- * other function normally and fails only here.
+ * Two backends, chosen per deployment. R2 when all four of `R2_BUCKET`,
+ * `R2_ENDPOINT`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` are set;
+ * Convex file storage otherwise, so a deployment with no R2 account still
+ * syncs photos rather than failing every upload.
+ *
+ * The *key* is identical either way — derived from the device file name and
+ * carrying the owner — so the wire format, `transactions.imageKey` and the
+ * ownership check do not know which backend stored the bytes. Convex file
+ * storage allocates its own id, so that id is mapped back to the key in
+ * `photoObjects`; R2 needs no mapping because its key is the address.
+ *
+ * A row is therefore readable by whichever backend stored it, which is what
+ * makes turning R2 on later safe: existing photos keep resolving.
  */
 const r2 = new R2(components.r2);
+
+/**
+ * Read at call time rather than at module scope: a deployment that gains its R2
+ * variables should start using them on the next call, not the next cold start.
+ */
+function usingR2(): boolean {
+	return (
+		!!process.env.R2_BUCKET &&
+		!!process.env.R2_ENDPOINT &&
+		!!process.env.R2_ACCESS_KEY_ID &&
+		!!process.env.R2_SECRET_ACCESS_KEY
+	);
+}
+
+/** The Convex-storage id for `key`, or null when R2 holds the bytes. */
+async function storageIdFor(
+	ctx: QueryCtx,
+	key: string,
+): Promise<Id<"_storage"> | null> {
+	const row = await ctx.db
+		.query("photoObjects")
+		.withIndex("by_key", (q) => q.eq("key", key))
+		.unique();
+	return row ? row.storageId : null;
+}
 
 /**
  * How long a minted read url stays valid. Longer than the component's 900s
@@ -69,7 +105,11 @@ export const requestUpload = mutation({
 		if (!isPhotoName(args.name)) {
 			throw new ConvexError(`Not a photo file name: ${args.name}`);
 		}
-		return await r2.generateUploadUrl(photoKeyFor(userId, args.name));
+		const key = photoKeyFor(userId, args.name);
+		if (usingR2()) {
+			return await r2.generateUploadUrl(key);
+		}
+		return { key, url: await ctx.storage.generateUploadUrl() };
 	},
 });
 
@@ -93,14 +133,52 @@ export const callerId = internalQuery({
  * repairs.
  */
 export const confirmUpload = action({
-	args: { key: v.string() },
+	args: { key: v.string(), storageId: v.optional(v.id("_storage")) },
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const userId: string = await ctx.runQuery(internal.photos.callerId, {});
 		if (!ownsPhotoKey(userId, args.key)) {
 			throw new ConvexError("That photo does not belong to this account");
 		}
+		if (args.storageId) {
+			// Convex storage allocated the address, so the key only resolves through
+			// the mapping this records.
+			await ctx.runMutation(internal.photos.mapStorageId, {
+				key: args.key,
+				storageId: args.storageId,
+			});
+			return null;
+		}
 		await r2.syncMetadata(ctx, args.key);
+		return null;
+	},
+});
+
+/**
+ * Binds a Convex-storage id to its key. Re-uploading the same name replaces the
+ * mapping and frees the object it displaced, which is what keeps a retry from
+ * leaving bytes nothing will ever name — R2 gets that for free from an
+ * idempotent key, and this is the Convex-storage equivalent.
+ */
+export const mapStorageId = internalMutation({
+	args: { key: v.string(), storageId: v.id("_storage") },
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const existing = await ctx.db
+			.query("photoObjects")
+			.withIndex("by_key", (q) => q.eq("key", args.key))
+			.unique();
+		if (existing) {
+			if (existing.storageId !== args.storageId) {
+				await ctx.storage.delete(existing.storageId);
+				await ctx.db.patch(existing._id, { storageId: args.storageId });
+			}
+			return null;
+		}
+		await ctx.db.insert("photoObjects", {
+			key: args.key,
+			storageId: args.storageId,
+		});
 		return null;
 	},
 });
@@ -125,11 +203,19 @@ export const readUrls = query({
 		}
 
 		const owned = args.keys.filter((key) => ownsPhotoKey(userId, key));
-		return await Promise.all(
-			owned.map(async (key) => ({
-				key,
-				url: await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS }),
-			})),
+		const minted = await Promise.all(
+			owned.map(async (key) => {
+				// Routed per key, not per deployment: a photo stored before R2 was
+				// switched on still resolves through the backend that holds it.
+				const storageId = await storageIdFor(ctx, key);
+				const url = storageId
+					? await ctx.storage.getUrl(storageId)
+					: await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS });
+				return url === null ? null : { key, url };
+			}),
+		);
+		return minted.filter((entry): entry is { key: string; url: string } =>
+			Boolean(entry),
 		);
 	},
 });
@@ -181,6 +267,18 @@ export const releaseUnreferenced = mutation({
 		}
 		if (await isReferenced(ctx, userId, args.key)) {
 			return { released: false };
+		}
+		const mapping = await ctx.db
+			.query("photoObjects")
+			.withIndex("by_key", (q) => q.eq("key", args.key))
+			.unique();
+		if (mapping) {
+			// Same ordering as the R2 branch: the reference goes before the bytes,
+			// so a crash between them leaks an object rather than leaving a row
+			// naming bytes that no longer exist.
+			await ctx.db.delete(mapping._id);
+			await ctx.storage.delete(mapping.storageId);
+			return { released: true };
 		}
 		await r2.deleteObject(ctx, args.key);
 		return { released: true };

@@ -30,13 +30,17 @@ import {
 export interface PhotoTransport {
 	/** Answers a signed PUT and the key to record once the bytes are up. */
 	requestUpload(name: string): Promise<{ key: string; url: string }>;
-	/** Records size and type for an object whose PUT completed. */
-	confirmUpload(key: string): Promise<void>;
+	/**
+	 * Records an object whose PUT completed. `storageId` is what Convex file
+	 * storage hands back from the PUT; R2 addresses by key and returns none.
+	 */
+	confirmUpload(key: string, storageId: string | null): Promise<void>;
 	/** Short-lived signed GETs. A key the account does not own is not returned. */
 	readUrls(keys: readonly string[]): Promise<{ key: string; url: string }[]>;
 	/** Frees an object no row in the account names any more. */
 	release(key: string): Promise<void>;
-	put(url: string, bytes: Uint8Array): Promise<void>;
+	/** The storage id when the backend allocates one, null when the key is the address. */
+	put(url: string, bytes: Uint8Array): Promise<string | null>;
 	/**
 	 * Null for an object that is not there. A 404 is the expected outcome of a
 	 * delete racing this fetch, not a failure — see {@link downloadPhotos}.
@@ -142,8 +146,8 @@ export async function uploadPhotos(
 
 		const superseded = row.imageKey;
 		const { key, url } = await transport.requestUpload(name);
-		await transport.put(url, bytes);
-		await transport.confirmUpload(key);
+		const storageId = await transport.put(url, bytes);
+		await transport.confirmUpload(key, storageId);
 
 		await db
 			.update(transactions)

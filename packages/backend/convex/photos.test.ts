@@ -203,3 +203,86 @@ describe("releaseUnreferenced", () => {
 		).rejects.toThrow();
 	});
 });
+
+/**
+ * The R2 variables are absent under test, so every case above already exercises
+ * the Convex-storage fallback. These pin the parts of it that differ from R2:
+ * the key resolves only through the mapping, and re-uploading the same name
+ * frees the object it displaced rather than leaking it.
+ */
+describe("the convex storage fallback", () => {
+	test("mints a read url for a key confirmed with a storage id", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const key = photoKeyFor(owner.userId, PHOTO);
+		const storageId = await t.run(
+			async (ctx) => await ctx.storage.store(new Blob(["bytes"])),
+		);
+
+		await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
+			key,
+			storageId,
+		});
+		const urls = await authenticatedAs(t, owner).query(api.photos.readUrls, {
+			keys: [key],
+		});
+
+		expect(urls).toHaveLength(1);
+		expect(urls[0]?.key).toBe(key);
+	});
+
+	test("re-uploading the same name frees the object it displaced", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const key = photoKeyFor(owner.userId, PHOTO);
+		const first = await t.run(
+			async (ctx) => await ctx.storage.store(new Blob(["one"])),
+		);
+		const second = await t.run(
+			async (ctx) => await ctx.storage.store(new Blob(["two"])),
+		);
+
+		const confirm = (storageId: typeof first) =>
+			authenticatedAs(t, owner).action(api.photos.confirmUpload, {
+				key,
+				storageId,
+			});
+		await confirm(first);
+		await confirm(second);
+
+		const mappings = await t.run(
+			async (ctx) => await ctx.db.query("photoObjects").collect(),
+		);
+		expect(mappings).toHaveLength(1);
+		expect(mappings[0]?.storageId).toBe(second);
+		expect(await t.run(async (ctx) => await ctx.storage.getUrl(first))).toBe(
+			null,
+		);
+	});
+
+	test("releasing an unreferenced key drops the mapping and the bytes", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const key = photoKeyFor(owner.userId, PHOTO);
+		const storageId = await t.run(
+			async (ctx) => await ctx.storage.store(new Blob(["bytes"])),
+		);
+		await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
+			key,
+			storageId,
+		});
+
+		const released = await authenticatedAs(t, owner).mutation(
+			api.photos.releaseUnreferenced,
+			{ key },
+		);
+
+		expect(released).toEqual({ released: true });
+		expect(
+			await t.run(async (ctx) => await ctx.db.query("photoObjects").collect()),
+		).toHaveLength(0);
+		expect(
+			await t.run(async (ctx) => await ctx.storage.getUrl(storageId)),
+		).toBe(null);
+	});
+});

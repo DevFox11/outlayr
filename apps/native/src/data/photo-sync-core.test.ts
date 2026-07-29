@@ -152,6 +152,8 @@ function fakeTransport(
 		},
 		async put(url, bytes) {
 			bucket.objects.set(url.replace("https://r2.test/put/", ""), bytes);
+			// R2 addresses by key, so its PUT allocates nothing to report back.
+			return null;
 		},
 		async get(url) {
 			return (

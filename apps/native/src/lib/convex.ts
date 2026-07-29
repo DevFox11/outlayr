@@ -67,8 +67,11 @@ export function photoTransport(): PhotoTransport | null {
 	return {
 		requestUpload: async (name) =>
 			convex.mutation("photos:requestUpload" as never, { name } as never),
-		confirmUpload: async (key) => {
-			await convex.action("photos:confirmUpload" as never, { key } as never);
+		confirmUpload: async (key, storageId) => {
+			await convex.action(
+				"photos:confirmUpload" as never,
+				(storageId ? { key, storageId } : { key }) as never,
+			);
 		},
 		readUrls: async (keys) =>
 			convex.query(
@@ -91,6 +94,14 @@ export function photoTransport(): PhotoTransport | null {
 			});
 			if (!response.ok) {
 				throw new Error(`Photo upload failed: ${response.status}`);
+			}
+			// Convex file storage answers the PUT with the id it allocated; R2
+			// answers with nothing, because its key is already the address.
+			try {
+				const body = (await response.json()) as { storageId?: string };
+				return body.storageId ?? null;
+			} catch {
+				return null;
 			}
 		},
 		get: async (url) => {

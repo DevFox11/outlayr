@@ -139,4 +139,21 @@ export default defineSchema({
 	})
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_key", ["userId", "key"]),
+
+	/**
+	 * Where Convex file storage put a photo, keyed by the same derived key R2
+	 * would have used as the address itself.
+	 *
+	 * Only written when the deployment has no R2 credentials. It exists because
+	 * Convex storage allocates its own id, so the key cannot address the bytes
+	 * on its own — R2 needs no equivalent. Reads route per key rather than per
+	 * deployment, so photos stored before R2 was switched on keep resolving.
+	 *
+	 * No `userId`: the key already carries the owner, and `ownsPhotoKey` checks
+	 * it before this table is ever consulted.
+	 */
+	photoObjects: defineTable({
+		key: v.string(),
+		storageId: v.id("_storage"),
+	}).index("by_key", ["key"]),
 });
