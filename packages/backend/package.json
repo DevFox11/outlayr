@@ -11,9 +11,14 @@
 		"check-types": "tsc --noEmit -p convex"
 	},
 	"dependencies": {
+		"@better-auth/expo": "catalog:",
+		"@convex-dev/better-auth": "catalog:",
+		"@outlayr/env": "workspace:*",
 		"@outlayr/money": "workspace:*",
+		"better-auth": "catalog:",
 		"convex": "^1.42.2",
 		"dotenv": "catalog:",
+		"jose": "^6.2.4",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
@@ -21,6 +26,7 @@
 		"@outlayr/config": "workspace:*",
 		"@types/node": "^26.1.1",
 		"convex-test": "^0.0.54",
+		"react": "19.2.3",
 		"typescript": "catalog:",
 		"vite": "8.1.2",
 		"vitest": "^4.1.10"

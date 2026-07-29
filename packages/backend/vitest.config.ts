@@ -9,6 +9,8 @@ export default defineConfig({
 		environment: "edge-runtime",
 		env: {
 			COTIZAVE_API_KEY: "test-cotizave-key",
+			NATIVE_APP_URL: "outlayr://",
+			SITE_URL: "http://localhost:3000",
 		},
 	},
 });
