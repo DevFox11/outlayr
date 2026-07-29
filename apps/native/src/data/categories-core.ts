@@ -594,6 +594,7 @@ export const categoriesRepo = {
 					updatedAt: now,
 					recurringType: RECURRING_TYPE.none,
 					imageUri: null,
+					imageKey: null,
 				})
 				.where(
 					and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)),

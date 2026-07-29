@@ -43,6 +43,13 @@
       "when": 1785341799727,
       "tag": "0005_massive_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785357898645,
+      "tag": "0006_flat_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

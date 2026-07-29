@@ -41,7 +41,12 @@ export const transactionFields = {
 	emoji: v.union(v.string(), v.null()),
 	customColor: v.union(v.string(), v.null()),
 	imageColor: v.union(v.string(), v.null()),
-	imageUri: v.union(v.string(), v.null()),
+	/**
+	 * The photo's R2 object key, or null. Not a url: `r2.getUrl` mints a signed
+	 * one with a 15-minute default lifetime, so a stored url is stale before the
+	 * next launch. The key is the stable half and every read re-mints from it.
+	 */
+	imageKey: v.union(v.string(), v.null()),
 	onceRecurring: v.boolean(),
 	recurringType: v.number(),
 	recurringCoefficient: v.number(),
@@ -50,6 +55,23 @@ export const transactionFields = {
 	amountUsd: v.union(v.number(), v.null()),
 	exchangeRate: v.union(v.number(), v.null()),
 	exchangeRateType: v.union(v.string(), v.null()),
+};
+
+/**
+ * What the `transactions` table stores, which is the wire contract plus one
+ * column no longer on it.
+ *
+ * `imageUri` is a device-local `file://` path whose container uuid changes on
+ * every app update. Replicating it did active harm: the receiving device could
+ * not resolve the path, its launch reconciliation cleared the column, and the
+ * resulting push tie-broke on `deviceId` — so half the time the *originating*
+ * device pulled back a null and lost the reference to a photo it still held.
+ * It is kept here, optional, only so documents written before the fix validate;
+ * nothing reads or serves it.
+ */
+export const transactionColumns = {
+	...transactionFields,
+	imageUri: v.optional(v.union(v.string(), v.null())),
 };
 
 export const budgetFields = {

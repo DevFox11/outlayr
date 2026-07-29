@@ -213,6 +213,26 @@ function keptCanonical(
 	};
 }
 
+/**
+ * Whether this edit is the user taking the photo off the transaction, as
+ * opposed to saving a row whose photo this device simply has not fetched yet.
+ *
+ * Only the first clears `imageKey`, which is what stops the photo downloader
+ * from putting the picture back. The distinction matters because a synced row
+ * whose bytes have not arrived also has a null path: treating a save on THAT
+ * as a removal would delete a photo the user never touched, off every device.
+ *
+ * `imageKey` is otherwise left alone here — a photo *replaced* keeps the old
+ * key until the uploader records the new one, which is how the uploader knows
+ * there is a superseded object to release.
+ */
+function removesPhoto(
+	previous: Transaction | null,
+	next: typeof transactions.$inferInsert,
+): boolean {
+	return previous?.imageUri != null && next.imageUri == null;
+}
+
 export const transactionsRepo = {
 	async create(db: Database, input: TransactionInput): Promise<string> {
 		const id = newId();
@@ -232,7 +252,11 @@ export const transactionsRepo = {
 		const kept = keptCanonical(row, previous);
 		await db
 			.update(transactions)
-			.set(kept ? { ...rest, ...kept } : rest)
+			.set({
+				...rest,
+				...(kept ?? {}),
+				...(removesPhoto(previous, row) ? { imageKey: null } : {}),
+			})
 			.where(eq(transactions.id, id));
 	},
 

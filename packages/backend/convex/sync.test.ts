@@ -42,7 +42,7 @@ const transactionFields = (
 	emoji: null,
 	customColor: null,
 	imageColor: null,
-	imageUri: null,
+	imageKey: null,
 	onceRecurring: false,
 	recurringType: 0,
 	recurringCoefficient: 1,

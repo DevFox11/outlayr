@@ -71,6 +71,7 @@ function occurrenceRow(
 		customColor: source.customColor,
 		imageColor: source.imageColor,
 		imageUri: source.imageUri,
+		imageKey: source.imageKey,
 		onceRecurring: true,
 		recurringType: carriesSchedule ? source.recurringType : RECURRING_TYPE.none,
 		recurringCoefficient: carriesSchedule ? source.recurringCoefficient : 1,

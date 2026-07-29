@@ -54,6 +54,17 @@ export const photoFiles: PhotoFiles = {
 		source.copySync(new File(photoDirectory(), name), { overwrite: true });
 		return true;
 	},
+
+	read(name) {
+		const file = new File(photoDirectory(), name);
+		return file.exists ? file.bytesSync() : null;
+	},
+
+	write(name, bytes) {
+		const file = new File(photoDirectory(), name);
+		file.create({ overwrite: true });
+		file.write(bytes);
+	},
 };
 
 /**

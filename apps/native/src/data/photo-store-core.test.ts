@@ -36,6 +36,7 @@ function makeDb(): SpendDb {
 			customColor text,
 			imageColor text,
 			imageUri text,
+			imageKey text,
 			onceRecurring integer NOT NULL DEFAULT 0,
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
@@ -106,6 +107,14 @@ class FakeFiles implements PhotoFiles {
 		}
 		this.files.set(name, NOW);
 		return true;
+	}
+
+	read() {
+		return null;
+	}
+
+	write(name: string) {
+		this.files.set(name, NOW);
 	}
 }
 

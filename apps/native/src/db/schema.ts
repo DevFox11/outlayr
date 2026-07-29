@@ -55,7 +55,18 @@ export const transactions = sqliteTable(
 		emoji: text("emoji"),
 		customColor: text("customColor"),
 		imageColor: text("imageColor"),
+		/**
+		 * Where the photo lives on THIS device. Never replicated: the path embeds a
+		 * container uuid that changes on every app update, so it is meaningless on
+		 * another handset and stale on this one after an update.
+		 */
 		imageUri: text("imageUri"),
+		/**
+		 * The photo's R2 object key, which is what replicates. Null means the bytes
+		 * are not in the account yet; a key with no `imageUri` means they are, but
+		 * this device has not fetched them.
+		 */
+		imageKey: text("imageKey"),
 		onceRecurring: integer("onceRecurring", { mode: "boolean" })
 			.notNull()
 			.default(false),

@@ -202,17 +202,27 @@ describe("the replicated column set", () => {
 	// permanently absent rather than as an error, which no round-trip test would
 	// notice on its own.
 	const ENVELOPE = new Set(["id", "key", "updatedAt", "deletedAt"]);
+	/** Columns whose value is about this handset, not about the ledger. */
+	const DEVICE_LOCAL = new Set(["transactions.imageUri"]);
 
 	for (const table of SYNCED_TABLES) {
 		it(`covers every column of ${table}`, () => {
 			const spec = specFor(table);
 			const declared = Object.keys(getTableColumns(spec.table)).filter(
-				(name) => !ENVELOPE.has(name),
+				(name) => !ENVELOPE.has(name) && !DEVICE_LOCAL.has(`${table}.${name}`),
 			);
 
 			assert.deepEqual([...spec.fields].sort(), declared.sort());
 		});
 	}
+
+	// Replicating it lost photos: the receiver could not resolve the sender's
+	// container path, its reconciliation nulled the column, and the push that
+	// followed tie-broke on `deviceId` back onto the sender.
+	it("never replicates a device-local path", () => {
+		assert.ok(!specFor("transactions").fields.includes("imageUri"));
+		assert.ok(specFor("transactions").fields.includes("imageKey"));
+	});
 
 	it("names only real timestamp columns as dates", () => {
 		for (const table of SYNCED_TABLES) {

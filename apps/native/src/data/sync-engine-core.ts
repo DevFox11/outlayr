@@ -99,7 +99,13 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"emoji",
 			"customColor",
 			"imageColor",
-			"imageUri",
+			// `imageUri` is deliberately absent: a device-local container path is
+			// worthless on the receiving handset, and replicating it lost photos.
+			// The receiver could not resolve the path, its launch reconciliation
+			// nulled the column, and the resulting push tie-broke on `deviceId` — so
+			// the ORIGINATING device pulled back a null for a photo it still held.
+			// `imageKey` is the replicated half; the bytes travel via `photos.ts`.
+			"imageKey",
 			"onceRecurring",
 			"recurringType",
 			"recurringCoefficient",

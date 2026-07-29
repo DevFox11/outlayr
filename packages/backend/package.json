@@ -13,6 +13,7 @@
 	"dependencies": {
 		"@better-auth/expo": "catalog:",
 		"@convex-dev/better-auth": "catalog:",
+		"@convex-dev/r2": "^0.10.2",
 		"@outlayr/env": "workspace:*",
 		"@outlayr/money": "workspace:*",
 		"better-auth": "catalog:",

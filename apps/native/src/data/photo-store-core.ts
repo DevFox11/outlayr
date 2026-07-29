@@ -33,6 +33,9 @@ export interface PhotoFiles {
 	 * time, which is the whole reason photos are copied out of it.
 	 */
 	adopt(sourceUri: string, name: string): boolean;
+	/** Null when the file is gone, which is not an error — see {@link adopt}. */
+	read(name: string): Uint8Array | null;
+	write(name: string, bytes: Uint8Array): void;
 }
 
 export function photoFileName(uri: string): string {

@@ -36,6 +36,7 @@ const ERASED_TRANSACTION = {
 	customColor: null,
 	imageColor: null,
 	imageUri: null,
+	imageKey: null,
 	onceRecurring: false,
 	recurringType: RECURRING_TYPE.none,
 	recurringCoefficient: 1,

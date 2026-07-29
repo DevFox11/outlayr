@@ -42,6 +42,7 @@ function makeDb(): Database {
 			customColor text,
 			imageColor text,
 			imageUri text,
+			imageKey text,
 			onceRecurring integer NOT NULL DEFAULT 0,
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
@@ -149,6 +150,69 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 		const row = await frozen(db, id);
 		assert.equal(row.amountUsd, 222.222222);
 		assert.equal(row.exchangeRate, 0.9);
+	});
+});
+
+describe("transactionsRepo.update and the replicated photo key", () => {
+	const PHOTO = "file:///container/Documents/transaction-photos/a.jpg";
+	const KEY = "transaction-photos/user-aaaa/a.jpg";
+
+	async function photoColumns(db: Database, id: string) {
+		const [row] = await db
+			.select({
+				imageUri: transactions.imageUri,
+				imageKey: transactions.imageKey,
+			})
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		return row;
+	}
+
+	it("clears the key when the user takes a visible photo off", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, { ...DRAFT, imageUri: PHOTO });
+		await db
+			.update(transactions)
+			.set({ imageKey: KEY })
+			.where(eq(transactions.id, id));
+
+		await transactionsRepo.update(db, id, { ...DRAFT, imageUri: null });
+
+		assert.deepEqual(await photoColumns(db, id), {
+			imageUri: null,
+			imageKey: null,
+		});
+	});
+
+	it("keeps the key when the row's bytes have not reached this device", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, DRAFT);
+		await db
+			.update(transactions)
+			.set({ imageKey: KEY })
+			.where(eq(transactions.id, id));
+
+		// Saving an unrelated edit on a row whose photo is still downloading must
+		// not read as "the user removed the photo" — that would delete it account-wide.
+		await transactionsRepo.update(db, id, { ...DRAFT, note: "Renamed" });
+
+		assert.equal((await photoColumns(db, id)).imageKey, KEY);
+	});
+
+	it("keeps the superseded key when the photo is replaced, for the uploader to release", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, { ...DRAFT, imageUri: PHOTO });
+		await db
+			.update(transactions)
+			.set({ imageKey: KEY })
+			.where(eq(transactions.id, id));
+
+		await transactionsRepo.update(db, id, {
+			...DRAFT,
+			imageUri: "file:///container/Documents/transaction-photos/b.jpg",
+		});
+
+		assert.equal((await photoColumns(db, id)).imageKey, KEY);
 	});
 });
 

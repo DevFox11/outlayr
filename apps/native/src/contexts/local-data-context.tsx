@@ -4,6 +4,7 @@ import { createContext, use, useEffect, useMemo, useState } from "react";
 
 import { bootstrapLocalData } from "@/data/bootstrap";
 import { usePhotoReconcile } from "@/data/use-photo-reconcile";
+import { usePhotoSync } from "@/data/use-photo-sync";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
 import { useSyncEngine } from "@/data/use-sync-engine";
 import { type Database, openDatabase } from "@/db/client";
@@ -106,6 +107,9 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 	// Inert until the sign-in flow opens the device-local sync gate.
 	useSyncEngine(db);
 	usePhotoReconcile(db);
+	// After the reconciliation, which owns whether a row's path still resolves —
+	// running first would upload against paths it is about to repair.
+	usePhotoSync(db);
 
 	const value = useMemo<LocalDataContextValue>(
 		() => ({

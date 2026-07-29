@@ -19,6 +19,8 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bgn from "../lib/bgn.js";
 import type * as lib_currencies from "../lib/currencies.js";
 import type * as lib_syncTables from "../lib/syncTables.js";
+import type * as photoKeys from "../lib/photoKeys.js";
+import type * as photos from "../photos.js";
 import type * as sync from "../sync.js";
 
 import type {
@@ -38,7 +40,9 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/bgn": typeof lib_bgn;
   "lib/currencies": typeof lib_currencies;
+  "lib/photoKeys": typeof photoKeys;
   "lib/syncTables": typeof lib_syncTables;
+  photos: typeof photos;
   sync: typeof sync;
 }>;
 
@@ -70,4 +74,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
 };

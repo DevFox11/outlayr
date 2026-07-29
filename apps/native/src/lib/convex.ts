@@ -1,5 +1,6 @@
 import { env } from "@outlayr/env/native";
 import { ConvexReactClient } from "convex/react";
+import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
 
@@ -47,5 +48,62 @@ export function syncTransport(): { push: PushFn; pull: PullFn } | null {
 		push: async (args) => convex.mutation("sync:push" as never, args as never),
 		pull: async (args) =>
 			convex.query("sync:pullSince" as never, args as never),
+	};
+}
+
+/**
+ * The photo transport, or null when there is no backend.
+ *
+ * The bytes never touch Convex: the signed urls address R2 directly, so a
+ * multi-megabyte PUT is not a mutation argument and does not count against any
+ * function limit. Only the three small calls that mint and account for those
+ * urls go through the client, and they authenticate exactly as `syncTransport`
+ * does — on the client, never on an argument.
+ */
+export function photoTransport(): PhotoTransport | null {
+	if (!convex) {
+		return null;
+	}
+	return {
+		requestUpload: async (name) =>
+			convex.mutation("photos:requestUpload" as never, { name } as never),
+		confirmUpload: async (key) => {
+			await convex.action("photos:confirmUpload" as never, { key } as never);
+		},
+		readUrls: async (keys) =>
+			convex.query(
+				"photos:readUrls" as never,
+				{
+					keys: [...keys],
+				} as never,
+			),
+		release: async (key) => {
+			await convex.mutation(
+				"photos:releaseUnreferenced" as never,
+				{ key } as never,
+			);
+		},
+		put: async (url, bytes) => {
+			const response = await fetch(url, {
+				method: "PUT",
+				body: bytes as unknown as BodyInit,
+				headers: { "Content-Type": "image/jpeg" },
+			});
+			if (!response.ok) {
+				throw new Error(`Photo upload failed: ${response.status}`);
+			}
+		},
+		get: async (url) => {
+			const response = await fetch(url);
+			if (response.status === 404 || response.status === 403) {
+				// Gone, or the url outlived its signature. Both are the same thing to
+				// the caller: no bytes this pass, try again next one.
+				return null;
+			}
+			if (!response.ok) {
+				throw new Error(`Photo download failed: ${response.status}`);
+			}
+			return new Uint8Array(await response.arrayBuffer());
+		},
 	};
 }

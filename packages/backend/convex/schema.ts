@@ -9,7 +9,7 @@ import {
 	mainBudgetFields,
 	replicated,
 	templateTransactionFields,
-	transactionFields,
+	transactionColumns,
 } from "./lib/syncTables";
 
 /**
@@ -89,10 +89,10 @@ export default defineSchema({
 	 * only ever move together with `amount`, `currency` and `date`. They are
 	 * replicated verbatim; nothing here recomputes them.
 	 *
-	 * `imageUri` is a device-local `file://` path and means nothing on another
-	 * device — see the photo-durability caveat in the design doc.
+	 * `imageKey` names the photo's bytes in R2; the bytes themselves travel out
+	 * of band (`photos.ts`) because a `push` batch is small records, not blobs.
 	 */
-	transactions: defineTable({ ...replicated, ...transactionFields })
+	transactions: defineTable({ ...replicated, ...transactionColumns })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 

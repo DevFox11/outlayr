@@ -39,7 +39,7 @@ function makeDb(): Database {
 			id text PRIMARY KEY NOT NULL, amount real NOT NULL, income integer NOT NULL,
 			currency text, note text NOT NULL DEFAULT '', details text,
 			date integer NOT NULL, day integer NOT NULL, month integer NOT NULL,
-			icon text, emoji text, customColor text, imageColor text, imageUri text,
+			icon text, emoji text, customColor text, imageColor text, imageUri text, imageKey text,
 			onceRecurring integer NOT NULL DEFAULT 0, recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1, recurringEndDate integer,
 			categoryId text, amountUsd real, exchangeRate real, exchangeRateType text,

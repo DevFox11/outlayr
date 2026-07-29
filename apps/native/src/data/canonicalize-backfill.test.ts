@@ -78,6 +78,7 @@ function makeDb(): SpendDb {
 			customColor text,
 			imageColor text,
 			imageUri text,
+			imageKey text,
 			onceRecurring integer NOT NULL DEFAULT 0,
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
