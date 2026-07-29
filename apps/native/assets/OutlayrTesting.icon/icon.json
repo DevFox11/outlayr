@@ -1,0 +1,49 @@
+{
+  "features": ["refractivity", "specular-location"],
+  "fill-specializations": [
+    {
+      "value": {
+        "automatic-gradient": "srgb:0.20392,0.47059,0.78039,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "automatic-gradient": "srgb:0.13333,0.32941,0.58824,1.00000"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "mark-outline.svg",
+          "name": "mark outline",
+          "position": {
+            "scale": 1.1,
+            "translation-in-points": [0, 0]
+          }
+        },
+        {
+          "image-name": "blueprint-grid.svg",
+          "name": "blueprint grid",
+          "position": {
+            "scale": 1,
+            "translation-in-points": [0, 0]
+          }
+        }
+      ],
+      "lighting": "combined",
+      "name": "group",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.4
+      },
+      "specular": "inside"
+    }
+  ],
+  "supported-platforms": {
+    "circles": ["watchOS"],
+    "squares": "shared"
+  }
+}

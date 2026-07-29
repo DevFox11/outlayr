@@ -1,0 +1,145 @@
+import {
+	BottomSheetModal,
+	BottomSheetView,
+} from "@expo/ui/community/bottom-sheet";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { SymbolView } from "expo-symbols";
+import { forwardRef, useRef } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { currencySymbol } from "@/domain/money";
+import { useColors } from "@/theme/use-colors";
+import { AmountNumpad } from "./amount-numpad";
+import { CurrencyPickerSheet } from "./currency-picker-sheet";
+import { Text } from "./text";
+import { cn } from "./tw";
+
+const GLASS = isLiquidGlassAvailable();
+
+interface AmountEntrySheetProps {
+	value: string;
+	minorUnits: number;
+	code: string;
+	toneClass?: string;
+	onChange: (next: string) => void;
+	onCurrencyChange?: (code: string) => void;
+	onDone: () => void;
+}
+
+export const AmountEntrySheet = forwardRef<
+	BottomSheetModal,
+	AmountEntrySheetProps
+>(function AmountEntrySheet(
+	{ value, minorUnits, code, toneClass, onChange, onCurrencyChange, onDone },
+	ref,
+) {
+	const colors = useColors();
+	const symbol = currencySymbol(code);
+	const currencySheetRef = useRef<BottomSheetModal>(null);
+
+	return (
+		<BottomSheetModal ref={ref} enableDynamicSizing enablePanDownToClose>
+			<BottomSheetView style={{ paddingBottom: 8 }}>
+				<View className="flex-row items-center justify-between px-4 pt-2 pb-1">
+					<GlassButton
+						onPress={() => currencySheetRef.current?.present()}
+						accessibilityLabel="Change currency"
+						className="h-11 rounded-[22px] px-[15px]"
+					>
+						<Text className="font-sans-semibold text-body text-foreground">
+							{`${code} (${symbol})`}
+						</Text>
+						<SymbolView
+							name="chevron.down"
+							size={12}
+							weight="semibold"
+							tintColor={colors.muted}
+							type="monochrome"
+						/>
+					</GlassButton>
+
+					<GlassButton
+						onPress={onDone}
+						accessibilityLabel="Close"
+						className="size-11 rounded-[22px]"
+					>
+						<SymbolView
+							name="xmark"
+							size={18}
+							weight="semibold"
+							tintColor={colors.muted}
+							type="monochrome"
+						/>
+					</GlassButton>
+				</View>
+
+				<AmountNumpad
+					value={value}
+					minorUnits={minorUnits}
+					code={code}
+					toneClass={toneClass}
+					onChange={onChange}
+				/>
+
+				<View className="px-4 pt-6">
+					<Pressable
+						onPress={onDone}
+						accessibilityRole="button"
+						className="h-14 items-center justify-center rounded-[28px] bg-foreground active:opacity-70"
+					>
+						<Text className="font-sans-semibold text-background text-callout">
+							Done
+						</Text>
+					</Pressable>
+				</View>
+			</BottomSheetView>
+
+			<CurrencyPickerSheet
+				ref={currencySheetRef}
+				selected={code}
+				onSelect={(next) => {
+					onCurrencyChange?.(next);
+					currencySheetRef.current?.dismiss();
+				}}
+			/>
+		</BottomSheetModal>
+	);
+});
+
+function GlassButton({
+	onPress,
+	accessibilityLabel,
+	className,
+	children,
+}: {
+	onPress: () => void;
+	accessibilityLabel: string;
+	className: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<Pressable
+			onPress={onPress}
+			accessibilityRole="button"
+			accessibilityLabel={accessibilityLabel}
+			className="active:opacity-70"
+		>
+			<View
+				className={cn(
+					"flex-row items-center justify-center gap-1.5 overflow-hidden",
+					className,
+				)}
+			>
+				{GLASS ? (
+					<GlassView
+						glassEffectStyle="regular"
+						isInteractive
+						style={StyleSheet.absoluteFill}
+					/>
+				) : (
+					<View className="absolute inset-0 bg-surface" />
+				)}
+				{children}
+			</View>
+		</Pressable>
+	);
+}

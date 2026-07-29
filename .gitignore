@@ -48,8 +48,14 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# Argent (simulator QA artifacts: screen recordings, flows)
+.argent
+
 # Misc
 *.tgz
 .cache
 tmp
 temp
+
+# Skill-registry fingerprint, rewritten on every resolve
+.atl

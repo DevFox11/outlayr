@@ -1,21 +1,28 @@
 {
-  "name": "@outlayr/backend",
-  "version": "1.0.0",
-  "description": "",
-  "license": "AGPL-3.0-only",
-  "author": "",
-  "scripts": {
-    "dev": "convex dev",
-    "dev:setup": "convex dev --configure --until-success"
-  },
-  "dependencies": {
-    "convex": "^1.42.2",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@outlayr/config": "workspace:*",
-    "@types/node": "^26.1.1",
-    "typescript": "catalog:"
-  }
+	"name": "@outlayr/backend",
+	"version": "1.0.0",
+	"description": "",
+	"license": "AGPL-3.0-only",
+	"author": "",
+	"scripts": {
+		"dev": "convex dev",
+		"dev:setup": "convex dev --configure --until-success",
+		"test": "vitest run",
+		"check-types": "tsc --noEmit -p convex"
+	},
+	"dependencies": {
+		"@outlayr/money": "workspace:*",
+		"convex": "^1.42.2",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@edge-runtime/vm": "^5.0.0",
+		"@outlayr/config": "workspace:*",
+		"@types/node": "^26.1.1",
+		"convex-test": "^0.0.54",
+		"typescript": "catalog:",
+		"vite": "8.1.2",
+		"vitest": "^4.1.10"
+	}
 }

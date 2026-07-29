@@ -1,0 +1,76 @@
+import { Platform } from "react-native";
+import type { SpendDb } from "@/data/budget-spent";
+import { publishIntentSnapshot } from "@/lib/widget-bridge";
+import BudgetWidget from "./budget";
+import InsightsWidget from "./insights";
+import LedgerWidget from "./ledger";
+import LogWidget from "./log";
+import { buildWidgetProps } from "./props";
+
+export type { WidgetProps } from "./props";
+export { buildWidgetProps } from "./props";
+
+/**
+ * Reloading is not free — the system grants a widget only a few dozen timeline
+ * reloads a day — so this is called on the events that actually change what a
+ * widget shows (a write settling, the app backgrounding), never on a timer. See
+ * `use-widget-sync.ts` for the triggers.
+ *
+ * The budget widget gets a two-entry *timeline* rather than a snapshot: its
+ * figures go wrong the instant the period rolls over, so the second entry is
+ * scheduled at the window's end and the rollover costs one planned reload
+ * instead of a stale tile. The other two only change when the user does
+ * something, which already triggers a publish.
+ *
+ * Failures are swallowed: a widget that did not refresh is a stale tile, while a
+ * throw here would take down whatever app-side action triggered it.
+ */
+export async function publishWidgets(db: SpendDb): Promise<void> {
+	if (Platform.OS !== "ios") {
+		return;
+	}
+	try {
+		const now = new Date();
+		const props = await buildWidgetProps(db, now);
+
+		// An entry dated in the past is dropped, so the rollover is only scheduled
+		// while it is genuinely ahead of us.
+		const rollsOver =
+			props.Budget.present && props.Budget.endsAt > now.getTime();
+		BudgetWidget.updateTimeline([
+			{ date: now, props: props.Budget },
+			...(rollsOver
+				? [{ date: new Date(props.Budget.endsAt), props: props.Budget }]
+				: []),
+		]);
+		LedgerWidget.updateSnapshot(props.Ledger);
+		InsightsWidget.updateSnapshot(props.Insights);
+		LogWidget.updateSnapshot(props.Log);
+
+		// Siri reads from the App Group, not from WidgetKit, but off the same
+		// derivation — see `publishIntentSnapshot`.
+		publishIntentSnapshot({
+			budget: {
+				present: props.Budget.present,
+				name: props.Budget.name,
+				periodLabel: props.Budget.periodLabel,
+				remaining: props.Budget.remaining,
+				remainingCaption: props.Budget.remainingCaption,
+				spent: props.Budget.spent,
+				limit: props.Budget.limit,
+				percent: props.Budget.percent,
+			},
+			budgets: props.intentBudgets,
+			insights: {
+				periodLabel: props.Insights.periodLabel,
+				rangeLabel: props.Insights.rangeLabel,
+				net: props.Insights.net,
+				netPositive: props.Insights.netPositive,
+				spent: props.Insights.spent,
+				income: props.Insights.income,
+			},
+		});
+	} catch (error) {
+		console.warn("[outlayr] widget publish failed", error);
+	}
+}

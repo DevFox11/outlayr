@@ -1,0 +1,129 @@
+import AppIntents
+import Foundation
+
+/// The Shortcuts "Transaction" trigger (iOS 17+, "Wallet" on iOS 26+) hands its
+/// Amount over as *text* — "$12.40", "12,40 €" — not a number, and pointing that
+/// at a `Double` parameter makes Shortcuts coerce it. Parsing the string here is
+/// why this is separate from `LogTransactionIntent`.
+///
+/// The trigger is known to time out waiting on slow card providers, so this must
+/// stay fast: like every write intent it queues rather than touching the store.
+struct LogWalletTransactionIntent: AppIntent {
+    static var title: LocalizedStringResource = "Log a Wallet Transaction"
+
+    static var description = IntentDescription(
+        """
+        Adds a Wallet purchase to your ledger. Built for a Transaction automation: \
+        pass the Merchant and Amount straight through, no formatting needed.
+        """
+    )
+
+    static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Merchant")
+    var merchant: String
+
+    /// Text, not a number — see the type note above.
+    @Parameter(title: "Amount")
+    var amount: String
+
+    @Parameter(title: "Type", default: .expense)
+    var side: LedgerSide
+
+    /// Only needed when the symbol cannot say which currency it is: "$" is on 22
+    /// currencies in the catalog and "£" on 9, so a card in one of those is
+    /// otherwise recorded in the ledger's own currency.
+    @Parameter(title: "Currency Code")
+    var currency: String?
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Log \(\.$amount) at \(\.$merchant) as \(\.$side)") {
+            \.$currency
+        }
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard let value = Self.parseAmount(amount), value > 0 else {
+            throw $amount.needsValueError("How much was it?")
+        }
+
+        let name = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+        SharedStore.enqueue(
+            PendingWrite(
+                id: UUID().uuidString,
+                amount: value,
+                income: side == .income,
+                note: name,
+                // No category: the app infers one from what this merchant was
+                // filed under last time.
+                category: nil,
+                date: Date().timeIntervalSince1970 * 1000,
+                amountText: amount,
+                currency: currency?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .uppercased()
+                    .nilIfEmpty
+            )
+        )
+
+        return .result(
+            dialog: IntentDialog(name.isEmpty ? "Logged." : "Logged \(name).")
+        )
+    }
+
+    /// The locale's own currency and decimal formatters run first; the manual
+    /// pass covers strings they reject, such as "1,234.56" or "1.234,56".
+    ///
+    /// The sign is dropped: a refund is a `side` of income, not a negative
+    /// expense, matching how the ledger stores amounts.
+    static func parseAmount(_ raw: String) -> Double? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        for style in [NumberFormatter.Style.currency, .decimal] {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = style
+            formatter.locale = .current
+            if let number = formatter.number(from: trimmed) {
+                return abs(number.doubleValue)
+            }
+        }
+
+        let digits = trimmed.filter { $0.isNumber || $0 == "." || $0 == "," }
+        guard !digits.isEmpty else { return nil }
+
+        let dots = digits.filter { $0 == "." }.count
+        let commas = digits.filter { $0 == "," }.count
+        let decimalSeparator: Character?
+        if dots > 0 && commas > 0 {
+            // Both present: the later one is the decimal point, the other groups.
+            decimalSeparator =
+                digits.lastIndex(of: ".")! > digits.lastIndex(of: ",")! ? "." : ","
+        } else if let only: Character = dots > 0 ? "." : (commas > 0 ? "," : nil) {
+            // One kind of separator is ambiguous: "1,240" is 1240 with US
+            // grouping and 1.24 with European decimals. Repetition settles it (a
+            // number has one decimal point but may group many times), and
+            // otherwise the run length does: minor units are 2 digits in almost
+            // every currency, while a group is always exactly 3.
+            let trailing = digits.split(separator: only).last.map(\.count) ?? 0
+            let occurrences = dots > 0 ? dots : commas
+            decimalSeparator = (occurrences > 1 || trailing == 3) ? nil : only
+        } else {
+            decimalSeparator = nil
+        }
+
+        var normalised = digits
+        if let separator = decimalSeparator {
+            let grouping: Character = separator == "." ? "," : "."
+            normalised.removeAll { $0 == grouping }
+            normalised = normalised.replacingOccurrences(
+                of: String(separator), with: "."
+            )
+        } else {
+            // Every separator was grouping, so none of them survive.
+            normalised.removeAll { $0 == "." || $0 == "," }
+        }
+
+        return Double(normalised).map(abs)
+    }
+}

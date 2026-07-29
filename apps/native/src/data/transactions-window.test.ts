@@ -1,0 +1,188 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import BetterSqlite3 from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { transactions } from "@/db/schema";
+import { logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
+
+type TestDb = ReturnType<typeof drizzle>;
+
+const at = (y: number, m: number, d: number, h = 0, min = 0): Date =>
+	new Date(y, m - 1, d, h, min, 0, 0);
+
+const NOW = at(2025, 7, 15, 23).getTime();
+
+function makeDb(): TestDb {
+	const sqlite = new BetterSqlite3(":memory:");
+	sqlite.exec(`
+		CREATE TABLE transactions (
+			id text PRIMARY KEY NOT NULL,
+			amount real NOT NULL,
+			income integer NOT NULL,
+			currency text,
+			note text NOT NULL DEFAULT '',
+			details text,
+			date integer NOT NULL,
+			day integer NOT NULL,
+			month integer NOT NULL,
+			icon text,
+			emoji text,
+			customColor text,
+			imageColor text,
+			imageUri text,
+			onceRecurring integer NOT NULL DEFAULT 0,
+			recurringType integer NOT NULL DEFAULT 0,
+			recurringCoefficient integer NOT NULL DEFAULT 1,
+			recurringEndDate integer,
+			categoryId text,
+			amountUsd real,
+			exchangeRate real,
+			exchangeRateType text,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
+	`);
+	return drizzle(sqlite);
+}
+
+/**
+ * `count` rows all dated on day `d` of July 2025. Spread by the minute, not the
+ * hour: past 24 rows an hourly offset rolls into the next day, which leaves
+ * `day` on the seeded date while `date` says otherwise.
+ */
+async function seedDay(db: TestDb, d: number, count: number): Promise<void> {
+	const day = at(2025, 7, d);
+	await db.insert(transactions).values(
+		Array.from({ length: count }, (_, i) => ({
+			id: `jul${d}-${i}`,
+			amount: 1,
+			income: false,
+			note: `jul${d}-${i}`,
+			date: at(2025, 7, d, 0, i),
+			day,
+			month: at(2025, 7, 1),
+			updatedAt: new Date(0),
+		})),
+	);
+}
+
+async function windowFor(db: TestDb, days: number) {
+	const dayRows = await logWindowDaysQuery(db, NOW, days);
+	const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
+	const rows = await logWindowRowsQuery(db, NOW, floorMs);
+	return { dayRows, rows, reachedEnd: dayRows.length < days };
+}
+
+describe("log window", () => {
+	it("returns every row of every day it includes, never a partial day", async () => {
+		const db = makeDb();
+		// Day 14 holds far more rows than the other two, so a row-based LIMIT
+		// would cut it — and the Log prints a per-day subtotal off these rows.
+		await seedDay(db, 15, 2);
+		await seedDay(db, 14, 9);
+		await seedDay(db, 13, 3);
+
+		const { rows } = await windowFor(db, 2);
+
+		assert.equal(rows.length, 11, "both days must arrive whole");
+		assert.equal(
+			rows.filter((r) => r.day.getDate() === 14).length,
+			9,
+			"the boundary day must not be truncated",
+		);
+		assert.equal(
+			rows.filter((r) => r.day.getDate() === 13).length,
+			0,
+			"the day past the window must not leak in",
+		);
+	});
+
+	it("widens by whole days and keeps the rows it already had", async () => {
+		const db = makeDb();
+		await seedDay(db, 15, 2);
+		await seedDay(db, 14, 9);
+		await seedDay(db, 13, 3);
+
+		const first = await windowFor(db, 2);
+		const second = await windowFor(db, 3);
+
+		assert.equal(second.rows.length, 14);
+		const kept = new Set(second.rows.map((r) => r.id));
+		for (const row of first.rows) {
+			assert.ok(kept.has(row.id), `${row.id} disappeared when the window grew`);
+		}
+	});
+
+	it("reports the end only once no older day remains", async () => {
+		const db = makeDb();
+		await seedDay(db, 15, 1);
+		await seedDay(db, 14, 1);
+
+		assert.equal((await windowFor(db, 1)).reachedEnd, false);
+		assert.equal((await windowFor(db, 2)).reachedEnd, false);
+		assert.equal((await windowFor(db, 3)).reachedEnd, true);
+	});
+
+	it("counts days, not rows, so one busy day cannot fill the window", async () => {
+		const db = makeDb();
+		await seedDay(db, 15, 40);
+		await seedDay(db, 14, 1);
+
+		const { dayRows, rows } = await windowFor(db, 2);
+
+		assert.equal(dayRows.length, 2);
+		assert.equal(rows.length, 41);
+	});
+
+	it("excludes deleted and future rows from the window it measures", async () => {
+		const db = makeDb();
+		await seedDay(db, 15, 1);
+		await seedDay(db, 14, 1);
+		await db.insert(transactions).values([
+			{
+				id: "deleted",
+				amount: 1,
+				income: false,
+				note: "deleted",
+				date: at(2025, 7, 13),
+				day: at(2025, 7, 13),
+				month: at(2025, 7, 1),
+				updatedAt: new Date(0),
+				deletedAt: new Date(0),
+			},
+			{
+				id: "future",
+				amount: 1,
+				income: false,
+				note: "future",
+				date: at(2025, 7, 20),
+				day: at(2025, 7, 20),
+				month: at(2025, 7, 1),
+				updatedAt: new Date(0),
+			},
+		]);
+
+		const { dayRows, rows, reachedEnd } = await windowFor(db, 5);
+
+		assert.deepEqual(
+			dayRows.map((r) => r.day.getDate()),
+			[15, 14],
+			"a deleted-only day and a future day are not days of history",
+		);
+		assert.equal(rows.length, 2);
+		assert.equal(reachedEnd, true);
+	});
+
+	it("returns nothing at all when no row is visible", async () => {
+		const db = makeDb();
+		const { dayRows, rows, reachedEnd } = await windowFor(db, 30);
+
+		assert.equal(dayRows.length, 0);
+		assert.equal(
+			rows.length,
+			0,
+			"a null floor must not fall back to every row",
+		);
+		assert.equal(reachedEnd, true);
+	});
+});

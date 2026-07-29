@@ -1,0 +1,59 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+/**
+ * The only fraction-digit counts the money engine, display formatter, and the
+ * `CURRENCY_DECIMALS` literal type support. A provider currency outside this set
+ * (e.g. a 4-digit accounting unit like CLF) must fail the build loudly rather
+ * than ship an exponent the rounding path cannot express.
+ */
+const ALLOWED_DECIMALS = new Set([0, 2, 3]);
+
+function readJson(relativePath) {
+	return JSON.parse(
+		readFileSync(new URL(relativePath, import.meta.url), "utf8"),
+	);
+}
+
+/**
+ * Deterministically builds the currency catalog from three committed inputs:
+ * the vendored provider code list (Frankfurter USD-base blend + cotizave VES),
+ * the pinned CLDR datasets (`cldr-numbers-modern` English names/symbols,
+ * `cldr-core` fraction digits), and the manual `overrides.json` overlay. Given
+ * the committed inputs it always returns the same `{ codes, decimals, meta }`,
+ * so the drift test and the generator agree byte-for-byte on values.
+ *
+ * Resolution order per field: override wins, then CLDR, then the bare code as a
+ * last-resort fallback (matches the runtime bare-code display fallback).
+ */
+export function buildCatalog() {
+	const codes = readJson("../provider-codes.json");
+	const overrides = readJson("../overrides.json");
+	const cldrCurrencies = require("cldr-numbers-modern/main/en/currencies.json")
+		.main.en.numbers.currencies;
+	const cldrFractions = require("cldr-core/supplemental/currencyData.json")
+		.supplemental.currencyData.fractions;
+	const defaultDigits = Number(cldrFractions.DEFAULT._digits);
+
+	const decimals = {};
+	const meta = {};
+	for (const code of codes) {
+		const override = overrides[code] ?? {};
+		const cldr = cldrCurrencies[code] ?? {};
+		const digits = Number(cldrFractions[code]?._digits ?? defaultDigits);
+		if (!ALLOWED_DECIMALS.has(digits)) {
+			throw new Error(
+				`Currency ${code} carries ${digits} fraction digits; only 0, 2, or 3 are supported. Handle the new exponent before regenerating the catalog.`,
+			);
+		}
+		decimals[code] = digits;
+		meta[code] = {
+			name: override.name ?? cldr.displayName ?? code,
+			symbol:
+				override.symbol ?? cldr.symbol ?? cldr["symbol-alt-narrow"] ?? code,
+		};
+	}
+	return { codes, decimals, meta };
+}

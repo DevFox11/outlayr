@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1784793198129,
+      "tag": "0000_gray_unus",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785050596860,
+      "tag": "0001_white_sleeper",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785282045935,
+      "tag": "0002_tidy_ultimatum",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785284435137,
+      "tag": "0003_damp_the_fallen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785296474667,
+      "tag": "0004_closed_swarm",
+      "breakpoints": true
+    }
+  ]
+}

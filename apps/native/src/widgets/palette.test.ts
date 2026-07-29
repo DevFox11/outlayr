@@ -1,0 +1,42 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, it } from "node:test";
+import {
+	PALETTE_VARIABLES,
+	WIDGET_PALETTE,
+	type WidgetPalette,
+} from "./palette";
+
+const CSS = readFileSync(join(import.meta.dirname, "../../global.css"), "utf8");
+
+/** Pulls one `@variant light|dark { … }` block out of the `@layer theme` rules. */
+function variantBlock(variant: "light" | "dark"): string {
+	const marker = `@variant ${variant} {`;
+	const open = CSS.indexOf(marker);
+	assert.notEqual(open, -1, `global.css has no "${marker}" block`);
+	const start = open + marker.length;
+	const end = CSS.indexOf("}", start);
+	assert.notEqual(end, -1, `"${marker}" block is unterminated`);
+	return CSS.slice(start, end);
+}
+
+function declaredValue(block: string, variable: string): string | null {
+	const match = block.match(new RegExp(`${variable}\\s*:\\s*([^;]+);`));
+	return match ? match[1].trim() : null;
+}
+
+describe("widget palette", () => {
+	for (const variant of ["light", "dark"] as const) {
+		it(`matches every ${variant} token declared in global.css`, () => {
+			const block = variantBlock(variant);
+			for (const [name, variable] of Object.entries(PALETTE_VARIABLES)) {
+				assert.equal(
+					WIDGET_PALETTE[variant][name as keyof WidgetPalette],
+					declaredValue(block, variable),
+					`${variant} ${name} has drifted from ${variable} in global.css`,
+				);
+			}
+		});
+	}
+});

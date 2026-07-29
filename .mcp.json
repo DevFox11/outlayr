@@ -1,24 +1,29 @@
 {
-  "mcpServers": {
-    "better-t-stack": {
-      "command": "pnpm",
-      "args": ["dlx", "create-better-t-stack@latest", "mcp"]
-    },
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
-    },
-    "convex": {
-      "command": "npx",
-      "args": ["-y", "convex@latest", "mcp", "start"]
-    },
-    "hugeicons": {
-      "command": "npx",
-      "args": ["-y", "@hugeicons/mcp-server"]
-    },
-    "xcode": {
-      "command": "xcrun",
-      "args": ["mcpbridge"]
-    }
-  }
+	"mcpServers": {
+		"better-t-stack": {
+			"command": "pnpm",
+			"args": ["dlx", "create-better-t-stack@latest", "mcp"]
+		},
+		"context7": {
+			"command": "npx",
+			"args": ["-y", "@upstash/context7-mcp"]
+		},
+		"convex": {
+			"command": "npx",
+			"args": ["-y", "convex@latest", "mcp", "start"]
+		},
+		"hugeicons": {
+			"command": "npx",
+			"args": ["-y", "@hugeicons/mcp-server"]
+		},
+		"xcode": {
+			"command": "xcrun",
+			"args": ["mcpbridge"]
+		},
+		"argent": {
+			"type": "stdio",
+			"command": "argent",
+			"args": ["mcp"]
+		}
+	}
 }
