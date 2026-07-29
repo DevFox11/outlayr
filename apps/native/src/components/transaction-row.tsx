@@ -20,6 +20,8 @@ interface TransactionRowProps {
 	/** Global display currency, used when the row's own currency is null. */
 	currency: string;
 	onPress: (id: string) => void;
+	/** Opens the row's action menu. Omit on a surface that offers none. */
+	onLongPress?: (id: string) => void;
 	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
 	showCents?: boolean;
 	/** Mirrors "Display +/- Symbol"; false drops the row's sign prefix. */
@@ -40,6 +42,7 @@ export function TransactionRow({
 	transaction,
 	currency,
 	onPress,
+	onLongPress,
 	showCents = true,
 	showSign = true,
 	swapTimeLabel = false,
@@ -67,6 +70,7 @@ export function TransactionRow({
 		<Pressable
 			className="flex-row items-center gap-3 py-2 active:opacity-70"
 			onPress={() => onPress(transaction.id)}
+			onLongPress={onLongPress ? () => onLongPress(transaction.id) : undefined}
 			accessibilityRole="button"
 		>
 			<View>

@@ -270,6 +270,27 @@ export const transactionsRepo = {
 				.where(eq(transactions.id, id));
 		});
 	},
+
+	/**
+	 * Ends the schedule and keeps the charge. The counterpart to {@link remove}:
+	 * no successor is anchored, so nothing is generated after this row, but the
+	 * row itself — including a pending charge that has yet to land — stays on the
+	 * ledger. `onceRecurring` is left set, so the entry still reads as a member
+	 * of its chain under the Recurring filter.
+	 *
+	 * Tombstones are excluded because their schedule is the only record
+	 * `repairOrphanedRecurrence` has left to read a broken chain back from.
+	 */
+	async stopRecurring(
+		db: Database,
+		id: string,
+		now: Date = new Date(),
+	): Promise<void> {
+		await db
+			.update(transactions)
+			.set({ recurringType: RECURRING_TYPE.none, updatedAt: now })
+			.where(and(eq(transactions.id, id), isNull(transactions.deletedAt)));
+	},
 };
 
 /**

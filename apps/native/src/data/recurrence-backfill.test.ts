@@ -526,6 +526,73 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 	});
 });
 
+describe("transactionsRepo.stopRecurring", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("retires the schedule and keeps the charge that carried it", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		const before = (await allRows(db)).length;
+
+		await transactionsRepo.stopRecurring(db, carrier?.id ?? "", NOW);
+
+		assert.equal((await allRows(db)).length, before);
+		assert.equal(await liveCarrier(db), null);
+	});
+
+	it("anchors no successor, so later sweeps generate nothing", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		await transactionsRepo.stopRecurring(db, carrier?.id ?? "", NOW);
+
+		await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
+
+		assert.deepEqual(
+			(await allRows(db)).map((row) => row.date.getTime()),
+			[at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map(
+				(d) => d.getTime(),
+			),
+		);
+	});
+
+	// The distinction the delete path cannot draw: removing the pending charge
+	// stops the chain by losing the charge, and this stops it while keeping it.
+	it("leaves the pending charge on the books", async () => {
+		const id = await seedSource(db, { date: at(2025, 7, 15) });
+
+		await transactionsRepo.stopRecurring(db, id, NOW);
+
+		const live = await allRows(db);
+		assert.equal(live.length, 1);
+		assert.equal(live[0]?.date.getTime(), at(2025, 7, 15).getTime());
+		assert.equal(live[0]?.recurringType, RECURRING_TYPE.none);
+	});
+
+	it("keeps the row listed as a member of its chain", async () => {
+		const id = await seedSource(db, { date: at(2025, 7, 15) });
+
+		await transactionsRepo.stopRecurring(db, id, NOW);
+
+		const [row] = await allRows(db);
+		assert.equal(row?.onceRecurring, true);
+	});
+
+	it("leaves a tombstone the one-shot repair still has to read", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await orphanCarrier(db, id);
+
+		await transactionsRepo.stopRecurring(db, id, NOW);
+
+		const [tombstone] = await everyRow(db);
+		assert.equal(tombstone?.recurringType, RECURRING_TYPE.monthly);
+	});
+});
+
 describe("repairOrphanedRecurrence", () => {
 	let db: Database;
 	beforeEach(() => {

@@ -14,6 +14,7 @@ interface LogUpcomingProps {
 	transactions: TransactionWithCategory[];
 	currency: string;
 	onPress: (id: string) => void;
+	onLongPress: (id: string) => void;
 	showCents: boolean;
 	showSign: boolean;
 	swapTimeLabel: boolean;
@@ -25,6 +26,7 @@ export function LogUpcoming({
 	transactions,
 	currency,
 	onPress,
+	onLongPress,
 	showCents,
 	showSign,
 	swapTimeLabel,
@@ -63,6 +65,7 @@ export function LogUpcoming({
 					transaction={transaction}
 					currency={currency}
 					onPress={onPress}
+					onLongPress={onLongPress}
 					showCents={showCents}
 					showSign={showSign}
 					swapTimeLabel={swapTimeLabel}

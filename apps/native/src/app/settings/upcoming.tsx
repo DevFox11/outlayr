@@ -8,8 +8,11 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
+import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogUpcoming } from "@/screens/log/components/log-upcoming";
+import { UndoToast } from "@/screens/log/components/undo-toast";
 
 export default function UpcomingScreen() {
 	const db = useDatabase();
@@ -25,51 +28,58 @@ function UpcomingContent({ db }: { db: Database }) {
 	const [nowMs] = useState(() => Date.now());
 	// Unlimited whatever the 14-day toggle says, matching Swift's
 	// `limitedMode: false` and the promise the footer above makes.
-	const upcoming = useUpcomingTransactions(db, nowMs, false);
+	const scheduled = useUpcomingTransactions(db, nowMs, false);
+	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+	const upcoming = scheduled.filter((row) => row.id !== pendingId);
 
 	return (
-		<SettingsScreen>
-			<SettingsSection
-				footer="Transactions dated in the future sit at the top of the Log, above today. Hiding them there never hides them here."
-				title="On the Log"
-			>
-				<ToggleRow
-					icon="Sunrise"
-					onValueChange={(next) => {
-						setBoolSetting(db, "showUpcoming", next);
-						if (!next) {
-							setBoolSetting(db, "showUpcomingSoon", false);
-						}
-					}}
-					title="Display on Log Page"
-					value={showUpcoming}
-				/>
-				<ToggleRow
-					icon="CalendarClock"
-					onValueChange={(next) => {
-						setBoolSetting(db, "showUpcomingSoon", next);
-					}}
-					title="Limit to 14-Day Outlook"
-					value={showSoon}
-				/>
-			</SettingsSection>
+		<>
+			<SettingsScreen>
+				<SettingsSection
+					footer="Transactions dated in the future sit at the top of the Log, above today. Hiding them there never hides them here."
+					title="On the Log"
+				>
+					<ToggleRow
+						icon="Sunrise"
+						onValueChange={(next) => {
+							setBoolSetting(db, "showUpcoming", next);
+							if (!next) {
+								setBoolSetting(db, "showUpcomingSoon", false);
+							}
+						}}
+						title="Display on Log Page"
+						value={showUpcoming}
+					/>
+					<ToggleRow
+						icon="CalendarClock"
+						onValueChange={(next) => {
+							setBoolSetting(db, "showUpcomingSoon", next);
+						}}
+						title="Limit to 14-Day Outlook"
+						value={showSoon}
+					/>
+				</SettingsSection>
 
-			<View className="pt-4">
-				<LogUpcoming
-					currency={currency}
-					nowMs={nowMs}
-					onPress={(id) => router.push(`/transaction/${id}`)}
-					showCents={settings.bool("showCents")}
-					showSign={settings.bool("showExpenseOrIncomeSign")}
-					swapTimeLabel={settings.bool("swapTimeLabel")}
-					transactions={upcoming}
-				/>
-				{upcoming.length === 0 ? (
-					<Text className="pt-2 text-muted text-subtitle leading-snug">
-						Nothing is scheduled ahead of today.
-					</Text>
-				) : null}
-			</View>
-		</SettingsScreen>
+				<View className="pt-4">
+					<LogUpcoming
+						currency={currency}
+						nowMs={nowMs}
+						onLongPress={(id) => openRowActions(id, true)}
+						onPress={(id) => router.push(`/transaction/${id}`)}
+						showCents={settings.bool("showCents")}
+						showSign={settings.bool("showExpenseOrIncomeSign")}
+						swapTimeLabel={settings.bool("swapTimeLabel")}
+						transactions={upcoming}
+					/>
+					{upcoming.length === 0 ? (
+						<Text className="pt-2 text-muted text-subtitle leading-snug">
+							Nothing is scheduled ahead of today.
+						</Text>
+					) : null}
+				</View>
+			</SettingsScreen>
+			<UndoToast onUndo={undo} visible={pendingId != null} />
+		</>
 	);
 }

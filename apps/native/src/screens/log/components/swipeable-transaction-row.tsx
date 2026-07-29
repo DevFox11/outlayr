@@ -12,6 +12,7 @@ interface SwipeableTransactionRowProps {
 	transaction: TransactionWithCategory;
 	currency: string;
 	onPress: (id: string) => void;
+	onLongPress: (id: string) => void;
 	onDelete: (id: string) => void;
 	showCents?: boolean;
 	showSign?: boolean;
@@ -23,6 +24,7 @@ export function SwipeableTransactionRow({
 	transaction,
 	currency,
 	onPress,
+	onLongPress,
 	onDelete,
 	showCents = true,
 	showSign = true,
@@ -59,6 +61,7 @@ export function SwipeableTransactionRow({
 					transaction={transaction}
 					currency={currency}
 					onPress={onPress}
+					onLongPress={onLongPress}
 					showCents={showCents}
 					showSign={showSign}
 					swapTimeLabel={swapTimeLabel}

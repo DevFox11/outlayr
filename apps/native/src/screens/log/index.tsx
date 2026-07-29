@@ -37,6 +37,7 @@ import {
 	sparklineRange,
 	sparklineSeries,
 } from "@/domain/log-sparkline";
+import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogEmptyState } from "./components/log-empty-state";
 import { LogFilterChip } from "./components/log-filter-chip";
 import type { SparklineData } from "./components/log-insights";
@@ -174,6 +175,8 @@ function LogContent({ db }: { db: Database }) {
 		[listRows, pendingId, currency, rates],
 	);
 
+	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+
 	const detail = filterDetail(filter, {
 		categoryName: activeCategoryId
 			? categoryMeta.get(activeCategoryId)?.name
@@ -282,6 +285,7 @@ function LogContent({ db }: { db: Database }) {
 								transactions={upcomingRows}
 								currency={currency}
 								onPress={(id) => router.push(`/transaction/${id}`)}
+								onLongPress={(id) => openRowActions(id, true)}
 								showCents={showCents}
 								showSign={showSign}
 								swapTimeLabel={swapTimeLabel}
@@ -303,6 +307,7 @@ function LogContent({ db }: { db: Database }) {
 						transaction={item}
 						currency={currency}
 						onPress={(id) => router.push(`/transaction/${id}`)}
+						onLongPress={(id) => openRowActions(id, false)}
 						onDelete={requestDelete}
 						showCents={showCents}
 						showSign={showSign}
