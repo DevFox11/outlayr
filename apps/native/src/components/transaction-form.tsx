@@ -43,7 +43,6 @@ import {
 	tag,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
-import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
@@ -78,6 +77,7 @@ import {
 	SELECTABLE_RECURRING_TYPES,
 	scheduleLabel,
 } from "@/domain/recurrence";
+import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -190,6 +190,7 @@ export function TransactionForm({
 	onDone,
 }: TransactionFormProps) {
 	const colors = useColors();
+	const haptics = useHaptics();
 	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 	/** Swift's `.padding(.horizontal, 20)` content box. */
 	const contentWidth = windowWidth - 40;
@@ -346,7 +347,7 @@ export function TransactionForm({
 	};
 
 	const flagMissingCategory = () => {
-		Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+		haptics("error");
 		setCategoryError(true);
 		setCategoryShake(true);
 		shakeTimer.current = setTimeout(() => setCategoryShake(false), 500);
@@ -361,7 +362,7 @@ export function TransactionForm({
 			return;
 		}
 		setSaving(true);
-		Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+		haptics("success");
 		const input = {
 			amount: amountNumber,
 			income,

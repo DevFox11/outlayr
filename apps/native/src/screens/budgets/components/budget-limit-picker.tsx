@@ -8,7 +8,6 @@ import {
 	Path as SkPath,
 	vec,
 } from "@shopify/react-native-skia";
-import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type LayoutChangeEvent,
@@ -27,6 +26,7 @@ import { crossingDay } from "@/domain/budget-limit-crossing";
 import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
+import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -100,6 +100,7 @@ export function BudgetLimitPicker({
 	onCommit,
 }: BudgetLimitPickerProps) {
 	const colors = useColors();
+	const haptics = useHaptics();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
 	const width = measured > 0 ? measured : windowWidth - 40;
@@ -148,22 +149,18 @@ export function BudgetLimitPicker({
 		(next: number) => {
 			touched.current = true;
 			if (sparse) {
-				Haptics.selectionAsync();
+				haptics("selection");
 			} else {
 				const crossing = crossingDay(cumulative, next);
 				if (crossing !== lastCrossing.current) {
 					const turned = lastCrossing.current === null && crossing !== null;
-					Haptics.impactAsync(
-						turned
-							? Haptics.ImpactFeedbackStyle.Medium
-							: Haptics.ImpactFeedbackStyle.Light,
-					);
+					haptics(turned ? "medium" : "light");
 					lastCrossing.current = crossing;
 				}
 			}
 			setLimit(next);
 		},
-		[cumulative, sparse],
+		[cumulative, sparse, haptics],
 	);
 
 	const pan = useMemo(() => {

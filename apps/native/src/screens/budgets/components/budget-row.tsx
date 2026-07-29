@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import { useMemo, useRef } from "react";
 import { Pressable, View } from "react-native";
 import ReanimatedSwipeable, {
@@ -19,6 +18,7 @@ import {
 } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
+import { useHaptics } from "@/lib/use-haptics";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -50,6 +50,7 @@ export function BudgetRow({
 	contributions,
 	nowMs,
 }: BudgetRowProps) {
+	const haptics = useHaptics();
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const now = new Date(nowMs);
 	const over = budget.overBudget;
@@ -83,7 +84,7 @@ export function BudgetRow({
 			accessibilityRole="button"
 			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger px-6"
 			onPress={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+				haptics("heavy");
 				swipeRef.current?.close();
 				confirmDeleteBudget(budget.name, () => onDelete(budget.id));
 			}}
@@ -98,7 +99,7 @@ export function BudgetRow({
 		<ReanimatedSwipeable
 			friction={2}
 			onSwipeableWillOpen={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				haptics("light");
 			}}
 			overshootRight={false}
 			ref={swipeRef}

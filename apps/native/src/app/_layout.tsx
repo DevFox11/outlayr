@@ -23,6 +23,7 @@ import {
 	SafeAreaProvider,
 } from "react-native-safe-area-context";
 import { Uniwind } from "uniwind";
+import { AppLockGate } from "@/components/app-lock-gate";
 import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
 import { AppThemeProvider, useAppTheme } from "@/contexts/app-theme-context";
@@ -155,7 +156,9 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 			    flag, never from the device. Without it the bar is pinned light and
 			    renders light-mode Liquid Glass over dark content. */}
 			<ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-				<RootStack />
+				<AppLockGate>
+					<RootStack />
+				</AppLockGate>
 			</ThemeProvider>
 		</>
 	);

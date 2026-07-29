@@ -32,7 +32,6 @@ import {
 	textInputAutocapitalization,
 	tint as tintModifier,
 } from "@expo/ui/swift-ui/modifiers";
-import * as Haptics from "expo-haptics";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -66,6 +65,7 @@ import {
 	LARGE_ONLY,
 	SUBCATEGORY_DETENT,
 } from "@/lib/sheet-detents";
+import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
@@ -145,6 +145,7 @@ function CategoryEditorReady(
 	const router = useRouter();
 	const navigation = useNavigation();
 	const colors = useColors();
+	const haptics = useHaptics();
 	const insets = useSafeAreaInsets();
 
 	const { draft, setDraft } = useIdentityDraft();
@@ -434,7 +435,7 @@ function CategoryEditorReady(
 					income,
 					parentId,
 				});
-				Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+				haptics("success");
 				// A top-level add stays put for a run of them; a subcategory returns to
 				// the row it was added from.
 				if (isSubcategory) {
@@ -468,10 +469,10 @@ function CategoryEditorReady(
 				emoji: draft.emoji ?? null,
 				color: income ? undefined : (draft.color ?? CATEGORY_PALETTE[0]),
 			});
-			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+			haptics("success");
 			router.back();
 		} catch (error) {
-			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+			haptics("error");
 			const message =
 				error instanceof Error ? error.message : "Please try again.";
 			const refocus =

@@ -8,6 +8,7 @@ import {
 	type NumpadKey,
 	numpadToNumber,
 } from "@/domain/numpad";
+import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 
@@ -36,13 +37,16 @@ export function AmountNumpad({
 	onChange,
 }: AmountNumpadProps) {
 	const colors = useColors();
+	const haptics = useHaptics();
 	const symbol = currencySymbol(code);
 	const amountColor = toneClass?.includes("income")
 		? colors.income
 		: colors.foreground;
 
-	const press = (key: NumpadKey) =>
+	const press = (key: NumpadKey) => {
+		haptics("keyTap");
 		onChange(applyNumpadKey(value, key, minorUnits));
+	};
 
 	return (
 		<View className="px-4">

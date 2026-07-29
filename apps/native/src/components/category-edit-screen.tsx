@@ -1,5 +1,4 @@
 import { and, eq, isNull } from "drizzle-orm";
-import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert } from "react-native";
@@ -8,6 +7,7 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { categoriesRepo, getCategoryById } from "@/data/categories";
 import { categories } from "@/db/schema";
+import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
 /**
@@ -19,6 +19,7 @@ export function CategoryEditScreen({ id }: { id: string }) {
 	const router = useRouter();
 	const db = useDatabase();
 	const colors = useColors();
+	const haptics = useHaptics();
 
 	// Read once on mount, like the editor does — a rename must not retitle the
 	// sheet mid-edit.
@@ -54,7 +55,7 @@ export function CategoryEditScreen({ id }: { id: string }) {
 				text: "Delete",
 				style: "destructive",
 				onPress: async () => {
-					Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+					haptics("warning");
 					await categoriesRepo.remove(db, id);
 					router.back();
 				},

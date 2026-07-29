@@ -98,7 +98,11 @@
 			}
 		},
 		{
-			"includes": ["apps/native/src/**", "!apps/native/src/data/live-query.ts"],
+			"includes": [
+				"apps/native/src/**",
+				"!apps/native/src/data/live-query.ts",
+				"!apps/native/src/lib/use-haptics.ts"
+			],
 			"linter": {
 				"rules": {
 					"style": {
@@ -109,7 +113,8 @@
 									"drizzle-orm/expo-sqlite": {
 										"importNames": ["useLiveQuery"],
 										"message": "Drizzle's useLiveQuery renders one empty frame before its query answers. Import useLiveQuery from @/data/live-query, which reads in render."
-									}
+									},
+									"expo-haptics": "A direct call fires whatever the Haptics setting says. Use useHaptics from @/lib/use-haptics."
 								}
 							}
 						}

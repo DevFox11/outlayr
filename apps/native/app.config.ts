@@ -200,6 +200,12 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 					cameraPermission: false,
 				},
 			],
+			[
+				"expo-local-authentication",
+				{
+					faceIDPermission: "Outlayr uses Face ID to unlock your ledger.",
+				},
+			],
 			"./plugins/with-ui-scene.ts",
 			"./plugins/with-min-pod-deployment-target.ts",
 		],

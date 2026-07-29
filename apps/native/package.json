@@ -45,6 +45,7 @@
 		"expo-image-picker": "~57.0.6",
 		"expo-linear-gradient": "~57.0.1",
 		"expo-linking": "~57.0.4",
+		"expo-local-authentication": "~57.0.2",
 		"expo-mesh-gradient": "~57.0.1",
 		"expo-quick-actions": "^6.0.2",
 		"expo-router": "~57.0.8",

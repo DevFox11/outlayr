@@ -27,7 +27,6 @@ import {
 	textCase,
 	textInputAutocapitalization,
 } from "@expo/ui/swift-ui/modifiers";
-import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
@@ -49,6 +48,7 @@ import {
 	iconKeysMatching,
 } from "@/domain/category-icon-catalog";
 import { persistPickedPhoto } from "@/lib/photo-storage";
+import { useHaptics } from "@/lib/use-haptics";
 import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
@@ -170,15 +170,16 @@ export function IdentityPickerContent({
 	const searching = query.trim() !== "";
 	const searchResults = searching ? iconKeysMatching(query) : [];
 
+	const haptics = useHaptics();
 	const effectiveColor = value.color ?? CATEGORY_PALETTE[0];
 	const glyphTint = tint ?? effectiveColor;
 
 	const pickColor = (color: string) => {
-		Haptics.selectionAsync();
+		haptics("selection");
 		onChange({ ...value, color });
 	};
 	const pickEmoji = (emoji: string) => {
-		Haptics.selectionAsync();
+		haptics("selection");
 		onChange({
 			emoji,
 			icon: null,
@@ -188,7 +189,7 @@ export function IdentityPickerContent({
 		});
 	};
 	const pickIcon = (icon: string) => {
-		Haptics.selectionAsync();
+		haptics("selection");
 		onChange({
 			emoji: null,
 			icon,

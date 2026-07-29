@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import { Linking, Platform, Share } from "react-native";
+import { Alert, Linking, Platform, Share } from "react-native";
 import {
 	LinkRow,
 	SettingsSection,
@@ -20,12 +20,32 @@ import {
 	useNumberSetting,
 } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { lockFailureMessage } from "@/domain/app-lock";
+import { requestUnlock } from "@/lib/app-lock";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { themeLabel } from "@/theme/theme-preference";
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
 const WEBSITE = "https://tryoutlayr.com";
 const X_PROFILE = "https://x.com/tryoutlayr";
+
+/**
+ * Both directions pass the check first. Arming the lock without one is how a
+ * user shuts themselves out behind a Face ID they never enrolled.
+ */
+async function toggleAppLock(db: Database, next: boolean): Promise<void> {
+	const result = await requestUnlock(
+		next ? "Turn on authentication" : "Turn off authentication",
+	);
+	if (result.success) {
+		await setBoolSetting(db, "biometricLock", next);
+		return;
+	}
+	const message = lockFailureMessage(result.error);
+	if (message) {
+		Alert.alert("Authentication", message);
+	}
+}
 
 export default function SettingsScreenRoute() {
 	const db = useDatabase();
@@ -173,7 +193,7 @@ function SettingsContent({ db }: { db: Database }) {
 				<ToggleRow
 					icon="BiometricAccess"
 					onValueChange={(next) => {
-						setBoolSetting(db, "biometricLock", next);
+						void toggleAppLock(db, next);
 					}}
 					title="Authentication"
 					value={biometricLock}

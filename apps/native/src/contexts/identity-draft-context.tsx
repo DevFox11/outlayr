@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import {
 	createContext,
 	useCallback,
@@ -13,6 +12,7 @@ import {
 	withSpring,
 } from "react-native-reanimated";
 import type { IdentitySelection } from "@/components/identity-picker-content";
+import { useHaptics } from "@/lib/use-haptics";
 
 /** Launch spring (response 0.4, dampingFraction 0.85) as stiffness/damping. */
 export const LAUNCH_SPRING = { stiffness: 246, damping: 27, mass: 1 } as const;
@@ -73,6 +73,7 @@ export function IdentityDraftProvider({
 }: {
 	children: React.ReactNode;
 }) {
+	const haptics = useHaptics();
 	const [draft, setDraft] = useState<IdentitySelection>(EMPTY_DRAFT);
 	const [pickerOpen, setPickerOpenState] = useState(false);
 	const floatProgress = useSharedValue(0);
@@ -93,7 +94,7 @@ export function IdentityDraftProvider({
 				// Nothing on the return: UIKit starts the dismissal transition before it
 				// decides whether to put the sheet back, so an aborted detent drag would
 				// fire a tap for a dismissal that never happened.
-				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				haptics("light");
 			}
 			setPickerOpenState(open);
 			floatProgress.value = withSpring(
@@ -101,7 +102,7 @@ export function IdentityDraftProvider({
 				open ? LAUNCH_SPRING : RETURN_SPRING,
 			);
 		},
-		[floatProgress],
+		[floatProgress, haptics],
 	);
 
 	// A JS-side latch instead of reading `sheetHeight.value`: that is a cross-thread
