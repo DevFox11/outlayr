@@ -6,7 +6,8 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { appMeta, budgets, exchangeRates, mainBudget } from "@/db/schema";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
-import { budgetsRepo } from "./budgets-core";
+import { buildRateTable, limitIn } from "@/domain/valuation";
+import { budgetsRepo, getBudgetById } from "./budgets-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -84,6 +85,40 @@ describe("budgetsRepo.createBudget", () => {
 		assert.equal(
 			row?.startDate?.getTime(),
 			startOfPeriod(new Date(), BUDGET_TYPE.month).getTime(),
+		);
+	});
+
+	it("anchors an omitted start date to the user's own week", async () => {
+		await db.insert(appMeta).values({ key: "firstWeekday", value: "2" });
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 250,
+			type: BUDGET_TYPE.week,
+		});
+		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
+		assert.equal(
+			row?.startDate?.getTime(),
+			startOfPeriod(new Date(), BUDGET_TYPE.week, {
+				firstWeekday: 2,
+				firstDayOfMonth: 1,
+			}).getTime(),
+		);
+	});
+
+	it("anchors an omitted start date to the user's own month", async () => {
+		await db.insert(appMeta).values({ key: "firstDayOfMonth", value: "25" });
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 250,
+			type: BUDGET_TYPE.month,
+		});
+		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
+		assert.equal(
+			row?.startDate?.getTime(),
+			startOfPeriod(new Date(), BUDGET_TYPE.month, {
+				firstWeekday: 1,
+				firstDayOfMonth: 25,
+			}).getTime(),
 		);
 	});
 
@@ -190,7 +225,55 @@ describe("budgetsRepo.createMainBudget", () => {
 	});
 });
 
+describe("getBudgetById", () => {
+	it("hands back the stored row so an edit opens on what was saved", async () => {
+		const db = makeDb();
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 250,
+			type: BUDGET_TYPE.month,
+			name: "Coffee run",
+			startDate: BACKDATE,
+		});
+		const row = getBudgetById(db, id);
+		assert.equal(row?.name, "Coffee run");
+		assert.equal(row?.amount, 250);
+		assert.equal(row?.categoryId, "cat-1");
+		assert.equal(row?.type, BUDGET_TYPE.month);
+		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+	});
+
+	it("declines an id that names nothing", () => {
+		assert.equal(getBudgetById(makeDb(), "gone"), null);
+	});
+});
+
 describe("budgetsRepo.updateBudget", () => {
+	it("keeps the anchor an edit did not touch", async () => {
+		// The whole point of editing rather than delete-and-recreate: a mistyped
+		// target must not cost the user the window the budget has been running in.
+		const db = makeDb();
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 250,
+			type: BUDGET_TYPE.month,
+			startDate: BACKDATE,
+		});
+
+		const existing = getBudgetById(db, id);
+		await budgetsRepo.updateBudget(db, id, {
+			categoryId: existing?.categoryId ?? "cat-1",
+			amount: 300,
+			type: existing?.type ?? BUDGET_TYPE.month,
+			name: existing?.name,
+			startDate: existing?.startDate,
+		});
+
+		const row = getBudgetById(db, id);
+		assert.equal(row?.amount, 300);
+		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+	});
+
 	it("honours an explicit start date and falls back to the period start", async () => {
 		const db = makeDb();
 		const id = await budgetsRepo.createBudget(db, {
@@ -218,6 +301,57 @@ describe("budgetsRepo.updateBudget", () => {
 			row?.startDate?.getTime(),
 			startOfPeriod(new Date(), BUDGET_TYPE.month).getTime(),
 		);
+	});
+});
+
+describe("an edited budget stays coherent", () => {
+	it("keeps its settings-derived anchor and agrees with limitIn on both sides", async () => {
+		const db = makeDb();
+		await db.insert(appMeta).values([
+			{ key: "currency", value: "EUR" },
+			{ key: "firstDayOfMonth", value: "25" },
+		]);
+		await db.insert(exchangeRates).values({
+			quote: "EUR",
+			rateType: "official",
+			date: "2020-01-01",
+			rate: 0.9,
+			source: "frankfurter",
+			fetchedAt: 0,
+		});
+		const rates = buildRateTable([
+			{ quote: "EUR", date: "2020-01-01", rate: 0.9 },
+		]);
+
+		const id = await budgetsRepo.createBudget(db, {
+			categoryId: "cat-1",
+			amount: 450,
+			type: BUDGET_TYPE.month,
+		});
+		const anchor = startOfPeriod(new Date(), BUDGET_TYPE.month, {
+			firstWeekday: 1,
+			firstDayOfMonth: 25,
+		});
+
+		const created = getBudgetById(db, id);
+		assert.ok(created);
+		assert.equal(created.startDate?.getTime(), anchor.getTime());
+		assert.equal(created.amountUsd, 500);
+		assert.equal(limitIn(created, anchor, "USD", rates), 500);
+
+		await budgetsRepo.updateBudget(db, id, {
+			categoryId: created.categoryId ?? "cat-1",
+			amount: 900,
+			type: created.type,
+			name: created.name,
+			startDate: created.startDate,
+		});
+
+		const edited = getBudgetById(db, id);
+		assert.ok(edited);
+		assert.equal(edited.startDate?.getTime(), anchor.getTime());
+		assert.equal(edited.amountUsd, 1000);
+		assert.equal(limitIn(edited, anchor, "USD", rates), 1000);
 	});
 });
 
@@ -253,6 +387,45 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 		assert.equal(row.amount, 400);
 		assert.equal(row.currency, "EUR");
 		// 400 EUR / 0.9.
+		assert.equal(Math.round((row.amountUsd ?? 0) * 100) / 100, 444.44);
+	});
+
+	it("freezes the USD value on the day the anchored window opens", async () => {
+		// `limitIn` restates the target at the window's day, so a value frozen at
+		// the write instant would be converted from a rate it was never set at.
+		const db = makeDb();
+		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
+		await db.insert(exchangeRates).values([
+			{
+				quote: "EUR",
+				rateType: "official",
+				date: "2026-02-01",
+				rate: 0.9,
+				source: "frankfurter",
+				fetchedAt: 0,
+			},
+			{
+				quote: "EUR",
+				rateType: "official",
+				date: "2026-06-01",
+				rate: 0.5,
+				source: "frankfurter",
+				fetchedAt: 0,
+			},
+		]);
+
+		const id = await budgetsRepo.createBudget(db, {
+			amount: 400,
+			type: BUDGET_TYPE.month,
+			categoryId: "cat",
+			startDate: BACKDATE,
+		});
+
+		const [row] = await db
+			.select({ amountUsd: budgets.amountUsd })
+			.from(budgets)
+			.where(eq(budgets.id, id));
+		// 400 EUR / 0.9, February's rate — not 0.5, the rate on the day of the write.
 		assert.equal(Math.round((row.amountUsd ?? 0) * 100) / 100, 444.44);
 	});
 

@@ -18,6 +18,7 @@ export default function BudgetsLayout() {
 				</Stack.Toolbar>
 			</Stack.Screen>
 			{/* Declared before `[id]` so the static segment wins the match. */}
+			<Stack.Screen name="edit/[id]" options={{ presentation: "modal" }} />
 			<Stack.Screen name="overall">
 				<Stack.Header transparent />
 				<Stack.Screen.BackButton displayMode="minimal" />

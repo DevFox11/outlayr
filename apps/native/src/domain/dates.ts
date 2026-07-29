@@ -38,6 +38,18 @@ const MONTHS_LONG = [
 	"DECEMBER",
 ] as const;
 
+/** `firstWeekday` is 1 = Sunday, 2 = Monday; `firstDayOfMonth` is 1–28. */
+export interface CalendarSettings {
+	firstWeekday: number;
+	firstDayOfMonth: number;
+}
+
+/** Matches `SETTING_DEFAULTS`. */
+export const DEFAULT_CALENDAR: CalendarSettings = {
+	firstWeekday: 1,
+	firstDayOfMonth: 1,
+};
+
 /** Local-calendar midnight of the given instant. */
 export function startOfDay(date: Date): Date {
 	const d = new Date(date);
@@ -63,6 +75,17 @@ export function startOfWeek(date: Date, firstWeekday = 1): Date {
 	const offset = (d.getDay() - (firstWeekday - 1) + 7) % 7;
 	d.setDate(d.getDate() - offset);
 	return d;
+}
+
+/** Mirrors Swift's `getStartOfMonth`. */
+export function monthPeriodStart(date: Date, firstDayOfMonth = 1): Date {
+	const anchor = Math.min(Math.max(1, firstDayOfMonth), 28);
+	const start = startOfDay(date);
+	if (start.getDate() < anchor) {
+		start.setMonth(start.getMonth() - 1);
+	}
+	start.setDate(anchor);
+	return start;
 }
 
 export function startOfYear(date: Date): Date {

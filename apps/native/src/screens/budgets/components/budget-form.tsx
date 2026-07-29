@@ -22,12 +22,13 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { budgetsRepo } from "@/data/budgets";
-import type { Category } from "@/data/categories";
+import { type Budget, budgetsRepo } from "@/data/budgets";
+import { type Category, getCategoryById } from "@/data/categories";
+import { useAllSettings } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
-import { numpadToNumber } from "@/domain/numpad";
+import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 
 type Kind = "overall" | "category";
 type Period = "day" | "week" | "month" | "year";
@@ -42,19 +43,47 @@ const PERIOD_TYPE: Record<Period, number> = {
 interface BudgetFormProps {
 	db: Database;
 	onDone: () => void;
+	/**
+	 * The row an edit re-writes. Its kind is fixed: a per-category budget cannot
+	 * become the overall singleton without orphaning its own row.
+	 */
+	initial?: Budget;
 }
 
+const PERIOD_BY_TYPE: Record<number, Period> = {
+	[BUDGET_TYPE.day]: "day",
+	[BUDGET_TYPE.week]: "week",
+	[BUDGET_TYPE.month]: "month",
+	[BUDGET_TYPE.year]: "year",
+};
+
 /** Overall budgets are a singleton — saving re-points the existing one. */
-export function BudgetForm({ db, onDone }: BudgetFormProps) {
+export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	const currency = useGlobalCurrency(db);
 	const minorUnits = minorUnitsFor(currency);
+	const settings = useAllSettings(db);
+	const calendar = useMemo(
+		() => ({
+			firstWeekday: settings.number("firstWeekday"),
+			firstDayOfMonth: settings.number("firstDayOfMonth"),
+		}),
+		[settings],
+	);
 
-	const [kind, setKind] = useState<Kind>("overall");
-	const [category, setCategory] = useState<Category | null>(null);
-	const [amount, setAmount] = useState("");
-	const [name, setName] = useState("");
-	const [period, setPeriod] = useState<Period>("month");
-	const [startDate, setStartDate] = useState<Date | null>(null);
+	const [kind, setKind] = useState<Kind>(initial ? "category" : "overall");
+	const [category, setCategory] = useState<Category | null>(() =>
+		initial?.categoryId ? getCategoryById(db, initial.categoryId) : null,
+	);
+	const [amount, setAmount] = useState(() =>
+		initial ? numberToNumpad(initial.amount, minorUnits) : "",
+	);
+	const [name, setName] = useState(initial?.name ?? "");
+	const [period, setPeriod] = useState<Period>(
+		initial ? (PERIOD_BY_TYPE[initial.type] ?? "month") : "month",
+	);
+	const [startDate, setStartDate] = useState<Date | null>(
+		initial?.startDate ?? null,
+	);
 	const [missingCategory, setMissingCategory] = useState(false);
 	const [saving, setSaving] = useState(false);
 
@@ -73,14 +102,18 @@ export function BudgetForm({ db, onDone }: BudgetFormProps) {
 
 	// Untouched, the picker shows the anchor the repo would pick anyway.
 	const periodStart = useMemo(
-		() => startOfPeriod(new Date(), PERIOD_TYPE[period]),
-		[period],
+		() => startOfPeriod(new Date(), PERIOD_TYPE[period], calendar),
+		[period, calendar],
 	);
-	// The window rolls forward from the stored anchor, so an older date is lost.
-	const backdateRange = useMemo(
-		() => ({ start: periodStart, end: new Date() }),
-		[periodStart],
-	);
+	// The window rolls forward from the stored anchor, so an older date is lost —
+	// except one an existing budget already runs on, which the picker must be
+	// able to show or SwiftUI clamps the selection out from under the edit.
+	const backdateRange = useMemo(() => {
+		const anchor = initial?.startDate;
+		const start =
+			anchor && anchor.getTime() < periodStart.getTime() ? anchor : periodStart;
+		return { start, end: new Date() };
+	}, [periodStart, initial]);
 
 	const shake = () => {
 		shakeX.value = withSequence(
@@ -110,7 +143,17 @@ export function BudgetForm({ db, onDone }: BudgetFormProps) {
 		}
 		setSaving(true);
 		try {
-			if (kind === "overall") {
+			if (initial) {
+				if (category) {
+					await budgetsRepo.updateBudget(db, initial.id, {
+						categoryId: category.id,
+						amount: amountNumber,
+						type,
+						name,
+						startDate,
+					});
+				}
+			} else if (kind === "overall") {
 				await budgetsRepo.createMainBudget(db, {
 					amount: amountNumber,
 					type,
@@ -141,14 +184,16 @@ export function BudgetForm({ db, onDone }: BudgetFormProps) {
 				keyboardShouldPersistTaps="handled"
 				bottomOffset={24}
 			>
-				<SegmentedControl
-					options={[
-						{ label: "Overall", value: "overall" },
-						{ label: "Category", value: "category" },
-					]}
-					value={kind}
-					onChange={(next) => setKind(next as Kind)}
-				/>
+				{initial ? null : (
+					<SegmentedControl
+						options={[
+							{ label: "Overall", value: "overall" },
+							{ label: "Category", value: "category" },
+						]}
+						value={kind}
+						onChange={(next) => setKind(next as Kind)}
+					/>
+				)}
 
 				<Pressable
 					className="items-center py-8 active:opacity-70"
@@ -254,7 +299,7 @@ export function BudgetForm({ db, onDone }: BudgetFormProps) {
 							canSave ? "text-accent-foreground" : "text-subtle",
 						)}
 					>
-						Create budget
+						{initial ? "Save changes" : "Create budget"}
 					</Text>
 				</Pressable>
 			</KeyboardAwareScrollView>

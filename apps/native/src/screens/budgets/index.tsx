@@ -99,7 +99,7 @@ function BudgetContent({ db }: { db: Database }) {
 		}
 		showBudgetActions({
 			name: budget.name,
-			onEdit: () => router.push(`/budgets/${id}`),
+			onEdit: () => router.push(`/budgets/edit/${id}`),
 			onDelete: () => deleteBudget(id),
 		});
 	};

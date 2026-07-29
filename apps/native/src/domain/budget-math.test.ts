@@ -82,6 +82,27 @@ describe("startOfPeriod", () => {
 			d(2025, 1, 1),
 		);
 	});
+
+	it("anchors a weekly budget to the user's first weekday", () => {
+		// 2025-07-23 is a Wednesday; on a Monday week that is 2025-07-21.
+		assert.deepEqual(
+			startOfPeriod(d(2025, 7, 23, 14, 30), BUDGET_TYPE.week, {
+				firstWeekday: 2,
+				firstDayOfMonth: 1,
+			}),
+			d(2025, 7, 21),
+		);
+	});
+
+	it("anchors a monthly budget to the user's first day of month", () => {
+		assert.deepEqual(
+			startOfPeriod(d(2025, 7, 23, 14, 30), BUDGET_TYPE.month, {
+				firstWeekday: 1,
+				firstDayOfMonth: 25,
+			}),
+			d(2025, 6, 25),
+		);
+	});
 });
 
 describe("advanceBudgetWindow", () => {

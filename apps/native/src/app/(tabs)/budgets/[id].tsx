@@ -1,4 +1,4 @@
-import { Color, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { toolbarIcon } from "@/components/toolbar-icons";
@@ -14,7 +14,7 @@ import {
 	leftPerDay,
 	shouldShowPaceMarker,
 } from "@/domain/budget-math";
-import { confirmDeleteBudget } from "@/lib/budget-actions";
+import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 
 export default function BudgetDetailScreen() {
@@ -51,10 +51,14 @@ function BudgetDetail({
 		return <View className="flex-1 bg-background" />;
 	}
 
-	const confirmDelete = () => {
-		confirmDeleteBudget(budget.name, async () => {
-			await budgetsRepo.deleteBudget(db, budget.id);
-			onDone();
+	const openActions = () => {
+		showBudgetActions({
+			name: budget.name,
+			onEdit: () => router.push(`/budgets/edit/${budget.id}`),
+			onDelete: async () => {
+				await budgetsRepo.deleteBudget(db, budget.id);
+				onDone();
+			},
 		});
 	};
 
@@ -90,10 +94,9 @@ function BudgetDetail({
 			<Stack.Screen.Title>{budget.name}</Stack.Screen.Title>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
-					{...toolbarIcon("delete")}
-					accessibilityLabel="Delete"
-					onPress={confirmDelete}
-					tintColor={Color.ios.systemRed}
+					{...toolbarIcon("more")}
+					accessibilityLabel="Budget actions"
+					onPress={openActions}
 				/>
 			</Stack.Toolbar>
 		</>

@@ -4,8 +4,10 @@ import { categories, transactions } from "@/db/schema";
 import {
 	addDays,
 	addMonths,
+	type CalendarSettings,
+	DEFAULT_CALENDAR,
 	monthAbbrev,
-	startOfDay,
+	monthPeriodStart,
 	startOfWeek,
 	startOfYear,
 	weekdayInitial,
@@ -24,17 +26,11 @@ const FALLBACK_CATEGORY_COLOR = "#767676";
 
 const DAY_MS = 86_400_000;
 
-/** `firstWeekday` is 1 = Sunday, 2 = Monday; `firstDayOfMonth` is 1–28. */
-export interface InsightsCalendar {
-	firstWeekday: number;
-	firstDayOfMonth: number;
-}
+export { monthPeriodStart };
 
-/** Matches `SETTING_DEFAULTS`. */
-export const DEFAULT_INSIGHTS_CALENDAR: InsightsCalendar = {
-	firstWeekday: 1,
-	firstDayOfMonth: 1,
-};
+export type InsightsCalendar = CalendarSettings;
+
+export const DEFAULT_INSIGHTS_CALENDAR: InsightsCalendar = DEFAULT_CALENDAR;
 
 /** Already filtered to non-deleted rows dated on or before now. */
 export interface InsightsContribution {
@@ -84,17 +80,6 @@ const MONTHS_TITLE = [
 	"Nov",
 	"Dec",
 ] as const;
-
-/** Mirrors Swift's `getStartOfMonth`. */
-export function monthPeriodStart(date: Date, firstDayOfMonth = 1): Date {
-	const anchor = Math.min(Math.max(1, firstDayOfMonth), 28);
-	const start = startOfDay(date);
-	if (start.getDate() < anchor) {
-		start.setMonth(start.getMonth() - 1);
-	}
-	start.setDate(anchor);
-	return start;
-}
 
 /**
  * Windows are calendar-anchored, not trailing: a week runs from its

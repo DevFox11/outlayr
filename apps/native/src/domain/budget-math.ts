@@ -1,4 +1,11 @@
-import { firstOfMonth, startOfDay, startOfWeek, startOfYear } from "./dates";
+import {
+	type CalendarSettings,
+	DEFAULT_CALENDAR,
+	monthPeriodStart,
+	startOfDay,
+	startOfWeek,
+	startOfYear,
+} from "./dates";
 
 /** Mirrors the Swift `Budget.type` codes. */
 export const BUDGET_TYPE = {
@@ -52,14 +59,18 @@ export function periodEnd(start: Date, type: number): Date {
 }
 
 /** The aligned start of the period — the anchor a budget is created with. */
-export function startOfPeriod(now: Date, type: number): Date {
+export function startOfPeriod(
+	now: Date,
+	type: number,
+	calendar: CalendarSettings = DEFAULT_CALENDAR,
+): Date {
 	switch (type) {
 		case BUDGET_TYPE.day:
 			return startOfDay(now);
 		case BUDGET_TYPE.week:
-			return startOfWeek(now);
+			return startOfWeek(now, calendar.firstWeekday);
 		case BUDGET_TYPE.month:
-			return firstOfMonth(now);
+			return monthPeriodStart(now, calendar.firstDayOfMonth);
 		case BUDGET_TYPE.year:
 			return startOfYear(now);
 		default:

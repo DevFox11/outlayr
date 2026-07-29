@@ -127,27 +127,54 @@ export function sumValuedIn(
 	return total;
 }
 
+interface BudgetLimit {
+	amount: number;
+	currency: string | null;
+	amountUsd: number | null;
+}
+
 /**
- * A budget's target restated in the display currency, at the rate of the day its
- * window opened rather than today's, so a month's target does not drift while
- * the month is being spent.
+ * A budget's target restated in the display currency at the rate of the day its
+ * window opened — *both* legs of the conversion, so the figure is one day's
+ * cross rate rather than a nominal amount frozen on one date and converted on
+ * another.
+ *
+ * The window's day rather than today keeps the target still while the window is
+ * being spent, and rather than the day the target was set because the target is
+ * shown beside, and subtracted from, spending valued at its own recent days. A
+ * limit in three-year-old money makes that subtraction meaningless.
  */
 export function limitIn(
-	row: { amount: number; currency: string | null; amountUsd: number | null },
+	row: BudgetLimit,
 	windowStart: Date,
 	displayCurrency: string,
 	rates: RateTable,
 ): number {
+	const dateKey = utcDateString(windowStart.getTime());
 	return valueIn(
 		{
 			amount: row.amount,
 			currency: row.currency,
-			amountUsd: row.amountUsd,
-			dateKey: utcDateString(windowStart.getTime()),
+			amountUsd: limitUsdOn(row, dateKey, rates),
+			dateKey,
 		},
 		displayCurrency,
 		rates,
 	);
+}
+
+/** The stored freeze is the fallback: a stale date still beats face value. */
+function limitUsdOn(
+	row: BudgetLimit,
+	dateKey: string,
+	rates: RateTable,
+): number | null {
+	if (row.currency === null || row.currency === "USD") {
+		return row.amountUsd;
+	}
+	const rate = rates.get(row.currency, dateKey);
+	// A stored rate is currency-per-USD, so USD is the amount divided by it.
+	return rate === null || rate <= 0 ? row.amountUsd : row.amount / rate;
 }
 
 /**

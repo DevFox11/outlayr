@@ -188,11 +188,26 @@ describe("isExact", () => {
 
 describe("limitIn", () => {
 	it("restates a target at the rate of the day its window opened", () => {
-		// Mid-window rather than today's, so a month's target does not drift while
-		// the month is being spent.
+		// Both legs on the window's day, not the amount's USD value frozen on the
+		// day the target was set: 4000 VES / 40 = $100, and $100 * 0.95 = €95. The
+		// stored 200 is a stale freeze and must not reach the screen.
 		assert.equal(
 			limitIn(
-				{ amount: 30_000, currency: "JPY", amountUsd: 200 },
+				{ amount: 4000, currency: "VES", amountUsd: 200 },
+				new Date(Date.UTC(2026, 6, 15)),
+				"EUR",
+				rates,
+			),
+			95,
+		);
+	});
+
+	it("falls back to the frozen value when no rate reaches the window", () => {
+		// VES has no rate on or before 2026-07-01, so the stored USD value is the
+		// only thing left that can place the target.
+		assert.equal(
+			limitIn(
+				{ amount: 4000, currency: "VES", amountUsd: 200 },
 				new Date(Date.UTC(2026, 6, 1)),
 				"EUR",
 				rates,

@@ -1,6 +1,7 @@
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import { localRateLookup } from "@/data/rates";
+import { readNumberSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { budgets, mainBudget } from "@/db/schema";
 import { startOfPeriod } from "@/domain/budget-math";
@@ -9,9 +10,10 @@ import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 
 /**
- * The limit, plus the currency it was set in and its USD value at that moment.
- * A bare number would silently become whatever the ledger's currency setting
- * says next.
+ * The limit, plus the currency it was set in and its USD value on the day the
+ * window it anchors opens. A bare number would silently become whatever the
+ * ledger's currency setting says next, and freezing the USD value at the write
+ * instant instead would disagree with `limitIn`, which reads the window's day.
  */
 async function budgetLimit(
 	db: Database,
@@ -60,25 +62,34 @@ function customName(name: string | null | undefined): string | null {
 	return trimmed ? trimmed : null;
 }
 
-function anchorFor(
+async function anchorFor(
+	db: Database,
 	startDate: Date | null | undefined,
 	type: number,
 	now: Date,
-): Date {
-	return startDate ?? startOfPeriod(now, type);
+): Promise<Date> {
+	if (startDate) {
+		return startDate;
+	}
+	const [firstWeekday, firstDayOfMonth] = await Promise.all([
+		readNumberSetting(db, "firstWeekday"),
+		readNumberSetting(db, "firstDayOfMonth"),
+	]);
+	return startOfPeriod(now, type, { firstWeekday, firstDayOfMonth });
 }
 
 export const budgetsRepo = {
 	async createBudget(db: Database, input: CreateBudgetInput): Promise<string> {
 		const now = new Date();
 		const id = newId();
+		const start = await anchorFor(db, input.startDate, input.type, now);
 		await db.insert(budgets).values({
 			id,
 			name: customName(input.name),
-			...(await budgetLimit(db, input.amount, now)),
+			...(await budgetLimit(db, input.amount, start)),
 			type: input.type,
 			categoryId: input.categoryId,
-			startDate: anchorFor(input.startDate, input.type, now),
+			startDate: start,
 			dateCreated: now,
 			green: false,
 			updatedAt: now,
@@ -101,7 +112,7 @@ export const budgetsRepo = {
 			.from(mainBudget)
 			.where(isNull(mainBudget.deletedAt))
 			.limit(1);
-		const start = anchorFor(input.startDate, input.type, now);
+		const start = await anchorFor(db, input.startDate, input.type, now);
 		if (existing[0]) {
 			await db
 				.update(mainBudget)
@@ -110,7 +121,7 @@ export const budgetsRepo = {
 					// Overall with the field blank, so writing it unconditionally erases
 					// whatever the existing budget is called.
 					...(input.name === undefined ? {} : { name: customName(input.name) }),
-					...(await budgetLimit(db, input.amount, now)),
+					...(await budgetLimit(db, input.amount, start)),
 					type: input.type,
 					startDate: start,
 					updatedAt: now,
@@ -122,7 +133,7 @@ export const budgetsRepo = {
 		await db.insert(mainBudget).values({
 			id,
 			name: customName(input.name),
-			...(await budgetLimit(db, input.amount, now)),
+			...(await budgetLimit(db, input.amount, start)),
 			type: input.type,
 			startDate: start,
 			dateCreated: now,
@@ -139,14 +150,15 @@ export const budgetsRepo = {
 		input: CreateBudgetInput,
 	): Promise<void> {
 		const now = new Date();
+		const start = await anchorFor(db, input.startDate, input.type, now);
 		await db
 			.update(budgets)
 			.set({
 				name: customName(input.name),
-				...(await budgetLimit(db, input.amount, now)),
+				...(await budgetLimit(db, input.amount, start)),
 				type: input.type,
 				categoryId: input.categoryId,
-				startDate: anchorFor(input.startDate, input.type, now),
+				startDate: start,
 				updatedAt: now,
 			})
 			.where(eq(budgets.id, id));
@@ -180,3 +192,21 @@ export const budgetsRepo = {
 			.where(eq(mainBudget.id, id));
 	},
 };
+
+/**
+ * Synchronous on purpose: the expo-sqlite driver executes on the JS thread, so
+ * the edit form can have the row in hand during its first render instead of
+ * flashing an empty one for a frame.
+ */
+export function getBudgetById(
+	db: Database,
+	id: string,
+): typeof budgets.$inferSelect | null {
+	const rows = db
+		.select()
+		.from(budgets)
+		.where(and(eq(budgets.id, id), isNull(budgets.deletedAt)))
+		.limit(1)
+		.all();
+	return rows[0] ?? null;
+}
