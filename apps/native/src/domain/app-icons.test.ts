@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+import { EN } from "@/i18n/catalog";
 import {
 	ALTERNATE_ICON_NAMES,
 	APP_ICONS,
@@ -56,7 +57,7 @@ describe("app icon catalogue", () => {
 
 describe("resolving what iOS reports", () => {
 	it("reads null back as the default, whichever primary the build ships", () => {
-		assert.equal(appIconLabel(null), "Default");
+		assert.equal(EN[appIconLabel(null)], "Default");
 		assert.equal(appIconChoice(null), APP_ICONS[0]);
 	});
 
@@ -67,6 +68,6 @@ describe("resolving what iOS reports", () => {
 	});
 
 	it("falls back to the default for a name this build no longer offers", () => {
-		assert.equal(appIconLabel("OutlayrRetired"), "Default");
+		assert.equal(EN[appIconLabel("OutlayrRetired")], "Default");
 	});
 });

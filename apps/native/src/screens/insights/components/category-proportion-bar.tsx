@@ -8,6 +8,7 @@ import Animated, {
 import { useDatabase } from "@/contexts/local-data-context";
 import type { CategoryBreakdownEntry } from "@/data/insights";
 import { useBoolSetting } from "@/data/settings";
+import { useTranslation } from "@/i18n";
 import { CHART_BAR } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -28,6 +29,7 @@ export function CategoryProportionBar({
 	onSelect,
 }: CategoryProportionBarProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const db = useDatabase();
 	// Read here, not threaded from the screen: every chart answers to this setting
 	// itself.
@@ -73,9 +75,10 @@ export function CategoryProportionBar({
 								key={entry.id}
 								onPress={() => onSelect(active ? null : entry.id)}
 								accessibilityRole="button"
-								accessibilityLabel={`${entry.name} ${Math.round(
-									entry.fraction * 100,
-								)} percent`}
+								accessibilityLabel={t("insights.category.share", {
+									name: entry.name,
+									percent: Math.round(entry.fraction * 100),
+								})}
 								style={{
 									width: (usable * entry.fraction) / shownTotal,
 									height: HEIGHT,

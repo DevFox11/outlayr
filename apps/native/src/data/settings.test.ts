@@ -101,8 +101,8 @@ describe("setting parsers", () => {
 
 describe("time-frame labels", () => {
 	it("labels the weekday setting", () => {
-		assert.equal(weekdayLabel(1), "Sunday");
-		assert.equal(weekdayLabel(2), "Monday");
+		assert.equal(weekdayLabel(1), "settings.time.sunday");
+		assert.equal(weekdayLabel(2), "settings.time.monday");
 	});
 
 	it("renders English ordinals", () => {

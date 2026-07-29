@@ -47,6 +47,7 @@ import {
 	CATEGORY_ICON_GROUPS,
 	iconKeysMatching,
 } from "@/domain/category-icon-catalog";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import { persistPickedPhoto } from "@/lib/photo-storage";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromImage } from "@/theme/glow";
@@ -72,10 +73,10 @@ export const TRANSACTION_TABS: readonly IdentityTab[] = [
 /** A category is a glyph, never a photo. */
 export const CATEGORY_TABS: readonly IdentityTab[] = ["icons", "emoji"];
 
-const TAB_LABEL: Record<IdentityTab, string> = {
-	photo: "Photo",
-	emoji: "Emoji",
-	icons: "Icons",
+const TAB_LABEL: Record<IdentityTab, TranslationKey> = {
+	photo: "transaction.identity.tab.photo",
+	emoji: "transaction.identity.tab.emoji",
+	icons: "transaction.identity.tab.icons",
 };
 
 const SECONDARY_LABEL = PlatformColor("secondaryLabel");
@@ -161,6 +162,7 @@ export function IdentityPickerContent({
 	onDone,
 }: IdentityPickerContentProps) {
 	const { width } = useWindowDimensions();
+	const t = useTranslation();
 	const cell = symbolCellSize(width);
 	const [tab, setTab] = useState<IdentityTab>(() => initialTab(value, tabs));
 	// Both halves of the same field: the native state so the clear button can empty
@@ -234,7 +236,7 @@ export function IdentityPickerContent({
 			<HStack modifiers={[padding({ horizontal: 20, top: 16, bottom: 8 })]}>
 				<Spacer />
 				<Button
-					label="Done"
+					label={t("common.done")}
 					modifiers={[font({ weight: "semibold" })]}
 					onPress={onDone}
 				/>
@@ -250,7 +252,7 @@ export function IdentityPickerContent({
 			>
 				{tabs.map((option) => (
 					<SwiftText key={option} modifiers={[tag(option)]}>
-						{TAB_LABEL[option]}
+						{t(TAB_LABEL[option])}
 					</SwiftText>
 				))}
 			</Picker>
@@ -273,7 +275,7 @@ export function IdentityPickerContent({
 					<TextField
 						modifiers={[textInputAutocapitalization("never")]}
 						onTextChange={setQuery}
-						placeholder="Search icons"
+						placeholder={t("transaction.identity.searchIcons")}
 						text={queryState}
 					/>
 					{searching ? (
@@ -321,10 +323,10 @@ export function IdentityPickerContent({
 						{CATEGORY_EMOJI_GROUPS.map((group) => (
 							<VStack
 								alignment="leading"
-								key={group.title}
+								key={group.titleKey}
 								spacing={SYMBOL_GAP}
 							>
-								<GroupHeader title={group.title} />
+								<GroupHeader title={t(group.titleKey)} />
 								<EmojiRows
 									cell={cell}
 									emojis={group.emoji}
@@ -341,7 +343,7 @@ export function IdentityPickerContent({
 							<SwiftText
 								modifiers={[EMPTY_TEXT, foregroundStyle(SECONDARY_LABEL)]}
 							>
-								No icons found
+								{t("transaction.identity.noIcons")}
 							</SwiftText>
 						</VStack>
 					) : (
@@ -369,10 +371,10 @@ export function IdentityPickerContent({
 						{CATEGORY_ICON_GROUPS.map((group) => (
 							<VStack
 								alignment="leading"
-								key={group.title}
+								key={group.titleKey}
 								spacing={SYMBOL_GAP}
 							>
-								<GroupHeader title={group.title} />
+								<GroupHeader title={t(group.titleKey)} />
 								<IconRows
 									cell={cell}
 									keys={group.keys}
@@ -527,6 +529,7 @@ function PhotoPanel({
 	onColorChange: (color: string) => void;
 }) {
 	const colors = useColors();
+	const t = useTranslation();
 	return (
 		<VStack
 			modifiers={[padding({ horizontal: SYMBOL_MARGIN, top: 6, bottom: 24 })]}
@@ -543,7 +546,11 @@ function PhotoPanel({
 					padding({ top: 10, bottom: 24 }),
 				]}
 			>
-				{uri ? "Tap to change photo" : "Tap to select a photo"}
+				{t(
+					uri
+						? "transaction.identity.changePhotoPrompt"
+						: "transaction.identity.selectPhotoPrompt",
+				)}
 			</SwiftText>
 
 			<VStack alignment="leading" spacing={8}>
@@ -554,7 +561,7 @@ function PhotoPanel({
 						foregroundStyle(SECONDARY_LABEL),
 					]}
 				>
-					Color
+					{t("transaction.identity.color")}
 				</SwiftText>
 
 				<HStack
@@ -570,9 +577,15 @@ function PhotoPanel({
 						systemName="checkmark"
 					/>
 					<VStack alignment="leading" spacing={1}>
-						<SwiftText modifiers={[SUBHEADLINE]}>Auto-detected</SwiftText>
+						<SwiftText modifiers={[SUBHEADLINE]}>
+							{t("transaction.identity.autoDetected")}
+						</SwiftText>
 						<SwiftText modifiers={[CAPTION2, foregroundStyle(SECONDARY_LABEL)]}>
-							{uri ? "Primary color from image" : "Pick a photo first"}
+							{t(
+								uri
+									? "transaction.identity.primaryColor"
+									: "transaction.identity.pickPhotoFirst",
+							)}
 						</SwiftText>
 					</VStack>
 					<Spacer />
@@ -597,9 +610,14 @@ function PhotoWell({
 	colors: ReturnType<typeof useColors>;
 	onPress: () => void;
 }) {
+	const t = useTranslation();
 	return (
 		<Pressable
-			accessibilityLabel={uri ? "Change photo" : "Select photo"}
+			accessibilityLabel={t(
+				uri
+					? "transaction.identity.changePhoto"
+					: "transaction.identity.selectPhoto",
+			)}
 			accessibilityRole="button"
 			onPress={onPress}
 			style={({ pressed }) => ({

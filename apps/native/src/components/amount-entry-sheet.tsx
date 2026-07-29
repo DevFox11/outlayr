@@ -7,6 +7,7 @@ import { SymbolView } from "expo-symbols";
 import { forwardRef, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { currencySymbol } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { AmountNumpad } from "./amount-numpad";
 import { CurrencyPickerSheet } from "./currency-picker-sheet";
@@ -33,6 +34,7 @@ export const AmountEntrySheet = forwardRef<
 	ref,
 ) {
 	const colors = useColors();
+	const t = useTranslation();
 	const symbol = currencySymbol(code);
 	const currencySheetRef = useRef<BottomSheetModal>(null);
 
@@ -42,7 +44,7 @@ export const AmountEntrySheet = forwardRef<
 				<View className="flex-row items-center justify-between px-4 pt-2 pb-1">
 					<GlassButton
 						onPress={() => currencySheetRef.current?.present()}
-						accessibilityLabel="Change currency"
+						accessibilityLabel={t("transaction.amount.changeCurrency")}
 						className="h-11 rounded-[22px] px-[15px]"
 					>
 						<Text className="font-sans-semibold text-body text-foreground">
@@ -59,7 +61,7 @@ export const AmountEntrySheet = forwardRef<
 
 					<GlassButton
 						onPress={onDone}
-						accessibilityLabel="Close"
+						accessibilityLabel={t("common.close")}
 						className="size-11 rounded-[22px]"
 					>
 						<SymbolView
@@ -87,7 +89,7 @@ export const AmountEntrySheet = forwardRef<
 						className="h-14 items-center justify-center rounded-[28px] bg-foreground active:opacity-70"
 					>
 						<Text className="font-sans-semibold text-background text-callout">
-							Done
+							{t("common.done")}
 						</Text>
 					</Pressable>
 				</View>

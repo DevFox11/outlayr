@@ -1,3 +1,4 @@
+import type { TranslateFn } from "@/i18n/context";
 import {
 	type CalendarSettings,
 	DEFAULT_CALENDAR,
@@ -276,11 +277,12 @@ export function budgetTimeLeftLabel(
 	window: BudgetWindow,
 	type: number,
 	now: Date,
+	t: TranslateFn,
 ): string {
 	if (type === BUDGET_TYPE.day) {
-		return `${hoursLeftInDay(window, now)}h left`;
+		return t("budgetTime.hoursLeft", { count: hoursLeftInDay(window, now) });
 	}
-	return `${daysLeftInWindow(window, now)}d left`;
+	return t("budgetTime.daysLeft", { count: daysLeftInWindow(window, now) });
 }
 
 export function leftPerDay(

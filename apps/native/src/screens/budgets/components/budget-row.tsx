@@ -17,6 +17,7 @@ import {
 	leftPerDay,
 } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { useHaptics } from "@/lib/use-haptics";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
@@ -51,6 +52,7 @@ export function BudgetRow({
 	nowMs,
 }: BudgetRowProps) {
 	const haptics = useHaptics();
+	const t = useTranslation();
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const now = new Date(nowMs);
 	const over = budget.overBudget;
@@ -65,22 +67,27 @@ export function BudgetRow({
 			now: new Date(nowMs),
 			categoryId: budget.categoryId,
 		});
-		return dayVerdictSentence(slots, budget.name);
-	}, [isDay, contributions, budget, nowMs]);
+		return dayVerdictSentence(slots, budget.name, t);
+	}, [isDay, contributions, budget, nowMs, t]);
 	const difference = Math.abs(budget.leftover);
 	const perDay = leftPerDay(budget.leftover, budget.window, now);
 	// Cents off regardless of the setting: the exact figure is already alongside.
 	const meta = [
-		`${formatAmount(budget.spent, currency, false)} of ${formatAmount(budget.amount, currency, false)}`,
-		budgetTimeLeftLabel(budget.window, budget.type, now),
-		over || isDay ? null : `${formatAmount(perDay, currency, false)}/day`,
+		t("budgets.spentOfLimit", {
+			spent: formatAmount(budget.spent, currency, false),
+			limit: formatAmount(budget.amount, currency, false),
+		}),
+		budgetTimeLeftLabel(budget.window, budget.type, now, t),
+		over || isDay
+			? null
+			: t("budgets.perDay", { amount: formatAmount(perDay, currency, false) }),
 	]
 		.filter(Boolean)
 		.join(" · ");
 
 	const renderRightActions = () => (
 		<Pressable
-			accessibilityLabel={`Delete the ${budget.name} budget`}
+			accessibilityLabel={t("budgets.row.deleteA11y", { name: budget.name })}
 			accessibilityRole="button"
 			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger px-6"
 			onPress={() => {
@@ -90,7 +97,7 @@ export function BudgetRow({
 			}}
 		>
 			<Text className="font-sans-semibold text-subtitle text-white">
-				Delete
+				{t("budgets.action.delete")}
 			</Text>
 		</Pressable>
 	);
@@ -135,7 +142,7 @@ export function BudgetRow({
 							>
 								{formatAmount(difference, currency, showCents)}
 								<Text className="font-sans-medium text-label text-muted">
-									{over ? " over" : " left"}
+									{` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
 								</Text>
 							</Text>
 						</View>

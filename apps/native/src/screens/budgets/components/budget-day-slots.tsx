@@ -6,6 +6,7 @@ import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 
 interface BudgetDaySlotsProps {
 	contributions: readonly ExpenseContribution[];
@@ -40,6 +41,7 @@ export function BudgetDaySlots({
 	compact = false,
 	bandOnly = false,
 }: BudgetDaySlotsProps) {
+	const t = useTranslation();
 	const slots = useMemo(
 		() =>
 			buildDaySlots(contributions, {
@@ -56,7 +58,7 @@ export function BudgetDaySlots({
 	}
 
 	const span = (value: number) => `${(value / slots.scale) * 100}%` as const;
-	const sentence = dayVerdictSentence(slots, noun);
+	const sentence = dayVerdictSentence(slots, noun, t);
 	const sizeClass = compact ? "text-label" : "text-footnote";
 
 	return (
@@ -121,7 +123,9 @@ export function BudgetDaySlots({
 					<Text className={cn("text-foreground", sizeClass)}>{sentence}</Text>
 					<Text className={cn("text-muted", sizeClass)}>
 						{`${formatAmount(Math.abs(slots.remaining), currency, showCents)} ${
-							slots.remaining < 0 ? "over" : "left"
+							slots.remaining < 0
+								? t("budgets.suffix.over")
+								: t("budgets.suffix.left")
 						}`}
 					</Text>
 				</View>

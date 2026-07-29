@@ -7,12 +7,13 @@ import {
 	useNumberSetting,
 } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { type TranslationKey, useTranslation } from "@/i18n";
 
-const DETAIL: Record<number, string> = {
-	0: "No taps at all.",
-	1: "A light tap when something lands.",
-	2: "A tap for every action.",
-};
+const DETAIL = {
+	0: "settings.haptics.noneDetail",
+	1: "settings.haptics.subtleDetail",
+	2: "settings.haptics.excessiveDetail",
+} as const satisfies Record<number, TranslationKey>;
 
 export default function HapticsRoute() {
 	const db = useDatabase();
@@ -20,16 +21,17 @@ export default function HapticsRoute() {
 }
 
 function Haptics({ db }: { db: Database }) {
+	const t = useTranslation();
 	const haptics = useNumberSetting(db, "haptics");
 
 	return (
 		<SettingsScreen>
-			<SettingsSection title="Feedback">
+			<SettingsSection title={t("settings.haptics.section")}>
 				{HAPTICS_OPTIONS.map((option) => (
 					<ChoiceRow
-						detail={DETAIL[option.value]}
+						detail={t(DETAIL[option.value])}
 						key={option.value}
-						label={option.label}
+						label={t(option.label)}
 						onPress={() => {
 							setNumberSetting(db, "haptics", option.value);
 						}}

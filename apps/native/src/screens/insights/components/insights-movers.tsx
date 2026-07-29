@@ -6,6 +6,7 @@ import { cn } from "@/components/tw";
 import type { CategoryMover, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 
 interface InsightsMoversProps {
 	movers: readonly CategoryMover[];
@@ -23,6 +24,8 @@ export function InsightsMovers({
 	code,
 	showCents = true,
 }: InsightsMoversProps) {
+	const t = useTranslation();
+
 	if (movers.length === 0) {
 		return null;
 	}
@@ -30,8 +33,10 @@ export function InsightsMovers({
 	return (
 		<View>
 			<View className="flex-row items-baseline justify-between pb-1">
-				<MonoLabel>Movers</MonoLabel>
-				<MonoLabel>{`vs ${priorLabel}`}</MonoLabel>
+				<MonoLabel>{t("insights.movers.title")}</MonoLabel>
+				<MonoLabel>
+					{t("insights.movers.versus", { label: priorLabel })}
+				</MonoLabel>
 			</View>
 			{movers.map((mover) => (
 				<MoverRow
@@ -57,6 +62,7 @@ function MoverRow({
 	code: string;
 	showCents: boolean;
 }) {
+	const t = useTranslation();
 	const rose = mover.delta > 0;
 	// Shared with `CategoryBreakdownRow` directly below, so the two cannot disagree.
 	const favourable = breakdownRiseIsFavourable(measure) === rose;
@@ -86,7 +92,7 @@ function MoverRow({
 			</Text>
 			<Text className="min-w-[46px] text-right font-mono text-label text-muted">
 				{mover.fraction == null
-					? "new"
+					? t("insights.movers.new")
 					: `${mover.fraction > 0 ? "+" : ""}${Math.round(mover.fraction * 100)}%`}
 			</Text>
 		</View>

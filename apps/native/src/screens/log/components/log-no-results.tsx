@@ -3,6 +3,7 @@ import { Archive02Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useWindowDimensions, View } from "react-native";
 
 import { Text } from "@/components/text";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 /**
@@ -11,6 +12,7 @@ import { useColors } from "@/theme/use-colors";
  */
 export function LogNoResults() {
 	const colors = useColors();
+	const t = useTranslation();
 	const { height } = useWindowDimensions();
 	return (
 		<View
@@ -19,7 +21,7 @@ export function LogNoResults() {
 		>
 			<HugeiconsIcon icon={Archive02Icon} size={38} color={colors.muted} />
 			<Text className="font-sans-medium text-muted text-title">
-				No entries found.
+				{t("log.noResults")}
 			</Text>
 		</View>
 	);

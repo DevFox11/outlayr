@@ -1,3 +1,5 @@
+import type { TranslateFn } from "@/i18n/context";
+
 export interface AccountUser {
 	name?: string | null;
 	email?: string | null;
@@ -14,20 +16,26 @@ export type AccountState =
  * Apple lets a user withhold both the name and the email, and Better Auth stores
  * whatever it was given, so neither field can be assumed present.
  */
-export function accountLabel(user: AccountUser | undefined): string {
-	return firstNonBlank(user?.name, user?.email) ?? "Signed in";
+export function accountLabel(
+	user: AccountUser | undefined,
+	t: TranslateFn,
+): string {
+	return (
+		firstNonBlank(user?.name, user?.email) ??
+		t("settings.account.signedInFallback")
+	);
 }
 
-export function accountRowValue(state: AccountState): string {
+export function accountRowValue(state: AccountState, t: TranslateFn): string {
 	switch (state.kind) {
 		case "unavailable":
-			return "Unavailable";
+			return t("settings.account.unavailable");
 		case "pending":
 			return "";
 		case "signed-out":
-			return "Not signed in";
+			return t("settings.account.notSignedIn");
 		case "signed-in":
-			return accountLabel(state.user);
+			return accountLabel(state.user, t);
 	}
 }
 
@@ -48,13 +56,15 @@ export function isSignInCancellation(error: unknown): boolean {
 	return code !== null && CANCELLATION_CODES.has(code);
 }
 
-export function signInFailureMessage(error: unknown): string {
+export function signInFailureMessage(error: unknown, t: TranslateFn): string {
 	if (errorField(error, "code") === "PLAY_SERVICES_NOT_AVAILABLE") {
-		return "Google Play services are unavailable on this device.";
+		return t("settings.account.playServices");
 	}
+	// A provider's own message is already localized by the OS; only the fallback
+	// is ours to translate.
 	return (
 		firstNonBlank(errorField(error, "message")) ??
-		"Sign-in didn't complete. Your ledger on this device is untouched."
+		t("settings.account.genericFailure")
 	);
 }
 

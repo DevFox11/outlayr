@@ -7,6 +7,7 @@ import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 
@@ -24,6 +25,7 @@ export const CurrencyPickerSheet = forwardRef<
 >(function CurrencyPickerSheet({ selected, onSelect }, ref) {
 	const colors = useColors();
 	const [query, setQuery] = useState("");
+	const t = useTranslation();
 
 	const results = useMemo(() => {
 		const trimmed = query.trim().toLowerCase();
@@ -47,7 +49,7 @@ export const CurrencyPickerSheet = forwardRef<
 			<View className="flex-1">
 				<View className="items-center px-5 pt-3 pb-3">
 					<Text className="font-sans-semibold text-foreground text-headline">
-						Select a currency
+						{t("onboarding.currency.picker.title")}
 					</Text>
 				</View>
 
@@ -63,7 +65,7 @@ export const CurrencyPickerSheet = forwardRef<
 						<BottomSheetTextInput
 							value={query}
 							onChangeText={setQuery}
-							placeholder="Search currencies"
+							placeholder={t("onboarding.currency.picker.searchPlaceholder")}
 							placeholderTextColor={colors.muted}
 							autoCapitalize="characters"
 							autoCorrect={false}

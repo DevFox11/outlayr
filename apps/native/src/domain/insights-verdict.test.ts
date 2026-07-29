@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { EN } from "@/i18n/catalog";
+import type { TranslateFn } from "@/i18n/context";
+import { translate } from "@/i18n/translate";
 import { insightsVerdict, type VerdictInput } from "./insights-verdict";
+
+const t: TranslateFn = (key, params) =>
+	translate(key, { catalog: EN, fallback: EN, params });
 
 const base: VerdictInput = {
 	measure: "spent",
@@ -10,6 +16,7 @@ const base: VerdictInput = {
 	topMover: null,
 	code: "USD",
 	showCents: false,
+	t,
 };
 
 describe("insightsVerdict", () => {

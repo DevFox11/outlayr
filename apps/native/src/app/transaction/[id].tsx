@@ -5,6 +5,7 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById, transactionsRepo } from "@/data/transactions";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 export default function EditTransactionScreen() {
@@ -12,6 +13,7 @@ export default function EditTransactionScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const db = useDatabase();
 	const colors = useColors();
+	const t = useTranslation();
 	// Read once, synchronously, while mounting: the database is already open (the
 	// splash gate guarantees it) and the driver runs on the JS thread, so the row
 	// is in hand for the very first render — the form never mounts empty.
@@ -28,12 +30,12 @@ export default function EditTransactionScreen() {
 			return;
 		}
 		Alert.alert(
-			"Delete transaction?",
-			"This action cannot be undone.",
+			t("transaction.delete.title"),
+			t("transaction.delete.body"),
 			[
-				{ text: "Cancel", style: "cancel" },
+				{ text: t("common.cancel"), style: "cancel" },
 				{
-					text: "Delete",
+					text: t("common.delete"),
 					style: "destructive",
 					onPress: async () => {
 						await transactionsRepo.remove(db, id);
@@ -52,18 +54,18 @@ export default function EditTransactionScreen() {
 	return (
 		<>
 			<Stack.Header transparent />
-			<Stack.Screen.Title>Edit Transaction</Stack.Screen.Title>
+			<Stack.Screen.Title>{t("transaction.edit.title")}</Stack.Screen.Title>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("close")}
-					accessibilityLabel="Close"
+					accessibilityLabel={t("common.close")}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("delete")}
-					accessibilityLabel="Delete"
+					accessibilityLabel={t("common.delete")}
 					tintColor={colors.danger}
 					onPress={confirmDelete}
 				/>

@@ -10,6 +10,7 @@ import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
+import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogUpcoming } from "@/screens/log/components/log-upcoming";
 import { UndoToast } from "@/screens/log/components/undo-toast";
@@ -21,6 +22,7 @@ export default function UpcomingScreen() {
 
 function UpcomingContent({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const settings = useAllSettings(db);
 	const currency = useGlobalCurrency(db);
 	const showUpcoming = settings.bool("showUpcoming");
@@ -37,8 +39,8 @@ function UpcomingContent({ db }: { db: Database }) {
 		<>
 			<SettingsScreen>
 				<SettingsSection
-					footer="Transactions dated in the future sit at the top of the Log, above today. Hiding them there never hides them here."
-					title="On the Log"
+					footer={t("settings.upcoming.footer")}
+					title={t("settings.upcoming.section")}
 				>
 					<ToggleRow
 						icon="Sunrise"
@@ -48,7 +50,7 @@ function UpcomingContent({ db }: { db: Database }) {
 								setBoolSetting(db, "showUpcomingSoon", false);
 							}
 						}}
-						title="Display on Log Page"
+						title={t("settings.upcoming.displayOnLog")}
 						value={showUpcoming}
 					/>
 					<ToggleRow
@@ -56,7 +58,7 @@ function UpcomingContent({ db }: { db: Database }) {
 						onValueChange={(next) => {
 							setBoolSetting(db, "showUpcomingSoon", next);
 						}}
-						title="Limit to 14-Day Outlook"
+						title={t("settings.upcoming.limitToSoon")}
 						value={showSoon}
 					/>
 				</SettingsSection>
@@ -74,7 +76,7 @@ function UpcomingContent({ db }: { db: Database }) {
 					/>
 					{upcoming.length === 0 ? (
 						<Text className="pt-2 text-muted text-subtitle leading-snug">
-							Nothing is scheduled ahead of today.
+							{t("settings.upcoming.empty")}
 						</Text>
 					) : null}
 				</View>

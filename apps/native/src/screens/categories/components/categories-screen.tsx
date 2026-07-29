@@ -61,6 +61,7 @@ import {
 import { setBoolSetting, useBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { type ThemeColors, useColors } from "@/theme/use-colors";
 
 /**
@@ -148,6 +149,7 @@ export default function CategoriesScreen({ income }: { income: boolean }) {
 
 function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const colors = useColors();
 	const currency = useGlobalCurrency(db);
 	const showSuggestions = useBoolSetting(db, "categorySuggestions");
@@ -208,19 +210,26 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 	};
 
 	const confirmDelete = (category: Category, hasChildren: boolean) => {
-		const message = hasChildren
-			? `This can't be undone. ${category.name} transactions will be deleted; its subcategories will be moved to the top level.`
-			: `This can't be undone. All ${category.name} transactions will be deleted too.`;
-		Alert.alert(`Delete '${category.name}'?`, message, [
-			{ text: "Cancel", style: "cancel" },
-			{
-				text: "Delete",
-				style: "destructive",
-				onPress: () => {
-					categoriesRepo.remove(db, category.id);
+		const message = t(
+			hasChildren
+				? "categories.delete.messageWithChildren"
+				: "categories.delete.message",
+			{ name: category.name },
+		);
+		Alert.alert(
+			t("categories.delete.title", { name: category.name }),
+			message,
+			[
+				{ text: t("common.cancel"), style: "cancel" },
+				{
+					text: t("common.delete"),
+					style: "destructive",
+					onPress: () => {
+						categoriesRepo.remove(db, category.id);
+					},
 				},
-			},
-		]);
+			],
+		);
 	};
 
 	const addSuggested = (preset: SuggestedCategoryPreset) => {
@@ -235,22 +244,24 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 	return (
 		<>
 			<Stack.Header transparent />
-			<Stack.Screen.Title>Categories</Stack.Screen.Title>
+			<Stack.Screen.Title>{t("categories.title")}</Stack.Screen.Title>
 			{/* `minimal` keeps the parent route's name ("(tabs)") out of the back button. */}
 			<Stack.Screen.BackButton displayMode="minimal" />
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					{...toolbarIcon(showSuggestions ? "suggestionsOn" : "suggestionsOff")}
-					accessibilityLabel={
-						showSuggestions ? "Hide suggestions" : "Show suggestions"
-					}
+					accessibilityLabel={t(
+						showSuggestions
+							? "categories.a11y.hideSuggestions"
+							: "categories.a11y.showSuggestions",
+					)}
 					onPress={() => {
 						setBoolSetting(db, "categorySuggestions", !showSuggestions);
 					}}
 				/>
 				<Stack.Toolbar.Button
 					{...toolbarIcon("reorder")}
-					accessibilityLabel="Reorder categories"
+					accessibilityLabel={t("categories.a11y.reorder")}
 					hidden={parents.length <= 1}
 					onPress={goToReorder}
 				/>
@@ -285,9 +296,11 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 						// mono eyebrow only lands if the plain-string title is dropped.
 						<Section
 							header={
-								<Eyebrow
-									colors={colors}
-								>{`SUGGESTED · ${suggestions.length}`}</Eyebrow>
+								<Eyebrow colors={colors}>
+									{t("categories.suggested.eyebrow", {
+										count: suggestions.length,
+									})}
+								</Eyebrow>
 							}
 						>
 							{suggestions.map((preset) => (
@@ -313,6 +326,7 @@ function CensusLine({
 	parents: CategoryWithChildren[];
 	colors: ThemeColors;
 }) {
+	const t = useTranslation();
 	const children = parents.reduce(
 		(total, parent) => total + parent.children.length,
 		0,
@@ -320,12 +334,10 @@ function CensusLine({
 	// `parents.length` is never zero here — the empty state renders a headerless
 	// Section instead.
 	const clauses = [
-		`${parents.length} ${parents.length === 1 ? "CATEGORY" : "CATEGORIES"}`,
+		t("categories.census.categories", { count: parents.length }),
 	];
 	if (children > 0) {
-		clauses.push(
-			`${children} ${children === 1 ? "SUBCATEGORY" : "SUBCATEGORIES"}`,
-		);
+		clauses.push(t("categories.census.subcategories", { count: children }));
 	}
 	return <Eyebrow colors={colors}>{clauses.join(" · ")}</Eyebrow>;
 }
@@ -365,6 +377,7 @@ function EmptyState({
 	income: boolean;
 	colors: ThemeColors;
 }) {
+	const t = useTranslation();
 	return (
 		<VStack
 			modifiers={[
@@ -382,9 +395,7 @@ function EmptyState({
 					foregroundStyle(colors.muted),
 				]}
 			>
-				{income
-					? "No income categories found, click the ‘New’ button to add some"
-					: "No expense categories found, click the ‘New’ button to add some"}
+				{t(income ? "categories.empty.income" : "categories.empty.expense")}
 			</SwiftText>
 		</VStack>
 	);
@@ -471,6 +482,7 @@ function CategoryRow({
 	onEdit: (category: Category) => void;
 	onDelete: () => void;
 }) {
+	const t = useTranslation();
 	const size = indented ? CHILD_TILE : PARENT_TILE;
 	return (
 		<SwipeActions modifiers={[indented ? FLUSH_ROW : PARENT_ROW, NO_RULE]}>
@@ -538,7 +550,7 @@ function CategoryRow({
 			<SwipeActions.Actions edge="trailing">
 				{/* biome-ignore lint/a11y/useValidAriaRole: @expo/ui Button `role` is a SwiftUI ButtonRole, not an ARIA role */}
 				<Button
-					label="Delete"
+					label={t("common.delete")}
 					onPress={onDelete}
 					role="destructive"
 					systemImage="trash"
@@ -562,6 +574,7 @@ function GhostAddRow({
 	closesTree: boolean;
 	onPress: () => void;
 }) {
+	const t = useTranslation();
 	return (
 		<ZStack
 			alignment="leading"
@@ -602,7 +615,7 @@ function GhostAddRow({
 				<SwiftText
 					modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(tint)]}
 				>
-					Add Subcategory
+					{t("categories.addSubcategory")}
 				</SwiftText>
 				<Spacer />
 			</HStack>

@@ -20,15 +20,59 @@ import {
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import {
-	cadenceUnitTitle,
-	customSchedulePreview,
 	RECURRING_TYPE,
 	SELECTABLE_RECURRING_TYPES,
 } from "@/domain/recurrence";
+import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 
 const SNAP_POINTS = ["50%"];
+
+const UNIT_TITLE_KEY: Record<number, TranslationKey> = {
+	[RECURRING_TYPE.daily]: "transaction.cadence.days",
+	[RECURRING_TYPE.weekly]: "transaction.cadence.weeks",
+	[RECURRING_TYPE.monthly]: "transaction.cadence.months",
+	[RECURRING_TYPE.yearly]: "transaction.cadence.years",
+};
+
+const INTERVAL_KEY: Record<
+	number,
+	{ readonly one: TranslationKey; readonly many: TranslationKey }
+> = {
+	[RECURRING_TYPE.daily]: {
+		one: "transaction.interval.day",
+		many: "transaction.interval.days",
+	},
+	[RECURRING_TYPE.weekly]: {
+		one: "transaction.interval.week",
+		many: "transaction.interval.weeks",
+	},
+	[RECURRING_TYPE.monthly]: {
+		one: "transaction.interval.month",
+		many: "transaction.interval.months",
+	},
+	[RECURRING_TYPE.yearly]: {
+		one: "transaction.interval.year",
+		many: "transaction.interval.years",
+	},
+};
+
+/**
+ * The "day" / "3 months" fragment both `Every {interval}` and
+ * `Repeats every {interval}` embed. Composed rather than written out per cadence
+ * because English and Spanish take the same shape here, and the count is a plain
+ * integer the caller already clamped — no locale number formatting is involved.
+ */
+export function intervalPhrase(
+	t: TranslateFn,
+	type: number,
+	coefficient: number,
+): string {
+	const n = Math.max(1, Math.round(coefficient));
+	const keys = INTERVAL_KEY[type] ?? INTERVAL_KEY[RECURRING_TYPE.monthly];
+	return n <= 1 ? t(keys.one) : t(keys.many, { count: n });
+}
 
 const BODY = font({ textStyle: "body", design: "rounded" });
 const BODY_SEMIBOLD = font({
@@ -58,6 +102,7 @@ export const CustomScheduleSheet = forwardRef<
 	ref,
 ) {
 	const colors = useColors();
+	const t = useTranslation();
 	const sheetRef = useRef<BottomSheetModal>(null);
 	const [localType, setLocalType] = useState(RECURRING_TYPE.monthly as number);
 	const [localCoefficient, setLocalCoefficient] = useState(2);
@@ -101,7 +146,7 @@ export const CustomScheduleSheet = forwardRef<
 					accessibilityRole="header"
 					className="text-center font-sans-semibold text-callout text-foreground"
 				>
-					Custom Schedule
+					{t("transaction.schedule.customTitle")}
 				</Text>
 				<Pressable
 					accessibilityRole="button"
@@ -109,7 +154,7 @@ export const CustomScheduleSheet = forwardRef<
 					hitSlop={8}
 					onPress={() => sheetRef.current?.dismiss()}
 				>
-					<Text className="text-callout text-tint">Cancel</Text>
+					<Text className="text-callout text-tint">{t("common.cancel")}</Text>
 				</Pressable>
 				<Pressable
 					accessibilityRole="button"
@@ -118,7 +163,7 @@ export const CustomScheduleSheet = forwardRef<
 					onPress={confirm}
 				>
 					<Text className="font-sans-semibold text-callout text-tint">
-						Done
+						{t("common.done")}
 					</Text>
 				</Pressable>
 			</View>
@@ -132,12 +177,16 @@ export const CustomScheduleSheet = forwardRef<
 					<Section
 						footer={
 							<SwiftText modifiers={[FOOTNOTE]}>
-								{customSchedulePreview(localType, localCoefficient)}
+								{t("transaction.schedule.repeats", {
+									interval: intervalPhrase(t, localType, localCoefficient),
+								})}
 							</SwiftText>
 						}
 					>
 						<HStack>
-							<SwiftText modifiers={[BODY]}>Every</SwiftText>
+							<SwiftText modifiers={[BODY]}>
+								{t("transaction.schedule.everyLabel")}
+							</SwiftText>
 							<Spacer />
 							<SwiftText
 								modifiers={[BODY_SEMIBOLD, foregroundStyle(colors.muted)]}
@@ -155,14 +204,14 @@ export const CustomScheduleSheet = forwardRef<
 							/>
 						</HStack>
 						<Picker
-							label="Unit"
+							label={t("transaction.schedule.unit")}
 							modifiers={[pickerStyle("segmented")]}
 							onSelectionChange={setLocalType}
 							selection={localType}
 						>
 							{SELECTABLE_RECURRING_TYPES.map((type) => (
 								<SwiftText key={type} modifiers={[tag(type)]}>
-									{cadenceUnitTitle(type)}
+									{t(UNIT_TITLE_KEY[type] ?? "transaction.cadence.months")}
 								</SwiftText>
 							))}
 						</Picker>

@@ -2,17 +2,18 @@ import { View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import type { InsightsMeasure, InsightsPeriod } from "@/data/insights";
-import { INSIGHTS_MEASURE_WORD } from "@/domain/insights-measure";
+import { type TranslationKey, useTranslation } from "@/i18n";
+import { MEASURE_KEY } from "../measure-label";
 
 export { quietAlternative } from "@/domain/insights-quiet";
 
 /** Matches the chart's plot height, so promoting a quiet measure never jumps. */
 const PLOT_HEIGHT = 150;
 
-const PERIOD_PHRASE: Record<InsightsPeriod, string> = {
-	week: "this week",
-	month: "this month",
-	year: "this year",
+const PERIOD_PHRASE_KEY: Record<InsightsPeriod, TranslationKey> = {
+	week: "insights.quiet.thisWeek",
+	month: "insights.quiet.thisMonth",
+	year: "insights.quiet.thisYear",
 };
 
 interface InsightsQuietProps {
@@ -26,10 +27,14 @@ export function InsightsQuiet({
 	alternative,
 	period,
 }: InsightsQuietProps) {
-	const phrase = PERIOD_PHRASE[period];
+	const t = useTranslation();
+	const phrase = t(PERIOD_PHRASE_KEY[period]);
 	const sentence = alternative
-		? `${INSIGHTS_MEASURE_WORD[alternative]} has ${phrase} covered — tap it above.`
-		: `Nothing logged ${phrase}.`;
+		? t("insights.quiet.alternative", {
+				measure: t(MEASURE_KEY[alternative]),
+				period: phrase,
+			})
+		: t("insights.quiet.empty", { period: phrase });
 
 	return (
 		<View>
@@ -37,12 +42,16 @@ export function InsightsQuiet({
 			<View
 				// The visible copy never names the measure that went quiet, so on its
 				// own a screen reader hears "Nothing to chart" with no subject.
-				accessibilityLabel={`${INSIGHTS_MEASURE_WORD[measure]} has nothing to chart ${phrase}. ${sentence}`}
+				accessibilityLabel={t("insights.quiet.accessibility", {
+					measure: t(MEASURE_KEY[measure]),
+					period: phrase,
+					sentence,
+				})}
 				accessible
 				className="items-center justify-center"
 				style={{ height: PLOT_HEIGHT }}
 			>
-				<MonoLabel>Nothing to chart</MonoLabel>
+				<MonoLabel>{t("insights.quiet.title")}</MonoLabel>
 				<Text className="max-w-60 pt-1.5 text-center text-footnote text-muted">
 					{sentence}
 				</Text>

@@ -4,12 +4,10 @@ import { View } from "react-native";
 import { ScopeChip } from "@/components/scope-chip";
 import type { CategoryMetaRow } from "@/data/categories";
 import type { LogFilter } from "@/domain/log-filter";
-import {
-	filterHasMenu,
-	filterPeriodUnit,
-	LOG_FILTER_LABEL,
-} from "@/domain/log-filter";
+import { filterHasMenu, filterPeriodUnit } from "@/domain/log-filter";
 import { canStepForward, stepCursor } from "@/domain/log-period-cursor";
+import { type TranslateFn, useTranslation } from "@/i18n";
+import { FILTER_LABEL_KEY } from "../labels";
 
 interface LogFilterChipProps {
 	filter: LogFilter;
@@ -40,10 +38,11 @@ export function LogFilterChip({
 	nowMs,
 	onClear,
 }: LogFilterChipProps) {
+	const t = useTranslation();
 	const hasMenu = filterHasMenu(filter);
 	// `detail` may not have resolved yet, and the chip has to say what it is
 	// regardless.
-	const title = detail || LOG_FILTER_LABEL[filter];
+	const title = detail || t(FILTER_LABEL_KEY[filter]);
 
 	return (
 		<View className="flex-row pt-3">
@@ -51,6 +50,7 @@ export function LogFilterChip({
 				actions={
 					hasMenu
 						? menuActions({
+								t,
 								filter,
 								categories,
 								categoryId,
@@ -61,7 +61,7 @@ export function LogFilterChip({
 							})
 						: undefined
 				}
-				clearAccessibilityLabel="Remove filter"
+				clearAccessibilityLabel={t("log.chip.remove")}
 				onAction={(event) =>
 					handleAction(event, {
 						filter,
@@ -80,6 +80,7 @@ export function LogFilterChip({
 }
 
 interface MenuContext {
+	t: TranslateFn;
 	filter: LogFilter;
 	categories: { id: string; meta: CategoryMetaRow }[];
 	categoryId: string | null;
@@ -95,10 +96,14 @@ function menuActions(ctx: MenuContext): MenuAction[] {
 	const unit = filterPeriodUnit(ctx.filter);
 	if (unit) {
 		return [
-			{ id: "earlier", title: "Earlier", image: "chevron.left" },
+			{
+				id: "earlier",
+				title: ctx.t("log.chip.earlier"),
+				image: "chevron.left",
+			},
 			{
 				id: "later",
-				title: "Later",
+				title: ctx.t("log.chip.later"),
 				image: "chevron.right",
 				attributes: {
 					disabled: !canStepForward(
@@ -115,7 +120,11 @@ function menuActions(ctx: MenuContext): MenuAction[] {
 				title: "",
 				displayInline: true,
 				subactions: [
-					{ id: "now", title: "Now", image: "arrow.uturn.backward" },
+					{
+						id: "now",
+						title: ctx.t("log.chip.now"),
+						image: "arrow.uturn.backward",
+					},
 				],
 			},
 		];
@@ -125,7 +134,7 @@ function menuActions(ctx: MenuContext): MenuAction[] {
 		return [
 			{
 				id: "category-section",
-				title: LOG_FILTER_LABEL.category,
+				title: ctx.t("log.filter.category"),
 				displayInline: true,
 				subactions: ctx.categories.map((entry) => ({
 					id: `${CATEGORY_PREFIX}${entry.id}`,
@@ -139,11 +148,19 @@ function menuActions(ctx: MenuContext): MenuAction[] {
 	return [
 		{
 			id: "type-section",
-			title: LOG_FILTER_LABEL.type,
+			title: ctx.t("log.filter.type"),
 			displayInline: true,
 			subactions: [
-				{ id: "expense", title: "Expense", state: ctx.income ? "off" : "on" },
-				{ id: "income", title: "Income", state: ctx.income ? "on" : "off" },
+				{
+					id: "expense",
+					title: ctx.t("log.type.expense"),
+					state: ctx.income ? "off" : "on",
+				},
+				{
+					id: "income",
+					title: ctx.t("log.type.income"),
+					state: ctx.income ? "on" : "off",
+				},
 			],
 		},
 	];

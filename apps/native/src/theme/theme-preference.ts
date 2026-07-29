@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { TranslationKey } from "@/i18n";
 
 export type ThemePreference = "light" | "dark" | "system";
 
@@ -6,27 +7,31 @@ export const THEME_PREFERENCE_KEY = "outlayr.theme-preference";
 
 /** The three choices, in the order the picker offers them. */
 export const THEME_OPTIONS: readonly {
-	label: string;
-	detail: string;
+	label: TranslationKey;
+	detail: TranslationKey;
 	value: ThemePreference;
 }[] = [
-	{ label: "System", detail: "Follows your device.", value: "system" },
 	{
-		label: "Light",
-		detail: "Always light, whatever the device does.",
+		label: "settings.theme.system",
+		detail: "settings.theme.systemDetail",
+		value: "system",
+	},
+	{
+		label: "settings.theme.light",
+		detail: "settings.theme.lightDetail",
 		value: "light",
 	},
 	{
-		label: "Dark",
-		detail: "Always dark, whatever the device does.",
+		label: "settings.theme.dark",
+		detail: "settings.theme.darkDetail",
 		value: "dark",
 	},
 ];
 
-export function themeLabel(preference: ThemePreference): string {
+export function themeLabel(preference: ThemePreference): TranslationKey {
 	return (
 		THEME_OPTIONS.find((option) => option.value === preference)?.label ??
-		"System"
+		"settings.theme.system"
 	);
 }
 

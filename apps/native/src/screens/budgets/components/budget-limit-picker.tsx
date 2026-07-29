@@ -25,6 +25,7 @@ import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
 import { crossingDay } from "@/domain/budget-limit-crossing";
 import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
 import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";
@@ -87,10 +88,6 @@ function formatDayMonth(date: Date): string {
 	return `${date.getDate()} ${month[0]}${month.slice(1).toLowerCase()}`;
 }
 
-function plural(count: number, noun: string): string {
-	return `${count} ${noun}${count === 1 ? "" : "s"}`;
-}
-
 export function BudgetLimitPicker({
 	burndown,
 	sampleSize,
@@ -101,6 +98,7 @@ export function BudgetLimitPicker({
 }: BudgetLimitPickerProps) {
 	const colors = useColors();
 	const haptics = useHaptics();
+	const t = useTranslation();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
 	const width = measured > 0 ? measured : windowWidth - 40;
@@ -248,16 +246,30 @@ export function BudgetLimitPicker({
 	if (sparse) {
 		readout =
 			sampleSize < SPARSE_HISTORY
-				? `Only ${plural(sampleSize, "expense")} so far — too little to say how ${monthName} would have gone.`
-				: `Only ${plural(burndown.points.length, "day")} into ${monthName} — too early to say how it would have gone.`;
+				? t("budgets.picker.sparseExpenses", {
+						expenses: t("budgets.expenses", { count: sampleSize }),
+						month: monthName,
+					})
+				: t("budgets.picker.sparseDays", {
+						days: t("budgets.days", { count: burndown.points.length }),
+						month: monthName,
+					});
 	} else if (crossingDate && crossing != null) {
 		const early = burndown.totalDays - crossing;
 		readout =
 			early > 0
-				? `You would have run out on ${formatDayMonth(crossingDate)}, ${plural(early, "day")} early.`
-				: `You would have run out on ${formatDayMonth(crossingDate)}, the month's final day.`;
+				? t("budgets.picker.ranOutEarly", {
+						date: formatDayMonth(crossingDate),
+						days: t("budgets.days", { count: early }),
+					})
+				: t("budgets.picker.ranOutFinal", {
+						date: formatDayMonth(crossingDate),
+					});
 	} else {
-		readout = `${monthName} would have held — ${formatAmount(limit - total, currency, showCents)} to spare.`;
+		readout = t("budgets.picker.held", {
+			month: monthName,
+			amount: formatAmount(limit - total, currency, showCents),
+		});
 	}
 
 	const onLayout = (event: LayoutChangeEvent) => {
@@ -271,8 +283,12 @@ export function BudgetLimitPicker({
 	return (
 		<View onLayout={onLayout}>
 			<View className="flex-row items-baseline justify-between">
-				<MonoLabel>{`${monthName.toUpperCase()} · NO BUDGET YET`}</MonoLabel>
-				<MonoLabel>{plural(sampleSize, "expense").toUpperCase()}</MonoLabel>
+				<MonoLabel>
+					{t("budgets.picker.eyebrow", { month: monthName.toUpperCase() })}
+				</MonoLabel>
+				<MonoLabel>
+					{t("budgets.expenses", { count: sampleSize }).toUpperCase()}
+				</MonoLabel>
 			</View>
 
 			<View className="pt-2">
@@ -284,12 +300,16 @@ export function BudgetLimitPicker({
 					size={40}
 				/>
 			</View>
-			<Text className="pt-0.5 text-footnote text-muted">a month</Text>
+			<Text className="pt-0.5 text-footnote text-muted">
+				{t("budgets.picker.cadence")}
+			</Text>
 
 			<View className="pt-4">
 				<GestureDetector gesture={pan}>
 					<View
-						accessibilityLabel={`Monthly limit ${limitLabel}. Drag up or down to change it.`}
+						accessibilityLabel={t("budgets.picker.dragA11y", {
+							amount: limitLabel,
+						})}
 						collapsable={false}
 						style={{ width, height: CHART_HEIGHT }}
 					>
@@ -422,8 +442,12 @@ export function BudgetLimitPicker({
 			</View>
 
 			<View className="flex-row items-baseline justify-between pt-2.5">
-				<MonoLabel>DRAG TO SET A LIMIT</MonoLabel>
-				<MonoLabel>{`SPENT ${formatAmount(total, currency, false)}`}</MonoLabel>
+				<MonoLabel>{t("budgets.picker.drag")}</MonoLabel>
+				<MonoLabel>
+					{t("budgets.picker.spent", {
+						amount: formatAmount(total, currency, false),
+					})}
+				</MonoLabel>
 			</View>
 
 			<Text className="pt-2.5 text-footnote text-muted">{readout}</Text>
@@ -434,7 +458,7 @@ export function BudgetLimitPicker({
 				onPress={() => onCommit(limit)}
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-body">
-					{`Use ${limitLabel} a month`}
+					{t("budgets.picker.commit", { amount: limitLabel })}
 				</Text>
 			</Pressable>
 		</View>

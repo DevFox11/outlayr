@@ -25,6 +25,12 @@ import type { Database } from "@/db/client";
 import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
 import { coverageNote } from "@/domain/valuation-coverage";
+import {
+	languageLabel,
+	translateNow,
+	useLanguage,
+	useTranslation,
+} from "@/i18n";
 import { useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { useReminderSync } from "@/lib/reminder-sync";
@@ -41,15 +47,18 @@ const X_PROFILE = "https://x.com/tryoutlayr";
  */
 async function toggleAppLock(db: Database, next: boolean): Promise<void> {
 	const result = await requestUnlock(
-		next ? "Turn on authentication" : "Turn off authentication",
+		translateNow(next ? "settings.lock.promptOn" : "settings.lock.promptOff"),
 	);
 	if (result.success) {
 		await setBoolSetting(db, "biometricLock", next);
 		return;
 	}
-	const message = lockFailureMessage(result.error);
-	if (message) {
-		Alert.alert("Authentication", message);
+	const messageKey = lockFailureMessage(result.error);
+	if (messageKey) {
+		Alert.alert(
+			translateNow("settings.lock.alertTitle"),
+			translateNow(messageKey),
+		);
 	}
 }
 
@@ -60,7 +69,9 @@ export default function SettingsScreenRoute() {
 
 function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const { themePreference } = useAppTheme();
+	const { preference } = useLanguage();
 	useReminderSync(db);
 	const { active: appIcon } = useAppIcon();
 
@@ -81,58 +92,70 @@ function SettingsContent({ db }: { db: Database }) {
 	const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
 	const diagnostics = supportDiagnostics(version, build);
 
+	const hapticsValue = hapticsLabel(haptics);
+
 	return (
 		<SettingsScreen footer={`Outlayr ${version} (${build})`}>
 			<SettingsSection
-				title="Logging"
-				footer={coverageNote(coverage) ?? undefined}
+				title={t("settings.section.logging")}
+				footer={coverageNote(coverage, t) ?? undefined}
 			>
 				<LinkRow
 					icon="Currency"
 					onPress={() => router.push("/settings/currency")}
-					title="Currency"
+					title={t("settings.row.currency")}
 					value={currency}
 				/>
 				<LinkRow
 					icon="Calculator01"
 					onPress={() => router.push("/settings/number-entry")}
-					title="Number Entry"
-					value={numberEntryLabel(numberEntryType)}
+					title={t("settings.row.numberEntry")}
+					value={t(numberEntryLabel(numberEntryType))}
 				/>
 				<LinkRow
 					icon="Calendar01"
 					onPress={() => router.push("/settings/time")}
-					title="Time Frames"
+					title={t("settings.row.timeFrames")}
 				/>
 				<ToggleRow
 					icon="MoneyAdd01"
 					onValueChange={(next) => {
 						setBoolSetting(db, "incomeTracking", next);
 					}}
-					title="Income Tracking"
+					title={t("settings.row.incomeTracking")}
 					value={incomeTracking}
 				/>
 			</SettingsSection>
 
-			<SettingsSection title="Appearance">
+			<SettingsSection title={t("settings.section.appearance")}>
 				<LinkRow
 					icon="DarkMode"
 					onPress={() => router.push("/settings/theme")}
-					title="Theme"
-					value={themeLabel(themePreference)}
+					title={t("settings.row.theme")}
+					value={t(themeLabel(themePreference))}
 				/>
 				<LinkRow
 					icon="SmartPhone01"
 					onPress={() => router.push("/settings/app-icon")}
-					title="App Icon"
-					value={appIconLabel(appIcon)}
+					title={t("settings.row.appIcon")}
+					value={t(appIconLabel(appIcon))}
+				/>
+				<LinkRow
+					icon="LanguageSkill"
+					onPress={() => router.push("/settings/language")}
+					title={t("nav.settings.language")}
+					value={
+						preference === "system"
+							? t("language.system")
+							: languageLabel(preference)
+					}
 				/>
 				<ToggleRow
 					icon="BadgeCent"
 					onValueChange={(next) => {
 						setBoolSetting(db, "showCents", next);
 					}}
-					title="Display Cents"
+					title={t("settings.row.displayCents")}
 					value={showCents}
 				/>
 				<ToggleRow
@@ -140,24 +163,24 @@ function SettingsContent({ db }: { db: Database }) {
 					onValueChange={(next) => {
 						setBoolSetting(db, "showExpenseOrIncomeSign", next);
 					}}
-					title="Display +/− Symbol"
+					title={t("settings.row.displaySign")}
 					value={showSign}
 				/>
 			</SettingsSection>
 
-			<SettingsSection title="The Log">
+			<SettingsSection title={t("settings.section.log")}>
 				<LinkRow
 					icon="Sunrise"
 					onPress={() => router.push("/settings/upcoming")}
-					title="Upcoming Logs"
-					value={shownHiddenLabel(showUpcoming)}
+					title={t("settings.row.upcoming")}
+					value={t(shownHiddenLabel(showUpcoming))}
 				/>
 				<ToggleRow
 					icon="ChartLineData01"
 					onValueChange={(next) => {
 						setBoolSetting(db, "logViewLineGraph", next);
 					}}
-					title="Log Trend Line"
+					title={t("settings.row.logTrendLine")}
 					value={logTrendLine}
 				/>
 				<ToggleRow
@@ -165,62 +188,66 @@ function SettingsContent({ db }: { db: Database }) {
 					onValueChange={(next) => {
 						setBoolSetting(db, "animatedCharts", next);
 					}}
-					title="Animated Charts"
+					title={t("settings.row.animatedCharts")}
 					value={animatedCharts}
 				/>
 			</SettingsSection>
 
-			<SettingsSection title="Your data">
+			<SettingsSection title={t("settings.section.data")}>
 				<AccountRow />
 				<LinkRow
 					icon="DashboardSquare01"
 					onPress={() => router.push("/settings/categories")}
-					title="Categories"
+					title={t("settings.row.categories")}
 				/>
-				<LinkRow icon="Cloud" title="Sync" value="Not available" />
+				<LinkRow
+					icon="Cloud"
+					title={t("settings.row.sync")}
+					value={t("settings.row.syncUnavailable")}
+				/>
 				<LinkRow
 					icon="FileImport"
 					onPress={() => router.push("/settings/import")}
-					title="Import Data"
+					title={t("settings.row.import")}
 				/>
 				<LinkRow
 					icon="FileExport"
 					onPress={() => router.push("/settings/export")}
-					title="Export Data"
+					title={t("settings.row.export")}
 				/>
 				<LinkRow
 					destructive
 					icon="Delete02"
 					onPress={() => router.push("/settings/erase")}
-					title="Erase Data"
+					title={t("settings.row.erase")}
 				/>
 			</SettingsSection>
 
-			<SettingsSection title="This device">
+			<SettingsSection title={t("settings.section.device")}>
 				<LinkRow
 					icon="Notification03"
 					onPress={() => router.push("/settings/notifications")}
-					title="Notifications"
-					value={onOffLabel(showNotifications)}
+					title={t("settings.row.notifications")}
+					value={t(onOffLabel(showNotifications))}
 				/>
 				<ToggleRow
 					icon="BiometricAccess"
 					onValueChange={(next) => {
 						void toggleAppLock(db, next);
 					}}
-					title="Authentication"
+					title={t("settings.row.authentication")}
 					value={biometricLock}
 				/>
 				<LinkRow
 					icon="Tap01"
 					onPress={() => router.push("/settings/haptics")}
-					title="Haptics"
-					value={hapticsLabel(haptics)}
+					title={t("settings.row.haptics")}
+					value={hapticsValue == null ? undefined : t(hapticsValue)}
 				/>
 				<LinkRow
 					icon="TestTube"
 					onPress={() => router.push("/settings/feature-lab")}
-					title="Feature Lab"
+					title={t("settings.row.featureLab")}
 				/>
 			</SettingsSection>
 
@@ -229,48 +256,56 @@ function SettingsContent({ db }: { db: Database }) {
 					icon="Bug01"
 					onPress={() => {
 						Linking.openURL(
-							supportMailto(SUPPORT_EMAIL, "Support Email", diagnostics),
+							supportMailto(
+								SUPPORT_EMAIL,
+								t("settings.support.bugSubject"),
+								diagnostics,
+							),
 						);
 					}}
-					title="Report Bug"
+					title={t("settings.row.reportBug")}
 				/>
 				<LinkRow
 					icon="Idea01"
 					onPress={() => {
 						Linking.openURL(
-							supportMailto(SUPPORT_EMAIL, "Feature Request", diagnostics),
+							supportMailto(
+								SUPPORT_EMAIL,
+								t("settings.support.featureSubject"),
+								diagnostics,
+							),
 						);
 					}}
-					title="Feature Request"
+					title={t("settings.row.featureRequest")}
 				/>
 				<LinkRow
 					icon="Star"
 					onPress={() => {
 						Linking.openURL(WEBSITE);
 					}}
-					title="Rate on App Store"
+					title={t("settings.row.rate")}
 				/>
 				<LinkRow
 					icon="Share08"
 					onPress={() => {
 						Share.share({
-							message: `Track your money with Outlayr — ${WEBSITE}`,
+							message: t("settings.share.message", { url: WEBSITE }),
 							url: WEBSITE,
 						});
 					}}
-					title="Share with Friends"
+					title={t("settings.row.share")}
 				/>
 				<LinkRow
 					icon="NewTwitter"
 					onPress={() => {
 						Linking.openURL(X_PROFILE);
 					}}
-					title="Follow Outlayr on X"
+					title={t("settings.row.followX")}
 				/>
 				<LinkRow
 					icon="InformationCircle"
 					onPress={() => router.push("/settings/about")}
-					title="About & Credits"
+					title={t("settings.row.about")}
 				/>
 			</SettingsSection>
 		</SettingsScreen>

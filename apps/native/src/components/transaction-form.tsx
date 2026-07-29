@@ -72,11 +72,10 @@ import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
-	cadenceLabel,
 	RECURRING_TYPE,
 	SELECTABLE_RECURRING_TYPES,
-	scheduleLabel,
 } from "@/domain/recurrence";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
@@ -90,6 +89,7 @@ import {
 import {
 	CustomScheduleSheet,
 	type CustomScheduleSheetRef,
+	intervalPhrase,
 } from "./custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "./identity-curtain";
 import { IdentityFlyUpLayer } from "./identity-fly-up";
@@ -155,6 +155,22 @@ const FORM_BLUR_RADIUS = 8;
 const FLY_UP = Animation.spring({ response: 0.4, dampingFraction: 0.85 });
 const FLY_BACK = Animation.spring({ response: 0.29, dampingFraction: 0.98 });
 
+const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
+	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
+	[RECURRING_TYPE.weekly]: "transaction.cadence.weekly",
+	[RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
+	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
+};
+
+function ctaKey(mode: "create" | "edit", isSubscription: boolean) {
+	if (mode === "edit") {
+		return "transaction.cta.save";
+	}
+	return isSubscription
+		? "transaction.cta.addSubscription"
+		: "transaction.cta.add";
+}
+
 /**
  * What an outside surface — a quick action, a widget, an App Intent — can put in
  * the form before the user sees it: a suggestion the user still confirms, never
@@ -191,6 +207,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
 	const colors = useColors();
 	const haptics = useHaptics();
+	const t = useTranslation();
 	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 	/** Swift's `.padding(.horizontal, 20)` content box. */
 	const contentWidth = windowWidth - 40;
@@ -422,12 +439,7 @@ export function TransactionForm({
 		router.push("/transaction/identity");
 	};
 
-	const ctaLabel =
-		mode === "edit"
-			? "Save Changes"
-			: isSubscription
-				? "Add Subscription"
-				: "Add Transaction";
+	const ctaLabel = t(ctaKey(mode, isSubscription));
 
 	const amountColor =
 		amountNumber > 0
@@ -448,9 +460,11 @@ export function TransactionForm({
 			: identity.photoUri
 				? [identity.photoColor ?? curtainTint]
 				: [curtainTint];
-	const toastLabel = isSubscription
-		? "Subscription added"
-		: "Transaction added";
+	const toastLabel = t(
+		isSubscription
+			? "transaction.toast.subscriptionAdded"
+			: "transaction.toast.added",
+	);
 
 	const card = [background(colors.surface, CARD_SHAPE)];
 	const hairline = [
@@ -548,19 +562,23 @@ export function TransactionForm({
 							}
 							selection={isSubscription ? "subscription" : "once"}
 						>
-							<SwiftText modifiers={[tag("once")]}>One-time</SwiftText>
+							<SwiftText modifiers={[tag("once")]}>
+								{t("transaction.kind.once")}
+							</SwiftText>
 							<SwiftText modifiers={[tag("subscription")]}>
-								Subscription
+								{t("transaction.kind.subscription")}
 							</SwiftText>
 						</Picker>
 
 						<VStack modifiers={card} spacing={0}>
 							<HStack modifiers={ROW}>
-								<SwiftText modifiers={[BODY, rowLabel]}>Name</SwiftText>
+								<SwiftText modifiers={[BODY, rowLabel]}>
+									{t("transaction.field.name")}
+								</SwiftText>
 								<TextField
 									maxLength={50}
 									modifiers={[BODY, multilineTextAlignment("trailing")]}
-									placeholder="Netflix, Groceries…"
+									placeholder={t("transaction.field.namePlaceholder")}
 									text={name}
 								/>
 							</HStack>
@@ -571,7 +589,9 @@ export function TransactionForm({
 							    Text like every other row label — a label inside the menu
 							    inherits the control's accent tint. */}
 							<HStack modifiers={ROW}>
-								<SwiftText modifiers={[BODY, rowLabel]}>Type</SwiftText>
+								<SwiftText modifiers={[BODY, rowLabel]}>
+									{t("transaction.field.type")}
+								</SwiftText>
 								<Spacer />
 								<Menu
 									label={
@@ -579,7 +599,7 @@ export function TransactionForm({
 											<SwiftText
 												modifiers={[BODY, foregroundStyle(colors.foreground)]}
 											>
-												{income ? "Income" : "Expense"}
+												{t(income ? "common.income" : "common.expense")}
 											</SwiftText>
 											<Image
 												color={colors.muted}
@@ -591,14 +611,18 @@ export function TransactionForm({
 									modifiers={[menuTint]}
 								>
 									<Picker
-										label="Type"
+										label={t("transaction.field.type")}
 										onSelectionChange={(next) =>
 											handleTypeChange(next as "expense" | "income")
 										}
 										selection={income ? "income" : "expense"}
 									>
-										<SwiftText modifiers={[tag("expense")]}>Expense</SwiftText>
-										<SwiftText modifiers={[tag("income")]}>Income</SwiftText>
+										<SwiftText modifiers={[tag("expense")]}>
+											{t("common.expense")}
+										</SwiftText>
+										<SwiftText modifiers={[tag("income")]}>
+											{t("common.income")}
+										</SwiftText>
 									</Picker>
 								</Menu>
 							</HStack>
@@ -610,7 +634,9 @@ export function TransactionForm({
 								onPress={() => amountSheetRef.current?.present()}
 							>
 								<HStack modifiers={TAP_ROW}>
-									<SwiftText modifiers={[BODY, rowLabel]}>Amount</SwiftText>
+									<SwiftText modifiers={[BODY, rowLabel]}>
+										{t("transaction.field.amount")}
+									</SwiftText>
 									<Spacer />
 									<SwiftText
 										modifiers={[BODY_MEDIUM, foregroundStyle(amountColor)]}
@@ -650,7 +676,7 @@ export function TransactionForm({
 										categoryError ? foregroundStyle(colors.danger) : rowLabel,
 									]}
 								>
-									Category
+									{t("transaction.field.category")}
 								</SwiftText>
 								<Spacer />
 								<HStack spacing={5}>
@@ -673,7 +699,9 @@ export function TransactionForm({
 											),
 										]}
 									>
-										{category ? category.name : "Choose"}
+										{category
+											? category.name
+											: t("transaction.category.choose")}
 									</SwiftText>
 									<Image
 										color={colors.muted}
@@ -691,7 +719,9 @@ export function TransactionForm({
 							{isSubscription ? (
 								<>
 									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>Schedule</SwiftText>
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.schedule")}
+										</SwiftText>
 										<Spacer />
 										<Menu
 											label={
@@ -702,7 +732,13 @@ export function TransactionForm({
 															foregroundStyle(colors.foreground),
 														]}
 													>
-														{scheduleLabel(recurringType, coefficient)}
+														{t("transaction.schedule.every", {
+															interval: intervalPhrase(
+																t,
+																recurringType,
+																coefficient,
+															),
+														})}
 													</SwiftText>
 													<Image
 														color={colors.muted}
@@ -714,18 +750,21 @@ export function TransactionForm({
 											modifiers={[menuTint]}
 										>
 											<Picker
-												label="Schedule"
+												label={t("transaction.field.schedule")}
 												onSelectionChange={handleScheduleChange}
 												selection={recurringType}
 											>
 												{SELECTABLE_RECURRING_TYPES.map((type) => (
 													<SwiftText key={type} modifiers={[tag(type)]}>
-														{cadenceLabel(type)}
+														{t(
+															CADENCE_LABEL_KEY[type] ??
+																"transaction.cadence.monthly",
+														)}
 													</SwiftText>
 												))}
 											</Picker>
 											<Button
-												label="Custom…"
+												label={t("transaction.schedule.customOption")}
 												onPress={() => scheduleSheetRef.current?.present()}
 											/>
 										</Menu>
@@ -735,7 +774,7 @@ export function TransactionForm({
 
 									<HStack modifiers={ROW}>
 										<SwiftText modifiers={[BODY, rowLabel]}>
-											First Payment
+											{t("transaction.field.firstPayment")}
 										</SwiftText>
 										<Spacer />
 										<DatePicker
@@ -749,7 +788,9 @@ export function TransactionForm({
 									<Divider modifiers={hairline} />
 
 									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>End Date</SwiftText>
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.endDate")}
+										</SwiftText>
 										<Spacer />
 										<Toggle
 											isOn={hasEndDate}
@@ -762,7 +803,9 @@ export function TransactionForm({
 										<>
 											<Divider modifiers={hairline} />
 											<HStack modifiers={ROW}>
-												<SwiftText modifiers={[BODY, rowLabel]}>Ends</SwiftText>
+												<SwiftText modifiers={[BODY, rowLabel]}>
+													{t("transaction.field.ends")}
+												</SwiftText>
 												<Spacer />
 												<DatePicker
 													displayedComponents={["date"]}
@@ -780,7 +823,9 @@ export function TransactionForm({
 							) : (
 								<>
 									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>Date</SwiftText>
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.date")}
+										</SwiftText>
 										<Spacer />
 										<DatePicker
 											displayedComponents={["date"]}
@@ -793,7 +838,9 @@ export function TransactionForm({
 									<Divider modifiers={hairline} />
 
 									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>Time</SwiftText>
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.time")}
+										</SwiftText>
 										<Spacer />
 										<DatePicker
 											displayedComponents={["hourAndMinute"]}
@@ -812,7 +859,9 @@ export function TransactionForm({
 							spacing={8}
 						>
 							<HStack>
-								<SwiftText modifiers={[BODY, rowLabel]}>Notes</SwiftText>
+								<SwiftText modifiers={[BODY, rowLabel]}>
+									{t("transaction.field.notes")}
+								</SwiftText>
 								<Spacer />
 							</HStack>
 							<TextField
@@ -822,7 +871,7 @@ export function TransactionForm({
 									foregroundStyle(colors.foreground),
 									lineLimit({ min: 3, max: 6 }),
 								]}
-								placeholder="Optional"
+								placeholder={t("transaction.field.notesPlaceholder")}
 								text={notes}
 							/>
 						</VStack>

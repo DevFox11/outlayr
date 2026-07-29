@@ -11,6 +11,7 @@ import {
 	isSignInCancellation,
 	signInFailureMessage,
 } from "@/domain/account";
+import { useTranslation } from "@/i18n";
 import { appleIdToken } from "@/lib/apple-sign-in";
 import { authClient } from "@/lib/auth-client";
 import { googleIdToken, isGoogleSignInAvailable } from "@/lib/google-sign-in";
@@ -24,6 +25,7 @@ export default function AccountRoute() {
 }
 
 function Account({ client }: { client: AuthClient }) {
+	const t = useTranslation();
 	const { data: session, isPending: restoring } = client.useSession();
 	const [busy, setBusy] = useState<Busy>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -46,12 +48,12 @@ function Account({ client }: { client: AuthClient }) {
 					provider,
 				});
 				if (rejection) {
-					setError(signInFailureMessage(rejection));
+					setError(signInFailureMessage(rejection, t));
 				}
 			})
 			.catch((cause: unknown) => {
 				if (!isSignInCancellation(cause)) {
-					setError(signInFailureMessage(cause));
+					setError(signInFailureMessage(cause, t));
 				}
 			})
 			.finally(() => setBusy(null));
@@ -62,31 +64,33 @@ function Account({ client }: { client: AuthClient }) {
 		setBusy("sign-out");
 		client
 			.signOut()
-			.catch((cause: unknown) => setError(signInFailureMessage(cause)))
+			.catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
 			.finally(() => setBusy(null));
 	};
 
 	if (session) {
-		const label = accountLabel(session.user);
+		const label = accountLabel(session.user, t);
 		const email = session.user.email?.trim();
 		return (
 			<SettingsScreen>
 				<Header
 					detail={email && email !== label ? email : undefined}
-					eyebrow="Signed in as"
+					eyebrow={t("settings.account.signedInAs")}
 					title={label}
 				/>
 
 				<SettingsSection
-					footer="Signing out ends the session on this iPhone. Every transaction, budget and category stays exactly where it is."
-					title="Account"
+					footer={t("settings.account.signOutFooter")}
+					title={t("settings.account.sectionTitle")}
 				>
 					<LinkRow
 						destructive
 						icon="Logout01"
 						onPress={signOut}
-						title="Sign Out"
-						value={busy === "sign-out" ? "Signing out…" : undefined}
+						title={t("settings.account.signOut")}
+						value={
+							busy === "sign-out" ? t("settings.account.signingOut") : undefined
+						}
 					/>
 				</SettingsSection>
 
@@ -101,9 +105,13 @@ function Account({ client }: { client: AuthClient }) {
 	return (
 		<SettingsScreen>
 			<Header
-				detail="Outlayr keeps your ledger on this device and behaves exactly the same signed out. An account exists only so a later release can sync it to your other devices."
-				eyebrow="Account"
-				title={restoring ? "Checking…" : "Not signed in"}
+				detail={t("settings.account.signedOutDetail")}
+				eyebrow={t("settings.account.eyebrow")}
+				title={t(
+					restoring
+						? "settings.account.checking"
+						: "settings.account.notSignedIn",
+				)}
 			/>
 
 			<View className="gap-3 pt-8">
@@ -123,7 +131,7 @@ function Account({ client }: { client: AuthClient }) {
 				) : null}
 				{apple || google ? null : (
 					<Text className="text-muted text-subtitle leading-snug">
-						No sign-in provider is configured for this platform.
+						{t("settings.account.noProvider")}
 					</Text>
 				)}
 			</View>
@@ -134,12 +142,13 @@ function Account({ client }: { client: AuthClient }) {
 }
 
 function AccountUnavailable() {
+	const t = useTranslation();
 	return (
 		<SettingsScreen>
 			<Header
-				detail="This build ships without a backend, so there is no account to sign in to. Nothing else is affected — your ledger lives on this device."
-				eyebrow="Account"
-				title="Unavailable"
+				detail={t("settings.account.unavailableDetail")}
+				eyebrow={t("settings.account.eyebrow")}
+				title={t("settings.account.unavailable")}
 			/>
 		</SettingsScreen>
 	);

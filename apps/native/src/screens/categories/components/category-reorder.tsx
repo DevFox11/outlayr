@@ -31,6 +31,7 @@ import {
 	useCategoriesByNamespace,
 } from "@/data/categories";
 import type { Database } from "@/db/client";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 /**
@@ -69,6 +70,7 @@ function CategoryReorderReady({
 	db: Database;
 	income: boolean;
 }) {
+	const t = useTranslation();
 	const colors = useColors();
 	const parents = useCategoriesByNamespace(db, income);
 	const accent = (parent: CategoryWithChildren) =>
@@ -106,7 +108,9 @@ function CategoryReorderReady({
 			>
 				{/* A non-empty `title` short-circuits the `header` slot natively, so every
 				    header here passes the eyebrow instead of a plain string. */}
-				<Section header={<Eyebrow colors={colors}>CATEGORIES</Eyebrow>}>
+				<Section
+					header={<Eyebrow colors={colors}>{t("categories.title")}</Eyebrow>}
+				>
 					<List.ForEach onMove={reorderParents}>
 						{parents.map((parent) => (
 							<ReorderRow

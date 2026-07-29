@@ -9,6 +9,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { completeOnboarding } from "@/data/onboarding";
 import type { Database } from "@/db/client";
+import { useTranslation } from "@/i18n";
 
 export default function OnboardingCurrencyScreen() {
 	const db = useDatabase();
@@ -20,6 +21,7 @@ function OnboardingCurrency({ db }: { db: Database }) {
 	const [picked, setPicked] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
 	const sheet = useRef<BottomSheetModal>(null);
+	const t = useTranslation();
 
 	const code = picked ?? stored;
 	const display = currencyDisplayFor(code);
@@ -31,8 +33,8 @@ function OnboardingCurrency({ db }: { db: Database }) {
 		completeOnboarding(db, code).catch(() => {
 			setSaving(false);
 			Alert.alert(
-				"Could not save",
-				"Outlayr could not record your currency. Try again.",
+				t("onboarding.currency.saveFailed.title"),
+				t("onboarding.currency.saveFailed.body"),
 			);
 		});
 	};
@@ -40,20 +42,18 @@ function OnboardingCurrency({ db }: { db: Database }) {
 	return (
 		<View className="flex-1 bg-background px-6 pt-safe-offset-14 pb-safe-offset-5">
 			<View className="gap-2">
-				<MonoLabel>Currency</MonoLabel>
+				<MonoLabel>{t("onboarding.currency.eyebrow")}</MonoLabel>
 				<Text className="font-sans-semibold text-foreground text-title">
-					What are your numbers in?
+					{t("onboarding.currency.title")}
 				</Text>
 				<Text className="text-muted text-subtitle">
-					Outlayr converts between currencies to total your ledger, so it has to
-					know what your entries already mean. It asks once rather than guessing
-					— a guess it later froze into your records could not be undone.
+					{t("onboarding.currency.body")}
 				</Text>
 			</View>
 
 			<View className="flex-1 justify-center">
 				<Pressable
-					accessibilityHint="Opens the currency list"
+					accessibilityHint={t("onboarding.currency.openHint")}
 					accessibilityRole="button"
 					className="flex-row items-center gap-4 border-border border-y py-5 active:opacity-60"
 					onPress={() => sheet.current?.present()}
@@ -69,11 +69,11 @@ function OnboardingCurrency({ db }: { db: Database }) {
 							{display.name}
 						</Text>
 					</View>
-					<MonoLabel>Change</MonoLabel>
+					<MonoLabel>{t("onboarding.currency.change")}</MonoLabel>
 				</Pressable>
 
 				<Text className="pt-4 text-footnote text-muted">
-					You can change this later in Settings.
+					{t("onboarding.currency.later")}
 				</Text>
 			</View>
 
@@ -84,7 +84,9 @@ function OnboardingCurrency({ db }: { db: Database }) {
 				onPress={confirm}
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-body">
-					{saving ? "Saving…" : "Start"}
+					{saving
+						? t("onboarding.currency.saving")
+						: t("onboarding.currency.start")}
 				</Text>
 			</Pressable>
 

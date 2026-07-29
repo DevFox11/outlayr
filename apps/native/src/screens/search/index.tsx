@@ -10,6 +10,7 @@ import { useAllSettings } from "@/data/settings";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { groupByDay } from "@/domain/day-sections";
+import { useTranslation } from "@/i18n";
 import { SearchEmptyState } from "./components/search-empty-state";
 
 export default function SearchScreen() {
@@ -23,6 +24,7 @@ export default function SearchScreen() {
  */
 function SearchContent({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const { displayCurrency: currency, rates } = useValuation(db);
 	const settings = useAllSettings(db);
 	const showCents = settings.bool("showCents");
@@ -47,7 +49,7 @@ function SearchContent({ db }: { db: Database }) {
 		<>
 			<Stack.SearchBar
 				autoFocus
-				placeholder="Search entry by note"
+				placeholder={t("search.placeholder")}
 				hideWhenScrolling={false}
 				onChangeText={(event) => setQuery(event.nativeEvent.text)}
 				// The field's Cancel closes the whole task, not just the field.

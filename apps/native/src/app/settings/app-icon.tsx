@@ -7,6 +7,7 @@ import { ChoiceRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Image } from "@/components/styled";
 import { APP_ICONS } from "@/domain/app-icons";
+import { useTranslation } from "@/i18n";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 
 const PREVIEW: Record<string, number> = {
@@ -18,6 +19,7 @@ const PREVIEW: Record<string, number> = {
 };
 
 export default function AppIconScreen() {
+	const t = useTranslation();
 	const { active, choose } = useAppIcon();
 
 	// No rows at all where iOS refuses the change, rather than five that look
@@ -26,8 +28,8 @@ export default function AppIconScreen() {
 		return (
 			<SettingsScreen>
 				<SettingsSection
-					footer="This device does not allow the app icon to be changed."
-					title="Home screen"
+					footer={t("settings.appIcon.unsupported")}
+					title={t("settings.appIcon.section")}
 				/>
 			</SettingsScreen>
 		);
@@ -36,14 +38,14 @@ export default function AppIconScreen() {
 	return (
 		<SettingsScreen>
 			<SettingsSection
-				footer="iOS confirms every change with an alert of its own."
-				title="Home screen"
+				footer={t("settings.appIcon.alertNote")}
+				title={t("settings.appIcon.section")}
 			>
 				{APP_ICONS.map((icon) => (
 					<ChoiceRow
-						detail={icon.detail}
+						detail={t(icon.detail)}
 						key={icon.slug}
-						label={icon.label}
+						label={t(icon.label)}
 						leading={
 							<Image
 								className="h-11 w-11"

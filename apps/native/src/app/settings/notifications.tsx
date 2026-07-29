@@ -25,6 +25,7 @@ import {
 	reminderTime,
 	type TimeOfDay,
 } from "@/domain/reminder";
+import { type TranslationKey, translateNow, useTranslation } from "@/i18n";
 import { armReminder, useReminderSync } from "@/lib/reminder-sync";
 import {
 	cancelReminder,
@@ -37,16 +38,20 @@ import { useColors } from "@/theme/use-colors";
 const OPTIONS = [
 	{
 		value: REMINDER_MORNING,
-		label: "Every morning",
-		detail: "A nudge at 8:00 AM, before the day has spent anything.",
+		label: "settings.notifications.morning",
+		detail: "settings.notifications.morningDetail",
 	},
 	{
 		value: REMINDER_EVENING,
-		label: "Every evening",
-		detail: "A nudge at 8:00 PM, once the day is mostly done.",
+		label: "settings.notifications.evening",
+		detail: "settings.notifications.eveningDetail",
 	},
-	{ value: REMINDER_CUSTOM, label: "Custom time" },
-] as const;
+	{ value: REMINDER_CUSTOM, label: "settings.notifications.custom" },
+] as const satisfies readonly {
+	value: number;
+	label: TranslationKey;
+	detail?: TranslationKey;
+}[];
 
 function reportReminderFailure(error: unknown): void {
 	console.error("Reminder update failed", error);
@@ -56,11 +61,17 @@ async function enableReminders(db: Database): Promise<void> {
 	const existing = await reminderPermission();
 	if (enableReminderStep(existing) === "open-settings") {
 		Alert.alert(
-			"Notifications are off",
-			"Outlayr cannot ask again once you have declined. Turn notifications on for Outlayr in iOS Settings and this switch will follow.",
+			translateNow("settings.notifications.deniedTitle"),
+			translateNow("settings.notifications.deniedBody"),
 			[
-				{ style: "cancel", text: "Not now" },
-				{ onPress: openNotificationSettings, text: "Open Settings" },
+				{
+					style: "cancel",
+					text: translateNow("settings.notifications.notNow"),
+				},
+				{
+					onPress: openNotificationSettings,
+					text: translateNow("settings.notifications.openSettings"),
+				},
 			],
 		);
 		return;
@@ -90,6 +101,7 @@ function Notifications({ db }: { db: Database }) {
 	useReminderSync(db);
 
 	const colors = useColors();
+	const t = useTranslation();
 	const settings = useAllSettings(db);
 	const enabled = settings.bool("showNotifications");
 	const option = settings.number("notificationOption");
@@ -123,8 +135,8 @@ function Notifications({ db }: { db: Database }) {
 	return (
 		<SettingsScreen>
 			<SettingsSection
-				footer="One reminder a day, from this device. Outlayr never sends anything from a server."
-				title="Daily reminder"
+				footer={t("settings.notifications.footer")}
+				title={t("settings.notifications.section")}
 			>
 				<ToggleRow
 					icon="Notification03"
@@ -133,28 +145,32 @@ function Notifications({ db }: { db: Database }) {
 							reportReminderFailure,
 						);
 					}}
-					title="Remind Me to Log"
+					title={t("settings.notifications.toggle")}
 					value={enabled}
 				/>
 			</SettingsSection>
 
 			{enabled ? (
 				<SettingsSection
-					footer={`Next reminder at ${formatTimeOfDay(scheduled)}.`}
-					title="When"
+					footer={t("settings.notifications.nextAt", {
+						time: formatTimeOfDay(scheduled),
+					})}
+					title={t("settings.notifications.whenSection")}
 				>
 					{OPTIONS.map((choice) => (
 						<ChoiceRow
-							detail={"detail" in choice ? choice.detail : undefined}
+							detail={"detail" in choice ? t(choice.detail) : undefined}
 							key={choice.value}
-							label={choice.label}
+							label={t(choice.label)}
 							onPress={() => chooseOption(choice.value)}
 							selected={option === choice.value}
 						/>
 					))}
 					{option === REMINDER_CUSTOM ? (
 						<View className="flex-row items-center justify-between border-border border-b py-2">
-							<Text className="text-body text-foreground">Time</Text>
+							<Text className="text-body text-foreground">
+								{t("settings.notifications.time")}
+							</Text>
 							<DateTimePicker
 								accentColor={colors.tint}
 								display="compact"

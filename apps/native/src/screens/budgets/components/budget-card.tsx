@@ -8,6 +8,7 @@ import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -43,11 +44,13 @@ export function BudgetCard({
 	contributions,
 	nowMs,
 }: BudgetCardProps) {
+	const t = useTranslation();
 	const [chartWidth, setChartWidth] = useState(0);
 	const now = new Date(nowMs);
 	const over = budget.overBudget;
 	const isDay = budget.type === BUDGET_TYPE.day;
 	const difference = Math.abs(budget.leftover);
+	const differenceLabel = formatAmount(difference, currency, showCents);
 
 	const onLayout = (event: LayoutChangeEvent) => {
 		setChartWidth(event.nativeEvent.layout.width);
@@ -55,7 +58,17 @@ export function BudgetCard({
 
 	return (
 		<Pressable
-			accessibilityLabel={`${budget.name}, ${formatAmount(difference, currency, showCents)} ${over ? "over budget" : "left"}`}
+			accessibilityLabel={
+				over
+					? t("budgets.card.a11yOver", {
+							name: budget.name,
+							amount: differenceLabel,
+						})
+					: t("budgets.card.a11yLeft", {
+							name: budget.name,
+							amount: differenceLabel,
+						})
+			}
 			accessibilityRole="button"
 			className="flex-1 gap-2 rounded-xl border border-border p-3 active:opacity-70"
 			onLongPress={() => onLongPress(budget.id)}
@@ -82,9 +95,9 @@ export function BudgetCard({
 				numberOfLines={1}
 				style={{ fontVariant: ["tabular-nums"] }}
 			>
-				{formatAmount(difference, currency, showCents)}
+				{differenceLabel}
 				<Text className="font-sans-medium text-label text-muted">
-					{over ? " over" : " left"}
+					{` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
 				</Text>
 			</Text>
 
@@ -119,7 +132,10 @@ export function BudgetCard({
 			)}
 
 			<MonoLabel numberOfLines={1}>
-				{`${formatAmount(budget.spent, currency, false)} of ${formatAmount(budget.amount, currency, false)} · ${budgetTimeLeftLabel(budget.window, budget.type, now)}`}
+				{`${t("budgets.spentOfLimit", {
+					spent: formatAmount(budget.spent, currency, false),
+					limit: formatAmount(budget.amount, currency, false),
+				})} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
 			</MonoLabel>
 		</Pressable>
 	);

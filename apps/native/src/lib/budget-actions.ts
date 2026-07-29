@@ -1,4 +1,5 @@
 import { Alert } from "react-native";
+import { translateNow } from "@/i18n/runtime";
 
 interface BudgetActionsOptions {
 	/** Category name for a per-category budget; omit for the overall budget. */
@@ -9,18 +10,23 @@ interface BudgetActionsOptions {
 
 /** Swift's `DeleteBudgetConfirmation` / `DeleteMainBudgetConfirmation` copy. */
 function deleteTitle(name?: string | null): string {
-	return name?.trim()
-		? `Delete the '${name.trim()}' budget?`
-		: "Delete the overall budget?";
+	const named = name?.trim();
+	return named
+		? translateNow("alerts.budget.deleteNamed", { name: named })
+		: translateNow("alerts.budget.deleteOverall");
 }
 
 export function confirmDeleteBudget(
 	name: string | null | undefined,
 	onConfirm: () => void,
 ): void {
-	Alert.alert(deleteTitle(name), "This action cannot be undone.", [
-		{ text: "Cancel", style: "cancel" },
-		{ text: "Delete", style: "destructive", onPress: onConfirm },
+	Alert.alert(deleteTitle(name), translateNow("alerts.budget.irreversible"), [
+		{ text: translateNow("common.cancel"), style: "cancel" },
+		{
+			text: translateNow("common.delete"),
+			style: "destructive",
+			onPress: onConfirm,
+		},
 	]);
 }
 
@@ -30,13 +36,17 @@ export function showBudgetActions({
 	onEdit,
 	onDelete,
 }: BudgetActionsOptions): void {
-	Alert.alert(name?.trim() ? name.trim() : "Overall Budget", undefined, [
-		{ text: "Edit", onPress: onEdit },
-		{
-			text: "Delete",
-			style: "destructive",
-			onPress: () => confirmDeleteBudget(name, onDelete),
-		},
-		{ text: "Cancel", style: "cancel" },
-	]);
+	Alert.alert(
+		name?.trim() ? name.trim() : translateNow("alerts.budget.fallbackTitle"),
+		undefined,
+		[
+			{ text: translateNow("common.edit"), onPress: onEdit },
+			{
+				text: translateNow("common.delete"),
+				style: "destructive",
+				onPress: () => confirmDeleteBudget(name, onDelete),
+			},
+			{ text: translateNow("common.cancel"), style: "cancel" },
+		],
+	);
 }

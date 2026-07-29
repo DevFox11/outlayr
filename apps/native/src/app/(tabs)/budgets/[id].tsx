@@ -9,15 +9,16 @@ import { useBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
-	budgetPeriodPhrase,
 	budgetWindowLabel,
 	isBehindPace,
 	leftPerDay,
 	shouldShowPaceMarker,
 } from "@/domain/budget-math";
+import { useTranslation } from "@/i18n";
 import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
+import { budgetPeriodKey } from "@/screens/budgets/period-phrase";
 
 export default function BudgetDetailScreen() {
 	const router = useRouter();
@@ -37,6 +38,7 @@ function BudgetDetail({
 	onDone: () => void;
 }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
@@ -88,7 +90,7 @@ function BudgetDetail({
 				period={
 					closed
 						? budgetWindowLabel(budget.window, budget.type)
-						: budgetPeriodPhrase(budget.type)
+						: t(budgetPeriodKey(budget.type))
 				}
 				spent={budget.spent}
 				amount={budget.amount}
@@ -119,7 +121,7 @@ function BudgetDetail({
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("more")}
-					accessibilityLabel="Budget actions"
+					accessibilityLabel={t("budgets.action.moreA11y")}
 					onPress={openActions}
 				/>
 			</Stack.Toolbar>

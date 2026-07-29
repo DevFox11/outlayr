@@ -9,6 +9,7 @@ import { landingDate } from "@/data/log-filtered";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useValuation } from "@/data/use-valuation";
 import { currencyTotals } from "@/domain/currency-totals";
+import { useTranslation } from "@/i18n";
 
 interface LogUpcomingProps {
 	transactions: TransactionWithCategory[];
@@ -33,6 +34,7 @@ export function LogUpcoming({
 	nowMs,
 }: LogUpcomingProps) {
 	const now = new Date(nowMs);
+	const t = useTranslation();
 	const { rates } = useValuation(useDatabase());
 	const totals = useMemo(
 		() => currencyTotals(transactions, currency, rates),
@@ -47,7 +49,7 @@ export function LogUpcoming({
 		<View className="pb-4.5">
 			<View className="gap-1.25 pt-2.5">
 				<View className="flex-row items-baseline justify-between gap-2">
-					<MonoLabel>UPCOMING</MonoLabel>
+					<MonoLabel>{t("log.upcoming.heading")}</MonoLabel>
 					<DayTotal
 						totals={totals}
 						showCents={showCents}

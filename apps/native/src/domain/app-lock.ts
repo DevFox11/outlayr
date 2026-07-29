@@ -1,5 +1,6 @@
 import type { LocalAuthenticationError } from "expo-local-authentication";
 import type { AppStateStatus } from "react-native";
+import type { TranslationKey } from "@/i18n/catalog";
 
 export type LockGate = "open" | "shut";
 
@@ -48,25 +49,25 @@ export function lockIsUnenforceable(error: LocalAuthenticationError): boolean {
 /** `null` where the user dismissed the prompt themselves — nothing went wrong. */
 export function lockFailureMessage(
 	error: LocalAuthenticationError,
-): string | null {
+): TranslationKey | null {
 	switch (error) {
 		case "user_cancel":
 		case "app_cancel":
 		case "system_cancel":
 			return null;
 		case "lockout":
-			return "Too many attempts. Unlock with your device passcode instead.";
+			return "lock.lockout";
 		case "authentication_failed":
-			return "That did not match. Try again.";
+			return "lock.failed";
 		case "user_fallback":
-			return "Choose Unlock again to enter your device passcode.";
+			return "lock.fallback";
 		case "not_enrolled":
 		case "not_available":
 		case "passcode_not_set":
-			return "This device has no passcode or biometrics set up.";
+			return "lock.unavailable";
 		case "timeout":
-			return "The prompt timed out. Try again.";
+			return "lock.timeout";
 		default:
-			return "Could not check. Try again.";
+			return "lock.unknown";
 	}
 }

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ExpenseContribution } from "@/data/budget-spent";
+import { EN } from "@/i18n/catalog";
+import type { TranslateFn } from "@/i18n/context";
+import { translate } from "@/i18n/translate";
 import {
 	buildDaySlots,
 	categoryMedian,
@@ -25,6 +28,9 @@ function expense(
 ): ExpenseContribution {
 	return { amount, categoryId, parentId, date: new Date(2026, 6, day, 9) };
 }
+
+const t: TranslateFn = (key, params) =>
+	translate(key, { catalog: EN, fallback: EN, params });
 
 describe("categoryMedian", () => {
 	it("ignores an outlier a mean would follow", () => {
@@ -85,7 +91,7 @@ describe("buildDaySlots", () => {
 		assert.equal(slots.ghost, 6);
 		assert.equal(slots.roomFor, 2);
 		assert.equal(slots.verdict, "room");
-		assert.equal(dayVerdictSentence(slots, "Coffee"), "Room for one more.");
+		assert.equal(dayVerdictSentence(slots, "Coffee", t), "Room for one more.");
 	});
 
 	it("withholds the slot when the next typical purchase would not fit", () => {
@@ -103,7 +109,7 @@ describe("buildDaySlots", () => {
 		assert.equal(slots.roomFor, 0);
 		assert.equal(slots.verdict, "tight");
 		assert.equal(
-			dayVerdictSentence(slots, "Coffee"),
+			dayVerdictSentence(slots, "Coffee", t),
 			"Not enough for another.",
 		);
 	});
@@ -122,7 +128,7 @@ describe("buildDaySlots", () => {
 		assert.equal(slots.ghost, null);
 		assert.deepEqual(slots.blocks, []);
 		assert.equal(slots.verdict, null);
-		assert.equal(dayVerdictSentence(slots, "Coffee"), null);
+		assert.equal(dayVerdictSentence(slots, "Coffee", t), null);
 	});
 
 	it("counts the purchases that landed past the limit", () => {
@@ -142,7 +148,10 @@ describe("buildDaySlots", () => {
 		assert.equal(slots.overflow, 1);
 		assert.equal(slots.remaining, -7);
 		assert.equal(slots.verdict, "over");
-		assert.equal(dayVerdictSentence(slots, "Coffee"), "One Coffee too many.");
+		assert.equal(
+			dayVerdictSentence(slots, "Coffee", t),
+			"One Coffee too many.",
+		);
 	});
 
 	it("names the count when more than one purchase overshot", () => {
@@ -156,7 +165,7 @@ describe("buildDaySlots", () => {
 		});
 
 		assert.equal(slots.overflow, 2);
-		assert.equal(dayVerdictSentence(slots, "Coffee"), "2 Coffee too many.");
+		assert.equal(dayVerdictSentence(slots, "Coffee", t), "2 Coffee too many.");
 	});
 
 	it("spans past the limit so an overshoot stays on the bar", () => {

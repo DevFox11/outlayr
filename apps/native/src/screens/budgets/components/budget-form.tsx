@@ -29,6 +29,7 @@ import type { Database } from "@/db/client";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
+import { useTranslation } from "@/i18n";
 
 type Kind = "overall" | "category";
 type Period = "day" | "week" | "month" | "year";
@@ -59,6 +60,7 @@ const PERIOD_BY_TYPE: Record<number, Period> = {
 
 /** Overall budgets are a singleton — saving re-points the existing one. */
 export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
+	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const minorUnits = minorUnitsFor(currency);
 	const settings = useAllSettings(db);
@@ -98,7 +100,9 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	const canSave =
 		amountNumber > 0 && (kind === "overall" || category != null) && !saving;
 	const defaultName =
-		kind === "overall" ? "Overall Budget" : (category?.name ?? "Budget");
+		kind === "overall"
+			? t("budgets.form.defaultOverall")
+			: (category?.name ?? t("budgets.form.defaultName"));
 
 	// Untouched, the picker shows the anchor the repo would pick anyway.
 	const periodStart = useMemo(
@@ -187,8 +191,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 				{initial ? null : (
 					<SegmentedControl
 						options={[
-							{ label: "Overall", value: "overall" },
-							{ label: "Category", value: "category" },
+							{ label: t("budgets.form.kindOverall"), value: "overall" },
+							{ label: t("budgets.form.kindCategory"), value: "category" },
 						]}
 						value={kind}
 						onChange={(next) => setKind(next as Kind)}
@@ -199,7 +203,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					className="items-center py-8 active:opacity-70"
 					onPress={() => amountSheetRef.current?.present()}
 					accessibilityRole="button"
-					accessibilityLabel="Edit amount"
+					accessibilityLabel={t("budgets.form.amountA11y")}
 				>
 					<HeroNumber
 						amount={amountNumber}
@@ -210,7 +214,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					/>
 				</Pressable>
 
-				<Field label="NAME">
+				<Field label={t("budgets.form.name")}>
 					<TextInput
 						className="rounded-xl border border-border px-3 py-3 font-sans text-body text-foreground"
 						value={name}
@@ -223,7 +227,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 				</Field>
 
 				{kind === "category" ? (
-					<Field label="CATEGORY">
+					<Field label={t("budgets.form.category")}>
 						<Animated.View style={shakeStyle}>
 							<Pressable
 								className={cn(
@@ -247,7 +251,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 									</>
 								) : (
 									<Text className="flex-1 text-body text-muted">
-										Select a category
+										{t("budgets.form.selectCategory")}
 									</Text>
 								)}
 								<Text className="text-headline text-subtle">{"›"}</Text>
@@ -256,20 +260,20 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					</Field>
 				) : null}
 
-				<Field label="PERIOD">
+				<Field label={t("budgets.form.period")}>
 					<SegmentedControl
 						options={[
-							{ label: "Day", value: "day" },
-							{ label: "Week", value: "week" },
-							{ label: "Month", value: "month" },
-							{ label: "Year", value: "year" },
+							{ label: t("budgets.form.periodDay"), value: "day" },
+							{ label: t("budgets.form.periodWeek"), value: "week" },
+							{ label: t("budgets.form.periodMonth"), value: "month" },
+							{ label: t("budgets.form.periodYear"), value: "year" },
 						]}
 						value={period}
 						onChange={(next) => setPeriod(next as Period)}
 					/>
 				</Field>
 
-				<Field label="STARTS">
+				<Field label={t("budgets.form.starts")}>
 					<Host style={{ height: 40 }}>
 						<HStack>
 							<DatePicker
@@ -299,7 +303,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							canSave ? "text-accent-foreground" : "text-subtle",
 						)}
 					>
-						{initial ? "Save changes" : "Create budget"}
+						{initial ? t("budgets.form.save") : t("budgets.form.create")}
 					</Text>
 				</Pressable>
 			</KeyboardAwareScrollView>

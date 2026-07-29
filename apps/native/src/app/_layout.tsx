@@ -35,6 +35,13 @@ import {
 	useLocalData,
 } from "@/contexts/local-data-context";
 import { useOnboardingSettled } from "@/data/onboarding";
+import {
+	LanguageProvider,
+	type TranslationKey,
+	translateNow,
+	useLanguageReady,
+	useTranslation,
+} from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { convex } from "@/lib/convex";
 import {
@@ -54,58 +61,64 @@ export const unstable_settings = {
  * and on the root stack rather than a nested one so it keeps a back button.
  * `categories/index` is absent because it declares its own chrome.
  */
-const SETTINGS_SCREENS: readonly { name: string; title: string }[] = [
-	{ name: "settings/about", title: "About & Credits" },
-	{ name: "settings/account", title: "Account" },
-	{ name: "settings/app-icon", title: "App Icon" },
-	{ name: "settings/currency", title: "Currency" },
-	{ name: "settings/erase", title: "Erase Data" },
-	{ name: "settings/export", title: "Export Data" },
-	{ name: "settings/feature-lab", title: "Feature Lab" },
-	{ name: "settings/haptics", title: "Haptics" },
-	{ name: "settings/import", title: "Import Data" },
-	{ name: "settings/notifications", title: "Notifications" },
-	{ name: "settings/number-entry", title: "Number Entry" },
-	{ name: "settings/theme", title: "Theme" },
-	{ name: "settings/time", title: "Time Frames" },
-	{ name: "settings/upcoming", title: "Upcoming Logs" },
-];
+const SETTINGS_SCREENS: readonly { name: string; titleKey: TranslationKey }[] =
+	[
+		{ name: "settings/about", titleKey: "nav.settings.about" },
+		{ name: "settings/account", titleKey: "nav.settings.account" },
+		{ name: "settings/app-icon", titleKey: "nav.settings.appIcon" },
+		{ name: "settings/currency", titleKey: "nav.settings.currency" },
+		{ name: "settings/erase", titleKey: "nav.settings.erase" },
+		{ name: "settings/export", titleKey: "nav.settings.export" },
+		{ name: "settings/feature-lab", titleKey: "nav.settings.featureLab" },
+		{ name: "settings/haptics", titleKey: "nav.settings.haptics" },
+		{ name: "settings/import", titleKey: "nav.settings.import" },
+		{ name: "settings/language", titleKey: "nav.settings.language" },
+		{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
+		{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },
+		{ name: "settings/theme", titleKey: "nav.settings.theme" },
+		{ name: "settings/time", titleKey: "nav.settings.time" },
+		{ name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
+	];
 
 const CATEGORY_SHEETS: readonly {
 	name: string;
-	title: string;
+	titleKey: TranslationKey;
 	detent: number;
 }[] = [
 	{
 		name: "settings/categories/create",
-		title: "New Category",
+		titleKey: "nav.newCategory",
 		detent: CATEGORY_DETENT,
 	},
 	{
 		name: "settings/categories/[categoryId]/index",
-		title: "Edit Category",
+		titleKey: "nav.editCategory",
 		detent: CATEGORY_DETENT,
 	},
 	{
 		name: "settings/categories/[categoryId]/subcategories/create",
-		title: "New Subcategory",
+		titleKey: "nav.newSubcategory",
 		detent: SUBCATEGORY_DETENT,
 	},
 	{
 		name: "settings/categories/[categoryId]/subcategories/[subcategoryId]",
-		title: "Subcategory",
+		titleKey: "nav.subcategory",
 		detent: SUBCATEGORY_DETENT,
 	},
 ];
 
+/**
+ * Renders in place of the provider tree it is guarding, so it reads the language
+ * off the runtime rather than through `useTranslation`.
+ */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 	return (
 		<View className="flex-1 items-center justify-center bg-background px-8">
 			<Text className="pb-2 font-sans-semibold text-foreground text-title">
-				Something Went Wrong
+				{translateNow("error.boundary.title")}
 			</Text>
 			<Text className="pb-4 text-center text-muted text-subtitle">
-				Outlayr hit an unexpected error. Your data is untouched — try again.
+				{translateNow("error.boundary.body")}
 			</Text>
 			<Text className="pb-6 text-center text-label text-muted">
 				{error.message}
@@ -117,7 +130,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 				}}
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-subtitle">
-					Try Again
+					{translateNow("common.retry")}
 				</Text>
 			</Pressable>
 		</View>
@@ -127,14 +140,18 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { status } = useLocalData();
 	const { isDark, isHydrated: themeReady } = useAppTheme();
+	const languageReady = useLanguageReady();
 	const colorScheme = useColorScheme();
 
 	// The app's one readiness gate: every screen below it can call `useDatabase()`
 	// and read straight away, with no per-screen loading branch, and the first
-	// frame is already in the user's chosen theme. "error" drops the splash too —
-	// an error surface beats an indefinite splash.
+	// frame is already in the user's chosen theme and language. "error" drops the
+	// splash too — an error surface beats an indefinite splash.
 	const isReady =
-		fontsLoaded && themeReady && (status === "ready" || status === "error");
+		fontsLoaded &&
+		themeReady &&
+		languageReady &&
+		(status === "ready" || status === "error");
 
 	useEffect(() => {
 		if (isReady) {
@@ -173,6 +190,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
  */
 function RootStack() {
 	const db = useDatabase();
+	const t = useTranslation();
 	const onboarded = useOnboardingSettled(db);
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
@@ -200,7 +218,7 @@ function RootStack() {
 				name="search"
 				options={{
 					presentation: "modal",
-					title: "Search",
+					title: t("nav.search"),
 					sheetGrabberVisible: true,
 				}}
 			/>
@@ -209,13 +227,13 @@ function RootStack() {
 				<Stack.Screen key={screen.name} name={screen.name}>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{screen.title}</Stack.Screen.Title>
+					<Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
 				</Stack.Screen>
 			))}
 			<Stack.Screen name="settings/categories/index">
 				<Stack.Header transparent />
 				<Stack.Screen.BackButton displayMode="minimal" />
-				<Stack.Screen.Title>Categories</Stack.Screen.Title>
+				<Stack.Screen.Title>{t("nav.categories")}</Stack.Screen.Title>
 			</Stack.Screen>
 			{CATEGORY_SHEETS.map((sheet) => (
 				<Stack.Screen
@@ -223,14 +241,14 @@ function RootStack() {
 					name={sheet.name}
 					options={{
 						presentation: "formSheet",
-						title: sheet.title,
+						title: t(sheet.titleKey),
 						sheetAllowedDetents: [sheet.detent, 1],
 						sheetGrabberVisible: true,
 					}}
 				>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{sheet.title}</Stack.Screen.Title>
+					<Stack.Screen.Title>{t(sheet.titleKey)}</Stack.Screen.Title>
 				</Stack.Screen>
 			))}
 			<Stack.Screen
@@ -248,11 +266,11 @@ function RootStack() {
 
 			<Stack.Screen
 				name="transaction/new"
-				options={{ presentation: "modal", title: "New Transaction" }}
+				options={{ presentation: "modal", title: t("nav.newTransaction") }}
 			/>
 			<Stack.Screen
 				name="transaction/[id]"
-				options={{ presentation: "modal", title: "Edit Transaction" }}
+				options={{ presentation: "modal", title: t("nav.editTransaction") }}
 			/>
 			<Stack.Screen
 				name="transaction/identity"
@@ -308,13 +326,15 @@ export default function RootLayout() {
 						}}
 					>
 						<AppThemeProvider>
-							<ConvexShell>
-								<LocalDataProvider>
-									<IdentityDraftProvider>
-										<RootNavigator fontsLoaded={fontsLoaded} />
-									</IdentityDraftProvider>
-								</LocalDataProvider>
-							</ConvexShell>
+							<LanguageProvider>
+								<ConvexShell>
+									<LocalDataProvider>
+										<IdentityDraftProvider>
+											<RootNavigator fontsLoaded={fontsLoaded} />
+										</IdentityDraftProvider>
+									</LocalDataProvider>
+								</ConvexShell>
+							</LanguageProvider>
 						</AppThemeProvider>
 					</SafeAreaListener>
 				</SafeAreaProvider>

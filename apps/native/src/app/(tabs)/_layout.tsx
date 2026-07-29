@@ -11,6 +11,7 @@ import settingsIcon from "@/assets/tab-icons/settings.png";
 import settingsSelectedIcon from "@/assets/tab-icons/settings-selected.png";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useOverBudgetCount } from "@/data/budgets";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 // The ink tint barely distinguishes the selected label on its own, so the weight
@@ -22,6 +23,7 @@ const LABEL_STYLE = {
 
 export default function TabLayout() {
 	const { accent } = useColors();
+	const t = useTranslation();
 	const db = useDatabase();
 	const [nowMs] = useState(() => Date.now());
 	const overBudget = useOverBudgetCount(db, nowMs);
@@ -33,21 +35,25 @@ export default function TabLayout() {
 					renderingMode="template"
 					src={{ default: logIcon, selected: logSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>Log</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>{t("nav.tab.log")}</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
 			<NativeTabs.Trigger name="insights">
 				<NativeTabs.Trigger.Icon
 					renderingMode="template"
 					src={{ default: insightsIcon, selected: insightsSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>Insights</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>
+					{t("nav.tab.insights")}
+				</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
 			<NativeTabs.Trigger name="budgets">
 				<NativeTabs.Trigger.Icon
 					renderingMode="template"
 					src={{ default: budgetsIcon, selected: budgetsSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>Budgets</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>
+					{t("nav.tab.budgets")}
+				</NativeTabs.Trigger.Label>
 
 				{overBudget > 0 ? (
 					<NativeTabs.Trigger.Badge>
@@ -60,7 +66,9 @@ export default function TabLayout() {
 					renderingMode="template"
 					src={{ default: settingsIcon, selected: settingsSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>
+					{t("nav.tab.settings")}
+				</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
 		</NativeTabs>
 	);

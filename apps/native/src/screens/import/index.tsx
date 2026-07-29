@@ -36,6 +36,12 @@ import {
 	detectDecimalSeparator,
 	parseCsvDate,
 } from "@/domain/transaction-csv";
+import {
+	type TranslateFn,
+	type TranslationKey,
+	translateNow,
+	useTranslation,
+} from "@/i18n";
 import { pickCsvFile, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
 
@@ -53,27 +59,33 @@ const EMPTY_DRAFT: Draft = {
 };
 
 const SLOTS = [
-	{ field: "date", label: "Date", required: true },
-	{ field: "amount", label: "Amount", required: true },
-	{ field: "category", label: "Category", required: true },
-	{ field: "note", label: "Note", required: false },
-	{ field: "currency", label: "Currency", required: false },
-	{ field: "type", label: "Income / Expense", required: false },
+	{ field: "date", label: "settings.import.slotDate", required: true },
+	{ field: "amount", label: "settings.import.slotAmount", required: true },
+	{ field: "category", label: "settings.import.slotCategory", required: true },
+	{ field: "note", label: "settings.import.slotNote", required: false },
+	{ field: "currency", label: "settings.import.slotCurrency", required: false },
+	{ field: "type", label: "settings.import.slotType", required: false },
 ] as const satisfies readonly {
 	field: keyof ColumnMapping;
-	label: string;
+	label: TranslationKey;
 	required: boolean;
 }[];
 
 const SKIP_LABEL = {
-	category: "unlinked category",
-	date: "unreadable date",
-	amount: "unreadable amount",
-} as const;
+	category: "settings.import.skippedCategory",
+	date: "settings.import.skippedDate",
+	amount: "settings.import.skippedAmount",
+} as const satisfies Record<string, TranslationKey>;
 
 function columnTitle(file: ParsedImportFile, index: number): string {
 	const named = file.header?.[index]?.trim();
-	return named == null || named === "" ? `Column ${index + 1}` : named;
+	return named == null || named === ""
+		? translateNow("settings.import.columnNumber", { number: index + 1 })
+		: named;
+}
+
+function skipReason(t: TranslateFn, reason: string): string {
+	return t(SKIP_LABEL[reason as keyof typeof SKIP_LABEL]);
 }
 
 function sampleOf(file: ParsedImportFile, index: number): string {
@@ -90,6 +102,7 @@ export default function ImportDataScreen() {
 function ImportData({ db }: { db: Database }) {
 	const router = useRouter();
 	const colors = useColors();
+	const t = useTranslation();
 	const pickerRef = useRef<CategoryPickerSheetRef>(null);
 	const expenseTree = useCategoriesByNamespace(db, false);
 	const incomeTree = useCategoriesByNamespace(db, true);
@@ -124,12 +137,15 @@ function ImportData({ db }: { db: Database }) {
 			for (const parent of tree) {
 				for (const category of [parent, ...parent.children]) {
 					income.set(category.id, flag);
-					name.set(category.id, category.name ?? "Untitled");
+					name.set(
+						category.id,
+						category.name ?? t("settings.import.untitledCategory"),
+					);
 				}
 			}
 		}
 		return { income, name };
-	}, [expenseTree, incomeTree]);
+	}, [expenseTree, incomeTree, t]);
 
 	const mapping = useMemo<ColumnMapping | null>(
 		() =>
@@ -182,8 +198,8 @@ function ImportData({ db }: { db: Database }) {
 				const parsed = parseImportFile(picked.text);
 				if (parsed == null) {
 					Alert.alert(
-						"That file can't be used",
-						"A CSV needs at least three columns and one row of data.",
+						t("settings.import.badFileTitle"),
+						t("settings.import.badFileBody"),
 					);
 					return;
 				}
@@ -199,10 +215,10 @@ function ImportData({ db }: { db: Database }) {
 			})
 			.catch((error: unknown) => {
 				Alert.alert(
-					"Import failed",
+					t("settings.import.failedTitle"),
 					error instanceof TransferError
 						? error.message
-						: "That file couldn't be opened.",
+						: t("settings.import.failedBody"),
 				);
 			});
 	};
@@ -255,7 +271,7 @@ function ImportData({ db }: { db: Database }) {
 				setFailure(
 					error instanceof Error
 						? error.message
-						: "Nothing was written. The ledger is unchanged.",
+						: t("settings.import.writeFailed"),
 				);
 			})
 			.finally(() => setStep("done"));
@@ -287,17 +303,18 @@ function ImportData({ db }: { db: Database }) {
 
 				{step === "map" && file != null ? (
 					<View className="gap-1 pt-6">
-						<MonoLabel>{`Step 1 of 4 · ${fileName}`}</MonoLabel>
+						<MonoLabel>
+							{t("settings.import.step1", { file: fileName })}
+						</MonoLabel>
 						<Text className="pb-2 text-muted text-subtitle leading-snug">
-							Say which column holds what. Date, Amount and Category are needed;
-							the rest are optional.
+							{t("settings.import.mapIntro")}
 						</Text>
 						{SLOTS.map((slot) => (
 							<SlotPicker
 								assigned={draft[slot.field]}
 								file={file}
 								key={slot.field}
-								label={slot.label}
+								label={t(slot.label)}
 								onAssign={(index) => assign(slot.field, index)}
 								required={slot.required}
 							/>
@@ -307,12 +324,17 @@ function ImportData({ db }: { db: Database }) {
 
 				{step === "format" && file != null ? (
 					<View className="gap-1 pt-6">
-						<MonoLabel>Step 2 of 4 · Dates and numbers</MonoLabel>
+						<MonoLabel>{t("settings.import.step2")}</MonoLabel>
 						<Text className="pb-3 text-muted text-subtitle leading-snug">
-							{`${readableDates} of ${dateColumn.length} dates read with this pattern.`}
+							{t("settings.import.datesRead", {
+								read: readableDates,
+								total: dateColumn.length,
+							})}
 						</Text>
 						<Text className="pb-1 text-muted text-subtitle">
-							{`Sample: ${dateColumn.find((value) => value.trim() !== "") ?? "—"}`}
+							{t("settings.import.sample", {
+								value: dateColumn.find((value) => value.trim() !== "") ?? "—",
+							})}
 						</Text>
 						<TextInput
 							autoCapitalize="none"
@@ -324,11 +346,10 @@ function ImportData({ db }: { db: Database }) {
 							value={dateFormat}
 						/>
 						<Text className="pt-2 pb-6 text-subtitle text-subtle leading-snug">
-							Tokens: yyyy, MM, dd, HH, mm, ss. Use ISO for a full 8601 instant
-							— that is what Outlayr's own export writes.
+							{t("settings.import.tokens")}
 						</Text>
 
-						<MonoLabel>Decimal separator</MonoLabel>
+						<MonoLabel>{t("settings.import.decimalSeparator")}</MonoLabel>
 						<View className="pt-2">
 							<SegmentedControl
 								onChange={setDecimal}
@@ -344,9 +365,12 @@ function ImportData({ db }: { db: Database }) {
 
 				{step === "link" ? (
 					<View className="gap-1 pt-6">
-						<MonoLabel>Step 3 of 4 · Link categories</MonoLabel>
+						<MonoLabel>{t("settings.import.step3")}</MonoLabel>
 						<Text className="pb-2 text-muted text-subtitle leading-snug">
-							{`${linkedCount} of ${values.length} linked. Rows whose category you leave unlinked are not imported — nothing is invented.`}
+							{t("settings.import.linkIntro", {
+								linked: linkedCount,
+								total: values.length,
+							})}
 						</Text>
 						{values.map((value) => {
 							const linkedId = links.get(categoryKey(value));
@@ -375,21 +399,27 @@ function ImportData({ db }: { db: Database }) {
 				{step === "running" ? (
 					<View className="items-center gap-3 pt-16">
 						<ActivityIndicator color={colors.foreground} />
-						<Text className="text-muted text-subtitle">Writing…</Text>
+						<Text className="text-muted text-subtitle">
+							{t("settings.import.writing")}
+						</Text>
 					</View>
 				) : null}
 
 				{step === "done" ? (
 					<View className="gap-2 pt-16">
-						<MonoLabel>{failure == null ? "Imported" : "Failed"}</MonoLabel>
+						<MonoLabel>
+							{failure == null
+								? t("settings.import.imported")
+								: t("settings.import.failed")}
+						</MonoLabel>
 						<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
 							{failure == null ? written : "—"}
 						</Text>
 						<Text className="text-muted text-subtitle leading-snug">
 							{failure ??
 								(written === 1
-									? "transaction added to your ledger."
-									: "transactions added to your ledger.")}
+									? t("settings.import.addedOne")
+									: t("settings.import.addedMany"))}
 						</Text>
 					</View>
 				) : null}
@@ -404,12 +434,14 @@ function ImportData({ db }: { db: Database }) {
 				}
 				label={
 					step === "pick"
-						? "Choose CSV file"
+						? t("settings.import.chooseCsvFile")
 						: step === "review"
-							? `Import ${plan?.entries.length ?? 0}`
+							? t("settings.import.importCount", {
+									total: plan?.entries.length ?? 0,
+								})
 							: step === "done"
-								? "Done"
-								: "Continue"
+								? t("common.done")
+								: t("common.continue")
 				}
 				onPress={() => {
 					if (step === "pick") {
@@ -463,13 +495,12 @@ function ImportData({ db }: { db: Database }) {
 }
 
 function PickStep({ onPick }: { onPick: () => void }) {
+	const t = useTranslation();
 	return (
 		<View className="gap-1 pt-6">
-			<MonoLabel>Before you start</MonoLabel>
+			<MonoLabel>{t("settings.import.beforeYouStart")}</MonoLabel>
 			<Text className="pb-4 text-muted text-subtitle leading-snug">
-				Pick a CSV and you will be asked which column holds what, how its dates
-				are written, and which Outlayr category each of its category values
-				means. Nothing is written until you have seen exactly what will land.
+				{t("settings.import.intro")}
 			</Text>
 			<Pressable
 				accessibilityRole="button"
@@ -477,7 +508,7 @@ function PickStep({ onPick }: { onPick: () => void }) {
 				onPress={onPick}
 			>
 				<Text className="font-sans-medium text-body text-foreground underline">
-					Choose a file
+					{t("settings.import.chooseAFile")}
 				</Text>
 			</Pressable>
 		</View>
@@ -497,6 +528,7 @@ function SlotPicker({
 	assigned: number | null;
 	onAssign: (index: number | null) => void;
 }) {
+	const t = useTranslation();
 	return (
 		<View className="border-border border-b py-3">
 			<View className="flex-row items-baseline justify-between gap-2 pb-2">
@@ -509,7 +541,9 @@ function SlotPicker({
 						className="active:opacity-60"
 						onPress={() => onAssign(null)}
 					>
-						<Text className="text-subtitle text-subtle">Skip</Text>
+						<Text className="text-subtitle text-subtle">
+							{t("common.skip")}
+						</Text>
 					</Pressable>
 				)}
 			</View>
@@ -565,6 +599,7 @@ function LinkRowItem({
 	income: boolean;
 	onChoose: (income: boolean) => void;
 }) {
+	const t = useTranslation();
 	return (
 		<View className="flex-row items-center gap-3 border-border border-b py-3">
 			<Text className="flex-1 text-body text-foreground" numberOfLines={1}>
@@ -577,14 +612,18 @@ function LinkRowItem({
 						className="rounded-lg border border-border px-3 py-1.5 active:opacity-60"
 						onPress={() => onChoose(false)}
 					>
-						<Text className="text-foreground text-subtitle">Expense</Text>
+						<Text className="text-foreground text-subtitle">
+							{t("common.expense")}
+						</Text>
 					</Pressable>
 					<Pressable
 						accessibilityRole="button"
 						className="rounded-lg border border-border px-3 py-1.5 active:opacity-60"
 						onPress={() => onChoose(true)}
 					>
-						<Text className="text-foreground text-subtitle">Income</Text>
+						<Text className="text-foreground text-subtitle">
+							{t("common.income")}
+						</Text>
 					</Pressable>
 				</View>
 			) : (
@@ -603,6 +642,7 @@ function LinkRowItem({
 }
 
 function ReviewStep({ plan }: { plan: ImportPlan }) {
+	const t = useTranslation();
 	const reasons = new Map<string, number>();
 	for (const row of plan.skipped) {
 		reasons.set(row.reason, (reasons.get(row.reason) ?? 0) + 1);
@@ -610,14 +650,14 @@ function ReviewStep({ plan }: { plan: ImportPlan }) {
 
 	return (
 		<View className="gap-1 pt-6">
-			<MonoLabel>Step 4 of 4 · Review</MonoLabel>
+			<MonoLabel>{t("settings.import.step4")}</MonoLabel>
 			<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
 				{plan.entries.length}
 			</Text>
 			<Text className="pb-4 text-muted text-subtitle">
 				{plan.entries.length === 1
-					? "transaction will be added"
-					: "transactions will be added"}
+					? t("settings.import.willAddOne")
+					: t("settings.import.willAddMany")}
 			</Text>
 
 			{plan.earliest != null && plan.latest != null ? (
@@ -628,19 +668,20 @@ function ReviewStep({ plan }: { plan: ImportPlan }) {
 
 			{plan.skipped.length === 0 ? (
 				<Text className="text-muted text-subtitle leading-snug">
-					Every row in the file could be read.
+					{t("settings.import.allRowsRead")}
 				</Text>
 			) : (
 				<View className="gap-1">
-					<MonoLabel>{`${plan.skipped.length} skipped`}</MonoLabel>
+					<MonoLabel>
+						{t("settings.import.skippedCount", { total: plan.skipped.length })}
+					</MonoLabel>
 					{[...reasons].map(([reason, count]) => (
 						<Text className="text-muted text-subtitle" key={reason}>
-							{`${count} · ${SKIP_LABEL[reason as keyof typeof SKIP_LABEL]}`}
+							{`${count} · ${skipReason(t, reason)}`}
 						</Text>
 					))}
 					<Text className="pt-1 text-subtitle text-subtle leading-snug">
-						Skipped rows are left out entirely. Go back to change the mapping,
-						the date pattern, or the category links.
+						{t("settings.import.skippedNote")}
 					</Text>
 				</View>
 			)}
@@ -662,6 +703,7 @@ function Footer({
 	disabled: boolean;
 	visible: boolean;
 }) {
+	const t = useTranslation();
 	if (!visible) {
 		return null;
 	}
@@ -673,7 +715,9 @@ function Footer({
 					className="items-center pb-3 active:opacity-60"
 					onPress={onBack}
 				>
-					<Text className="text-muted text-subtitle">Back</Text>
+					<Text className="text-muted text-subtitle">
+						{t("settings.import.back")}
+					</Text>
 				</Pressable>
 			) : null}
 			<Pressable

@@ -16,13 +16,6 @@ export function storedInsightsMeasure(measure: InsightsMeasure): number {
 	return STORED[measure];
 }
 
-/** One short word, so both unpromoted cells fit across the narrowest phone. */
-export const INSIGHTS_MEASURE_WORD: Record<InsightsMeasure, string> = {
-	spent: "Spent",
-	income: "Income",
-	net: "Net",
-};
-
 /** The window's two raw magnitudes; the net is derived, never stored. */
 export interface InsightsTotals {
 	income: number;

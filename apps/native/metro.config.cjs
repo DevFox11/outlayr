@@ -3,6 +3,7 @@
 const path = require("node:path");
 
 const { getDefaultConfig } = require("expo/metro-config");
+const { configMetroIntlayerSync } = require("react-native-intlayer/metro");
 const { withUniwindConfig } = require("uniwind/metro");
 const {
 	wrapWithReanimatedMetroConfig,
@@ -30,7 +31,14 @@ config.watchFolders = config.watchFolders.filter((dir) => dir !== swiftApp);
 // extend (never reset) the resolver — re-verify on upgrades.
 config.resolver.sourceExts.push("sql");
 
-module.exports = withUniwindConfig(wrapWithReanimatedMetroConfig(config), {
-	cssEntryFile: "./global.css",
-	dtsFile: "./uniwind-types.d.ts",
-});
+// Intlayer goes outermost: it spreads the resolver it is handed and chains its
+// `resolveRequest` to the existing one, so it inherits the `.sql` extension and
+// both wrappers rather than replacing them. The sync variant does not build
+// dictionaries on server start — `pnpm i18n:build` owns that, so a clean clone
+// and CI produce them the same way rather than only whoever ran Metro.
+module.exports = configMetroIntlayerSync(
+	withUniwindConfig(wrapWithReanimatedMetroConfig(config), {
+		cssEntryFile: "./global.css",
+		dtsFile: "./uniwind-types.d.ts",
+	}),
+);

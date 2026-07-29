@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { LinkRow } from "@/components/settings/settings-row";
 import { type AccountState, accountRowValue } from "@/domain/account";
+import { useTranslation } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 
 type AuthClient = NonNullable<typeof authClient>;
@@ -29,6 +30,7 @@ function SessionRow({ client }: { client: AuthClient }) {
 
 function Row({ state }: { state: AccountState }) {
 	const router = useRouter();
+	const t = useTranslation();
 	return (
 		<LinkRow
 			icon="UserCircle"
@@ -37,8 +39,8 @@ function Row({ state }: { state: AccountState }) {
 					? undefined
 					: () => router.push("/settings/account")
 			}
-			title="Account"
-			value={accountRowValue(state)}
+			title={t("settings.account.rowTitle")}
+			value={accountRowValue(state, t)}
 		/>
 	);
 }

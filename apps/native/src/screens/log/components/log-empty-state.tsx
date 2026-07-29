@@ -2,6 +2,7 @@ import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import { Text } from "@/components/text";
+import { useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 
 const GHOST = "#767676";
@@ -13,6 +14,7 @@ const CARD_WIDTH = 244;
 const CARD_HEIGHT = 200;
 
 export function LogEmptyState() {
+	const t = useTranslation();
 	return (
 		// A View, not a ScrollView: react-native-screens gives the first descendant
 		// scroll view a top content inset so the large title can hook to it, and
@@ -22,11 +24,10 @@ export function LogEmptyState() {
 			<GhostCard />
 			<View className="items-center pt-7">
 				<Text className="pb-1.5 font-sans-semibold text-foreground text-title">
-					Nothing logged yet
+					{t("log.empty.title")}
 				</Text>
 				<Text className="max-w-70 text-center font-sans-medium text-muted text-subtitle">
-					Your first entry sets the baseline everything else is measured
-					against.
+					{t("log.empty.body")}
 				</Text>
 			</View>
 		</View>

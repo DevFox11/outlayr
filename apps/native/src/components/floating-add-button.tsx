@@ -11,14 +11,17 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
+import { useTranslation } from "@/i18n";
+
 export function FloatingAddButton() {
 	const accentColor = useCSSVariable("--color-accent");
+	const t = useTranslation();
 
 	return (
 		<View className="absolute right-5 bottom-safe-offset-17">
 			<Host matchContents>
 				<Menu
-					label="Add"
+					label={t("log.add.menu")}
 					systemImage="plus"
 					modifiers={[
 						buttonStyle("glassProminent"),
@@ -29,7 +32,7 @@ export function FloatingAddButton() {
 					]}
 				>
 					<Button
-						label="Create transaction"
+						label={t("log.add.transaction")}
 						onPress={() => router.push("/transaction/new")}
 					/>
 				</Menu>

@@ -10,6 +10,8 @@ import type {
 	CategoryMover,
 	InsightsBucket,
 } from "@/data/insights";
+import { formatAmount } from "@/domain/money";
+import { type TranslateFn, useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryBreakdownRow } from "./category-breakdown-row";
@@ -52,10 +54,10 @@ const GROCERIES = { icon: "ShoppingCart01", color: "#34C759" } as const;
  */
 const SAMPLE_BUCKETS: InsightsBucket[] = marchBuckets(DAILY_SPEND);
 
-const SAMPLE_CELLS: LedgerCell[] = [
+const sampleCells = (t: TranslateFn): LedgerCell[] => [
 	{
 		key: "income",
-		label: "Income",
+		label: t("insights.measure.income"),
 		magnitude: 3200,
 		positive: true,
 		income: true,
@@ -63,7 +65,7 @@ const SAMPLE_CELLS: LedgerCell[] = [
 	},
 	{
 		key: "net",
-		label: "Net",
+		label: t("insights.measure.net"),
 		magnitude: 1359.5,
 		positive: true,
 		income: false,
@@ -71,10 +73,10 @@ const SAMPLE_CELLS: LedgerCell[] = [
 	},
 ];
 
-const SAMPLE_MOVERS: CategoryMover[] = [
+const sampleMovers = (t: TranslateFn): CategoryMover[] => [
 	{
 		id: "dining",
-		name: "Dining Out",
+		name: t("insights.sample.dining"),
 		color: DINING.color,
 		icon: DINING.icon,
 		emoji: null,
@@ -83,7 +85,7 @@ const SAMPLE_MOVERS: CategoryMover[] = [
 	},
 	{
 		id: "groceries",
-		name: "Groceries",
+		name: t("insights.sample.groceries"),
 		color: GROCERIES.color,
 		icon: GROCERIES.icon,
 		emoji: null,
@@ -92,10 +94,10 @@ const SAMPLE_MOVERS: CategoryMover[] = [
 	},
 ];
 
-const SAMPLE_BREAKDOWN: CategoryBreakdownEntry[] = [
+const sampleBreakdown = (t: TranslateFn): CategoryBreakdownEntry[] => [
 	{
 		id: "dining",
-		name: "Dining Out",
+		name: t("insights.sample.dining"),
 		color: DINING.color,
 		icon: DINING.icon,
 		emoji: null,
@@ -105,7 +107,7 @@ const SAMPLE_BREAKDOWN: CategoryBreakdownEntry[] = [
 	},
 	{
 		id: "groceries",
-		name: "Groceries",
+		name: t("insights.sample.groceries"),
 		color: GROCERIES.color,
 		icon: GROCERIES.icon,
 		emoji: null,
@@ -127,6 +129,8 @@ interface InsightsSampleProps {
  */
 export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 	const colors = useColors();
+	const t = useTranslation();
+	const breakdown = sampleBreakdown(t);
 
 	return (
 		// A fragment, not a wrapping View: UIKit hooks the large title to the first
@@ -146,11 +150,11 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 			>
 				<View className="px-5 pt-2">
 					<View className="self-start rounded-full bg-surface-secondary px-2 py-1">
-						<MonoLabel>Sample</MonoLabel>
+						<MonoLabel>{t("insights.sample.badge")}</MonoLabel>
 					</View>
 
 					<View className="flex-row items-center justify-between pt-3.5">
-						<MonoLabel>Spent · March</MonoLabel>
+						<MonoLabel>{`${t("insights.measure.spent")} · ${t("insights.sample.month")}`}</MonoLabel>
 						{/* Spending less is the favourable direction, so the fall wears
 					    income green rather than danger red. */}
 						<View
@@ -182,11 +186,15 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 					</View>
 
 					<Text className="pt-0.5 text-footnote text-muted">
-						$251.00 less than February. Groceries alone gave back $95.40.
+						{t("insights.sample.verdict", {
+							delta: formatAmount(251, "USD", true),
+							category: t("insights.sample.groceries"),
+							moved: formatAmount(95.4, "USD", true),
+						})}
 					</Text>
 
 					<View className="pt-3">
-						<LedgerHead cells={SAMPLE_CELLS} code="USD" showCents />
+						<LedgerHead cells={sampleCells(t)} code="USD" showCents />
 					</View>
 
 					<View className="pt-4">
@@ -207,25 +215,25 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 						<InsightsMovers
 							code="USD"
 							measure="spent"
-							movers={SAMPLE_MOVERS}
-							priorLabel="February"
+							movers={sampleMovers(t)}
+							priorLabel={t("insights.sample.priorLabel")}
 							showCents
 						/>
 					</View>
 
 					<View className="pt-6">
 						<View className="pb-3">
-							<MonoLabel>Categories</MonoLabel>
+							<MonoLabel>{t("insights.categories")}</MonoLabel>
 						</View>
 						<View className="pb-1">
 							<CategoryProportionBar
-								entries={SAMPLE_BREAKDOWN}
+								entries={breakdown}
 								onSelect={noop}
 								selectedId={null}
 							/>
 						</View>
 						<View className="pt-2">
-							{SAMPLE_BREAKDOWN.map((entry) => (
+							{breakdown.map((entry) => (
 								<CategoryBreakdownRow
 									code="USD"
 									entry={entry}
@@ -256,10 +264,10 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 			{/* Clears the floating tab bar, as `FloatingAddButton` does. */}
 			<View className="absolute right-0 bottom-safe-offset-20 left-0 items-center px-8">
 				<Text className="pb-1 text-center font-sans-semibold text-body text-foreground">
-					This is what a month looks like
+					{t("insights.sample.headline")}
 				</Text>
 				<Text className="pb-5 text-center text-footnote text-muted">
-					Yours starts filling in from your first entry.
+					{t("insights.sample.body")}
 				</Text>
 				<Pressable
 					accessibilityRole="button"
@@ -267,7 +275,7 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 					onPress={onAddTransaction}
 				>
 					<Text className="font-sans-semibold text-accent-foreground text-body">
-						Log your first expense
+						{t("insights.sample.cta")}
 					</Text>
 				</Pressable>
 			</View>

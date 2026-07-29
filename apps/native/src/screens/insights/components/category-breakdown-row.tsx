@@ -7,6 +7,7 @@ import { cn } from "@/components/tw";
 import type { CategoryBreakdownEntry, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 interface CategoryBreakdownRowProps {
@@ -31,6 +32,7 @@ export function CategoryBreakdownRow({
 	onClear,
 }: CategoryBreakdownRowProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const income = measure === "income";
 	const toneClass = income ? "text-income" : "text-foreground";
 	const fillClass = income ? "bg-income" : "bg-foreground";
@@ -74,7 +76,7 @@ export function CategoryBreakdownRow({
 				</Text>
 				{selected && onClear ? (
 					<Pressable
-						accessibilityLabel="Clear category filter"
+						accessibilityLabel={t("insights.category.clearFilter")}
 						accessibilityRole="button"
 						className="size-[26px] items-center justify-center rounded-full bg-surface active:opacity-70"
 						hitSlop={8}

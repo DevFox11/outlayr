@@ -1,6 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import type { Burndown } from "@/domain/budget-burndown";
+import { useTranslation } from "@/i18n";
 import { BudgetLimitPicker } from "./budget-limit-picker";
 
 interface BudgetEmptyStateProps {
@@ -45,13 +46,14 @@ function NothingToBudget({
 }: {
 	onAddTransaction: () => void;
 }) {
+	const t = useTranslation();
 	return (
 		<View className="flex-1 items-center justify-center px-8">
 			<Text className="pb-2 font-sans-semibold text-foreground text-title">
-				Budget Your Finances
+				{t("budgets.empty.title")}
 			</Text>
 			<Text className="pb-7 text-center text-muted text-subtitle">
-				Link budgets to categories and set appropriate expenditure goals.
+				{t("budgets.empty.body")}
 			</Text>
 			<Pressable
 				accessibilityRole="button"
@@ -59,7 +61,7 @@ function NothingToBudget({
 				onPress={onAddTransaction}
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-body">
-					Add a Transaction
+					{t("budgets.empty.action")}
 				</Text>
 			</Pressable>
 		</View>

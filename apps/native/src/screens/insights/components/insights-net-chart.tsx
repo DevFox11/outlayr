@@ -18,6 +18,7 @@ import {
 } from "@/data/insights";
 import { useBoolSetting } from "@/data/settings";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { hatchPathD } from "@/lib/chart-paths";
 import { CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
@@ -52,6 +53,7 @@ export function InsightsNetChart({
 	nowMs,
 }: InsightsNetChartProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const db = useDatabase();
 	const animated = useBoolSetting(db, "animatedCharts");
 
@@ -305,7 +307,15 @@ export function InsightsNetChart({
 					>
 						{live.map((value, index) => (
 							<View
-								accessibilityLabel={`${bucketDateLabel(period, buckets[index].start)}, balance ${formatAmount(Math.abs(value), code, false)} ${value < 0 ? "behind" : "ahead"}`}
+								accessibilityLabel={t(
+									value < 0
+										? "insights.net.slotBehind"
+										: "insights.net.slotAhead",
+									{
+										date: bucketDateLabel(period, buckets[index].start),
+										amount: formatAmount(Math.abs(value), code, false),
+									},
+								)}
 								accessibilityRole="button"
 								accessibilityState={{ selected: selectedIndex === index }}
 								accessible

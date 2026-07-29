@@ -197,6 +197,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 		},
 		plugins: [
 			"expo-router",
+			"expo-localization",
 			[
 				"expo-build-properties",
 				{
@@ -335,6 +336,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 			},
 			infoPlist: {
 				ITSAppUsesNonExemptEncryption: false,
+				// Without these iOS offers no per-app language row in Settings and
+				// reports the device language even when the app cannot render it.
+				CFBundleLocalizations: ["en", "es"],
 			},
 		},
 		android: {

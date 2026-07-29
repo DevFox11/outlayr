@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { type Category, useCategoriesByNamespace } from "@/data/categories";
 import type { Database } from "@/db/client";
+import { useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -39,6 +40,7 @@ export const CategoryPickerSheet = forwardRef<
 	BottomSheetModal,
 	CategoryPickerSheetProps
 >(function CategoryPickerSheet({ db, income, selectedId, onSelect }, ref) {
+	const t = useTranslation();
 	const colors = useColors();
 	const categories = useCategoriesByNamespace(db, income);
 	const sheetRef = useRef<BottomSheetModal>(null);
@@ -83,7 +85,7 @@ export const CategoryPickerSheet = forwardRef<
 					accessibilityRole="header"
 					className="text-center font-sans-semibold text-callout text-foreground"
 				>
-					Category
+					{t("categories.kind.category")}
 				</Text>
 				<Pressable
 					accessibilityRole="button"
@@ -92,7 +94,7 @@ export const CategoryPickerSheet = forwardRef<
 					onPress={() => sheetRef.current?.dismiss()}
 				>
 					<Text className="font-sans-semibold text-callout text-tint">
-						Done
+						{t("common.done")}
 					</Text>
 				</Pressable>
 			</View>

@@ -1,16 +1,18 @@
+import type { TranslationKey } from "@/i18n/catalog";
+
 interface RawCategoryIcon {
 	readonly name: string;
 	readonly key: string;
 }
 
 interface RawCategoryIconGroup {
-	readonly title: string;
+	readonly titleKey: TranslationKey;
 	readonly icons: readonly RawCategoryIcon[];
 }
 
 const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 	{
-		title: "Food & Drink",
+		titleKey: "icons.section.food",
 		icons: [
 			{ name: "restaurant-01", key: "Restaurant01" },
 			{ name: "coffee-02", key: "Coffee02" },
@@ -35,7 +37,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Shopping",
+		titleKey: "icons.section.shopping",
 		icons: [
 			{ name: "shopping-cart-01", key: "ShoppingCart01" },
 			{ name: "shopping-bag-01", key: "ShoppingBag01" },
@@ -58,7 +60,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Transport & Travel",
+		titleKey: "icons.section.transport",
 		icons: [
 			{ name: "car-01", key: "Car01" },
 			{ name: "bus-01", key: "Bus01" },
@@ -83,7 +85,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Home & Utilities",
+		titleKey: "icons.section.home",
 		icons: [
 			{ name: "home-01", key: "Home01" },
 			{ name: "sofa-01", key: "Sofa01" },
@@ -110,7 +112,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Health & Fitness",
+		titleKey: "icons.section.health",
 		icons: [
 			{ name: "health", key: "Health" },
 			{ name: "stethoscope-02", key: "Stethoscope02" },
@@ -135,7 +137,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Leisure",
+		titleKey: "icons.section.leisure",
 		icons: [
 			{ name: "film-roll-01", key: "FilmRoll01" },
 			{ name: "film-01", key: "Film01" },
@@ -159,7 +161,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Money & Work",
+		titleKey: "icons.section.money",
 		icons: [
 			{ name: "money-bag-01", key: "MoneyBag01" },
 			{ name: "wallet-01", key: "Wallet01" },
@@ -188,7 +190,7 @@ const RAW_ICON_GROUPS: readonly RawCategoryIconGroup[] = [
 		],
 	},
 	{
-		title: "Life & Other",
+		titleKey: "icons.section.life",
 		icons: [
 			{ name: "kid", key: "Kid" },
 			{ name: "baby-bed-01", key: "BabyBed01" },
@@ -400,19 +402,19 @@ const KEYWORDS_BY_NAME: Record<string, readonly string[]> = {
 };
 
 export interface CategoryIconGroup {
-	title: string;
+	titleKey: TranslationKey;
 	keys: readonly string[];
 }
 
 /** Icon picker groups in Swift order; `keys` index the category icon registry. */
 export const CATEGORY_ICON_GROUPS: readonly CategoryIconGroup[] =
 	RAW_ICON_GROUPS.map((group) => ({
-		title: group.title,
+		titleKey: group.titleKey,
 		keys: group.icons.map((icon) => icon.key),
 	}));
 
 export interface CategoryEmojiGroup {
-	title: string;
+	titleKey: TranslationKey;
 	emoji: readonly string[];
 }
 
@@ -422,7 +424,7 @@ export interface CategoryEmojiGroup {
  */
 export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 	{
-		title: "Food & Drink",
+		titleKey: "icons.section.food",
 		emoji: [
 			"🍎",
 			"🍞",
@@ -443,11 +445,11 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 		],
 	},
 	{
-		title: "Shopping",
+		titleKey: "icons.section.shopping",
 		emoji: ["🛍️", "👕", "👗", "👟", "👜", "💄", "💍", "🎁", "📦", "🧾"],
 	},
 	{
-		title: "Transport & Travel",
+		titleKey: "icons.section.transport",
 		emoji: [
 			"🚗",
 			"🚕",
@@ -467,7 +469,7 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 		],
 	},
 	{
-		title: "Home & Utilities",
+		titleKey: "icons.section.home",
 		emoji: [
 			"🏠",
 			"🏡",
@@ -487,7 +489,7 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 		],
 	},
 	{
-		title: "Health & Fitness",
+		titleKey: "icons.section.health",
 		emoji: [
 			"💊",
 			"🩺",
@@ -504,7 +506,7 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 		],
 	},
 	{
-		title: "Leisure",
+		titleKey: "icons.section.leisure",
 		emoji: [
 			"🎬",
 			"🎮",
@@ -521,7 +523,7 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 		],
 	},
 	{
-		title: "Money & Work",
+		titleKey: "icons.section.money",
 		emoji: [
 			"💰",
 			"💵",
@@ -542,7 +544,7 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
 		],
 	},
 	{
-		title: "Life & Other",
+		titleKey: "icons.section.life",
 		emoji: [
 			"🐶",
 			"🐱",

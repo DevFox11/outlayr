@@ -11,6 +11,7 @@ import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { formatAmount } from "@/domain/money";
 import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
+import { useTranslation } from "@/i18n";
 import { BudgetProgressBar } from "./budget-progress-bar";
 
 interface BudgetDetailViewProps {
@@ -56,6 +57,7 @@ export function BudgetDetailView({
 	closed = false,
 	stepper = null,
 }: BudgetDetailViewProps) {
+	const t = useTranslation();
 	const { displayCurrency, rates } = useValuation(useDatabase());
 	const sections = useMemo(
 		() => groupByDay(transactions, currency, rates),
@@ -65,8 +67,8 @@ export function BudgetDetailView({
 	// where rows the rate history can no longer reach turn up, and a total that
 	// silently mixes them with converted ones reads as more solid than it is.
 	const note = useMemo(
-		() => coverageNote(coverageOf(transactions, displayCurrency, rates)),
-		[transactions, displayCurrency, rates],
+		() => coverageNote(coverageOf(transactions, displayCurrency, rates), t),
+		[transactions, displayCurrency, rates, t],
 	);
 
 	return (
@@ -97,8 +99,8 @@ export function BudgetDetailView({
 			ListEmptyComponent={
 				<Text className="py-3 text-muted text-subtitle">
 					{closed
-						? "Nothing was spent in this period."
-						: "No spending in this period yet."}
+						? t("budgets.detail.emptyClosed")
+						: t("budgets.detail.emptyOpen")}
 				</Text>
 			}
 			renderSectionHeader={({ section }) => (
@@ -151,21 +153,28 @@ function BudgetSummary({
 	note: string | null;
 	stepper: ReactNode;
 }) {
+	const t = useTranslation();
 	const spentPct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
 	const difference = Math.abs(leftover);
 	const figureTone = overBudget ? "text-over-budget" : "text-foreground";
 	let label: string;
 	if (closed) {
-		label = overBudget ? "over budget" : "unspent";
+		label = overBudget
+			? t("budgets.detail.overBudget")
+			: t("budgets.detail.unspent");
 	} else {
-		label = overBudget ? `over ${period}` : `left ${period}`;
+		label = overBudget
+			? t("budgets.detail.overPeriod", { period })
+			: t("budgets.detail.leftPeriod", { period });
 	}
 
 	return (
 		<View>
 			<View className="flex-row items-baseline justify-between">
 				<MonoLabel>{period}</MonoLabel>
-				<MonoLabel>{`${spentPct}% spent`}</MonoLabel>
+				<MonoLabel>
+					{t("budgets.detail.percentSpent", { percent: spentPct })}
+				</MonoLabel>
 			</View>
 
 			<View className="pt-2">
@@ -184,7 +193,9 @@ function BudgetSummary({
 					className="pt-0.5 text-footnote text-muted"
 					style={{ fontVariant: ["tabular-nums"] }}
 				>
-					{formatAmount(leftPerDayAmount, currency, showCents)} left each day
+					{t("budgets.detail.leftEachDay", {
+						amount: formatAmount(leftPerDayAmount, currency, showCents),
+					})}
 				</Text>
 			) : null}
 
@@ -199,8 +210,16 @@ function BudgetSummary({
 			</View>
 
 			<View className="flex-row items-baseline justify-between pt-2.5">
-				<MonoLabel>{`${formatAmount(spent, currency, showCents)} spent`}</MonoLabel>
-				<MonoLabel>{`${formatAmount(amount, currency, showCents)} limit`}</MonoLabel>
+				<MonoLabel>
+					{t("budgets.detail.spent", {
+						amount: formatAmount(spent, currency, showCents),
+					})}
+				</MonoLabel>
+				<MonoLabel>
+					{t("budgets.detail.limit", {
+						amount: formatAmount(amount, currency, showCents),
+					})}
+				</MonoLabel>
 			</View>
 
 			{note ? (
@@ -212,7 +231,7 @@ function BudgetSummary({
 			) : null}
 
 			<View className="pt-7">
-				<MonoLabel>TRANSACTIONS</MonoLabel>
+				<MonoLabel>{t("budgets.detail.transactions")}</MonoLabel>
 			</View>
 		</View>
 	);

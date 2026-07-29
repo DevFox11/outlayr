@@ -3,6 +3,7 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { useTranslation } from "@/i18n";
 
 export default function FeatureLabScreen() {
 	const db = useDatabase();
@@ -10,6 +11,7 @@ export default function FeatureLabScreen() {
 }
 
 function FeatureLabContent({ db }: { db: Database }) {
+	const t = useTranslation();
 	const settings = useAllSettings(db);
 	const confetti = settings.bool("confetti");
 	const lineGraph = settings.bool("logViewLineGraph");
@@ -19,57 +21,57 @@ function FeatureLabContent({ db }: { db: Database }) {
 	return (
 		<SettingsScreen>
 			<SettingsSection
-				footer="Throws confetti over a transaction the moment you add it."
-				title="Adding a transaction"
+				footer={t("settings.featureLab.confettiNote")}
+				title={t("settings.featureLab.addingSection")}
 			>
 				<ToggleRow
 					icon="Sparkles"
 					onValueChange={(next) => {
 						setBoolSetting(db, "confetti", next);
 					}}
-					title="Celebrate Expenses"
+					title={t("settings.featureLab.confetti")}
 					value={confetti}
 				/>
 			</SettingsSection>
 
 			<SettingsSection
-				footer="Experimental — these can change or disappear."
-				title="The Log"
+				footer={t("settings.featureLab.experimental")}
+				title={t("settings.section.log")}
 			>
 				<ToggleRow
 					icon="ChartLineData01"
 					onValueChange={(next) => {
 						setBoolSetting(db, "logViewLineGraph", next);
 					}}
-					title="Show Line Graph"
+					title={t("settings.featureLab.lineGraph")}
 					value={lineGraph}
 				/>
 			</SettingsSection>
 
 			<SettingsSection
-				footer="Off lays the budgets out as a two-up grid of cards instead of a list."
-				title="Budgets"
+				footer={t("settings.featureLab.budgetRowsNote")}
+				title={t("settings.featureLab.budgetsSection")}
 			>
 				<ToggleRow
 					icon="LayoutTable01"
 					onValueChange={(next) => {
 						setBoolSetting(db, "budgetViewStyle", next);
 					}}
-					title="Budget Rows"
+					title={t("settings.featureLab.budgetRows")}
 					value={budgetRows}
 				/>
 			</SettingsSection>
 
 			<SettingsSection
-				footer="Each transaction shows its category instead of its time. If you never write your own note, the note is already the category name, so both lines will read the same."
-				title="Transaction rows"
+				footer={t("settings.featureLab.swapTimeNote")}
+				title={t("settings.featureLab.transactionRowsSection")}
 			>
 				<ToggleRow
 					icon="TextFont"
 					onValueChange={(next) => {
 						setBoolSetting(db, "swapTimeLabel", next);
 					}}
-					title="Replace Time Label"
+					title={t("settings.featureLab.swapTime")}
 					value={swapTimeLabel}
 				/>
 			</SettingsSection>

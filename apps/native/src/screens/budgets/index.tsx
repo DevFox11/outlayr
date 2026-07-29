@@ -18,6 +18,7 @@ import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
 import { firstOfMonth } from "@/domain/dates";
+import { useTranslation } from "@/i18n";
 import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetBurndownHero } from "./components/budget-burndown-hero";
 import { BudgetCard } from "./components/budget-card";
@@ -39,6 +40,7 @@ function pairs<T>(items: readonly T[]): [T, T | undefined][] {
 
 function BudgetContent({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const asRows = useBoolSetting(db, "budgetViewStyle");
@@ -157,9 +159,16 @@ function BudgetContent({ db }: { db: Database }) {
 			{budgets.length ? (
 				<View className="pt-6">
 					<View className="flex-row items-baseline justify-between pb-2">
-						<MonoLabel>{main ? "CATEGORIES" : "BUDGETS"}</MonoLabel>
+						<MonoLabel>
+							{main ? t("budgets.list.categories") : t("budgets.list.budgets")}
+						</MonoLabel>
 						{overCount ? (
-							<MonoLabel>{`${overCount} OF ${budgets.length} OVER`}</MonoLabel>
+							<MonoLabel>
+								{t("budgets.list.overCount", {
+									over: overCount,
+									total: budgets.length,
+								})}
+							</MonoLabel>
 						) : null}
 					</View>
 					{asRows ? (

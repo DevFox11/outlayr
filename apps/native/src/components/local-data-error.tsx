@@ -1,5 +1,6 @@
 import { Pressable, View } from "react-native";
 import { useLocalData } from "@/contexts/local-data-context";
+import { useTranslation } from "@/i18n";
 import { Text } from "./text";
 
 /**
@@ -9,16 +10,16 @@ import { Text } from "./text";
  */
 export function LocalDataError() {
 	const { error, status, retry } = useLocalData();
+	const t = useTranslation();
 	const retrying = status !== "error";
 
 	return (
 		<View className="flex-1 items-center justify-center bg-background px-8">
 			<Text className="pb-2 font-sans-semibold text-foreground text-title">
-				Something Went Wrong
+				{t("transaction.localData.title")}
 			</Text>
 			<Text className="pb-5 text-center text-muted text-subtitle">
-				Outlayr could not open your data. This is often temporary — try again
-				first. Your ledger is still on this device.
+				{t("transaction.localData.body")}
 			</Text>
 
 			<Pressable
@@ -27,7 +28,7 @@ export function LocalDataError() {
 				className="rounded-xl bg-accent px-6 py-3 active:opacity-80 disabled:opacity-50"
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-body">
-					{retrying ? "Trying…" : "Try Again"}
+					{t(retrying ? "transaction.localData.retrying" : "common.retry")}
 				</Text>
 			</Pressable>
 

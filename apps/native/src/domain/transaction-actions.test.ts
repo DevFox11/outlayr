@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { EN } from "@/i18n/catalog";
+import { interpolate } from "@/i18n/translate";
 import { RECURRING_TYPE } from "./recurrence";
 import {
 	stopRecurringPrompt,
@@ -72,26 +74,35 @@ describe("transactionRowActions", () => {
 });
 
 describe("stopRecurringPrompt", () => {
+	const render = (note: string, pending: boolean) => {
+		const copy = stopRecurringPrompt(note, pending);
+		return {
+			title: interpolate(EN[copy.titleKey], { note: copy.note ?? undefined }),
+			message: EN[copy.messageKey],
+		};
+	};
+
 	it("names the entry it is about to stop", () => {
-		assert.equal(
-			stopRecurringPrompt("Netflix", false).title,
-			"Stop recurring 'Netflix'?",
-		);
+		assert.equal(render("Netflix", false).title, "Stop recurring 'Netflix'?");
 	});
 
 	it("falls back to a plain title when the entry has no note", () => {
-		assert.equal(stopRecurringPrompt("  ", false).title, "Stop recurring?");
+		assert.equal(render("  ", false).title, "Stop recurring?");
+	});
+
+	it("carries no note to interpolate when the entry has none", () => {
+		assert.equal(stopRecurringPrompt("  ", false).note, null);
 	});
 
 	it("says the scheduled charge still lands when the row is the pending one", () => {
-		const { message } = stopRecurringPrompt("Netflix", true);
+		const { message } = render("Netflix", true);
 
 		assert.match(message, /still lands/);
 		assert.match(message, /Nothing is logged after it/);
 	});
 
 	it("promises entries already logged survive when the row has settled", () => {
-		const { message } = stopRecurringPrompt("Netflix", false);
+		const { message } = render("Netflix", false);
 
 		assert.match(message, /no longer be logged automatically/);
 		assert.match(message, /already logged are kept/);

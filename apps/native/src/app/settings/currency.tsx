@@ -8,6 +8,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { setCurrency } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 interface CurrencyItem {
@@ -31,6 +32,7 @@ export default function CurrencyPickerScreen() {
 
 function CurrencyPicker({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const selected = useGlobalCurrency(db);
 	const [query, setQuery] = useState("");
 
@@ -56,7 +58,7 @@ function CurrencyPicker({ db }: { db: Database }) {
 				autoCapitalize="characters"
 				hideWhenScrolling={false}
 				onChangeText={(event) => setQuery(event.nativeEvent.text)}
-				placeholder="Search currencies"
+				placeholder={t("settings.currency.search")}
 			/>
 			<FlatList
 				contentInsetAdjustmentBehavior="automatic"

@@ -6,6 +6,7 @@ import {
 } from "@hugeicons-pro/core-solid-rounded";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 
@@ -28,9 +29,10 @@ export function ScopeChip({
 	onClear,
 	menuTitle,
 	accessibilityLabel,
-	clearAccessibilityLabel = "Clear",
+	clearAccessibilityLabel,
 }: ScopeChipProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const [labelWidth, setLabelWidth] = useState(0);
 	const hasMenu = actions != null && actions.length > 0 && onAction != null;
 
@@ -85,7 +87,7 @@ export function ScopeChip({
 			)}
 			{onClear ? (
 				<Pressable
-					accessibilityLabel={clearAccessibilityLabel}
+					accessibilityLabel={clearAccessibilityLabel ?? t("log.scope.clear")}
 					accessibilityRole="button"
 					className="py-1 active:opacity-60"
 					hitSlop={12}

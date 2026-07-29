@@ -60,6 +60,7 @@ import {
 	getCategoryById,
 	useCategoriesByNamespace,
 } from "@/data/categories";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import {
 	CATEGORY_DETENT,
 	LARGE_ONLY,
@@ -71,6 +72,32 @@ import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
 
 const MAX_EXPENSE_CATEGORIES = 24;
+
+/**
+ * The repo signals a rejected save by throwing one of `CATEGORY_ERROR_MESSAGES`,
+ * so the only handle the UI has on which rule fired is the English text itself.
+ */
+const CATEGORY_ERROR_KEYS: Record<
+	keyof typeof CATEGORY_ERROR_MESSAGES,
+	TranslationKey
+> = {
+	incomplete: "categories.error.incomplete",
+	missingIcon: "categories.error.missingIcon",
+	missingName: "categories.error.missingName",
+	duplicate: "categories.error.duplicate",
+	duplicateIcon: "categories.error.duplicateIcon",
+	duplicateEmoji: "categories.error.duplicateEmoji",
+	duplicateName: "categories.error.duplicateName",
+};
+
+function categoryErrorCode(
+	message: string,
+): keyof typeof CATEGORY_ERROR_MESSAGES | null {
+	const match = Object.entries(CATEGORY_ERROR_MESSAGES).find(
+		([, text]) => text === message,
+	);
+	return match ? (match[0] as keyof typeof CATEGORY_ERROR_MESSAGES) : null;
+}
 
 const FORM_BLUR_RADIUS = 8;
 /**
@@ -144,6 +171,7 @@ function CategoryEditorReady(
 	const initialIncome = props.mode === "create" ? !!props.income : false;
 	const router = useRouter();
 	const navigation = useNavigation();
+	const t = useTranslation();
 	const colors = useColors();
 	const haptics = useHaptics();
 	const insets = useSafeAreaInsets();
@@ -352,33 +380,39 @@ function CategoryEditorReady(
 					(loaded != null && loaded.icon == null && loaded.emoji == null));
 	const canSave = valid && !saving;
 
-	const namePlaceholder = isSubcategory
-		? "Coffee, Snacks…"
-		: income
-			? "Salary, Freelance…"
-			: "Groceries, Rent…";
+	const namePlaceholder = t(
+		isSubcategory
+			? "categories.namePlaceholder.subcategory"
+			: income
+				? "categories.namePlaceholder.income"
+				: "categories.namePlaceholder.expense",
+	);
 
 	const caption =
 		mode === "create"
 			? isSubcategory
 				? parent
-					? `Inherits ${parent.name}'s color.`
+					? t("categories.inherits", { parent: parent.name })
 					: null
 				: income
-					? "Income categories use the income color."
+					? t("categories.incomeColorNote")
 					: null
 			: null;
 
-	const ctaLabel =
+	const ctaLabel = t(
 		mode === "create"
 			? isSubcategory
-				? "Add Subcategory"
-				: "Add Category"
+				? "categories.addSubcategory"
+				: "categories.addCategory"
 			: isSubcategory
-				? "Save Subcategory"
-				: "Save Category";
-	const errorTitle =
-		mode === "create" ? "Couldn't Add Category" : "Couldn't Save Category";
+				? "categories.saveSubcategory"
+				: "categories.saveCategory",
+	);
+	const errorTitle = t(
+		mode === "create"
+			? "categories.error.addTitle"
+			: "categories.error.saveTitle",
+	);
 
 	// The form and the CTA carry these themselves instead of sharing a wrapper
 	// stack: a `Form` one level deeper is proposed no height and collapses to
@@ -473,14 +507,15 @@ function CategoryEditorReady(
 			router.back();
 		} catch (error) {
 			haptics("error");
-			const message =
-				error instanceof Error ? error.message : "Please try again.";
-			const refocus =
-				message === CATEGORY_ERROR_MESSAGES.missingName ||
-				message === CATEGORY_ERROR_MESSAGES.duplicateName;
+			const code =
+				error instanceof Error ? categoryErrorCode(error.message) : null;
+			const message = code
+				? t(CATEGORY_ERROR_KEYS[code])
+				: t("categories.error.generic");
+			const refocus = code === "missingName" || code === "duplicateName";
 			Alert.alert(errorTitle, message, [
 				{
-					text: "OK",
+					text: t("categories.ok"),
 					onPress: refocus ? () => nameRef.current?.focus() : undefined,
 				},
 			]);
@@ -542,7 +577,7 @@ function CategoryEditorReady(
 										}),
 									]}
 								>
-									Name
+									{t("categories.field.name")}
 								</SwiftText>
 								<Spacer />
 								<TextField
@@ -569,7 +604,7 @@ function CategoryEditorReady(
 											}),
 										]}
 									>
-										Type
+										{t("categories.field.type")}
 									</SwiftText>
 									<Spacer />
 									<Picker
@@ -583,8 +618,12 @@ function CategoryEditorReady(
 										}
 										selection={income ? "income" : "expense"}
 									>
-										<SwiftText modifiers={[tag("expense")]}>Expense</SwiftText>
-										<SwiftText modifiers={[tag("income")]}>Income</SwiftText>
+										<SwiftText modifiers={[tag("expense")]}>
+											{t("common.expense")}
+										</SwiftText>
+										<SwiftText modifiers={[tag("income")]}>
+											{t("common.income")}
+										</SwiftText>
 									</Picker>
 								</HStack>
 							) : null}
@@ -677,7 +716,7 @@ function CategoryEditorReady(
 							type="monochrome"
 						/>
 						<Text className="font-sans-semibold text-caption text-income">
-							Category added
+							{t("categories.toast.added")}
 						</Text>
 					</View>
 				</Animated.View>

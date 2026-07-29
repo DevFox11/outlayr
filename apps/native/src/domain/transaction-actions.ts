@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/catalog";
 import { RECURRING_TYPE } from "./recurrence";
 
 export interface TransactionRowActionContext {
@@ -33,8 +34,10 @@ export function transactionRowActions({
 }
 
 export interface ConfirmCopy {
-	title: string;
-	message: string;
+	titleKey: TranslationKey;
+	messageKey: TranslationKey;
+	/** Interpolated into `titleKey` when the row carries a note. */
+	note: string | null;
 }
 
 /**
@@ -48,9 +51,12 @@ export function stopRecurringPrompt(
 ): ConfirmCopy {
 	const named = note.trim();
 	return {
-		title: named ? `Stop recurring '${named}'?` : "Stop recurring?",
-		message: pending
-			? "The charge already scheduled still lands. Nothing is logged after it."
-			: "It will no longer be logged automatically. Entries already logged are kept.",
+		titleKey: named
+			? "alerts.transaction.stopNamed"
+			: "alerts.transaction.stopUnnamed",
+		messageKey: pending
+			? "alerts.transaction.stopPending"
+			: "alerts.transaction.stopSettled",
+		note: named || null,
 	};
 }

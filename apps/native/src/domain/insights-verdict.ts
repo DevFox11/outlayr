@@ -1,4 +1,5 @@
 import type { InsightsMeasure } from "@/data/insights";
+import type { TranslateFn } from "@/i18n/context";
 import { measureRiseIsFavourable } from "./insights-measure";
 import { formatAmount } from "./money";
 
@@ -18,6 +19,7 @@ export interface VerdictInput {
 	topMover: { name: string; delta: number } | null;
 	code: string;
 	showCents: boolean;
+	t: TranslateFn;
 }
 
 export interface Verdict {
@@ -35,7 +37,7 @@ export interface Verdict {
  * fact about spending.
  */
 export function insightsVerdict(input: VerdictInput): Verdict {
-	const { measure, current, prior, priorLabel, topMover, code, showCents } =
+	const { measure, current, prior, priorLabel, topMover, code, showCents, t } =
 		input;
 
 	if (prior === 0) {
@@ -53,18 +55,23 @@ export function insightsVerdict(input: VerdictInput): Verdict {
 		return {
 			badge,
 			favourable: true,
-			sentence: `In line with ${priorLabel}.`,
+			sentence: t("verdict.inLine", { prior: priorLabel }),
 		};
 	}
 
-	const magnitude = formatAmount(Math.abs(delta), code, showCents);
-	const direction = delta > 0 ? "more than" : "less than";
-	let sentence = `${magnitude} ${direction} ${priorLabel}.`;
+	let sentence = t(delta > 0 ? "verdict.moreThan" : "verdict.lessThan", {
+		amount: formatAmount(Math.abs(delta), code, showCents),
+		prior: priorLabel,
+	});
 
 	if (topMover) {
-		const moved = formatAmount(Math.abs(topMover.delta), code, showCents);
-		const verb = topMover.delta > 0 ? "added" : "gave back";
-		sentence += ` ${topMover.name} alone ${verb} ${moved}.`;
+		sentence += ` ${t(
+			topMover.delta > 0 ? "verdict.moverAdded" : "verdict.moverGaveBack",
+			{
+				name: topMover.name,
+				amount: formatAmount(Math.abs(topMover.delta), code, showCents),
+			},
+		)}`;
 	}
 
 	return { badge, favourable, sentence };

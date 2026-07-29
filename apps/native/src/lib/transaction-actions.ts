@@ -3,6 +3,7 @@ import {
 	stopRecurringPrompt,
 	type TransactionRowActions,
 } from "@/domain/transaction-actions";
+import { translateNow } from "@/i18n/runtime";
 
 interface TransactionActionsOptions {
 	note: string;
@@ -19,11 +20,23 @@ export function confirmStopRecurring(
 	pending: boolean,
 	onConfirm: () => void,
 ): void {
-	const { title, message } = stopRecurringPrompt(note, pending);
-	Alert.alert(title, message, [
-		{ text: "Cancel", style: "cancel" },
-		{ text: "Stop Recurring", style: "destructive", onPress: onConfirm },
-	]);
+	const {
+		titleKey,
+		messageKey,
+		note: named,
+	} = stopRecurringPrompt(note, pending);
+	Alert.alert(
+		translateNow(titleKey, { note: named ?? undefined }),
+		translateNow(messageKey),
+		[
+			{ text: translateNow("common.cancel"), style: "cancel" },
+			{
+				text: translateNow("alerts.transaction.stopRecurring"),
+				style: "destructive",
+				onPress: onConfirm,
+			},
+		],
+	);
 }
 
 /**
@@ -44,15 +57,23 @@ export function showTransactionActions({
 	const buttons: AlertButton[] = [];
 	if (actions.canStopRecurring) {
 		buttons.push({
-			text: "Stop Recurring",
+			text: translateNow("alerts.transaction.stopRecurring"),
 			onPress: () => confirmStopRecurring(note, pending, onStopRecurring),
 		});
 	}
-	buttons.push({ text: "Edit", onPress: onEdit });
+	buttons.push({ text: translateNow("common.edit"), onPress: onEdit });
 	if (actions.canDelete) {
-		buttons.push({ text: "Delete", style: "destructive", onPress: onDelete });
+		buttons.push({
+			text: translateNow("common.delete"),
+			style: "destructive",
+			onPress: onDelete,
+		});
 	}
-	buttons.push({ text: "Cancel", style: "cancel" });
+	buttons.push({ text: translateNow("common.cancel"), style: "cancel" });
 
-	Alert.alert(note.trim() || "Transaction", undefined, buttons);
+	Alert.alert(
+		note.trim() || translateNow("alerts.transaction.fallbackTitle"),
+		undefined,
+		buttons,
+	);
 }

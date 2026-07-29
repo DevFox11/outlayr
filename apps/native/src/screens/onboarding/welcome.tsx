@@ -2,35 +2,37 @@ import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
+import { useTranslation } from "@/i18n";
 
-/** Swift's `WelcomeSheetView` rows, verbatim. */
+/** Swift's `WelcomeSheetView` rows. */
 const FEATURES = [
 	{
-		header: "Track your finances",
-		subtitle: "Add new entries in a simple, straightforward manner",
+		body: "onboarding.welcome.feature.track.body",
+		title: "onboarding.welcome.feature.track.title",
 	},
 	{
-		header: "Analyse your expenditure",
-		subtitle: "Draw insights from your spending over various time periods",
+		body: "onboarding.welcome.feature.analyse.body",
+		title: "onboarding.welcome.feature.analyse.title",
 	},
 	{
-		header: "Stick to budgets",
-		subtitle: "Set categorical and time-based goals to limit your spending",
+		body: "onboarding.welcome.feature.budgets.body",
+		title: "onboarding.welcome.feature.budgets.title",
 	},
 ] as const;
 
 export default function OnboardingWelcomeScreen() {
 	const router = useRouter();
+	const t = useTranslation();
 
 	return (
 		<View className="flex-1 bg-background px-6 pt-safe-offset-14 pb-safe-offset-5">
 			<View className="gap-2">
-				<MonoLabel>Welcome</MonoLabel>
+				<MonoLabel>{t("onboarding.welcome.eyebrow")}</MonoLabel>
 				<Text className="font-sans-semibold text-foreground text-hero">
 					Outlayr
 				</Text>
 				<Text className="text-muted text-subtitle">
-					A ledger you keep by hand — every entry yours, on this device.
+					{t("onboarding.welcome.subtitle")}
 				</Text>
 			</View>
 
@@ -39,17 +41,17 @@ export default function OnboardingWelcomeScreen() {
 					{FEATURES.map((feature, index) => (
 						<View
 							className="flex-row gap-4 border-border border-b py-5"
-							key={feature.header}
+							key={feature.title}
 						>
 							<MonoLabel className="w-6 pt-1">
 								{String(index + 1).padStart(2, "0")}
 							</MonoLabel>
 							<View className="flex-1 gap-1">
 								<Text className="font-sans-semibold text-callout text-foreground">
-									{feature.header}
+									{t(feature.title)}
 								</Text>
 								<Text className="text-muted text-subtitle">
-									{feature.subtitle}
+									{t(feature.body)}
 								</Text>
 							</View>
 						</View>
@@ -63,7 +65,7 @@ export default function OnboardingWelcomeScreen() {
 				onPress={() => router.push("/onboarding/currency")}
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-body">
-					Get Started
+					{t("onboarding.welcome.start")}
 				</Text>
 			</Pressable>
 		</View>

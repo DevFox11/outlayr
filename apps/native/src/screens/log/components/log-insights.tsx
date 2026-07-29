@@ -7,13 +7,11 @@ import { type LedgerCell, LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
-import {
-	LOG_PERIOD_PHRASE,
-	type LogInsights as LogInsightsData,
-	type LogPeriod,
+import type {
+	LogInsights as LogInsightsData,
+	LogPeriod,
 } from "@/data/log-totals";
 import {
-	LOG_MEASURE_WORD,
 	type LogFigures,
 	type LogMeasure,
 	measureAlternatives,
@@ -23,6 +21,8 @@ import {
 } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { amountParts } from "@/domain/money";
+import { useTranslation } from "@/i18n";
+import { MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 import { LogSparkline } from "./log-sparkline";
 
@@ -62,6 +62,7 @@ export function LogInsights({
 	showCents,
 	sparkline = null,
 }: LogInsightsProps) {
+	const t = useTranslation();
 	const figures =
 		(scopeCurrency
 			? insights.perCurrency.find((f) => f.currencyCode === scopeCurrency)
@@ -75,7 +76,7 @@ export function LogInsights({
 		<View className="pt-3.5 pb-1.5">
 			<View className="flex-row items-baseline gap-2.5">
 				<MonoLabel>
-					{`${LOG_MEASURE_WORD[measure]} · ${LOG_PERIOD_PHRASE[period]}`}
+					{`${t(MEASURE_WORD_KEY[measure])} · ${t(PERIOD_PHRASE_KEY[period])}`}
 				</MonoLabel>
 				<View className="flex-1" />
 				{insights.isMultiCurrency ? (
@@ -101,7 +102,7 @@ export function LogInsights({
 					cells={alternatives.map(
 						(alternative): LedgerCell => ({
 							key: alternative,
-							label: LOG_MEASURE_WORD[alternative],
+							label: t(MEASURE_WORD_KEY[alternative]),
 							magnitude: measureMagnitude(alternative, figures),
 							positive: measureIsPositive(alternative, figures),
 							income: measureIsIncome(alternative),
@@ -118,7 +119,9 @@ export function LogInsights({
 					<View className="pb-0.75">
 						<Hairline />
 					</View>
-					<MonoLabel>{`Also ${LOG_PERIOD_PHRASE[period]}`}</MonoLabel>
+					<MonoLabel>
+						{t("log.insights.also", { period: t(PERIOD_PHRASE_KEY[period]) })}
+					</MonoLabel>
 					<View className="flex-row flex-wrap gap-1.5">
 						{alsoThisPeriod.map((entry) => (
 							<AlsoPill
@@ -196,9 +199,10 @@ function CurrencyScopeChip({
 	options: LogFigures[];
 	onSelect: (code: string) => void;
 }) {
+	const t = useTranslation();
 	return (
 		<MenuView
-			title="Currency"
+			title={t("log.insights.currency")}
 			actions={options.map((entry) => ({
 				id: entry.currencyCode,
 				title: entry.currencyCode,
@@ -210,7 +214,7 @@ function CurrencyScopeChip({
 			<View
 				className="flex-row items-center gap-1 rounded-full bg-surface-secondary px-2.25 py-1"
 				accessibilityRole="button"
-				accessibilityLabel="Currency shown"
+				accessibilityLabel={t("log.insights.currencyShown")}
 				accessibilityValue={{ text: code }}
 			>
 				<MonoLabel className="text-foreground">{code}</MonoLabel>

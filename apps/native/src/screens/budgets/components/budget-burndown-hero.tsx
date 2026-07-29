@@ -12,13 +12,11 @@ import { Text } from "@/components/text";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { MainBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
-import {
-	BUDGET_TYPE,
-	budgetPeriodPhrase,
-	budgetTimeLeftLabel,
-} from "@/domain/budget-math";
+import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
+import { useTranslation } from "@/i18n";
+import { budgetPeriodKey } from "../period-phrase";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -60,12 +58,13 @@ export function BudgetBurndownHero({
 	showCents = true,
 	bleed = 8,
 }: BudgetBurndownHeroProps) {
+	const t = useTranslation();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
 	const [scrubDay, setScrubDay] = useState<number | null>(null);
 
 	const now = new Date(nowMs);
-	const period = budgetPeriodPhrase(budget.type);
+	const period = t(budgetPeriodKey(budget.type));
 	const isDay = budget.type === BUDGET_TYPE.day;
 	const showChart = burndown != null && !isDay;
 
@@ -82,13 +81,22 @@ export function BudgetBurndownHero({
 	const endsShort = projected != null && projected < 0;
 	let runwayLabel: string | null = null;
 	if (!isDay) {
-		runwayLabel = "ON TRACK";
+		runwayLabel = t("budgets.hero.onTrack");
 		if (burndown?.runwayDate != null) {
-			runwayLabel = `RAN OUT ${formatDayMonth(burndown.runwayDate).toUpperCase()}`;
+			runwayLabel = t("budgets.hero.ranOut", {
+				date: formatDayMonth(burndown.runwayDate).toUpperCase(),
+			});
 		} else if (endsShort && projected != null) {
-			runwayLabel = `ENDS ${formatAmount(Math.abs(projected), currency, false)} SHORT`;
+			runwayLabel = t("budgets.hero.endsShort", {
+				amount: formatAmount(Math.abs(projected), currency, false),
+			});
 		}
 	}
+
+	const balanceLabel = formatAmount(Math.abs(balance), currency, showCents);
+	const status = over
+		? t("budgets.hero.overBudget")
+		: t("budgets.hero.leftPeriod", { period });
 
 	const chartWidth = measured > 0 ? measured + bleed * 2 : windowWidth - 24;
 
@@ -115,12 +123,25 @@ export function BudgetBurndownHero({
 			    one system sort themselves out, pan on movement, tap on stillness. */}
 			<GestureDetector gesture={openDetail}>
 				<View
-					accessibilityLabel={`${budget.name}, ${formatAmount(Math.abs(balance), currency, showCents)} ${over ? "over budget" : `left ${period}`}`}
+					accessibilityLabel={
+						over
+							? t("budgets.hero.a11yOver", {
+									name: budget.name,
+									amount: balanceLabel,
+								})
+							: t("budgets.hero.a11yLeft", {
+									name: budget.name,
+									amount: balanceLabel,
+									period,
+								})
+					}
 					accessibilityRole="button"
 				>
 					<View onLayout={onLayout}>
 						<View className="flex-row items-baseline justify-between">
-							<MonoLabel>{`OVERALL · ${period.toUpperCase()}`}</MonoLabel>
+							<MonoLabel>
+								{t("budgets.hero.eyebrow", { period: period.toUpperCase() })}
+							</MonoLabel>
 							<MonoLabel>
 								{scrubLabel
 									? scrubLabel.toUpperCase()
@@ -128,6 +149,7 @@ export function BudgetBurndownHero({
 											budget.window,
 											budget.type,
 											now,
+											t,
 										).toUpperCase()}
 							</MonoLabel>
 						</View>
@@ -143,8 +165,9 @@ export function BudgetBurndownHero({
 							/>
 						</View>
 						<Text className="pt-0.5 text-footnote text-muted">
-							{over ? "over budget" : `left ${period}`}
-							{scrubLabel ? ` on ${scrubLabel}` : ""}
+							{scrubLabel
+								? t("budgets.hero.onDate", { label: status, date: scrubLabel })
+								: status}
 						</Text>
 					</View>
 
@@ -200,6 +223,7 @@ function HeroVerdict({
 	currency: string;
 	periodEndsShort: boolean;
 }) {
+	const t = useTranslation();
 	if (!burndown) {
 		return null;
 	}
@@ -210,15 +234,19 @@ function HeroVerdict({
 		const early = burndown.totalDays - burndown.runwayDay;
 		sentence =
 			early > 0
-				? `Ran out ${ranOut}, ${early} day${early === 1 ? "" : "s"} early.`
-				: `Ran out ${ranOut}, on the period's final day.`;
+				? t("budgets.hero.verdictRanOutEarly", {
+						date: ranOut,
+						days: t("budgets.days", { count: early }),
+					})
+				: t("budgets.hero.verdictRanOutFinal", { date: ranOut });
 	} else if (periodEndsShort && burndown.projectedBalance != null) {
-		const short = formatAmount(
-			Math.abs(burndown.projectedBalance),
-			currency,
-			false,
-		);
-		sentence = `Still solvent, but on this pace the period ends ${short} short.`;
+		sentence = t("budgets.hero.verdictEndsShort", {
+			amount: formatAmount(
+				Math.abs(burndown.projectedBalance),
+				currency,
+				false,
+			),
+		});
 	}
 
 	if (!sentence) {

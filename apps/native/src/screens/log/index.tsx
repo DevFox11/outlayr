@@ -25,7 +25,7 @@ import type { Database } from "@/db/client";
 import { addDays, addMonths, startOfDay } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import type { LogFilter } from "@/domain/log-filter";
-import { filterDetail } from "@/domain/log-filter";
+import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
 import {
 	type LogMeasure,
 	logMeasureFromStored,
@@ -37,6 +37,7 @@ import {
 	sparklineRange,
 	sparklineSeries,
 } from "@/domain/log-sparkline";
+import { useTranslation } from "@/i18n";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogEmptyState } from "./components/log-empty-state";
@@ -48,6 +49,7 @@ import { LogToolbar } from "./components/log-toolbar";
 import { LogUpcoming } from "./components/log-upcoming";
 import { SwipeableTransactionRow } from "./components/swipeable-transaction-row";
 import { UndoToast } from "./components/undo-toast";
+import { filterScopeLabel } from "./labels";
 
 export default function LogScreen() {
 	const db = useDatabase();
@@ -95,6 +97,7 @@ function useSparkline(
 
 function LogContent({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const { displayCurrency: currency, rates } = useValuation(db);
 	// Every preference off one subscription: a per-key hook would register a
 	// separate `appMeta` listener each, and each fires on any write to the table.
@@ -183,14 +186,16 @@ function LogContent({ db }: { db: Database }) {
 	);
 	const shareDay = useDayCardShare(cardOptions);
 
-	const detail = filterDetail(filter, {
-		categoryName: activeCategoryId
-			? categoryMeta.get(activeCategoryId)?.name
-			: null,
-		cursor,
-		income,
-		firstWeekday,
-	});
+	// Only the period filters name a stretch of time, which the calendar
+	// composes; every other scope is a word, and words come from the catalog.
+	const detail = filterPeriodUnit(filter)
+		? filterDetail(filter, { cursor, income, firstWeekday })
+		: filterScopeLabel(
+				t,
+				filter,
+				activeCategoryId ? categoryMeta.get(activeCategoryId)?.name : null,
+				income,
+			);
 
 	const showUpcomingSection =
 		filter === "upcoming" || (filter === "all" && showUpcoming);

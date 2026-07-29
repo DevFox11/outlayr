@@ -8,6 +8,7 @@ import {
 } from "expo-notifications";
 import { Linking } from "react-native";
 import type { ReminderPermission, TimeOfDay } from "@/domain/reminder";
+import { translateNow } from "@/i18n/runtime";
 
 /**
  * Fixed so a reschedule replaces the pending request instead of stacking a
@@ -53,8 +54,8 @@ export async function scheduleReminder({
 	await scheduleNotificationAsync({
 		identifier: REMINDER_ID,
 		content: {
-			title: "Keep the streak going",
-			body: "Log what you spent today.",
+			title: translateNow("reminder.title"),
+			body: translateNow("reminder.body"),
 			sound: "default",
 		},
 		trigger: { type: SchedulableTriggerInputTypes.DAILY, hour, minute },

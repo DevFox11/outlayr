@@ -3,20 +3,21 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setNumberSetting, useNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { type TranslationKey, useTranslation } from "@/i18n";
 
 const ENTRY_OPTIONS: readonly {
-	label: string;
-	detail: string;
+	label: TranslationKey;
+	detail: TranslationKey;
 	value: number;
 }[] = [
 	{
-		label: "Type 1 · Pre-dotted",
-		detail: "The last two digits are cents. Type 1234 to get 12.34.",
+		label: "settings.numberEntry.type1Title",
+		detail: "settings.numberEntry.type1Detail",
 		value: 1,
 	},
 	{
-		label: "Type 2 · Cent-less",
-		detail: "Whole amounts only. Type 12 to get 12.",
+		label: "settings.numberEntry.type2Title",
+		detail: "settings.numberEntry.type2Detail",
 		value: 2,
 	},
 ];
@@ -27,16 +28,17 @@ export default function NumberEntryRoute() {
 }
 
 function NumberEntry({ db }: { db: Database }) {
+	const t = useTranslation();
 	const numberEntryType = useNumberSetting(db, "numberEntryType");
 
 	return (
 		<SettingsScreen>
-			<SettingsSection title="Amount keypad">
+			<SettingsSection title={t("settings.numberEntry.section")}>
 				{ENTRY_OPTIONS.map((option) => (
 					<ChoiceRow
-						detail={option.detail}
+						detail={t(option.detail)}
 						key={option.value}
-						label={option.label}
+						label={t(option.label)}
 						onPress={() => {
 							setNumberSetting(db, "numberEntryType", option.value);
 						}}

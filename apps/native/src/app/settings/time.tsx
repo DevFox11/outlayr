@@ -9,11 +9,12 @@ import {
 	useNumberSetting,
 } from "@/data/settings";
 import type { Database } from "@/db/client";
+import { type TranslationKey, useLanguage, useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
-const WEEKDAY_OPTIONS: readonly { label: string; value: number }[] = [
-	{ label: "Sunday", value: 1 },
-	{ label: "Monday", value: 2 },
+const WEEKDAY_OPTIONS: readonly { label: TranslationKey; value: number }[] = [
+	{ label: "settings.time.sunday", value: 1 },
+	{ label: "settings.time.monday", value: 2 },
 ];
 
 const MONTH_DAYS = Array.from({ length: 28 }, (_, index) => index + 1);
@@ -24,6 +25,8 @@ export default function TimeFramesScreen() {
 }
 
 function TimeFrames({ db }: { db: Database }) {
+	const t = useTranslation();
+	const { language } = useLanguage();
 	const firstWeekday = useNumberSetting(db, "firstWeekday");
 	const firstDayOfMonth = useNumberSetting(db, "firstDayOfMonth");
 
@@ -33,13 +36,13 @@ function TimeFrames({ db }: { db: Database }) {
 			contentContainerClassName="px-5 pt-3 pb-safe-offset-10"
 		>
 			<View className="pb-1">
-				<MonoLabel>START OF WEEK</MonoLabel>
+				<MonoLabel>{t("settings.time.weekSection")}</MonoLabel>
 			</View>
 			<View className="border-border border-t">
 				{WEEKDAY_OPTIONS.map((option) => (
 					<ChoiceRow
 						key={option.value}
-						label={option.label}
+						label={t(option.label)}
 						selected={firstWeekday === option.value}
 						onPress={() => {
 							setNumberSetting(db, "firstWeekday", option.value);
@@ -49,13 +52,15 @@ function TimeFrames({ db }: { db: Database }) {
 			</View>
 
 			<View className="pt-7 pb-1">
-				<MonoLabel>START OF MONTH</MonoLabel>
+				<MonoLabel>{t("settings.time.monthSection")}</MonoLabel>
 			</View>
 			<View className="border-border border-t">
 				{MONTH_DAYS.map((day) => (
 					<ChoiceRow
 						key={day}
-						label={`${ordinalDay(day)} of month`}
+						label={t("settings.time.dayOfMonth", {
+							day: ordinalDay(day, language),
+						})}
 						selected={firstDayOfMonth === day}
 						onPress={() => {
 							setNumberSetting(db, "firstDayOfMonth", day);
@@ -64,7 +69,7 @@ function TimeFrames({ db }: { db: Database }) {
 				))}
 			</View>
 			<Text className="pt-2 text-footnote text-muted">
-				Close and reopen the app for the month start to take full effect.
+				{t("settings.time.reopenNote")}
 			</Text>
 		</ScrollView>
 	);

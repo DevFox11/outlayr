@@ -7,6 +7,7 @@ import {
 	dayCardContent,
 	dayCardFileName,
 } from "@/domain/day-card-content";
+import { translateNow } from "@/i18n/runtime";
 import { shareDayCard } from "./day-card-image";
 
 /**
@@ -22,22 +23,22 @@ export function useDayCardShare(
 		(section: CardableSection) => {
 			Alert.alert(formatDayHeader(section.day), undefined, [
 				{
-					text: "Share as Image",
+					text: translateNow("alerts.dayCard.share"),
 					onPress: () => {
 						shareDayCard(
 							dayCardContent(section, options),
 							dayCardFileName(section.day),
 						).catch((error: unknown) => {
 							Alert.alert(
-								"Couldn't share the day",
+								translateNow("alerts.dayCard.failedTitle"),
 								error instanceof Error
 									? error.message
-									: "The image couldn't be drawn.",
+									: translateNow("alerts.dayCard.failedBody"),
 							);
 						});
 					},
 				},
-				{ text: "Cancel", style: "cancel" },
+				{ text: translateNow("common.cancel"), style: "cancel" },
 			]);
 		},
 		[options],

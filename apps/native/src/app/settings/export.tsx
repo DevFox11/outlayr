@@ -9,6 +9,7 @@ import { useTransactionCount } from "@/data/transactions";
 import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { CSV_HEADER } from "@/domain/transaction-csv";
+import { useTranslation } from "@/i18n";
 import { shareText, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
 
@@ -19,6 +20,7 @@ export default function ExportDataScreen() {
 
 function ExportData({ db }: { db: Database }) {
 	const colors = useColors();
+	const t = useTranslation();
 	const count = useTransactionCount(db);
 	const [busy, setBusy] = useState(false);
 
@@ -30,29 +32,31 @@ function ExportData({ db }: { db: Database }) {
 					csv,
 					exportFileName(new Date()),
 					"text/csv",
-					"Export transactions",
+					t("settings.export.shareTitle"),
 				),
 			)
 			.catch((error: unknown) => {
 				Alert.alert(
-					"Export failed",
+					t("settings.export.failedTitle"),
 					error instanceof TransferError
 						? error.message
-						: "The file couldn't be written.",
+						: t("settings.export.failedBody"),
 				);
 			})
 			.finally(() => setBusy(false));
 	};
 
 	return (
-		<SettingsScreen footer="Deleted transactions are left out. Everything else on this device is written, newest first.">
+		<SettingsScreen footer={t("settings.export.footer")}>
 			<View className="gap-1 pt-6">
-				<MonoLabel>Ready to export</MonoLabel>
+				<MonoLabel>{t("settings.export.ready")}</MonoLabel>
 				<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
 					{count}
 				</Text>
 				<Text className="text-muted text-subtitle">
-					{count === 1 ? "transaction" : "transactions"}
+					{count === 1
+						? t("settings.export.transaction")
+						: t("settings.export.transactions")}
 				</Text>
 			</View>
 
@@ -68,15 +72,15 @@ function ExportData({ db }: { db: Database }) {
 						<ActivityIndicator color={colors.background} />
 					) : (
 						<Text className="font-sans-semibold text-background text-callout">
-							Export CSV
+							{t("settings.export.action")}
 						</Text>
 					)}
 				</Pressable>
 			</View>
 
 			<SettingsSection
-				footer="Dates are ISO 8601 instants and amounts are plain decimals with no grouping, so the file reads back into Outlayr — or into a spreadsheet — as the same figures."
-				title="Columns"
+				footer={t("settings.export.columnsNote")}
+				title={t("settings.export.columns")}
 			>
 				{CSV_HEADER.map((column) => (
 					<View

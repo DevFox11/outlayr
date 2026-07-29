@@ -1,4 +1,6 @@
 import type { Database } from "@/db/client";
+import type { TranslationKey } from "@/i18n";
+import type { Language } from "@/i18n/languages";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 
 /**
@@ -87,25 +89,30 @@ export const SETTING_DEFAULTS = {
 >;
 
 export const HAPTICS_OPTIONS = [
-	{ label: "None", value: 0 },
-	{ label: "Subtle", value: 1 },
-	{ label: "Excessive", value: 2 },
-] as const;
+	{ label: "settings.haptics.none", value: 0 },
+	{ label: "settings.haptics.subtle", value: 1 },
+	{ label: "settings.haptics.excessive", value: 2 },
+] as const satisfies readonly { label: TranslationKey; value: number }[];
 
-export function numberEntryLabel(type: number): string {
-	return type === 1 ? "Type 1" : "Type 2";
+export function numberEntryLabel(type: number): TranslationKey {
+	return type === 1
+		? "settings.numberEntry.type1"
+		: "settings.numberEntry.type2";
 }
 
-export function hapticsLabel(value: number): string {
-	return HAPTICS_OPTIONS.find((option) => option.value === value)?.label ?? "";
+/** Null where no option owns the value, as the empty label used to signal. */
+export function hapticsLabel(value: number): TranslationKey | null {
+	return (
+		HAPTICS_OPTIONS.find((option) => option.value === value)?.label ?? null
+	);
 }
 
-export function onOffLabel(value: boolean): string {
-	return value ? "On" : "Off";
+export function onOffLabel(value: boolean): TranslationKey {
+	return value ? "common.on" : "common.off";
 }
 
-export function shownHiddenLabel(value: boolean): string {
-	return value ? "Shown" : "Hidden";
+export function shownHiddenLabel(value: boolean): TranslationKey {
+	return value ? "common.shown" : "common.hidden";
 }
 
 export function parseBoolSetting(
@@ -167,11 +174,16 @@ export async function setCurrency(db: Database, code: string): Promise<void> {
 	await setMeta(db, META_KEYS.currencyChosen, "true");
 }
 
-export function weekdayLabel(firstWeekday: number): string {
-	return firstWeekday === 2 ? "Monday" : "Sunday";
+export function weekdayLabel(firstWeekday: number): TranslationKey {
+	return firstWeekday === 2 ? "settings.time.monday" : "settings.time.sunday";
 }
 
-export function ordinalDay(day: number): string {
+export function ordinalDay(day: number, language: Language = "en"): string {
+	// Spanish counts days of the month with plain cardinals ("día 3 del mes"),
+	// so an English ordinal suffix would render as "día 3rd del mes".
+	if (language !== "en") {
+		return String(day);
+	}
 	const mod100 = day % 100;
 	const mod10 = day % 10;
 	let suffix = "th";

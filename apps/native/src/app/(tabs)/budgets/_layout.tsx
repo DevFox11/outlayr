@@ -1,18 +1,20 @@
 import { router, Stack } from "expo-router";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
+import { useTranslation } from "@/i18n";
 
 export default function BudgetsLayout() {
+	const t = useTranslation();
 	return (
 		<Stack>
 			{/* First declared is the initial route: the tab lands on the list. */}
 			<Stack.Screen name="index">
 				<Stack.Header transparent />
-				<Stack.Screen.Title large>Budgets</Stack.Screen.Title>
+				<Stack.Screen.Title large>{t("budgets.title")}</Stack.Screen.Title>
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
 						{...toolbarIcon("add")}
-						accessibilityLabel="New budget"
+						accessibilityLabel={t("budgets.new.a11y")}
 						onPress={() => router.push("/(tabs)/budgets/create")}
 					/>
 				</Stack.Toolbar>

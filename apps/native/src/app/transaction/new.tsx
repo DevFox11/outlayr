@@ -2,10 +2,12 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useTranslation } from "@/i18n";
 
 export default function NewTransactionScreen() {
 	const router = useRouter();
 	const db = useDatabase();
+	const t = useTranslation();
 	// Set only by the surfaces that open this screen from outside the bundle — the
 	// "Log Income" quick action, or a Siri intent handing off a draft.
 	const { income, amount, note } = useLocalSearchParams<{
@@ -18,11 +20,11 @@ export default function NewTransactionScreen() {
 	return (
 		<>
 			<Stack.Header transparent />
-			<Stack.Screen.Title>Create Transaction</Stack.Screen.Title>
+			<Stack.Screen.Title>{t("transaction.new.title")}</Stack.Screen.Title>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("close")}
-					accessibilityLabel="Close"
+					accessibilityLabel={t("common.close")}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>

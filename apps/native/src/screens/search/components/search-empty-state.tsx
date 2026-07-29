@@ -10,6 +10,7 @@ import Svg, {
 } from "react-native-svg";
 
 import { Text } from "@/components/text";
+import { useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -20,18 +21,21 @@ interface SearchEmptyStateProps {
 
 export function SearchEmptyState({ kind, query }: SearchEmptyStateProps) {
 	const idle = kind === "idle";
+	const t = useTranslation();
 	return (
 		<View className="items-center gap-3.5 px-8 pt-20">
 			<View className="pb-1.5">
 				{idle ? <SearchIdleMark /> : <SearchNoResultsMark />}
 			</View>
 			<Text className="text-center font-sans-semibold text-foreground text-title">
-				{idle ? "Search your ledger" : "No matches"}
+				{idle
+					? t("search.empty.idle.title")
+					: t("search.empty.noResults.title")}
 			</Text>
 			<Text className="max-w-70 text-center font-sans-medium text-muted text-subtitle">
 				{idle
-					? "Find an entry by its note, category, or amount."
-					: `No entry matches “${query ?? ""}”.`}
+					? t("search.empty.idle.body")
+					: t("search.empty.noResults.body", { query: query ?? "" })}
 			</Text>
 		</View>
 	);

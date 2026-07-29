@@ -25,7 +25,6 @@ import { setNumberSetting, useAllSettings } from "@/data/settings";
 import { useInsights } from "@/data/use-insights";
 import type { Database } from "@/db/client";
 import {
-	INSIGHTS_MEASURE_WORD,
 	insightsMeasureAlternatives,
 	insightsMeasureFromStored,
 	insightsMeasureIsIncome,
@@ -36,6 +35,7 @@ import {
 } from "@/domain/insights-measure";
 import { insightsVerdict } from "@/domain/insights-verdict";
 import { formatAmount } from "@/domain/money";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryBreakdownRow } from "./components/category-breakdown-row";
@@ -46,6 +46,7 @@ import { InsightsNetChart } from "./components/insights-net-chart";
 import { InsightsQuiet, quietAlternative } from "./components/insights-quiet";
 import { InsightsSample } from "./components/insights-sample";
 import { InsightsTransactionList } from "./components/insights-transaction-list";
+import { MEASURE_KEY } from "./measure-label";
 
 const PERIOD_BY_VALUE: Record<number, InsightsPeriod> = {
 	1: "week",
@@ -53,16 +54,16 @@ const PERIOD_BY_VALUE: Record<number, InsightsPeriod> = {
 	3: "year",
 };
 
-const PERIOD_OPTIONS: readonly { label: string; value: number }[] = [
-	{ label: "Week", value: 1 },
-	{ label: "Month", value: 2 },
-	{ label: "Year", value: 3 },
+const PERIOD_OPTIONS: readonly { labelKey: TranslationKey; value: number }[] = [
+	{ labelKey: "insights.period.week", value: 1 },
+	{ labelKey: "insights.period.month", value: 2 },
+	{ labelKey: "insights.period.year", value: 3 },
 ];
 
-const PERIOD_LABEL: Record<InsightsPeriod, string> = {
-	week: "Week",
-	month: "Month",
-	year: "Year",
+const PERIOD_LABEL_KEY: Record<InsightsPeriod, TranslationKey> = {
+	week: "insights.period.week",
+	month: "insights.period.month",
+	year: "insights.period.year",
 };
 
 export default function InsightsScreen() {
@@ -72,6 +73,7 @@ export default function InsightsScreen() {
 
 function InsightsContent({ db }: { db: Database }) {
 	const colors = useColors();
+	const t = useTranslation();
 	const router = useRouter();
 	const currency = useGlobalCurrency(db);
 	const settings = useAllSettings(db);
@@ -242,8 +244,8 @@ function InsightsContent({ db }: { db: Database }) {
 	// On the net chart the scrubbed figure is the running position, so a bare date
 	// would read as that day's own net.
 	const eyebrow = scrubBucket
-		? `${isNet ? "Balance · " : ""}${bucketDateLabel(period, scrubBucket.start)}`
-		: `${INSIGHTS_MEASURE_WORD[measure]} · ${result.label}`;
+		? `${isNet ? `${t("insights.balance")} · ` : ""}${bucketDateLabel(period, scrubBucket.start)}`
+		: `${t(MEASURE_KEY[measure])} · ${result.label}`;
 
 	const verdict = insightsVerdict({
 		measure,
@@ -256,18 +258,19 @@ function InsightsContent({ db }: { db: Database }) {
 		topMover: result.movers[0] ?? null,
 		code: currency,
 		showCents,
+		t,
 	});
 
 	const windowActions: MenuAction[] = [
 		{
 			id: "earlier",
-			title: "Earlier",
+			title: t("insights.window.earlier"),
 			image: "chevron.left",
 			attributes: { disabled: result.atEarliest },
 		},
 		{
 			id: "later",
-			title: "Later",
+			title: t("insights.window.later"),
 			image: "chevron.right",
 			attributes: { disabled: result.atCurrent },
 		},
@@ -278,7 +281,7 @@ function InsightsContent({ db }: { db: Database }) {
 			subactions: [
 				{
 					id: "now",
-					title: "Now",
+					title: t("insights.window.now"),
 					image: "arrow.uturn.backward",
 					attributes: { disabled: result.atCurrent },
 				},
@@ -360,15 +363,17 @@ function InsightsContent({ db }: { db: Database }) {
 	return (
 		<>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Menu accessibilityLabel="Change period">
-					<Stack.Toolbar.Label>{PERIOD_LABEL[period]}</Stack.Toolbar.Label>
+				<Stack.Toolbar.Menu accessibilityLabel={t("insights.period.change")}>
+					<Stack.Toolbar.Label>
+						{t(PERIOD_LABEL_KEY[period])}
+					</Stack.Toolbar.Label>
 					{PERIOD_OPTIONS.map((option) => (
 						<Stack.Toolbar.MenuAction
 							isOn={PERIOD_BY_VALUE[option.value] === period}
 							key={option.value}
 							onPress={() => selectPeriod(option.value)}
 						>
-							{option.label}
+							{t(option.labelKey)}
 						</Stack.Toolbar.MenuAction>
 					))}
 				</Stack.Toolbar.Menu>
@@ -383,24 +388,24 @@ function InsightsContent({ db }: { db: Database }) {
 				<View className="px-5">
 					<View className="flex-row flex-wrap gap-2">
 						<ScopeChip
-							accessibilityLabel="Window shown"
+							accessibilityLabel={t("insights.window.shown")}
 							actions={windowActions}
-							menuTitle="Window"
+							menuTitle={t("insights.window.title")}
 							onAction={onWindowAction}
 							title={result.label}
 						/>
 						{lockedBucket ? (
 							<ScopeChip
-								accessibilityLabel="Selected period"
-								clearAccessibilityLabel="Clear the selected bar"
+								accessibilityLabel={t("insights.scope.selectedPeriod")}
+								clearAccessibilityLabel={t("insights.scope.clearBar")}
 								onClear={() => setLockedIndex(null)}
 								title={bucketDateLabel(period, lockedBucket.start)}
 							/>
 						) : null}
 						{filteredEntry ? (
 							<ScopeChip
-								accessibilityLabel="Filtered category"
-								clearAccessibilityLabel="Clear the category filter"
+								accessibilityLabel={t("insights.scope.filteredCategory")}
+								clearAccessibilityLabel={t("insights.scope.clearCategory")}
 								onClear={() => setFilterId(null)}
 								title={filteredEntry.name}
 							/>
@@ -460,7 +465,7 @@ function InsightsContent({ db }: { db: Database }) {
 								cells={insightsMeasureAlternatives(measure).map(
 									(alternative): LedgerCell => ({
 										key: alternative,
-										label: INSIGHTS_MEASURE_WORD[alternative],
+										label: t(MEASURE_KEY[alternative]),
 										magnitude: insightsMeasureMagnitude(alternative, totals),
 										positive: insightsMeasureIsPositive(alternative, totals),
 										income: insightsMeasureIsIncome(alternative),
@@ -493,8 +498,8 @@ function InsightsContent({ db }: { db: Database }) {
 						<View className="pb-3">
 							<MonoLabel>
 								{lockedBucket
-									? `Categories · ${bucketDateLabel(period, lockedBucket.start)}`
-									: "Categories"}
+									? `${t("insights.categories")} · ${bucketDateLabel(period, lockedBucket.start)}`
+									: t("insights.categories")}
 							</MonoLabel>
 						</View>
 						<View className="pb-1">

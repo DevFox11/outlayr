@@ -1,4 +1,5 @@
 import { Pressable, View } from "react-native";
+import { useTranslation } from "@/i18n";
 import { MeasureCellAmount } from "./amount-text";
 import { MonoLabel } from "./mono-label";
 import { cn } from "./tw";
@@ -33,6 +34,7 @@ interface LedgerHeadProps {
  * reshuffling under your thumb is how you tap the wrong one.
  */
 export function LedgerHead({ cells, code, showCents = true }: LedgerHeadProps) {
+	const t = useTranslation();
 	return (
 		<View>
 			<View className="h-px w-full bg-border" />
@@ -45,7 +47,9 @@ export function LedgerHead({ cells, code, showCents = true }: LedgerHeadProps) {
 							<View className="absolute inset-y-0 left-0 w-px bg-border" />
 						) : null}
 						<Pressable
-							accessibilityHint={cell.accessibilityHint ?? "Show this figure"}
+							accessibilityHint={
+								cell.accessibilityHint ?? t("log.ledger.showFigure")
+							}
 							accessibilityRole="button"
 							className="gap-0.75 py-2.5 active:opacity-70"
 							onPress={cell.onPress}

@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getBudgetById } from "@/data/budgets";
+import { useTranslation } from "@/i18n";
 import { BudgetForm } from "@/screens/budgets/components/budget-form";
 
 export default function EditBudgetScreen() {
 	const router = useRouter();
+	const t = useTranslation();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const db = useDatabase();
 	// Read once while mounting: the driver runs on the JS thread, so the form
@@ -26,11 +28,11 @@ export default function EditBudgetScreen() {
 	return (
 		<>
 			<BudgetForm db={db} initial={initial} onDone={() => router.back()} />
-			<Stack.Screen.Title>Edit Budget</Stack.Screen.Title>
+			<Stack.Screen.Title>{t("budgets.edit.title")}</Stack.Screen.Title>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("close")}
-					accessibilityLabel="Close"
+					accessibilityLabel={t("budgets.action.close")}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>

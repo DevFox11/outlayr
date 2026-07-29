@@ -2,6 +2,7 @@ import { Pressable, View } from "react-native";
 import { CategoryIcon } from "@/components/category-icon";
 import { Text } from "@/components/text";
 import { useAppTheme } from "@/contexts/app-theme-context";
+import { useTranslation } from "@/i18n";
 import { glyphShade, withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -120,11 +121,12 @@ export function ColorSwatch({
 	onPress: () => void;
 }) {
 	const colors = useColors();
+	const t = useTranslation();
 	const dimmed = used && !selected;
 	return (
 		<Pressable
 			accessibilityHint={
-				dimmed ? "Already used by another category" : undefined
+				dimmed ? t("transaction.identity.colorUsed") : undefined
 			}
 			accessibilityLabel={hex}
 			accessibilityRole="button"

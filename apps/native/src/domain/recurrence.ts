@@ -30,59 +30,8 @@ const UNIT_SINGULAR: Record<number, string> = {
 	4: "year",
 };
 
-const UNIT_PLURAL: Record<number, string> = {
-	1: "days",
-	2: "weeks",
-	3: "months",
-	4: "years",
-};
-
-const NAMED_LABEL: Record<number, string> = {
-	1: "Daily",
-	2: "Weekly",
-	3: "Monthly",
-	4: "Yearly",
-};
-
-const UNIT_TITLE: Record<number, string> = {
-	1: "Days",
-	2: "Weeks",
-	3: "Months",
-	4: "Years",
-};
-
-export function cadenceLabel(type: number): string {
-	return NAMED_LABEL[type] ?? "Monthly";
-}
-
 export function cadenceUnit(type: number): string {
 	return UNIT_SINGULAR[type] ?? "month";
-}
-
-/** Mirrors the Swift `RecurringCadence.unitTitle`. */
-export function cadenceUnitTitle(type: number): string {
-	return UNIT_TITLE[type] ?? "Months";
-}
-
-/** Mirrors the Swift `CustomScheduleSheet.preview`. */
-export function customSchedulePreview(
-	type: number,
-	coefficient: number,
-): string {
-	const n = Math.max(1, Math.round(coefficient));
-	if (n <= 1) {
-		return `Repeats every ${cadenceUnit(type)}`;
-	}
-	return `Repeats every ${n} ${UNIT_PLURAL[type] ?? "months"}`;
-}
-
-/** Mirrors the Swift `scheduleLabel(coefficient:)`. */
-export function scheduleLabel(type: number, coefficient: number): string {
-	const n = Math.max(1, Math.round(coefficient));
-	if (n <= 1) {
-		return `Every ${UNIT_SINGULAR[type] ?? "month"}`;
-	}
-	return `Every ${n} ${UNIT_PLURAL[type] ?? "months"}`;
 }
 
 /** Adds `n` whole months keeping the day-of-month where the target month allows. */

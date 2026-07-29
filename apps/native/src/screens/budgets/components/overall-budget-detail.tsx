@@ -14,15 +14,16 @@ import { useBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
-	budgetPeriodPhrase,
 	budgetWindowLabel,
 	isBehindPace,
 	leftPerDay,
 	shouldShowPaceMarker,
 } from "@/domain/budget-math";
+import { useTranslation } from "@/i18n";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
+import { budgetPeriodKey } from "@/screens/budgets/period-phrase";
 
 /**
  * Lives under `/budgets/[id]` with the reserved id `overall` rather than its own
@@ -46,6 +47,7 @@ function MainBudgetDetail({
 	onDone: () => void;
 }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
@@ -95,7 +97,7 @@ function MainBudgetDetail({
 				period={
 					closed
 						? budgetWindowLabel(budget.window, budget.type)
-						: budgetPeriodPhrase(budget.type)
+						: t(budgetPeriodKey(budget.type))
 				}
 				spent={budget.spent}
 				amount={budget.amount}
@@ -122,11 +124,11 @@ function MainBudgetDetail({
 					) : null
 				}
 			/>
-			<Stack.Screen.Title>Overall Budget</Stack.Screen.Title>
+			<Stack.Screen.Title>{t("budgets.overall.title")}</Stack.Screen.Title>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("delete")}
-					accessibilityLabel="Delete"
+					accessibilityLabel={t("budgets.action.delete")}
 					onPress={confirmDelete}
 					tintColor={Color.ios.systemRed}
 				/>

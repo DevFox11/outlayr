@@ -8,6 +8,7 @@ import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import type { TransactionWithCategory } from "@/data/transactions";
 import type { RateTable } from "@/domain/valuation";
+import { useTranslation } from "@/i18n";
 
 interface SwipeableTransactionRowProps {
 	transaction: TransactionWithCategory;
@@ -34,6 +35,7 @@ export function SwipeableTransactionRow({
 	swapTimeLabel = false,
 }: SwipeableTransactionRowProps) {
 	const swipeRef = useRef<SwipeableMethods>(null);
+	const t = useTranslation();
 
 	const renderRightActions = () => (
 		<Pressable
@@ -43,10 +45,10 @@ export function SwipeableTransactionRow({
 				onDelete(transaction.id);
 			}}
 			accessibilityRole="button"
-			accessibilityLabel="Delete transaction"
+			accessibilityLabel={t("log.row.deleteAccessibility")}
 		>
 			<Text className="font-sans-semibold text-subtitle text-white">
-				Delete
+				{t("log.row.delete")}
 			</Text>
 		</Pressable>
 	);

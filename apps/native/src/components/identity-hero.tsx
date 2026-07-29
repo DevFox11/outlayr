@@ -17,6 +17,7 @@ import {
 	LAUNCH_SPRING,
 	useIdentityFlyUp,
 } from "@/contexts/identity-draft-context";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -69,18 +70,30 @@ const SPARKLES = {
  */
 const CAPTION_GAP = { transaction: 12, category: 8 } as const;
 
-const A11Y = {
+const A11Y: Record<
+	HeroVariant,
+	{
+		readonly tile: TranslationKey;
+		readonly hint: TranslationKey;
+		readonly reset: TranslationKey;
+	}
+> = {
 	transaction: {
-		tile: "Add a logo or icon",
-		hint: "Opens the logo picker",
-		reset: "Remove logo",
+		tile: "transaction.identity.hero.logo",
+		hint: "transaction.identity.hero.logoHint",
+		reset: "transaction.identity.hero.removeLogo",
 	},
 	category: {
-		tile: "Category icon",
-		hint: "Opens the icon picker",
-		reset: "Remove icon",
+		tile: "transaction.identity.hero.icon",
+		hint: "transaction.identity.hero.iconHint",
+		reset: "transaction.identity.hero.removeIcon",
 	},
-} as const;
+};
+
+const EMPTY_CAPTION: Record<HeroVariant, TranslationKey> = {
+	transaction: "transaction.identity.hero.logo",
+	category: "transaction.identity.hero.chooseIcon",
+};
 
 interface IdentityHeroProps {
 	emoji: string | null;
@@ -128,6 +141,7 @@ export function IdentityHero({
 	onReset,
 }: IdentityHeroProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const { pickerOpen } = useIdentityFlyUp();
 	const tint = color ?? (income ? colors.income : colors.foreground);
 	const isEmpty = !emoji && !icon && !photoUri;
@@ -260,8 +274,8 @@ export function IdentityHero({
 							pressOpacity.value = withSpring(1, PRESS_SPRING);
 						}}
 						accessibilityRole="button"
-						accessibilityLabel={A11Y[variant].tile}
-						accessibilityHint={A11Y[variant].hint}
+						accessibilityLabel={t(A11Y[variant].tile)}
+						accessibilityHint={t(A11Y[variant].hint)}
 						style={{ width: HERO_RING, height: HERO_RING }}
 					>
 						{tile}
@@ -271,7 +285,7 @@ export function IdentityHero({
 							<Pressable
 								onPress={onReset}
 								accessibilityRole="button"
-								accessibilityLabel={A11Y[variant].reset}
+								accessibilityLabel={t(A11Y[variant].reset)}
 								hitSlop={8}
 								style={{
 									position: "absolute",
@@ -310,11 +324,11 @@ export function IdentityHero({
 						}
 					}
 				>
-					{isEmpty
-						? variant === "category"
-							? "Choose an icon & color"
-							: "Add a logo or icon"
-						: "Tap to change"}
+					{t(
+						isEmpty
+							? EMPTY_CAPTION[variant]
+							: "transaction.identity.hero.tapToChange",
+					)}
 				</Text>
 			)}
 		</Animated.View>

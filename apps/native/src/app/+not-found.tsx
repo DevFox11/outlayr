@@ -1,6 +1,7 @@
 import { Link, Stack } from "expo-router";
 import { View } from "react-native";
 import { Text } from "@/components/text";
+import { useTranslation } from "@/i18n";
 
 /**
  * Replaces expo-router's built-in `Unmatched` screen, which links to
@@ -8,20 +9,20 @@ import { Text } from "@/components/text";
  * from any malformed `outlayr://` deep link.
  */
 export default function NotFoundScreen() {
+	const t = useTranslation();
 	return (
 		<>
-			<Stack.Title>Not Found</Stack.Title>
+			<Stack.Title>{t("notFound.navTitle")}</Stack.Title>
 			<View className="flex-1 items-center justify-center bg-background px-8">
 				<Text className="pb-2 font-sans-semibold text-foreground text-title">
-					Nothing Here
+					{t("notFound.title")}
 				</Text>
 				<Text className="pb-6 text-center text-muted text-subtitle">
-					That link does not point anywhere in Outlayr. Your ledger is where you
-					left it.
+					{t("notFound.body")}
 				</Text>
 				<Link href="/">
 					<Text className="font-sans-semibold text-subtitle text-tint">
-						Back to the Log
+						{t("notFound.action")}
 					</Text>
 				</Link>
 			</View>

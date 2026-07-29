@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/catalog";
 export interface AppIconChoice {
 	/**
 	 * The alternate's name in the asset catalogue, or `null` for the primary.
@@ -8,40 +9,40 @@ export interface AppIconChoice {
 	name: string | null;
 	/** Picks the preview PNG in `assets/images/app-icon-previews/`. */
 	slug: string;
-	label: string;
-	detail: string;
+	label: TranslationKey;
+	detail: TranslationKey;
 }
 
 export const APP_ICONS: readonly AppIconChoice[] = [
 	{
 		name: null,
 		slug: "default",
-		label: "Default",
-		detail: "The Outlayr mark on paper. The icon the app ships with.",
+		label: "appIcon.default.label",
+		detail: "appIcon.default.detail",
 	},
 	{
 		name: "OutlayrInk",
 		slug: "ink",
-		label: "Ink",
-		detail: "The mark inverted — paper on ink, for darker home screens.",
+		label: "appIcon.ink.label",
+		detail: "appIcon.ink.detail",
 	},
 	{
 		name: "OutlayrHairline",
 		slug: "hairline",
-		label: "Hairline",
-		detail: "Outline only, drawn in a single ink hairline.",
+		label: "appIcon.hairline.label",
+		detail: "appIcon.hairline.detail",
 	},
 	{
 		name: "OutlayrMono",
 		slug: "mono",
-		label: "Mono",
-		detail: "A flat grey field with the ink mark. Quiet and neutral.",
+		label: "appIcon.mono.label",
+		detail: "appIcon.mono.detail",
 	},
 	{
 		name: "OutlayrEmboss",
 		slug: "emboss",
-		label: "Emboss",
-		detail: "Paper on paper. The mark reads only in its shadow.",
+		label: "appIcon.emboss.label",
+		detail: "appIcon.emboss.detail",
 	},
 ];
 
@@ -54,6 +55,6 @@ export function appIconChoice(active: string | null): AppIconChoice {
 	return APP_ICONS.find((icon) => icon.name === active) ?? APP_ICONS[0];
 }
 
-export function appIconLabel(active: string | null): string {
+export function appIconLabel(active: string | null): TranslationKey {
 	return appIconChoice(active).label;
 }

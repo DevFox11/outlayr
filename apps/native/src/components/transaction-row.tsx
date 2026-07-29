@@ -6,6 +6,7 @@ import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { isExact, type RateTable } from "@/domain/valuation";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -55,6 +56,7 @@ export function TransactionRow({
 	landsOn,
 }: TransactionRowProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const date = new Date(transaction.date);
 	const future = forcedFuture ?? isFuture(date);
 	const code = transaction.currency ?? currency;
@@ -146,7 +148,7 @@ export function TransactionRow({
 					) : null}
 					{unplaced ? (
 						<View
-							accessibilityLabel={`Currency not recorded, shown as ${currency}`}
+							accessibilityLabel={t("log.row.unplaced", { code: currency })}
 							className="rounded-[3px] border border-border px-[3px]"
 						>
 							<MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>

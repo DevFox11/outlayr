@@ -9,6 +9,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 interface InsightsTransactionListProps {
@@ -76,11 +77,12 @@ export function InsightsTransactionList({
 
 function InsightsNoResults() {
 	const colors = useColors();
+	const t = useTranslation();
 	return (
 		<View className="items-center justify-center gap-3 py-12 opacity-70">
 			<HugeiconsIcon color={colors.muted} icon={Archive02Icon} size={38} />
 			<Text className="font-sans-medium text-muted text-title">
-				No entries found.
+				{t("insights.list.empty")}
 			</Text>
 		</View>
 	);

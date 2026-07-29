@@ -8,6 +8,7 @@ import {
 	type NumpadKey,
 	numpadToNumber,
 } from "@/domain/numpad";
+import { useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
@@ -38,6 +39,7 @@ export function AmountNumpad({
 }: AmountNumpadProps) {
 	const colors = useColors();
 	const haptics = useHaptics();
+	const t = useTranslation();
 	const symbol = currencySymbol(code);
 	const amountColor = toneClass?.includes("income")
 		? colors.income
@@ -51,7 +53,9 @@ export function AmountNumpad({
 	return (
 		<View className="px-4">
 			<View className="items-center pt-2">
-				<Text className="font-sans text-body text-muted">Amount</Text>
+				<Text className="font-sans text-body text-muted">
+					{t("transaction.field.amount")}
+				</Text>
 			</View>
 			<View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
 				<NumberFlow
@@ -100,6 +104,7 @@ function NumpadKeyTile({
 	fg: string;
 	onPress: () => void;
 }) {
+	const t = useTranslation();
 	if (hidden) {
 		return <View className="h-16 flex-1" />;
 	}
@@ -108,7 +113,9 @@ function NumpadKeyTile({
 			className="h-16 flex-1 items-center justify-center overflow-hidden rounded-2xl active:scale-[0.96] active:opacity-65"
 			onPress={onPress}
 			accessibilityRole="button"
-			accessibilityLabel={label === "back" ? "Delete" : label}
+			accessibilityLabel={
+				label === "back" ? t("transaction.numpad.delete") : label
+			}
 		>
 			{GLASS ? (
 				<GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />

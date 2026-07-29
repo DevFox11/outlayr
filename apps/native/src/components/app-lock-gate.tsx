@@ -17,10 +17,9 @@ import {
 	lockIsUnenforceable,
 	relocksOnPhase,
 } from "@/domain/app-lock";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import { lockIsEnforceable, requestUnlock } from "@/lib/app-lock";
 import { useColors } from "@/theme/use-colors";
-
-const PROMPT = "Unlock Outlayr";
 
 /**
  * Holds the shield over `children` rather than swapping them out: unmounting the
@@ -29,10 +28,11 @@ const PROMPT = "Unlock Outlayr";
  */
 export function AppLockGate({ children }: { children: ReactNode }) {
 	const db = useDatabase();
+	const t = useTranslation();
 	const enabled = useBoolSetting(db, "biometricLock");
 	const [unlocked, setUnlocked] = useState(false);
 	const [enforceable, setEnforceable] = useState<boolean | null>(null);
-	const [failure, setFailure] = useState<string | null>(null);
+	const [failure, setFailure] = useState<TranslationKey | null>(null);
 	const [checking, setChecking] = useState(false);
 
 	// Seeded from the mount-time setting, so a launch with the lock already on is
@@ -76,7 +76,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 
 	const attempt = useCallback(async () => {
 		setChecking(true);
-		const result = await requestUnlock(PROMPT);
+		const result = await requestUnlock(t("transaction.lock.prompt"));
 		setChecking(false);
 		if (result.success) {
 			setFailure(null);
@@ -88,7 +88,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 			return;
 		}
 		setFailure(lockFailureMessage(result.error));
-	}, []);
+	}, [t]);
 
 	const gate = lockGate(enabled, unlocked, enforceable);
 
@@ -113,7 +113,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 			{gate === "shut" ? (
 				<AppLockScreen
 					busy={checking}
-					message={failure}
+					message={failure ? t(failure) : null}
 					onUnlock={() => {
 						void attempt();
 					}}
@@ -133,12 +133,13 @@ function AppLockScreen({
 	onUnlock: () => void;
 }) {
 	const colors = useColors();
+	const t = useTranslation();
 
 	return (
 		<View className="absolute inset-0 items-center justify-center gap-4 bg-background px-8">
 			<HugeiconsIcon color={colors.subtle} icon={SquareLock02Icon} size={56} />
 			<Text className="font-sans-semibold text-foreground text-title">
-				Outlayr is Locked
+				{t("transaction.lock.title")}
 			</Text>
 
 			<Pressable
@@ -148,7 +149,7 @@ function AppLockScreen({
 				onPress={onUnlock}
 			>
 				<Text className="font-sans-semibold text-accent-foreground text-body">
-					{busy ? "Checking…" : "Unlock"}
+					{t(busy ? "transaction.lock.checking" : "transaction.lock.unlock")}
 				</Text>
 			</Pressable>
 

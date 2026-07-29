@@ -8,6 +8,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { type EraseScope, eraseData } from "@/data/erase";
 import { useTransactionCount } from "@/data/transactions";
 import type { Database } from "@/db/client";
+import { type TranslationKey, useTranslation } from "@/i18n";
 
 export default function EraseDataRoute() {
 	const db = useDatabase();
@@ -16,13 +17,18 @@ export default function EraseDataRoute() {
 
 function EraseData({ db }: { db: Database }) {
 	const router = useRouter();
+	const t = useTranslation();
 	const count = useTransactionCount(db);
 
-	const confirm = (scope: EraseScope, title: string, message: string) => {
-		Alert.alert(title, message, [
-			{ text: "Cancel", style: "cancel" },
+	const confirm = (
+		scope: EraseScope,
+		title: TranslationKey,
+		message: TranslationKey,
+	) => {
+		Alert.alert(t(title), t(message), [
+			{ text: t("common.cancel"), style: "cancel" },
 			{
-				text: "Erase",
+				text: t("settings.erase.action"),
 				style: "destructive",
 				onPress: () => {
 					eraseData(db, scope).then(() => router.back());
@@ -34,18 +40,20 @@ function EraseData({ db }: { db: Database }) {
 	return (
 		<SettingsScreen>
 			<View className="gap-1 pt-6">
-				<MonoLabel>On this device</MonoLabel>
+				<MonoLabel>{t("settings.erase.onThisDevice")}</MonoLabel>
 				<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
 					{count}
 				</Text>
 				<Text className="text-muted text-subtitle">
-					{count === 1 ? "transaction logged" : "transactions logged"}
+					{count === 1
+						? t("settings.erase.transactionLogged")
+						: t("settings.erase.transactionsLogged")}
 				</Text>
 			</View>
 
 			<SettingsSection
-				footer="Your categories are kept either way — they are the vocabulary you built, not the records you logged."
-				title="Erase"
+				footer={t("settings.erase.footer")}
+				title={t("settings.erase.section")}
 			>
 				<LinkRow
 					destructive
@@ -53,11 +61,11 @@ function EraseData({ db }: { db: Database }) {
 					onPress={() =>
 						confirm(
 							"transactions",
-							"Erase transactions?",
-							"Every transaction and recurring template will be deleted. Budgets and categories are kept. This can't be undone.",
+							"settings.erase.confirmTransactionsTitle",
+							"settings.erase.confirmTransactionsBody",
 						)
 					}
-					title="Transactions only"
+					title={t("settings.erase.transactionsOnly")}
 				/>
 				<LinkRow
 					destructive
@@ -65,11 +73,11 @@ function EraseData({ db }: { db: Database }) {
 					onPress={() =>
 						confirm(
 							"everything",
-							"Erase everything?",
-							"Every transaction, recurring template and budget will be deleted. Only your categories are kept. This can't be undone.",
+							"settings.erase.confirmEverythingTitle",
+							"settings.erase.confirmEverythingBody",
 						)
 					}
-					title="Transactions and budgets"
+					title={t("settings.erase.transactionsAndBudgets")}
 				/>
 			</SettingsSection>
 		</SettingsScreen>

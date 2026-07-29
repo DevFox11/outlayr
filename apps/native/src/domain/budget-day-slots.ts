@@ -1,4 +1,5 @@
 import { contributesTo, type ExpenseContribution } from "@/data/budget-spent";
+import type { TranslateFn } from "@/i18n/context";
 import type { BudgetWindow } from "./budget-math";
 import { median } from "./stats";
 
@@ -132,16 +133,15 @@ export function buildDaySlots(
 export function dayVerdictSentence(
 	slots: DaySlots,
 	noun: string,
+	t: TranslateFn,
 ): string | null {
 	switch (slots.verdict) {
 		case "room":
-			return "Room for one more.";
+			return t("daySlots.room");
 		case "tight":
-			return "Not enough for another.";
+			return t("daySlots.tight");
 		case "over":
-			return slots.overflow === 1
-				? `One ${noun} too many.`
-				: `${slots.overflow} ${noun} too many.`;
+			return t("daySlots.over", { count: slots.overflow, noun });
 		default:
 			return null;
 	}

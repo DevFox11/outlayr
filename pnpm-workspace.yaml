@@ -6,6 +6,9 @@ allowBuilds:
   lefthook: true
   better-sqlite3: true
   '@shopify/react-native-skia': true
+  # intlayer pulls this in for `intlayer watch`; the build pipeline only ever
+  # runs `intlayer build`, so CI needs no native toolchain for it.
+  '@parcel/watcher': false
 catalog:
   dotenv: ^17.4.2
   zod: ^4.4.3

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { type BudgetWindow, budgetWindowLabel } from "@/domain/budget-math";
+import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 interface BudgetPeriodStepperProps {
@@ -27,10 +28,11 @@ export function BudgetPeriodStepper({
 	maxBack,
 	onStep,
 }: BudgetPeriodStepperProps) {
+	const t = useTranslation();
 	return (
 		<View className="flex-row items-center justify-between">
 			<StepButton
-				accessibilityLabel="Previous period"
+				accessibilityLabel={t("budgets.stepper.previous")}
 				disabled={offset <= -maxBack}
 				onPress={() => onStep(offset - 1)}
 			>
@@ -42,7 +44,7 @@ export function BudgetPeriodStepper({
 			</MonoLabel>
 
 			<StepButton
-				accessibilityLabel="Next period"
+				accessibilityLabel={t("budgets.stepper.next")}
 				disabled={offset >= 0}
 				onPress={() => onStep(offset + 1)}
 			>

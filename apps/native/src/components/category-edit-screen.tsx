@@ -7,6 +7,7 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { categoriesRepo, getCategoryById } from "@/data/categories";
 import { categories } from "@/db/schema";
+import { useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
@@ -18,20 +19,22 @@ import { useColors } from "@/theme/use-colors";
 export function CategoryEditScreen({ id }: { id: string }) {
 	const router = useRouter();
 	const db = useDatabase();
+	const t = useTranslation();
 	const colors = useColors();
 	const haptics = useHaptics();
 
 	// Read once on mount, like the editor does — a rename must not retitle the
 	// sheet mid-edit.
 	const [edited] = useState(() => (id ? getCategoryById(db, id) : null));
-	const title =
+	const title = t(
 		edited == null
-			? "Category"
+			? "categories.kind.category"
 			: edited.parentId != null
-				? "Subcategory"
+				? "categories.kind.subcategory"
 				: edited.income
-					? "Income Category"
-					: "Expense Category";
+					? "categories.kind.income"
+					: "categories.kind.expense",
+	);
 
 	const confirmDelete = async () => {
 		if (!id) {
@@ -45,22 +48,28 @@ export function CategoryEditScreen({ id }: { id: string }) {
 			.select({ id: categories.id })
 			.from(categories)
 			.where(and(eq(categories.parentId, id), isNull(categories.deletedAt)));
-		const message =
+		const message = t(
 			children.length > 0
-				? `This can't be undone. ${category.name} transactions will be deleted; its subcategories will be moved to the top level.`
-				: `This can't be undone. All ${category.name} transactions will be deleted too.`;
-		Alert.alert(`Delete '${category.name}'?`, message, [
-			{ text: "Cancel", style: "cancel" },
-			{
-				text: "Delete",
-				style: "destructive",
-				onPress: async () => {
-					haptics("warning");
-					await categoriesRepo.remove(db, id);
-					router.back();
+				? "categories.delete.messageWithChildren"
+				: "categories.delete.message",
+			{ name: category.name },
+		);
+		Alert.alert(
+			t("categories.delete.title", { name: category.name }),
+			message,
+			[
+				{ text: t("common.cancel"), style: "cancel" },
+				{
+					text: t("common.delete"),
+					style: "destructive",
+					onPress: async () => {
+						haptics("warning");
+						await categoriesRepo.remove(db, id);
+						router.back();
+					},
 				},
-			},
-		]);
+			],
+		);
 	};
 
 	return (
@@ -70,14 +79,14 @@ export function CategoryEditScreen({ id }: { id: string }) {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("close")}
-					accessibilityLabel="Close"
+					accessibilityLabel={t("common.close")}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					{...toolbarIcon("delete")}
-					accessibilityLabel="Delete"
+					accessibilityLabel={t("common.delete")}
 					onPress={confirmDelete}
 					tintColor={colors.danger}
 				/>
