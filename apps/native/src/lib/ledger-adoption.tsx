@@ -83,7 +83,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 
 		void (async () => {
 			try {
-				const engine = adoptionEngine();
+				const engine = adoptionEngine(db);
 				const remote = engine ? await engine.accountLedger() : "unknown";
 				const plan = adoptionPlan(await localLedgerState(db), remote);
 				if (cancelled) {
@@ -123,7 +123,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 			setFailed(false);
 			void (async () => {
 				try {
-					await runAdoption(db, adoptionEngine(), choiceActions(choice));
+					await runAdoption(db, adoptionEngine(db), choiceActions(choice));
 					await markAdopted(db, accountId);
 					setStatus("settled");
 				} catch (error) {

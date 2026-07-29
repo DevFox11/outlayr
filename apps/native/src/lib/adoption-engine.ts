@@ -1,15 +1,26 @@
+import {
+	accountLedgerState,
+	discardAccountLedger,
+	replaceLocalFromAccount,
+} from "@/data/adoption-engine-core";
 import type { AdoptionEngine } from "@/data/ledger-adoption";
+import type { Database } from "@/db/client";
+import { syncTransport } from "@/lib/convex";
 
 /**
- * The seam #164 (push) and #165 (pull) fill. Reading the account's ledger,
- * refilling the local replica from seq 0, and tombstoning the account's rows are
- * all transport, and none of them exists yet — `packages/backend/convex/sync.ts`
- * still has to expose them.
- *
- * Null until then, which resolves every adoption to `defer`: no row on either
- * side is touched and no marker is written, so the reconciliation happens the
- * first time a build ships with an engine rather than being silently skipped.
+ * Null when the device has no backend to ask, which resolves every adoption to
+ * `defer`: no row on either side is touched and no marker is written, so the
+ * reconciliation happens on the first launch that can reach Convex rather than
+ * being silently skipped.
  */
-export function adoptionEngine(): AdoptionEngine | null {
-	return null;
+export function adoptionEngine(db: Database | null): AdoptionEngine | null {
+	const transport = syncTransport();
+	if (db == null || transport == null) {
+		return null;
+	}
+	return {
+		accountLedger: () => accountLedgerState(transport.pull),
+		replaceFromAccount: () => replaceLocalFromAccount(db, transport.pull),
+		discardAccountLedger: () => discardAccountLedger(db, transport),
+	};
 }
