@@ -16,6 +16,12 @@ export const META_KEYS = {
 	 * code cannot be told apart from one nobody ever chose.
 	 */
 	currencyChosen: "currencyChosen",
+	/**
+	 * Set once the orphaned-chain repair has run. Deleting a schedule carrier now
+	 * retires it, so any tombstone still holding one predates that and is repaired
+	 * exactly once rather than on every sweep.
+	 */
+	recurrenceRepaired: "recurrenceRepaired",
 } as const;
 
 export async function getMeta(

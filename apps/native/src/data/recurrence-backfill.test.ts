@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
-import { asc, isNull } from "drizzle-orm";
+import { asc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
-import { backfillAllRecurring, backfillRecurring } from "./recurrence-backfill";
+import {
+	backfillAllRecurring,
+	backfillRecurring,
+	repairOrphanedRecurrence,
+} from "./recurrence-backfill";
+import { transactionsRepo } from "./transactions-core";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
@@ -113,6 +118,23 @@ function allRows(db: Database) {
 async function generatedRows(db: Database, sourceId: string) {
 	const rows = await allRows(db);
 	return rows.filter((row) => row.id !== sourceId);
+}
+
+function everyRow(db: Database) {
+	return db.select().from(transactions).orderBy(asc(transactions.date));
+}
+
+async function liveCarrier(db: Database) {
+	const rows = await allRows(db);
+	return rows.find((row) => row.recurringType !== RECURRING_TYPE.none) ?? null;
+}
+
+/** A soft-delete as it landed before the handover existed: schedule left intact. */
+async function orphanCarrier(db: Database, id: string): Promise<void> {
+	await db
+		.update(transactions)
+		.set({ deletedAt: NOW })
+		.where(eq(transactions.id, id));
 }
 
 describe("backfillRecurring", () => {
@@ -346,5 +368,260 @@ describe("backfillAllRecurring", () => {
 		await backfillAllRecurring(db, NOW);
 
 		assert.equal((await allRows(db)).length, 0);
+	});
+});
+
+describe("transactionsRepo.remove over a schedule carrier", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("re-anchors the schedule on a successor instead of ending the chain", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+
+		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
+
+		const successor = await liveCarrier(db);
+		assert.notEqual(successor, null);
+		assert.equal(successor?.date.getTime(), at(2025, 7, 15).getTime());
+		assert.equal(successor?.recurringType, RECURRING_TYPE.monthly);
+		assert.equal(successor?.note, "Netflix");
+		assert.equal(successor?.amount, 9.99);
+		assert.equal(successor?.categoryId, "bills");
+	});
+
+	it("leaves the deleted charge deleted", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+
+		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
+
+		const live = await allRows(db);
+		assert.equal(
+			live.some((row) => row.id === carrier?.id),
+			false,
+		);
+		assert.equal(
+			live.some((row) => row.date.getTime() === at(2025, 6, 15).getTime()),
+			false,
+		);
+	});
+
+	it("retires the schedule on the tombstone", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+
+		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
+
+		const tombstone = (await everyRow(db)).find(
+			(row) => row.id === carrier?.id,
+		);
+		assert.notEqual(tombstone?.deletedAt, null);
+		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+	});
+
+	it("carries the coefficient and end date onto the successor", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 1, 15),
+			recurringCoefficient: 2,
+			recurringEndDate: at(2026, 3, 15),
+		});
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+
+		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
+
+		const successor = await liveCarrier(db);
+		assert.equal(successor?.date.getTime(), at(2025, 7, 15).getTime());
+		assert.equal(successor?.recurringCoefficient, 2);
+		assert.equal(
+			successor?.recurringEndDate?.getTime(),
+			at(2026, 3, 15).getTime(),
+		);
+	});
+
+	it("ends the chain when the next occurrence is past the end date", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 6, 10),
+			recurringType: RECURRING_TYPE.weekly,
+			recurringEndDate: at(2025, 6, 16),
+		});
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		assert.equal((await allRows(db)).length, 0);
+	});
+
+	it("stops the chain when the pending charge itself is deleted", async () => {
+		const id = await seedSource(db, { date: at(2025, 7, 15) });
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		assert.equal((await allRows(db)).length, 0);
+		const [tombstone] = await everyRow(db);
+		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+	});
+
+	it("does not fabricate the charges a stale carrier missed", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		const live = await allRows(db);
+		assert.equal(live.length, 1);
+		assert.equal(live[0]?.date.getTime(), at(2025, 7, 15).getTime());
+	});
+
+	it("leaves a settled occurrence's delete alone", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const inert = (await allRows(db)).find(
+			(row) => row.id !== id && row.recurringType === RECURRING_TYPE.none,
+		);
+		const before = (await allRows(db)).length;
+
+		await transactionsRepo.remove(db, inert?.id ?? "", NOW);
+
+		assert.equal((await allRows(db)).length, before - 1);
+		assert.notEqual(await liveCarrier(db), null);
+	});
+
+	it("keeps sweeping the chain after the handover", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
+
+		await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
+
+		assert.deepEqual(
+			(await allRows(db)).map((row) => row.date.getTime()),
+			[
+				at(2025, 3, 15),
+				at(2025, 4, 15),
+				at(2025, 5, 15),
+				at(2025, 7, 15),
+				at(2025, 8, 15),
+				at(2025, 9, 15),
+			].map((d) => d.getTime()),
+		);
+	});
+
+	it("soft-deletes a plain transaction without touching the ledger", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 3, 15),
+			onceRecurring: false,
+			recurringType: RECURRING_TYPE.none,
+		});
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		assert.equal((await allRows(db)).length, 0);
+		assert.equal((await everyRow(db)).length, 1);
+	});
+});
+
+describe("repairOrphanedRecurrence", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("reinstates a chain whose carrier was deleted without a handover", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		await orphanCarrier(db, carrier?.id ?? "");
+		assert.equal(await liveCarrier(db), null);
+
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 1);
+
+		const revived = await liveCarrier(db);
+		assert.equal(revived?.date.getTime(), at(2025, 7, 15).getTime());
+		assert.equal(revived?.recurringType, RECURRING_TYPE.monthly);
+		assert.equal(revived?.note, "Netflix");
+	});
+
+	it("clears the tombstone it repaired so a rerun cannot double-charge", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		await orphanCarrier(db, carrier?.id ?? "");
+
+		await repairOrphanedRecurrence(db, NOW);
+
+		const tombstone = (await everyRow(db)).find(
+			(row) => row.id === carrier?.id,
+		);
+		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+	});
+
+	it("is a no-op on a healthy ledger", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const before = (await everyRow(db)).length;
+
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+
+		assert.equal((await everyRow(db)).length, before);
+		assert.equal(
+			(await liveCarrier(db))?.date.getTime(),
+			at(2025, 6, 15).getTime(),
+		);
+	});
+
+	it("only ever runs once, so a later tombstone is not swept up", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+
+		const carrier = await liveCarrier(db);
+		await orphanCarrier(db, carrier?.id ?? "");
+		const before = (await everyRow(db)).length;
+
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+
+		assert.equal((await everyRow(db)).length, before);
+	});
+
+	it("does not double-charge a chain the delete handover already re-anchored", async () => {
+		const id = await seedSource(db, { date: at(2025, 3, 15) });
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
+		const before = (await everyRow(db)).length;
+
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+
+		assert.equal((await everyRow(db)).length, before);
+	});
+
+	it("does not reinstate a deleted pending charge", async () => {
+		const id = await seedSource(db, { date: at(2025, 7, 15) });
+		await orphanCarrier(db, id);
+
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+
+		assert.equal((await allRows(db)).length, 0);
+	});
+
+	it("retires a tombstone whose chain has run past its end date", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 6, 10),
+			recurringType: RECURRING_TYPE.weekly,
+			recurringEndDate: at(2025, 6, 16),
+		});
+		await orphanCarrier(db, id);
+
+		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+
+		assert.equal((await allRows(db)).length, 0);
+		const [tombstone] = await everyRow(db);
+		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
 	});
 });

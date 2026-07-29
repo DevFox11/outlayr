@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
@@ -7,10 +7,11 @@ import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { nextDate, RECURRING_TYPE } from "@/domain/recurrence";
-import { getMeta, META_KEYS } from "./app-meta-core";
+import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
 
 type TransactionRow = typeof transactions.$inferSelect;
+type TransactionInsert = typeof transactions.$inferInsert;
 
 async function loadSource(
 	db: Database,
@@ -22,6 +23,37 @@ async function loadSource(
 		.where(eq(transactions.id, id))
 		.limit(1);
 	return rows[0] ?? null;
+}
+
+function occurrenceRow(
+	source: TransactionRow,
+	holding: Date,
+	carriesSchedule: boolean,
+	now: Date,
+): TransactionInsert {
+	return {
+		id: newId(),
+		amount: source.amount,
+		income: source.income,
+		currency: source.currency,
+		note: source.note,
+		details: source.details,
+		date: holding,
+		day: startOfDay(holding),
+		month: firstOfMonth(holding),
+		icon: source.icon,
+		emoji: source.emoji,
+		customColor: source.customColor,
+		imageColor: source.imageColor,
+		imageUri: source.imageUri,
+		onceRecurring: true,
+		recurringType: carriesSchedule ? source.recurringType : RECURRING_TYPE.none,
+		recurringCoefficient: carriesSchedule ? source.recurringCoefficient : 1,
+		recurringEndDate: carriesSchedule ? source.recurringEndDate : null,
+		categoryId: source.categoryId,
+		updatedAt: now,
+		deletedAt: null,
+	};
 }
 
 /**
@@ -64,32 +96,10 @@ export async function backfillRecurring(
 	const occurrenceAt = (
 		holding: Date,
 		carriesSchedule: boolean,
-	): typeof transactions.$inferInsert => ({
-		id: newId(),
-		amount: source.amount,
-		income: source.income,
-		currency: source.currency,
-		note: source.note,
-		details: source.details,
-		date: holding,
-		day: startOfDay(holding),
-		month: firstOfMonth(holding),
-		icon: source.icon,
-		emoji: source.emoji,
-		customColor: source.customColor,
-		imageColor: source.imageColor,
-		imageUri: source.imageUri,
-		onceRecurring: true,
-		recurringType: carriesSchedule ? type : RECURRING_TYPE.none,
-		recurringCoefficient: carriesSchedule ? coefficient : 1,
-		recurringEndDate: carriesSchedule ? source.recurringEndDate : null,
-		categoryId: source.categoryId,
-		updatedAt: now,
-		deletedAt: null,
-	});
+	): TransactionInsert => occurrenceRow(source, holding, carriesSchedule, now);
 
 	const next = nextDate(source.date, type, coefficient) ?? source.date;
-	const pending: (typeof transactions.$inferInsert)[] = [];
+	const pending: TransactionInsert[] = [];
 
 	// A row may only inherit the schedule when its own next charge is strictly
 	// ahead of both today and itself: an occurrence that would land today again
@@ -186,4 +196,140 @@ export async function backfillAllRecurring(
 	for (const row of live) {
 		await backfillRecurring(db, row.id, now);
 	}
+}
+
+async function withCanonicalUsd(
+	db: Database,
+	row: TransactionInsert,
+): Promise<TransactionInsert> {
+	const display = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
+	return {
+		...row,
+		...(await canonicalUsd(localRateLookup(db), {
+			amount: row.amount,
+			currency: row.currency ?? null,
+			displayCurrency: display,
+			date: row.date,
+		})),
+	};
+}
+
+/**
+ * The first scheduled occurrence strictly after today, or null when the schedule
+ * cannot advance or has run past its end date. Walked rather than projected so
+ * month-length clamping matches every occurrence the back-fill writes.
+ */
+function landingAfterToday(carrier: TransactionRow, now: Date): Date | null {
+	const today = startOfDay(now);
+	const endLimit =
+		carrier.recurringEndDate == null
+			? null
+			: startOfDay(carrier.recurringEndDate);
+	const advance = (from: Date): Date | null =>
+		nextDate(from, carrier.recurringType, carrier.recurringCoefficient);
+
+	let holding = carrier.date;
+	let advanced = advance(holding);
+	while (
+		advanced != null &&
+		startOfDay(advanced).getTime() > startOfDay(holding).getTime()
+	) {
+		if (
+			endLimit != null &&
+			startOfDay(advanced).getTime() > endLimit.getTime()
+		) {
+			return null;
+		}
+		if (startOfDay(advanced).getTime() > today.getTime()) {
+			return advanced;
+		}
+		holding = advanced;
+		advanced = advance(holding);
+	}
+	return null;
+}
+
+/**
+ * The row that keeps a chain alive once `carrier` stops anchoring it, or null
+ * when there is nothing left to keep alive.
+ *
+ * Anchored at the next occurrence *after today* rather than at the carrier's own
+ * next charge: a carrier that sat stale resumes going forward instead of
+ * back-charging the gap it slept through.
+ *
+ * A carrier dated in the future is the pending charge itself rather than a
+ * settled one, so removing it is the only way the schema can say "stop" — that
+ * one gets no successor.
+ *
+ * Built outside the caller's write transaction because canonicalizing it reads
+ * the rate replica.
+ */
+export async function scheduleSuccessor(
+	db: Database,
+	carrier: TransactionRow,
+	now: Date,
+): Promise<TransactionInsert | null> {
+	if (!carrier.onceRecurring || carrier.recurringType === RECURRING_TYPE.none) {
+		return null;
+	}
+	if (startOfDay(carrier.date).getTime() > startOfDay(now).getTime()) {
+		return null;
+	}
+	const landing = landingAfterToday(carrier, now);
+	if (landing == null) {
+		return null;
+	}
+	return await withCanonicalUsd(db, occurrenceRow(carrier, landing, true, now));
+}
+
+/**
+ * One-shot repair for chains whose carrier was soft-deleted before the delete
+ * handover existed. The tombstone still holds the whole schedule, so each chain
+ * is reinstated from its own row — nothing here is inferred.
+ *
+ * Chains orphaned any other way are unrecoverable: retiring a row overwrites its
+ * cadence and no column links a chain's rows together, so neither the schedule
+ * nor its membership survives anywhere to be read back.
+ *
+ * Guarded twice over — the marker skips the pass, and clearing every tombstone it
+ * examines empties the predicate that selected them.
+ */
+export async function repairOrphanedRecurrence(
+	db: Database,
+	now: Date = new Date(),
+): Promise<number> {
+	if ((await getMeta(db, META_KEYS.recurrenceRepaired)) === "true") {
+		return 0;
+	}
+
+	const orphaned = await db
+		.select()
+		.from(transactions)
+		.where(
+			and(
+				isNotNull(transactions.deletedAt),
+				eq(transactions.onceRecurring, true),
+				gt(transactions.recurringType, RECURRING_TYPE.none),
+			),
+		);
+
+	let reinstated = 0;
+	for (const carrier of orphaned) {
+		const successor = await scheduleSuccessor(db, carrier, now);
+		await withTransaction(db, async () => {
+			if (successor != null) {
+				await db.insert(transactions).values(successor);
+			}
+			await db
+				.update(transactions)
+				.set({ recurringType: RECURRING_TYPE.none, updatedAt: now })
+				.where(eq(transactions.id, carrier.id));
+		});
+		if (successor != null) {
+			reinstated += 1;
+		}
+	}
+
+	await setMeta(db, META_KEYS.recurrenceRepaired, "true");
+	return reinstated;
 }

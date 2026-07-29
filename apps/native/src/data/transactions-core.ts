@@ -1,14 +1,17 @@
 import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { withTransaction } from "@/db/transaction";
 import { type CanonicalUsd, canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
+import { RECURRING_TYPE } from "@/domain/recurrence";
 import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
 import { getCategoryById } from "./categories-core";
 import { localRateLookup } from "./rates";
+import { scheduleSuccessor } from "./recurrence-backfill";
 
 export const LOG_PAGE_DAYS = 30;
 
@@ -222,12 +225,39 @@ export const transactionsRepo = {
 			.where(eq(transactions.id, id));
 	},
 
-	/** Soft-deletes (tombstone). The UI defers this call behind the undo window. */
-	async remove(db: Database, id: string): Promise<void> {
-		await db
-			.update(transactions)
-			.set({ deletedAt: new Date(), updatedAt: new Date() })
-			.where(eq(transactions.id, id));
+	/**
+	 * Soft-deletes (tombstone). The UI defers this call behind the undo window.
+	 *
+	 * The newest occurrence of a subscription is both a settled charge and the
+	 * chain's only live schedule, so the schedule is re-anchored on a successor
+	 * before the row goes — otherwise removing one charge ends the subscription
+	 * with no warning. The tombstone is retired to `none` either way, which is
+	 * what makes deleting the *pending* charge the way to stop one.
+	 */
+	async remove(
+		db: Database,
+		id: string,
+		now: Date = new Date(),
+	): Promise<void> {
+		const row = getTransactionById(db, id);
+		const successor =
+			row == null || row.deletedAt != null
+				? null
+				: await scheduleSuccessor(db, row, now);
+
+		await withTransaction(db, async () => {
+			if (successor != null) {
+				await db.insert(transactions).values(successor);
+			}
+			await db
+				.update(transactions)
+				.set({
+					deletedAt: now,
+					updatedAt: now,
+					recurringType: RECURRING_TYPE.none,
+				})
+				.where(eq(transactions.id, id));
+		});
 	},
 };
 

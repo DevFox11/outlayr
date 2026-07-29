@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import type { Database } from "@/db/client";
-import { backfillAllRecurring } from "./recurrence-backfill";
+import {
+	backfillAllRecurring,
+	repairOrphanedRecurrence,
+} from "./recurrence-backfill";
 
 const SWEEP_COOLDOWN_MS = 60_000;
 
@@ -31,10 +34,13 @@ export function useRecurrenceSweep(db: Database | null): void {
 				return;
 			}
 			lastSweepAt.current = startedAt;
-			backfillAllRecurring(db).catch((error) => {
-				lastSweepAt.current = 0;
-				console.error("Recurrence sweep failed", error);
-			});
+			// Repair first so a chain reinstated on this launch is swept on it too.
+			repairOrphanedRecurrence(db)
+				.then(() => backfillAllRecurring(db))
+				.catch((error) => {
+					lastSweepAt.current = 0;
+					console.error("Recurrence sweep failed", error);
+				});
 		};
 
 		sweep();
