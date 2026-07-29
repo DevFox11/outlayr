@@ -21,7 +21,7 @@ export function SettingsSection({
 }: {
 	title: string;
 	footer?: string;
-	children: ReactNode;
+	children?: ReactNode;
 }) {
 	return (
 		<View className="pt-6">
@@ -164,11 +164,14 @@ export function ToggleRow({
 export function ChoiceRow({
 	label,
 	detail,
+	leading,
 	selected,
 	onPress,
 }: {
 	label: string;
 	detail?: string;
+	/** Sits before the label — a preview tile, a swatch. */
+	leading?: ReactNode;
 	selected: boolean;
 	onPress: () => void;
 }) {
@@ -180,6 +183,7 @@ export function ChoiceRow({
 			className="flex-row items-center gap-3 border-border border-b py-3.5 active:opacity-60"
 			onPress={onPress}
 		>
+			{leading}
 			<View className="flex-1 gap-0.5">
 				<Text className="text-body text-foreground">{label}</Text>
 				{detail ? (

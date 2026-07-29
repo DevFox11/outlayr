@@ -1,0 +1,45 @@
+{
+  "features": [
+    "refractivity",
+    "specular-location"
+  ],
+  "fill-specializations": [
+    {
+      "value": {
+        "automatic-gradient": "srgb:0.51765,0.50980,0.48627,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "automatic-gradient": "srgb:0.51765,0.50980,0.48627,1.00000"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "mark-ink.svg",
+          "name": "mark",
+          "position": {
+            "scale": 1.2,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "lighting": "combined",
+      "name": "group",
+      "specular": "inside"
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

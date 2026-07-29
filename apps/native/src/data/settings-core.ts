@@ -43,7 +43,13 @@ export type NumberSettingKey =
 	// 2 = month, 3 = year.
 	| "insightsTimeFrame"
 	// Which figure the Insights hero leads with: 1 = spent, 2 = income, 3 = net.
-	| "insightsMeasure";
+	| "insightsMeasure"
+	// Swift's `notificationOption`: 1 = morning, 2 = evening, 3 = the stored
+	// `notificationHour`/`notificationMinute`. Only read when `showNotifications`
+	// is on.
+	| "notificationOption"
+	| "notificationHour"
+	| "notificationMinute";
 
 /**
  * Mirrors the Swift app's `DefaultsKey` seeds. `firstWeekday`: 1 = Sunday,
@@ -72,6 +78,9 @@ export const SETTING_DEFAULTS = {
 	haptics: 1,
 	logInsightsTimeFrame: 2,
 	logInsightsType: 1,
+	notificationOption: 1,
+	notificationHour: 8,
+	notificationMinute: 0,
 } as const satisfies Record<
 	BoolSettingKey | NumberSettingKey,
 	boolean | number

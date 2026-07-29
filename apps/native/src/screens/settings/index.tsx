@@ -21,9 +21,12 @@ import {
 } from "@/data/settings";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
+import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
 import { coverageNote } from "@/domain/valuation-coverage";
+import { useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
+import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { themeLabel } from "@/theme/theme-preference";
 
@@ -57,6 +60,8 @@ export default function SettingsScreenRoute() {
 function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const { themePreference } = useAppTheme();
+	useReminderSync(db);
+	const { active: appIcon } = useAppIcon();
 
 	const currency = useGlobalCurrency(db);
 	const coverage = useValuationCoverage(db);
@@ -119,7 +124,7 @@ function SettingsContent({ db }: { db: Database }) {
 					icon="SmartPhone01"
 					onPress={() => router.push("/settings/app-icon")}
 					title="App Icon"
-					value="Default"
+					value={appIconLabel(appIcon)}
 				/>
 				<ToggleRow
 					icon="BadgeCent"

@@ -23,6 +23,19 @@ const APP_GROUP = "group.com.tryoutlayr.app";
 const IOS_DEPLOYMENT_TARGET = "18.0";
 
 /**
+ * Alternate home-screen icons, by asset-catalogue name. `setAlternateIconName`
+ * takes one of these strings, so `src/domain/app-icons.ts` has to repeat them —
+ * this file is transpiled and loaded on its own and cannot import from `src/`.
+ * `app-icons.test.ts` fails when the two lists or the bundles on disk drift.
+ */
+const ALTERNATE_ICONS = [
+	"OutlayrInk",
+	"OutlayrHairline",
+	"OutlayrMono",
+	"OutlayrEmboss",
+];
+
+/**
  * The home and Lock Screen surfaces. `name` is the contract with
  * `createWidget(name, …)` in `src/widgets/` — they must match exactly or the
  * layout never reaches its target.
@@ -252,6 +265,12 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 				"expo-local-authentication",
 				{
 					faceIDPermission: "Outlayr uses Face ID to unlock your ledger.",
+				},
+			],
+			[
+				"./plugins/with-alternate-icons.ts",
+				{
+					icons: ALTERNATE_ICONS.map((name) => `./assets/${name}.icon`),
 				},
 			],
 			"./plugins/with-ui-scene.ts",
