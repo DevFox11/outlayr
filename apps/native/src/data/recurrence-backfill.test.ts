@@ -692,3 +692,93 @@ describe("repairOrphanedRecurrence", () => {
 		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
 	});
 });
+
+/**
+ * The duplicate-charge case from §8.1 of `docs/convex-sync-design.md`: two synced
+ * devices both sweep the same subscription, and with a freshly minted id each
+ * would insert its own copy of every charge.
+ */
+describe("occurrence identity across devices", () => {
+	it("derives the same ids on two devices sweeping the same schedule", async () => {
+		const first = makeDb();
+		const second = makeDb();
+		await seedSource(first, { date: at(2025, 3, 15) });
+		await seedSource(second, { date: at(2025, 3, 15) });
+
+		await backfillRecurring(first, "src", NOW);
+		await backfillRecurring(second, "src", NOW);
+
+		const left = (await everyRow(first)).map((row) => row.id);
+		const right = (await everyRow(second)).map((row) => row.id);
+		assert.ok(left.length > 1, "expected the sweep to generate occurrences");
+		assert.deepEqual(left, right);
+	});
+
+	it("upserts rather than doubling a charge already replicated in", async () => {
+		const db = makeDb();
+		await seedSource(db, { date: at(2025, 3, 15) });
+		const solo = makeDb();
+		await seedSource(solo, { date: at(2025, 3, 15) });
+		await backfillRecurring(solo, "src", NOW);
+		const replicated = (await generatedRows(solo, "src"))[0];
+
+		// The peer's copy of the first charge, pulled in before this device swept.
+		await db.insert(transactions).values({ ...replicated, note: "from-peer" });
+		await backfillRecurring(db, "src", NOW);
+
+		const rows = await everyRow(db);
+		assert.equal(
+			rows.filter((row) => row.id === replicated.id).length,
+			1,
+			"the same charge must not exist twice",
+		);
+		assert.equal(
+			rows.find((row) => row.id === replicated.id)?.note,
+			"from-peer",
+			"a replicated row must not be clobbered by the local sweep",
+		);
+		assert.equal(rows.length, (await everyRow(solo)).length);
+	});
+
+	it("keeps a peer's deletion of one occurrence deleted", async () => {
+		const db = makeDb();
+		await seedSource(db, { date: at(2025, 3, 15) });
+		const solo = makeDb();
+		await seedSource(solo, { date: at(2025, 3, 15) });
+		await backfillRecurring(solo, "src", NOW);
+		const replicated = (await generatedRows(solo, "src"))[0];
+
+		await db
+			.insert(transactions)
+			.values({ ...replicated, deletedAt: NOW, updatedAt: NOW });
+		await backfillRecurring(db, "src", NOW);
+
+		const raised = (await allRows(db)).find((row) => row.id === replicated.id);
+		assert.equal(raised, undefined, "the sweep resurrected a deleted charge");
+	});
+
+	it("gives each occurrence in a chain its own id", async () => {
+		const db = makeDb();
+		await seedSource(db, { date: at(2025, 1, 15) });
+
+		await backfillRecurring(db, "src", NOW);
+
+		const ids = (await everyRow(db)).map((row) => row.id);
+		assert.equal(new Set(ids).size, ids.length);
+	});
+
+	it("anchors the same successor on two devices deleting the same carrier", async () => {
+		const first = makeDb();
+		const second = makeDb();
+		await seedSource(first, { date: at(2025, 6, 10) });
+		await seedSource(second, { date: at(2025, 6, 10) });
+
+		await transactionsRepo.remove(first, "src", NOW);
+		await transactionsRepo.remove(second, "src", NOW);
+
+		assert.deepEqual(
+			(await everyRow(first)).map((row) => row.id),
+			(await everyRow(second)).map((row) => row.id),
+		);
+	});
+});

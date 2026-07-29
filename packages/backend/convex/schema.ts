@@ -2,9 +2,20 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import { marketRateType, rateSource } from "./lib/currencies";
+import {
+	appMetaFields,
+	budgetFields,
+	categoryFields,
+	mainBudgetFields,
+	replicated,
+	templateTransactionFields,
+	transactionFields,
+} from "./lib/syncTables";
 
 /**
- * Every replicated row carries this envelope. See `docs/convex-sync-design.md`.
+ * Every replicated row carries the `replicated` envelope from `lib/syncTables`,
+ * which is also what `sync.ts` accepts and serves. See
+ * `docs/convex-sync-design.md`.
  *
  * `localId` is the device-generated UUIDv4 that is already the SQLite primary
  * key (`apps/native/src/domain/ids.ts`); it — not the Convex `_id` — is the
@@ -19,16 +30,6 @@ import { marketRateType, rateSource } from "./lib/currencies";
  * `deviceId` breaks last-writer-wins ties deterministically when two devices
  * stamp the same `updatedAt` millisecond.
  */
-const replicated = {
-	userId: v.string(),
-	localId: v.string(),
-	seq: v.number(),
-	deviceId: v.string(),
-	/** Client wall clock at the edit, mirroring the SQLite `updatedAt`. */
-	updatedAt: v.number(),
-	/** Soft-delete tombstone; rows are never removed from this table. */
-	deletedAt: v.union(v.number(), v.null()),
-};
 
 /**
  * Every replicated table carries exactly two indexes. `by_user_and_seq` is the
@@ -74,17 +75,7 @@ export default defineSchema({
 	 * point of the envelope is that a row's identity survives a device that has
 	 * never synced, so foreign keys stay in local-id space on both sides.
 	 */
-	categories: defineTable({
-		...replicated,
-		name: v.union(v.string(), v.null()),
-		color: v.union(v.string(), v.null()),
-		icon: v.union(v.string(), v.null()),
-		emoji: v.union(v.string(), v.null()),
-		income: v.boolean(),
-		sortOrder: v.number(),
-		dateCreated: v.union(v.number(), v.null()),
-		parentId: v.union(v.string(), v.null()),
-	})
+	categories: defineTable({ ...replicated, ...categoryFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 
@@ -101,30 +92,7 @@ export default defineSchema({
 	 * `imageUri` is a device-local `file://` path and means nothing on another
 	 * device — see the photo-durability caveat in the design doc.
 	 */
-	transactions: defineTable({
-		...replicated,
-		amount: v.number(),
-		income: v.boolean(),
-		currency: v.union(v.string(), v.null()),
-		note: v.string(),
-		details: v.union(v.string(), v.null()),
-		date: v.number(),
-		day: v.number(),
-		month: v.number(),
-		icon: v.union(v.string(), v.null()),
-		emoji: v.union(v.string(), v.null()),
-		customColor: v.union(v.string(), v.null()),
-		imageColor: v.union(v.string(), v.null()),
-		imageUri: v.union(v.string(), v.null()),
-		onceRecurring: v.boolean(),
-		recurringType: v.number(),
-		recurringCoefficient: v.number(),
-		recurringEndDate: v.union(v.number(), v.null()),
-		categoryId: v.union(v.string(), v.null()),
-		amountUsd: v.union(v.number(), v.null()),
-		exchangeRate: v.union(v.number(), v.null()),
-		exchangeRateType: v.union(v.string(), v.null()),
-	})
+	transactions: defineTable({ ...replicated, ...transactionFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 
@@ -134,45 +102,18 @@ export default defineSchema({
 	 * create a budget for the same category, and the merge that reconciles them
 	 * runs on the client — see "Two rows that must be one" in the design doc.
 	 */
-	budgets: defineTable({
-		...replicated,
-		name: v.union(v.string(), v.null()),
-		amount: v.number(),
-		type: v.number(),
-		startDate: v.union(v.number(), v.null()),
-		dateCreated: v.union(v.number(), v.null()),
-		currency: v.union(v.string(), v.null()),
-		amountUsd: v.union(v.number(), v.null()),
-		green: v.boolean(),
-		categoryId: v.union(v.string(), v.null()),
-	})
+	budgets: defineTable({ ...replicated, ...budgetFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 
 	/** Singleton by convention only, for the same reason `budgets` is. */
-	mainBudget: defineTable({
-		...replicated,
-		name: v.union(v.string(), v.null()),
-		amount: v.number(),
-		type: v.number(),
-		startDate: v.union(v.number(), v.null()),
-		dateCreated: v.union(v.number(), v.null()),
-		currency: v.union(v.string(), v.null()),
-		amountUsd: v.union(v.number(), v.null()),
-		green: v.boolean(),
-	})
+	mainBudget: defineTable({ ...replicated, ...mainBudgetFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 
 	templateTransactions: defineTable({
 		...replicated,
-		amount: v.number(),
-		income: v.boolean(),
-		note: v.union(v.string(), v.null()),
-		sortOrder: v.number(),
-		recurringType: v.number(),
-		recurringCoefficient: v.number(),
-		categoryId: v.union(v.string(), v.null()),
+		...templateTransactionFields,
 	})
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
@@ -191,10 +132,10 @@ export default defineSchema({
 	appMeta: defineTable({
 		userId: v.string(),
 		key: v.string(),
-		value: v.union(v.string(), v.null()),
 		seq: v.number(),
 		deviceId: v.string(),
 		updatedAt: v.number(),
+		...appMetaFields,
 	})
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_key", ["userId", "key"]),

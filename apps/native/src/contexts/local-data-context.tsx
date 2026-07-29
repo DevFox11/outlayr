@@ -5,6 +5,7 @@ import { createContext, use, useEffect, useMemo, useState } from "react";
 import { bootstrapLocalData } from "@/data/bootstrap";
 import { usePhotoReconcile } from "@/data/use-photo-reconcile";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
+import { useSyncEngine } from "@/data/use-sync-engine";
 import { type Database, openDatabase } from "@/db/client";
 import { useSystemSync } from "@/lib/use-system-sync";
 import migrationsBundle from "../../drizzle/migrations";
@@ -102,6 +103,8 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 	// Ordered after the sweep so a subscription that advanced on this foreground
 	// is already in the table when the widgets are rebuilt from it.
 	useSystemSync(db);
+	// Inert until the sign-in flow opens the device-local sync gate.
+	useSyncEngine(db);
 	usePhotoReconcile(db);
 
 	const value = useMemo<LocalDataContextValue>(

@@ -258,7 +258,9 @@ export const transactionsRepo = {
 
 		await withTransaction(db, async () => {
 			if (successor != null) {
-				await db.insert(transactions).values(successor);
+				// The successor's id is derived from its schedule, so a peer that
+				// already anchored the same one holds the row this would duplicate.
+				await db.insert(transactions).values(successor).onConflictDoNothing();
 			}
 			await db
 				.update(transactions)

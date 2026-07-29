@@ -2,6 +2,7 @@ import { getTableName } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useCallback, useRef, useSyncExternalStore } from "react";
+import { subscribeToTable } from "./table-invalidation";
 
 /**
  * A Drizzle query the expo-sqlite driver can run on the JS thread: the driver is
@@ -57,18 +58,25 @@ export function useLiveQuery<TRow>(
 
 	const subscribe = useCallback(
 		(onStoreChange: () => void) => {
-			const listener = addDatabaseChangeListener((event) => {
-				if (event.tableName !== tableName) {
-					return;
-				}
-				// Bumping a counter rather than re-querying here collapses a bulk write
-				// into one read: a 200-row backfill fires 200 events, React coalesces
-				// the notifications, and the query below runs once for the batch.
+			// Bumping a counter rather than re-querying here collapses a bulk write
+			// into one read: a 200-row backfill fires 200 events, React coalesces the
+			// notifications, and the query below runs once for the batch.
+			const bump = () => {
 				revision.current += 1;
 				onStoreChange();
+			};
+			const listener = addDatabaseChangeListener((event) => {
+				if (event.tableName === tableName) {
+					bump();
+				}
 			});
+			// A batch writer that does not go row by row — the sync applier — says so
+			// once for the whole batch rather than leaving the repaint to the order
+			// of a few thousand native events.
+			const unsubscribe = subscribeToTable(tableName, bump);
 			return () => {
 				listener.remove();
+				unsubscribe();
 			};
 		},
 		[tableName],

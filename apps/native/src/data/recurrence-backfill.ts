@@ -4,9 +4,9 @@ import { transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
-import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { nextDate, RECURRING_TYPE } from "@/domain/recurrence";
+import { uuidV5 } from "@/domain/uuid5";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
 
@@ -25,6 +25,31 @@ async function loadSource(
 	return rows[0] ?? null;
 }
 
+/**
+ * Minted once for this derivation and never changed: a different namespace
+ * would make every device that upgraded compute different ids for occurrences
+ * the others already hold.
+ */
+const OCCURRENCE_NAMESPACE = "0f2b9f1e-6d3a-4c58-9a71-2c8f5d6e4b31";
+
+/**
+ * The id of the charge `source` makes on `holding`, derived rather than minted.
+ *
+ * Two synced devices both sweep the same schedule, and with `newId()` each
+ * would insert its own copy of the same charge — the ledger would double every
+ * subscription. Derived from the pair that actually identifies the occurrence,
+ * both devices compute the same id and the second one upserts.
+ *
+ * The day, not the timestamp: the sweep walks the schedule in whole days, and
+ * two devices in different time zones must still land on one id.
+ */
+export function occurrenceId(parentLocalId: string, holding: Date): string {
+	return uuidV5(
+		`${parentLocalId}:${startOfDay(holding).getTime()}`,
+		OCCURRENCE_NAMESPACE,
+	);
+}
+
 function occurrenceRow(
 	source: TransactionRow,
 	holding: Date,
@@ -32,7 +57,7 @@ function occurrenceRow(
 	now: Date,
 ): TransactionInsert {
 	return {
-		id: newId(),
+		id: occurrenceId(source.id, holding),
 		amount: source.amount,
 		income: source.income,
 		currency: source.currency,
@@ -158,7 +183,10 @@ export async function backfillRecurring(
 	// and writes every occurrence a second time.
 	await withTransaction(db, async () => {
 		if (canonicalized.length > 0) {
-			await db.insert(transactions).values(canonicalized);
+			// Ignored rather than overwritten: an occurrence already under this id is
+			// the same charge replicated from another device, and it may carry an
+			// edit — or a deletion — this device has no business undoing.
+			await db.insert(transactions).values(canonicalized).onConflictDoNothing();
 		}
 		await db
 			.update(transactions)
@@ -318,7 +346,7 @@ export async function repairOrphanedRecurrence(
 		const successor = await scheduleSuccessor(db, carrier, now);
 		await withTransaction(db, async () => {
 			if (successor != null) {
-				await db.insert(transactions).values(successor);
+				await db.insert(transactions).values(successor).onConflictDoNothing();
 			}
 			await db
 				.update(transactions)

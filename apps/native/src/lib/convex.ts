@@ -1,6 +1,7 @@
 import { env } from "@outlayr/env/native";
 import { ConvexReactClient } from "convex/react";
 import type { PullRatesFn } from "@/data/rates";
+import type { PullFn, PushFn } from "@/data/sync-engine-core";
 
 /**
  * The Convex client, or null when this build has no backend configured: this app
@@ -27,4 +28,24 @@ export function ratesPuller(): PullRatesFn | null {
 		// `packages/backend` is not a build dependency of the app, and the wire
 		// shape is pinned by `PullRatesPage` plus the backend's own tests.
 		convex.query("exchangeRates:pullRates" as never, (args ?? {}) as never);
+}
+
+/**
+ * The replication transport, or null when there is no backend.
+ *
+ * Authentication rides on the client rather than on these calls:
+ * `ConvexBetterAuthProvider` sets the token on `convex` itself, so a signed-out
+ * device reaches `requireUserId` and is refused there. Nothing here decides who
+ * the caller is, which is the point — the server never accepts a user id as an
+ * argument.
+ */
+export function syncTransport(): { push: PushFn; pull: PullFn } | null {
+	if (!convex) {
+		return null;
+	}
+	return {
+		push: async (args) => convex.mutation("sync:push" as never, args as never),
+		pull: async (args) =>
+			convex.query("sync:pullSince" as never, args as never),
+	};
 }

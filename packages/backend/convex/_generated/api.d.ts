@@ -18,6 +18,8 @@ import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bgn from "../lib/bgn.js";
 import type * as lib_currencies from "../lib/currencies.js";
+import type * as lib_syncTables from "../lib/syncTables.js";
+import type * as sync from "../sync.js";
 
 import type {
   ApiFromModules,
@@ -36,6 +38,8 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/bgn": typeof lib_bgn;
   "lib/currencies": typeof lib_currencies;
+  "lib/syncTables": typeof lib_syncTables;
+  sync: typeof sync;
 }>;
 
 /**
