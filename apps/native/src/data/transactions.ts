@@ -5,6 +5,7 @@ import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
 import {
 	type LOG_COLUMNS,
+	ledgerSizeQuery,
 	logWindowDaysQuery,
 	logWindowRowsQuery,
 	type Transaction,
@@ -20,9 +21,7 @@ export {
 } from "./transactions-core";
 
 export function useTransactionCount(db: Database): number {
-	return useLiveQuery(transactions, () =>
-		db.select({ id: transactions.id }).from(transactions),
-	).length;
+	return useLiveQuery(transactions, () => ledgerSizeQuery(db)).length;
 }
 
 /**

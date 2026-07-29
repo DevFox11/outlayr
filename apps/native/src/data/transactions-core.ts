@@ -66,6 +66,17 @@ export function logWindowDaysQuery(db: SpendDb, nowMs: number, days: number) {
 }
 
 /**
+ * Every row the user still has, tombstones excluded — the figure the erase
+ * screen prints, which has to fall to zero the moment an erase lands.
+ */
+export function ledgerSizeQuery(db: SpendDb) {
+	return db
+		.select({ id: transactions.id })
+		.from(transactions)
+		.where(isNull(transactions.deletedAt));
+}
+
+/**
  * A null floor means no day matched at all, so the bound is left off rather
  * than faked.
  */

@@ -5,7 +5,11 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { exchangeRates, transactions } from "@/db/schema";
-import { type TransactionInput, transactionsRepo } from "./transactions-core";
+import {
+	ledgerSizeQuery,
+	type TransactionInput,
+	transactionsRepo,
+} from "./transactions-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -145,5 +149,41 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 		const row = await frozen(db, id);
 		assert.equal(row.amountUsd, 222.222222);
 		assert.equal(row.exchangeRate, 0.9);
+	});
+});
+
+describe("ledgerSizeQuery", () => {
+	it("counts only what a reader can still see", async () => {
+		const db = makeDb();
+		const now = new Date();
+		await db.insert(transactions).values([
+			{
+				id: "live",
+				amount: 10,
+				income: false,
+				note: "",
+				date: now,
+				day: now,
+				month: now,
+				updatedAt: now,
+			},
+			{
+				id: "tombstoned",
+				amount: 10,
+				income: false,
+				note: "",
+				date: now,
+				day: now,
+				month: now,
+				updatedAt: now,
+				deletedAt: now,
+			},
+		]);
+
+		const rows = await ledgerSizeQuery(db);
+		assert.deepEqual(
+			rows.map((row) => row.id),
+			["live"],
+		);
 	});
 });

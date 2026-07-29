@@ -3,6 +3,7 @@ import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
+import { RECURRING_TYPE } from "@/domain/recurrence";
 
 export type Category = typeof categories.$inferSelect;
 
@@ -111,7 +112,7 @@ export function getCategoryById(db: Database, id: string): Category | null {
 	const rows = db
 		.select()
 		.from(categories)
-		.where(eq(categories.id, id))
+		.where(and(eq(categories.id, id), isNull(categories.deletedAt)))
 		.limit(1)
 		.all();
 	return rows[0] ?? null;
@@ -570,16 +571,45 @@ export const categoriesRepo = {
 	 * The cascade is written out by hand because `foreign_keys` enforcement is not
 	 * enabled on the connection, so the schema's declared `ON DELETE` would not
 	 * fire — and a partial run would orphan transactions with no safety net.
+	 *
+	 * Every row is tombstoned rather than dropped, because a hard delete leaves
+	 * nothing to replicate and the first pull after one would hand the category
+	 * and its ledger back. Rows already tombstoned are skipped so a repeated
+	 * remove is inert.
+	 *
+	 * Two things go with the transaction beyond its `deletedAt`. The schedule is
+	 * retired so `repairOrphanedRecurrence` cannot read the tombstone as a
+	 * subscription whose carrier was deleted and mint a successor pointing at a
+	 * category that no longer exists. And the photo reference is dropped so
+	 * `reconcilePhotos`, which deliberately counts tombstones as referencing
+	 * their file, still collects it — there is no undo here to keep it for.
 	 */
 	async remove(db: Database, id: string): Promise<void> {
+		const now = new Date();
 		await withTransaction(db, async () => {
-			await db.delete(transactions).where(eq(transactions.categoryId, id));
-			await db.delete(budgets).where(eq(budgets.categoryId, id));
+			await db
+				.update(transactions)
+				.set({
+					deletedAt: now,
+					updatedAt: now,
+					recurringType: RECURRING_TYPE.none,
+					imageUri: null,
+				})
+				.where(
+					and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)),
+				);
+			await db
+				.update(budgets)
+				.set({ deletedAt: now, updatedAt: now })
+				.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
 			await db
 				.update(categories)
-				.set({ parentId: null, updatedAt: new Date() })
-				.where(eq(categories.parentId, id));
-			await db.delete(categories).where(eq(categories.id, id));
+				.set({ parentId: null, updatedAt: now })
+				.where(and(eq(categories.parentId, id), isNull(categories.deletedAt)));
+			await db
+				.update(categories)
+				.set({ deletedAt: now, updatedAt: now })
+				.where(and(eq(categories.id, id), isNull(categories.deletedAt)));
 		});
 	},
 };

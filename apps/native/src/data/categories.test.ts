@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
@@ -78,18 +78,23 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-async function addTransaction(db: Database, categoryId: string): Promise<void> {
+async function addTransaction(
+	db: Database,
+	categoryId: string,
+	overrides: Partial<typeof transactions.$inferInsert> = {},
+): Promise<void> {
 	const now = new Date();
 	await db.insert(transactions).values({
 		id: `tx-${Math.random().toString(36).slice(2)}`,
 		amount: 10,
 		income: false,
-		note: "",
+		note: "Flat white",
 		date: now,
 		day: now,
 		month: now,
 		categoryId,
 		updatedAt: now,
+		...overrides,
 	});
 }
 
@@ -721,7 +726,7 @@ describe("categoriesRepo.remove cascade", () => {
 		db = makeDb();
 	});
 
-	it("deletes the category and its transactions", async () => {
+	it("tombstones the category and its transactions", async () => {
 		const id = await categoriesRepo.create(db, {
 			name: "Coffee",
 			icon: "Coffee02",
@@ -734,11 +739,82 @@ describe("categoriesRepo.remove cascade", () => {
 		await categoriesRepo.remove(db, id);
 
 		assert.equal(await getCategoryById(db, id), null);
-		const remaining = await db
+		const categoryRows = await db
+			.select()
+			.from(categories)
+			.where(eq(categories.id, id));
+		assert.equal(categoryRows.length, 1);
+		assert.notEqual(categoryRows[0].deletedAt, null);
+
+		const readable = await db
+			.select()
+			.from(transactions)
+			.where(
+				and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)),
+			);
+		assert.equal(readable.length, 0);
+		const replicable = await db
 			.select()
 			.from(transactions)
 			.where(eq(transactions.categoryId, id));
-		assert.equal(remaining.length, 0);
+		assert.equal(replicable.length, 2);
+		for (const row of replicable) {
+			assert.notEqual(row.deletedAt, null);
+		}
+	});
+
+	it("retires the schedule and releases the photo of each cascaded transaction", async () => {
+		const id = await categoriesRepo.create(db, {
+			name: "Coffee",
+			icon: "Coffee02",
+			color: "#279AF4",
+			income: false,
+		});
+		await addTransaction(db, id, {
+			imageUri: "file:///photos/tx.jpg",
+			onceRecurring: true,
+			recurringType: 2,
+		});
+
+		await categoriesRepo.remove(db, id);
+
+		const [row] = await db
+			.select()
+			.from(transactions)
+			.where(eq(transactions.categoryId, id));
+		assert.equal(row.imageUri, null);
+		assert.equal(row.recurringType, 0);
+		assert.equal(row.note, "Flat white");
+		assert.equal(row.amount, 10);
+	});
+
+	it("does not re-stamp what it already tombstoned", async () => {
+		const id = await categoriesRepo.create(db, {
+			name: "Coffee",
+			icon: "Coffee02",
+			color: "#279AF4",
+			income: false,
+		});
+		await addTransaction(db, id);
+
+		await categoriesRepo.remove(db, id);
+		const first = await db.select().from(transactions);
+		const firstCategory = await db.select().from(categories);
+
+		await categoriesRepo.remove(db, id);
+
+		const second = await db.select().from(transactions);
+		assert.equal(second[0].deletedAt?.getTime(), first[0].deletedAt?.getTime());
+		assert.equal(second[0].updatedAt.getTime(), first[0].updatedAt.getTime());
+		const secondCategory = await db.select().from(categories);
+		assert.equal(
+			secondCategory[0].deletedAt?.getTime(),
+			firstCategory[0].deletedAt?.getTime(),
+		);
+		assert.equal(
+			secondCategory[0].updatedAt.getTime(),
+			firstCategory[0].updatedAt.getTime(),
+		);
 	});
 
 	it("promotes subcategories to the top level", async () => {
@@ -763,7 +839,7 @@ describe("categoriesRepo.remove cascade", () => {
 		assert.equal(child?.parentId, null);
 	});
 
-	it("deletes a budget attached to the category", async () => {
+	it("tombstones a budget attached to the category", async () => {
 		const id = await categoriesRepo.create(db, {
 			name: "Coffee",
 			icon: "Coffee02",
@@ -782,11 +858,17 @@ describe("categoriesRepo.remove cascade", () => {
 
 		await categoriesRepo.remove(db, id);
 
-		const remaining = await db
+		const readable = await db
+			.select()
+			.from(budgets)
+			.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
+		assert.equal(readable.length, 0);
+		const replicable = await db
 			.select()
 			.from(budgets)
 			.where(eq(budgets.categoryId, id));
-		assert.equal(remaining.length, 0);
+		assert.equal(replicable.length, 1);
+		assert.notEqual(replicable[0].deletedAt, null);
 	});
 });
 
