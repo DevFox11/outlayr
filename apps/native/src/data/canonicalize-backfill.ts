@@ -1,9 +1,11 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { utcDateString } from "@outlayr/money";
+import { and, count, eq, isNotNull, isNull, min } from "drizzle-orm";
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
-import { budgets, mainBudget, transactions } from "@/db/schema";
+import { budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { DEFAULT_CURRENCY } from "@/domain/money";
+import type { ValuationCoverage } from "@/domain/valuation-coverage";
 import { localRateLookup } from "./rates";
 
 /**
@@ -91,6 +93,19 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
  *
  * Idempotent by construction: it only ever selects `amountUsd IS NULL`.
  */
+/**
+ * The rows a pass can act on. Shared so a coverage readout counts the same set
+ * the drain works through: a row naming no currency is not a backlog item, and
+ * counting it as one reports a backlog that never drains.
+ */
+function uncanonicalized() {
+	return and(
+		isNull(transactions.amountUsd),
+		isNotNull(transactions.currency),
+		isNull(transactions.deletedAt),
+	);
+}
+
 export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 	const lookup = localRateLookup(db);
 	let valued = 0;
@@ -107,13 +122,7 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 				date: transactions.date,
 			})
 			.from(transactions)
-			.where(
-				and(
-					isNull(transactions.amountUsd),
-					isNotNull(transactions.currency),
-					isNull(transactions.deletedAt),
-				),
-			)
+			.where(uncanonicalized())
 			.orderBy(transactions.id)
 			.limit(CANONICALIZE_BATCH)
 			.offset(cursor);
@@ -198,17 +207,68 @@ export async function hasUncanonicalized(db: SpendDb): Promise<boolean> {
 	const rows = await db
 		.select({ id: transactions.id })
 		.from(transactions)
-		.where(and(isNull(transactions.amountUsd), isNull(transactions.deletedAt)))
+		.where(uncanonicalized())
 		.limit(1);
 	return rows.length > 0;
 }
 
 export async function canonicalizedCount(db: SpendDb): Promise<number> {
 	const rows = await db
-		.select({ id: transactions.id })
+		.select({ total: count() })
 		.from(transactions)
 		.where(
 			and(isNotNull(transactions.amountUsd), isNull(transactions.deletedAt)),
 		);
-	return rows.length;
+	return rows[0]?.total ?? 0;
+}
+
+/**
+ * Splits the backlog into what a later pull can still value and what it never
+ * will. `pullRatesIfDue` wipe-replaces the table with a bounded window, so a row
+ * dated before the earliest rate its currency holds is not waiting on anything.
+ *
+ * A currency with no rows at all is left in `pending`: rates for it may still
+ * arrive, and "never" is not something to claim without evidence.
+ */
+export async function valuationCoverage(
+	db: SpendDb,
+): Promise<ValuationCoverage> {
+	const converted = await canonicalizedCount(db);
+	if (!(await hasUncanonicalized(db))) {
+		return { converted, pending: 0, beyondRateHistory: 0 };
+	}
+
+	const floors = new Map<string, string>();
+	const earliest = await db
+		.select({ quote: exchangeRates.quote, date: min(exchangeRates.date) })
+		.from(exchangeRates)
+		.groupBy(exchangeRates.quote);
+	for (const row of earliest) {
+		if (row.date !== null) {
+			floors.set(row.quote, row.date);
+		}
+	}
+
+	const pending = await db
+		.select({ currency: transactions.currency, date: transactions.date })
+		.from(transactions)
+		.where(uncanonicalized());
+
+	let beyondRateHistory = 0;
+	for (const row of pending) {
+		// A USD row freezes at rate 1 without any rate being consulted.
+		const floor =
+			row.currency === null || row.currency === "USD"
+				? undefined
+				: floors.get(row.currency);
+		if (floor !== undefined && utcDateString(row.date.getTime()) < floor) {
+			beyondRateHistory += 1;
+		}
+	}
+
+	return {
+		converted,
+		pending: pending.length - beyondRateHistory,
+		beyondRateHistory,
+	};
 }

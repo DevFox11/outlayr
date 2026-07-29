@@ -17,6 +17,7 @@ import {
 	CANONICALIZE_BATCH,
 	hasUncanonicalized,
 	stampLedgerCurrency,
+	valuationCoverage,
 } from "./canonicalize-backfill";
 
 function makeDb(): SpendDb {
@@ -108,18 +109,24 @@ async function seedRate(db: SpendDb): Promise<void> {
 let seq = 0;
 async function add(
 	db: SpendDb,
-	row: { amount: number; currency: string | null; amountUsd?: number | null },
+	row: {
+		amount: number;
+		currency: string | null;
+		amountUsd?: number | null;
+		date?: Date;
+	},
 ): Promise<string> {
 	seq += 1;
 	const id = `t${seq}`;
+	const date = row.date ?? JULY_28;
 	await db.insert(transactions).values({
 		id,
 		amount: row.amount,
 		income: false,
 		currency: row.currency,
-		date: JULY_28,
-		day: JULY_28,
-		month: JULY_28,
+		date,
+		day: date,
+		month: date,
 		amountUsd: row.amountUsd ?? null,
 		updatedAt: JULY_28,
 	});
@@ -264,6 +271,87 @@ describe("backfillCanonicalUsd", () => {
 
 		assert.equal(await backfillCanonicalUsd(db), 0);
 		assert.equal(await hasUncanonicalized(db), true);
+	});
+});
+
+describe("hasUncanonicalized", () => {
+	it("does not count a row that states no currency", async () => {
+		// `backfillCanonicalUsd` excludes those in SQL, so counting them as pending
+		// leaves a ledger nobody ever named a currency for reporting a backlog no
+		// pass can ever drain.
+		const db = makeDb();
+		await add(db, { amount: 18.5, currency: null });
+
+		assert.equal(await hasUncanonicalized(db), false);
+	});
+});
+
+describe("valuationCoverage", () => {
+	it("reports nothing outstanding once every row is frozen", async () => {
+		const db = makeDb();
+		await add(db, { amount: 100, currency: "EUR", amountUsd: 113.9 });
+		await add(db, { amount: 20, currency: null });
+
+		assert.deepEqual(await valuationCoverage(db), {
+			converted: 1,
+			pending: 0,
+			beyondRateHistory: 0,
+		});
+	});
+
+	it("separates rows a later pull can reach from ones it never will", async () => {
+		// The rate table holds EUR from 2026-07-28 on. An EUR row older than that
+		// is not waiting for anything: every pull wipe-replaces the table with a
+		// window that starts no earlier.
+		const db = makeDb();
+		await seedRate(db);
+		await add(db, { amount: 100, currency: "EUR", amountUsd: 113.9 });
+		await add(db, { amount: 40, currency: "EUR" });
+		await add(db, {
+			amount: 55,
+			currency: "EUR",
+			date: new Date(Date.UTC(2025, 0, 9, 12)),
+		});
+
+		assert.deepEqual(await valuationCoverage(db), {
+			converted: 1,
+			pending: 1,
+			beyondRateHistory: 1,
+		});
+	});
+
+	it("leaves a currency with no rates at all pending", async () => {
+		// Rates for it may still arrive; "never" is not claimable from an absence.
+		const db = makeDb();
+		await seedRate(db);
+		await add(db, {
+			amount: 900,
+			currency: "JPY",
+			date: new Date(Date.UTC(2025, 0, 9, 12)),
+		});
+
+		assert.deepEqual(await valuationCoverage(db), {
+			converted: 0,
+			pending: 1,
+			beyondRateHistory: 0,
+		});
+	});
+
+	it("never calls a USD row unreachable", async () => {
+		// It freezes at rate 1 with no rate consulted, however old it is.
+		const db = makeDb();
+		await seedRate(db);
+		await add(db, {
+			amount: 12,
+			currency: "USD",
+			date: new Date(Date.UTC(2020, 2, 1, 12)),
+		});
+
+		assert.deepEqual(await valuationCoverage(db), {
+			converted: 0,
+			pending: 1,
+			beyondRateHistory: 0,
+		});
 	});
 });
 

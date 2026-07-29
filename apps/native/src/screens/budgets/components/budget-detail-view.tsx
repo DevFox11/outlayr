@@ -94,6 +94,7 @@ export function BudgetDetailView({
 				<TransactionRow
 					transaction={item}
 					currency={currency}
+					rates={rates}
 					onPress={onPressTransaction}
 					showCents={showCents}
 					showSign={showSign}

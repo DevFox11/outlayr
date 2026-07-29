@@ -7,10 +7,12 @@ import Animated from "react-native-reanimated";
 import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import type { TransactionWithCategory } from "@/data/transactions";
+import type { RateTable } from "@/domain/valuation";
 
 interface SwipeableTransactionRowProps {
 	transaction: TransactionWithCategory;
 	currency: string;
+	rates?: RateTable;
 	onPress: (id: string) => void;
 	onLongPress: (id: string) => void;
 	onDelete: (id: string) => void;
@@ -23,6 +25,7 @@ interface SwipeableTransactionRowProps {
 export function SwipeableTransactionRow({
 	transaction,
 	currency,
+	rates,
 	onPress,
 	onLongPress,
 	onDelete,
@@ -60,6 +63,7 @@ export function SwipeableTransactionRow({
 				<TransactionRow
 					transaction={transaction}
 					currency={currency}
+					rates={rates}
 					onPress={onPress}
 					onLongPress={onLongPress}
 					showCents={showCents}

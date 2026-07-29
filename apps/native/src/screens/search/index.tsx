@@ -78,6 +78,7 @@ function SearchContent({ db }: { db: Database }) {
 						<TransactionRow
 							transaction={item}
 							currency={currency}
+							rates={rates}
 							onPress={(id) => router.push(`/transaction/${id}`)}
 							showCents={showCents}
 							showSign={showSign}

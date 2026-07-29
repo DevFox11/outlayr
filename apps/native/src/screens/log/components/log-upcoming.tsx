@@ -64,6 +64,7 @@ export function LogUpcoming({
 					key={transaction.id}
 					transaction={transaction}
 					currency={currency}
+					rates={rates}
 					onPress={onPress}
 					onLongPress={onLongPress}
 					showCents={showCents}

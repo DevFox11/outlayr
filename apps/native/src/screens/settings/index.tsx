@@ -19,8 +19,10 @@ import {
 	useBoolSetting,
 	useNumberSetting,
 } from "@/data/settings";
+import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
 import { lockFailureMessage } from "@/domain/app-lock";
+import { coverageNote } from "@/domain/valuation-coverage";
 import { requestUnlock } from "@/lib/app-lock";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { themeLabel } from "@/theme/theme-preference";
@@ -57,6 +59,7 @@ function SettingsContent({ db }: { db: Database }) {
 	const { themePreference } = useAppTheme();
 
 	const currency = useGlobalCurrency(db);
+	const coverage = useValuationCoverage(db);
 	const showNotifications = useBoolSetting(db, "showNotifications");
 	const biometricLock = useBoolSetting(db, "biometricLock");
 	const incomeTracking = useBoolSetting(db, "incomeTracking");
@@ -74,7 +77,10 @@ function SettingsContent({ db }: { db: Database }) {
 
 	return (
 		<SettingsScreen footer={`Outlayr ${version} (${build})`}>
-			<SettingsSection title="Logging">
+			<SettingsSection
+				title="Logging"
+				footer={coverageNote(coverage) ?? undefined}
+			>
 				<LinkRow
 					icon="Currency"
 					onPress={() => router.push("/settings/currency")}

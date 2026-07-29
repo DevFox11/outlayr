@@ -46,6 +46,7 @@ export function InsightsTransactionList({
 			currency={currency}
 			key={transaction.id}
 			onPress={onPress}
+			rates={rates}
 			showCents={showCents}
 			showSign={showSign}
 			swapTimeLabel={swapTimeLabel}

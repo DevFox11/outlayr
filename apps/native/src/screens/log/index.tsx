@@ -306,6 +306,7 @@ function LogContent({ db }: { db: Database }) {
 					<SwipeableTransactionRow
 						transaction={item}
 						currency={currency}
+						rates={rates}
 						onPress={(id) => router.push(`/transaction/${id}`)}
 						onLongPress={(id) => openRowActions(id, false)}
 						onDelete={requestDelete}

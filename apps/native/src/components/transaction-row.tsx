@@ -1,9 +1,11 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { RefreshIcon } from "@hugeicons-pro/core-stroke-rounded";
+import { utcDateString } from "@outlayr/money";
 import { Pressable, View } from "react-native";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
+import { isExact, type RateTable } from "@/domain/valuation";
 import { useColors } from "@/theme/use-colors";
 import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -19,6 +21,8 @@ interface TransactionRowProps {
 	transaction: TransactionWithCategory;
 	/** Global display currency, used when the row's own currency is null. */
 	currency: string;
+	/** Rates for `currency`. Without it no row is marked unplaced. */
+	rates?: RateTable;
 	onPress: (id: string) => void;
 	/** Opens the row's action menu. Omit on a surface that offers none. */
 	onLongPress?: (id: string) => void;
@@ -41,6 +45,7 @@ interface TransactionRowProps {
 export function TransactionRow({
 	transaction,
 	currency,
+	rates,
 	onPress,
 	onLongPress,
 	showCents = true,
@@ -59,6 +64,22 @@ export function TransactionRow({
 		transaction.currency && transaction.currency !== currency
 			? transaction.currency
 			: null;
+	// A row that stated no currency is printed under the global code. That is a
+	// fact only while something can place it; once nothing can, the code is an
+	// assumption and the mark says so.
+	const unplaced =
+		transaction.currency === null &&
+		rates !== undefined &&
+		!isExact(
+			{
+				amount: transaction.amount,
+				currency: null,
+				amountUsd: transaction.amountUsd,
+				dateKey: utcDateString(date.getTime()),
+			},
+			currency,
+			rates,
+		);
 
 	const subtitle = future
 		? formatUpcomingDate(landsOn ?? date)
@@ -121,6 +142,14 @@ export function TransactionRow({
 					{foreignCode ? (
 						<View className="rounded-[3px] border border-border px-[3px]">
 							<MonoLabel>{foreignCode}</MonoLabel>
+						</View>
+					) : null}
+					{unplaced ? (
+						<View
+							accessibilityLabel={`Currency not recorded, shown as ${currency}`}
+							className="rounded-[3px] border border-border px-[3px]"
+						>
+							<MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>
 						</View>
 					) : null}
 				</View>
