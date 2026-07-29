@@ -5,7 +5,7 @@ import type { Database } from "@/db/client";
 import { syncTransport } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 import { runSync } from "./sync-engine-core";
-import { SYNCED_TABLES } from "./sync-outbox-core";
+import { SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
 /**
@@ -58,6 +58,10 @@ export function useSyncEngine(db: Database | null): void {
 					// rollback is about to remove.
 					invalidateAll(tables);
 				} while (queued);
+				// Only on a clean pass. A cycle that threw reached the server or did
+				// not, and claiming a time for it would date a sync that never landed.
+				await setSyncedAt(db, new Date());
+				invalidateAll(["appMeta"]);
 			} catch (error) {
 				console.warn("[outlayr] sync failed", error);
 			} finally {

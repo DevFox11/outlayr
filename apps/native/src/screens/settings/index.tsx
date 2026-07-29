@@ -20,10 +20,12 @@ import {
 	useBoolSetting,
 	useNumberSetting,
 } from "@/data/settings";
+import { useSyncStatus } from "@/data/use-sync-status";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
 import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
+import { syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
 import {
 	languageLabel,
@@ -77,6 +79,7 @@ function SettingsContent({ db }: { db: Database }) {
 
 	const currency = useGlobalCurrency(db);
 	const coverage = useValuationCoverage(db);
+	const sync = useSyncStatus(db);
 	const showNotifications = useBoolSetting(db, "showNotifications");
 	const biometricLock = useBoolSetting(db, "biometricLock");
 	const incomeTracking = useBoolSetting(db, "incomeTracking");
@@ -93,6 +96,12 @@ function SettingsContent({ db }: { db: Database }) {
 	const diagnostics = supportDiagnostics(version, build);
 
 	const hapticsValue = hapticsLabel(haptics);
+
+	const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt);
+	const syncValue =
+		syncLabel.count === undefined
+			? t(syncLabel.key)
+			: t(syncLabel.key, { count: String(syncLabel.count) });
 
 	return (
 		<SettingsScreen footer={`Outlayr ${version} (${build})`}>
@@ -203,7 +212,7 @@ function SettingsContent({ db }: { db: Database }) {
 				<LinkRow
 					icon="Cloud"
 					title={t("settings.row.sync")}
-					value={t("settings.row.syncUnavailable")}
+					value={syncValue}
 				/>
 				<LinkRow
 					icon="FileImport"

@@ -42,6 +42,12 @@ export const META_KEYS = {
 	 */
 	syncEnabled: "syncEnabled",
 	/**
+	 * When a replication cycle last completed without throwing. Device-local: it
+	 * describes this handset's reach, not the account's state, and a second
+	 * device's success says nothing about whether this one is current.
+	 */
+	syncedAt: "syncedAt",
+	/**
 	 * What the App Intent queue has already committed, so a queue file replayed
 	 * after an interrupted drain does not log the money twice. Written in the
 	 * same SQLite transaction as the row it records.

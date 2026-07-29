@@ -147,6 +147,22 @@ const settings = {
 			en: "Not available",
 			es: "No disponible",
 		}),
+		"settings.sync.upToDate": t({
+			en: "Up to date",
+			es: "Al día",
+		}),
+		"settings.sync.never": t({
+			en: "Not synced yet",
+			es: "Aún sin sincronizar",
+		}),
+		"settings.sync.pending": t({
+			en: "{count} waiting to sync",
+			es: "{count} en espera de sincronizar",
+		}),
+		"settings.sync.pendingOne": t({
+			en: "1 waiting to sync",
+			es: "1 en espera de sincronizar",
+		}),
 		"settings.row.import": t({
 			en: "Import Data",
 			es: "Importar datos",
