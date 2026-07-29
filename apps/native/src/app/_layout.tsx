@@ -25,6 +25,7 @@ import {
 } from "react-native-safe-area-context";
 import { Uniwind } from "uniwind";
 import { AppLockGate } from "@/components/app-lock-gate";
+import { AuthCover } from "@/components/auth-cover";
 import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
 import { AppThemeProvider, useAppTheme } from "@/contexts/app-theme-context";
@@ -43,7 +44,12 @@ import {
 	useTranslation,
 } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
+import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { convex } from "@/lib/convex";
+import {
+	LedgerAdoptionProvider,
+	useLedgerAdoption,
+} from "@/lib/ledger-adoption";
 import {
 	CATEGORY_DETENT,
 	identityPickerDetent,
@@ -176,9 +182,13 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 			    flag, never from the device. Without it the bar is pinned light and
 			    renders light-mode Liquid Glass over dark content. */}
 			<ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-				<AppLockGate>
-					<RootStack />
-				</AppLockGate>
+				<LedgerAdoptionProvider>
+					<AuthCover>
+						<AppLockGate>
+							<RootStack />
+						</AppLockGate>
+					</AuthCover>
+				</LedgerAdoptionProvider>
 			</ThemeProvider>
 		</>
 	);
@@ -192,8 +202,13 @@ function RootStack() {
 	const db = useDatabase();
 	const t = useTranslation();
 	const onboarded = useOnboardingSettled(db);
+	const { gate } = useAuthSession();
+	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
+
+	const signedIn = gate === "signed-in";
+	const reconciled = adoption === "settled";
 
 	return (
 		<Stack>
@@ -210,7 +225,23 @@ function RootStack() {
 				/>
 			</Stack.Protected>
 
-			<Stack.Protected guard={onboarded}>
+			{/* Behind onboarding, not in front of it: the currency step is the only
+			    thing that writes `currencyChosen`, and canonicalization declines
+			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
+			    §1.7). A device has to state its currency before it holds a ledger,
+			    not after an account has handed it one. */}
+			<Stack.Protected guard={onboarded && !signedIn}>
+				<Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
+			</Stack.Protected>
+
+			<Stack.Protected guard={onboarded && signedIn && !reconciled}>
+				<Stack.Screen
+					name="auth/adopt"
+					options={{ headerShown: false, gestureEnabled: false }}
+				/>
+			</Stack.Protected>
+
+			<Stack.Protected guard={onboarded && signedIn && reconciled}>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 			</Stack.Protected>
 
@@ -328,11 +359,13 @@ export default function RootLayout() {
 						<AppThemeProvider>
 							<LanguageProvider>
 								<ConvexShell>
-									<LocalDataProvider>
-										<IdentityDraftProvider>
-											<RootNavigator fontsLoaded={fontsLoaded} />
-										</IdentityDraftProvider>
-									</LocalDataProvider>
+									<AuthSessionProvider>
+										<LocalDataProvider>
+											<IdentityDraftProvider>
+												<RootNavigator fontsLoaded={fontsLoaded} />
+											</IdentityDraftProvider>
+										</LocalDataProvider>
+									</AuthSessionProvider>
 								</ConvexShell>
 							</LanguageProvider>
 						</AppThemeProvider>

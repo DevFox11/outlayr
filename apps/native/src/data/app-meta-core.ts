@@ -47,6 +47,13 @@ export const META_KEYS = {
 	 * same SQLite transaction as the row it records.
 	 */
 	pendingWriteLedger: "pendingWriteLedger",
+	/**
+	 * The account subject this device's ledger has already been reconciled with.
+	 * Holding the id rather than a flag is what makes signing into a *different*
+	 * account ask again instead of silently pairing two strangers' ledgers.
+	 * Device-local.
+	 */
+	ledgerAdoption: "ledgerAdoption",
 } as const;
 
 export async function getMeta(

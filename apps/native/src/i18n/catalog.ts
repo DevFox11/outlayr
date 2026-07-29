@@ -1,5 +1,6 @@
 import { getIntlayer } from "intlayer";
 import alerts from "@/content/alerts.content";
+import auth from "@/content/auth.content";
 import budgets from "@/content/budgets.content";
 import categories from "@/content/categories.content";
 import common from "@/content/common.content";
@@ -20,6 +21,7 @@ import type { Catalog } from "./translate";
  */
 export const DICTIONARIES = [
 	alerts,
+	auth,
 	budgets,
 	categories,
 	common,
