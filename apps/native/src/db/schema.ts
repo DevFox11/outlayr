@@ -6,6 +6,7 @@ import {
 	real,
 	sqliteTable,
 	text,
+	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 /**
@@ -167,6 +168,41 @@ export const appMeta = sqliteTable("appMeta", {
 	key: text("key").primaryKey(),
 	value: text("value"),
 });
+
+/**
+ * The durable push queue: one pending entry per replicated row, written by the
+ * `AFTER INSERT/UPDATE` triggers the migration adds to the six user tables.
+ * Triggers rather than repo calls because writes already happen outside the
+ * repos (`data/recurrence-backfill.ts`, `data/canonicalize-backfill.ts`, the App
+ * Intents drain in `lib/use-system-sync.ts`), and a repo-level queue would
+ * silently miss the next such path.
+ *
+ * `(tableName, localId)` is unique, so a row edited a hundred times is queued
+ * once: the queue is bounded by how many rows exist, not by how many writes
+ * happened. The triggers are additionally gated on the device-local
+ * `syncEnabled` flag, so a ledger that never syncs queues nothing at all.
+ *
+ * `seq` is AUTOINCREMENT, not a plain rowid, because re-queuing an already
+ * pending row issues a *new* seq: a drain that pushes seqs 1-500 and then
+ * deletes them cannot delete an edit that arrived while it was pushing. Plain
+ * rowids are reused after the highest row is deleted, which reopens exactly
+ * that window.
+ *
+ * drizzle-kit does not know triggers exist: it neither generates nor diffs them,
+ * and the SQLite changes it implements by rebuilding a table drop every trigger
+ * attached to it. A migration that recreates one of the six tables has to
+ * re-declare its triggers by hand.
+ */
+export const outbox = sqliteTable(
+	"outbox",
+	{
+		seq: integer("seq").primaryKey({ autoIncrement: true }),
+		tableName: text("tableName").notNull(),
+		localId: text("localId").notNull(),
+		enqueuedAt: integer("enqueuedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [uniqueIndex("outbox_row_idx").on(table.tableName, table.localId)],
+);
 
 /**
  * One-way replica of the Convex `exchangeRates` table — the only table here the

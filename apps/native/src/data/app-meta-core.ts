@@ -28,6 +28,19 @@ export const META_KEYS = {
 	 * flow could run it already reads as done.
 	 */
 	onboardingComplete: "onboardingComplete",
+	/**
+	 * This device's replication identity, minted on first use. It breaks the tie
+	 * when two devices last wrote a row in the same millisecond, so it must stay
+	 * device-local — replicating it would hand every device the same one.
+	 */
+	syncDeviceId: "syncDeviceId",
+	/** How far this device has read the account's change log. Device-local. */
+	syncCursor: "syncCursor",
+	/**
+	 * Whether this device replicates at all. The outbox triggers read it, so a
+	 * ledger that never syncs never queues a row. Device-local.
+	 */
+	syncEnabled: "syncEnabled",
 } as const;
 
 export async function getMeta(
