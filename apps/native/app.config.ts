@@ -161,6 +161,25 @@ if (roundedFonts.length === 0) {
 	);
 }
 
+const GOOGLE_CLIENT_SUFFIX = /\.apps\.googleusercontent\.com$/i;
+
+/**
+ * Google's iOS SDK is handed back through a URL scheme that is the client id
+ * reversed, and the config plugin rejects anything that is not one — including
+ * an absent id, which is why an unconfigured build still gets a syntactically
+ * valid placeholder rather than failing `expo prebuild`. Sign-in is guarded
+ * separately at runtime by `isGoogleSignInAvailable`.
+ */
+function googleIosUrlScheme(clientId: string | undefined): string {
+	if (!clientId) {
+		return "com.googleusercontent.apps.placeholder";
+	}
+	if (clientId.startsWith("com.googleusercontent.apps.")) {
+		return clientId;
+	}
+	return `com.googleusercontent.apps.${clientId.replace(GOOGLE_CLIENT_SUFFIX, "")}`;
+}
+
 const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 	return {
 		...config,
@@ -253,6 +272,17 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 				},
 			],
 			"expo-system-ui",
+			"expo-apple-authentication",
+			"expo-secure-store",
+			"expo-web-browser",
+			[
+				"react-native-nitro-google-signin",
+				{
+					iosUrlScheme: googleIosUrlScheme(
+						process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS,
+					),
+				},
+			],
 			[
 				"expo-image-picker",
 				{
@@ -294,6 +324,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 			icon: isProduction
 				? "./assets/Outlayr.icon"
 				: "./assets/OutlayrTesting.icon",
+			usesAppleSignIn: true,
 			entitlements: {
 				// An extension runs in its own process and cannot reach the app's
 				// container. `expo-widgets` uses this group for its own transport;

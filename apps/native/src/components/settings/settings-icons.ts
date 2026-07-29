@@ -20,6 +20,7 @@ import {
 	InformationCircleIcon,
 	LayoutTable01Icon,
 	LicenseIcon,
+	Logout01Icon,
 	MoneyAdd01Icon,
 	NewTwitterIcon,
 	Notification03Icon,
@@ -33,6 +34,7 @@ import {
 	Tap01Icon,
 	TestTubeIcon,
 	TextFontIcon,
+	UserCircleIcon,
 } from "@hugeicons-pro/core-stroke-rounded";
 
 /**
@@ -70,9 +72,11 @@ const REGISTRY = {
 	Favourite: FavouriteIcon,
 	LayoutTable01: LayoutTable01Icon,
 	License: LicenseIcon,
+	Logout01: Logout01Icon,
 	SourceCode: SourceCodeIcon,
 	Sparkles: SparklesIcon,
 	TextFont: TextFontIcon,
+	UserCircle: UserCircleIcon,
 } satisfies Record<string, IconSvgElement>;
 
 export type SettingsIconName = keyof typeof REGISTRY;

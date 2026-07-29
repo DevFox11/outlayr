@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { Alert, Linking, Platform, Share } from "react-native";
+import { AccountRow } from "@/components/settings/account-row";
 import {
 	LinkRow,
 	SettingsSection,
@@ -170,6 +171,7 @@ function SettingsContent({ db }: { db: Database }) {
 			</SettingsSection>
 
 			<SettingsSection title="Your data">
+				<AccountRow />
 				<LinkRow
 					icon="DashboardSquare01"
 					onPress={() => router.push("/settings/categories")}

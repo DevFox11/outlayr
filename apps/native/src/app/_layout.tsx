@@ -1,4 +1,5 @@
 import "../../global.css";
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import {
 	GeistMono_400Regular,
 	GeistMono_500Medium,
@@ -34,6 +35,7 @@ import {
 	useLocalData,
 } from "@/contexts/local-data-context";
 import { useOnboardingSettled } from "@/data/onboarding";
+import { authClient } from "@/lib/auth-client";
 import { convex } from "@/lib/convex";
 import {
 	CATEGORY_DETENT,
@@ -54,6 +56,7 @@ export const unstable_settings = {
  */
 const SETTINGS_SCREENS: readonly { name: string; title: string }[] = [
 	{ name: "settings/about", title: "About & Credits" },
+	{ name: "settings/account", title: "Account" },
 	{ name: "settings/app-icon", title: "App Icon" },
 	{ name: "settings/currency", title: "Currency" },
 	{ name: "settings/erase", title: "Erase Data" },
@@ -267,12 +270,24 @@ function RootStack() {
 	);
 }
 
-/** A local-first ledger must not fail to start over a missing rates URL. */
+/**
+ * A local-first ledger must not fail to start over a missing rates URL, nor over
+ * an unconfigured account: each provider is only mounted once its own
+ * prerequisite is present, so the fallback all the way down is a working app
+ * with no backend rather than a crash.
+ */
 function ConvexShell({ children }: { children: React.ReactNode }) {
 	if (!convex) {
 		return children;
 	}
-	return <ConvexProvider client={convex}>{children}</ConvexProvider>;
+	if (!authClient) {
+		return <ConvexProvider client={convex}>{children}</ConvexProvider>;
+	}
+	return (
+		<ConvexBetterAuthProvider authClient={authClient} client={convex}>
+			{children}
+		</ConvexBetterAuthProvider>
+	);
 }
 
 export default function RootLayout() {
