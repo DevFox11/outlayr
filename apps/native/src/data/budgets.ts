@@ -1,4 +1,3 @@
-import { utcDateString } from "@outlayr/money";
 import {
 	and,
 	asc,
@@ -15,7 +14,7 @@ import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions } from "@/db/schema";
 import { type Burndown, buildBurndown } from "@/domain/budget-burndown";
 import { advanceBudgetWindow, type BudgetWindow } from "@/domain/budget-math";
-import { limitIn, sumValuedIn, valueIn } from "@/domain/valuation";
+import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
 import {
 	type ExpenseContribution,
 	expenseContributionQuery,
@@ -81,28 +80,22 @@ export function useExpenseContributions(
 	const categoryMeta = useCategoryMeta(db);
 	const valuation = useValuation(db);
 
-	return useMemo(
-		() =>
-			data.map((row) => ({
-				categoryId: row.categoryId,
-				date: row.date,
-				// `amount` is the valued amount from here down, not the row's stored one.
-				amount: valueIn(
-					{
-						amount: row.amount,
-						currency: row.currency,
-						amountUsd: row.amountUsd,
-						dateKey: utcDateString(row.date.getTime()),
-					},
-					valuation.displayCurrency,
-					valuation.rates,
-				),
-				parentId: row.categoryId
-					? (categoryMeta.get(row.categoryId)?.parentId ?? null)
-					: null,
-			})),
-		[data, categoryMeta, valuation],
-	);
+	return useMemo(() => {
+		const valued = valueDatedRowsIn(
+			data,
+			valuation.displayCurrency,
+			valuation.rates,
+		);
+		return data.map((row, index) => ({
+			categoryId: row.categoryId,
+			date: row.date,
+			// `amount` is the valued amount from here down, not the row's stored one.
+			amount: valued[index],
+			parentId: row.categoryId
+				? (categoryMeta.get(row.categoryId)?.parentId ?? null)
+				: null,
+		}));
+	}, [data, categoryMeta, valuation]);
 }
 
 /**

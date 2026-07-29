@@ -1,4 +1,3 @@
-import { utcDateString } from "@outlayr/money";
 import { and, eq, isNull, lte } from "drizzle-orm";
 import { categories, transactions } from "@/db/schema";
 import {
@@ -12,7 +11,7 @@ import {
 	startOfYear,
 	weekdayInitial,
 } from "@/domain/dates";
-import { valueIn } from "@/domain/valuation";
+import { valueDatedRowsIn } from "@/domain/valuation";
 import type { SpendDb } from "./budget-spent";
 import { NO_VALUATION, type Valuation } from "./valuation-source";
 
@@ -637,18 +636,14 @@ export async function loadContributions(
 		.from(transactions)
 		.leftJoin(categories, eq(transactions.categoryId, categories.id))
 		.where(and(isNull(transactions.deletedAt), lte(transactions.date, now)));
-	return rows.map((row) => ({
+	const valued = valueDatedRowsIn(
+		rows,
+		valuation.displayCurrency,
+		valuation.rates,
+	);
+	return rows.map((row, index) => ({
 		// `amount` is the valued amount from here down, not the row's stored one.
-		amount: valueIn(
-			{
-				amount: row.amount,
-				currency: row.currency,
-				amountUsd: row.amountUsd,
-				dateKey: utcDateString(row.date.getTime()),
-			},
-			valuation.displayCurrency,
-			valuation.rates,
-		),
+		amount: valued[index],
 		income: row.income,
 		categoryId: row.categoryId,
 		parentId: row.parentId ?? null,

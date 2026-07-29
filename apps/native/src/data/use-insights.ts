@@ -1,9 +1,8 @@
-import { utcDateString } from "@outlayr/money";
 import { and, gte, isNull, lte, min } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { valueIn } from "@/domain/valuation";
+import { valueDatedRowsIn } from "@/domain/valuation";
 import {
 	bucketSeries,
 	type CategoryBreakdownEntry,
@@ -145,18 +144,10 @@ export function useInsights(
 		// query: `useLiveQuery` only invalidates on the table it watches, so a joined
 		// parentId survives a re-parent and silently buckets the spend under the old
 		// parent. The category subscription above does invalidate.
-		const rows: InsightsContribution[] = txData.map((row) => ({
+		const valued = valueDatedRowsIn(txData, displayCurrency, rates);
+		const rows: InsightsContribution[] = txData.map((row, index) => ({
 			// `amount` is the valued amount from here down, not the row's stored one.
-			amount: valueIn(
-				{
-					amount: row.amount,
-					currency: row.currency,
-					amountUsd: row.amountUsd,
-					dateKey: utcDateString(row.date.getTime()),
-				},
-				displayCurrency,
-				rates,
-			),
+			amount: valued[index],
 			income: row.income,
 			categoryId: row.categoryId,
 			parentId: row.categoryId

@@ -1,4 +1,3 @@
-import { utcDateString } from "@outlayr/money";
 import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
@@ -11,7 +10,7 @@ import {
 	startOfYear,
 } from "@/domain/dates";
 import type { LogFigures } from "@/domain/log-measure";
-import { type RateTable, valueIn } from "@/domain/valuation";
+import { type RateTable, valueDatedRowsIn } from "@/domain/valuation";
 import { logCellQuery, toCurrencyCells } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import { useValuation } from "./use-valuation";
@@ -119,26 +118,14 @@ export function useSparklineRows(
 
 	const { displayCurrency, rates } = useValuation(db);
 
-	// Valued per row rather than per day-cell: this draws a shape, and the series
-	// is never printed next to totals it would have to agree with to the cent.
-	return useMemo(
-		() =>
-			rows.map((row) => ({
-				date: row.date,
-				income: row.income,
-				amount: valueIn(
-					{
-						amount: row.amount,
-						currency: row.currency,
-						amountUsd: row.amountUsd,
-						dateKey: utcDateString(row.date.getTime()),
-					},
-					displayCurrency,
-					rates,
-				),
-			})),
-		[rows, displayCurrency, rates],
-	);
+	return useMemo(() => {
+		const valued = valueDatedRowsIn(rows, displayCurrency, rates);
+		return rows.map((row, index) => ({
+			date: row.date,
+			income: row.income,
+			amount: valued[index],
+		}));
+	}, [rows, displayCurrency, rates]);
 }
 
 /**

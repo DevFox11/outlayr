@@ -1,4 +1,4 @@
-import { convertFromUsd, utcDateString } from "@outlayr/money";
+import { convertFromUsd, roundMoney, utcDateString } from "@outlayr/money";
 
 export interface Valuable {
 	amount: number;
@@ -75,8 +75,7 @@ export function valueExactIn(
 	if (row.currency === displayCurrency) {
 		return row.amount;
 	}
-	// A row already stated in USD needs nothing frozen: its USD value is the amount.
-	const amountUsd = row.currency === "USD" ? row.amount : row.amountUsd;
+	const amountUsd = canonicalOf(row);
 	if (amountUsd === null) {
 		return null;
 	}
@@ -90,6 +89,11 @@ export function valueExactIn(
 	return convertFromUsd(amountUsd, rate, displayCurrency);
 }
 
+/** A row already stated in USD needs nothing frozen: its USD value is the amount. */
+function canonicalOf(row: Valuable): number | null {
+	return row.currency === "USD" ? row.amount : row.amountUsd;
+}
+
 /** {@link valueExactIn}, standing in the face value when it declines. */
 export function valueIn(
 	row: Valuable,
@@ -99,11 +103,104 @@ export function valueIn(
 	return valueExactIn(row, displayCurrency, rates) ?? row.amount;
 }
 
+/** {@link Valuable} with the direction that splits the Log's cells. */
+export interface DirectedValuable extends Valuable {
+	income?: boolean;
+}
+
+/**
+ * Values a set of rows the way the Log aggregates in SQL: rows sharing a
+ * currency, a UTC day and a direction convert as one sum, so any figure built
+ * over whole cells is the figure the Log header prints for the same rows.
+ *
+ * Whoever converts row by row rounds once per row, and the drift against the
+ * header is unbounded in the row count. Each row still gets a value of its own —
+ * the cell's total, handed out as running differences — so callers that group,
+ * bucket or filter afterwards keep working on rows.
+ *
+ * Values come back positionally.
+ */
+export function valueRowsIn(
+	rows: readonly DirectedValuable[],
+	displayCurrency: string,
+	rates: RateTable,
+): number[] {
+	const values: number[] = new Array(rows.length);
+	const cells = new Map<string, number[]>();
+
+	for (let index = 0; index < rows.length; index += 1) {
+		const row = rows[index];
+		// USD needs no conversion pass, so its rows never round and per-row is
+		// already per-cell; the other two cannot be converted at all.
+		if (
+			displayCurrency === "USD" ||
+			row.currency === displayCurrency ||
+			canonicalOf(row) === null
+		) {
+			values[index] = valueIn(row, displayCurrency, rates);
+			continue;
+		}
+		const key = `${row.currency}|${row.dateKey}|${row.income ?? false}`;
+		const cell = cells.get(key);
+		if (cell) {
+			cell.push(index);
+		} else {
+			cells.set(key, [index]);
+		}
+	}
+
+	for (const indices of cells.values()) {
+		let runningUsd = 0;
+		let assigned = 0;
+		for (const index of indices) {
+			const row = rows[index];
+			runningUsd += canonicalOf(row) as number;
+			const converted = convertUsdSum(
+				runningUsd,
+				row.dateKey,
+				displayCurrency,
+				rates,
+			);
+			if (converted === null) {
+				// One dateKey per cell, so no rate for it means no rate for any of them.
+				for (const other of indices) {
+					values[other] = rows[other].amount;
+				}
+				break;
+			}
+			values[index] = roundMoney(converted - assigned);
+			assigned = converted;
+		}
+	}
+
+	return values;
+}
+
 export interface DatedValuable {
 	amount: number;
 	currency: string | null;
 	amountUsd: number | null;
 	date: Date;
+	income?: boolean;
+}
+
+/** {@link valueRowsIn} for rows carrying an instant rather than a UTC day key. */
+export function valueDatedRowsIn(
+	rows: readonly DatedValuable[],
+	displayCurrency: string,
+	rates: RateTable,
+): number[] {
+	return valueRowsIn(
+		rows.map((row) => ({
+			amount: row.amount,
+			currency: row.currency,
+			amountUsd: row.amountUsd,
+			dateKey: utcDateString(row.date.getTime()),
+			income: row.income,
+		})),
+		displayCurrency,
+		rates,
+	);
 }
 
 export function sumValuedIn(
@@ -112,17 +209,8 @@ export function sumValuedIn(
 	rates: RateTable,
 ): number {
 	let total = 0;
-	for (const row of rows) {
-		total += valueIn(
-			{
-				amount: row.amount,
-				currency: row.currency,
-				amountUsd: row.amountUsd,
-				dateKey: utcDateString(row.date.getTime()),
-			},
-			displayCurrency,
-			rates,
-		);
+	for (const value of valueDatedRowsIn(rows, displayCurrency, rates)) {
+		total += value;
 	}
 	return total;
 }

@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { roundMoney } from "@outlayr/money";
+import { currencyTotals } from "./currency-totals";
 import {
 	buildRateTable,
 	isExact,
 	limitIn,
 	sumValuedIn,
 	valueIn,
+	valueRowsIn,
 } from "./valuation";
 
 const rates = buildRateTable([
@@ -263,6 +266,112 @@ describe("sumValuedIn", () => {
 				rates,
 			),
 			185,
+		);
+	});
+});
+
+describe("valueRowsIn", () => {
+	const JULY_5 = new Date(Date.UTC(2026, 6, 5, 12));
+	const JULY_15 = new Date(Date.UTC(2026, 6, 15, 12));
+	const cents = (value: number) => roundMoney(value);
+	const added = (values: readonly number[]) =>
+		cents(values.reduce((total, value) => total + value, 0));
+
+	// $2.15 is €1.935 at 0.9 and €2.0425 at 0.95: rounded on its own each row is a
+	// fifth of a cent out, and four of them per day carry that into the open.
+	const entries = [JULY_5, JULY_15].flatMap((date) =>
+		Array.from({ length: 4 }, () => ({
+			amount: 2.15,
+			currency: "USD",
+			amountUsd: 2.15,
+			income: true,
+			date,
+		})),
+	);
+	const asValuable = (entry: (typeof entries)[number]) => ({
+		amount: entry.amount,
+		currency: entry.currency,
+		amountUsd: entry.amountUsd,
+		dateKey: entry.date.toISOString().slice(0, 10),
+		income: entry.income,
+	});
+
+	it("reconciles a header total with the day subtotals under it", () => {
+		const header = currencyTotals(entries, "EUR", rates);
+		const subtotals = [JULY_5, JULY_15].map((day) =>
+			currencyTotals(
+				entries.filter((entry) => entry.date === day),
+				"EUR",
+				rates,
+			),
+		);
+
+		assert.deepEqual(
+			{
+				header: cents(header[0].amount),
+				subtotals: subtotals.map((day) => cents(day[0].amount)),
+				subtotalsAdded: added(subtotals.map((day) => day[0].amount)),
+				perRowAdded: added(valueRowsIn(entries.map(asValuable), "EUR", rates)),
+			},
+			{
+				header: 15.91,
+				subtotals: [7.74, 8.17],
+				subtotalsAdded: 15.91,
+				perRowAdded: 15.91,
+			},
+		);
+	});
+
+	it("leaves a row already in the display currency untouched", () => {
+		assert.deepEqual(
+			valueRowsIn(
+				[
+					{
+						amount: 12.4,
+						currency: "EUR",
+						amountUsd: 13.78,
+						dateKey: "2026-07-15",
+					},
+					{
+						amount: 5,
+						currency: "GBP",
+						amountUsd: null,
+						dateKey: "2026-07-15",
+					},
+				],
+				"EUR",
+				rates,
+			),
+			[12.4, 5],
+		);
+	});
+
+	it("keeps income and expense apart, as the Log's cells do", () => {
+		// Rounding all four as one cell gives €0.19; the Log rounds each direction
+		// separately and prints €0.20.
+		const rows = [true, false].flatMap((income) =>
+			Array.from({ length: 2 }, () => ({
+				amount: 0.05,
+				currency: "USD",
+				amountUsd: 0.05,
+				dateKey: "2026-07-15",
+				income,
+			})),
+		);
+		assert.equal(added(valueRowsIn(rows, "EUR", rates)), 0.2);
+	});
+
+	it("falls back to face value when no rate reaches the day", () => {
+		assert.deepEqual(
+			valueRowsIn(
+				[
+					{ amount: 10, currency: "USD", amountUsd: 10, dateKey: "2020-01-01" },
+					{ amount: 20, currency: "USD", amountUsd: 20, dateKey: "2020-01-01" },
+				],
+				"EUR",
+				rates,
+			),
+			[10, 20],
 		);
 	});
 });
