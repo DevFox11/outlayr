@@ -1,0 +1,290 @@
+import { desc, eq, isNull } from "drizzle-orm";
+import type { Database } from "@/db/client";
+import { categories, transactions } from "@/db/schema";
+import { withTransaction } from "@/db/transaction";
+import { parseCsv } from "@/domain/csv";
+import { DEFAULT_CURRENCY } from "@/domain/money";
+import {
+	type DecimalSeparator,
+	parseCsvAmount,
+	parseCsvDate,
+	parseCsvType,
+	transactionsToCsv,
+} from "@/domain/transaction-csv";
+import { getMeta, META_KEYS } from "./app-meta-core";
+import { transactionsRepo } from "./transactions-core";
+
+export async function exportTransactionsCsv(db: Database): Promise<string> {
+	const rows = await db
+		.select({
+			date: transactions.date,
+			note: transactions.note,
+			amount: transactions.amount,
+			currency: transactions.currency,
+			income: transactions.income,
+			categoryName: categories.name,
+		})
+		.from(transactions)
+		.leftJoin(categories, eq(transactions.categoryId, categories.id))
+		.where(isNull(transactions.deletedAt))
+		.orderBy(desc(transactions.date));
+
+	const ledgerCurrency =
+		(await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
+	return transactionsToCsv(rows, ledgerCurrency);
+}
+
+export function exportFileName(now: Date): string {
+	const year = now.getFullYear();
+	const month = `${now.getMonth() + 1}`.padStart(2, "0");
+	const day = `${now.getDate()}`.padStart(2, "0");
+	return `outlayr-${year}-${month}-${day}.csv`;
+}
+
+/** Which CSV column feeds each field. `null` means the file carries none. */
+export interface ColumnMapping {
+	category: number;
+	/** Optional: an unmapped note falls back to the category's name on write. */
+	note: number | null;
+	date: number;
+	amount: number;
+	currency: number | null;
+	type: number | null;
+}
+
+const HEADER_HINTS: Record<keyof ColumnMapping, readonly string[]> = {
+	category: ["category", "categories", "tag"],
+	note: ["note", "description", "memo", "payee", "merchant", "name", "details"],
+	date: ["date", "time", "posted", "when"],
+	amount: ["amount", "value", "total", "sum", "debit"],
+	currency: ["currency", "code", "ccy"],
+	type: ["type", "direction", "kind"],
+};
+
+/**
+ * Best guess from a header row, so a file this app exported maps itself. Fields
+ * it cannot place are left `null` for the user to assign, which is why `date`
+ * and `amount` widen here but not in {@link ColumnMapping}.
+ */
+export function guessMapping(
+	header: readonly string[],
+): Record<keyof ColumnMapping, number | null> {
+	const normalized = header.map((cell) => cell.trim().toLowerCase());
+	const taken = new Set<number>();
+	const guess: Record<keyof ColumnMapping, number | null> = {
+		category: null,
+		note: null,
+		date: null,
+		amount: null,
+		currency: null,
+		type: null,
+	};
+
+	for (const field of Object.keys(HEADER_HINTS) as (keyof ColumnMapping)[]) {
+		const index = normalized.findIndex(
+			(cell, at) =>
+				!taken.has(at) &&
+				HEADER_HINTS[field].some((hint) => cell.includes(hint)),
+		);
+		if (index >= 0) {
+			guess[field] = index;
+			taken.add(index);
+		}
+	}
+	return guess;
+}
+
+export interface ImportEntry {
+	note: string;
+	categoryId: string;
+	income: boolean;
+	amount: number;
+	/** Null adopts the ledger's code at write time. */
+	currency: string | null;
+	date: Date;
+}
+
+export type SkipReason = "category" | "date" | "amount";
+
+export interface SkippedRow {
+	/** 1-based over the data rows, so it names what the user sees in the file. */
+	row: number;
+	reason: SkipReason;
+}
+
+export interface ImportPlan {
+	entries: ImportEntry[];
+	skipped: SkippedRow[];
+	earliest: Date | null;
+	latest: Date | null;
+}
+
+/**
+ * The key a CSV category value is linked under. Folded, unlike Swift's exact
+ * `unique()` (`Sequence+Unique.swift`), which asked the user to link `"Food"`
+ * and `"food "` separately and then failed the import when they missed one.
+ */
+export function categoryKey(value: string): string {
+	return value.trim().toLowerCase();
+}
+
+export interface ParsedImportFile {
+	/** Null when the first line already carries data. */
+	header: string[] | null;
+	rows: string[][];
+	/** Widest row, since a CSV may be ragged. */
+	width: number;
+}
+
+/** A date, an amount and a category are the least this can build a row from. */
+const MINIMUM_COLUMNS = 3;
+
+/**
+ * Null means the file cannot be used at all, which the caller reports once
+ * rather than letting the user assign columns to something unusable.
+ *
+ * The header test is Swift's (`ImportDataView+Logic.swift:126`): a first line
+ * with no digit in it is a header, because a data row always carries at least a
+ * date or an amount.
+ */
+export function parseImportFile(text: string): ParsedImportFile | null {
+	const lines = parseCsv(text);
+	if (lines.length === 0) {
+		return null;
+	}
+
+	const first = lines[0] ?? [];
+	const looksLikeHeader = !/\d/.test(first.join(""));
+	const rows = looksLikeHeader ? lines.slice(1) : lines;
+	if (rows.length === 0) {
+		return null;
+	}
+
+	const width = Math.max(...rows.map((row) => row.length));
+	if (width < MINIMUM_COLUMNS) {
+		return null;
+	}
+
+	return { header: looksLikeHeader ? first : null, rows, width };
+}
+
+/** First-appearance spelling of every distinct value in the category column. */
+export function uniqueCategoryValues(
+	rows: readonly (readonly string[])[],
+	index: number,
+): string[] {
+	const seen = new Set<string>();
+	const values: string[] = [];
+	for (const row of rows) {
+		const raw = row[index]?.trim();
+		if (raw == null || raw === "") {
+			continue;
+		}
+		const key = categoryKey(raw);
+		if (seen.has(key)) {
+			continue;
+		}
+		seen.add(key);
+		values.push(raw);
+	}
+	return values;
+}
+
+const CURRENCY_CODE = /^[A-Za-z]{3}$/;
+
+/**
+ * Parses the whole file up front so the user can see what will land — and what
+ * will not — before anything is written. A row that cannot be read is dropped
+ * with its reason rather than defaulted, because a guessed date or a guessed
+ * category is indistinguishable from a real one once it is in the ledger.
+ */
+export function buildImportPlan(
+	rows: readonly (readonly string[])[],
+	mapping: ColumnMapping,
+	dateFormat: string,
+	decimal: DecimalSeparator,
+	links: ReadonlyMap<string, string>,
+	categoryIncome: ReadonlyMap<string, boolean>,
+): ImportPlan {
+	const entries: ImportEntry[] = [];
+	const skipped: SkippedRow[] = [];
+	let earliest: Date | null = null;
+	let latest: Date | null = null;
+
+	for (const [index, row] of rows.entries()) {
+		const number = index + 1;
+
+		const categoryId = links.get(categoryKey(row[mapping.category] ?? ""));
+		if (categoryId == null) {
+			skipped.push({ row: number, reason: "category" });
+			continue;
+		}
+
+		const date = parseCsvDate(row[mapping.date] ?? "", dateFormat);
+		if (date == null) {
+			skipped.push({ row: number, reason: "date" });
+			continue;
+		}
+
+		const amount = parseCsvAmount(row[mapping.amount] ?? "", decimal);
+		if (amount == null) {
+			skipped.push({ row: number, reason: "amount" });
+			continue;
+		}
+
+		const declaredType =
+			mapping.type == null ? null : parseCsvType(row[mapping.type] ?? "");
+		const currencyCell =
+			mapping.currency == null ? "" : (row[mapping.currency] ?? "").trim();
+
+		entries.push({
+			note: mapping.note == null ? "" : (row[mapping.note] ?? "").trim(),
+			categoryId,
+			income: declaredType ?? categoryIncome.get(categoryId) ?? false,
+			amount: Math.abs(amount),
+			currency: CURRENCY_CODE.test(currencyCell)
+				? currencyCell.toUpperCase()
+				: null,
+			date,
+		});
+
+		if (earliest == null || date < earliest) {
+			earliest = date;
+		}
+		if (latest == null || date > latest) {
+			latest = date;
+		}
+	}
+
+	return { entries, skipped, earliest, latest };
+}
+
+/**
+ * All or nothing. A half-applied import is the worst outcome the feature has:
+ * the user cannot tell which rows landed, and re-running it duplicates whatever
+ * did.
+ */
+export async function applyImport(
+	db: Database,
+	plan: ImportPlan,
+): Promise<number> {
+	if (plan.entries.length === 0) {
+		return 0;
+	}
+
+	await withTransaction(db, async () => {
+		for (const entry of plan.entries) {
+			await transactionsRepo.create(db, {
+				amount: entry.amount,
+				income: entry.income,
+				categoryId: entry.categoryId,
+				note: entry.note,
+				details: null,
+				date: entry.date,
+				currency: entry.currency,
+			});
+		}
+	});
+
+	return plan.entries.length;
+}

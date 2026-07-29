@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { formatDayHeader } from "@/domain/dates";
 import type { DaySection } from "@/domain/day-sections";
 import { DayTotal } from "./amount-text";
@@ -13,21 +13,39 @@ interface DaySectionHeaderProps {
 	 * has no predecessor, so it gets only the 10.
 	 */
 	first?: boolean;
+	/** Opens the day group's actions. Omit on a surface that offers none. */
+	onLongPress?: () => void;
 }
 
 export function DaySectionHeader({
 	section,
 	showCents,
 	first = false,
+	onLongPress,
 }: DaySectionHeaderProps) {
-	return (
-		<View className={first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7"}>
+	const body = (
+		<>
 			<View className="flex-row items-baseline justify-between gap-2">
 				<MonoLabel>{formatDayHeader(section.day)}</MonoLabel>
 				<DayTotal totals={section.totals} showCents={showCents} />
 			</View>
 			{/* A 1.3 stroke with round caps, not a 1px border. */}
 			<View className="bg-border" style={{ height: 1.3, borderRadius: 0.65 }} />
-		</View>
+		</>
+	);
+	const className = first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7";
+
+	if (!onLongPress) {
+		return <View className={className}>{body}</View>;
+	}
+
+	return (
+		<Pressable
+			accessibilityRole="button"
+			className={className}
+			onLongPress={onLongPress}
+		>
+			{body}
+		</Pressable>
 	);
 }

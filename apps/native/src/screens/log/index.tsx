@@ -37,6 +37,7 @@ import {
 	sparklineRange,
 	sparklineSeries,
 } from "@/domain/log-sparkline";
+import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogEmptyState } from "./components/log-empty-state";
 import { LogFilterChip } from "./components/log-filter-chip";
@@ -176,6 +177,11 @@ function LogContent({ db }: { db: Database }) {
 	);
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+	const cardOptions = useMemo(
+		() => ({ currency, showCents, showSign, swapTimeLabel }),
+		[currency, showCents, showSign, swapTimeLabel],
+	);
+	const shareDay = useDayCardShare(cardOptions);
 
 	const detail = filterDetail(filter, {
 		categoryName: activeCategoryId
@@ -300,6 +306,7 @@ function LogContent({ db }: { db: Database }) {
 						section={section}
 						showCents={showCents}
 						first={sections[0] === section && upcomingRows.length === 0}
+						onLongPress={() => shareDay(section)}
 					/>
 				)}
 				renderItem={({ item }) => (
