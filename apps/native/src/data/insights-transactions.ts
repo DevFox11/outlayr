@@ -104,6 +104,7 @@ export function useWindowTransactions(
 					categoryName: meta?.name ?? null,
 					categoryColor: meta?.color ?? null,
 					categoryIcon: meta?.icon ?? null,
+					categoryEmoji: meta?.emoji ?? null,
 				};
 			}),
 		[data, categoryMeta],

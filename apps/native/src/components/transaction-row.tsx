@@ -3,6 +3,7 @@ import { RefreshIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { Pressable, View } from "react-native";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
+import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { useColors } from "@/theme/use-colors";
 import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -49,7 +50,7 @@ export function TransactionRow({
 	const date = new Date(transaction.date);
 	const future = forcedFuture ?? isFuture(date);
 	const code = transaction.currency ?? currency;
-	const color = transaction.categoryColor ?? "#767676";
+	const identity = resolveTransactionIdentity(transaction);
 	const recurring = transaction.recurringType > 0;
 	const foreignCode =
 		transaction.currency && transaction.currency !== currency
@@ -70,8 +71,9 @@ export function TransactionRow({
 		>
 			<View>
 				<CategoryIconTile
-					color={color}
-					icon={transaction.categoryIcon}
+					color={identity.color}
+					emoji={identity.emoji}
+					icon={identity.icon}
 					size={TILE_SIZE}
 					radius={TILE_RADIUS}
 					type="solid"

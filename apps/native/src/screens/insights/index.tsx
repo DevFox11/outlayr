@@ -528,6 +528,7 @@ function InsightsContent({ db }: { db: Database }) {
 													amount={child.amount}
 													code={currency}
 													color={child.color}
+													emoji={child.emoji}
 													fraction={child.fraction}
 													icon={child.icon}
 													key={child.id}
@@ -565,6 +566,7 @@ interface ChildRowProps {
 	name: string;
 	color: string;
 	icon: string | null;
+	emoji: string | null;
 	amount: number;
 	fraction: number;
 	code: string;
@@ -575,6 +577,7 @@ function ChildRow({
 	name,
 	color,
 	icon,
+	emoji,
 	amount,
 	fraction,
 	code,
@@ -582,7 +585,7 @@ function ChildRow({
 }: ChildRowProps) {
 	return (
 		<View className="flex-row items-center gap-2.5">
-			<CategoryIconTile color={color} icon={icon} size={26} />
+			<CategoryIconTile color={color} emoji={emoji} icon={icon} size={26} />
 			<Text
 				className="flex-1 font-sans-medium text-caption text-foreground"
 				numberOfLines={1}

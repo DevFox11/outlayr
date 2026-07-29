@@ -64,7 +64,12 @@ function MoverRow({
 
 	return (
 		<View className="flex-row items-center gap-2.5 py-1.5">
-			<CategoryIconTile color={mover.color} icon={mover.icon} size={26} />
+			<CategoryIconTile
+				color={mover.color}
+				emoji={mover.emoji}
+				icon={mover.icon}
+				size={26}
+			/>
 			<Text
 				className="flex-1 font-sans-medium text-caption text-foreground"
 				numberOfLines={1}

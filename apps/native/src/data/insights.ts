@@ -50,6 +50,7 @@ export interface CategoryMeta {
 	name: string | null;
 	color: string | null;
 	icon: string | null;
+	emoji: string | null;
 	income: boolean;
 	parentId: string | null;
 }
@@ -329,6 +330,7 @@ export function categoryBreakdownWithin(
 			name: meta?.name ?? "Uncategorized",
 			color: meta?.color ?? FALLBACK_CATEGORY_COLOR,
 			icon: meta?.icon ?? null,
+			emoji: meta?.emoji ?? null,
 			amount,
 			fraction: total > 0 ? amount / total : 0,
 			delta: null,
@@ -344,6 +346,7 @@ export interface CategoryBreakdownEntry {
 	name: string;
 	color: string;
 	icon: string | null;
+	emoji: string | null;
 	/** Positive magnitude summed across the category and its subcategories. */
 	amount: number;
 	/** `amount` ÷ breakdown total, in [0, 1]. */
@@ -376,6 +379,7 @@ export interface CategoryMover {
 	name: string;
 	color: string;
 	icon: string | null;
+	emoji: string | null;
 	/** Signed change in currency. Positive means more flowed this window. */
 	delta: number;
 	/** `delta` ÷ the prior amount, or null for a category that is simply new. */
@@ -410,6 +414,7 @@ export function categoryMovers(
 			name: entry.name,
 			color: entry.color,
 			icon: entry.icon,
+			emoji: entry.emoji,
 			delta,
 			fraction:
 				before != null && before.amount > 0 ? delta / before.amount : null,
@@ -428,6 +433,7 @@ export function categoryMovers(
 			name: entry.name,
 			color: entry.color,
 			icon: entry.icon,
+			emoji: entry.emoji,
 			delta: -entry.amount,
 			fraction: -1,
 		});
@@ -535,6 +541,7 @@ export function subcategoryBreakdownWithin(
 			color:
 				(direct ? parentMeta?.color : meta?.color) ?? FALLBACK_CATEGORY_COLOR,
 			icon: (direct ? parentMeta?.icon : meta?.icon) ?? null,
+			emoji: (direct ? parentMeta?.emoji : meta?.emoji) ?? null,
 			amount,
 			fraction: total > 0 ? amount / total : 0,
 			delta: null,

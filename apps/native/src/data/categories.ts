@@ -14,6 +14,7 @@ export interface CategoryMetaRow {
 	name: string | null;
 	color: string | null;
 	icon: string | null;
+	emoji: string | null;
 	parentId: string | null;
 }
 
@@ -33,6 +34,7 @@ export function useCategoryMeta(db: Database): Map<string, CategoryMetaRow> {
 				name: categories.name,
 				color: categories.color,
 				icon: categories.icon,
+				emoji: categories.emoji,
 				parentId: categories.parentId,
 			})
 			.from(categories)
@@ -45,6 +47,7 @@ export function useCategoryMeta(db: Database): Map<string, CategoryMetaRow> {
 				name: row.name,
 				color: row.color,
 				icon: row.icon,
+				emoji: row.emoji,
 				parentId: row.parentId,
 			});
 		}

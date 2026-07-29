@@ -97,6 +97,42 @@ describe("log window", () => {
 		);
 	});
 
+	it("projects the identity a row stores, so the list can paint it", async () => {
+		const db = makeDb();
+		const day = at(2025, 7, 15);
+		await db.insert(transactions).values({
+			id: "identity",
+			amount: 1,
+			income: false,
+			note: "Lunch",
+			date: day,
+			day,
+			month: at(2025, 7, 1),
+			icon: "Coffee02",
+			emoji: "🍕",
+			customColor: "#FF0000",
+			imageColor: "#00FF00",
+			updatedAt: new Date(0),
+		});
+
+		const { rows } = await windowFor(db, 1);
+
+		assert.deepEqual(
+			{
+				icon: rows[0]?.icon,
+				emoji: rows[0]?.emoji,
+				customColor: rows[0]?.customColor,
+				imageColor: rows[0]?.imageColor,
+			},
+			{
+				icon: "Coffee02",
+				emoji: "🍕",
+				customColor: "#FF0000",
+				imageColor: "#00FF00",
+			},
+		);
+	});
+
 	it("widens by whole days and keeps the rows it already had", async () => {
 		const db = makeDb();
 		await seedDay(db, 15, 2);

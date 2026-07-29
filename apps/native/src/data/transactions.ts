@@ -35,6 +35,7 @@ export type TransactionWithCategory = {
 	categoryName: string | null;
 	categoryColor: string | null;
 	categoryIcon: string | null;
+	categoryEmoji: string | null;
 };
 
 export interface LoggedTransactions {
@@ -89,6 +90,7 @@ export function useLoggedTransactions(
 					categoryName: meta?.name ?? null,
 					categoryColor: meta?.color ?? null,
 					categoryIcon: meta?.icon ?? null,
+					categoryEmoji: meta?.emoji ?? null,
 				};
 			}),
 		[data, categoryMeta],

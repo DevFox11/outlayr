@@ -26,6 +26,10 @@ export const LOG_COLUMNS = {
 	note: transactions.note,
 	date: transactions.date,
 	day: transactions.day,
+	icon: transactions.icon,
+	emoji: transactions.emoji,
+	customColor: transactions.customColor,
+	imageColor: transactions.imageColor,
 	imageUri: transactions.imageUri,
 	recurringType: transactions.recurringType,
 	// Upcoming projects each scheduled entry forward, which needs the interval as

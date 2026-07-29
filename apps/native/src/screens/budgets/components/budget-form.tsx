@@ -192,6 +192,7 @@ export function BudgetForm({ db, onDone }: BudgetFormProps) {
 									<>
 										<CategoryIconTile
 											color={category.color ?? "#767676"}
+											emoji={category.emoji}
 											icon={category.icon}
 											size={28}
 										/>

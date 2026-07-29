@@ -49,7 +49,12 @@ export function CategoryBreakdownRow({
 			}
 		>
 			<View className="flex-row items-center gap-3">
-				<CategoryIconTile color={entry.color} icon={entry.icon} size={34} />
+				<CategoryIconTile
+					color={entry.color}
+					emoji={entry.emoji}
+					icon={entry.icon}
+					size={34}
+				/>
 				<Text
 					className="flex-1 font-sans-semibold text-body text-foreground"
 					numberOfLines={1}

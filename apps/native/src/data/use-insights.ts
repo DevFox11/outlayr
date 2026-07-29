@@ -136,6 +136,7 @@ export function useInsights(
 				name: category.name,
 				color: category.color,
 				icon: category.icon,
+				emoji: category.emoji,
 				income: category.income,
 				parentId: category.parentId,
 			});

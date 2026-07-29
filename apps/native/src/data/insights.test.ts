@@ -103,7 +103,7 @@ async function seed(db: TestDb): Promise<void> {
 			id: "rent",
 			name: "Rent",
 			color: "#279AF4",
-			icon: "Home03",
+			emoji: "🏠",
 			income: false,
 			sortOrder: 2,
 			updatedAt: now,
@@ -174,6 +174,7 @@ before(async () => {
 				name: c.name,
 				color: c.color,
 				icon: c.icon,
+				emoji: c.emoji,
 				income: c.income,
 				parentId: c.parentId,
 			},
@@ -332,6 +333,22 @@ describe("categoryBreakdown", () => {
 		assert.equal(rows[1].amount, 35); // 10 (food) + 20 (groc child) + 5 (food)
 		assert.ok(Math.abs(rows[0].fraction - 130 / 165) < 1e-9);
 		assert.ok(Math.abs(rows[1].fraction - 35 / 165) < 1e-9);
+	});
+
+	it("carries an emoji identity, not only an icon one", () => {
+		const rows = categoryBreakdown(
+			contributions,
+			categoriesById,
+			"month",
+			"spent",
+			NOW,
+		);
+		const rent = rows.find((row) => row.id === "rent");
+		assert.equal(rent?.emoji, "🏠");
+		assert.equal(rent?.icon, null);
+		const food = rows.find((row) => row.id === "food");
+		assert.equal(food?.emoji, null);
+		assert.equal(food?.icon, "Restaurant02");
 	});
 
 	it("income reads only inflow categories", () => {
