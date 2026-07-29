@@ -20,15 +20,24 @@ const EFFECTIVE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/;
 
 /**
- * How many recent days are re-ingested even when already held.
+ * How many recent days are re-ingested unconditionally, so a revised figure
+ * still lands on a day whose quote set has not changed. Seven spans a long
+ * weekend, after which a published rate no longer moves.
  *
- * The feed fills a day in over time — a fresh date can arrive with 31 of its
- * 165 quotes and be complete hours later — so "we have this date" is not proof
- * we have all of it. Seven days also spans a long weekend, after which a
- * published rate no longer moves.
+ * Beyond that margin the test is coverage, not age: the feed fills a day in
+ * over time — a fresh date can arrive with 31 of its 165 quotes and be complete
+ * hours later — so a day is re-ingested for as long as the feed offers a quote
+ * we do not hold, however old it is.
  */
 const REFRESH_DAYS = 7;
 const MS_PER_DAY = 86_400_000;
+
+/**
+ * Dates per coverage query. A whole window is ~90 dates x the ~165-code
+ * catalog, which alone would approach Convex's 16,384-document read ceiling;
+ * ten dates hold one query near 1,700 rows however far the catalog grows.
+ */
+const COVERAGE_BATCH_DATES = 10;
 
 function windowUrl(from: string): string {
 	return `${FRANKFURTER_URL}&from=${from}`;
@@ -110,16 +119,29 @@ export const fetchRates = internalAction({
 		}
 
 		const fetchedAt = Date.now();
-		// A rate published outside the refresh margin is settled; rewriting the full
-		// window twice a day would be twelve thousand writes to change nothing.
-		const held = new Set(
-			await ctx.runQuery(internal.exchangeRates.ingestedDates, {}),
-		);
 		const refreshFrom = utcDateString(fetchedAt - REFRESH_DAYS * MS_PER_DAY);
+
+		// Only days past the refresh margin need the test — the rest are written
+		// either way, so asking what they hold would read the window for nothing.
+		const aged = [...ratesByDate.keys()].filter((date) => date < refreshFrom);
+		const heldByDate = new Map<string, Set<string>>();
+		for (let start = 0; start < aged.length; start += COVERAGE_BATCH_DATES) {
+			const batch = await ctx.runQuery(
+				internal.exchangeRates.officialQuotesByDate,
+				{ dates: aged.slice(start, start + COVERAGE_BATCH_DATES) },
+			);
+			for (const entry of batch) {
+				heldByDate.set(entry.date, new Set(entry.quotes));
+			}
+		}
 
 		let written = 0;
 		for (const [date, rates] of ratesByDate) {
-			if (date < refreshFrom && held.has(date)) {
+			// Every quote the feed offers is one an upsert would persist, so a day
+			// that passes this is written at most once more than the feed grows it —
+			// a day the feed never completes settles after a single write.
+			const held = heldByDate.get(date);
+			if (held && rates.every((entry) => held.has(entry.quote))) {
 				continue;
 			}
 			await ctx.runMutation(internal.exchangeRates.upsertRates, {
@@ -131,7 +153,7 @@ export const fetchRates = internalAction({
 			written += 1;
 		}
 		console.log(
-			`Frankfurter: ${written} of ${ratesByDate.size} dates written, ${ratesByDate.size - written} already settled`,
+			`Frankfurter: ${written} of ${ratesByDate.size} dates written, ${ratesByDate.size - written} already complete`,
 		);
 		return null;
 	},

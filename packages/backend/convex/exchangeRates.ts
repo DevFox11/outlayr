@@ -37,14 +37,6 @@ interface RatePair {
 }
 
 /**
- * One pair stands in for "which days have we ingested": counting every row per
- * day would read the whole window, tens of thousands of documents. EUR is the
- * safest stand-in — every provider blend Frankfurter draws on quotes it — and a
- * miss costs only a redundant upsert, never correctness.
- */
-const COVERAGE_PROBE: RatePair = { quote: "EUR", rateType: "official" };
-
-/**
  * The EXACT set `pullRates` reads (window rows and anchors alike). A catalog
  * pair is guaranteed an anchor lookup even with ZERO in-window rows, so its
  * newest pre-window row still serves.
@@ -86,20 +78,34 @@ const rateResult = v.union(
 	v.null(),
 );
 
-export const ingestedDates = internalQuery({
-	args: {},
-	returns: v.array(v.string()),
-	handler: async (ctx) => {
-		const rows = await ctx.db
-			.query("exchangeRates")
-			.withIndex("by_quote_and_rateType_and_date", (q) =>
-				q
-					.eq("quote", COVERAGE_PROBE.quote)
-					.eq("rateType", COVERAGE_PROBE.rateType)
-					.gte("date", ratesWindowStart()),
-			)
-			.collect();
-		return rows.map((row) => row.date);
+/**
+ * Which `official` quotes are already stored on each requested date, so an
+ * ingester can tell a day it holds in full from one it holds a slice of.
+ *
+ * Restricted to `official` because that is the only rateType Frankfurter
+ * writes: a cotizave `binance` row on the same date is not coverage for the
+ * official quote. The caller must BATCH the date list — one date is bounded by
+ * the provider catalog, but a whole 90-day window would approach Convex's
+ * per-transaction document ceiling.
+ */
+export const officialQuotesByDate = internalQuery({
+	args: { dates: v.array(v.string()) },
+	returns: v.array(v.object({ date: v.string(), quotes: v.array(v.string()) })),
+	handler: async (ctx, args) => {
+		return await Promise.all(
+			args.dates.map(async (date) => {
+				const rows = await ctx.db
+					.query("exchangeRates")
+					.withIndex("by_date", (q) => q.eq("date", date))
+					.collect();
+				return {
+					date,
+					quotes: rows
+						.filter((row) => row.rateType === "official")
+						.map((row) => row.quote),
+				};
+			}),
+		);
 	},
 });
 

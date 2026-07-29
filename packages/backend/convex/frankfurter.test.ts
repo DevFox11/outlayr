@@ -297,4 +297,120 @@ describe("frankfurter.fetchRates window", () => {
 			rate: 0.99,
 		});
 	});
+
+	test("rewrites a complete day inside the refresh margin so revisions land", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2026-07-29T10:00:00Z"));
+		const t = convexTest(schema, modules);
+		await t.run((ctx) =>
+			ctx.db.insert("exchangeRates", {
+				quote: "EUR",
+				rateType: "official",
+				source: "frankfurter",
+				rate: 0.88,
+				date: "2026-07-27",
+				fetchedAt: 1,
+			}),
+		);
+		stubFetch([{ date: "2026-07-27", base: "USD", quote: "EUR", rate: 0.99 }]);
+
+		await t.action(internal.frankfurter.fetchRates, {});
+
+		const [row] = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
+		expect(row).toMatchObject({ rate: 0.99 });
+	});
+});
+
+describe("frankfurter.fetchRates coverage", () => {
+	test("re-fills an aged day the feed has since filled in", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2026-07-29T10:00:00Z"));
+		const t = convexTest(schema, modules);
+		// Inside the 90-day window, far outside the 7-day refresh margin, and held
+		// with only one of the two quotes the feed now publishes for it.
+		await t.run((ctx) =>
+			ctx.db.insert("exchangeRates", {
+				quote: "EUR",
+				rateType: "official",
+				source: "frankfurter",
+				rate: 0.88,
+				date: "2026-06-15",
+				fetchedAt: 1,
+			}),
+		);
+		stubFetch([
+			{ date: "2026-06-15", base: "USD", quote: "EUR", rate: 0.88 },
+			{ date: "2026-06-15", base: "USD", quote: "JPY", rate: 157 },
+		]);
+
+		await t.action(internal.frankfurter.fetchRates, {});
+
+		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
+		expect(rows.map((row) => row.quote).sort()).toEqual(["EUR", "JPY"]);
+	});
+
+	test("does not read a non-official row as coverage for the official quote", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2026-07-29T10:00:00Z"));
+		const t = convexTest(schema, modules);
+		for (const row of [
+			{ quote: "EUR", rateType: "official" as const, rate: 0.88 },
+			{ quote: "VES", rateType: "binance" as const, rate: 45 },
+		]) {
+			await t.run((ctx) =>
+				ctx.db.insert("exchangeRates", {
+					...row,
+					source: "frankfurter",
+					date: "2026-06-15",
+					fetchedAt: 1,
+				}),
+			);
+		}
+		stubFetch([
+			{ date: "2026-06-15", base: "USD", quote: "EUR", rate: 0.88 },
+			{ date: "2026-06-15", base: "USD", quote: "VES", rate: 40 },
+		]);
+
+		await t.action(internal.frankfurter.fetchRates, {});
+
+		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
+		const official = rows.filter((row) => row.rateType === "official");
+		expect(official.map((row) => row.quote).sort()).toEqual(["EUR", "VES"]);
+	});
+
+	test("writes a day the feed never fills once, then stops retrying it", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2026-07-29T10:00:00Z"));
+		const t = convexTest(schema, modules);
+		stubFetch([{ date: "2026-06-15", base: "USD", quote: "EUR", rate: 0.88 }]);
+
+		await t.action(internal.frankfurter.fetchRates, {});
+		const [first] = await t.run((ctx) =>
+			ctx.db.query("exchangeRates").collect(),
+		);
+		vi.setSystemTime(new Date("2026-07-29T22:00:00Z"));
+		await t.action(internal.frankfurter.fetchRates, {});
+
+		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.fetchedAt).toBe(first?.fetchedAt);
+	});
+
+	test("re-fills an aged day held with no rows at all", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2026-07-29T10:00:00Z"));
+		const t = convexTest(schema, modules);
+		stubFetch([
+			{ date: "2026-06-15", base: "USD", quote: "EUR", rate: 0.88 },
+			{ date: "2026-06-16", base: "USD", quote: "EUR", rate: 0.89 },
+		]);
+
+		await t.action(internal.frankfurter.fetchRates, {});
+
+		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
+		expect(rows.map((row) => row.date).sort()).toEqual([
+			"2026-06-15",
+			"2026-06-16",
+		]);
+	});
 });
