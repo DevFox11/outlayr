@@ -5,6 +5,7 @@ import {
 	templateTransactions,
 	transactions,
 } from "@/db/schema";
+import { clearStoredPhotos } from "@/lib/photo-storage";
 import { clearSpotlight } from "@/lib/spotlight";
 
 export type EraseScope = "transactions" | "everything";
@@ -16,7 +17,8 @@ export type EraseScope = "transactions" | "everything";
  *
  * The Spotlight index lives in the system's store rather than the database, so
  * nothing above would touch it. Both scopes clear it; it is rebuilt from
- * whatever survives on the next open or background.
+ * whatever survives on the next open or background. Transaction photos are files
+ * for the same reason and go with the transactions that referenced them.
  */
 export async function eraseData(
 	db: Database,
@@ -30,5 +32,6 @@ export async function eraseData(
 		await db.delete(mainBudget);
 	}
 
+	clearStoredPhotos();
 	await clearSpotlight();
 }

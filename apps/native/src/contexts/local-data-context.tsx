@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createContext, use, useEffect, useMemo, useState } from "react";
 
 import { bootstrapLocalData } from "@/data/bootstrap";
+import { usePhotoReconcile } from "@/data/use-photo-reconcile";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
 import { type Database, openDatabase } from "@/db/client";
 import { useSystemSync } from "@/lib/use-system-sync";
@@ -101,6 +102,7 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 	// Ordered after the sweep so a subscription that advanced on this foreground
 	// is already in the table when the widgets are rebuilt from it.
 	useSystemSync(db);
+	usePhotoReconcile(db);
 
 	const value = useMemo<LocalDataContextValue>(
 		() => ({

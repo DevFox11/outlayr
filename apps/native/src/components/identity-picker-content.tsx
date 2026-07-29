@@ -48,6 +48,7 @@ import {
 	CATEGORY_ICON_GROUPS,
 	iconKeysMatching,
 } from "@/domain/category-icon-catalog";
+import { persistPickedPhoto } from "@/lib/photo-storage";
 import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
@@ -207,7 +208,13 @@ export function IdentityPickerContent({
 		if (result.canceled || result.assets.length === 0) {
 			return;
 		}
-		const uri = result.assets[0].uri;
+		const picked = result.assets[0].uri;
+		// A failed copy still leaves a usable picture for this session, and the
+		// launch reconcile adopts it while the cache entry survives.
+		const uri = await persistPickedPhoto(picked).catch((error) => {
+			console.error("Failed to store the picked photo", error);
+			return picked;
+		});
 		const hues = await glowFromImage(uri);
 		onChange({
 			emoji: null,

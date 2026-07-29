@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Image, Text, View } from "react-native";
 import { useAppTheme } from "@/contexts/app-theme-context";
 import { glyphShade, TILE_WASH_OPACITY, withAlpha } from "@/theme/shade";
@@ -50,15 +50,21 @@ export function CategoryIconTile({
 	glyph,
 }: CategoryIconTileProps) {
 	const { isDark } = useAppTheme();
+	// Keyed by uri rather than reset in an effect, so pointing the tile at a
+	// different photo re-arms it on the same render.
+	const [unreadable, setUnreadable] = useState<string | null>(null);
 	const radius = radiusOverride ?? (size >= 72 ? 20 : size >= 32 ? 10 : 8);
 	const glyphSize = GLYPH_RAMP[size] ?? Math.round(size * 0.52);
 	// A contrast-corrected shade of the tint, never the raw hex: a bright tint
 	// vanishes into its own wash.
 	const glyphColor = glyphShade(color, isDark);
 
-	if (imageUri) {
+	// A photo whose file the system reclaimed falls back to the glyph tile rather
+	// than painting an empty frame.
+	if (imageUri && unreadable !== imageUri) {
 		return (
 			<Image
+				onError={() => setUnreadable(imageUri)}
 				source={{ uri: imageUri }}
 				style={{
 					width: size,
