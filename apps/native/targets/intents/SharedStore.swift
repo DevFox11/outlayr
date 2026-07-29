@@ -12,8 +12,11 @@ enum SharedStore {
     /// Where the app leaves the figures the read-only intents report.
     static let snapshotKey = "intentSnapshot"
 
-    /// Where this extension leaves work for the app to commit.
-    static let pendingWritesKey = "pendingWrites"
+    /// Where this extension leaves work for the app to commit, one JSON line per
+    /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
+    /// `src/lib/pending-writes-core.ts`.
+    static let queueDirectory = "pending-writes"
+    static let queueFile = "queue.jsonl"
 
     static var store: UserDefaults? {
         UserDefaults(suiteName: appGroup)
@@ -29,25 +32,55 @@ enum SharedStore {
         return try? JSONDecoder().decode(IntentSnapshot.self, from: data)
     }
 
-    /// Appends rather than replaces: several intents can run while the app is
-    /// closed, and each one is a separate entry.
+    /// Appends one line to a file rather than rewriting a queue held in a single
+    /// `UserDefaults` string. Several intents can run while the app is closed,
+    /// and read-append-write let two of them overwrite each other; an `O_APPEND`
+    /// write reserves its own offset in the kernel, so nothing is read first and
+    /// there is nothing to lose. The app never edits this file in place either —
+    /// it renames it aside to drain it.
     static func enqueue(_ write: PendingWrite) {
-        guard let store else { return }
-        var queue = pendingWrites()
-        queue.append(write)
-        if let data = try? JSONEncoder().encode(queue),
-           let json = String(data: data, encoding: .utf8) {
-            store.set(json, forKey: pendingWritesKey)
-        }
+        guard let url = queueURL(),
+              var line = try? JSONEncoder().encode(write) else { return }
+        line.append(0x0A)
+        append(line, to: url)
     }
 
-    static func pendingWrites() -> [PendingWrite] {
-        guard let raw = store?.string(forKey: pendingWritesKey),
-              let data = raw.data(using: .utf8),
-              let queue = try? JSONDecoder().decode([PendingWrite].self, from: data) else {
-            return []
+    private static func queueURL() -> URL? {
+        guard let container = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
+            return nil
         }
-        return queue
+        let directory = container.appendingPathComponent(
+            queueDirectory, isDirectory: true
+        )
+        // Pinned rather than left to the platform default: a Wallet automation
+        // runs while the phone is locked, so the class has to be one that
+        // survives the lock. It goes on the directory because a new file takes
+        // the class of the directory it is created in, and the file below is
+        // created by `open`, which cannot carry attributes.
+        try? FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true,
+            attributes: [
+                .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication
+            ]
+        )
+        return directory.appendingPathComponent(queueFile, isDirectory: false)
+    }
+
+    private static func append(_ bytes: Data, to url: URL) {
+        let descriptor = open(url.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+        guard descriptor >= 0 else { return }
+        defer { close(descriptor) }
+        bytes.withUnsafeBytes { buffer in
+            guard let base = buffer.baseAddress else { return }
+            var written = 0
+            while written < buffer.count {
+                let count = Darwin.write(descriptor, base + written, buffer.count - written)
+                guard count > 0 else { return }
+                written += count
+            }
+        }
     }
 }
 
@@ -57,8 +90,8 @@ extension String {
     var nilIfEmpty: String? { isEmpty ? nil : self }
 }
 
-/// Mirrors `PendingWrite` in `src/lib/widget-bridge.ts`; the field names are the
-/// wire format and cannot be renamed on one side alone.
+/// Mirrors `PendingWrite` in `src/lib/pending-writes-core.ts`; the field names
+/// are the wire format and cannot be renamed on one side alone.
 struct PendingWrite: Codable {
     let id: String
     let amount: Double
@@ -73,6 +106,9 @@ struct PendingWrite: Codable {
     let amountText: String?
     /// An explicit ISO code, when the automation pins one. Beats `amountText`.
     let currency: String?
+    /// Identifies the purchase, where `id` identifies this enqueue. Nil for a
+    /// spoken entry, which names no purchase outside itself.
+    let dedupeKey: String?
 }
 
 /// A projection of `WidgetProps` in `src/widgets/props.ts`: every figure arrives

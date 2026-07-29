@@ -1,6 +1,17 @@
 import { ExtensionStorage } from "@bacons/apple-targets";
 import Constants from "expo-constants";
+import { Directory, File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
+import {
+	adoptQueue,
+	type ClaimedWrites,
+	claimPendingWrites as claimQueue,
+	parseLegacyQueue,
+	QUEUE_DIRECTORY,
+	QUEUE_FILE,
+	type QueueFiles,
+	releasePendingWrites as releaseQueue,
+} from "./pending-writes-core";
 
 /**
  * The App Group the app and the App Intents target meet in, declared once in
@@ -14,7 +25,12 @@ import { Platform } from "react-native";
  */
 const APP_GROUP = Constants.expoConfig?.extra?.appGroup as string | undefined;
 
-/** The key `targets/intents` appends to; see {@link drainPendingWrites}. */
+/**
+ * Where `targets/intents` used to append. Read once and retired: the key held
+ * the whole queue as one JSON string, so appending meant read-modify-write and
+ * two intents running while the app was closed could overwrite each other. The
+ * queue is a file now — see {@link claimPendingWrites}.
+ */
 export const PENDING_WRITES_KEY = "pendingWrites";
 
 /** The key the read-only intents decode; see {@link publishIntentSnapshot}. */
@@ -86,55 +102,118 @@ export function publishIntentSnapshot(snapshot: IntentSnapshot): void {
 }
 
 /**
- * A transaction an App Intent accepted while the app was not running. The intent
- * cannot reach SQLite — the store lives in the app's own container and the whole
- * write path (category resolution, note fallback, recurrence projection) is
- * TypeScript — so it parks the request here and the app commits it on next
- * launch. See `targets/intents/LogTransactionIntent.swift` for the writer.
+ * The queue directory inside the App Group container, which both this app and
+ * the intents can reach. `Paths.appleSharedContainers` is keyed by the group id,
+ * so a build whose entitlement does not carry the group resolves to nothing
+ * rather than silently writing somewhere the intents cannot see.
  */
-export interface PendingWrite {
-	id: string;
-	amount: number;
-	income: boolean;
-	note: string;
-	/** Category name as spoken; resolved to a real category by the drain. */
-	category: string | null;
-	/** Epoch ms — when the intent ran, not when the app got around to it. */
-	date: number;
-	/**
-	 * The amount exactly as it arrived, e.g. "€12,40" — the drain reads the
-	 * currency back out of it. A Wallet purchase is in the card's currency, not
-	 * the ledger's, and this app is multi-currency.
-	 */
-	amountText?: string | null;
-	/** An explicit ISO code when the automation pinned one; beats `amountText`. */
-	currency?: string | null;
+function queueDirectory(): Directory | null {
+	if (Platform.OS !== "ios" || !APP_GROUP) {
+		return null;
+	}
+	const container = Paths.appleSharedContainers[APP_GROUP];
+	if (!container) {
+		return null;
+	}
+	const directory = new Directory(container, QUEUE_DIRECTORY);
+	directory.create({ intermediates: true, idempotent: true });
+	return directory;
+}
+
+const queueFiles: QueueFiles = {
+	list() {
+		const directory = queueDirectory();
+		if (!directory) {
+			return [];
+		}
+		return directory
+			.list()
+			.filter((entry): entry is File => entry instanceof File)
+			.map((file) => file.name);
+	},
+
+	claim(name) {
+		const directory = queueDirectory();
+		if (!directory) {
+			return false;
+		}
+		const live = new File(directory, QUEUE_FILE);
+		if (!live.exists || live.size === 0) {
+			return false;
+		}
+		live.moveSync(new File(directory, name));
+		return true;
+	},
+
+	read(name) {
+		const directory = queueDirectory();
+		if (!directory) {
+			return "";
+		}
+		const file = new File(directory, name);
+		return file.exists ? file.textSync() : "";
+	},
+
+	write(name, text) {
+		const directory = queueDirectory();
+		if (!directory) {
+			return;
+		}
+		const file = new File(directory, name);
+		file.create({ overwrite: true });
+		file.write(text);
+	},
+
+	discard(name) {
+		const directory = queueDirectory();
+		if (!directory) {
+			return;
+		}
+		const file = new File(directory, name);
+		if (file.exists) {
+			file.delete();
+		}
+	},
+};
+
+/** Moves anything still under the retired key into the file queue, once. */
+function adoptLegacyQueue(): void {
+	const store = getStorage();
+	if (!store) {
+		return;
+	}
+	const raw = store.get(PENDING_WRITES_KEY);
+	if (!raw) {
+		return;
+	}
+	adoptQueue(queueFiles, parseLegacyQueue(raw));
+	store.remove(PENDING_WRITES_KEY);
 }
 
 /**
- * Reads and clears the intent queue, oldest first, so a burst of Siri entries
- * lands in the order it was spoken.
+ * Takes the intent queue, oldest first, so a burst of Siri entries lands in the
+ * order it was spoken.
  *
- * Clearing before the caller has committed anything is deliberate: a job that
- * fails to apply is dropped rather than retried, because re-running a *money*
- * write that already half-succeeded would double-charge the ledger and there is
- * no idempotency key that survives a force-quit mid-commit.
+ * Nothing is deleted here. The caller commits what it gets and only then calls
+ * {@link releasePendingWrites}, so a force-quit mid-drain replays rather than
+ * dropping a *money* write. Replaying is safe because `applyPendingWrites`
+ * records the enqueue id of every job it commits alongside the row, in the same
+ * SQLite transaction — the idempotency key this queue used to lack.
  */
-export function drainPendingWrites(): PendingWrite[] {
-	const store = getStorage();
-	if (!store) {
-		return [];
-	}
+export function claimPendingWrites(): ClaimedWrites {
 	try {
-		const raw = store.get(PENDING_WRITES_KEY);
-		if (!raw) {
-			return [];
-		}
-		store.remove(PENDING_WRITES_KEY);
-		const parsed: unknown = JSON.parse(raw);
-		return Array.isArray(parsed) ? (parsed as PendingWrite[]) : [];
+		adoptLegacyQueue();
+		return claimQueue(queueFiles);
 	} catch (error) {
 		console.warn("[outlayr] pending writes unreadable", error);
-		return [];
+		return { jobs: [], names: [] };
+	}
+}
+
+export function releasePendingWrites(claimed: ClaimedWrites): void {
+	try {
+		releaseQueue(queueFiles, claimed);
+	} catch (error) {
+		console.warn("[outlayr] pending writes not released", error);
 	}
 }

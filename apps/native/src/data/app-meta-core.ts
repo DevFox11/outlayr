@@ -41,6 +41,12 @@ export const META_KEYS = {
 	 * ledger that never syncs never queues a row. Device-local.
 	 */
 	syncEnabled: "syncEnabled",
+	/**
+	 * What the App Intent queue has already committed, so a queue file replayed
+	 * after an interrupted drain does not log the money twice. Written in the
+	 * same SQLite transaction as the row it records.
+	 */
+	pendingWriteLedger: "pendingWriteLedger",
 } as const;
 
 export async function getMeta(

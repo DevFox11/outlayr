@@ -36,9 +36,17 @@ struct LogWalletTransactionIntent: AppIntent {
     @Parameter(title: "Currency Code")
     var currency: String?
 
+    /// Anything the automation can pass that names the *purchase* rather than
+    /// this run of the shortcut. It removes the guesswork from the merchant and
+    /// amount heuristic below, which is why it is worth exposing even though the
+    /// Transaction trigger is not guaranteed to offer one.
+    @Parameter(title: "Transaction ID")
+    var transactionId: String?
+
     static var parameterSummary: some ParameterSummary {
         Summary("Log \(\.$amount) at \(\.$merchant) as \(\.$side)") {
             \.$currency
+            \.$transactionId
         }
     }
 
@@ -62,13 +70,42 @@ struct LogWalletTransactionIntent: AppIntent {
                 currency: currency?
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .uppercased()
-                    .nilIfEmpty
+                    .nilIfEmpty,
+                dedupeKey: Self.dedupeKey(
+                    transactionId: transactionId,
+                    merchant: name,
+                    amount: value,
+                    side: side
+                )
             )
         )
 
         return .result(
             dialog: IntentDialog(name.isEmpty ? "Logged." : "Logged \(name).")
         )
+    }
+
+    /// What makes two runs of this intent one purchase.
+    ///
+    /// A Transaction automation fires when the card authorizes and again when
+    /// the charge settles, so the same purchase arrives twice under two ids.
+    /// Nothing here is time-based: how far apart two runs may be and still mean
+    /// one purchase is the app's call, not this extension's — see
+    /// `WALLET_DEDUPE_WINDOW_MS`. The amount is carried in minor units because a
+    /// `Double` renders differently either side of the wire.
+    static func dedupeKey(
+        transactionId: String?,
+        merchant: String,
+        amount: Double,
+        side: LedgerSide
+    ) -> String {
+        if let external = transactionId?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty {
+            return "wallet:id:\(external)"
+        }
+        let minorUnits = Int((amount * 100).rounded())
+        return "wallet:\(side.rawValue):\(merchant.lowercased()):\(minorUnits)"
     }
 
     /// The locale's own currency and decimal formatters run first; the manual

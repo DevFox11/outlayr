@@ -1,4 +1,3 @@
-import { and, desc, eq, isNull, like } from "drizzle-orm";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
@@ -7,11 +6,9 @@ import {
 	backfillCanonicalUsd,
 	stampLedgerCurrency,
 } from "@/data/canonicalize-backfill";
+import { applyPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
-import { transactionsRepo } from "@/data/transactions";
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
-import { detectCurrency } from "@/domain/detect-currency";
 import { ratesPuller } from "@/lib/convex";
 import { publishWidgets } from "@/widgets";
 import { indexSpotlight } from "./spotlight";
@@ -22,7 +19,7 @@ import {
 	PUBLISH_DEBOUNCE_MS,
 	SPOTLIGHT_DEBOUNCE_MS,
 } from "./sync-cadence";
-import { drainPendingWrites, type PendingWrite } from "./widget-bridge";
+import { claimPendingWrites, releasePendingWrites } from "./widget-bridge";
 
 /**
  * Keeps the widget tiles and the Spotlight index current, each on its own
@@ -48,7 +45,7 @@ export function useSystemSync(db: Database | null): void {
 		// Applying the queue writes rows, which trips the change listener below and
 		// publishes on its own — so this deliberately does not publish itself.
 		const catchUp = () => {
-			applyPendingWrites(db)
+			drainQueue(db)
 				.then((applied) => {
 					if (applied === 0) {
 						publish.schedule();
@@ -111,33 +108,22 @@ export function useSystemSync(db: Database | null): void {
 }
 
 /**
- * Commits every transaction an App Intent accepted while the app was not
- * running, and answers how many landed. Goes through the same
- * `transactionsRepo.create` the form uses.
+ * Commits what the intents queued and answers how many landed.
+ *
+ * The claim is released only once the whole batch is through, so a throw leaves
+ * the queue file in place for the next launch instead of dropping money writes.
+ * A job that can never apply is retried on every launch rather than dropped,
+ * which is the trade this takes: the ledger cannot invent a row it already has
+ * (`applyPendingWrites` remembers what it committed) but it can lose one nobody
+ * ever writes again.
  */
-async function applyPendingWrites(db: Database): Promise<number> {
-	const jobs = drainPendingWrites();
-	let applied = 0;
-	for (const job of jobs) {
-		const categoryId = await resolveCategory(db, job);
-		if (!categoryId) {
-			// Dropping beats inventing a category the user never made.
-			console.warn("[outlayr] dropped a queued entry with no category");
-			continue;
-		}
-		await transactionsRepo.create(db, {
-			amount: job.amount,
-			income: job.income,
-			categoryId,
-			note: job.note,
-			details: null,
-			date: new Date(job.date),
-			// Null means "the ledger's own currency", which is what
-			// `transactionsRepo.create` already resolves it to.
-			currency: resolveWriteCurrency(job),
-		});
-		applied += 1;
+async function drainQueue(db: Database): Promise<number> {
+	const claimed = claimPendingWrites();
+	if (claimed.names.length === 0) {
+		return 0;
 	}
+	const applied = await applyPendingWrites(db, claimed.jobs);
+	releasePendingWrites(claimed);
 	return applied;
 }
 
@@ -174,83 +160,4 @@ async function refreshRates(db: Database): Promise<boolean> {
 		console.warn("[outlayr] canonicalization backfill failed", error);
 	}
 	return changed;
-}
-
-/**
- * The currency a queued entry was actually in, or null to use the ledger's.
- *
- * An explicit code from the automation wins; otherwise the formatted amount is
- * read for one. Anything the catalog cannot pin to a single currency stays null
- * — see `detectCurrency`.
- */
-function resolveWriteCurrency(job: PendingWrite): string | null {
-	const pinned = job.currency?.trim().toUpperCase();
-	if (pinned) {
-		return pinned;
-	}
-	return detectCurrency(job.amountText);
-}
-
-/**
- * Works out where a queued entry belongs, best evidence first.
- *
- * 1. The category the intent named. A spoken name arrives with whatever casing
- *    Siri chose, so the match is case-insensitive.
- * 2. Failing that, wherever this same merchant was filed last time — a Wallet
- *    automation only ever knows a merchant string, never a category.
- * 3. Failing that, the first category on the right side of the ledger.
- */
-async function resolveCategory(
-	db: Database,
-	job: PendingWrite,
-): Promise<string | null> {
-	if (job.category) {
-		const named = await db
-			.select({ id: categories.id })
-			.from(categories)
-			.where(
-				and(
-					like(categories.name, job.category),
-					eq(categories.income, job.income),
-					isNull(categories.deletedAt),
-				),
-			)
-			.limit(1);
-		if (named[0]) {
-			return named[0].id;
-		}
-	}
-
-	const note = job.note.trim();
-	if (note) {
-		const seenBefore = await db
-			.select({ categoryId: transactions.categoryId })
-			.from(transactions)
-			.where(
-				and(
-					like(transactions.note, note),
-					eq(transactions.income, job.income),
-					isNull(transactions.deletedAt),
-				),
-			)
-			.orderBy(desc(transactions.date))
-			.limit(1);
-		const previous = seenBefore[0]?.categoryId;
-		if (previous) {
-			return previous;
-		}
-	}
-
-	const fallback = await db
-		.select({ id: categories.id })
-		.from(categories)
-		.where(
-			and(
-				eq(categories.income, job.income),
-				isNull(categories.parentId),
-				isNull(categories.deletedAt),
-			),
-		)
-		.limit(1);
-	return fallback[0]?.id ?? null;
 }
