@@ -113,12 +113,29 @@ export const appMetaFields = {
 	value: v.union(v.string(), v.null()),
 };
 
+export const tagFields = {
+	name: v.string(),
+	color: v.union(v.string(), v.null()),
+	sortOrder: v.number(),
+};
+
+/**
+ * The join carries its own id: the replication envelope addresses rows by
+ * `localId`, and a composite key has nothing for a tombstone to name.
+ */
+export const transactionTagFields = {
+	transactionId: v.string(),
+	tagId: v.string(),
+};
+
 export const TOMBSTONED_TABLES = [
 	"categories",
 	"transactions",
 	"budgets",
 	"mainBudget",
 	"templateTransactions",
+	"tags",
+	"transactionTags",
 ] as const;
 
 /**
@@ -135,6 +152,8 @@ export const FIELDS_BY_TABLE = {
 	budgets: budgetFields,
 	mainBudget: mainBudgetFields,
 	templateTransactions: templateTransactionFields,
+	tags: tagFields,
+	transactionTags: transactionTagFields,
 	appMeta: appMetaFields,
 } as const;
 

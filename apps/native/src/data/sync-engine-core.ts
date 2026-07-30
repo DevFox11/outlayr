@@ -7,8 +7,10 @@ import {
 	categories,
 	mainBudget,
 	outbox,
+	tags,
 	templateTransactions,
 	transactions,
+	transactionTags,
 } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import {
@@ -149,6 +151,18 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"rollover",
 		],
 		dates: ["startDate", "dateCreated"],
+	},
+	tags: {
+		table: tags,
+		id: tags.id,
+		fields: ["name", "color", "sortOrder"],
+		dates: [],
+	},
+	transactionTags: {
+		table: transactionTags,
+		id: transactionTags.id,
+		fields: ["transactionId", "tagId"],
+		dates: [],
 	},
 	templateTransactions: {
 		table: templateTransactions,
