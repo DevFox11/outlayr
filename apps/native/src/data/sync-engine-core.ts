@@ -10,6 +10,7 @@ import {
 	tags,
 	templateTransactions,
 	transactionPhotos,
+	transactionSplits,
 	transactions,
 	transactionTags,
 } from "@/db/schema";
@@ -171,6 +172,12 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 		// `imageUri` is absent on purpose: it is a path into THIS device's
 		// container, meaningless on another and stale here after an update.
 		fields: ["transactionId", "imageKey", "imageColor", "sortOrder"],
+		dates: [],
+	},
+	transactionSplits: {
+		table: transactionSplits,
+		id: transactionSplits.id,
+		fields: ["transactionId", "categoryId", "amount", "sortOrder"],
 		dates: [],
 	},
 	templateTransactions: {

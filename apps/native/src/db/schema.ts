@@ -203,6 +203,38 @@ export const templateTransactions = sqliteTable(
 );
 
 /**
+ * One entry's amount attributed to one category.
+ *
+ * An entry with NO rows here is not unattributed — it is attributed wholly to
+ * its own `categoryId`, which is what keeps every existing row and every reader
+ * that never learns about splitting correct without being touched. See
+ * `domain/split.ts`, which is where that rule lives.
+ *
+ * The parts must sum to the entry's amount. Nothing in SQLite can enforce that,
+ * so the write path is the only guard and `isBalanced` is what it asks.
+ */
+export const transactionSplits = sqliteTable(
+	"transactionSplits",
+	{
+		id: text("id").primaryKey(),
+		transactionId: text("transactionId")
+			.notNull()
+			.references(() => transactions.id),
+		categoryId: text("categoryId").references(() => categories.id),
+		/** Unsigned, like the entry's own amount: direction comes from `income`. */
+		amount: real("amount").notNull(),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+	},
+	(table) => [
+		index("transactionSplits_transactionId_idx").on(table.transactionId),
+		index("transactionSplits_categoryId_idx").on(table.categoryId),
+		index("transactionSplits_deletedAt_idx").on(table.deletedAt),
+	],
+);
+
+/**
  * A photo attached to an entry.
  *
  * Supersedes the single `transactions.imageUri`/`imageKey` pair, which stays for

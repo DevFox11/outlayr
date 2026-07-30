@@ -136,6 +136,13 @@ export const transactionPhotoFields = {
 	sortOrder: v.number(),
 };
 
+export const transactionSplitFields = {
+	transactionId: v.string(),
+	categoryId: v.union(v.string(), v.null()),
+	amount: v.number(),
+	sortOrder: v.number(),
+};
+
 export const TOMBSTONED_TABLES = [
 	"categories",
 	"transactions",
@@ -145,6 +152,7 @@ export const TOMBSTONED_TABLES = [
 	"tags",
 	"transactionTags",
 	"transactionPhotos",
+	"transactionSplits",
 ] as const;
 
 /**
@@ -164,6 +172,7 @@ export const FIELDS_BY_TABLE = {
 	tags: tagFields,
 	transactionTags: transactionTagFields,
 	transactionPhotos: transactionPhotoFields,
+	transactionSplits: transactionSplitFields,
 	appMeta: appMetaFields,
 } as const;
 
