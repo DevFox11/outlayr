@@ -6,7 +6,12 @@ import { isBehindWatermark } from "@/domain/sync-wakeup";
 import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 import { runSync } from "./sync-engine-core";
-import { getSyncCursor, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
+import {
+	getSyncCursor,
+	isSyncEnabled,
+	SYNCED_TABLES,
+	setSyncedAt,
+} from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
 /**
@@ -107,15 +112,55 @@ export function useSyncEngine(db: Database | null): void {
 			}
 		};
 
-		const unwatch = watchSyncWatermark((watermark) => {
-			void wake(watermark).catch((error) => {
-				console.warn("[outlayr] sync wake-up failed", error);
+		// Held open only while the gate is on. Every other trigger here is local and
+		// costs nothing when replication is off, but this one opens a live
+		// subscription to the backend — a signed-out install would be talking to a
+		// server it has no account on, which is the opposite of what local-first
+		// promises. The gate is device-local and the sign-in flow flips it, so the
+		// subscription is established and torn down as that value changes rather
+		// than once at mount.
+		let unwatch: (() => void) | null = null;
+		let disposed = false;
+
+		const reconcileWatch = async () => {
+			const wanted = await isSyncEnabled(db);
+			if (disposed || wanted === (unwatch != null)) {
+				return;
+			}
+			if (wanted) {
+				unwatch = watchSyncWatermark((watermark) => {
+					void wake(watermark).catch((error) => {
+						console.warn("[outlayr] sync wake-up failed", error);
+					});
+				});
+				return;
+			}
+			unwatch?.();
+			unwatch = null;
+		};
+
+		const watchGate = () => {
+			void reconcileWatch().catch((error) => {
+				console.warn("[outlayr] sync watch reconcile failed", error);
 			});
+		};
+
+		watchGate();
+
+		// Registered after `watchGate` exists rather than beside the other listener:
+		// the callback only fires on a later write, but reading a `const` declared
+		// below would be a dead-zone throw if that ever stopped being true.
+		const gateListener = addDatabaseChangeListener((event) => {
+			if (event.tableName === "appMeta") {
+				watchGate();
+			}
 		});
 
 		return () => {
+			disposed = true;
 			schedule.cancel();
 			listener.remove();
+			gateListener.remove();
 			subscription.remove();
 			unwatch?.();
 		};
