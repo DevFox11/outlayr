@@ -17,6 +17,13 @@ export const META_KEYS = {
 	 */
 	currencyChosen: "currencyChosen",
 	/**
+	 * The codes pinned to the top of every currency picker. Raw `appMeta` and not
+	 * a setting because `SETTING_DEFAULTS` admits only booleans and numbers, so
+	 * there is no string-setting mechanism to hang a list on — and this one is
+	 * deliberate user intent that has to survive a relaunch.
+	 */
+	favouriteCurrencies: "favouriteCurrencies",
+	/**
 	 * Set once the orphaned-chain repair has run. Deleting a schedule carrier now
 	 * retires it, so any tombstone still holding one predates that and is repaired
 	 * exactly once rather than on every sweep.
