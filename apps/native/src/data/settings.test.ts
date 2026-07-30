@@ -47,6 +47,12 @@ describe("settings defaults", () => {
 		assert.equal(await readBoolSetting(db, "confetti"), true);
 	});
 
+	it("keeps the subscription notices off until they are asked for", async () => {
+		assert.equal(await readBoolSetting(db, "subscriptionReminders"), false);
+		await setBoolSetting(db, "subscriptionReminders", true);
+		assert.equal(await readBoolSetting(db, "subscriptionReminders"), true);
+	});
+
 	it("lists the budgets as rows until the grid is asked for", async () => {
 		// Inverted against Swift's `budgetViewStyle`, which defaulted to the grid:
 		// rows are the shipped budget list here, so the default must not flip it.
@@ -80,6 +86,15 @@ describe("settings read/write round-trip", () => {
 		await setNumberSetting(db, "firstWeekday", 2);
 		await setNumberSetting(db, "firstWeekday", 1);
 		assert.equal(await readNumberSetting(db, "firstWeekday"), 1);
+	});
+
+	// The permission-revoke reconcile writes `showNotifications` back off, so a
+	// shared key would silently disarm every subscription notice with it.
+	it("holds the subscription notices on a key of their own", async () => {
+		await setBoolSetting(db, "subscriptionReminders", true);
+		await setBoolSetting(db, "showNotifications", false);
+		assert.equal(await readBoolSetting(db, "subscriptionReminders"), true);
+		assert.equal(await readBoolSetting(db, "showNotifications"), false);
 	});
 
 	it("writes the global currency under the shared meta key", async () => {

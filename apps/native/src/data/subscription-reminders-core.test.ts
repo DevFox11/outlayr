@@ -1,0 +1,390 @@
+import assert from "node:assert/strict";
+import { beforeEach, describe, it } from "node:test";
+import BetterSqlite3 from "better-sqlite3";
+import { asc } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import type { Database } from "@/db/client";
+import { transactions } from "@/db/schema";
+import { startOfDay } from "@/domain/dates";
+import { RECURRING_TYPE } from "@/domain/recurrence";
+import { setMeta } from "./app-meta-core";
+import {
+	pendingReminderPlan,
+	reminderCandidates,
+} from "./subscription-reminders-core";
+
+const NOW = new Date(2025, 5, 15, 10, 30);
+const NINE_AM = { hour: 9, minute: 0 };
+const at = (y: number, m: number, day: number, hour = 0, minute = 0): Date =>
+	new Date(y, m - 1, day, hour, minute);
+
+function makeDb(): Database {
+	const sqlite = new BetterSqlite3(":memory:");
+	sqlite.exec(`
+		CREATE TABLE appMeta (
+			key text PRIMARY KEY NOT NULL,
+			value text
+		);
+		CREATE TABLE transactions (
+			id text PRIMARY KEY NOT NULL,
+			amount real NOT NULL,
+			income integer NOT NULL,
+			currency text,
+			note text NOT NULL DEFAULT '',
+			details text,
+			date integer NOT NULL,
+			day integer NOT NULL,
+			month integer NOT NULL,
+			icon text,
+			emoji text,
+			customColor text,
+			imageColor text,
+			imageUri text,
+			imageKey text,
+			onceRecurring integer NOT NULL DEFAULT 0,
+			recurringType integer NOT NULL DEFAULT 0,
+			recurringCoefficient integer NOT NULL DEFAULT 1,
+			recurringEndDate integer,
+			reminderLeadDays integer,
+			categoryId text,
+			amountUsd real,
+			exchangeRate real,
+			exchangeRateType text,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
+	`);
+	return drizzle(sqlite) as unknown as Database;
+}
+
+interface CarrierOverrides {
+	/** Its LAST charge, clock time included — the landing must not be read off it. */
+	date: Date;
+	id?: string;
+	note?: string;
+	amount?: number;
+	currency?: string | null;
+	recurringType?: number;
+	recurringCoefficient?: number;
+	recurringEndDate?: Date | null;
+	reminderLeadDays?: number | null;
+	deletedAt?: Date | null;
+}
+
+async function seedCarrier(
+	db: Database,
+	overrides: CarrierOverrides,
+): Promise<string> {
+	const id = overrides.id ?? "src";
+	await db.insert(transactions).values({
+		id,
+		amount: overrides.amount ?? 9.99,
+		income: false,
+		currency: overrides.currency === undefined ? "USD" : overrides.currency,
+		note: overrides.note ?? "Netflix",
+		details: null,
+		date: overrides.date,
+		day: startOfDay(overrides.date),
+		month: startOfDay(overrides.date),
+		onceRecurring: true,
+		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
+		recurringCoefficient: overrides.recurringCoefficient ?? 1,
+		recurringEndDate: overrides.recurringEndDate ?? null,
+		reminderLeadDays: overrides.reminderLeadDays ?? null,
+		categoryId: "bills",
+		updatedAt: NOW,
+		deletedAt: overrides.deletedAt ?? null,
+	});
+	return id;
+}
+
+function everyRow(db: Database) {
+	return db.select().from(transactions).orderBy(asc(transactions.id));
+}
+
+describe("reminderCandidates", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("names the charge after today, never today's or one already taken", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15, 14, 30),
+			reminderLeadDays: 2,
+		});
+
+		const candidates = await reminderCandidates(db, NOW);
+
+		assert.equal(candidates.length, 1);
+		assert.equal(candidates[0]?.localId, "src");
+		assert.equal(candidates[0]?.leadDays, 2);
+		assert.equal(
+			candidates[0]?.landing.getTime(),
+			at(2025, 7, 15).getTime(),
+			"a stale carrier must resume forward, not re-announce the gap it slept through",
+		);
+		assert.ok((candidates[0]?.landing.getTime() ?? 0) > NOW.getTime());
+	});
+
+	// Reading the landing off `date` would carry the last charge's clock time onto
+	// every future one, so the announced day would drift by hours per hop.
+	it("dates the landing from the ledger day, not the last charge's clock time", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15, 23, 45),
+			reminderLeadDays: 0,
+		});
+
+		const [candidate] = await reminderCandidates(db, NOW);
+
+		assert.equal(candidate?.landing.getHours(), 0);
+		assert.equal(candidate?.landing.getMinutes(), 0);
+		assert.equal(candidate?.landing.getTime(), at(2025, 7, 15).getTime());
+	});
+
+	it("keeps a future-dated pending charge as its own landing", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 7, 15, 8, 0),
+			reminderLeadDays: 3,
+		});
+
+		const [candidate] = await reminderCandidates(db, NOW);
+
+		assert.equal(candidate?.landing.getTime(), at(2025, 7, 15).getTime());
+	});
+
+	it("carries the copy a notice has to print", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			note: "Spotify",
+			amount: 11.99,
+			currency: "EUR",
+			reminderLeadDays: 1,
+		});
+
+		const [candidate] = await reminderCandidates(db, NOW);
+
+		assert.equal(candidate?.note, "Spotify");
+		assert.equal(candidate?.amount, 11.99);
+		assert.equal(candidate?.currency, "EUR");
+	});
+
+	it("stamps a row that stored no currency with the ledger's", async () => {
+		await setMeta(db, "currency", "MXN");
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			currency: null,
+			reminderLeadDays: 1,
+		});
+
+		const [candidate] = await reminderCandidates(db, NOW);
+
+		assert.equal(candidate?.currency, "MXN");
+	});
+
+	it("falls back to the app default when the ledger names no currency", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			currency: null,
+			reminderLeadDays: 1,
+		});
+
+		const [candidate] = await reminderCandidates(db, NOW);
+
+		assert.equal(candidate?.currency, "USD");
+	});
+
+	it("yields nothing for a carrier with no notice set", async () => {
+		await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: null });
+
+		assert.deepEqual(await reminderCandidates(db, NOW), []);
+	});
+
+	it("keeps a same-day notice, which is not the off state", async () => {
+		await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: 0 });
+
+		const candidates = await reminderCandidates(db, NOW);
+
+		assert.equal(candidates.length, 1);
+		assert.equal(candidates[0]?.leadDays, 0);
+	});
+
+	it("yields nothing for a soft-deleted carrier", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			reminderLeadDays: 2,
+			deletedAt: NOW,
+		});
+
+		assert.deepEqual(await reminderCandidates(db, NOW), []);
+	});
+
+	// Every retire path clears the column, but a peer's hand-off replicates in
+	// whatever it wrote — so the notice alone can never be the predicate.
+	it("yields nothing for a retired row still holding a notice", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			recurringType: RECURRING_TYPE.none,
+			reminderLeadDays: 2,
+		});
+
+		assert.deepEqual(await reminderCandidates(db, NOW), []);
+	});
+
+	it("yields nothing once the chain has run past its end date", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 6, 10),
+			recurringType: RECURRING_TYPE.weekly,
+			recurringEndDate: at(2025, 6, 16),
+			reminderLeadDays: 1,
+		});
+
+		assert.deepEqual(await reminderCandidates(db, NOW), []);
+	});
+
+	it("resolves every live carrier, each on its own cadence", async () => {
+		await seedCarrier(db, {
+			id: "netflix",
+			date: at(2025, 3, 15),
+			reminderLeadDays: 2,
+		});
+		await seedCarrier(db, {
+			id: "gym",
+			date: at(2025, 6, 10),
+			recurringType: RECURRING_TYPE.weekly,
+			reminderLeadDays: 1,
+		});
+
+		const candidates = await reminderCandidates(db, NOW);
+
+		assert.deepEqual(
+			candidates
+				.map((candidate) => [candidate.localId, candidate.landing.getTime()])
+				.sort(),
+			[
+				["gym", at(2025, 6, 17).getTime()],
+				["netflix", at(2025, 7, 15).getTime()],
+			].sort(),
+		);
+	});
+});
+
+describe("pendingReminderPlan", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("arms the notice the lead and the time ask for", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15, 14, 30),
+			reminderLeadDays: 2,
+		});
+
+		const arm = await pendingReminderPlan(db, NOW, NINE_AM);
+
+		assert.equal(arm.length, 1);
+		assert.equal(arm[0]?.id, "outlayr.sub-due.src");
+		assert.equal(arm[0]?.localId, "src");
+		assert.equal(arm[0]?.fireAt.getTime(), at(2025, 7, 13, 9, 0).getTime());
+	});
+
+	it("drops a notice whose fire time has already passed", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 6, 10),
+			recurringType: RECURRING_TYPE.weekly,
+			reminderLeadDays: 7,
+		});
+
+		assert.deepEqual(await pendingReminderPlan(db, NOW, NINE_AM), []);
+	});
+
+	it("keeps the soonest notices when the cap truncates", async () => {
+		await seedCarrier(db, {
+			id: "netflix",
+			date: at(2025, 3, 15),
+			reminderLeadDays: 2,
+		});
+		await seedCarrier(db, {
+			id: "gym",
+			date: at(2025, 6, 10),
+			recurringType: RECURRING_TYPE.weekly,
+			reminderLeadDays: 1,
+		});
+
+		const arm = await pendingReminderPlan(db, NOW, NINE_AM, 1);
+
+		assert.deepEqual(
+			arm.map((armed) => armed.localId),
+			["gym"],
+		);
+	});
+
+	it("writes nothing", async () => {
+		await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: 2 });
+		const before = await everyRow(db);
+
+		await pendingReminderPlan(db, NOW, NINE_AM);
+
+		assert.deepEqual(await everyRow(db), before);
+	});
+
+	// The plan is what the scheduler hands to iOS, so a request that reached it
+	// without its copy would announce a bare identifier.
+	it("carries the copy and the landing each notice has to print", async () => {
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			note: "Spotify",
+			amount: 11.99,
+			currency: "EUR",
+			reminderLeadDays: 2,
+		});
+
+		const [reminder] = await pendingReminderPlan(db, NOW, NINE_AM);
+
+		assert.equal(reminder?.note, "Spotify");
+		assert.equal(reminder?.amount, 11.99);
+		assert.equal(reminder?.currency, "EUR");
+		assert.equal(reminder?.landing.getTime(), at(2025, 7, 15).getTime());
+	});
+
+	it("resolves a row with no currency of its own against the ledger's", async () => {
+		await setMeta(db, "currency", "MXN");
+		await seedCarrier(db, {
+			date: at(2025, 3, 15),
+			currency: null,
+			reminderLeadDays: 2,
+		});
+
+		const [reminder] = await pendingReminderPlan(db, NOW, NINE_AM);
+
+		assert.equal(reminder?.currency, "MXN");
+	});
+
+	// Two carriers, one truncated away: the surviving request has to keep ITS own
+	// copy, not the row the plan dropped.
+	it("keeps each notice's copy with its own request under the cap", async () => {
+		await seedCarrier(db, {
+			id: "netflix",
+			date: at(2025, 3, 15),
+			note: "Netflix",
+			amount: 9.99,
+			reminderLeadDays: 2,
+		});
+		await seedCarrier(db, {
+			id: "gym",
+			date: at(2025, 6, 10),
+			note: "Gym",
+			amount: 40,
+			recurringType: RECURRING_TYPE.weekly,
+			reminderLeadDays: 1,
+		});
+
+		const arm = await pendingReminderPlan(db, NOW, NINE_AM, 1);
+
+		assert.equal(arm.length, 1);
+		assert.equal(arm[0]?.localId, "gym");
+		assert.equal(arm[0]?.note, "Gym");
+		assert.equal(arm[0]?.amount, 40);
+	});
+});

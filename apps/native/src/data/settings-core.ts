@@ -21,6 +21,10 @@ export type BoolSettingKey =
 	| "logViewLineGraph"
 	| "biometricLock"
 	| "showNotifications"
+	// The subscription due-date notices. Its own key rather than a second reading
+	// of `showNotifications`: the permission-revoke reconcile writes that one back
+	// off, and sharing it would take the daily reminder's switch down with it.
+	| "subscriptionReminders"
 	| "categorySuggestions"
 	// Swaps a Log row's time label for its category. No Settings row writes it
 	// yet, so it always resolves to the default.
@@ -68,6 +72,7 @@ export const SETTING_DEFAULTS = {
 	logViewLineGraph: false,
 	biometricLock: false,
 	showNotifications: false,
+	subscriptionReminders: false,
 	categorySuggestions: true,
 	swapTimeLabel: false,
 	confetti: false,
