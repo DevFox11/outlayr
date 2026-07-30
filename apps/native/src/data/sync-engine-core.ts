@@ -9,6 +9,7 @@ import {
 	outbox,
 	tags,
 	templateTransactions,
+	transactionPhotos,
 	transactions,
 	transactionTags,
 } from "@/db/schema";
@@ -162,6 +163,14 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 		table: transactionTags,
 		id: transactionTags.id,
 		fields: ["transactionId", "tagId"],
+		dates: [],
+	},
+	transactionPhotos: {
+		table: transactionPhotos,
+		id: transactionPhotos.id,
+		// `imageUri` is absent on purpose: it is a path into THIS device's
+		// container, meaningless on another and stale here after an update.
+		fields: ["transactionId", "imageKey", "imageColor", "sortOrder"],
 		dates: [],
 	},
 	templateTransactions: {

@@ -203,6 +203,38 @@ export const templateTransactions = sqliteTable(
 );
 
 /**
+ * A photo attached to an entry.
+ *
+ * Supersedes the single `transactions.imageUri`/`imageKey` pair, which stays for
+ * the migration to read and for a build that has not run it yet. `sortOrder`
+ * decides which one represents the entry in a list, so a row still has one face.
+ *
+ * `imageUri` is device-local for the same reason it is on `transactions`: the
+ * path embeds a container uuid that changes on every app update, so it is
+ * meaningless on another handset and stale on this one after an update.
+ */
+export const transactionPhotos = sqliteTable(
+	"transactionPhotos",
+	{
+		id: text("id").primaryKey(),
+		transactionId: text("transactionId")
+			.notNull()
+			.references(() => transactions.id),
+		imageUri: text("imageUri"),
+		imageKey: text("imageKey"),
+		/** The glow derived from the bytes, kept per photo rather than per entry. */
+		imageColor: text("imageColor"),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+	},
+	(table) => [
+		index("transactionPhotos_transactionId_idx").on(table.transactionId),
+		index("transactionPhotos_deletedAt_idx").on(table.deletedAt),
+	],
+);
+
+/**
  * A label that crosses categories. The hierarchy answers "what kind of expense"
  * once per row; a tag answers "which of my concerns does this touch", and a
  * dinner can be both `work` and `travel` while still being one Food entry.

@@ -209,6 +209,9 @@ describe("the replicated column set", () => {
 		// schedule, so replicating the preference would only share a choice the
 		// receiving device already gets to make.
 		"transactions.reminderLeadDays",
+		// The path embeds a container uuid that changes on every app update, so it
+		// is meaningless on another handset and stale on this one after one.
+		"transactionPhotos.imageUri",
 	]);
 
 	for (const table of SYNCED_TABLES) {

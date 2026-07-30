@@ -128,6 +128,14 @@ export const transactionTagFields = {
 	tagId: v.string(),
 };
 
+/** `imageUri` is absent: it is a path into one device's container. */
+export const transactionPhotoFields = {
+	transactionId: v.string(),
+	imageKey: v.union(v.string(), v.null()),
+	imageColor: v.union(v.string(), v.null()),
+	sortOrder: v.number(),
+};
+
 export const TOMBSTONED_TABLES = [
 	"categories",
 	"transactions",
@@ -136,6 +144,7 @@ export const TOMBSTONED_TABLES = [
 	"templateTransactions",
 	"tags",
 	"transactionTags",
+	"transactionPhotos",
 ] as const;
 
 /**
@@ -154,6 +163,7 @@ export const FIELDS_BY_TABLE = {
 	templateTransactions: templateTransactionFields,
 	tags: tagFields,
 	transactionTags: transactionTagFields,
+	transactionPhotos: transactionPhotoFields,
 	appMeta: appMetaFields,
 } as const;
 

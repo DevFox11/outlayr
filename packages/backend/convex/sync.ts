@@ -219,6 +219,19 @@ async function upsert(
 			}
 			return;
 		}
+		case "transactionPhotos": {
+			const doc = { ...envelope, ...(row.fields as Doc<"transactionPhotos">) };
+			if (existing) {
+				await ctx.db.patch(
+					"transactionPhotos",
+					existing._id as Id<"transactionPhotos">,
+					doc,
+				);
+			} else {
+				await ctx.db.insert("transactionPhotos", doc);
+			}
+			return;
+		}
 		case "templateTransactions": {
 			const doc = {
 				...envelope,
