@@ -5,9 +5,11 @@ import { SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
+import { buildArchive } from "@/data/archive-core";
 import { useTransactionCount } from "@/data/transactions";
 import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
 import type { Database } from "@/db/client";
+import { archiveFileName, serializeArchive } from "@/domain/archive";
 import { CSV_HEADER } from "@/domain/transaction-csv";
 import { type TranslationKey, useTranslation } from "@/i18n";
 import { shareText, TransferError } from "@/lib/data-transfer";
@@ -36,6 +38,31 @@ function ExportData({ db }: { db: Database }) {
 	const t = useTranslation();
 	const count = useTransactionCount(db);
 	const [busy, setBusy] = useState(false);
+
+	// The archive is the one that can be restored from; the CSV is for
+	// spreadsheets. Kept as separate actions rather than a format toggle so the
+	// difference is legible before the file is written, not after.
+	const runArchive = () => {
+		setBusy(true);
+		buildArchive(db, new Date())
+			.then((document) =>
+				shareText(
+					serializeArchive(document),
+					archiveFileName(new Date()),
+					"application/json",
+					t("settings.export.archiveShareTitle"),
+				),
+			)
+			.catch((error: unknown) => {
+				Alert.alert(
+					t("settings.export.failedTitle"),
+					error instanceof TransferError
+						? t(error.key)
+						: t("settings.export.failedBody"),
+				);
+			})
+			.finally(() => setBusy(false));
+	};
 
 	const run = () => {
 		setBusy(true);
@@ -90,6 +117,22 @@ function ExportData({ db }: { db: Database }) {
 					)}
 				</Pressable>
 			</View>
+
+			<SettingsSection
+				footer={t("settings.export.archiveNote")}
+				title={t("settings.export.archiveTitle")}
+			>
+				<Pressable
+					accessibilityRole="button"
+					className="flex-row items-center border-border border-b py-3 active:opacity-70"
+					disabled={busy}
+					onPress={runArchive}
+				>
+					<Text className="flex-1 text-body text-foreground">
+						{t("settings.export.archiveAction")}
+					</Text>
+				</Pressable>
+			</SettingsSection>
 
 			<SettingsSection
 				footer={t("settings.export.columnsNote")}
