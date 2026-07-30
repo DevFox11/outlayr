@@ -367,6 +367,14 @@ const settings = {
 			en: "Every transaction, recurring template and budget will be deleted. Only your categories are kept. This can't be undone.",
 			es: "Se eliminarán todas las transacciones, plantillas recurrentes y presupuestos. Solo se conservan tus categorías. Esto no se puede deshacer.",
 		}),
+		"settings.erase.failedTitle": t({
+			en: "Erase didn't finish",
+			es: "El borrado no terminó",
+		}),
+		"settings.erase.failedBody": t({
+			en: "Part of your data may still be on this device. Try erasing again.",
+			es: "Parte de tus datos podría seguir en este dispositivo. Intenta borrar de nuevo.",
+		}),
 		"settings.export.footer": t({
 			en: "Deleted transactions are left out. Everything else on this device is written, newest first.",
 			es: "Las transacciones eliminadas se omiten. Todo lo demás en este dispositivo se escribe, de lo más reciente a lo más antiguo.",
