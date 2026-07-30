@@ -1,0 +1,91 @@
+import { View } from "react-native";
+import { FirstRun } from "@/components/first-run";
+import { OutlayrMark } from "@/components/outlayr-mark";
+import { Text } from "@/components/text";
+import { cn } from "@/components/tw";
+import { useDatabase } from "@/contexts/local-data-context";
+import { finishOnboarding, markReminderChosen } from "@/data/onboarding-core";
+import { setNumberSetting } from "@/data/settings";
+import type { Database } from "@/db/client";
+import {
+	formatTimeOfDay,
+	REMINDER_EVENING,
+	reminderTime,
+} from "@/domain/reminder";
+import { useTranslation } from "@/i18n";
+
+const EVENING = reminderTime(REMINDER_EVENING, { hour: 20, minute: 0 });
+
+/**
+ * The step shows its own output: the notification the tap would set up, drawn
+ * as a card rather than described in prose. Content only — the OS permission
+ * prompt still waits for the first saved entry, since iOS never asks twice.
+ */
+function MockNotification({ body, back }: { body: string; back?: boolean }) {
+	return (
+		<View
+			className={cn(
+				"w-64 flex-row items-start gap-2.5 rounded-2xl border border-fr-rule bg-fr-card px-3.5 py-3",
+				back && "-mb-10 -rotate-1 scale-90 opacity-55",
+			)}
+		>
+			<OutlayrMark size={26} />
+			<View className="flex-1 gap-0.5">
+				<Text className="font-sans-semibold text-footnote text-fr-ink">
+					Outlayr
+				</Text>
+				<Text className="text-footnote text-fr-muted">{body}</Text>
+			</View>
+		</View>
+	);
+}
+
+export default function OnboardingRhythmScreen() {
+	const db = useDatabase();
+	return <OnboardingRhythm db={db} />;
+}
+
+function OnboardingRhythm({ db }: { db: Database }) {
+	const t = useTranslation();
+
+	// The flow's terminal step either way: `finishOnboarding` settles the root
+	// guard, which swaps this stack for the account offer. Nothing navigates.
+	const finish = () => {
+		finishOnboarding(db).catch((error: unknown) => {
+			console.error("Finishing onboarding failed", error);
+		});
+	};
+
+	const remind = () => {
+		Promise.all([
+			setNumberSetting(db, "notificationOption", REMINDER_EVENING),
+			markReminderChosen(db),
+		])
+			.then(finish)
+			.catch((error: unknown) => {
+				console.error("Saving the first-run reminder choice failed", error);
+				finish();
+			});
+	};
+
+	return (
+		<FirstRun
+			action={{
+				label: t("onboarding.rhythm.remind", {
+					time: formatTimeOfDay(EVENING),
+				}),
+				onPress: remind,
+			}}
+			body={t("onboarding.rhythm.body")}
+			eyebrow={t("onboarding.rhythm.eyebrow")}
+			object={
+				<View className="items-center">
+					<MockNotification back body={t("onboarding.rhythm.notifYesterday")} />
+					<MockNotification body={t("onboarding.rhythm.notifToday")} />
+				</View>
+			}
+			skip={{ label: t("onboarding.rhythm.none"), onPress: finish }}
+			title={t("onboarding.rhythm.title")}
+		/>
+	);
+}

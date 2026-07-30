@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { FirstRun } from "@/components/first-run";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import {
@@ -39,7 +40,7 @@ export default function LedgerAdoptionScreen() {
 
 	if (confirming) {
 		return (
-			<Frame
+			<FirstRun
 				body={t(COPY[confirming].confirm)}
 				eyebrow={t("auth.adopt.eyebrow")}
 				title={t("auth.adopt.confirm.title")}
@@ -73,12 +74,12 @@ export default function LedgerAdoptionScreen() {
 						</Text>
 					</Pressable>
 				</View>
-			</Frame>
+			</FirstRun>
 		);
 	}
 
 	return (
-		<Frame
+		<FirstRun
 			body={t("auth.adopt.body")}
 			eyebrow={t("auth.adopt.eyebrow")}
 			title={t("auth.adopt.title")}
@@ -123,32 +124,6 @@ export default function LedgerAdoptionScreen() {
 					{t("auth.adopt.failed")}
 				</Text>
 			) : null}
-		</Frame>
-	);
-}
-
-function Frame({
-	eyebrow,
-	title,
-	body,
-	children,
-}: {
-	eyebrow: string;
-	title: string;
-	body: string;
-	children: React.ReactNode;
-}) {
-	return (
-		<View className="flex-1 bg-background px-6 pt-safe-offset-14 pb-safe-offset-5">
-			<View className="gap-2">
-				<MonoLabel>{eyebrow}</MonoLabel>
-				<Text className="font-sans-semibold text-foreground text-title">
-					{title}
-				</Text>
-				<Text className="text-muted text-subtitle leading-snug">{body}</Text>
-			</View>
-
-			<View className="flex-1 justify-center">{children}</View>
-		</View>
+		</FirstRun>
 	);
 }

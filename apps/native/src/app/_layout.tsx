@@ -35,7 +35,7 @@ import {
 	useDatabase,
 	useLocalData,
 } from "@/contexts/local-data-context";
-import { useOnboardingSettled } from "@/data/onboarding";
+import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { authRoute } from "@/domain/auth-gate";
 import {
@@ -207,6 +207,20 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 }
 
 /**
+ * A bare chevron over the step's own background: `minimal` drops the back title,
+ * which would otherwise read the cover's title from behind it. `fade` swaps the
+ * default horizontal push for a crossfade, so advancing reads as the stage
+ * trading objects rather than a new page sliding in.
+ */
+const FIRST_RUN_STEP = {
+	animation: "fade",
+	headerBackButtonDisplayMode: "minimal",
+	headerShadowVisible: false,
+	headerTransparent: true,
+	title: "",
+} as const;
+
+/**
  * Split from `RootNavigator` so `useDatabase` is only ever called below the
  * splash gate, where the database is guaranteed open.
  */
@@ -214,6 +228,7 @@ function RootStack() {
 	const db = useDatabase();
 	const t = useTranslation();
 	const onboarded = useOnboardingSettled(db);
+	const deferred = useAccountDeferred(db);
 	const { gate } = useAuthSession();
 	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
@@ -221,7 +236,11 @@ function RootStack() {
 	useSubscriptionReminderSync(db);
 	useSeededClockPreference(db);
 
-	const route = authRoute(gate, adoption === "settled");
+	const route = authRoute({
+		gate,
+		reconciled: adoption === "settled",
+		deferred,
+	});
 
 	return (
 		<Stack>
@@ -232,10 +251,12 @@ function RootStack() {
 					name="onboarding/index"
 					options={{ headerShown: false }}
 				/>
-				<Stack.Screen
-					name="onboarding/currency"
-					options={{ headerShown: false }}
-				/>
+				{/* The steps carry the OS back button rather than a drawn one, which
+				    brings the matching hit target with it. Transparent, because the
+				    stock theme card differs from the flow's `--fr-ground` — an opaque
+				    bar would band the top. */}
+				<Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
+				<Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
 			</Stack.Protected>
 
 			{/* Behind onboarding, not in front of it: the currency step is the only
