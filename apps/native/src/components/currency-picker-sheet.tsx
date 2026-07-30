@@ -7,6 +7,11 @@ import { CURRENCY_META } from "@outlayr/money";
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
+import Animated, {
+	Easing,
+	LinearTransition,
+	ReduceMotion,
+} from "react-native-reanimated";
 import { useLocalData } from "@/contexts/local-data-context";
 import {
 	toggleFavouriteCurrency,
@@ -25,6 +30,23 @@ import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
+
+/**
+ * The row's travel between the two sections.
+ *
+ * `ease-in-out`, because the row is already on screen and stays on screen — it
+ * accelerates out of one section and brakes into the other, which is what a
+ * moving object does. An `ease-out` would read as an arrival from off-screen.
+ *
+ * Only `layout` is animated, never `entering`/`exiting`: the list is virtualised
+ * over 165 currencies, so rows mount and unmount constantly while scrolling, and
+ * an enter/exit animation would fire on all of them. The star is pressed rarely;
+ * scrolling is not. `ReduceMotion.System` drops the travel for anyone who asked
+ * the OS for less motion — they still get the reorder, just without the flight.
+ */
+const ROW_TRAVEL = LinearTransition.duration(260)
+	.easing(Easing.bezier(0.645, 0.045, 0.355, 1).factory())
+	.reduceMotion(ReduceMotion.System);
 
 interface CurrencyPickerSheetProps {
 	selected: string;
@@ -117,13 +139,18 @@ export const CurrencyPickerSheet = forwardRef<
 					keyboardShouldPersistTaps="handled"
 					renderItem={({ item: row }: { item: CurrencyPickerRow }) =>
 						row.kind === "header" ? (
-							<MonoLabel className="pt-4 pb-1">
-								{t(
-									row.section === "favourites"
-										? "settings.currency.favourites"
-										: "settings.currency.all",
-								)}
-							</MonoLabel>
+							// Carries the row timing rather than snapping: the headers shift by
+							// the same amount as the rows around them, and two different speeds
+							// in one reflow read as two things happening, not one.
+							<Animated.View layout={ROW_TRAVEL}>
+								<MonoLabel className="pt-4 pb-1">
+									{t(
+										row.section === "favourites"
+											? "settings.currency.favourites"
+											: "settings.currency.all",
+									)}
+								</MonoLabel>
+							</Animated.View>
 						) : (
 							<CurrencyRow
 								code={row.code}
@@ -162,7 +189,10 @@ function CurrencyRow({
 	const meta = CURRENCY_META[code];
 	const t = useTranslation();
 	return (
-		<View className="flex-row items-center border-border border-b">
+		<Animated.View
+			className="flex-row items-center border-border border-b"
+			layout={ROW_TRAVEL}
+		>
 			<Pressable
 				accessibilityRole="button"
 				accessibilityState={{ selected }}
@@ -222,6 +252,6 @@ function CurrencyRow({
 					/>
 				</Pressable>
 			)}
-		</View>
+		</Animated.View>
 	);
 }
