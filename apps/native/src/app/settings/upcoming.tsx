@@ -5,10 +5,10 @@ import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useGlobalCurrency } from "@/data/app-meta";
 import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
@@ -24,7 +24,7 @@ function UpcomingContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const settings = useAllSettings(db);
-	const currency = useGlobalCurrency(db);
+	const { displayCurrency: currency, rates } = useValuation(db);
 	const showUpcoming = settings.bool("showUpcoming");
 	const showSoon = settings.bool("showUpcomingSoon");
 	const [nowMs] = useState(() => Date.now());
@@ -67,6 +67,7 @@ function UpcomingContent({ db }: { db: Database }) {
 					<LogUpcoming
 						currency={currency}
 						nowMs={nowMs}
+						rates={rates}
 						onLongPress={(id) => openRowActions(id, true)}
 						onPress={(id) => router.push(`/transaction/${id}`)}
 						showCents={settings.bool("showCents")}

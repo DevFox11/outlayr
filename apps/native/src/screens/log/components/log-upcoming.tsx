@@ -4,16 +4,21 @@ import { View } from "react-native";
 import { DayTotal } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { TransactionRow } from "@/components/transaction-row";
-import { useDatabase } from "@/contexts/local-data-context";
 import { landingDate } from "@/data/log-filtered";
 import type { TransactionWithCategory } from "@/data/transactions";
-import { useValuation } from "@/data/use-valuation";
 import { currencyTotals } from "@/domain/currency-totals";
+import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n";
 
 interface LogUpcomingProps {
 	transactions: TransactionWithCategory[];
 	currency: string;
+	/**
+	 * Supplied rather than looked up, so the header converts against the same
+	 * currency the caller is displaying. A screen with its own currency would
+	 * otherwise get totals valued against the ledger-wide one.
+	 */
+	rates: RateTable;
 	onPress: (id: string) => void;
 	onLongPress: (id: string) => void;
 	showCents: boolean;
@@ -26,6 +31,7 @@ interface LogUpcomingProps {
 export function LogUpcoming({
 	transactions,
 	currency,
+	rates,
 	onPress,
 	onLongPress,
 	showCents,
@@ -35,7 +41,6 @@ export function LogUpcoming({
 }: LogUpcomingProps) {
 	const now = new Date(nowMs);
 	const t = useTranslation();
-	const { rates } = useValuation(useDatabase());
 	const totals = useMemo(
 		() => currencyTotals(transactions, currency, rates),
 		[transactions, currency, rates],

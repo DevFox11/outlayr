@@ -37,6 +37,7 @@ import {
 	sparklineRange,
 	sparklineSeries,
 } from "@/domain/log-sparkline";
+import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
@@ -67,6 +68,8 @@ function useSparkline(
 	measure: LogMeasure,
 	period: LogPeriod,
 	firstWeekday: number,
+	displayCurrency: string,
+	rates: RateTable,
 ): SparklineData | null {
 	const today = startOfDay(new Date(nowMs));
 	const floor = period === "month" ? addMonths(today, -1) : addDays(today, -7);
@@ -78,6 +81,8 @@ function useSparkline(
 		// A year is sampled monthly over twelve months, which the daily floor
 		// would cut short.
 		period === "year" ? null : floor,
+		displayCurrency,
+		rates,
 	);
 
 	return useMemo(() => {
@@ -165,6 +170,8 @@ function LogContent({ db }: { db: Database }) {
 		measure,
 		period,
 		firstWeekday,
+		currency,
+		rates,
 	);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 
@@ -295,6 +302,7 @@ function LogContent({ db }: { db: Database }) {
 							<LogUpcoming
 								transactions={upcomingRows}
 								currency={currency}
+								rates={rates}
 								onPress={(id) => router.push(`/transaction/${id}`)}
 								onLongPress={(id) => openRowActions(id, true)}
 								showCents={showCents}
