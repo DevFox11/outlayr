@@ -8,7 +8,12 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type LayoutChangeEvent, Text as RNText, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import {
+	Easing,
+	useReducedMotion,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useDatabase } from "@/contexts/local-data-context";
 import {
@@ -55,7 +60,8 @@ export function InsightsNetChart({
 	const colors = useColors();
 	const t = useTranslation();
 	const db = useDatabase();
-	const animated = useBoolSetting(db, "animatedCharts");
+	const reduceMotion = useReducedMotion();
+	const animated = useBoolSetting(db, "animatedCharts") && !reduceMotion;
 
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);

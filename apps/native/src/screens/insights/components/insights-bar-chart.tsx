@@ -4,6 +4,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
 	Easing,
 	useAnimatedStyle,
+	useReducedMotion,
 	useSharedValue,
 	withTiming,
 } from "react-native-reanimated";
@@ -81,7 +82,8 @@ export function InsightsBarChart({
 }: InsightsBarChartProps) {
 	const colors = useColors();
 	const db = useDatabase();
-	const animated = useBoolSetting(db, "animatedCharts");
+	const reduceMotion = useReducedMotion();
+	const animated = useBoolSetting(db, "animatedCharts") && !reduceMotion;
 
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);

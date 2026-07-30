@@ -13,6 +13,11 @@ const STROKE = 2;
 const OPACITY = 0.45;
 const SPIN_MS = 14_000;
 /**
+ * One whole turn, so the angle the ring comes to rest at is congruent to zero.
+ * Load-bearing under Reduce Motion — see {@link SpectrumRing}.
+ */
+const SPIN_DEG = 360;
+/**
  * Arc count for the conic approximation. 36 keeps each segment at 10°, which at
  * a 2pt stroke is well below the width at which a solid-filled arc reads as a
  * band rather than a gradient.
@@ -36,15 +41,20 @@ interface SpectrumRingProps {
  * out once and never re-render — the spin is a `transform` on the parent, so
  * every frame is a GPU-composited rotation rather than an SVG rebuild.
  *
- * Reduced motion needs no branch here: Reanimated declines to start an
- * infinite `withRepeat` when the setting is on, leaving the ring simply static.
+ * Reduced motion needs no branch here, but not because Reanimated declines the
+ * animation. Under the default `ReduceMotion.System` the inner `withTiming`
+ * assigns its `toValue` outright and reports finished on its first frame, and
+ * `withRepeat` then stops rather than looping — so the ring is parked at
+ * {@link SPIN_DEG} permanently. It only *reads* as untouched because a whole
+ * turn is congruent to zero: any other target angle would leave every
+ * reduced-motion user staring at a ring frozen mid-rotation.
  */
 export function SpectrumRing({ size }: SpectrumRingProps) {
 	const spin = useSharedValue(0);
 
 	useEffect(() => {
 		spin.value = withRepeat(
-			withTiming(360, { duration: SPIN_MS, easing: Easing.linear }),
+			withTiming(SPIN_DEG, { duration: SPIN_MS, easing: Easing.linear }),
 			-1,
 			false,
 		);

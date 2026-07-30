@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
+import { runOnJS, useReducedMotion } from "react-native-reanimated";
 import Svg, {
 	Circle,
 	Defs,
@@ -13,7 +13,10 @@ import Svg, {
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useBoolSetting } from "@/data/settings";
+import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
+import { sparklineLabelKey } from "@/domain/sparkline-trend";
+import { useTranslation } from "@/i18n";
 import { CHART_SCRUB } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -41,6 +44,8 @@ interface LogSparklineProps {
 	/** How many trailing points belong to the period being reported. */
 	range: number;
 	byMonth: boolean;
+	/** Decides whether the line has a direction worth speaking. */
+	measure: LogMeasure;
 }
 
 export function LogSparkline({
@@ -48,12 +53,17 @@ export function LogSparkline({
 	positive,
 	range,
 	byMonth,
+	measure,
 }: LogSparklineProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const db = useDatabase();
+	const reduceMotion = useReducedMotion();
 	// Read here, not threaded from the screen: every chart answers to this setting
-	// itself.
-	const animatedCharts = useBoolSetting(db, "animatedCharts");
+	// itself. The OS flag is ANDed in by hand because the draw below is a
+	// `setTimeout` rather than a Reanimated animation, so there is nothing for the
+	// library's own `ReduceMotion.System` handling to collapse.
+	const animatedCharts = useBoolSetting(db, "animatedCharts") && !reduceMotion;
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 	const [drawn, setDrawn] = useState(!animatedCharts);
@@ -90,6 +100,16 @@ export function LogSparkline({
 			d: coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x} ${c.y}`).join(" "),
 		};
 	}, [points, width]);
+
+	const labelKey = useMemo(
+		() =>
+			sparklineLabelKey(
+				measure,
+				points.map((point) => point.amount),
+				byMonth,
+			),
+		[measure, points, byMonth],
+	);
 
 	// Where the muted part of the line hands over to the trend colour.
 	const boundary = useMemo(() => {
@@ -141,8 +161,14 @@ export function LogSparkline({
 
 	return (
 		<View className="pt-4 pb-1" style={{ paddingHorizontal: INSET }}>
+			{/* The scrub is a pointer gesture with nothing to commit, so unlike the
+			    Insights charts there is no per-sample action to expose — one labelled
+			    node naming the line is the whole readout. */}
 			<GestureDetector gesture={pan}>
 				<View
+					accessibilityLabel={t(labelKey)}
+					accessibilityRole="image"
+					accessible
 					style={{ height: HEIGHT }}
 					onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
 				>
@@ -199,8 +225,12 @@ export function LogSparkline({
 			</GestureDetector>
 
 			{scrubbed && scrubCoord ? (
+				// Only ever on screen while a finger is down, so a screen reader could
+				// never reach it and would only announce a sample nobody chose.
 				<View
+					accessibilityElementsHidden
 					className="absolute items-center rounded-md bg-surface-secondary px-1.75 py-1"
+					importantForAccessibility="no-hide-descendants"
 					pointerEvents="none"
 					style={{
 						left: INSET + scrubCoord.x - 40,
