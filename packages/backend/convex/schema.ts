@@ -156,4 +156,26 @@ export default defineSchema({
 		key: v.string(),
 		storageId: v.id("_storage"),
 	}).index("by_key", ["key"]),
+
+	/**
+	 * What each stored object weighs, so an account's total is one indexed read
+	 * rather than a walk of the bucket.
+	 *
+	 * The obvious alternative does not exist: `r2.listMetadata` takes a limit and
+	 * a cursor and no prefix, so it cannot be scoped to an account at all — it
+	 * paginates every object every user has. Sizes are known exactly once, when
+	 * an upload is confirmed, so they are recorded there and summed here.
+	 *
+	 * Keyed by object rather than accumulated into a single per-account counter
+	 * because re-uploading a name replaces the object: a counter would add the
+	 * new size to the old one, while a row is simply overwritten by its own
+	 * replacement.
+	 */
+	photoSizes: defineTable({
+		userId: v.string(),
+		key: v.string(),
+		bytes: v.number(),
+	})
+		.index("by_user", ["userId"])
+		.index("by_key", ["key"]),
 });

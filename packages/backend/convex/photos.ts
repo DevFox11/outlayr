@@ -13,7 +13,12 @@ import {
 	query,
 } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
-import { isPhotoName, ownsPhotoKey, photoKeyFor } from "./lib/photoKeys";
+import {
+	isPhotoName,
+	ownsPhotoKey,
+	photoKeyFor,
+	photoOwnerFromKey,
+} from "./lib/photoKeys";
 
 /**
  * Transaction photo bytes, which travel outside `sync.ts` entirely.
@@ -77,15 +82,43 @@ export const PHOTO_URL_TTL_SECONDS = 3600;
 export const PHOTO_URL_BATCH_LIMIT = 100;
 
 /**
- * Photo storage is free and ungated, matching `sync.ts`. A per-account byte
- * limit belongs here, immediately after `requireUserId` and before a url is
- * minted — the component's metadata table records `size` per object, so the
- * account's total is `r2.listMetadata` over this user's prefix. Refusing at
- * upload-url time is the only refusal a client cannot route around: once it
- * holds a signed PUT the bytes are already R2's problem.
+ * What one account may keep in photos.
+ *
+ * Generous on purpose: a ledger's photos are receipts, and the number exists to
+ * bound a storage bill nobody is watching rather than to ration anything a real
+ * user does. Raising it is a one-line change that frees every account at once;
+ * lowering it strands accounts already above the line, so it should only ever
+ * move up.
  */
-async function checkPhotoQuota(_ctx: QueryCtx, _userId: string): Promise<void> {
-	return;
+export const PHOTO_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
+
+/**
+ * Refused before a url is minted, which is the only refusal a client cannot
+ * route around: once it holds a signed PUT the bytes are already R2's problem.
+ *
+ * The total is summed from `photoSizes` rather than from the bucket. An earlier
+ * note here proposed `r2.listMetadata` over the account's prefix — that API
+ * takes only a limit and a cursor, so there is no prefix to scope it by and it
+ * would page through every object of every account to answer one upload.
+ *
+ * The check is `>=`, so an account exactly at the ceiling cannot start another
+ * upload. It bounds what is *already stored*, not what this upload will add:
+ * the size is not known until the bytes exist, and asking the device is asking
+ * the one party with a reason to understate it.
+ */
+async function checkPhotoQuota(ctx: QueryCtx, userId: string): Promise<void> {
+	const stored = await ctx.db
+		.query("photoSizes")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.collect();
+	const used = stored.reduce((total, row) => total + row.bytes, 0);
+	if (used >= PHOTO_QUOTA_BYTES) {
+		throw new ConvexError({
+			code: "PHOTO_QUOTA_EXCEEDED",
+			used,
+			limit: PHOTO_QUOTA_BYTES,
+		});
+	}
 }
 
 /**
@@ -142,7 +175,8 @@ export const confirmUpload = action({
 		}
 		if (args.storageId) {
 			// Convex storage allocated the address, so the key only resolves through
-			// the mapping this records.
+			// the mapping this records. It reads the size back from the system table
+			// in the same mutation, which is the only place it is known.
 			await ctx.runMutation(internal.photos.mapStorageId, {
 				key: args.key,
 				storageId: args.storageId,
@@ -150,9 +184,70 @@ export const confirmUpload = action({
 			return null;
 		}
 		await r2.syncMetadata(ctx, args.key);
+		// Read after the sync, or the component has no metadata row to answer from.
+		// A missing size records zero rather than refusing: an object that cannot be
+		// weighed must still be readable, and undercounting a quota is recoverable
+		// where losing a photo is not.
+		const metadata = await r2.getMetadata(ctx, args.key);
+		await ctx.runMutation(internal.photos.recordPhotoSize, {
+			key: args.key,
+			bytes: metadata?.size ?? 0,
+		});
 		return null;
 	},
 });
+
+/**
+ * Records what an object weighs, so `checkPhotoQuota` never has to ask R2.
+ *
+ * Upserted by key: re-uploading a name replaces the object, and the row has to
+ * be replaced with it rather than added to.
+ */
+export const recordPhotoSize = internalMutation({
+	args: { key: v.string(), bytes: v.number() },
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await writePhotoSize(ctx, args.key, args.bytes);
+		return null;
+	},
+});
+
+/**
+ * A malformed key records nothing rather than throwing: it can only arrive from
+ * a caller that already passed the ownership check, so there is nothing for the
+ * user to act on, and failing here would fail an upload whose bytes are safely
+ * stored.
+ */
+async function writePhotoSize(
+	ctx: MutationCtx,
+	key: string,
+	bytes: number,
+): Promise<void> {
+	const userId = photoOwnerFromKey(key);
+	if (userId === null) {
+		return;
+	}
+	const existing = await ctx.db
+		.query("photoSizes")
+		.withIndex("by_key", (q) => q.eq("key", key))
+		.unique();
+	if (existing) {
+		await ctx.db.patch(existing._id, { bytes });
+		return;
+	}
+	await ctx.db.insert("photoSizes", { userId, key, bytes });
+}
+
+/** Drops the accounting for an object whose bytes are gone. */
+async function forgetPhotoSize(ctx: MutationCtx, key: string): Promise<void> {
+	const row = await ctx.db
+		.query("photoSizes")
+		.withIndex("by_key", (q) => q.eq("key", key))
+		.unique();
+	if (row) {
+		await ctx.db.delete(row._id);
+	}
+}
 
 /**
  * Binds a Convex-storage id to its key. Re-uploading the same name replaces the
@@ -168,6 +263,11 @@ export const mapStorageId = internalMutation({
 			.query("photoObjects")
 			.withIndex("by_key", (q) => q.eq("key", args.key))
 			.unique();
+		// The system table is the only place a Convex-stored object's size is
+		// recorded, and it is readable here, so the accounting is written in the
+		// same mutation as the mapping rather than in a second round trip.
+		const stored = await ctx.db.system.get(args.storageId);
+		await writePhotoSize(ctx, args.key, stored?.size ?? 0);
 		if (existing) {
 			if (existing.storageId !== args.storageId) {
 				await ctx.storage.delete(existing.storageId);
@@ -278,9 +378,11 @@ export const releaseUnreferenced = mutation({
 			// naming bytes that no longer exist.
 			await ctx.db.delete(mapping._id);
 			await ctx.storage.delete(mapping.storageId);
+			await forgetPhotoSize(ctx, args.key);
 			return { released: true };
 		}
 		await r2.deleteObject(ctx, args.key);
+		await forgetPhotoSize(ctx, args.key);
 		return { released: true };
 	},
 });
