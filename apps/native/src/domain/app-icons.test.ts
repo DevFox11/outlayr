@@ -11,6 +11,8 @@ import {
 	appIconChoice,
 	appIconLabel,
 	appIconTransition,
+	defaultRowDetail,
+	RELEASE_PRIMARY_ICON,
 } from "./app-icons";
 
 const nativeRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -35,6 +37,27 @@ function primaryIconsInAppConfig(): string[] {
 	);
 	assert.ok(names.length > 0, "app.config.ts no longer names a primary icon");
 	return names;
+}
+
+/**
+ * The two build-conditional declarations of the primary, each as the ordered
+ * pair its ternary writes — production branch first: the bundle actool stamps,
+ * and the name `extra` carries to the JS runtime for the Default row's copy.
+ */
+function primaryIconBranches(): { icon: string[]; extra: string[] } {
+	const source = readFileSync(join(nativeRoot, "app.config.ts"), "utf8");
+	const icon =
+		/icon:\s*isProduction\s*\?\s*"\.\/assets\/(\w+)\.icon"\s*:\s*"\.\/assets\/(\w+)\.icon"/.exec(
+			source,
+		);
+	const extra =
+		/primaryAppIcon:\s*isProduction\s*\?\s*"(\w+)"\s*:\s*"(\w+)"/.exec(source);
+	assert.ok(icon, "app.config.ts no longer picks ios.icon on isProduction");
+	assert.ok(
+		extra,
+		"app.config.ts no longer carries extra.primaryAppIcon on isProduction",
+	);
+	return { icon: [icon[1], icon[2]], extra: [extra[1], extra[2]] };
 }
 
 function iconBundlesOnDisk(): string[] {
@@ -119,6 +142,15 @@ describe("app icon catalogue", () => {
 		assert.equal(APP_ICONS[0].name, null);
 		assert.equal(APP_ICONS.filter((icon) => icon.name === null).length, 1);
 	});
+
+	it("tells the JS runtime the same primary each build stamps", () => {
+		const { icon, extra } = primaryIconBranches();
+		assert.deepEqual(extra, icon);
+	});
+
+	it("agrees with the build about which primary is the Release one", () => {
+		assert.equal(primaryIconBranches().extra[0], RELEASE_PRIMARY_ICON);
+	});
 });
 
 describe("resolving what iOS reports", () => {
@@ -135,6 +167,30 @@ describe("resolving what iOS reports", () => {
 
 	it("falls back to the default for a name this build no longer offers", () => {
 		assert.equal(EN[appIconLabel("OutlayrRetired")], "Default");
+	});
+});
+
+describe("describing the Default row", () => {
+	it("claims the paper mark in a build that stamps it", () => {
+		assert.equal(defaultRowDetail("Outlayr"), "appIcon.default.detail");
+	});
+
+	it("does not claim it in a build that stamps the blueprint icon", () => {
+		assert.equal(
+			defaultRowDetail("OutlayrTesting"),
+			"appIcon.default.detailDev",
+		);
+	});
+
+	it("does not claim it where the build named no primary at all", () => {
+		assert.equal(defaultRowDetail(null), "appIcon.default.detailDev");
+	});
+
+	it("resolves both details, and they describe different artwork", () => {
+		const release = EN[defaultRowDetail(RELEASE_PRIMARY_ICON)];
+		const development = EN[defaultRowDetail(null)];
+		assert.match(release, /Outlayr mark/);
+		assert.match(development, /blueprint/);
 	});
 });
 

@@ -73,6 +73,27 @@ export function appIconLabel(active: string | null): TranslationKey {
 	return appIconChoice(active).label;
 }
 
+/**
+ * The bundle a Release build stamps as its primary. Pinned against
+ * `app.config.ts` by `app-icons.test.ts`, which is the only thing keeping the
+ * name here and the one the build carries in `extra` from drifting apart.
+ */
+export const RELEASE_PRIMARY_ICON = "Outlayr";
+
+/**
+ * What the Default row may claim about the icon it stands for. It cannot claim
+ * the paper Outlayr mark unconditionally: a Debug build's primary is the blue
+ * blueprint icon, and iOS reports `null` for either.
+ *
+ * `primary` is `extra.primaryAppIcon`, which is absent — hence `null` — on a
+ * build made before it was carried.
+ */
+export function defaultRowDetail(primary: string | null): TranslationKey {
+	return primary === RELEASE_PRIMARY_ICON
+		? "appIcon.default.detail"
+		: "appIcon.default.detailDev";
+}
+
 export interface AppIconState {
 	active: string | null;
 	/**

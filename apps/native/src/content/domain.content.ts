@@ -127,6 +127,10 @@ const domain = {
 			en: "The Outlayr mark on paper. The icon the app ships with.",
 			es: "La marca de Outlayr sobre papel. El ícono con el que viene la app.",
 		}),
+		"appIcon.default.detailDev": t({
+			en: "The blueprint mark. The icon this development build ships with.",
+			es: "La marca en versión plano. El ícono con el que viene esta compilación de desarrollo.",
+		}),
 		"appIcon.ink.label": t({
 			en: "Ink",
 			es: "Tinta",

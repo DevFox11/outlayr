@@ -33,7 +33,7 @@ import {
 	useLanguage,
 	useTranslation,
 } from "@/i18n";
-import { useAppIcon } from "@/lib/app-icon";
+import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
@@ -75,7 +75,6 @@ function SettingsContent({ db }: { db: Database }) {
 	const { themePreference } = useAppTheme();
 	const { preference } = useLanguage();
 	useReminderSync(db);
-	const { active: appIcon } = useAppIcon();
 
 	const currency = useGlobalCurrency(db);
 	const coverage = useValuationCoverage(db);
@@ -143,12 +142,7 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.theme")}
 					value={t(themeLabel(themePreference))}
 				/>
-				<LinkRow
-					icon="SmartPhone01"
-					onPress={() => router.push("/settings/app-icon")}
-					title={t("settings.row.appIcon")}
-					value={t(appIconLabel(appIcon))}
-				/>
+				{alternateIconsSupported ? <AppIconRow /> : null}
 				<LinkRow
 					icon="LanguageSkill"
 					onPress={() => router.push("/settings/language")}
@@ -318,6 +312,24 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 		</SettingsScreen>
+	);
+}
+
+/**
+ * Its own component so that reading the icon back from iOS — and the focus
+ * effect that keeps it current — happens only where the row exists at all.
+ */
+function AppIconRow() {
+	const router = useRouter();
+	const t = useTranslation();
+	const { active } = useAppIcon();
+	return (
+		<LinkRow
+			icon="SmartPhone01"
+			onPress={() => router.push("/settings/app-icon")}
+			title={t("settings.row.appIcon")}
+			value={t(appIconLabel(active))}
+		/>
 	);
 }
 
