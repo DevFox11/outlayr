@@ -7,9 +7,11 @@ import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDatabase } from "@/contexts/local-data-context";
 import type { TransactionWithCategory } from "@/data/transactions";
+import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n";
+import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { useColors } from "@/theme/use-colors";
 
 interface InsightsTransactionListProps {
@@ -21,6 +23,15 @@ interface InsightsTransactionListProps {
 	swapTimeLabel?: boolean;
 	/** Break the list into day sections with their signed subtotals. */
 	grouped?: boolean;
+	/**
+	 * Row whose delete is waiting out its undo window, hidden from the list. Both
+	 * halves of the delete are the owning screen's: the toast that offers the undo
+	 * belongs beside its scroll container, not to content inside it, and this list
+	 * unmounts the moment the selection driving it is cleared — which would flush
+	 * the pending write before the window elapsed.
+	 */
+	pendingDeleteId: string | null;
+	onRequestDelete: (id: string) => void;
 }
 
 export function InsightsTransactionList({
@@ -31,14 +42,24 @@ export function InsightsTransactionList({
 	showSign = true,
 	swapTimeLabel = false,
 	grouped = true,
+	pendingDeleteId,
+	onRequestDelete,
 }: InsightsTransactionListProps) {
-	const { rates } = useValuation(useDatabase());
+	const db = useDatabase();
+	const { rates } = useValuation(db);
+	const nowMs = useNow();
+	const openRowActions = useTransactionRowActions(db, nowMs, onRequestDelete);
+	const rows = useMemo(
+		() =>
+			transactions.filter((transaction) => transaction.id !== pendingDeleteId),
+		[transactions, pendingDeleteId],
+	);
 	const sections = useMemo(
-		() => (grouped ? groupByDay(transactions, currency, rates) : []),
-		[grouped, transactions, currency, rates],
+		() => (grouped ? groupByDay(rows, currency, rates) : []),
+		[grouped, rows, currency, rates],
 	);
 
-	if (transactions.length === 0) {
+	if (rows.length === 0) {
 		return <InsightsNoResults />;
 	}
 
@@ -46,6 +67,7 @@ export function InsightsTransactionList({
 		<TransactionRow
 			currency={currency}
 			key={transaction.id}
+			onLongPress={(id) => openRowActions(id, false)}
 			onPress={onPress}
 			rates={rates}
 			showCents={showCents}
@@ -56,7 +78,7 @@ export function InsightsTransactionList({
 	);
 
 	if (!grouped) {
-		return <View>{transactions.map(row)}</View>;
+		return <View>{rows.map(row)}</View>;
 	}
 
 	return (

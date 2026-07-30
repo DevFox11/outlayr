@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cellTotals, currencyTotals, toCells } from "./currency-totals";
+import {
+	cellFigures,
+	cellTotals,
+	currencyTotals,
+	toCells,
+} from "./currency-totals";
 import { buildRateTable } from "./valuation";
 
 function entry(amount: number, income = false, currency: string | null = null) {
@@ -195,6 +200,63 @@ describe("currencyTotals with rates", () => {
 		assert.deepEqual(buckets, [
 			{ currencyCode: "USD", amount: -100, transactionCount: 1 },
 		]);
+	});
+});
+
+describe("figures over a whole result set", () => {
+	// What the Search header prints: one in/out/net block per currency over every
+	// matched row, whatever day each landed on.
+	it("keeps in and out apart across every day in the set", () => {
+		const figures = cellFigures(
+			toCells([
+				priced(30, "USD", 30, JULY_5),
+				priced(70, "USD", 70, JULY_20),
+				priced(200, "USD", 200, JULY_20, true),
+			]),
+			"USD",
+		);
+		assert.deepEqual(figures, [
+			{ currencyCode: "USD", income: 200, expense: 100, count: 3 },
+		]);
+	});
+
+	it("splits a mixed-currency result rather than inventing one sum", () => {
+		// No frozen USD value on the euro rows, so no rate reaches them and the
+		// result keeps two blocks. Counts put the dominant currency first.
+		const figures = cellFigures(
+			toCells([
+				priced(100, "USD", 100, JULY_5),
+				priced(50, "EUR", null, JULY_5),
+				priced(20, "EUR", null, JULY_5, true),
+			]),
+			"USD",
+			eurRates,
+		);
+		assert.deepEqual(figures, [
+			{ currencyCode: "EUR", income: 20, expense: 50, count: 2 },
+			{ currencyCode: "USD", income: 0, expense: 100, count: 1 },
+		]);
+	});
+
+	it("nets each currency on its own, so neither block borrows the other's sign", () => {
+		const figures = cellFigures(
+			toCells([
+				priced(10, "USD", 10, JULY_5, true),
+				priced(40, "EUR", null, JULY_5),
+			]),
+			"USD",
+			eurRates,
+		);
+		assert.deepEqual(
+			figures.map((entry) => ({
+				code: entry.currencyCode,
+				net: entry.income - entry.expense,
+			})),
+			[
+				{ code: "USD", net: 10 },
+				{ code: "EUR", net: -40 },
+			],
+		);
 	});
 });
 
