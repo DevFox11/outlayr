@@ -3,15 +3,25 @@ import {
 	BottomSheetModal,
 	BottomSheetTextInput,
 } from "@expo/ui/community/bottom-sheet";
-import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { CURRENCY_META } from "@outlayr/money";
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
+import Animated, {
+	Easing,
+	LinearTransition,
+	ReduceMotion,
+} from "react-native-reanimated";
 import { useLocalData } from "@/contexts/local-data-context";
 import {
 	toggleFavouriteCurrency,
 	useFavouriteCurrencies,
 } from "@/data/favourite-currencies";
+import {
+	type CurrencyCode,
+	type CurrencyPickerRow,
+	currencyPickerRows,
+} from "@/domain/currency-picker-rows";
 import {
 	FAVOURITE_CURRENCY_LIMIT,
 	isFavourite,
@@ -21,23 +31,26 @@ import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
 
-type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
+/**
+ * The row's travel between the two sections.
+ *
+ * `ease-in-out`, because the row is already on screen and stays on screen — it
+ * accelerates out of one section and brakes into the other, which is what a
+ * moving object does. An `ease-out` would read as an arrival from off-screen.
+ *
+ * Only `layout` is animated, never `entering`/`exiting`: the list is virtualised
+ * over 165 currencies, so rows mount and unmount constantly while scrolling, and
+ * an enter/exit animation would fire on all of them. The star is pressed rarely;
+ * scrolling is not. `ReduceMotion.System` drops the travel for anyone who asked
+ * the OS for less motion — they still get the reorder, just without the flight.
+ */
+const ROW_TRAVEL = LinearTransition.duration(260)
+	.easing(Easing.bezier(0.645, 0.045, 0.355, 1).factory())
+	.reduceMotion(ReduceMotion.System);
 
 interface CurrencyPickerSheetProps {
 	selected: string;
 	onSelect: (code: string) => void;
-}
-
-const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
-	PICKABLE_CURRENCY_CODES.map((code): [string, CurrencyCode] => [code, code]),
-);
-
-type Row =
-	| { kind: "header"; key: string }
-	| { kind: "currency"; key: string; code: CurrencyCode; favourite: boolean };
-
-function currencyRow(code: CurrencyCode, favourite: boolean, key: string): Row {
-	return { kind: "currency", key, code, favourite };
 }
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
@@ -54,35 +67,10 @@ export const CurrencyPickerSheet = forwardRef<
 	const { db } = useLocalData();
 	const favourites = useFavouriteCurrencies(db);
 
-	const rows = useMemo<readonly Row[]>(() => {
-		const trimmed = query.trim().toLowerCase();
-		const matches =
-			trimmed === ""
-				? PICKABLE_CURRENCY_CODES
-				: PICKABLE_CURRENCY_CODES.filter(
-						(code) =>
-							code.toLowerCase().includes(trimmed) ||
-							CURRENCY_META[code].name.toLowerCase().includes(trimmed),
-					);
-		const full = matches.map((code) =>
-			currencyRow(code, isFavourite(favourites, code), code),
-		);
-		// A search is already the shortcut: clustering on top of it would push the
-		// match the user typed below the fold.
-		if (trimmed !== "" || favourites.length === 0) {
-			return full;
-		}
-		// The cluster repeats its codes rather than lifting them out of the list
-		// below: an alphabet with holes punched in it is harder to scan than one
-		// with a shortcut above it.
-		const cluster = favourites.flatMap((favourite) => {
-			const code = BY_CODE.get(favourite);
-			return code === undefined
-				? []
-				: [currencyRow(code, true, `favourite:${code}`)];
-		});
-		return [{ kind: "header", key: "favourites" }, ...cluster, ...full];
-	}, [favourites, query]);
+	const rows = useMemo<readonly CurrencyPickerRow[]>(
+		() => currencyPickerRows(favourites, query),
+		[favourites, query],
+	);
 
 	// The refusal is read off the list the write actually produced, not off
 	// `favourites.length` at press time: toggles are serialised, so a row rendered
@@ -146,14 +134,23 @@ export const CurrencyPickerSheet = forwardRef<
 
 				<BottomSheetFlatList
 					data={rows}
-					keyExtractor={(row: Row) => row.key}
+					keyExtractor={(row: CurrencyPickerRow) => row.key}
 					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
 					keyboardShouldPersistTaps="handled"
-					renderItem={({ item: row }: { item: Row }) =>
+					renderItem={({ item: row }: { item: CurrencyPickerRow }) =>
 						row.kind === "header" ? (
-							<MonoLabel className="pt-2 pb-1">
-								{t("settings.currency.favourites")}
-							</MonoLabel>
+							// Carries the row timing rather than snapping: the headers shift by
+							// the same amount as the rows around them, and two different speeds
+							// in one reflow read as two things happening, not one.
+							<Animated.View layout={ROW_TRAVEL}>
+								<MonoLabel className="pt-4 pb-1">
+									{t(
+										row.section === "favourites"
+											? "settings.currency.favourites"
+											: "settings.currency.all",
+									)}
+								</MonoLabel>
+							</Animated.View>
 						) : (
 							<CurrencyRow
 								code={row.code}
@@ -192,7 +189,10 @@ function CurrencyRow({
 	const meta = CURRENCY_META[code];
 	const t = useTranslation();
 	return (
-		<View className="flex-row items-center border-border border-b">
+		<Animated.View
+			className="flex-row items-center border-border border-b"
+			layout={ROW_TRAVEL}
+		>
 			<Pressable
 				accessibilityRole="button"
 				accessibilityState={{ selected }}
@@ -252,6 +252,6 @@ function CurrencyRow({
 					/>
 				</Pressable>
 			)}
-		</View>
+		</Animated.View>
 	);
 }
