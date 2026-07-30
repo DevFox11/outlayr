@@ -27,6 +27,14 @@ const log = {
 			en: "Remove filter",
 			es: "Quitar filtro",
 		}),
+		"log.delete.failedBody": t({
+			en: "Nothing was removed, so it's back on your log. Try again.",
+			es: "No se eliminó nada, así que volvió a tu registro. Inténtalo de nuevo.",
+		}),
+		"log.delete.failedTitle": t({
+			en: "Couldn't delete the entry",
+			es: "No se pudo eliminar el registro",
+		}),
 		"log.empty.body": t({
 			en: "Your first entry sets the baseline everything else is measured against.",
 			es: "Tu primer registro define la base con la que se compara todo lo demás.",
@@ -138,6 +146,10 @@ const log = {
 		"log.scope.clear": t({
 			en: "Clear",
 			es: "Borrar",
+		}),
+		"log.scope.otherCurrencies": t({
+			en: "Other currencies",
+			es: "Otras monedas",
 		}),
 		"log.title": t({
 			en: "Log",

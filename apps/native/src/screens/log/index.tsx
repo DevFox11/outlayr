@@ -36,6 +36,7 @@ import {
 	storedLogMeasure,
 } from "@/domain/log-measure";
 import { cursorStart } from "@/domain/log-period-cursor";
+import { scopeTotals } from "@/domain/log-scope-figures";
 import {
 	sparklineIsPositive,
 	sparklineRange,
@@ -199,14 +200,24 @@ function LogContent({ db }: { db: Database }) {
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 
 	const listRows = filter === "all" ? windowRows : filteredRows;
+	const visibleRows = useMemo(
+		() => listRows.filter((row) => row.id !== pendingId),
+		[listRows, pendingId],
+	);
 	const sections = useMemo(
+		() => groupByDay(visibleRows, currency, rates),
+		[visibleRows, currency, rates],
+	);
+	// Totalled over the filtered read, which `useFilteredTransactions` leaves
+	// unwindowed: `windowRows` is a page, so `all` gets the period header instead.
+	// The same rows the sections are built from, so the figure and the day
+	// subtotals under it agree to the cent.
+	const scopeFigures = useMemo(
 		() =>
-			groupByDay(
-				listRows.filter((row) => row.id !== pendingId),
-				currency,
-				rates,
-			),
-		[listRows, pendingId, currency, rates],
+			filter === "all" || visibleRows.length === 0
+				? null
+				: scopeTotals(visibleRows, currency, rates),
+		[filter, visibleRows, currency, rates],
 	);
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
@@ -233,6 +244,12 @@ function LogContent({ db }: { db: Database }) {
 	const emptyResult =
 		sections.length === 0 &&
 		(filter !== "upcoming" || upcomingRows.length === 0);
+
+	// One setting behind both headers: the promoted figure must not depend on
+	// whether a filter happens to be on.
+	const onMeasure = (next: LogMeasure) => {
+		setNumberSetting(db, "logInsightsType", storedLogMeasure(next));
+	};
 
 	const toolbar = (
 		<LogToolbar
@@ -283,13 +300,7 @@ function LogContent({ db }: { db: Database }) {
 							<LogInsights
 								insights={insights}
 								measure={measure}
-								onMeasure={(next: LogMeasure) => {
-									setNumberSetting(
-										db,
-										"logInsightsType",
-										storedLogMeasure(next),
-									);
-								}}
+								onMeasure={onMeasure}
 								period={period}
 								displayCurrency={currency}
 								currencyOptions={currencyOptions}
@@ -321,6 +332,11 @@ function LogContent({ db }: { db: Database }) {
 								firstWeekday={firstWeekday}
 								nowMs={nowMs}
 								onClear={() => setFilter("all")}
+								totals={scopeFigures}
+								measure={measure}
+								onMeasure={onMeasure}
+								displayCurrency={currency}
+								showCents={showCents}
 							/>
 						)}
 						{showUpcomingSection ? (

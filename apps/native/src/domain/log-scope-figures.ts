@@ -1,0 +1,36 @@
+import { type CurrencyEntry, cellFigures, toCells } from "./currency-totals";
+import { type LogFigures, ZERO_FIGURES } from "./log-measure";
+import type { RateTable } from "./valuation";
+
+export interface ScopeTotals {
+	/**
+	 * The bucket the screen is being read in, or the dominant one when the scope
+	 * holds nothing that can be placed there — a figure labelled with a currency
+	 * its numbers are not in states something untrue.
+	 */
+	shown: LogFigures;
+	/** Every other currency the scope used, dominance order. */
+	others: LogFigures[];
+}
+
+/**
+ * In, out and net for a whole filtered scope, split per currency.
+ *
+ * Every entry the filter matched has to be handed in. The Log's filtered read is
+ * unwindowed for exactly this reason: only the `all` list is paged, and a figure
+ * totalled over whatever has been scrolled into memory answers a different
+ * question than the one the filter asked.
+ */
+export function scopeTotals(
+	entries: readonly CurrencyEntry[],
+	displayCurrency: string,
+	rates?: RateTable,
+): ScopeTotals {
+	const ordered = cellFigures(toCells(entries), displayCurrency, rates);
+	const shown = ordered.find(
+		(figures) => figures.currencyCode === displayCurrency,
+	) ??
+		ordered[0] ?? { currencyCode: displayCurrency, ...ZERO_FIGURES };
+
+	return { shown, others: ordered.filter((figures) => figures !== shown) };
+}
