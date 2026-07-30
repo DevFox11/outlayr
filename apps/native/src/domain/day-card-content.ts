@@ -24,6 +24,8 @@ export interface DayCardOptions {
 	showCents: boolean;
 	showSign: boolean;
 	swapTimeLabel: boolean;
+	/** The row's meta line prints its time on a 24-hour clock. */
+	use24Hour: boolean;
 }
 
 function figure(amount: number, code: string, showCents: boolean): string {
@@ -63,7 +65,7 @@ export function dayCardContent(
 				note: row.note,
 				meta: options.swapTimeLabel
 					? (row.categoryName ?? "")
-					: formatTime(row.date),
+					: formatTime(row.date, options.use24Hour),
 				amount: options.showSign
 					? `${row.income ? "+" : "-"}${magnitude}`
 					: magnitude,

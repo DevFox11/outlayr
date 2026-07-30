@@ -1,27 +1,15 @@
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
 import {
 	addDays,
 	addMonths,
 	firstOfMonth,
+	monthAbbrevTitle,
 	startOfDay,
 	startOfWeek,
 } from "./dates";
 
 export type CursorUnit = "day" | "week" | "month";
-
-const MONTHS_TITLE = [
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
-] as const;
 
 /**
  * The Log fetches a day on an exact `day` value and a week or month on its first
@@ -88,9 +76,10 @@ export function cursorLabel(
 	unit: CursorUnit,
 	date: Date,
 	firstWeekday = 1,
+	language: Language = runtimeLanguage(),
 ): string {
 	const start = cursorStart(unit, date, firstWeekday);
-	const month = MONTHS_TITLE[start.getMonth()];
+	const month = monthAbbrevTitle(start, language);
 	switch (unit) {
 		case "day":
 			return `${start.getDate()} ${month} ${start.getFullYear()}`;
@@ -98,9 +87,10 @@ export function cursorLabel(
 			return `${month} ${start.getFullYear()}`;
 		case "week": {
 			const end = addDays(start, 6);
-			return `${start.getDate()} ${month} – ${end.getDate()} ${
-				MONTHS_TITLE[end.getMonth()]
-			}`;
+			return `${start.getDate()} ${month} – ${end.getDate()} ${monthAbbrevTitle(
+				end,
+				language,
+			)}`;
 		}
 	}
 }

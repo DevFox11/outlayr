@@ -5,7 +5,9 @@ import { MonoLabel } from "@/components/mono-label";
 import { useDatabase } from "@/contexts/local-data-context";
 import {
 	ordinalDay,
+	setBoolSetting,
 	setNumberSetting,
+	useBoolSetting,
 	useNumberSetting,
 } from "@/data/settings";
 import type { Database } from "@/db/client";
@@ -15,6 +17,11 @@ import { useColors } from "@/theme/use-colors";
 const WEEKDAY_OPTIONS: readonly { label: TranslationKey; value: number }[] = [
 	{ label: "settings.time.sunday", value: 1 },
 	{ label: "settings.time.monday", value: 2 },
+];
+
+const CLOCK_OPTIONS: readonly { label: TranslationKey; value: boolean }[] = [
+	{ label: "clock.twelveHour", value: false },
+	{ label: "clock.twentyFourHour", value: true },
 ];
 
 const MONTH_DAYS = Array.from({ length: 28 }, (_, index) => index + 1);
@@ -29,6 +36,10 @@ function TimeFrames({ db }: { db: Database }) {
 	const { language } = useLanguage();
 	const firstWeekday = useNumberSetting(db, "firstWeekday");
 	const firstDayOfMonth = useNumberSetting(db, "firstDayOfMonth");
+	// Displayed and overridden here only. The device's convention is seeded at the
+	// root (`useSeededClockPreference`), so a user who never opens this screen
+	// still reads the clock their handset uses.
+	const use24HourClock = useBoolSetting(db, "use24HourClock");
 
 	return (
 		<ScrollView
@@ -36,6 +47,25 @@ function TimeFrames({ db }: { db: Database }) {
 			contentContainerClassName="px-5 pt-3 pb-safe-offset-10"
 		>
 			<View className="pb-1">
+				<MonoLabel>{t("clock.section")}</MonoLabel>
+			</View>
+			<View className="border-border border-t">
+				{CLOCK_OPTIONS.map((option) => (
+					<ChoiceRow
+						key={String(option.value)}
+						label={t(option.label)}
+						selected={use24HourClock === option.value}
+						onPress={() => {
+							setBoolSetting(db, "use24HourClock", option.value);
+						}}
+					/>
+				))}
+			</View>
+			<Text className="pt-2 text-footnote text-muted">
+				{t("clock.deviceNote")}
+			</Text>
+
+			<View className="pt-7 pb-1">
 				<MonoLabel>{t("settings.time.weekSection")}</MonoLabel>
 			</View>
 			<View className="border-border border-t">

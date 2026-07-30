@@ -85,6 +85,7 @@ function InsightsContent({ db }: { db: Database }) {
 	const showCents = settings.bool("showCents");
 	const showSign = settings.bool("showExpenseOrIncomeSign");
 	const swapTimeLabel = settings.bool("swapTimeLabel");
+	const use24Hour = settings.bool("use24HourClock");
 	const incomeTracking = settings.bool("incomeTracking");
 	const period =
 		PERIOD_BY_VALUE[settings.number("insightsTimeFrame")] ?? "week";
@@ -569,6 +570,7 @@ function InsightsContent({ db }: { db: Database }) {
 							showSign={showSign}
 							swapTimeLabel={swapTimeLabel}
 							transactions={listTransactions}
+							use24Hour={use24Hour}
 						/>
 					</View>
 				) : null}

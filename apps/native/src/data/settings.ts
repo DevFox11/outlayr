@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { useMemo } from "react";
+import { useCalendars } from "expo-localization";
+import { useEffect, useMemo } from "react";
 import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
 import { useLiveQuery } from "./live-query";
@@ -9,6 +10,7 @@ import {
 	parseBoolSetting,
 	parseIntSetting,
 	SETTING_DEFAULTS,
+	seedClockPreference,
 } from "./settings-core";
 
 export * from "./settings-core";
@@ -49,6 +51,27 @@ export function useBoolSetting(db: Database, key: BoolSettingKey): boolean {
 		[key],
 	);
 	return parseBoolSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]);
+}
+
+/**
+ * Adopts the handset's clock convention, once, on the first launch that can read
+ * it. Mounted at the root and not on Time & Frames: a user in a 24-hour locale
+ * has no reason to open that screen, and until they did every timestamp in the
+ * app — rows, upcoming, the shared day card — read back in a format their device
+ * does not use. `seedClockPreference` declines to overrule a stored choice, so
+ * running it every launch costs one read.
+ */
+export function useSeededClockPreference(db: Database): void {
+	// `uses24hourClock` is null on a device that reports no preference, which is
+	// not the same as reporting 12-hour — treat it as "nothing to seed from".
+	const deviceUses24Hour = useCalendars()[0].uses24hourClock;
+
+	useEffect(() => {
+		if (deviceUses24Hour == null) {
+			return;
+		}
+		seedClockPreference(db, deviceUses24Hour);
+	}, [db, deviceUses24Hour]);
 }
 
 export function useNumberSetting(db: Database, key: NumberSettingKey): number {

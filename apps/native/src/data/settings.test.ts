@@ -6,11 +6,13 @@ import type { Database } from "@/db/client";
 import { amountParts, formatAmount } from "@/domain/money";
 import { getMeta } from "./app-meta-core";
 import {
+	clockLabel,
 	ordinalDay,
 	parseBoolSetting,
 	parseIntSetting,
 	readBoolSetting,
 	readNumberSetting,
+	seedClockPreference,
 	setBoolSetting,
 	setCurrency,
 	setNumberSetting,
@@ -59,6 +61,49 @@ describe("settings defaults", () => {
 		assert.equal(await readBoolSetting(db, "budgetViewStyle"), true);
 		await setBoolSetting(db, "budgetViewStyle", false);
 		assert.equal(await readBoolSetting(db, "budgetViewStyle"), false);
+	});
+});
+
+describe("the 12/24-hour clock", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("reads as a 12-hour clock before anything is stored", async () => {
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("persists and reads back the user's own choice", async () => {
+		await setBoolSetting(db, "use24HourClock", true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), true);
+		await setBoolSetting(db, "use24HourClock", false);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("seeds the device's convention when the user has never chosen", async () => {
+		await seedClockPreference(db, true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), true);
+	});
+
+	// The whole reason the seed reads the raw row: a stored `false` is a choice,
+	// and is indistinguishable from the default through `readBoolSetting`.
+	it("never overrules a stored choice, not even a stored false", async () => {
+		await setBoolSetting(db, "use24HourClock", false);
+		await seedClockPreference(db, true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("does not re-seed once it has seeded", async () => {
+		await seedClockPreference(db, true);
+		await setBoolSetting(db, "use24HourClock", false);
+		await seedClockPreference(db, true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("labels both clocks", () => {
+		assert.equal(clockLabel(false), "clock.twelveHour");
+		assert.equal(clockLabel(true), "clock.twentyFourHour");
 	});
 });
 

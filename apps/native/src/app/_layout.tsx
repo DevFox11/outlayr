@@ -36,6 +36,7 @@ import {
 	useLocalData,
 } from "@/contexts/local-data-context";
 import { useOnboardingSettled } from "@/data/onboarding";
+import { useSeededClockPreference } from "@/data/settings";
 import { authRoute } from "@/domain/auth-gate";
 import {
 	LanguageProvider,
@@ -75,6 +76,7 @@ const SETTINGS_SCREENS: readonly { name: string; titleKey: TranslationKey }[] =
 		{ name: "settings/account", titleKey: "nav.settings.account" },
 		{ name: "settings/app-icon", titleKey: "nav.settings.appIcon" },
 		{ name: "settings/currency", titleKey: "nav.settings.currency" },
+		{ name: "settings/deleted", titleKey: "settings.deleted.navTitle" },
 		{ name: "settings/erase", titleKey: "nav.settings.erase" },
 		{ name: "settings/export", titleKey: "nav.settings.export" },
 		{ name: "settings/feature-lab", titleKey: "nav.settings.featureLab" },
@@ -83,6 +85,7 @@ const SETTINGS_SCREENS: readonly { name: string; titleKey: TranslationKey }[] =
 		{ name: "settings/language", titleKey: "nav.settings.language" },
 		{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
 		{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },
+		{ name: "settings/sync", titleKey: "settings.sync.navTitle" },
 		{ name: "settings/theme", titleKey: "nav.settings.theme" },
 		{ name: "settings/time", titleKey: "nav.settings.time" },
 		{ name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
@@ -216,6 +219,7 @@ function RootStack() {
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
 	useSubscriptionReminderSync(db);
+	useSeededClockPreference(db);
 
 	const route = authRoute(gate, adoption === "settled");
 

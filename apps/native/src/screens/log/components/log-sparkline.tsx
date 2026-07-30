@@ -13,30 +13,16 @@ import Svg, {
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useBoolSetting } from "@/data/settings";
+import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
-import { useTranslation } from "@/i18n";
+import { type Language, useLanguage, useTranslation } from "@/i18n";
 import { CHART_SCRUB } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
 const HEIGHT = 34;
 const INSET = 10;
-
-const MONTHS = [
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
-] as const;
 
 interface LogSparklineProps {
 	points: SparklinePoint[];
@@ -57,6 +43,7 @@ export function LogSparkline({
 }: LogSparklineProps) {
 	const colors = useColors();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const db = useDatabase();
 	const reduceMotion = useReducedMotion();
 	// Read here, not threaded from the screen: every chart answers to this setting
@@ -239,7 +226,7 @@ export function LogSparkline({
 					}}
 				>
 					<Text className="font-sans-medium text-micro text-muted">
-						{formatSample(scrubbed.date, byMonth)}
+						{formatSample(scrubbed.date, byMonth, language)}
 					</Text>
 					<Text className="font-sans-semibold text-foreground text-label">
 						{formatAmount(scrubbed.amount)}
@@ -251,8 +238,12 @@ export function LogSparkline({
 }
 
 /** "24 Jul" by day, "Jul 26" by month. */
-function formatSample(date: Date, byMonth: boolean): string {
-	const month = MONTHS[date.getMonth()];
+function formatSample(
+	date: Date,
+	byMonth: boolean,
+	language: Language,
+): string {
+	const month = monthAbbrevTitle(date, language);
 	return byMonth
 		? `${month} ${String(date.getFullYear()).slice(-2)}`
 		: `${date.getDate()} ${month}`;

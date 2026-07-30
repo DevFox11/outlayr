@@ -34,6 +34,7 @@ const OPTIONS = {
 	showCents: true,
 	showSign: true,
 	swapTimeLabel: false,
+	use24Hour: false,
 };
 
 describe("dayCardContent", () => {
@@ -89,6 +90,11 @@ describe("dayCardContent", () => {
 			dayCardContent(SECTION, OPTIONS, DAY).rows[0]?.meta,
 			"9:30 AM",
 		);
+	});
+
+	it("subtitles a row on a 24-hour clock when the setting asks for one", () => {
+		const card = dayCardContent(SECTION, { ...OPTIONS, use24Hour: true }, DAY);
+		assert.equal(card.rows[0]?.meta, "09:30");
 	});
 
 	it("subtitles with the category when the label is swapped", () => {

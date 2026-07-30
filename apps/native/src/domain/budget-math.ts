@@ -1,5 +1,7 @@
 import type { TranslationKey } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
 import {
 	type CalendarSettings,
 	DEFAULT_CALENDAR,
@@ -164,8 +166,8 @@ export function periodsBackTo(
 	return steps;
 }
 
-function dayMonth(date: Date): string {
-	return `${date.getDate()} ${monthAbbrev(date)}`;
+function dayMonth(date: Date, language: Language): string {
+	return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
 function twoDigitYear(date: Date): string {
@@ -173,15 +175,19 @@ function twoDigitYear(date: Date): string {
 }
 
 /** Ports the Swift stepper's `dateString`. Ends are exclusive; the label is not. */
-export function budgetWindowLabel(window: BudgetWindow, type: number): string {
+export function budgetWindowLabel(
+	window: BudgetWindow,
+	type: number,
+	language: Language = runtimeLanguage(),
+): string {
 	if (type === BUDGET_TYPE.day) {
-		return `${dayMonth(window.start)} ${window.start.getFullYear()}`;
+		return `${dayMonth(window.start, language)} ${window.start.getFullYear()}`;
 	}
 	const last = addDays(window.end, -1);
 	if (type === BUDGET_TYPE.year) {
-		return `${dayMonth(window.start)} ${twoDigitYear(window.start)} – ${dayMonth(last)} ${twoDigitYear(last)}`;
+		return `${dayMonth(window.start, language)} ${twoDigitYear(window.start)} – ${dayMonth(last, language)} ${twoDigitYear(last)}`;
 	}
-	return `${dayMonth(window.start)} – ${dayMonth(last)}`;
+	return `${dayMonth(window.start, language)} – ${dayMonth(last, language)}`;
 }
 
 /**
