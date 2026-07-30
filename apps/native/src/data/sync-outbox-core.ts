@@ -33,6 +33,36 @@ export const SYNCED_TABLES = [
 export const SYNCED_META_KEYS = [
 	META_KEYS.currency,
 	META_KEYS.currencyChosen,
+	// How the ledger is presented. These describe the person, not the phone, so a
+	// second device should open reading the way the first one does rather than at
+	// stock defaults.
+	"showCents",
+	"showExpenseOrIncomeSign",
+	"incomeTracking",
+	"showUpcoming",
+	"showUpcomingSoon",
+	"logViewLineGraph",
+	"animatedCharts",
+	"categorySuggestions",
+	"swapTimeLabel",
+	"confetti",
+	"budgetViewStyle",
+	"use24HourClock",
+	"firstWeekday",
+	"firstDayOfMonth",
+	"numberEntryType",
+	"haptics",
+	"logInsightsTimeFrame",
+	"logInsightsType",
+	"insightsTimeFrame",
+	"insightsMeasure",
+	// Deliberately NOT here, and each for its own reason rather than by oversight:
+	// `biometricLock` and the `notification*` keys describe a permission this
+	// handset holds and another may have been refused; the `sync*` keys and
+	// `ledgerAdoption` describe this device's own replication identity, so
+	// replicating them would hand every device the same one; `firstLaunch`,
+	// `onboardingComplete` and `recurrenceRepaired` record what has happened on
+	// this install, and a new phone still has its own first run to do.
 ] as const;
 
 /** 999 bound variables per statement, three columns per queue entry. */

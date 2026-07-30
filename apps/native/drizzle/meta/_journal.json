@@ -57,6 +57,13 @@
       "when": 1785405903829,
       "tag": "0007_subscription_reminder_lead",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1785405903830,
+      "tag": "0008_synced_display_preferences",
+      "breakpoints": true
     }
   ]
 }
