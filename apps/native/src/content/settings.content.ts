@@ -303,6 +303,22 @@ const settings = {
 			en: "Search currencies",
 			es: "Buscar monedas",
 		}),
+		"settings.currency.favourites": t({
+			en: "Favourites",
+			es: "Favoritas",
+		}),
+		"settings.currency.favourite": t({
+			en: "Add {code} to favourites",
+			es: "Agregar {code} a favoritas",
+		}),
+		"settings.currency.unfavourite": t({
+			en: "Remove {code} from favourites",
+			es: "Quitar {code} de favoritas",
+		}),
+		"settings.currency.favouritesFull": t({
+			en: "You already keep {limit} favourites. Remove one to make room.",
+			es: "Ya tienes {limit} favoritas. Quita una para hacer espacio.",
+		}),
 		"settings.erase.onThisDevice": t({
 			en: "On this device",
 			es: "En este dispositivo",

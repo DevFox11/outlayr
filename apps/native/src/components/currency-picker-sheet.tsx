@@ -6,9 +6,19 @@ import {
 import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
+import { useLocalData } from "@/contexts/local-data-context";
+import {
+	toggleFavouriteCurrency,
+	useFavouriteCurrencies,
+} from "@/data/favourite-currencies";
+import {
+	FAVOURITE_CURRENCY_LIMIT,
+	isFavourite,
+} from "@/domain/favourite-currencies";
 import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
+import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
 
 type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
@@ -16,6 +26,18 @@ type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
 interface CurrencyPickerSheetProps {
 	selected: string;
 	onSelect: (code: string) => void;
+}
+
+const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
+	PICKABLE_CURRENCY_CODES.map((code): [string, CurrencyCode] => [code, code]),
+);
+
+type Row =
+	| { kind: "header"; key: string }
+	| { kind: "currency"; key: string; code: CurrencyCode; favourite: boolean };
+
+function currencyRow(code: CurrencyCode, favourite: boolean, key: string): Row {
+	return { kind: "currency", key, code, favourite };
 }
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
@@ -26,18 +48,60 @@ export const CurrencyPickerSheet = forwardRef<
 	const colors = useColors();
 	const [query, setQuery] = useState("");
 	const t = useTranslation();
+	// The nullable `db` from the context, not `useDatabase()`: the sheet is mounted
+	// by forms whose own callers can sit above the root splash gate, where
+	// `useDatabase()` throws.
+	const { db } = useLocalData();
+	const favourites = useFavouriteCurrencies(db);
 
-	const results = useMemo(() => {
+	const rows = useMemo<readonly Row[]>(() => {
 		const trimmed = query.trim().toLowerCase();
-		if (trimmed === "") {
-			return PICKABLE_CURRENCY_CODES;
-		}
-		return PICKABLE_CURRENCY_CODES.filter(
-			(code) =>
-				code.toLowerCase().includes(trimmed) ||
-				CURRENCY_META[code].name.toLowerCase().includes(trimmed),
+		const matches =
+			trimmed === ""
+				? PICKABLE_CURRENCY_CODES
+				: PICKABLE_CURRENCY_CODES.filter(
+						(code) =>
+							code.toLowerCase().includes(trimmed) ||
+							CURRENCY_META[code].name.toLowerCase().includes(trimmed),
+					);
+		const full = matches.map((code) =>
+			currencyRow(code, isFavourite(favourites, code), code),
 		);
-	}, [query]);
+		// A search is already the shortcut: clustering on top of it would push the
+		// match the user typed below the fold.
+		if (trimmed !== "" || favourites.length === 0) {
+			return full;
+		}
+		// The cluster repeats its codes rather than lifting them out of the list
+		// below: an alphabet with holes punched in it is harder to scan than one
+		// with a shortcut above it.
+		const cluster = favourites.flatMap((favourite) => {
+			const code = BY_CODE.get(favourite);
+			return code === undefined
+				? []
+				: [currencyRow(code, true, `favourite:${code}`)];
+		});
+		return [{ kind: "header", key: "favourites" }, ...cluster, ...full];
+	}, [favourites, query]);
+
+	// The refusal is read off the list the write actually produced, not off
+	// `favourites.length` at press time: toggles are serialised, so a row rendered
+	// a tick before another one landed would otherwise mis-read the cap.
+	const onToggleFavourite = (code: string, favourite: boolean) => {
+		if (db === null) {
+			return;
+		}
+		toggleFavouriteCurrency(db, code).then((next) => {
+			if (!favourite && !isFavourite(next, code)) {
+				Alert.alert(
+					t("settings.currency.favourites"),
+					t("settings.currency.favouritesFull", {
+						limit: FAVOURITE_CURRENCY_LIMIT,
+					}),
+				);
+			}
+		});
+	};
 
 	return (
 		<BottomSheetModal
@@ -81,17 +145,29 @@ export const CurrencyPickerSheet = forwardRef<
 				</View>
 
 				<BottomSheetFlatList
-					data={results}
-					keyExtractor={(code) => code}
+					data={rows}
+					keyExtractor={(row: Row) => row.key}
 					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
 					keyboardShouldPersistTaps="handled"
-					renderItem={({ item }) => (
-						<CurrencyRow
-							code={item}
-							selected={item === selected}
-							onPress={() => onSelect(item)}
-						/>
-					)}
+					renderItem={({ item: row }: { item: Row }) =>
+						row.kind === "header" ? (
+							<MonoLabel className="pt-2 pb-1">
+								{t("settings.currency.favourites")}
+							</MonoLabel>
+						) : (
+							<CurrencyRow
+								code={row.code}
+								favourite={row.favourite}
+								onPress={() => onSelect(row.code)}
+								onToggleFavourite={
+									db === null
+										? null
+										: () => onToggleFavourite(row.code, row.favourite)
+								}
+								selected={row.code === selected}
+							/>
+						)
+					}
 				/>
 			</View>
 		</BottomSheetModal>
@@ -100,45 +176,82 @@ export const CurrencyPickerSheet = forwardRef<
 
 function CurrencyRow({
 	code,
+	favourite,
 	selected,
 	onPress,
+	onToggleFavourite,
 }: {
 	code: CurrencyCode;
+	favourite: boolean;
 	selected: boolean;
 	onPress: () => void;
+	/** `null` while no database is open, so the star is absent rather than dead. */
+	onToggleFavourite: (() => void) | null;
 }) {
 	const colors = useColors();
 	const meta = CURRENCY_META[code];
+	const t = useTranslation();
 	return (
-		<Pressable
-			className="flex-row items-center gap-3 border-border border-b py-3 active:opacity-60"
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityState={{ selected }}
-		>
-			<View className="w-9 items-center">
-				<Text
-					className="text-body text-muted"
-					style={{ fontVariant: ["tabular-nums"] }}
+		<View className="flex-row items-center border-border border-b">
+			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ selected }}
+				className="flex-1 flex-row items-center gap-3 py-3 active:opacity-60"
+				onPress={onPress}
+			>
+				<View className="w-9 items-center">
+					<Text
+						className="text-body text-muted"
+						style={{ fontVariant: ["tabular-nums"] }}
+					>
+						{meta.symbol}
+					</Text>
+				</View>
+				<View className="flex-1">
+					<Text className="text-body text-foreground">{code}</Text>
+					<Text className="text-footnote text-muted" numberOfLines={1}>
+						{meta.name}
+					</Text>
+				</View>
+				{/* Reserved whether or not the checkmark is drawn, so the star beside it
+				    keeps one column down the whole list. */}
+				<View className="w-5 items-center">
+					{selected ? (
+						<SymbolView
+							name="checkmark"
+							size={18}
+							weight="semibold"
+							tintColor={colors.tint}
+							type="monochrome"
+						/>
+					) : null}
+				</View>
+			</Pressable>
+			{onToggleFavourite === null ? null : (
+				<Pressable
+					accessibilityLabel={t(
+						favourite
+							? "settings.currency.unfavourite"
+							: "settings.currency.favourite",
+						{ code },
+					)}
+					accessibilityRole="button"
+					accessibilityState={{ selected: favourite }}
+					className="ml-2 size-7 items-center justify-center active:opacity-60"
+					// 28pt box plus 8 a side is the 44pt minimum target without making the
+					// row taller than the two lines of text next to it.
+					hitSlop={8}
+					onPress={onToggleFavourite}
 				>
-					{meta.symbol}
-				</Text>
-			</View>
-			<View className="flex-1">
-				<Text className="text-body text-foreground">{code}</Text>
-				<Text className="text-footnote text-muted" numberOfLines={1}>
-					{meta.name}
-				</Text>
-			</View>
-			{selected ? (
-				<SymbolView
-					name="checkmark"
-					size={18}
-					weight="semibold"
-					tintColor={colors.tint}
-					type="monochrome"
-				/>
-			) : null}
-		</Pressable>
+					<SymbolView
+						name={favourite ? "star.fill" : "star"}
+						size={17}
+						weight="semibold"
+						tintColor={favourite ? colors.tint : colors.muted}
+						type="monochrome"
+					/>
+				</Pressable>
+			)}
+		</View>
 	);
 }
