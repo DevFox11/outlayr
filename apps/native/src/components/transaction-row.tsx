@@ -1,7 +1,7 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { RefreshIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { utcDateString } from "@outlayr/money";
-import { Pressable, View } from "react-native";
+import { type AccessibilityActionEvent, Pressable, View } from "react-native";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
@@ -18,6 +18,9 @@ import { cn } from "./tw";
 const TILE_SIZE = 36;
 const TILE_RADIUS = 9;
 
+/** Custom, so it surfaces in the rotor's Actions rather than replacing a tap. */
+const DELETE_ACTION = "delete";
+
 interface TransactionRowProps {
 	transaction: TransactionWithCategory;
 	/** Global display currency, used when the row's own currency is null. */
@@ -27,6 +30,12 @@ interface TransactionRowProps {
 	onPress: (id: string) => void;
 	/** Opens the row's action menu. Omit on a surface that offers none. */
 	onLongPress?: (id: string) => void;
+	/**
+	 * Same deletion the swipe performs. Pass it on a surface whose rows swipe: a
+	 * pan is the one gesture assistive technology cannot make, so the action has to
+	 * also exist as an accessibility action.
+	 */
+	onDelete?: (id: string) => void;
 	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
 	showCents?: boolean;
 	/** Mirrors "Display +/- Symbol"; false drops the row's sign prefix. */
@@ -49,6 +58,7 @@ export function TransactionRow({
 	rates,
 	onPress,
 	onLongPress,
+	onDelete,
 	showCents = true,
 	showSign = true,
 	swapTimeLabel = false,
@@ -91,7 +101,25 @@ export function TransactionRow({
 
 	return (
 		<Pressable
+			// The hold is the only route to the action menu, and nothing on screen says
+			// so; the rotor entry is the only route to Delete, which otherwise lives
+			// behind a swipe no assistive gesture can perform.
+			accessibilityActions={
+				onDelete
+					? [{ name: DELETE_ACTION, label: t("log.row.deleteAccessibility") }]
+					: undefined
+			}
+			accessibilityHint={onLongPress ? t("log.row.actionsHint") : undefined}
 			className="flex-row items-center gap-3 py-2 active:opacity-70"
+			onAccessibilityAction={
+				onDelete
+					? (event: AccessibilityActionEvent) => {
+							if (event.nativeEvent.actionName === DELETE_ACTION) {
+								onDelete(transaction.id);
+							}
+						}
+					: undefined
+			}
 			onPress={() => onPress(transaction.id)}
 			onLongPress={onLongPress ? () => onLongPress(transaction.id) : undefined}
 			accessibilityRole="button"

@@ -223,6 +223,10 @@ const budgets = {
 			en: "Delete the {name} budget",
 			es: "Eliminar el presupuesto {name}",
 		}),
+		"budgets.row.actionsHint": t({
+			en: "Double tap and hold to open actions for this budget",
+			es: "Toca dos veces y mantén para abrir las acciones de este presupuesto",
+		}),
 		"budgets.detail.emptyClosed": t({
 			en: "Nothing was spent in this period.",
 			es: "No se gastó nada en este período.",

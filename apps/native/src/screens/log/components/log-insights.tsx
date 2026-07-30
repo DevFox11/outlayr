@@ -157,6 +157,7 @@ export function LogInsights({
 					positive={sparkline.positive}
 					range={sparkline.range}
 					byMonth={sparkline.byMonth}
+					measure={measure}
 				/>
 			) : null}
 		</View>

@@ -68,6 +68,7 @@ export function SwipeableTransactionRow({
 					rates={rates}
 					onPress={onPress}
 					onLongPress={onLongPress}
+					onDelete={onDelete}
 					showCents={showCents}
 					showSign={showSign}
 					swapTimeLabel={swapTimeLabel}

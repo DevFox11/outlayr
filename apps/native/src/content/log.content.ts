@@ -131,6 +131,18 @@ const log = {
 			en: "this year",
 			es: "este año",
 		}),
+		"log.row.actionsHint": t({
+			en: "Double tap and hold to open actions for this entry",
+			es: "Toca dos veces y mantén para abrir las acciones de este registro",
+		}),
+		"log.row.amountExpense": t({
+			en: "Expense {amount}",
+			es: "Gasto de {amount}",
+		}),
+		"log.row.amountIncome": t({
+			en: "Income {amount}",
+			es: "Ingreso de {amount}",
+		}),
 		"log.row.delete": t({
 			en: "Delete",
 			es: "Eliminar",
