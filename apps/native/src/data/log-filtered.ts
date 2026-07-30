@@ -22,6 +22,11 @@ import { useLiveQuery } from "./live-query";
 import type { TransactionWithCategory } from "./transactions";
 import { LOG_COLUMNS } from "./transactions-core";
 
+type UndecoratedRow = Omit<
+	TransactionWithCategory,
+	"categoryName" | "categoryColor" | "categoryIcon" | "categoryEmoji"
+>;
+
 export interface LogFilterScope {
 	filter: LogFilter;
 	/** Null until a `category` filter resolves one. */
@@ -107,7 +112,7 @@ function filterPredicate(
  */
 function useDecorated(
 	db: Database,
-	rows: { categoryId: string | null }[],
+	rows: UndecoratedRow[],
 ): TransactionWithCategory[] {
 	const meta = useCategoryMeta(db);
 	return useMemo(
@@ -119,8 +124,9 @@ function useDecorated(
 					categoryName: found?.name ?? null,
 					categoryColor: found?.color ?? null,
 					categoryIcon: found?.icon ?? null,
+					categoryEmoji: found?.emoji ?? null,
 				};
-			}) as TransactionWithCategory[],
+			}),
 		[rows, meta],
 	);
 }

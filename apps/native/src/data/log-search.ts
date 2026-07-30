@@ -82,8 +82,9 @@ export function useSearchedTransactions(
 					categoryName: found?.name ?? null,
 					categoryColor: found?.color ?? null,
 					categoryIcon: found?.icon ?? null,
+					categoryEmoji: found?.emoji ?? null,
 				};
-			}) as TransactionWithCategory[],
+			}),
 		[rows, meta],
 	);
 }
