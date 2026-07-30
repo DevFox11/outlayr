@@ -13,8 +13,8 @@
 		@variant light {
 			--background: #ffffff;
 			--foreground: #010101;
-			--muted: #767676;
-			--subtle: #c7c7cc;
+			--muted: #6d6d6d;
+			--subtle: #6c6c78;
 
 			--surface: #f6f6f6;
 			--surface-foreground: #010101;
@@ -32,14 +32,25 @@
 
 			--accent: #010101;
 			--accent-foreground: #ffffff;
-			--tint: #007aff;
+			--tint: #0069de;
 
-			--income: #03cd86;
+			--income: #027d51;
 			--expense: #010101;
-			--future: #767676;
+			--future: #6d6d6d;
 
-			--danger: #fe473a;
-			--over-budget: #f17879;
+			--danger: #da0f01;
+			--over-budget: #d61d1f;
+
+			/* The destructive swipe pill, which writes literal white over it. It
+			   cannot be `--danger`: in dark that token has to stay light enough to
+			   read as `text-danger` on a near-black ground, and white text over it
+			   needs the opposite — no single red clears 4.5:1 on both sides. Same
+			   value in both themes because white is the text in both. */
+			--danger-fill: #da0f01;
+
+			/* Reads like a contrast miss and is not: 1.51:1 on paper. It is a rail
+			   and chart fill only — src/theme/token-contrast.test.ts fails the
+			   moment a `text-warning` appears and makes that untrue. */
 			--warning: #fdcc41;
 
 			--chip: #1c1c1e;
@@ -48,8 +59,10 @@
 			   `bg-over-budget/22`: Tailwind compiles that modifier to
 			   `color-mix(in srgb, unset 22%, transparent)`, and uniwind's function
 			   processor rejects it at runtime with "Invalid calc, you can't mix %
-			   with other units". Both base colours are identical in light and dark,
-			   so one value per wash covers both themes. */
+			   with other units". They are literals rather than the current
+			   `--over-budget`/`--muted`, which the AA fix split per theme: the rail
+			   still reads the same in both, and re-hueing it to follow the darker
+			   text colours is a visual decision this has not taken. */
 			--rail-over: rgba(241, 120, 121, 0.22);
 			--rail-track: rgba(118, 118, 118, 0.18);
 		}
@@ -57,7 +70,7 @@
 		@variant dark {
 			--background: #060a07;
 			--foreground: #ffffff;
-			--muted: #767676;
+			--muted: #a4a4a9;
 			--subtle: #8e8e93;
 
 			--surface: #3a3a3c;
@@ -77,16 +90,19 @@
 
 			--income: #0fffa9;
 			--expense: #ffffff;
-			--future: #767676;
+			--future: #a4a4a9;
 
 			--danger: #fe473a;
 			--over-budget: #f17879;
+
+			/* See the light-mode note. */
+			--danger-fill: #da0f01;
+
 			--warning: #fdcc41;
 
 			--chip: #2c2c2e;
 
-			/* See the light-mode note: identical values, since --over-budget and
-			   --muted do not change between themes. */
+			/* See the light-mode note. */
 			--rail-over: rgba(241, 120, 121, 0.22);
 			--rail-track: rgba(118, 118, 118, 0.18);
 		}
@@ -112,6 +128,7 @@
 	--color-expense: var(--expense);
 	--color-future: var(--future);
 	--color-danger: var(--danger);
+	--color-danger-fill: var(--danger-fill);
 	--color-over-budget: var(--over-budget);
 	--color-warning: var(--warning);
 	--color-chip: var(--chip);

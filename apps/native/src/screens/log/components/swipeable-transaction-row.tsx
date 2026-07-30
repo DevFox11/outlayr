@@ -39,7 +39,7 @@ export function SwipeableTransactionRow({
 
 	const renderRightActions = () => (
 		<Pressable
-			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger px-6"
+			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger-fill px-6"
 			onPress={() => {
 				swipeRef.current?.close();
 				onDelete(transaction.id);
