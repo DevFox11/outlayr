@@ -35,6 +35,8 @@ interface BudgetDetailViewProps {
 	leftPerDayAmount?: number | null;
 	showCents?: boolean;
 	showSign?: boolean;
+	/** Mirrors the Clock setting; true prints each row's time as "21:04". */
+	use24Hour?: boolean;
 	/** The window has ended: nothing about it is still in play. */
 	closed?: boolean;
 	stepper?: ReactNode;
@@ -58,6 +60,7 @@ export function BudgetDetailView({
 	leftPerDayAmount = null,
 	showCents = true,
 	showSign = true,
+	use24Hour = false,
 	closed = false,
 	stepper = null,
 }: BudgetDetailViewProps) {
@@ -135,6 +138,7 @@ export function BudgetDetailView({
 						onLongPress={(id) => openRowActions(id, false)}
 						showCents={showCents}
 						showSign={showSign}
+						use24Hour={use24Hour}
 					/>
 				)}
 			/>

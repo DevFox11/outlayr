@@ -43,6 +43,7 @@ function BudgetDetail({
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
+	const use24Hour = useBoolSetting(db, "use24HourClock");
 	const nowMs = useNow();
 	const [periodOffset, setPeriodOffset] = useState(0);
 	const { budget, transactions, periodsBack } = useCategoryBudget(
@@ -105,6 +106,7 @@ function BudgetDetail({
 				leftPerDayAmount={perDay}
 				showCents={showCents}
 				showSign={showSign}
+				use24Hour={use24Hour}
 				closed={closed}
 				stepper={
 					periodsBack > 0 ? (

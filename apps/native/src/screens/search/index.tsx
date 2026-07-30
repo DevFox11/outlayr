@@ -41,6 +41,7 @@ function SearchContent({ db }: { db: Database }) {
 	const showCents = settings.bool("showCents");
 	const showSign = settings.bool("showExpenseOrIncomeSign");
 	const swapTimeLabel = settings.bool("swapTimeLabel");
+	const use24Hour = settings.bool("use24HourClock");
 	const [query, setQuery] = useState("");
 	const nowMs = useNow();
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
@@ -111,6 +112,7 @@ function SearchContent({ db }: { db: Database }) {
 							showCents={showCents}
 							showSign={showSign}
 							swapTimeLabel={swapTimeLabel}
+							use24Hour={use24Hour}
 						/>
 					)}
 				/>

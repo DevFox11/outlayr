@@ -1,0 +1,122 @@
+import { Alert, Pressable, View } from "react-native";
+import { RowAmount } from "@/components/amount-text";
+import { SettingsSection } from "@/components/settings/settings-row";
+import { SettingsScreen } from "@/components/settings/settings-screen";
+import { Text } from "@/components/text";
+import { useDatabase } from "@/contexts/local-data-context";
+import { useGlobalCurrency } from "@/data/app-meta";
+import { useLiveQuery } from "@/data/live-query";
+import { useBoolSetting } from "@/data/settings";
+import {
+	type DeletedTransaction,
+	deletedTransactionsQuery,
+	transactionsRepo,
+} from "@/data/transactions-core";
+import type { Database } from "@/db/client";
+import { transactions } from "@/db/schema";
+import { formatDayHeader } from "@/domain/dates";
+import { useTranslation } from "@/i18n";
+
+export default function RecentlyDeletedRoute() {
+	const db = useDatabase();
+	return <RecentlyDeleted db={db} />;
+}
+
+function RecentlyDeleted({ db }: { db: Database }) {
+	const t = useTranslation();
+	const currency = useGlobalCurrency(db);
+	const showCents = useBoolSetting(db, "showCents");
+	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
+	const rows = useLiveQuery(transactions, () => deletedTransactionsQuery(db));
+
+	const restore = (id: string) => {
+		transactionsRepo.restore(db, id).catch((error: unknown) => {
+			console.error("Restore failed", error);
+			Alert.alert(
+				t("settings.deleted.failedTitle"),
+				t("settings.deleted.failedBody"),
+			);
+		});
+	};
+
+	return (
+		<SettingsScreen>
+			<SettingsSection
+				footer={rows.length > 0 ? t("settings.deleted.footer") : undefined}
+				title={t("settings.deleted.section")}
+			>
+				{rows.length === 0 ? (
+					<Text className="py-4 text-muted text-subtitle leading-snug">
+						{t("settings.deleted.empty")}
+					</Text>
+				) : (
+					rows.map((row) => (
+						<DeletedRow
+							currency={currency}
+							key={row.id}
+							onRestore={() => restore(row.id)}
+							row={row}
+							showCents={showCents}
+							showSign={showSign}
+						/>
+					))
+				)}
+			</SettingsSection>
+		</SettingsScreen>
+	);
+}
+
+function DeletedRow({
+	row,
+	currency,
+	showCents,
+	showSign,
+	onRestore,
+}: {
+	row: DeletedTransaction;
+	currency: string;
+	showCents: boolean;
+	showSign: boolean;
+	onRestore: () => void;
+}) {
+	const t = useTranslation();
+	// The query selects tombstones only, so the fallback satisfies the column's
+	// nullability rather than describing a row this list can hold.
+	const when = row.deletedAt ?? row.date;
+
+	return (
+		<View className="flex-row items-center gap-3 border-border border-b py-3.5">
+			<View className="flex-1 gap-0.5">
+				<Text className="text-body text-foreground" numberOfLines={1}>
+					{row.note}
+				</Text>
+				<Text className="text-muted text-subtitle">
+					{t("settings.deleted.deletedOn", { date: formatDayHeader(when) })}
+				</Text>
+			</View>
+			<RowAmount
+				amount={row.amount}
+				code={row.currency ?? currency}
+				income={row.income}
+				isFuture={false}
+				showCents={showCents}
+				showSign={showSign}
+			/>
+			<Pressable
+				// Every row's button says "Restore", so the entry it belongs to has to
+				// be spelled into the label or a screen reader hears the same control
+				// repeated down the whole list.
+				accessibilityLabel={t("settings.deleted.restoreEntry", {
+					note: row.note,
+				})}
+				accessibilityRole="button"
+				className="active:opacity-60"
+				onPress={onRestore}
+			>
+				<Text className="font-sans-semibold text-subtitle text-tint">
+					{t("settings.deleted.restore")}
+				</Text>
+			</Pressable>
+		</View>
+	);
+}

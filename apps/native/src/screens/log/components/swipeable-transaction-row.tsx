@@ -21,6 +21,8 @@ interface SwipeableTransactionRowProps {
 	showSign?: boolean;
 	/** The subtitle shows the category name over the time. */
 	swapTimeLabel?: boolean;
+	/** The subtitle prints the time on a 24-hour clock. */
+	use24Hour?: boolean;
 }
 
 export function SwipeableTransactionRow({
@@ -33,6 +35,7 @@ export function SwipeableTransactionRow({
 	showCents = true,
 	showSign = true,
 	swapTimeLabel = false,
+	use24Hour = false,
 }: SwipeableTransactionRowProps) {
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const t = useTranslation();
@@ -72,6 +75,7 @@ export function SwipeableTransactionRow({
 					showCents={showCents}
 					showSign={showSign}
 					swapTimeLabel={swapTimeLabel}
+					use24Hour={use24Hour}
 				/>
 			</Animated.View>
 		</ReanimatedSwipeable>

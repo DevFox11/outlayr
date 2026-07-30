@@ -163,6 +163,114 @@ const settings = {
 			en: "1 waiting to sync",
 			es: "1 en espera de sincronizar",
 		}),
+		"settings.sync.navTitle": t({
+			en: "Sync",
+			es: "Sincronización",
+		}),
+		"settings.sync.eyebrow": t({
+			en: "This device",
+			es: "Este dispositivo",
+		}),
+		"settings.sync.on": t({
+			en: "Syncing",
+			es: "Sincronizando",
+		}),
+		"settings.sync.off": t({
+			en: "Not syncing",
+			es: "Sin sincronizar",
+		}),
+		"settings.sync.onDetail": t({
+			en: "Every change you make here is queued for your account and reaches your other devices.",
+			es: "Cada cambio que haces aquí se pone en cola para tu cuenta y llega a tus otros dispositivos.",
+		}),
+		"settings.sync.offDetail": t({
+			en: "Nothing leaves this iPhone. Your ledger is complete here and works exactly as it does now.",
+			es: "Nada sale de este iPhone. Tu registro está completo aquí y funciona igual que ahora.",
+		}),
+		"settings.sync.section": t({
+			en: "Replication",
+			es: "Replicación",
+		}),
+		"settings.sync.toggle": t({
+			en: "Sync this device",
+			es: "Sincronizar este dispositivo",
+		}),
+		"settings.sync.footer": t({
+			en: "Turning sync off keeps every transaction, budget and category on this iPhone — it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
+			es: "Desactivar la sincronización conserva cada transacción, presupuesto y categoría en este iPhone — solo deja de ponerlos en cola para tu cuenta. Al activarla de nuevo se entrega todo lo registrado mientras tanto.",
+		}),
+		"settings.sync.statusSection": t({
+			en: "Status",
+			es: "Estado",
+		}),
+		"settings.sync.waiting": t({
+			en: "Waiting to sync",
+			es: "En espera de sincronizar",
+		}),
+		"settings.sync.lastSynced": t({
+			en: "Last synced",
+			es: "Última sincronización",
+		}),
+		"settings.sync.neverSynced": t({
+			en: "Never",
+			es: "Nunca",
+		}),
+		"settings.sync.needsAccount": t({
+			en: "Sync needs an account to replicate to. Until you sign in your ledger stays on this device, which is all Outlayr ever needed to work.",
+			es: "La sincronización necesita una cuenta a la que replicar. Hasta que inicies sesión tu registro se queda en este dispositivo, que es todo lo que Outlayr necesitó siempre para funcionar.",
+		}),
+		"settings.sync.working": t({
+			en: "Working…",
+			es: "Trabajando…",
+		}),
+		"settings.sync.failedTitle": t({
+			en: "Sync setting unchanged",
+			es: "La sincronización no cambió",
+		}),
+		"settings.sync.failedBody": t({
+			en: "The switch is where it was and your ledger is untouched. Try again in a moment.",
+			es: "El interruptor sigue como estaba y tu registro está intacto. Inténtalo de nuevo en un momento.",
+		}),
+		"settings.row.deleted": t({
+			en: "Recently Deleted",
+			es: "Eliminados recientemente",
+		}),
+		"settings.deleted.navTitle": t({
+			en: "Recently Deleted",
+			es: "Eliminados recientemente",
+		}),
+		"settings.deleted.section": t({
+			en: "Deleted entries",
+			es: "Entradas eliminadas",
+		}),
+		"settings.deleted.restore": t({
+			en: "Restore",
+			es: "Restaurar",
+		}),
+		"settings.deleted.restoreEntry": t({
+			en: "Restore {note}",
+			es: "Restaurar {note}",
+		}),
+		"settings.deleted.deletedOn": t({
+			en: "Deleted {date}",
+			es: "Eliminada {date}",
+		}),
+		"settings.deleted.empty": t({
+			en: "Nothing has been deleted. Entries you delete arrive here and wait — Outlayr never throws one away.",
+			es: "No has eliminado nada. Las entradas que elimines llegan aquí y esperan — Outlayr nunca descarta ninguna.",
+		}),
+		"settings.deleted.footer": t({
+			en: "Restoring puts the entry back on the Log exactly where its date belongs. A subscription you ended stays ended: only the charge comes back, never the schedule.",
+			es: "Restaurar devuelve la entrada al registro justo donde le corresponde por fecha. Una suscripción que terminaste sigue terminada: vuelve solo el cargo, nunca la programación.",
+		}),
+		"settings.deleted.failedTitle": t({
+			en: "Entry not restored",
+			es: "La entrada no se restauró",
+		}),
+		"settings.deleted.failedBody": t({
+			en: "It is still here and nothing was lost. Try restoring it again.",
+			es: "Sigue aquí y no se perdió nada. Intenta restaurarla de nuevo.",
+		}),
 		"settings.row.import": t({
 			en: "Import Data",
 			es: "Importar datos",

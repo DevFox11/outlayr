@@ -12,6 +12,7 @@ import {
 	transactions,
 } from "@/db/schema";
 import { ERASED_TRANSACTION, eraseLedger } from "./erase-core";
+import { deletedTransactionsQuery } from "./transactions-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -196,6 +197,31 @@ describe("eraseLedger", () => {
 		assert.equal(replicable.length, 1);
 		assert.equal(replicable[0].id, "tx-1");
 		assert.notEqual(replicable[0].deletedAt, null);
+	});
+
+	// Recently Deleted is the one screen built to read tombstones, so an erase
+	// writes straight into it: without the exclusion the user is handed the ledger
+	// they just erased back, row by row, each with a Restore button.
+	it("keeps the rows it erased out of Recently Deleted", async () => {
+		const removed = new Date("2026-02-01T00:00:00.000Z");
+		await db.insert(transactions).values({
+			id: "tx-2",
+			amount: 7,
+			income: false,
+			note: "already gone",
+			date: AUTHORED,
+			day: AUTHORED,
+			month: AUTHORED,
+			updatedAt: removed,
+			deletedAt: removed,
+		});
+
+		await eraseLedger(db, "transactions");
+
+		assert.deepEqual(
+			(await deletedTransactionsQuery(db)).map((row) => row.id),
+			["tx-2"],
+		);
 	});
 
 	// A column added to `transactions` and not to the constant would survive the

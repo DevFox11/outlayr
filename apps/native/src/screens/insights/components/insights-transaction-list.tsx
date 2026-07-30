@@ -21,6 +21,7 @@ interface InsightsTransactionListProps {
 	showCents?: boolean;
 	showSign?: boolean;
 	swapTimeLabel?: boolean;
+	use24Hour?: boolean;
 	/** Break the list into day sections with their signed subtotals. */
 	grouped?: boolean;
 	/**
@@ -41,6 +42,7 @@ export function InsightsTransactionList({
 	showCents = true,
 	showSign = true,
 	swapTimeLabel = false,
+	use24Hour = false,
 	grouped = true,
 	pendingDeleteId,
 	onRequestDelete,
@@ -73,6 +75,7 @@ export function InsightsTransactionList({
 			showCents={showCents}
 			showSign={showSign}
 			swapTimeLabel={swapTimeLabel}
+			use24Hour={use24Hour}
 			transaction={transaction}
 		/>
 	);

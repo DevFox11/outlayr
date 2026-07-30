@@ -205,8 +205,14 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 				<LinkRow
 					icon="Cloud"
+					onPress={() => router.push("/settings/sync")}
 					title={t("settings.row.sync")}
 					value={syncValue}
+				/>
+				<LinkRow
+					icon="Delete02"
+					onPress={() => router.push("/settings/deleted")}
+					title={t("settings.row.deleted")}
 				/>
 				<LinkRow
 					icon="FileImport"

@@ -13,11 +13,19 @@ import { RECURRING_TYPE } from "@/domain/recurrence";
 export type EraseScope = "transactions" | "everything";
 
 /**
+ * The date every erased row is stamped with, and the one thing on a scrubbed
+ * tombstone that still identifies it as one: `deletedTransactionsQuery` reads
+ * tombstones on purpose, so it needs a way to tell a single deleted entry the
+ * user may want back from the wreckage of an erase they asked for.
+ */
+export const ERASED_DATE = new Date(0);
+
+/**
  * A tombstone exists to be replicated, so it keeps exactly what replication
  * needs — the row's id, `deletedAt`, and the `updatedAt` that orders it against
  * a peer's edit — and nothing that made the row the user's. Not-null columns
- * take a neutral value because the column cannot hold one; no reader ever sees
- * them, since every read filters `isNull(deletedAt)`.
+ * take a neutral value because the column cannot hold one; the only read that
+ * sees them is Recently Deleted, which excludes them by {@link ERASED_DATE}.
  *
  * The schedule is retired to `none` so `repairOrphanedRecurrence` cannot mistake
  * an erased row for a subscription whose carrier was deleted and mint a
@@ -33,9 +41,9 @@ export const ERASED_TRANSACTION = {
 	currency: null,
 	note: "",
 	details: null,
-	date: new Date(0),
-	day: new Date(0),
-	month: new Date(0),
+	date: ERASED_DATE,
+	day: ERASED_DATE,
+	month: ERASED_DATE,
 	icon: null,
 	emoji: null,
 	customColor: null,
