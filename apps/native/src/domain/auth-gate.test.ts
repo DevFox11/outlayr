@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { authGate } from "./auth-gate";
+import { authGate, authRoute } from "./auth-gate";
 
 describe("auth gate", () => {
 	it("opens on a restored session", () => {
@@ -94,5 +94,35 @@ describe("auth gate", () => {
 			}),
 			"unconfigured",
 		);
+	});
+});
+
+describe("account routing", () => {
+	it("opens the ledger of a build that cannot sign anyone in", () => {
+		assert.equal(authRoute("unconfigured", true), "ledger");
+		assert.equal(authRoute("unconfigured", false), "ledger");
+	});
+
+	it("never sends a build that cannot sign anyone in to the sign-in screen", () => {
+		assert.notEqual(authRoute("unconfigured", true), "sign-in");
+		assert.notEqual(authRoute("unconfigured", false), "sign-in");
+	});
+
+	it("opens the ledger for an account whose ledger has been reconciled", () => {
+		assert.equal(authRoute("signed-in", true), "ledger");
+	});
+
+	it("reconciles an account's ledger before opening it", () => {
+		assert.equal(authRoute("signed-in", false), "adopt");
+	});
+
+	it("asks a signed-out device to sign in", () => {
+		assert.equal(authRoute("signed-out", true), "sign-in");
+		assert.equal(authRoute("signed-out", false), "sign-in");
+	});
+
+	it("parks a restore on the sign-in screen, which the cover hides", () => {
+		assert.equal(authRoute("restoring", true), "sign-in");
+		assert.equal(authRoute("restoring", false), "sign-in");
 	});
 });

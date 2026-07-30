@@ -10,7 +10,7 @@ import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
 	Pressable,
 	useColorScheme,
@@ -36,6 +36,7 @@ import {
 	useLocalData,
 } from "@/contexts/local-data-context";
 import { useOnboardingSettled } from "@/data/onboarding";
+import { authRoute } from "@/domain/auth-gate";
 import {
 	LanguageProvider,
 	type TranslationKey,
@@ -131,6 +132,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 				{error.message}
 			</Text>
 			<Pressable
+				accessibilityRole="button"
 				className="rounded-full bg-accent px-6 py-3"
 				onPress={() => {
 					retry();
@@ -149,6 +151,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { isDark, isHydrated: themeReady } = useAppTheme();
 	const languageReady = useLanguageReady();
 	const colorScheme = useColorScheme();
+	const [splashHidden, setSplashHidden] = useState(false);
 
 	// The app's one readiness gate: every screen below it can call `useDatabase()`
 	// and read straight away, with no per-screen loading branch, and the first
@@ -163,14 +166,19 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	useEffect(() => {
 		if (isReady) {
 			hideAsync();
+			setSplashHidden(true);
 		}
 	}, [isReady]);
 
-	if (!isReady) {
+	// Latched on the splash, because `retry()` walks the status back through
+	// opening → migrating → seeding: returning null on those once the splash is
+	// gone would blank the screen for the length of the attempt, and permanently
+	// if the migration never answers on a locked or corrupt file.
+	if (!isReady && !splashHidden) {
 		return null;
 	}
 
-	if (status === "error") {
+	if (status !== "ready") {
 		return <LocalDataError />;
 	}
 
@@ -209,8 +217,7 @@ function RootStack() {
 	const pickerDetent = identityPickerDetent(windowHeight);
 	useSubscriptionReminderSync(db);
 
-	const signedIn = gate === "signed-in";
-	const reconciled = adoption === "settled";
+	const route = authRoute(gate, adoption === "settled");
 
 	return (
 		<Stack>
@@ -232,18 +239,18 @@ function RootStack() {
 			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
-			<Stack.Protected guard={onboarded && !signedIn}>
+			<Stack.Protected guard={onboarded && route === "sign-in"}>
 				<Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
 			</Stack.Protected>
 
-			<Stack.Protected guard={onboarded && signedIn && !reconciled}>
+			<Stack.Protected guard={onboarded && route === "adopt"}>
 				<Stack.Screen
 					name="auth/adopt"
 					options={{ headerShown: false, gestureEnabled: false }}
 				/>
 			</Stack.Protected>
 
-			<Stack.Protected guard={onboarded && signedIn && reconciled}>
+			<Stack.Protected guard={onboarded && route === "ledger"}>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 			</Stack.Protected>
 

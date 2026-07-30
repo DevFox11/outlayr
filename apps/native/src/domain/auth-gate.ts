@@ -45,3 +45,29 @@ export function authGate(probe: AuthProbe): AuthGate {
 	}
 	return "signed-out";
 }
+
+/** The one account-area screen the root stack admits once onboarding is done. */
+export type AuthRoute = "sign-in" | "adopt" | "ledger";
+
+/**
+ * `unconfigured` opens the ledger, and does so without consulting `reconciled`:
+ * a build with no auth client holds no account to reconcile against, and its
+ * sign-in screen renders no controls at all, so routing there strands the owner
+ * outside their own local data with nothing to press and no route onward. This
+ * is the contract `src/lib/auth-client.ts` states — signing in only ever adds
+ * sync, so a missing backend must degrade to "no account available", never to a
+ * gate.
+ *
+ * `restoring` parks on the sign-in screen rather than on nothing, because the
+ * stack needs a screen admitted for the window in which the session is read;
+ * `AuthCover` holds an opaque cover over it for exactly that window.
+ */
+export function authRoute(gate: AuthGate, reconciled: boolean): AuthRoute {
+	if (gate === "unconfigured") {
+		return "ledger";
+	}
+	if (gate !== "signed-in") {
+		return "sign-in";
+	}
+	return reconciled ? "ledger" : "adopt";
+}
