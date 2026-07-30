@@ -7,7 +7,7 @@
 		"android": "expo run:android",
 		"check-types": "intlayer build && tsc --noEmit",
 		"db:generate": "drizzle-kit generate",
-		"dev": "expo start --dev-client --clear",
+		"dev": "intlayer build && expo start --dev-client --clear",
 		"eas-build-pre-install": "test -n \"$HUGEICONS_PRO_TOKEN\" || { echo 'HUGEICONS_PRO_TOKEN is unset — @hugeicons-pro/* will 401. Add it as an EAS secret.' >&2; exit 1; }; pnpm config set \"//npm.hugeicons.com/:_authToken\" \"$HUGEICONS_PRO_TOKEN\" --location project",
 		"gen:app-icon-previews": "node --import tsx scripts/generate-app-icon-previews.ts",
 		"gen:tab-icons": "node --import tsx scripts/generate-tab-icons.ts",
@@ -16,7 +16,7 @@
 		"ios": "expo run:ios",
 		"lint": "biome check .",
 		"prebuild": "expo prebuild",
-		"start": "expo start",
+		"start": "intlayer build && expo start",
 		"test": "intlayer build && node --import tsx --test \"src/**/*.test.ts?(x)\"",
 		"web": "expo start --web"
 	},
