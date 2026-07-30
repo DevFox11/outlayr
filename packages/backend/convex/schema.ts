@@ -12,6 +12,7 @@ import {
 	templateTransactionFields,
 	transactionColumns,
 	transactionPhotoFields,
+	transactionSplitFields,
 	transactionTagFields,
 } from "./lib/syncTables";
 
@@ -131,6 +132,14 @@ export default defineSchema({
 		.index("by_user_and_localId", ["userId", "localId"]),
 
 	transactionTags: defineTable({ ...replicated, ...transactionTagFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * One entry's amount attributed to one category. No rows means the entry is
+	 * attributed wholly to its own `categoryId` — see `domain/split.ts`.
+	 */
+	transactionSplits: defineTable({ ...replicated, ...transactionSplitFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 

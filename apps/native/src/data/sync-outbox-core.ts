@@ -9,6 +9,7 @@ import {
 	tags,
 	templateTransactions,
 	transactionPhotos,
+	transactionSplits,
 	transactions,
 	transactionTags,
 } from "@/db/schema";
@@ -26,6 +27,7 @@ export const SYNCED_TABLES = [
 	"tags",
 	"transactionTags",
 	"transactionPhotos",
+	"transactionSplits",
 	"appMeta",
 ] as const;
 
@@ -184,6 +186,10 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 	collect(
 		"transactionPhotos",
 		await db.select({ localId: transactionPhotos.id }).from(transactionPhotos),
+	);
+	collect(
+		"transactionSplits",
+		await db.select({ localId: transactionSplits.id }).from(transactionSplits),
 	);
 	collect(
 		"appMeta",
