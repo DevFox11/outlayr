@@ -49,6 +49,14 @@ export function authGate(probe: AuthProbe): AuthGate {
 /** The one account-area screen the root stack admits once onboarding is done. */
 export type AuthRoute = "sign-in" | "adopt" | "ledger";
 
+export interface AccountState {
+	gate: AuthGate;
+	/** This device's ledger has been reconciled against the account's. */
+	reconciled: boolean;
+	/** The owner declined the account offer during first run. */
+	deferred: boolean;
+}
+
 /**
  * `unconfigured` opens the ledger, and does so without consulting `reconciled`:
  * a build with no auth client holds no account to reconcile against, and its
@@ -58,16 +66,21 @@ export type AuthRoute = "sign-in" | "adopt" | "ledger";
  * sync, so a missing backend must degrade to "no account available", never to a
  * gate.
  *
+ * `deferred` opens it for the same reason from the other direction: the ledger
+ * is local-first and already on the device, so someone who declined the offer in
+ * first run owns data no account is holding. Only `reconciled` can gate a signed-in
+ * device, because that is the one case where an account holds a second ledger.
+ *
  * `restoring` parks on the sign-in screen rather than on nothing, because the
  * stack needs a screen admitted for the window in which the session is read;
  * `AuthCover` holds an opaque cover over it for exactly that window.
  */
-export function authRoute(gate: AuthGate, reconciled: boolean): AuthRoute {
-	if (gate === "unconfigured") {
+export function authRoute(state: AccountState): AuthRoute {
+	if (state.gate === "unconfigured") {
 		return "ledger";
 	}
-	if (gate !== "signed-in") {
-		return "sign-in";
+	if (state.gate !== "signed-in") {
+		return state.deferred ? "ledger" : "sign-in";
 	}
-	return reconciled ? "ledger" : "adopt";
+	return state.reconciled ? "ledger" : "adopt";
 }

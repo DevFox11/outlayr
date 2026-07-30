@@ -98,31 +98,49 @@ describe("auth gate", () => {
 });
 
 describe("account routing", () => {
+	const at = (
+		gate: Parameters<typeof authRoute>[0]["gate"],
+		reconciled: boolean,
+		deferred = false,
+	) => authRoute({ gate, reconciled, deferred });
+
 	it("opens the ledger of a build that cannot sign anyone in", () => {
-		assert.equal(authRoute("unconfigured", true), "ledger");
-		assert.equal(authRoute("unconfigured", false), "ledger");
+		assert.equal(at("unconfigured", true), "ledger");
+		assert.equal(at("unconfigured", false), "ledger");
 	});
 
 	it("never sends a build that cannot sign anyone in to the sign-in screen", () => {
-		assert.notEqual(authRoute("unconfigured", true), "sign-in");
-		assert.notEqual(authRoute("unconfigured", false), "sign-in");
+		assert.notEqual(at("unconfigured", true), "sign-in");
+		assert.notEqual(at("unconfigured", false), "sign-in");
 	});
 
 	it("opens the ledger for an account whose ledger has been reconciled", () => {
-		assert.equal(authRoute("signed-in", true), "ledger");
+		assert.equal(at("signed-in", true), "ledger");
 	});
 
 	it("reconciles an account's ledger before opening it", () => {
-		assert.equal(authRoute("signed-in", false), "adopt");
+		assert.equal(at("signed-in", false), "adopt");
 	});
 
 	it("asks a signed-out device to sign in", () => {
-		assert.equal(authRoute("signed-out", true), "sign-in");
-		assert.equal(authRoute("signed-out", false), "sign-in");
+		assert.equal(at("signed-out", true), "sign-in");
+		assert.equal(at("signed-out", false), "sign-in");
 	});
 
 	it("parks a restore on the sign-in screen, which the cover hides", () => {
-		assert.equal(authRoute("restoring", true), "sign-in");
-		assert.equal(authRoute("restoring", false), "sign-in");
+		assert.equal(at("restoring", true), "sign-in");
+		assert.equal(at("restoring", false), "sign-in");
+	});
+
+	it("opens the ledger of a device that declined the account offer", () => {
+		// The whole point of the offer being declinable: the ledger is already on
+		// the device, so there is nothing left to gate on.
+		assert.equal(at("signed-out", false, true), "ledger");
+		assert.equal(at("restoring", false, true), "ledger");
+	});
+
+	it("still reconciles when a device that declined signs in later", () => {
+		assert.equal(at("signed-in", false, true), "adopt");
+		assert.equal(at("signed-in", true, true), "ledger");
 	});
 });

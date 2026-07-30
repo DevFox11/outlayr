@@ -141,6 +141,18 @@ export function useExpenseContributions(
  * Only the current window is ever written back — browsing must not move the
  * anchor the budget is actually running on.
  */
+/**
+ * The bare ceiling figure, without the period maths `useMainBudget` runs. First
+ * run has no contributions to weigh it against yet — it only needs the number it
+ * just drew on the page.
+ */
+export function useMainBudgetAmount(db: Database): number | null {
+	const rows = useLiveQuery(mainBudget, () =>
+		db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1),
+	);
+	return rows[0]?.amount ?? null;
+}
+
 export function useMainBudget(
 	db: Database,
 	nowMs: number,

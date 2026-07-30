@@ -31,7 +31,7 @@ export const WIDGET_PALETTE: Record<"light" | "dark", WidgetPalette> = {
 		ink: "#010101",
 		muted: "#6d6d6d",
 		subtle: "#6c6c78",
-		border: "#ecf0f4",
+		border: "#d2d6db",
 		income: "#027d51",
 		over: "#d61d1f",
 	},

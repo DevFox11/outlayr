@@ -72,7 +72,29 @@ const NON_TEXT_TOKENS = [
 	"danger-fill",
 	"rail-over",
 	"rail-track",
+	"fr-rule",
 ] as const;
+
+/**
+ * The first-run flow paints its own ground and writes only its own tokens over
+ * it — no app token ever lands on `--fr-ground`, and no `fr-` token ever lands
+ * on a page ground. Measuring them against {@link GROUNDS} would measure pairs
+ * the app never draws, so the set is closed and measured against itself.
+ */
+const FIRST_RUN_GROUNDS = ["fr-ground", "fr-card"] as const;
+
+/**
+ * Each first-run text token against the grounds it is actually written over.
+ * `--fr-vermilion` is the eyebrow and only the eyebrow — one call site, in the
+ * stage layout of `components/first-run.tsx`, over `--fr-ground`. It never
+ * enters a `bg-fr-card` box, which holds `--fr-ink` and `--fr-muted` alone, and
+ * on dark it would not clear the floor there (4.42:1) if it did.
+ */
+const FIRST_RUN_TEXT: Record<string, readonly string[]> = {
+	"fr-ink": ["fr-ground", "fr-card"],
+	"fr-muted": ["fr-ground", "fr-card"],
+	"fr-vermilion": ["fr-ground"],
+};
 
 const WHITE = "#ffffff";
 
@@ -247,6 +269,8 @@ describe("the token layer", () => {
 			...TEXT_TOKENS,
 			...Object.keys(INVERSE_TOKENS),
 			...NON_TEXT_TOKENS,
+			...FIRST_RUN_GROUNDS,
+			...Object.keys(FIRST_RUN_TEXT),
 		]);
 		for (const token of exposedTokens().values()) {
 			assert.ok(
@@ -262,6 +286,8 @@ describe("the token layer", () => {
 			...TEXT_TOKENS,
 			...Object.keys(INVERSE_TOKENS),
 			...NON_TEXT_TOKENS,
+			...FIRST_RUN_GROUNDS,
+			...Object.keys(FIRST_RUN_TEXT),
 		]) {
 			assert.ok(exposed.has(token), `--${token} is classified but gone`);
 		}
@@ -312,6 +338,26 @@ describe("WCAG AA for text on every ground its theme paints", () => {
 			assert.deepEqual(failures, []);
 		});
 	}
+
+	it("holds the floor for the first-run palette on the grounds it is written over", () => {
+		const failures: string[] = [];
+		for (const theme of THEMES) {
+			for (const [token, grounds] of Object.entries(FIRST_RUN_TEXT)) {
+				for (const ground of grounds) {
+					const ratio = contrastRatio(
+						tokenValue(theme, token),
+						tokenValue(theme, ground),
+					);
+					if (ratio < AA_TEXT_CONTRAST) {
+						failures.push(
+							`${pairKey(theme, token, ground)} = ${ratio.toFixed(2)}:1`,
+						);
+					}
+				}
+			}
+		}
+		assert.deepEqual(failures, []);
+	});
 
 	it("holds the floor for each inverse token on the fill it is named for", () => {
 		const failures: string[] = [];

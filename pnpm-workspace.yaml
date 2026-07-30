@@ -9,6 +9,24 @@ allowBuilds:
   # intlayer pulls this in for `intlayer watch`; the build pipeline only ever
   # runs `intlayer build`, so CI needs no native toolchain for it.
   '@parcel/watcher': false
+packageExtensions:
+  # Both Babel plugins `require("@babel/traverse")`/`require("@babel/generator")`
+  # without declaring them, so pnpm's strict layout sends the lookup to the
+  # hoisted `.pnpm/node_modules` fallback. `@intlayer/babel` is the only package
+  # here that depends on Babel 8, so that fallback is 8.x — and Babel 8's printer
+  # reads `TSFunctionType.params` where Babel 7's AST still has `parameters`,
+  # crashing on `undefined.length`. Declaring the deps links 7.x into each
+  # plugin's own sandbox so the fallback is never reached.
+  react-native-worklets:
+    dependencies:
+      '@babel/generator': ^7.27.1
+      '@babel/traverse': ^7.27.1
+  babel-plugin-react-compiler:
+    dependencies:
+      '@babel/generator': ^7.26.0
+      '@babel/traverse': ^7.26.0
+    peerDependencies:
+      '@babel/core': ^7.26.0
 catalog:
   dotenv: ^17.4.2
   zod: ^4.4.3

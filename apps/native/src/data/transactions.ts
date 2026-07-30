@@ -1,3 +1,4 @@
+import { desc, isNull } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
@@ -22,6 +23,24 @@ export {
 
 export function useTransactionCount(db: Database): number {
 	return useLiveQuery(transactions, () => ledgerSizeQuery(db)).length;
+}
+
+/**
+ * Newest lines, without the day-bucketing and future boundary the log window
+ * carries — first run only needs the last line or two to draw on its page.
+ */
+export function useRecentLines(db: Database, limit: number): Transaction[] {
+	return useLiveQuery(
+		transactions,
+		() =>
+			db
+				.select()
+				.from(transactions)
+				.where(isNull(transactions.deletedAt))
+				.orderBy(desc(transactions.date))
+				.limit(limit),
+		[limit],
+	) as Transaction[];
 }
 
 /**
