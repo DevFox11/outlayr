@@ -121,11 +121,36 @@ export interface LedgerEntryProps {
 	day: string;
 }
 
+/** What the Ledger's header figure can be pinned to. `"today"` is its default. */
+export type LedgerHeaderPeriod = "today" | InsightsPeriod;
+export type LedgerHeaderMeasure = "spent" | "income" | "net";
+
+export interface LedgerHeaderProps {
+	label: string;
+	amount: string;
+	/** Net can be either way round; the sign is the figure's, not a glyph's. */
+	positive: boolean;
+}
+
+export interface LedgerConfiguration {
+	period: LedgerHeaderPeriod;
+	measure: LedgerHeaderMeasure;
+}
+
 export interface LedgerWidgetProps {
 	chrome: WidgetChrome;
 	entries: LedgerEntryProps[];
-	todayLabel: string;
-	todaySpent: string;
+	/**
+	 * Every combination the configuration can name, precomputed.
+	 *
+	 * The widget runs in a separate process with no database, so it cannot answer
+	 * a choice it was not handed — the same reason `Insights` ships every window
+	 * rather than the one currently selected.
+	 */
+	headers: Record<
+		LedgerHeaderPeriod,
+		Record<LedgerHeaderMeasure, LedgerHeaderProps>
+	>;
 	url: string;
 }
 
@@ -304,6 +329,7 @@ export async function buildWidgetProps(
 			money,
 			entryMoney,
 			contributions,
+			calendar,
 		),
 		Log: {
 			chrome: CHROME,
@@ -576,6 +602,24 @@ async function buildIntentBudgets(
  * set, which already carries every row's `parentId`. A null `categoryId` is the
  * overall budget, which every expense feeds.
  */
+/** The income counterpart of {@link sumExpenses}, unscoped by category. */
+function sumIncome(
+	rows: readonly Contribution[],
+	start: Date,
+	now: Date,
+): number {
+	const startMs = start.getTime();
+	const nowMs = now.getTime();
+	let total = 0;
+	for (const row of rows) {
+		const t = row.date.getTime();
+		if (row.income && t >= startMs && t <= nowMs) {
+			total += row.amount;
+		}
+	}
+	return total;
+}
+
 function sumExpenses(
 	rows: readonly Contribution[],
 	start: Date,
@@ -611,6 +655,7 @@ async function buildLedger(
 	money: Money,
 	entryMoney: EntryMoney,
 	contributions: readonly Contribution[],
+	calendar: InsightsCalendar,
 ): Promise<LedgerWidgetProps> {
 	const rows = await db
 		.select({
@@ -637,8 +682,7 @@ async function buildLedger(
 
 	return {
 		chrome: CHROME,
-		todayLabel: translateNow("common.today").toUpperCase(),
-		todaySpent: money(sumExpenses(contributions, startOfDay(now), now, null)),
+		headers: buildLedgerHeaders(contributions, now, calendar, money),
 		url: DEEP_LINKS.log,
 		entries: rows.map((row) => {
 			const category = row.categoryId
@@ -659,6 +703,53 @@ async function buildLedger(
 				day: formatDayHeader(row.date, now),
 			};
 		}),
+	};
+}
+
+/**
+ * Every period/measure pairing the Ledger's header can be set to.
+ *
+ * `today` is computed from the raw contributions rather than through
+ * `windowTotals`, which has no day window — the tile has always led with today
+ * and that stays its default, so an installed widget does not silently change
+ * what it reports.
+ */
+function buildLedgerHeaders(
+	contributions: readonly Contribution[],
+	now: Date,
+	calendar: InsightsCalendar,
+	money: Money,
+): Record<LedgerHeaderPeriod, Record<LedgerHeaderMeasure, LedgerHeaderProps>> {
+	const measures = (
+		label: string,
+		totals: { income: number; spent: number },
+	): Record<LedgerHeaderMeasure, LedgerHeaderProps> => {
+		const net = totals.income - totals.spent;
+		return {
+			spent: { label, amount: money(totals.spent), positive: false },
+			income: { label, amount: money(totals.income), positive: true },
+			net: { label, amount: money(Math.abs(net)), positive: net >= 0 },
+		};
+	};
+
+	const startToday = startOfDay(now);
+	return {
+		today: measures(translateNow("common.today").toUpperCase(), {
+			spent: sumExpenses(contributions, startToday, now, null),
+			income: sumIncome(contributions, startToday, now),
+		}),
+		week: measures(
+			translateNow("insights.period.week").toUpperCase(),
+			windowTotals(contributions, "week", now, 0, calendar),
+		),
+		month: measures(
+			translateNow("insights.period.month").toUpperCase(),
+			windowTotals(contributions, "month", now, 0, calendar),
+		),
+		year: measures(
+			translateNow("insights.period.year").toUpperCase(),
+			windowTotals(contributions, "year", now, 0, calendar),
+		),
 	};
 }
 

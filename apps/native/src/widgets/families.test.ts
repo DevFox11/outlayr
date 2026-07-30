@@ -96,6 +96,7 @@ describe("widget declarations", () => {
 		assert.deepEqual(configured.map((widget) => widget.name).sort(), [
 			"Budget",
 			"Insights",
+			"Ledger",
 		]);
 		for (const widget of configured) {
 			assert.ok(

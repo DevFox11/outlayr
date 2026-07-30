@@ -109,6 +109,38 @@ const WIDGETS = [
 				"accessoryRectangular",
 				"accessoryInline",
 			],
+			/**
+			 * Restores the two parameters Swift's RecentTransactionsWidget carried.
+			 * The defaults are today/spent rather than Swift's week/net, because that
+			 * is what this tile has always shown — matching Swift here would silently
+			 * change what every installed widget reports.
+			 */
+			configuration: {
+				title: "Recent Entries",
+				parameters: {
+					period: {
+						title: "Period",
+						type: "enum",
+						values: [
+							{ name: "Today", value: "today" },
+							{ name: "This week", value: "week" },
+							{ name: "This month", value: "month" },
+							{ name: "This year", value: "year" },
+						],
+						default: "today",
+					},
+					measure: {
+						title: "Figure",
+						type: "enum",
+						values: [
+							{ name: "Spent", value: "spent" },
+							{ name: "Income", value: "income" },
+							{ name: "Net", value: "net" },
+						],
+						default: "spent",
+					},
+				},
+			},
 		},
 	},
 	{

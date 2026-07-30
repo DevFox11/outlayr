@@ -18,7 +18,11 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
-import type { LedgerEntryProps, LedgerWidgetProps } from "./props";
+import type {
+	LedgerConfiguration,
+	LedgerEntryProps,
+	LedgerWidgetProps,
+} from "./props";
 
 /**
  * Runs in the widget extension's `JSContext`, so only `props`, `environment` and
@@ -26,12 +30,20 @@ import type { LedgerEntryProps, LedgerWidgetProps } from "./props";
  */
 const LedgerWidget = (
 	props: LedgerWidgetProps,
-	environment: WidgetEnvironment,
+	environment: WidgetEnvironment<LedgerConfiguration>,
 ) => {
 	"widget";
 
 	const scheme = environment.colorScheme === "dark" ? "dark" : "light";
 	const palette = props.chrome[scheme];
+	// A configuration stored by an older build can name a period or measure this
+	// one no longer offers, so both fall back rather than indexing to undefined.
+	// The defaults are what the tile has always shown, so an installed widget
+	// does not silently start reporting something else.
+	const header =
+		props.headers[environment.configuration?.period ?? "today"]?.[
+			environment.configuration?.measure ?? "spent"
+		] ?? props.headers.today.spent;
 	const family = environment.widgetFamily;
 	// Declared inside the body, not at module scope: babel stringifies this
 	// function and the extension evaluates it in a bare `JSContext`, where a
@@ -175,9 +187,9 @@ const LedgerWidget = (
 			spacing={0}
 		>
 			<HStack spacing={6}>
-				{eyebrow(props.todayLabel)}
+				{eyebrow(header.label)}
 				<Spacer />
-				{eyebrow(`${props.todaySpent} OUT`)}
+				{eyebrow(`${header.amount} ${header.positive ? "IN" : "OUT"}`)}
 			</HStack>
 			<Spacer modifiers={[frame({ height: 8 })]} />
 			{hairline}
@@ -202,4 +214,7 @@ const LedgerWidget = (
 	);
 };
 
-export default createWidget<LedgerWidgetProps>("Ledger", LedgerWidget);
+export default createWidget<LedgerWidgetProps, LedgerConfiguration>(
+	"Ledger",
+	LedgerWidget,
+);
