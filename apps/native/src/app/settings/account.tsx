@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
@@ -40,6 +40,33 @@ function Account({ client, db }: { client: AuthClient; db: Database }) {
 			.finally(() => setBusy(false));
 	};
 
+	// The gate closes before the account goes, not after: the server drops every
+	// replicated row, and an outbox still holding entries would push them straight
+	// back into whichever account signs in next.
+	const deleteAccount = () => {
+		setError(null);
+		setBusy(true);
+		setSyncEnabled(db, false)
+			.then(() => client.deleteUser())
+			.catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
+			.finally(() => setBusy(false));
+	};
+
+	const confirmDelete = () => {
+		Alert.alert(
+			t("settings.account.deleteConfirmTitle"),
+			t("settings.account.deleteConfirmBody"),
+			[
+				{ style: "cancel", text: t("common.cancel") },
+				{
+					style: "destructive",
+					text: t("settings.account.deleteConfirm"),
+					onPress: deleteAccount,
+				},
+			],
+		);
+	};
+
 	if (!session) {
 		return (
 			<SettingsScreen>
@@ -76,6 +103,19 @@ function Account({ client, db }: { client: AuthClient; db: Database }) {
 					onPress={signOut}
 					title={t("settings.account.signOut")}
 					value={busy ? t("settings.account.signingOut") : undefined}
+				/>
+			</SettingsSection>
+
+			<SettingsSection
+				footer={t("settings.account.deleteFooter")}
+				title={t("settings.account.deleteSection")}
+			>
+				<LinkRow
+					destructive
+					icon="UserRemove01"
+					onPress={confirmDelete}
+					title={t("settings.account.delete")}
+					value={busy ? t("settings.account.deleting") : undefined}
 				/>
 			</SettingsSection>
 
