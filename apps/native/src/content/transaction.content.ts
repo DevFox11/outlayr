@@ -19,6 +19,22 @@ const transaction = {
 			en: "This action cannot be undone.",
 			es: "Esta acción no se puede deshacer.",
 		}),
+		"transaction.save.failedTitle": t({
+			en: "Not saved",
+			es: "No se guardó",
+		}),
+		"transaction.save.failedBody": t({
+			en: "Something went wrong writing this transaction, so nothing was saved. Try again.",
+			es: "Algo salió mal al guardar esta transacción, así que no se guardó nada. Inténtalo de nuevo.",
+		}),
+		"transaction.save.scheduleFailedTitle": t({
+			en: "Schedule not applied",
+			es: "Programación sin aplicar",
+		}),
+		"transaction.save.scheduleFailedBody": t({
+			en: "Your subscription was saved, but its charges could not be logged. Outlayr will try again the next time you open it.",
+			es: "Tu suscripción se guardó, pero no se pudieron registrar sus cargos. Outlayr volverá a intentarlo la próxima vez que la abras.",
+		}),
 		"transaction.stopRecurring.failedTitle": t({
 			en: "Still recurring",
 			es: "La recurrencia sigue activa",

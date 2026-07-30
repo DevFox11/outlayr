@@ -494,43 +494,74 @@ export function TransactionForm({
 			recurringEndDate: isSubscription && hasEndDate ? endDate : null,
 			reminderLeadDays: isSubscription ? leadDays : null,
 		};
+		let id: string;
 		try {
-			let id: string;
 			if (mode === "edit" && initial) {
 				await transactionsRepo.update(db, initial.id, input);
 				id = initial.id;
 			} else {
 				id = await transactionsRepo.create(db, input);
 			}
-			if (isSubscription) {
-				await backfillRecurring(db, id);
-			}
-			// After the backfill, which is what moves the chain's next landing: the
-			// sweep dates its requests off that. Not awaited, and its failure is not
-			// the save's: the row is already written, so a notification the queue
-			// refused must not send this down the catch and re-enable the CTA.
-			syncSubscriptionReminders(db).catch((error) => {
-				console.error("Subscription reminder sync failed", error);
-			});
-			if (mode === "edit") {
-				onDone();
-			} else {
-				setShowToast(true);
-				// The form owns the celebration, so it has to outlive its own
-				// dismissal: Swift fired the cannon on the screen behind the sheet,
-				// which has no equivalent here without hoisting state out of the
-				// route.
-				if (celebrate) {
-					setBurstSeed(Date.now());
-				}
-				doneTimer.current = setTimeout(
-					onDone,
-					celebrate ? CONFETTI_FLIGHT_MS : 600,
-				);
-			}
 		} catch (error) {
 			console.error("Failed to save transaction", error);
+			// Nothing was written, so the retry is the same tap again — but say so
+			// first: un-dimming the CTA in silence is indistinguishable from having
+			// missed the button.
+			haptics("error");
 			setSaving(false);
+			Alert.alert(
+				t("transaction.save.failedTitle"),
+				t("transaction.save.failedBody"),
+			);
+			return;
+		}
+		// The row is COMMITTED from here down, so no failure below may re-enable the
+		// CTA: a second tap runs `create` again, which mints a fresh id rather than
+		// rewriting this row, and the ledger ends up with two subscriptions — each
+		// walked forward into its own chain of charges by the next sweep.
+		let scheduleFailed = false;
+		if (isSubscription) {
+			try {
+				await backfillRecurring(db, id);
+			} catch (error) {
+				console.error("Failed to back-fill the subscription", error);
+				scheduleFailed = true;
+			}
+		}
+		// After the backfill, which is what moves the chain's next landing: the
+		// sweep dates its requests off that. Not awaited, and its failure is not
+		// the save's: the row is already written, so a notification the queue
+		// refused must not send this down the catch and re-enable the CTA.
+		syncSubscriptionReminders(db).catch((error) => {
+			console.error("Subscription reminder sync failed", error);
+		});
+		if (scheduleFailed) {
+			haptics("error");
+			// Dismissed from the alert's own button rather than alongside it: an
+			// alert raised as the modal route is being torn down has no presenter
+			// left and never appears, which is the silence this replaces.
+			Alert.alert(
+				t("transaction.save.scheduleFailedTitle"),
+				t("transaction.save.scheduleFailedBody"),
+				[{ text: t("common.done"), onPress: onDone }],
+			);
+			return;
+		}
+		if (mode === "edit") {
+			onDone();
+		} else {
+			setShowToast(true);
+			// The form owns the celebration, so it has to outlive its own
+			// dismissal: Swift fired the cannon on the screen behind the sheet,
+			// which has no equivalent here without hoisting state out of the
+			// route.
+			if (celebrate) {
+				setBurstSeed(Date.now());
+			}
+			doneTimer.current = setTimeout(
+				onDone,
+				celebrate ? CONFETTI_FLIGHT_MS : 600,
+			);
 		}
 	};
 
