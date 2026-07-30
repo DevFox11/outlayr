@@ -8,12 +8,28 @@ const auth = {
 			es: "Cuenta",
 		}),
 		"auth.signIn.title": t({
-			en: "Sign in to open your ledger",
-			es: "Inicia sesión para abrir tu registro",
+			en: "Keep a copy of this?",
+			es: "¿Guardar una copia de esto?",
 		}),
 		"auth.signIn.body": t({
-			en: "Outlayr keeps your ledger on this device and to your account, so it survives a lost phone and follows you to the next one.",
-			es: "Outlayr guarda tu registro en este dispositivo y en tu cuenta, para que sobreviva a un teléfono perdido y te siga al siguiente.",
+			en: "Your ledger is on this phone and it stays there. An account means it survives losing the phone.",
+			es: "Tu registro está en este teléfono y ahí se queda. Una cuenta hace que sobreviva si pierdes el teléfono.",
+		}),
+		"auth.signIn.notNow": t({
+			en: "Not now — open my ledger",
+			es: "Ahora no — abrir mi registro",
+		}),
+		"auth.signIn.begun": t({
+			en: "Begun {date}.",
+			es: "Comenzado el {date}.",
+		}),
+		"auth.signIn.kept": t({
+			en: "Kept in {currency}.",
+			es: "Se lleva en {currency}.",
+		}),
+		"auth.signIn.written": t({
+			en: "Written daily at {time}.",
+			es: "Se escribe a diario a las {time}.",
 		}),
 		"auth.signIn.offline": t({
 			en: "Signing in needs a connection. Once you have, your ledger opens offline.",

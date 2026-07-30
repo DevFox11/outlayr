@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createContext, use, useEffect, useMemo, useState } from "react";
 
 import { bootstrapLocalData } from "@/data/bootstrap";
+import { settleLegacyOnboarding } from "@/data/onboarding-core";
 import { usePhotoReconcile } from "@/data/use-photo-reconcile";
 import { usePhotoSync } from "@/data/use-photo-sync";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
@@ -79,6 +80,12 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 				}
 				setStatus("seeding");
 				await bootstrapLocalData(database);
+				if (cancelled) {
+					return;
+				}
+				// Ahead of `setDb`/`ready`, so the onboarding guard's first evaluation
+				// already reads post-backfill appMeta — no third "unknown" gate state.
+				await settleLegacyOnboarding(database);
 				if (cancelled) {
 					return;
 				}

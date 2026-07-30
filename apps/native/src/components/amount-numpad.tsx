@@ -51,7 +51,10 @@ export function AmountNumpad({
 	};
 
 	return (
-		<View className="px-4">
+		// No horizontal inset of its own: the caller owns it, so the keys line up
+		// with whatever sits under them — the sheet's Done button at `px-4`, the
+		// first-run CTA at `px-6`.
+		<View>
 			<View className="items-center pt-2">
 				<Text className="font-sans text-body text-muted">
 					{t("transaction.field.amount")}

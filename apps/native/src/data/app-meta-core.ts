@@ -60,6 +60,28 @@ export const META_KEYS = {
 	 * Device-local.
 	 */
 	ledgerAdoption: "ledgerAdoption",
+	/**
+	 * Set once `settleLegacyOnboarding`'s one-time backfill has run on this
+	 * device. Without it, a device killed between `setCurrency` and
+	 * `finishOnboarding` would be indistinguishable from a pre-flow ledger and
+	 * get re-backfilled on every launch. Excluded from `SYNCED_META_KEYS`: this
+	 * records what THIS device has checked, not a fact about the account.
+	 */
+	onboardingGateMigrated: "onboardingGateMigrated",
+	/**
+	 * Written when the gate's "Not now" is taken. The ledger is local-first, so an
+	 * account only ever adds sync — this records that the offer was declined so
+	 * the gate stops standing between the user and their own entries. Excluded
+	 * from `SYNCED_META_KEYS`: it is a fact about this device, not the account.
+	 */
+	accountDeferred: "accountDeferred",
+	/**
+	 * Written when the rhythm step's reminder offer is taken. `notificationOption`
+	 * cannot stand in for it — its default is a real option, so a skipped step is
+	 * indistinguishable from a chosen one. The gate's flyleaf and the deferred OS
+	 * permission prompt both read it. Device-local.
+	 */
+	reminderChosen: "reminderChosen",
 } as const;
 
 export async function getMeta(

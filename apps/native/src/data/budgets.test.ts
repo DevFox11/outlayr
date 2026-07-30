@@ -175,6 +175,42 @@ describe("budgetsRepo.createMainBudget", () => {
 		);
 	});
 
+	it("anchors first-run's exact call shape to the 1st of the month", async () => {
+		const id = await budgetsRepo.createMainBudget(db, {
+			amount: 2400,
+			type: BUDGET_TYPE.month,
+			startDate: null,
+		});
+		const [row] = await db
+			.select()
+			.from(mainBudget)
+			.where(eq(mainBudget.id, id));
+		assert.equal(
+			row?.startDate?.getTime(),
+			startOfPeriod(new Date(), BUDGET_TYPE.month, {
+				firstWeekday: 1,
+				firstDayOfMonth: 1,
+			}).getTime(),
+		);
+	});
+
+	it("re-points the singleton on a second first-run-shaped call", async () => {
+		const first = await budgetsRepo.createMainBudget(db, {
+			amount: 2400,
+			type: BUDGET_TYPE.month,
+			startDate: null,
+		});
+		const second = await budgetsRepo.createMainBudget(db, {
+			amount: 3000,
+			type: BUDGET_TYPE.month,
+			startDate: null,
+		});
+		const rows = await db.select().from(mainBudget);
+		assert.equal(second, first);
+		assert.equal(rows.length, 1);
+		assert.equal(rows[0]?.amount, 3000);
+	});
+
 	it("re-points the singleton rather than inserting a second", async () => {
 		const first = await budgetsRepo.createMainBudget(db, {
 			amount: 1000,
