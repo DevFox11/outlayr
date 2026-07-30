@@ -5,9 +5,9 @@ import { ConvexError } from "convex/values";
 import { convexTest, type TestConvex } from "convex-test";
 import { describe, expect, test } from "vitest";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { photoKeyFor } from "./lib/photoKeys";
-import { PHOTO_URL_BATCH_LIMIT } from "./photos";
+import { PHOTO_QUOTA_BYTES, PHOTO_URL_BATCH_LIMIT } from "./photos";
 import schema from "./schema";
 import {
 	authenticatedAs,
@@ -65,6 +65,21 @@ function push(t: TestClient, who: SeededIdentity, rows: PushRows) {
 	});
 }
 
+/** Records what an object weighs, the way a confirmed upload does. */
+async function storeSize(t: TestClient, key: string, bytes: number) {
+	await t.mutation(internal.photos.recordPhotoSize, { key, bytes });
+}
+
+async function totalStored(t: TestClient, userId: string): Promise<number> {
+	return await t.run(async (ctx) => {
+		const rows = await ctx.db
+			.query("photoSizes")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.collect();
+		return rows.reduce((total, row) => total + row.bytes, 0);
+	});
+}
+
 describe("requestUpload", () => {
 	test("refuses a caller with no session", async () => {
 		const t = convexTest(schema, modules);
@@ -83,6 +98,81 @@ describe("requestUpload", () => {
 				name: "../other/a.jpg",
 			}),
 		).rejects.toThrow(ConvexError);
+	});
+
+	test("refuses once the account is at its storage ceiling", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await storeSize(t, photoKeyFor(owner.userId, "big.jpg"), PHOTO_QUOTA_BYTES);
+
+		await expect(
+			authenticatedAs(t, owner).mutation(api.photos.requestUpload, {
+				name: PHOTO,
+			}),
+		).rejects.toThrow(ConvexError);
+	});
+
+	test("mints a url while the account is still under the ceiling", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await storeSize(
+			t,
+			photoKeyFor(owner.userId, "big.jpg"),
+			PHOTO_QUOTA_BYTES - 1,
+		);
+
+		const { key } = await authenticatedAs(t, owner).mutation(
+			api.photos.requestUpload,
+			{ name: PHOTO },
+		);
+		expect(key).toBe(photoKeyFor(owner.userId, PHOTO));
+	});
+
+	test("weighs only the caller's own photos", async () => {
+		// The sum is indexed by user, so a stranger at the ceiling must not spend
+		// this account's allowance.
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const stranger = await seedAuthUser(t);
+		await storeSize(
+			t,
+			photoKeyFor(stranger.userId, "big.jpg"),
+			PHOTO_QUOTA_BYTES,
+		);
+
+		const { key } = await authenticatedAs(t, owner).mutation(
+			api.photos.requestUpload,
+			{ name: PHOTO },
+		);
+		expect(key).toBe(photoKeyFor(owner.userId, PHOTO));
+	});
+});
+
+describe("accounting for what an account stores", () => {
+	test("replaces a re-uploaded name's size instead of adding to it", async () => {
+		// A counter per account would read 300 here, and the account would be
+		// charged for bytes R2 overwrote.
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const key = photoKeyFor(owner.userId, PHOTO);
+
+		await storeSize(t, key, 100);
+		await storeSize(t, key, 200);
+
+		expect(await totalStored(t, owner.userId)).toBe(200);
+	});
+
+	test("records nothing for a key that is not a photo key", async () => {
+		const t = convexTest(schema, modules);
+		await t.mutation(internal.photos.recordPhotoSize, {
+			key: "not/a/photo/key",
+			bytes: 999,
+		});
+
+		const rows = await t.run(async (ctx) =>
+			ctx.db.query("photoSizes").collect(),
+		);
+		expect(rows).toEqual([]);
 	});
 });
 

@@ -46,3 +46,24 @@ export function photoNameFromKey(key: string): string | null {
 	}
 	return isPhotoName(segments[2]) ? segments[2] : null;
 }
+
+/**
+ * The account a key belongs to, or null if it is malformed.
+ *
+ * Only for server-side bookkeeping that already holds a trusted key — it reads
+ * the owner *out of* the key, where {@link ownsPhotoKey} checks a key against an
+ * owner the session proved. Never authorize with this: it would take the
+ * caller's word for whose object they are naming.
+ *
+ * Validated by round-trip like its sibling, so a key that merely has three
+ * segments does not pass.
+ */
+export function photoOwnerFromKey(key: string): string | null {
+	const segments = key.split("/");
+	const name = photoNameFromKey(key);
+	if (name === null) {
+		return null;
+	}
+	const userId = segments[1];
+	return userId !== "" && photoKeyFor(userId, name) === key ? userId : null;
+}
