@@ -6,11 +6,11 @@ import monoPreview from "@/assets/images/app-icon-previews/mono.png";
 import { ChoiceRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Image } from "@/components/styled";
-import { APP_ICONS } from "@/domain/app-icons";
+import { APP_ICONS, type AppIconSlug } from "@/domain/app-icons";
 import { useTranslation } from "@/i18n";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 
-const PREVIEW: Record<string, number> = {
+const PREVIEW: Record<AppIconSlug, number> = {
 	default: defaultPreview,
 	emboss: embossPreview,
 	hairline: hairlinePreview,
