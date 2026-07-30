@@ -755,6 +755,7 @@ function budgetRow(
 			currency: "USD",
 			amountUsd: 100,
 			green: false,
+			rollover: false,
 			categoryId,
 		},
 	};
@@ -919,6 +920,7 @@ describe("R3 — invariants Convex cannot hold", () => {
 						currency: "USD",
 						amountUsd: 100,
 						green: false,
+						rollover: false,
 					},
 				},
 			],

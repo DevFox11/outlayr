@@ -142,6 +142,11 @@ export const budgets = sqliteTable(
 		currency: text("currency"),
 		amountUsd: real("amountUsd"),
 		green: integer("green", { mode: "boolean" }).notNull().default(false),
+		/**
+		 * Whether an unspent (or overspent) window carries into the next one.
+		 * Off by default, so an existing budget keeps meaning exactly what it did.
+		 */
+		rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
 		categoryId: text("categoryId")
 			.references(() => categories.id, { onDelete: "cascade" })
 			.unique(),
@@ -167,6 +172,11 @@ export const mainBudget = sqliteTable(
 		currency: text("currency"),
 		amountUsd: real("amountUsd"),
 		green: integer("green", { mode: "boolean" }).notNull().default(false),
+		/**
+		 * Whether an unspent (or overspent) window carries into the next one.
+		 * Off by default, so an existing budget keeps meaning exactly what it did.
+		 */
+		rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},

@@ -340,6 +340,7 @@ describe("pullSince", () => {
 					currency: "USD",
 					amountUsd: 100,
 					green: false,
+					rollover: false,
 					categoryId: "c1",
 				},
 			},

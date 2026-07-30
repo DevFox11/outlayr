@@ -47,6 +47,8 @@ export interface CreateBudgetInput {
 	name?: string | null;
 	/** Explicit anchor; omitted anchors to the start of the current period. */
 	startDate?: Date | null;
+	/** Carries an unspent or overspent window into the next one. */
+	rollover?: boolean;
 }
 
 export interface CreateMainBudgetInput {
@@ -54,6 +56,8 @@ export interface CreateMainBudgetInput {
 	type: number;
 	name?: string | null;
 	startDate?: Date | null;
+	/** Omitted leaves an existing budget's setting alone; see `upsertMainBudget`. */
+	rollover?: boolean;
 }
 
 /** Blank names are stored as null so the views keep their own fallback label. */
@@ -98,6 +102,7 @@ export const TOMBSTONED_BUDGET = {
 	currency: null,
 	amountUsd: null,
 	green: false,
+	rollover: false,
 	categoryId: null,
 } as const;
 
@@ -110,6 +115,7 @@ export const TOMBSTONED_MAIN_BUDGET = {
 	currency: null,
 	amountUsd: null,
 	green: false,
+	rollover: false,
 } as const;
 
 export const budgetsRepo = {
@@ -126,6 +132,7 @@ export const budgetsRepo = {
 			startDate: start,
 			dateCreated: now,
 			green: false,
+			rollover: input.rollover ?? false,
 			updatedAt: now,
 			deletedAt: null,
 		});
@@ -158,6 +165,9 @@ export const budgetsRepo = {
 					...(await budgetLimit(db, input.amount, start)),
 					type: input.type,
 					startDate: start,
+					// Only when supplied, for the same reason `name` is guarded: the
+					// form opens on Overall without it and would otherwise turn it off.
+					...(input.rollover === undefined ? {} : { rollover: input.rollover }),
 					updatedAt: now,
 				})
 				.where(eq(mainBudget.id, existing[0].id));
@@ -172,6 +182,7 @@ export const budgetsRepo = {
 			startDate: start,
 			dateCreated: now,
 			green: false,
+			rollover: input.rollover ?? false,
 			updatedAt: now,
 			deletedAt: null,
 		});
@@ -193,6 +204,7 @@ export const budgetsRepo = {
 				type: input.type,
 				categoryId: input.categoryId,
 				startDate: start,
+				rollover: input.rollover ?? false,
 				updatedAt: now,
 			})
 			.where(eq(budgets.id, id));

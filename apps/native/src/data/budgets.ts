@@ -19,6 +19,7 @@ import {
 	periodsBackTo,
 	shiftWindow,
 } from "@/domain/budget-math";
+import { effectiveLimit, rolloverCarry } from "@/domain/budget-rollover";
 import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
 import {
 	type ExpenseContribution,
@@ -47,7 +48,13 @@ export interface CategoryBudgetView {
 	name: string;
 	color: string;
 	icon: string | null;
+	/** The target this window actually runs on: `limit` plus any carry, floored at zero. */
 	amount: number;
+	/** The target as set, before anything carried into it. */
+	limit: number;
+	/** Signed: unspent allowance inherited, or an overspend still being paid off. */
+	carry: number;
+	rollover: boolean;
 	type: number;
 	window: BudgetWindow;
 	spent: number;
@@ -58,7 +65,13 @@ export interface CategoryBudgetView {
 export interface MainBudgetView {
 	id: string;
 	name: string;
+	/** The target this window runs on: `limit` plus any carry, floored at zero. */
 	amount: number;
+	/** The target as set, before anything carried into it. */
+	limit: number;
+	/** Signed: unspent allowance inherited, or an overspend still being paid off. */
+	carry: number;
+	rollover: boolean;
 	type: number;
 	window: BudgetWindow;
 	spent: number;
@@ -162,11 +175,26 @@ export function useMainBudget(
 			window.start,
 			new Date(windowEndMs(window, nowMs)),
 		);
-		const amount = limitIn(row, window.start, displayCurrency, rates);
+		const limit = limitIn(row, window.start, displayCurrency, rates);
+		// Anchored on the window being VIEWED, not on today's: stepping back to
+		// March must show what March actually inherited, not what this month did.
+		const carry = row.rollover
+			? rolloverCarry({
+					anchor: row.dateCreated ?? window.start,
+					current: window,
+					type: row.type,
+					limit,
+					spentIn: (start, end) => spentForMain(contributions, start, end),
+				}).credit
+			: 0;
+		const amount = effectiveLimit(limit, carry);
 		return {
 			id: row.id,
 			name: row.name?.trim() ? row.name.trim() : "Overall Budget",
 			amount,
+			limit,
+			carry,
+			rollover: row.rollover,
 			type: row.type,
 			window,
 			spent,
@@ -266,7 +294,27 @@ export function usePerCategoryBudgets(
 			const meta = row.categoryId
 				? categoryMeta.get(row.categoryId)
 				: undefined;
-			const amount = limitIn(row, window.start, displayCurrency, rates);
+			const limit = limitIn(row, window.start, displayCurrency, rates);
+			// Every closed window since the anchor, but only when the budget asked
+			// for it: the walk costs one spend pass per window, and a budget that
+			// does not roll over must not pay for one.
+			const carry =
+				row.rollover && row.categoryId
+					? rolloverCarry({
+							anchor: row.dateCreated ?? window.start,
+							current: window,
+							type: row.type,
+							limit,
+							spentIn: (start, end) =>
+								spentForCategory(
+									contributions,
+									row.categoryId as string,
+									start,
+									end,
+								),
+						}).credit
+					: 0;
+			const amount = effectiveLimit(limit, carry);
 			return {
 				id: row.id,
 				categoryId: row.categoryId,
@@ -274,6 +322,9 @@ export function usePerCategoryBudgets(
 				color: meta?.color ?? "#767676",
 				icon: meta?.icon ?? null,
 				amount,
+				limit,
+				carry,
+				rollover: row.rollover,
 				type: row.type,
 				window,
 				spent,
@@ -360,6 +411,11 @@ export function useCategoryBudget(
 	);
 
 	const earliest = useEarliestContribution(db, row?.categoryId ?? null);
+	// Only the carry needs history beyond this window, and only when the budget
+	// rolls over. It is the same read the list uses, so the two screens cannot
+	// disagree about what a window inherited — a list saying one figure and the
+	// detail behind it saying another is worse than not carrying at all.
+	const contributions = useExpenseContributions(db, nowMs);
 
 	const budget = useMemo(() => {
 		if (!row || !window) {
@@ -369,7 +425,24 @@ export function useCategoryBudget(
 		// `useExpenseContributions`, so the conversion has to happen here.
 		const spent = sumValuedIn(transactions, displayCurrency, rates);
 		const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-		const amount = limitIn(row, window.start, displayCurrency, rates);
+		const limit = limitIn(row, window.start, displayCurrency, rates);
+		const carry =
+			row.rollover && row.categoryId
+				? rolloverCarry({
+						anchor: row.dateCreated ?? window.start,
+						current: window,
+						type: row.type,
+						limit,
+						spentIn: (start, end) =>
+							spentForCategory(
+								contributions,
+								row.categoryId as string,
+								start,
+								end,
+							),
+					}).credit
+				: 0;
+		const amount = effectiveLimit(limit, carry);
 		return {
 			id: row.id,
 			categoryId: row.categoryId,
@@ -377,13 +450,24 @@ export function useCategoryBudget(
 			color: meta?.color ?? "#767676",
 			icon: meta?.icon ?? null,
 			amount,
+			limit,
+			carry,
+			rollover: row.rollover,
 			type: row.type,
 			window,
 			spent,
 			leftover: amount - spent,
 			overBudget: spent > amount,
 		};
-	}, [row, window, transactions, categoryMeta, displayCurrency, rates]);
+	}, [
+		row,
+		window,
+		transactions,
+		categoryMeta,
+		displayCurrency,
+		rates,
+		contributions,
+	]);
 
 	const periodsBack =
 		current && row ? periodsBackTo(current.start, row.type, earliest) : 0;
