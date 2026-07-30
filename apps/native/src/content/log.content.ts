@@ -75,6 +75,10 @@ const log = {
 			en: "Currency",
 			es: "Moneda",
 		}),
+		"log.insights.currencyManage": t({
+			en: "Edit favourites…",
+			es: "Editar favoritas…",
+		}),
 		"log.insights.currencyShown": t({
 			en: "Currency shown",
 			es: "Moneda mostrada",

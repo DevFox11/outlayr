@@ -5,7 +5,9 @@ import { SectionList } from "react-native";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoryMeta } from "@/data/categories";
+import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import {
 	useFilteredTransactions,
 	useUpcomingTransactions,
@@ -20,10 +22,11 @@ import {
 import { setNumberSetting, useAllSettings } from "@/data/settings";
 import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
-import { useValuation } from "@/data/use-valuation";
+import { useValuationIn } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { addDays, addMonths, startOfDay } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
+import { logCurrencyOptions } from "@/domain/log-currency-options";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
 import {
@@ -103,7 +106,16 @@ function useSparkline(
 function LogContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
-	const { displayCurrency: currency, rates } = useValuation(db);
+	// Screen state, never a setting: writing the choice to `appMeta` would also
+	// restate what the ledger is kept in, which is what the next transaction gets
+	// recorded in. Null means the screen follows the ledger's currency.
+	const [displayOverride, setDisplayOverride] = useState<string | null>(null);
+	const globalCurrency = useGlobalCurrency(db);
+	const favouriteCurrencies = useFavouriteCurrencies(db);
+	const { displayCurrency: currency, rates } = useValuationIn(
+		db,
+		displayOverride ?? globalCurrency,
+	);
 	// Every preference off one subscription: a per-key hook would register a
 	// separate `appMeta` listener each, and each fires on any write to the table.
 	const settings = useAllSettings(db);
@@ -116,10 +128,6 @@ function LogContent({ db }: { db: Database }) {
 	const measure = logMeasureFromStored(settings.number("logInsightsType"));
 	const [nowMs] = useState(() => Date.now());
 
-	// Null means "whichever currency the period leads with". A scope is only
-	// pinned by choosing one, and the pin lapses once that currency stops
-	// appearing in the period.
-	const [scopeCurrency, setScopeCurrency] = useState<string | null>(null);
 	const [filter, setFilter] = useState<LogFilter>("all");
 	const [categoryId, setCategoryId] = useState<string | null>(null);
 	const [income, setIncome] = useState(false);
@@ -163,6 +171,18 @@ function LogContent({ db }: { db: Database }) {
 		settings.bool("showUpcomingSoon"),
 	);
 	const insights = useLogInsights(db, nowMs, period, currency, rates);
+	const currencyOptions = useMemo(
+		() =>
+			logCurrencyOptions({
+				global: globalCurrency,
+				favourites: favouriteCurrencies,
+				produced: insights.perCurrency.map((figures) => figures.currencyCode),
+				// USD is the canonical side of every stored rate, so it needs no row of
+				// its own to be reachable.
+				convertible: (code) => code === "USD" || rates.earliest(code) !== null,
+			}),
+		[globalCurrency, favouriteCurrencies, insights, rates],
+	);
 	const sparkline = useSparkline(
 		db,
 		nowMs,
@@ -268,8 +288,10 @@ function LogContent({ db }: { db: Database }) {
 									);
 								}}
 								period={period}
-								scopeCurrency={scopeCurrency}
-								onScopeCurrency={setScopeCurrency}
+								displayCurrency={currency}
+								currencyOptions={currencyOptions}
+								onDisplayCurrency={setDisplayOverride}
+								onManageCurrencies={() => router.push("/settings/currency")}
 								showCents={showCents}
 								sparkline={sparkline}
 							/>

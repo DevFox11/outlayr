@@ -143,7 +143,6 @@ export interface LogInsights {
 	others: LogFigures[];
 	/** Dominant first, then the rest. */
 	perCurrency: LogFigures[];
-	isMultiCurrency: boolean;
 }
 
 /**
@@ -181,7 +180,6 @@ export function useLogInsights(
 			dominant,
 			others,
 			perCurrency: [dominant, ...others],
-			isMultiCurrency: others.length > 0,
 		};
 	}, [rows, globalCurrency, rates]);
 }

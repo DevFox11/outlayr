@@ -31,12 +31,18 @@ interface LogInsightsProps {
 	measure: LogMeasure;
 	onMeasure: (measure: LogMeasure) => void;
 	period: LogPeriod;
+	/** The currency the whole screen is being read in. */
+	displayCurrency: string;
+	/** What the chip offers, ledger currency first — see `logCurrencyOptions`. */
+	currencyOptions: readonly string[];
+	/** Null puts the screen back in the ledger's own currency. */
+	onDisplayCurrency: (code: string | null) => void;
 	/**
-	 * The pinned currency scope, or null for "whichever currency the period leads
-	 * with". A pin is dropped once that currency stops appearing in the period.
+	 * Opens the screen that curates favourites. Without a route in from here, a
+	 * ledger kept in one currency offers a single option and the chip is a control
+	 * that cannot do anything.
 	 */
-	scopeCurrency: string | null;
-	onScopeCurrency: (code: string) => void;
+	onManageCurrencies: () => void;
 	showCents: boolean;
 	sparkline?: SparklineData | null;
 }
@@ -57,16 +63,19 @@ export function LogInsights({
 	measure,
 	onMeasure,
 	period,
-	scopeCurrency,
-	onScopeCurrency,
+	displayCurrency,
+	currencyOptions,
+	onDisplayCurrency,
+	onManageCurrencies,
 	showCents,
 	sparkline = null,
 }: LogInsightsProps) {
 	const t = useTranslation();
+	// The buckets are already expressed in `displayCurrency`; it only fails to
+	// name one when nothing in the period could be placed there.
 	const figures =
-		(scopeCurrency
-			? insights.perCurrency.find((f) => f.currencyCode === scopeCurrency)
-			: undefined) ?? insights.dominant;
+		insights.perCurrency.find((f) => f.currencyCode === displayCurrency) ??
+		insights.dominant;
 	const alsoThisPeriod = insights.perCurrency.filter(
 		(f) => f.currencyCode !== figures.currencyCode,
 	);
@@ -79,13 +88,20 @@ export function LogInsights({
 					{`${t(MEASURE_WORD_KEY[measure])} · ${t(PERIOD_PHRASE_KEY[period])}`}
 				</MonoLabel>
 				<View className="flex-1" />
-				{insights.isMultiCurrency ? (
-					<CurrencyScopeChip
-						code={figures.currencyCode}
-						options={insights.perCurrency}
-						onSelect={onScopeCurrency}
-					/>
-				) : null}
+				<DisplayCurrencyChip
+					// The figures' own currency, not the requested one: when nothing in
+					// the period could be placed in `displayCurrency` the numbers fall
+					// back to the dominant bucket, and a chip still naming the request
+					// would label the screen as something it is not.
+					code={figures.currencyCode}
+					options={currencyOptions}
+					onSelect={(code) =>
+						// The list leads with the ledger's own currency, so choosing it is
+						// the way out of an override rather than an override onto itself.
+						onDisplayCurrency(code === currencyOptions[0] ? null : code)
+					}
+					onManage={onManageCurrencies}
+				/>
 			</View>
 
 			<View className="pt-1">
@@ -190,25 +206,45 @@ function AlsoPill({
 	);
 }
 
-function CurrencyScopeChip({
+/**
+ * Namespaced so it cannot collide with a currency code, which is what every
+ * other action in this menu is identified by.
+ */
+const MANAGE_CURRENCIES_ACTION = "log.currency.manage";
+
+function DisplayCurrencyChip({
 	code,
 	options,
 	onSelect,
+	onManage,
 }: {
 	code: string;
-	options: LogFigures[];
+	options: readonly string[];
 	onSelect: (code: string) => void;
+	onManage: () => void;
 }) {
 	const t = useTranslation();
 	return (
 		<MenuView
 			title={t("log.insights.currency")}
-			actions={options.map((entry) => ({
-				id: entry.currencyCode,
-				title: entry.currencyCode,
-				state: entry.currencyCode === code ? "on" : "off",
-			}))}
-			onPressAction={({ nativeEvent }) => onSelect(nativeEvent.event)}
+			actions={[
+				...options.map((option) => ({
+					id: option,
+					title: option,
+					state: (option === code ? "on" : "off") as "on" | "off",
+				})),
+				{
+					id: MANAGE_CURRENCIES_ACTION,
+					title: t("log.insights.currencyManage"),
+				},
+			]}
+			onPressAction={({ nativeEvent }) => {
+				if (nativeEvent.event === MANAGE_CURRENCIES_ACTION) {
+					onManage();
+					return;
+				}
+				onSelect(nativeEvent.event);
+			}}
 			shouldOpenOnLongPress={false}
 		>
 			<View
