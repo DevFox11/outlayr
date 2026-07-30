@@ -443,6 +443,10 @@ const settings = {
 			en: "Favourites",
 			es: "Favoritas",
 		}),
+		"settings.currency.all": t({
+			en: "All currencies",
+			es: "Todas las monedas",
+		}),
 		"settings.currency.favourite": t({
 			en: "Add {code} to favourites",
 			es: "Agregar {code} a favoritas",

@@ -3,7 +3,7 @@ import {
 	BottomSheetModal,
 	BottomSheetTextInput,
 } from "@expo/ui/community/bottom-sheet";
-import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { CURRENCY_META } from "@outlayr/money";
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
@@ -13,6 +13,11 @@ import {
 	useFavouriteCurrencies,
 } from "@/data/favourite-currencies";
 import {
+	type CurrencyCode,
+	type CurrencyPickerRow,
+	currencyPickerRows,
+} from "@/domain/currency-picker-rows";
+import {
 	FAVOURITE_CURRENCY_LIMIT,
 	isFavourite,
 } from "@/domain/favourite-currencies";
@@ -21,23 +26,9 @@ import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
 
-type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
-
 interface CurrencyPickerSheetProps {
 	selected: string;
 	onSelect: (code: string) => void;
-}
-
-const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
-	PICKABLE_CURRENCY_CODES.map((code): [string, CurrencyCode] => [code, code]),
-);
-
-type Row =
-	| { kind: "header"; key: string }
-	| { kind: "currency"; key: string; code: CurrencyCode; favourite: boolean };
-
-function currencyRow(code: CurrencyCode, favourite: boolean, key: string): Row {
-	return { kind: "currency", key, code, favourite };
 }
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
@@ -54,35 +45,10 @@ export const CurrencyPickerSheet = forwardRef<
 	const { db } = useLocalData();
 	const favourites = useFavouriteCurrencies(db);
 
-	const rows = useMemo<readonly Row[]>(() => {
-		const trimmed = query.trim().toLowerCase();
-		const matches =
-			trimmed === ""
-				? PICKABLE_CURRENCY_CODES
-				: PICKABLE_CURRENCY_CODES.filter(
-						(code) =>
-							code.toLowerCase().includes(trimmed) ||
-							CURRENCY_META[code].name.toLowerCase().includes(trimmed),
-					);
-		const full = matches.map((code) =>
-			currencyRow(code, isFavourite(favourites, code), code),
-		);
-		// A search is already the shortcut: clustering on top of it would push the
-		// match the user typed below the fold.
-		if (trimmed !== "" || favourites.length === 0) {
-			return full;
-		}
-		// The cluster repeats its codes rather than lifting them out of the list
-		// below: an alphabet with holes punched in it is harder to scan than one
-		// with a shortcut above it.
-		const cluster = favourites.flatMap((favourite) => {
-			const code = BY_CODE.get(favourite);
-			return code === undefined
-				? []
-				: [currencyRow(code, true, `favourite:${code}`)];
-		});
-		return [{ kind: "header", key: "favourites" }, ...cluster, ...full];
-	}, [favourites, query]);
+	const rows = useMemo<readonly CurrencyPickerRow[]>(
+		() => currencyPickerRows(favourites, query),
+		[favourites, query],
+	);
 
 	// The refusal is read off the list the write actually produced, not off
 	// `favourites.length` at press time: toggles are serialised, so a row rendered
@@ -146,13 +112,17 @@ export const CurrencyPickerSheet = forwardRef<
 
 				<BottomSheetFlatList
 					data={rows}
-					keyExtractor={(row: Row) => row.key}
+					keyExtractor={(row: CurrencyPickerRow) => row.key}
 					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
 					keyboardShouldPersistTaps="handled"
-					renderItem={({ item: row }: { item: Row }) =>
+					renderItem={({ item: row }: { item: CurrencyPickerRow }) =>
 						row.kind === "header" ? (
-							<MonoLabel className="pt-2 pb-1">
-								{t("settings.currency.favourites")}
+							<MonoLabel className="pt-4 pb-1">
+								{t(
+									row.section === "favourites"
+										? "settings.currency.favourites"
+										: "settings.currency.all",
+								)}
 							</MonoLabel>
 						) : (
 							<CurrencyRow
