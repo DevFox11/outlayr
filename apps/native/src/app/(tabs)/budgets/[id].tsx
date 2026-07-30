@@ -6,6 +6,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { budgetsRepo, useCategoryBudget } from "@/data/budgets";
 import { useBoolSetting } from "@/data/settings";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
@@ -42,7 +43,7 @@ function BudgetDetail({
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 	const [periodOffset, setPeriodOffset] = useState(0);
 	const { budget, transactions, periodsBack } = useCategoryBudget(
 		db,

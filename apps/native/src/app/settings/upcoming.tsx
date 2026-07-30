@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { View } from "react-native";
 import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
@@ -8,6 +7,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
@@ -27,7 +27,7 @@ function UpcomingContent({ db }: { db: Database }) {
 	const { displayCurrency: currency, rates } = useValuation(db);
 	const showUpcoming = settings.bool("showUpcoming");
 	const showSoon = settings.bool("showUpcomingSoon");
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 	// Unlimited whatever the 14-day toggle says, matching Swift's
 	// `limitedMode: false` and the promise the footer above makes.
 	const scheduled = useUpcomingTransactions(db, nowMs, false);

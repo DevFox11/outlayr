@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -14,6 +14,7 @@ import {
 	usePerCategoryBudgets,
 } from "@/data/budgets";
 import { useBoolSetting } from "@/data/settings";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
@@ -44,7 +45,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const asRows = useBoolSetting(db, "budgetViewStyle");
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 
 	// One transactions subscription for the screen: every hook below derives from
 	// this list rather than opening its own listener.

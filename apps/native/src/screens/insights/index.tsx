@@ -22,7 +22,9 @@ import {
 } from "@/data/insights";
 import { useWindowTransactions } from "@/data/insights-transactions";
 import { setNumberSetting, useAllSettings } from "@/data/settings";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useInsights } from "@/data/use-insights";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
 	insightsMeasureAlternatives,
@@ -36,6 +38,7 @@ import {
 import { insightsVerdict } from "@/domain/insights-verdict";
 import { formatAmount } from "@/domain/money";
 import { type TranslationKey, useTranslation } from "@/i18n";
+import { UndoToast } from "@/screens/log/components/undo-toast";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryBreakdownRow } from "./components/category-breakdown-row";
@@ -77,7 +80,7 @@ function InsightsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const currency = useGlobalCurrency(db);
 	const settings = useAllSettings(db);
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 
 	const showCents = settings.bool("showCents");
 	const showSign = settings.bool("showExpenseOrIncomeSign");
@@ -315,6 +318,11 @@ function InsightsContent({ db }: { db: Database }) {
 	}, [lockedBucket, filterId, measure, nowMs, result.start, result.end]);
 
 	const listTransactions = useWindowTransactions(db, listQuery);
+	// Held here, not in the list: clearing the chart selection unmounts the list,
+	// and the hook flushes its pending write on unmount — so a delete owned down
+	// there would commit the instant the row's own list went away, before the undo
+	// window had run and before the toast offering it could be tapped.
+	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 	// Only a single day reads better ungrouped — every row would share one header.
 	const listGrouped = !(lockedBucket && period !== "year");
 
@@ -555,6 +563,8 @@ function InsightsContent({ db }: { db: Database }) {
 							currency={currency}
 							grouped={listGrouped}
 							onPress={(id) => router.push(`/transaction/${id}`)}
+							onRequestDelete={requestDelete}
+							pendingDeleteId={pendingId}
 							showCents={showCents}
 							showSign={showSign}
 							swapTimeLabel={swapTimeLabel}
@@ -563,6 +573,7 @@ function InsightsContent({ db }: { db: Database }) {
 					</View>
 				) : null}
 			</ScrollView>
+			<UndoToast onUndo={undo} visible={pendingId != null} />
 		</>
 	);
 }

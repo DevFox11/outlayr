@@ -11,6 +11,7 @@ import {
 	windowEndMs,
 } from "@/data/budgets";
 import { useBoolSetting } from "@/data/settings";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
@@ -51,7 +52,7 @@ function MainBudgetDetail({
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 	const [periodOffset, setPeriodOffset] = useState(0);
 	const contributions = useExpenseContributions(db, nowMs);
 	const budget = useMainBudget(db, nowMs, contributions, periodOffset);

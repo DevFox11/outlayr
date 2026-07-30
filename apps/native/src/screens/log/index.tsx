@@ -22,6 +22,7 @@ import {
 import { setNumberSetting, useAllSettings } from "@/data/settings";
 import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { addDays, addMonths, startOfDay } from "@/domain/dates";
@@ -126,12 +127,14 @@ function LogContent({ db }: { db: Database }) {
 	const firstWeekday = settings.number("firstWeekday");
 	const period = logPeriodFromStored(settings.number("logInsightsTimeFrame"));
 	const measure = logMeasureFromStored(settings.number("logInsightsType"));
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 
 	const [filter, setFilter] = useState<LogFilter>("all");
 	const [categoryId, setCategoryId] = useState<string | null>(null);
 	const [income, setIncome] = useState(false);
-	// One cursor per period unit, so switching between them leaves each where it was.
+	// One cursor per period unit, so switching between them leaves each where it
+	// was. Seeded once: re-seeding as the clock ticks would step the calendar
+	// filters out from under the user.
 	const [cursors, setCursors] = useState<Record<string, Date>>(() => ({
 		day: new Date(nowMs),
 		week: new Date(nowMs),
