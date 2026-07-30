@@ -312,7 +312,11 @@ async function seedPreWindowBacklog(
 }
 
 describe("pruneStale", () => {
-	test("deletes stale pre-window rows, keeps the per-pair anchor and all in-window rows", async () => {
+	test("keeps one pre-window row per month and every in-window row", async () => {
+		// 100 and 120 days back are both in March 2026, so only the newer survives;
+		// 200 days back is December 2025 and keeps its own anchor. A single anchor
+		// per pair would drop December entirely and leave anything older than the
+		// window valuing at face value for good.
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
 		const t = convexTest(schema, modules);
@@ -324,11 +328,24 @@ describe("pruneStale", () => {
 		await runPruneToCompletion(t);
 
 		expect(await allRateDates(t, "VES")).toEqual(
-			[daysAgoDate(100), daysAgoDate(5)].sort(),
+			[daysAgoDate(200), daysAgoDate(100), daysAgoDate(5)].sort(),
 		);
 	});
 
-	test("keeps the newest pre-window row for non-catalog pairs too", async () => {
+	test("collapses several rows in one month down to that month's newest", async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
+		const t = convexTest(schema, modules);
+		await seedOfficialRate(t, "VES", "2026-01-04");
+		await seedOfficialRate(t, "VES", "2026-01-17");
+		await seedOfficialRate(t, "VES", "2026-01-29");
+
+		await runPruneToCompletion(t);
+
+		expect(await allRateDates(t, "VES")).toEqual(["2026-01-29"]);
+	});
+
+	test("keeps the monthly anchors of non-catalog pairs too", async () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
 		const t = convexTest(schema, modules);
@@ -337,7 +354,9 @@ describe("pruneStale", () => {
 
 		await runPruneToCompletion(t);
 
-		expect(await allRateDates(t, "XXX")).toEqual([daysAgoDate(100)]);
+		expect(await allRateDates(t, "XXX")).toEqual(
+			[daysAgoDate(200), daysAgoDate(100)].sort(),
+		);
 	});
 
 	test("completes across self-scheduled batches when stale rows exceed one batch", async () => {
@@ -348,7 +367,14 @@ describe("pruneStale", () => {
 
 		await runPruneToCompletion(t);
 
-		expect(await allRateDates(t, "VES")).toEqual([daysAgoDate(91)]);
+		// 250 consecutive days collapse to one row per calendar month, and the
+		// newest survivor is still the row adjacent to the boundary.
+		const survivors = await allRateDates(t, "VES");
+		expect(survivors).toContain(daysAgoDate(91));
+		expect(new Set(survivors.map((date) => date.slice(0, 7))).size).toBe(
+			survivors.length,
+		);
+		expect(survivors.length).toBeLessThan(12);
 	});
 
 	test("a pass started before a clock advance keeps pruning against its original boundary", async () => {
@@ -370,8 +396,20 @@ describe("pruneStale", () => {
 		vi.setSystemTime(new Date("2026-07-06T12:00:00Z"));
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-		expect(await allRateDates(t, "VES")).toEqual(
-			[originalAnchor, ...nearBoundaryInWindow].sort(),
+		// The point is the boundary, not the count: the near-boundary rows must
+		// still be classed as in-window, and the original pass's newest pre-window
+		// row must survive. A per-batch recompute would have deleted both.
+		const survivors = await allRateDates(t, "VES");
+		expect(survivors).toContain(originalAnchor);
+		for (const date of nearBoundaryInWindow) {
+			expect(survivors).toContain(date);
+		}
+		expect(new Set(survivors.map((date) => date.slice(0, 7))).size).toBe(
+			new Set(
+				survivors
+					.filter((date) => date < originalAnchor)
+					.map((date) => date.slice(0, 7)),
+			).size + 1,
 		);
 	});
 
@@ -407,8 +445,11 @@ describe("pruneStale", () => {
 		const dates = result.rows
 			.filter((r) => r.quote === "VES")
 			.map((r) => r.date);
-		expect(dates).toHaveLength(2);
+		// All three: the in-window row plus both monthly anchors. Serving only the
+		// newest anchor is what left anything older than it on face value.
+		expect(dates).toHaveLength(3);
 		expect(dates).toContain(daysAgoDate(10));
 		expect(dates).toContain(daysAgoDate(100));
+		expect(dates).toContain(daysAgoDate(200));
 	});
 });
