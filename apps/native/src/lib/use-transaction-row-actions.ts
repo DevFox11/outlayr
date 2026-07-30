@@ -1,9 +1,38 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
+import { Alert } from "react-native";
 import { getTransactionById, transactionsRepo } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import { transactionRowActions } from "@/domain/transaction-actions";
+import { translateNow } from "@/i18n/runtime";
 import { showTransactionActions } from "./transaction-actions";
+
+/**
+ * Never rejects: the action sheet is already dismissed when the write lands, so
+ * a silent failure looks exactly like a stop that worked while the schedule is
+ * still live — and the next foreground sweep then writes the very charge the
+ * user asked to end. Say so instead, and keep the retry one tap away.
+ */
+async function stopRecurring(db: Database, id: string): Promise<void> {
+	try {
+		await transactionsRepo.stopRecurring(db, id);
+	} catch (error) {
+		console.error("Stop recurring failed", error);
+		Alert.alert(
+			translateNow("transaction.stopRecurring.failedTitle"),
+			translateNow("transaction.stopRecurring.failedBody"),
+			[
+				{ text: translateNow("common.cancel"), style: "cancel" },
+				{
+					text: translateNow("common.retry"),
+					onPress: () => {
+						void stopRecurring(db, id);
+					},
+				},
+			],
+		);
+	}
+}
 
 /**
  * Opens a row's action menu. `future` says the row is being painted as an
@@ -37,9 +66,7 @@ export function useTransactionRowActions(
 				}),
 				pending: row.date.getTime() > now.getTime(),
 				onStopRecurring: () => {
-					transactionsRepo.stopRecurring(db, id).catch((error) => {
-						console.error("Stop recurring failed", error);
-					});
+					void stopRecurring(db, id);
 				},
 				onEdit: () => router.push(`/transaction/${id}`),
 				onDelete: () => onDelete(id),

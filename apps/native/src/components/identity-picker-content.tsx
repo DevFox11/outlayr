@@ -201,7 +201,7 @@ export function IdentityPickerContent({
 		});
 	};
 
-	const pickPhoto = async () => {
+	const adoptPickedPhoto = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ["images"],
 			allowsEditing: true,
@@ -214,10 +214,12 @@ export function IdentityPickerContent({
 		const picked = result.assets[0].uri;
 		// A failed copy still leaves a usable picture for this session, and the
 		// launch reconcile adopts it while the cache entry survives.
-		const uri = await persistPickedPhoto(picked).catch((error) => {
+		const uri = await persistPickedPhoto(picked).catch((error: unknown) => {
 			console.error("Failed to store the picked photo", error);
 			return picked;
 		});
+		// An unreadable image costs the extracted tint alone: `glowFromImage`
+		// resolves to `[]` rather than rejecting, so the photo is still adopted.
 		const hues = await glowFromImage(uri);
 		onChange({
 			emoji: null,
@@ -225,6 +227,15 @@ export function IdentityPickerContent({
 			photoUri: uri,
 			photoColor: hues[0] ?? null,
 			color: value.color,
+		});
+	};
+
+	// The library launch itself can reject — a revoked permission, a host torn
+	// down mid-pick — and a rejection escaping the press handler would dismiss
+	// the picker with the well unchanged and nothing said.
+	const pickPhoto = () => {
+		adoptPickedPhoto().catch((error: unknown) => {
+			console.error("Failed to pick a photo", error);
 		});
 	};
 

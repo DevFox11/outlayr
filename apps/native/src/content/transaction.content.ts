@@ -19,6 +19,14 @@ const transaction = {
 			en: "This action cannot be undone.",
 			es: "Esta acción no se puede deshacer.",
 		}),
+		"transaction.stopRecurring.failedTitle": t({
+			en: "Still recurring",
+			es: "La recurrencia sigue activa",
+		}),
+		"transaction.stopRecurring.failedBody": t({
+			en: "The schedule couldn't be stopped, so the next charge will still be logged.",
+			es: "No se pudo detener la programación, así que el próximo cargo se registrará igual.",
+		}),
 		"transaction.kind.once": t({
 			en: "One-time",
 			es: "Único",
