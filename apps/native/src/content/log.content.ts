@@ -207,6 +207,10 @@ const log = {
 			en: "UPCOMING",
 			es: "PRÓXIMOS",
 		}),
+		"log.upcoming.perMonth": t({
+			en: "PER MONTH",
+			es: "AL MES",
+		}),
 	},
 } satisfies Dictionary;
 

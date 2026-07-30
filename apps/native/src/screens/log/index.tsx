@@ -124,6 +124,7 @@ function LogContent({ db }: { db: Database }) {
 	const showCents = settings.bool("showCents");
 	const showSign = settings.bool("showExpenseOrIncomeSign");
 	const swapTimeLabel = settings.bool("swapTimeLabel");
+	const use24Hour = settings.bool("use24HourClock");
 	const showUpcoming = settings.bool("showUpcoming");
 	const firstWeekday = settings.number("firstWeekday");
 	const period = logPeriodFromStored(settings.number("logInsightsTimeFrame"));
@@ -222,8 +223,8 @@ function LogContent({ db }: { db: Database }) {
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 	const cardOptions = useMemo(
-		() => ({ currency, showCents, showSign, swapTimeLabel }),
-		[currency, showCents, showSign, swapTimeLabel],
+		() => ({ currency, showCents, showSign, swapTimeLabel, use24Hour }),
+		[currency, showCents, showSign, swapTimeLabel, use24Hour],
 	);
 	const shareDay = useDayCardShare(cardOptions);
 
@@ -240,7 +241,7 @@ function LogContent({ db }: { db: Database }) {
 
 	const showUpcomingSection =
 		filter === "upcoming" || (filter === "all" && showUpcoming);
-	const upcomingRows = showUpcomingSection ? upcoming : [];
+	const upcomingRows = showUpcomingSection ? upcoming.rows : [];
 	const emptyResult =
 		sections.length === 0 &&
 		(filter !== "upcoming" || upcomingRows.length === 0);
@@ -342,6 +343,7 @@ function LogContent({ db }: { db: Database }) {
 						{showUpcomingSection ? (
 							<LogUpcoming
 								transactions={upcomingRows}
+								schedules={upcoming.schedules}
 								currency={currency}
 								rates={rates}
 								onPress={(id) => router.push(`/transaction/${id}`)}
@@ -349,6 +351,7 @@ function LogContent({ db }: { db: Database }) {
 								showCents={showCents}
 								showSign={showSign}
 								swapTimeLabel={swapTimeLabel}
+								use24Hour={use24Hour}
 								nowMs={nowMs}
 							/>
 						) : null}
@@ -374,6 +377,7 @@ function LogContent({ db }: { db: Database }) {
 						showCents={showCents}
 						showSign={showSign}
 						swapTimeLabel={swapTimeLabel}
+						use24Hour={use24Hour}
 					/>
 				)}
 			/>

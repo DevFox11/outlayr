@@ -177,6 +177,17 @@ export function useFilteredTransactions(
 	return useDecorated(db, rows);
 }
 
+export interface UpcomingTransactions {
+	/** What the list paints — clipped to the next two weeks when `limited`. */
+	rows: TransactionWithCategory[];
+	/**
+	 * Every upcoming entry, whatever the horizon. An aggregate taken over `rows`
+	 * would restate "what this costs" as "what happens to charge soon", and would
+	 * move on a day nothing was logged, as a schedule crossed into the window.
+	 */
+	schedules: TransactionWithCategory[];
+}
+
 /**
  * Sorted by when each entry will next land, furthest out first, matching Swift's
  * `FutureListView`. `limited` clips the list to the next two weeks.
@@ -185,7 +196,7 @@ export function useUpcomingTransactions(
 	db: Database,
 	nowMs: number,
 	limited: boolean,
-): TransactionWithCategory[] {
+): UpcomingTransactions {
 	const now = new Date(nowMs);
 	const rows = useLiveQuery(
 		transactions,
@@ -209,18 +220,24 @@ export function useUpcomingTransactions(
 
 	const decorated = useDecorated(db, rows);
 
+	// `nowMs` rather than `now`: a fresh Date is a fresh identity every render, so
+	// depending on it would recompute the sort on each one.
 	return useMemo(() => {
-		const horizon = addDays(startOfDay(now), 14);
-		const kept = limited
-			? decorated.filter(
-					(row) => landingDate(row, now).getTime() < horizon.getTime(),
-				)
-			: decorated;
-
-		return [...kept].sort(
-			(a, b) => landingDate(b, now).getTime() - landingDate(a, now).getTime(),
+		const at = new Date(nowMs);
+		const schedules = [...decorated].sort(
+			(a, b) => landingDate(b, at).getTime() - landingDate(a, at).getTime(),
 		);
-	}, [decorated, limited, now]);
+		if (!limited) {
+			return { rows: schedules, schedules };
+		}
+		const horizon = addDays(startOfDay(at), 14);
+		return {
+			rows: schedules.filter(
+				(row) => landingDate(row, at).getTime() < horizon.getTime(),
+			),
+			schedules,
+		};
+	}, [decorated, limited, nowMs]);
 }
 
 /** Swift's `nextTransactionDate`. */

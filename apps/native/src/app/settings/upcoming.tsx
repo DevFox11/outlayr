@@ -33,7 +33,9 @@ function UpcomingContent({ db }: { db: Database }) {
 	const scheduled = useUpcomingTransactions(db, nowMs, false);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
-	const upcoming = scheduled.filter((row) => row.id !== pendingId);
+	// A row waiting on the undo toast is already gone as far as the figures go,
+	// or the monthly cost keeps charging for a subscription the user just deleted.
+	const upcoming = scheduled.rows.filter((row) => row.id !== pendingId);
 
 	return (
 		<>
@@ -71,9 +73,11 @@ function UpcomingContent({ db }: { db: Database }) {
 						onLongPress={(id) => openRowActions(id, true)}
 						onPress={(id) => router.push(`/transaction/${id}`)}
 						showCents={settings.bool("showCents")}
+						schedules={upcoming}
 						showSign={settings.bool("showExpenseOrIncomeSign")}
 						swapTimeLabel={settings.bool("swapTimeLabel")}
 						transactions={upcoming}
+						use24Hour={settings.bool("use24HourClock")}
 					/>
 					{upcoming.length === 0 ? (
 						<Text className="pt-2 text-muted text-subtitle leading-snug">
