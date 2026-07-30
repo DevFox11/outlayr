@@ -67,8 +67,22 @@ export interface PickedFile {
 
 /** Null means the user backed out, which is not an error. */
 export async function pickCsvFile(): Promise<PickedFile | null> {
+	return await pickTextFile(CSV_TYPES);
+}
+
+/**
+ * Deliberately permissive about type: iOS reports a `.json` written by another
+ * app under any of several UTIs, and a picker that filters too tightly greys out
+ * the very file the user is looking at. The contents decide, not the extension —
+ * `parseArchive` refuses anything it cannot vouch for.
+ */
+export async function pickArchiveFile(): Promise<PickedFile | null> {
+	return await pickTextFile(["application/json", "public.json", "public.text"]);
+}
+
+async function pickTextFile(type: string[]): Promise<PickedFile | null> {
 	const result = await DocumentPicker.getDocumentAsync({
-		type: CSV_TYPES,
+		type,
 		copyToCacheDirectory: true,
 		multiple: false,
 	});
