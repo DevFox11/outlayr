@@ -31,6 +31,18 @@ export function ratesWindowStart(): string {
 	return utcDateString(Date.now() - RATES_WINDOW_DAYS * MS_PER_DAY);
 }
 
+/**
+ * The last date string that still sorts inside `date`'s calendar month.
+ *
+ * `31` rather than the month's real length: dates are `YYYY-MM-DD`, which sorts
+ * lexically exactly as it sorts chronologically, so `2026-02-31` is a valid
+ * bound for February even though it is not a date. Deriving the real length
+ * would be more code for the same set.
+ */
+function monthEndBound(date: string): string {
+	return `${date.slice(0, 8)}31`;
+}
+
 interface RatePair {
 	quote: string;
 	rateType: MarketRateType;
@@ -51,12 +63,26 @@ const ANCHOR_PAIR_CATALOG: readonly RatePair[] = [
 ];
 
 /**
- * Pairs served per `pullRates` page. 40 x (90 window days + same-day row + 1
- * anchor) = 3,680 docs/page — roughly 4.5x headroom under Convex's 16,384-doc
+ * How many monthly anchors a pair serves — twenty years, which is past any
+ * ledger this app will hold and still a bounded read.
+ *
+ * A cap rather than an unbounded `collect()` because the page's document budget
+ * has to be provable: without one, a deployment that has been ingesting for
+ * years would silently grow its page until a pull started failing.
+ */
+export const MONTHLY_ANCHOR_LIMIT = 240;
+
+/**
+ * Pairs served per `pullRates` page. 12 x (90 window days + same-day row + 240
+ * monthly anchors) = 3,972 docs/page — comfortably under Convex's 16,384-doc
  * read ceiling, and the bound is per PAGE, so it holds however large the
  * provider catalog grows.
+ *
+ * Lower than it was: each pair now carries its monthly history rather than a
+ * single anchor row, so the same budget buys fewer pairs per page and more
+ * pages. Pages are cheap; a pull that exceeds the read ceiling is not.
  */
-export const PAIRS_PER_PAGE = 40;
+export const PAIRS_PER_PAGE = 12;
 
 function toRateWire(doc: Doc<"exchangeRates">) {
 	return {
@@ -189,15 +215,26 @@ export const pruneStale = internalMutation({
 
 		let deleted = 0;
 		for (const row of page.page) {
+			// Scoped to the row's own calendar month, so what survives is the newest
+			// row per pair per month rather than one row per pair overall. A single
+			// anchor ages forward with the window and is therefore only ever a
+			// boundary guard: an entry older than it resolves to no rate at all and
+			// falls back to face value for good.
+			// One upper bound, not two: an index range takes a single one per field.
+			// The month's end and the window's start are both exclusive-or-inclusive
+			// in different ways, so the tighter of the pair is resolved first.
+			const monthEnd = monthEndBound(row.date);
 			const newer = await ctx.db
 				.query("exchangeRates")
-				.withIndex("by_quote_and_rateType_and_date", (q) =>
-					q
+				.withIndex("by_quote_and_rateType_and_date", (q) => {
+					const from = q
 						.eq("quote", row.quote)
 						.eq("rateType", row.rateType)
-						.gt("date", row.date)
-						.lt("date", windowStart),
-				)
+						.gt("date", row.date);
+					return monthEnd < windowStart
+						? from.lte("date", monthEnd)
+						: from.lt("date", windowStart);
+				})
 				.take(1);
 			if (newer.length > 0) {
 				await ctx.db.delete("exchangeRates", row._id);
@@ -285,6 +322,10 @@ export const pullRates = query({
 							.gte("date", windowStart),
 					)
 					.collect(),
+				// Every surviving pre-window row, not just the newest. Pruning leaves
+				// one per calendar month, so this is the pair's monthly history and
+				// what lets an entry older than the window value at a rate from its
+				// own time instead of falling back to face value.
 				ctx.db
 					.query("exchangeRates")
 					.withIndex("by_quote_and_rateType_and_date", (q) =>
@@ -294,7 +335,7 @@ export const pullRates = query({
 							.lt("date", windowStart),
 					)
 					.order("desc")
-					.take(1),
+					.take(MONTHLY_ANCHOR_LIMIT),
 			]),
 		);
 
