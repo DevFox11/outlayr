@@ -21,8 +21,8 @@
 			--surface-secondary: #f0f0f0;
 			--surface-secondary-foreground: #010101;
 
-			--border: #d2d6db;
-			--separator: #d2d6db;
+			--border: #ecf0f4;
+			--separator: #ecf0f4;
 
 			/* Hex mirror of iOS `systemGroupedBackground`. The OS owns the real
 			   value, but `PlatformColor` returns an opaque object that cannot be
@@ -38,7 +38,7 @@
 			--expense: #010101;
 			--future: #767676;
 
-			--danger: #d92d20;
+			--danger: #fe473a;
 			--over-budget: #f17879;
 			--warning: #fdcc41;
 
@@ -52,24 +52,12 @@
 			   so one value per wash covers both themes. */
 			--rail-over: rgba(241, 120, 121, 0.22);
 			--rail-track: rgba(118, 118, 118, 0.18);
-
-			/* First-run only: the app icon's light face, verbatim from
-			   Outlayr.icon/icon.json — paper #F2F0EA ground with ink #17150F.
-			   Measured on this ground: ink 16.02:1, muted 5.08:1, vermilion
-			   4.78:1. The vermilion speaks only in the eyebrow and never
-			   carries a value. */
-			--fr-ground: #f2f0ea;
-			--fr-ink: #17150f;
-			--fr-muted: #6b6557;
-			--fr-rule: #dcd8cc;
-			--fr-vermilion: #c2371b;
-			--fr-card: #faf8f3;
 		}
 
 		@variant dark {
 			--background: #060a07;
 			--foreground: #ffffff;
-			--muted: #7c7c7c;
+			--muted: #767676;
 			--subtle: #8e8e93;
 
 			--surface: #3a3a3c;
@@ -101,17 +89,6 @@
 			   --muted do not change between themes. */
 			--rail-over: rgba(241, 120, 121, 0.22);
 			--rail-track: rgba(118, 118, 118, 0.18);
-
-			/* First-run only: the icon's dark face — a warmer ground than the
-			   app's `--background`, designed rather than inverted. Measured on
-			   #17150F: ink 15.89:1, muted 7.05:1, vermilion 4.79:1 (mirroring
-			   the light face's 4.78:1 by construction). */
-			--fr-ground: #17150f;
-			--fr-ink: #f2efe8;
-			--fr-muted: #a8a093;
-			--fr-rule: #353026;
-			--fr-vermilion: #e0552f;
-			--fr-card: #201d15;
 		}
 	}
 }
@@ -140,12 +117,6 @@
 	--color-chip: var(--chip);
 	--color-rail-over: var(--rail-over);
 	--color-rail-track: var(--rail-track);
-	--color-fr-ground: var(--fr-ground);
-	--color-fr-ink: var(--fr-ink);
-	--color-fr-muted: var(--fr-muted);
-	--color-fr-rule: var(--fr-rule);
-	--color-fr-vermilion: var(--fr-vermilion);
-	--color-fr-card: var(--fr-card);
 }
 
 @theme {

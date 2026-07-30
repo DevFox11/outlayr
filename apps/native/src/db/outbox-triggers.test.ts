@@ -166,14 +166,6 @@ describe("outbox triggers", () => {
 		assert.equal(outbox(sqlite).length, 5);
 	});
 
-	it("never enqueues the onboarding gate migration marker", () => {
-		enableSync(sqlite);
-
-		setMeta(sqlite, META_KEYS.onboardingGateMigrated, "true");
-
-		assert.deepEqual(outbox(sqlite), []);
-	});
-
 	it("enqueues only the appMeta keys the allow-list names", () => {
 		enableSync(sqlite);
 

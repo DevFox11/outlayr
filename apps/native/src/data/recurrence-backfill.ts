@@ -5,7 +5,7 @@ import { withTransaction } from "@/db/transaction";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY } from "@/domain/money";
-import { nextDate, RECURRING_TYPE } from "@/domain/recurrence";
+import { nextDate, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
 import { uuidV5 } from "@/domain/uuid5";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
@@ -244,41 +244,6 @@ async function withCanonicalUsd(
 }
 
 /**
- * The first scheduled occurrence strictly after today, or null when the schedule
- * cannot advance or has run past its end date. Walked rather than projected so
- * month-length clamping matches every occurrence the back-fill writes.
- */
-function landingAfterToday(carrier: TransactionRow, now: Date): Date | null {
-	const today = startOfDay(now);
-	const endLimit =
-		carrier.recurringEndDate == null
-			? null
-			: startOfDay(carrier.recurringEndDate);
-	const advance = (from: Date): Date | null =>
-		nextDate(from, carrier.recurringType, carrier.recurringCoefficient);
-
-	let holding = carrier.date;
-	let advanced = advance(holding);
-	while (
-		advanced != null &&
-		startOfDay(advanced).getTime() > startOfDay(holding).getTime()
-	) {
-		if (
-			endLimit != null &&
-			startOfDay(advanced).getTime() > endLimit.getTime()
-		) {
-			return null;
-		}
-		if (startOfDay(advanced).getTime() > today.getTime()) {
-			return advanced;
-		}
-		holding = advanced;
-		advanced = advance(holding);
-	}
-	return null;
-}
-
-/**
  * The row that keeps a chain alive once `carrier` stops anchoring it, or null
  * when there is nothing left to keep alive.
  *
@@ -304,7 +269,13 @@ export async function scheduleSuccessor(
 	if (startOfDay(carrier.date).getTime() > startOfDay(now).getTime()) {
 		return null;
 	}
-	const landing = landingAfterToday(carrier, now);
+	const landing = nextLanding(
+		carrier.date,
+		carrier.recurringType,
+		carrier.recurringCoefficient,
+		carrier.recurringEndDate,
+		now,
+	);
 	if (landing == null) {
 		return null;
 	}

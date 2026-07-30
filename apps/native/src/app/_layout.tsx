@@ -35,7 +35,7 @@ import {
 	useDatabase,
 	useLocalData,
 } from "@/contexts/local-data-context";
-import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
+import { useOnboardingSettled } from "@/data/onboarding";
 import {
 	LanguageProvider,
 	type TranslationKey,
@@ -195,20 +195,6 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 }
 
 /**
- * A bare chevron over the step's own background: `minimal` drops the back title,
- * which would otherwise read the cover's title from behind it. `fade` swaps the
- * default horizontal push for a crossfade, so advancing reads as the stage
- * trading objects rather than a new page sliding in.
- */
-const FIRST_RUN_STEP = {
-	animation: "fade",
-	headerBackButtonDisplayMode: "minimal",
-	headerShadowVisible: false,
-	headerTransparent: true,
-	title: "",
-} as const;
-
-/**
  * Split from `RootNavigator` so `useDatabase` is only ever called below the
  * splash gate, where the database is guaranteed open.
  */
@@ -216,7 +202,6 @@ function RootStack() {
 	const db = useDatabase();
 	const t = useTranslation();
 	const onboarded = useOnboardingSettled(db);
-	const deferred = useAccountDeferred(db);
 	const { gate } = useAuthSession();
 	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
@@ -224,12 +209,6 @@ function RootStack() {
 
 	const signedIn = gate === "signed-in";
 	const reconciled = adoption === "settled";
-	/**
-	 * Signing in adds sync to a ledger the device already holds, so the only
-	 * thing it can gate on is reconciliation. Declining the offer opens the
-	 * ledger outright.
-	 */
-	const ledgerOpen = onboarded && (signedIn ? reconciled : deferred);
 
 	return (
 		<Stack>
@@ -240,12 +219,10 @@ function RootStack() {
 					name="onboarding/index"
 					options={{ headerShown: false }}
 				/>
-				{/* The steps carry the OS back button rather than a drawn one, which
-				    brings the matching hit target with it. Transparent, because the
-				    stock theme card differs from the flow's `--fr-ground` — an opaque
-				    bar would band the top. */}
-				<Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
-				<Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
+				<Stack.Screen
+					name="onboarding/currency"
+					options={{ headerShown: false }}
+				/>
 			</Stack.Protected>
 
 			{/* Behind onboarding, not in front of it: the currency step is the only
@@ -253,7 +230,7 @@ function RootStack() {
 			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
-			<Stack.Protected guard={onboarded && !signedIn && !deferred}>
+			<Stack.Protected guard={onboarded && !signedIn}>
 				<Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
 			</Stack.Protected>
 
@@ -264,7 +241,7 @@ function RootStack() {
 				/>
 			</Stack.Protected>
 
-			<Stack.Protected guard={ledgerOpen}>
+			<Stack.Protected guard={onboarded && signedIn && reconciled}>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 			</Stack.Protected>
 
