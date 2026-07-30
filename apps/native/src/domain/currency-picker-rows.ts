@@ -5,6 +5,7 @@ export type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
 
 export type CurrencyPickerRow =
 	| { kind: "header"; key: string; section: "favourites" | "all" }
+	| { kind: "hint"; key: string }
 	| {
 			kind: "currency";
 			key: string;
@@ -35,6 +36,9 @@ function currencyRow(
  *
  * A search returns flat: clustering on top of it would push the match the user
  * typed below the fold.
+ *
+ * An empty cluster keeps its header and carries a hint row instead of
+ * collapsing: favouriting is a long press, which nothing on a row advertises.
  */
 export function currencyPickerRows(
 	favourites: readonly string[],
@@ -50,7 +54,7 @@ export function currencyPickerRows(
 						CURRENCY_META[code].name.toLowerCase().includes(needle),
 				);
 
-	if (needle !== "" || favourites.length === 0) {
+	if (needle !== "") {
 		return matches.map((code) =>
 			currencyRow(code, isFavourite(favourites, code)),
 		);
@@ -61,7 +65,12 @@ export function currencyPickerRows(
 		return code === undefined ? [] : [currencyRow(code, true)];
 	});
 	if (cluster.length === 0) {
-		return matches.map((code) => currencyRow(code, false));
+		return [
+			{ kind: "header", key: "header:favourites", section: "favourites" },
+			{ kind: "hint", key: "hint:favourites" },
+			{ kind: "header", key: "header:all", section: "all" },
+			...matches.map((code) => currencyRow(code, false)),
+		];
 	}
 
 	const rest = matches

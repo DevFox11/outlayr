@@ -35,6 +35,7 @@ const COLOR_VARIABLES = {
 	income: "--income",
 	expense: "--expense",
 	future: "--future",
+	gold: "--gold",
 	danger: "--danger",
 	overBudget: "--over-budget",
 	warning: "--warning",
