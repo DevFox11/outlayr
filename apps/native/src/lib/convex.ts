@@ -52,6 +52,41 @@ export function syncTransport(): { push: PushFn; pull: PullFn } | null {
 }
 
 /**
+ * A live subscription to the account's replication watermark, or null when there
+ * is no backend. Returns the unsubscribe.
+ *
+ * This is the one call in this file that is not request/response, and it is what
+ * makes replication realtime: any device's push moves the watermark, which
+ * invalidates the query on every other device and delivers a value here without
+ * anybody polling.
+ *
+ * A refusal is swallowed rather than surfaced. A signed-out device reaches
+ * `requireUserId` and is turned away, and the subscription has to survive that —
+ * the same socket delivers a number as soon as `ConvexBetterAuthProvider` sets a
+ * token, so tearing it down on the first error would mean no realtime until the
+ * next remount.
+ */
+export function watchSyncWatermark(
+	onWatermark: (watermark: number) => void,
+): (() => void) | null {
+	if (!convex) {
+		return null;
+	}
+	const watch = convex.watchQuery("sync:currentSeq" as never, {} as never);
+	return watch.onUpdate(() => {
+		let watermark: unknown;
+		try {
+			watermark = watch.localQueryResult();
+		} catch {
+			return;
+		}
+		if (typeof watermark === "number") {
+			onWatermark(watermark);
+		}
+	});
+}
+
+/**
  * The photo transport, or null when there is no backend.
  *
  * The bytes never touch Convex: the signed urls address R2 directly, so a
