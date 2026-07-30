@@ -1,4 +1,5 @@
 import { isNull } from "drizzle-orm";
+import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
 import {
 	budgets,
@@ -63,34 +64,6 @@ const ERASED_TEMPLATE = {
 } as const;
 
 /**
- * `categoryId` is dropped rather than kept for lineage because it is unique on
- * the table: a surviving one would lock the category out of ever holding a
- * budget again.
- */
-const ERASED_BUDGET = {
-	name: null,
-	amount: 0,
-	type: 0,
-	startDate: null,
-	dateCreated: null,
-	currency: null,
-	amountUsd: null,
-	green: false,
-	categoryId: null,
-} as const;
-
-const ERASED_MAIN_BUDGET = {
-	name: null,
-	amount: 0,
-	type: 0,
-	startDate: null,
-	dateCreated: null,
-	currency: null,
-	amountUsd: null,
-	green: false,
-} as const;
-
-/**
  * Categories survive both scopes — erasing those lives on the Categories screen.
  *
  * Rows are tombstoned, not dropped: a hard delete leaves nothing to replicate,
@@ -120,11 +93,11 @@ export async function eraseLedger(
 		}
 		await db
 			.update(budgets)
-			.set({ ...ERASED_BUDGET, updatedAt: now, deletedAt: now })
+			.set({ ...TOMBSTONED_BUDGET, updatedAt: now, deletedAt: now })
 			.where(isNull(budgets.deletedAt));
 		await db
 			.update(mainBudget)
-			.set({ ...ERASED_MAIN_BUDGET, updatedAt: now, deletedAt: now })
+			.set({ ...TOMBSTONED_MAIN_BUDGET, updatedAt: now, deletedAt: now })
 			.where(isNull(mainBudget.deletedAt));
 	});
 }

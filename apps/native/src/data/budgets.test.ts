@@ -1,13 +1,28 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { appMeta, budgets, exchangeRates, mainBudget } from "@/db/schema";
+import {
+	appMeta,
+	budgets,
+	categories,
+	exchangeRates,
+	mainBudget,
+	outbox,
+} from "@/db/schema";
 import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
-import { budgetsRepo, getBudgetById } from "./budgets-core";
+import {
+	budgetsRepo,
+	getBudgetById,
+	TOMBSTONED_BUDGET,
+	TOMBSTONED_MAIN_BUDGET,
+} from "./budgets-core";
+import { setSyncEnabled } from "./sync-outbox-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -54,6 +69,36 @@ function makeDb(): Database {
 		);
 	`);
 	return drizzle(sqlite) as unknown as Database;
+}
+
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+
+/**
+ * The shipped migrations, applied in order. The delete tests need the real
+ * outbox triggers, which exist only in the migration SQL — re-declaring them
+ * above would test a copy of the thing under test.
+ */
+function migratedDb(): Database {
+	const sqlite = new BetterSqlite3(":memory:");
+	const files = readdirSync(MIGRATIONS)
+		.filter((name) => name.endsWith(".sql"))
+		.sort();
+	for (const file of files) {
+		const sql = readFileSync(join(MIGRATIONS, file), "utf8");
+		for (const statement of sql.split("--> statement-breakpoint")) {
+			if (statement.trim()) {
+				sqlite.exec(statement);
+			}
+		}
+	}
+	return drizzle(sqlite) as unknown as Database;
+}
+
+async function queued(db: Database): Promise<[string, string][]> {
+	const rows = await db
+		.select({ tableName: outbox.tableName, localId: outbox.localId })
+		.from(outbox);
+	return rows.map((row) => [row.tableName, row.localId]);
 }
 
 const BACKDATE = new Date(2026, 1, 9, 14, 30, 0, 0);
@@ -522,5 +567,189 @@ describe("a budget stepped back to a closed window", () => {
 		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
 		// 450 / 0.5: the write-time freeze, since March predates every EUR rate.
 		assert.equal(limitIn(row, march.start, "USD", rates), 900);
+	});
+});
+
+describe("budgetsRepo.deleteBudget", () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = migratedDb();
+		// Before the gate opens, so the category's own insert queues nothing.
+		await db.insert(categories).values({
+			id: "cat-1",
+			name: "Coffee",
+			income: false,
+			updatedAt: BACKDATE,
+		});
+		await setSyncEnabled(db, true);
+	});
+
+	function add(categoryId: string): Promise<string> {
+		return budgetsRepo.createBudget(db, {
+			categoryId,
+			amount: 250,
+			type: BUDGET_TYPE.month,
+			name: "Coffee cap",
+			startDate: BACKDATE,
+		});
+	}
+
+	it("queues the delete instead of clearing what a push already drained", async () => {
+		const id = await add("cat-1");
+		await db.delete(outbox);
+
+		await budgetsRepo.deleteBudget(db, id);
+
+		// A hard delete fires the AFTER DELETE trigger, which removes the entry: the
+		// peer never hears of the delete, keeps the budget, and pushes it back at a
+		// fresh seq the moment its own period rolls over.
+		assert.deepEqual(await queued(db), [["budgets", id]]);
+	});
+
+	it("leaves a tombstone no read can reach", async () => {
+		const id = await add("cat-1");
+
+		await budgetsRepo.deleteBudget(db, id);
+
+		assert.equal(getBudgetById(db, id), null);
+		const live = await db
+			.select()
+			.from(budgets)
+			.where(isNull(budgets.deletedAt));
+		assert.equal(live.length, 0);
+
+		const replicable = await db.select().from(budgets);
+		assert.equal(replicable.length, 1);
+		assert.equal(replicable[0]?.id, id);
+		assert.notEqual(replicable[0]?.deletedAt, null);
+	});
+
+	it("strips everything personal off the tombstone", async () => {
+		const id = await add("cat-1");
+
+		await budgetsRepo.deleteBudget(db, id);
+
+		const [row] = await db.select().from(budgets);
+		assert.equal(row.name, null);
+		assert.equal(row.amount, 0);
+		assert.equal(row.type, 0);
+		assert.equal(row.startDate, null);
+		assert.equal(row.dateCreated, null);
+		assert.equal(row.currency, null);
+		assert.equal(row.amountUsd, null);
+		assert.equal(row.green, false);
+		assert.equal(row.categoryId, null);
+	});
+
+	it("frees the category so the same one can be budgeted again", async () => {
+		const first = await add("cat-1");
+		await budgetsRepo.deleteBudget(db, first);
+
+		const second = await add("cat-1");
+
+		const live = await db
+			.select()
+			.from(budgets)
+			.where(isNull(budgets.deletedAt));
+		assert.equal(live.length, 1);
+		assert.equal(live[0]?.id, second);
+		assert.equal(live[0]?.categoryId, "cat-1");
+	});
+
+	it("leaves a tombstone it already wrote alone", async () => {
+		const id = await add("cat-1");
+		await budgetsRepo.deleteBudget(db, id);
+		const [first] = await db.select().from(budgets);
+		await db.delete(outbox);
+
+		await budgetsRepo.deleteBudget(db, id);
+
+		const [second] = await db.select().from(budgets);
+		assert.equal(second.deletedAt?.getTime(), first.deletedAt?.getTime());
+		assert.equal(second.updatedAt.getTime(), first.updatedAt.getTime());
+		assert.deepEqual(await queued(db), []);
+	});
+});
+
+describe("budgetsRepo.deleteMainBudget", () => {
+	let db: Database;
+
+	beforeEach(async () => {
+		db = migratedDb();
+		await setSyncEnabled(db, true);
+	});
+
+	function add(): Promise<string> {
+		return budgetsRepo.createMainBudget(db, {
+			amount: 2000,
+			type: BUDGET_TYPE.month,
+			name: "Everything",
+			startDate: BACKDATE,
+		});
+	}
+
+	it("tombstones the singleton rather than dropping it", async () => {
+		const id = await add();
+		await db.delete(outbox);
+
+		await budgetsRepo.deleteMainBudget(db, id);
+
+		assert.deepEqual(await queued(db), [["mainBudget", id]]);
+		const replicable = await db.select().from(mainBudget);
+		assert.equal(replicable.length, 1);
+		assert.notEqual(replicable[0]?.deletedAt, null);
+		assert.equal(replicable[0]?.name, null);
+		assert.equal(replicable[0]?.amount, 0);
+		assert.equal(replicable[0]?.startDate, null);
+
+		const live = await db
+			.select()
+			.from(mainBudget)
+			.where(isNull(mainBudget.deletedAt));
+		assert.equal(live.length, 0);
+	});
+
+	it("lets a new overall budget be set without reviving the tombstone", async () => {
+		const first = await add();
+		await budgetsRepo.deleteMainBudget(db, first);
+
+		const second = await add();
+
+		assert.notEqual(second, first);
+		const live = await db
+			.select()
+			.from(mainBudget)
+			.where(isNull(mainBudget.deletedAt));
+		assert.equal(live.length, 1);
+		assert.equal(live[0]?.id, second);
+		assert.equal(live[0]?.amount, 2000);
+	});
+});
+
+// A column added to either table and not to its tombstone constant would keep
+// the user's value on a deleted row, and no round-trip assertion above would
+// notice. `erase-core.ts` writes these same two shapes in bulk, so this holds
+// both call sites at once.
+describe("the budget tombstone shapes", () => {
+	const ENVELOPE = new Set(["id", "updatedAt", "deletedAt"]);
+
+	it("names every column of a budget that is not the envelope", () => {
+		const declared = Object.keys(getTableColumns(budgets)).filter(
+			(name) => !ENVELOPE.has(name),
+		);
+
+		assert.deepEqual(Object.keys(TOMBSTONED_BUDGET).sort(), declared.sort());
+	});
+
+	it("names every column of the overall budget that is not the envelope", () => {
+		const declared = Object.keys(getTableColumns(mainBudget)).filter(
+			(name) => !ENVELOPE.has(name),
+		);
+
+		assert.deepEqual(
+			Object.keys(TOMBSTONED_MAIN_BUDGET).sort(),
+			declared.sort(),
+		);
 	});
 });

@@ -78,6 +78,40 @@ async function anchorFor(
 	return startOfPeriod(now, type, { firstWeekday, firstDayOfMonth });
 }
 
+/**
+ * Both budget tables replicate, and their `AFTER DELETE` triggers drop the row's
+ * outbox entry rather than queueing anything, so a hard delete would never reach
+ * a peer — which would then keep the budget, stamp `updatedAt` on its own next
+ * period rollover, and push the row back, undoing the delete. A tombstone keeps
+ * only what replication needs (the id, `updatedAt`, `deletedAt`); `categoryId`
+ * cannot be among it because it is unique on the table, and a surviving one would
+ * lock the category out of ever holding a budget again. Exported because
+ * `erase-core.ts` writes the same shape in bulk, and two copies would drift the
+ * first time a column is added to the table.
+ */
+export const TOMBSTONED_BUDGET = {
+	name: null,
+	amount: 0,
+	type: 0,
+	startDate: null,
+	dateCreated: null,
+	currency: null,
+	amountUsd: null,
+	green: false,
+	categoryId: null,
+} as const;
+
+export const TOMBSTONED_MAIN_BUDGET = {
+	name: null,
+	amount: 0,
+	type: 0,
+	startDate: null,
+	dateCreated: null,
+	currency: null,
+	amountUsd: null,
+	green: false,
+} as const;
+
 export const budgetsRepo = {
 	async createBudget(db: Database, input: CreateBudgetInput): Promise<string> {
 		const now = new Date();
@@ -164,13 +198,25 @@ export const budgetsRepo = {
 			.where(eq(budgets.id, id));
 	},
 
-	/** Hard-deletes: the row is small and unsynced. */
+	/**
+	 * Tombstones rather than drops — see `TOMBSTONED_BUDGET`. An already-deleted
+	 * row is left alone so a repeated delete does not re-stamp a `deletedAt` and
+	 * push a row that has not changed.
+	 */
 	async deleteBudget(db: Database, id: string): Promise<void> {
-		await db.delete(budgets).where(eq(budgets.id, id));
+		const now = new Date();
+		await db
+			.update(budgets)
+			.set({ ...TOMBSTONED_BUDGET, updatedAt: now, deletedAt: now })
+			.where(and(eq(budgets.id, id), isNull(budgets.deletedAt)));
 	},
 
 	async deleteMainBudget(db: Database, id: string): Promise<void> {
-		await db.delete(mainBudget).where(eq(mainBudget.id, id));
+		const now = new Date();
+		await db
+			.update(mainBudget)
+			.set({ ...TOMBSTONED_MAIN_BUDGET, updatedAt: now, deletedAt: now })
+			.where(and(eq(mainBudget.id, id), isNull(mainBudget.deletedAt)));
 	},
 
 	/** See `advanceBudgetWindow`. */

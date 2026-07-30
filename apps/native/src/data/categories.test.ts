@@ -868,9 +868,48 @@ describe("categoriesRepo.remove cascade", () => {
 		const replicable = await db
 			.select()
 			.from(budgets)
-			.where(eq(budgets.categoryId, id));
+			.where(eq(budgets.id, "b1"));
 		assert.equal(replicable.length, 1);
 		assert.notEqual(replicable[0].deletedAt, null);
+	});
+
+	it("lets the category hold a budget again after the cascade", async () => {
+		const id = await categoriesRepo.create(db, {
+			name: "Coffee",
+			icon: "Coffee02",
+			color: "#279AF4",
+			income: false,
+		});
+		const now = new Date();
+		await db.insert(budgets).values({
+			id: "b1",
+			amount: 100,
+			type: 2,
+			categoryId: id,
+			updatedAt: now,
+		});
+
+		await categoriesRepo.remove(db, id);
+
+		// What a pull does with a peer's budget for the same category: the
+		// tombstone must not still be holding `budgets_categoryId_unique`, or the
+		// insert throws and takes the whole apply transaction with it.
+		await db.insert(budgets).values({
+			id: "b2",
+			amount: 250,
+			type: 2,
+			categoryId: id,
+			updatedAt: now,
+		});
+
+		const live = await db
+			.select()
+			.from(budgets)
+			.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
+		assert.deepEqual(
+			live.map((row) => row.id),
+			["b2"],
+		);
 	});
 });
 

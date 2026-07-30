@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
+import { TOMBSTONED_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
@@ -577,6 +578,12 @@ export const categoriesRepo = {
 	 * and its ledger back. Rows already tombstoned are skipped so a repeated
 	 * remove is inert.
 	 *
+	 * The budget takes the whole `TOMBSTONED_BUDGET` shape rather than a bare
+	 * `deletedAt`, because `budgets.categoryId` is UNIQUE whether or not the row
+	 * is deleted: a retained one squats the index, and the pull applier — which
+	 * looks for live rivals only — would then hit the constraint inserting a
+	 * peer's budget for the same category and wedge replication on that page.
+	 *
 	 * Two things go with the transaction beyond its `deletedAt`. The schedule is
 	 * retired so `repairOrphanedRecurrence` cannot read the tombstone as a
 	 * subscription whose carrier was deleted and mint a successor pointing at a
@@ -601,7 +608,7 @@ export const categoriesRepo = {
 				);
 			await db
 				.update(budgets)
-				.set({ deletedAt: now, updatedAt: now })
+				.set({ ...TOMBSTONED_BUDGET, updatedAt: now, deletedAt: now })
 				.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
 			await db
 				.update(categories)
