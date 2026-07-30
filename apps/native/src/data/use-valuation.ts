@@ -10,16 +10,15 @@ import type { Valuation } from "./valuation-source";
 import { VALUATION_RATE_TYPE } from "./valuation-source";
 
 /**
- * The reactive twin of `loadValuation`. Live-queried rather than loaded once so
- * the figures follow the two things that change them — switching display
- * currency in Settings, and a rate refresh landing.
+ * The reactive twin of `loadValuationIn`. Live-queried rather than loaded once
+ * so the figures follow the two things that change them — the caller asking for
+ * a different currency, and a rate refresh landing.
  *
  * A refresh does not reliably announce itself: the `DELETE FROM exchangeRates`
  * it opens with is exempt from the update hook `addDatabaseChangeListener` reads
  * (see `rates-revision.ts`), so the revision counter carries that half instead.
  */
-export function useValuation(db: Database): Valuation {
-	const displayCurrency = useGlobalCurrency(db);
+export function useValuationIn(db: Database, code: string): Valuation {
 	const revision = useSyncExternalStore(
 		subscribeRatesRevision,
 		ratesRevision,
@@ -38,15 +37,20 @@ export function useValuation(db: Database): Valuation {
 				.from(exchangeRates)
 				.where(
 					and(
-						eq(exchangeRates.quote, displayCurrency),
+						eq(exchangeRates.quote, code),
 						eq(exchangeRates.rateType, VALUATION_RATE_TYPE),
 					),
 				),
-		[displayCurrency, revision],
+		[code, revision],
 	);
 
 	return useMemo(
-		() => ({ displayCurrency, rates: buildRateTable(rows) }),
-		[displayCurrency, rows],
+		() => ({ displayCurrency: code, rates: buildRateTable(rows) }),
+		[code, rows],
 	);
+}
+
+/** {@link useValuationIn} for the ledger's own display currency. */
+export function useValuation(db: Database): Valuation {
+	return useValuationIn(db, useGlobalCurrency(db));
 }
