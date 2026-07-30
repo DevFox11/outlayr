@@ -11,6 +11,7 @@ import {
 	tagFields,
 	templateTransactionFields,
 	transactionColumns,
+	transactionPhotoFields,
 	transactionTagFields,
 } from "./lib/syncTables";
 
@@ -130,6 +131,11 @@ export default defineSchema({
 		.index("by_user_and_localId", ["userId", "localId"]),
 
 	transactionTags: defineTable({ ...replicated, ...transactionTagFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/** A photo attached to an entry. The bytes travel out of band, as ever. */
+	transactionPhotos: defineTable({ ...replicated, ...transactionPhotoFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 
