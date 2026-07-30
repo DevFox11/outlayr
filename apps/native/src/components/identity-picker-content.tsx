@@ -31,7 +31,12 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { PlatformColor, Pressable, useWindowDimensions } from "react-native";
+import {
+	Alert,
+	PlatformColor,
+	Pressable,
+	useWindowDimensions,
+} from "react-native";
 import {
 	ColorSwatch,
 	SYMBOL_COLUMNS,
@@ -231,11 +236,13 @@ export function IdentityPickerContent({
 	};
 
 	// The library launch itself can reject — a revoked permission, a host torn
-	// down mid-pick — and a rejection escaping the press handler would dismiss
-	// the picker with the well unchanged and nothing said.
+	// down mid-pick. Said out loud rather than logged: the well looks exactly the
+	// same afterwards, so a silent rejection is indistinguishable from the tap
+	// never having registered.
 	const pickPhoto = () => {
 		adoptPickedPhoto().catch((error: unknown) => {
 			console.error("Failed to pick a photo", error);
+			Alert.alert(t("alerts.photo.failedTitle"), t("alerts.photo.failedBody"));
 		});
 	};
 

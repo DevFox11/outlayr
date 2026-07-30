@@ -51,6 +51,14 @@ const alerts = {
 			en: "Share day",
 			es: "Compartir el día",
 		}),
+		"alerts.photo.failedTitle": t({
+			en: "Couldn't open your photos",
+			es: "No se pudo abrir tus fotos",
+		}),
+		"alerts.photo.failedBody": t({
+			en: "Check that Outlayr has permission to your photo library, then try again.",
+			es: "Comprueba que Outlayr tenga permiso para acceder a tus fotos e inténtalo de nuevo.",
+		}),
 		"alerts.dayCard.failedTitle": t({
 			en: "Couldn't share the day",
 			es: "No se pudo compartir el día",
