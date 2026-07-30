@@ -82,6 +82,7 @@ import {
 	normalizeLead,
 	REMINDER_LEAD_OPTIONS,
 } from "@/domain/subscription-reminder";
+import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
 import {
 	openNotificationSettings,
@@ -231,6 +232,14 @@ interface TransactionFormProps {
 	initial?: Transaction;
 	/** Ignored when `initial` is present — an edit is never seeded. */
 	seed?: TransactionSeed;
+	/**
+	 * The charge this create is repeating, from a row's own `Log again`. It may
+	 * carry category and identity where {@link TransactionSeed} may not: these
+	 * values came off a row inside the ledger that the user confirmed once
+	 * already, not from a surface outside the app guessing at intent. It carries
+	 * no date and no schedule, so the copy lands today and stays a one-off.
+	 */
+	copyOf?: LogAgainDraft;
 	onDone: () => void;
 }
 
@@ -246,6 +255,7 @@ export function TransactionForm({
 	mode,
 	initial,
 	seed,
+	copyOf,
 	onDone,
 }: TransactionFormProps) {
 	const colors = useColors();
@@ -256,13 +266,15 @@ export function TransactionForm({
 	const contentWidth = windowWidth - 40;
 	const globalCurrency = useGlobalCurrency(db);
 	const [txCurrency, setTxCurrency] = useState<string | null>(
-		initial?.currency ?? null,
+		initial?.currency ?? copyOf?.currency ?? null,
 	);
 	const currency = txCurrency ?? globalCurrency;
 	const minorUnits = minorUnitsFor(currency);
 
-	const name = useNativeState(initial?.note ?? seed?.note ?? "");
-	const notes = useNativeState(initial?.details ?? "");
+	const name = useNativeState(
+		initial?.note ?? copyOf?.note ?? seed?.note ?? "",
+	);
+	const notes = useNativeState(initial?.details ?? copyOf?.details ?? "");
 
 	// Seeded from the live schedule, not `onceRecurring`: that flag stays true on
 	// every occurrence the back-fill materialized, so reading it here opens a
@@ -273,14 +285,19 @@ export function TransactionForm({
 		(initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
 	);
 	// Seeded synchronously so an edit renders with its category already resolved.
-	const [category, setCategory] = useState<Category | null>(() =>
-		initial?.categoryId ? getCategoryById(db, initial.categoryId) : null,
-	);
+	const [category, setCategory] = useState<Category | null>(() => {
+		const sourceId = initial?.categoryId ?? copyOf?.categoryId;
+		return sourceId ? getCategoryById(db, sourceId) : null;
+	});
 	const [income, setIncome] = useState(
-		category?.income ?? initial?.income ?? seed?.income ?? false,
+		category?.income ??
+			initial?.income ??
+			copyOf?.income ??
+			seed?.income ??
+			false,
 	);
 	const [amount, setAmount] = useState(() => {
-		const amountSeed = initial?.amount ?? seed?.amount;
+		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
 		return amountSeed == null
 			? ""
 			: numberToNumpad(amountSeed, minorUnitsFor(currency));
@@ -363,11 +380,11 @@ export function TransactionForm({
 	// The draft is shared context, read by the fly-up hero and the picker route.
 	useEffect(() => {
 		setIdentity({
-			emoji: initial?.emoji ?? null,
-			icon: initial?.icon ?? null,
+			emoji: initial?.emoji ?? copyOf?.emoji ?? null,
+			icon: initial?.icon ?? copyOf?.icon ?? null,
 			photoUri: initial?.imageUri ?? null,
 			photoColor: initial?.imageColor ?? null,
-			color: initial?.customColor ?? null,
+			color: initial?.customColor ?? copyOf?.customColor ?? null,
 		});
 	}, [
 		initial?.imageUri,
@@ -376,6 +393,9 @@ export function TransactionForm({
 		initial?.imageColor,
 		initial?.icon,
 		initial?.customColor,
+		copyOf?.emoji,
+		copyOf?.icon,
+		copyOf?.customColor,
 	]);
 
 	const amountNumber = numpadToNumber(amount);

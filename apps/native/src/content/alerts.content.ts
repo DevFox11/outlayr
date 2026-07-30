@@ -11,6 +11,10 @@ const alerts = {
 			en: "Stop Recurring",
 			es: "Detener recurrencia",
 		}),
+		"alerts.transaction.logAgain": t({
+			en: "Log Again",
+			es: "Registrar de nuevo",
+		}),
 		"alerts.transaction.stopNamed": t({
 			en: "Stop recurring '{note}'?",
 			es: "¿Detener la recurrencia de '{note}'?",

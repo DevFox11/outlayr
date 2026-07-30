@@ -11,6 +11,7 @@ interface TransactionActionsOptions {
 	/** The row is the charge still to land rather than one already logged. */
 	pending: boolean;
 	onStopRecurring: () => void;
+	onLogAgain: () => void;
 	onEdit: () => void;
 	onDelete: () => void;
 }
@@ -51,10 +52,17 @@ export function showTransactionActions({
 	actions,
 	pending,
 	onStopRecurring,
+	onLogAgain,
 	onEdit,
 	onDelete,
 }: TransactionActionsOptions): void {
 	const buttons: AlertButton[] = [];
+	if (actions.canLogAgain) {
+		buttons.push({
+			text: translateNow("alerts.transaction.logAgain"),
+			onPress: onLogAgain,
+		});
+	}
 	if (actions.canStopRecurring) {
 		buttons.push({
 			text: translateNow("alerts.transaction.stopRecurring"),
