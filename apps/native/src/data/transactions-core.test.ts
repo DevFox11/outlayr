@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { exchangeRates, transactions } from "@/db/schema";
+import { RECURRING_TYPE } from "@/domain/recurrence";
 import {
 	ledgerSizeQuery,
 	type TransactionInput,
@@ -47,6 +48,7 @@ function makeDb(): Database {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			reminderLeadDays integer,
 			categoryId text,
 			amountUsd real,
 			exchangeRate real,
@@ -213,6 +215,139 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 		});
 
 		assert.equal((await photoColumns(db, id)).imageKey, KEY);
+	});
+});
+
+describe("the reminder notice on a subscription", () => {
+	const NOW = new Date(2026, 3, 1, 9, 0);
+	const SUBSCRIPTION: TransactionInput = {
+		amount: 12,
+		income: false,
+		categoryId: "cat-1",
+		note: "Netflix",
+		details: null,
+		date: new Date(2026, 2, 15),
+		currency: "USD",
+		onceRecurring: true,
+		recurringType: RECURRING_TYPE.monthly,
+		recurringCoefficient: 1,
+		reminderLeadDays: 3,
+	};
+
+	async function notices(db: Database) {
+		return db
+			.select({
+				id: transactions.id,
+				reminderLeadDays: transactions.reminderLeadDays,
+				deletedAt: transactions.deletedAt,
+			})
+			.from(transactions);
+	}
+
+	it("hands the notice to the successor and clears it on the tombstone", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, SUBSCRIPTION);
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		const rows = await notices(db);
+		assert.equal(rows.find((row) => row.id === id)?.reminderLeadDays, null);
+		const successor = rows.find((row) => row.id !== id);
+		assert.equal(successor?.deletedAt, null);
+		assert.equal(successor?.reminderLeadDays, 3);
+	});
+
+	it("clears the notice when the schedule is stopped", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, SUBSCRIPTION);
+
+		await transactionsRepo.stopRecurring(db, id, NOW);
+
+		const [row] = await notices(db);
+		assert.equal(row?.reminderLeadDays, null);
+	});
+
+	it("writes no notice on a transaction that does not recur", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...SUBSCRIPTION,
+			onceRecurring: false,
+			recurringType: RECURRING_TYPE.none,
+		});
+
+		const [row] = await notices(db);
+		assert.equal(row?.id, id);
+		assert.equal(row?.reminderLeadDays, null);
+	});
+
+	// A lead outside the picker's set reaches the row from a legacy or restored
+	// input, and a stored negative would place the reminder *after* the charge.
+	it("clamps a lead the picker would never offer", async () => {
+		const db = makeDb();
+		await transactionsRepo.create(db, {
+			...SUBSCRIPTION,
+			reminderLeadDays: -4,
+		});
+
+		const [row] = await notices(db);
+		assert.equal(row?.reminderLeadDays, 0);
+	});
+
+	it("keeps a same-day notice distinct from no notice", async () => {
+		const db = makeDb();
+		const sameDay = await transactionsRepo.create(db, {
+			...SUBSCRIPTION,
+			reminderLeadDays: 0,
+		});
+		const off = await transactionsRepo.create(db, {
+			...SUBSCRIPTION,
+			reminderLeadDays: undefined,
+		});
+
+		const rows = await notices(db);
+		assert.equal(rows.find((row) => row.id === sameDay)?.reminderLeadDays, 0);
+		assert.equal(rows.find((row) => row.id === off)?.reminderLeadDays, null);
+	});
+
+	// The form builds its input from the fields it paints, so an edit made on a
+	// screen without a lead picker leaves the key out entirely.
+	it("keeps the notice through an edit that never mentions it", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, SUBSCRIPTION);
+		const { reminderLeadDays: _absent, ...silentEdit } = SUBSCRIPTION;
+
+		await transactionsRepo.update(db, id, { ...silentEdit, amount: 13 });
+
+		const [row] = await notices(db);
+		assert.equal(row?.reminderLeadDays, 3);
+	});
+
+	it("turns the notice off when an edit says null", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, SUBSCRIPTION);
+
+		await transactionsRepo.update(db, id, {
+			...SUBSCRIPTION,
+			reminderLeadDays: null,
+		});
+
+		const [row] = await notices(db);
+		assert.equal(row?.reminderLeadDays, null);
+	});
+
+	it("drops the notice when an edit ends the subscription", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, SUBSCRIPTION);
+		const { reminderLeadDays: _absent, ...silentEdit } = SUBSCRIPTION;
+
+		await transactionsRepo.update(db, id, {
+			...silentEdit,
+			onceRecurring: false,
+			recurringType: RECURRING_TYPE.none,
+		});
+
+		const [row] = await notices(db);
+		assert.equal(row?.reminderLeadDays, null);
 	});
 });
 

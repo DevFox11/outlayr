@@ -7,6 +7,7 @@ import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { RECURRING_TYPE } from "@/domain/recurrence";
+import { normalizeLead } from "@/domain/subscription-reminder";
 import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
 import { getCategoryById } from "./categories-core";
@@ -124,6 +125,8 @@ export interface TransactionInput {
 	/** Interval multiplier for the cadence (e.g. "every 2 weeks"). */
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
+	/** Days of notice for the due-date reminder; null is off, 0 is the day itself. */
+	reminderLeadDays?: number | null;
 }
 
 /**
@@ -170,6 +173,9 @@ async function toRow(
 			? Math.max(1, input.recurringCoefficient ?? 1)
 			: 1,
 		recurringEndDate: recurring ? (input.recurringEndDate ?? null) : null,
+		reminderLeadDays: recurring
+			? normalizeLead(input.reminderLeadDays ?? null)
+			: null,
 		// Frozen at write with the rate of the day the money moved; converting at
 		// read time would make last month's spending change every morning.
 		...(await canonicalUsd(localRateLookup(db), {
@@ -233,6 +239,29 @@ function removesPhoto(
 	return previous?.imageUri != null && next.imageUri == null;
 }
 
+/**
+ * The notice an edit that never mentioned it must keep. A form builds its input
+ * from the fields it paints, so a screen with no lead picker sends the key absent
+ * — and writing `toRow`'s null there would turn a 3-day notice off the next time
+ * the user corrected an amount, silently and for the rest of the chain's life.
+ *
+ * An explicit `null` still means off; only the absent key is read as "leave it".
+ * Ending the schedule clears it regardless, since the preference has nothing left
+ * to hang on.
+ */
+function keptLead(
+	next: typeof transactions.$inferInsert,
+	previous: Transaction | null,
+	input: TransactionInput,
+): number | null {
+	if (!next.onceRecurring) {
+		return null;
+	}
+	return input.reminderLeadDays === undefined
+		? (previous?.reminderLeadDays ?? null)
+		: (next.reminderLeadDays ?? null);
+}
+
 export const transactionsRepo = {
 	async create(db: Database, input: TransactionInput): Promise<string> {
 		const id = newId();
@@ -255,6 +284,7 @@ export const transactionsRepo = {
 			.set({
 				...rest,
 				...(kept ?? {}),
+				reminderLeadDays: keptLead(row, previous, input),
 				...(removesPhoto(previous, row) ? { imageKey: null } : {}),
 			})
 			.where(eq(transactions.id, id));
@@ -292,6 +322,7 @@ export const transactionsRepo = {
 					deletedAt: now,
 					updatedAt: now,
 					recurringType: RECURRING_TYPE.none,
+					reminderLeadDays: null,
 				})
 				.where(eq(transactions.id, id));
 		});
@@ -314,7 +345,11 @@ export const transactionsRepo = {
 	): Promise<void> {
 		await db
 			.update(transactions)
-			.set({ recurringType: RECURRING_TYPE.none, updatedAt: now })
+			.set({
+				recurringType: RECURRING_TYPE.none,
+				reminderLeadDays: null,
+				updatedAt: now,
+			})
 			.where(and(eq(transactions.id, id), isNull(transactions.deletedAt)));
 	},
 };

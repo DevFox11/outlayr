@@ -76,6 +76,7 @@ function occurrenceRow(
 		recurringType: carriesSchedule ? source.recurringType : RECURRING_TYPE.none,
 		recurringCoefficient: carriesSchedule ? source.recurringCoefficient : 1,
 		recurringEndDate: carriesSchedule ? source.recurringEndDate : null,
+		reminderLeadDays: carriesSchedule ? source.reminderLeadDays : null,
 		categoryId: source.categoryId,
 		updatedAt: now,
 		deletedAt: null,
@@ -191,7 +192,11 @@ export async function backfillRecurring(
 		}
 		await db
 			.update(transactions)
-			.set({ recurringType: RECURRING_TYPE.none, updatedAt: now })
+			.set({
+				recurringType: RECURRING_TYPE.none,
+				reminderLeadDays: null,
+				updatedAt: now,
+			})
 			.where(eq(transactions.id, source.id));
 	});
 }
@@ -322,7 +327,11 @@ export async function repairOrphanedRecurrence(
 			}
 			await db
 				.update(transactions)
-				.set({ recurringType: RECURRING_TYPE.none, updatedAt: now })
+				.set({
+					recurringType: RECURRING_TYPE.none,
+					reminderLeadDays: null,
+					updatedAt: now,
+				})
 				.where(eq(transactions.id, carrier.id));
 		});
 		if (successor != null) {

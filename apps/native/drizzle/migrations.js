@@ -8,6 +8,7 @@ import m0003 from './0003_damp_the_fallen.sql';
 import m0004 from './0004_closed_swarm.sql';
 import m0005 from './0005_massive_captain_flint.sql';
 import m0006 from './0006_flat_eddie_brock.sql';
+import m0007 from './0007_subscription_reminder_lead.sql';
 
   export default {
     journal,
@@ -18,7 +19,8 @@ m0002,
 m0003,
 m0004,
 m0005,
-m0006
+m0006,
+m0007
     }
   }
   

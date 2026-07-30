@@ -21,8 +21,12 @@ export type EraseScope = "transactions" | "everything";
  * The schedule is retired to `none` so `repairOrphanedRecurrence` cannot mistake
  * an erased row for a subscription whose carrier was deleted and mint a
  * successor out of it.
+ *
+ * Exported for the test that holds it against the table's columns: a column added
+ * to `transactions` and not to this constant would keep its value on a tombstone,
+ * which is exactly the failure this constant exists to prevent.
  */
-const ERASED_TRANSACTION = {
+export const ERASED_TRANSACTION = {
 	amount: 0,
 	income: false,
 	currency: null,
@@ -41,6 +45,7 @@ const ERASED_TRANSACTION = {
 	recurringType: RECURRING_TYPE.none,
 	recurringCoefficient: 1,
 	recurringEndDate: null,
+	reminderLeadDays: null,
 	categoryId: null,
 	amountUsd: null,
 	exchangeRate: null,

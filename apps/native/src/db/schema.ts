@@ -73,6 +73,23 @@ export const transactions = sqliteTable(
 		recurringType: integer("recurringType").notNull().default(0),
 		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
 		recurringEndDate: integer("recurringEndDate", { mode: "timestamp_ms" }),
+		/**
+		 * Days of notice for the next charge's reminder. Null is "no reminder" and
+		 * has to stay distinct from 0, which is "on the day itself".
+		 *
+		 * A chain holds the value on whichever row currently carries
+		 * `recurringType > 0`. Every path that retires a row clears it, the pull
+		 * applier included, so a notice can never outlive its schedule — but a
+		 * reader must still key off `recurringType > 0` and a null `deletedAt`
+		 * rather than off this column alone.
+		 *
+		 * Device-local, like `imageUri`: each handset schedules its own local
+		 * notification, so replicating the preference would buy nothing. The cost is
+		 * that a hand-off performed by a *peer* — its sweep retires the carrier and
+		 * inserts the successor — drops the notice instead of moving it, since the
+		 * successor arrives here with the column unset.
+		 */
+		reminderLeadDays: integer("reminderLeadDays"),
 		categoryId: text("categoryId").references(() => categories.id, {
 			onDelete: "cascade",
 		}),

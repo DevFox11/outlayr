@@ -31,6 +31,7 @@ function makeDb() {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			reminderLeadDays integer,
 			categoryId text,
 			amountUsd real,
 			exchangeRate real,

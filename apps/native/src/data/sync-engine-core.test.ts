@@ -203,7 +203,13 @@ describe("the replicated column set", () => {
 	// notice on its own.
 	const ENVELOPE = new Set(["id", "key", "updatedAt", "deletedAt"]);
 	/** Columns whose value is about this handset, not about the ledger. */
-	const DEVICE_LOCAL = new Set(["transactions.imageUri"]);
+	const DEVICE_LOCAL = new Set([
+		"transactions.imageUri",
+		// Every handset schedules its own local notification off its own copy of the
+		// schedule, so replicating the preference would only share a choice the
+		// receiving device already gets to make.
+		"transactions.reminderLeadDays",
+	]);
 
 	for (const table of SYNCED_TABLES) {
 		it(`covers every column of ${table}`, () => {
@@ -524,6 +530,69 @@ describe("applyPulledRows", () => {
 		const [row] = await db.select().from(transactions);
 		assert.equal(row.deletedAt?.getTime(), 1000);
 		assert.notEqual(row.note, "back");
+	});
+
+	// `reminderLeadDays` is device-local, so it is absent from the wire and the
+	// applier's `onConflictDoUpdate` leaves whatever this handset stored. On a row
+	// a peer has settled that would be a live notice for a charge already taken.
+	it("clears the local notice when a peer retires the schedule", async () => {
+		await addTransaction(db, "t1", {
+			onceRecurring: true,
+			recurringType: 3,
+			reminderLeadDays: 3,
+			updatedAt: AT(1000),
+		});
+
+		await applyPulledRows(db, {
+			rows: [
+				txRow("t1", 1, 9000, {
+					fields: { onceRecurring: true, recurringType: 0 },
+				}),
+			],
+			cursor: 1,
+		});
+
+		const [row] = await db.select().from(transactions);
+		assert.equal(row.reminderLeadDays, null);
+	});
+
+	it("clears the local notice when a peer deletes the row", async () => {
+		await addTransaction(db, "t1", {
+			onceRecurring: true,
+			recurringType: 3,
+			reminderLeadDays: 3,
+			updatedAt: AT(1000),
+		});
+
+		await applyPulledRows(db, {
+			rows: [txRow("t1", 1, 9000, { deletedAt: 9000 })],
+			cursor: 1,
+		});
+
+		const [row] = await db.select().from(transactions);
+		assert.equal(row.reminderLeadDays, null);
+	});
+
+	it("keeps the local notice when a peer edits the live carrier", async () => {
+		await addTransaction(db, "t1", {
+			onceRecurring: true,
+			recurringType: 3,
+			reminderLeadDays: 3,
+			updatedAt: AT(1000),
+		});
+
+		await applyPulledRows(db, {
+			rows: [
+				txRow("t1", 1, 9000, {
+					fields: { onceRecurring: true, recurringType: 3, note: "theirs" },
+				}),
+			],
+			cursor: 1,
+		});
+
+		const [row] = await db.select().from(transactions);
+		assert.equal(row.note, "theirs");
+		assert.equal(row.reminderLeadDays, 3);
 	});
 
 	it("keeps an unsent local edit on an exact updatedAt tie", async () => {
