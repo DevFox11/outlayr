@@ -22,7 +22,12 @@ const TILE_RADIUS = 9;
 const DELETE_ACTION = "delete";
 
 interface TransactionRowProps {
-	transaction: TransactionWithCategory;
+	/**
+	 * `details` is optional because most surfaces read a projection that leaves the
+	 * free text out (`LOG_COLUMNS`); only the search read carries it, and only a
+	 * row that has it prints the excerpt.
+	 */
+	transaction: TransactionWithCategory & { details?: string | null };
 	/** Global display currency, used when the row's own currency is null. */
 	currency: string;
 	/** Rates for `currency`. Without it no row is marked unplaced. */
@@ -42,6 +47,8 @@ interface TransactionRowProps {
 	showSign?: boolean;
 	/** Mirrors "Swap Time Label": the subtitle shows the category name over the time. */
 	swapTimeLabel?: boolean;
+	/** Mirrors the Clock setting; true prints the subtitle time as "21:04". */
+	use24Hour?: boolean;
 	/**
 	 * Forces the upcoming variant. A scheduled entry whose stored date is already
 	 * past is still upcoming — what is upcoming is its next occurrence — so the
@@ -62,6 +69,7 @@ export function TransactionRow({
 	showCents = true,
 	showSign = true,
 	swapTimeLabel = false,
+	use24Hour = false,
 	future: forcedFuture,
 	landsOn,
 }: TransactionRowProps) {
@@ -97,7 +105,7 @@ export function TransactionRow({
 		? formatUpcomingDate(landsOn ?? date)
 		: swapTimeLabel
 			? (transaction.categoryName ?? "")
-			: formatTime(date);
+			: formatTime(date, use24Hour);
 
 	return (
 		<Pressable
@@ -183,6 +191,17 @@ export function TransactionRow({
 						</View>
 					) : null}
 				</View>
+				{transaction.details ? (
+					<Text
+						className={cn(
+							"text-footnote",
+							future ? "text-subtle" : "text-muted",
+						)}
+						numberOfLines={1}
+					>
+						{transaction.details}
+					</Text>
+				) : null}
 			</View>
 			<RowAmount
 				amount={transaction.amount}

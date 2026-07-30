@@ -4,7 +4,14 @@ import { transactions } from "@/db/schema";
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
 import { searchedTransactionsQuery } from "./log-search-core";
-import type { TransactionWithCategory } from "./transactions";
+import type { Transaction, TransactionWithCategory } from "./transactions";
+
+/**
+ * A Log row plus the note's free text. Search matches on it, so a result row
+ * carries it and can say so; every other surface keeps the narrower shape.
+ */
+export type SearchedTransaction = TransactionWithCategory &
+	Pick<Transaction, "details">;
 
 /**
  * The matching category ids are resolved from the reactive meta map and handed to
@@ -14,7 +21,7 @@ export function useSearchedTransactions(
 	db: Database,
 	query: string,
 	nowMs: number,
-): TransactionWithCategory[] {
+): SearchedTransaction[] {
 	const meta = useCategoryMeta(db);
 	const trimmed = query.trim();
 	const needle = trimmed.toLowerCase();

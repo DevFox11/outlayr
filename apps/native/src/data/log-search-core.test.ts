@@ -4,6 +4,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { transactions } from "@/db/schema";
 import { searchedTransactionsQuery } from "./log-search-core";
+import { logWindowRowsQuery } from "./transactions-core";
 
 type TestDb = ReturnType<typeof drizzle>;
 
@@ -50,6 +51,8 @@ function makeDb(): TestDb {
 interface RowSeed {
 	id: string;
 	note?: string;
+	/** The form's longer free-text field. */
+	details?: string;
 	amount?: number;
 	date: Date;
 	categoryId?: string;
@@ -63,6 +66,7 @@ async function seed(db: TestDb, rows: RowSeed[]): Promise<void> {
 			amount: row.amount ?? 10,
 			income: false,
 			note: row.note ?? "",
+			details: row.details ?? null,
 			date: row.date,
 			day: at(
 				row.date.getFullYear(),
@@ -170,7 +174,9 @@ describe("search query", () => {
 
 	it("matches nothing at all on an empty query", async () => {
 		const db = makeDb();
-		await seed(db, [{ id: "any", note: "Rent", date: at(2025, 7, 1) }]);
+		await seed(db, [
+			{ id: "any", note: "Rent", details: "anything", date: at(2025, 7, 1) },
+		]);
 
 		assert.deepEqual(await search(db, ""), []);
 	});
@@ -184,5 +190,146 @@ describe("search query", () => {
 		]);
 
 		assert.deepEqual(await search(db, "rent"), ["newest", "middle", "oldest"]);
+	});
+});
+
+describe("search over the note's free text", () => {
+	it("matches a row whose free text matched and whose note did not", async () => {
+		const db = makeDb();
+		await seed(db, [
+			{
+				id: "in-details",
+				note: "Card 4471",
+				details: "Quarterly dentist deposit",
+				date: at(2025, 7, 14),
+			},
+			{ id: "other", note: "Card 4471", date: at(2025, 7, 14) },
+		]);
+
+		assert.deepEqual(
+			await search(db, "dentist"),
+			["in-details"],
+			"the app indexes this text for Spotlight, so it has to find it too",
+		);
+	});
+
+	it("returns a row matching both the note and the free text once", async () => {
+		const db = makeDb();
+		await seed(db, [
+			{
+				id: "both",
+				note: "Coffee",
+				details: "coffee beans for the office",
+				date: at(2025, 7, 14),
+			},
+		]);
+
+		assert.deepEqual(await search(db, "coffee"), ["both"]);
+	});
+
+	it("holds the clock and tombstone bounds the note match holds", async () => {
+		const db = makeDb();
+		await seed(db, [
+			{
+				id: "scheduled",
+				note: "Card 4471",
+				details: "dentist",
+				date: at(2025, 8, 1),
+			},
+			{
+				id: "gone",
+				note: "Card 4471",
+				details: "dentist",
+				date: at(2025, 7, 1),
+				deletedAt: new Date(0),
+			},
+		]);
+
+		assert.deepEqual(await search(db, "dentist"), []);
+	});
+});
+
+describe("wildcards in the query", () => {
+	it("matches a literal percent rather than standing for anything", async () => {
+		const db = makeDb();
+		await seed(db, [
+			{
+				id: "literal",
+				note: "50% off socks",
+				amount: 12,
+				date: at(2025, 7, 14),
+			},
+			{
+				id: "wildcard-bait",
+				note: "5000 off",
+				amount: 13,
+				date: at(2025, 7, 14),
+			},
+		]);
+
+		assert.deepEqual(
+			await search(db, "50%"),
+			["literal"],
+			"an unescaped % would drag in every note merely containing 50",
+		);
+	});
+
+	it("matches a literal underscore in the free text", async () => {
+		const db = makeDb();
+		await seed(db, [
+			{
+				id: "literal",
+				note: "Invoice",
+				details: "ref a_b",
+				date: at(2025, 7, 14),
+			},
+			{
+				id: "wildcard-bait",
+				note: "Invoice",
+				details: "ref axb",
+				date: at(2025, 7, 13),
+			},
+		]);
+
+		assert.deepEqual(await search(db, "a_b"), ["literal"]);
+	});
+});
+
+describe("the search projection", () => {
+	const row = {
+		id: "row",
+		note: "Card 4471",
+		details: "Quarterly dentist deposit",
+		date: at(2025, 7, 14),
+	};
+
+	it("carries the free text, so a matched row can show why it matched", async () => {
+		const db = makeDb();
+		await seed(db, [row]);
+
+		const rows = await searchedTransactionsQuery(db, {
+			query: "dentist",
+			categoryIds: [],
+			nowMs: NOW,
+		});
+
+		assert.deepEqual(
+			rows.map((found) => found.details),
+			["Quarterly dentist deposit"],
+		);
+	});
+
+	it("leaves the free text out of the Log's own read", async () => {
+		const db = makeDb();
+		await seed(db, [row]);
+
+		const rows = await logWindowRowsQuery(db, NOW, null);
+
+		assert.equal(rows.length, 1);
+		assert.equal(
+			rows.flatMap((found) => Object.keys(found)).includes("details"),
+			false,
+			"the Log paints no note, so widening search must not widen it",
+		);
 	});
 });
