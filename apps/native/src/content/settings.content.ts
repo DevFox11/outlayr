@@ -291,6 +291,14 @@ const settings = {
 			en: "iOS confirms every change with an alert of its own.",
 			es: "iOS confirma cada cambio con su propia alerta.",
 		}),
+		"settings.appIcon.failedTitle": t({
+			en: "Icon unchanged",
+			es: "El ícono no cambió",
+		}),
+		"settings.appIcon.failedBody": t({
+			en: "iOS refused the change. Your home screen still shows the icon marked here.",
+			es: "iOS rechazó el cambio. Tu pantalla de inicio sigue mostrando el ícono marcado aquí.",
+		}),
 		"settings.currency.search": t({
 			en: "Search currencies",
 			es: "Buscar monedas",

@@ -72,3 +72,47 @@ export function appIconChoice(active: string | null): AppIconChoice {
 export function appIconLabel(active: string | null): TranslationKey {
 	return appIconChoice(active).label;
 }
+
+export interface AppIconState {
+	active: string | null;
+	/**
+	 * The change still in flight, boxed rather than kept as a bare name so that a
+	 * request for the primary — whose name is `null` — is not read as no request.
+	 */
+	pending: { name: string | null } | null;
+}
+
+export type AppIconEvent =
+	| { kind: "tap"; name: string | null }
+	| { kind: "resolved"; name: string | null }
+	/** `reported` is what iOS says is on now, read back after the refusal. */
+	| { kind: "rejected"; reported: string | null };
+
+/**
+ * Returns `state` itself when the event changes nothing, so a caller can tell a
+ * dropped tap from an accepted one by identity and only then reach for the
+ * native call.
+ */
+export function appIconTransition(
+	state: AppIconState,
+	event: AppIconEvent,
+): AppIconState {
+	switch (event.kind) {
+		case "tap":
+			// Overlapping setAlternateIconName calls are a documented rejection
+			// source, and whichever settled last would win regardless of tap order.
+			return state.pending === null
+				? { active: event.name, pending: { name: event.name } }
+				: state;
+		case "resolved":
+			// A landing for anything but the outstanding request is stale: it would
+			// otherwise resurrect an icon the user has already moved off.
+			return state.pending !== null && state.pending.name === event.name
+				? { active: event.name, pending: null }
+				: state;
+		case "rejected":
+			// iOS is the only record of which icon is on, so its readback outranks
+			// whatever the optimistic tap assumed.
+			return { active: event.reported, pending: null };
+	}
+}

@@ -7,8 +7,10 @@ import { EN } from "@/i18n/catalog";
 import {
 	ALTERNATE_ICON_NAMES,
 	APP_ICONS,
+	type AppIconState,
 	appIconChoice,
 	appIconLabel,
+	appIconTransition,
 } from "./app-icons";
 
 const nativeRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -133,5 +135,78 @@ describe("resolving what iOS reports", () => {
 
 	it("falls back to the default for a name this build no longer offers", () => {
 		assert.equal(EN[appIconLabel("OutlayrRetired")], "Default");
+	});
+});
+
+describe("choosing an icon", () => {
+	const ON_MONO: AppIconState = { active: "OutlayrMono", pending: null };
+
+	function tap(state: AppIconState, name: string | null): AppIconState {
+		return appIconTransition(state, { kind: "tap", name });
+	}
+
+	it("moves the checkmark on tap, before the native call lands", () => {
+		const next = tap(ON_MONO, "OutlayrInk");
+		assert.equal(next.active, "OutlayrInk");
+		assert.deepEqual(next.pending, { name: "OutlayrInk" });
+	});
+
+	it("drops a tap while a change is in flight", () => {
+		const flying = tap(ON_MONO, "OutlayrInk");
+		// Identity, not shape: it is how the caller knows not to call into iOS.
+		assert.equal(tap(flying, "OutlayrEmboss"), flying);
+	});
+
+	it("treats a request for the primary as in flight too", () => {
+		const flying = tap(ON_MONO, null);
+		assert.deepEqual(flying, { active: null, pending: { name: null } });
+		assert.equal(tap(flying, "OutlayrInk"), flying);
+	});
+
+	it("keeps the requested name once the change lands", () => {
+		const landed = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
+			kind: "resolved",
+			name: "OutlayrInk",
+		});
+		assert.deepEqual(landed, { active: "OutlayrInk", pending: null });
+	});
+
+	it("accepts the next tap once the change has landed", () => {
+		const landed = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
+			kind: "resolved",
+			name: "OutlayrInk",
+		});
+		assert.deepEqual(tap(landed, "OutlayrEmboss"), {
+			active: "OutlayrEmboss",
+			pending: { name: "OutlayrEmboss" },
+		});
+	});
+
+	it("restores the icon iOS reports when the change is refused", () => {
+		const refused = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
+			kind: "rejected",
+			reported: "OutlayrMono",
+		});
+		assert.deepEqual(refused, { active: "OutlayrMono", pending: null });
+	});
+
+	it("falls back to the default when iOS reports no alternate", () => {
+		const refused = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
+			kind: "rejected",
+			reported: null,
+		});
+		assert.deepEqual(refused, { active: null, pending: null });
+		assert.equal(EN[appIconLabel(refused.active)], "Default");
+	});
+
+	it("ignores a landing for a name that is no longer pending", () => {
+		const refused = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
+			kind: "rejected",
+			reported: "OutlayrMono",
+		});
+		assert.equal(
+			appIconTransition(refused, { kind: "resolved", name: "OutlayrInk" }),
+			refused,
+		);
 	});
 });
