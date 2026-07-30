@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import {
 	type CalendarSettings,
@@ -183,33 +184,23 @@ export function budgetWindowLabel(window: BudgetWindow, type: number): string {
 	return `${dayMonth(window.start)} – ${dayMonth(last)}`;
 }
 
-export function budgetPeriodPhrase(type: number): string {
+/**
+ * The catalog key for the span a budget covers, not the phrase — the widget
+ * payload wants it shouted and the app wants it in a sentence, so casing is the
+ * caller's to decide.
+ */
+export function budgetPeriodPhrase(type: number): TranslationKey {
 	switch (type) {
 		case BUDGET_TYPE.day:
-			return "today";
+			return "budgets.period.day";
 		case BUDGET_TYPE.week:
-			return "this week";
+			return "budgets.period.week";
 		case BUDGET_TYPE.month:
-			return "this month";
+			return "budgets.period.month";
 		case BUDGET_TYPE.year:
-			return "this year";
+			return "budgets.period.year";
 		default:
-			return "this period";
-	}
-}
-
-export function budgetResetPhrase(type: number): string {
-	switch (type) {
-		case BUDGET_TYPE.day:
-			return "Resets daily";
-		case BUDGET_TYPE.week:
-			return "Resets weekly";
-		case BUDGET_TYPE.month:
-			return "Resets monthly";
-		case BUDGET_TYPE.year:
-			return "Resets yearly";
-		default:
-			return "Resets each period";
+			return "budgets.period.other";
 	}
 }
 

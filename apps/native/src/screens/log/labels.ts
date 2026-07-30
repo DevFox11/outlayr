@@ -34,6 +34,26 @@ export const MEASURE_WORD_KEY: Record<LogMeasure, TranslationKey> = {
 };
 
 /**
+ * The eyebrow over the filtered scope's figure. `shownCurrency` is what that
+ * figure is actually denominated in, which is not always what was asked for:
+ * `scopeTotals` falls back to the scope's dominant bucket when the scope holds
+ * nothing that can be placed in the display currency. Since a symbol is shared
+ * by several currencies — COP, MXN and USD all print "$" — an unnamed fallback
+ * figure reads as an amount of the wrong money, so it names itself here.
+ */
+export function scopeMeasureLabel(
+	t: TranslateFn,
+	measure: LogMeasure,
+	shownCurrency: string,
+	displayCurrency: string,
+): string {
+	const word = t(MEASURE_WORD_KEY[measure]);
+	return shownCurrency === displayCurrency
+		? word
+		: `${word} · ${shownCurrency}`;
+}
+
+/**
  * The branches of `filterDetail` that name a scope in words rather than dates.
  * A date range is left to `filterDetail`, which composes it from the calendar.
  */

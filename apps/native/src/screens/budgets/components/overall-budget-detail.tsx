@@ -15,6 +15,7 @@ import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
+	budgetPeriodPhrase,
 	budgetWindowLabel,
 	isBehindPace,
 	leftPerDay,
@@ -24,7 +25,6 @@ import { useTranslation } from "@/i18n";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
-import { budgetPeriodKey } from "@/screens/budgets/period-phrase";
 
 /**
  * Lives under `/budgets/[id]` with the reserved id `overall` rather than its own
@@ -98,7 +98,7 @@ function MainBudgetDetail({
 				period={
 					closed
 						? budgetWindowLabel(budget.window, budget.type)
-						: t(budgetPeriodKey(budget.type))
+						: t(budgetPeriodPhrase(budget.type))
 				}
 				spent={budget.spent}
 				amount={budget.amount}
