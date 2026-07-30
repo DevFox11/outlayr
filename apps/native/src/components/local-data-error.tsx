@@ -23,6 +23,8 @@ export function LocalDataError() {
 			</Text>
 
 			<Pressable
+				accessibilityRole="button"
+				accessibilityState={{ disabled: retrying }}
 				disabled={retrying}
 				onPress={retry}
 				className="rounded-xl bg-accent px-6 py-3 active:opacity-80 disabled:opacity-50"

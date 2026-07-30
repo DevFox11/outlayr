@@ -1,14 +1,14 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { View } from "react-native";
 import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useGlobalCurrency } from "@/data/app-meta";
 import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useNow } from "@/data/use-now";
+import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
@@ -24,16 +24,18 @@ function UpcomingContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const settings = useAllSettings(db);
-	const currency = useGlobalCurrency(db);
+	const { displayCurrency: currency, rates } = useValuation(db);
 	const showUpcoming = settings.bool("showUpcoming");
 	const showSoon = settings.bool("showUpcomingSoon");
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 	// Unlimited whatever the 14-day toggle says, matching Swift's
 	// `limitedMode: false` and the promise the footer above makes.
 	const scheduled = useUpcomingTransactions(db, nowMs, false);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
-	const upcoming = scheduled.filter((row) => row.id !== pendingId);
+	// A row waiting on the undo toast is already gone as far as the figures go,
+	// or the monthly cost keeps charging for a subscription the user just deleted.
+	const upcoming = scheduled.rows.filter((row) => row.id !== pendingId);
 
 	return (
 		<>
@@ -67,12 +69,15 @@ function UpcomingContent({ db }: { db: Database }) {
 					<LogUpcoming
 						currency={currency}
 						nowMs={nowMs}
+						rates={rates}
 						onLongPress={(id) => openRowActions(id, true)}
 						onPress={(id) => router.push(`/transaction/${id}`)}
 						showCents={settings.bool("showCents")}
+						schedules={upcoming}
 						showSign={settings.bool("showExpenseOrIncomeSign")}
 						swapTimeLabel={settings.bool("swapTimeLabel")}
 						transactions={upcoming}
+						use24Hour={settings.bool("use24HourClock")}
 					/>
 					{upcoming.length === 0 ? (
 						<Text className="pt-2 text-muted text-subtitle leading-snug">

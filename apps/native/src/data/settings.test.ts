@@ -6,11 +6,13 @@ import type { Database } from "@/db/client";
 import { amountParts, formatAmount } from "@/domain/money";
 import { getMeta } from "./app-meta-core";
 import {
+	clockLabel,
 	ordinalDay,
 	parseBoolSetting,
 	parseIntSetting,
 	readBoolSetting,
 	readNumberSetting,
+	seedClockPreference,
 	setBoolSetting,
 	setCurrency,
 	setNumberSetting,
@@ -47,12 +49,61 @@ describe("settings defaults", () => {
 		assert.equal(await readBoolSetting(db, "confetti"), true);
 	});
 
+	it("keeps the subscription notices off until they are asked for", async () => {
+		assert.equal(await readBoolSetting(db, "subscriptionReminders"), false);
+		await setBoolSetting(db, "subscriptionReminders", true);
+		assert.equal(await readBoolSetting(db, "subscriptionReminders"), true);
+	});
+
 	it("lists the budgets as rows until the grid is asked for", async () => {
 		// Inverted against Swift's `budgetViewStyle`, which defaulted to the grid:
 		// rows are the shipped budget list here, so the default must not flip it.
 		assert.equal(await readBoolSetting(db, "budgetViewStyle"), true);
 		await setBoolSetting(db, "budgetViewStyle", false);
 		assert.equal(await readBoolSetting(db, "budgetViewStyle"), false);
+	});
+});
+
+describe("the 12/24-hour clock", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("reads as a 12-hour clock before anything is stored", async () => {
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("persists and reads back the user's own choice", async () => {
+		await setBoolSetting(db, "use24HourClock", true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), true);
+		await setBoolSetting(db, "use24HourClock", false);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("seeds the device's convention when the user has never chosen", async () => {
+		await seedClockPreference(db, true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), true);
+	});
+
+	// The whole reason the seed reads the raw row: a stored `false` is a choice,
+	// and is indistinguishable from the default through `readBoolSetting`.
+	it("never overrules a stored choice, not even a stored false", async () => {
+		await setBoolSetting(db, "use24HourClock", false);
+		await seedClockPreference(db, true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("does not re-seed once it has seeded", async () => {
+		await seedClockPreference(db, true);
+		await setBoolSetting(db, "use24HourClock", false);
+		await seedClockPreference(db, true);
+		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+	});
+
+	it("labels both clocks", () => {
+		assert.equal(clockLabel(false), "clock.twelveHour");
+		assert.equal(clockLabel(true), "clock.twentyFourHour");
 	});
 });
 
@@ -80,6 +131,15 @@ describe("settings read/write round-trip", () => {
 		await setNumberSetting(db, "firstWeekday", 2);
 		await setNumberSetting(db, "firstWeekday", 1);
 		assert.equal(await readNumberSetting(db, "firstWeekday"), 1);
+	});
+
+	// The permission-revoke reconcile writes `showNotifications` back off, so a
+	// shared key would silently disarm every subscription notice with it.
+	it("holds the subscription notices on a key of their own", async () => {
+		await setBoolSetting(db, "subscriptionReminders", true);
+		await setBoolSetting(db, "showNotifications", false);
+		assert.equal(await readBoolSetting(db, "subscriptionReminders"), true);
+		assert.equal(await readBoolSetting(db, "showNotifications"), false);
 	});
 
 	it("writes the global currency under the shared meta key", async () => {

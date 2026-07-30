@@ -1,0 +1,115 @@
+import { getTableName } from "drizzle-orm";
+import { addDatabaseChangeListener } from "expo-sqlite";
+import { useSyncExternalStore } from "react";
+import { AppState } from "react-native";
+import { transactions } from "@/db/schema";
+import { clockAdvances, nextClockTick } from "@/domain/clock";
+import { subscribeToTable } from "./table-invalidation";
+
+const TABLE_NAME = getTableName(transactions);
+
+let readingMs = Date.now();
+let midnightTimer: ReturnType<typeof setTimeout> | null = null;
+let teardown: (() => void)[] = [];
+const subscribers = new Set<() => void>();
+
+function publish(candidateMs: number): void {
+	if (!clockAdvances(readingMs, candidateMs)) {
+		return;
+	}
+	readingMs = candidateMs;
+	// Iterated over a copy: a screen that unmounts on this notification would
+	// otherwise skip the subscriber after it.
+	for (const notify of [...subscribers]) {
+		notify();
+	}
+}
+
+function armMidnight(): void {
+	if (midnightTimer != null) {
+		clearTimeout(midnightTimer);
+	}
+	midnightTimer = setTimeout(() => {
+		midnightTimer = null;
+		publish(Date.now());
+		armMidnight();
+	}, nextClockTick(Date.now()));
+}
+
+function start(): void {
+	armMidnight();
+
+	const phase = AppState.addEventListener("change", (state) => {
+		if (state === "active") {
+			publish(Date.now());
+			// JS timers do not run while the app is backgrounded, so the pending one
+			// is armed for a midnight that may already have gone by.
+			armMidnight();
+		}
+	});
+	const changes = addDatabaseChangeListener((event) => {
+		if (event.tableName === TABLE_NAME) {
+			publish(Date.now());
+		}
+	});
+	// A batch writer — the sync applier — says so once for the whole batch instead
+	// of leaving it to the order of a few thousand native events.
+	const invalidations = subscribeToTable(TABLE_NAME, () => {
+		publish(Date.now());
+	});
+
+	teardown = [() => phase.remove(), () => changes.remove(), invalidations];
+}
+
+function stop(): void {
+	if (midnightTimer != null) {
+		clearTimeout(midnightTimer);
+		midnightTimer = null;
+	}
+	for (const off of teardown) {
+		off();
+	}
+	teardown = [];
+}
+
+function subscribe(notify: () => void): () => void {
+	// A screen mounting is itself a reason to restate the reading: it is about to
+	// read the ledger, and the standing one can be an hour old.
+	publish(Date.now());
+	subscribers.add(notify);
+	if (subscribers.size === 1) {
+		start();
+	}
+
+	return () => {
+		subscribers.delete(notify);
+		if (subscribers.size === 0) {
+			stop();
+		}
+	};
+}
+
+function read(): number {
+	return readingMs;
+}
+
+/**
+ * The one reading of "now" every date-bounded read in the app shares.
+ *
+ * Each screen used to freeze its own `Date.now()` at mount, which left the
+ * ledger's upper bound (`lte(date, now)`) behind rows written after that mount: a
+ * transaction's date is `new Date()` at *form* mount, so a row the user had just
+ * saved failed the Log's bound and passed `gt(date, now)` in
+ * `useUpcomingTransactions` — filed under Upcoming instead of on the ledger, and
+ * absent from the day subtotal, from Insights and from every budget's spend.
+ * One reading also keeps the tab badge, the list and Insights answering as of the
+ * same instant rather than as of whenever each of them last mounted.
+ *
+ * It moves on a write to `transactions` (the only thing the bound is measured
+ * against), on returning to the foreground, and at local midnight. Store state
+ * rather than per-hook state so the listeners are installed once for the app, not
+ * once per screen reading the clock.
+ */
+export function useNow(): number {
+	return useSyncExternalStore(subscribe, read);
+}

@@ -10,7 +10,7 @@ import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
 	Pressable,
 	useColorScheme,
@@ -35,7 +35,9 @@ import {
 	useDatabase,
 	useLocalData,
 } from "@/contexts/local-data-context";
-import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
+import { useOnboardingSettled } from "@/data/onboarding";
+import { useSeededClockPreference } from "@/data/settings";
+import { authRoute } from "@/domain/auth-gate";
 import {
 	LanguageProvider,
 	type TranslationKey,
@@ -55,6 +57,7 @@ import {
 	identityPickerDetent,
 	SUBCATEGORY_DETENT,
 } from "@/lib/sheet-detents";
+import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
 
@@ -73,6 +76,7 @@ const SETTINGS_SCREENS: readonly { name: string; titleKey: TranslationKey }[] =
 		{ name: "settings/account", titleKey: "nav.settings.account" },
 		{ name: "settings/app-icon", titleKey: "nav.settings.appIcon" },
 		{ name: "settings/currency", titleKey: "nav.settings.currency" },
+		{ name: "settings/deleted", titleKey: "settings.deleted.navTitle" },
 		{ name: "settings/erase", titleKey: "nav.settings.erase" },
 		{ name: "settings/export", titleKey: "nav.settings.export" },
 		{ name: "settings/feature-lab", titleKey: "nav.settings.featureLab" },
@@ -81,6 +85,7 @@ const SETTINGS_SCREENS: readonly { name: string; titleKey: TranslationKey }[] =
 		{ name: "settings/language", titleKey: "nav.settings.language" },
 		{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
 		{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },
+		{ name: "settings/sync", titleKey: "settings.sync.navTitle" },
 		{ name: "settings/theme", titleKey: "nav.settings.theme" },
 		{ name: "settings/time", titleKey: "nav.settings.time" },
 		{ name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
@@ -130,6 +135,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 				{error.message}
 			</Text>
 			<Pressable
+				accessibilityRole="button"
 				className="rounded-full bg-accent px-6 py-3"
 				onPress={() => {
 					retry();
@@ -148,6 +154,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { isDark, isHydrated: themeReady } = useAppTheme();
 	const languageReady = useLanguageReady();
 	const colorScheme = useColorScheme();
+	const [splashHidden, setSplashHidden] = useState(false);
 
 	// The app's one readiness gate: every screen below it can call `useDatabase()`
 	// and read straight away, with no per-screen loading branch, and the first
@@ -162,14 +169,19 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	useEffect(() => {
 		if (isReady) {
 			hideAsync();
+			setSplashHidden(true);
 		}
 	}, [isReady]);
 
-	if (!isReady) {
+	// Latched on the splash, because `retry()` walks the status back through
+	// opening → migrating → seeding: returning null on those once the splash is
+	// gone would blank the screen for the length of the attempt, and permanently
+	// if the migration never answers on a locked or corrupt file.
+	if (!isReady && !splashHidden) {
 		return null;
 	}
 
-	if (status === "error") {
+	if (status !== "ready") {
 		return <LocalDataError />;
 	}
 
@@ -195,20 +207,6 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 }
 
 /**
- * A bare chevron over the step's own background: `minimal` drops the back title,
- * which would otherwise read the cover's title from behind it. `fade` swaps the
- * default horizontal push for a crossfade, so advancing reads as the stage
- * trading objects rather than a new page sliding in.
- */
-const FIRST_RUN_STEP = {
-	animation: "fade",
-	headerBackButtonDisplayMode: "minimal",
-	headerShadowVisible: false,
-	headerTransparent: true,
-	title: "",
-} as const;
-
-/**
  * Split from `RootNavigator` so `useDatabase` is only ever called below the
  * splash gate, where the database is guaranteed open.
  */
@@ -216,20 +214,14 @@ function RootStack() {
 	const db = useDatabase();
 	const t = useTranslation();
 	const onboarded = useOnboardingSettled(db);
-	const deferred = useAccountDeferred(db);
 	const { gate } = useAuthSession();
 	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
+	useSubscriptionReminderSync(db);
+	useSeededClockPreference(db);
 
-	const signedIn = gate === "signed-in";
-	const reconciled = adoption === "settled";
-	/**
-	 * Signing in adds sync to a ledger the device already holds, so the only
-	 * thing it can gate on is reconciliation. Declining the offer opens the
-	 * ledger outright.
-	 */
-	const ledgerOpen = onboarded && (signedIn ? reconciled : deferred);
+	const route = authRoute(gate, adoption === "settled");
 
 	return (
 		<Stack>
@@ -240,12 +232,10 @@ function RootStack() {
 					name="onboarding/index"
 					options={{ headerShown: false }}
 				/>
-				{/* The steps carry the OS back button rather than a drawn one, which
-				    brings the matching hit target with it. Transparent, because the
-				    stock theme card differs from the flow's `--fr-ground` — an opaque
-				    bar would band the top. */}
-				<Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
-				<Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
+				<Stack.Screen
+					name="onboarding/currency"
+					options={{ headerShown: false }}
+				/>
 			</Stack.Protected>
 
 			{/* Behind onboarding, not in front of it: the currency step is the only
@@ -253,18 +243,18 @@ function RootStack() {
 			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
-			<Stack.Protected guard={onboarded && !signedIn && !deferred}>
+			<Stack.Protected guard={onboarded && route === "sign-in"}>
 				<Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
 			</Stack.Protected>
 
-			<Stack.Protected guard={onboarded && signedIn && !reconciled}>
+			<Stack.Protected guard={onboarded && route === "adopt"}>
 				<Stack.Screen
 					name="auth/adopt"
 					options={{ headerShown: false, gestureEnabled: false }}
 				/>
 			</Stack.Protected>
 
-			<Stack.Protected guard={ledgerOpen}>
+			<Stack.Protected guard={onboarded && route === "ledger"}>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 			</Stack.Protected>
 

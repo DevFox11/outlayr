@@ -1,5 +1,6 @@
 import {
 	cancelScheduledNotificationAsync,
+	getAllScheduledNotificationsAsync,
 	getPermissionsAsync,
 	type NotificationPermissionsStatus,
 	requestPermissionsAsync,
@@ -64,6 +65,48 @@ export async function scheduleReminder({
 
 export async function cancelReminder(): Promise<void> {
 	await cancelScheduledNotificationAsync(REMINDER_ID);
+}
+
+/** Identifiers iOS currently holds, the daily reminder's among them. */
+export async function pendingReminderIds(): Promise<string[]> {
+	try {
+		const requests = await getAllScheduledNotificationsAsync();
+		return requests.map((request) => request.identifier);
+	} catch {
+		return [];
+	}
+}
+
+export interface DatedReminder {
+	id: string;
+	title: string;
+	body: string;
+	fireAt: Date;
+}
+
+/**
+ * A one-shot DATE trigger rather than a repeat: the next charge in a chain lands
+ * on a date the schedule has to recompute, so each sweep arms the next one
+ * afresh under the same identifier.
+ */
+export async function scheduleDatedReminder({
+	id,
+	title,
+	body,
+	fireAt,
+}: DatedReminder): Promise<void> {
+	await scheduleNotificationAsync({
+		identifier: id,
+		content: { title, body, sound: "default" },
+		trigger: { type: SchedulableTriggerInputTypes.DATE, date: fireAt },
+	});
+}
+
+/** Sequential: `cancelScheduledNotificationAsync` mutates one shared iOS queue. */
+export async function cancelReminders(ids: readonly string[]): Promise<void> {
+	for (const id of ids) {
+		await cancelScheduledNotificationAsync(id);
+	}
 }
 
 export function openNotificationSettings(): void {

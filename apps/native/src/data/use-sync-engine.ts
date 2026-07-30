@@ -2,10 +2,16 @@ import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import type { Database } from "@/db/client";
-import { syncTransport } from "@/lib/convex";
+import { isBehindWatermark } from "@/domain/sync-wakeup";
+import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 import { runSync } from "./sync-engine-core";
-import { SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
+import {
+	getSyncCursor,
+	isSyncEnabled,
+	SYNCED_TABLES,
+	setSyncedAt,
+} from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
 /**
@@ -20,6 +26,13 @@ const REPLICATED = new Set<string>(SYNCED_TABLES);
 /**
  * Drives replication on the same shape as `useSystemSync`: on foreground, and
  * on a debounced local write. Never on the write path itself.
+ *
+ * Mount, foreground and a local write all fire on something this handset did,
+ * so on their own two phones side by side never see each other until one of them
+ * is touched. A peer's push therefore arrives as a live watermark instead, and
+ * that subscription is what makes replication realtime. The local triggers stay
+ * as its fallback: a dropped socket degrades to catching up on the next
+ * foreground rather than to not catching up at all.
  *
  * Inert until the device has a backend AND the sync gate is on — the gate is
  * device-local and only the sign-in flow opens it, so a signed-out install runs
@@ -89,10 +102,67 @@ export function useSyncEngine(db: Database | null): void {
 			}
 		});
 
+		// The cursor is read at wake-up rather than remembered, because this
+		// device's own push moves the watermark too: by the time the value arrives
+		// the cycle that caused it may already have caught this handset up, and a
+		// stale cursor would turn every local write into a second round trip.
+		const wake = async (watermark: number) => {
+			if (isBehindWatermark(watermark, await getSyncCursor(db))) {
+				await cycle();
+			}
+		};
+
+		// Held open only while the gate is on. Every other trigger here is local and
+		// costs nothing when replication is off, but this one opens a live
+		// subscription to the backend — a signed-out install would be talking to a
+		// server it has no account on, which is the opposite of what local-first
+		// promises. The gate is device-local and the sign-in flow flips it, so the
+		// subscription is established and torn down as that value changes rather
+		// than once at mount.
+		let unwatch: (() => void) | null = null;
+		let disposed = false;
+
+		const reconcileWatch = async () => {
+			const wanted = await isSyncEnabled(db);
+			if (disposed || wanted === (unwatch != null)) {
+				return;
+			}
+			if (wanted) {
+				unwatch = watchSyncWatermark((watermark) => {
+					void wake(watermark).catch((error) => {
+						console.warn("[outlayr] sync wake-up failed", error);
+					});
+				});
+				return;
+			}
+			unwatch?.();
+			unwatch = null;
+		};
+
+		const watchGate = () => {
+			void reconcileWatch().catch((error) => {
+				console.warn("[outlayr] sync watch reconcile failed", error);
+			});
+		};
+
+		watchGate();
+
+		// Registered after `watchGate` exists rather than beside the other listener:
+		// the callback only fires on a later write, but reading a `const` declared
+		// below would be a dead-zone throw if that ever stopped being true.
+		const gateListener = addDatabaseChangeListener((event) => {
+			if (event.tableName === "appMeta") {
+				watchGate();
+			}
+		});
+
 		return () => {
+			disposed = true;
 			schedule.cancel();
 			listener.remove();
+			gateListener.remove();
 			subscription.remove();
+			unwatch?.();
 		};
 	}, [db]);
 }

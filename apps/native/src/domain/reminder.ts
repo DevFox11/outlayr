@@ -82,28 +82,3 @@ export function reminderReconcile(
 	}
 	return permission === "granted" ? "schedule" : "disable";
 }
-
-export interface ReminderChoiceWrites {
-	option: number;
-	/** Only the custom option needs an explicit time — the fixed options are
-	 * already pinned by `reminderTime`. */
-	time: TimeOfDay | null;
-}
-
-/**
- * What step 03's tap should write, or `null` for "don't remind me" — which
- * writes nothing at all, leaving the flow's skip and an explicit decline
- * indistinguishable, matching how skipping step 04 leaves no budget row.
- */
-export function reminderChoiceWrites(
-	option: number | null,
-	custom: TimeOfDay,
-): ReminderChoiceWrites | null {
-	if (option === null) {
-		return null;
-	}
-	return {
-		option,
-		time: option === REMINDER_CUSTOM ? custom : null,
-	};
-}

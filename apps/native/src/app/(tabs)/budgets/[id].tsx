@@ -6,9 +6,11 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { budgetsRepo, useCategoryBudget } from "@/data/budgets";
 import { useBoolSetting } from "@/data/settings";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
 	budgetPace,
+	budgetPeriodPhrase,
 	budgetWindowLabel,
 	isBehindPace,
 	leftPerDay,
@@ -18,7 +20,6 @@ import { useTranslation } from "@/i18n";
 import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
-import { budgetPeriodKey } from "@/screens/budgets/period-phrase";
 
 export default function BudgetDetailScreen() {
 	const router = useRouter();
@@ -42,7 +43,8 @@ function BudgetDetail({
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
-	const [nowMs] = useState(() => Date.now());
+	const use24Hour = useBoolSetting(db, "use24HourClock");
+	const nowMs = useNow();
 	const [periodOffset, setPeriodOffset] = useState(0);
 	const { budget, transactions, periodsBack } = useCategoryBudget(
 		db,
@@ -90,7 +92,7 @@ function BudgetDetail({
 				period={
 					closed
 						? budgetWindowLabel(budget.window, budget.type)
-						: t(budgetPeriodKey(budget.type))
+						: t(budgetPeriodPhrase(budget.type))
 				}
 				spent={budget.spent}
 				amount={budget.amount}
@@ -104,6 +106,7 @@ function BudgetDetail({
 				leftPerDayAmount={perDay}
 				showCents={showCents}
 				showSign={showSign}
+				use24Hour={use24Hour}
 				closed={closed}
 				stepper={
 					periodsBack > 0 ? (

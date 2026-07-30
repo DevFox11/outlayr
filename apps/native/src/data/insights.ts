@@ -6,12 +6,15 @@ import {
 	type CalendarSettings,
 	DEFAULT_CALENDAR,
 	monthAbbrev,
+	monthAbbrevTitle,
 	monthPeriodStart,
 	startOfWeek,
 	startOfYear,
 	weekdayInitial,
 } from "@/domain/dates";
 import { valueDatedRowsIn } from "@/domain/valuation";
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
 import type { SpendDb } from "./budget-spent";
 import { NO_VALUATION, type Valuation } from "./valuation-source";
 
@@ -65,21 +68,6 @@ interface BucketRange {
 	label: string;
 }
 
-const MONTHS_TITLE = [
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
-] as const;
-
 /**
  * Windows are calendar-anchored, not trailing: a week runs from its
  * `firstWeekday`, a month from its `firstDayOfMonth`, a year from January.
@@ -120,6 +108,7 @@ export function bucketRanges(
 	now: Date,
 	offset = 0,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	language: Language = runtimeLanguage(),
 ): BucketRange[] {
 	const start = windowStart(period, now, offset, calendar);
 	const ranges: BucketRange[] = [];
@@ -129,7 +118,7 @@ export function bucketRanges(
 			ranges.push({
 				start: slot,
 				end: addMonths(slot, 1),
-				label: monthAbbrev(slot),
+				label: monthAbbrev(slot, language),
 			});
 		}
 		return ranges;
@@ -144,7 +133,10 @@ export function bucketRanges(
 		ranges.push({
 			start: slot,
 			end: addDays(slot, 1),
-			label: period === "week" ? weekdayInitial(slot) : String(slot.getDate()),
+			label:
+				period === "week"
+					? weekdayInitial(slot, language)
+					: String(slot.getDate()),
 		});
 	}
 	return ranges;
@@ -194,6 +186,7 @@ export function bucketSeries(
 	now: Date,
 	offset = 0,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	language: Language = runtimeLanguage(),
 ): InsightsBucket[] {
 	const nowMs = now.getTime();
 	const buckets: InsightsBucket[] = bucketRanges(
@@ -201,6 +194,7 @@ export function bucketSeries(
 		now,
 		offset,
 		calendar,
+		language,
 	).map((r) => ({ ...r, value: 0 }));
 	if (buckets.length === 0) {
 		return buckets;
@@ -558,8 +552,8 @@ export function offsetForDate(
 	return target.getFullYear() - now.getFullYear();
 }
 
-function dayMonth(date: Date): string {
-	return `${date.getDate()} ${MONTHS_TITLE[date.getMonth()]}`;
+function dayMonth(date: Date, language: Language): string {
+	return `${date.getDate()} ${monthAbbrevTitle(date, language)}`;
 }
 
 /**
@@ -571,20 +565,21 @@ export function windowLabel(
 	offset: number,
 	now: Date,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	language: Language = runtimeLanguage(),
 ): string {
 	const start = windowStart(period, now, offset, calendar);
 	if (period === "week") {
 		const end = addDays(start, 6);
 		if (start.getMonth() === end.getMonth()) {
-			return `${start.getDate()} - ${dayMonth(end)}`;
+			return `${start.getDate()} - ${dayMonth(end, language)}`;
 		}
-		return `${dayMonth(start)} - ${dayMonth(end)}`;
+		return `${dayMonth(start, language)} - ${dayMonth(end, language)}`;
 	}
 	if (period === "month") {
 		if (calendar.firstDayOfMonth === 1) {
-			return `${MONTHS_TITLE[start.getMonth()]} ${start.getFullYear()}`;
+			return `${monthAbbrevTitle(start, language)} ${start.getFullYear()}`;
 		}
-		return `${dayMonth(start)} - ${dayMonth(addDays(windowEnd(period, now, offset, calendar), -1))}`;
+		return `${dayMonth(start, language)} - ${dayMonth(addDays(windowEnd(period, now, offset, calendar), -1), language)}`;
 	}
 	return String(start.getFullYear());
 }
@@ -595,23 +590,28 @@ export function windowShortLabel(
 	offset: number,
 	now: Date,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	language: Language = runtimeLanguage(),
 ): string {
 	const start = windowStart(period, now, offset, calendar);
 	if (period === "week") {
-		return dayMonth(start);
+		return dayMonth(start, language);
 	}
 	if (period === "month") {
-		return `${MONTHS_TITLE[start.getMonth()]} ${String(start.getFullYear()).slice(-2)}`;
+		return `${monthAbbrevTitle(start, language)} ${String(start.getFullYear()).slice(-2)}`;
 	}
 	return String(start.getFullYear());
 }
 
 /** "12 Jul 2025" for a day, "Jul 2025" for a month. */
-export function bucketDateLabel(period: InsightsPeriod, date: Date): string {
+export function bucketDateLabel(
+	period: InsightsPeriod,
+	date: Date,
+	language: Language = runtimeLanguage(),
+): string {
 	if (period === "year") {
-		return `${MONTHS_TITLE[date.getMonth()]} ${date.getFullYear()}`;
+		return `${monthAbbrevTitle(date, language)} ${date.getFullYear()}`;
 	}
-	return `${dayMonth(date)} ${date.getFullYear()}`;
+	return `${dayMonth(date, language)} ${date.getFullYear()}`;
 }
 
 /**

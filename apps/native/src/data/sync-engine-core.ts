@@ -555,6 +555,15 @@ async function resolveBudgetCategory(
 	return incomingLoses;
 }
 
+/**
+ * Whether the incoming transaction arrives with no live schedule — either
+ * tombstoned, or retired to `none` because the peer's sweep moved the chain on to
+ * a successor.
+ */
+function retiresSchedule(values: Row): boolean {
+	return values.deletedAt != null || values.recurringType === 0;
+}
+
 /** Answers whether the row landed verbatim, or was rewritten by R3. */
 async function writeRow(
 	db: Database,
@@ -590,6 +599,14 @@ async function writeRow(
 	};
 	if (lostCategory) {
 		values.categoryId = null;
+	}
+	if (row.table === "transactions" && retiresSchedule(values)) {
+		// `reminderLeadDays` is device-local, so it is absent from the incoming
+		// fields and an `onConflictDoUpdate` would leave this handset's value on a
+		// row a peer has just settled — a live notice on a charge that is already
+		// taken. The preference does not survive a peer-driven hand-off either way;
+		// what matters is that it cannot outlive its schedule.
+		values.reminderLeadDays = null;
 	}
 
 	const writer = db as unknown as {

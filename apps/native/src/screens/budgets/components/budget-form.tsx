@@ -2,7 +2,7 @@ import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
 import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { useMemo, useRef, useState } from "react";
-import { Pressable, TextInput, Vibration, View } from "react-native";
+import { Alert, Pressable, TextInput, Vibration, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
 	useAnimatedStyle,
@@ -176,7 +176,10 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 			onDone();
 		} catch (error) {
 			console.error("Failed to save budget", error);
+			// Without this the CTA simply un-dims and the form stays put, which reads
+			// as a tap that never landed rather than a write that failed.
 			setSaving(false);
+			Alert.alert(t("budgets.save.failedTitle"), t("budgets.save.failedBody"));
 		}
 	};
 

@@ -21,6 +21,10 @@ export type BoolSettingKey =
 	| "logViewLineGraph"
 	| "biometricLock"
 	| "showNotifications"
+	// The subscription due-date notices. Its own key rather than a second reading
+	// of `showNotifications`: the permission-revoke reconcile writes that one back
+	// off, and sharing it would take the daily reminder's switch down with it.
+	| "subscriptionReminders"
 	| "categorySuggestions"
 	// Swaps a Log row's time label for its category. No Settings row writes it
 	// yet, so it always resolves to the default.
@@ -31,7 +35,13 @@ export type BoolSettingKey =
 	// Swift's `DefaultsKey.budgetViewStyle`: true lists the budgets as rows,
 	// false as a two-up card grid. Swift defaulted to the grid; the Grid design
 	// pass made rows the shipped list here, so the default is inverted.
-	| "budgetViewStyle";
+	| "budgetViewStyle"
+	// Renders every logged time as "21:04" rather than "9:04 PM". Unlike
+	// `firstWeekday` there is no faithful static default — the honest one is
+	// whatever the handset already shows — so `seedClockPreference` writes the
+	// device's value once, and `SETTING_DEFAULTS` only carries a value because
+	// the key must satisfy the record constraint.
+	| "use24HourClock";
 export type NumberSettingKey =
 	| "firstWeekday"
 	| "firstDayOfMonth"
@@ -68,10 +78,12 @@ export const SETTING_DEFAULTS = {
 	logViewLineGraph: false,
 	biometricLock: false,
 	showNotifications: false,
+	subscriptionReminders: false,
 	categorySuggestions: true,
 	swapTimeLabel: false,
 	confetti: false,
 	budgetViewStyle: true,
+	use24HourClock: false,
 	insightsTimeFrame: 1,
 	insightsMeasure: 1,
 	firstWeekday: 1,
@@ -172,6 +184,27 @@ export async function setNumberSetting(
 export async function setCurrency(db: Database, code: string): Promise<void> {
 	await setMeta(db, META_KEYS.currency, code);
 	await setMeta(db, META_KEYS.currencyChosen, "true");
+}
+
+/**
+ * Writes the handset's own 12/24-hour convention, and only while the user has
+ * never expressed one — the same shape as the deferred currency seeding, where
+ * a device value may fill an empty setting but must never overrule a stored
+ * choice. Absence is the whole signal here, so this reads the raw row rather
+ * than `readBoolSetting`, which cannot tell "false" from "never written".
+ */
+export async function seedClockPreference(
+	db: Database,
+	deviceUses24Hour: boolean,
+): Promise<void> {
+	if ((await getMeta(db, "use24HourClock")) != null) {
+		return;
+	}
+	await setBoolSetting(db, "use24HourClock", deviceUses24Hour);
+}
+
+export function clockLabel(use24Hour: boolean): TranslationKey {
+	return use24Hour ? "clock.twentyFourHour" : "clock.twelveHour";
 }
 
 export function weekdayLabel(firstWeekday: number): TranslationKey {

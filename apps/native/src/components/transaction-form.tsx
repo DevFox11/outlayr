@@ -46,7 +46,7 @@ import {
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
-import { useColorScheme, useWindowDimensions, View } from "react-native";
+import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
 import Animated, {
 	FadeInDown,
 	FadeOutDown,
@@ -61,7 +61,7 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Category, getCategoryById } from "@/data/categories";
-import { useBoolSetting } from "@/data/settings";
+import { setBoolSetting, useBoolSetting } from "@/data/settings";
 import {
 	backfillRecurring,
 	type Transaction,
@@ -75,7 +75,21 @@ import {
 	RECURRING_TYPE,
 	SELECTABLE_RECURRING_TYPES,
 } from "@/domain/recurrence";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { enableReminderStep } from "@/domain/reminder";
+import {
+	type LeadLabelKey,
+	leadLabelKey,
+	normalizeLead,
+	REMINDER_LEAD_OPTIONS,
+} from "@/domain/subscription-reminder";
+import type { LogAgainDraft } from "@/domain/transaction-actions";
+import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
+import {
+	openNotificationSettings,
+	reminderPermission,
+	requestReminderPermission,
+} from "@/lib/reminders";
+import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
@@ -162,6 +176,36 @@ const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
 };
 
+/**
+ * A SwiftUI `tag()` set has to be one type, and Off is the absence of a lead
+ * rather than a count of days — so it rides along as a sentinel and is turned
+ * back into `null` the instant the selection arrives. A -1 that escaped that
+ * boundary would reach `normalizeLead`, which clamps it to 0 and so arms a
+ * reminder on the due day for the owner who just switched reminders off.
+ */
+const LEAD_OFF_TAG = -1;
+
+/**
+ * Only names what this screen calls each phrasing. Which phrasing a lead reads
+ * as stays with {@link leadLabelKey}, including the counted fallback a lead the
+ * picker never offered needs — one restored from another device. Several domain
+ * keys therefore share a string: "2 days before" and "5 days before" are the
+ * same counted form.
+ */
+const LEAD_LABEL_KEY: Record<LeadLabelKey, TranslationKey> = {
+	"settings.notifications.leadOff": "transaction.remind.off",
+	"settings.notifications.leadSameDay": "transaction.remind.sameDay",
+	"settings.notifications.leadOneDay": "transaction.remind.dayBefore",
+	"settings.notifications.leadTwoDays": "transaction.remind.daysBefore",
+	"settings.notifications.leadThreeDays": "transaction.remind.daysBefore",
+	"settings.notifications.leadOneWeek": "transaction.remind.weekBefore",
+	"settings.notifications.leadDaysBefore": "transaction.remind.daysBefore",
+};
+
+function leadLabel(t: TranslateFn, lead: number | null): string {
+	return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
+}
+
 function ctaKey(mode: "create" | "edit", isSubscription: boolean) {
 	if (mode === "edit") {
 		return "transaction.cta.save";
@@ -188,6 +232,14 @@ interface TransactionFormProps {
 	initial?: Transaction;
 	/** Ignored when `initial` is present — an edit is never seeded. */
 	seed?: TransactionSeed;
+	/**
+	 * The charge this create is repeating, from a row's own `Log again`. It may
+	 * carry category and identity where {@link TransactionSeed} may not: these
+	 * values came off a row inside the ledger that the user confirmed once
+	 * already, not from a surface outside the app guessing at intent. It carries
+	 * no date and no schedule, so the copy lands today and stays a one-off.
+	 */
+	copyOf?: LogAgainDraft;
 	onDone: () => void;
 }
 
@@ -203,6 +255,7 @@ export function TransactionForm({
 	mode,
 	initial,
 	seed,
+	copyOf,
 	onDone,
 }: TransactionFormProps) {
 	const colors = useColors();
@@ -213,13 +266,15 @@ export function TransactionForm({
 	const contentWidth = windowWidth - 40;
 	const globalCurrency = useGlobalCurrency(db);
 	const [txCurrency, setTxCurrency] = useState<string | null>(
-		initial?.currency ?? null,
+		initial?.currency ?? copyOf?.currency ?? null,
 	);
 	const currency = txCurrency ?? globalCurrency;
 	const minorUnits = minorUnitsFor(currency);
 
-	const name = useNativeState(initial?.note ?? seed?.note ?? "");
-	const notes = useNativeState(initial?.details ?? "");
+	const name = useNativeState(
+		initial?.note ?? copyOf?.note ?? seed?.note ?? "",
+	);
+	const notes = useNativeState(initial?.details ?? copyOf?.details ?? "");
 
 	// Seeded from the live schedule, not `onceRecurring`: that flag stays true on
 	// every occurrence the back-fill materialized, so reading it here opens a
@@ -230,14 +285,19 @@ export function TransactionForm({
 		(initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
 	);
 	// Seeded synchronously so an edit renders with its category already resolved.
-	const [category, setCategory] = useState<Category | null>(() =>
-		initial?.categoryId ? getCategoryById(db, initial.categoryId) : null,
-	);
+	const [category, setCategory] = useState<Category | null>(() => {
+		const sourceId = initial?.categoryId ?? copyOf?.categoryId;
+		return sourceId ? getCategoryById(db, sourceId) : null;
+	});
 	const [income, setIncome] = useState(
-		category?.income ?? initial?.income ?? seed?.income ?? false,
+		category?.income ??
+			initial?.income ??
+			copyOf?.income ??
+			seed?.income ??
+			false,
 	);
 	const [amount, setAmount] = useState(() => {
-		const amountSeed = initial?.amount ?? seed?.amount;
+		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
 		return amountSeed == null
 			? ""
 			: numberToNumpad(amountSeed, minorUnitsFor(currency));
@@ -262,6 +322,9 @@ export function TransactionForm({
 		initial?.recurringEndDate
 			? new Date(initial.recurringEndDate)
 			: oneYearFrom(new Date()),
+	);
+	const [leadDays, setLeadDays] = useState<number | null>(
+		normalizeLead(initial?.reminderLeadDays ?? null),
 	);
 	const [categoryError, setCategoryError] = useState(false);
 	const [categoryShake, setCategoryShake] = useState(false);
@@ -317,11 +380,11 @@ export function TransactionForm({
 	// The draft is shared context, read by the fly-up hero and the picker route.
 	useEffect(() => {
 		setIdentity({
-			emoji: initial?.emoji ?? null,
-			icon: initial?.icon ?? null,
+			emoji: initial?.emoji ?? copyOf?.emoji ?? null,
+			icon: initial?.icon ?? copyOf?.icon ?? null,
 			photoUri: initial?.imageUri ?? null,
 			photoColor: initial?.imageColor ?? null,
-			color: initial?.customColor ?? null,
+			color: initial?.customColor ?? copyOf?.customColor ?? null,
 		});
 	}, [
 		initial?.imageUri,
@@ -330,6 +393,9 @@ export function TransactionForm({
 		initial?.imageColor,
 		initial?.icon,
 		initial?.customColor,
+		copyOf?.emoji,
+		copyOf?.icon,
+		copyOf?.customColor,
 	]);
 
 	const amountNumber = numpadToNumber(amount);
@@ -355,6 +421,55 @@ export function TransactionForm({
 	const handleScheduleChange = (type: number) => {
 		setRecurringType(type);
 		setCoefficient(1);
+	};
+
+	// The same ladder the notifications setting runs, for the same reason: a lead
+	// iOS will never deliver is a promise this row would go on repeating, so it is
+	// put back to Off rather than left standing. Neither branch schedules anything
+	// — the sweep that follows a save owns the pending requests.
+	// Picking a lead here IS the intent behind the master switch, and this row is
+	// the only place it is ever expressed — a ledger whose owner has never opened
+	// the notifications screen would otherwise arm nothing.
+	const armSubscriptionReminders = async () => {
+		await setBoolSetting(db, "subscriptionReminders", true);
+	};
+
+	const confirmRemindersAllowed = async () => {
+		const existing = await reminderPermission();
+		if (enableReminderStep(existing) === "open-settings") {
+			Alert.alert(
+				t("settings.notifications.deniedTitle"),
+				t("settings.notifications.deniedBody"),
+				[
+					{ style: "cancel", text: t("settings.notifications.notNow") },
+					{
+						onPress: openNotificationSettings,
+						text: t("settings.notifications.openSettings"),
+					},
+				],
+			);
+			setLeadDays(null);
+			return;
+		}
+		if (existing === "granted") {
+			await armSubscriptionReminders();
+			return;
+		}
+		if ((await requestReminderPermission()) === "granted") {
+			await armSubscriptionReminders();
+			return;
+		}
+		setLeadDays(null);
+	};
+
+	const handleLeadChange = (next: number) => {
+		const lead = next === LEAD_OFF_TAG ? null : normalizeLead(next);
+		setLeadDays(lead);
+		if (lead !== null) {
+			confirmRemindersAllowed().catch((error) => {
+				console.error("Reminder permission check failed", error);
+			});
+		}
 	};
 
 	const handleSelectCategory = (picked: Category) => {
@@ -397,37 +512,76 @@ export function TransactionForm({
 			recurringType: isSubscription ? recurringType : RECURRING_TYPE.none,
 			recurringCoefficient: isSubscription ? Math.max(1, coefficient) : 1,
 			recurringEndDate: isSubscription && hasEndDate ? endDate : null,
+			reminderLeadDays: isSubscription ? leadDays : null,
 		};
+		let id: string;
 		try {
-			let id: string;
 			if (mode === "edit" && initial) {
 				await transactionsRepo.update(db, initial.id, input);
 				id = initial.id;
 			} else {
 				id = await transactionsRepo.create(db, input);
 			}
-			if (isSubscription) {
-				await backfillRecurring(db, id);
-			}
-			if (mode === "edit") {
-				onDone();
-			} else {
-				setShowToast(true);
-				// The form owns the celebration, so it has to outlive its own
-				// dismissal: Swift fired the cannon on the screen behind the sheet,
-				// which has no equivalent here without hoisting state out of the
-				// route.
-				if (celebrate) {
-					setBurstSeed(Date.now());
-				}
-				doneTimer.current = setTimeout(
-					onDone,
-					celebrate ? CONFETTI_FLIGHT_MS : 600,
-				);
-			}
 		} catch (error) {
 			console.error("Failed to save transaction", error);
+			// Nothing was written, so the retry is the same tap again — but say so
+			// first: un-dimming the CTA in silence is indistinguishable from having
+			// missed the button.
+			haptics("error");
 			setSaving(false);
+			Alert.alert(
+				t("transaction.save.failedTitle"),
+				t("transaction.save.failedBody"),
+			);
+			return;
+		}
+		// The row is COMMITTED from here down, so no failure below may re-enable the
+		// CTA: a second tap runs `create` again, which mints a fresh id rather than
+		// rewriting this row, and the ledger ends up with two subscriptions — each
+		// walked forward into its own chain of charges by the next sweep.
+		let scheduleFailed = false;
+		if (isSubscription) {
+			try {
+				await backfillRecurring(db, id);
+			} catch (error) {
+				console.error("Failed to back-fill the subscription", error);
+				scheduleFailed = true;
+			}
+		}
+		// After the backfill, which is what moves the chain's next landing: the
+		// sweep dates its requests off that. Not awaited, and its failure is not
+		// the save's: the row is already written, so a notification the queue
+		// refused must not send this down the catch and re-enable the CTA.
+		syncSubscriptionReminders(db).catch((error) => {
+			console.error("Subscription reminder sync failed", error);
+		});
+		if (scheduleFailed) {
+			haptics("error");
+			// Dismissed from the alert's own button rather than alongside it: an
+			// alert raised as the modal route is being torn down has no presenter
+			// left and never appears, which is the silence this replaces.
+			Alert.alert(
+				t("transaction.save.scheduleFailedTitle"),
+				t("transaction.save.scheduleFailedBody"),
+				[{ text: t("common.done"), onPress: onDone }],
+			);
+			return;
+		}
+		if (mode === "edit") {
+			onDone();
+		} else {
+			setShowToast(true);
+			// The form owns the celebration, so it has to outlive its own
+			// dismissal: Swift fired the cannon on the screen behind the sheet,
+			// which has no equivalent here without hoisting state out of the
+			// route.
+			if (celebrate) {
+				setBurstSeed(Date.now());
+			}
+			doneTimer.current = setTimeout(
+				onDone,
+				celebrate ? CONFETTI_FLIGHT_MS : 600,
+			);
 		}
 	};
 
@@ -819,6 +973,51 @@ export function TransactionForm({
 											</HStack>
 										</>
 									) : null}
+
+									<Divider modifiers={hairline} />
+
+									{/* Label outside the Menu, as on the Schedule row above. */}
+									<HStack modifiers={ROW}>
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.remind")}
+										</SwiftText>
+										<Spacer />
+										<Menu
+											label={
+												<HStack spacing={4}>
+													<SwiftText
+														modifiers={[
+															BODY,
+															foregroundStyle(colors.foreground),
+														]}
+													>
+														{leadLabel(t, leadDays)}
+													</SwiftText>
+													<Image
+														color={colors.muted}
+														size={12}
+														systemName="chevron.up.chevron.down"
+													/>
+												</HStack>
+											}
+											modifiers={[menuTint]}
+										>
+											<Picker
+												label={t("transaction.field.remind")}
+												onSelectionChange={handleLeadChange}
+												selection={leadDays ?? LEAD_OFF_TAG}
+											>
+												<SwiftText modifiers={[tag(LEAD_OFF_TAG)]}>
+													{t("transaction.remind.off")}
+												</SwiftText>
+												{REMINDER_LEAD_OPTIONS.map((lead) => (
+													<SwiftText key={lead} modifiers={[tag(lead)]}>
+														{leadLabel(t, lead)}
+													</SwiftText>
+												))}
+											</Picker>
+										</Menu>
+									</HStack>
 								</>
 							) : (
 								<>

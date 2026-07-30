@@ -99,6 +99,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # `.intlayer/` is generated and gitignored. The `check-types` and `test`
+      # scripts each run `intlayer build` themselves, so the other job never
+      # noticed; `expo export` does not, and Metro fails resolving
+      # `.intlayer/config/configuration.mjs` before it reaches a line of app code.
+      # That has been failing this job on every branch, main included, which left
+      # the only check that can catch a bundling regression permanently red.
+      - name: Build the i18n catalog
+        working-directory: apps/native
+        run: pnpm i18n:build
+
       # A green lint/typecheck still lets a module-resolution or Metro config
       # regression through. Bundling is the cheapest check that the app can
       # actually be built, and it catches the Skia directory-index resolution

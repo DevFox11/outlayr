@@ -88,6 +88,13 @@ function skipReason(t: TranslateFn, reason: string): string {
 	return t(SKIP_LABEL[reason as keyof typeof SKIP_LABEL]);
 }
 
+/** `toDateString` would print an English weekday and month whatever the language. */
+function isoDay(date: Date): string {
+	const month = `${date.getMonth() + 1}`.padStart(2, "0");
+	const day = `${date.getDate()}`.padStart(2, "0");
+	return `${date.getFullYear()}-${month}-${day}`;
+}
+
 function sampleOf(file: ParsedImportFile, index: number): string {
 	return (
 		file.rows.find((row) => (row[index] ?? "").trim() !== "")?.[index] ?? ""
@@ -124,7 +131,14 @@ function ImportData({ db }: { db: Database }) {
 		income: boolean;
 	} | null>(null);
 	const [plan, setPlan] = useState<ImportPlan | null>(null);
-	const [failure, setFailure] = useState<string | null>(null);
+	/**
+	 * Set once the write failed. `detail` is the driver's own untranslated text,
+	 * shown under the translated sentence rather than as it — a raw SQLite message
+	 * standing alone reads as gibberish and says nothing about the ledger's state.
+	 */
+	const [failure, setFailure] = useState<{ detail: string | null } | null>(
+		null,
+	);
 	const [written, setWritten] = useState(0);
 
 	const catalog = useMemo(() => {
@@ -217,7 +231,7 @@ function ImportData({ db }: { db: Database }) {
 				Alert.alert(
 					t("settings.import.failedTitle"),
 					error instanceof TransferError
-						? error.message
+						? t(error.key)
 						: t("settings.import.failedBody"),
 				);
 			});
@@ -268,11 +282,7 @@ function ImportData({ db }: { db: Database }) {
 				setFailure(null);
 			})
 			.catch((error: unknown) => {
-				setFailure(
-					error instanceof Error
-						? error.message
-						: t("settings.import.writeFailed"),
-				);
+				setFailure({ detail: error instanceof Error ? error.message : null });
 			})
 			.finally(() => setStep("done"));
 	};
@@ -416,11 +426,19 @@ function ImportData({ db }: { db: Database }) {
 							{failure == null ? written : "—"}
 						</Text>
 						<Text className="text-muted text-subtitle leading-snug">
-							{failure ??
-								(written === 1
+							{failure != null
+								? t("settings.import.writeFailed")
+								: written === 1
 									? t("settings.import.addedOne")
-									: t("settings.import.addedMany"))}
+									: t("settings.import.addedMany")}
 						</Text>
+						{failure?.detail == null ? null : (
+							<Text className="text-subtitle text-subtle leading-snug">
+								{t("settings.import.writeFailedDetail", {
+									detail: failure.detail,
+								})}
+							</Text>
+						)}
 					</View>
 				) : null}
 			</ScrollView>
@@ -662,7 +680,10 @@ function ReviewStep({ plan }: { plan: ImportPlan }) {
 
 			{plan.earliest != null && plan.latest != null ? (
 				<Text className="pb-4 text-muted text-subtitle">
-					{`${plan.earliest.toDateString()} — ${plan.latest.toDateString()}`}
+					{t("settings.import.planRange", {
+						from: isoDay(plan.earliest),
+						to: isoDay(plan.latest),
+					})}
 				</Text>
 			) : null}
 

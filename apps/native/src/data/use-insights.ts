@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
 import { valueDatedRowsIn } from "@/domain/valuation";
+import { useLanguage } from "@/i18n";
 import {
 	bucketSeries,
 	type CategoryBreakdownEntry,
@@ -75,6 +76,11 @@ export function useInsights(
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
 ): UseInsightsResult {
 	const { firstWeekday, firstDayOfMonth } = calendar;
+	// Threaded through every label below rather than left to the `runtimeLanguage()`
+	// default: the labels are built inside a memo, so a default read makes them
+	// look reactive while they hold last language's month names until an unrelated
+	// dependency happens to move.
+	const { language } = useLanguage();
 
 	// The analysed window plus the one before it, which `windowTotals` needs for
 	// the vs-prior badge. Bounding here keeps this off a full-history scan.
@@ -156,7 +162,15 @@ export function useInsights(
 			date: row.date,
 		}));
 		const now = new Date(nowMs);
-		const buckets = bucketSeries(rows, period, measure, now, offset, cal);
+		const buckets = bucketSeries(
+			rows,
+			period,
+			measure,
+			now,
+			offset,
+			cal,
+			language,
+		);
 		const total = periodTotal(buckets);
 		const { income, spent } = windowTotals(rows, period, now, offset, cal);
 		const prior = windowTotals(rows, period, now, offset - 1, cal);
@@ -206,12 +220,12 @@ export function useInsights(
 			net,
 			priorNet: prior.income - prior.spent,
 			priorMeasure: measure === "income" ? prior.income : prior.spent,
-			priorLabel: windowLabel(period, offset - 1, now, cal),
+			priorLabel: windowLabel(period, offset - 1, now, cal, language),
 			breakdown: withCategoryDeltas(composition, priorComposition),
 			movers: categoryMovers(composition, priorComposition, compositionTotal),
-			label: windowLabel(period, offset, now, cal),
-			prevLabel: windowShortLabel(period, offset - 1, now, cal),
-			nextLabel: windowShortLabel(period, offset + 1, now, cal),
+			label: windowLabel(period, offset, now, cal, language),
+			prevLabel: windowShortLabel(period, offset - 1, now, cal, language),
+			nextLabel: windowShortLabel(period, offset + 1, now, cal, language),
 			atCurrent: offset >= 0,
 			atEarliest: offset <= minOffset,
 			hasHistory: earliest != null,
@@ -232,5 +246,6 @@ export function useInsights(
 		offset,
 		firstWeekday,
 		firstDayOfMonth,
+		language,
 	]);
 }

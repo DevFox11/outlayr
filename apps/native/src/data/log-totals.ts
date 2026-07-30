@@ -13,7 +13,6 @@ import type { LogFigures } from "@/domain/log-measure";
 import { type RateTable, valueDatedRowsIn } from "@/domain/valuation";
 import { logCellQuery, toCurrencyCells } from "./cell-query";
 import { useLiveQuery } from "./live-query";
-import { useValuation } from "./use-valuation";
 
 /**
  * Mirrors the Swift `LogPeriod` enum. Kept separate from the Insights period so
@@ -81,6 +80,10 @@ function periodStart(period: LogPeriod, now: Date): Date | null {
  * Net is a running balance from the ledger's first entry, so it needs every row
  * and takes no lower bound. In and Out are per-bucket, so those stop at the
  * window's floor.
+ *
+ * The valuation arrives as arguments rather than being read here: the screen
+ * decides which currency the Log is being read in, and a hook that fetched the
+ * global one itself would leave the line in the old currency under an override.
  */
 export function useSparklineRows(
 	db: Database,
@@ -88,6 +91,8 @@ export function useSparklineRows(
 	enabled: boolean,
 	cumulative: boolean,
 	floor: Date | null,
+	displayCurrency: string,
+	rates: RateTable,
 ): { date: Date; amount: number; income: boolean }[] {
 	const columns = {
 		date: transactions.date,
@@ -116,8 +121,6 @@ export function useSparklineRows(
 			.orderBy(asc(transactions.date));
 	}, [nowMs, enabled, cumulative, floor?.getTime() ?? null]);
 
-	const { displayCurrency, rates } = useValuation(db);
-
 	return useMemo(() => {
 		const valued = valueDatedRowsIn(rows, displayCurrency, rates);
 		return rows.map((row, index) => ({
@@ -140,7 +143,6 @@ export interface LogInsights {
 	others: LogFigures[];
 	/** Dominant first, then the rest. */
 	perCurrency: LogFigures[];
-	isMultiCurrency: boolean;
 }
 
 /**
@@ -178,7 +180,6 @@ export function useLogInsights(
 			dominant,
 			others,
 			perCurrency: [dominant, ...others],
-			isMultiCurrency: others.length > 0,
 		};
 	}, [rows, globalCurrency, rates]);
 }

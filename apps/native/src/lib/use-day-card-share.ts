@@ -8,6 +8,7 @@ import {
 	dayCardFileName,
 } from "@/domain/day-card-content";
 import { translateNow } from "@/i18n/runtime";
+import { TransferError } from "./data-transfer";
 import { shareDayCard } from "./day-card-image";
 
 /**
@@ -31,8 +32,8 @@ export function useDayCardShare(
 						).catch((error: unknown) => {
 							Alert.alert(
 								translateNow("alerts.dayCard.failedTitle"),
-								error instanceof Error
-									? error.message
+								error instanceof TransferError
+									? translateNow(error.key)
 									: translateNow("alerts.dayCard.failedBody"),
 							);
 						});

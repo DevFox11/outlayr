@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { EN, ES } from "@/i18n/catalog";
+import * as budgetMath from "./budget-math";
 import {
 	advanceBudgetWindow,
 	BUDGET_TYPE,
+	budgetPeriodPhrase,
 	budgetRail,
 	budgetWindowLabel,
 	periodEnd,
@@ -285,6 +288,39 @@ describe("periodsBackTo", () => {
 
 	it("does not loop forever on a type with no period length", () => {
 		assert.equal(periodsBackTo(d(2025, 7, 1), 99, d(2000, 1, 1)), 0);
+	});
+});
+
+describe("budgetPeriodPhrase", () => {
+	it("names the span each budget type covers", () => {
+		assert.equal(EN[budgetPeriodPhrase(BUDGET_TYPE.day)], "today");
+		assert.equal(EN[budgetPeriodPhrase(BUDGET_TYPE.week)], "this week");
+		assert.equal(EN[budgetPeriodPhrase(BUDGET_TYPE.month)], "this month");
+		assert.equal(EN[budgetPeriodPhrase(BUDGET_TYPE.year)], "this year");
+	});
+
+	it("falls back to an unnamed span for a type it does not know", () => {
+		assert.equal(EN[budgetPeriodPhrase(99)], "this period");
+	});
+
+	it("returns a key every language resolves", () => {
+		for (const type of [
+			BUDGET_TYPE.day,
+			BUDGET_TYPE.week,
+			BUDGET_TYPE.month,
+			BUDGET_TYPE.year,
+			99,
+		]) {
+			const key = budgetPeriodPhrase(type);
+			assert.ok(ES[key], `${key} has no Spanish`);
+			// The parity gate only counts keys, so an entry left as a copy of the
+			// English is what it cannot see.
+			assert.notEqual(ES[key], EN[key]);
+		}
+	});
+
+	it("no longer ships the reset phrase nothing rendered", () => {
+		assert.ok(!Object.keys(budgetMath).includes("budgetResetPhrase"));
 	});
 });
 

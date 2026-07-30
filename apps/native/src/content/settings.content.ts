@@ -163,6 +163,114 @@ const settings = {
 			en: "1 waiting to sync",
 			es: "1 en espera de sincronizar",
 		}),
+		"settings.sync.navTitle": t({
+			en: "Sync",
+			es: "Sincronización",
+		}),
+		"settings.sync.eyebrow": t({
+			en: "This device",
+			es: "Este dispositivo",
+		}),
+		"settings.sync.on": t({
+			en: "Syncing",
+			es: "Sincronizando",
+		}),
+		"settings.sync.off": t({
+			en: "Not syncing",
+			es: "Sin sincronizar",
+		}),
+		"settings.sync.onDetail": t({
+			en: "Every change you make here is queued for your account and reaches your other devices.",
+			es: "Cada cambio que haces aquí se pone en cola para tu cuenta y llega a tus otros dispositivos.",
+		}),
+		"settings.sync.offDetail": t({
+			en: "Nothing leaves this iPhone. Your ledger is complete here and works exactly as it does now.",
+			es: "Nada sale de este iPhone. Tu registro está completo aquí y funciona igual que ahora.",
+		}),
+		"settings.sync.section": t({
+			en: "Replication",
+			es: "Replicación",
+		}),
+		"settings.sync.toggle": t({
+			en: "Sync this device",
+			es: "Sincronizar este dispositivo",
+		}),
+		"settings.sync.footer": t({
+			en: "Turning sync off keeps every transaction, budget and category on this iPhone — it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
+			es: "Desactivar la sincronización conserva cada transacción, presupuesto y categoría en este iPhone — solo deja de ponerlos en cola para tu cuenta. Al activarla de nuevo se entrega todo lo registrado mientras tanto.",
+		}),
+		"settings.sync.statusSection": t({
+			en: "Status",
+			es: "Estado",
+		}),
+		"settings.sync.waiting": t({
+			en: "Waiting to sync",
+			es: "En espera de sincronizar",
+		}),
+		"settings.sync.lastSynced": t({
+			en: "Last synced",
+			es: "Última sincronización",
+		}),
+		"settings.sync.neverSynced": t({
+			en: "Never",
+			es: "Nunca",
+		}),
+		"settings.sync.needsAccount": t({
+			en: "Sync needs an account to replicate to. Until you sign in your ledger stays on this device, which is all Outlayr ever needed to work.",
+			es: "La sincronización necesita una cuenta a la que replicar. Hasta que inicies sesión tu registro se queda en este dispositivo, que es todo lo que Outlayr necesitó siempre para funcionar.",
+		}),
+		"settings.sync.working": t({
+			en: "Working…",
+			es: "Trabajando…",
+		}),
+		"settings.sync.failedTitle": t({
+			en: "Sync setting unchanged",
+			es: "La sincronización no cambió",
+		}),
+		"settings.sync.failedBody": t({
+			en: "The switch is where it was and your ledger is untouched. Try again in a moment.",
+			es: "El interruptor sigue como estaba y tu registro está intacto. Inténtalo de nuevo en un momento.",
+		}),
+		"settings.row.deleted": t({
+			en: "Recently Deleted",
+			es: "Eliminados recientemente",
+		}),
+		"settings.deleted.navTitle": t({
+			en: "Recently Deleted",
+			es: "Eliminados recientemente",
+		}),
+		"settings.deleted.section": t({
+			en: "Deleted entries",
+			es: "Entradas eliminadas",
+		}),
+		"settings.deleted.restore": t({
+			en: "Restore",
+			es: "Restaurar",
+		}),
+		"settings.deleted.restoreEntry": t({
+			en: "Restore {note}",
+			es: "Restaurar {note}",
+		}),
+		"settings.deleted.deletedOn": t({
+			en: "Deleted {date}",
+			es: "Eliminada {date}",
+		}),
+		"settings.deleted.empty": t({
+			en: "Nothing has been deleted. Entries you delete arrive here and wait — Outlayr never throws one away.",
+			es: "No has eliminado nada. Las entradas que elimines llegan aquí y esperan — Outlayr nunca descarta ninguna.",
+		}),
+		"settings.deleted.footer": t({
+			en: "Restoring puts the entry back on the Log exactly where its date belongs. A subscription you ended stays ended: only the charge comes back, never the schedule.",
+			es: "Restaurar devuelve la entrada al registro justo donde le corresponde por fecha. Una suscripción que terminaste sigue terminada: vuelve solo el cargo, nunca la programación.",
+		}),
+		"settings.deleted.failedTitle": t({
+			en: "Entry not restored",
+			es: "La entrada no se restauró",
+		}),
+		"settings.deleted.failedBody": t({
+			en: "It is still here and nothing was lost. Try restoring it again.",
+			es: "Sigue aquí y no se perdió nada. Intenta restaurarla de nuevo.",
+		}),
 		"settings.row.import": t({
 			en: "Import Data",
 			es: "Importar datos",
@@ -291,9 +399,33 @@ const settings = {
 			en: "iOS confirms every change with an alert of its own.",
 			es: "iOS confirma cada cambio con su propia alerta.",
 		}),
+		"settings.appIcon.failedTitle": t({
+			en: "Icon unchanged",
+			es: "El ícono no cambió",
+		}),
+		"settings.appIcon.failedBody": t({
+			en: "iOS refused the change. Your home screen still shows the icon marked here.",
+			es: "iOS rechazó el cambio. Tu pantalla de inicio sigue mostrando el ícono marcado aquí.",
+		}),
 		"settings.currency.search": t({
 			en: "Search currencies",
 			es: "Buscar monedas",
+		}),
+		"settings.currency.favourites": t({
+			en: "Favourites",
+			es: "Favoritas",
+		}),
+		"settings.currency.favourite": t({
+			en: "Add {code} to favourites",
+			es: "Agregar {code} a favoritas",
+		}),
+		"settings.currency.unfavourite": t({
+			en: "Remove {code} from favourites",
+			es: "Quitar {code} de favoritas",
+		}),
+		"settings.currency.favouritesFull": t({
+			en: "You already keep {limit} favourites. Remove one to make room.",
+			es: "Ya tienes {limit} favoritas. Quita una para hacer espacio.",
 		}),
 		"settings.erase.onThisDevice": t({
 			en: "On this device",
@@ -343,9 +475,17 @@ const settings = {
 			en: "Every transaction, recurring template and budget will be deleted. Only your categories are kept. This can't be undone.",
 			es: "Se eliminarán todas las transacciones, plantillas recurrentes y presupuestos. Solo se conservan tus categorías. Esto no se puede deshacer.",
 		}),
+		"settings.erase.failedTitle": t({
+			en: "Erase didn't finish",
+			es: "El borrado no terminó",
+		}),
+		"settings.erase.failedBody": t({
+			en: "Part of your data may still be on this device. Try erasing again.",
+			es: "Parte de tus datos podría seguir en este dispositivo. Intenta borrar de nuevo.",
+		}),
 		"settings.export.footer": t({
-			en: "Deleted transactions are left out. Everything else on this device is written, newest first.",
-			es: "Las transacciones eliminadas se omiten. Todo lo demás en este dispositivo se escribe, de lo más reciente a lo más antiguo.",
+			en: "Deleted transactions are left out. Every other transaction is written, newest first — six columns of it.",
+			es: "Las transacciones eliminadas se omiten. Todas las demás se escriben, de la más reciente a la más antigua, en seis columnas.",
 		}),
 		"settings.export.ready": t({
 			en: "Ready to export",
@@ -382,6 +522,30 @@ const settings = {
 		"settings.export.columnsNote": t({
 			en: "Dates are ISO 8601 instants and amounts are plain decimals with no grouping, so the file reads back into Outlayr — or into a spreadsheet — as the same figures.",
 			es: "Las fechas son instantes ISO 8601 y los montos son decimales simples sin separadores de miles, así que el archivo se vuelve a leer en Outlayr — o en una hoja de cálculo — con las mismas cifras.",
+		}),
+		"settings.export.omitted": t({
+			en: "Not in the file",
+			es: "No está en el archivo",
+		}),
+		"settings.export.omittedDetails": t({
+			en: "Notes — the longer text under a transaction",
+			es: "Notas — el texto más largo debajo de una transacción",
+		}),
+		"settings.export.omittedPhotos": t({
+			en: "Photos",
+			es: "Fotos",
+		}),
+		"settings.export.omittedLook": t({
+			en: "Emoji, icon and color",
+			es: "Emoji, icono y color",
+		}),
+		"settings.export.omittedRecurrence": t({
+			en: "Subscription schedules and their reminders",
+			es: "La programación de las suscripciones y sus recordatorios",
+		}),
+		"settings.export.omittedNote": t({
+			en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand — the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
+			es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría debe vincularse a mano — el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
 		}),
 		"settings.featureLab.addingSection": t({
 			en: "Adding a transaction",
@@ -514,6 +678,18 @@ const settings = {
 		"settings.notifications.openSettings": t({
 			en: "Open Settings",
 			es: "Abrir Configuración",
+		}),
+		"settings.notifications.subscriptionSection": t({
+			en: "Subscription charges",
+			es: "Cobros de suscripciones",
+		}),
+		"settings.notifications.subscriptionToggle": t({
+			en: "Warn Me Before a Charge",
+			es: "Avísame antes de un cobro",
+		}),
+		"settings.notifications.subscriptionFooter": t({
+			en: "Each subscription decides how far ahead it warns you, on its own screen. Off silences all of them without changing what any one of them says.",
+			es: "Cada suscripción decide con cuánta antelación te avisa, en su propia pantalla. Desactivarlo las silencia todas sin cambiar lo que cada una indica.",
 		}),
 		"settings.numberEntry.section": t({
 			en: "Amount keypad",
@@ -663,6 +839,10 @@ const settings = {
 			en: "Nothing was written. The ledger is unchanged.",
 			es: "No se escribió nada. Tu registro queda igual.",
 		}),
+		"settings.import.writeFailedDetail": t({
+			en: "The database reported: {detail}",
+			es: "La base de datos informó: {detail}",
+		}),
 		"settings.import.step1": t({
 			en: "Step 1 of 4 · {file}",
 			es: "Paso 1 de 4 · {file}",
@@ -734,6 +914,10 @@ const settings = {
 		"settings.import.willAddMany": t({
 			en: "transactions will be added",
 			es: "transacciones se agregarán",
+		}),
+		"settings.import.planRange": t({
+			en: "Dated {from} to {to}.",
+			es: "Con fechas del {from} al {to}.",
 		}),
 		"settings.import.allRowsRead": t({
 			en: "Every row in the file could be read.",

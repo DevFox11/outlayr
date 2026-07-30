@@ -5,10 +5,14 @@ import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type EraseScope, eraseData } from "@/data/erase";
+import { type EraseResidue, type EraseScope, eraseData } from "@/data/erase";
 import { useTransactionCount } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import { type TranslationKey, useTranslation } from "@/i18n";
+import { clearStoredPhotos } from "@/lib/photo-storage";
+import { clearSpotlight } from "@/lib/spotlight";
+
+const RESIDUE: EraseResidue = { clearStoredPhotos, clearSpotlight };
 
 export default function EraseDataRoute() {
 	const db = useDatabase();
@@ -31,7 +35,15 @@ function EraseData({ db }: { db: Database }) {
 				text: t("settings.erase.action"),
 				style: "destructive",
 				onPress: () => {
-					eraseData(db, scope).then(() => router.back());
+					eraseData(db, scope, RESIDUE)
+						.then(() => router.back())
+						.catch((error: unknown) => {
+							console.error("Erase failed", error);
+							Alert.alert(
+								t("settings.erase.failedTitle"),
+								t("settings.erase.failedBody"),
+							);
+						});
 				},
 			},
 		]);

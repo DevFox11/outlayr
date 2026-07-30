@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
-import { isNull } from "drizzle-orm";
+import { getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import {
@@ -11,7 +11,8 @@ import {
 	templateTransactions,
 	transactions,
 } from "@/db/schema";
-import { eraseLedger } from "./erase-core";
+import { ERASED_TRANSACTION, eraseLedger } from "./erase-core";
+import { deletedTransactionsQuery } from "./transactions-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -49,6 +50,7 @@ function makeDb(): Database {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			reminderLeadDays integer,
 			categoryId text,
 			amountUsd real,
 			exchangeRate real,
@@ -130,6 +132,7 @@ async function seed(db: Database): Promise<void> {
 		recurringType: 2,
 		recurringCoefficient: 3,
 		recurringEndDate: AUTHORED,
+		reminderLeadDays: 3,
 		categoryId: "cat-1",
 		amountUsd: 46.2,
 		exchangeRate: 1.087,
@@ -196,6 +199,42 @@ describe("eraseLedger", () => {
 		assert.notEqual(replicable[0].deletedAt, null);
 	});
 
+	// Recently Deleted is the one screen built to read tombstones, so an erase
+	// writes straight into it: without the exclusion the user is handed the ledger
+	// they just erased back, row by row, each with a Restore button.
+	it("keeps the rows it erased out of Recently Deleted", async () => {
+		const removed = new Date("2026-02-01T00:00:00.000Z");
+		await db.insert(transactions).values({
+			id: "tx-2",
+			amount: 7,
+			income: false,
+			note: "already gone",
+			date: AUTHORED,
+			day: AUTHORED,
+			month: AUTHORED,
+			updatedAt: removed,
+			deletedAt: removed,
+		});
+
+		await eraseLedger(db, "transactions");
+
+		assert.deepEqual(
+			(await deletedTransactionsQuery(db)).map((row) => row.id),
+			["tx-2"],
+		);
+	});
+
+	// A column added to `transactions` and not to the constant would survive the
+	// erase on the tombstone, and no round-trip assertion above would notice.
+	it("names every column of a transaction that is not the envelope", () => {
+		const ENVELOPE = new Set(["id", "updatedAt", "deletedAt"]);
+		const declared = Object.keys(getTableColumns(transactions)).filter(
+			(name) => !ENVELOPE.has(name),
+		);
+
+		assert.deepEqual(Object.keys(ERASED_TRANSACTION).sort(), declared.sort());
+	});
+
 	it("strips everything personal off a transaction tombstone", async () => {
 		await eraseLedger(db, "transactions");
 
@@ -217,6 +256,7 @@ describe("eraseLedger", () => {
 		assert.equal(row.recurringType, 0);
 		assert.equal(row.recurringCoefficient, 1);
 		assert.equal(row.recurringEndDate, null);
+		assert.equal(row.reminderLeadDays, null);
 		assert.equal(row.categoryId, null);
 		assert.equal(row.amountUsd, null);
 		assert.equal(row.exchangeRate, null);

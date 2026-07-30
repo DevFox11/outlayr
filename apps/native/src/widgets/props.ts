@@ -27,6 +27,8 @@ import {
 } from "@/domain/dates";
 import { DEFAULT_CURRENCY, formatAmount } from "@/domain/money";
 import { limitIn } from "@/domain/valuation";
+import type { TranslationKey } from "@/i18n/catalog";
+import { translateNow } from "@/i18n/runtime";
 import { DEEP_LINKS } from "@/lib/deep-links";
 import { WIDGET_PALETTE, type WidgetPalette } from "./palette";
 
@@ -71,7 +73,7 @@ export interface BudgetViewProps {
 	rangeLabel: string;
 	/** The hero figure, already in the user's currency and cents preference. */
 	remaining: string;
-	/** "LEFT" or "OVER" — the sign lives in the word, never in a minus. */
+	/** The localized "LEFT"/"OVER" — the sign is in the word, never in a minus. */
 	remainingCaption: string;
 	/**
 	 * Cents off regardless of the "Display Cents" setting, matching `BudgetRow`'s
@@ -195,10 +197,10 @@ const PERIODS: Readonly<Record<number, InsightsPeriod>> = {
 	3: "year",
 };
 
-const PERIOD_EYEBROW: Readonly<Record<InsightsPeriod, string>> = {
-	week: "THIS WEEK",
-	month: "THIS MONTH",
-	year: "THIS YEAR",
+const PERIOD_EYEBROW: Readonly<Record<InsightsPeriod, TranslationKey>> = {
+	week: "insights.quiet.thisWeek",
+	month: "insights.quiet.thisMonth",
+	year: "insights.quiet.thisYear",
 };
 
 /**
@@ -305,7 +307,7 @@ export async function buildWidgetProps(
 		),
 		Log: {
 			chrome: CHROME,
-			todayLabel: "TODAY",
+			todayLabel: translateNow("common.today").toUpperCase(),
 			todaySpent: money(sumExpenses(contributions, startOfDay(now), now, null)),
 			url: DEEP_LINKS.newExpense,
 		},
@@ -370,9 +372,9 @@ async function buildBudget(
 ): Promise<BudgetWidgetProps> {
 	const empty: BudgetViewProps = {
 		present: false,
-		name: "No budget yet",
+		name: translateNow("budgets.widget.none"),
 		isOverall: true,
-		periodLabel: "BUDGET",
+		periodLabel: translateNow("budgets.form.defaultName").toUpperCase(),
 		rangeLabel: "",
 		remaining: "",
 		remainingCaption: "",
@@ -397,7 +399,9 @@ async function buildBudget(
 	if (main) {
 		const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
 		overall = present(
-			main.name?.trim() ? main.name.trim() : "Overall Budget",
+			main.name?.trim()
+				? main.name.trim()
+				: translateNow("budgets.form.defaultOverall"),
 			true,
 			limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
 			sumExpenses(contributions, window.start, now, null),
@@ -438,7 +442,7 @@ async function buildBudget(
 		worst = present(
 			ranked.row.name?.trim()
 				? ranked.row.name.trim()
-				: (rankedCategory?.name ?? "Budget"),
+				: (rankedCategory?.name ?? translateNow("budgets.form.defaultName")),
 			false,
 			ranked.limit,
 			ranked.spent,
@@ -469,10 +473,12 @@ async function buildBudget(
 			present: true,
 			name,
 			isOverall,
-			periodLabel: budgetPeriodPhrase(type).toUpperCase(),
+			periodLabel: translateNow(budgetPeriodPhrase(type)).toUpperCase(),
 			rangeLabel: rangeLabel(window.start, window.end),
 			remaining: money(Math.abs(amount - spent)),
-			remainingCaption: over ? "OVER" : "LEFT",
+			remainingCaption: translateNow(
+				over ? "budgets.suffix.over" : "budgets.suffix.left",
+			).toUpperCase(),
 			spent: whole(spent),
 			limit: whole(amount),
 			percent: `${Math.round(fraction * 100)}%`,
@@ -507,11 +513,13 @@ async function buildIntentBudgets(
 		id,
 		name,
 		remaining: money(Math.abs(amount - spent)),
-		remainingCaption: spent > amount ? "over" : "left",
+		remainingCaption: translateNow(
+			spent > amount ? "budgets.suffix.over" : "budgets.suffix.left",
+		),
 		spent: whole(spent),
 		limit: whole(amount),
 		percent: `${Math.round((amount > 0 ? spent / amount : 0) * 100)}%`,
-		periodLabel: budgetPeriodPhrase(type),
+		periodLabel: translateNow(budgetPeriodPhrase(type)),
 	});
 
 	const out: IntentBudgetProps[] = [];
@@ -527,7 +535,9 @@ async function buildIntentBudgets(
 		out.push(
 			shape(
 				OVERALL_BUDGET_ID,
-				main.name?.trim() ? main.name.trim() : "Overall",
+				main.name?.trim()
+					? main.name.trim()
+					: translateNow("budgets.form.kindOverall"),
 				limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
 				sumExpenses(contributions, window.start, now, null),
 				main.type,
@@ -548,7 +558,9 @@ async function buildIntentBudgets(
 		out.push(
 			shape(
 				row.id,
-				row.name?.trim() ? row.name.trim() : (meta?.name ?? "Budget"),
+				row.name?.trim()
+					? row.name.trim()
+					: (meta?.name ?? translateNow("budgets.form.defaultName")),
 				limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
 				sumExpenses(contributions, window.start, now, row.categoryId),
 				row.type,
@@ -625,7 +637,7 @@ async function buildLedger(
 
 	return {
 		chrome: CHROME,
-		todayLabel: "TODAY",
+		todayLabel: translateNow("common.today").toUpperCase(),
 		todaySpent: money(sumExpenses(contributions, startOfDay(now), now, null)),
 		url: DEEP_LINKS.log,
 		entries: rows.map((row) => {
@@ -671,7 +683,7 @@ function buildInsights(
 	).slice(0, SLICE_LIMIT);
 
 	return {
-		periodLabel: PERIOD_EYEBROW[period],
+		periodLabel: translateNow(PERIOD_EYEBROW[period]).toUpperCase(),
 		rangeLabel: windowLabel(period, 0, now, calendar),
 		net: money(Math.abs(net)),
 		netPositive: net >= 0,

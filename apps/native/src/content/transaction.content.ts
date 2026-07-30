@@ -19,6 +19,30 @@ const transaction = {
 			en: "This action cannot be undone.",
 			es: "Esta acción no se puede deshacer.",
 		}),
+		"transaction.save.failedTitle": t({
+			en: "Not saved",
+			es: "No se guardó",
+		}),
+		"transaction.save.failedBody": t({
+			en: "Something went wrong writing this transaction, so nothing was saved. Try again.",
+			es: "Algo salió mal al guardar esta transacción, así que no se guardó nada. Inténtalo de nuevo.",
+		}),
+		"transaction.save.scheduleFailedTitle": t({
+			en: "Schedule not applied",
+			es: "Programación sin aplicar",
+		}),
+		"transaction.save.scheduleFailedBody": t({
+			en: "Your subscription was saved, but its charges could not be logged. Outlayr will try again the next time you open it.",
+			es: "Tu suscripción se guardó, pero no se pudieron registrar sus cargos. Outlayr volverá a intentarlo la próxima vez que la abras.",
+		}),
+		"transaction.stopRecurring.failedTitle": t({
+			en: "Still recurring",
+			es: "La recurrencia sigue activa",
+		}),
+		"transaction.stopRecurring.failedBody": t({
+			en: "The schedule couldn't be stopped, so the next charge will still be logged.",
+			es: "No se pudo detener la programación, así que el próximo cargo se registrará igual.",
+		}),
 		"transaction.kind.once": t({
 			en: "One-time",
 			es: "Único",
@@ -62,6 +86,10 @@ const transaction = {
 		"transaction.field.ends": t({
 			en: "Ends",
 			es: "Termina el",
+		}),
+		"transaction.field.remind": t({
+			en: "Remind Me",
+			es: "Recordarme",
 		}),
 		"transaction.field.date": t({
 			en: "Date",
@@ -190,6 +218,26 @@ const transaction = {
 		"transaction.schedule.unit": t({
 			en: "Unit",
 			es: "Unidad",
+		}),
+		"transaction.remind.off": t({
+			en: "Off",
+			es: "Desactivado",
+		}),
+		"transaction.remind.sameDay": t({
+			en: "On the day",
+			es: "El mismo día",
+		}),
+		"transaction.remind.dayBefore": t({
+			en: "1 day before",
+			es: "1 día antes",
+		}),
+		"transaction.remind.daysBefore": t({
+			en: "{count} days before",
+			es: "{count} días antes",
+		}),
+		"transaction.remind.weekBefore": t({
+			en: "1 week before",
+			es: "1 semana antes",
 		}),
 		"transaction.amount.changeCurrency": t({
 			en: "Change currency",

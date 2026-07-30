@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { type LayoutChangeEvent, Pressable, View } from "react-native";
 import Animated, {
 	useAnimatedStyle,
+	useReducedMotion,
 	useSharedValue,
 	withTiming,
 } from "react-native-reanimated";
@@ -31,9 +32,10 @@ export function CategoryProportionBar({
 	const colors = useColors();
 	const t = useTranslation();
 	const db = useDatabase();
+	const reduceMotion = useReducedMotion();
 	// Read here, not threaded from the screen: every chart answers to this setting
 	// itself.
-	const animated = useBoolSetting(db, "animatedCharts");
+	const animated = useBoolSetting(db, "animatedCharts") && !reduceMotion;
 	const [width, setWidth] = useState(0);
 	const progress = useSharedValue(animated ? 0 : 1);
 

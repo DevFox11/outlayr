@@ -74,15 +74,13 @@ export const AmountEntrySheet = forwardRef<
 					</GlassButton>
 				</View>
 
-				<View className="px-4">
-					<AmountNumpad
-						value={value}
-						minorUnits={minorUnits}
-						code={code}
-						toneClass={toneClass}
-						onChange={onChange}
-					/>
-				</View>
+				<AmountNumpad
+					value={value}
+					minorUnits={minorUnits}
+					code={code}
+					toneClass={toneClass}
+					onChange={onChange}
+				/>
 
 				<View className="px-4 pt-6">
 					<Pressable

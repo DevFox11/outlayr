@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
@@ -7,9 +7,11 @@ import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { RECURRING_TYPE } from "@/domain/recurrence";
+import { normalizeLead } from "@/domain/subscription-reminder";
 import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
 import { getCategoryById } from "./categories-core";
+import { ERASED_DATE } from "./erase-core";
 import { localRateLookup } from "./rates";
 import { scheduleSuccessor } from "./recurrence-backfill";
 
@@ -38,6 +40,9 @@ export const LOG_COLUMNS = {
 	// Upcoming projects each scheduled entry forward, which needs the interval as
 	// well as the cadence.
 	recurringCoefficient: transactions.recurringCoefficient,
+	// And the end, or a schedule the owner has already stopped keeps counting
+	// toward what their subscriptions cost a month.
+	recurringEndDate: transactions.recurringEndDate,
 	categoryId: transactions.categoryId,
 } as const;
 
@@ -74,6 +79,50 @@ export function ledgerSizeQuery(db: SpendDb) {
 		.select({ id: transactions.id })
 		.from(transactions)
 		.where(isNull(transactions.deletedAt));
+}
+
+/**
+ * What Recently Deleted paints. Narrower than {@link LOG_COLUMNS} because the
+ * list answers "what was this and when did it go", not "what did it look like":
+ * nothing here draws the identity artwork.
+ */
+export const DELETED_COLUMNS = {
+	id: transactions.id,
+	amount: transactions.amount,
+	income: transactions.income,
+	currency: transactions.currency,
+	note: transactions.note,
+	date: transactions.date,
+	deletedAt: transactions.deletedAt,
+} as const;
+
+export type DeletedTransaction = {
+	[K in keyof typeof DELETED_COLUMNS]: Transaction[K];
+};
+
+/**
+ * The tombstones, most recently deleted first. Unbounded on purpose: a delete
+ * is never a hard delete, so this is the only surface that can hand an entry
+ * back, and cutting it at a window would put rows permanently out of reach
+ * while they sit in SQLite forever.
+ *
+ * Erased rows are the one exception. An erase tombstones the whole ledger, and
+ * offering it all back — as blank rows, since the content is already scrubbed —
+ * would answer "erase my data" with a list of it and a Restore button. They are
+ * excluded by their {@link ERASED_DATE} stamp, which nothing the user can author
+ * carries.
+ */
+export function deletedTransactionsQuery(db: SpendDb) {
+	return db
+		.select(DELETED_COLUMNS)
+		.from(transactions)
+		.where(
+			and(
+				isNotNull(transactions.deletedAt),
+				gt(transactions.date, ERASED_DATE),
+			),
+		)
+		.orderBy(desc(transactions.deletedAt), desc(transactions.date));
 }
 
 /**
@@ -124,6 +173,8 @@ export interface TransactionInput {
 	/** Interval multiplier for the cadence (e.g. "every 2 weeks"). */
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
+	/** Days of notice for the due-date reminder; null is off, 0 is the day itself. */
+	reminderLeadDays?: number | null;
 }
 
 /**
@@ -170,6 +221,9 @@ async function toRow(
 			? Math.max(1, input.recurringCoefficient ?? 1)
 			: 1,
 		recurringEndDate: recurring ? (input.recurringEndDate ?? null) : null,
+		reminderLeadDays: recurring
+			? normalizeLead(input.reminderLeadDays ?? null)
+			: null,
 		// Frozen at write with the rate of the day the money moved; converting at
 		// read time would make last month's spending change every morning.
 		...(await canonicalUsd(localRateLookup(db), {
@@ -233,6 +287,29 @@ function removesPhoto(
 	return previous?.imageUri != null && next.imageUri == null;
 }
 
+/**
+ * The notice an edit that never mentioned it must keep. A form builds its input
+ * from the fields it paints, so a screen with no lead picker sends the key absent
+ * — and writing `toRow`'s null there would turn a 3-day notice off the next time
+ * the user corrected an amount, silently and for the rest of the chain's life.
+ *
+ * An explicit `null` still means off; only the absent key is read as "leave it".
+ * Ending the schedule clears it regardless, since the preference has nothing left
+ * to hang on.
+ */
+function keptLead(
+	next: typeof transactions.$inferInsert,
+	previous: Transaction | null,
+	input: TransactionInput,
+): number | null {
+	if (!next.onceRecurring) {
+		return null;
+	}
+	return input.reminderLeadDays === undefined
+		? (previous?.reminderLeadDays ?? null)
+		: (next.reminderLeadDays ?? null);
+}
+
 export const transactionsRepo = {
 	async create(db: Database, input: TransactionInput): Promise<string> {
 		const id = newId();
@@ -255,6 +332,7 @@ export const transactionsRepo = {
 			.set({
 				...rest,
 				...(kept ?? {}),
+				reminderLeadDays: keptLead(row, previous, input),
 				...(removesPhoto(previous, row) ? { imageKey: null } : {}),
 			})
 			.where(eq(transactions.id, id));
@@ -292,9 +370,36 @@ export const transactionsRepo = {
 					deletedAt: now,
 					updatedAt: now,
 					recurringType: RECURRING_TYPE.none,
+					reminderLeadDays: null,
 				})
 				.where(eq(transactions.id, id));
 		});
+	},
+
+	/**
+	 * Lifts a tombstone, putting the entry back on every read that filters on
+	 * `deletedAt`. `updatedAt` moves with it so the outbox triggers queue the row
+	 * and the restore travels; without that the next pull hands the entry back
+	 * deleted, on this device and on every other one.
+	 *
+	 * `recurringType` is left where {@link remove} retired it. Deleting the
+	 * pending charge is how a user ends a subscription, so resurrecting the
+	 * cadence here would restart a chain they stopped on purpose — and a chain
+	 * that was meant to survive already has, on the successor `remove` anchored
+	 * before it wrote the tombstone.
+	 *
+	 * Scoped to rows that are actually tombstoned, which makes a repeat restore a
+	 * no-op rather than a write that queues a replication carrying no change.
+	 */
+	async restore(
+		db: Database,
+		id: string,
+		now: Date = new Date(),
+	): Promise<void> {
+		await db
+			.update(transactions)
+			.set({ deletedAt: null, updatedAt: now })
+			.where(and(eq(transactions.id, id), isNotNull(transactions.deletedAt)));
 	},
 
 	/**
@@ -314,7 +419,11 @@ export const transactionsRepo = {
 	): Promise<void> {
 		await db
 			.update(transactions)
-			.set({ recurringType: RECURRING_TYPE.none, updatedAt: now })
+			.set({
+				recurringType: RECURRING_TYPE.none,
+				reminderLeadDays: null,
+				updatedAt: now,
+			})
 			.where(and(eq(transactions.id, id), isNull(transactions.deletedAt)));
 	},
 };

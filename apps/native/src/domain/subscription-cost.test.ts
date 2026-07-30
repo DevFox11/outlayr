@@ -1,0 +1,227 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { RECURRING_TYPE } from "./recurrence";
+import {
+	monthlyChargeCount,
+	monthlyEquivalent,
+	monthlySubscriptionCost,
+	type ScheduleCostEntry,
+} from "./subscription-cost";
+import { buildRateTable } from "./valuation";
+
+const DAYS_PER_MONTH = 365 / 12;
+const WEEKS_PER_MONTH = 52 / 12;
+
+function close(actual: number, expected: number) {
+	assert.ok(
+		Math.abs(actual - expected) < 1e-9,
+		`expected ${actual} to be ${expected}`,
+	);
+}
+
+function schedule(
+	amount: number,
+	recurringType: number,
+	recurringCoefficient = 1,
+	extra: Partial<ScheduleCostEntry> = {},
+): ScheduleCostEntry {
+	return {
+		amount,
+		income: false,
+		currency: "USD",
+		recurringType,
+		recurringCoefficient,
+		...extra,
+	};
+}
+
+describe("normalizing one schedule to a month", () => {
+	it("restates every cadence at its own rate", () => {
+		close(monthlyEquivalent(30, RECURRING_TYPE.daily, 1), 30 * DAYS_PER_MONTH);
+		close(
+			monthlyEquivalent(30, RECURRING_TYPE.weekly, 1),
+			30 * WEEKS_PER_MONTH,
+		);
+		close(monthlyEquivalent(30, RECURRING_TYPE.monthly, 1), 30);
+		close(monthlyEquivalent(30, RECURRING_TYPE.yearly, 1), 2.5);
+	});
+
+	it("divides by the interval when the schedule skips periods", () => {
+		close(
+			monthlyEquivalent(30, RECURRING_TYPE.daily, 2),
+			(30 * DAYS_PER_MONTH) / 2,
+		);
+		close(
+			monthlyEquivalent(30, RECURRING_TYPE.weekly, 3),
+			(30 * WEEKS_PER_MONTH) / 3,
+		);
+		close(monthlyEquivalent(30, RECURRING_TYPE.monthly, 4), 7.5);
+		close(monthlyEquivalent(30, RECURRING_TYPE.yearly, 2), 1.25);
+	});
+
+	it("charges a non-recurring row nothing at all", () => {
+		assert.equal(monthlyChargeCount(RECURRING_TYPE.none, 1), 0);
+		assert.equal(monthlyEquivalent(999, RECURRING_TYPE.none, 1), 0);
+	});
+
+	it("reads a coefficient below one as every period, matching nextDate", () => {
+		assert.equal(monthlyChargeCount(RECURRING_TYPE.monthly, 0), 1);
+		assert.equal(monthlyChargeCount(RECURRING_TYPE.monthly, -3), 1);
+		close(
+			monthlyChargeCount(RECURRING_TYPE.daily, 0.4),
+			monthlyChargeCount(RECURRING_TYPE.daily, 1),
+		);
+	});
+});
+
+describe("monthlySubscriptionCost", () => {
+	it("weighs a daily coffee far above a yearly renewal that costs more per charge", () => {
+		// The defect this fixes: at face value the $12 renewal outweighs the $5
+		// coffee, because each contributes exactly one charge to the list.
+		const coffee = schedule(5, RECURRING_TYPE.daily);
+		const renewal = schedule(12, RECURRING_TYPE.yearly);
+
+		const [coffeeOnly] = monthlySubscriptionCost([coffee], "USD");
+		const [renewalOnly] = monthlySubscriptionCost([renewal], "USD");
+		close(coffeeOnly.amount, -(5 * DAYS_PER_MONTH));
+		close(renewalOnly.amount, -1);
+		assert.ok(Math.abs(coffeeOnly.amount) > Math.abs(renewalOnly.amount) * 100);
+
+		const [both] = monthlySubscriptionCost([coffee, renewal], "USD");
+		close(both.amount, -(5 * DAYS_PER_MONTH + 1));
+		assert.equal(both.transactionCount, 2);
+	});
+
+	it("drops a retired schedule instead of counting it", () => {
+		const buckets = monthlySubscriptionCost(
+			[
+				schedule(20, RECURRING_TYPE.monthly),
+				schedule(999, RECURRING_TYPE.none),
+			],
+			"USD",
+		);
+		assert.equal(buckets.length, 1);
+		assert.equal(buckets[0].amount, -20);
+		assert.equal(buckets[0].transactionCount, 1);
+	});
+
+	it("lets a retired row open no bucket of its own", () => {
+		const buckets = monthlySubscriptionCost(
+			[
+				schedule(20, RECURRING_TYPE.monthly),
+				schedule(999, RECURRING_TYPE.none, 1, { currency: "EUR" }),
+			],
+			"USD",
+		);
+		assert.deepEqual(buckets, [
+			{ currencyCode: "USD", amount: -20, transactionCount: 1 },
+		]);
+	});
+
+	it("still answers with a zero bucket when nothing recurs", () => {
+		assert.deepEqual(
+			monthlySubscriptionCost([schedule(999, RECURRING_TYPE.none)], "USD"),
+			[{ currencyCode: "USD", amount: 0, transactionCount: 0 }],
+		);
+	});
+
+	it("keeps each currency in its own figure rather than adding them", () => {
+		const buckets = monthlySubscriptionCost(
+			[
+				schedule(10, RECURRING_TYPE.monthly),
+				schedule(240, RECURRING_TYPE.yearly, 1, { currency: "EUR" }),
+			],
+			"USD",
+		);
+		assert.equal(buckets.length, 2);
+		assert.deepEqual(
+			buckets.map((bucket) => [bucket.currencyCode, bucket.amount]),
+			[
+				["USD", -10],
+				["EUR", -20],
+			],
+		);
+	});
+
+	it("offsets a recurring income against the schedules it pays for", () => {
+		const [bucket] = monthlySubscriptionCost(
+			[
+				schedule(10, RECURRING_TYPE.monthly),
+				schedule(3000, RECURRING_TYPE.monthly, 1, { income: true }),
+			],
+			"USD",
+		);
+		assert.equal(bucket.amount, 2990);
+	});
+
+	it("drops a schedule whose end date has passed", () => {
+		// Otherwise the figure keeps charging the owner for a commitment they
+		// already ended, every month, forever.
+		const now = new Date(Date.UTC(2026, 6, 20));
+		const buckets = monthlySubscriptionCost(
+			[
+				schedule(1000, RECURRING_TYPE.monthly, 1, {
+					recurringEndDate: new Date(Date.UTC(2026, 5, 30)),
+				}),
+				schedule(500, RECURRING_TYPE.monthly),
+			],
+			"USD",
+			undefined,
+			now,
+		);
+		assert.deepEqual(buckets, [
+			{ currencyCode: "USD", amount: -500, transactionCount: 1 },
+		]);
+	});
+
+	it("keeps a schedule whose end date is still ahead", () => {
+		const now = new Date(Date.UTC(2026, 6, 20));
+		const buckets = monthlySubscriptionCost(
+			[
+				schedule(1000, RECURRING_TYPE.monthly, 1, {
+					recurringEndDate: new Date(Date.UTC(2026, 8, 30)),
+				}),
+			],
+			"USD",
+			undefined,
+			now,
+		);
+		assert.deepEqual(buckets, [
+			{ currencyCode: "USD", amount: -1000, transactionCount: 1 },
+		]);
+	});
+
+	it("keeps a schedule that names no end at all", () => {
+		const buckets = monthlySubscriptionCost(
+			[schedule(1000, RECURRING_TYPE.monthly)],
+			"USD",
+			undefined,
+			new Date(Date.UTC(2026, 6, 20)),
+		);
+		assert.deepEqual(buckets, [
+			{ currencyCode: "USD", amount: -1000, transactionCount: 1 },
+		]);
+	});
+
+	it("converts the month's figure, not the single charge, at the day's rate", () => {
+		// $1200/year is $100/month, which is €90 at the 5th's rate. Converting the
+		// $1200 first would print €1080 and then divide to €90 only by luck — a
+		// schedule whose rate moved between charges would not land there.
+		const rates = buildRateTable([
+			{ quote: "EUR", date: "2026-07-01", rate: 0.9 },
+		]);
+		const buckets = monthlySubscriptionCost(
+			[
+				schedule(1200, RECURRING_TYPE.yearly, 1, {
+					amountUsd: 1200,
+					date: new Date(Date.UTC(2026, 6, 5, 12)),
+				}),
+			],
+			"EUR",
+			rates,
+		);
+		assert.deepEqual(buckets, [
+			{ currencyCode: "EUR", amount: -90, transactionCount: 1 },
+		]);
+	});
+});

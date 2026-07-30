@@ -165,6 +165,12 @@ export function IdentityFlyUpLayer({
 			    keeping the form beneath from being hit. */}
 			{pickerOpen ? (
 				<Pressable
+					// `Pressable` defaults `accessible` to true, and a childless one
+					// spanning the screen becomes a full-screen element with nothing to
+					// announce, parked over the form. There is nothing here to reach by
+					// touch exploration anyway: the sheet's own close affordance is how a
+					// screen reader dismisses the picker.
+					accessible={false}
 					className="absolute inset-0"
 					onPress={() => {
 						setPickerOpen(false);

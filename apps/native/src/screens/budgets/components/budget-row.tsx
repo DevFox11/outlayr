@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { Pressable, View } from "react-native";
+import { type AccessibilityActionEvent, Pressable, View } from "react-native";
 import ReanimatedSwipeable, {
 	type SwipeableMethods,
 } from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -39,6 +39,9 @@ interface BudgetRowProps {
 
 const THUMB_WIDTH = 88;
 const THUMB_HEIGHT = 34;
+
+/** Custom, so it surfaces in the rotor's Actions rather than replacing a tap. */
+const DELETE_ACTION = "delete";
 
 export function BudgetRow({
 	budget,
@@ -85,15 +88,19 @@ export function BudgetRow({
 		.filter(Boolean)
 		.join(" · ");
 
+	const requestDelete = () => {
+		confirmDeleteBudget(budget.name, () => onDelete(budget.id));
+	};
+
 	const renderRightActions = () => (
 		<Pressable
 			accessibilityLabel={t("budgets.row.deleteA11y", { name: budget.name })}
 			accessibilityRole="button"
-			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger px-6"
+			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger-fill px-6"
 			onPress={() => {
 				haptics("heavy");
 				swipeRef.current?.close();
-				confirmDeleteBudget(budget.name, () => onDelete(budget.id));
+				requestDelete();
 			}}
 		>
 			<Text className="font-sans-semibold text-subtitle text-white">
@@ -115,8 +122,24 @@ export function BudgetRow({
 		>
 			<Animated.View className="bg-background">
 				<Pressable
+					// Delete otherwise lives only behind the right swipe, which is a pan no
+					// assistive gesture can perform.
+					accessibilityActions={[
+						{
+							name: DELETE_ACTION,
+							label: t("budgets.row.deleteA11y", { name: budget.name }),
+						},
+					]}
+					accessibilityHint={
+						onLongPress ? t("budgets.row.actionsHint") : undefined
+					}
 					accessibilityRole="button"
 					className="flex-row items-center gap-3 py-3.5 active:opacity-70"
+					onAccessibilityAction={(event: AccessibilityActionEvent) => {
+						if (event.nativeEvent.actionName === DELETE_ACTION) {
+							requestDelete();
+						}
+					}}
 					onLongPress={onLongPress ? () => onLongPress(budget.id) : undefined}
 					onPress={() => onPress(budget.id)}
 				>

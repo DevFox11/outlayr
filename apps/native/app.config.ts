@@ -191,6 +191,12 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 		scheme: "outlayr",
 		extra: {
 			appGroup: APP_GROUP,
+			// Which bundle `ios.icon` below stamps as the primary, by name. iOS
+			// reports `null` for the primary whatever it is, so this is the only way
+			// the picker's Default row can tell the user which artwork that is —
+			// Debug and Release ship different ones. `app-icons.test.ts` fails when
+			// this ternary and the `ios.icon` one name different bundles.
+			primaryAppIcon: isProduction ? "Outlayr" : "OutlayrTesting",
 			eas: {
 				projectId: "f076a9e9-ec12-464d-85eb-772c4d0efce5",
 			},

@@ -247,6 +247,31 @@ const common = {
 			en: "Back to the Log",
 			es: "Volver al registro",
 		}),
+		"spotlight.entry": t({
+			en: "Entry",
+			es: "Registro",
+		}),
+		"spotlight.budget.title": t({
+			en: "{name} budget",
+			es: "Presupuesto de {name}",
+		}),
+		// A per-category budget whose category is gone has nothing left to name it.
+		// Deliberately not the overall budget's label: this row deep-links to one
+		// category's cap, and calling it "Overall Budget" would claim otherwise.
+		"spotlight.budget.fallback": t({
+			en: "Budget",
+			es: "Presupuesto",
+		}),
+		"spotlight.budget.limit": t({
+			en: "Limit {amount}",
+			es: "Límite {amount}",
+		}),
+		// Lowercase on purpose: a Spotlight keyword is a term someone types, not a
+		// label the app renders.
+		"spotlight.budget.keyword": t({
+			en: "budget",
+			es: "presupuesto",
+		}),
 	},
 } satisfies Dictionary;
 

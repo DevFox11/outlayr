@@ -1,4 +1,7 @@
+import type { TranslationKey } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
 import {
 	type CalendarSettings,
 	DEFAULT_CALENDAR,
@@ -163,8 +166,8 @@ export function periodsBackTo(
 	return steps;
 }
 
-function dayMonth(date: Date): string {
-	return `${date.getDate()} ${monthAbbrev(date)}`;
+function dayMonth(date: Date, language: Language): string {
+	return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
 function twoDigitYear(date: Date): string {
@@ -172,44 +175,38 @@ function twoDigitYear(date: Date): string {
 }
 
 /** Ports the Swift stepper's `dateString`. Ends are exclusive; the label is not. */
-export function budgetWindowLabel(window: BudgetWindow, type: number): string {
+export function budgetWindowLabel(
+	window: BudgetWindow,
+	type: number,
+	language: Language = runtimeLanguage(),
+): string {
 	if (type === BUDGET_TYPE.day) {
-		return `${dayMonth(window.start)} ${window.start.getFullYear()}`;
+		return `${dayMonth(window.start, language)} ${window.start.getFullYear()}`;
 	}
 	const last = addDays(window.end, -1);
 	if (type === BUDGET_TYPE.year) {
-		return `${dayMonth(window.start)} ${twoDigitYear(window.start)} – ${dayMonth(last)} ${twoDigitYear(last)}`;
+		return `${dayMonth(window.start, language)} ${twoDigitYear(window.start)} – ${dayMonth(last, language)} ${twoDigitYear(last)}`;
 	}
-	return `${dayMonth(window.start)} – ${dayMonth(last)}`;
+	return `${dayMonth(window.start, language)} – ${dayMonth(last, language)}`;
 }
 
-export function budgetPeriodPhrase(type: number): string {
+/**
+ * The catalog key for the span a budget covers, not the phrase — the widget
+ * payload wants it shouted and the app wants it in a sentence, so casing is the
+ * caller's to decide.
+ */
+export function budgetPeriodPhrase(type: number): TranslationKey {
 	switch (type) {
 		case BUDGET_TYPE.day:
-			return "today";
+			return "budgets.period.day";
 		case BUDGET_TYPE.week:
-			return "this week";
+			return "budgets.period.week";
 		case BUDGET_TYPE.month:
-			return "this month";
+			return "budgets.period.month";
 		case BUDGET_TYPE.year:
-			return "this year";
+			return "budgets.period.year";
 		default:
-			return "this period";
-	}
-}
-
-export function budgetResetPhrase(type: number): string {
-	switch (type) {
-		case BUDGET_TYPE.day:
-			return "Resets daily";
-		case BUDGET_TYPE.week:
-			return "Resets weekly";
-		case BUDGET_TYPE.month:
-			return "Resets monthly";
-		case BUDGET_TYPE.year:
-			return "Resets yearly";
-		default:
-			return "Resets each period";
+			return "budgets.period.other";
 	}
 }
 

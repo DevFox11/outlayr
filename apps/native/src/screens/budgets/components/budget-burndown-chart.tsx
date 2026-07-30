@@ -9,11 +9,17 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import {
+	Easing,
+	useReducedMotion,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useBoolSetting } from "@/data/settings";
 import type { Burndown } from "@/domain/budget-burndown";
+import { useTranslation } from "@/i18n";
 import { hatchPathD } from "@/lib/chart-paths";
 import { CHART_DASH, CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
@@ -124,8 +130,10 @@ export function BudgetBurndownChart({
 	domain = "auto",
 }: BudgetBurndownChartProps) {
 	const colors = useColors();
+	const t = useTranslation();
 	const db = useDatabase();
-	const animatedCharts = useBoolSetting(db, "animatedCharts");
+	const reduceMotion = useReducedMotion();
+	const animatedCharts = useBoolSetting(db, "animatedCharts") && !reduceMotion;
 	const [scrubDay, setScrubDay] = useState<number | null>(null);
 
 	const scrubX = useSharedValue(-1);
@@ -263,8 +271,38 @@ export function BudgetBurndownChart({
 			});
 	}, [plot, burndown.points.length, onScrub, interactive, scrubX, activeDay]);
 
+	/**
+	 * A share of the limit rather than an amount: the chart is handed no currency
+	 * code, and reading out a bare number would leave it unqualified. The whole
+	 * plot is also one Skia path with nothing to commit, so unlike the Insights
+	 * charts there is no per-day action to expose — this one sentence is the
+	 * readout.
+	 */
+	const summary = useMemo(() => {
+		const day = last?.day ?? 1;
+		const balance = last?.balance ?? limit;
+		const share = Math.round((Math.abs(balance) / Math.max(1, limit)) * 100);
+		return t(
+			balance < 0 ? "insights.burndown.over" : "insights.burndown.holding",
+			{ day, days: burndown.totalDays, percent: share },
+		);
+	}, [last, limit, burndown.totalDays, t]);
+
+	// A non-interactive chart is a thumbnail inside a budget row or card whose own
+	// label already reports these figures, so it leaves the tree rather than making
+	// every row read twice.
 	const canvas = (
-		<View style={{ width, height }} collapsable={false}>
+		<View
+			accessibilityElementsHidden={!interactive}
+			accessibilityLabel={interactive ? summary : undefined}
+			accessibilityRole={interactive ? "image" : undefined}
+			accessible={interactive}
+			collapsable={false}
+			importantForAccessibility={
+				interactive ? undefined : "no-hide-descendants"
+			}
+			style={{ width, height }}
+		>
 			{/* Skia's canvas is a native view and swallows touches, so the pan
 				    detector on the wrapper never sees them unless this opts out. */}
 			<Canvas style={{ width, height }} pointerEvents="none">

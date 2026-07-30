@@ -83,6 +83,71 @@ const domain = {
 			en: "{count}d left",
 			es: "quedan {count}d",
 		}),
+		// Indexed by `Date.getMonth()` / `Date.getDay()`, so the order is the
+		// platform's and not a reading order. Spanish keeps months and weekdays
+		// lowercase, which is its own convention rather than an untranslated string;
+		// the shouted forms the Log and Insights use are upper-cased at the call
+		// site so only one set of names has to stay in step per form.
+		"dates.month.0": t({ en: "Jan", es: "ene" }),
+		"dates.month.1": t({ en: "Feb", es: "feb" }),
+		"dates.month.2": t({ en: "Mar", es: "mar" }),
+		"dates.month.3": t({ en: "Apr", es: "abr" }),
+		"dates.month.4": t({ en: "May", es: "may" }),
+		"dates.month.5": t({ en: "Jun", es: "jun" }),
+		"dates.month.6": t({ en: "Jul", es: "jul" }),
+		"dates.month.7": t({ en: "Aug", es: "ago" }),
+		"dates.month.8": t({ en: "Sep", es: "sep" }),
+		"dates.month.9": t({ en: "Oct", es: "oct" }),
+		"dates.month.10": t({ en: "Nov", es: "nov" }),
+		"dates.month.11": t({ en: "Dec", es: "dic" }),
+		"dates.monthLong.0": t({ en: "January", es: "enero" }),
+		"dates.monthLong.1": t({ en: "February", es: "febrero" }),
+		"dates.monthLong.2": t({ en: "March", es: "marzo" }),
+		"dates.monthLong.3": t({ en: "April", es: "abril" }),
+		"dates.monthLong.4": t({ en: "May", es: "mayo" }),
+		"dates.monthLong.5": t({ en: "June", es: "junio" }),
+		"dates.monthLong.6": t({ en: "July", es: "julio" }),
+		"dates.monthLong.7": t({ en: "August", es: "agosto" }),
+		"dates.monthLong.8": t({ en: "September", es: "septiembre" }),
+		"dates.monthLong.9": t({ en: "October", es: "octubre" }),
+		"dates.monthLong.10": t({ en: "November", es: "noviembre" }),
+		"dates.monthLong.11": t({ en: "December", es: "diciembre" }),
+		"dates.weekday.0": t({ en: "Sun", es: "dom" }),
+		"dates.weekday.1": t({ en: "Mon", es: "lun" }),
+		"dates.weekday.2": t({ en: "Tue", es: "mar" }),
+		"dates.weekday.3": t({ en: "Wed", es: "mié" }),
+		"dates.weekday.4": t({ en: "Thu", es: "jue" }),
+		"dates.weekday.5": t({ en: "Fri", es: "vie" }),
+		"dates.weekday.6": t({ en: "Sat", es: "sáb" }),
+		// Spanish uses X for miércoles so it does not collide with martes, which is
+		// why these are their own set rather than the first letter of the abbrev.
+		"dates.weekdayInitial.0": t({ en: "S", es: "D" }),
+		"dates.weekdayInitial.1": t({ en: "M", es: "L" }),
+		"dates.weekdayInitial.2": t({ en: "T", es: "M" }),
+		"dates.weekdayInitial.3": t({ en: "W", es: "X" }),
+		"dates.weekdayInitial.4": t({ en: "T", es: "J" }),
+		"dates.weekdayInitial.5": t({ en: "F", es: "V" }),
+		"dates.weekdayInitial.6": t({ en: "S", es: "S" }),
+		"dates.meridiem.am": t({ en: "AM", es: "a. m." }),
+		"dates.meridiem.pm": t({ en: "PM", es: "p. m." }),
+		// A full date is the one form where the order itself is localized, so the
+		// template carries it rather than the formatter branching per language.
+		"clock.section": t({
+			en: "Clock",
+			es: "Reloj",
+		}),
+		"clock.twelveHour": t({
+			en: "12-hour",
+			es: "12 horas",
+		}),
+		"clock.twentyFourHour": t({
+			en: "24-hour",
+			es: "24 horas",
+		}),
+		"clock.deviceNote": t({
+			en: "Starts on whatever your device uses; changing it here takes over.",
+			es: "Empieza con lo que usa tu dispositivo; cambiarlo aquí toma el control.",
+		}),
 		"coverage.predateOnly": t({
 			en: "{count} of {total} entries predate the rate history, so they are counted at the amount they were logged in.",
 			es: "{count} de {total} registros son anteriores al historial de tasas, así que se cuentan con el monto con el que se registraron.",
@@ -126,6 +191,10 @@ const domain = {
 		"appIcon.default.detail": t({
 			en: "The Outlayr mark on paper. The icon the app ships with.",
 			es: "La marca de Outlayr sobre papel. El ícono con el que viene la app.",
+		}),
+		"appIcon.default.detailDev": t({
+			en: "The blueprint mark. The icon this development build ships with.",
+			es: "La marca en versión plano. El ícono con el que viene esta compilación de desarrollo.",
 		}),
 		"appIcon.ink.label": t({
 			en: "Ink",

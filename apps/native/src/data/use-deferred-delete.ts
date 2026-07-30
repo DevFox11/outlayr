@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import type { Database } from "@/db/client";
+import {
+	createDeferredDelete,
+	type DeferredDeleteController,
+} from "@/domain/deferred-delete";
+import { translateNow } from "@/i18n/runtime";
 import { transactionsRepo } from "./transactions";
 
 const UNDO_WINDOW_MS = 4000;
@@ -16,63 +22,68 @@ interface DeferredDelete {
  * The row vanishes immediately (the caller filters on `pendingId`) but the
  * soft-delete write is held for the undo window. A second delete flushes the
  * first, and unmount flushes any pending commit so it is never silently lost.
+ *
+ * A rejected write is reported from here rather than handed back for the screen
+ * to report. Nothing was recorded and the row is on the list again, which is
+ * indistinguishable from a lost gesture — and every screen that deletes this way
+ * would otherwise have to remember to say so. The commit also routinely outlives
+ * the screen that asked for it: an alert is a native modal and needs no render
+ * tree, so it still reaches the user.
  */
 export function useDeferredDelete(db: Database): DeferredDelete {
 	const [pendingId, setPendingId] = useState<string | null>(null);
-	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const pendingRef = useRef<string | null>(null);
-
-	const commit = useCallback(
-		(id: string) => {
-			transactionsRepo.remove(db, id).catch((error) => {
-				console.error("Deferred delete commit failed", error);
-			});
-		},
-		[db],
-	);
-
-	const clearTimer = useCallback(() => {
-		if (timerRef.current) {
-			clearTimeout(timerRef.current);
-			timerRef.current = null;
-		}
-	}, []);
-
-	const requestDelete = useCallback(
-		(id: string) => {
-			// A pending delete already in flight commits immediately before the new one.
-			if (pendingRef.current && pendingRef.current !== id) {
-				commit(pendingRef.current);
-			}
-			clearTimer();
-			pendingRef.current = id;
-			setPendingId(id);
-			timerRef.current = setTimeout(() => {
-				commit(id);
-				pendingRef.current = null;
-				setPendingId(null);
-				timerRef.current = null;
-			}, UNDO_WINDOW_MS);
-		},
-		[clearTimer, commit],
-	);
-
-	const undo = useCallback(() => {
-		clearTimer();
-		pendingRef.current = null;
-		setPendingId(null);
-	}, [clearTimer]);
+	const mountedRef = useRef(false);
+	// Read at commit time rather than captured: the controller outlives any one
+	// handle, and a delete must land in the database the screen is on now.
+	const dbRef = useRef(db);
+	const controllerRef = useRef<DeferredDeleteController | null>(null);
 
 	useEffect(() => {
-		return () => {
-			if (timerRef.current) {
-				clearTimeout(timerRef.current);
-			}
-			if (pendingRef.current) {
-				commit(pendingRef.current);
-			}
-		};
-	}, [commit]);
+		dbRef.current = db;
+	}, [db]);
 
-	return { pendingId, requestDelete, undo };
+	if (controllerRef.current === null) {
+		const created = createDeferredDelete({
+			commit: (id) => transactionsRepo.remove(dbRef.current, id),
+			windowMs: UNDO_WINDOW_MS,
+			timers: {
+				set: (run: () => void, ms: number) => setTimeout(run, ms),
+				clear: (handle: ReturnType<typeof setTimeout>) => {
+					clearTimeout(handle);
+				},
+			},
+			onChange: (next) => {
+				if (mountedRef.current) {
+					setPendingId(next.pendingId);
+				}
+				if (next.failedId === null) {
+					return;
+				}
+				Alert.alert(
+					translateNow("log.delete.failedTitle"),
+					translateNow("log.delete.failedBody"),
+				);
+				// Dropped as it is shown: the controller holds a failure until it is
+				// acknowledged, so leaving it set raises the same alert again on the
+				// next publish.
+				created.acknowledgeFailure();
+			},
+		});
+		controllerRef.current = created;
+	}
+	const controller = controllerRef.current;
+
+	useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+			controller.flush();
+		};
+	}, [controller]);
+
+	return {
+		pendingId,
+		requestDelete: controller.requestDelete,
+		undo: controller.undo,
+	};
 }

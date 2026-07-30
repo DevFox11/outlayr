@@ -107,6 +107,34 @@ const insights = {
 			en: "{date}, balance {amount} behind",
 			es: "{date}, saldo {amount} en contra",
 		}),
+		"insights.trend.rising": t({
+			en: "Trend line, rising",
+			es: "Línea de tendencia, al alza",
+		}),
+		"insights.trend.falling": t({
+			en: "Trend line, falling",
+			es: "Línea de tendencia, a la baja",
+		}),
+		"insights.trend.flat": t({
+			en: "Trend line, flat",
+			es: "Línea de tendencia, estable",
+		}),
+		"insights.trend.dailyTotals": t({
+			en: "Chart of daily totals",
+			es: "Gráfico de totales diarios",
+		}),
+		"insights.trend.monthlyTotals": t({
+			en: "Chart of monthly totals",
+			es: "Gráfico de totales mensuales",
+		}),
+		"insights.burndown.holding": t({
+			en: "Burn-down chart, day {day} of {days}, {percent} percent of the limit left",
+			es: "Gráfico de consumo, día {day} de {days}, queda el {percent} por ciento del límite",
+		}),
+		"insights.burndown.over": t({
+			en: "Burn-down chart, day {day} of {days}, {percent} percent over the limit",
+			es: "Gráfico de consumo, día {day} de {days}, {percent} por ciento por encima del límite",
+		}),
 		"insights.quiet.title": t({
 			en: "Nothing to chart",
 			es: "Nada que graficar",

@@ -7,11 +7,15 @@ import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDatabase } from "@/contexts/local-data-context";
 import type { TransactionWithCategory } from "@/data/transactions";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { formatAmount } from "@/domain/money";
 import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
 import { useTranslation } from "@/i18n";
+import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
+import { UndoToast } from "@/screens/log/components/undo-toast";
 import { BudgetProgressBar } from "./budget-progress-bar";
 
 interface BudgetDetailViewProps {
@@ -31,6 +35,8 @@ interface BudgetDetailViewProps {
 	leftPerDayAmount?: number | null;
 	showCents?: boolean;
 	showSign?: boolean;
+	/** Mirrors the Clock setting; true prints each row's time as "21:04". */
+	use24Hour?: boolean;
 	/** The window has ended: nothing about it is still in play. */
 	closed?: boolean;
 	stepper?: ReactNode;
@@ -54,14 +60,26 @@ export function BudgetDetailView({
 	leftPerDayAmount = null,
 	showCents = true,
 	showSign = true,
+	use24Hour = false,
 	closed = false,
 	stepper = null,
 }: BudgetDetailViewProps) {
 	const t = useTranslation();
-	const { displayCurrency, rates } = useValuation(useDatabase());
+	const db = useDatabase();
+	const { displayCurrency, rates } = useValuation(db);
+	const nowMs = useNow();
+	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+	// Only the list drops the row being deleted. The summary above it is computed
+	// by the caller from the same window and catches up when the write lands, the
+	// same way the Log's header trails its own list.
+	const rows = useMemo(
+		() => transactions.filter((row) => row.id !== pendingId),
+		[transactions, pendingId],
+	);
 	const sections = useMemo(
-		() => groupByDay(transactions, currency, rates),
-		[transactions, currency, rates],
+		() => groupByDay(rows, currency, rates),
+		[rows, currency, rates],
 	);
 	// Scoped to the window on screen, not the ledger: a closed period is exactly
 	// where rows the rate history can no longer reach turn up, and a total that
@@ -72,55 +90,60 @@ export function BudgetDetailView({
 	);
 
 	return (
-		<SectionList
-			className="flex-1 bg-background"
-			contentInsetAdjustmentBehavior="automatic"
-			sections={sections}
-			keyExtractor={(item) => item.id}
-			stickySectionHeadersEnabled={false}
-			contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
-			ListHeaderComponent={
-				<BudgetSummary
-					period={period}
-					spent={spent}
-					amount={amount}
-					leftover={leftover}
-					overBudget={overBudget}
-					currency={currency}
-					paceRemaining={paceRemaining}
-					paceBehind={paceBehind}
-					leftPerDayAmount={leftPerDayAmount}
-					showCents={showCents}
-					closed={closed}
-					note={note}
-					stepper={stepper}
-				/>
-			}
-			ListEmptyComponent={
-				<Text className="py-3 text-muted text-subtitle">
-					{closed
-						? t("budgets.detail.emptyClosed")
-						: t("budgets.detail.emptyOpen")}
-				</Text>
-			}
-			renderSectionHeader={({ section }) => (
-				<DaySectionHeader
-					section={section}
-					showCents={showCents}
-					first={sections[0] === section}
-				/>
-			)}
-			renderItem={({ item }) => (
-				<TransactionRow
-					transaction={item}
-					currency={currency}
-					rates={rates}
-					onPress={onPressTransaction}
-					showCents={showCents}
-					showSign={showSign}
-				/>
-			)}
-		/>
+		<>
+			<SectionList
+				className="flex-1 bg-background"
+				contentInsetAdjustmentBehavior="automatic"
+				sections={sections}
+				keyExtractor={(item) => item.id}
+				stickySectionHeadersEnabled={false}
+				contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
+				ListHeaderComponent={
+					<BudgetSummary
+						period={period}
+						spent={spent}
+						amount={amount}
+						leftover={leftover}
+						overBudget={overBudget}
+						currency={currency}
+						paceRemaining={paceRemaining}
+						paceBehind={paceBehind}
+						leftPerDayAmount={leftPerDayAmount}
+						showCents={showCents}
+						closed={closed}
+						note={note}
+						stepper={stepper}
+					/>
+				}
+				ListEmptyComponent={
+					<Text className="py-3 text-muted text-subtitle">
+						{closed
+							? t("budgets.detail.emptyClosed")
+							: t("budgets.detail.emptyOpen")}
+					</Text>
+				}
+				renderSectionHeader={({ section }) => (
+					<DaySectionHeader
+						section={section}
+						showCents={showCents}
+						first={sections[0] === section}
+					/>
+				)}
+				renderItem={({ item }) => (
+					<TransactionRow
+						transaction={item}
+						currency={currency}
+						rates={rates}
+						onPress={onPressTransaction}
+						onLongPress={(id) => openRowActions(id, false)}
+						showCents={showCents}
+						showSign={showSign}
+						use24Hour={use24Hour}
+					/>
+				)}
+			/>
+			<UndoToast onUndo={undo} visible={pendingId != null} />
+		</>
 	);
 }
 

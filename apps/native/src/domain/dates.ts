@@ -1,42 +1,29 @@
-const WEEKDAYS = [
-	"SUNDAY",
-	"MONDAY",
-	"TUESDAY",
-	"WEDNESDAY",
-	"THURSDAY",
-	"FRIDAY",
-	"SATURDAY",
-] as const;
+import { CATALOGS, EN } from "@/i18n/catalog";
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
+import { translate } from "@/i18n/translate";
 
-const MONTHS = [
-	"JAN",
-	"FEB",
-	"MAR",
-	"APR",
-	"MAY",
-	"JUN",
-	"JUL",
-	"AUG",
-	"SEP",
-	"OCT",
-	"NOV",
-	"DEC",
-] as const;
-
-const MONTHS_LONG = [
-	"JANUARY",
-	"FEBRUARY",
-	"MARCH",
-	"APRIL",
-	"MAY",
-	"JUNE",
-	"JULY",
-	"AUGUST",
-	"SEPTEMBER",
-	"OCTOBER",
-	"NOVEMBER",
-	"DECEMBER",
-] as const;
+/**
+ * Every date name this module renders comes from the catalog, so there is one
+ * localized set rather than a table per call site. The lookup stays hook-free on
+ * purpose: the widget payload, the Spotlight index and the notification body all
+ * format dates outside React, so the language has to arrive as a value.
+ *
+ * It defaults to the live language rather than to English — a call site that has
+ * not been migrated to pass one still renders in the user's language, which is
+ * the failure mode that let six English tables accumulate in the first place.
+ */
+function dateName(
+	key: string,
+	language: Language,
+	params?: Readonly<Record<string, string | number>>,
+): string {
+	return translate(key, {
+		catalog: CATALOGS[language] ?? EN,
+		fallback: EN,
+		params,
+	});
+}
 
 /** `firstWeekday` is 1 = Sunday, 2 = Monday; `firstDayOfMonth` is 1–28. */
 export interface CalendarSettings {
@@ -112,14 +99,28 @@ export function addMonths(date: Date, n: number): Date {
 	return d;
 }
 
-/** Uppercase three-letter month, e.g. "JUL". */
-export function monthAbbrev(date: Date): string {
-	return MONTHS[date.getMonth()];
+/** Short month as the language writes it, e.g. "Jul" / "jul". */
+export function monthAbbrevTitle(
+	date: Date,
+	language: Language = runtimeLanguage(),
+): string {
+	return dateName(`dates.month.${date.getMonth()}`, language);
 }
 
-/** Single-letter weekday, e.g. "M". */
-export function weekdayInitial(date: Date): string {
-	return WEEKDAYS[date.getDay()][0];
+/** The shouted short month the Log and Insights headers use, e.g. "JUL". */
+export function monthAbbrev(
+	date: Date,
+	language: Language = runtimeLanguage(),
+): string {
+	return monthAbbrevTitle(date, language).toUpperCase();
+}
+
+/** Single-letter weekday for the week chart's axis, e.g. "M". */
+export function weekdayInitial(
+	date: Date,
+	language: Language = runtimeLanguage(),
+): string {
+	return dateName(`dates.weekdayInitial.${date.getDay()}`, language);
 }
 
 export function isFuture(date: Date, now: Date = new Date()): boolean {
@@ -131,61 +132,66 @@ export function isFuture(date: Date, now: Date = new Date()): boolean {
  * "FRI, 24 JUL" — and "FRI, 24 JUL '25" once the day falls before the current
  * year.
  */
-export function formatDayHeader(day: Date, now: Date = new Date()): string {
+export function formatDayHeader(
+	day: Date,
+	now: Date = new Date(),
+	language: Language = runtimeLanguage(),
+): string {
 	const today = startOfDay(now).getTime();
 	const target = startOfDay(day).getTime();
 	const oneDay = 86_400_000;
 	if (target === today) {
-		return "TODAY";
+		return dateName("common.today", language).toUpperCase();
 	}
 	if (target === today - oneDay) {
-		return "YESTERDAY";
+		return dateName("common.yesterday", language).toUpperCase();
 	}
-	const base = `${WEEKDAYS[day.getDay()].slice(0, 3)}, ${day.getDate()} ${
-		MONTHS[day.getMonth()]
-	}`;
+	const weekday = dateName(
+		`dates.weekday.${day.getDay()}`,
+		language,
+	).toUpperCase();
+	const base = `${weekday}, ${day.getDate()} ${monthAbbrev(day, language)}`;
 	return day.getFullYear() < now.getFullYear()
 		? `${base} '${String(day.getFullYear()).slice(-2)}`
 		: base;
 }
 
 /** "24 JUL", per Swift's `dateFormatter`. */
-export function formatUpcomingDate(date: Date): string {
-	return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+export function formatUpcomingDate(
+	date: Date,
+	language: Language = runtimeLanguage(),
+): string {
+	return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
-/** "h:mm a" wall-clock time, e.g. "9:04 PM". */
-export function formatTime(date: Date): string {
-	let hours = date.getHours();
+/**
+ * "9:04 PM" on a 12-hour clock, "21:04" on a 24-hour one. The 24-hour form pads
+ * the hour because that is how every locale that uses it writes the small hours;
+ * the 12-hour form must not, or "9:04 PM" becomes "09:04 PM".
+ */
+export function formatTime(
+	date: Date,
+	use24Hour = false,
+	language: Language = runtimeLanguage(),
+): string {
+	const hours = date.getHours();
 	const minutes = date.getMinutes();
-	const meridiem = hours >= 12 ? "PM" : "AM";
-	hours %= 12;
-	if (hours === 0) {
-		hours = 12;
-	}
 	const mm = minutes < 10 ? `0${minutes}` : String(minutes);
-	return `${hours}:${mm} ${meridiem}`;
+	if (use24Hour) {
+		return `${hours < 10 ? `0${hours}` : hours}:${mm}`;
+	}
+	const meridiem = dateName(
+		hours >= 12 ? "dates.meridiem.pm" : "dates.meridiem.am",
+		language,
+	);
+	const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+	return `${hour12}:${mm} ${meridiem}`;
 }
 
-export function formatMonthLabel(date: Date): string {
-	return MONTHS_LONG[date.getMonth()];
-}
-
-/** "Mon D, YYYY", title case. */
-export function formatDateRow(date: Date): string {
-	const months = [
-		"Jan",
-		"Feb",
-		"Mar",
-		"Apr",
-		"May",
-		"Jun",
-		"Jul",
-		"Aug",
-		"Sep",
-		"Oct",
-		"Nov",
-		"Dec",
-	];
-	return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+/** The shouted full month a budget's limit picker names, e.g. "JULY". */
+export function formatMonthLabel(
+	date: Date,
+	language: Language = runtimeLanguage(),
+): string {
+	return dateName(`dates.monthLong.${date.getMonth()}`, language).toUpperCase();
 }

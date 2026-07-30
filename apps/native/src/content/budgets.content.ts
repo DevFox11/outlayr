@@ -115,6 +115,10 @@ const budgets = {
 			en: "Add a Transaction",
 			es: "Agregar una transacción",
 		}),
+		"budgets.widget.none": t({
+			en: "No budget yet",
+			es: "Aún sin presupuesto",
+		}),
 		"budgets.picker.eyebrow": t({
 			en: "{month} · NO BUDGET YET",
 			es: "{month} · AÚN SIN PRESUPUESTO",
@@ -218,6 +222,10 @@ const budgets = {
 		"budgets.row.deleteA11y": t({
 			en: "Delete the {name} budget",
 			es: "Eliminar el presupuesto {name}",
+		}),
+		"budgets.row.actionsHint": t({
+			en: "Double tap and hold to open actions for this budget",
+			es: "Toca dos veces y mantén para abrir las acciones de este presupuesto",
 		}),
 		"budgets.detail.emptyClosed": t({
 			en: "Nothing was spent in this period.",
@@ -334,6 +342,22 @@ const budgets = {
 		"budgets.form.create": t({
 			en: "Create budget",
 			es: "Crear presupuesto",
+		}),
+		"budgets.save.failedTitle": t({
+			en: "Not saved",
+			es: "No se guardó",
+		}),
+		"budgets.save.failedBody": t({
+			en: "Something went wrong writing this budget, so nothing was saved. Try again.",
+			es: "Algo salió mal al guardar este presupuesto, así que no se guardó nada. Inténtalo de nuevo.",
+		}),
+		"budgets.delete.failedTitle": t({
+			en: "Not deleted",
+			es: "No se eliminó",
+		}),
+		"budgets.delete.failedBody": t({
+			en: "Something went wrong deleting this budget, so it is still here. Try again.",
+			es: "Algo salió mal al eliminar este presupuesto, así que sigue aquí. Inténtalo de nuevo.",
 		}),
 	},
 } satisfies Dictionary;

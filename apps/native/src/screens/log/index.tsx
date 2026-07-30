@@ -5,7 +5,9 @@ import { SectionList } from "react-native";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoryMeta } from "@/data/categories";
+import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import {
 	useFilteredTransactions,
 	useUpcomingTransactions,
@@ -20,10 +22,12 @@ import {
 import { setNumberSetting, useAllSettings } from "@/data/settings";
 import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
-import { useValuation } from "@/data/use-valuation";
+import { useNow } from "@/data/use-now";
+import { useValuationIn } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { addDays, addMonths, startOfDay } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
+import { logCurrencyOptions } from "@/domain/log-currency-options";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
 import {
@@ -32,11 +36,13 @@ import {
 	storedLogMeasure,
 } from "@/domain/log-measure";
 import { cursorStart } from "@/domain/log-period-cursor";
+import { scopeTotals } from "@/domain/log-scope-figures";
 import {
 	sparklineIsPositive,
 	sparklineRange,
 	sparklineSeries,
 } from "@/domain/log-sparkline";
+import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
@@ -67,6 +73,8 @@ function useSparkline(
 	measure: LogMeasure,
 	period: LogPeriod,
 	firstWeekday: number,
+	displayCurrency: string,
+	rates: RateTable,
 ): SparklineData | null {
 	const today = startOfDay(new Date(nowMs));
 	const floor = period === "month" ? addMonths(today, -1) : addDays(today, -7);
@@ -78,6 +86,8 @@ function useSparkline(
 		// A year is sampled monthly over twelve months, which the daily floor
 		// would cut short.
 		period === "year" ? null : floor,
+		displayCurrency,
+		rates,
 	);
 
 	return useMemo(() => {
@@ -98,27 +108,35 @@ function useSparkline(
 function LogContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
-	const { displayCurrency: currency, rates } = useValuation(db);
+	// Screen state, never a setting: writing the choice to `appMeta` would also
+	// restate what the ledger is kept in, which is what the next transaction gets
+	// recorded in. Null means the screen follows the ledger's currency.
+	const [displayOverride, setDisplayOverride] = useState<string | null>(null);
+	const globalCurrency = useGlobalCurrency(db);
+	const favouriteCurrencies = useFavouriteCurrencies(db);
+	const { displayCurrency: currency, rates } = useValuationIn(
+		db,
+		displayOverride ?? globalCurrency,
+	);
 	// Every preference off one subscription: a per-key hook would register a
 	// separate `appMeta` listener each, and each fires on any write to the table.
 	const settings = useAllSettings(db);
 	const showCents = settings.bool("showCents");
 	const showSign = settings.bool("showExpenseOrIncomeSign");
 	const swapTimeLabel = settings.bool("swapTimeLabel");
+	const use24Hour = settings.bool("use24HourClock");
 	const showUpcoming = settings.bool("showUpcoming");
 	const firstWeekday = settings.number("firstWeekday");
 	const period = logPeriodFromStored(settings.number("logInsightsTimeFrame"));
 	const measure = logMeasureFromStored(settings.number("logInsightsType"));
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 
-	// Null means "whichever currency the period leads with". A scope is only
-	// pinned by choosing one, and the pin lapses once that currency stops
-	// appearing in the period.
-	const [scopeCurrency, setScopeCurrency] = useState<string | null>(null);
 	const [filter, setFilter] = useState<LogFilter>("all");
 	const [categoryId, setCategoryId] = useState<string | null>(null);
 	const [income, setIncome] = useState(false);
-	// One cursor per period unit, so switching between them leaves each where it was.
+	// One cursor per period unit, so switching between them leaves each where it
+	// was. Seeded once: re-seeding as the clock ticks would step the calendar
+	// filters out from under the user.
 	const [cursors, setCursors] = useState<Record<string, Date>>(() => ({
 		day: new Date(nowMs),
 		week: new Date(nowMs),
@@ -158,6 +176,18 @@ function LogContent({ db }: { db: Database }) {
 		settings.bool("showUpcomingSoon"),
 	);
 	const insights = useLogInsights(db, nowMs, period, currency, rates);
+	const currencyOptions = useMemo(
+		() =>
+			logCurrencyOptions({
+				global: globalCurrency,
+				favourites: favouriteCurrencies,
+				produced: insights.perCurrency.map((figures) => figures.currencyCode),
+				// USD is the canonical side of every stored rate, so it needs no row of
+				// its own to be reachable.
+				convertible: (code) => code === "USD" || rates.earliest(code) !== null,
+			}),
+		[globalCurrency, favouriteCurrencies, insights, rates],
+	);
 	const sparkline = useSparkline(
 		db,
 		nowMs,
@@ -165,24 +195,36 @@ function LogContent({ db }: { db: Database }) {
 		measure,
 		period,
 		firstWeekday,
+		currency,
+		rates,
 	);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 
 	const listRows = filter === "all" ? windowRows : filteredRows;
+	const visibleRows = useMemo(
+		() => listRows.filter((row) => row.id !== pendingId),
+		[listRows, pendingId],
+	);
 	const sections = useMemo(
+		() => groupByDay(visibleRows, currency, rates),
+		[visibleRows, currency, rates],
+	);
+	// Totalled over the filtered read, which `useFilteredTransactions` leaves
+	// unwindowed: `windowRows` is a page, so `all` gets the period header instead.
+	// The same rows the sections are built from, so the figure and the day
+	// subtotals under it agree to the cent.
+	const scopeFigures = useMemo(
 		() =>
-			groupByDay(
-				listRows.filter((row) => row.id !== pendingId),
-				currency,
-				rates,
-			),
-		[listRows, pendingId, currency, rates],
+			filter === "all" || visibleRows.length === 0
+				? null
+				: scopeTotals(visibleRows, currency, rates),
+		[filter, visibleRows, currency, rates],
 	);
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 	const cardOptions = useMemo(
-		() => ({ currency, showCents, showSign, swapTimeLabel }),
-		[currency, showCents, showSign, swapTimeLabel],
+		() => ({ currency, showCents, showSign, swapTimeLabel, use24Hour }),
+		[currency, showCents, showSign, swapTimeLabel, use24Hour],
 	);
 	const shareDay = useDayCardShare(cardOptions);
 
@@ -199,10 +241,16 @@ function LogContent({ db }: { db: Database }) {
 
 	const showUpcomingSection =
 		filter === "upcoming" || (filter === "all" && showUpcoming);
-	const upcomingRows = showUpcomingSection ? upcoming : [];
+	const upcomingRows = showUpcomingSection ? upcoming.rows : [];
 	const emptyResult =
 		sections.length === 0 &&
 		(filter !== "upcoming" || upcomingRows.length === 0);
+
+	// One setting behind both headers: the promoted figure must not depend on
+	// whether a filter happens to be on.
+	const onMeasure = (next: LogMeasure) => {
+		setNumberSetting(db, "logInsightsType", storedLogMeasure(next));
+	};
 
 	const toolbar = (
 		<LogToolbar
@@ -253,16 +301,12 @@ function LogContent({ db }: { db: Database }) {
 							<LogInsights
 								insights={insights}
 								measure={measure}
-								onMeasure={(next: LogMeasure) => {
-									setNumberSetting(
-										db,
-										"logInsightsType",
-										storedLogMeasure(next),
-									);
-								}}
+								onMeasure={onMeasure}
 								period={period}
-								scopeCurrency={scopeCurrency}
-								onScopeCurrency={setScopeCurrency}
+								displayCurrency={currency}
+								currencyOptions={currencyOptions}
+								onDisplayCurrency={setDisplayOverride}
+								onManageCurrencies={() => router.push("/settings/currency")}
 								showCents={showCents}
 								sparkline={sparkline}
 							/>
@@ -289,17 +333,25 @@ function LogContent({ db }: { db: Database }) {
 								firstWeekday={firstWeekday}
 								nowMs={nowMs}
 								onClear={() => setFilter("all")}
+								totals={scopeFigures}
+								measure={measure}
+								onMeasure={onMeasure}
+								displayCurrency={currency}
+								showCents={showCents}
 							/>
 						)}
 						{showUpcomingSection ? (
 							<LogUpcoming
 								transactions={upcomingRows}
+								schedules={upcoming.schedules}
 								currency={currency}
+								rates={rates}
 								onPress={(id) => router.push(`/transaction/${id}`)}
 								onLongPress={(id) => openRowActions(id, true)}
 								showCents={showCents}
 								showSign={showSign}
 								swapTimeLabel={swapTimeLabel}
+								use24Hour={use24Hour}
 								nowMs={nowMs}
 							/>
 						) : null}
@@ -325,6 +377,7 @@ function LogContent({ db }: { db: Database }) {
 						showCents={showCents}
 						showSign={showSign}
 						swapTimeLabel={swapTimeLabel}
+						use24Hour={use24Hour}
 					/>
 				)}
 			/>

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { useMemo } from "react";
+import { Alert, ScrollView, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -14,6 +14,7 @@ import {
 	usePerCategoryBudgets,
 } from "@/data/budgets";
 import { useBoolSetting } from "@/data/settings";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
@@ -44,7 +45,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const currency = useGlobalCurrency(db);
 	const showCents = useBoolSetting(db, "showCents");
 	const asRows = useBoolSetting(db, "budgetViewStyle");
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 
 	// One transactions subscription for the screen: every hook below derives from
 	// this list rather than opening its own listener.
@@ -89,8 +90,17 @@ function BudgetContent({ db }: { db: Database }) {
 		[contributions, monthWindow],
 	);
 
+	// The write is async and the action sheet is already gone by the time it lands,
+	// so an unhandled rejection would leave the budget sitting in the list with
+	// nothing said about why the delete did not take.
 	const deleteBudget = (id: string) => {
-		budgetsRepo.deleteBudget(db, id);
+		budgetsRepo.deleteBudget(db, id).catch((error: unknown) => {
+			console.error("Failed to delete the budget", error);
+			Alert.alert(
+				t("budgets.delete.failedTitle"),
+				t("budgets.delete.failedBody"),
+			);
+		});
 	};
 
 	const createMainBudget = async (amount: number) => {
@@ -101,6 +111,7 @@ function BudgetContent({ db }: { db: Database }) {
 			});
 		} catch (error) {
 			console.error("Failed to create the overall budget", error);
+			Alert.alert(t("budgets.save.failedTitle"), t("budgets.save.failedBody"));
 		}
 	};
 

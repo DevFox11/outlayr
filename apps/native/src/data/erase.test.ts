@@ -1,0 +1,198 @@
+import assert from "node:assert/strict";
+import { beforeEach, describe, it } from "node:test";
+import BetterSqlite3 from "better-sqlite3";
+import { isNull } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import type { Database } from "@/db/client";
+import { transactions } from "@/db/schema";
+import { type EraseResidue, eraseData } from "./erase";
+
+const TRANSACTIONS_DDL = `
+	CREATE TABLE transactions (
+		id text PRIMARY KEY NOT NULL,
+		amount real NOT NULL,
+		income integer NOT NULL,
+		currency text,
+		note text NOT NULL DEFAULT '',
+		details text,
+		date integer NOT NULL,
+		day integer NOT NULL,
+		month integer NOT NULL,
+		icon text,
+		emoji text,
+		customColor text,
+		imageColor text,
+		imageUri text,
+		imageKey text,
+		onceRecurring integer NOT NULL DEFAULT 0,
+		recurringType integer NOT NULL DEFAULT 0,
+		recurringCoefficient integer NOT NULL DEFAULT 1,
+		recurringEndDate integer,
+		reminderLeadDays integer,
+		categoryId text,
+		amountUsd real,
+		exchangeRate real,
+		exchangeRateType text,
+		updatedAt integer NOT NULL,
+		deletedAt integer
+	);
+`;
+
+const TEMPLATES_DDL = `
+	CREATE TABLE templateTransactions (
+		id text PRIMARY KEY NOT NULL,
+		amount real NOT NULL,
+		income integer NOT NULL,
+		note text,
+		sortOrder integer NOT NULL DEFAULT 0,
+		recurringType integer NOT NULL DEFAULT 0,
+		recurringCoefficient integer NOT NULL DEFAULT 1,
+		categoryId text,
+		updatedAt integer NOT NULL,
+		deletedAt integer
+	);
+`;
+
+function makeDb(ddl = `${TRANSACTIONS_DDL}${TEMPLATES_DDL}`): Database {
+	const sqlite = new BetterSqlite3(":memory:");
+	sqlite.exec(ddl);
+	return drizzle(sqlite) as unknown as Database;
+}
+
+/** Missing `templateTransactions`, so the ledger write throws part-way through. */
+const makeUnwritableDb = (): Database => makeDb(TRANSACTIONS_DDL);
+
+const AUTHORED = new Date("2026-03-04T10:00:00.000Z");
+
+async function seed(db: Database): Promise<void> {
+	await db.insert(transactions).values({
+		id: "tx-1",
+		amount: 12.4,
+		income: false,
+		note: "Flat white",
+		date: AUTHORED,
+		day: AUTHORED,
+		month: AUTHORED,
+		imageUri: "file:///photos/tx-1.jpg",
+		updatedAt: AUTHORED,
+	});
+}
+
+type Effect = "photos" | "spotlight";
+
+/**
+ * `"photos" in failures` rather than a truthiness check, so a step can be told
+ * to throw a value that is itself falsy.
+ */
+function spyResidue(failures: { photos?: unknown; spotlight?: unknown } = {}): {
+	calls: Effect[];
+	residue: EraseResidue;
+} {
+	const calls: Effect[] = [];
+	return {
+		calls,
+		residue: {
+			clearStoredPhotos() {
+				calls.push("photos");
+				if ("photos" in failures) {
+					throw failures.photos;
+				}
+			},
+			clearSpotlight() {
+				calls.push("spotlight");
+				return "spotlight" in failures
+					? Promise.reject(failures.spotlight)
+					: Promise.resolve();
+			},
+		},
+	};
+}
+
+const liveTransactions = (db: Database) =>
+	db.select().from(transactions).where(isNull(transactions.deletedAt));
+
+describe("eraseData", () => {
+	let db: Database;
+	beforeEach(async () => {
+		db = makeDb();
+		await seed(db);
+	});
+
+	it("tombstones the ledger, clears the photos, then clears Spotlight", async () => {
+		const { calls, residue } = spyResidue();
+
+		await eraseData(db, "transactions", residue);
+
+		assert.deepEqual(calls, ["photos", "spotlight"]);
+		assert.equal((await liveTransactions(db)).length, 0);
+	});
+
+	// A Spotlight index nobody cleared keeps erased notes and amounts answering
+	// device-wide search, so it must survive the photo step's failure.
+	it("still clears Spotlight when the photo directory refuses to go", async () => {
+		const busy = new Error("directory busy");
+		const { calls, residue } = spyResidue({ photos: busy });
+
+		await assert.rejects(
+			() => eraseData(db, "transactions", residue),
+			(error: unknown) => error === busy,
+		);
+
+		assert.deepEqual(calls, ["photos", "spotlight"]);
+	});
+
+	// The rejection is the screen's only signal that the erase it just ran was
+	// partial: the rows are gone and the files are not.
+	it("leaves the ledger erased after the photo step failed", async () => {
+		const { residue } = spyResidue({ photos: new Error("directory busy") });
+
+		await assert.rejects(() => eraseData(db, "transactions", residue));
+
+		assert.equal((await liveTransactions(db)).length, 0);
+		const [tombstone] = await db.select().from(transactions);
+		assert.notEqual(tombstone.deletedAt, null);
+	});
+
+	// A caught value is not always an Error, and treating a falsy one as "no
+	// failure" would send the screen back with a clean confirmation.
+	it("reports a photo step that threw a value of its own", async () => {
+		const { calls, residue } = spyResidue({ photos: undefined });
+
+		let rejected = false;
+		let cause: unknown = "never thrown";
+		try {
+			await eraseData(db, "transactions", residue);
+		} catch (error) {
+			rejected = true;
+			cause = error;
+		}
+
+		assert.equal(rejected, true);
+		assert.equal(cause, undefined);
+		assert.deepEqual(calls, ["photos", "spotlight"]);
+	});
+
+	it("reports a Spotlight step that failed on its own", async () => {
+		const denied = new Error("index unavailable");
+		const { calls, residue } = spyResidue({ spotlight: denied });
+
+		await assert.rejects(
+			() => eraseData(db, "transactions", residue),
+			(error: unknown) => error === denied,
+		);
+
+		assert.deepEqual(calls, ["photos", "spotlight"]);
+	});
+
+	// Both stores still describe rows the user has, so clearing either would
+	// delete a photo and un-index a transaction that was never erased.
+	it("touches neither store when the ledger write fails", async () => {
+		const unwritable = makeUnwritableDb();
+		await seed(unwritable);
+		const { calls, residue } = spyResidue();
+
+		await assert.rejects(() => eraseData(unwritable, "transactions", residue));
+
+		assert.deepEqual(calls, []);
+	});
+});

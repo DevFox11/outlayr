@@ -56,6 +56,7 @@ function makeDb(): Database {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			reminderLeadDays integer,
 			categoryId text,
 			amountUsd real,
 			exchangeRate real,
@@ -73,6 +74,7 @@ interface SourceOverrides {
 	recurringType?: number;
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
+	reminderLeadDays?: number | null;
 	onceRecurring?: boolean;
 	deletedAt?: Date | null;
 }
@@ -101,6 +103,7 @@ async function seedSource(
 		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
 		recurringCoefficient: overrides.recurringCoefficient ?? 1,
 		recurringEndDate: overrides.recurringEndDate ?? null,
+		reminderLeadDays: overrides.reminderLeadDays ?? null,
 		categoryId: "bills",
 		updatedAt: NOW,
 		deletedAt: overrides.deletedAt ?? null,
@@ -199,6 +202,51 @@ describe("backfillRecurring", () => {
 			assert.equal(row.recurringType, RECURRING_TYPE.none);
 			assert.equal(row.recurringCoefficient, 1);
 			assert.equal(row.recurringEndDate, null);
+		}
+	});
+
+	it("hands the reminder notice to the new carrier and leaves it nowhere else", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 3, 15),
+			reminderLeadDays: 3,
+		});
+
+		await backfillRecurring(db, id, NOW);
+
+		const generated = await generatedRows(db, id);
+		const newest = generated.at(-1);
+		assert.equal(newest?.recurringType, RECURRING_TYPE.monthly);
+		assert.equal(newest?.reminderLeadDays, 3);
+		for (const row of generated.slice(0, -1)) {
+			assert.equal(row.reminderLeadDays, null);
+		}
+		const source = (await allRows(db)).find((row) => row.id === id);
+		assert.equal(source?.reminderLeadDays, null);
+	});
+
+	it("keeps a same-day notice, which is not the off state", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 3, 15),
+			reminderLeadDays: 0,
+		});
+
+		await backfillRecurring(db, id, NOW);
+
+		const newest = (await generatedRows(db, id)).at(-1);
+		assert.equal(newest?.reminderLeadDays, 0);
+	});
+
+	it("leaves the notice off a chain that has run out of schedule to carry", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 3, 15),
+			recurringEndDate: at(2025, 6, 20),
+			reminderLeadDays: 7,
+		});
+
+		await backfillRecurring(db, id, NOW);
+
+		for (const row of await generatedRows(db, id)) {
+			assert.equal(row.reminderLeadDays, null);
 		}
 	});
 
@@ -336,6 +384,24 @@ describe("backfillAllRecurring", () => {
 		await backfillAllRecurring(db, NOW);
 
 		assert.equal((await allRows(db)).length, first);
+	});
+
+	// The carrier is a different row after every sweep, so a notice that survives
+	// two of them is the only proof the hand-off is not a one-time copy.
+	it("keeps the notice on whichever row carries the schedule", async () => {
+		await seedSource(db, { date: at(2025, 3, 15), reminderLeadDays: 2 });
+
+		await backfillAllRecurring(db, NOW);
+		await backfillAllRecurring(db, new Date(2025, 6, 20, 9, 0));
+
+		const rows = await allRows(db);
+		const carrying = rows.filter((row) => row.reminderLeadDays != null);
+		assert.deepEqual(
+			carrying.map((row) => row.date.getTime()),
+			[at(2025, 7, 15).getTime()],
+		);
+		assert.equal(carrying[0]?.recurringType, RECURRING_TYPE.monthly);
+		assert.equal(carrying[0]?.reminderLeadDays, 2);
 	});
 
 	it("sweeps every live subscription", async () => {
@@ -613,6 +679,24 @@ describe("repairOrphanedRecurrence", () => {
 		assert.equal(revived?.date.getTime(), at(2025, 7, 15).getTime());
 		assert.equal(revived?.recurringType, RECURRING_TYPE.monthly);
 		assert.equal(revived?.note, "Netflix");
+	});
+
+	it("moves the notice onto the revived carrier and off the tombstone", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 3, 15),
+			reminderLeadDays: 1,
+		});
+		await backfillRecurring(db, id, NOW);
+		const carrier = await liveCarrier(db);
+		await orphanCarrier(db, carrier?.id ?? "");
+
+		await repairOrphanedRecurrence(db, NOW);
+
+		assert.equal((await liveCarrier(db))?.reminderLeadDays, 1);
+		const tombstone = (await everyRow(db)).find(
+			(row) => row.id === carrier?.id,
+		);
+		assert.equal(tombstone?.reminderLeadDays, null);
 	});
 
 	it("clears the tombstone it repaired so a rerun cannot double-charge", async () => {

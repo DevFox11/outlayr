@@ -12,11 +12,14 @@ import { Text } from "@/components/text";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { MainBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
-import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
+import {
+	BUDGET_TYPE,
+	budgetPeriodPhrase,
+	budgetTimeLeftLabel,
+} from "@/domain/budget-math";
 import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
-import { budgetPeriodKey } from "../period-phrase";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -64,7 +67,7 @@ export function BudgetBurndownHero({
 	const [scrubDay, setScrubDay] = useState<number | null>(null);
 
 	const now = new Date(nowMs);
-	const period = t(budgetPeriodKey(budget.type));
+	const period = t(budgetPeriodPhrase(budget.type));
 	const isDay = budget.type === BUDGET_TYPE.day;
 	const showChart = burndown != null && !isDay;
 

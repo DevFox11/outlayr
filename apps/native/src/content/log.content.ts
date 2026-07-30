@@ -27,6 +27,14 @@ const log = {
 			en: "Remove filter",
 			es: "Quitar filtro",
 		}),
+		"log.delete.failedBody": t({
+			en: "Nothing was removed, so it's back on your log. Try again.",
+			es: "No se eliminó nada, así que volvió a tu registro. Inténtalo de nuevo.",
+		}),
+		"log.delete.failedTitle": t({
+			en: "Couldn't delete the entry",
+			es: "No se pudo eliminar el registro",
+		}),
 		"log.empty.body": t({
 			en: "Your first entry sets the baseline everything else is measured against.",
 			es: "Tu primer registro define la base con la que se compara todo lo demás.",
@@ -75,6 +83,10 @@ const log = {
 			en: "Currency",
 			es: "Moneda",
 		}),
+		"log.insights.currencyManage": t({
+			en: "Edit favourites…",
+			es: "Editar favoritas…",
+		}),
 		"log.insights.currencyShown": t({
 			en: "Currency shown",
 			es: "Moneda mostrada",
@@ -119,6 +131,18 @@ const log = {
 			en: "this year",
 			es: "este año",
 		}),
+		"log.row.actionsHint": t({
+			en: "Double tap and hold to open actions for this entry",
+			es: "Toca dos veces y mantén para abrir las acciones de este registro",
+		}),
+		"log.row.amountExpense": t({
+			en: "Expense {amount}",
+			es: "Gasto de {amount}",
+		}),
+		"log.row.amountIncome": t({
+			en: "Income {amount}",
+			es: "Ingreso de {amount}",
+		}),
 		"log.row.delete": t({
 			en: "Delete",
 			es: "Eliminar",
@@ -134,6 +158,10 @@ const log = {
 		"log.scope.clear": t({
 			en: "Clear",
 			es: "Borrar",
+		}),
+		"log.scope.otherCurrencies": t({
+			en: "Other currencies",
+			es: "Otras monedas",
 		}),
 		"log.title": t({
 			en: "Log",
@@ -178,6 +206,10 @@ const log = {
 		"log.upcoming.heading": t({
 			en: "UPCOMING",
 			es: "PRÓXIMOS",
+		}),
+		"log.upcoming.perMonth": t({
+			en: "PER MONTH",
+			es: "AL MES",
 		}),
 	},
 } satisfies Dictionary;

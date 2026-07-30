@@ -11,6 +11,7 @@ import {
 	type DayCardInput,
 	layoutDayCard,
 } from "@/domain/day-card";
+import { translateNow } from "@/i18n/runtime";
 import { shareBytes, TransferError } from "./data-transfer";
 
 /** Retina-density raster of a layout measured in points. */
@@ -124,7 +125,12 @@ export async function shareDayCard(
 ): Promise<void> {
 	const bytes = renderDayCard(input);
 	if (bytes == null) {
-		throw new TransferError("The image couldn't be drawn on this device.");
+		throw new TransferError("alerts.dayCard.undrawable");
 	}
-	await shareBytes(bytes, fileName, "image/png", "Share day");
+	await shareBytes(
+		bytes,
+		fileName,
+		"image/png",
+		translateNow("alerts.dayCard.shareTitle"),
+	);
 }

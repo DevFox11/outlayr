@@ -7,7 +7,6 @@ import {
 	REMINDER_CUSTOM,
 	REMINDER_EVENING,
 	REMINDER_MORNING,
-	reminderChoiceWrites,
 	reminderReconcile,
 	reminderTime,
 } from "./reminder";
@@ -101,34 +100,5 @@ describe("reconciling a stored setting against iOS", () => {
 		assert.equal(reminderReconcile(false, "granted"), "none");
 		assert.equal(reminderReconcile(false, "denied"), "none");
 		assert.equal(reminderReconcile(false, "undetermined"), "none");
-	});
-});
-
-describe("step 03's reminder choice", () => {
-	const custom = { hour: 7, minute: 15 };
-
-	it("writes the fixed option with no extra time for the morning", () => {
-		assert.deepEqual(reminderChoiceWrites(REMINDER_MORNING, custom), {
-			option: REMINDER_MORNING,
-			time: null,
-		});
-	});
-
-	it("writes the fixed option with no extra time for the evening", () => {
-		assert.deepEqual(reminderChoiceWrites(REMINDER_EVENING, custom), {
-			option: REMINDER_EVENING,
-			time: null,
-		});
-	});
-
-	it("carries the picked time only for the custom option", () => {
-		assert.deepEqual(reminderChoiceWrites(REMINDER_CUSTOM, custom), {
-			option: REMINDER_CUSTOM,
-			time: custom,
-		});
-	});
-
-	it('writes nothing for "don\'t remind me"', () => {
-		assert.equal(reminderChoiceWrites(null, custom), null);
 	});
 });

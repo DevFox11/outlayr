@@ -33,6 +33,7 @@ import {
 	reminderPermission,
 	requestReminderPermission,
 } from "@/lib/reminders";
+import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useColors } from "@/theme/use-colors";
 
 const OPTIONS = [
@@ -92,6 +93,44 @@ async function disableReminders(db: Database): Promise<void> {
 	await setBoolSetting(db, "showNotifications", false);
 }
 
+/**
+ * The same permission ladder, its own key: the daily reminder and the due-date
+ * notices are separate promises, and the revoke reconcile writes each back off
+ * on its own.
+ */
+async function setSubscriptionReminders(
+	db: Database,
+	next: boolean,
+): Promise<void> {
+	if (next) {
+		const existing = await reminderPermission();
+		if (enableReminderStep(existing) === "open-settings") {
+			Alert.alert(
+				translateNow("settings.notifications.deniedTitle"),
+				translateNow("settings.notifications.deniedBody"),
+				[
+					{
+						style: "cancel",
+						text: translateNow("settings.notifications.notNow"),
+					},
+					{
+						onPress: openNotificationSettings,
+						text: translateNow("settings.notifications.openSettings"),
+					},
+				],
+			);
+			return;
+		}
+		const granted =
+			existing === "granted" ? existing : await requestReminderPermission();
+		if (granted !== "granted") {
+			return;
+		}
+	}
+	await setBoolSetting(db, "subscriptionReminders", next);
+	await syncSubscriptionReminders(db);
+}
+
 export default function NotificationsScreen() {
 	const db = useDatabase();
 	return <Notifications db={db} />;
@@ -104,6 +143,7 @@ function Notifications({ db }: { db: Database }) {
 	const t = useTranslation();
 	const settings = useAllSettings(db);
 	const enabled = settings.bool("showNotifications");
+	const subscriptionsEnabled = settings.bool("subscriptionReminders");
 	const option = settings.number("notificationOption");
 	const custom = clampTimeOfDay(
 		settings.number("notificationHour"),
@@ -187,6 +227,20 @@ function Notifications({ db }: { db: Database }) {
 					) : null}
 				</SettingsSection>
 			) : null}
+
+			<SettingsSection
+				footer={t("settings.notifications.subscriptionFooter")}
+				title={t("settings.notifications.subscriptionSection")}
+			>
+				<ToggleRow
+					icon="CalendarClock"
+					onValueChange={(next) => {
+						setSubscriptionReminders(db, next).catch(reportReminderFailure);
+					}}
+					title={t("settings.notifications.subscriptionToggle")}
+					value={subscriptionsEnabled}
+				/>
+			</SettingsSection>
 		</SettingsScreen>
 	);
 }

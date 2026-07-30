@@ -1,4 +1,4 @@
-import { addDays } from "./dates";
+import { addDays, startOfDay } from "./dates";
 
 /**
  * Mirrors the Swift `RecurringCadence` raw values so a transaction's persisted
@@ -72,3 +72,58 @@ export function nextDate(
 
 /** Alias for {@link nextDate}. */
 export const next = nextDate;
+
+/**
+ * The first occurrence of `from`'s schedule strictly after today, or null when
+ * the schedule cannot advance or has run past its end date. `from` counts as a
+ * member of its own schedule, so a charge still ahead of today is the landing
+ * rather than something to step past — anything else would name the charge one
+ * whole cadence beyond the one the ledger is about to take.
+ *
+ * Walked rather than projected so month-length clamping matches every occurrence
+ * the back-fill writes.
+ */
+export function nextLanding(
+	from: Date,
+	type: number,
+	coefficient: number,
+	endDate: Date | null,
+	now: Date,
+): Date | null {
+	const today = startOfDay(now);
+	const endLimit = endDate == null ? null : startOfDay(endDate);
+	const advance = (at: Date): Date | null => nextDate(at, type, coefficient);
+	const pastEndLimit = (at: Date): boolean =>
+		endLimit != null && startOfDay(at).getTime() > endLimit.getTime();
+
+	// A row with no cadence has no schedule to land on, checked before `from`
+	// itself is considered so a future-dated one-off can never be mistaken for a
+	// pending subscription charge.
+	if (advance(from) == null) {
+		return null;
+	}
+
+	// Strictly after, never on: `scheduleSuccessor` hands this a carrier dated
+	// today-or-earlier, and returning a same-day `from` would make it the
+	// successor of itself and stall the chain on one charge forever.
+	if (startOfDay(from).getTime() > today.getTime()) {
+		return pastEndLimit(from) ? null : from;
+	}
+
+	let holding = from;
+	let advanced = advance(holding);
+	while (
+		advanced != null &&
+		startOfDay(advanced).getTime() > startOfDay(holding).getTime()
+	) {
+		if (pastEndLimit(advanced)) {
+			return null;
+		}
+		if (startOfDay(advanced).getTime() > today.getTime()) {
+			return advanced;
+		}
+		holding = advanced;
+		advanced = advance(holding);
+	}
+	return null;
+}

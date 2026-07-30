@@ -21,6 +21,8 @@ interface SwipeableTransactionRowProps {
 	showSign?: boolean;
 	/** The subtitle shows the category name over the time. */
 	swapTimeLabel?: boolean;
+	/** The subtitle prints the time on a 24-hour clock. */
+	use24Hour?: boolean;
 }
 
 export function SwipeableTransactionRow({
@@ -33,13 +35,14 @@ export function SwipeableTransactionRow({
 	showCents = true,
 	showSign = true,
 	swapTimeLabel = false,
+	use24Hour = false,
 }: SwipeableTransactionRowProps) {
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const t = useTranslation();
 
 	const renderRightActions = () => (
 		<Pressable
-			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger px-6"
+			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger-fill px-6"
 			onPress={() => {
 				swipeRef.current?.close();
 				onDelete(transaction.id);
@@ -68,9 +71,11 @@ export function SwipeableTransactionRow({
 					rates={rates}
 					onPress={onPress}
 					onLongPress={onLongPress}
+					onDelete={onDelete}
 					showCents={showCents}
 					showSign={showSign}
 					swapTimeLabel={swapTimeLabel}
+					use24Hour={use24Hour}
 				/>
 			</Animated.View>
 		</ReanimatedSwipeable>

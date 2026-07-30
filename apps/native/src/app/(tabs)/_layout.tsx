@@ -1,5 +1,4 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { useState } from "react";
 
 import budgetsIcon from "@/assets/tab-icons/budgets.png";
 import budgetsSelectedIcon from "@/assets/tab-icons/budgets-selected.png";
@@ -11,6 +10,7 @@ import settingsIcon from "@/assets/tab-icons/settings.png";
 import settingsSelectedIcon from "@/assets/tab-icons/settings-selected.png";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useOverBudgetCount } from "@/data/budgets";
+import { useNow } from "@/data/use-now";
 import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
@@ -25,7 +25,7 @@ export default function TabLayout() {
 	const { accent } = useColors();
 	const t = useTranslation();
 	const db = useDatabase();
-	const [nowMs] = useState(() => Date.now());
+	const nowMs = useNow();
 	const overBudget = useOverBudgetCount(db, nowMs);
 
 	return (

@@ -3,17 +3,41 @@ import { type Dictionary, t } from "intlayer";
 const onboarding = {
 	key: "onboarding" as const,
 	content: {
-		"onboarding.welcome.begun": t({
-			en: "Begun {date}",
-			es: "Comenzado el {date}",
+		"onboarding.welcome.eyebrow": t({
+			en: "Welcome",
+			es: "Bienvenido",
 		}),
-		"onboarding.welcome.title": t({
-			en: "Welcome to Outlayr",
-			es: "Bienvenido a Outlayr",
+		"onboarding.welcome.subtitle": t({
+			en: "A ledger you keep by hand — every entry yours, on this device.",
+			es: "Un registro que llevas a mano — cada entrada es tuya, en este dispositivo.",
 		}),
-		"onboarding.cover.line": t({
-			en: "A ledger you keep by hand. Every entry yours, on this device.",
-			es: "Un registro que llevas a mano. Cada entrada es tuya, en este dispositivo.",
+		"onboarding.welcome.feature.track.title": t({
+			en: "Track your finances",
+			es: "Controla tus finanzas",
+		}),
+		"onboarding.welcome.feature.track.body": t({
+			en: "Add new entries in a simple, straightforward manner",
+			es: "Agrega nuevos registros de forma simple y directa",
+		}),
+		"onboarding.welcome.feature.analyse.title": t({
+			en: "Analyse your expenditure",
+			es: "Analiza tu gasto",
+		}),
+		"onboarding.welcome.feature.analyse.body": t({
+			en: "Draw insights from your spending over various time periods",
+			es: "Obtén estadísticas de tus gastos en distintos períodos de tiempo",
+		}),
+		"onboarding.welcome.feature.budgets.title": t({
+			en: "Stick to budgets",
+			es: "Cumple con tus presupuestos",
+		}),
+		"onboarding.welcome.feature.budgets.body": t({
+			en: "Set categorical and time-based goals to limit your spending",
+			es: "Establece metas por categoría y período de tiempo para limitar tus gastos",
+		}),
+		"onboarding.welcome.start": t({
+			en: "Get Started",
+			es: "Comenzar",
 		}),
 		"onboarding.currency.eyebrow": t({
 			en: "Currency",
@@ -24,8 +48,8 @@ const onboarding = {
 			es: "¿En qué moneda están tus números?",
 		}),
 		"onboarding.currency.body": t({
-			en: "Everything totals in this. Change it any time — old entries keep their own.",
-			es: "Todo se suma en esta. Cámbiala cuando quieras — las entradas viejas conservan la suya.",
+			en: "Outlayr converts between currencies to total your ledger, so it has to know what your entries already mean. It asks once rather than guessing — a guess it later froze into your records could not be undone.",
+			es: "Outlayr convierte entre monedas para sumar tu registro, así que necesita saber qué significan tus entradas. Lo pregunta una vez en lugar de adivinar — una suposición congelada en tus registros no se podría deshacer.",
 		}),
 		"onboarding.currency.openHint": t({
 			en: "Opens the currency list",
@@ -35,9 +59,17 @@ const onboarding = {
 			en: "Change",
 			es: "Cambiar",
 		}),
+		"onboarding.currency.later": t({
+			en: "You can change this later in Settings.",
+			es: "Puedes cambiar esto después en Configuración.",
+		}),
 		"onboarding.currency.saving": t({
 			en: "Saving…",
 			es: "Guardando…",
+		}),
+		"onboarding.currency.start": t({
+			en: "Start",
+			es: "Comenzar",
 		}),
 		"onboarding.currency.saveFailed.title": t({
 			en: "Could not save",
@@ -54,38 +86,6 @@ const onboarding = {
 		"onboarding.currency.picker.searchPlaceholder": t({
 			en: "Search currencies",
 			es: "Buscar monedas",
-		}),
-		"onboarding.currency.shortcut": t({
-			en: "I already have an account",
-			es: "Ya tengo una cuenta",
-		}),
-		"onboarding.rhythm.eyebrow": t({
-			en: "Rhythm",
-			es: "Ritmo",
-		}),
-		"onboarding.rhythm.title": t({
-			en: "A ledger only works if you write in it.",
-			es: "Un registro solo funciona si escribes en él.",
-		}),
-		"onboarding.rhythm.body": t({
-			en: "One quiet nudge each evening. iOS isn't asked for permission until your first entry is saved.",
-			es: "Un aviso discreto cada tarde. No se le pide permiso a iOS hasta que guardes tu primera entrada.",
-		}),
-		"onboarding.rhythm.notifToday": t({
-			en: "Time to write today's lines.",
-			es: "Hora de escribir las líneas de hoy.",
-		}),
-		"onboarding.rhythm.notifYesterday": t({
-			en: "Yesterday you wrote 3 lines.",
-			es: "Ayer escribiste 3 líneas.",
-		}),
-		"onboarding.rhythm.remind": t({
-			en: "Remind me at {time}",
-			es: "Recuérdame a las {time}",
-		}),
-		"onboarding.rhythm.none": t({
-			en: "Don't remind me",
-			es: "No me recuerdes",
 		}),
 	},
 } satisfies Dictionary;

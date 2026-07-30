@@ -1,7 +1,12 @@
 import { Fragment } from "react";
 import { View } from "react-native";
+import {
+	type RowAmountLabelInput,
+	rowAmountLabel,
+} from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
 import { amountParts } from "@/domain/money";
+import { useTranslation } from "@/i18n";
 import { Text } from "./text";
 import { cn, tv } from "./tw";
 
@@ -64,15 +69,8 @@ const rowAmount = tv({
 	},
 });
 
-interface RowAmountProps {
-	amount: number;
-	income: boolean;
+interface RowAmountProps extends RowAmountLabelInput {
 	isFuture: boolean;
-	code: string;
-	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
-	showCents?: boolean;
-	/** Mirrors "Display +/- Symbol"; false drops the row's sign prefix. */
-	showSign?: boolean;
 }
 
 export function RowAmount({
@@ -83,10 +81,17 @@ export function RowAmount({
 	showCents = true,
 	showSign = true,
 }: RowAmountProps) {
+	const t = useTranslation();
 	const parts = amountParts(amount, code, showCents);
 	const sign = showSign ? (income ? "+" : "-") : "";
 	return (
 		<Text
+			// Spelled out because the glyph above is optional and the colour is not a
+			// cue a screen reader can read; `rowAmountLabel` owns the wording.
+			accessibilityLabel={rowAmountLabel(
+				{ amount, income, code, showCents, showSign },
+				t,
+			)}
 			className={rowAmount({ income, isFuture })}
 			style={TABULAR}
 			numberOfLines={1}
