@@ -63,6 +63,10 @@ const transaction = {
 			en: "Ends",
 			es: "Termina el",
 		}),
+		"transaction.field.remind": t({
+			en: "Remind Me",
+			es: "Recordarme",
+		}),
 		"transaction.field.date": t({
 			en: "Date",
 			es: "Fecha",
@@ -190,6 +194,26 @@ const transaction = {
 		"transaction.schedule.unit": t({
 			en: "Unit",
 			es: "Unidad",
+		}),
+		"transaction.remind.off": t({
+			en: "Off",
+			es: "Desactivado",
+		}),
+		"transaction.remind.sameDay": t({
+			en: "On the day",
+			es: "El mismo día",
+		}),
+		"transaction.remind.dayBefore": t({
+			en: "1 day before",
+			es: "1 día antes",
+		}),
+		"transaction.remind.daysBefore": t({
+			en: "{count} days before",
+			es: "{count} días antes",
+		}),
+		"transaction.remind.weekBefore": t({
+			en: "1 week before",
+			es: "1 semana antes",
 		}),
 		"transaction.amount.changeCurrency": t({
 			en: "Change currency",

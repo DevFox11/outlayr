@@ -46,7 +46,7 @@ import {
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
-import { useColorScheme, useWindowDimensions, View } from "react-native";
+import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
 import Animated, {
 	FadeInDown,
 	FadeOutDown,
@@ -61,7 +61,7 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Category, getCategoryById } from "@/data/categories";
-import { useBoolSetting } from "@/data/settings";
+import { setBoolSetting, useBoolSetting } from "@/data/settings";
 import {
 	backfillRecurring,
 	type Transaction,
@@ -75,7 +75,20 @@ import {
 	RECURRING_TYPE,
 	SELECTABLE_RECURRING_TYPES,
 } from "@/domain/recurrence";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { enableReminderStep } from "@/domain/reminder";
+import {
+	type LeadLabelKey,
+	leadLabelKey,
+	normalizeLead,
+	REMINDER_LEAD_OPTIONS,
+} from "@/domain/subscription-reminder";
+import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
+import {
+	openNotificationSettings,
+	reminderPermission,
+	requestReminderPermission,
+} from "@/lib/reminders";
+import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
@@ -161,6 +174,36 @@ const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
 	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
 };
+
+/**
+ * A SwiftUI `tag()` set has to be one type, and Off is the absence of a lead
+ * rather than a count of days — so it rides along as a sentinel and is turned
+ * back into `null` the instant the selection arrives. A -1 that escaped that
+ * boundary would reach `normalizeLead`, which clamps it to 0 and so arms a
+ * reminder on the due day for the owner who just switched reminders off.
+ */
+const LEAD_OFF_TAG = -1;
+
+/**
+ * Only names what this screen calls each phrasing. Which phrasing a lead reads
+ * as stays with {@link leadLabelKey}, including the counted fallback a lead the
+ * picker never offered needs — one restored from another device. Several domain
+ * keys therefore share a string: "2 days before" and "5 days before" are the
+ * same counted form.
+ */
+const LEAD_LABEL_KEY: Record<LeadLabelKey, TranslationKey> = {
+	"settings.notifications.leadOff": "transaction.remind.off",
+	"settings.notifications.leadSameDay": "transaction.remind.sameDay",
+	"settings.notifications.leadOneDay": "transaction.remind.dayBefore",
+	"settings.notifications.leadTwoDays": "transaction.remind.daysBefore",
+	"settings.notifications.leadThreeDays": "transaction.remind.daysBefore",
+	"settings.notifications.leadOneWeek": "transaction.remind.weekBefore",
+	"settings.notifications.leadDaysBefore": "transaction.remind.daysBefore",
+};
+
+function leadLabel(t: TranslateFn, lead: number | null): string {
+	return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
+}
 
 function ctaKey(mode: "create" | "edit", isSubscription: boolean) {
 	if (mode === "edit") {
@@ -263,6 +306,9 @@ export function TransactionForm({
 			? new Date(initial.recurringEndDate)
 			: oneYearFrom(new Date()),
 	);
+	const [leadDays, setLeadDays] = useState<number | null>(
+		normalizeLead(initial?.reminderLeadDays ?? null),
+	);
 	const [categoryError, setCategoryError] = useState(false);
 	const [categoryShake, setCategoryShake] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -357,6 +403,55 @@ export function TransactionForm({
 		setCoefficient(1);
 	};
 
+	// The same ladder the notifications setting runs, for the same reason: a lead
+	// iOS will never deliver is a promise this row would go on repeating, so it is
+	// put back to Off rather than left standing. Neither branch schedules anything
+	// — the sweep that follows a save owns the pending requests.
+	// Picking a lead here IS the intent behind the master switch, and this row is
+	// the only place it is ever expressed — a ledger whose owner has never opened
+	// the notifications screen would otherwise arm nothing.
+	const armSubscriptionReminders = async () => {
+		await setBoolSetting(db, "subscriptionReminders", true);
+	};
+
+	const confirmRemindersAllowed = async () => {
+		const existing = await reminderPermission();
+		if (enableReminderStep(existing) === "open-settings") {
+			Alert.alert(
+				t("settings.notifications.deniedTitle"),
+				t("settings.notifications.deniedBody"),
+				[
+					{ style: "cancel", text: t("settings.notifications.notNow") },
+					{
+						onPress: openNotificationSettings,
+						text: t("settings.notifications.openSettings"),
+					},
+				],
+			);
+			setLeadDays(null);
+			return;
+		}
+		if (existing === "granted") {
+			await armSubscriptionReminders();
+			return;
+		}
+		if ((await requestReminderPermission()) === "granted") {
+			await armSubscriptionReminders();
+			return;
+		}
+		setLeadDays(null);
+	};
+
+	const handleLeadChange = (next: number) => {
+		const lead = next === LEAD_OFF_TAG ? null : normalizeLead(next);
+		setLeadDays(lead);
+		if (lead !== null) {
+			confirmRemindersAllowed().catch((error) => {
+				console.error("Reminder permission check failed", error);
+			});
+		}
+	};
+
 	const handleSelectCategory = (picked: Category) => {
 		setCategory(picked);
 		setCategoryError(false);
@@ -397,6 +492,7 @@ export function TransactionForm({
 			recurringType: isSubscription ? recurringType : RECURRING_TYPE.none,
 			recurringCoefficient: isSubscription ? Math.max(1, coefficient) : 1,
 			recurringEndDate: isSubscription && hasEndDate ? endDate : null,
+			reminderLeadDays: isSubscription ? leadDays : null,
 		};
 		try {
 			let id: string;
@@ -409,6 +505,13 @@ export function TransactionForm({
 			if (isSubscription) {
 				await backfillRecurring(db, id);
 			}
+			// After the backfill, which is what moves the chain's next landing: the
+			// sweep dates its requests off that. Not awaited, and its failure is not
+			// the save's: the row is already written, so a notification the queue
+			// refused must not send this down the catch and re-enable the CTA.
+			syncSubscriptionReminders(db).catch((error) => {
+				console.error("Subscription reminder sync failed", error);
+			});
 			if (mode === "edit") {
 				onDone();
 			} else {
@@ -819,6 +922,51 @@ export function TransactionForm({
 											</HStack>
 										</>
 									) : null}
+
+									<Divider modifiers={hairline} />
+
+									{/* Label outside the Menu, as on the Schedule row above. */}
+									<HStack modifiers={ROW}>
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.remind")}
+										</SwiftText>
+										<Spacer />
+										<Menu
+											label={
+												<HStack spacing={4}>
+													<SwiftText
+														modifiers={[
+															BODY,
+															foregroundStyle(colors.foreground),
+														]}
+													>
+														{leadLabel(t, leadDays)}
+													</SwiftText>
+													<Image
+														color={colors.muted}
+														size={12}
+														systemName="chevron.up.chevron.down"
+													/>
+												</HStack>
+											}
+											modifiers={[menuTint]}
+										>
+											<Picker
+												label={t("transaction.field.remind")}
+												onSelectionChange={handleLeadChange}
+												selection={leadDays ?? LEAD_OFF_TAG}
+											>
+												<SwiftText modifiers={[tag(LEAD_OFF_TAG)]}>
+													{t("transaction.remind.off")}
+												</SwiftText>
+												{REMINDER_LEAD_OPTIONS.map((lead) => (
+													<SwiftText key={lead} modifiers={[tag(lead)]}>
+														{leadLabel(t, lead)}
+													</SwiftText>
+												))}
+											</Picker>
+										</Menu>
+									</HStack>
 								</>
 							) : (
 								<>
