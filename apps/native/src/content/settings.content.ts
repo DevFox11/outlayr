@@ -376,8 +376,8 @@ const settings = {
 			es: "Parte de tus datos podría seguir en este dispositivo. Intenta borrar de nuevo.",
 		}),
 		"settings.export.footer": t({
-			en: "Deleted transactions are left out. Everything else on this device is written, newest first.",
-			es: "Las transacciones eliminadas se omiten. Todo lo demás en este dispositivo se escribe, de lo más reciente a lo más antiguo.",
+			en: "Deleted transactions are left out. Every other transaction is written, newest first — six columns of it.",
+			es: "Las transacciones eliminadas se omiten. Todas las demás se escriben, de la más reciente a la más antigua, en seis columnas.",
 		}),
 		"settings.export.ready": t({
 			en: "Ready to export",
@@ -414,6 +414,30 @@ const settings = {
 		"settings.export.columnsNote": t({
 			en: "Dates are ISO 8601 instants and amounts are plain decimals with no grouping, so the file reads back into Outlayr — or into a spreadsheet — as the same figures.",
 			es: "Las fechas son instantes ISO 8601 y los montos son decimales simples sin separadores de miles, así que el archivo se vuelve a leer en Outlayr — o en una hoja de cálculo — con las mismas cifras.",
+		}),
+		"settings.export.omitted": t({
+			en: "Not in the file",
+			es: "No está en el archivo",
+		}),
+		"settings.export.omittedDetails": t({
+			en: "Notes — the longer text under a transaction",
+			es: "Notas — el texto más largo debajo de una transacción",
+		}),
+		"settings.export.omittedPhotos": t({
+			en: "Photos",
+			es: "Fotos",
+		}),
+		"settings.export.omittedLook": t({
+			en: "Emoji, icon and color",
+			es: "Emoji, icono y color",
+		}),
+		"settings.export.omittedRecurrence": t({
+			en: "Subscription schedules and their reminders",
+			es: "La programación de las suscripciones y sus recordatorios",
+		}),
+		"settings.export.omittedNote": t({
+			en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand — the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
+			es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría debe vincularse a mano — el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
 		}),
 		"settings.featureLab.addingSection": t({
 			en: "Adding a transaction",
@@ -707,6 +731,10 @@ const settings = {
 			en: "Nothing was written. The ledger is unchanged.",
 			es: "No se escribió nada. Tu registro queda igual.",
 		}),
+		"settings.import.writeFailedDetail": t({
+			en: "The database reported: {detail}",
+			es: "La base de datos informó: {detail}",
+		}),
 		"settings.import.step1": t({
 			en: "Step 1 of 4 · {file}",
 			es: "Paso 1 de 4 · {file}",
@@ -778,6 +806,10 @@ const settings = {
 		"settings.import.willAddMany": t({
 			en: "transactions will be added",
 			es: "transacciones se agregarán",
+		}),
+		"settings.import.planRange": t({
+			en: "Dated {from} to {to}.",
+			es: "Con fechas del {from} al {to}.",
 		}),
 		"settings.import.allRowsRead": t({
 			en: "Every row in the file could be read.",

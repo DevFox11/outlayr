@@ -1,6 +1,7 @@
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import type { TranslationKey } from "@/i18n";
 
 /**
  * `text/plain` is carried alongside the CSV types because plenty of banks hand
@@ -9,7 +10,20 @@ import * as Sharing from "expo-sharing";
  */
 const CSV_TYPES = ["text/csv", "text/comma-separated-values", "text/plain"];
 
-export class TransferError extends Error {}
+/**
+ * Carries a catalog key, not a sentence: every catch site puts this straight
+ * into an `Alert` body, so a literal message would reach the user in English
+ * whatever their language. `message` keeps the key so a crash log still names
+ * the failure.
+ */
+export class TransferError extends Error {
+	readonly key: TranslationKey;
+
+	constructor(key: TranslationKey) {
+		super(key);
+		this.key = key;
+	}
+}
 
 /**
  * Hands a file to the system share sheet. The sheet is used rather than a photo
@@ -23,7 +37,7 @@ export async function shareText(
 	dialogTitle: string,
 ): Promise<void> {
 	if (!(await Sharing.isAvailableAsync())) {
-		throw new TransferError("Sharing isn't available on this device.");
+		throw new TransferError("alerts.transfer.sharingUnavailable");
 	}
 	const file = new File(Paths.cache, fileName);
 	file.create({ overwrite: true, intermediates: true });
@@ -38,7 +52,7 @@ export async function shareBytes(
 	dialogTitle: string,
 ): Promise<void> {
 	if (!(await Sharing.isAvailableAsync())) {
-		throw new TransferError("Sharing isn't available on this device.");
+		throw new TransferError("alerts.transfer.sharingUnavailable");
 	}
 	const file = new File(Paths.cache, fileName);
 	file.create({ overwrite: true, intermediates: true });
@@ -67,7 +81,7 @@ export async function pickCsvFile(): Promise<PickedFile | null> {
 	try {
 		text = await new File(asset.uri).text();
 	} catch {
-		throw new TransferError("That file couldn't be read as text.");
+		throw new TransferError("alerts.transfer.unreadableFile");
 	}
 	return { name: asset.name, text };
 }

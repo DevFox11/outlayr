@@ -9,9 +9,22 @@ import { useTransactionCount } from "@/data/transactions";
 import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { CSV_HEADER } from "@/domain/transaction-csv";
-import { useTranslation } from "@/i18n";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import { shareText, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
+
+/**
+ * What a transaction row holds that the six columns cannot carry (`details`,
+ * `imageUri`, `emoji`/`icon`/`customColor`, the `recurring*` schedule). Named on
+ * the screen because a CSV exported "to be safe" is otherwise taken for a
+ * backup, and a restore from it silently comes back thinner.
+ */
+const OMITTED = [
+	"settings.export.omittedDetails",
+	"settings.export.omittedPhotos",
+	"settings.export.omittedLook",
+	"settings.export.omittedRecurrence",
+] as const satisfies readonly TranslationKey[];
 
 export default function ExportDataScreen() {
 	const db = useDatabase();
@@ -39,7 +52,7 @@ function ExportData({ db }: { db: Database }) {
 				Alert.alert(
 					t("settings.export.failedTitle"),
 					error instanceof TransferError
-						? error.message
+						? t(error.key)
 						: t("settings.export.failedBody"),
 				);
 			})
@@ -88,6 +101,20 @@ function ExportData({ db }: { db: Database }) {
 						key={column}
 					>
 						<Text className="flex-1 text-body text-foreground">{column}</Text>
+					</View>
+				))}
+			</SettingsSection>
+
+			<SettingsSection
+				footer={t("settings.export.omittedNote")}
+				title={t("settings.export.omitted")}
+			>
+				{OMITTED.map((key) => (
+					<View
+						className="flex-row items-center border-border border-b py-3"
+						key={key}
+					>
+						<Text className="flex-1 text-body text-muted">{t(key)}</Text>
 					</View>
 				))}
 			</SettingsSection>
