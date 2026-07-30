@@ -197,6 +197,28 @@ async function upsert(
 			}
 			return;
 		}
+		case "tags": {
+			const doc = { ...envelope, ...(row.fields as Doc<"tags">) };
+			if (existing) {
+				await ctx.db.patch("tags", existing._id as Id<"tags">, doc);
+			} else {
+				await ctx.db.insert("tags", doc);
+			}
+			return;
+		}
+		case "transactionTags": {
+			const doc = { ...envelope, ...(row.fields as Doc<"transactionTags">) };
+			if (existing) {
+				await ctx.db.patch(
+					"transactionTags",
+					existing._id as Id<"transactionTags">,
+					doc,
+				);
+			} else {
+				await ctx.db.insert("transactionTags", doc);
+			}
+			return;
+		}
 		case "templateTransactions": {
 			const doc = {
 				...envelope,

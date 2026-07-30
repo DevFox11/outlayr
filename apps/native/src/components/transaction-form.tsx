@@ -62,6 +62,7 @@ import {
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Category, getCategoryById } from "@/data/categories";
 import { setBoolSetting, useBoolSetting } from "@/data/settings";
+import { tagsRepo, useTagIdsFor, useTags } from "@/data/tags";
 import {
 	backfillRecurring,
 	type Transaction,
@@ -109,6 +110,7 @@ import { CURTAIN_LAYER_SIZE, curtainGradient } from "./identity-curtain";
 import { IdentityFlyUpLayer } from "./identity-fly-up";
 import { IdentityHero } from "./identity-hero";
 import { LinearGradient } from "./styled";
+import { TagPickerSheet } from "./tag-picker-sheet";
 import { Text } from "./text";
 
 /**
@@ -361,6 +363,19 @@ export function TransactionForm({
 
 	const amountSheetRef = useRef<BottomSheetModal>(null);
 	const categorySheetRef = useRef<CategoryPickerSheetRef>(null);
+	const tagSheetRef = useRef<BottomSheetModal>(null);
+	const allTags = useTags(db);
+	const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
+	// Seeded from the row and then owned by the form, so toggling a tag does not
+	// write until the entry is saved — the same contract every other field keeps.
+	const [tagIds, setTagIds] = useState<string[]>([]);
+	const [tagsTouched, setTagsTouched] = useState(false);
+	const effectiveTagIds = tagsTouched ? tagIds : savedTagIds;
+	const selectedTagNames =
+		allTags
+			.filter((tag) => effectiveTagIds.includes(tag.id))
+			.map((tag) => tag.name)
+			.join(", ") || null;
 	const scheduleSheetRef = useRef<CustomScheduleSheetRef>(null);
 	const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -539,6 +554,19 @@ export function TransactionForm({
 		// CTA: a second tap runs `create` again, which mints a fresh id rather than
 		// rewriting this row, and the ledger ends up with two subscriptions — each
 		// walked forward into its own chain of charges by the next sweep.
+		if (tagsTouched) {
+			// After the row exists, because the link points at it. A failure here
+			// costs the tags, not the entry, so it is reported rather than thrown.
+			try {
+				await tagsRepo.setTagsFor(db, id, tagIds);
+			} catch (error) {
+				console.error("Failed to save tags", error);
+				Alert.alert(
+					t("transaction.tags.failedTitle"),
+					t("transaction.tags.failedBody"),
+				);
+			}
+		}
 		let scheduleFailed = false;
 		if (isSubscription) {
 			try {
@@ -866,6 +894,35 @@ export function TransactionForm({
 							</HStack>
 						</Button>
 
+						<Button
+							modifiers={[...card]}
+							onPress={() => tagSheetRef.current?.present()}
+						>
+							<HStack modifiers={TAP_ROW} spacing={12}>
+								<SwiftText modifiers={[BODY, rowLabel]}>
+									{t("transaction.field.tags")}
+								</SwiftText>
+								<Spacer />
+								<HStack spacing={5}>
+									<SwiftText
+										modifiers={[
+											BODY,
+											foregroundStyle(
+												selectedTagNames ? colors.foreground : colors.muted,
+											),
+										]}
+									>
+										{selectedTagNames ?? t("transaction.tags.none")}
+									</SwiftText>
+									<Image
+										color={colors.muted}
+										size={12}
+										systemName="chevron.up.chevron.down"
+									/>
+								</HStack>
+							</HStack>
+						</Button>
+
 						<VStack
 							modifiers={[...card, animation(MORPH, isSubscription)]}
 							spacing={0}
@@ -1169,6 +1226,28 @@ export function TransactionForm({
 				toneClass={income ? "text-income" : "text-foreground"}
 				value={amount}
 			/>
+			<TagPickerSheet
+				onCreate={async (name) => {
+					const id = await tagsRepo.ensureTag(db, name);
+					if (id) {
+						setTagsTouched(true);
+						setTagIds([...effectiveTagIds, id]);
+					}
+					return id;
+				}}
+				onToggle={(tagId) => {
+					setTagsTouched(true);
+					setTagIds(
+						effectiveTagIds.includes(tagId)
+							? effectiveTagIds.filter((id) => id !== tagId)
+							: [...effectiveTagIds, tagId],
+					);
+				}}
+				ref={tagSheetRef}
+				selected={effectiveTagIds}
+				tags={allTags}
+			/>
+
 			<CategoryPickerSheet
 				db={db}
 				income={income}

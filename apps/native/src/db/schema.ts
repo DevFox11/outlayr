@@ -202,6 +202,57 @@ export const templateTransactions = sqliteTable(
 	(table) => [index("templateTransactions_deletedAt_idx").on(table.deletedAt)],
 );
 
+/**
+ * A label that crosses categories. The hierarchy answers "what kind of expense"
+ * once per row; a tag answers "which of my concerns does this touch", and a
+ * dinner can be both `work` and `travel` while still being one Food entry.
+ */
+export const tags = sqliteTable(
+	"tags",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		color: text("color"),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+	},
+	(table) => [index("tags_deletedAt_idx").on(table.deletedAt)],
+);
+
+/**
+ * The join. It carries its own `id` rather than keying on the pair because that
+ * is what the replication envelope addresses rows by — a composite key has no
+ * `localId` to travel under, and a tombstone needs something to name.
+ *
+ * `onDelete: "cascade"` is deliberately NOT set on either side: rows are
+ * tombstoned rather than dropped here, so a cascade would fire only on a hard
+ * delete that never happens, while hiding that the link needs tombstoning too.
+ */
+export const transactionTags = sqliteTable(
+	"transactionTags",
+	{
+		id: text("id").primaryKey(),
+		transactionId: text("transactionId")
+			.notNull()
+			.references(() => transactions.id),
+		tagId: text("tagId")
+			.notNull()
+			.references(() => tags.id),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+	},
+	(table) => [
+		index("transactionTags_transactionId_idx").on(table.transactionId),
+		index("transactionTags_tagId_idx").on(table.tagId),
+		index("transactionTags_deletedAt_idx").on(table.deletedAt),
+		uniqueIndex("transactionTags_pair_idx").on(
+			table.transactionId,
+			table.tagId,
+		),
+	],
+);
+
 export const appMeta = sqliteTable("appMeta", {
 	key: text("key").primaryKey(),
 	value: text("value"),

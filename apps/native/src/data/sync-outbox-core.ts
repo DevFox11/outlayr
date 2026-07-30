@@ -6,8 +6,10 @@ import {
 	categories,
 	mainBudget,
 	outbox,
+	tags,
 	templateTransactions,
 	transactions,
+	transactionTags,
 } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
@@ -20,6 +22,8 @@ export const SYNCED_TABLES = [
 	"budgets",
 	"mainBudget",
 	"templateTransactions",
+	"tags",
+	"transactionTags",
 	"appMeta",
 ] as const;
 
@@ -169,6 +173,11 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 		await db
 			.select({ localId: templateTransactions.id })
 			.from(templateTransactions),
+	);
+	collect("tags", await db.select({ localId: tags.id }).from(tags));
+	collect(
+		"transactionTags",
+		await db.select({ localId: transactionTags.id }).from(transactionTags),
 	);
 	collect(
 		"appMeta",

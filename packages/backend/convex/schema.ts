@@ -8,8 +8,10 @@ import {
 	categoryFields,
 	mainBudgetFields,
 	replicated,
+	tagFields,
 	templateTransactionFields,
 	transactionColumns,
+	transactionTagFields,
 } from "./lib/syncTables";
 
 /**
@@ -115,6 +117,19 @@ export default defineSchema({
 		...replicated,
 		...templateTransactionFields,
 	})
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * A label that crosses categories, and the join that attaches it. The join
+	 * carries its own `localId` rather than keying on the pair, because that is
+	 * what the envelope addresses rows by and what a tombstone has to name.
+	 */
+	tags: defineTable({ ...replicated, ...tagFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	transactionTags: defineTable({ ...replicated, ...transactionTagFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 

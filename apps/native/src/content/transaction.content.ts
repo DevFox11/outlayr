@@ -67,6 +67,38 @@ const transaction = {
 			en: "Amount",
 			es: "Monto",
 		}),
+		"transaction.field.tags": t({
+			en: "Tags",
+			es: "Etiquetas",
+		}),
+		"transaction.tags.title": t({
+			en: "Tags",
+			es: "Etiquetas",
+		}),
+		"transaction.tags.none": t({
+			en: "None",
+			es: "Ninguna",
+		}),
+		"transaction.tags.searchPlaceholder": t({
+			en: "Search or add",
+			es: "Buscar o agregar",
+		}),
+		"transaction.tags.create": t({
+			en: 'Add "{name}"',
+			es: 'Agregar "{name}"',
+		}),
+		"transaction.tags.empty": t({
+			en: "No tags yet. Type a name to add one.",
+			es: "Aún no hay etiquetas. Escribe un nombre para agregar una.",
+		}),
+		"transaction.tags.failedTitle": t({
+			en: "Couldn't save the tags",
+			es: "No se pudieron guardar las etiquetas",
+		}),
+		"transaction.tags.failedBody": t({
+			en: "The entry was saved. Open it again to set its tags.",
+			es: "El registro se guardó. Ábrelo de nuevo para asignar sus etiquetas.",
+		}),
 		"transaction.field.category": t({
 			en: "Category",
 			es: "Categoría",
