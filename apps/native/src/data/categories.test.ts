@@ -70,6 +70,7 @@ function makeDb(): Database {
 			startDate integer,
 			dateCreated integer,
 			green integer NOT NULL DEFAULT 0,
+			rollover integer NOT NULL DEFAULT 0,
 			currency text,
 			amountUsd real,
 			categoryId text UNIQUE,

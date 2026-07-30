@@ -68,6 +68,7 @@ function makeDb(): Database {
 			currency text,
 			amountUsd real,
 			green integer NOT NULL DEFAULT 0,
+			rollover integer NOT NULL DEFAULT 0,
 			categoryId text UNIQUE,
 			updatedAt integer NOT NULL,
 			deletedAt integer
@@ -82,6 +83,7 @@ function makeDb(): Database {
 			currency text,
 			amountUsd real,
 			green integer NOT NULL DEFAULT 0,
+			rollover integer NOT NULL DEFAULT 0,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);

@@ -303,6 +303,14 @@ const budgets = {
 			en: "PERIOD",
 			es: "PERÍODO",
 		}),
+		"budgets.form.rollover": t({
+			en: "Carry over",
+			es: "Arrastrar saldo",
+		}),
+		"budgets.form.rolloverNote": t({
+			en: "What you don't spend is added to the next period, and what you overspend is taken off it.",
+			es: "Lo que no gastes se suma al período siguiente, y lo que te pases se le resta.",
+		}),
 		"budgets.form.starts": t({
 			en: "STARTS",
 			es: "EMPIEZA",

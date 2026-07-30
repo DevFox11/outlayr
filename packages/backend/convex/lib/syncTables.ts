@@ -83,6 +83,7 @@ export const budgetFields = {
 	currency: v.union(v.string(), v.null()),
 	amountUsd: v.union(v.number(), v.null()),
 	green: v.boolean(),
+	rollover: v.boolean(),
 	categoryId: v.union(v.string(), v.null()),
 };
 
@@ -95,6 +96,7 @@ export const mainBudgetFields = {
 	currency: v.union(v.string(), v.null()),
 	amountUsd: v.union(v.number(), v.null()),
 	green: v.boolean(),
+	rollover: v.boolean(),
 };
 
 export const templateTransactionFields = {

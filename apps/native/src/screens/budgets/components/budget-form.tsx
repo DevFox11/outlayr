@@ -1,6 +1,10 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
+import { DatePicker, Host, HStack, Spacer, Toggle } from "@expo/ui/swift-ui";
+import {
+	datePickerStyle,
+	labelsHidden,
+	tint,
+} from "@expo/ui/swift-ui/modifiers";
 import { useMemo, useRef, useState } from "react";
 import { Alert, Pressable, TextInput, Vibration, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -30,6 +34,7 @@ import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useTranslation } from "@/i18n";
+import { useColors } from "@/theme/use-colors";
 
 type Kind = "overall" | "category";
 type Period = "day" | "week" | "month" | "year";
@@ -86,6 +91,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	const [startDate, setStartDate] = useState<Date | null>(
 		initial?.startDate ?? null,
 	);
+	const colors = useColors();
+	const [rollover, setRollover] = useState(initial?.rollover ?? false);
 	const [missingCategory, setMissingCategory] = useState(false);
 	const [saving, setSaving] = useState(false);
 
@@ -155,6 +162,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 						type,
 						name,
 						startDate,
+						rollover,
 					});
 				}
 			} else if (kind === "overall") {
@@ -163,6 +171,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					type,
 					name,
 					startDate,
+					rollover,
 				});
 			} else if (category) {
 				await budgetsRepo.createBudget(db, {
@@ -171,6 +180,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					type,
 					name,
 					startDate,
+					rollover,
 				});
 			}
 			onDone();
@@ -289,6 +299,22 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							<Spacer />
 						</HStack>
 					</Host>
+				</Field>
+
+				<Field label={t("budgets.form.rollover")}>
+					<Host style={{ height: 40 }}>
+						<HStack>
+							<Toggle
+								isOn={rollover}
+								modifiers={[tint(colors.income), labelsHidden()]}
+								onIsOnChange={setRollover}
+							/>
+							<Spacer />
+						</HStack>
+					</Host>
+					<Text className="pt-1 text-footnote text-muted leading-snug">
+						{t("budgets.form.rolloverNote")}
+					</Text>
 				</Field>
 
 				<Pressable

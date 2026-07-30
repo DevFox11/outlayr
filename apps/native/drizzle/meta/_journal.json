@@ -64,6 +64,13 @@
       "when": 1785405903830,
       "tag": "0008_synced_display_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1785435794471,
+      "tag": "0009_budget_rollover",
+      "breakpoints": true
     }
   ]
 }
