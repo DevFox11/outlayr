@@ -19,9 +19,21 @@ const SWEEP_COOLDOWN_MS = 60_000;
  *
  * `db` is nullable so this can be called before the database is open — the
  * provider that owns the handle does not sit behind the splash gate.
+ *
+ * `onSwept` runs after the walk commits. Anything derived from a chain's next
+ * landing has to wait for that: the sweep retires the carrier and creates the
+ * next occurrence, so a reader that fires on the same foreground event races it
+ * and sees a landing the sweep is about to invalidate.
  */
-export function useRecurrenceSweep(db: Database | null): void {
+export function useRecurrenceSweep(
+	db: Database | null,
+	onSwept?: (db: Database) => void,
+): void {
 	const lastSweepAt = useRef(0);
+	// Read through a ref so a caller passing an inline closure does not re-arm the
+	// AppState listener on every render.
+	const swept = useRef(onSwept);
+	swept.current = onSwept;
 
 	useEffect(() => {
 		if (db == null) {
@@ -37,6 +49,9 @@ export function useRecurrenceSweep(db: Database | null): void {
 			// Repair first so a chain reinstated on this launch is swept on it too.
 			repairOrphanedRecurrence(db)
 				.then(() => backfillAllRecurring(db))
+				.then(() => {
+					swept.current?.(db);
+				})
 				.catch((error) => {
 					lastSweepAt.current = 0;
 					console.error("Recurrence sweep failed", error);

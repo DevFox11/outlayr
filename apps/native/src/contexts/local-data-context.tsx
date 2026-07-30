@@ -8,6 +8,7 @@ import { usePhotoSync } from "@/data/use-photo-sync";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
 import { useSyncEngine } from "@/data/use-sync-engine";
 import { type Database, openDatabase } from "@/db/client";
+import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 import migrationsBundle from "../../drizzle/migrations";
 
@@ -100,7 +101,10 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 		// open → migrate → seed after a failure. Nothing else may re-trigger it.
 	}, [attempt]);
 
-	useRecurrenceSweep(db);
+	// Re-arming from the callback rather than relying on the reminder sync's own
+	// foreground listener: both fire on the same AppState event, and the sweep
+	// moves the very landing the notices are dated from.
+	useRecurrenceSweep(db, syncSubscriptionReminders);
 	// Ordered after the sweep so a subscription that advanced on this foreground
 	// is already in the table when the widgets are rebuilt from it.
 	useSystemSync(db);

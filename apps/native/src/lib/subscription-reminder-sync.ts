@@ -27,7 +27,24 @@ import {
  * identifiers inside the subscription namespace are touched; the daily reminder
  * is a different setting's promise.
  */
-export async function syncSubscriptionReminders(db: Database): Promise<void> {
+export function syncSubscriptionReminders(db: Database): Promise<void> {
+	const run = queue.then(() => reconcileSubscriptionReminders(db));
+	queue = run.catch(() => {});
+	return run;
+}
+
+/**
+ * Reconciles run one at a time. Several callers can ask on the same foreground —
+ * the mount, the AppState listener, and the recurrence sweep once it commits —
+ * and two overlapping passes interleave their cancels and schedules, so one can
+ * cancel a request the other has just armed.
+ *
+ * `catch` keeps the chain alive: without it a single failed pass would wedge
+ * every later one behind a permanently rejected promise.
+ */
+let queue: Promise<unknown> = Promise.resolve();
+
+async function reconcileSubscriptionReminders(db: Database): Promise<void> {
 	const [enabled, permission] = await Promise.all([
 		readBoolSetting(db, "subscriptionReminders"),
 		reminderPermission(),
