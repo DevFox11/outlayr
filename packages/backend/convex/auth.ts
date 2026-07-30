@@ -2,10 +2,11 @@ import { expo } from "@better-auth/expo";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { env } from "@outlayr/env/backend";
+import { APIError } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { importPKCS8, SignJWT } from "jose";
 
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
@@ -94,6 +95,43 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 		database: authComponent.adapter(ctx),
 		emailAndPassword: {
 			enabled: false,
+		},
+		user: {
+			/**
+			 * App Store guideline 5.1.1(v): an app that creates accounts must let the
+			 * user delete one from inside it. A support-email link does not satisfy
+			 * the rule.
+			 */
+			deleteUser: {
+				enabled: true,
+				/**
+				 * The ledger is purged BEFORE the account row, so a failure leaves the
+				 * account intact and retryable. The reverse order would leave rows
+				 * belonging to a user id nothing can authenticate as — unreachable by
+				 * their owner and invisible to every later pass.
+				 *
+				 * The device's own copy is untouched by design: it is the source of
+				 * truth, and the account only ever added sync. Signing in again with a
+				 * new account adopts it.
+				 */
+				beforeDelete: async (user) => {
+					if (!("runMutation" in ctx)) {
+						throw new APIError("INTERNAL_SERVER_ERROR", {
+							message: "Account deletion needs a context that can write",
+						});
+					}
+					// Looped rather than scheduled: the caller is told the account is
+					// gone only once it is, and a scheduled drain would report success
+					// before the data had actually left.
+					let done = false;
+					while (!done) {
+						const result = await ctx.runMutation(internal.account.purgeBatch, {
+							userId: user.id,
+						});
+						done = result.done;
+					}
+				},
+			},
 		},
 		socialProviders: {
 			apple: async () => {

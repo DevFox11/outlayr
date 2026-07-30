@@ -36,6 +36,7 @@ import {
 	TestTubeIcon,
 	TextFontIcon,
 	UserCircleIcon,
+	UserRemove01Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
 
 /**
@@ -52,6 +53,7 @@ const REGISTRY = {
 	DarkMode: DarkModeIcon,
 	DashboardSquare01: DashboardSquare01Icon,
 	Delete02: Delete02Icon,
+	UserRemove01: UserRemove01Icon,
 	FileExport: FileExportIcon,
 	FileImport: FileImportIcon,
 	Idea01: Idea01Icon,

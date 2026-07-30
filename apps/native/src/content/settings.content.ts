@@ -43,6 +43,34 @@ const settings = {
 			en: "Signing out\u2026",
 			es: "Cerrando sesi\u00f3n\u2026",
 		}),
+		"settings.account.deleteSection": t({
+			en: "Deleting your account",
+			es: "Eliminar tu cuenta",
+		}),
+		"settings.account.delete": t({
+			en: "Delete account",
+			es: "Eliminar cuenta",
+		}),
+		"settings.account.deleting": t({
+			en: "Deleting…",
+			es: "Eliminando…",
+		}),
+		"settings.account.deleteFooter": t({
+			en: "Deletes your account and everything synced to it. The ledger on this device stays, and signing in again adopts it.",
+			es: "Elimina tu cuenta y todo lo sincronizado en ella. El registro de este dispositivo se conserva, y al volver a iniciar sesión se adopta.",
+		}),
+		"settings.account.deleteConfirmTitle": t({
+			en: "Delete this account?",
+			es: "¿Eliminar esta cuenta?",
+		}),
+		"settings.account.deleteConfirmBody": t({
+			en: "Your account and everything synced to it are removed for good. The ledger on this device is not touched.",
+			es: "Tu cuenta y todo lo sincronizado en ella se eliminan de forma definitiva. El registro de este dispositivo no se toca.",
+		}),
+		"settings.account.deleteConfirm": t({
+			en: "Delete",
+			es: "Eliminar",
+		}),
 		"settings.account.signOutFooter": t({
 			en: "Signing out ends the session on this iPhone. Every transaction, budget and category stays exactly where it is.",
 			es: "Cerrar sesi\u00f3n termina la sesi\u00f3n en este iPhone. Cada transacci\u00f3n, presupuesto y categor\u00eda se queda exactamente donde est\u00e1.",
