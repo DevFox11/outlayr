@@ -523,6 +523,18 @@ const settings = {
 			en: "Open Settings",
 			es: "Abrir Configuración",
 		}),
+		"settings.notifications.subscriptionSection": t({
+			en: "Subscription charges",
+			es: "Cobros de suscripciones",
+		}),
+		"settings.notifications.subscriptionToggle": t({
+			en: "Warn Me Before a Charge",
+			es: "Avísame antes de un cobro",
+		}),
+		"settings.notifications.subscriptionFooter": t({
+			en: "Each subscription decides how far ahead it warns you, on its own screen. Off silences all of them without changing what any one of them says.",
+			es: "Cada suscripción decide con cuánta antelación te avisa, en su propia pantalla. Desactivarlo las silencia todas sin cambiar lo que cada una indica.",
+		}),
 		"settings.numberEntry.section": t({
 			en: "Amount keypad",
 			es: "Teclado de montos",

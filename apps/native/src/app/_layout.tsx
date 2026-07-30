@@ -55,6 +55,7 @@ import {
 	identityPickerDetent,
 	SUBCATEGORY_DETENT,
 } from "@/lib/sheet-detents";
+import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
 
@@ -206,6 +207,7 @@ function RootStack() {
 	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
+	useSubscriptionReminderSync(db);
 
 	const signedIn = gate === "signed-in";
 	const reconciled = adoption === "settled";
