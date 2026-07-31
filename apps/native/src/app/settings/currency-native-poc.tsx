@@ -7,6 +7,7 @@ import { Host } from "@expo/ui";
 import {
 	Button,
 	ContextMenu,
+	Divider,
 	HStack,
 	List,
 	RNHostView,
@@ -23,8 +24,10 @@ import {
 	kerning,
 	lineLimit,
 	listRowInsets,
+	listRowSeparator,
 	listStyle,
 	onTapGesture,
+	padding,
 	textCase,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
@@ -38,6 +41,9 @@ import { useColors } from "@/theme/use-colors";
 const ALL = PICKABLE_CURRENCY_CODES;
 
 const ROW_INSETS = { bottom: 0, leading: 20, top: 0, trailing: 20 };
+
+const SYMBOL_WIDTH = 42;
+const ROW_SPACING = 12;
 
 export default function CurrencyNativePocScreen() {
 	const [favourites, setFavourites] = useState<string[]>([
@@ -139,7 +145,9 @@ function Row({
 	const colors = useColors();
 	const meta = CURRENCY_META[code as keyof typeof CURRENCY_META];
 	return (
-		<SwipeActions modifiers={[listRowInsets(ROW_INSETS)]}>
+		<SwipeActions
+			modifiers={[listRowInsets(ROW_INSETS), listRowSeparator("hidden")]}
+		>
 			<ContextMenu>
 				<ContextMenu.Items>
 					<Button
@@ -154,36 +162,41 @@ function Row({
 					/>
 				</ContextMenu.Items>
 				<ContextMenu.Trigger>
-					<HStack modifiers={[onTapGesture(onPress)]} spacing={12}>
-						<SwiftText
-							modifiers={[
-								frame({ width: 42 }),
-								lineLimit(1),
-								foregroundStyle("secondary"),
-							]}
-						>
-							{meta.symbol}
-						</SwiftText>
-						<VStack alignment="leading" spacing={1}>
-							<SwiftText>{code}</SwiftText>
+					<VStack modifiers={[onTapGesture(onPress)]} spacing={0}>
+						<HStack spacing={ROW_SPACING}>
 							<SwiftText
-								modifiers={[foregroundStyle("secondary"), font({ size: 13 })]}
+								modifiers={[
+									frame({ width: SYMBOL_WIDTH }),
+									lineLimit(1),
+									foregroundStyle("secondary"),
+								]}
 							>
-								{meta.name}
+								{meta.symbol}
 							</SwiftText>
-						</VStack>
-						<Spacer />
-						{selected ? (
-							<RNHostView matchContents>
-								<HugeiconsIcon
-									color={colors.tint}
-									icon={Tick02Icon}
-									size={20}
-									strokeWidth={2.4}
-								/>
-							</RNHostView>
-						) : null}
-					</HStack>
+							<VStack alignment="leading" spacing={1}>
+								<SwiftText>{code}</SwiftText>
+								<SwiftText
+									modifiers={[foregroundStyle("secondary"), font({ size: 13 })]}
+								>
+									{meta.name}
+								</SwiftText>
+							</VStack>
+							<Spacer />
+							{selected ? (
+								<RNHostView matchContents>
+									<HugeiconsIcon
+										color={colors.tint}
+										icon={Tick02Icon}
+										size={20}
+										strokeWidth={2.4}
+									/>
+								</RNHostView>
+							) : null}
+						</HStack>
+						<Divider
+							modifiers={[padding({ leading: SYMBOL_WIDTH + ROW_SPACING })]}
+						/>
+					</VStack>
 				</ContextMenu.Trigger>
 			</ContextMenu>
 
