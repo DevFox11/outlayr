@@ -11,6 +11,7 @@
 		"eas-build-pre-install": "test -n \"$HUGEICONS_PRO_TOKEN\" || { echo 'HUGEICONS_PRO_TOKEN is unset — @hugeicons-pro/* will 401. Add it as an EAS secret.' >&2; exit 1; }; pnpm config set \"//npm.hugeicons.com/:_authToken\" \"$HUGEICONS_PRO_TOKEN\" --location project",
 		"gen:app-icon-previews": "node --import tsx scripts/generate-app-icon-previews.ts",
 		"gen:icons": "node --import tsx scripts/generate-icons.ts",
+		"gen:symbolsets": "node --import tsx scripts/generate-symbolsets.ts",
 		"i18n:build": "intlayer build",
 		"ios": "expo run:ios",
 		"lint": "biome check .",
