@@ -1,7 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useMemo } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
-import { View } from "react-native";
 import Animated, {
 	Easing,
 	FadeIn,
