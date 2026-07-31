@@ -14,13 +14,14 @@ import ReanimatedSwipeable, {
 } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
 	Easing,
-	LinearTransition,
 	ReduceMotion,
 	runOnJS,
 	type SharedValue,
 	useAnimatedReaction,
 	useAnimatedStyle,
 	useSharedValue,
+	withTiming,
+	ZoomIn,
 } from "react-native-reanimated";
 import type { CurrencyCode } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
@@ -31,13 +32,8 @@ import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
 import { cn } from "./tw";
 
-/**
- * Only `layout` is animated: the list is virtualised over 165 currencies, so an
- * `entering`/`exiting` animation would fire on every row that scrolls past.
- */
-export const ROW_TRAVEL = LinearTransition.duration(260)
-	.easing(Easing.bezier(0.645, 0.045, 0.355, 1).factory())
-	.reduceMotion(ReduceMotion.System);
+/** The app's motion curve, shared so nothing here invents a second one. */
+const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
 
 export function CurrencySectionHeader({
 	section,
@@ -46,28 +42,33 @@ export function CurrencySectionHeader({
 }) {
 	const t = useTranslation();
 	return (
-		<Animated.View layout={ROW_TRAVEL}>
-			<MonoLabel className="pt-4 pb-1">
-				{t(
-					section === "favourites"
-						? "settings.currency.favourites"
-						: "settings.currency.all",
-				)}
-			</MonoLabel>
-		</Animated.View>
+		<MonoLabel className="pt-4 pb-1">
+			{t(
+				section === "favourites"
+					? "settings.currency.favourites"
+					: "settings.currency.all",
+			)}
+		</MonoLabel>
 	);
 }
 
 export function CurrencyHint() {
 	const t = useTranslation();
 	return (
-		<Animated.View layout={ROW_TRAVEL}>
-			<Text className="pb-3 text-footnote text-muted">
-				{t("settings.currency.favouritesHint")}
-			</Text>
-		</Animated.View>
+		<Text className="pb-3 text-footnote text-muted">
+			{t("settings.currency.favouritesHint")}
+		</Text>
 	);
 }
+
+/**
+ * Only the tick animates on entry, and only because exactly one row carries it.
+ * An entering animation on the rows themselves would fire on every row that
+ * scrolls into the virtualised window.
+ */
+const TICK_ARRIVES = ZoomIn.duration(240)
+	.easing(EASE.factory())
+	.reduceMotion(ReduceMotion.System);
 
 const LANE_WIDTH = 96;
 
@@ -117,6 +118,19 @@ function SwipeAction({
 		width: Math.max(LANE_WIDTH, -translation.value - 12),
 	}));
 
+	// The lane already follows the finger; what it could not say is when the
+	// threshold has been passed. You used to find that out by letting go.
+	const glyph = useAnimatedStyle(() => ({
+		transform: [
+			{
+				scale: withTiming(translation.value <= -threshold ? 1.35 : 1, {
+					duration: 160,
+					easing: EASE,
+				}),
+			},
+		],
+	}));
+
 	return (
 		<Animated.View className="my-1 ml-3" style={style}>
 			<Pressable
@@ -129,12 +143,14 @@ function SwipeAction({
 				)}
 				onPress={onPress}
 			>
-				<HugeiconsIcon
-					color={iconColor}
-					icon={icon}
-					size={18}
-					strokeWidth={2}
-				/>
+				<Animated.View style={glyph}>
+					<HugeiconsIcon
+						color={iconColor}
+						icon={icon}
+						size={18}
+						strokeWidth={2}
+					/>
+				</Animated.View>
 				<Text
 					className={cn("font-sans-semibold text-footnote", labelClassName)}
 				>
@@ -322,12 +338,14 @@ export function CurrencyRow({
 						</View>
 						<View className="w-5 items-center">
 							{selected ? (
-								<HugeiconsIcon
-									color={colors.tint}
-									icon={Tick02Icon}
-									size={20}
-									strokeWidth={2.4}
-								/>
+								<Animated.View entering={TICK_ARRIVES}>
+									<HugeiconsIcon
+										color={colors.tint}
+										icon={Tick02Icon}
+										size={20}
+										strokeWidth={2.4}
+									/>
+								</Animated.View>
 							) : null}
 						</View>
 					</Pressable>
