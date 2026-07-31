@@ -12,7 +12,6 @@ import {
 	ContextMenu,
 	HStack,
 	Image,
-	Label,
 	List,
 	RNHostView,
 	Section,
@@ -178,6 +177,12 @@ function Row({
 								/>
 							</RNHostView>
 						) : null}
+						{/* The custom SF Symbol built by `scripts/generate-symbolsets.ts`,
+						    drawn here rather than through `RNHostView`: it is a real symbol,
+						    so it takes a colour and a point size and scales with Dynamic
+						    Type. This is the proof the symbolset resolves — the swipe lane
+						    below cannot use it, but every ordinary slot can. */}
+						<Image assetName="favourite" color={colors.gold} size={16} />
 					</HStack>
 				</ContextMenu.Trigger>
 			</ContextMenu>
@@ -189,29 +194,25 @@ function Row({
 			    lane the same #8a6a14 / #da0f01 the React Native version uses, and the
 			    label and symbol are ours.
 
-			    The glyph is a Hugeicon, and the only route that gets one here is a
-			    custom SF Symbol. The two that do not:
-			      - `RNHostView` inside a swipe-action button renders blank, the same
-			        way it does inside a Toggle or Picker label.
-			      - `Image.uiImage` draws a PNG but cannot be templated — `ImageView`
-			        calls `Image(uiImage:)` and never `.renderingMode(.template)` — and
-			        cannot be sized either, because `applyImageModifier` implements
-			        `resizable` alone and drops `frame`, so it grows until the label
-			        clips it.
-			    `assetName` names a `.symbolset` from `scripts/generate-symbolsets.ts`,
-			    which IS a template: it takes the tint and scales like any system
-			    symbol. */}
+			    The glyph is an SF Symbol because nothing else reaches a swipe lane. All
+			    three alternatives were built and run on device:
+			      - `RNHostView` renders blank inside a swipe-action button.
+			      - `Image.uiImage` draws a PNG but can be neither templated nor sized —
+			        `ImageView` never calls `.renderingMode(.template)`, and
+			        `applyImageModifier` implements `resizable` alone and drops `frame`.
+			      - A custom `.symbolset` via `assetName` DOES work — see the row above,
+			        where it resolves, tints and sizes — but not here. This button
+			        renders its `label` and `systemImage` and drops child views; the
+			        symbol simply does not appear.
+			    So the symbol pipeline is good everywhere except this one slot, which is
+			    an `@expo/ui` limit rather than an Apple one. */}
 			<SwipeActions.Actions edge="trailing">
 				<Button
 					label={favourite ? "Unfavourite" : "Favourite"}
 					modifiers={[tint(favourite ? "#da0f01" : "#8a6a14")]}
 					onPress={onToggle}
-				>
-					<Label
-						icon={<Image assetName={favourite ? "unfavourite" : "favourite"} />}
-						title={favourite ? "Unfavourite" : "Favourite"}
-					/>
-				</Button>
+					systemImage={favourite ? "star.slash.fill" : "star.fill"}
+				/>
 			</SwipeActions.Actions>
 		</SwipeActions>
 	);
