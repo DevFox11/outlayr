@@ -344,6 +344,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => {
 			],
 			"./plugins/with-ui-scene.ts",
 			"./plugins/with-min-pod-deployment-target.ts",
+			["./plugins/with-symbolsets.ts", { directory: "./assets/symbols" }],
 		],
 		experiments: {
 			typedRoutes: true,
