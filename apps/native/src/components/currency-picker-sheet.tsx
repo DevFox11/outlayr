@@ -56,7 +56,7 @@ export const CurrencyPickerSheet = forwardRef<
 			enableDynamicSizing={false}
 			enablePanDownToClose
 			// Solid, not the default translucent material: the rows are opaque (see
-			// `currency-picker-row`) and no solid colour can match a blur.
+			// `currency-picker-list`) and no solid colour can match a blur.
 			backgroundStyle={{ backgroundColor: colors.background }}
 		>
 			<View className="flex-1 bg-background">
