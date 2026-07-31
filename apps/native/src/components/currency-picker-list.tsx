@@ -14,6 +14,7 @@ import {
 } from "@expo/ui/swift-ui";
 import {
 	contentShape,
+	disabled,
 	font,
 	foregroundStyle,
 	frame,
@@ -313,6 +314,7 @@ function CurrencyRow({
 										{ code },
 									)
 						}
+						modifiers={[disabled(refuses)]}
 						onPress={onToggle}
 						systemImage={favourite ? "star.slash" : "star"}
 					/>
@@ -327,8 +329,12 @@ function CurrencyRow({
 
 			{/* `systemImage` only: this button renders its `label` and `systemImage`
 			    and drops child views, so neither `RNHostView` nor the app's own
-			    `.symbolset` reaches the lane. */}
-			<SwipeActions.Actions edge="trailing">
+			    `.symbolset` reaches the lane.
+
+			    A refusing lane says so in words and refuses the full swipe: it has
+			    nothing to commit, and a slashed star would read as "unfavourite" on
+			    a row that is not a favourite. */}
+			<SwipeActions.Actions allowsFullSwipe={!refuses} edge="trailing">
 				<Button
 					label={toggleLabel}
 					modifiers={[
@@ -339,10 +345,10 @@ function CurrencyRow({
 									? colors.dangerFill
 									: colors.goldFill,
 						),
-						labelStyle("iconOnly"),
+						labelStyle(refuses ? "titleOnly" : "iconOnly"),
 					]}
 					onPress={onToggle}
-					systemImage={favourite || refuses ? "star.slash.fill" : "star.fill"}
+					systemImage={favourite ? "star.slash.fill" : "star.fill"}
 				/>
 			</SwipeActions.Actions>
 		</SwipeActions>
