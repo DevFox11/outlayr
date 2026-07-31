@@ -4,7 +4,7 @@ import {
 } from "@expo/ui/community/bottom-sheet";
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useState } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { useLocalData } from "@/contexts/local-data-context";
 import {
 	toggleFavouriteCurrency,
@@ -28,6 +28,9 @@ export const CurrencyPickerSheet = forwardRef<
 	CurrencyPickerSheetProps
 >(function CurrencyPickerSheet({ selected, onSelect }, ref) {
 	const colors = useColors();
+	const { height } = useWindowDimensions();
+	// The shorter detent, less the title and search that sit above the list.
+	const listFloor = height * 0.55 - 140;
 	const [query, setQuery] = useState("");
 	const t = useTranslation();
 	const haptics = useHaptics();
@@ -94,12 +97,17 @@ export const CurrencyPickerSheet = forwardRef<
 				</View>
 
 				<CurrencyPickerList
+					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
 					favourites={favourites}
 					onSelect={onSelect}
 					onToggleFavourite={db === null ? null : onToggleFavourite}
 					query={query}
 					selected={selected}
-					style={{ flex: 1 }}
+					// The sheet lays its content into a `{flexGrow:1, height:0}` box, so
+					// while it animates in every auto-sized child measures to zero and it
+					// presents blank. A floor gives the list a size from the first frame;
+					// flex still takes over at the taller detent.
+					style={{ minHeight: listFloor }}
 				/>
 			</View>
 		</BottomSheetModal>
