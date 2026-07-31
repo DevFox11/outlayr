@@ -22,6 +22,7 @@ import {
 	foregroundStyle,
 	frame,
 	kerning,
+	labelStyle,
 	lineLimit,
 	listRowInsets,
 	listRowSeparator,
@@ -205,7 +206,10 @@ function Row({
 			<SwipeActions.Actions edge="trailing">
 				<Button
 					label={favourite ? "Unfavourite" : "Favourite"}
-					modifiers={[tint(favourite ? "#da0f01" : "#8a6a14")]}
+					modifiers={[
+						tint(favourite ? "#da0f01" : "#8a6a14"),
+						labelStyle("iconOnly"),
+					]}
 					onPress={onToggle}
 					systemImage={favourite ? "star.slash.fill" : "star.fill"}
 				/>
