@@ -35,7 +35,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { CURRENCY_META } from "@outlayr/money";
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import {
 	type CurrencyCode,
@@ -91,13 +91,19 @@ export function CurrencyPickerList({
 	// Answers only the refusal this row can already see. `favourites` comes from a
 	// live query, so two rows pressed a tick apart at seven favourites both render
 	// as not-full; the caller owns the outcome haptic because only the write knows.
-	const toggle = (code: CurrencyCode, favourite: boolean) => {
-		if (!favourite && full) {
-			haptics("warning");
-			return;
-		}
-		onToggleFavourite?.(code, favourite);
-	};
+	//
+	// One callback for the whole list rather than one closure per row: `CurrencyRow`
+	// is memoised, and a fresh closure per row would defeat that on every toggle.
+	const toggle = useCallback(
+		(code: CurrencyCode, favourite: boolean) => {
+			if (!favourite && full) {
+				haptics("warning");
+				return;
+			}
+			onToggleFavourite?.(code, favourite);
+		},
+		[full, haptics, onToggleFavourite],
+	);
 
 	return (
 		<Host style={style}>
@@ -135,12 +141,8 @@ export function CurrencyPickerList({
 								favourite={row.favourite}
 								full={full}
 								key={row.key}
-								onPress={() => onSelect(row.code)}
-								onToggle={
-									onToggleFavourite === null
-										? null
-										: () => toggle(row.code, row.favourite)
-								}
+								onSelect={onSelect}
+								onToggle={onToggleFavourite === null ? null : toggle}
 								selected={row.code === selected}
 							/>
 						))}
@@ -200,12 +202,18 @@ function HintRow({ background, label }: { background: string; label: string }) {
 	);
 }
 
-function CurrencyRow({
+/**
+ * Memoised, and every prop is a primitive or referentially stable. Without this a
+ * single favourite toggle re-rendered all 165 rows — 261ms, and the `Section`
+ * rebuilds its row array on every keystroke and every toggle, so the compiler
+ * cannot hold the elements still on its own.
+ */
+const CurrencyRow = memo(function CurrencyRow({
 	code,
 	colors,
 	favourite,
 	full,
-	onPress,
+	onSelect,
 	onToggle,
 	selected,
 }: {
@@ -213,13 +221,15 @@ function CurrencyRow({
 	colors: ThemeColors;
 	favourite: boolean;
 	full: boolean;
-	onPress: () => void;
-	onToggle: (() => void) | null;
+	onSelect: (code: CurrencyCode) => void;
+	onToggle: ((code: CurrencyCode, favourite: boolean) => void) | null;
 	selected: boolean;
 }) {
 	const t = useTranslation();
 	const meta = CURRENCY_META[code];
 	const refuses = !favourite && full;
+	const press = () => onSelect(code);
+	const toggle = onToggle === null ? null : () => onToggle(code, favourite);
 
 	const toggleLabel = refuses
 		? t("settings.currency.favouritesFullShort", {
@@ -241,7 +251,7 @@ function CurrencyRow({
 				modifiers={[
 					padding({ vertical: ROW_PADDING }),
 					contentShape(shapes.rectangle()),
-					onTapGesture(onPress),
+					onTapGesture(press),
 				]}
 				spacing={ROW_SPACING}
 			>
@@ -293,7 +303,7 @@ function CurrencyRow({
 		listRowSeparator("hidden"),
 	];
 
-	if (onToggle === null) {
+	if (toggle === null) {
 		return <VStack modifiers={rowModifiers}>{content}</VStack>;
 	}
 
@@ -315,12 +325,12 @@ function CurrencyRow({
 									)
 						}
 						modifiers={[disabled(refuses)]}
-						onPress={onToggle}
+						onPress={toggle}
 						systemImage={favourite ? "star.slash" : "star"}
 					/>
 					<Button
 						label={t("settings.currency.use", { code })}
-						onPress={onPress}
+						onPress={press}
 						systemImage="checkmark"
 					/>
 				</ContextMenu.Items>
@@ -347,10 +357,10 @@ function CurrencyRow({
 						),
 						labelStyle(refuses ? "titleOnly" : "iconOnly"),
 					]}
-					onPress={onToggle}
+					onPress={toggle}
 					systemImage={favourite ? "star.slash.fill" : "star.fill"}
 				/>
 			</SwipeActions.Actions>
 		</SwipeActions>
 	);
-}
+});
