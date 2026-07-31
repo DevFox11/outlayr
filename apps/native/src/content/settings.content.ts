@@ -471,7 +471,6 @@ const settings = {
 			en: "Use {code}",
 			es: "Usar {code}",
 		}),
-		// Swipe-lane labels sit under an icon in a 96pt lane — one word each.
 		"settings.currency.favouriteAction": t({
 			en: "Favourite",
 			es: "Favorita",

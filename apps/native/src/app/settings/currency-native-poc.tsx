@@ -1,9 +1,6 @@
 /**
- * THROWAWAY. A proof of concept, not a route meant to ship — it exists to answer
- * one question: what does the currency picker gain and lose if its list is a
- * native SwiftUI `List` instead of a `FlatList` of React Native rows?
- *
- * Reach it with `outlayr:///settings/currency-native-poc`.
+ * THROWAWAY proof of concept: the currency picker on a native SwiftUI `List`
+ * instead of a `FlatList`. Reach it at `outlayr:///settings/currency-native-poc`.
  */
 
 import { Host } from "@expo/ui";
@@ -62,9 +59,8 @@ export default function CurrencyNativePocScreen() {
 			<Host style={{ flex: 1 }}>
 				<List>
 					<Section title="Favourites">
-						{/* `ForEach` is only here for `onMove` — drag to reorder, which the
-						    React Native version cannot offer at all. The swipe comes from
-						    `SwipeActions` on the row, not from `onDelete`. */}
+						{/* `ForEach` is here for `onMove` only — the swipe comes from
+						    `SwipeActions`, not `onDelete`. */}
 						<List.ForEach
 							onMove={(from, to) => {
 								setFavourites((current) => {
@@ -123,9 +119,7 @@ function Row({
 	const meta = CURRENCY_META[code as keyof typeof CURRENCY_META];
 	return (
 		<SwipeActions>
-			{/* No per-row `Host` here, unlike in a FlatList of React Native rows: the
-			    whole `List` is already inside one, so the menu is just another SwiftUI
-			    view in the same tree. */}
+			{/* No per-row `Host`: the whole `List` is already inside one. */}
 			<ContextMenu>
 				<ContextMenu.Items>
 					<Button
@@ -155,9 +149,6 @@ function Row({
 							</SwiftText>
 						</VStack>
 						<Spacer />
-						{/* Both marks are React Native subtrees, so the whole app design
-						    system — Hugeicons, `useColors()` tokens — draws inside a SwiftUI
-						    row. Nothing here is an SF Symbol. */}
 						{favourite ? (
 							<RNHostView matchContents>
 								<HugeiconsIcon
@@ -177,35 +168,17 @@ function Row({
 								/>
 							</RNHostView>
 						) : null}
-						{/* The custom SF Symbol built by `scripts/generate-symbolsets.ts`,
-						    drawn here rather than through `RNHostView`: it is a real symbol,
-						    so it takes a colour and a point size and scales with Dynamic
-						    Type. This is the proof the symbolset resolves — the swipe lane
-						    below cannot use it, but every ordinary slot can. */}
+						{/* Custom SF Symbol from `scripts/generate-symbolsets.ts`. */}
 						<Image assetName="favourite" color={colors.gold} size={16} />
 					</HStack>
 				</ContextMenu.Trigger>
 			</ContextMenu>
 
-			{/* `allowsFullSwipe` defaults to true, so the full swipe is free and the
-			    label is ours — no `onDelete`, no threshold, no latch.
-
-			    How far styling reaches, measured rather than assumed: `tint` paints the
-			    lane the same #8a6a14 / #da0f01 the React Native version uses, and the
-			    label and symbol are ours.
-
-			    The glyph is an SF Symbol because nothing else reaches a swipe lane. All
-			    three alternatives were built and run on device:
-			      - `RNHostView` renders blank inside a swipe-action button.
-			      - `Image.uiImage` draws a PNG but can be neither templated nor sized —
-			        `ImageView` never calls `.renderingMode(.template)`, and
-			        `applyImageModifier` implements `resizable` alone and drops `frame`.
-			      - A custom `.symbolset` via `assetName` DOES work — see the row above,
-			        where it resolves, tints and sizes — but not here. This button
-			        renders its `label` and `systemImage` and drops child views; the
-			        symbol simply does not appear.
-			    So the symbol pipeline is good everywhere except this one slot, which is
-			    an `@expo/ui` limit rather than an Apple one. */}
+			{/* `allowsFullSwipe` defaults to true, so the full swipe is free.
+			    `systemImage` is the only way to get a glyph here: this button drops
+			    child views, `RNHostView` renders blank, and `Image.uiImage` can be
+			    neither templated nor sized. A custom symbolset works everywhere else —
+			    see the row above — but not in this slot. */}
 			<SwipeActions.Actions edge="trailing">
 				<Button
 					label={favourite ? "Unfavourite" : "Favourite"}

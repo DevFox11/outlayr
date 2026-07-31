@@ -32,9 +32,8 @@ import { Text } from "./text";
 import { cn } from "./tw";
 
 /**
- * Only `layout` is animated, never `entering`/`exiting`: the list is virtualised
- * over 165 currencies, so rows mount and unmount constantly while scrolling, and
- * an enter/exit animation would fire on all of them.
+ * Only `layout` is animated: the list is virtualised over 165 currencies, so an
+ * `entering`/`exiting` animation would fire on every row that scrolls past.
  */
 export const ROW_TRAVEL = LinearTransition.duration(260)
 	.easing(Easing.bezier(0.645, 0.045, 0.355, 1).factory())
@@ -70,15 +69,9 @@ export function CurrencyHint() {
 	);
 }
 
-/** The lane at rest, before a drag stretches it. */
 const LANE_WIDTH = 96;
 
-/**
- * How far right-to-left a drag has to travel before the action fires on its own,
- * as a fraction of the screen. SwiftUI's `allowsFullSwipe` has no equivalent on
- * `ReanimatedSwipeable`, so it is rebuilt from the `translation` shared value the
- * action renderer is handed.
- */
+/** `ReanimatedSwipeable` has no `allowsFullSwipe`, so it is rebuilt here. */
 const FULL_SWIPE_FRACTION = 0.45;
 
 function SwipeAction({
@@ -106,11 +99,10 @@ function SwipeAction({
 }) {
 	const { width } = useWindowDimensions();
 	const threshold = width * FULL_SWIPE_FRACTION;
-	// Only reports crossings, never the action itself. Acting mid-drag means the
-	// close has to wait for the gesture to settle the lane open first, and that
-	// round trip reads as the row freezing before it moves.
 	const armed = useSharedValue(false);
 
+	// Reports crossings only. Acting mid-drag freezes the row: the close is undone
+	// when the gesture settles the lane open, and it can only close again after.
 	useAnimatedReaction(
 		() => translation.value <= -threshold,
 		(next) => {
@@ -121,8 +113,6 @@ function SwipeAction({
 		},
 	);
 
-	// The lane follows the finger past its resting width, which is what makes a
-	// full swipe legible as one: the pill grows to own the row before it fires.
 	const style = useAnimatedStyle(() => ({
 		width: Math.max(LANE_WIDTH, -translation.value - 12),
 	}));
@@ -177,7 +167,6 @@ export function CurrencyRow({
 	const haptics = useHaptics();
 	const t = useTranslation();
 	const swipeRef = useRef<SwipeableMethods>(null);
-	/** Whether the drag is currently past the full-swipe threshold. */
 	const armedFullSwipe = useRef(false);
 	const meta = CURRENCY_META[code];
 
@@ -185,20 +174,15 @@ export function CurrencyRow({
 	const fullLabel = t("settings.currency.favouritesFull", {
 		limit: FAVOURITE_CURRENCY_LIMIT,
 	});
-	// A refusal stays neutral rather than taking a fill: a coloured pill reads as
-	// an invitation, and this one does nothing.
 	const laneFill = refuses
 		? "bg-surface-secondary"
 		: favourite
 			? "bg-danger-fill"
 			: "bg-gold-fill";
 
-	/**
-	 * Only the refusal this row can already see is answered here. `full` comes
-	 * from a live query, so two rows pressed a tick apart at seven favourites can
-	 * both render as not-full; the second learns otherwise only from the list the
-	 * write returns, which is why the caller owns that outcome's haptic.
-	 */
+	// Answers only the refusal this row can already see. `full` comes from a live
+	// query, so two rows pressed a tick apart at seven favourites both render as
+	// not-full; the caller owns the outcome haptic because only the write knows.
 	const commit = () => {
 		swipeRef.current?.close();
 		if (refuses) {
@@ -249,7 +233,6 @@ export function CurrencyRow({
 		/>
 	);
 
-	// `image` takes SF Symbols only — UIKit draws these glyphs itself.
 	const actions: MenuAction[] = [];
 	if (onToggleFavourite !== null) {
 		actions.push({
@@ -281,19 +264,15 @@ export function CurrencyRow({
 	};
 
 	return (
-		// No `layout` here, unlike the headers. A row leaving the cluster lands
-		// wherever it falls in a 165-row alphabet, which is outside the virtualised
-		// window, so it unmounts mid-animation and never vacates its old slot —
-		// leaving a blank gap in the cluster.
+		// No `layout`, unlike the headers: a row leaving the cluster lands outside
+		// the virtualised window, unmounts mid-animation and leaves a blank gap.
 		<View>
 			<ReanimatedSwipeable
 				friction={1}
-				// Overshoot is what makes the full swipe reachable at all: clamped at the
-				// lane's width, `translation` never travels far enough to cross the
-				// threshold `SwipeAction` watches.
+				// Without overshoot `translation` clamps at the lane's width and can
+				// never reach the full-swipe threshold.
 				overshootFriction={1}
-				// Fires on release, before the lane settles, so the row closes and
-				// reorders in one move instead of opening first and then closing.
+				// On release rather than mid-drag — see `SwipeAction`.
 				onSwipeableWillOpen={() => {
 					if (!armedFullSwipe.current) {
 						return;
@@ -308,9 +287,8 @@ export function CurrencyRow({
 				rightThreshold={40}
 			>
 				{/* Not `@expo/ui/swift-ui`'s ContextMenu: that needs a SwiftUI `Host` per
-				    row, and `Host` cannot be told to fill its parent's width — `frame`
-				    takes numbers, not `.infinity` — so every row sat as its own inset
-				    card. This wraps React Native children directly. */}
+				    row, which cannot be told to fill its parent's width, so every row
+				    sat as its own inset card. */}
 				<MenuView
 					actions={actions}
 					onPressAction={onPressAction}
@@ -322,10 +300,9 @@ export function CurrencyRow({
 					<Pressable
 						accessibilityRole="button"
 						accessibilityState={{ selected }}
-						// `bg-background` is required, not cosmetic: UIKit snapshots this view
-						// for the context-menu platter, and a transparent trigger composites
-						// its preview over the row beneath. It also stops the swipe lane
-						// showing through. Callers must stand the list on the same ground.
+						// `bg-background` is required: UIKit snapshots this view for the
+						// context-menu platter, and a transparent trigger composites its
+						// preview over the row beneath. Callers must match this ground.
 						className="flex-row items-center gap-3 border-border border-b bg-background py-3 active:opacity-60"
 						onPress={onPress}
 					>
@@ -342,17 +319,6 @@ export function CurrencyRow({
 							<Text className="text-footnote text-muted" numberOfLines={1}>
 								{meta.name}
 							</Text>
-						</View>
-						{/* Both columns keep their width whether or not they draw, so the
-						    marks stay in one line down the list. */}
-						<View className="w-4 items-center">
-							{favourite ? (
-								<HugeiconsIcon
-									color={colors.gold}
-									icon={StarSolidIcon}
-									size={15}
-								/>
-							) : null}
 						</View>
 						<View className="w-5 items-center">
 							{selected ? (

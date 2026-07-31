@@ -72,8 +72,7 @@ export const CurrencyPickerSheet = forwardRef<
 			snapPoints={["55%", "100%"]}
 			enableDynamicSizing={false}
 			enablePanDownToClose
-			// Reaches SwiftUI's `.presentationBackground(_:)`. Solid rather than the
-			// default translucent material: the rows must be opaque (see
+			// Solid, not the default translucent material: the rows are opaque (see
 			// `currency-picker-row`) and no solid colour can match a blur.
 			backgroundStyle={{ backgroundColor: colors.background }}
 		>

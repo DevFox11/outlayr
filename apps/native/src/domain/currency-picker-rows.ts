@@ -37,8 +37,8 @@ function currencyRow(
  * A search returns flat: clustering on top of it would push the match the user
  * typed below the fold.
  *
- * An empty cluster keeps its header and carries a hint row instead of
- * collapsing: favouriting is a long press, which nothing on a row advertises.
+ * An empty cluster keeps its header and a hint row: favouriting is a long
+ * press, which nothing on a row advertises.
  */
 export function currencyPickerRows(
 	favourites: readonly string[],
