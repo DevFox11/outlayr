@@ -89,7 +89,7 @@ function SwipeAction({
 	iconColor,
 	label,
 	labelClassName,
-	onFullSwipe,
+	onArm,
 	onPress,
 	translation,
 }: {
@@ -100,26 +100,23 @@ function SwipeAction({
 	iconColor: string;
 	label: string;
 	labelClassName: string;
-	onFullSwipe: () => void;
+	onArm: (armed: boolean) => void;
 	onPress: () => void;
 	translation: SharedValue<number>;
 }) {
 	const { width } = useWindowDimensions();
 	const threshold = width * FULL_SWIPE_FRACTION;
-	// Latched so the reaction fires once per drag rather than on every frame past
-	// the threshold, and rearms only when the finger comes back inside it.
-	const fired = useSharedValue(false);
+	// Only reports crossings, never the action itself. Acting mid-drag means the
+	// close has to wait for the gesture to settle the lane open first, and that
+	// round trip reads as the row freezing before it moves.
+	const armed = useSharedValue(false);
 
 	useAnimatedReaction(
-		() => translation.value,
-		(travel) => {
-			if (travel > -threshold) {
-				fired.value = false;
-				return;
-			}
-			if (!fired.value) {
-				fired.value = true;
-				runOnJS(onFullSwipe)();
+		() => translation.value <= -threshold,
+		(next) => {
+			if (next !== armed.value) {
+				armed.value = next;
+				runOnJS(onArm)(next);
 			}
 		},
 	);
@@ -180,10 +177,8 @@ export function CurrencyRow({
 	const haptics = useHaptics();
 	const t = useTranslation();
 	const swipeRef = useRef<SwipeableMethods>(null);
-	// A full swipe fires while the finger is still down, so the `close()` inside
-	// `commit` is undone when the gesture settles the lane open. The latch lets
-	// `onSwipeableOpen` close it once the gesture has actually finished.
-	const firedFullSwipe = useRef(false);
+	/** Whether the drag is currently past the full-swipe threshold. */
+	const armedFullSwipe = useRef(false);
 	const meta = CURRENCY_META[code];
 
 	const refuses = !favourite && full;
@@ -246,9 +241,8 @@ export function CurrencyRow({
 						)
 			}
 			labelClassName={refuses ? "text-muted" : "text-white"}
-			onFullSwipe={() => {
-				firedFullSwipe.current = true;
-				commit();
+			onArm={(armed) => {
+				armedFullSwipe.current = armed;
 			}}
 			onPress={commit}
 			translation={translation}
@@ -298,11 +292,14 @@ export function CurrencyRow({
 				// lane's width, `translation` never travels far enough to cross the
 				// threshold `SwipeAction` watches.
 				overshootFriction={1}
-				onSwipeableOpen={() => {
-					if (firedFullSwipe.current) {
-						firedFullSwipe.current = false;
-						swipeRef.current?.close();
+				// Fires on release, before the lane settles, so the row closes and
+				// reorders in one move instead of opening first and then closing.
+				onSwipeableWillOpen={() => {
+					if (!armedFullSwipe.current) {
+						return;
 					}
+					armedFullSwipe.current = false;
+					commit();
 				}}
 				ref={swipeRef}
 				renderRightActions={
