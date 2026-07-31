@@ -21,6 +21,7 @@ import {
 	foregroundStyle,
 	frame,
 	kerning,
+	lineLimit,
 	listRowInsets,
 	listStyle,
 	onTapGesture,
@@ -155,7 +156,11 @@ function Row({
 				<ContextMenu.Trigger>
 					<HStack modifiers={[onTapGesture(onPress)]} spacing={12}>
 						<SwiftText
-							modifiers={[frame({ width: 36 }), foregroundStyle("secondary")]}
+							modifiers={[
+								frame({ width: 42 }),
+								lineLimit(1),
+								foregroundStyle("secondary"),
+							]}
 						>
 							{meta.symbol}
 						</SwiftText>
