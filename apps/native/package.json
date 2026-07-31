@@ -29,6 +29,7 @@
 		"@hugeicons-pro/core-solid-rounded": "^4.2.3",
 		"@hugeicons-pro/core-stroke-rounded": "^4.2.3",
 		"@hugeicons/react-native": "^1.0.15",
+		"@legendapp/list": "^3.3.3",
 		"@outlayr/env": "workspace:*",
 		"@outlayr/money": "workspace:*",
 		"@react-native-async-storage/async-storage": "2.2.0",

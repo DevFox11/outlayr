@@ -1,6 +1,6 @@
+import { SectionList } from "@legendapp/list/section-list";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { SectionList } from "react-native";
 
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
@@ -282,6 +282,9 @@ function LogContent({ db }: { db: Database }) {
 				sections={filter === "upcoming" ? [] : sections}
 				keyExtractor={(item) => item.id}
 				stickySectionHeadersEnabled={false}
+				// `ReanimatedSwipeable` keeps its open/closed offset inside the row
+				// instance, so a recycled row would inherit the previous row's swipe.
+				recycleItems={false}
 				onEndReachedThreshold={0.5}
 				onEndReached={() => {
 					if (filter === "all" && !reachedEnd) {

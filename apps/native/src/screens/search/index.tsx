@@ -1,6 +1,7 @@
+import { SectionList } from "@legendapp/list/section-list";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { SectionList, View } from "react-native";
+import { View } from "react-native";
 
 import { MeasureCellAmount } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
@@ -87,6 +88,7 @@ function SearchContent({ db }: { db: Database }) {
 					sections={sections}
 					keyExtractor={(item) => item.id}
 					stickySectionHeadersEnabled={false}
+					recycleItems
 					keyboardDismissMode="on-drag"
 					contentContainerStyle={{
 						paddingHorizontal: 20,
