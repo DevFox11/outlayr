@@ -1,7 +1,11 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useMemo } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
-import { View } from "react-native";
+import Animated, {
+	Easing,
+	FadeIn,
+	ReduceMotion,
+} from "react-native-reanimated";
 import {
 	type CurrencyPickerRow,
 	currencyPickerRows,
@@ -12,6 +16,15 @@ import {
 	CurrencyRow,
 	CurrencySectionHeader,
 } from "./currency-picker-row";
+
+/**
+ * One fade over the whole list, keyed on the query — not an entering animation
+ * per row. A per-row fade would also fire on every row scrolling into the
+ * virtualised window, and this screen just had a per-keystroke stall removed.
+ */
+const RESULTS_SETTLE = FadeIn.duration(180)
+	.easing(Easing.bezier(0.645, 0.045, 0.355, 1).factory())
+	.reduceMotion(ReduceMotion.System);
 
 interface CurrencyPickerListProps {
 	favourites: readonly string[];
@@ -55,7 +68,12 @@ export function CurrencyPickerList({
 	const full = favourites.length >= FAVOURITE_CURRENCY_LIMIT;
 
 	return (
-		<View className="flex-1 bg-background" style={style}>
+		<Animated.View
+			className="flex-1 bg-background"
+			entering={RESULTS_SETTLE}
+			key={query}
+			style={style}
+		>
 			<LegendList
 				contentContainerStyle={contentContainerStyle}
 				contentInsetAdjustmentBehavior="automatic"
@@ -92,6 +110,6 @@ export function CurrencyPickerList({
 					);
 				}}
 			/>
-		</View>
+		</Animated.View>
 	);
 }
