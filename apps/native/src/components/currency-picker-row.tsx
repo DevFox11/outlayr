@@ -3,12 +3,12 @@ import {
 	MenuView,
 	type NativeActionEvent,
 } from "@expo/ui/community/menu";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react-native";
 import { StarIcon as StarSolidIcon } from "@hugeicons-pro/core-solid-rounded";
 import { StarIcon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { CURRENCY_META } from "@outlayr/money";
 import { useRef } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import ReanimatedSwipeable, {
 	type SwipeableMethods,
 } from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -16,6 +16,11 @@ import Animated, {
 	Easing,
 	LinearTransition,
 	ReduceMotion,
+	runOnJS,
+	type SharedValue,
+	useAnimatedReaction,
+	useAnimatedStyle,
+	useSharedValue,
 } from "react-native-reanimated";
 import type { CurrencyCode } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
@@ -65,6 +70,94 @@ export function CurrencyHint() {
 	);
 }
 
+/** The lane at rest, before a drag stretches it. */
+const LANE_WIDTH = 96;
+
+/**
+ * How far right-to-left a drag has to travel before the action fires on its own,
+ * as a fraction of the screen. SwiftUI's `allowsFullSwipe` has no equivalent on
+ * `ReanimatedSwipeable`, so it is rebuilt from the `translation` shared value the
+ * action renderer is handed.
+ */
+const FULL_SWIPE_FRACTION = 0.45;
+
+function SwipeAction({
+	accessibilityHint,
+	accessibilityLabel,
+	fillClassName,
+	icon,
+	iconColor,
+	label,
+	labelClassName,
+	onFullSwipe,
+	onPress,
+	translation,
+}: {
+	accessibilityHint?: string;
+	accessibilityLabel: string;
+	fillClassName: string;
+	icon: IconSvgElement;
+	iconColor: string;
+	label: string;
+	labelClassName: string;
+	onFullSwipe: () => void;
+	onPress: () => void;
+	translation: SharedValue<number>;
+}) {
+	const { width } = useWindowDimensions();
+	const threshold = width * FULL_SWIPE_FRACTION;
+	// Latched so the reaction fires once per drag rather than on every frame past
+	// the threshold, and rearms only when the finger comes back inside it.
+	const fired = useSharedValue(false);
+
+	useAnimatedReaction(
+		() => translation.value,
+		(travel) => {
+			if (travel > -threshold) {
+				fired.value = false;
+				return;
+			}
+			if (!fired.value) {
+				fired.value = true;
+				runOnJS(onFullSwipe)();
+			}
+		},
+	);
+
+	// The lane follows the finger past its resting width, which is what makes a
+	// full swipe legible as one: the pill grows to own the row before it fires.
+	const style = useAnimatedStyle(() => ({
+		width: Math.max(LANE_WIDTH, -translation.value - 12),
+	}));
+
+	return (
+		<Animated.View className="my-1 ml-3" style={style}>
+			<Pressable
+				accessibilityHint={accessibilityHint}
+				accessibilityLabel={accessibilityLabel}
+				accessibilityRole="button"
+				className={cn(
+					"flex-1 items-center justify-center gap-1 rounded-xl",
+					fillClassName,
+				)}
+				onPress={onPress}
+			>
+				<HugeiconsIcon
+					color={iconColor}
+					icon={icon}
+					size={18}
+					strokeWidth={2}
+				/>
+				<Text
+					className={cn("font-sans-semibold text-footnote", labelClassName)}
+				>
+					{label}
+				</Text>
+			</Pressable>
+		</Animated.View>
+	);
+}
+
 interface CurrencyRowProps {
 	code: CurrencyCode;
 	favourite: boolean;
@@ -87,6 +180,10 @@ export function CurrencyRow({
 	const haptics = useHaptics();
 	const t = useTranslation();
 	const swipeRef = useRef<SwipeableMethods>(null);
+	// A full swipe fires while the finger is still down, so the `close()` inside
+	// `commit` is undone when the gesture settles the lane open. The latch lets
+	// `onSwipeableOpen` close it once the gesture has actually finished.
+	const firedFullSwipe = useRef(false);
 	const meta = CURRENCY_META[code];
 
 	const refuses = !favourite && full;
@@ -116,8 +213,11 @@ export function CurrencyRow({
 		onToggleFavourite?.();
 	};
 
-	const renderRightActions = () => (
-		<Pressable
+	const renderRightActions = (
+		_progress: SharedValue<number>,
+		translation: SharedValue<number>,
+	) => (
+		<SwipeAction
 			accessibilityHint={
 				refuses ? t("settings.currency.favouritesFullBody") : undefined
 			}
@@ -131,26 +231,11 @@ export function CurrencyRow({
 							{ code },
 						)
 			}
-			accessibilityRole="button"
-			className={cn(
-				"my-1 ml-3 w-24 items-center justify-center gap-1 rounded-xl",
-				laneFill,
-			)}
-			onPress={commit}
-		>
-			<HugeiconsIcon
-				color={refuses ? colors.muted : "#ffffff"}
-				icon={favourite || refuses ? StarIcon : StarSolidIcon}
-				size={18}
-				strokeWidth={2}
-			/>
-			<Text
-				className={cn(
-					"font-sans-semibold text-footnote",
-					refuses ? "text-muted" : "text-white",
-				)}
-			>
-				{refuses
+			fillClassName={laneFill}
+			icon={favourite || refuses ? StarIcon : StarSolidIcon}
+			iconColor={refuses ? colors.muted : "#ffffff"}
+			label={
+				refuses
 					? t("settings.currency.favouritesFullShort", {
 							limit: FAVOURITE_CURRENCY_LIMIT,
 						})
@@ -158,9 +243,16 @@ export function CurrencyRow({
 							favourite
 								? "settings.currency.unfavouriteAction"
 								: "settings.currency.favouriteAction",
-						)}
-			</Text>
-		</Pressable>
+						)
+			}
+			labelClassName={refuses ? "text-muted" : "text-white"}
+			onFullSwipe={() => {
+				firedFullSwipe.current = true;
+				commit();
+			}}
+			onPress={commit}
+			translation={translation}
+		/>
 	);
 
 	// `image` takes SF Symbols only — UIKit draws these glyphs itself.
@@ -201,8 +293,17 @@ export function CurrencyRow({
 		// leaving a blank gap in the cluster.
 		<View>
 			<ReanimatedSwipeable
-				friction={2}
-				overshootRight={false}
+				friction={1}
+				// Overshoot is what makes the full swipe reachable at all: clamped at the
+				// lane's width, `translation` never travels far enough to cross the
+				// threshold `SwipeAction` watches.
+				overshootFriction={1}
+				onSwipeableOpen={() => {
+					if (firedFullSwipe.current) {
+						firedFullSwipe.current = false;
+						swipeRef.current?.close();
+					}
+				}}
 				ref={swipeRef}
 				renderRightActions={
 					onToggleFavourite === null ? undefined : renderRightActions
