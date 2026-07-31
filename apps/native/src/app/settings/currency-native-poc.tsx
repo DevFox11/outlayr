@@ -164,7 +164,10 @@ function Row({
 				</ContextMenu.Items>
 				<ContextMenu.Trigger>
 					<VStack modifiers={[onTapGesture(onPress)]} spacing={0}>
-						<HStack spacing={ROW_SPACING}>
+						<HStack
+							modifiers={[padding({ vertical: 9 })]}
+							spacing={ROW_SPACING}
+						>
 							<SwiftText
 								modifiers={[
 									frame({ width: SYMBOL_WIDTH }),
