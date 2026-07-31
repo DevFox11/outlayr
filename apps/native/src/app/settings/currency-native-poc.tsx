@@ -20,7 +20,11 @@ import {
 	font,
 	foregroundStyle,
 	frame,
+	kerning,
+	listRowInsets,
+	listStyle,
 	onTapGesture,
+	textCase,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { HugeiconsIcon } from "@hugeicons/react-native";
@@ -31,6 +35,8 @@ import { useState } from "react";
 import { useColors } from "@/theme/use-colors";
 
 const ALL = PICKABLE_CURRENCY_CODES;
+
+const ROW_INSETS = { bottom: 0, leading: 20, top: 0, trailing: 20 };
 
 export default function CurrencyNativePocScreen() {
 	const [favourites, setFavourites] = useState<string[]>([
@@ -55,10 +61,8 @@ export default function CurrencyNativePocScreen() {
 		<>
 			<Stack.Screen options={{ title: "Currency (native List)" }} />
 			<Host style={{ flex: 1 }}>
-				<List>
-					<Section title="Favourites">
-						{/* `ForEach` is here for `onMove` only — the swipe comes from
-						    `SwipeActions`, not `onDelete`. */}
+				<List modifiers={[listStyle("plain")]}>
+					<Section header={<SectionHeader section="favourites" />}>
 						<List.ForEach
 							onMove={(from, to) => {
 								setFavourites((current) => {
@@ -82,7 +86,7 @@ export default function CurrencyNativePocScreen() {
 						</List.ForEach>
 					</Section>
 
-					<Section title="All currencies">
+					<Section header={<SectionHeader section="all" />}>
 						{rest.map((code) => (
 							<Row
 								code={code}
@@ -97,6 +101,24 @@ export default function CurrencyNativePocScreen() {
 				</List>
 			</Host>
 		</>
+	);
+}
+
+function SectionHeader({ section }: { section: "favourites" | "all" }) {
+	return (
+		<HStack modifiers={[listRowInsets(ROW_INSETS)]}>
+			<SwiftText
+				modifiers={[
+					font({ family: "GeistMono_400Regular", size: 11 }),
+					kerning(1.2),
+					textCase("uppercase"),
+					foregroundStyle("secondary"),
+				]}
+			>
+				{section === "favourites" ? "Favourites" : "All currencies"}
+			</SwiftText>
+			<Spacer />
+		</HStack>
 	);
 }
 
@@ -116,8 +138,7 @@ function Row({
 	const colors = useColors();
 	const meta = CURRENCY_META[code as keyof typeof CURRENCY_META];
 	return (
-		<SwipeActions>
-			{/* No per-row `Host`: the whole `List` is already inside one. */}
+		<SwipeActions modifiers={[listRowInsets(ROW_INSETS)]}>
 			<ContextMenu>
 				<ContextMenu.Items>
 					<Button
@@ -161,11 +182,8 @@ function Row({
 				</ContextMenu.Trigger>
 			</ContextMenu>
 
-			{/* `allowsFullSwipe` defaults to true, so the full swipe is free.
-			    `systemImage` is the only way to get a glyph here: this button drops
-			    child views, `RNHostView` renders blank, and `Image.uiImage` can be
-			    neither templated nor sized. A custom symbolset works everywhere else —
-			    see the row above — but not in this slot. */}
+			{/* `systemImage` only: this button drops child views, `RNHostView`
+			    renders blank, and `Image.uiImage` cannot be templated or sized. */}
 			<SwipeActions.Actions edge="trailing">
 				<Button
 					label={favourite ? "Unfavourite" : "Favourite"}
