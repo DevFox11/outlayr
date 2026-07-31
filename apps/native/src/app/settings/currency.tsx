@@ -49,12 +49,12 @@ function CurrencyPicker({ db }: { db: Database }) {
 				placeholder={t("settings.currency.search")}
 			/>
 			<CurrencyPickerList
+				contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
 				favourites={favourites}
 				onSelect={onSelect}
 				onToggleFavourite={onToggleFavourite}
 				query={query}
 				selected={selected}
-				style={{ flex: 1 }}
 			/>
 		</View>
 	);
