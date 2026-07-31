@@ -5,6 +5,7 @@ import {
 import { SymbolView } from "expo-symbols";
 import { forwardRef, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalData } from "@/contexts/local-data-context";
 import {
 	toggleFavouriteCurrency,
@@ -22,6 +23,14 @@ interface CurrencyPickerSheetProps {
 	onSelect: (code: string) => void;
 }
 
+const SHORT_DETENT = 0.55;
+/** `@expo/ui` pads the sheet's content box out from the drag indicator. */
+const SHEET_TOP_PADDING = 16;
+/** The gap iOS leaves above a sheet's card. */
+const SHEET_CARD_GAP = 10;
+const TITLE_HEIGHT = 48;
+const SEARCH_HEIGHT = 52;
+
 /** Present via the forwarded ref: `ref.current?.present()`. */
 export const CurrencyPickerSheet = forwardRef<
 	BottomSheetModal,
@@ -29,8 +38,17 @@ export const CurrencyPickerSheet = forwardRef<
 >(function CurrencyPickerSheet({ selected, onSelect }, ref) {
 	const colors = useColors();
 	const { height } = useWindowDimensions();
-	// The shorter detent, less the title and search that sit above the list.
-	const listFloor = height * 0.55 - 140;
+	const insets = useSafeAreaInsets();
+	// The shorter detent, less the chrome above the list. A fraction detent is a
+	// fraction of the sheet's own height rather than the window's — 768 of 874pt
+	// on an iPhone 17 Pro, and less again where this sheet opens over another one
+	// — so the subtraction has to err under: too tall hangs the list past the
+	// short detent, too short only shows the sheet's own background for a frame.
+	const listFloor =
+		(height - insets.top - insets.bottom - SHEET_CARD_GAP) * SHORT_DETENT -
+		SHEET_TOP_PADDING -
+		TITLE_HEIGHT -
+		SEARCH_HEIGHT;
 	const [query, setQuery] = useState("");
 	const t = useTranslation();
 	const haptics = useHaptics();
@@ -55,7 +73,7 @@ export const CurrencyPickerSheet = forwardRef<
 	return (
 		<BottomSheetModal
 			ref={ref}
-			snapPoints={["55%", "100%"]}
+			snapPoints={[`${SHORT_DETENT * 100}%`, "100%"]}
 			enableDynamicSizing={false}
 			enablePanDownToClose
 			// Solid, not the default translucent material: the rows are opaque (see
@@ -63,14 +81,20 @@ export const CurrencyPickerSheet = forwardRef<
 			backgroundStyle={{ backgroundColor: colors.background }}
 		>
 			<View className="flex-1 bg-background">
-				<View className="items-center px-5 pt-3 pb-3">
+				{/* Explicit heights, so what the floor above subtracts is what the chrome
+				    is — and so both survive the frames where their own contents measure
+				    to zero. */}
+				<View
+					className="items-center justify-center px-5"
+					style={{ height: TITLE_HEIGHT }}
+				>
 					<Text className="font-sans-semibold text-foreground text-headline">
 						{t("onboarding.currency.picker.title")}
 					</Text>
 				</View>
 
-				<View className="px-5 pb-2">
-					<View className="flex-row items-center gap-2 rounded-full bg-surface px-4 py-3">
+				<View className="px-5 pb-2" style={{ height: SEARCH_HEIGHT }}>
+					<View className="flex-1 flex-row items-center gap-2 rounded-full bg-surface px-4">
 						<SymbolView
 							name="magnifyingglass"
 							size={16}
