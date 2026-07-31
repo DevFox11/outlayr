@@ -8,7 +8,6 @@ import {
 	Button,
 	ContextMenu,
 	HStack,
-	Image,
 	List,
 	RNHostView,
 	Section,
@@ -25,7 +24,6 @@ import {
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { StarIcon as StarSolidIcon } from "@hugeicons-pro/core-solid-rounded";
 import { Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
 import { Stack } from "expo-router";
@@ -149,15 +147,6 @@ function Row({
 							</SwiftText>
 						</VStack>
 						<Spacer />
-						{favourite ? (
-							<RNHostView matchContents>
-								<HugeiconsIcon
-									color={colors.gold}
-									icon={StarSolidIcon}
-									size={16}
-								/>
-							</RNHostView>
-						) : null}
 						{selected ? (
 							<RNHostView matchContents>
 								<HugeiconsIcon
@@ -168,8 +157,6 @@ function Row({
 								/>
 							</RNHostView>
 						) : null}
-						{/* Custom SF Symbol from `scripts/generate-symbolsets.ts`. */}
-						<Image assetName="favourite" color={colors.gold} size={16} />
 					</HStack>
 				</ContextMenu.Trigger>
 			</ContextMenu>
