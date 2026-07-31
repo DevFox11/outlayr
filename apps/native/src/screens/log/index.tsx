@@ -186,8 +186,11 @@ function LogContent({ db }: { db: Database }) {
 				produced: insights.perCurrency.map((figures) => figures.currencyCode),
 				// Asked of `valued`, not of `rates`: `rates` holds one currency — the
 				// one on screen — so it answers no for every other code, and the chip
-				// offered no favourite at all (#237). USD is the canonical side of
-				// every stored rate, so it needs no row of its own to be reachable.
+				// offered no favourite at all (#237).
+				//
+				// USD is admitted unconditionally, including on a ledger that has never
+				// pulled a rate: `valueExactIn` returns the row's frozen `amountUsd` for
+				// a USD display and never reaches the rate table.
 				convertible: (code) => code === "USD" || valued.has(code),
 			}),
 		[globalCurrency, favouriteCurrencies, insights, valued],

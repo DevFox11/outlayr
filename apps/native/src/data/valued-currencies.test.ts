@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { exchangeRates } from "@/db/schema";
 import { logCurrencyOptions } from "@/domain/log-currency-options";
-import { buildRateTable } from "@/domain/valuation";
+import { buildRateTable, valueExactIn } from "@/domain/valuation";
 import { VALUATION_RATE_TYPE } from "./valuation-source";
 
 const NOW = 1_700_000_000_000;
@@ -131,6 +131,31 @@ describe("what the Log's currency chip may offer", () => {
 				convertible: (code) => code === "USD" || valued(db).has(code),
 			}),
 			["AED", "USD"],
+		);
+	});
+
+	it("offers USD on a ledger that has never pulled a rate, and means it", () => {
+		// `convertible` admits USD unconditionally, which only holds because a USD
+		// display never reaches the rate table: it reads the row's frozen
+		// `amountUsd`. So USD is a real option on an empty table, not a dead one.
+		const db = makeDb();
+		assert.equal(valued(db).size, 0);
+		assert.deepEqual(
+			logCurrencyOptions({
+				global: "AED",
+				favourites: ["USD"],
+				produced: [],
+				convertible: (code) => code === "USD" || valued(db).has(code),
+			}),
+			["AED", "USD"],
+		);
+		assert.equal(
+			valueExactIn(
+				{ amount: 36.7, amountUsd: 10, currency: "AED", dateKey: "2026-07-30" },
+				"USD",
+				buildRateTable([]),
+			),
+			10,
 		);
 	});
 
