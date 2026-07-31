@@ -203,10 +203,11 @@ function HintRow({ background, label }: { background: string; label: string }) {
 }
 
 /**
- * Memoised, and every prop is a primitive or referentially stable. Without this a
- * single favourite toggle re-rendered all 165 rows — 261ms, and the `Section`
- * rebuilds its row array on every keystroke and every toggle, so the compiler
- * cannot hold the elements still on its own.
+ * Memoised, and every prop is a primitive or referentially stable. A `List` mounts
+ * all 165 rows where a `FlatList` kept about a dozen, and `currencyPickerSections`
+ * builds fresh row objects on every call — so the elements really are new each
+ * render and React Compiler has nothing to hold still. Without the `memo` a single
+ * favourite toggle re-rendered every row: 261ms, against 33.9ms with it.
  */
 const CurrencyRow = memo(function CurrencyRow({
 	code,
