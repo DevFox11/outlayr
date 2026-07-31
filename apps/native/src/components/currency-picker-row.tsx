@@ -70,6 +70,17 @@ const TICK_ARRIVES = ZoomIn.duration(240)
 	.easing(EASE.factory())
 	.reduceMotion(ReduceMotion.System);
 
+/**
+ * `bg-background` is required: UIKit snapshots the context-menu trigger for its
+ * platter, and a transparent trigger composites the preview over the row
+ * beneath. The travelling copy shares the class so it matches the row it stands
+ * in for.
+ */
+const ROW_SURFACE =
+	"flex-row items-center gap-3 border-border border-b bg-background py-3";
+
+const HELD_BACK = { opacity: 0 } as const;
+
 const LANE_WIDTH = 96;
 
 /** `ReanimatedSwipeable` has no `allowsFullSwipe`, so it is rebuilt here. */
@@ -161,11 +172,76 @@ function SwipeAction({
 	);
 }
 
+function CurrencyRowFace({
+	code,
+	selected,
+	tickEnters,
+}: {
+	code: CurrencyCode;
+	selected: boolean;
+	tickEnters: boolean;
+}) {
+	const colors = useColors();
+	const meta = CURRENCY_META[code];
+
+	return (
+		<>
+			<View className="w-9 items-center">
+				<Text
+					className="text-body text-muted"
+					style={{ fontVariant: ["tabular-nums"] }}
+				>
+					{meta.symbol}
+				</Text>
+			</View>
+			<View className="flex-1">
+				<Text className="text-body text-foreground">{code}</Text>
+				<Text className="text-footnote text-muted" numberOfLines={1}>
+					{meta.name}
+				</Text>
+			</View>
+			<View className="w-5 items-center">
+				{selected ? (
+					<Animated.View entering={tickEnters ? TICK_ARRIVES : undefined}>
+						<HugeiconsIcon
+							color={colors.tint}
+							icon={Tick02Icon}
+							size={20}
+							strokeWidth={2.4}
+						/>
+					</Animated.View>
+				) : null}
+			</View>
+		</>
+	);
+}
+
+/**
+ * The row stripped of its gestures, for the copy the list flies between
+ * sections. Its tick never re-enters: the copy is lifted off a row that is
+ * already on screen.
+ */
+export function CurrencyRowCopy({
+	code,
+	selected,
+}: {
+	code: CurrencyCode;
+	selected: boolean;
+}) {
+	return (
+		<View className={ROW_SURFACE}>
+			<CurrencyRowFace code={code} selected={selected} tickEnters={false} />
+		</View>
+	);
+}
+
 interface CurrencyRowProps {
 	code: CurrencyCode;
 	favourite: boolean;
 	selected: boolean;
 	full: boolean;
+	/** Held back while the list flies a copy of this row to its new section. */
+	travelling: boolean;
 	onPress: () => void;
 	/** `null` while no database is open, so favouriting is absent rather than dead. */
 	onToggleFavourite: (() => void) | null;
@@ -176,6 +252,7 @@ export function CurrencyRow({
 	favourite,
 	selected,
 	full,
+	travelling,
 	onPress,
 	onToggleFavourite,
 }: CurrencyRowProps) {
@@ -184,7 +261,6 @@ export function CurrencyRow({
 	const t = useTranslation();
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const armedFullSwipe = useRef(false);
-	const meta = CURRENCY_META[code];
 
 	const refuses = !favourite && full;
 	const fullLabel = t("settings.currency.favouritesFull", {
@@ -280,77 +356,44 @@ export function CurrencyRow({
 	};
 
 	return (
-		// No `layout`, unlike the headers: a row leaving the cluster lands outside
-		// the virtualised window, unmounts mid-animation and leaves a blank gap.
-		<View>
-			<ReanimatedSwipeable
-				friction={1}
-				// Without overshoot `translation` clamps at the lane's width and can
-				// never reach the full-swipe threshold.
-				overshootFriction={1}
-				// On release rather than mid-drag — see `SwipeAction`.
-				onSwipeableWillOpen={() => {
-					if (!armedFullSwipe.current) {
-						return;
-					}
-					armedFullSwipe.current = false;
-					commit();
-				}}
-				ref={swipeRef}
-				renderRightActions={
-					onToggleFavourite === null ? undefined : renderRightActions
+		<ReanimatedSwipeable
+			containerStyle={travelling ? HELD_BACK : undefined}
+			friction={1}
+			// Without overshoot `translation` clamps at the lane's width and can
+			// never reach the full-swipe threshold.
+			overshootFriction={1}
+			// On release rather than mid-drag — see `SwipeAction`.
+			onSwipeableWillOpen={() => {
+				if (!armedFullSwipe.current) {
+					return;
 				}
-				rightThreshold={40}
+				armedFullSwipe.current = false;
+				commit();
+			}}
+			ref={swipeRef}
+			renderRightActions={
+				onToggleFavourite === null ? undefined : renderRightActions
+			}
+			rightThreshold={40}
+		>
+			{/* Not `@expo/ui/swift-ui`'s ContextMenu: that needs a SwiftUI `Host` per
+			    row, which cannot be told to fill its parent's width, so every row
+			    sat as its own inset card. */}
+			<MenuView
+				actions={actions}
+				onPressAction={onPressAction}
+				shouldOpenOnLongPress
+				title={refuses ? t("settings.currency.favouritesFullBody") : undefined}
 			>
-				{/* Not `@expo/ui/swift-ui`'s ContextMenu: that needs a SwiftUI `Host` per
-				    row, which cannot be told to fill its parent's width, so every row
-				    sat as its own inset card. */}
-				<MenuView
-					actions={actions}
-					onPressAction={onPressAction}
-					shouldOpenOnLongPress
-					title={
-						refuses ? t("settings.currency.favouritesFullBody") : undefined
-					}
+				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ selected }}
+					className={cn(ROW_SURFACE, "active:opacity-60")}
+					onPress={onPress}
 				>
-					<Pressable
-						accessibilityRole="button"
-						accessibilityState={{ selected }}
-						// `bg-background` is required: UIKit snapshots this view for the
-						// context-menu platter, and a transparent trigger composites its
-						// preview over the row beneath. Callers must match this ground.
-						className="flex-row items-center gap-3 border-border border-b bg-background py-3 active:opacity-60"
-						onPress={onPress}
-					>
-						<View className="w-9 items-center">
-							<Text
-								className="text-body text-muted"
-								style={{ fontVariant: ["tabular-nums"] }}
-							>
-								{meta.symbol}
-							</Text>
-						</View>
-						<View className="flex-1">
-							<Text className="text-body text-foreground">{code}</Text>
-							<Text className="text-footnote text-muted" numberOfLines={1}>
-								{meta.name}
-							</Text>
-						</View>
-						<View className="w-5 items-center">
-							{selected ? (
-								<Animated.View entering={TICK_ARRIVES}>
-									<HugeiconsIcon
-										color={colors.tint}
-										icon={Tick02Icon}
-										size={20}
-										strokeWidth={2.4}
-									/>
-								</Animated.View>
-							) : null}
-						</View>
-					</Pressable>
-				</MenuView>
-			</ReanimatedSwipeable>
-		</View>
+					<CurrencyRowFace code={code} selected={selected} tickEnters />
+				</Pressable>
+			</MenuView>
+		</ReanimatedSwipeable>
 	);
 }
