@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
-import { currencyPickerRows } from "./currency-picker-rows";
+import {
+	currencyPickerRows,
+	currencyPickerSections,
+} from "./currency-picker-rows";
 
 const codes = (rows: ReturnType<typeof currencyPickerRows>) =>
 	rows.flatMap((row) => (row.kind === "currency" ? [row.code] : []));
@@ -98,5 +101,45 @@ describe("the currency picker's rows", () => {
 
 	it("answers nothing for a search that matches nothing", () => {
 		assert.deepEqual(currencyPickerRows([], "zzzzzz"), []);
+	});
+});
+
+describe("the currency picker's sections", () => {
+	const codesIn = (section: { rows: { code: string }[] }) =>
+		section.rows.map((row) => row.code);
+
+	it("splits the cluster and the alphabet into two sections", () => {
+		const sections = currencyPickerSections(["USD", "VES"], "");
+		assert.deepEqual(
+			sections.map((section) => section.section),
+			["favourites", "all"],
+		);
+		assert.deepEqual(codesIn(sections[0]), ["USD", "VES"]);
+		assert.ok(!codesIn(sections[1]).includes("USD"));
+	});
+
+	it("carries the hint on an empty cluster and nowhere else", () => {
+		const empty = currencyPickerSections([], "");
+		assert.equal(empty[0].hint, true);
+		assert.deepEqual(codesIn(empty[0]), []);
+		assert.equal(currencyPickerSections(["USD"], "")[0].hint, false);
+	});
+
+	it("returns a search as one unheaded section", () => {
+		const sections = currencyPickerSections(["USD"], "eur");
+		assert.equal(sections.length, 1);
+		assert.equal(sections[0].section, null);
+		assert.equal(sections[0].hint, false);
+		assert.ok(codesIn(sections[0]).includes("EUR"));
+	});
+
+	it("offers every currency exactly once across the sections", () => {
+		const listed = currencyPickerSections(["JPY", "USD"], "").flatMap(codesIn);
+		assert.equal(listed.length, PICKABLE_CURRENCY_CODES.length);
+		assert.equal(new Set(listed).size, PICKABLE_CURRENCY_CODES.length);
+	});
+
+	it("answers nothing for a search that matches nothing", () => {
+		assert.deepEqual(currencyPickerSections([], "zzzzzz"), []);
 	});
 });

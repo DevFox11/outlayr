@@ -13,6 +13,14 @@ export type CurrencyPickerRow =
 			favourite: boolean;
 	  };
 
+export type CurrencyPickerSection = {
+	key: string;
+	/** `null` while searching, which returns one unheaded section. */
+	section: "favourites" | "all" | null;
+	hint: boolean;
+	rows: { key: string; code: CurrencyCode; favourite: boolean }[];
+};
+
 const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
 	PICKABLE_CURRENCY_CODES.map((code): [string, CurrencyCode] => [code, code]),
 );
@@ -83,4 +91,48 @@ export function currencyPickerRows(
 		{ kind: "header", key: "header:all", section: "all" },
 		...rest,
 	];
+}
+
+/** The same rows a `Section` at a time, for a list that draws its own headers. */
+export function currencyPickerSections(
+	favourites: readonly string[],
+	query: string,
+): CurrencyPickerSection[] {
+	const sections: CurrencyPickerSection[] = [];
+
+	for (const row of currencyPickerRows(favourites, query)) {
+		if (row.kind === "header") {
+			sections.push({
+				key: row.key,
+				section: row.section,
+				hint: false,
+				rows: [],
+			});
+			continue;
+		}
+
+		let current = sections.at(-1);
+		if (current === undefined) {
+			current = {
+				key: "section:matches",
+				section: null,
+				hint: false,
+				rows: [],
+			};
+			sections.push(current);
+		}
+
+		if (row.kind === "hint") {
+			current.hint = true;
+			continue;
+		}
+
+		current.rows.push({
+			key: row.key,
+			code: row.code,
+			favourite: row.favourite,
+		});
+	}
+
+	return sections;
 }

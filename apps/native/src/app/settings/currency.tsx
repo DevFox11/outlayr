@@ -1,11 +1,7 @@
 import { Stack, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { FlatList, View } from "react-native";
-import {
-	CurrencyHint,
-	CurrencyRow,
-	CurrencySectionHeader,
-} from "@/components/currency-picker-row";
+import { useState } from "react";
+import { View } from "react-native";
+import { CurrencyPickerList } from "@/components/currency-picker-list";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -14,14 +10,7 @@ import {
 } from "@/data/favourite-currencies";
 import { setCurrency } from "@/data/settings";
 import type { Database } from "@/db/client";
-import {
-	type CurrencyPickerRow,
-	currencyPickerRows,
-} from "@/domain/currency-picker-rows";
-import {
-	FAVOURITE_CURRENCY_LIMIT,
-	isFavourite,
-} from "@/domain/favourite-currencies";
+import { isFavourite } from "@/domain/favourite-currencies";
 import { useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 
@@ -37,11 +26,6 @@ function CurrencyPicker({ db }: { db: Database }) {
 	const selected = useGlobalCurrency(db);
 	const favourites = useFavouriteCurrencies(db);
 	const [query, setQuery] = useState("");
-
-	const rows = useMemo<readonly CurrencyPickerRow[]>(
-		() => currencyPickerRows(favourites, query),
-		[favourites, query],
-	);
 
 	const onSelect = (code: string) => {
 		setCurrency(db, code).then(() => router.back());
@@ -64,32 +48,13 @@ function CurrencyPicker({ db }: { db: Database }) {
 				onChangeText={(event) => setQuery(event.nativeEvent.text)}
 				placeholder={t("settings.currency.search")}
 			/>
-			<FlatList
-				contentInsetAdjustmentBehavior="automatic"
-				data={rows}
-				keyExtractor={(row) => row.key}
-				keyboardShouldPersistTaps="handled"
-				contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-				renderItem={({ item: row }) => {
-					if (row.kind === "header") {
-						return <CurrencySectionHeader section={row.section} />;
-					}
-					if (row.kind === "hint") {
-						return <CurrencyHint />;
-					}
-					return (
-						<CurrencyRow
-							code={row.code}
-							favourite={row.favourite}
-							full={favourites.length >= FAVOURITE_CURRENCY_LIMIT}
-							onPress={() => onSelect(row.code)}
-							onToggleFavourite={() =>
-								onToggleFavourite(row.code, row.favourite)
-							}
-							selected={row.code === selected}
-						/>
-					);
-				}}
+			<CurrencyPickerList
+				favourites={favourites}
+				onSelect={onSelect}
+				onToggleFavourite={onToggleFavourite}
+				query={query}
+				selected={selected}
+				style={{ flex: 1 }}
 			/>
 		</View>
 	);
