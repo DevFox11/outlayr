@@ -1,63 +1,17 @@
-import { Host } from "@expo/ui";
-import {
-	Button,
-	ContextMenu,
-	Divider,
-	HStack,
-	List,
-	RNHostView,
-	Section,
-	Spacer,
-	Text as SwiftText,
-	SwipeActions,
-	VStack,
-} from "@expo/ui/swift-ui";
-import {
-	contentShape,
-	disabled,
-	font,
-	foregroundStyle,
-	frame,
-	kerning,
-	labelStyle,
-	lineLimit,
-	listRowBackground,
-	listRowInsets,
-	listRowSeparator,
-	listStyle,
-	onTapGesture,
-	padding,
-	scrollContentBackground,
-	shapes,
-	textCase,
-	tint,
-} from "@expo/ui/swift-ui/modifiers";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { CURRENCY_META } from "@outlayr/money";
-import { memo, useCallback, useMemo } from "react";
+import { LegendList } from "@legendapp/list/react-native";
+import { useMemo } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
+import { View } from "react-native";
 import {
-	type CurrencyCode,
-	type CurrencyPickerSection,
-	currencyPickerSections,
+	type CurrencyPickerRow,
+	currencyPickerRows,
 } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
-import { useTranslation } from "@/i18n";
-import { useHaptics } from "@/lib/use-haptics";
-import { type ThemeColors, useColors } from "@/theme/use-colors";
-
-const ROW_INSETS = { bottom: 0, leading: 20, top: 0, trailing: 20 };
-
-const SYMBOL_WIDTH = 42;
-const ROW_SPACING = 12;
-
-/**
- * SwiftUI puts a row's own padding outside its content, so a `Divider` drawn as
- * the last child hugs the text. The vertical padding moves onto the content and
- * the divider takes the leading inset the symbol column occupies.
- */
-const ROW_PADDING = 9;
+import {
+	CurrencyHint,
+	CurrencyRow,
+	CurrencySectionHeader,
+} from "./currency-picker-row";
 
 interface CurrencyPickerListProps {
 	favourites: readonly string[];
@@ -67,8 +21,23 @@ interface CurrencyPickerListProps {
 	/** `null` while no database is open, so favouriting is absent rather than dead. */
 	onToggleFavourite: ((code: string, favourite: boolean) => void) | null;
 	style?: StyleProp<ViewStyle>;
+	/** The sheet needs its own padding; the settings screen takes the default. */
+	contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
+/**
+ * A virtualised list, not `@expo/ui`'s SwiftUI `List`.
+ *
+ * The SwiftUI one is not virtualised at all — it mounts every child it is given,
+ * which for 165 currencies was one ~550ms commit that nothing could paint around.
+ * That showed up as 1.75s of dead screen after tapping Settings › Currency, a
+ * stall on every keystroke, and a second stall on clearing the search, when the
+ * list grows back from a few matches to the whole catalogue.
+ *
+ * What it gave in exchange — `allowsFullSwipe`, a context menu, inset separators
+ * — the row provides itself, so the trade was one-sided once the cost was
+ * measured properly.
+ */
 export function CurrencyPickerList({
 	favourites,
 	query,
@@ -76,292 +45,53 @@ export function CurrencyPickerList({
 	onSelect,
 	onToggleFavourite,
 	style,
+	contentContainerStyle,
 }: CurrencyPickerListProps) {
-	const colors = useColors();
-	const haptics = useHaptics();
-	const t = useTranslation();
-
-	const sections = useMemo<CurrencyPickerSection[]>(
-		() => currencyPickerSections(favourites, query),
+	const rows = useMemo<readonly CurrencyPickerRow[]>(
+		() => currencyPickerRows(favourites, query),
 		[favourites, query],
 	);
 
 	const full = favourites.length >= FAVOURITE_CURRENCY_LIMIT;
 
-	// Answers only the refusal this row can already see. `favourites` comes from a
-	// live query, so two rows pressed a tick apart at seven favourites both render
-	// as not-full; the caller owns the outcome haptic because only the write knows.
-	//
-	// One callback for the whole list rather than one closure per row: `CurrencyRow`
-	// is memoised, and a fresh closure per row would defeat that on every toggle.
-	const toggle = useCallback(
-		(code: CurrencyCode, favourite: boolean) => {
-			if (!favourite && full) {
-				haptics("warning");
-				return;
-			}
-			onToggleFavourite?.(code, favourite);
-		},
-		[full, haptics, onToggleFavourite],
-	);
-
 	return (
-		<Host style={style}>
-			{/* The list's own ground is hidden and every row paints `--background`
-			    instead: a plain list's sticky section header otherwise sits on a
-			    system material that no token can match. The opaque row is also what
-			    UIKit snapshots for the context-menu platter. */}
-			<List modifiers={[listStyle("plain"), scrollContentBackground("hidden")]}>
-				{sections.map((section) => (
-					<Section
-						header={
-							section.section === null ? undefined : (
-								<SectionHeader
-									background={colors.background}
-									label={t(
-										section.section === "favourites"
-											? "settings.currency.favourites"
-											: "settings.currency.all",
-									)}
-								/>
-							)
-						}
-						key={section.key}
-					>
-						{section.hint ? (
-							<HintRow
-								background={colors.background}
-								label={t("settings.currency.favouritesHint")}
-							/>
-						) : null}
-						{section.rows.map((row) => (
-							<CurrencyRow
-								code={row.code}
-								colors={colors}
-								favourite={row.favourite}
-								full={full}
-								key={row.key}
-								onSelect={onSelect}
-								onToggle={onToggleFavourite === null ? null : toggle}
-								selected={row.code === selected}
-							/>
-						))}
-					</Section>
-				))}
-			</List>
-		</Host>
-	);
-}
-
-function SectionHeader({
-	background,
-	label,
-}: {
-	background: string;
-	label: string;
-}) {
-	return (
-		<HStack
-			modifiers={[listRowInsets(ROW_INSETS), listRowBackground(background)]}
-		>
-			<SwiftText
-				modifiers={[
-					font({ family: "GeistMono_400Regular", size: 11 }),
-					kerning(1.2),
-					textCase("uppercase"),
-					foregroundStyle("secondary"),
-				]}
-			>
-				{label}
-			</SwiftText>
-			<Spacer />
-		</HStack>
-	);
-}
-
-function HintRow({ background, label }: { background: string; label: string }) {
-	return (
-		<HStack
-			modifiers={[
-				listRowInsets(ROW_INSETS),
-				listRowBackground(background),
-				listRowSeparator("hidden"),
-				padding({ bottom: ROW_PADDING }),
-			]}
-		>
-			<SwiftText
-				modifiers={[
-					font({ family: "SFProRounded-Regular", size: 13 }),
-					foregroundStyle("secondary"),
-				]}
-			>
-				{label}
-			</SwiftText>
-			<Spacer />
-		</HStack>
-	);
-}
-
-/**
- * Memoised, and every prop is a primitive or referentially stable. A `List` mounts
- * all 165 rows where a `FlatList` kept about a dozen, and `currencyPickerSections`
- * builds fresh row objects on every call — so the elements really are new each
- * render and React Compiler has nothing to hold still. Without the `memo` a single
- * favourite toggle re-rendered every row: 261ms, against 33.9ms with it.
- */
-const CurrencyRow = memo(function CurrencyRow({
-	code,
-	colors,
-	favourite,
-	full,
-	onSelect,
-	onToggle,
-	selected,
-}: {
-	code: CurrencyCode;
-	colors: ThemeColors;
-	favourite: boolean;
-	full: boolean;
-	onSelect: (code: CurrencyCode) => void;
-	onToggle: ((code: CurrencyCode, favourite: boolean) => void) | null;
-	selected: boolean;
-}) {
-	const t = useTranslation();
-	const meta = CURRENCY_META[code];
-	const refuses = !favourite && full;
-	const press = () => onSelect(code);
-	const toggle = onToggle === null ? null : () => onToggle(code, favourite);
-
-	const toggleLabel = refuses
-		? t("settings.currency.favouritesFullShort", {
-				limit: FAVOURITE_CURRENCY_LIMIT,
-			})
-		: t(
-				favourite
-					? "settings.currency.unfavouriteAction"
-					: "settings.currency.favouriteAction",
-			);
-
-	// `onTapGesture`, not a `Button`: a `Button` nested in a `ContextMenu.Trigger`
-	// never delivers its `onPress`. `contentShape` is what makes the whole row
-	// tappable — without it only the glyphs themselves hit-test, so every press
-	// landing in the gap between the name and the tick was swallowed.
-	const content = (
-		<VStack spacing={0}>
-			<HStack
-				modifiers={[
-					padding({ vertical: ROW_PADDING }),
-					contentShape(shapes.rectangle()),
-					onTapGesture(press),
-				]}
-				spacing={ROW_SPACING}
-			>
-				<SwiftText
-					modifiers={[
-						font({ family: "SFProRounded-Regular", size: 16 }),
-						frame({ width: SYMBOL_WIDTH }),
-						lineLimit(1),
-						foregroundStyle("secondary"),
-					]}
-				>
-					{meta.symbol}
-				</SwiftText>
-				<VStack alignment="leading" spacing={1}>
-					<SwiftText
-						modifiers={[font({ family: "SFProRounded-Regular", size: 16 })]}
-					>
-						{code}
-					</SwiftText>
-					<SwiftText
-						modifiers={[
-							font({ family: "SFProRounded-Regular", size: 13 }),
-							foregroundStyle("secondary"),
-							lineLimit(1),
-						]}
-					>
-						{meta.name}
-					</SwiftText>
-				</VStack>
-				<Spacer />
-				{selected ? (
-					<RNHostView matchContents>
-						<HugeiconsIcon
-							color={colors.tint}
-							icon={Tick02Icon}
-							size={20}
-							strokeWidth={2.4}
+		<View className="flex-1 bg-background" style={style}>
+			<LegendList
+				contentContainerStyle={contentContainerStyle}
+				contentInsetAdjustmentBehavior="automatic"
+				data={rows as CurrencyPickerRow[]}
+				// Three pools. A header, the one-off hint and a currency row share no
+				// layout, and recycling across them is what makes a mixed list stutter.
+				getItemType={(row: CurrencyPickerRow) => row.kind}
+				keyboardDismissMode="on-drag"
+				keyboardShouldPersistTaps="handled"
+				keyExtractor={(row: CurrencyPickerRow) => row.key}
+				// `ReanimatedSwipeable` keeps its open/closed offset inside the row
+				// instance, so a recycled row would inherit the previous row's swipe.
+				recycleItems={false}
+				renderItem={({ item: row }: { item: CurrencyPickerRow }) => {
+					if (row.kind === "header") {
+						return <CurrencySectionHeader section={row.section} />;
+					}
+					if (row.kind === "hint") {
+						return <CurrencyHint />;
+					}
+					return (
+						<CurrencyRow
+							code={row.code}
+							favourite={row.favourite}
+							full={full}
+							onPress={() => onSelect(row.code)}
+							onToggleFavourite={
+								onToggleFavourite === null
+									? null
+									: () => onToggleFavourite(row.code, row.favourite)
+							}
+							selected={row.code === selected}
 						/>
-					</RNHostView>
-				) : null}
-			</HStack>
-			<Divider modifiers={[padding({ leading: SYMBOL_WIDTH + ROW_SPACING })]} />
-		</VStack>
+					);
+				}}
+			/>
+		</View>
 	);
-
-	const rowModifiers = [
-		listRowInsets(ROW_INSETS),
-		listRowBackground(colors.background),
-		listRowSeparator("hidden"),
-	];
-
-	if (toggle === null) {
-		return <VStack modifiers={rowModifiers}>{content}</VStack>;
-	}
-
-	return (
-		<SwipeActions modifiers={rowModifiers}>
-			<ContextMenu>
-				<ContextMenu.Items>
-					<Button
-						label={
-							refuses
-								? t("settings.currency.favouritesFull", {
-										limit: FAVOURITE_CURRENCY_LIMIT,
-									})
-								: t(
-										favourite
-											? "settings.currency.unfavourite"
-											: "settings.currency.favourite",
-										{ code },
-									)
-						}
-						modifiers={[disabled(refuses)]}
-						onPress={toggle}
-						systemImage={favourite ? "star.slash" : "star"}
-					/>
-					<Button
-						label={t("settings.currency.use", { code })}
-						onPress={press}
-						systemImage="checkmark"
-					/>
-				</ContextMenu.Items>
-				<ContextMenu.Trigger>{content}</ContextMenu.Trigger>
-			</ContextMenu>
-
-			{/* `systemImage` only: this button renders its `label` and `systemImage`
-			    and drops child views, so neither `RNHostView` nor the app's own
-			    `.symbolset` reaches the lane.
-
-			    A refusing lane says so in words and refuses the full swipe: it has
-			    nothing to commit, and a slashed star would read as "unfavourite" on
-			    a row that is not a favourite. */}
-			<SwipeActions.Actions allowsFullSwipe={!refuses} edge="trailing">
-				<Button
-					label={toggleLabel}
-					modifiers={[
-						tint(
-							refuses
-								? colors.surfaceSecondary
-								: favourite
-									? colors.dangerFill
-									: colors.goldFill,
-						),
-						labelStyle(refuses ? "titleOnly" : "iconOnly"),
-					]}
-					onPress={toggle}
-					systemImage={favourite ? "star.slash.fill" : "star.fill"}
-				/>
-			</SwipeActions.Actions>
-		</SwipeActions>
-	);
-});
+}
