@@ -241,6 +241,7 @@ export function CurrencyPickerList({
 								code={row.code}
 								favourite={row.favourite}
 								full={full}
+								last={row.last}
 								onPress={() => onSelect(row.code)}
 								onToggleFavourite={
 									toggleFavourite === null

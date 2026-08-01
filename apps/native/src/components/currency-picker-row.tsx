@@ -76,8 +76,14 @@ const TICK_ARRIVES = ZoomIn.duration(240)
  * beneath. The travelling copy shares the class so it matches the row it stands
  * in for.
  */
-const ROW_SURFACE =
-	"flex-row items-center gap-3 border-border border-b bg-background py-3";
+const ROW_SURFACE = "flex-row items-center gap-3 bg-background py-3";
+
+/**
+ * The separator belongs to the row rather than the list, so the row that closes
+ * a section has to leave it off — otherwise it stacks a hairline directly
+ * against the next section's header.
+ */
+const ROW_RULE = "border-border border-b";
 
 const HELD_BACK = { opacity: 0 } as const;
 
@@ -242,6 +248,8 @@ interface CurrencyRowProps {
 	full: boolean;
 	/** Held back while the list flies a copy of this row to its new section. */
 	travelling: boolean;
+	/** Last of its section, so it draws no separator beneath itself. */
+	last: boolean;
 	onPress: () => void;
 	/** `null` while no database is open, so favouriting is absent rather than dead. */
 	onToggleFavourite: (() => void) | null;
@@ -250,6 +258,7 @@ interface CurrencyRowProps {
 export function CurrencyRow({
 	code,
 	favourite,
+	last,
 	selected,
 	full,
 	travelling,
@@ -388,7 +397,11 @@ export function CurrencyRow({
 				<Pressable
 					accessibilityRole="button"
 					accessibilityState={{ selected }}
-					className={cn(ROW_SURFACE, "active:opacity-60")}
+					className={cn(
+						ROW_SURFACE,
+						last ? undefined : ROW_RULE,
+						"active:opacity-60",
+					)}
 					onPress={onPress}
 				>
 					<CurrencyRowFace code={code} selected={selected} tickEnters />

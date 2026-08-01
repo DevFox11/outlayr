@@ -11,6 +11,11 @@ export type CurrencyPickerRow =
 			key: string;
 			code: CurrencyCode;
 			favourite: boolean;
+			/**
+			 * Last of its section. The row draws its own separator, so without this
+			 * the final one in a section stacks a hairline against the next header.
+			 */
+			last: boolean;
 	  };
 
 export type CurrencyPickerSection = {
@@ -18,7 +23,12 @@ export type CurrencyPickerSection = {
 	/** `null` while searching, which returns one unheaded section. */
 	section: "favourites" | "all" | null;
 	hint: boolean;
-	rows: { key: string; code: CurrencyCode; favourite: boolean }[];
+	rows: {
+		key: string;
+		code: CurrencyCode;
+		favourite: boolean;
+		last: boolean;
+	}[];
 };
 
 const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
@@ -29,7 +39,20 @@ function currencyRow(
 	code: CurrencyCode,
 	favourite: boolean,
 ): CurrencyPickerRow {
-	return { kind: "currency", key: code, code, favourite };
+	return { kind: "currency", key: code, code, favourite, last: false };
+}
+
+/** Marks the last currency row before each header, and the last one overall. */
+function closeSections(rows: CurrencyPickerRow[]): CurrencyPickerRow[] {
+	for (let index = 0; index < rows.length; index++) {
+		const row = rows[index];
+		if (row.kind !== "currency") {
+			continue;
+		}
+		const next = rows[index + 1];
+		row.last = next === undefined || next.kind === "header";
+	}
+	return rows;
 }
 
 /**
@@ -63,8 +86,8 @@ export function currencyPickerRows(
 				);
 
 	if (needle !== "") {
-		return matches.map((code) =>
-			currencyRow(code, isFavourite(favourites, code)),
+		return closeSections(
+			matches.map((code) => currencyRow(code, isFavourite(favourites, code))),
 		);
 	}
 
@@ -73,24 +96,24 @@ export function currencyPickerRows(
 		return code === undefined ? [] : [currencyRow(code, true)];
 	});
 	if (cluster.length === 0) {
-		return [
+		return closeSections([
 			{ kind: "header", key: "header:favourites", section: "favourites" },
 			{ kind: "hint", key: "hint:favourites" },
 			{ kind: "header", key: "header:all", section: "all" },
 			...matches.map((code) => currencyRow(code, false)),
-		];
+		]);
 	}
 
 	const rest = matches
 		.filter((code) => !isFavourite(favourites, code))
 		.map((code) => currencyRow(code, false));
 
-	return [
+	return closeSections([
 		{ kind: "header", key: "header:favourites", section: "favourites" },
 		...cluster,
 		{ kind: "header", key: "header:all", section: "all" },
 		...rest,
-	];
+	]);
 }
 
 /** The same rows a `Section` at a time, for a list that draws its own headers. */
@@ -131,6 +154,7 @@ export function currencyPickerSections(
 			key: row.key,
 			code: row.code,
 			favourite: row.favourite,
+			last: row.last,
 		});
 	}
 

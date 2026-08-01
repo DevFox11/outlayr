@@ -143,3 +143,29 @@ describe("the currency picker's sections", () => {
 		assert.deepEqual(currencyPickerSections([], "zzzzzz"), []);
 	});
 });
+
+describe("where a section closes", () => {
+	const lastCodes = (rows: ReturnType<typeof currencyPickerRows>) =>
+		rows.flatMap((row) =>
+			row.kind === "currency" && row.last ? [row.code] : [],
+		);
+
+	it("closes on the row before a header, and on the very last row", () => {
+		// The row draws its own separator, so the one closing a section has to leave
+		// it off or it stacks a hairline against the next header.
+		const rows = currencyPickerRows(["USD", "VES"], "");
+		const codes = lastCodes(rows);
+		assert.equal(codes[0], "VES");
+		assert.equal(codes.length, 2);
+		assert.equal(codes[1], rows.at(-1)?.kind === "currency" ? codes[1] : null);
+	});
+
+	it("closes only the final row of a search", () => {
+		const rows = currencyPickerRows([], "dollar");
+		assert.equal(lastCodes(rows).length, 1);
+	});
+
+	it("closes the catalogue's last row when the cluster is empty", () => {
+		assert.equal(lastCodes(currencyPickerRows([], "")).length, 1);
+	});
+});
