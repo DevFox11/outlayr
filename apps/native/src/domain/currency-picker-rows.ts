@@ -5,11 +5,17 @@ export type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
 
 export type CurrencyPickerRow =
 	| { kind: "header"; key: string; section: "favourites" | "all" }
+	| { kind: "hint"; key: string }
 	| {
 			kind: "currency";
 			key: string;
 			code: CurrencyCode;
 			favourite: boolean;
+			/**
+			 * Last of its section. The row draws its own separator, so without this
+			 * the final one in a section stacks a hairline against the next header.
+			 */
+			last: boolean;
 	  };
 
 const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
@@ -20,7 +26,20 @@ function currencyRow(
 	code: CurrencyCode,
 	favourite: boolean,
 ): CurrencyPickerRow {
-	return { kind: "currency", key: code, code, favourite };
+	return { kind: "currency", key: code, code, favourite, last: false };
+}
+
+/** Marks the last currency row before each header, and the last one overall. */
+function closeSections(rows: CurrencyPickerRow[]): CurrencyPickerRow[] {
+	for (let index = 0; index < rows.length; index++) {
+		const row = rows[index];
+		if (row.kind !== "currency") {
+			continue;
+		}
+		const next = rows[index + 1];
+		row.last = next === undefined || next.kind === "header";
+	}
+	return rows;
 }
 
 /**
@@ -35,6 +54,9 @@ function currencyRow(
  *
  * A search returns flat: clustering on top of it would push the match the user
  * typed below the fold.
+ *
+ * An empty cluster keeps its header and a hint row: favouriting is a long
+ * press, which nothing on a row advertises.
  */
 export function currencyPickerRows(
 	favourites: readonly string[],
@@ -50,9 +72,9 @@ export function currencyPickerRows(
 						CURRENCY_META[code].name.toLowerCase().includes(needle),
 				);
 
-	if (needle !== "" || favourites.length === 0) {
-		return matches.map((code) =>
-			currencyRow(code, isFavourite(favourites, code)),
+	if (needle !== "") {
+		return closeSections(
+			matches.map((code) => currencyRow(code, isFavourite(favourites, code))),
 		);
 	}
 
@@ -61,17 +83,22 @@ export function currencyPickerRows(
 		return code === undefined ? [] : [currencyRow(code, true)];
 	});
 	if (cluster.length === 0) {
-		return matches.map((code) => currencyRow(code, false));
+		return closeSections([
+			{ kind: "header", key: "header:favourites", section: "favourites" },
+			{ kind: "hint", key: "hint:favourites" },
+			{ kind: "header", key: "header:all", section: "all" },
+			...matches.map((code) => currencyRow(code, false)),
+		]);
 	}
 
 	const rest = matches
 		.filter((code) => !isFavourite(favourites, code))
 		.map((code) => currencyRow(code, false));
 
-	return [
+	return closeSections([
 		{ kind: "header", key: "header:favourites", section: "favourites" },
 		...cluster,
 		{ kind: "header", key: "header:all", section: "all" },
 		...rest,
-	];
+	]);
 }

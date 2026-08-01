@@ -1,57 +1,35 @@
 import {
-	BottomSheetFlatList,
 	BottomSheetModal,
 	BottomSheetTextInput,
 } from "@expo/ui/community/bottom-sheet";
-import { CURRENCY_META } from "@outlayr/money";
 import { SymbolView } from "expo-symbols";
-import { forwardRef, useMemo, useState } from "react";
-import { Alert, Pressable, View } from "react-native";
-import Animated, {
-	Easing,
-	LinearTransition,
-	ReduceMotion,
-} from "react-native-reanimated";
+import { forwardRef, useState } from "react";
+import { useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalData } from "@/contexts/local-data-context";
 import {
 	toggleFavouriteCurrency,
 	useFavouriteCurrencies,
 } from "@/data/favourite-currencies";
-import {
-	type CurrencyCode,
-	type CurrencyPickerRow,
-	currencyPickerRows,
-} from "@/domain/currency-picker-rows";
-import {
-	FAVOURITE_CURRENCY_LIMIT,
-	isFavourite,
-} from "@/domain/favourite-currencies";
+import { isFavourite } from "@/domain/favourite-currencies";
 import { useTranslation } from "@/i18n";
+import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
-import { MonoLabel } from "./mono-label";
+import { CurrencyPickerList } from "./currency-picker-list";
 import { Text } from "./text";
-
-/**
- * The row's travel between the two sections.
- *
- * `ease-in-out`, because the row is already on screen and stays on screen — it
- * accelerates out of one section and brakes into the other, which is what a
- * moving object does. An `ease-out` would read as an arrival from off-screen.
- *
- * Only `layout` is animated, never `entering`/`exiting`: the list is virtualised
- * over 165 currencies, so rows mount and unmount constantly while scrolling, and
- * an enter/exit animation would fire on all of them. The star is pressed rarely;
- * scrolling is not. `ReduceMotion.System` drops the travel for anyone who asked
- * the OS for less motion — they still get the reorder, just without the flight.
- */
-const ROW_TRAVEL = LinearTransition.duration(260)
-	.easing(Easing.bezier(0.645, 0.045, 0.355, 1).factory())
-	.reduceMotion(ReduceMotion.System);
 
 interface CurrencyPickerSheetProps {
 	selected: string;
 	onSelect: (code: string) => void;
 }
+
+const SHORT_DETENT = 0.55;
+/** `@expo/ui` pads the sheet's content box out from the drag indicator. */
+const SHEET_TOP_PADDING = 16;
+/** The gap iOS leaves above a sheet's card. */
+const SHEET_CARD_GAP = 10;
+const TITLE_HEIGHT = 48;
+const SEARCH_HEIGHT = 52;
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
 export const CurrencyPickerSheet = forwardRef<
@@ -59,54 +37,64 @@ export const CurrencyPickerSheet = forwardRef<
 	CurrencyPickerSheetProps
 >(function CurrencyPickerSheet({ selected, onSelect }, ref) {
 	const colors = useColors();
+	const { height } = useWindowDimensions();
+	const insets = useSafeAreaInsets();
+	// The shorter detent, less the chrome above the list. A fraction detent is a
+	// fraction of the sheet's own height rather than the window's — 768 of 874pt
+	// on an iPhone 17 Pro, and less again where this sheet opens over another one
+	// — so the subtraction has to err under: too tall hangs the list past the
+	// short detent, too short only shows the sheet's own background for a frame.
+	const listFloor =
+		(height - insets.top - insets.bottom - SHEET_CARD_GAP) * SHORT_DETENT -
+		SHEET_TOP_PADDING -
+		TITLE_HEIGHT -
+		SEARCH_HEIGHT;
 	const [query, setQuery] = useState("");
 	const t = useTranslation();
+	const haptics = useHaptics();
 	// The nullable `db` from the context, not `useDatabase()`: the sheet is mounted
 	// by forms whose own callers can sit above the root splash gate, where
 	// `useDatabase()` throws.
 	const { db } = useLocalData();
 	const favourites = useFavouriteCurrencies(db);
 
-	const rows = useMemo<readonly CurrencyPickerRow[]>(
-		() => currencyPickerRows(favourites, query),
-		[favourites, query],
-	);
-
-	// The refusal is read off the list the write actually produced, not off
-	// `favourites.length` at press time: toggles are serialised, so a row rendered
-	// a tick before another one landed would otherwise mis-read the cap.
+	// Read off the list the write produced, not off `favourites.length` at press
+	// time: toggles are serialised, so a row rendered a tick before another landed
+	// would otherwise mis-read the cap.
 	const onToggleFavourite = (code: string, favourite: boolean) => {
 		if (db === null) {
 			return;
 		}
 		toggleFavouriteCurrency(db, code).then((next) => {
-			if (!favourite && !isFavourite(next, code)) {
-				Alert.alert(
-					t("settings.currency.favourites"),
-					t("settings.currency.favouritesFull", {
-						limit: FAVOURITE_CURRENCY_LIMIT,
-					}),
-				);
-			}
+			haptics(!favourite && !isFavourite(next, code) ? "warning" : "light");
 		});
 	};
 
 	return (
 		<BottomSheetModal
 			ref={ref}
-			snapPoints={["55%", "100%"]}
+			snapPoints={[`${SHORT_DETENT * 100}%`, "100%"]}
 			enableDynamicSizing={false}
 			enablePanDownToClose
+			// Solid, not the default translucent material: the rows are opaque (see
+			// `currency-picker-list`) and no solid colour can match a blur.
+			backgroundStyle={{ backgroundColor: colors.background }}
 		>
-			<View className="flex-1">
-				<View className="items-center px-5 pt-3 pb-3">
+			<View className="flex-1 bg-background">
+				{/* Explicit heights, so what the floor above subtracts is what the chrome
+				    is — and so both survive the frames where their own contents measure
+				    to zero. */}
+				<View
+					className="items-center justify-center px-5"
+					style={{ height: TITLE_HEIGHT }}
+				>
 					<Text className="font-sans-semibold text-foreground text-headline">
 						{t("onboarding.currency.picker.title")}
 					</Text>
 				</View>
 
-				<View className="px-5 pb-2">
-					<View className="flex-row items-center gap-2 rounded-full bg-surface px-4 py-3">
+				<View className="px-5 pb-2" style={{ height: SEARCH_HEIGHT }}>
+					<View className="flex-1 flex-row items-center gap-2 rounded-full bg-surface px-4">
 						<SymbolView
 							name="magnifyingglass"
 							size={16}
@@ -132,126 +120,20 @@ export const CurrencyPickerSheet = forwardRef<
 					</View>
 				</View>
 
-				<BottomSheetFlatList
-					data={rows}
-					keyExtractor={(row: CurrencyPickerRow) => row.key}
+				<CurrencyPickerList
 					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
-					keyboardShouldPersistTaps="handled"
-					renderItem={({ item: row }: { item: CurrencyPickerRow }) =>
-						row.kind === "header" ? (
-							// Carries the row timing rather than snapping: the headers shift by
-							// the same amount as the rows around them, and two different speeds
-							// in one reflow read as two things happening, not one.
-							<Animated.View layout={ROW_TRAVEL}>
-								<MonoLabel className="pt-4 pb-1">
-									{t(
-										row.section === "favourites"
-											? "settings.currency.favourites"
-											: "settings.currency.all",
-									)}
-								</MonoLabel>
-							</Animated.View>
-						) : (
-							<CurrencyRow
-								code={row.code}
-								favourite={row.favourite}
-								onPress={() => onSelect(row.code)}
-								onToggleFavourite={
-									db === null
-										? null
-										: () => onToggleFavourite(row.code, row.favourite)
-								}
-								selected={row.code === selected}
-							/>
-						)
-					}
+					favourites={favourites}
+					onSelect={onSelect}
+					onToggleFavourite={db === null ? null : onToggleFavourite}
+					query={query}
+					selected={selected}
+					// The sheet lays its content into a `{flexGrow:1, height:0}` box, so
+					// while it animates in every auto-sized child measures to zero and it
+					// presents blank. A floor gives the list a size from the first frame;
+					// flex still takes over at the taller detent.
+					style={{ minHeight: listFloor }}
 				/>
 			</View>
 		</BottomSheetModal>
 	);
 });
-
-function CurrencyRow({
-	code,
-	favourite,
-	selected,
-	onPress,
-	onToggleFavourite,
-}: {
-	code: CurrencyCode;
-	favourite: boolean;
-	selected: boolean;
-	onPress: () => void;
-	/** `null` while no database is open, so the star is absent rather than dead. */
-	onToggleFavourite: (() => void) | null;
-}) {
-	const colors = useColors();
-	const meta = CURRENCY_META[code];
-	const t = useTranslation();
-	return (
-		<Animated.View
-			className="flex-row items-center border-border border-b"
-			layout={ROW_TRAVEL}
-		>
-			<Pressable
-				accessibilityRole="button"
-				accessibilityState={{ selected }}
-				className="flex-1 flex-row items-center gap-3 py-3 active:opacity-60"
-				onPress={onPress}
-			>
-				<View className="w-9 items-center">
-					<Text
-						className="text-body text-muted"
-						style={{ fontVariant: ["tabular-nums"] }}
-					>
-						{meta.symbol}
-					</Text>
-				</View>
-				<View className="flex-1">
-					<Text className="text-body text-foreground">{code}</Text>
-					<Text className="text-footnote text-muted" numberOfLines={1}>
-						{meta.name}
-					</Text>
-				</View>
-				{/* Reserved whether or not the checkmark is drawn, so the star beside it
-				    keeps one column down the whole list. */}
-				<View className="w-5 items-center">
-					{selected ? (
-						<SymbolView
-							name="checkmark"
-							size={18}
-							weight="semibold"
-							tintColor={colors.tint}
-							type="monochrome"
-						/>
-					) : null}
-				</View>
-			</Pressable>
-			{onToggleFavourite === null ? null : (
-				<Pressable
-					accessibilityLabel={t(
-						favourite
-							? "settings.currency.unfavourite"
-							: "settings.currency.favourite",
-						{ code },
-					)}
-					accessibilityRole="button"
-					accessibilityState={{ selected: favourite }}
-					className="ml-2 size-7 items-center justify-center active:opacity-60"
-					// 28pt box plus 8 a side is the 44pt minimum target without making the
-					// row taller than the two lines of text next to it.
-					hitSlop={8}
-					onPress={onToggleFavourite}
-				>
-					<SymbolView
-						name={favourite ? "star.fill" : "star"}
-						size={17}
-						weight="semibold"
-						tintColor={favourite ? colors.tint : colors.muted}
-						type="monochrome"
-					/>
-				</Pressable>
-			)}
-		</Animated.View>
-	);
-}

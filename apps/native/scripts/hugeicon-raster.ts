@@ -18,8 +18,14 @@ const VIEWBOX = 24;
 
 const SCALES = [1, 2, 3];
 
-/** `renderingMode="template"` keeps only the alpha, so the RGB never ships. */
-const INK = "#000000";
+/**
+ * `renderingMode="template"` keeps only the alpha, so for a consumer that
+ * templates the bitmap the RGB never ships and black is as good as any value.
+ *
+ * A consumer that does NOT template it draws the pixels as they are — SwiftUI's
+ * `Image.uiImage` is one — so those sets have to bake the colour they need.
+ */
+export const DEFAULT_INK = "#000000";
 
 function attributeName(key: string): string {
 	return key.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
@@ -38,8 +44,14 @@ function escapeAttribute(value: string): string {
  * `strokeWidth` overrides the 1.5 the package bakes into every stroke glyph,
  * for the surfaces that need a heavier line to sit next to SF Symbols. It is
  * meaningless for the solid weight, which is filled rather than stroked.
+ *
+ * `ink` is the colour baked into the pixels — see {@link DEFAULT_INK}.
  */
-export function toSvg(elements: SvgElement[], strokeWidth?: number): string {
+export function toSvg(
+	elements: SvgElement[],
+	strokeWidth?: number,
+	ink: string = DEFAULT_INK,
+): string {
 	const shapes = elements
 		.map(([tag, attributes]) => {
 			const serialized = Object.entries(attributes)
@@ -48,7 +60,7 @@ export function toSvg(elements: SvgElement[], strokeWidth?: number): string {
 					const resolved =
 						key === "strokeWidth" && strokeWidth !== undefined
 							? String(strokeWidth)
-							: value.replace("currentColor", INK);
+							: value.replace("currentColor", ink);
 					return `${attributeName(key)}="${escapeAttribute(resolved)}"`;
 				})
 				.join(" ");
