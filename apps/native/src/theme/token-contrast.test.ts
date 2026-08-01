@@ -39,7 +39,6 @@ const TEXT_TOKENS = [
 	"income",
 	"future",
 	"tint",
-	"gold",
 	"danger",
 	"over-budget",
 ] as const;

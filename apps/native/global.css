@@ -38,10 +38,6 @@
 			--expense: #010101;
 			--future: #6d6d6d;
 
-			/* The favourite mark, over a page ground. A bright gold is unusable here —
-			   #d4af37 measures 1.85:1 on `--surface-secondary` — so light gets a deep
-			   antique cast (5.36:1) and dark gets the bright one it can afford. */
-			--gold: #7a5e12;
 
 			/* The favourite swipe pill, which writes literal white over it. Same value
 			   in both themes for the reason `--danger-fill` is: white is the text in
@@ -115,8 +111,6 @@
 			--expense: #ffffff;
 			--future: #a4a4a9;
 
-			/* See the light-mode notes. */
-			--gold: #e8c15a;
 			--gold-fill: #8a6a14;
 
 			--danger: #fe473a;
@@ -165,7 +159,6 @@
 	--color-income: var(--income);
 	--color-expense: var(--expense);
 	--color-future: var(--future);
-	--color-gold: var(--gold);
 	--color-gold-fill: var(--gold-fill);
 	--color-danger: var(--danger);
 	--color-danger-fill: var(--danger-fill);
