@@ -1,5 +1,6 @@
 import {
 	cadenceUnit,
+	ensureRecurringType,
 	nextDate,
 	nextLanding,
 	RECURRING_TYPE,
@@ -209,5 +210,22 @@ describe("the next landing after today", () => {
 		expect(
 			ymd(nextLanding(at(2026, 3, 1), RECURRING_TYPE.weekly, 1, null, now)),
 		).toStrictEqual([2026, 3, 22]);
+	});
+});
+
+describe("ensureRecurringType", () => {
+	it("defaults a cadence-less type to monthly", () => {
+		expect(ensureRecurringType(RECURRING_TYPE.none)).toBe(
+			RECURRING_TYPE.monthly,
+		);
+	});
+
+	it("leaves an already-set cadence untouched", () => {
+		expect(ensureRecurringType(RECURRING_TYPE.weekly)).toBe(
+			RECURRING_TYPE.weekly,
+		);
+		expect(ensureRecurringType(RECURRING_TYPE.yearly)).toBe(
+			RECURRING_TYPE.yearly,
+		);
 	});
 });

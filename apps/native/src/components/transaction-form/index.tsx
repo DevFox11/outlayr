@@ -1,7 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import {
 	Button,
-	DatePicker,
 	Divider,
 	Host,
 	HStack,
@@ -13,7 +12,6 @@ import {
 	Spacer,
 	Text as SwiftText,
 	TextField,
-	Toggle,
 	useNativeState,
 	VStack,
 } from "@expo/ui/swift-ui";
@@ -22,18 +20,14 @@ import {
 	background,
 	blur,
 	buttonStyle,
-	datePickerStyle,
 	foregroundStyle,
-	labelsHidden,
 	multilineTextAlignment,
 	offset,
-	onGeometryChange,
 	overlay,
 	padding,
 	pickerStyle,
 	strokeBorder,
 	tag,
-	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -67,6 +61,7 @@ import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
+	ensureRecurringType,
 	RECURRING_TYPE,
 	SELECTABLE_RECURRING_TYPES,
 } from "@/domain/recurrence";
@@ -74,10 +69,16 @@ import { enableReminderStep } from "@/domain/reminder";
 import {
 	normalizeLead,
 	REMINDER_LEAD_OPTIONS,
+	resolveLeadSelection,
 } from "@/domain/subscription-reminder";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { ctaKey, leadLabel } from "@/domain/transaction-form-labels";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import {
+	cadenceLabel,
+	ctaKey,
+	leadLabel,
+} from "@/domain/transaction-form-labels";
+import { buildTransactionInput } from "@/domain/transaction-form-save";
+import { useTranslation } from "@/i18n";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -101,47 +102,32 @@ import {
 } from "../custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
 import { IdentityFlyUpLayer } from "../identity-fly-up";
-import { IdentityHero } from "../identity-hero";
 import { LinearGradient } from "../styled";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
+import { TransactionFormAmountSection } from "./amount-section";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
+import { TransactionFormIdentitySection } from "./identity-section";
+import { TransactionFormScheduleSection } from "./schedule-section";
 import {
 	BODY,
-	BODY_MEDIUM,
-	CAPTION,
 	CARD_SHAPE,
 	FLY_BACK,
 	FLY_UP,
 	FORM_BLUR_RADIUS,
-	MORPH,
 	ROW,
 	rowLabel,
 	SHAKE,
 	TAP_ROW,
-	tertiary,
 } from "./style";
 
 /**
- * Swift's `IdentityHero.topPadding` (24) less 6pt: expo-router's native header
- * centres its title 4pt higher than SwiftUI's, and the RN hero sits 2pt lower in
- * the scroll content, so an identical 24 leaves the icon reading 6pt low.
- */
-const HERO_TOP_PADDING = 18;
-const HERO_BOTTOM_PADDING = 28;
-/**
  * Only reached if `onGeometryChange` never fires; a real measurement always
- * supersedes it. A 70pt nav-bar scroll inset plus {@link HERO_TOP_PADDING}.
+ * supersedes it. A 70pt nav-bar scroll inset plus the hero section's own top
+ * padding.
  */
 const HERO_REST_TOP_FALLBACK = 88;
-
-const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
-	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
-	[RECURRING_TYPE.weekly]: "transaction.cadence.weekly",
-	[RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
-	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
-};
 
 /**
  * A SwiftUI `tag()` set has to be one type, and Off is the absence of a lead
@@ -354,8 +340,8 @@ export function TransactionForm({
 	const handleKindChange = (next: "once" | "subscription") => {
 		const sub = next === "subscription";
 		setIsSubscription(sub);
-		if (sub && recurringType === RECURRING_TYPE.none) {
-			setRecurringType(RECURRING_TYPE.monthly);
+		if (sub) {
+			setRecurringType(ensureRecurringType(recurringType));
 		}
 	};
 
@@ -413,7 +399,7 @@ export function TransactionForm({
 	};
 
 	const handleLeadChange = (next: number) => {
-		const lead = next === LEAD_OFF_TAG ? null : normalizeLead(next);
+		const lead = resolveLeadSelection(next, LEAD_OFF_TAG);
 		setLeadDays(lead);
 		if (lead !== null) {
 			confirmRemindersAllowed().catch((error) => {
@@ -445,7 +431,7 @@ export function TransactionForm({
 		}
 		setSaving(true);
 		haptics("success");
-		const input = {
+		const input = buildTransactionInput({
 			amount: amountNumber,
 			income,
 			categoryId: category.id,
@@ -458,12 +444,13 @@ export function TransactionForm({
 			customColor: identity.color,
 			imageUri: identity.photoUri,
 			imageColor: identity.photoColor,
-			onceRecurring: isSubscription,
-			recurringType: isSubscription ? recurringType : RECURRING_TYPE.none,
-			recurringCoefficient: isSubscription ? Math.max(1, coefficient) : 1,
-			recurringEndDate: isSubscription && hasEndDate ? endDate : null,
-			reminderLeadDays: isSubscription ? leadDays : null,
-		};
+			isSubscription,
+			recurringType,
+			coefficient,
+			hasEndDate,
+			endDate,
+			leadDays,
+		});
 		let id: string;
 		try {
 			if (mode === "edit" && initial) {
@@ -592,6 +579,15 @@ export function TransactionForm({
 			: (category.color ?? colors.foreground)
 		: colors.muted;
 
+	const cadenceOptions = SELECTABLE_RECURRING_TYPES.map((type) => ({
+		type,
+		label: cadenceLabel(t, type),
+	}));
+	const leadOptions = REMINDER_LEAD_OPTIONS.map((lead) => ({
+		lead,
+		label: leadLabel(t, lead),
+	}));
+
 	return (
 		<View
 			onLayout={(e) => {
@@ -625,49 +621,26 @@ export function TransactionForm({
 						modifiers={[padding({ horizontal: 20, bottom: 120 })]}
 						spacing={18}
 					>
-						<VStack
-							modifiers={[
-								// FIRST in the array on purpose: modifiers reduce in order
-								// (`View+ModifierArray.swift`), so this reads the UNPADDED
-								// stack — the hero ring's own top — and the paddings below
-								// then wrap it. Move it after them and the twin rests
-								// HERO_TOP_PADDING too high, ghosting through the crossfade.
-								onGeometryChange((frame) => {
-									heroWinY.value = frame.y;
-								}),
-								padding({ top: HERO_TOP_PADDING }),
-								padding({ bottom: HERO_BOTTOM_PADDING }),
-							]}
-						>
-							<RNHostView matchContents>
-								{/* An unconstrained RN view stretches to the whole Host, so
-								    `matchContents` reports the FULL screen width back to
-								    SwiftUI — the VStack then overflows its own horizontal
-								    padding and drags every sibling card out to the screen
-								    edge with it. */}
-								<View style={{ width: contentWidth, alignItems: "center" }}>
-									<IdentityHero
-										color={identity.color}
-										emoji={identity.emoji}
-										floatProgress={floatProgress}
-										icon={identity.icon}
-										income={income}
-										onPress={openPicker}
-										onReset={() =>
-											setIdentity({
-												emoji: null,
-												icon: null,
-												photoUri: null,
-												photoColor: null,
-												color: null,
-											})
-										}
-										photoUri={identity.photoUri}
-										variant="transaction"
-									/>
-								</View>
-							</RNHostView>
-						</VStack>
+						<TransactionFormIdentitySection
+							color={identity.color}
+							contentWidth={contentWidth}
+							emoji={identity.emoji}
+							floatProgress={floatProgress}
+							heroWinY={heroWinY}
+							icon={identity.icon}
+							income={income}
+							onPress={openPicker}
+							onReset={() =>
+								setIdentity({
+									emoji: null,
+									icon: null,
+									photoUri: null,
+									photoColor: null,
+									color: null,
+								})
+							}
+							photoUri={identity.photoUri}
+						/>
 
 						<Picker
 							label=""
@@ -742,27 +715,14 @@ export function TransactionForm({
 								</Menu>
 							</HStack>
 
-							<Divider modifiers={hairline} />
-
-							<Button
-								modifiers={[buttonStyle("plain")]}
+							<TransactionFormAmountSection
+								currency={currency}
+								hairline={hairline}
+								label={t("transaction.field.amount")}
 								onPress={() => amountSheetRef.current?.present()}
-							>
-								<HStack modifiers={TAP_ROW}>
-									<SwiftText modifiers={[BODY, rowLabel]}>
-										{t("transaction.field.amount")}
-									</SwiftText>
-									<Spacer />
-									<SwiftText
-										modifiers={[BODY_MEDIUM, foregroundStyle(amountColor)]}
-									>
-										{formatAmount(amountNumber, currency)}
-									</SwiftText>
-									<SwiftText modifiers={[CAPTION, tertiary]}>
-										{currency}
-									</SwiftText>
-								</HStack>
-							</Button>
+								value={formatAmount(amountNumber, currency)}
+								valueColor={amountColor}
+							/>
 						</VStack>
 
 						<Button
@@ -856,191 +816,41 @@ export function TransactionForm({
 							</HStack>
 						</Button>
 
-						<VStack
-							modifiers={[...card, animation(MORPH, isSubscription)]}
-							spacing={0}
-						>
-							{isSubscription ? (
-								<>
-									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.schedule")}
-										</SwiftText>
-										<Spacer />
-										<Menu
-											label={
-												<HStack spacing={4}>
-													<SwiftText
-														modifiers={[
-															BODY,
-															foregroundStyle(colors.foreground),
-														]}
-													>
-														{t("transaction.schedule.every", {
-															interval: intervalPhrase(
-																t,
-																recurringType,
-																coefficient,
-															),
-														})}
-													</SwiftText>
-													<Image
-														color={colors.muted}
-														size={12}
-														systemName="chevron.up.chevron.down"
-													/>
-												</HStack>
-											}
-											modifiers={[menuTint]}
-										>
-											<Picker
-												label={t("transaction.field.schedule")}
-												onSelectionChange={handleScheduleChange}
-												selection={recurringType}
-											>
-												{SELECTABLE_RECURRING_TYPES.map((type) => (
-													<SwiftText key={type} modifiers={[tag(type)]}>
-														{t(
-															CADENCE_LABEL_KEY[type] ??
-																"transaction.cadence.monthly",
-														)}
-													</SwiftText>
-												))}
-											</Picker>
-											<Button
-												label={t("transaction.schedule.customOption")}
-												onPress={() => scheduleSheetRef.current?.present()}
-											/>
-										</Menu>
-									</HStack>
-
-									<Divider modifiers={hairline} />
-
-									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.firstPayment")}
-										</SwiftText>
-										<Spacer />
-										<DatePicker
-											displayedComponents={["date"]}
-											modifiers={[datePickerStyle("compact"), labelsHidden()]}
-											onDateChange={setDate}
-											selection={date}
-										/>
-									</HStack>
-
-									<Divider modifiers={hairline} />
-
-									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.endDate")}
-										</SwiftText>
-										<Spacer />
-										<Toggle
-											isOn={hasEndDate}
-											modifiers={[tint(colors.income), labelsHidden()]}
-											onIsOnChange={setHasEndDate}
-										/>
-									</HStack>
-
-									{hasEndDate ? (
-										<>
-											<Divider modifiers={hairline} />
-											<HStack modifiers={ROW}>
-												<SwiftText modifiers={[BODY, rowLabel]}>
-													{t("transaction.field.ends")}
-												</SwiftText>
-												<Spacer />
-												<DatePicker
-													displayedComponents={["date"]}
-													modifiers={[
-														datePickerStyle("compact"),
-														labelsHidden(),
-													]}
-													onDateChange={setEndDate}
-													selection={endDate}
-												/>
-											</HStack>
-										</>
-									) : null}
-
-									<Divider modifiers={hairline} />
-
-									{/* Label outside the Menu, as on the Schedule row above. */}
-									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.remind")}
-										</SwiftText>
-										<Spacer />
-										<Menu
-											label={
-												<HStack spacing={4}>
-													<SwiftText
-														modifiers={[
-															BODY,
-															foregroundStyle(colors.foreground),
-														]}
-													>
-														{leadLabel(t, leadDays)}
-													</SwiftText>
-													<Image
-														color={colors.muted}
-														size={12}
-														systemName="chevron.up.chevron.down"
-													/>
-												</HStack>
-											}
-											modifiers={[menuTint]}
-										>
-											<Picker
-												label={t("transaction.field.remind")}
-												onSelectionChange={handleLeadChange}
-												selection={leadDays ?? LEAD_OFF_TAG}
-											>
-												<SwiftText modifiers={[tag(LEAD_OFF_TAG)]}>
-													{t("transaction.remind.off")}
-												</SwiftText>
-												{REMINDER_LEAD_OPTIONS.map((lead) => (
-													<SwiftText key={lead} modifiers={[tag(lead)]}>
-														{leadLabel(t, lead)}
-													</SwiftText>
-												))}
-											</Picker>
-										</Menu>
-									</HStack>
-								</>
-							) : (
-								<>
-									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.date")}
-										</SwiftText>
-										<Spacer />
-										<DatePicker
-											displayedComponents={["date"]}
-											modifiers={[datePickerStyle("compact"), labelsHidden()]}
-											onDateChange={setDate}
-											selection={date}
-										/>
-									</HStack>
-
-									<Divider modifiers={hairline} />
-
-									<HStack modifiers={ROW}>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.time")}
-										</SwiftText>
-										<Spacer />
-										<DatePicker
-											displayedComponents={["hourAndMinute"]}
-											modifiers={[datePickerStyle("compact"), labelsHidden()]}
-											onDateChange={setDate}
-											selection={date}
-										/>
-									</HStack>
-								</>
-							)}
-						</VStack>
+						<TransactionFormScheduleSection
+							cadenceOptions={cadenceOptions}
+							card={card}
+							customScheduleLabel={t("transaction.schedule.customOption")}
+							date={date}
+							dateLabel={t("transaction.field.date")}
+							endDate={endDate}
+							endDateLabel={t("transaction.field.endDate")}
+							endsLabel={t("transaction.field.ends")}
+							firstPaymentLabel={t("transaction.field.firstPayment")}
+							foregroundColor={colors.foreground}
+							hairline={hairline}
+							hasEndDate={hasEndDate}
+							incomeColor={colors.income}
+							isSubscription={isSubscription}
+							leadDays={leadDays}
+							leadOffLabel={t("transaction.remind.off")}
+							leadOffTag={LEAD_OFF_TAG}
+							leadOptions={leadOptions}
+							mutedColor={colors.muted}
+							onDateChange={setDate}
+							onEndDateChange={setEndDate}
+							onHasEndDateChange={setHasEndDate}
+							onLeadChange={handleLeadChange}
+							onOpenCustomSchedule={() => scheduleSheetRef.current?.present()}
+							onScheduleChange={handleScheduleChange}
+							recurringType={recurringType}
+							remindLabel={t("transaction.field.remind")}
+							remindMenuLabel={leadLabel(t, leadDays)}
+							scheduleLabel={t("transaction.field.schedule")}
+							scheduleMenuLabel={t("transaction.schedule.every", {
+								interval: intervalPhrase(t, recurringType, coefficient),
+							})}
+							timeLabel={t("transaction.field.time")}
+						/>
 
 						<TransactionFormDetailsSection
 							card={card}

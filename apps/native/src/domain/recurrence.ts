@@ -23,6 +23,15 @@ export const SELECTABLE_RECURRING_TYPES: readonly RecurringType[] = [
 	RECURRING_TYPE.yearly,
 ];
 
+/**
+ * A subscription needs a cadence to walk forward. Only fires when the type is
+ * still `none` — re-entering subscription mode after toggling it off must not
+ * clobber a cadence the user already chose.
+ */
+export function ensureRecurringType(type: number): number {
+	return type === RECURRING_TYPE.none ? RECURRING_TYPE.monthly : type;
+}
+
 const UNIT_SINGULAR: Record<number, string> = {
 	1: "day",
 	2: "week",
