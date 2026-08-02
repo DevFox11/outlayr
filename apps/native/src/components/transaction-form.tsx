@@ -71,6 +71,7 @@ import {
 } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
+import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
@@ -79,13 +80,12 @@ import {
 } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
 import {
-	type LeadLabelKey,
-	leadLabelKey,
 	normalizeLead,
 	REMINDER_LEAD_OPTIONS,
 } from "@/domain/subscription-reminder";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
+import { ctaKey, leadLabel } from "@/domain/transaction-form-labels";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -187,36 +187,6 @@ const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
  * reminder on the due day for the owner who just switched reminders off.
  */
 const LEAD_OFF_TAG = -1;
-
-/**
- * Only names what this screen calls each phrasing. Which phrasing a lead reads
- * as stays with {@link leadLabelKey}, including the counted fallback a lead the
- * picker never offered needs — one restored from another device. Several domain
- * keys therefore share a string: "2 days before" and "5 days before" are the
- * same counted form.
- */
-const LEAD_LABEL_KEY: Record<LeadLabelKey, TranslationKey> = {
-	"settings.notifications.leadOff": "transaction.remind.off",
-	"settings.notifications.leadSameDay": "transaction.remind.sameDay",
-	"settings.notifications.leadOneDay": "transaction.remind.dayBefore",
-	"settings.notifications.leadTwoDays": "transaction.remind.daysBefore",
-	"settings.notifications.leadThreeDays": "transaction.remind.daysBefore",
-	"settings.notifications.leadOneWeek": "transaction.remind.weekBefore",
-	"settings.notifications.leadDaysBefore": "transaction.remind.daysBefore",
-};
-
-function leadLabel(t: TranslateFn, lead: number | null): string {
-	return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
-}
-
-function ctaKey(mode: "create" | "edit", isSubscription: boolean) {
-	if (mode === "edit") {
-		return "transaction.cta.save";
-	}
-	return isSubscription
-		? "transaction.cta.addSubscription"
-		: "transaction.cta.add";
-}
 
 /**
  * What an outside surface — a quick action, a widget, an App Intent — can put in
@@ -631,18 +601,16 @@ export function TransactionForm({
 				: colors.foreground
 			: colors.muted;
 
-	const identityEmpty = !identity.emoji && !identity.icon && !identity.photoUri;
-	const curtainTint =
-		identity.color ??
-		identity.photoColor ??
-		(income ? colors.income : (category?.color ?? colors.foreground));
-	const curtainHues = identityEmpty
-		? null
-		: identity.emoji
-			? [...glowFromEmoji(identity.emoji).slice(0, 2), curtainTint]
-			: identity.photoUri
-				? [identity.photoColor ?? curtainTint]
-				: [curtainTint];
+	const curtainHues = computeCurtainHues(
+		{
+			categoryColor: category?.color,
+			foregroundColor: colors.foreground,
+			identity,
+			income,
+			incomeColor: colors.income,
+		},
+		glowFromEmoji,
+	);
 	const toastLabel = t(
 		isSubscription
 			? "transaction.toast.subscriptionAdded"
