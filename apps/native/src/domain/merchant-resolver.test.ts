@@ -1,0 +1,125 @@
+import { merchantKey, resolveMerchant } from "./merchant-resolver";
+
+describe("normalizing a raw name into a matching key", () => {
+	it("lowercases, trims, and collapses whitespace", () => {
+		expect(merchantKey("  NETFLIX   Inc  ")).toBe("netflix inc");
+	});
+
+	it("strips diacritics", () => {
+		expect(merchantKey("Café Amazon")).toBe("cafe amazon");
+	});
+
+	it("turns punctuation into word breaks", () => {
+		expect(merchantKey("AT&T*BILL")).toBe("at t bill");
+	});
+});
+
+describe("resolving the six required named merchants", () => {
+	it("resolves duolingo", () => {
+		expect(resolveMerchant("Duolingo")).toStrictEqual({
+			categoryName: "Education",
+			tags: ["Learning", "Subscription"],
+			domain: "duolingo.com",
+		});
+	});
+
+	it("resolves netflix", () => {
+		expect(resolveMerchant("Netflix")).toStrictEqual({
+			categoryName: "Entertainment",
+			tags: ["Streaming", "Subscription"],
+			domain: "netflix.com",
+		});
+	});
+
+	it("resolves apple", () => {
+		expect(resolveMerchant("Apple")).toStrictEqual({
+			categoryName: "Shopping",
+			tags: ["Apple"],
+			domain: "apple.com",
+		});
+	});
+
+	it("resolves apple music", () => {
+		expect(resolveMerchant("Apple Music")).toStrictEqual({
+			categoryName: "Entertainment",
+			tags: ["Music", "Streaming", "Subscription"],
+			domain: "music.apple.com",
+		});
+	});
+
+	it("resolves youtube", () => {
+		expect(resolveMerchant("YouTube")).toStrictEqual({
+			categoryName: "Entertainment",
+			tags: ["Streaming", "Subscription"],
+			domain: "youtube.com",
+		});
+	});
+
+	it("resolves youtube music", () => {
+		expect(resolveMerchant("YouTube Music")).toStrictEqual({
+			categoryName: "Entertainment",
+			tags: ["Music", "Streaming", "Subscription"],
+			domain: "music.youtube.com",
+		});
+	});
+});
+
+describe("longest-pattern-first (WCGW #3)", () => {
+	it("matches apple music over the bare apple pattern when the name carries extra words", () => {
+		const result = resolveMerchant("Apple Music Family Plan");
+		expect(result?.domain).toBe("music.apple.com");
+	});
+
+	it("matches youtube music over the bare youtube pattern when the name carries extra words", () => {
+		const result = resolveMerchant("YouTube Music Family Plan");
+		expect(result?.domain).toBe("music.youtube.com");
+	});
+
+	it("still resolves apple's own longer alias correctly", () => {
+		const result = resolveMerchant("Apple Store Purchase");
+		expect(result?.domain).toBe("apple.com");
+	});
+});
+
+describe("alias and token containment", () => {
+	it("matches a curated pattern embedded inside a longer statement string", () => {
+		const result = resolveMerchant("COSTCO WHOLESALE #482");
+		expect(result?.categoryName).toBe("Groceries");
+	});
+
+	it("does not match an unrelated word that merely shares a prefix", () => {
+		expect(resolveMerchant("Appliance")).toBeNull();
+	});
+});
+
+describe("fuzzy matching", () => {
+	it("accepts a single-character typo at least 5 characters long", () => {
+		const result = resolveMerchant("Spotifi");
+		expect(result?.categoryName).toBe("Entertainment");
+		expect(result?.tags).toStrictEqual(["Music", "Streaming", "Subscription"]);
+	});
+
+	it("always suppresses the domain on a fuzzy hit (D3)", () => {
+		const result = resolveMerchant("Spotifi");
+		expect(result?.domain).toBeNull();
+	});
+
+	it("rejects short names below the 5-character floor even at distance 1", () => {
+		expect(resolveMerchant("User")).toBeNull();
+		expect(resolveMerchant("Ubr")).toBeNull();
+	});
+
+	it("rejects an ambiguous name equidistant from two different curated entries", () => {
+		expect(resolveMerchant("canvaa")).toBeNull();
+	});
+
+	it("resolves a real distance-1 collision between different companies but keeps the domain null", () => {
+		const result = resolveMerchant("cosco");
+		expect(result?.categoryName).toBe("Groceries");
+		expect(result?.domain).toBeNull();
+	});
+
+	it("rejects a name with no curated candidate at all", () => {
+		expect(resolveMerchant("xyzcorp random note 12345")).toBeNull();
+	});
+});
