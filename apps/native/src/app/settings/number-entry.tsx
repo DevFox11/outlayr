@@ -1,7 +1,8 @@
 import { ChoiceRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setNumberSetting, useNumberSetting } from "@/data/settings";
+import { setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { type TranslationKey, useTranslation } from "@/i18n";
 
@@ -29,7 +30,8 @@ export default function NumberEntryRoute() {
 
 function NumberEntry({ db }: { db: Database }) {
 	const t = useTranslation();
-	const numberEntryType = useNumberSetting(db, "numberEntryType");
+	const { state: settings } = useAppSettings();
+	const numberEntryType = settings.number("numberEntryType");
 
 	return (
 		<SettingsScreen>

@@ -10,14 +10,13 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Line } from "react-native-svg";
 import { scheduleOnRN } from "react-native-worklets";
-import { useDatabase } from "@/contexts/local-data-context";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	bucketDateLabel,
 	type InsightsBucket,
 	type InsightsMeasure,
 	type InsightsPeriod,
 } from "@/data/insights";
-import { useBoolSetting } from "@/data/settings";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import {
 	CHART_BAR,
@@ -81,9 +80,9 @@ export function InsightsBarChart({
 	nowMs,
 }: InsightsBarChartProps) {
 	const colors = useColors();
-	const db = useDatabase();
 	const reduceMotion = useReducedMotion();
-	const animated = useBoolSetting(db, "animatedCharts") && !reduceMotion;
+	const animated =
+		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
 
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);

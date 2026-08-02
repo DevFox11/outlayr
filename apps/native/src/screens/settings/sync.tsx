@@ -10,11 +10,11 @@ import {
 } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { META_KEYS } from "@/data/app-meta";
 import { runAdoption } from "@/data/ledger-adoption";
 import { useLiveQuery } from "@/data/live-query";
-import { useBoolSetting } from "@/data/settings";
 import { setSyncEnabled } from "@/data/sync-outbox-core";
 import { useSyncStatus } from "@/data/use-sync-status";
 import type { Database } from "@/db/client";
@@ -50,7 +50,7 @@ function SyncSettings({ db }: { db: Database }) {
 	const { status } = useLedgerAdoption();
 	const { pending, syncedAt } = useSyncStatus(db);
 	const enabled = useSyncEnabled(db);
-	const use24Hour = useBoolSetting(db, "use24HourClock");
+	const { use24Hour } = useDisplaySettings().state;
 	const [busy, setBusy] = useState(false);
 
 	// The switch is the user's to hold only once the two ledgers have been

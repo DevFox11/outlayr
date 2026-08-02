@@ -1,11 +1,8 @@
 import { ChoiceRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import {
-	HAPTICS_OPTIONS,
-	setNumberSetting,
-	useNumberSetting,
-} from "@/data/settings";
+import { HAPTICS_OPTIONS, setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { type TranslationKey, useTranslation } from "@/i18n";
 
@@ -22,7 +19,8 @@ export default function HapticsRoute() {
 
 function Haptics({ db }: { db: Database }) {
 	const t = useTranslation();
-	const haptics = useNumberSetting(db, "haptics");
+	const { state: settings } = useAppSettings();
+	const haptics = settings.number("haptics");
 
 	return (
 		<SettingsScreen>

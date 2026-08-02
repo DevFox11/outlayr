@@ -16,8 +16,7 @@ import {
 	withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useDatabase } from "@/contexts/local-data-context";
-import { useBoolSetting } from "@/data/settings";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import type { Burndown } from "@/domain/budget-burndown";
 import { useTranslation } from "@/i18n";
 import { hatchPathD } from "@/lib/chart-paths";
@@ -131,9 +130,9 @@ export function BudgetBurndownChart({
 }: BudgetBurndownChartProps) {
 	const colors = useColors();
 	const t = useTranslation();
-	const db = useDatabase();
 	const reduceMotion = useReducedMotion();
-	const animatedCharts = useBoolSetting(db, "animatedCharts") && !reduceMotion;
+	const animatedCharts =
+		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
 	const [scrubDay, setScrubDay] = useState<number | null>(null);
 
 	const scrubX = useSharedValue(-1);

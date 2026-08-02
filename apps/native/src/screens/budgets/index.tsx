@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -13,7 +14,6 @@ import {
 	useMainBudget,
 	usePerCategoryBudgets,
 } from "@/data/budgets";
-import { useBoolSetting } from "@/data/settings";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
@@ -43,7 +43,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
-	const asRows = useBoolSetting(db, "budgetViewStyle");
+	const asRows = useAppSettings().state.bool("budgetViewStyle");
 	const nowMs = useNow();
 
 	// One transactions subscription for the screen: every hook below derives from

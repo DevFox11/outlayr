@@ -11,8 +11,7 @@ import Svg, {
 } from "react-native-svg";
 
 import { Text } from "@/components/text";
-import { useDatabase } from "@/contexts/local-data-context";
-import { useBoolSetting } from "@/data/settings";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
@@ -44,13 +43,13 @@ export function LogSparkline({
 	const colors = useColors();
 	const t = useTranslation();
 	const { language } = useLanguage();
-	const db = useDatabase();
 	const reduceMotion = useReducedMotion();
 	// Read here, not threaded from the screen: every chart answers to this setting
 	// itself. The OS flag is ANDed in by hand because the draw below is a
 	// `setTimeout` rather than a Reanimated animation, so there is nothing for the
 	// library's own `ReduceMotion.System` handling to collapse.
-	const animatedCharts = useBoolSetting(db, "animatedCharts") && !reduceMotion;
+	const animatedCharts =
+		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 	const [drawn, setDrawn] = useState(!animatedCharts);

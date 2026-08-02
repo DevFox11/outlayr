@@ -2,14 +2,12 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
-import { useDatabase } from "@/contexts/local-data-context";
 import {
-	ordinalDay,
-	setBoolSetting,
-	setNumberSetting,
-	useBoolSetting,
-	useNumberSetting,
-} from "@/data/settings";
+	useAppSettings,
+	useDisplaySettings,
+} from "@/contexts/display-settings-context";
+import { useDatabase } from "@/contexts/local-data-context";
+import { ordinalDay, setBoolSetting, setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { type TranslationKey, useLanguage, useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
@@ -34,12 +32,13 @@ export default function TimeFramesScreen() {
 function TimeFrames({ db }: { db: Database }) {
 	const t = useTranslation();
 	const { language } = useLanguage();
-	const firstWeekday = useNumberSetting(db, "firstWeekday");
-	const firstDayOfMonth = useNumberSetting(db, "firstDayOfMonth");
+	const { state: settings } = useAppSettings();
+	const firstWeekday = settings.number("firstWeekday");
+	const firstDayOfMonth = settings.number("firstDayOfMonth");
 	// Displayed and overridden here only. The device's convention is seeded at the
 	// root (`useSeededClockPreference`), so a user who never opens this screen
 	// still reads the clock their handset uses.
-	const use24HourClock = useBoolSetting(db, "use24HourClock");
+	const { use24Hour: use24HourClock } = useDisplaySettings().state;
 
 	return (
 		<ScrollView

@@ -55,13 +55,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { Confetti } from "@/components/confetti";
 import { menuTint } from "@/components/native/styles";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	useIdentityDraft,
 	useIdentityFlyUp,
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Category, getCategoryById } from "@/data/categories";
-import { setBoolSetting, useBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings";
 import { tagsRepo, useTagIdsFor, useTags } from "@/data/tags";
 import {
 	backfillRecurring,
@@ -332,7 +333,7 @@ export function TransactionForm({
 	const [categoryShake, setCategoryShake] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [showToast, setShowToast] = useState(false);
-	const celebrate = useBoolSetting(db, "confetti");
+	const celebrate = useAppSettings().state.bool("confetti");
 	const [burstSeed, setBurstSeed] = useState(0);
 	// Shared values, not state: the fly-up is the only reader and it reads them from
 	// the UI thread, so measuring the form must not cost the SwiftUI tree a render.
