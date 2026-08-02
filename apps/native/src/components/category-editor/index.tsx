@@ -1,38 +1,14 @@
 import { Host } from "@expo/ui";
-import {
-	Button,
-	Form,
-	HStack,
-	Picker,
-	Section,
-	Spacer,
-	Text as SwiftText,
-	TextField,
-	type TextFieldRef,
-	useNativeState,
-} from "@expo/ui/swift-ui";
+import { Form, type TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
 import {
 	animation,
 	blur,
-	buttonStyle,
-	controlSize,
-	disabled,
-	foregroundStyle,
-	listSectionMargins,
 	listStyle,
-	multilineTextAlignment,
-	onSubmit,
 	opacity,
-	pickerStyle,
 	scrollContentBackground,
-	submitLabel,
-	tag,
-	textInputAutocapitalization,
-	tint as tintModifier,
 } from "@expo/ui/swift-ui/modifiers";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import type { ReactElement, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
 import Animated, {
@@ -44,7 +20,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
-import { IdentityHero } from "@/components/identity-hero";
 import { Text } from "@/components/text";
 import {
 	useIdentityDraft,
@@ -73,40 +48,22 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { CategoryEditorCta } from "./cta";
+import { CategoryEditorDetailsSection } from "./details-section";
+import { CategoryEditorHeroBand } from "./hero-band";
 import {
-	BODY_SEMIBOLD,
 	CAPTION_CLEARANCE,
 	CTA_BOTTOM_PADDING,
 	CTA_HEIGHT,
 	FLY_BACK,
 	FLY_UP,
 	FORM_BLUR_RADIUS,
-	FORM_TOP_MARGIN,
 	HEADER_HEIGHT,
 	HERO_BOTTOM_PADDING,
 	HERO_TOP_PADDING,
 } from "./style";
 
 const MAX_EXPENSE_CATEGORIES = 24;
-
-function FormSection({
-	footer,
-	children,
-}: {
-	footer?: ReactElement;
-	children: ReactNode;
-}) {
-	return (
-		<Section
-			footer={footer}
-			modifiers={[
-				listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN }),
-			]}
-		>
-			{children}
-		</Section>
-	);
-}
 
 export type CategoryEditorProps =
 	| { mode: "create"; income?: boolean; parentId?: string | null }
@@ -523,131 +480,59 @@ function CategoryEditorReady(
 							...underPicker,
 						]}
 					>
-						<FormSection
-							footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
-						>
-							<HStack>
-								<SwiftText
-									modifiers={[
-										foregroundStyle({
-											type: "hierarchical",
-											style: "secondary",
-										}),
-									]}
-								>
-									{t("categories.field.name")}
-								</SwiftText>
-								<Spacer />
-								<TextField
-									modifiers={[
-										multilineTextAlignment("trailing"),
-										textInputAutocapitalization("words"),
-										submitLabel("done"),
-										onSubmit(submit),
-									]}
-									onTextChange={setName}
-									placeholder={namePlaceholder}
-									ref={nameRef}
-									text={nameState}
-								/>
-							</HStack>
-
-							{typePickerVisible ? (
-								<HStack>
-									<SwiftText
-										modifiers={[
-											foregroundStyle({
-												type: "hierarchical",
-												style: "secondary",
-											}),
-										]}
-									>
-										{t("categories.field.type")}
-									</SwiftText>
-									<Spacer />
-									<Picker
-										label=""
-										modifiers={[
-											pickerStyle("menu"),
-											tintModifier(colors.foreground),
-										]}
-										onSelectionChange={(value) =>
-											setCreateIncome(value === "income")
-										}
-										selection={income ? "income" : "expense"}
-									>
-										<SwiftText modifiers={[tag("expense")]}>
-											{t("common.expense")}
-										</SwiftText>
-										<SwiftText modifiers={[tag("income")]}>
-											{t("common.income")}
-										</SwiftText>
-									</Picker>
-								</HStack>
-							) : null}
-						</FormSection>
+						<CategoryEditorDetailsSection
+							caption={caption}
+							expenseLabel={t("common.expense")}
+							income={income}
+							incomeLabel={t("common.income")}
+							nameFieldRef={nameRef}
+							nameLabel={t("categories.field.name")}
+							namePlaceholder={namePlaceholder}
+							nameState={nameState}
+							onIncomeChange={setCreateIncome}
+							onNameChange={setName}
+							onSubmitName={submit}
+							tintColor={colors.foreground}
+							typeLabel={t("categories.field.type")}
+							typePickerVisible={typePickerVisible}
+						/>
 					</Form>
 				</Host>
 			</View>
 
 			{/* Follows the `Host` in the tree so the header's scroll-edge lookup still
 			    finds the form first. */}
-			<View
+			<CategoryEditorHeroBand
+				captionClearance={captionClearance}
+				color={tint}
+				emoji={draft.emoji}
+				floatProgress={floatProgress}
+				icon={draft.icon}
+				income={income}
 				onLayout={(e) => setHeroBand(e.nativeEvent.layout.height)}
-				pointerEvents="box-none"
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					alignItems: "center",
-					paddingTop: HEADER_HEIGHT + HERO_TOP_PADDING,
-					paddingBottom: HERO_BOTTOM_PADDING + captionClearance,
-				}}
-			>
-				<IdentityHero
-					color={tint}
-					emoji={draft.emoji}
-					floatProgress={floatProgress}
-					icon={draft.icon}
-					income={income}
-					onPress={openPicker}
-					onReset={() =>
-						setDraft({
-							emoji: null,
-							icon: null,
-							photoUri: null,
-							photoColor: null,
-							color: null,
-						})
-					}
-					photoUri={null}
-					variant="category"
-				/>
-			</View>
+				onPress={openPicker}
+				onReset={() =>
+					setDraft({
+						emoji: null,
+						icon: null,
+						photoUri: null,
+						photoColor: null,
+						color: null,
+					})
+				}
+			/>
 
 			<View
 				pointerEvents="box-none"
 				className="absolute right-0 bottom-safe-offset-2 left-0 px-5"
 			>
-				<Host style={{ height: CTA_HEIGHT }}>
-					<Button
-						modifiers={[
-							buttonStyle("borderedProminent"),
-							controlSize("large"),
-							tintModifier(colors.foreground),
-							disabled(!canSave),
-							...underPicker,
-						]}
-						onPress={submit}
-					>
-						<HStack>
-							<Spacer />
-							<SwiftText modifiers={[BODY_SEMIBOLD]}>{ctaLabel}</SwiftText>
-							<Spacer />
-						</HStack>
-					</Button>
-				</Host>
+				<CategoryEditorCta
+					canSave={canSave}
+					label={ctaLabel}
+					onPress={submit}
+					tintColor={colors.foreground}
+					underPicker={underPicker}
+				/>
 			</View>
 
 			{showToast ? (
