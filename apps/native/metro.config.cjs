@@ -21,11 +21,6 @@ if (!config.watchFolders.includes(pnpmStore)) {
 	config.watchFolders.push(pnpmStore);
 }
 
-// apps/ios is the Swift app — a workspace member with no JS, so Metro's default
-// crawl walks ~1.3 GB of Xcode output for nothing.
-const swiftApp = path.resolve(__dirname, "../ios");
-config.watchFolders = config.watchFolders.filter((dir) => dir !== swiftApp);
-
 // Let Metro resolve the `.sql` files that drizzle's generated migrations
 // bundle imports. Must run before the reanimated/uniwind wrappers, which
 // extend (never reset) the resolver — re-verify on upgrades.

@@ -81,8 +81,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  apps/ios: {}
-
   apps/native:
     dependencies:
       '@bacons/apple-targets':
