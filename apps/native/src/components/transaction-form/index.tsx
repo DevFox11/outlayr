@@ -110,13 +110,12 @@ import { IdentityFlyUpLayer } from "../identity-fly-up";
 import { LinearGradient } from "../styled";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
+import { TransactionFormAmountSection } from "./amount-section";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
 import { TransactionFormIdentitySection } from "./identity-section";
 import {
 	BODY,
-	BODY_MEDIUM,
-	CAPTION,
 	CARD_SHAPE,
 	FLY_BACK,
 	FLY_UP,
@@ -126,7 +125,6 @@ import {
 	rowLabel,
 	SHAKE,
 	TAP_ROW,
-	tertiary,
 } from "./style";
 
 /**
@@ -713,27 +711,14 @@ export function TransactionForm({
 								</Menu>
 							</HStack>
 
-							<Divider modifiers={hairline} />
-
-							<Button
-								modifiers={[buttonStyle("plain")]}
+							<TransactionFormAmountSection
+								currency={currency}
+								hairline={hairline}
+								label={t("transaction.field.amount")}
 								onPress={() => amountSheetRef.current?.present()}
-							>
-								<HStack modifiers={TAP_ROW}>
-									<SwiftText modifiers={[BODY, rowLabel]}>
-										{t("transaction.field.amount")}
-									</SwiftText>
-									<Spacer />
-									<SwiftText
-										modifiers={[BODY_MEDIUM, foregroundStyle(amountColor)]}
-									>
-										{formatAmount(amountNumber, currency)}
-									</SwiftText>
-									<SwiftText modifiers={[CAPTION, tertiary]}>
-										{currency}
-									</SwiftText>
-								</HStack>
-							</Button>
+								value={formatAmount(amountNumber, currency)}
+								valueColor={amountColor}
+							/>
 						</VStack>
 
 						<Button
