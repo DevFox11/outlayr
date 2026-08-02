@@ -34,6 +34,18 @@ export function normalizeLead(raw: number | null): number | null {
 }
 
 /**
+ * A SwiftUI `Picker`'s tag set has to be one type, so Off rides along as
+ * `offTag` rather than a real lead count; this turns the raw selection back
+ * into `null` before it reaches {@link normalizeLead}.
+ */
+export function resolveLeadSelection(
+	tag: number,
+	offTag: number,
+): number | null {
+	return tag === offTag ? null : normalizeLead(tag);
+}
+
+/**
  * Whole days back, then the wall-clock hour set outright: a DST change between
  * the fire date and the due date would otherwise shift the reminder an hour off
  * the time the owner picked.

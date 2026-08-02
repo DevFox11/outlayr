@@ -1,7 +1,8 @@
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
-import { ctaKey, leadLabel } from "./transaction-form-labels";
+import { RECURRING_TYPE } from "./recurrence";
+import { cadenceLabel, ctaKey, leadLabel } from "./transaction-form-labels";
 
 const en: TranslateFn = (key, params) =>
 	translate(key, { catalog: EN, fallback: EN, params });
@@ -48,5 +49,19 @@ describe("leadLabel", () => {
 
 	it("falls back to the counted phrasing for a lead the picker never offers", () => {
 		expect(leadLabel(en, 14)).toBe("14 days before");
+	});
+});
+
+describe("cadenceLabel", () => {
+	it("names each cadence the picker offers", () => {
+		expect(cadenceLabel(en, RECURRING_TYPE.daily)).toBe("Daily");
+		expect(cadenceLabel(en, RECURRING_TYPE.weekly)).toBe("Weekly");
+		expect(cadenceLabel(en, RECURRING_TYPE.monthly)).toBe("Monthly");
+		expect(cadenceLabel(en, RECURRING_TYPE.yearly)).toBe("Yearly");
+	});
+
+	it("falls back to the monthly phrasing for a cadence the picker never offers", () => {
+		expect(cadenceLabel(en, RECURRING_TYPE.none)).toBe("Monthly");
+		expect(cadenceLabel(en, 99)).toBe("Monthly");
 	});
 });

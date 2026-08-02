@@ -1,8 +1,20 @@
+import { RECURRING_TYPE } from "@/domain/recurrence";
 import {
 	type LeadLabelKey,
 	leadLabelKey,
 } from "@/domain/subscription-reminder";
 import type { TranslateFn, TranslationKey } from "@/i18n";
+
+const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
+	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
+	[RECURRING_TYPE.weekly]: "transaction.cadence.weekly",
+	[RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
+	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
+};
+
+export function cadenceLabel(t: TranslateFn, type: number): string {
+	return t(CADENCE_LABEL_KEY[type] ?? "transaction.cadence.monthly");
+}
 
 export function ctaKey(
 	mode: "create" | "edit",

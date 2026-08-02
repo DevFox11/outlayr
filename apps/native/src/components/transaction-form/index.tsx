@@ -67,6 +67,7 @@ import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
+	ensureRecurringType,
 	RECURRING_TYPE,
 	SELECTABLE_RECURRING_TYPES,
 } from "@/domain/recurrence";
@@ -74,10 +75,16 @@ import { enableReminderStep } from "@/domain/reminder";
 import {
 	normalizeLead,
 	REMINDER_LEAD_OPTIONS,
+	resolveLeadSelection,
 } from "@/domain/subscription-reminder";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { ctaKey, leadLabel } from "@/domain/transaction-form-labels";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import {
+	cadenceLabel,
+	ctaKey,
+	leadLabel,
+} from "@/domain/transaction-form-labels";
+import { buildTransactionInput } from "@/domain/transaction-form-save";
+import { useTranslation } from "@/i18n";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -135,13 +142,6 @@ const HERO_BOTTOM_PADDING = 28;
  * supersedes it. A 70pt nav-bar scroll inset plus {@link HERO_TOP_PADDING}.
  */
 const HERO_REST_TOP_FALLBACK = 88;
-
-const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
-	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
-	[RECURRING_TYPE.weekly]: "transaction.cadence.weekly",
-	[RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
-	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
-};
 
 /**
  * A SwiftUI `tag()` set has to be one type, and Off is the absence of a lead
@@ -354,8 +354,8 @@ export function TransactionForm({
 	const handleKindChange = (next: "once" | "subscription") => {
 		const sub = next === "subscription";
 		setIsSubscription(sub);
-		if (sub && recurringType === RECURRING_TYPE.none) {
-			setRecurringType(RECURRING_TYPE.monthly);
+		if (sub) {
+			setRecurringType(ensureRecurringType(recurringType));
 		}
 	};
 
@@ -413,7 +413,7 @@ export function TransactionForm({
 	};
 
 	const handleLeadChange = (next: number) => {
-		const lead = next === LEAD_OFF_TAG ? null : normalizeLead(next);
+		const lead = resolveLeadSelection(next, LEAD_OFF_TAG);
 		setLeadDays(lead);
 		if (lead !== null) {
 			confirmRemindersAllowed().catch((error) => {
@@ -445,7 +445,7 @@ export function TransactionForm({
 		}
 		setSaving(true);
 		haptics("success");
-		const input = {
+		const input = buildTransactionInput({
 			amount: amountNumber,
 			income,
 			categoryId: category.id,
@@ -458,12 +458,13 @@ export function TransactionForm({
 			customColor: identity.color,
 			imageUri: identity.photoUri,
 			imageColor: identity.photoColor,
-			onceRecurring: isSubscription,
-			recurringType: isSubscription ? recurringType : RECURRING_TYPE.none,
-			recurringCoefficient: isSubscription ? Math.max(1, coefficient) : 1,
-			recurringEndDate: isSubscription && hasEndDate ? endDate : null,
-			reminderLeadDays: isSubscription ? leadDays : null,
-		};
+			isSubscription,
+			recurringType,
+			coefficient,
+			hasEndDate,
+			endDate,
+			leadDays,
+		});
 		let id: string;
 		try {
 			if (mode === "edit" && initial) {
@@ -900,10 +901,7 @@ export function TransactionForm({
 											>
 												{SELECTABLE_RECURRING_TYPES.map((type) => (
 													<SwiftText key={type} modifiers={[tag(type)]}>
-														{t(
-															CADENCE_LABEL_KEY[type] ??
-																"transaction.cadence.monthly",
-														)}
+														{cadenceLabel(t, type)}
 													</SwiftText>
 												))}
 											</Picker>

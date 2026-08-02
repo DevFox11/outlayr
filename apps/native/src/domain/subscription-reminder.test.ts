@@ -9,6 +9,7 @@ import {
 	REMINDER_LEAD_OPTIONS,
 	reminderFireAt,
 	reminderPlan,
+	resolveLeadSelection,
 	SUBSCRIPTION_REMINDER_PREFIX,
 	subscriptionReminderId,
 } from "./subscription-reminder";
@@ -311,5 +312,22 @@ describe("labelling a lead", () => {
 	it("labels a clamped lead by the value that will actually be used", () => {
 		expect(leadLabelKey(-3)).toBe("settings.notifications.leadSameDay");
 		expect(leadLabelKey(1.5)).toBe("settings.notifications.leadOneDay");
+	});
+});
+
+describe("resolveLeadSelection", () => {
+	const OFF_TAG = -1;
+
+	it("reads the off sentinel as no reminder", () => {
+		expect(resolveLeadSelection(OFF_TAG, OFF_TAG)).toBe(null);
+	});
+
+	it("normalizes any other tag as a lead count", () => {
+		expect(resolveLeadSelection(0, OFF_TAG)).toBe(0);
+		expect(resolveLeadSelection(7, OFF_TAG)).toBe(7);
+	});
+
+	it("never mistakes a real lead for the sentinel", () => {
+		expect(resolveLeadSelection(3, OFF_TAG)).toBe(3);
 	});
 });
