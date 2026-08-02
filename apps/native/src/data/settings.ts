@@ -27,8 +27,15 @@ export interface SettingsSnapshot {
  * runs nine queries and nine re-renders for one toggle tap. Prefer this on any
  * screen reading more than one or two.
  */
-export function useAllSettings(db: Database): SettingsSnapshot {
-	const rows = useLiveQuery(appMeta, () => db.select().from(appMeta));
+export function useAllSettings(db: Database | null): SettingsSnapshot {
+	// Nullable because `AppSettingsProvider` mounts above the root splash gate and
+	// so renders while the database is still opening; the defaults it publishes in
+	// that window are never observed, since every consumer sits below the gate.
+	const rows = useLiveQuery<typeof appMeta.$inferSelect>(
+		appMeta,
+		() => (db == null ? { all: () => [] } : db.select().from(appMeta)),
+		[db],
+	);
 
 	return useMemo(() => {
 		const raw = new Map<string, string | null>();

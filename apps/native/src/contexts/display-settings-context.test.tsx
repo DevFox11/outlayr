@@ -47,7 +47,7 @@ function makeDb(): Database {
 const mockDbHolder: { current: Database | null } = { current: null };
 
 jest.mock("@/contexts/local-data-context", () => ({
-	useDatabase: () => mockDbHolder.current,
+	useLocalData: () => ({ db: mockDbHolder.current }),
 }));
 
 let displayRenders: number;
@@ -102,5 +102,45 @@ describe("AppSettingsProvider", () => {
 			expect(getByTestId("display-probe").props.children).toBe("false"),
 		);
 		expect(displayRenders).toBeGreaterThan(rendersBeforeUnrelatedWrite);
+	});
+
+	it("publishes defaults instead of throwing while the database is still opening", async () => {
+		mockDbHolder.current = null;
+
+		const { getByTestId } = await render(
+			<AppSettingsProvider>
+				<DisplayProbe />
+				<AppProbe />
+			</AppSettingsProvider>,
+		);
+
+		expect(getByTestId("display-probe").props.children).toBe("true");
+		expect(getByTestId("app-probe").props.children).toBe("false");
+	});
+
+	it("picks up the database once it opens", async () => {
+		mockDbHolder.current = null;
+
+		const { getByTestId, rerender } = await render(
+			<AppSettingsProvider>
+				<DisplayProbe />
+			</AppSettingsProvider>,
+		);
+
+		const db = makeDb();
+		await setBoolSetting(db, "showCents", false);
+		mockDbHolder.current = db;
+
+		await act(async () => {
+			rerender(
+				<AppSettingsProvider>
+					<DisplayProbe />
+				</AppSettingsProvider>,
+			);
+		});
+
+		await waitFor(() =>
+			expect(getByTestId("display-probe").props.children).toBe("false"),
+		);
 	});
 });

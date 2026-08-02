@@ -11,7 +11,7 @@ import {
 	setNumberSetting,
 	useAllSettings,
 } from "@/data/settings";
-import { useDatabase } from "./local-data-context";
+import { useLocalData } from "./local-data-context";
 
 interface DisplaySettingsValue {
 	state: DisplaySettings;
@@ -39,7 +39,7 @@ const AppSettingsContext = createContext<AppSettingsValue | null>(null);
  * snapshot and re-renders on every write, same as today.
  */
 export function AppSettingsProvider({ children }: { children: ReactNode }) {
-	const db = useDatabase();
+	const { db } = useLocalData();
 	const settings = useAllSettings(db);
 	const { showCents, showSign, use24Hour, swapTimeLabel } =
 		selectDisplaySettings(settings);
@@ -54,9 +54,15 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
 			state: settings,
 			actions: {
 				setBool: (key, value) => {
+					if (db == null) {
+						return;
+					}
 					void setBoolSetting(db, key, value);
 				},
 				setNumber: (key, value) => {
+					if (db == null) {
+						return;
+					}
 					void setNumberSetting(db, key, value);
 				},
 			},
