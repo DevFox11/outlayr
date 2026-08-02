@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import {
 	createContext,
 	type ReactNode,
+	use,
 	useCallback,
-	useContext,
 	useEffect,
 	useMemo,
 	useState,
@@ -43,7 +43,7 @@ const SETTLED: LedgerAdoption = {
 const LedgerAdoptionContext = createContext<LedgerAdoption>(SETTLED);
 
 export function useLedgerAdoption(): LedgerAdoption {
-	return useContext(LedgerAdoptionContext);
+	return use(LedgerAdoptionContext);
 }
 
 /**

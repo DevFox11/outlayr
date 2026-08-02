@@ -1,7 +1,7 @@
 import {
 	createContext,
+	use,
 	useCallback,
-	useContext,
 	useMemo,
 	useRef,
 	useState,
@@ -146,7 +146,7 @@ export function IdentityDraftProvider({
 }
 
 export function useIdentityDraft(): IdentityDraftValue {
-	const value = useContext(IdentityDraftContext);
+	const value = use(IdentityDraftContext);
 	if (value == null) {
 		throw new Error(OUTSIDE_PROVIDER);
 	}
@@ -154,7 +154,7 @@ export function useIdentityDraft(): IdentityDraftValue {
 }
 
 export function useIdentityFlyUp(): IdentityFlyUpValue {
-	const value = useContext(IdentityFlyUpContext);
+	const value = use(IdentityFlyUpContext);
 	if (value == null) {
 		throw new Error(OUTSIDE_PROVIDER);
 	}

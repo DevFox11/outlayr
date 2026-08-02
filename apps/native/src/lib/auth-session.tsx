@@ -1,7 +1,7 @@
 import {
 	createContext,
 	type ReactNode,
-	useContext,
+	use,
 	useEffect,
 	useMemo,
 	useState,
@@ -26,7 +26,7 @@ const UNCONFIGURED: AuthSession = { gate: "unconfigured", accountId: null };
 const AuthSessionContext = createContext<AuthSession>(UNCONFIGURED);
 
 export function useAuthSession(): AuthSession {
-	return useContext(AuthSessionContext);
+	return use(AuthSessionContext);
 }
 
 /**

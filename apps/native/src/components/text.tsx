@@ -1,4 +1,4 @@
-import { type ComponentRef, forwardRef } from "react";
+import type { ComponentRef, Ref } from "react";
 import {
 	Text as RNText,
 	StyleSheet,
@@ -41,7 +41,10 @@ function roundedFamily(weight: TextStyle["fontWeight"]): string {
 	return FAMILY.regular;
 }
 
-type ThemedTextProps = TextProps & { className?: string };
+type ThemedTextProps = TextProps & {
+	className?: string;
+	ref?: Ref<ComponentRef<typeof RNText>>;
+};
 
 /**
  * Matches any `font-*` family utility — `font-sans`, `font-sans-semibold`,
@@ -63,23 +66,19 @@ const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
  * Regular. The token layer in `global.css` maps those classes to the same four
  * named faces, so both paths agree.
  */
-export const Text = forwardRef<ComponentRef<typeof RNText>, ThemedTextProps>(
-	({ style, className, ...rest }, ref) => {
-		const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
-		const keepFamily =
-			flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
-		const fontFamily = keepFamily
-			? undefined
-			: roundedFamily(flattened?.fontWeight);
-		return (
-			<RNText
-				ref={ref}
-				className={className}
-				style={fontFamily ? [style, { fontFamily }] : style}
-				{...rest}
-			/>
-		);
-	},
-);
-
-Text.displayName = "Text";
+export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
+	const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
+	const keepFamily =
+		flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
+	const fontFamily = keepFamily
+		? undefined
+		: roundedFamily(flattened?.fontWeight);
+	return (
+		<RNText
+			ref={ref}
+			className={className}
+			style={fontFamily ? [style, { fontFamily }] : style}
+			{...rest}
+		/>
+	);
+}
