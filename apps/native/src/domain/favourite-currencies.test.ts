@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
 import {
 	FAVOURITE_CURRENCY_LIMIT,
@@ -29,48 +27,48 @@ const EIGHT = TWELVE.slice(0, FAVOURITE_CURRENCY_LIMIT);
 
 describe("parseFavourites", () => {
 	it("reads an unset and an empty setting as no favourites", () => {
-		assert.deepEqual(parseFavourites(null), []);
-		assert.deepEqual(parseFavourites(""), []);
+		expect(parseFavourites(null)).toStrictEqual([]);
+		expect(parseFavourites("")).toStrictEqual([]);
 	});
 
 	it("uppercases what it reads back", () => {
-		assert.deepEqual(parseFavourites("eur,usd"), ["EUR", "USD"]);
+		expect(parseFavourites("eur,usd")).toStrictEqual(["EUR", "USD"]);
 	});
 
 	it("trims the padding a hand-edited value would carry", () => {
-		assert.deepEqual(parseFavourites(" eur ,\tusd "), ["EUR", "USD"]);
+		expect(parseFavourites(" eur ,\tusd ")).toStrictEqual(["EUR", "USD"]);
 	});
 
 	it("keeps the first sighting of a duplicate and drops the rest", () => {
-		assert.deepEqual(parseFavourites("EUR,EUR,JPY"), ["EUR", "JPY"]);
-		assert.deepEqual(parseFavourites("EUR,JPY,eur"), ["EUR", "JPY"]);
+		expect(parseFavourites("EUR,EUR,JPY")).toStrictEqual(["EUR", "JPY"]);
+		expect(parseFavourites("EUR,JPY,eur")).toStrictEqual(["EUR", "JPY"]);
 	});
 
 	it("drops anything the catalogue does not know rather than keeping it", () => {
-		assert.deepEqual(parseFavourites("EUR,XXX,JPY"), ["EUR", "JPY"]);
-		assert.deepEqual(parseFavourites("EUR,,JPY"), ["EUR", "JPY"]);
-		assert.deepEqual(parseFavourites("EUR, ,JPY"), ["EUR", "JPY"]);
-		assert.deepEqual(parseFavourites("XXX"), []);
-		assert.deepEqual(parseFavourites(",,,"), []);
+		expect(parseFavourites("EUR,XXX,JPY")).toStrictEqual(["EUR", "JPY"]);
+		expect(parseFavourites("EUR,,JPY")).toStrictEqual(["EUR", "JPY"]);
+		expect(parseFavourites("EUR, ,JPY")).toStrictEqual(["EUR", "JPY"]);
+		expect(parseFavourites("XXX")).toStrictEqual([]);
+		expect(parseFavourites(",,,")).toStrictEqual([]);
 	});
 
 	it("caps a longer stored list at the limit, keeping the first ones", () => {
-		assert.equal(TWELVE.length, 12);
-		assert.deepEqual(parseFavourites(TWELVE.join(",")), EIGHT);
+		expect(TWELVE.length).toBe(12);
+		expect(parseFavourites(TWELVE.join(","))).toStrictEqual(EIGHT);
 	});
 
 	it("counts only the codes it kept towards the cap", () => {
 		// Interleaved rubbish: were it counted, the cap would land after four
 		// real codes instead of eight.
 		const padded = EIGHT.flatMap((code, index) => [code, `XX${index}`]);
-		assert.deepEqual(parseFavourites(padded.join(",")), EIGHT);
+		expect(parseFavourites(padded.join(","))).toStrictEqual(EIGHT);
 	});
 });
 
 describe("serialiseFavourites", () => {
 	it("writes the comma-separated shape the setting stores", () => {
-		assert.equal(serialiseFavourites(["EUR", "JPY"]), "EUR,JPY");
-		assert.equal(serialiseFavourites([]), "");
+		expect(serialiseFavourites(["EUR", "JPY"])).toBe("EUR,JPY");
+		expect(serialiseFavourites([])).toBe("");
 	});
 
 	it("round-trips every code in the catalogue", () => {
@@ -83,102 +81,105 @@ describe("serialiseFavourites", () => {
 				start,
 				start + FAVOURITE_CURRENCY_LIMIT,
 			);
-			assert.deepEqual(parseFavourites(serialiseFavourites(chunk)), [...chunk]);
+			expect(parseFavourites(serialiseFavourites(chunk))).toStrictEqual([
+				...chunk,
+			]);
 		}
 	});
 });
 
 describe("toggleFavourite", () => {
 	it("appends an absent code to the end", () => {
-		assert.deepEqual(toggleFavourite(["EUR", "JPY"], "GBP"), [
+		expect(toggleFavourite(["EUR", "JPY"], "GBP")).toStrictEqual([
 			"EUR",
 			"JPY",
 			"GBP",
 		]);
-		assert.deepEqual(toggleFavourite([], "GBP"), ["GBP"]);
+		expect(toggleFavourite([], "GBP")).toStrictEqual(["GBP"]);
 	});
 
 	it("appends in the catalogue's casing whatever casing it is handed", () => {
-		assert.deepEqual(toggleFavourite(["EUR"], "gbp"), ["EUR", "GBP"]);
+		expect(toggleFavourite(["EUR"], "gbp")).toStrictEqual(["EUR", "GBP"]);
 	});
 
 	it("removes from the middle without disturbing the order", () => {
-		assert.deepEqual(toggleFavourite(["EUR", "JPY", "GBP"], "JPY"), [
+		expect(toggleFavourite(["EUR", "JPY", "GBP"], "JPY")).toStrictEqual([
 			"EUR",
 			"GBP",
 		]);
-		assert.deepEqual(toggleFavourite(["EUR", "JPY", "GBP"], "jpy"), [
+		expect(toggleFavourite(["EUR", "JPY", "GBP"], "jpy")).toStrictEqual([
 			"EUR",
 			"GBP",
 		]);
 	});
 
 	it("returns the list unchanged when adding a ninth", () => {
-		assert.equal(EIGHT.length, FAVOURITE_CURRENCY_LIMIT);
-		assert.deepEqual(toggleFavourite(EIGHT, "JPY"), EIGHT);
+		expect(EIGHT.length).toBe(FAVOURITE_CURRENCY_LIMIT);
+		expect(toggleFavourite(EIGHT, "JPY")).toStrictEqual(EIGHT);
 	});
 
 	it("still lets a full list be shortened", () => {
-		assert.deepEqual(toggleFavourite(EIGHT, "USD"), EIGHT.slice(1));
+		expect(toggleFavourite(EIGHT, "USD")).toStrictEqual(EIGHT.slice(1));
 	});
 
 	it("refuses a code the catalogue does not know", () => {
-		assert.deepEqual(toggleFavourite(["EUR"], "XXX"), ["EUR"]);
-		assert.deepEqual(toggleFavourite(["EUR"], " "), ["EUR"]);
+		expect(toggleFavourite(["EUR"], "XXX")).toStrictEqual(["EUR"]);
+		expect(toggleFavourite(["EUR"], " ")).toStrictEqual(["EUR"]);
 	});
 
 	it("never mutates the list it is handed", () => {
 		const codes = ["EUR", "JPY"];
 		toggleFavourite(codes, "GBP");
 		toggleFavourite(codes, "EUR");
-		assert.deepEqual(codes, ["EUR", "JPY"]);
+		expect(codes).toStrictEqual(["EUR", "JPY"]);
 	});
 });
 
 describe("isFavourite", () => {
 	it("matches whatever casing the caller has", () => {
-		assert.equal(isFavourite(["EUR", "JPY"], "eur"), true);
-		assert.equal(isFavourite(["EUR", "JPY"], "EUR"), true);
-		assert.equal(isFavourite(["EUR", "JPY"], " jpy "), true);
+		expect(isFavourite(["EUR", "JPY"], "eur")).toBe(true);
+		expect(isFavourite(["EUR", "JPY"], "EUR")).toBe(true);
+		expect(isFavourite(["EUR", "JPY"], " jpy ")).toBe(true);
 	});
 
 	it("is false for a code that is not there", () => {
-		assert.equal(isFavourite(["EUR", "JPY"], "GBP"), false);
-		assert.equal(isFavourite([], "EUR"), false);
+		expect(isFavourite(["EUR", "JPY"], "GBP")).toBe(false);
+		expect(isFavourite([], "EUR")).toBe(false);
 	});
 });
 
 describe("the cluster a new ledger starts with", () => {
 	it("always offers the two anchors", () => {
-		assert.deepEqual(seedFavourites(null), ["USD", "EUR"]);
+		expect(seedFavourites(null)).toStrictEqual(["USD", "EUR"]);
 	});
 
 	it("appends the device's own currency", () => {
-		assert.deepEqual(seedFavourites("VES"), ["USD", "EUR", "VES"]);
+		expect(seedFavourites("VES")).toStrictEqual(["USD", "EUR", "VES"]);
 	});
 
 	it("does not repeat an anchor the device already uses", () => {
-		assert.deepEqual(seedFavourites("EUR"), ["USD", "EUR"]);
-		assert.deepEqual(seedFavourites("usd"), ["USD", "EUR"]);
+		expect(seedFavourites("EUR")).toStrictEqual(["USD", "EUR"]);
+		expect(seedFavourites("usd")).toStrictEqual(["USD", "EUR"]);
 	});
 
 	it("prices a redenominated code under the name the catalogue carries", () => {
 		// iOS reports VED for Venezuela; rates are quoted in VES, so the catalogue
 		// carries VES. Without the alias a device in Caracas seeds nothing.
-		assert.deepEqual(seedFavourites("VED"), ["USD", "EUR", "VES"]);
+		expect(seedFavourites("VED")).toStrictEqual(["USD", "EUR", "VES"]);
 	});
 
 	it("ignores a code the catalogue does not know", () => {
 		// A locale can name a currency this app cannot price, and a stored code the
 		// catalogue has never heard of reaches a row with no name or symbol to draw.
-		assert.deepEqual(seedFavourites("XXX"), ["USD", "EUR"]);
+		expect(seedFavourites("XXX")).toStrictEqual(["USD", "EUR"]);
 	});
 
 	it("stays inside the limit, so nothing it seeds is dropped on read", () => {
-		assert.ok(seedFavourites("JPY").length <= FAVOURITE_CURRENCY_LIMIT);
-		assert.deepEqual(
+		expect(
+			seedFavourites("JPY").length <= FAVOURITE_CURRENCY_LIMIT,
+		).toBeTruthy();
+		expect(
 			parseFavourites(serialiseFavourites(seedFavourites("JPY"))),
-			["USD", "EUR", "JPY"],
-		);
+		).toStrictEqual(["USD", "EUR", "JPY"]);
 	});
 });

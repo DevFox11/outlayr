@@ -1,36 +1,11 @@
 import { Host } from "@expo/ui";
+import { Form, type TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
 import {
-	Button,
-	Form,
-	HStack,
-	Picker,
-	Section,
-	Spacer,
-	Text as SwiftText,
-	TextField,
-	type TextFieldRef,
-	useNativeState,
-} from "@expo/ui/swift-ui";
-import {
-	Animation,
 	animation,
 	blur,
-	buttonStyle,
-	controlSize,
-	disabled,
-	font,
-	foregroundStyle,
-	listSectionMargins,
 	listStyle,
-	multilineTextAlignment,
-	onSubmit,
 	opacity,
-	pickerStyle,
 	scrollContentBackground,
-	submitLabel,
-	tag,
-	textInputAutocapitalization,
-	tint as tintModifier,
 } from "@expo/ui/swift-ui/modifiers";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -45,7 +20,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
-import { IdentityHero } from "@/components/identity-hero";
 import { Text } from "@/components/text";
 import {
 	useIdentityDraft,
@@ -53,14 +27,18 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import {
-	CATEGORY_ERROR_MESSAGES,
 	CATEGORY_PALETTE,
 	type Category,
 	categoriesRepo,
 	getCategoryById,
 	useCategoriesByNamespace,
 } from "@/data/categories";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { firstAvailableColor } from "@/domain/category-color";
+import {
+	CATEGORY_ERROR_KEYS,
+	categoryErrorCode,
+} from "@/domain/category-error";
+import { useTranslation } from "@/i18n";
 import {
 	CATEGORY_DETENT,
 	LARGE_ONLY,
@@ -70,75 +48,22 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { CategoryEditorCta } from "./cta";
+import { CategoryEditorDetailsSection } from "./details-section";
+import { CategoryEditorHeroBand } from "./hero-band";
+import {
+	CAPTION_CLEARANCE,
+	CTA_BOTTOM_PADDING,
+	CTA_HEIGHT,
+	FLY_BACK,
+	FLY_UP,
+	FORM_BLUR_RADIUS,
+	HEADER_HEIGHT,
+	HERO_BOTTOM_PADDING,
+	HERO_TOP_PADDING,
+} from "./style";
 
 const MAX_EXPENSE_CATEGORIES = 24;
-
-/**
- * The repo signals a rejected save by throwing one of `CATEGORY_ERROR_MESSAGES`,
- * so the only handle the UI has on which rule fired is the English text itself.
- */
-const CATEGORY_ERROR_KEYS: Record<
-	keyof typeof CATEGORY_ERROR_MESSAGES,
-	TranslationKey
-> = {
-	incomplete: "categories.error.incomplete",
-	missingIcon: "categories.error.missingIcon",
-	missingName: "categories.error.missingName",
-	duplicate: "categories.error.duplicate",
-	duplicateIcon: "categories.error.duplicateIcon",
-	duplicateEmoji: "categories.error.duplicateEmoji",
-	duplicateName: "categories.error.duplicateName",
-};
-
-function categoryErrorCode(
-	message: string,
-): keyof typeof CATEGORY_ERROR_MESSAGES | null {
-	const match = Object.entries(CATEGORY_ERROR_MESSAGES).find(
-		([, text]) => text === message,
-	);
-	return match ? (match[0] as keyof typeof CATEGORY_ERROR_MESSAGES) : null;
-}
-
-const FORM_BLUR_RADIUS = 8;
-/**
- * MUST track `LAUNCH_SPRING`/`RETURN_SPRING` in the fly-up context: the hero is
- * a Reanimated view, this blur is a SwiftUI one, and only this pairing keeps
- * them on the same curve. Directional because the return is the snappier of the
- * two; a single curve leaves the form still un-blurring after the hero has
- * landed and the sheet has gone.
- */
-const FLY_UP = Animation.spring({ response: 0.4, dampingFraction: 0.85 });
-const FLY_BACK = Animation.spring({ response: 0.29, dampingFraction: 0.98 });
-
-const BODY_SEMIBOLD = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "semibold",
-});
-
-/**
- * What the sheet's chrome takes off the top before this screen's own content:
- * `UINavigationBar` in this form sheet reports y=16 (react-native-screens'
- * grabber band) and a height of 54.
- */
-const HEADER_HEIGHT = 70;
-/**
- * Swift `IdentityHero.topPadding` (24) less the 6pt the hero's ring adds above
- * its 90pt tile: Swift pads from the tile's edge and this pads from the ring's,
- * so the tile itself still lands 24pt under the bar.
- */
-const HERO_TOP_PADDING = 18;
-/**
- * Swift `IdentityHero.bottomPadding` (28) less the 6pt the hero's ring adds under
- * its 90pt tile — Swift pads from the tile's edge, this pads from the ring's.
- */
-const HERO_BOTTOM_PADDING = 22;
-const FORM_TOP_MARGIN = 8;
-/** Room for the empty hero's caption, which hangs below the tile until a symbol is picked. */
-const CAPTION_CLEARANCE = 24;
-const CTA_BOTTOM_PADDING = 8;
-/** What `.controlSize(.large)` on a bordered-prominent button measures. */
-const CTA_HEIGHT = 50;
 
 export type CategoryEditorProps =
 	| { mode: "create"; income?: boolean; parentId?: string | null }
@@ -147,10 +72,6 @@ export type CategoryEditorProps =
 export default function CategoryEditor(props: CategoryEditorProps) {
 	const db = useDatabase();
 	return <CategoryEditorReady db={db} {...props} />;
-}
-
-function firstAvailableColor(used: ReadonlySet<string>): string {
-	return CATEGORY_PALETTE.find((hex) => !used.has(hex)) ?? "#FFFFFF";
 }
 
 /**
@@ -559,137 +480,59 @@ function CategoryEditorReady(
 							...underPicker,
 						]}
 					>
-						<Section
-							footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
-							modifiers={[
-								listSectionMargins({
-									edges: "top",
-									length: FORM_TOP_MARGIN,
-								}),
-							]}
-						>
-							<HStack>
-								<SwiftText
-									modifiers={[
-										foregroundStyle({
-											type: "hierarchical",
-											style: "secondary",
-										}),
-									]}
-								>
-									{t("categories.field.name")}
-								</SwiftText>
-								<Spacer />
-								<TextField
-									modifiers={[
-										multilineTextAlignment("trailing"),
-										textInputAutocapitalization("words"),
-										submitLabel("done"),
-										onSubmit(submit),
-									]}
-									onTextChange={setName}
-									placeholder={namePlaceholder}
-									ref={nameRef}
-									text={nameState}
-								/>
-							</HStack>
-
-							{typePickerVisible ? (
-								<HStack>
-									<SwiftText
-										modifiers={[
-											foregroundStyle({
-												type: "hierarchical",
-												style: "secondary",
-											}),
-										]}
-									>
-										{t("categories.field.type")}
-									</SwiftText>
-									<Spacer />
-									<Picker
-										label=""
-										modifiers={[
-											pickerStyle("menu"),
-											tintModifier(colors.foreground),
-										]}
-										onSelectionChange={(value) =>
-											setCreateIncome(value === "income")
-										}
-										selection={income ? "income" : "expense"}
-									>
-										<SwiftText modifiers={[tag("expense")]}>
-											{t("common.expense")}
-										</SwiftText>
-										<SwiftText modifiers={[tag("income")]}>
-											{t("common.income")}
-										</SwiftText>
-									</Picker>
-								</HStack>
-							) : null}
-						</Section>
+						<CategoryEditorDetailsSection
+							caption={caption}
+							expenseLabel={t("common.expense")}
+							income={income}
+							incomeLabel={t("common.income")}
+							nameFieldRef={nameRef}
+							nameLabel={t("categories.field.name")}
+							namePlaceholder={namePlaceholder}
+							nameState={nameState}
+							onIncomeChange={setCreateIncome}
+							onNameChange={setName}
+							onSubmitName={submit}
+							tintColor={colors.foreground}
+							typeLabel={t("categories.field.type")}
+							typePickerVisible={typePickerVisible}
+						/>
 					</Form>
 				</Host>
 			</View>
 
 			{/* Follows the `Host` in the tree so the header's scroll-edge lookup still
 			    finds the form first. */}
-			<View
+			<CategoryEditorHeroBand
+				captionClearance={captionClearance}
+				color={tint}
+				emoji={draft.emoji}
+				floatProgress={floatProgress}
+				icon={draft.icon}
+				income={income}
 				onLayout={(e) => setHeroBand(e.nativeEvent.layout.height)}
-				pointerEvents="box-none"
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					alignItems: "center",
-					paddingTop: HEADER_HEIGHT + HERO_TOP_PADDING,
-					paddingBottom: HERO_BOTTOM_PADDING + captionClearance,
-				}}
-			>
-				<IdentityHero
-					color={tint}
-					emoji={draft.emoji}
-					floatProgress={floatProgress}
-					icon={draft.icon}
-					income={income}
-					onPress={openPicker}
-					onReset={() =>
-						setDraft({
-							emoji: null,
-							icon: null,
-							photoUri: null,
-							photoColor: null,
-							color: null,
-						})
-					}
-					photoUri={null}
-					variant="category"
-				/>
-			</View>
+				onPress={openPicker}
+				onReset={() =>
+					setDraft({
+						emoji: null,
+						icon: null,
+						photoUri: null,
+						photoColor: null,
+						color: null,
+					})
+				}
+			/>
 
 			<View
 				pointerEvents="box-none"
 				className="absolute right-0 bottom-safe-offset-2 left-0 px-5"
 			>
-				<Host style={{ height: CTA_HEIGHT }}>
-					<Button
-						modifiers={[
-							buttonStyle("borderedProminent"),
-							controlSize("large"),
-							tintModifier(colors.foreground),
-							disabled(!canSave),
-							...underPicker,
-						]}
-						onPress={submit}
-					>
-						<HStack>
-							<Spacer />
-							<SwiftText modifiers={[BODY_SEMIBOLD]}>{ctaLabel}</SwiftText>
-							<Spacer />
-						</HStack>
-					</Button>
-				</Host>
+				<CategoryEditorCta
+					canSave={canSave}
+					label={ctaLabel}
+					onPress={submit}
+					tintColor={colors.foreground}
+					underPicker={underPicker}
+				/>
 			</View>
 
 			{showToast ? (

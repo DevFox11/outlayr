@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -193,12 +191,12 @@ describe("eraseLedger", () => {
 			.select()
 			.from(transactions)
 			.where(isNull(transactions.deletedAt));
-		assert.equal(readable.length, 0);
+		expect(readable.length).toBe(0);
 
 		const replicable = await db.select().from(transactions);
-		assert.equal(replicable.length, 1);
-		assert.equal(replicable[0].id, "tx-1");
-		assert.notEqual(replicable[0].deletedAt, null);
+		expect(replicable.length).toBe(1);
+		expect(replicable[0].id).toBe("tx-1");
+		expect(replicable[0].deletedAt).not.toBe(null);
 	});
 
 	// Recently Deleted is the one screen built to read tombstones, so an erase
@@ -220,10 +218,9 @@ describe("eraseLedger", () => {
 
 		await eraseLedger(db, "transactions");
 
-		assert.deepEqual(
+		expect(
 			(await deletedTransactionsQuery(db)).map((row) => row.id),
-			["tx-2"],
-		);
+		).toStrictEqual(["tx-2"]);
 	});
 
 	// A column added to `transactions` and not to the constant would survive the
@@ -234,35 +231,37 @@ describe("eraseLedger", () => {
 			(name) => !ENVELOPE.has(name),
 		);
 
-		assert.deepEqual(Object.keys(ERASED_TRANSACTION).sort(), declared.sort());
+		expect(Object.keys(ERASED_TRANSACTION).sort()).toStrictEqual(
+			declared.sort(),
+		);
 	});
 
 	it("strips everything personal off a transaction tombstone", async () => {
 		await eraseLedger(db, "transactions");
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.amount, 0);
-		assert.equal(row.income, false);
-		assert.equal(row.currency, null);
-		assert.equal(row.note, "");
-		assert.equal(row.details, null);
-		assert.equal(row.date.getTime(), 0);
-		assert.equal(row.day.getTime(), 0);
-		assert.equal(row.month.getTime(), 0);
-		assert.equal(row.icon, null);
-		assert.equal(row.emoji, null);
-		assert.equal(row.customColor, null);
-		assert.equal(row.imageColor, null);
-		assert.equal(row.imageUri, null);
-		assert.equal(row.onceRecurring, false);
-		assert.equal(row.recurringType, 0);
-		assert.equal(row.recurringCoefficient, 1);
-		assert.equal(row.recurringEndDate, null);
-		assert.equal(row.reminderLeadDays, null);
-		assert.equal(row.categoryId, null);
-		assert.equal(row.amountUsd, null);
-		assert.equal(row.exchangeRate, null);
-		assert.equal(row.exchangeRateType, null);
+		expect(row.amount).toBe(0);
+		expect(row.income).toBe(false);
+		expect(row.currency).toBe(null);
+		expect(row.note).toBe("");
+		expect(row.details).toBe(null);
+		expect(row.date.getTime()).toBe(0);
+		expect(row.day.getTime()).toBe(0);
+		expect(row.month.getTime()).toBe(0);
+		expect(row.icon).toBe(null);
+		expect(row.emoji).toBe(null);
+		expect(row.customColor).toBe(null);
+		expect(row.imageColor).toBe(null);
+		expect(row.imageUri).toBe(null);
+		expect(row.onceRecurring).toBe(false);
+		expect(row.recurringType).toBe(0);
+		expect(row.recurringCoefficient).toBe(1);
+		expect(row.recurringEndDate).toBe(null);
+		expect(row.reminderLeadDays).toBe(null);
+		expect(row.categoryId).toBe(null);
+		expect(row.amountUsd).toBe(null);
+		expect(row.exchangeRate).toBe(null);
+		expect(row.exchangeRateType).toBe(null);
 	});
 
 	it("strips everything personal off a template tombstone", async () => {
@@ -272,18 +271,18 @@ describe("eraseLedger", () => {
 			.select()
 			.from(templateTransactions)
 			.where(isNull(templateTransactions.deletedAt));
-		assert.equal(readable.length, 0);
+		expect(readable.length).toBe(0);
 
 		const [row] = await db.select().from(templateTransactions);
-		assert.equal(row.id, "tpl-1");
-		assert.notEqual(row.deletedAt, null);
-		assert.equal(row.amount, 0);
-		assert.equal(row.income, false);
-		assert.equal(row.note, null);
-		assert.equal(row.sortOrder, 0);
-		assert.equal(row.recurringType, 0);
-		assert.equal(row.recurringCoefficient, 1);
-		assert.equal(row.categoryId, null);
+		expect(row.id).toBe("tpl-1");
+		expect(row.deletedAt).not.toBe(null);
+		expect(row.amount).toBe(0);
+		expect(row.income).toBe(false);
+		expect(row.note).toBe(null);
+		expect(row.sortOrder).toBe(0);
+		expect(row.recurringType).toBe(0);
+		expect(row.recurringCoefficient).toBe(1);
+		expect(row.categoryId).toBe(null);
 	});
 
 	it("keeps budgets live under the transactions scope", async () => {
@@ -293,39 +292,39 @@ describe("eraseLedger", () => {
 			.select()
 			.from(budgets)
 			.where(isNull(budgets.deletedAt));
-		assert.equal(liveBudgets.length, 1);
+		expect(liveBudgets.length).toBe(1);
 		const liveMain = await db
 			.select()
 			.from(mainBudget)
 			.where(isNull(mainBudget.deletedAt));
-		assert.equal(liveMain.length, 1);
+		expect(liveMain.length).toBe(1);
 	});
 
 	it("strips everything personal off budget tombstones", async () => {
 		await eraseLedger(db, "everything");
 
 		const [budget] = await db.select().from(budgets);
-		assert.notEqual(budget.deletedAt, null);
-		assert.equal(budget.name, null);
-		assert.equal(budget.amount, 0);
-		assert.equal(budget.type, 0);
-		assert.equal(budget.startDate, null);
-		assert.equal(budget.dateCreated, null);
-		assert.equal(budget.currency, null);
-		assert.equal(budget.amountUsd, null);
-		assert.equal(budget.green, false);
-		assert.equal(budget.categoryId, null);
+		expect(budget.deletedAt).not.toBe(null);
+		expect(budget.name).toBe(null);
+		expect(budget.amount).toBe(0);
+		expect(budget.type).toBe(0);
+		expect(budget.startDate).toBe(null);
+		expect(budget.dateCreated).toBe(null);
+		expect(budget.currency).toBe(null);
+		expect(budget.amountUsd).toBe(null);
+		expect(budget.green).toBe(false);
+		expect(budget.categoryId).toBe(null);
 
 		const [main] = await db.select().from(mainBudget);
-		assert.notEqual(main.deletedAt, null);
-		assert.equal(main.name, null);
-		assert.equal(main.amount, 0);
-		assert.equal(main.type, 0);
-		assert.equal(main.startDate, null);
-		assert.equal(main.dateCreated, null);
-		assert.equal(main.currency, null);
-		assert.equal(main.amountUsd, null);
-		assert.equal(main.green, false);
+		expect(main.deletedAt).not.toBe(null);
+		expect(main.name).toBe(null);
+		expect(main.amount).toBe(0);
+		expect(main.type).toBe(0);
+		expect(main.startDate).toBe(null);
+		expect(main.dateCreated).toBe(null);
+		expect(main.currency).toBe(null);
+		expect(main.amountUsd).toBe(null);
+		expect(main.green).toBe(false);
 	});
 
 	it("frees the category so a new budget can be attached to it", async () => {
@@ -344,8 +343,8 @@ describe("eraseLedger", () => {
 			.select()
 			.from(budgets)
 			.where(isNull(budgets.deletedAt));
-		assert.equal(live.length, 1);
-		assert.equal(live[0].id, "bud-2");
+		expect(live.length).toBe(1);
+		expect(live[0].id).toBe("bud-2");
 	});
 
 	it("keeps categories untouched under either scope", async () => {
@@ -355,9 +354,9 @@ describe("eraseLedger", () => {
 			.select()
 			.from(categories)
 			.where(isNull(categories.deletedAt));
-		assert.equal(live.length, 1);
-		assert.equal(live[0].name, "Coffee");
-		assert.equal(live[0].updatedAt.getTime(), AUTHORED.getTime());
+		expect(live.length).toBe(1);
+		expect(live[0].name).toBe("Coffee");
+		expect(live[0].updatedAt.getTime()).toBe(AUTHORED.getTime());
 	});
 
 	it("does not re-stamp a tombstone it already wrote", async () => {
@@ -368,13 +367,12 @@ describe("eraseLedger", () => {
 		await eraseLedger(db, "everything");
 
 		const second = await db.select().from(transactions);
-		assert.equal(second.length, 1);
-		assert.equal(second[0].deletedAt?.getTime(), first[0].deletedAt?.getTime());
-		assert.equal(second[0].updatedAt.getTime(), first[0].updatedAt.getTime());
+		expect(second.length).toBe(1);
+		expect(second[0].deletedAt?.getTime()).toBe(first[0].deletedAt?.getTime());
+		expect(second[0].updatedAt.getTime()).toBe(first[0].updatedAt.getTime());
 
 		const secondBudget = await db.select().from(budgets);
-		assert.equal(
-			secondBudget[0].updatedAt.getTime(),
+		expect(secondBudget[0].updatedAt.getTime()).toBe(
 			firstBudget[0].updatedAt.getTime(),
 		);
 	});
@@ -397,8 +395,8 @@ describe("eraseLedger", () => {
 
 		const rows = await db.select().from(transactions);
 		const survivor = rows.find((row) => row.id === "tx-2");
-		assert.equal(survivor?.deletedAt?.getTime(), removed.getTime());
-		assert.equal(survivor?.updatedAt.getTime(), removed.getTime());
-		assert.equal(survivor?.note, "already gone");
+		expect(survivor?.deletedAt?.getTime()).toBe(removed.getTime());
+		expect(survivor?.updatedAt.getTime()).toBe(removed.getTime());
+		expect(survivor?.note).toBe("already gone");
 	});
 });

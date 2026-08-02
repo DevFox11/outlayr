@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -168,15 +166,14 @@ function fakeTransport(
 
 describe("photoNameFromKey", () => {
 	it("takes the name half the key was minted from", () => {
-		assert.equal(
-			photoNameFromKey(`transaction-photos/${USER}/abc.jpg`),
+		expect(photoNameFromKey(`transaction-photos/${USER}/abc.jpg`)).toBe(
 			"abc.jpg",
 		);
 	});
 
 	it("answers null for something that is not a key", () => {
-		assert.equal(photoNameFromKey("abc.jpg"), null);
-		assert.equal(photoNameFromKey("a/"), null);
+		expect(photoNameFromKey("abc.jpg")).toBe(null);
+		expect(photoNameFromKey("a/")).toBe(null);
 	});
 });
 
@@ -189,14 +186,15 @@ describe("uploadPhotos", () => {
 
 		const result = await uploadPhotos(db, files, transport, NOW);
 
-		assert.equal(result.uploaded, 1);
+		expect(result.uploaded).toBe(1);
 		const row = await readRow(db, "t1");
-		assert.equal(row.imageKey, `transaction-photos/${USER}/a.jpg`);
-		assert.deepEqual(
+		expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
+		expect(
 			bucket.objects.get(`transaction-photos/${USER}/a.jpg`),
-			new TextEncoder().encode("PHOTO"),
-		);
-		assert.deepEqual(bucket.confirmed, [`transaction-photos/${USER}/a.jpg`]);
+		).toStrictEqual(new TextEncoder().encode("PHOTO"));
+		expect(bucket.confirmed).toStrictEqual([
+			`transaction-photos/${USER}/a.jpg`,
+		]);
 	});
 
 	it("bumps updatedAt so the key is not outranked by an older peer edit", async () => {
@@ -207,7 +205,7 @@ describe("uploadPhotos", () => {
 
 		await uploadPhotos(db, files, transport, NOW);
 
-		assert.equal((await readRow(db, "t1")).updatedAt.getTime(), NOW.getTime());
+		expect((await readRow(db, "t1")).updatedAt.getTime()).toBe(NOW.getTime());
 	});
 
 	it("is a no-op once the key already names the photo", async () => {
@@ -219,8 +217,8 @@ describe("uploadPhotos", () => {
 			imageKey: `transaction-photos/${USER}/a.jpg`,
 		});
 
-		assert.equal((await uploadPhotos(db, files, transport, NOW)).uploaded, 0);
-		assert.equal(bucket.confirmed.length, 0);
+		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
+		expect(bucket.confirmed.length).toBe(0);
 	});
 
 	it("re-uses the same key when a previous attempt died mid-PUT", async () => {
@@ -238,22 +236,21 @@ describe("uploadPhotos", () => {
 		});
 		await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
 
-		await assert.rejects(uploadPhotos(db, files, failing.transport, NOW));
+		await expect(
+			uploadPhotos(db, files, failing.transport, NOW),
+		).rejects.toThrow();
 		// Nothing recorded, so the row is still owed an upload.
-		assert.equal((await readRow(db, "t1")).imageKey, null);
+		expect((await readRow(db, "t1")).imageKey).toBe(null);
 
 		const retry = fakeTransport(bucket);
-		assert.equal(
-			(await uploadPhotos(db, files, retry.transport, NOW)).uploaded,
+		expect((await uploadPhotos(db, files, retry.transport, NOW)).uploaded).toBe(
 			1,
 		);
 		// One key, one object: the retry overwrote rather than orphaning.
-		assert.deepEqual(
-			[...bucket.objects.keys()],
-			[`transaction-photos/${USER}/a.jpg`],
-		);
-		assert.equal(
-			(await readRow(db, "t1")).imageKey,
+		expect([...bucket.objects.keys()]).toStrictEqual([
+			`transaction-photos/${USER}/a.jpg`,
+		]);
+		expect((await readRow(db, "t1")).imageKey).toBe(
 			`transaction-photos/${USER}/a.jpg`,
 		);
 	});
@@ -276,10 +273,11 @@ describe("uploadPhotos", () => {
 
 		const result = await uploadPhotos(db, files, transport, NOW);
 
-		assert.equal(result.released, 1);
-		assert.deepEqual(bucket.released, [`transaction-photos/${USER}/old.jpg`]);
-		assert.equal(
-			(await readRow(db, "t1")).imageKey,
+		expect(result.released).toBe(1);
+		expect(bucket.released).toStrictEqual([
+			`transaction-photos/${USER}/old.jpg`,
+		]);
+		expect((await readRow(db, "t1")).imageKey).toBe(
 			`transaction-photos/${USER}/new.jpg`,
 		);
 	});
@@ -299,10 +297,9 @@ describe("uploadPhotos", () => {
 
 		const result = await uploadPhotos(db, files, transport, NOW);
 
-		assert.equal(result.uploaded, 1);
-		assert.equal(result.released, 0);
-		assert.equal(
-			(await readRow(db, "t1")).imageKey,
+		expect(result.uploaded).toBe(1);
+		expect(result.released).toBe(0);
+		expect((await readRow(db, "t1")).imageKey).toBe(
 			`transaction-photos/${USER}/new.jpg`,
 		);
 	});
@@ -313,9 +310,9 @@ describe("uploadPhotos", () => {
 		const { bucket, transport } = fakeTransport();
 		await insert(db, "t1", { imageUri: `${DIRECTORY}/gone.jpg` });
 
-		assert.equal((await uploadPhotos(db, files, transport, NOW)).uploaded, 0);
-		assert.equal(bucket.confirmed.length, 0);
-		assert.equal((await readRow(db, "t1")).imageKey, null);
+		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
+		expect(bucket.confirmed.length).toBe(0);
+		expect((await readRow(db, "t1")).imageKey).toBe(null);
 	});
 
 	it("stops at the batch size", async () => {
@@ -330,8 +327,7 @@ describe("uploadPhotos", () => {
 			await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
 		}
 
-		assert.equal(
-			(await uploadPhotos(db, files, transport, NOW)).uploaded,
+		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(
 			PHOTO_SYNC_BATCH,
 		);
 	});
@@ -348,9 +344,9 @@ describe("downloadPhotos", () => {
 		);
 		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-		assert.equal(await downloadPhotos(db, peer, transport), 1);
-		assert.deepEqual(peer.read("a.jpg"), new TextEncoder().encode("PHOTO"));
-		assert.equal((await readRow(db, "t1")).imageUri, `${PEER_DIRECTORY}/a.jpg`);
+		expect(await downloadPhotos(db, peer, transport)).toBe(1);
+		expect(peer.read("a.jpg")).toStrictEqual(new TextEncoder().encode("PHOTO"));
+		expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
 	});
 
 	it("leaves the row renderable through the existing fallback until the bytes land", async () => {
@@ -360,11 +356,11 @@ describe("downloadPhotos", () => {
 		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
 		// The object is not in the bucket yet — the row got here first.
-		assert.equal(await downloadPhotos(db, peer, transport), 0);
+		expect(await downloadPhotos(db, peer, transport)).toBe(0);
 		const row = await readRow(db, "t1");
-		assert.equal(row.imageUri, null);
+		expect(row.imageUri).toBe(null);
 		// The key survives, so the next pass retries rather than giving up.
-		assert.equal(row.imageKey, `transaction-photos/${USER}/a.jpg`);
+		expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
 	});
 
 	it("keeps the key when the object was deleted out from under the fetch", async () => {
@@ -376,9 +372,8 @@ describe("downloadPhotos", () => {
 		});
 		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-		assert.equal(await downloadPhotos(db, peer, transport), 0);
-		assert.equal(
-			(await readRow(db, "t1")).imageKey,
+		expect(await downloadPhotos(db, peer, transport)).toBe(0);
+		expect((await readRow(db, "t1")).imageKey).toBe(
 			`transaction-photos/${USER}/a.jpg`,
 		);
 	});
@@ -397,8 +392,8 @@ describe("downloadPhotos", () => {
 
 		await downloadPhotos(db, files, transport);
 
-		assert.equal(fetched, 0);
-		assert.equal((await readRow(db, "t1")).imageUri, `${DIRECTORY}/a.jpg`);
+		expect(fetched).toBe(0);
+		expect((await readRow(db, "t1")).imageUri).toBe(`${DIRECTORY}/a.jpg`);
 	});
 
 	it("does not touch a row the user cleared the photo from", async () => {
@@ -412,8 +407,8 @@ describe("downloadPhotos", () => {
 		// Removing a photo clears both halves, so there is nothing to resurrect.
 		await insert(db, "t1", { imageUri: null, imageKey: null });
 
-		assert.equal(await downloadPhotos(db, peer, transport), 0);
-		assert.equal((await readRow(db, "t1")).imageUri, null);
+		expect(await downloadPhotos(db, peer, transport)).toBe(0);
+		expect((await readRow(db, "t1")).imageUri).toBe(null);
 	});
 
 	it("serves two rows sharing one photo from a single fetch", async () => {
@@ -425,9 +420,9 @@ describe("downloadPhotos", () => {
 		await insert(db, "t1", { imageKey: key });
 		await insert(db, "t2", { imageKey: key });
 
-		assert.equal(await downloadPhotos(db, peer, transport), 2);
-		assert.equal((await readRow(db, "t1")).imageUri, `${PEER_DIRECTORY}/a.jpg`);
-		assert.equal((await readRow(db, "t2")).imageUri, `${PEER_DIRECTORY}/a.jpg`);
+		expect(await downloadPhotos(db, peer, transport)).toBe(2);
+		expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
+		expect((await readRow(db, "t2")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
 	});
 });
 
@@ -445,7 +440,7 @@ describe("runPhotoSync", () => {
 		await runPhotoSync(deviceA, filesA, fakeTransport(bucket).transport, NOW);
 
 		const key = (await readRow(deviceA, "t1")).imageKey;
-		assert.equal(key, `transaction-photos/${USER}/a.jpg`);
+		expect(key).toBe(`transaction-photos/${USER}/a.jpg`);
 
 		// The replicated row reaches B carrying the key and nothing else about the
 		// photo — the path is A's and would not resolve here.
@@ -460,10 +455,11 @@ describe("runPhotoSync", () => {
 			NOW,
 		);
 
-		assert.equal(result.downloaded, 1);
-		assert.deepEqual(filesB.read("a.jpg"), new TextEncoder().encode("PHOTO"));
-		assert.equal(
-			(await readRow(deviceB, "t1")).imageUri,
+		expect(result.downloaded).toBe(1);
+		expect(filesB.read("a.jpg")).toStrictEqual(
+			new TextEncoder().encode("PHOTO"),
+		);
+		expect((await readRow(deviceB, "t1")).imageUri).toBe(
 			`${PEER_DIRECTORY}/a.jpg`,
 		);
 	});
@@ -486,7 +482,7 @@ describe("runPhotoSync", () => {
 			NOW,
 		);
 
-		assert.deepEqual(second, { uploaded: 0, downloaded: 0, released: 0 });
-		assert.equal(bucket.confirmed.length, 1);
+		expect(second).toStrictEqual({ uploaded: 0, downloaded: 0, released: 0 });
+		expect(bucket.confirmed.length).toBe(1);
 	});
 });

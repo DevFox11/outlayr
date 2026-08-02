@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
@@ -10,45 +8,45 @@ const en: TranslateFn = (key, params) =>
 
 describe("ctaKey", () => {
 	it("is the save key in edit mode regardless of subscription state", () => {
-		assert.equal(ctaKey("edit", true), "transaction.cta.save");
-		assert.equal(ctaKey("edit", false), "transaction.cta.save");
+		expect(ctaKey("edit", true)).toBe("transaction.cta.save");
+		expect(ctaKey("edit", false)).toBe("transaction.cta.save");
 	});
 
 	it("is the add-subscription key when creating a subscription", () => {
-		assert.equal(ctaKey("create", true), "transaction.cta.addSubscription");
+		expect(ctaKey("create", true)).toBe("transaction.cta.addSubscription");
 	});
 
 	it("is the plain add key when creating a one-off", () => {
-		assert.equal(ctaKey("create", false), "transaction.cta.add");
+		expect(ctaKey("create", false)).toBe("transaction.cta.add");
 	});
 });
 
 describe("leadLabel", () => {
 	it("reads Off for a null lead", () => {
-		assert.equal(leadLabel(en, null), "Off");
+		expect(leadLabel(en, null)).toBe("Off");
 	});
 
 	it("reads the same-day phrasing for a zero lead", () => {
-		assert.equal(leadLabel(en, 0), "On the day");
+		expect(leadLabel(en, 0)).toBe("On the day");
 	});
 
 	it("reads the singular day-before phrasing for a one-day lead", () => {
-		assert.equal(leadLabel(en, 1), "1 day before");
+		expect(leadLabel(en, 1)).toBe("1 day before");
 	});
 
 	it("reads the counted phrasing for a two-day lead", () => {
-		assert.equal(leadLabel(en, 2), "2 days before");
+		expect(leadLabel(en, 2)).toBe("2 days before");
 	});
 
 	it("reads the counted phrasing for a three-day lead", () => {
-		assert.equal(leadLabel(en, 3), "3 days before");
+		expect(leadLabel(en, 3)).toBe("3 days before");
 	});
 
 	it("reads the week-before phrasing for a seven-day lead", () => {
-		assert.equal(leadLabel(en, 7), "1 week before");
+		expect(leadLabel(en, 7)).toBe("1 week before");
 	});
 
 	it("falls back to the counted phrasing for a lead the picker never offers", () => {
-		assert.equal(leadLabel(en, 14), "14 days before");
+		expect(leadLabel(en, 14)).toBe("14 days before");
 	});
 });

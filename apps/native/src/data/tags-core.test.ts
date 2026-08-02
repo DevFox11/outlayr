@@ -1,8 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 import { isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -10,10 +7,7 @@ import type { Database } from "@/db/client";
 import { categories, tags, transactions, transactionTags } from "@/db/schema";
 import { liveTagsQuery, tagIdsForQuery, tagsRepo } from "./tags-core";
 
-const MIGRATIONS = join(
-	dirname(fileURLToPath(import.meta.url)),
-	"../../drizzle",
-);
+const MIGRATIONS = join(__dirname, "../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -65,47 +59,45 @@ describe("tagsRepo", () => {
 		// list they appear in.
 		const first = await tagsRepo.ensureTag(db, "Work");
 		const second = await tagsRepo.ensureTag(db, "  work ");
-		assert.equal(second, first);
-		assert.equal((await liveTagsQuery(db)).length, 1);
+		expect(second).toBe(first);
+		expect((await liveTagsQuery(db)).length).toBe(1);
 	});
 
 	it("keeps the casing the owner typed first", async () => {
 		await tagsRepo.ensureTag(db, "WFH");
 		await tagsRepo.ensureTag(db, "wfh");
-		assert.equal((await liveTagsQuery(db))[0].name, "WFH");
+		expect((await liveTagsQuery(db))[0].name).toBe("WFH");
 	});
 
 	it("refuses a name that is only whitespace", async () => {
-		assert.equal(await tagsRepo.ensureTag(db, "   "), null);
-		assert.equal((await liveTagsQuery(db)).length, 0);
+		expect(await tagsRepo.ensureTag(db, "   ")).toBe(null);
+		expect((await liveTagsQuery(db)).length).toBe(0);
 	});
 
 	it("attaches and detaches to match exactly what was asked for", async () => {
 		const work = await tagsRepo.ensureTag(db, "work");
 		const trip = await tagsRepo.ensureTag(db, "trip");
-		assert.ok(work && trip);
+		if (!work || !trip) throw new Error("expected two tag ids");
 
 		await tagsRepo.setTagsFor(db, "t1", [work, trip]);
-		assert.equal((await tagIdsForQuery(db, "t1")).length, 2);
+		expect((await tagIdsForQuery(db, "t1")).length).toBe(2);
 
 		await tagsRepo.setTagsFor(db, "t1", [work]);
-		assert.deepEqual(
+		expect(
 			(await tagIdsForQuery(db, "t1")).map((row) => row.tagId),
-			[work],
-		);
+		).toStrictEqual([work]);
 	});
 
 	it("writes nothing when the same set is set again", async () => {
 		const work = await tagsRepo.ensureTag(db, "work");
-		assert.ok(work);
+		if (!work) throw new Error("expected a tag id");
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 		const before = await db.select().from(transactionTags);
 
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 
 		const after = await db.select().from(transactionTags);
-		assert.deepEqual(
-			after.map((row) => row.updatedAt.getTime()),
+		expect(after.map((row) => row.updatedAt.getTime())).toStrictEqual(
 			before.map((row) => row.updatedAt.getTime()),
 		);
 	});
@@ -114,49 +106,48 @@ describe("tagsRepo", () => {
 		// The pair is unique, so a second row cannot exist — and reviving keeps the
 		// identity the other devices already know.
 		const work = await tagsRepo.ensureTag(db, "work");
-		assert.ok(work);
+		if (!work) throw new Error("expected a tag id");
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 		await tagsRepo.setTagsFor(db, "t1", []);
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 
 		const rows = await db.select().from(transactionTags);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0].deletedAt, null);
+		expect(rows.length).toBe(1);
+		expect(rows[0].deletedAt).toBe(null);
 	});
 
 	it("retires the links when the tag itself goes", async () => {
 		// A live link to a tombstoned tag reads as tagged and renders nothing.
 		const work = await tagsRepo.ensureTag(db, "work");
-		assert.ok(work);
+		if (!work) throw new Error("expected a tag id");
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 
 		await tagsRepo.deleteTag(db, work);
 
-		assert.equal((await tagIdsForQuery(db, "t1")).length, 0);
-		assert.equal((await liveTagsQuery(db)).length, 0);
+		expect((await tagIdsForQuery(db, "t1")).length).toBe(0);
+		expect((await liveTagsQuery(db)).length).toBe(0);
 	});
 
 	it("leaves the tombstone replicable rather than dropping the row", async () => {
 		const work = await tagsRepo.ensureTag(db, "work");
-		assert.ok(work);
+		if (!work) throw new Error("expected a tag id");
 		await tagsRepo.deleteTag(db, work);
 
 		const all = await db.select().from(tags);
-		assert.equal(all.length, 1);
-		assert.ok(all[0].deletedAt);
-		assert.equal(all[0].name, "");
+		expect(all.length).toBe(1);
+		expect(all[0].deletedAt).toBeTruthy();
+		expect(all[0].name).toBe("");
 	});
 
 	it("lets the same name be created again after a delete", async () => {
 		const first = await tagsRepo.ensureTag(db, "work");
-		assert.ok(first);
+		if (!first) throw new Error("expected a tag id");
 		await tagsRepo.deleteTag(db, first);
 
 		const second = await tagsRepo.ensureTag(db, "work");
-		assert.notEqual(second, first);
-		assert.equal(
+		expect(second).not.toBe(first);
+		expect(
 			(await db.select().from(tags).where(isNull(tags.deletedAt))).length,
-			1,
-		);
+		).toBe(1);
 	});
 });

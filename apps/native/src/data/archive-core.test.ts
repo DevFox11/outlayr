@@ -1,8 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -10,10 +7,7 @@ import { categories, transactions } from "@/db/schema";
 import { parseArchive, serializeArchive } from "@/domain/archive";
 import { buildArchive, restoreArchive } from "./archive-core";
 
-const MIGRATIONS = join(
-	dirname(fileURLToPath(import.meta.url)),
-	"../../drizzle",
-);
+const MIGRATIONS = join(__dirname, "../../drizzle");
 
 /**
  * The real migrations rather than a hand-written schema: an archive claims to
@@ -72,15 +66,15 @@ describe("archiving a ledger", () => {
 
 		const text = serializeArchive(await buildArchive(db, new Date()));
 		const parsed = parseArchive(text);
-		assert.ok(parsed);
+		if (!parsed) throw new Error("expected the archive to parse");
 
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
 
 		const rows = await fresh.select().from(transactions);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0].note, "coffee");
-		assert.equal(rows[0].amount, 12.5);
+		expect(rows.length).toBe(1);
+		expect(rows[0].note).toBe("coffee");
+		expect(rows[0].amount).toBe(12.5);
 	});
 
 	it("restores an instant as the same moment, not as text", async () => {
@@ -92,13 +86,13 @@ describe("archiving a ledger", () => {
 		await db.insert(transactions).values(transactionRow("t1", { date: when }));
 
 		const parsed = parseArchive(serializeArchive(await buildArchive(db, when)));
-		assert.ok(parsed);
+		if (!parsed) throw new Error("expected the archive to parse");
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
 
 		const [row] = await fresh.select().from(transactions);
-		assert.ok(row.date instanceof Date);
-		assert.equal(row.date.getTime(), when.getTime());
+		expect(row.date instanceof Date).toBeTruthy();
+		expect(row.date.getTime()).toBe(when.getTime());
 	});
 
 	it("carries a tombstone rather than dropping it", async () => {
@@ -112,12 +106,12 @@ describe("archiving a ledger", () => {
 		const parsed = parseArchive(
 			serializeArchive(await buildArchive(db, new Date())),
 		);
-		assert.ok(parsed);
+		if (!parsed) throw new Error("expected the archive to parse");
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
 
 		const [row] = await fresh.select().from(transactions);
-		assert.ok(row.deletedAt instanceof Date);
+		expect(row.deletedAt instanceof Date).toBeTruthy();
 	});
 
 	it("replaces the ledger rather than merging into it", async () => {
@@ -126,7 +120,7 @@ describe("archiving a ledger", () => {
 		const parsed = parseArchive(
 			serializeArchive(await buildArchive(db, new Date())),
 		);
-		assert.ok(parsed);
+		if (!parsed) throw new Error("expected the archive to parse");
 
 		const target = migratedDb();
 		await target.insert(categories).values(CATEGORY);
@@ -134,10 +128,7 @@ describe("archiving a ledger", () => {
 		await restoreArchive(target, parsed);
 
 		const rows = await target.select().from(transactions);
-		assert.deepEqual(
-			rows.map((row) => row.id),
-			["t1"],
-		);
+		expect(rows.map((row) => row.id)).toStrictEqual(["t1"]);
 	});
 
 	it("restores a ledger larger than one insert can bind", async () => {
@@ -149,12 +140,12 @@ describe("archiving a ledger", () => {
 		const parsed = parseArchive(
 			serializeArchive(await buildArchive(db, new Date())),
 		);
-		assert.ok(parsed);
+		if (!parsed) throw new Error("expected the archive to parse");
 		const fresh = migratedDb();
 		const written = await restoreArchive(fresh, parsed);
 
-		assert.equal(written, 251);
-		assert.equal((await fresh.select().from(transactions)).length, 250);
+		expect(written).toBe(251);
+		expect((await fresh.select().from(transactions)).length).toBe(250);
 	});
 
 	it("writes categories before the rows that point at them", async () => {
@@ -164,9 +155,9 @@ describe("archiving a ledger", () => {
 		const parsed = parseArchive(
 			serializeArchive(await buildArchive(db, new Date())),
 		);
-		assert.ok(parsed);
+		if (!parsed) throw new Error("expected the archive to parse");
 
 		const fresh = migratedDb();
-		await assert.doesNotReject(restoreArchive(fresh, parsed));
+		await restoreArchive(fresh, parsed);
 	});
 });

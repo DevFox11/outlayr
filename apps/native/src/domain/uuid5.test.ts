@@ -1,6 +1,4 @@
-import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { describe, it } from "node:test";
 import { uuidV5 } from "./uuid5";
 
 const DNS_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
@@ -8,12 +6,10 @@ const URL_NAMESPACE = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
 
 describe("uuidV5", () => {
 	it("matches the RFC 4122 published vectors", () => {
-		assert.equal(
-			uuidV5("python.org", DNS_NAMESPACE),
+		expect(uuidV5("python.org", DNS_NAMESPACE)).toBe(
 			"886313e1-3b8a-5372-9b90-0c9aee199e5d",
 		);
-		assert.equal(
-			uuidV5("http://python.org/", URL_NAMESPACE),
+		expect(uuidV5("http://python.org/", URL_NAMESPACE)).toBe(
 			"4c565f0d-3f5a-5890-b41b-20cf47701c5e",
 		);
 	});
@@ -21,16 +17,15 @@ describe("uuidV5", () => {
 	it("stamps version 5 and the RFC variant", () => {
 		const id = uuidV5("anything", DNS_NAMESPACE);
 
-		assert.match(
-			id,
+		expect(id).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
 		);
 	});
 
 	it("is stable across calls and distinct across names", () => {
-		assert.equal(uuidV5("a", DNS_NAMESPACE), uuidV5("a", DNS_NAMESPACE));
-		assert.notEqual(uuidV5("a", DNS_NAMESPACE), uuidV5("b", DNS_NAMESPACE));
-		assert.notEqual(uuidV5("a", DNS_NAMESPACE), uuidV5("a", URL_NAMESPACE));
+		expect(uuidV5("a", DNS_NAMESPACE)).toBe(uuidV5("a", DNS_NAMESPACE));
+		expect(uuidV5("a", DNS_NAMESPACE)).not.toBe(uuidV5("b", DNS_NAMESPACE));
+		expect(uuidV5("a", DNS_NAMESPACE)).not.toBe(uuidV5("a", URL_NAMESPACE));
 	});
 
 	// The padding arithmetic is the part most likely to be subtly wrong, and it
@@ -53,7 +48,7 @@ describe("uuidV5", () => {
 				hex.slice(20, 32),
 			].join("-");
 
-			assert.equal(uuidV5(name, DNS_NAMESPACE), formatted, `length ${length}`);
+			expect(uuidV5(name, DNS_NAMESPACE)).toBe(formatted);
 		}
 	});
 
@@ -66,16 +61,16 @@ describe("uuidV5", () => {
 		expected[8] = (expected[8] & 0x3f) | 0x80;
 		const hex = expected.subarray(0, 16).toString("hex");
 
-		assert.equal(uuidV5("café — 日本", DNS_NAMESPACE).replace(/-/g, ""), hex);
+		expect(uuidV5("café — 日本", DNS_NAMESPACE).replace(/-/g, "")).toBe(hex);
 	});
 
 	it("rejects a namespace that is not a UUID", () => {
-		assert.throws(() => uuidV5("name", "not-a-uuid"));
+		expect(() => uuidV5("name", "not-a-uuid")).toThrow();
 	});
 
 	it("accepts a freshly minted namespace", () => {
 		const namespace = randomUUID();
 
-		assert.equal(uuidV5("name", namespace), uuidV5("name", namespace));
+		expect(uuidV5("name", namespace)).toBe(uuidV5("name", namespace));
 	});
 });

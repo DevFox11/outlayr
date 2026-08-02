@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import type { IdentitySelection } from "@/components/identity-picker-content";
 import { computeCurtainHues } from "./curtain-hues";
 
@@ -27,7 +25,7 @@ describe("computeCurtainHues", () => {
 			{ ...BASE, identity: EMPTY_IDENTITY, income: false },
 			NEVER_CALLED,
 		);
-		assert.equal(hues, null);
+		expect(hues).toBe(null);
 	});
 
 	it("falls back to the foreground color for an icon identity with no explicit color", () => {
@@ -40,7 +38,7 @@ describe("computeCurtainHues", () => {
 			},
 			NEVER_CALLED,
 		);
-		assert.deepEqual(hues, ["#000000"]);
+		expect(hues).toStrictEqual(["#000000"]);
 	});
 
 	it("uses the emoji glow plus the tint for an emoji identity, capped at two glow hues", () => {
@@ -52,7 +50,7 @@ describe("computeCurtainHues", () => {
 			},
 			() => ["#AAAAAA", "#BBBBBB", "#CCCCCC"],
 		);
-		assert.deepEqual(hues, ["#AAAAAA", "#BBBBBB", "#112233"]);
+		expect(hues).toStrictEqual(["#AAAAAA", "#BBBBBB", "#112233"]);
 	});
 
 	it("uses the photo color over the computed tint for a photo identity", () => {
@@ -68,7 +66,7 @@ describe("computeCurtainHues", () => {
 			},
 			NEVER_CALLED,
 		);
-		assert.deepEqual(hues, ["#654321"]);
+		expect(hues).toStrictEqual(["#654321"]);
 	});
 
 	it("falls back to the computed tint when a photo has no extracted color", () => {
@@ -80,7 +78,7 @@ describe("computeCurtainHues", () => {
 			},
 			NEVER_CALLED,
 		);
-		assert.deepEqual(hues, ["#00FF00"]);
+		expect(hues).toStrictEqual(["#00FF00"]);
 	});
 
 	it("prefers an explicit identity color over income/category tinting", () => {
@@ -92,7 +90,7 @@ describe("computeCurtainHues", () => {
 			},
 			NEVER_CALLED,
 		);
-		assert.deepEqual(hues, ["#123456"]);
+		expect(hues).toStrictEqual(["#123456"]);
 	});
 
 	it("uses the income color when income is true and no category color", () => {
@@ -105,6 +103,6 @@ describe("computeCurtainHues", () => {
 			},
 			NEVER_CALLED,
 		);
-		assert.deepEqual(hues, ["#00FF00"]);
+		expect(hues).toStrictEqual(["#00FF00"]);
 	});
 });

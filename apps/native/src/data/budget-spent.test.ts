@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { before, describe, it } from "node:test";
 import { utcDateString } from "@outlayr/money";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -167,7 +165,7 @@ const CONTRIBUTIONS: ExpenseContribution[] = [
 
 describe("expenseContributionQuery", () => {
 	let db: TestDb;
-	before(async () => {
+	beforeAll(async () => {
 		db = makeDb();
 		await seed(db);
 	});
@@ -176,51 +174,41 @@ describe("expenseContributionQuery", () => {
 		// Every budget figure is a JS reduction over this one result, so a row that
 		// slips through here is spend nothing downstream removes.
 		const rows = await expenseContributionQuery(db, NOW);
-		assert.deepEqual(
-			rows.map((row) => row.amount).sort((a, b) => a - b),
-			[5, 10, 20, 100],
-		);
+		expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([
+			5, 10, 20, 100,
+		]);
 	});
 
 	it("hides a future-dated expense until its day arrives", async () => {
 		const rows = await expenseContributionQuery(db, at(2025, 1, 12));
-		assert.deepEqual(
-			rows.map((row) => row.amount).sort((a, b) => a - b),
-			[5, 10],
-		);
+		expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([
+			5, 10,
+		]);
 	});
 
 	it("carries the currency columns the valuation needs", async () => {
 		const rows = await expenseContributionQuery(db, NOW);
 		for (const row of rows) {
-			assert.ok("currency" in row && "amountUsd" in row);
+			expect("currency" in row && "amountUsd" in row).toBeTruthy();
 		}
 	});
 });
 
 describe("spentForCategory", () => {
 	it("sums a category together with its subcategories", () => {
-		assert.equal(
-			spentForCategory(CONTRIBUTIONS, "food", WINDOW_START, NOW),
-			30,
-		);
+		expect(spentForCategory(CONTRIBUTIONS, "food", WINDOW_START, NOW)).toBe(30);
 	});
 
 	it("counts only the exact category when it has no children", () => {
-		assert.equal(
-			spentForCategory(CONTRIBUTIONS, "groc", WINDOW_START, NOW),
-			20,
-		);
-		assert.equal(
-			spentForCategory(CONTRIBUTIONS, "rent", WINDOW_START, NOW),
+		expect(spentForCategory(CONTRIBUTIONS, "groc", WINDOW_START, NOW)).toBe(20);
+		expect(spentForCategory(CONTRIBUTIONS, "rent", WINDOW_START, NOW)).toBe(
 			100,
 		);
 	});
 
 	it("respects the window lower bound", () => {
 		// Widening the window back to December pulls in the 5.00 expense.
-		assert.equal(
-			spentForCategory(CONTRIBUTIONS, "food", at(2024, 12, 1), NOW),
+		expect(spentForCategory(CONTRIBUTIONS, "food", at(2024, 12, 1), NOW)).toBe(
 			35,
 		);
 	});
@@ -228,11 +216,11 @@ describe("spentForCategory", () => {
 
 describe("spentForMain", () => {
 	it("sums every in-window expense across categories", () => {
-		assert.equal(spentForMain(CONTRIBUTIONS, WINDOW_START, NOW), 130);
+		expect(spentForMain(CONTRIBUTIONS, WINDOW_START, NOW)).toBe(130);
 	});
 
 	it("respects the window lower bound", () => {
-		assert.equal(spentForMain(CONTRIBUTIONS, at(2024, 12, 1), NOW), 135);
+		expect(spentForMain(CONTRIBUTIONS, at(2024, 12, 1), NOW)).toBe(135);
 	});
 });
 
@@ -286,7 +274,7 @@ describe("a budget's spend does not depend on which list it is summed from", () 
 		);
 		const fromDetail = sumValuedIn(ROWS, "EUR", RATES);
 
-		assert.equal(fromDetail, 80);
-		assert.equal(fromDetail, fromShared);
+		expect(fromDetail).toBe(80);
+		expect(fromDetail).toBe(fromShared);
 	});
 });

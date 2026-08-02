@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { before, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { categories, transactions } from "@/db/schema";
@@ -163,7 +161,7 @@ async function seed(db: TestDb): Promise<void> {
 let contributions: InsightsContribution[];
 let categoriesById: Map<string, CategoryMeta>;
 
-before(async () => {
+beforeAll(async () => {
 	const db = makeDb();
 	await seed(db);
 	contributions = await loadContributions(db, NOW);
@@ -190,26 +188,26 @@ describe("loadContributions", () => {
 			contributions.map((c) => `${c.amount}:${c.date.getTime()}`),
 		);
 		// 12 seeded − d1 (deleted) − f2 (future) = 10 contributions.
-		assert.equal(contributions.length, 10);
-		assert.ok(!ids.has(`999:${at(2025, 7, 8).getTime()}`));
-		assert.ok(!ids.has(`88:${at(2025, 7, 15, 18, 0).getTime()}`));
+		expect(contributions.length).toBe(10);
+		expect(!ids.has(`999:${at(2025, 7, 8).getTime()}`)).toBeTruthy();
+		expect(!ids.has(`88:${at(2025, 7, 15, 18, 0).getTime()}`)).toBeTruthy();
 	});
 
 	it("carries the category's parentId for roll-up", () => {
 		const groc = contributions.find((c) => c.categoryId === "groc");
-		assert.equal(groc?.parentId, "food");
+		expect(groc?.parentId).toBe("food");
 		const rent = contributions.find((c) => c.categoryId === "rent");
-		assert.equal(rent?.parentId, null);
+		expect(rent?.parentId).toBe(null);
 	});
 });
 
 describe("bucketRanges boundaries", () => {
 	it("week is the calendar week containing today", () => {
 		const ranges = bucketRanges("week", NOW);
-		assert.equal(ranges.length, 7);
-		assert.deepEqual(ranges[0].start, at(2025, 7, 13)); // Sunday
-		assert.deepEqual(ranges[6].start, at(2025, 7, 19));
-		assert.deepEqual(ranges[6].end, at(2025, 7, 20));
+		expect(ranges.length).toBe(7);
+		expect(ranges[0].start).toStrictEqual(at(2025, 7, 13)); // Sunday
+		expect(ranges[6].start).toStrictEqual(at(2025, 7, 19));
+		expect(ranges[6].end).toStrictEqual(at(2025, 7, 20));
 	});
 
 	it("week honours a Monday-first calendar", () => {
@@ -217,15 +215,15 @@ describe("bucketRanges boundaries", () => {
 			firstWeekday: 2,
 			firstDayOfMonth: 1,
 		});
-		assert.deepEqual(ranges[0].start, at(2025, 7, 14));
-		assert.deepEqual(ranges[6].start, at(2025, 7, 20));
+		expect(ranges[0].start).toStrictEqual(at(2025, 7, 14));
+		expect(ranges[6].start).toStrictEqual(at(2025, 7, 20));
 	});
 
 	it("month is every day of the calendar month, future included", () => {
 		const ranges = bucketRanges("month", NOW);
-		assert.equal(ranges.length, 31);
-		assert.deepEqual(ranges[0].start, at(2025, 7, 1));
-		assert.deepEqual(ranges[30].start, at(2025, 7, 31));
+		expect(ranges.length).toBe(31);
+		expect(ranges[0].start).toStrictEqual(at(2025, 7, 1));
+		expect(ranges[30].start).toStrictEqual(at(2025, 7, 31));
 	});
 
 	it("month honours a mid-month anchor", () => {
@@ -235,41 +233,45 @@ describe("bucketRanges boundaries", () => {
 		});
 		// Jul 15 has not reached the 25th, so the period is the one that opened
 		// on Jun 25 and runs to Jul 24.
-		assert.deepEqual(ranges[0].start, at(2025, 6, 25));
-		assert.equal(ranges.length, 30);
-		assert.deepEqual(ranges[29].start, at(2025, 7, 24));
+		expect(ranges[0].start).toStrictEqual(at(2025, 6, 25));
+		expect(ranges.length).toBe(30);
+		expect(ranges[29].start).toStrictEqual(at(2025, 7, 24));
 	});
 
 	it("year is the twelve months of the calendar year", () => {
 		const ranges = bucketRanges("year", NOW);
-		assert.equal(ranges.length, 12);
-		assert.deepEqual(ranges[0].start, at(2025, 1, 1));
-		assert.deepEqual(ranges[11].start, at(2025, 12, 1));
+		expect(ranges.length).toBe(12);
+		expect(ranges[0].start).toStrictEqual(at(2025, 1, 1));
+		expect(ranges[11].start).toStrictEqual(at(2025, 12, 1));
 	});
 });
 
 describe("monthPeriodStart", () => {
 	it("is the first of the month by default", () => {
-		assert.deepEqual(monthPeriodStart(NOW), at(2025, 7, 1));
+		expect(monthPeriodStart(NOW)).toStrictEqual(at(2025, 7, 1));
 	});
 
 	it("rolls back when the anchor has not been reached", () => {
-		assert.deepEqual(monthPeriodStart(at(2025, 7, 24), 25), at(2025, 6, 25));
-		assert.deepEqual(monthPeriodStart(at(2025, 7, 25), 25), at(2025, 7, 25));
+		expect(monthPeriodStart(at(2025, 7, 24), 25)).toStrictEqual(
+			at(2025, 6, 25),
+		);
+		expect(monthPeriodStart(at(2025, 7, 25), 25)).toStrictEqual(
+			at(2025, 7, 25),
+		);
 	});
 });
 
 describe("elapsedSlots", () => {
 	it("counts only slots that have started in the current window", () => {
-		assert.equal(elapsedSlots("week", NOW), 3); // Jul 13, 14, 15
-		assert.equal(elapsedSlots("month", NOW), 15);
-		assert.equal(elapsedSlots("year", NOW), 7); // Jan–Jul
+		expect(elapsedSlots("week", NOW)).toBe(3); // Jul 13, 14, 15
+		expect(elapsedSlots("month", NOW)).toBe(15);
+		expect(elapsedSlots("year", NOW)).toBe(7); // Jan–Jul
 	});
 
 	it("counts every slot of a window already past", () => {
-		assert.equal(elapsedSlots("week", NOW, -1), 7);
-		assert.equal(elapsedSlots("month", NOW, -1), 30); // June
-		assert.equal(elapsedSlots("year", NOW, -1), 12);
+		expect(elapsedSlots("week", NOW, -1)).toBe(7);
+		expect(elapsedSlots("month", NOW, -1)).toBe(30); // June
+		expect(elapsedSlots("year", NOW, -1)).toBe(12);
 	});
 });
 
@@ -277,45 +279,45 @@ describe("bucketSeries — spent", () => {
 	it("buckets the week and excludes rows outside it", () => {
 		const buckets = bucketSeries(contributions, "week", "spent", NOW);
 		// Jul 13–19 holds only e5; e3/e4 fall in the previous calendar week.
-		assert.equal(periodTotal(buckets), 30);
-		assert.equal(buckets[2].value, 30); // Jul 15: e5 only, f2 is future
-		assert.equal(buckets[0].value, 0); // Jul 13
-		assert.equal(buckets[6].value, 0); // Jul 19, still to come
+		expect(periodTotal(buckets)).toBe(30);
+		expect(buckets[2].value).toBe(30); // Jul 15: e5 only, f2 is future
+		expect(buckets[0].value).toBe(0); // Jul 13
+		expect(buckets[6].value).toBe(0); // Jul 19, still to come
 	});
 
 	it("buckets the month, excluding income, soft-deleted, and future", () => {
 		const buckets = bucketSeries(contributions, "month", "spent", NOW);
-		assert.equal(periodTotal(buckets), 165);
-		assert.equal(buckets[0].value, 10); // Jul 1
-		assert.equal(buckets[7].value, 0); // Jul 8 was soft-deleted
-		assert.equal(buckets[14].value, 30); // Jul 15: e5 only, f2 is future
-		assert.equal(buckets[30].value, 0); // Jul 31 is charted but empty
+		expect(periodTotal(buckets)).toBe(165);
+		expect(buckets[0].value).toBe(10); // Jul 1
+		expect(buckets[7].value).toBe(0); // Jul 8 was soft-deleted
+		expect(buckets[14].value).toBe(30); // Jul 15: e5 only, f2 is future
+		expect(buckets[30].value).toBe(0); // Jul 31 is charted but empty
 	});
 
 	it("buckets the year into months", () => {
 		const buckets = bucketSeries(contributions, "year", "spent", NOW);
 		// 2025 only — e7 (Sep 2024) now belongs to the previous year's window.
-		assert.equal(periodTotal(buckets), 223);
-		assert.equal(buckets[2].value, 50); // Mar 2025
-		assert.equal(buckets[5].value, 8); // Jun 2025
-		assert.equal(buckets[6].value, 165); // Jul 2025
+		expect(periodTotal(buckets)).toBe(223);
+		expect(buckets[2].value).toBe(50); // Mar 2025
+		expect(buckets[5].value).toBe(8); // Jun 2025
+		expect(buckets[6].value).toBe(165); // Jul 2025
 	});
 });
 
 describe("bucketSeries — income and net", () => {
 	it("income counts only inflows", () => {
 		const buckets = bucketSeries(contributions, "month", "income", NOW);
-		assert.equal(periodTotal(buckets), 540);
-		assert.equal(buckets[2].value, 500); // Jul 3
-		assert.equal(buckets[14].value, 40); // Jul 15
+		expect(periodTotal(buckets)).toBe(540);
+		expect(buckets[2].value).toBe(500); // Jul 3
+		expect(buckets[14].value).toBe(40); // Jul 15
 	});
 
 	it("net signs each flow (income − expense)", () => {
 		const buckets = bucketSeries(contributions, "month", "net", NOW);
-		assert.equal(periodTotal(buckets), 375); // 540 − 165
-		assert.equal(buckets[0].value, -10); // Jul 1 expense
-		assert.equal(buckets[2].value, 500); // Jul 3 income
-		assert.equal(buckets[14].value, 10); // Jul 15: +40 − 30
+		expect(periodTotal(buckets)).toBe(375); // 540 − 165
+		expect(buckets[0].value).toBe(-10); // Jul 1 expense
+		expect(buckets[2].value).toBe(500); // Jul 3 income
+		expect(buckets[14].value).toBe(10); // Jul 15: +40 − 30
 	});
 });
 
@@ -328,13 +330,13 @@ describe("categoryBreakdown", () => {
 			"spent",
 			NOW,
 		);
-		assert.equal(rows.length, 2);
-		assert.equal(rows[0].id, "rent");
-		assert.equal(rows[0].amount, 130);
-		assert.equal(rows[1].id, "food");
-		assert.equal(rows[1].amount, 35); // 10 (food) + 20 (groc child) + 5 (food)
-		assert.ok(Math.abs(rows[0].fraction - 130 / 165) < 1e-9);
-		assert.ok(Math.abs(rows[1].fraction - 35 / 165) < 1e-9);
+		expect(rows.length).toBe(2);
+		expect(rows[0].id).toBe("rent");
+		expect(rows[0].amount).toBe(130);
+		expect(rows[1].id).toBe("food");
+		expect(rows[1].amount).toBe(35); // 10 (food) + 20 (groc child) + 5 (food)
+		expect(Math.abs(rows[0].fraction - 130 / 165) < 1e-9).toBeTruthy();
+		expect(Math.abs(rows[1].fraction - 35 / 165) < 1e-9).toBeTruthy();
 	});
 
 	it("carries an emoji identity, not only an icon one", () => {
@@ -346,11 +348,11 @@ describe("categoryBreakdown", () => {
 			NOW,
 		);
 		const rent = rows.find((row) => row.id === "rent");
-		assert.equal(rent?.emoji, "🏠");
-		assert.equal(rent?.icon, null);
+		expect(rent?.emoji).toBe("🏠");
+		expect(rent?.icon).toBe(null);
 		const food = rows.find((row) => row.id === "food");
-		assert.equal(food?.emoji, null);
-		assert.equal(food?.icon, "Restaurant02");
+		expect(food?.emoji).toBe(null);
+		expect(food?.icon).toBe("Restaurant02");
 	});
 
 	it("income reads only inflow categories", () => {
@@ -361,10 +363,10 @@ describe("categoryBreakdown", () => {
 			"income",
 			NOW,
 		);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0].id, "sal");
-		assert.equal(rows[0].amount, 540);
-		assert.equal(rows[0].fraction, 1);
+		expect(rows.length).toBe(1);
+		expect(rows[0].id).toBe("sal");
+		expect(rows[0].amount).toBe(540);
+		expect(rows[0].fraction).toBe(1);
 	});
 
 	it("net mirrors the outflow composition", () => {
@@ -382,8 +384,7 @@ describe("categoryBreakdown", () => {
 			"net",
 			NOW,
 		);
-		assert.deepEqual(
-			net.map((r) => [r.id, r.amount]),
+		expect(net.map((r) => [r.id, r.amount])).toStrictEqual(
 			spent.map((r) => [r.id, r.amount]),
 		);
 	});
@@ -397,76 +398,76 @@ describe("categoryBreakdown", () => {
 			NOW,
 		);
 		const food = rows.find((r) => r.id === "food");
-		assert.equal(food?.name, "Food");
-		assert.equal(food?.color, "#EC7A58");
-		assert.equal(food?.icon, "Restaurant02");
+		expect(food?.name).toBe("Food");
+		expect(food?.color).toBe("#EC7A58");
+		expect(food?.icon).toBe("Restaurant02");
 	});
 });
 
 describe("bucketRanges — window offset", () => {
 	it("month offset -1 is the full previous calendar month", () => {
 		const june = bucketRanges("month", NOW, -1);
-		assert.equal(june.length, 30); // June has 30 days
-		assert.deepEqual(june[0].start, at(2025, 6, 1));
-		assert.deepEqual(june[29].start, at(2025, 6, 30));
+		expect(june.length).toBe(30); // June has 30 days
+		expect(june[0].start).toStrictEqual(at(2025, 6, 1));
+		expect(june[29].start).toStrictEqual(at(2025, 6, 30));
 	});
 
 	it("week offset -1 is the previous calendar week", () => {
 		const prev = bucketRanges("week", NOW, -1);
-		assert.equal(prev.length, 7);
-		assert.deepEqual(prev[0].start, at(2025, 7, 6));
-		assert.deepEqual(prev[6].start, at(2025, 7, 12));
+		expect(prev.length).toBe(7);
+		expect(prev[0].start).toStrictEqual(at(2025, 7, 6));
+		expect(prev[6].start).toStrictEqual(at(2025, 7, 12));
 	});
 
 	it("year offset -1 is the previous calendar year", () => {
 		const prev = bucketRanges("year", NOW, -1);
-		assert.equal(prev.length, 12);
-		assert.deepEqual(prev[0].start, at(2024, 1, 1));
-		assert.deepEqual(prev[11].start, at(2024, 12, 1));
+		expect(prev.length).toBe(12);
+		expect(prev[0].start).toStrictEqual(at(2024, 1, 1));
+		expect(prev[11].start).toStrictEqual(at(2024, 12, 1));
 	});
 
 	it("windowStart agrees with the first slot", () => {
-		assert.deepEqual(windowStart("month", NOW, -2), at(2025, 5, 1));
-		assert.deepEqual(windowStart("week", NOW, -2), at(2025, 6, 29));
-		assert.deepEqual(windowStart("year", NOW, -3), at(2022, 1, 1));
+		expect(windowStart("month", NOW, -2)).toStrictEqual(at(2025, 5, 1));
+		expect(windowStart("week", NOW, -2)).toStrictEqual(at(2025, 6, 29));
+		expect(windowStart("year", NOW, -3)).toStrictEqual(at(2022, 1, 1));
 	});
 });
 
 describe("bucketSeries — window offset", () => {
 	it("month offset -1 buckets only the previous month's rows", () => {
 		const buckets = bucketSeries(contributions, "month", "spent", NOW, -1);
-		assert.equal(buckets.length, 30);
-		assert.equal(periodTotal(buckets), 8); // b1 (Jun 1)
-		assert.equal(buckets[0].value, 8);
+		expect(buckets.length).toBe(30);
+		expect(periodTotal(buckets)).toBe(8); // b1 (Jun 1)
+		expect(buckets[0].value).toBe(8);
 	});
 
 	it("week offset -1 buckets the previous calendar week", () => {
 		const spent = bucketSeries(contributions, "week", "spent", NOW, -1);
-		assert.equal(periodTotal(spent), 105); // e3 (Jul 10) + e4 (Jul 12)
-		assert.equal(spent[4].value, 100);
-		assert.equal(spent[6].value, 5);
-		assert.equal(spent[2].value, 0); // Jul 8 was soft-deleted
+		expect(periodTotal(spent)).toBe(105); // e3 (Jul 10) + e4 (Jul 12)
+		expect(spent[4].value).toBe(100);
+		expect(spent[6].value).toBe(5);
+		expect(spent[2].value).toBe(0); // Jul 8 was soft-deleted
 	});
 });
 
 describe("windowTotals", () => {
 	it("splits the current window into income and spent", () => {
-		assert.deepEqual(windowTotals(contributions, "month", NOW, 0), {
+		expect(windowTotals(contributions, "month", NOW, 0)).toStrictEqual({
 			income: 540,
 			spent: 165,
 		});
 	});
 
 	it("tracks the offset window", () => {
-		assert.deepEqual(windowTotals(contributions, "month", NOW, -1), {
+		expect(windowTotals(contributions, "month", NOW, -1)).toStrictEqual({
 			income: 0,
 			spent: 8,
 		});
-		assert.deepEqual(windowTotals(contributions, "week", NOW, 0), {
+		expect(windowTotals(contributions, "week", NOW, 0)).toStrictEqual({
 			income: 40,
 			spent: 30,
 		});
-		assert.deepEqual(windowTotals(contributions, "week", NOW, -1), {
+		expect(windowTotals(contributions, "week", NOW, -1)).toStrictEqual({
 			income: 0,
 			spent: 105,
 		});
@@ -475,15 +476,15 @@ describe("windowTotals", () => {
 
 describe("offsetForDate", () => {
 	it("maps a date to the offset window containing it", () => {
-		assert.equal(offsetForDate("month", at(2025, 7, 15), NOW), 0);
-		assert.equal(offsetForDate("month", at(2025, 6, 1), NOW), -1);
-		assert.equal(offsetForDate("month", at(2025, 3, 3), NOW), -4);
-		assert.equal(offsetForDate("week", at(2025, 7, 15), NOW), 0);
-		assert.equal(offsetForDate("week", at(2025, 7, 13), NOW), 0);
-		assert.equal(offsetForDate("week", at(2025, 7, 8), NOW), -1);
-		assert.equal(offsetForDate("week", at(2025, 7, 1), NOW), -2);
-		assert.equal(offsetForDate("year", at(2025, 3, 3), NOW), 0);
-		assert.equal(offsetForDate("year", at(2024, 9, 20), NOW), -1);
+		expect(offsetForDate("month", at(2025, 7, 15), NOW)).toBe(0);
+		expect(offsetForDate("month", at(2025, 6, 1), NOW)).toBe(-1);
+		expect(offsetForDate("month", at(2025, 3, 3), NOW)).toBe(-4);
+		expect(offsetForDate("week", at(2025, 7, 15), NOW)).toBe(0);
+		expect(offsetForDate("week", at(2025, 7, 13), NOW)).toBe(0);
+		expect(offsetForDate("week", at(2025, 7, 8), NOW)).toBe(-1);
+		expect(offsetForDate("week", at(2025, 7, 1), NOW)).toBe(-2);
+		expect(offsetForDate("year", at(2025, 3, 3), NOW)).toBe(0);
+		expect(offsetForDate("year", at(2024, 9, 20), NOW)).toBe(-1);
 	});
 });
 
@@ -497,12 +498,12 @@ describe("subcategoryBreakdown", () => {
 			"spent",
 			NOW,
 		);
-		assert.equal(subs.length, 2);
-		assert.equal(subs[0].id, "groc");
-		assert.equal(subs[0].amount, 20);
-		assert.equal(subs[1].name, "Direct"); // e1 (10) + e4 (5)
-		assert.equal(subs[1].amount, 15);
-		assert.ok(Math.abs(subs[0].fraction - 20 / 35) < 1e-9);
+		expect(subs.length).toBe(2);
+		expect(subs[0].id).toBe("groc");
+		expect(subs[0].amount).toBe(20);
+		expect(subs[1].name).toBe("Direct"); // e1 (10) + e4 (5)
+		expect(subs[1].amount).toBe(15);
+		expect(Math.abs(subs[0].fraction - 20 / 35) < 1e-9).toBeTruthy();
 	});
 
 	it("returns a single Direct entry for a childless parent", () => {
@@ -514,28 +515,28 @@ describe("subcategoryBreakdown", () => {
 			"spent",
 			NOW,
 		);
-		assert.equal(subs.length, 1);
-		assert.equal(subs[0].name, "Direct");
-		assert.equal(subs[0].amount, 130);
-		assert.equal(subs[0].fraction, 1);
+		expect(subs.length).toBe(1);
+		expect(subs[0].name).toBe("Direct");
+		expect(subs[0].amount).toBe(130);
+		expect(subs[0].fraction).toBe(1);
 	});
 });
 
 describe("window labels", () => {
 	it("formats the headline window label", () => {
-		assert.equal(windowLabel("month", 0, NOW), "Jul 2025");
-		assert.equal(windowLabel("month", -1, NOW), "Jun 2025");
-		assert.equal(windowLabel("year", 0, NOW), "2025");
-		assert.equal(windowLabel("week", 0, NOW), "13 - 19 Jul");
+		expect(windowLabel("month", 0, NOW)).toBe("Jul 2025");
+		expect(windowLabel("month", -1, NOW)).toBe("Jun 2025");
+		expect(windowLabel("year", 0, NOW)).toBe("2025");
+		expect(windowLabel("week", 0, NOW)).toBe("13 - 19 Jul");
 		// A week straddling two months names both.
-		assert.equal(windowLabel("week", -2, NOW), "29 Jun - 5 Jul");
+		expect(windowLabel("week", -2, NOW)).toBe("29 Jun - 5 Jul");
 	});
 
 	it("formats the compact swipe and bucket labels", () => {
-		assert.equal(windowShortLabel("week", -1, NOW), "6 Jul");
-		assert.equal(windowShortLabel("month", -1, NOW), "Jun 25");
-		assert.equal(windowShortLabel("year", -1, NOW), "2024");
-		assert.equal(bucketDateLabel("month", at(2025, 7, 12)), "12 Jul 2025");
-		assert.equal(bucketDateLabel("year", at(2025, 7, 1)), "Jul 2025");
+		expect(windowShortLabel("week", -1, NOW)).toBe("6 Jul");
+		expect(windowShortLabel("month", -1, NOW)).toBe("Jun 25");
+		expect(windowShortLabel("year", -1, NOW)).toBe("2024");
+		expect(bucketDateLabel("month", at(2025, 7, 12))).toBe("12 Jul 2025");
+		expect(bucketDateLabel("year", at(2025, 7, 1))).toBe("Jul 2025");
 	});
 });

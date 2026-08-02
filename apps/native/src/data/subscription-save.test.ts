@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { asc, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -121,11 +119,17 @@ describe("a subscription whose back-fill fails after the row is committed", () =
 
 		// Asserted on the message so the injected fault stays the intended one: a
 		// back-fill that resolved here would be proving nothing about a failure.
-		await assert.rejects(() => backfillRecurring(db, id, NOW), /exchangeRates/);
+		// `toMatchObject` rather than `.rejects.toThrow()`: better-sqlite3's
+		// `SqliteError` is a native-addon class, and Jest gives each test file its
+		// own realm, so `instanceof Error` on it is not reliable across files —
+		// `toThrow()` silently reports "did not throw" when that happens.
+		await expect(backfillRecurring(db, id, NOW)).rejects.toMatchObject({
+			message: expect.stringMatching(/exchangeRates/),
+		});
 
 		const live = await carriers(db);
-		assert.equal(live.length, 1);
-		assert.equal(live[0]?.id, id);
+		expect(live.length).toBe(1);
+		expect(live[0]?.id).toBe(id);
 	});
 
 	it("writes no charges, so the source is the whole ledger", async () => {
@@ -133,11 +137,13 @@ describe("a subscription whose back-fill fails after the row is committed", () =
 		const id = await transactionsRepo.create(db, SUBSCRIPTION);
 		breakRateReplica();
 
-		await assert.rejects(() => backfillRecurring(db, id, NOW));
+		await expect(backfillRecurring(db, id, NOW)).rejects.toMatchObject({
+			message: expect.any(String),
+		});
 
 		const rows = await liveRows(db);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0]?.id, id);
+		expect(rows.length).toBe(1);
+		expect(rows[0]?.id).toBe(id);
 	});
 
 	// What makes the "Outlayr will try again the next time you open it" wording
@@ -149,12 +155,14 @@ describe("a subscription whose back-fill fails after the row is committed", () =
 		const id = await transactionsRepo.create(db, SUBSCRIPTION);
 		breakRateReplica();
 
-		await assert.rejects(() => backfillRecurring(db, id, NOW));
+		await expect(backfillRecurring(db, id, NOW)).rejects.toMatchObject({
+			message: expect.any(String),
+		});
 
 		const [source] = await liveRows(db);
-		assert.equal(source?.recurringType, RECURRING_TYPE.monthly);
-		assert.equal(source?.recurringCoefficient, 1);
-		assert.equal(source?.onceRecurring, true);
+		expect(source?.recurringType).toBe(RECURRING_TYPE.monthly);
+		expect(source?.recurringCoefficient).toBe(1);
+		expect(source?.onceRecurring).toBe(true);
 	});
 
 	// The fault the form's post-failure state exists to prevent: `create` mints a
@@ -168,7 +176,7 @@ describe("a subscription whose back-fill fails after the row is committed", () =
 		const first = await transactionsRepo.create(db, SUBSCRIPTION);
 		const second = await transactionsRepo.create(db, SUBSCRIPTION);
 
-		assert.notEqual(first, second);
-		assert.equal((await carriers(db)).length, 2);
+		expect(first).not.toBe(second);
+		expect((await carriers(db)).length).toBe(2);
 	});
 });

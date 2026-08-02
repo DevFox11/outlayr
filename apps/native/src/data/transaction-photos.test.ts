@@ -1,14 +1,8 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 
-const MIGRATIONS = join(
-	dirname(fileURLToPath(import.meta.url)),
-	"../../drizzle",
-);
+const MIGRATIONS = join(__dirname, "../../drizzle");
 
 function migrationFiles(): string[] {
 	return readdirSync(MIGRATIONS)
@@ -88,12 +82,12 @@ describe("moving existing photos into their own table", () => {
 		const rows = sqlite
 			.prepare("SELECT * FROM transactionPhotos")
 			.all() as Record<string, unknown>[];
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0].transactionId, "t1");
-		assert.equal(rows[0].imageUri, "file:///photos/a.jpg");
-		assert.equal(rows[0].imageKey, "transaction-photos/u1/a.jpg");
-		assert.equal(rows[0].imageColor, "#abcdef");
-		assert.equal(rows[0].sortOrder, 0);
+		expect(rows.length).toBe(1);
+		expect(rows[0].transactionId).toBe("t1");
+		expect(rows[0].imageUri).toBe("file:///photos/a.jpg");
+		expect(rows[0].imageKey).toBe("transaction-photos/u1/a.jpg");
+		expect(rows[0].imageColor).toBe("#abcdef");
+		expect(rows[0].sortOrder).toBe(0);
 	});
 
 	it("carries a row that has a key but no local file", () => {
@@ -107,7 +101,7 @@ describe("moving existing photos into their own table", () => {
 		applyOne(sqlite, PHOTOS_MIGRATION);
 
 		const rows = sqlite.prepare("SELECT * FROM transactionPhotos").all();
-		assert.equal(rows.length, 1);
+		expect(rows.length).toBe(1);
 	});
 
 	it("leaves an entry that never had a photo alone", () => {
@@ -116,10 +110,9 @@ describe("moving existing photos into their own table", () => {
 
 		applyOne(sqlite, PHOTOS_MIGRATION);
 
-		assert.deepEqual(
+		expect(
 			sqlite.prepare("SELECT * FROM transactionPhotos").all(),
-			[],
-		);
+		).toStrictEqual([]);
 	});
 
 	it("gives every carried photo a distinct id", () => {
@@ -134,6 +127,6 @@ describe("moving existing photos into their own table", () => {
 				id: string;
 			}[]
 		).map((row) => row.id);
-		assert.equal(new Set(ids).size, 2);
+		expect(new Set(ids).size).toBe(2);
 	});
 });

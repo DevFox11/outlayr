@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { transactions } from "@/db/schema";
@@ -121,39 +119,39 @@ class FakeFiles implements PhotoFiles {
 
 describe("photoFileName", () => {
 	it("takes the last path segment", () => {
-		assert.equal(photoFileName(`${DIRECTORY}/abc.jpg`), "abc.jpg");
+		expect(photoFileName(`${DIRECTORY}/abc.jpg`)).toBe("abc.jpg");
 	});
 
 	it("drops a query string", () => {
-		assert.equal(photoFileName("file:///tmp/abc.jpg?width=100"), "abc.jpg");
+		expect(photoFileName("file:///tmp/abc.jpg?width=100")).toBe("abc.jpg");
 	});
 
 	it("is empty for a uri with no final segment", () => {
-		assert.equal(photoFileName("file:///tmp/"), "");
+		expect(photoFileName("file:///tmp/")).toBe("");
 	});
 });
 
 describe("photoUriFor", () => {
 	it("joins without doubling the separator", () => {
-		assert.equal(photoUriFor(`${DIRECTORY}/`, "a.jpg"), `${DIRECTORY}/a.jpg`);
+		expect(photoUriFor(`${DIRECTORY}/`, "a.jpg")).toBe(`${DIRECTORY}/a.jpg`);
 	});
 });
 
 describe("photoExtension", () => {
 	it("lowercases what it finds", () => {
-		assert.equal(photoExtension("PHOTO.JPEG"), ".jpeg");
+		expect(photoExtension("PHOTO.JPEG")).toBe(".jpeg");
 	});
 
 	it("falls back when there is no extension", () => {
-		assert.equal(photoExtension("photo"), ".jpg");
+		expect(photoExtension("photo")).toBe(".jpg");
 	});
 
 	it("falls back when a dotted name has no plausible extension", () => {
-		assert.equal(photoExtension("2026.07.29-groceries"), ".jpg");
+		expect(photoExtension("2026.07.29-groceries")).toBe(".jpg");
 	});
 
 	it("ignores a leading dot", () => {
-		assert.equal(photoExtension(".hidden"), ".jpg");
+		expect(photoExtension(".hidden")).toBe(".jpg");
 	});
 });
 
@@ -171,8 +169,8 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.equal(await storedUri(db, "t1"), uri);
-		assert.deepEqual(result, {
+		expect(await storedUri(db, "t1")).toBe(uri);
+		expect(result).toStrictEqual({
 			repointed: 0,
 			rescued: 0,
 			cleared: 0,
@@ -186,9 +184,9 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.equal(await storedUri(db, "t1"), `${DIRECTORY}/keep.jpg`);
-		assert.equal(result.repointed, 1);
-		assert.equal(result.purged, 0);
+		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
+		expect(result.repointed).toBe(1);
+		expect(result.purged).toBe(0);
 	});
 
 	it("adopts a cache-directory photo that is still readable", async () => {
@@ -198,9 +196,9 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.equal(await storedUri(db, "t1"), `${DIRECTORY}/t1.jpeg`);
-		assert.equal(result.rescued, 1);
-		assert.equal(result.purged, 0);
+		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
+		expect(result.rescued).toBe(1);
+		expect(result.purged).toBe(0);
 	});
 
 	it("clears a row whose photo is gone", async () => {
@@ -209,8 +207,8 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.equal(await storedUri(db, "t1"), null);
-		assert.equal(result.cleared, 1);
+		expect(await storedUri(db, "t1")).toBe(null);
+		expect(result.cleared).toBe(1);
 	});
 
 	it("purges a file no row references", async () => {
@@ -222,8 +220,8 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.deepEqual(files.removed, ["orphan.jpg"]);
-		assert.equal(result.purged, 1);
+		expect(files.removed).toStrictEqual(["orphan.jpg"]);
+		expect(result.purged).toBe(1);
 	});
 
 	it("spares a file written inside the grace window", async () => {
@@ -231,8 +229,8 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.deepEqual(files.removed, []);
-		assert.equal(result.purged, 0);
+		expect(files.removed).toStrictEqual([]);
+		expect(result.purged).toBe(0);
 	});
 
 	it("keeps the photo of a soft-deleted row", async () => {
@@ -241,9 +239,9 @@ describe("reconcilePhotos", () => {
 
 		const result = await reconcilePhotos(db, files, NOW);
 
-		assert.deepEqual(files.removed, []);
-		assert.equal(await storedUri(db, "t1"), `${DIRECTORY}/keep.jpg`);
-		assert.equal(result.purged, 0);
+		expect(files.removed).toStrictEqual([]);
+		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
+		expect(result.purged).toBe(0);
 	});
 
 	it("is idempotent", async () => {
@@ -255,13 +253,13 @@ describe("reconcilePhotos", () => {
 		await reconcilePhotos(db, files, NOW);
 		const second = await reconcilePhotos(db, files, NOW);
 
-		assert.deepEqual(second, {
+		expect(second).toStrictEqual({
 			repointed: 0,
 			rescued: 0,
 			cleared: 0,
 			purged: 0,
 		});
-		assert.equal(await storedUri(db, "t1"), `${DIRECTORY}/t1.jpeg`);
-		assert.equal(await storedUri(db, "t2"), null);
+		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
+		expect(await storedUri(db, "t2")).toBe(null);
 	});
 });

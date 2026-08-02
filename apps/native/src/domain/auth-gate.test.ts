@@ -1,99 +1,89 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { authGate, authRoute } from "./auth-gate";
 
 describe("auth gate", () => {
 	it("opens on a restored session", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: true,
 				hasSession: true,
 				restoring: false,
 				restoreExpired: false,
 			}),
-			"signed-in",
-		);
+		).toBe("signed-in");
 	});
 
 	it("opens on a cached session the client is still revalidating", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: true,
 				hasSession: true,
 				restoring: true,
 				restoreExpired: false,
 			}),
-			"signed-in",
-		);
+		).toBe("signed-in");
 	});
 
 	it("opens on a cached session whose revalidation never answered", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: true,
 				hasSession: true,
 				restoring: true,
 				restoreExpired: true,
 			}),
-			"signed-in",
-		);
+		).toBe("signed-in");
 	});
 
 	it("holds while a session that is not cached is still being read", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: true,
 				hasSession: false,
 				restoring: true,
 				restoreExpired: false,
 			}),
-			"restoring",
-		);
+		).toBe("restoring");
 	});
 
 	it("falls through to sign-in once the restore budget is spent", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: true,
 				hasSession: false,
 				restoring: true,
 				restoreExpired: true,
 			}),
-			"signed-out",
-		);
+		).toBe("signed-out");
 	});
 
 	it("asks for a sign-in once the client answers with nothing", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: true,
 				hasSession: false,
 				restoring: false,
 				restoreExpired: false,
 			}),
-			"signed-out",
-		);
+		).toBe("signed-out");
 	});
 
 	it("reports a build that cannot sign anyone in rather than opening", () => {
-		assert.equal(
+		expect(
 			authGate({
 				configured: false,
 				hasSession: false,
 				restoring: false,
 				restoreExpired: false,
 			}),
-			"unconfigured",
-		);
-		assert.equal(
+		).toBe("unconfigured");
+		expect(
 			authGate({
 				configured: false,
 				hasSession: false,
 				restoring: true,
 				restoreExpired: false,
 			}),
-			"unconfigured",
-		);
+		).toBe("unconfigured");
 	});
 });
 
@@ -105,42 +95,42 @@ describe("account routing", () => {
 	) => authRoute({ gate, reconciled, deferred });
 
 	it("opens the ledger of a build that cannot sign anyone in", () => {
-		assert.equal(at("unconfigured", true), "ledger");
-		assert.equal(at("unconfigured", false), "ledger");
+		expect(at("unconfigured", true)).toBe("ledger");
+		expect(at("unconfigured", false)).toBe("ledger");
 	});
 
 	it("never sends a build that cannot sign anyone in to the sign-in screen", () => {
-		assert.notEqual(at("unconfigured", true), "sign-in");
-		assert.notEqual(at("unconfigured", false), "sign-in");
+		expect(at("unconfigured", true)).not.toBe("sign-in");
+		expect(at("unconfigured", false)).not.toBe("sign-in");
 	});
 
 	it("opens the ledger for an account whose ledger has been reconciled", () => {
-		assert.equal(at("signed-in", true), "ledger");
+		expect(at("signed-in", true)).toBe("ledger");
 	});
 
 	it("reconciles an account's ledger before opening it", () => {
-		assert.equal(at("signed-in", false), "adopt");
+		expect(at("signed-in", false)).toBe("adopt");
 	});
 
 	it("asks a signed-out device to sign in", () => {
-		assert.equal(at("signed-out", true), "sign-in");
-		assert.equal(at("signed-out", false), "sign-in");
+		expect(at("signed-out", true)).toBe("sign-in");
+		expect(at("signed-out", false)).toBe("sign-in");
 	});
 
 	it("parks a restore on the sign-in screen, which the cover hides", () => {
-		assert.equal(at("restoring", true), "sign-in");
-		assert.equal(at("restoring", false), "sign-in");
+		expect(at("restoring", true)).toBe("sign-in");
+		expect(at("restoring", false)).toBe("sign-in");
 	});
 
 	it("opens the ledger of a device that declined the account offer", () => {
 		// The whole point of the offer being declinable: the ledger is already on
 		// the device, so there is nothing left to gate on.
-		assert.equal(at("signed-out", false, true), "ledger");
-		assert.equal(at("restoring", false, true), "ledger");
+		expect(at("signed-out", false, true)).toBe("ledger");
+		expect(at("restoring", false, true)).toBe("ledger");
 	});
 
 	it("still reconciles when a device that declined signs in later", () => {
-		assert.equal(at("signed-in", false, true), "adopt");
-		assert.equal(at("signed-in", true, true), "ledger");
+		expect(at("signed-in", false, true)).toBe("adopt");
+		expect(at("signed-in", true, true)).toBe("ledger");
 	});
 });

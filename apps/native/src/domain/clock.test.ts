@@ -1,5 +1,5 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import { clockAdvances, nextClockTick } from "./clock";
 
 const HOUR_MS = 3_600_000;
@@ -10,26 +10,45 @@ function wallTime(ms: number): [number, number, number, number] {
 	return [d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()];
 }
 
+interface DstProbeResult {
+	offset: number;
+	tick: number;
+	arrival: [number, number, number, number];
+}
+
 /**
- * The zone is forced because the host's own may have no DST at all, in which case
- * the case under test could not arise. `node --test` runs each file in its own
- * process, so the mutation cannot reach another test file.
+ * Runs `nextClockTick` in a subprocess forced to America/New_York. The zone is
+ * forced because the host's own may have no DST at all, in which case the case
+ * under test could not arise. A subprocess is required rather than mutating
+ * `process.env.TZ` in-place: Jest caches the host's own zone the first time any
+ * `Date` is touched (before this file's own code ever runs), so a later
+ * mutation of `process.env.TZ` is silently ignored — only a fresh process
+ * started with `TZ` already set picks up a different zone. `[year, month, day,
+ * hour]` tuples travel to the subprocess rather than epoch milliseconds
+ * because the calling process's own zone would otherwise resolve "local
+ * midnight" to the wrong instant.
  */
-function inNewYork(body: () => void): void {
-	const zone = process.env.TZ;
-	process.env.TZ = "America/New_York";
-	try {
-		body();
-	} finally {
-		process.env.TZ = zone;
-	}
+function ticksInNewYork(
+	dateArgs: [number, number, number, number][],
+): DstProbeResult[] {
+	const probe = join(__dirname, "clock-dst-probe.ts");
+	const out = execFileSync(
+		process.execPath,
+		["--import", "tsx", probe, JSON.stringify(dateArgs)],
+		{
+			env: { ...process.env, TZ: "America/New_York" },
+			encoding: "utf8",
+			maxBuffer: 8 * 1024 * 1024,
+		},
+	);
+	return JSON.parse(out);
 }
 
 describe("next clock tick", () => {
 	it("lands on the next local midnight from an arbitrary instant", () => {
 		const now = new Date(2025, 6, 15, 9, 41, 12, 345).getTime();
 
-		assert.deepEqual(wallTime(now + nextClockTick(now)), [0, 0, 0, 0]);
+		expect(wallTime(now + nextClockTick(now))).toStrictEqual([0, 0, 0, 0]);
 	});
 
 	it("arms for the following midnight when armed exactly at one", () => {
@@ -37,73 +56,62 @@ describe("next clock tick", () => {
 
 		const tick = nextClockTick(midnight);
 
-		assert.ok(tick > 0, "a zero delay fires on the instant it was armed for");
-		assert.deepEqual(wallTime(midnight + tick), [0, 0, 0, 0]);
-		assert.equal(new Date(midnight + tick).getDate(), 16);
+		expect(tick > 0).toBeTruthy();
+		expect(wallTime(midnight + tick)).toStrictEqual([0, 0, 0, 0]);
+		expect(new Date(midnight + tick).getDate()).toBe(16);
 	});
 
 	it("spans 23 hours on the day a clock springs forward, not 24", () => {
-		inNewYork(() => {
-			assert.notEqual(
-				new Date(2026, 2, 8).getTimezoneOffset(),
-				new Date(2026, 2, 9).getTimezoneOffset(),
-				"the forced zone must actually shift on the day under test",
-			);
+		const [before, after] = ticksInNewYork([
+			[2026, 2, 8, 0],
+			[2026, 2, 9, 0],
+		]);
 
-			assert.equal(nextClockTick(new Date(2026, 2, 8).getTime()), 23 * HOUR_MS);
-		});
+		expect(before.offset).not.toBe(after.offset);
+		expect(before.tick).toBe(23 * HOUR_MS);
 	});
 
 	it("spans 25 hours on the day a clock falls back", () => {
-		inNewYork(() => {
-			assert.notEqual(
-				new Date(2026, 10, 1).getTimezoneOffset(),
-				new Date(2026, 10, 2).getTimezoneOffset(),
-				"the forced zone must actually shift on the day under test",
-			);
+		const [before, after] = ticksInNewYork([
+			[2026, 10, 1, 0],
+			[2026, 10, 2, 0],
+		]);
 
-			assert.equal(
-				nextClockTick(new Date(2026, 10, 1).getTime()),
-				25 * HOUR_MS,
-			);
-		});
+		expect(before.offset).not.toBe(after.offset);
+		expect(before.tick).toBe(25 * HOUR_MS);
 	});
 
 	it("never arms for zero, on any hour of a year that shifts twice", () => {
-		inNewYork(() => {
-			for (let day = 0; day < 365; day += 1) {
-				for (let hour = 0; hour < 24; hour += 1) {
-					const now = new Date(2026, 0, 1 + day, hour).getTime();
-					const tick = nextClockTick(now);
-
-					assert.ok(tick > 0, `day ${day} hour ${hour} armed for ${tick}ms`);
-					assert.deepEqual(
-						wallTime(now + tick),
-						[0, 0, 0, 0],
-						`day ${day} hour ${hour} missed midnight`,
-					);
-				}
+		const dateArgs: [number, number, number, number][] = [];
+		for (let day = 0; day < 365; day += 1) {
+			for (let hour = 0; hour < 24; hour += 1) {
+				dateArgs.push([2026, 0, 1 + day, hour]);
 			}
-		});
+		}
+
+		for (const { tick, arrival } of ticksInNewYork(dateArgs)) {
+			expect(tick > 0).toBeTruthy();
+			expect(arrival).toStrictEqual([0, 0, 0, 0]);
+		}
 	});
 });
 
 describe("clock advance rule", () => {
 	it("takes a reading later than the standing one", () => {
-		assert.equal(clockAdvances(1_000, 1_500), true);
+		expect(clockAdvances(1_000, 1_500)).toBe(true);
 	});
 
 	it("refuses a repeat, so a burst of triggers restates the reading once", () => {
-		assert.equal(clockAdvances(1_000, 1_000), false);
+		expect(clockAdvances(1_000, 1_000)).toBe(false);
 	});
 
 	it("refuses a small step backwards, which would flicker listed rows", () => {
-		assert.equal(clockAdvances(1_000, 999), false);
+		expect(clockAdvances(1_000, 999)).toBe(false);
 	});
 
 	it("refuses a regression right up to the tolerance", () => {
 		const now = 10 * HOUR_MS;
-		assert.equal(clockAdvances(now, now - 60_000), false);
+		expect(clockAdvances(now, now - 60_000)).toBe(false);
 	});
 
 	it("takes a correction past the tolerance rather than staying in the future", () => {
@@ -111,7 +119,7 @@ describe("clock advance rule", () => {
 		// bound stranded ahead of real time for the life of the process, and every
 		// scheduled charge under it reads as money already spent.
 		const now = 10 * HOUR_MS;
-		assert.equal(clockAdvances(now, now - 60_001), true);
-		assert.equal(clockAdvances(now, now - 5 * HOUR_MS), true);
+		expect(clockAdvances(now, now - 60_001)).toBe(true);
+		expect(clockAdvances(now, now - 5 * HOUR_MS)).toBe(true);
 	});
 });

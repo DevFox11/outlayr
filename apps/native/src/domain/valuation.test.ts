@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { roundMoney } from "@outlayr/money";
 import { currencyTotals } from "./currency-totals";
 import {
@@ -19,14 +17,14 @@ const rates = buildRateTable([
 
 describe("buildRateTable", () => {
 	it("answers with the newest rate on or before the date", () => {
-		assert.equal(rates.get("EUR", "2026-07-15"), 0.95);
-		assert.equal(rates.get("EUR", "2026-07-10"), 0.95);
-		assert.equal(rates.get("EUR", "2026-07-05"), 0.9);
+		expect(rates.get("EUR", "2026-07-15")).toBe(0.95);
+		expect(rates.get("EUR", "2026-07-10")).toBe(0.95);
+		expect(rates.get("EUR", "2026-07-05")).toBe(0.9);
 	});
 
 	it("declines before its earliest row, and for an unknown code", () => {
-		assert.equal(rates.get("EUR", "2026-06-30"), null);
-		assert.equal(rates.get("JPY", "2026-07-15"), null);
+		expect(rates.get("EUR", "2026-06-30")).toBe(null);
+		expect(rates.get("JPY", "2026-07-15")).toBe(null);
 	});
 });
 
@@ -44,7 +42,7 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(value, 12.4);
+		expect(value).toBe(12.4);
 	});
 
 	it("converts a null-currency row instead of relabelling it", () => {
@@ -56,7 +54,7 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(value, 104.5);
+		expect(value).toBe(104.5);
 	});
 
 	it("still takes a null-currency row at face value when it has no USD value", () => {
@@ -66,7 +64,7 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(value, 99);
+		expect(value).toBe(99);
 	});
 
 	it("converts a cross-currency row at the rate of ITS OWN day", () => {
@@ -77,7 +75,7 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(value, 90);
+		expect(value).toBe(90);
 	});
 
 	it("converts a USD row that was never canonicalized", () => {
@@ -87,7 +85,7 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(value, 90);
+		expect(value).toBe(90);
 	});
 
 	it("uses the canonical value directly when display is USD", () => {
@@ -96,7 +94,7 @@ describe("valueIn", () => {
 			"USD",
 			rates,
 		);
-		assert.equal(value, 100);
+		expect(value).toBe(100);
 	});
 
 	it("rounds to the display currency's own exponent", () => {
@@ -109,7 +107,7 @@ describe("valueIn", () => {
 			"JPY",
 			jpy,
 		);
-		assert.equal(value, 157);
+		expect(value).toBe(157);
 	});
 
 	it("falls back to face value rather than dropping money", () => {
@@ -119,7 +117,7 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(noUsd, 50);
+		expect(noUsd).toBe(50);
 
 		// Canonical, but no rate for the display currency that far back.
 		const noRate = valueIn(
@@ -127,65 +125,60 @@ describe("valueIn", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(noRate, 50);
+		expect(noRate).toBe(50);
 	});
 });
 
 describe("isExact", () => {
 	it("is true for a same-currency row and for a canonicalized one", () => {
-		assert.equal(
+		expect(
 			isExact(
 				{ amount: 1, currency: "EUR", amountUsd: null, dateKey: "2026-07-15" },
 				"EUR",
 				rates,
 			),
-			true,
-		);
-		assert.equal(
+		).toBe(true);
+		expect(
 			isExact(
 				{ amount: 1, currency: "USD", amountUsd: 1, dateKey: "2026-07-15" },
 				"EUR",
 				rates,
 			),
-			true,
-		);
+		).toBe(true);
 	});
 
 	it("is false for a cross-currency row that was never canonicalized", () => {
 		// GBP, not USD: a USD row needs nothing frozen, since its canonical value
 		// is the amount itself.
-		assert.equal(
+		expect(
 			isExact(
 				{ amount: 1, currency: "GBP", amountUsd: null, dateKey: "2026-07-15" },
 				"EUR",
 				rates,
 			),
-			false,
-		);
+		).toBe(false);
 	});
 
 	it("is true for a USD row with no frozen value", () => {
-		assert.equal(
+		expect(
 			isExact(
 				{ amount: 1, currency: "USD", amountUsd: null, dateKey: "2026-07-15" },
 				"EUR",
 				rates,
 			),
-			true,
-		);
+		).toBe(true);
 	});
 
 	it("is false when canonical but no rate reaches that far back", () => {
 		// A frozen USD value is not proof the row can be converted: with no rate in
 		// the table `valueIn` falls back to face value.
-		assert.equal(
+		expect(
 			isExact(
 				{ amount: 1, currency: "USD", amountUsd: 1, dateKey: "2020-01-01" },
 				"EUR",
 				rates,
 			),
-			false,
-		);
+		).toBe(false);
 	});
 });
 
@@ -194,41 +187,38 @@ describe("limitIn", () => {
 		// Both legs on the window's day, not the amount's USD value frozen on the
 		// day the target was set: 4000 VES / 40 = $100, and $100 * 0.95 = €95. The
 		// stored 200 is a stale freeze and must not reach the screen.
-		assert.equal(
+		expect(
 			limitIn(
 				{ amount: 4000, currency: "VES", amountUsd: 200 },
 				new Date(Date.UTC(2026, 6, 15)),
 				"EUR",
 				rates,
 			),
-			95,
-		);
+		).toBe(95);
 	});
 
 	it("falls back to the frozen value when no rate reaches the window", () => {
 		// VES has no rate on or before 2026-07-01, so the stored USD value is the
 		// only thing left that can place the target.
-		assert.equal(
+		expect(
 			limitIn(
 				{ amount: 4000, currency: "VES", amountUsd: 200 },
 				new Date(Date.UTC(2026, 6, 1)),
 				"EUR",
 				rates,
 			),
-			180,
-		);
+		).toBe(180);
 	});
 
 	it("hands back a target already in the display currency untouched", () => {
-		assert.equal(
+		expect(
 			limitIn(
 				{ amount: 250.5, currency: "EUR", amountUsd: 278.33 },
 				new Date(Date.UTC(2026, 6, 15)),
 				"EUR",
 				rates,
 			),
-			250.5,
-		);
+		).toBe(250.5);
 	});
 });
 
@@ -237,7 +227,7 @@ describe("sumValuedIn", () => {
 
 	it("adds a mixed-currency list in the display currency", () => {
 		// 40 EUR is already there; 50 USD is worth 47.50 at that day's rate.
-		assert.equal(
+		expect(
 			sumValuedIn(
 				[
 					{ amount: 40, currency: "EUR", amountUsd: 44.44, date: JULY_15 },
@@ -246,12 +236,11 @@ describe("sumValuedIn", () => {
 				"EUR",
 				rates,
 			),
-			87.5,
-		);
+		).toBe(87.5);
 	});
 
 	it("values each row at its own day", () => {
-		assert.equal(
+		expect(
 			sumValuedIn(
 				[
 					{
@@ -265,8 +254,7 @@ describe("sumValuedIn", () => {
 				"EUR",
 				rates,
 			),
-			185,
-		);
+		).toBe(185);
 	});
 });
 
@@ -306,24 +294,21 @@ describe("valueRowsIn", () => {
 			),
 		);
 
-		assert.deepEqual(
-			{
-				header: cents(header[0].amount),
-				subtotals: subtotals.map((day) => cents(day[0].amount)),
-				subtotalsAdded: added(subtotals.map((day) => day[0].amount)),
-				perRowAdded: added(valueRowsIn(entries.map(asValuable), "EUR", rates)),
-			},
-			{
-				header: 15.91,
-				subtotals: [7.74, 8.17],
-				subtotalsAdded: 15.91,
-				perRowAdded: 15.91,
-			},
-		);
+		expect({
+			header: cents(header[0].amount),
+			subtotals: subtotals.map((day) => cents(day[0].amount)),
+			subtotalsAdded: added(subtotals.map((day) => day[0].amount)),
+			perRowAdded: added(valueRowsIn(entries.map(asValuable), "EUR", rates)),
+		}).toStrictEqual({
+			header: 15.91,
+			subtotals: [7.74, 8.17],
+			subtotalsAdded: 15.91,
+			perRowAdded: 15.91,
+		});
 	});
 
 	it("leaves a row already in the display currency untouched", () => {
-		assert.deepEqual(
+		expect(
 			valueRowsIn(
 				[
 					{
@@ -342,8 +327,7 @@ describe("valueRowsIn", () => {
 				"EUR",
 				rates,
 			),
-			[12.4, 5],
-		);
+		).toStrictEqual([12.4, 5]);
 	});
 
 	it("keeps income and expense apart, as the Log's cells do", () => {
@@ -358,11 +342,11 @@ describe("valueRowsIn", () => {
 				income,
 			})),
 		);
-		assert.equal(added(valueRowsIn(rows, "EUR", rates)), 0.2);
+		expect(added(valueRowsIn(rows, "EUR", rates))).toBe(0.2);
 	});
 
 	it("falls back to face value when no rate reaches the day", () => {
-		assert.deepEqual(
+		expect(
 			valueRowsIn(
 				[
 					{ amount: 10, currency: "USD", amountUsd: 10, dateKey: "2020-01-01" },
@@ -371,7 +355,6 @@ describe("valueRowsIn", () => {
 				"EUR",
 				rates,
 			),
-			[10, 20],
-		);
+		).toStrictEqual([10, 20]);
 	});
 });

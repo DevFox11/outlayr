@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
@@ -41,17 +39,17 @@ describe("categoryMedian", () => {
 			expense(23, 500),
 		];
 
-		assert.equal(categoryMedian(rows, COFFEE), 11.5);
+		expect(categoryMedian(rows, COFFEE)).toBe(11.5);
 	});
 
 	it("counts a subcategory's purchases as the parent's", () => {
 		const rows = [expense(20, 8, "beans", COFFEE), expense(21, 12)];
 
-		assert.equal(categoryMedian(rows, COFFEE), 10);
+		expect(categoryMedian(rows, COFFEE)).toBe(10);
 	});
 
 	it("has nothing to say without history", () => {
-		assert.equal(categoryMedian([expense(20, 10, "rent")], COFFEE), null);
+		expect(categoryMedian([expense(20, 10, "rent")], COFFEE)).toBe(null);
 	});
 });
 
@@ -66,15 +64,14 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.deepEqual(
+		expect(
 			slots.blocks.map((block) => [block.start, block.amount, block.over]),
-			[
-				[0, 4, false],
-				[4, 9, false],
-			],
-		);
-		assert.equal(slots.spent, 13);
-		assert.equal(slots.remaining, 7);
+		).toStrictEqual([
+			[0, 4, false],
+			[4, 9, false],
+		]);
+		expect(slots.spent).toBe(13);
+		expect(slots.remaining).toBe(7);
 	});
 
 	it("offers a slot the width of the median when one more fits", () => {
@@ -87,11 +84,11 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.equal(slots.median, 6);
-		assert.equal(slots.ghost, 6);
-		assert.equal(slots.roomFor, 2);
-		assert.equal(slots.verdict, "room");
-		assert.equal(dayVerdictSentence(slots, "Coffee", t), "Room for one more.");
+		expect(slots.median).toBe(6);
+		expect(slots.ghost).toBe(6);
+		expect(slots.roomFor).toBe(2);
+		expect(slots.verdict).toBe("room");
+		expect(dayVerdictSentence(slots, "Coffee", t)).toBe("Room for one more.");
 	});
 
 	it("withholds the slot when the next typical purchase would not fit", () => {
@@ -104,12 +101,11 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.equal(slots.median, 6);
-		assert.equal(slots.ghost, null);
-		assert.equal(slots.roomFor, 0);
-		assert.equal(slots.verdict, "tight");
-		assert.equal(
-			dayVerdictSentence(slots, "Coffee", t),
+		expect(slots.median).toBe(6);
+		expect(slots.ghost).toBe(null);
+		expect(slots.roomFor).toBe(0);
+		expect(slots.verdict).toBe("tight");
+		expect(dayVerdictSentence(slots, "Coffee", t)).toBe(
 			"Not enough for another.",
 		);
 	});
@@ -124,11 +120,11 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.equal(slots.median, null);
-		assert.equal(slots.ghost, null);
-		assert.deepEqual(slots.blocks, []);
-		assert.equal(slots.verdict, null);
-		assert.equal(dayVerdictSentence(slots, "Coffee", t), null);
+		expect(slots.median).toBe(null);
+		expect(slots.ghost).toBe(null);
+		expect(slots.blocks).toStrictEqual([]);
+		expect(slots.verdict).toBe(null);
+		expect(dayVerdictSentence(slots, "Coffee", t)).toBe(null);
 	});
 
 	it("counts the purchases that landed past the limit", () => {
@@ -141,17 +137,15 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.deepEqual(
-			slots.blocks.map((block) => block.over),
-			[false, false, true],
-		);
-		assert.equal(slots.overflow, 1);
-		assert.equal(slots.remaining, -7);
-		assert.equal(slots.verdict, "over");
-		assert.equal(
-			dayVerdictSentence(slots, "Coffee", t),
-			"One Coffee too many.",
-		);
+		expect(slots.blocks.map((block) => block.over)).toStrictEqual([
+			false,
+			false,
+			true,
+		]);
+		expect(slots.overflow).toBe(1);
+		expect(slots.remaining).toBe(-7);
+		expect(slots.verdict).toBe("over");
+		expect(dayVerdictSentence(slots, "Coffee", t)).toBe("One Coffee too many.");
 	});
 
 	it("names the count when more than one purchase overshot", () => {
@@ -164,8 +158,8 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.equal(slots.overflow, 2);
-		assert.equal(dayVerdictSentence(slots, "Coffee", t), "2 Coffee too many.");
+		expect(slots.overflow).toBe(2);
+		expect(dayVerdictSentence(slots, "Coffee", t)).toBe("2 Coffee too many.");
 	});
 
 	it("spans past the limit so an overshoot stays on the bar", () => {
@@ -178,7 +172,7 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.equal(slots.scale, 30);
+		expect(slots.scale).toBe(30);
 	});
 
 	it("yields no blocks on a day nothing was bought", () => {
@@ -191,10 +185,10 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.deepEqual(slots.blocks, []);
-		assert.equal(slots.spent, 0);
-		assert.equal(slots.ghost, 6);
-		assert.equal(slots.scale, 20);
+		expect(slots.blocks).toStrictEqual([]);
+		expect(slots.spent).toBe(0);
+		expect(slots.ghost).toBe(6);
+		expect(slots.scale).toBe(20);
 	});
 
 	it("ignores purchases that have not happened yet", () => {
@@ -214,6 +208,6 @@ describe("buildDaySlots", () => {
 			categoryId: COFFEE,
 		});
 
-		assert.deepEqual(slots.blocks, []);
+		expect(slots.blocks).toStrictEqual([]);
 	});
 });

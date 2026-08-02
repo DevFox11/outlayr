@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { transactions } from "@/db/schema";
@@ -75,20 +73,9 @@ describe("the ledger's upper bound against an advancing clock", () => {
 		const saved = reading + 500;
 		await save(db, "just-saved", new Date(saved));
 
-		assert.deepEqual(
-			await listedAt(db, reading),
-			[],
-			"the upper bound is what holds the row back — with it gone the clock has nothing left to fix",
-		);
-		assert.ok(
-			clockAdvances(reading, saved),
-			"the clock must be allowed to reach the row's own instant",
-		);
-		assert.deepEqual(
-			await listedAt(db, saved),
-			["just-saved"],
-			"the row must join the ledger on the first reading that reaches it",
-		);
+		expect(await listedAt(db, reading)).toStrictEqual([]);
+		expect(clockAdvances(reading, saved)).toBeTruthy();
+		expect(await listedAt(db, saved)).toStrictEqual(["just-saved"]);
 	});
 
 	it("keeps hiding a row genuinely scheduled ahead once the clock moves on", async () => {
@@ -97,6 +84,6 @@ describe("the ledger's upper bound against an advancing clock", () => {
 		await save(db, "landed", new Date(reading - 60_000));
 		await save(db, "scheduled", new Date(2025, 6, 20, 9, 0));
 
-		assert.deepEqual(await listedAt(db, reading + 500), ["landed"]);
+		expect(await listedAt(db, reading + 500)).toStrictEqual(["landed"]);
 	});
 });

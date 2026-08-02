@@ -10,9 +10,6 @@
 		"test": {
 			"dependsOn": ["build"]
 		},
-		"test:react": {
-			"dependsOn": ["build"]
-		},
 		"lint": {
 			"dependsOn": ["^lint"]
 		},

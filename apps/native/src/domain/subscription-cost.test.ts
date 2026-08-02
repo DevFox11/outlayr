@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { RECURRING_TYPE } from "./recurrence";
 import {
 	monthlyChargeCount,
@@ -13,10 +11,7 @@ const DAYS_PER_MONTH = 365 / 12;
 const WEEKS_PER_MONTH = 52 / 12;
 
 function close(actual: number, expected: number) {
-	assert.ok(
-		Math.abs(actual - expected) < 1e-9,
-		`expected ${actual} to be ${expected}`,
-	);
+	expect(Math.abs(actual - expected) < 1e-9).toBeTruthy();
 }
 
 function schedule(
@@ -60,13 +55,13 @@ describe("normalizing one schedule to a month", () => {
 	});
 
 	it("charges a non-recurring row nothing at all", () => {
-		assert.equal(monthlyChargeCount(RECURRING_TYPE.none, 1), 0);
-		assert.equal(monthlyEquivalent(999, RECURRING_TYPE.none, 1), 0);
+		expect(monthlyChargeCount(RECURRING_TYPE.none, 1)).toBe(0);
+		expect(monthlyEquivalent(999, RECURRING_TYPE.none, 1)).toBe(0);
 	});
 
 	it("reads a coefficient below one as every period, matching nextDate", () => {
-		assert.equal(monthlyChargeCount(RECURRING_TYPE.monthly, 0), 1);
-		assert.equal(monthlyChargeCount(RECURRING_TYPE.monthly, -3), 1);
+		expect(monthlyChargeCount(RECURRING_TYPE.monthly, 0)).toBe(1);
+		expect(monthlyChargeCount(RECURRING_TYPE.monthly, -3)).toBe(1);
 		close(
 			monthlyChargeCount(RECURRING_TYPE.daily, 0.4),
 			monthlyChargeCount(RECURRING_TYPE.daily, 1),
@@ -85,11 +80,13 @@ describe("monthlySubscriptionCost", () => {
 		const [renewalOnly] = monthlySubscriptionCost([renewal], "USD");
 		close(coffeeOnly.amount, -(5 * DAYS_PER_MONTH));
 		close(renewalOnly.amount, -1);
-		assert.ok(Math.abs(coffeeOnly.amount) > Math.abs(renewalOnly.amount) * 100);
+		expect(
+			Math.abs(coffeeOnly.amount) > Math.abs(renewalOnly.amount) * 100,
+		).toBeTruthy();
 
 		const [both] = monthlySubscriptionCost([coffee, renewal], "USD");
 		close(both.amount, -(5 * DAYS_PER_MONTH + 1));
-		assert.equal(both.transactionCount, 2);
+		expect(both.transactionCount).toBe(2);
 	});
 
 	it("drops a retired schedule instead of counting it", () => {
@@ -100,9 +97,9 @@ describe("monthlySubscriptionCost", () => {
 			],
 			"USD",
 		);
-		assert.equal(buckets.length, 1);
-		assert.equal(buckets[0].amount, -20);
-		assert.equal(buckets[0].transactionCount, 1);
+		expect(buckets.length).toBe(1);
+		expect(buckets[0].amount).toBe(-20);
+		expect(buckets[0].transactionCount).toBe(1);
 	});
 
 	it("lets a retired row open no bucket of its own", () => {
@@ -113,16 +110,15 @@ describe("monthlySubscriptionCost", () => {
 			],
 			"USD",
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -20, transactionCount: 1 },
 		]);
 	});
 
 	it("still answers with a zero bucket when nothing recurs", () => {
-		assert.deepEqual(
+		expect(
 			monthlySubscriptionCost([schedule(999, RECURRING_TYPE.none)], "USD"),
-			[{ currencyCode: "USD", amount: 0, transactionCount: 0 }],
-		);
+		).toStrictEqual([{ currencyCode: "USD", amount: 0, transactionCount: 0 }]);
 	});
 
 	it("keeps each currency in its own figure rather than adding them", () => {
@@ -133,14 +129,13 @@ describe("monthlySubscriptionCost", () => {
 			],
 			"USD",
 		);
-		assert.equal(buckets.length, 2);
-		assert.deepEqual(
+		expect(buckets.length).toBe(2);
+		expect(
 			buckets.map((bucket) => [bucket.currencyCode, bucket.amount]),
-			[
-				["USD", -10],
-				["EUR", -20],
-			],
-		);
+		).toStrictEqual([
+			["USD", -10],
+			["EUR", -20],
+		]);
 	});
 
 	it("offsets a recurring income against the schedules it pays for", () => {
@@ -151,7 +146,7 @@ describe("monthlySubscriptionCost", () => {
 			],
 			"USD",
 		);
-		assert.equal(bucket.amount, 2990);
+		expect(bucket.amount).toBe(2990);
 	});
 
 	it("drops a schedule whose end date has passed", () => {
@@ -169,7 +164,7 @@ describe("monthlySubscriptionCost", () => {
 			undefined,
 			now,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -500, transactionCount: 1 },
 		]);
 	});
@@ -186,7 +181,7 @@ describe("monthlySubscriptionCost", () => {
 			undefined,
 			now,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -1000, transactionCount: 1 },
 		]);
 	});
@@ -198,7 +193,7 @@ describe("monthlySubscriptionCost", () => {
 			undefined,
 			new Date(Date.UTC(2026, 6, 20)),
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -1000, transactionCount: 1 },
 		]);
 	});
@@ -220,7 +215,7 @@ describe("monthlySubscriptionCost", () => {
 			"EUR",
 			rates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "EUR", amount: -90, transactionCount: 1 },
 		]);
 	});

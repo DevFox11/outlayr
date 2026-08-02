@@ -1,33 +1,35 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { syncStatusLabel } from "./sync-status";
 
 const AT = new Date(1_700_000_000_000);
 
 describe("syncStatusLabel", () => {
 	it("reads an empty queue as up to date, not as zero pending", () => {
-		assert.deepEqual(syncStatusLabel(0, AT), { key: "settings.sync.upToDate" });
+		expect(syncStatusLabel(0, AT)).toStrictEqual({
+			key: "settings.sync.upToDate",
+		});
 	});
 
 	it("does not claim up to date on a device that has never synced", () => {
-		assert.deepEqual(syncStatusLabel(0, null), { key: "settings.sync.never" });
+		expect(syncStatusLabel(0, null)).toStrictEqual({
+			key: "settings.sync.never",
+		});
 	});
 
 	it("counts a single pending row without pluralising it", () => {
-		assert.deepEqual(syncStatusLabel(1, AT), {
+		expect(syncStatusLabel(1, AT)).toStrictEqual({
 			key: "settings.sync.pendingOne",
 		});
 	});
 
 	it("carries the count once there is more than one", () => {
-		assert.deepEqual(syncStatusLabel(7, AT), {
+		expect(syncStatusLabel(7, AT)).toStrictEqual({
 			key: "settings.sync.pending",
 			count: 7,
 		});
 	});
 
 	it("reports pending work even before a first successful cycle", () => {
-		assert.deepEqual(syncStatusLabel(3, null), {
+		expect(syncStatusLabel(3, null)).toStrictEqual({
 			key: "settings.sync.pending",
 			count: 3,
 		});

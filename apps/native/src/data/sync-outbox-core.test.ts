@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -18,7 +16,7 @@ import {
 	setSyncEnabled,
 } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -58,16 +56,16 @@ describe("sync device identity", () => {
 	it("mints a device id once and keeps it", async () => {
 		const first = await getOrCreateDeviceId(db);
 
-		assert.match(first, /^[0-9a-f-]{36}$/);
-		assert.equal(await getOrCreateDeviceId(db), first);
-		assert.equal(await getMeta(db, META_KEYS.syncDeviceId), first);
+		expect(first).toMatch(/^[0-9a-f-]{36}$/);
+		expect(await getOrCreateDeviceId(db)).toBe(first);
+		expect(await getMeta(db, META_KEYS.syncDeviceId)).toBe(first);
 	});
 
 	it("never queues the device id for replication", async () => {
 		await setSyncEnabled(db, true);
 		await getOrCreateDeviceId(db);
 
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 });
 
@@ -79,26 +77,26 @@ describe("sync cursor", () => {
 	});
 
 	it("starts at zero", async () => {
-		assert.equal(await getSyncCursor(db), 0);
+		expect(await getSyncCursor(db)).toBe(0);
 	});
 
 	it("round-trips", async () => {
 		await setSyncCursor(db, 4218);
 
-		assert.equal(await getSyncCursor(db), 4218);
+		expect(await getSyncCursor(db)).toBe(4218);
 	});
 
 	it("falls back to zero rather than replaying from a corrupt cursor", async () => {
 		await setMeta(db, META_KEYS.syncCursor, "not-a-number");
 
-		assert.equal(await getSyncCursor(db), 0);
+		expect(await getSyncCursor(db)).toBe(0);
 	});
 
 	it("never queues the cursor for replication", async () => {
 		await setSyncEnabled(db, true);
 		await setSyncCursor(db, 7);
 
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 });
 
@@ -110,21 +108,21 @@ describe("the sync gate", () => {
 	});
 
 	it("is off until something turns it on", async () => {
-		assert.equal(await isSyncEnabled(db), false);
+		expect(await isSyncEnabled(db)).toBe(false);
 
 		await addTransaction(db, "t1");
 
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 
 	it("queues writes once it is on", async () => {
 		await setSyncEnabled(db, true);
 
-		assert.equal(await isSyncEnabled(db), true);
+		expect(await isSyncEnabled(db)).toBe(true);
 
 		await addTransaction(db, "t1");
 
-		assert.equal(await outboxPendingCount(db), 1);
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("empties the queue when it is turned back off", async () => {
@@ -133,11 +131,11 @@ describe("the sync gate", () => {
 
 		await setSyncEnabled(db, false);
 
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(await outboxPendingCount(db)).toBe(0);
 
 		await addTransaction(db, "t2");
 
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 });
 
@@ -165,7 +163,7 @@ describe("enqueueAllForSync", () => {
 		await setSyncEnabled(db, true);
 		await enqueueAllForSync(db);
 
-		assert.equal(await outboxPendingCount(db), 3);
+		expect(await outboxPendingCount(db)).toBe(3);
 	});
 
 	it("queues only account-scoped meta keys", async () => {
@@ -179,7 +177,7 @@ describe("enqueueAllForSync", () => {
 
 		await enqueueAllForSync(db);
 
-		assert.equal(await outboxPendingCount(db), SYNCED_META_KEYS.length);
+		expect(await outboxPendingCount(db)).toBe(SYNCED_META_KEYS.length);
 	});
 
 	it("is idempotent", async () => {
@@ -188,7 +186,7 @@ describe("enqueueAllForSync", () => {
 		await enqueueAllForSync(db);
 		await enqueueAllForSync(db);
 
-		assert.equal(await outboxPendingCount(db), 1);
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("queues a ledger larger than one insert can bind", async () => {
@@ -198,6 +196,6 @@ describe("enqueueAllForSync", () => {
 
 		await enqueueAllForSync(db);
 
-		assert.equal(await outboxPendingCount(db), 420);
+		expect(await outboxPendingCount(db)).toBe(420);
 	});
 });

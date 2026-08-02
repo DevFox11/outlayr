@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -130,46 +128,45 @@ describe("exportTransactionsCsv", () => {
 
 	it("omits soft-deleted rows", async () => {
 		const csv = await exportTransactionsCsv(db);
-		assert.ok(!csv.includes("Deleted"));
+		expect(!csv.includes("Deleted")).toBeTruthy();
 	});
 
 	it("writes one row per live transaction under the header", async () => {
 		const rows = parseCsv(await exportTransactionsCsv(db));
-		assert.equal(rows.length, 3);
+		expect(rows.length).toBe(3);
 	});
 
 	it("carries the category name", async () => {
 		const rows = parseCsv(await exportTransactionsCsv(db));
-		assert.equal(rows[1]?.[4], "Groceries");
+		expect(rows[1]?.[4]).toBe("Groceries");
 	});
 
 	it("orders newest first", async () => {
 		const rows = parseCsv(await exportTransactionsCsv(db));
 		const first = parseCsvDate(rows[1]?.[0] ?? "", "ISO");
 		const second = parseCsvDate(rows[2]?.[0] ?? "", "ISO");
-		assert.ok(first && second && first > second);
+		expect(first && second && first > second).toBeTruthy();
 	});
 
 	it("substitutes the ledger currency for a row that stated none", async () => {
 		const rows = parseCsv(await exportTransactionsCsv(db));
-		assert.equal(rows[2]?.[3], "USD");
+		expect(rows[2]?.[3]).toBe("USD");
 	});
 
 	it("keeps the amount readable back as the same number", async () => {
 		const rows = parseCsv(await exportTransactionsCsv(db));
-		assert.equal(parseCsvAmount(rows[1]?.[2] ?? ""), 12.5);
+		expect(parseCsvAmount(rows[1]?.[2] ?? "")).toBe(12.5);
 	});
 
 	it("emits a header-only file for an empty ledger", async () => {
 		const empty = makeDb();
-		assert.equal(parseCsv(await exportTransactionsCsv(empty)).length, 1);
+		expect(parseCsv(await exportTransactionsCsv(empty)).length).toBe(1);
 	});
 });
 
 describe("exportFileName", () => {
 	it("stamps the local day", () => {
-		assert.equal(
-			exportFileName(new Date(2026, 6, 5, 23)),
+		expect(exportFileName(new Date(2026, 6, 5, 23))).toBe(
 			"outlayr-2026-07-05.csv",
 		);
 	});
@@ -178,22 +175,22 @@ describe("exportFileName", () => {
 describe("uniqueCategoryValues", () => {
 	it("dedupes preserving first appearance", () => {
 		const rows = [["Food"], ["Rent"], ["Food"]];
-		assert.deepEqual(uniqueCategoryValues(rows, 0), ["Food", "Rent"]);
+		expect(uniqueCategoryValues(rows, 0)).toStrictEqual(["Food", "Rent"]);
 	});
 
 	it("trims and folds case so one category is not asked for twice", () => {
 		const rows = [["Food"], ["food "], ["FOOD"]];
-		assert.deepEqual(uniqueCategoryValues(rows, 0), ["Food"]);
+		expect(uniqueCategoryValues(rows, 0)).toStrictEqual(["Food"]);
 	});
 
 	it("skips rows with no cell at that index", () => {
 		const rows = [["Food"], [], ["Rent"]];
-		assert.deepEqual(uniqueCategoryValues(rows, 0), ["Food", "Rent"]);
+		expect(uniqueCategoryValues(rows, 0)).toStrictEqual(["Food", "Rent"]);
 	});
 
 	it("skips blank values", () => {
 		const rows = [["Food"], ["  "], ["Rent"]];
-		assert.deepEqual(uniqueCategoryValues(rows, 0), ["Food", "Rent"]);
+		expect(uniqueCategoryValues(rows, 0)).toStrictEqual(["Food", "Rent"]);
 	});
 });
 
@@ -209,36 +206,36 @@ const MAPPING = {
 describe("parseImportFile", () => {
 	it("takes a digit-free first line as a header", () => {
 		const parsed = parseImportFile("Date,Note,Amount\n2026-07-28,Bakery,12.50");
-		assert.deepEqual(parsed?.header, ["Date", "Note", "Amount"]);
-		assert.equal(parsed?.rows.length, 1);
+		expect(parsed?.header).toStrictEqual(["Date", "Note", "Amount"]);
+		expect(parsed?.rows.length).toBe(1);
 	});
 
 	it("keeps a first line that already carries data", () => {
 		const parsed = parseImportFile("2026-07-28,Bakery,12.50");
-		assert.equal(parsed?.header, null);
-		assert.equal(parsed?.rows.length, 1);
+		expect(parsed?.header).toBe(null);
+		expect(parsed?.rows.length).toBe(1);
 	});
 
 	it("reports the widest row so a ragged file still maps", () => {
-		assert.equal(parseImportFile("a,b,c\n1,2,3,4")?.width, 4);
+		expect(parseImportFile("a,b,c\n1,2,3,4")?.width).toBe(4);
 	});
 
 	it("rejects a file with too few columns to build a row", () => {
-		assert.equal(parseImportFile("2026-07-28,12.50"), null);
+		expect(parseImportFile("2026-07-28,12.50")).toBe(null);
 	});
 
 	it("rejects an empty file", () => {
-		assert.equal(parseImportFile(""), null);
+		expect(parseImportFile("")).toBe(null);
 	});
 
 	it("rejects a file that is nothing but a header", () => {
-		assert.equal(parseImportFile("Date,Note,Amount\n"), null);
+		expect(parseImportFile("Date,Note,Amount\n")).toBe(null);
 	});
 });
 
 describe("guessMapping", () => {
 	it("maps a file this app exported without asking", () => {
-		assert.deepEqual(guessMapping([...CSV_HEADER]), {
+		expect(guessMapping([...CSV_HEADER])).toStrictEqual({
 			date: 0,
 			note: 1,
 			amount: 2,
@@ -250,25 +247,25 @@ describe("guessMapping", () => {
 
 	it("recognises the words a bank export uses", () => {
 		const guess = guessMapping(["Posted", "Description", "Debit", "Category"]);
-		assert.equal(guess.date, 0);
-		assert.equal(guess.note, 1);
-		assert.equal(guess.amount, 2);
-		assert.equal(guess.category, 3);
+		expect(guess.date).toBe(0);
+		expect(guess.note).toBe(1);
+		expect(guess.amount).toBe(2);
+		expect(guess.category).toBe(3);
 	});
 
 	it("ignores case and padding", () => {
-		assert.equal(guessMapping([" DATE "]).date, 0);
+		expect(guessMapping([" DATE "]).date).toBe(0);
 	});
 
 	it("never assigns one column to two fields", () => {
 		const guess = guessMapping(["Date", "Date"]);
-		assert.notEqual(guess.date, null);
+		expect(guess.date).not.toBe(null);
 		const used = Object.values(guess).filter((value) => value != null);
-		assert.equal(new Set(used).size, used.length);
+		expect(new Set(used).size).toBe(used.length);
 	});
 
 	it("leaves a field it cannot place unassigned", () => {
-		assert.equal(guessMapping(["col1", "col2"]).amount, null);
+		expect(guessMapping(["col1", "col2"]).amount).toBe(null);
 	});
 });
 
@@ -295,8 +292,8 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries.length, 2);
-		assert.equal(plan.skipped.length, 0);
+		expect(plan.entries.length).toBe(2);
+		expect(plan.skipped.length).toBe(0);
 	});
 
 	it("takes direction from the matched category", () => {
@@ -308,8 +305,8 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.income, false);
-		assert.equal(plan.entries[1]?.income, true);
+		expect(plan.entries[0]?.income).toBe(false);
+		expect(plan.entries[1]?.income).toBe(true);
 	});
 
 	it("prefers an explicit type column over the category's direction", () => {
@@ -322,7 +319,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.income, true);
+		expect(plan.entries[0]?.income).toBe(true);
 	});
 
 	it("stores the magnitude, never a signed amount", () => {
@@ -335,7 +332,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.amount, 12.5);
+		expect(plan.entries[0]?.amount).toBe(12.5);
 	});
 
 	it("reads a mapped currency column", () => {
@@ -348,7 +345,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.currency, "EUR");
+		expect(plan.entries[0]?.currency).toBe("EUR");
 	});
 
 	it("leaves currency null when no column is mapped, so the ledger's code applies", () => {
@@ -360,7 +357,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.currency, null);
+		expect(plan.entries[0]?.currency).toBe(null);
 	});
 
 	it("rejects a currency cell that is not a three-letter code", () => {
@@ -373,7 +370,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.currency, null);
+		expect(plan.entries[0]?.currency).toBe(null);
 	});
 
 	it("skips a row whose date does not parse and names the reason", () => {
@@ -386,8 +383,8 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries.length, 2);
-		assert.deepEqual(plan.skipped, [{ row: 3, reason: "date" }]);
+		expect(plan.entries.length).toBe(2);
+		expect(plan.skipped).toStrictEqual([{ row: 3, reason: "date" }]);
 	});
 
 	it("skips a row whose amount does not parse", () => {
@@ -400,7 +397,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.deepEqual(plan.skipped, [{ row: 1, reason: "amount" }]);
+		expect(plan.skipped).toStrictEqual([{ row: 1, reason: "amount" }]);
 	});
 
 	it("skips a row whose category value was never linked", () => {
@@ -413,7 +410,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.deepEqual(plan.skipped, [{ row: 1, reason: "category" }]);
+		expect(plan.skipped).toStrictEqual([{ row: 1, reason: "category" }]);
 	});
 
 	it("skips a ragged row missing the mapped column entirely", () => {
@@ -426,8 +423,8 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries.length, 0);
-		assert.equal(plan.skipped.length, 1);
+		expect(plan.entries.length).toBe(0);
+		expect(plan.skipped.length).toBe(1);
 	});
 
 	it("carries a blank note through as blank, leaving the fallback to the write", () => {
@@ -440,7 +437,7 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.equal(plan.entries[0]?.note, "");
+		expect(plan.entries[0]?.note).toBe("");
 	});
 
 	it("reports the date span of what it will write", () => {
@@ -452,14 +449,14 @@ describe("buildImportPlan", () => {
 			links,
 			income,
 		);
-		assert.deepEqual(plan.earliest, new Date(2026, 6, 27));
-		assert.deepEqual(plan.latest, new Date(2026, 6, 28));
+		expect(plan.earliest).toStrictEqual(new Date(2026, 6, 27));
+		expect(plan.latest).toStrictEqual(new Date(2026, 6, 28));
 	});
 
 	it("reports no span when nothing is importable", () => {
 		const plan = buildImportPlan([], MAPPING, "yyyy-MM-dd", ".", links, income);
-		assert.equal(plan.earliest, null);
-		assert.equal(plan.latest, null);
+		expect(plan.earliest).toBe(null);
+		expect(plan.latest).toBe(null);
 	});
 });
 
@@ -493,8 +490,8 @@ describe("applyImport", () => {
 			income,
 		);
 		const written = await applyImport(db, plan);
-		assert.equal(written, 2);
-		assert.equal((await db.select().from(transactions)).length, 2);
+		expect(written).toBe(2);
+		expect((await db.select().from(transactions)).length).toBe(2);
 	});
 
 	it("buckets each row into its own day and month", async () => {
@@ -509,14 +506,14 @@ describe("applyImport", () => {
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
 		const first = rowsOut.find((row) => row.note === "Bakery");
-		assert.deepEqual(first?.day, new Date(2026, 6, 28));
-		assert.deepEqual(first?.month, new Date(2026, 6, 1));
+		expect(first?.day).toStrictEqual(new Date(2026, 6, 28));
+		expect(first?.month).toStrictEqual(new Date(2026, 6, 1));
 	});
 
 	it("writes nothing at all when there is nothing to write", async () => {
 		const plan = buildImportPlan([], MAPPING, "yyyy-MM-dd", ".", links, income);
-		assert.equal(await applyImport(db, plan), 0);
-		assert.equal((await db.select().from(transactions)).length, 0);
+		expect(await applyImport(db, plan)).toBe(0);
+		expect((await db.select().from(transactions)).length).toBe(0);
 	});
 
 	it("leaves imported rows non-recurring", async () => {
@@ -530,8 +527,8 @@ describe("applyImport", () => {
 		);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
-		assert.ok(rowsOut.every((row) => row.recurringType === 0));
-		assert.ok(rowsOut.every((row) => !row.onceRecurring));
+		expect(rowsOut.every((row) => row.recurringType === 0)).toBeTruthy();
+		expect(rowsOut.every((row) => !row.onceRecurring)).toBeTruthy();
 	});
 
 	it("names a blank-note row after its category", async () => {
@@ -546,7 +543,7 @@ describe("applyImport", () => {
 		);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
-		assert.equal(rowsOut[0]?.note, "Groceries");
+		expect(rowsOut[0]?.note).toBe("Groceries");
 	});
 
 	it("stamps the ledger currency on rows that named none", async () => {
@@ -560,7 +557,7 @@ describe("applyImport", () => {
 		);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
-		assert.ok(rowsOut.every((row) => row.currency === "USD"));
+		expect(rowsOut.every((row) => row.currency === "USD")).toBeTruthy();
 	});
 
 	it("round-trips an export back to the same figures", async () => {
@@ -578,20 +575,17 @@ describe("applyImport", () => {
 			]),
 			income,
 		);
-		assert.equal(plan.skipped.length, 0);
-		assert.equal(plan.entries.length, 2);
+		expect(plan.skipped.length).toBe(0);
+		expect(plan.entries.length).toBe(2);
 
 		const bakery = plan.entries.find((entry) => entry.note === "Bakery, twice");
-		assert.equal(bakery?.amount, 12.5);
-		assert.equal(bakery?.currency, "EUR");
-		assert.equal(bakery?.income, false);
-		assert.equal(
-			bakery?.date.getTime(),
-			new Date(2026, 6, 28, 9, 30).getTime(),
-		);
+		expect(bakery?.amount).toBe(12.5);
+		expect(bakery?.currency).toBe("EUR");
+		expect(bakery?.income).toBe(false);
+		expect(bakery?.date.getTime()).toBe(new Date(2026, 6, 28, 9, 30).getTime());
 
 		const salary = plan.entries.find((entry) => entry.note === "Salary");
-		assert.equal(salary?.amount, 2400);
-		assert.equal(salary?.income, true);
+		expect(salary?.amount).toBe(2400);
+		expect(salary?.income).toBe(true);
 	});
 });

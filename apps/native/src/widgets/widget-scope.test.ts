@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, it } from "node:test";
 
 /**
  * Every file holding a `'widget'`-directive component. Adding one here is part
@@ -33,7 +31,7 @@ const TOP_LEVEL_DECLARATION =
 describe("widget module scope", () => {
 	for (const file of WIDGET_FILES) {
 		it(`${file} declares nothing at module scope but its component`, () => {
-			const source = readFileSync(join(import.meta.dirname, file), "utf8");
+			const source = readFileSync(join(__dirname, file), "utf8");
 			const component = file.replace(".tsx", "");
 			const offenders: string[] = [];
 
@@ -50,23 +48,14 @@ describe("widget module scope", () => {
 				offenders.push(match[1]);
 			}
 
-			assert.deepEqual(
-				offenders,
-				[],
-				`${file} declares ${offenders.join(", ")} at module scope. A widget body ` +
-					"cannot see module scope — move these inside the component or pass " +
-					"them through props.",
-			);
+			expect(offenders).toStrictEqual([]);
 		});
 	}
 
 	it("covers every widget file that exists", () => {
-		const index = readFileSync(join(import.meta.dirname, "index.ts"), "utf8");
+		const index = readFileSync(join(__dirname, "index.ts"), "utf8");
 		for (const file of WIDGET_FILES) {
-			assert.ok(
-				index.includes(`./${file.replace(".tsx", "")}`),
-				`${file} is guarded but not published by index.ts`,
-			);
+			expect(index.includes(`./${file.replace(".tsx", "")}`)).toBeTruthy();
 		}
 	});
 });

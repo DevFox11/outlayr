@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
 import { currencyPickerRows } from "./currency-picker-rows";
 
@@ -18,25 +16,25 @@ describe("the currency picker's rows", () => {
 		// This line is the entire discoverability budget: it holds the cluster's
 		// place until the first favourite earns it, then never appears again.
 		const rows = currencyPickerRows([], "");
-		assert.deepEqual(sections(rows), ["favourites", "all"]);
-		assert.equal(hints(rows).length, 1);
-		assert.deepEqual(codes(rows), [...PICKABLE_CURRENCY_CODES]);
+		expect(sections(rows)).toStrictEqual(["favourites", "all"]);
+		expect(hints(rows).length).toBe(1);
+		expect(codes(rows)).toStrictEqual([...PICKABLE_CURRENCY_CODES]);
 	});
 
 	it("retires the hint the moment a favourite exists", () => {
-		assert.deepEqual(hints(currencyPickerRows(["USD"], "")), []);
+		expect(hints(currencyPickerRows(["USD"], ""))).toStrictEqual([]);
 	});
 
 	it("keeps a search flat, hint included", () => {
 		// A search is its own shortcut. Teaching the gesture mid-search would push
 		// the match the user typed further down for no gain.
-		assert.deepEqual(hints(currencyPickerRows([], "eur")), []);
+		expect(hints(currencyPickerRows([], "eur"))).toStrictEqual([]);
 	});
 
 	it("clusters the favourites above the rest, each under its own header", () => {
 		const rows = currencyPickerRows(["USD", "VES"], "");
-		assert.deepEqual(sections(rows), ["favourites", "all"]);
-		assert.deepEqual(codes(rows).slice(0, 2), ["USD", "VES"]);
+		expect(sections(rows)).toStrictEqual(["favourites", "all"]);
+		expect(codes(rows).slice(0, 2)).toStrictEqual(["USD", "VES"]);
 	});
 
 	it("never repeats a favourite in the list below the cluster", () => {
@@ -45,19 +43,19 @@ describe("the currency picker's rows", () => {
 		// pairs, no separator, reading as a plain duplication bug.
 		const rows = currencyPickerRows(["USD", "VES"], "");
 		const listed = codes(rows);
-		assert.equal(listed.filter((code) => code === "USD").length, 1);
-		assert.equal(listed.filter((code) => code === "VES").length, 1);
+		expect(listed.filter((code) => code === "USD").length).toBe(1);
+		expect(listed.filter((code) => code === "VES").length).toBe(1);
 	});
 
 	it("still offers every currency exactly once", () => {
 		const listed = codes(currencyPickerRows(["JPY", "USD"], ""));
-		assert.equal(listed.length, PICKABLE_CURRENCY_CODES.length);
-		assert.equal(new Set(listed).size, PICKABLE_CURRENCY_CODES.length);
+		expect(listed.length).toBe(PICKABLE_CURRENCY_CODES.length);
+		expect(new Set(listed).size).toBe(PICKABLE_CURRENCY_CODES.length);
 	});
 
 	it("keeps every key distinct, which is what the list is keyed on", () => {
 		const rows = currencyPickerRows(["USD", "VES"], "");
-		assert.equal(new Set(rows.map((row) => row.key)).size, rows.length);
+		expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
 	});
 
 	it("marks the cluster's rows as favourites and the rest as not", () => {
@@ -65,39 +63,38 @@ describe("the currency picker's rows", () => {
 		const favourites = rows.filter(
 			(row) => row.kind === "currency" && row.favourite,
 		);
-		assert.equal(favourites.length, 1);
-		assert.equal(
-			favourites[0].kind === "currency" && favourites[0].code,
-			"USD",
-		);
+		expect(favourites.length).toBe(1);
+		expect(favourites[0].kind === "currency" && favourites[0].code).toBe("USD");
 	});
 
 	it("holds the order the favourites were added in", () => {
 		const rows = currencyPickerRows(["VES", "USD"], "");
-		assert.deepEqual(codes(rows).slice(0, 2), ["VES", "USD"]);
+		expect(codes(rows).slice(0, 2)).toStrictEqual(["VES", "USD"]);
 	});
 
 	it("drops a stored favourite the catalogue no longer knows", () => {
 		const rows = currencyPickerRows(["USD", "XXX"], "");
-		assert.deepEqual(codes(rows).slice(0, 1), ["USD"]);
-		assert.ok(!codes(rows).includes("XXX" as never));
+		expect(codes(rows).slice(0, 1)).toStrictEqual(["USD"]);
+		expect(!codes(rows).includes("XXX" as never)).toBeTruthy();
 	});
 
 	it("leaves a search flat, because the search is already the shortcut", () => {
 		// Clustering on top of a search pushes the match the user typed below the
 		// fold.
 		const rows = currencyPickerRows(["USD", "VES"], "eur");
-		assert.deepEqual(sections(rows), []);
-		assert.ok(codes(rows).includes("EUR"));
+		expect(sections(rows)).toStrictEqual([]);
+		expect(codes(rows).includes("EUR")).toBeTruthy();
 	});
 
 	it("searches by code and by name, ignoring case and padding", () => {
-		assert.ok(codes(currencyPickerRows([], "  JpY ")).includes("JPY"));
-		assert.ok(codes(currencyPickerRows([], "yen")).includes("JPY"));
+		expect(
+			codes(currencyPickerRows([], "  JpY ")).includes("JPY"),
+		).toBeTruthy();
+		expect(codes(currencyPickerRows([], "yen")).includes("JPY")).toBeTruthy();
 	});
 
 	it("answers nothing for a search that matches nothing", () => {
-		assert.deepEqual(currencyPickerRows([], "zzzzzz"), []);
+		expect(currencyPickerRows([], "zzzzzz")).toStrictEqual([]);
 	});
 });
 
@@ -112,17 +109,17 @@ describe("where a section closes", () => {
 		// it off or it stacks a hairline against the next header.
 		const rows = currencyPickerRows(["USD", "VES"], "");
 		const codes = lastCodes(rows);
-		assert.equal(codes[0], "VES");
-		assert.equal(codes.length, 2);
-		assert.equal(codes[1], rows.at(-1)?.kind === "currency" ? codes[1] : null);
+		expect(codes[0]).toBe("VES");
+		expect(codes.length).toBe(2);
+		expect(codes[1]).toBe(rows.at(-1)?.kind === "currency" ? codes[1] : null);
 	});
 
 	it("closes only the final row of a search", () => {
 		const rows = currencyPickerRows([], "dollar");
-		assert.equal(lastCodes(rows).length, 1);
+		expect(lastCodes(rows).length).toBe(1);
 	});
 
 	it("closes the catalogue's last row when the cluster is empty", () => {
-		assert.equal(lastCodes(currencyPickerRows([], "")).length, 1);
+		expect(lastCodes(currencyPickerRows([], "")).length).toBe(1);
 	});
 });

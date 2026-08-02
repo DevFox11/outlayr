@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -144,11 +142,14 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 18.5, currency: null });
 		await add(db, { amount: 100, currency: "JPY" });
 
-		assert.equal(await stampLedgerCurrency(db), 1);
+		expect(await stampLedgerCurrency(db)).toBe(1);
 		const rows = await db
 			.select({ id: transactions.id, currency: transactions.currency })
 			.from(transactions);
-		assert.deepEqual(rows.map((row) => row.currency).sort(), ["EUR", "JPY"]);
+		expect(rows.map((row) => row.currency).sort()).toStrictEqual([
+			"EUR",
+			"JPY",
+		]);
 	});
 
 	it("leaves a row that already named one alone", async () => {
@@ -156,22 +157,22 @@ describe("stampLedgerCurrency", () => {
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await add(db, { amount: 100, currency: "JPY" });
 
-		assert.equal(await stampLedgerCurrency(db), 0);
+		expect(await stampLedgerCurrency(db)).toBe(0);
 		const [row] = await db
 			.select({ currency: transactions.currency })
 			.from(transactions);
-		assert.equal(row.currency, "JPY");
+		expect(row.currency).toBe("JPY");
 	});
 
 	it("refuses when the ledger never set one", async () => {
 		const db = makeDb();
 		await add(db, { amount: 10, currency: null });
 
-		assert.equal(await stampLedgerCurrency(db), 0);
+		expect(await stampLedgerCurrency(db)).toBe(0);
 		const [row] = await db
 			.select({ currency: transactions.currency })
 			.from(transactions);
-		assert.equal(row.currency, null);
+		expect(row.currency).toBe(null);
 	});
 
 	it("refuses when the default is all bootstrap ever wrote", async () => {
@@ -179,11 +180,11 @@ describe("stampLedgerCurrency", () => {
 		await db.insert(appMeta).values({ key: "currency", value: "USD" });
 		await add(db, { amount: 10, currency: null });
 
-		assert.equal(await stampLedgerCurrency(db), 0);
+		expect(await stampLedgerCurrency(db)).toBe(0);
 		const [row] = await db
 			.select({ currency: transactions.currency })
 			.from(transactions);
-		assert.equal(row.currency, null);
+		expect(row.currency).toBe(null);
 	});
 
 	it("stamps the default once the user has stated it", async () => {
@@ -194,11 +195,11 @@ describe("stampLedgerCurrency", () => {
 		]);
 		await add(db, { amount: 10, currency: null });
 
-		assert.equal(await stampLedgerCurrency(db), 1);
+		expect(await stampLedgerCurrency(db)).toBe(1);
 		const [row] = await db
 			.select({ currency: transactions.currency })
 			.from(transactions);
-		assert.equal(row.currency, "USD");
+		expect(row.currency).toBe("USD");
 	});
 
 	it("is a no-op on a second pass", async () => {
@@ -207,7 +208,7 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 10, currency: null });
 
 		await stampLedgerCurrency(db);
-		assert.equal(await stampLedgerCurrency(db), 0);
+		expect(await stampLedgerCurrency(db)).toBe(0);
 	});
 });
 
@@ -231,9 +232,9 @@ describe("a row kept under a currency nobody stated", () => {
 			})
 			.from(transactions)
 			.where(eq(transactions.id, id));
-		assert.equal(row.currency, null);
-		assert.equal(row.amountUsd, null);
-		assert.equal(row.exchangeRate, null);
+		expect(row.currency).toBe(null);
+		expect(row.amountUsd).toBe(null);
+		expect(row.exchangeRate).toBe(null);
 	});
 
 	it("does not hold up a row the backfill can value", async () => {
@@ -243,7 +244,7 @@ describe("a row kept under a currency nobody stated", () => {
 		await add(db, { amount: 18.5, currency: null });
 		await add(db, { amount: 100, currency: "EUR" });
 
-		assert.equal(await backfillCanonicalUsd(db), 1);
+		expect(await backfillCanonicalUsd(db)).toBe(1);
 	});
 });
 
@@ -254,7 +255,7 @@ describe("backfillCanonicalUsd", () => {
 		await db.insert(appMeta).values({ key: "currency", value: "USD" });
 		await add(db, { amount: 100, currency: "EUR" });
 
-		assert.equal(await backfillCanonicalUsd(db), 1);
+		expect(await backfillCanonicalUsd(db)).toBe(1);
 		const [row] = await db
 			.select({
 				amountUsd: transactions.amountUsd,
@@ -263,9 +264,9 @@ describe("backfillCanonicalUsd", () => {
 			})
 			.from(transactions);
 		// 100 EUR / 0.87775 — the divisor is currency-per-USD.
-		assert.equal(Math.round((row.amountUsd ?? 0) * 100) / 100, 113.93);
-		assert.equal(row.exchangeRate, 0.87775);
-		assert.equal(row.exchangeRateType, "official");
+		expect(Math.round((row.amountUsd ?? 0) * 100) / 100).toBe(113.93);
+		expect(row.exchangeRate).toBe(0.87775);
+		expect(row.exchangeRateType).toBe("official");
 	});
 
 	it("leaves a row it cannot value for the next pass to retry", async () => {
@@ -273,8 +274,8 @@ describe("backfillCanonicalUsd", () => {
 		await db.insert(appMeta).values({ key: "currency", value: "USD" });
 		await add(db, { amount: 100, currency: "EUR" });
 
-		assert.equal(await backfillCanonicalUsd(db), 0);
-		assert.equal(await hasUncanonicalized(db), true);
+		expect(await backfillCanonicalUsd(db)).toBe(0);
+		expect(await hasUncanonicalized(db)).toBe(true);
 	});
 });
 
@@ -286,7 +287,7 @@ describe("hasUncanonicalized", () => {
 		const db = makeDb();
 		await add(db, { amount: 18.5, currency: null });
 
-		assert.equal(await hasUncanonicalized(db), false);
+		expect(await hasUncanonicalized(db)).toBe(false);
 	});
 });
 
@@ -296,7 +297,7 @@ describe("valuationCoverage", () => {
 		await add(db, { amount: 100, currency: "EUR", amountUsd: 113.9 });
 		await add(db, { amount: 20, currency: null });
 
-		assert.deepEqual(await valuationCoverage(db), {
+		expect(await valuationCoverage(db)).toStrictEqual({
 			converted: 1,
 			pending: 0,
 			beyondRateHistory: 0,
@@ -317,7 +318,7 @@ describe("valuationCoverage", () => {
 			date: new Date(Date.UTC(2025, 0, 9, 12)),
 		});
 
-		assert.deepEqual(await valuationCoverage(db), {
+		expect(await valuationCoverage(db)).toStrictEqual({
 			converted: 1,
 			pending: 1,
 			beyondRateHistory: 1,
@@ -334,7 +335,7 @@ describe("valuationCoverage", () => {
 			date: new Date(Date.UTC(2025, 0, 9, 12)),
 		});
 
-		assert.deepEqual(await valuationCoverage(db), {
+		expect(await valuationCoverage(db)).toStrictEqual({
 			converted: 0,
 			pending: 1,
 			beyondRateHistory: 0,
@@ -351,7 +352,7 @@ describe("valuationCoverage", () => {
 			date: new Date(Date.UTC(2020, 2, 1, 12)),
 		});
 
-		assert.deepEqual(await valuationCoverage(db), {
+		expect(await valuationCoverage(db)).toStrictEqual({
 			converted: 0,
 			pending: 1,
 			beyondRateHistory: 0,
@@ -381,13 +382,13 @@ describe("stampLedgerCurrency over budgets", () => {
 		});
 
 		// One transaction-less ledger: the count is the two budgets.
-		assert.equal(await stampLedgerCurrency(db), 2);
+		expect(await stampLedgerCurrency(db)).toBe(2);
 		const [b] = await db.select({ currency: budgets.currency }).from(budgets);
 		const [m] = await db
 			.select({ currency: mainBudget.currency })
 			.from(mainBudget);
-		assert.equal(b.currency, "EUR");
-		assert.equal(m.currency, "EUR");
+		expect(b.currency).toBe("EUR");
+		expect(m.currency).toBe("EUR");
 	});
 
 	it("leaves a budget that already named one alone", async () => {
@@ -401,9 +402,9 @@ describe("stampLedgerCurrency over budgets", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await stampLedgerCurrency(db), 0);
+		expect(await stampLedgerCurrency(db)).toBe(0);
 		const [b] = await db.select({ currency: budgets.currency }).from(budgets);
-		assert.equal(b.currency, "GBP");
+		expect(b.currency).toBe("GBP");
 	});
 });
 
@@ -442,9 +443,9 @@ describe("backfillBudgetUsd", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 1);
+		expect(await backfillBudgetUsd(db)).toBe(1);
 		// 400 / 0.8, not 400 / 0.87775 — the divisor is currency-per-USD.
-		assert.equal(await budgetUsd(db, "b1"), 500);
+		expect(await budgetUsd(db, "b1")).toBe(500);
 	});
 
 	it("falls back to the window start when no creation date was kept", async () => {
@@ -460,8 +461,8 @@ describe("backfillBudgetUsd", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 1);
-		assert.equal(await budgetUsd(db, "b1"), 500);
+		expect(await backfillBudgetUsd(db)).toBe(1);
+		expect(await budgetUsd(db, "b1")).toBe(500);
 	});
 
 	it("skips a target that names no currency", async () => {
@@ -478,8 +479,8 @@ describe("backfillBudgetUsd", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 0);
-		assert.equal(await budgetUsd(db, "b1"), null);
+		expect(await backfillBudgetUsd(db)).toBe(0);
+		expect(await budgetUsd(db, "b1")).toBe(null);
 	});
 
 	it("leaves a target it cannot value for the next pass to retry", async () => {
@@ -493,8 +494,8 @@ describe("backfillBudgetUsd", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 0);
-		assert.equal(await budgetUsd(db, "b1"), null);
+		expect(await backfillBudgetUsd(db)).toBe(0);
+		expect(await budgetUsd(db, "b1")).toBe(null);
 	});
 
 	it("freezes a USD target without consulting a rate", async () => {
@@ -508,8 +509,8 @@ describe("backfillBudgetUsd", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 1);
-		assert.equal(await budgetUsd(db, "b1"), 400);
+		expect(await backfillBudgetUsd(db)).toBe(1);
+		expect(await budgetUsd(db, "b1")).toBe(400);
 	});
 
 	it("covers the main budget alongside the per-category ones", async () => {
@@ -532,11 +533,11 @@ describe("backfillBudgetUsd", () => {
 			updatedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 2);
+		expect(await backfillBudgetUsd(db)).toBe(2);
 		const [m] = await db
 			.select({ amountUsd: mainBudget.amountUsd })
 			.from(mainBudget);
-		assert.equal(m.amountUsd, 3000);
+		expect(m.amountUsd).toBe(3000);
 	});
 
 	it("is a no-op on a second pass", async () => {
@@ -552,7 +553,7 @@ describe("backfillBudgetUsd", () => {
 		});
 
 		await backfillBudgetUsd(db);
-		assert.equal(await backfillBudgetUsd(db), 0);
+		expect(await backfillBudgetUsd(db)).toBe(0);
 	});
 
 	it("ignores a soft-deleted target", async () => {
@@ -568,8 +569,8 @@ describe("backfillBudgetUsd", () => {
 			deletedAt: JULY_28,
 		});
 
-		assert.equal(await backfillBudgetUsd(db), 0);
-		assert.equal(await budgetUsd(db, "b1"), null);
+		expect(await backfillBudgetUsd(db)).toBe(0);
+		expect(await budgetUsd(db, "b1")).toBe(null);
 	});
 });
 
@@ -601,8 +602,8 @@ describe("backfillCanonicalUsd over a backlog", () => {
 		const total = CANONICALIZE_BATCH + 60;
 		await addMany(db, total, "EUR", 0);
 
-		assert.equal(await backfillCanonicalUsd(db), total);
-		assert.equal(await hasUncanonicalized(db), false);
+		expect(await backfillCanonicalUsd(db)).toBe(total);
+		expect(await hasUncanonicalized(db)).toBe(false);
 	});
 
 	it("steps past rows it cannot value rather than re-reading them", async () => {
@@ -614,7 +615,7 @@ describe("backfillCanonicalUsd over a backlog", () => {
 		await addMany(db, 300, "JPY", 1000);
 		await addMany(db, 40, "EUR", 2000);
 
-		assert.equal(await backfillCanonicalUsd(db), CANONICALIZE_BATCH + 40);
-		assert.equal(await hasUncanonicalized(db), true);
+		expect(await backfillCanonicalUsd(db)).toBe(CANONICALIZE_BATCH + 40);
+		expect(await hasUncanonicalized(db)).toBe(true);
 	});
 });

@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { SpendDb } from "@/data/budget-spent";
@@ -131,8 +129,8 @@ describe("the Ledger widget's entries", () => {
 
 		const props = await buildWidgetProps(db, NOW);
 
-		assert.equal(props.Ledger.entries.length, 1);
-		assert.equal(props.Ledger.entries[0]?.amount, "¥12,000");
+		expect(props.Ledger.entries.length).toBe(1);
+		expect(props.Ledger.entries[0]?.amount).toBe("¥12,000");
 	});
 
 	it("leaves an entry in the ledger's own currency alone", async () => {
@@ -151,7 +149,7 @@ describe("the Ledger widget's entries", () => {
 
 		const props = await buildWidgetProps(db, NOW);
 
-		assert.equal(props.Ledger.entries[0]?.amount, "$18.50");
+		expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
 	});
 
 	it("falls back to the ledger's currency when the entry named none", async () => {
@@ -170,7 +168,7 @@ describe("the Ledger widget's entries", () => {
 
 		const props = await buildWidgetProps(db, NOW);
 
-		assert.equal(props.Ledger.entries[0]?.amount, "$18.50");
+		expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
 	});
 });
 
@@ -244,17 +242,17 @@ describe("the Budget widget's selections", () => {
 	it("publishes the overall and the closest-to-its-limit budget side by side", async () => {
 		const props = await buildWidgetProps(await withBudgets(true), NOW);
 
-		assert.equal(props.Budget.views.overall.name, "Overall Budget");
-		assert.equal(props.Budget.views.worst.name, "Food");
+		expect(props.Budget.views.overall.name).toBe("Overall Budget");
+		expect(props.Budget.views.worst.name).toBe("Food");
 		// Unconfigured, the tile keeps showing what it always did.
-		assert.deepEqual(props.Budget.views.auto, props.Budget.views.overall);
+		expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.overall);
 	});
 
 	it("leaves the automatic view on the worst budget when there is no overall one", async () => {
 		const props = await buildWidgetProps(await withBudgets(false), NOW);
 
-		assert.equal(props.Budget.views.overall.present, false);
-		assert.deepEqual(props.Budget.views.auto, props.Budget.views.worst);
+		expect(props.Budget.views.overall.present).toBe(false);
+		expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.worst);
 	});
 });
 
@@ -265,13 +263,13 @@ describe("the Insights widget's windows", () => {
 
 		const props = await buildWidgetProps(db, NOW);
 
-		assert.deepEqual(Object.keys(props.Insights.windows).sort(), [
+		expect(Object.keys(props.Insights.windows).sort()).toStrictEqual([
 			"month",
 			"week",
 			"year",
 		]);
-		assert.equal(props.Insights.windows.week.periodLabel, "THIS WEEK");
-		assert.equal(props.Insights.windows.year.periodLabel, "THIS YEAR");
+		expect(props.Insights.windows.week.periodLabel).toBe("THIS WEEK");
+		expect(props.Insights.windows.year.periodLabel).toBe("THIS YEAR");
 	});
 
 	it("keeps the app's own period as what an unconfigured tile shows", async () => {
@@ -280,6 +278,6 @@ describe("the Insights widget's windows", () => {
 
 		const props = await buildWidgetProps(db, NOW);
 
-		assert.equal(props.Insights.defaultPeriod, "year");
+		expect(props.Insights.defaultPeriod).toBe("year");
 	});
 });

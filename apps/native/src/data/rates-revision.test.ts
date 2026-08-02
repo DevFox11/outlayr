@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	bumpRatesRevision,
 	ratesRevision,
@@ -11,7 +9,7 @@ describe("rates revision", () => {
 		const before = ratesRevision();
 		bumpRatesRevision();
 		bumpRatesRevision();
-		assert.equal(ratesRevision(), before + 2);
+		expect(ratesRevision()).toBe(before + 2);
 	});
 
 	it("notifies a subscriber", () => {
@@ -21,7 +19,7 @@ describe("rates revision", () => {
 		});
 		bumpRatesRevision();
 		unsubscribe();
-		assert.equal(seen, 1);
+		expect(seen).toBe(1);
 	});
 
 	it("stops notifying once unsubscribed", () => {
@@ -31,12 +29,12 @@ describe("rates revision", () => {
 		});
 		unsubscribe();
 		bumpRatesRevision();
-		assert.equal(seen, 0);
+		expect(seen).toBe(0);
 	});
 
 	it("reads back the same value until something bumps it", () => {
 		// `useSyncExternalStore` calls the getter on every render and loops forever
 		// if it answers differently without a store notification.
-		assert.equal(ratesRevision(), ratesRevision());
+		expect(ratesRevision()).toBe(ratesRevision());
 	});
 });

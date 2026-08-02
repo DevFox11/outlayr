@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -123,8 +121,8 @@ describe("eraseData", () => {
 
 		await eraseData(db, "transactions", residue);
 
-		assert.deepEqual(calls, ["photos", "spotlight"]);
-		assert.equal((await liveTransactions(db)).length, 0);
+		expect(calls).toStrictEqual(["photos", "spotlight"]);
+		expect((await liveTransactions(db)).length).toBe(0);
 	});
 
 	// A Spotlight index nobody cleared keeps erased notes and amounts answering
@@ -133,12 +131,9 @@ describe("eraseData", () => {
 		const busy = new Error("directory busy");
 		const { calls, residue } = spyResidue({ photos: busy });
 
-		await assert.rejects(
-			() => eraseData(db, "transactions", residue),
-			(error: unknown) => error === busy,
-		);
+		await expect(eraseData(db, "transactions", residue)).rejects.toBe(busy);
 
-		assert.deepEqual(calls, ["photos", "spotlight"]);
+		expect(calls).toStrictEqual(["photos", "spotlight"]);
 	});
 
 	// The rejection is the screen's only signal that the erase it just ran was
@@ -146,11 +141,11 @@ describe("eraseData", () => {
 	it("leaves the ledger erased after the photo step failed", async () => {
 		const { residue } = spyResidue({ photos: new Error("directory busy") });
 
-		await assert.rejects(() => eraseData(db, "transactions", residue));
+		await expect(eraseData(db, "transactions", residue)).rejects.toThrow();
 
-		assert.equal((await liveTransactions(db)).length, 0);
+		expect((await liveTransactions(db)).length).toBe(0);
 		const [tombstone] = await db.select().from(transactions);
-		assert.notEqual(tombstone.deletedAt, null);
+		expect(tombstone.deletedAt).not.toBe(null);
 	});
 
 	// A caught value is not always an Error, and treating a falsy one as "no
@@ -167,21 +162,18 @@ describe("eraseData", () => {
 			cause = error;
 		}
 
-		assert.equal(rejected, true);
-		assert.equal(cause, undefined);
-		assert.deepEqual(calls, ["photos", "spotlight"]);
+		expect(rejected).toBe(true);
+		expect(cause).toBe(undefined);
+		expect(calls).toStrictEqual(["photos", "spotlight"]);
 	});
 
 	it("reports a Spotlight step that failed on its own", async () => {
 		const denied = new Error("index unavailable");
 		const { calls, residue } = spyResidue({ spotlight: denied });
 
-		await assert.rejects(
-			() => eraseData(db, "transactions", residue),
-			(error: unknown) => error === denied,
-		);
+		await expect(eraseData(db, "transactions", residue)).rejects.toBe(denied);
 
-		assert.deepEqual(calls, ["photos", "spotlight"]);
+		expect(calls).toStrictEqual(["photos", "spotlight"]);
 	});
 
 	// Both stores still describe rows the user has, so clearing either would
@@ -191,8 +183,14 @@ describe("eraseData", () => {
 		await seed(unwritable);
 		const { calls, residue } = spyResidue();
 
-		await assert.rejects(() => eraseData(unwritable, "transactions", residue));
+		// `toMatchObject` rather than `.rejects.toThrow()`: the rejection is a
+		// native-addon `SqliteError`, and Jest gives each test file its own realm,
+		// so `instanceof Error` on it is not reliable across files — `toThrow()`
+		// silently reports "did not throw" when that happens.
+		await expect(
+			eraseData(unwritable, "transactions", residue),
+		).rejects.toMatchObject({ message: expect.any(String) });
 
-		assert.deepEqual(calls, []);
+		expect(calls).toStrictEqual([]);
 	});
 });

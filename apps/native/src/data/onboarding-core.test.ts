@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -24,21 +22,21 @@ function makeDb(): Database {
 
 describe("onboarding gate", () => {
 	it("holds a fresh ledger back", () => {
-		assert.equal(isOnboardingSettled(null), false);
+		expect(isOnboardingSettled(null)).toBe(false);
 	});
 
 	it("no longer settles on currency alone — the flow asks more than one question now", () => {
-		assert.equal(isOnboardingSettled(null), false);
+		expect(isOnboardingSettled(null)).toBe(false);
 	});
 
 	it("lets a finished run through", () => {
-		assert.equal(isOnboardingSettled("true"), true);
+		expect(isOnboardingSettled("true")).toBe(true);
 	});
 
 	it("treats anything but an affirmative as unanswered", () => {
-		assert.equal(isOnboardingSettled("false"), false);
-		assert.equal(isOnboardingSettled(""), false);
-		assert.equal(isOnboardingSettled("TRUE"), false);
+		expect(isOnboardingSettled("false")).toBe(false);
+		expect(isOnboardingSettled("")).toBe(false);
+		expect(isOnboardingSettled("TRUE")).toBe(false);
 	});
 });
 
@@ -50,39 +48,38 @@ describe("finishOnboarding", () => {
 
 	it("is the sole writer of onboardingComplete, shared by both terminal paths", async () => {
 		await finishOnboarding(db);
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), "true");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
 	});
 
 	it("settles the gate it writes", async () => {
 		await finishOnboarding(db);
-		assert.equal(
+		expect(
 			isOnboardingSettled(await getMeta(db, META_KEYS.onboardingComplete)),
-			true,
-		);
+		).toBe(true);
 	});
 
 	it("is idempotent when a caller runs it more than once", async () => {
 		await finishOnboarding(db);
 		await finishOnboarding(db);
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), "true");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
 	});
 });
 
 describe("shouldSettleLegacyLedger", () => {
 	it("backfills a pre-flow ledger: currency chosen, nothing else written", () => {
-		assert.equal(shouldSettleLegacyLedger(null, "true", null), true);
+		expect(shouldSettleLegacyLedger(null, "true", null)).toBe(true);
 	});
 
 	it("leaves a genuinely fresh install alone — there is nothing to backfill", () => {
-		assert.equal(shouldSettleLegacyLedger(null, null, null), false);
+		expect(shouldSettleLegacyLedger(null, null, null)).toBe(false);
 	});
 
 	it("leaves a ledger that already finished the flow itself alone", () => {
-		assert.equal(shouldSettleLegacyLedger("true", "true", null), false);
+		expect(shouldSettleLegacyLedger("true", "true", null)).toBe(false);
 	});
 
 	it("never re-fires once migrated, even if it would otherwise qualify", () => {
-		assert.equal(shouldSettleLegacyLedger(null, "true", "true"), false);
+		expect(shouldSettleLegacyLedger(null, "true", "true")).toBe(false);
 	});
 });
 
@@ -97,15 +94,15 @@ describe("settleLegacyOnboarding", () => {
 
 		await settleLegacyOnboarding(db);
 
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), "true");
-		assert.equal(await getMeta(db, META_KEYS.onboardingGateMigrated), "true");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
+		expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
 	});
 
 	it("stamps the marker even when there is nothing to backfill", async () => {
 		await settleLegacyOnboarding(db);
 
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), null);
-		assert.equal(await getMeta(db, META_KEYS.onboardingGateMigrated), "true");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe(null);
+		expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
 	});
 
 	it("does not touch a ledger that already finished the flow itself", async () => {
@@ -113,8 +110,8 @@ describe("settleLegacyOnboarding", () => {
 
 		await settleLegacyOnboarding(db);
 
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), "true");
-		assert.equal(await getMeta(db, META_KEYS.onboardingGateMigrated), "true");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
+		expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
 	});
 
 	it("is idempotent — a second relaunch writes nothing further", async () => {
@@ -123,7 +120,7 @@ describe("settleLegacyOnboarding", () => {
 
 		await settleLegacyOnboarding(db);
 
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), "true");
-		assert.equal(await getMeta(db, META_KEYS.onboardingGateMigrated), "true");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
+		expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
 	});
 });

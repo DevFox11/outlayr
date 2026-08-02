@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import type { RateLookup } from "@outlayr/money";
 import { canonicalUsd } from "./canonical-usd";
 
@@ -28,9 +26,9 @@ describe("canonicalUsd", () => {
 			displayCurrency: "EUR",
 			date: DATE,
 		});
-		assert.equal(result.amountUsd, 100);
-		assert.equal(result.exchangeRate, 0.92);
-		assert.equal(result.exchangeRateType, "official");
+		expect(result.amountUsd).toBe(100);
+		expect(result.exchangeRate).toBe(0.92);
+		expect(result.exchangeRateType).toBe("official");
 	});
 
 	it("handles a high-inflation quote without losing the cents", async () => {
@@ -40,7 +38,7 @@ describe("canonicalUsd", () => {
 			displayCurrency: "VES",
 			date: DATE,
 		});
-		assert.equal(result.amountUsd, 25);
+		expect(result.amountUsd).toBe(25);
 	});
 
 	it("treats USD as already canonical and never asks for a rate", async () => {
@@ -51,12 +49,12 @@ describe("canonicalUsd", () => {
 			displayCurrency: "USD",
 			date: DATE,
 		});
-		assert.deepEqual(result, {
+		expect(result).toStrictEqual({
 			amountUsd: 12.4,
 			exchangeRate: 1,
 			exchangeRateType: null,
 		});
-		assert.equal(seen.calls, 0);
+		expect(seen.calls).toBe(0);
 	});
 
 	it("falls back to the display currency when the entry names none", async () => {
@@ -66,7 +64,7 @@ describe("canonicalUsd", () => {
 			displayCurrency: "EUR",
 			date: DATE,
 		});
-		assert.equal(result.amountUsd, 20);
+		expect(result.amountUsd).toBe(20);
 	});
 
 	it("accepts the write with nulls when no rate is cached", async () => {
@@ -77,7 +75,7 @@ describe("canonicalUsd", () => {
 			displayCurrency: "USD",
 			date: DATE,
 		});
-		assert.deepEqual(result, {
+		expect(result).toStrictEqual({
 			amountUsd: null,
 			exchangeRate: null,
 			exchangeRateType: null,
@@ -93,6 +91,6 @@ describe("canonicalUsd", () => {
 			displayCurrency: "EUR",
 			date: DATE,
 		});
-		assert.equal(result.amountUsd, null);
+		expect(result.amountUsd).toBe(null);
 	});
 });

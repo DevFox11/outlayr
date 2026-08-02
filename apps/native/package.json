@@ -17,9 +17,8 @@
 		"lint": "biome check .",
 		"prebuild": "expo prebuild",
 		"start": "intlayer build && expo start",
-		"test": "intlayer build && node --import tsx --test \"src/**/*.test.ts\"",
+		"test": "intlayer build && jest",
 		"test:e2e": "maestro test .maestro",
-		"test:react": "jest",
 		"web": "expo start --web"
 	},
 	"dependencies": {

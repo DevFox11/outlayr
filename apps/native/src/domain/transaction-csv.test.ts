@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { parseCsv } from "./csv";
 import {
 	CSV_HEADER,
@@ -15,171 +13,171 @@ import {
 
 describe("serializeCsvAmount", () => {
 	it("pads to the currency's minor units", () => {
-		assert.equal(serializeCsvAmount(12.5, "USD"), "12.50");
+		expect(serializeCsvAmount(12.5, "USD")).toBe("12.50");
 	});
 
 	it("emits no fraction for a zero-decimal currency", () => {
-		assert.equal(serializeCsvAmount(1240, "JPY"), "1240");
+		expect(serializeCsvAmount(1240, "JPY")).toBe("1240");
 	});
 
 	it("uses three decimals for a dinar", () => {
-		assert.equal(serializeCsvAmount(1.5, "KWD"), "1.500");
+		expect(serializeCsvAmount(1.5, "KWD")).toBe("1.500");
 	});
 
 	it("never groups thousands", () => {
-		assert.equal(serializeCsvAmount(1234567.89, "USD"), "1234567.89");
+		expect(serializeCsvAmount(1234567.89, "USD")).toBe("1234567.89");
 	});
 
 	it("writes the magnitude, leaving the sign to the type column", () => {
-		assert.equal(serializeCsvAmount(-9.99, "USD"), "9.99");
+		expect(serializeCsvAmount(-9.99, "USD")).toBe("9.99");
 	});
 
 	it("keeps precision the currency's minor units would round away", () => {
-		assert.equal(serializeCsvAmount(0.125, "USD"), "0.125");
+		expect(serializeCsvAmount(0.125, "USD")).toBe("0.125");
 	});
 });
 
 describe("parseCsvAmount", () => {
 	it("reads a plain decimal", () => {
-		assert.equal(parseCsvAmount("12.50"), 12.5);
+		expect(parseCsvAmount("12.50")).toBe(12.5);
 	});
 
 	it("reads a bare integer", () => {
-		assert.equal(parseCsvAmount("1240"), 1240);
+		expect(parseCsvAmount("1240")).toBe(1240);
 	});
 
 	it("strips a currency symbol", () => {
-		assert.equal(parseCsvAmount("$12.50"), 12.5);
+		expect(parseCsvAmount("$12.50")).toBe(12.5);
 	});
 
 	it("strips thousands separators", () => {
-		assert.equal(parseCsvAmount("1,234,567.89"), 1234567.89);
+		expect(parseCsvAmount("1,234,567.89")).toBe(1234567.89);
 	});
 
 	it("reads a comma decimal when told the column uses one", () => {
-		assert.equal(parseCsvAmount("1.234,56", ","), 1234.56);
+		expect(parseCsvAmount("1.234,56", ",")).toBe(1234.56);
 	});
 
 	it("reads a parenthesised figure as negative", () => {
-		assert.equal(parseCsvAmount("(12.50)"), -12.5);
+		expect(parseCsvAmount("(12.50)")).toBe(-12.5);
 	});
 
 	it("reads a leading minus as negative", () => {
-		assert.equal(parseCsvAmount("-12.50"), -12.5);
+		expect(parseCsvAmount("-12.50")).toBe(-12.5);
 	});
 
 	it("rejects a field with no digits", () => {
-		assert.equal(parseCsvAmount("n/a"), null);
+		expect(parseCsvAmount("n/a")).toBe(null);
 	});
 
 	it("rejects a field with two decimal points", () => {
-		assert.equal(parseCsvAmount("1.2.3"), null);
+		expect(parseCsvAmount("1.2.3")).toBe(null);
 	});
 
 	it("rejects an empty field", () => {
-		assert.equal(parseCsvAmount(""), null);
+		expect(parseCsvAmount("")).toBe(null);
 	});
 });
 
 describe("detectDecimalSeparator", () => {
 	it("defaults to a point", () => {
-		assert.equal(detectDecimalSeparator(["100", "200"]), ".");
+		expect(detectDecimalSeparator(["100", "200"])).toBe(".");
 	});
 
 	it("reads a European column when both separators appear", () => {
-		assert.equal(detectDecimalSeparator(["1.234,56", "9,90"]), ",");
+		expect(detectDecimalSeparator(["1.234,56", "9,90"])).toBe(",");
 	});
 
 	it("reads a US column when both separators appear", () => {
-		assert.equal(detectDecimalSeparator(["1,234.56", "9.90"]), ".");
+		expect(detectDecimalSeparator(["1,234.56", "9.90"])).toBe(".");
 	});
 
 	it("treats a lone three-digit tail as grouping, not a decimal", () => {
-		assert.equal(detectDecimalSeparator(["1,234", "5,678"]), ".");
+		expect(detectDecimalSeparator(["1,234", "5,678"])).toBe(".");
 	});
 
 	it("reads a lone two-digit comma tail as a decimal", () => {
-		assert.equal(detectDecimalSeparator(["9,90", "12,05"]), ",");
+		expect(detectDecimalSeparator(["9,90", "12,05"])).toBe(",");
 	});
 });
 
 describe("deduceDateFormat", () => {
 	it("recognises an ISO instant", () => {
-		assert.equal(deduceDateFormat(["2026-07-29T10:15:00.000Z"]), "ISO");
+		expect(deduceDateFormat(["2026-07-29T10:15:00.000Z"])).toBe("ISO");
 	});
 
 	it("recognises a plain ISO day", () => {
-		assert.equal(deduceDateFormat(["2026-07-29"]), "yyyy-MM-dd");
+		expect(deduceDateFormat(["2026-07-29"])).toBe("yyyy-MM-dd");
 	});
 
 	it("prefers day-first when a first component exceeds twelve", () => {
-		assert.equal(deduceDateFormat(["01/02/2026", "29/07/2026"]), "dd/MM/yyyy");
+		expect(deduceDateFormat(["01/02/2026", "29/07/2026"])).toBe("dd/MM/yyyy");
 	});
 
 	it("prefers month-first when a second component exceeds twelve", () => {
-		assert.equal(deduceDateFormat(["01/02/2026", "07/29/2026"]), "MM/dd/yyyy");
+		expect(deduceDateFormat(["01/02/2026", "07/29/2026"])).toBe("MM/dd/yyyy");
 	});
 
 	it("answers null when nothing parses", () => {
-		assert.equal(deduceDateFormat(["last tuesday"]), null);
+		expect(deduceDateFormat(["last tuesday"])).toBe(null);
 	});
 
 	it("ignores blank values when deducing", () => {
-		assert.equal(deduceDateFormat(["", "2026-07-29"]), "yyyy-MM-dd");
+		expect(deduceDateFormat(["", "2026-07-29"])).toBe("yyyy-MM-dd");
 	});
 });
 
 describe("parseCsvDate", () => {
 	it("parses an ISO instant to the exact moment", () => {
 		const parsed = parseCsvDate("2026-07-29T10:15:00.000Z", "ISO");
-		assert.equal(parsed?.getTime(), Date.UTC(2026, 6, 29, 10, 15));
+		expect(parsed?.getTime()).toBe(Date.UTC(2026, 6, 29, 10, 15));
 	});
 
 	it("parses a bare day to local midnight", () => {
 		const parsed = parseCsvDate("2026-07-29", "yyyy-MM-dd");
-		assert.deepEqual(parsed, new Date(2026, 6, 29, 0, 0, 0, 0));
+		expect(parsed).toStrictEqual(new Date(2026, 6, 29, 0, 0, 0, 0));
 	});
 
 	it("parses a day and time in the local zone", () => {
 		const parsed = parseCsvDate("29/07/2026 14:05:09", "dd/MM/yyyy HH:mm:ss");
-		assert.deepEqual(parsed, new Date(2026, 6, 29, 14, 5, 9, 0));
+		expect(parsed).toStrictEqual(new Date(2026, 6, 29, 14, 5, 9, 0));
 	});
 
 	it("parses a separator-free format by fixed width", () => {
 		const parsed = parseCsvDate("20260729", "yyyyMMdd");
-		assert.deepEqual(parsed, new Date(2026, 6, 29, 0, 0, 0, 0));
+		expect(parsed).toStrictEqual(new Date(2026, 6, 29, 0, 0, 0, 0));
 	});
 
 	it("rejects a value the format does not match", () => {
-		assert.equal(parseCsvDate("29/07/2026", "yyyy-MM-dd"), null);
+		expect(parseCsvDate("29/07/2026", "yyyy-MM-dd")).toBe(null);
 	});
 
 	it("rejects an impossible day rather than rolling it over", () => {
-		assert.equal(parseCsvDate("2026-02-31", "yyyy-MM-dd"), null);
+		expect(parseCsvDate("2026-02-31", "yyyy-MM-dd")).toBe(null);
 	});
 
 	it("rejects a blank value", () => {
-		assert.equal(parseCsvDate("", "yyyy-MM-dd"), null);
+		expect(parseCsvDate("", "yyyy-MM-dd")).toBe(null);
 	});
 });
 
 describe("parseCsvType", () => {
 	it("reads the exported words", () => {
-		assert.equal(parseCsvType("Income"), true);
-		assert.equal(parseCsvType("Expense"), false);
+		expect(parseCsvType("Income")).toBe(true);
+		expect(parseCsvType("Expense")).toBe(false);
 	});
 
 	it("ignores case and padding", () => {
-		assert.equal(parseCsvType("  income "), true);
+		expect(parseCsvType("  income ")).toBe(true);
 	});
 
 	it("accepts the common synonyms", () => {
-		assert.equal(parseCsvType("credit"), true);
-		assert.equal(parseCsvType("debit"), false);
+		expect(parseCsvType("credit")).toBe(true);
+		expect(parseCsvType("debit")).toBe(false);
 	});
 
 	it("answers null for anything else", () => {
-		assert.equal(parseCsvType("transfer"), null);
+		expect(parseCsvType("transfer")).toBe(null);
 	});
 });
 
@@ -204,51 +202,48 @@ describe("transactionsToCsv", () => {
 	];
 
 	it("leads with the header", () => {
-		assert.equal(
-			transactionsToCsv(rows, "USD").split("\n")[0],
+		expect(transactionsToCsv(rows, "USD").split("\n")[0]).toBe(
 			CSV_HEADER.join(","),
 		);
 	});
 
 	it("writes the ledger currency for a row that stated none", () => {
 		const parsed = parseCsv(transactionsToCsv(rows, "USD"));
-		assert.equal(parsed[2]?.[3], "USD");
+		expect(parsed[2]?.[3]).toBe("USD");
 	});
 
 	it("keeps a comma in the note instead of deleting it", () => {
 		const parsed = parseCsv(transactionsToCsv(rows, "USD"));
-		assert.equal(parsed[1]?.[1], "Bakery, twice");
+		expect(parsed[1]?.[1]).toBe("Bakery, twice");
 	});
 
 	it("ends with a newline", () => {
-		assert.ok(transactionsToCsv(rows, "USD").endsWith("\n"));
+		expect(transactionsToCsv(rows, "USD").endsWith("\n")).toBeTruthy();
 	});
 
 	it("round-trips date, amount, currency and type exactly", () => {
 		const parsed = parseCsv(transactionsToCsv(rows, "USD"));
 		for (const [index, row] of rows.entries()) {
 			const cells = parsed[index + 1];
-			assert.ok(cells);
-			assert.equal(
-				parseCsvDate(cells[0] ?? "", "ISO")?.getTime(),
+			expect(cells).toBeTruthy();
+			expect(parseCsvDate(cells[0] ?? "", "ISO")?.getTime()).toBe(
 				row.date.getTime(),
 			);
-			assert.equal(parseCsvAmount(cells[2] ?? ""), row.amount);
-			assert.equal(cells[3], row.currency ?? "USD");
-			assert.equal(parseCsvType(cells[5] ?? ""), row.income);
+			expect(parseCsvAmount(cells[2] ?? "")).toBe(row.amount);
+			expect(cells[3]).toBe(row.currency ?? "USD");
+			expect(parseCsvType(cells[5] ?? "")).toBe(row.income);
 		}
 	});
 
 	it("emits only the header when there is nothing to export", () => {
-		assert.equal(transactionsToCsv([], "USD"), `${CSV_HEADER.join(",")}\n`);
+		expect(transactionsToCsv([], "USD")).toBe(`${CSV_HEADER.join(",")}\n`);
 	});
 });
 
 describe("formatCsvDate", () => {
 	it("writes an ISO instant that parses back to the same moment", () => {
 		const date = new Date(Date.UTC(2026, 6, 29, 10, 15, 30, 250));
-		assert.equal(
-			parseCsvDate(formatCsvDate(date), "ISO")?.getTime(),
+		expect(parseCsvDate(formatCsvDate(date), "ISO")?.getTime()).toBe(
 			date.getTime(),
 		);
 	});

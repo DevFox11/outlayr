@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -32,7 +30,7 @@ import {
 	setSyncEnabled,
 } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -221,7 +219,7 @@ describe("the replicated column set", () => {
 				(name) => !ENVELOPE.has(name) && !DEVICE_LOCAL.has(`${table}.${name}`),
 			);
 
-			assert.deepEqual([...spec.fields].sort(), declared.sort());
+			expect([...spec.fields].sort()).toStrictEqual(declared.sort());
 		});
 	}
 
@@ -229,18 +227,15 @@ describe("the replicated column set", () => {
 	// container path, its reconciliation nulled the column, and the push that
 	// followed tie-broke on `deviceId` back onto the sender.
 	it("never replicates a device-local path", () => {
-		assert.ok(!specFor("transactions").fields.includes("imageUri"));
-		assert.ok(specFor("transactions").fields.includes("imageKey"));
+		expect(!specFor("transactions").fields.includes("imageUri")).toBeTruthy();
+		expect(specFor("transactions").fields.includes("imageKey")).toBeTruthy();
 	});
 
 	it("names only real timestamp columns as dates", () => {
 		for (const table of SYNCED_TABLES) {
 			const spec = specFor(table);
 			for (const name of spec.dates) {
-				assert.ok(
-					spec.fields.includes(name),
-					`${table}.${name} is not a replicated column`,
-				);
+				expect(spec.fields.includes(name)).toBeTruthy();
 			}
 		}
 	});
@@ -248,67 +243,60 @@ describe("the replicated column set", () => {
 
 describe("incomingWinsLocally", () => {
 	it("takes anything when there is no local row", () => {
-		assert.equal(
+		expect(
 			incomingWinsLocally({ updatedAt: 1, deletedAt: null }, null, false),
-			true,
-		);
+		).toBe(true);
 	});
 
 	it("R1 — a tombstone is absorbing in both directions", () => {
-		assert.equal(
+		expect(
 			incomingWinsLocally(
 				{ updatedAt: 1, deletedAt: 1 },
 				{ updatedAt: 999, deletedAt: null },
 				false,
 			),
-			true,
-		);
-		assert.equal(
+		).toBe(true);
+		expect(
 			incomingWinsLocally(
 				{ updatedAt: 999, deletedAt: null },
 				{ updatedAt: 1, deletedAt: 1 },
 				false,
 			),
-			false,
-		);
+		).toBe(false);
 	});
 
 	it("R2 — the greater updatedAt takes the row", () => {
-		assert.equal(
+		expect(
 			incomingWinsLocally(
 				{ updatedAt: 2, deletedAt: null },
 				{ updatedAt: 1, deletedAt: null },
 				false,
 			),
-			true,
-		);
-		assert.equal(
+		).toBe(true);
+		expect(
 			incomingWinsLocally(
 				{ updatedAt: 1, deletedAt: null },
 				{ updatedAt: 2, deletedAt: null },
 				false,
 			),
-			false,
-		);
+		).toBe(false);
 	});
 
 	it("keeps an unsent local edit on an exact tie", () => {
-		assert.equal(
+		expect(
 			incomingWinsLocally(
 				{ updatedAt: 5, deletedAt: null },
 				{ updatedAt: 5, deletedAt: null },
 				true,
 			),
-			false,
-		);
-		assert.equal(
+		).toBe(false);
+		expect(
 			incomingWinsLocally(
 				{ updatedAt: 5, deletedAt: null },
 				{ updatedAt: 5, deletedAt: null },
 				false,
 			),
-			true,
-		);
+		).toBe(true);
 	});
 });
 
@@ -326,8 +314,8 @@ describe("drainOutbox", () => {
 			return { accepted: 0, skipped: 0, nextSeq: 1 };
 		};
 
-		assert.equal(await drainOutbox(db, push), 0);
-		assert.equal(calls, 0);
+		expect(await drainOutbox(db, push)).toBe(0);
+		expect(calls).toBe(0);
 	});
 
 	it("pushes queued rows and clears exactly what it sent", async () => {
@@ -336,9 +324,9 @@ describe("drainOutbox", () => {
 		await addTransaction(db, "t2");
 		const server = makeServer();
 
-		assert.equal(await drainOutbox(db, server.push), 2);
-		assert.equal(await outboxPendingCount(db), 0);
-		assert.equal(server.rows.size, 2);
+		expect(await drainOutbox(db, server.push)).toBe(2);
+		expect(await outboxPendingCount(db)).toBe(0);
+		expect(server.rows.size).toBe(2);
 	});
 
 	it("carries the row's own values, dates as epoch milliseconds", async () => {
@@ -355,13 +343,13 @@ describe("drainOutbox", () => {
 			return { accepted: rows.length, skipped: 0, nextSeq: 1 };
 		});
 
-		assert.equal(seen[0].table, "transactions");
-		assert.equal(seen[0].updatedAt, 7000);
-		assert.equal(seen[0].deletedAt, null);
-		assert.equal(seen[0].fields.amount, 42.5);
-		assert.equal(seen[0].fields.note, "lunch");
-		assert.equal(seen[0].fields.date, 5000);
-		assert.equal(seen[0].fields.categoryId, null);
+		expect(seen[0].table).toBe("transactions");
+		expect(seen[0].updatedAt).toBe(7000);
+		expect(seen[0].deletedAt).toBe(null);
+		expect(seen[0].fields.amount).toBe(42.5);
+		expect(seen[0].fields.note).toBe("lunch");
+		expect(seen[0].fields.date).toBe(5000);
+		expect(seen[0].fields.categoryId).toBe(null);
 	});
 
 	it("pushes a tombstone as one", async () => {
@@ -377,7 +365,7 @@ describe("drainOutbox", () => {
 			return { accepted: rows.length, skipped: 0, nextSeq: 1 };
 		});
 
-		assert.equal(seen[0].deletedAt, 9000);
+		expect(seen[0].deletedAt).toBe(9000);
 	});
 
 	it("leaves an edit that arrived mid-flight queued", async () => {
@@ -393,7 +381,7 @@ describe("drainOutbox", () => {
 
 		await drainOutbox(db, push);
 
-		assert.equal(await outboxPendingCount(db), 1);
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("pages a queue longer than one batch", async () => {
@@ -407,20 +395,20 @@ describe("drainOutbox", () => {
 			return { accepted: rows.length, skipped: 0, nextSeq: 1 };
 		});
 
-		assert.deepEqual(batches, [500, 1]);
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(batches).toStrictEqual([500, 1]);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 
 	it("keeps the queue when the push throws", async () => {
 		await setSyncEnabled(db, true);
 		await addTransaction(db, "t1");
 
-		await assert.rejects(
+		await expect(
 			drainOutbox(db, async () => {
 				throw new Error("offline");
 			}),
-		);
-		assert.equal(await outboxPendingCount(db), 1);
+		).rejects.toThrow();
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("pushes only the account-scoped meta keys", async () => {
@@ -433,12 +421,9 @@ describe("drainOutbox", () => {
 			return { accepted: rows.length, skipped: 0, nextSeq: 1 };
 		});
 
-		assert.deepEqual(
-			seen.map((row) => row.localId),
-			[META_KEYS.currency],
-		);
-		assert.equal(seen[0].fields.value, "EUR");
-		assert.equal(seen[0].deletedAt, null);
+		expect(seen.map((row) => row.localId)).toStrictEqual([META_KEYS.currency]);
+		expect(seen[0].fields.value).toBe("EUR");
+		expect(seen[0].deletedAt).toBe(null);
 	});
 });
 
@@ -455,11 +440,11 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(result.applied, 1);
-		assert.equal(row.id, "remote");
-		assert.equal(row.amount, 7.5);
-		assert.equal(row.updatedAt.getTime(), 5000);
-		assert.equal(await getSyncCursor(db), 1);
+		expect(result.applied).toBe(1);
+		expect(row.id).toBe("remote");
+		expect(row.amount).toBe(7.5);
+		expect(row.updatedAt.getTime()).toBe(5000);
+		expect(await getSyncCursor(db)).toBe(1);
 	});
 
 	it("round-trips dates and nulls", async () => {
@@ -473,11 +458,11 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.date.getTime(), 111);
-		assert.equal(row.day.getTime(), 222);
-		assert.equal(row.month.getTime(), 333);
-		assert.equal(row.recurringEndDate, null);
-		assert.equal(row.deletedAt, null);
+		expect(row.date.getTime()).toBe(111);
+		expect(row.day.getTime()).toBe(222);
+		expect(row.month.getTime()).toBe(333);
+		expect(row.recurringEndDate).toBe(null);
+		expect(row.deletedAt).toBe(null);
 	});
 
 	it("overwrites a local row the incoming one outranks", async () => {
@@ -489,7 +474,7 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.note, "theirs");
+		expect(row.note).toBe("theirs");
 	});
 
 	it("keeps a newer local row and does not clear its queue entry", async () => {
@@ -502,9 +487,9 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(result.applied, 0);
-		assert.equal(row.note, "mine");
-		assert.equal(await outboxPendingCount(db), 1);
+		expect(result.applied).toBe(0);
+		expect(row.note).toBe("mine");
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("R1 — an incoming tombstone beats a newer local edit", async () => {
@@ -516,7 +501,7 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.deletedAt?.getTime(), 1000);
+		expect(row.deletedAt?.getTime()).toBe(1000);
 	});
 
 	it("R1 — a local tombstone is not resurrected by a newer incoming edit", async () => {
@@ -531,8 +516,8 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.deletedAt?.getTime(), 1000);
-		assert.notEqual(row.note, "back");
+		expect(row.deletedAt?.getTime()).toBe(1000);
+		expect(row.note).not.toBe("back");
 	});
 
 	// `reminderLeadDays` is device-local, so it is absent from the wire and the
@@ -556,7 +541,7 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.reminderLeadDays, null);
+		expect(row.reminderLeadDays).toBe(null);
 	});
 
 	it("clears the local notice when a peer deletes the row", async () => {
@@ -573,7 +558,7 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.reminderLeadDays, null);
+		expect(row.reminderLeadDays).toBe(null);
 	});
 
 	it("keeps the local notice when a peer edits the live carrier", async () => {
@@ -594,8 +579,8 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.note, "theirs");
-		assert.equal(row.reminderLeadDays, 3);
+		expect(row.note).toBe("theirs");
+		expect(row.reminderLeadDays).toBe(3);
 	});
 
 	it("keeps an unsent local edit on an exact updatedAt tie", async () => {
@@ -608,8 +593,8 @@ describe("applyPulledRows", () => {
 		});
 
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.note, "mine");
-		assert.equal(await outboxPendingCount(db), 1);
+		expect(row.note).toBe("mine");
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("deletes the queue entries its own writes create", async () => {
@@ -620,11 +605,7 @@ describe("applyPulledRows", () => {
 			cursor: 1,
 		});
 
-		assert.equal(
-			await outboxPendingCount(db),
-			0,
-			"a pulled row queued for push is a pull-push echo loop",
-		);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 
 	it("applies a page whose transaction precedes the category it references", async () => {
@@ -652,22 +633,22 @@ describe("applyPulledRows", () => {
 			cursor: 2,
 		});
 
-		assert.equal(result.applied, 2);
+		expect(result.applied).toBe(2);
 		const [row] = await db.select().from(transactions);
-		assert.equal(row.categoryId, "c1");
+		expect(row.categoryId).toBe("c1");
 	});
 
 	it("advances the cursor only as far as the page reached", async () => {
 		await applyPulledRows(db, { rows: [txRow("t1", 1, 5000)], cursor: 1 });
 		await applyPulledRows(db, { rows: [txRow("t2", 7, 5000)], cursor: 7 });
 
-		assert.equal(await getSyncCursor(db), 7);
+		expect(await getSyncCursor(db)).toBe(7);
 	});
 
 	it("leaves the cursor alone on an empty page", async () => {
 		await applyPulledRows(db, { rows: [], cursor: 99 });
 
-		assert.equal(await getSyncCursor(db), 0);
+		expect(await getSyncCursor(db)).toBe(0);
 	});
 
 	it("writes an appMeta key by its key", async () => {
@@ -686,7 +667,7 @@ describe("applyPulledRows", () => {
 			cursor: 1,
 		});
 
-		assert.equal(await getMeta(db, META_KEYS.currency), "JPY");
+		expect(await getMeta(db, META_KEYS.currency)).toBe("JPY");
 	});
 
 	// `appMeta` carries no `updatedAt` column, so without the pending guard every
@@ -700,8 +681,8 @@ describe("applyPulledRows", () => {
 			cursor: 1,
 		});
 
-		assert.equal(await getMeta(db, META_KEYS.currency), "GBP");
-		assert.equal(await outboxPendingCount(db), 1);
+		expect(await getMeta(db, META_KEYS.currency)).toBe("GBP");
+		expect(await outboxPendingCount(db)).toBe(1);
 	});
 
 	it("takes the incoming meta value when nothing local is owed", async () => {
@@ -712,7 +693,7 @@ describe("applyPulledRows", () => {
 			cursor: 1,
 		});
 
-		assert.equal(await getMeta(db, META_KEYS.currency), "JPY");
+		expect(await getMeta(db, META_KEYS.currency)).toBe("JPY");
 	});
 
 	it("reports the tables it wrote so the caller can invalidate them", async () => {
@@ -732,7 +713,7 @@ describe("applyPulledRows", () => {
 			cursor: 2,
 		});
 
-		assert.deepEqual(result.tables.sort(), ["appMeta", "transactions"]);
+		expect(result.tables.sort()).toStrictEqual(["appMeta", "transactions"]);
 	});
 });
 
@@ -787,11 +768,11 @@ describe("R3 — invariants Convex cannot hold", () => {
 
 		const rows = await db.select().from(budgets);
 		const live = rows.filter((row) => row.deletedAt === null);
-		assert.equal(live.length, 1);
-		assert.equal(live[0].id, "remote");
+		expect(live.length).toBe(1);
+		expect(live[0].id).toBe("remote");
 		const loser = rows.find((row) => row.id === "local");
-		assert.notEqual(loser?.deletedAt, null);
-		assert.equal(loser?.categoryId, null);
+		expect(loser?.deletedAt).not.toBe(null);
+		expect(loser?.categoryId).toBe(null);
 	});
 
 	it("tombstones the incoming budget when the local one wins", async () => {
@@ -813,15 +794,14 @@ describe("R3 — invariants Convex cannot hold", () => {
 
 		const rows = await db.select().from(budgets);
 		const live = rows.filter((row) => row.deletedAt === null);
-		assert.equal(live.length, 1);
-		assert.equal(live[0].id, "local");
-		assert.equal(rows.find((row) => row.id === "remote")?.categoryId, null);
+		expect(live.length).toBe(1);
+		expect(live[0].id).toBe("local");
+		expect(rows.find((row) => row.id === "remote")?.categoryId).toBe(null);
 		// The row this device wrote is NOT what the server holds, so it must stay
 		// queued rather than be cleared as an applied row.
-		assert.deepEqual(
+		expect(
 			(await db.select().from(outbox)).map((row) => row.localId),
-			["remote"],
-		);
+		).toStrictEqual(["remote"]);
 	});
 
 	it("queues the tombstone it writes so the other device converges", async () => {
@@ -842,10 +822,7 @@ describe("R3 — invariants Convex cannot hold", () => {
 		});
 
 		const queued = await db.select().from(outbox);
-		assert.deepEqual(
-			queued.map((row) => row.localId),
-			["local"],
-		);
+		expect(queued.map((row) => row.localId)).toStrictEqual(["local"]);
 	});
 
 	it("picks the same survivor on both devices when updatedAt ties", async () => {
@@ -869,8 +846,8 @@ describe("R3 — invariants Convex cannot hold", () => {
 		const first = makeDb();
 		const second = makeDb();
 
-		assert.deepEqual(await seed(first, "aaa", "zzz"), ["zzz"]);
-		assert.deepEqual(await seed(second, "zzz", "aaa"), ["zzz"]);
+		expect(await seed(first, "aaa", "zzz")).toStrictEqual(["zzz"]);
+		expect(await seed(second, "zzz", "aaa")).toStrictEqual(["zzz"]);
 	});
 
 	it("leaves two budgets on different categories alone", async () => {
@@ -894,7 +871,7 @@ describe("R3 — invariants Convex cannot hold", () => {
 		const live = (await db.select().from(budgets)).filter(
 			(row) => row.deletedAt === null,
 		);
-		assert.equal(live.length, 2);
+		expect(live.length).toBe(2);
 	});
 
 	it("collapses two live overall budgets to one", async () => {
@@ -933,8 +910,8 @@ describe("R3 — invariants Convex cannot hold", () => {
 		const live = (await db.select().from(mainBudget)).filter(
 			(row) => row.deletedAt === null,
 		);
-		assert.equal(live.length, 1);
-		assert.equal(live[0].id, "remote");
+		expect(live.length).toBe(1);
+		expect(live[0].id).toBe("remote");
 	});
 });
 
@@ -951,8 +928,8 @@ describe("two devices against one account", () => {
 		await runSync(beta, server.transport);
 
 		const [row] = await beta.select().from(transactions);
-		assert.equal(row.note, "coffee");
-		assert.equal(await outboxPendingCount(beta), 0);
+		expect(row.note).toBe("coffee");
+		expect(await outboxPendingCount(beta)).toBe(0);
 	});
 
 	it("converges a concurrent edit to the same row on the later writer", async () => {
@@ -972,11 +949,8 @@ describe("two devices against one account", () => {
 		await runSync(beta, server.transport);
 		await runSync(alpha, server.transport);
 
-		assert.equal(
-			(await alpha.select().from(transactions))[0].note,
-			"from-beta",
-		);
-		assert.equal((await beta.select().from(transactions))[0].note, "from-beta");
+		expect((await alpha.select().from(transactions))[0].note).toBe("from-beta");
+		expect((await beta.select().from(transactions))[0].note).toBe("from-beta");
 	});
 
 	it("keeps a row deleted when a tombstone races an edit", async () => {
@@ -1001,7 +975,7 @@ describe("two devices against one account", () => {
 
 		for (const db of [alpha, beta]) {
 			const [row] = await db.select().from(transactions);
-			assert.notEqual(row.deletedAt, null);
+			expect(row.deletedAt).not.toBe(null);
 		}
 	});
 
@@ -1019,12 +993,12 @@ describe("two devices against one account", () => {
 		await addTransaction(beta, "local-row", { note: "unsent" });
 		const applied = await pullAndApply(beta, server.pull);
 
-		assert.equal(applied.applied, 1);
-		assert.equal(await outboxPendingCount(beta), 1);
+		expect(applied.applied).toBe(1);
+		expect(await outboxPendingCount(beta)).toBe(1);
 		const notes = (await beta.select().from(transactions))
 			.map((row) => row.note)
 			.sort();
-		assert.deepEqual(notes, ["from-alpha", "unsent"]);
+		expect(notes).toStrictEqual(["from-alpha", "unsent"]);
 	});
 
 	it("settles after a full round trip with nothing left queued", async () => {
@@ -1041,11 +1015,11 @@ describe("two devices against one account", () => {
 			await runSync(beta, server.transport);
 		}
 
-		assert.equal(await outboxPendingCount(alpha), 0);
-		assert.equal(await outboxPendingCount(beta), 0);
-		assert.equal((await alpha.select().from(transactions)).length, 2);
-		assert.equal((await beta.select().from(transactions)).length, 2);
-		assert.equal(await getSyncCursor(alpha), await getSyncCursor(beta));
+		expect(await outboxPendingCount(alpha)).toBe(0);
+		expect(await outboxPendingCount(beta)).toBe(0);
+		expect((await alpha.select().from(transactions)).length).toBe(2);
+		expect((await beta.select().from(transactions)).length).toBe(2);
+		expect(await getSyncCursor(alpha)).toBe(await getSyncCursor(beta));
 	});
 
 	it("stops rather than looping when a page does not advance the cursor", async () => {
@@ -1058,7 +1032,7 @@ describe("two devices against one account", () => {
 			return { rows: [txRow("t1", 1, 5000)], cursor: 0, hasMore: true };
 		});
 
-		assert.equal(calls, 1);
+		expect(calls).toBe(1);
 	});
 
 	it("does not pull while the gate is shut", async () => {
@@ -1070,7 +1044,7 @@ describe("two devices against one account", () => {
 			return { rows: [], cursor: 0, hasMore: false };
 		});
 
-		assert.equal(calls, 0);
+		expect(calls).toBe(0);
 	});
 });
 

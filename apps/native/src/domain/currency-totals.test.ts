@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	cellFigures,
 	cellTotals,
@@ -14,29 +12,26 @@ function entry(amount: number, income = false, currency: string | null = null) {
 
 describe("currencyTotals", () => {
 	it("gives an empty set one zero bucket, so a caller always has something to draw", () => {
-		assert.deepEqual(currencyTotals([], "USD"), [
+		expect(currencyTotals([], "USD")).toStrictEqual([
 			{ currencyCode: "USD", amount: 0, transactionCount: 0 },
 		]);
 	});
 
 	it("files a row with no currency of its own under the global one", () => {
 		const [bucket] = currencyTotals([entry(10)], "USD");
-		assert.equal(bucket.currencyCode, "USD");
-		assert.equal(bucket.amount, -10);
+		expect(bucket.currencyCode).toBe("USD");
+		expect(bucket.amount).toBe(-10);
 	});
 
 	it("signs income up and expense down inside each bucket", () => {
 		const [bucket] = currencyTotals([entry(40), entry(15, true)], "USD");
-		assert.equal(bucket.amount, -25);
+		expect(bucket.amount).toBe(-25);
 	});
 
 	it("never adds two currencies together", () => {
 		const buckets = currencyTotals([entry(40), entry(10, false, "EUR")], "USD");
-		assert.equal(buckets.length, 2);
-		assert.deepEqual(
-			buckets.map((b) => b.amount),
-			[-40, -10],
-		);
+		expect(buckets.length).toBe(2);
+		expect(buckets.map((b) => b.amount)).toStrictEqual([-40, -10]);
 	});
 
 	it("ranks by transaction count first", () => {
@@ -44,7 +39,7 @@ describe("currencyTotals", () => {
 			[entry(1, false, "EUR"), entry(1, false, "EUR"), entry(999)],
 			"USD",
 		);
-		assert.equal(buckets[0].currencyCode, "EUR");
+		expect(buckets[0].currencyCode).toBe("EUR");
 	});
 
 	it("breaks a count tie in the user's own currency's favour", () => {
@@ -52,7 +47,7 @@ describe("currencyTotals", () => {
 			[entry(1, false, "EUR"), entry(1, false, "USD")],
 			"USD",
 		);
-		assert.equal(buckets[0].currencyCode, "USD");
+		expect(buckets[0].currencyCode).toBe("USD");
 	});
 
 	it("breaks a remaining tie alphabetically rather than arbitrarily", () => {
@@ -60,10 +55,7 @@ describe("currencyTotals", () => {
 			[entry(1, false, "JPY"), entry(1, false, "EUR")],
 			"USD",
 		);
-		assert.deepEqual(
-			buckets.map((b) => b.currencyCode),
-			["EUR", "JPY"],
-		);
+		expect(buckets.map((b) => b.currencyCode)).toStrictEqual(["EUR", "JPY"]);
 	});
 });
 
@@ -93,7 +85,7 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "EUR", amount: -90, transactionCount: 1 },
 		]);
 	});
@@ -106,7 +98,7 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "EUR", amount: -185, transactionCount: 2 },
 		]);
 	});
@@ -121,10 +113,10 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.equal(buckets.length, 1);
-		assert.equal(buckets[0].currencyCode, "EUR");
+		expect(buckets.length).toBe(1);
+		expect(buckets[0].currencyCode).toBe("EUR");
 		// 50 + 90 + 5.76
-		assert.equal(buckets[0].amount, -145.76);
+		expect(buckets[0].amount).toBe(-145.76);
 	});
 
 	it("leaves an entry with no frozen USD value in its own currency", () => {
@@ -133,7 +125,7 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -100, transactionCount: 1 },
 		]);
 	});
@@ -146,7 +138,7 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "EUR", amount: -90, transactionCount: 1 },
 			{ currencyCode: "USD", amount: -40, transactionCount: 1 },
 		]);
@@ -158,7 +150,7 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -100, transactionCount: 1 },
 		]);
 	});
@@ -170,7 +162,7 @@ describe("currencyTotals with rates", () => {
 			"USD",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -100, transactionCount: 1 },
 		]);
 	});
@@ -184,9 +176,9 @@ describe("currencyTotals with rates", () => {
 			priced(0.1, "USD", 0.1, JULY_5),
 			priced(0.1, "USD", 0.1, JULY_5),
 		]);
-		assert.equal(cells.length, 1);
-		assert.equal(cells[0].amountUsd, 0.30000000000000004);
-		assert.deepEqual(cellTotals(cells, "EUR", eurRates), [
+		expect(cells.length).toBe(1);
+		expect(cells[0].amountUsd).toBe(0.30000000000000004);
+		expect(cellTotals(cells, "EUR", eurRates)).toStrictEqual([
 			{ currencyCode: "EUR", amount: -0.27, transactionCount: 3 },
 		]);
 	});
@@ -197,7 +189,7 @@ describe("currencyTotals with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(buckets, [
+		expect(buckets).toStrictEqual([
 			{ currencyCode: "USD", amount: -100, transactionCount: 1 },
 		]);
 	});
@@ -215,7 +207,7 @@ describe("figures over a whole result set", () => {
 			]),
 			"USD",
 		);
-		assert.deepEqual(figures, [
+		expect(figures).toStrictEqual([
 			{ currencyCode: "USD", income: 200, expense: 100, count: 3 },
 		]);
 	});
@@ -232,7 +224,7 @@ describe("figures over a whole result set", () => {
 			"USD",
 			eurRates,
 		);
-		assert.deepEqual(figures, [
+		expect(figures).toStrictEqual([
 			{ currencyCode: "EUR", income: 20, expense: 50, count: 2 },
 			{ currencyCode: "USD", income: 0, expense: 100, count: 1 },
 		]);
@@ -247,16 +239,15 @@ describe("figures over a whole result set", () => {
 			"USD",
 			eurRates,
 		);
-		assert.deepEqual(
+		expect(
 			figures.map((entry) => ({
 				code: entry.currencyCode,
 				net: entry.income - entry.expense,
 			})),
-			[
-				{ code: "USD", net: 10 },
-				{ code: "EUR", net: -40 },
-			],
-		);
+		).toStrictEqual([
+			{ code: "USD", net: 10 },
+			{ code: "EUR", net: -40 },
+		]);
 	});
 });
 
@@ -289,14 +280,14 @@ describe("switching display currency", () => {
 	];
 
 	it("leaves the figures alone while the setting still matches", () => {
-		assert.deepEqual(currencyTotals(nullCurrency, "USD", eurRates), [
+		expect(currencyTotals(nullCurrency, "USD", eurRates)).toStrictEqual([
 			{ currencyCode: "USD", amount: -99.15, transactionCount: 3 },
 		]);
 	});
 
 	it("converts the whole history when the setting changes", () => {
 		// 99.15 USD at the 5 July rate of 0.90, converted once.
-		assert.deepEqual(currencyTotals(nullCurrency, "EUR", eurRates), [
+		expect(currencyTotals(nullCurrency, "EUR", eurRates)).toStrictEqual([
 			{ currencyCode: "EUR", amount: -89.24, transactionCount: 3 },
 		]);
 	});
@@ -311,7 +302,7 @@ describe("switching display currency", () => {
 				date: JULY_5,
 			},
 		];
-		assert.deepEqual(currencyTotals(orphan, "EUR", eurRates), [
+		expect(currencyTotals(orphan, "EUR", eurRates)).toStrictEqual([
 			{ currencyCode: "EUR", amount: -40, transactionCount: 1 },
 		]);
 	});

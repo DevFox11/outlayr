@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { cn } from "./tw";
 
 const SIZES = [
@@ -37,61 +35,55 @@ describe("cn keeps a size and a tone from cancelling", () => {
 		for (const size of SIZES) {
 			for (const tone of TONES) {
 				const out = cn(size, tone) ?? "";
-				assert.ok(
-					out.includes(size),
-					`${size} was dropped when combined with ${tone} -> "${out}"`,
-				);
-				assert.ok(
-					out.includes(tone),
-					`${tone} was dropped when combined with ${size} -> "${out}"`,
-				);
+				expect(out.includes(size)).toBeTruthy();
+				expect(out.includes(tone)).toBeTruthy();
 			}
 		}
 	});
 
 	it("survives a size and tone already sharing one string", () => {
 		const out = cn("text-body text-muted", "text-danger") ?? "";
-		assert.ok(out.includes("text-body"));
-		assert.ok(out.includes("text-danger"));
-		assert.ok(!out.includes("text-muted"), "the later tone should win");
+		expect(out.includes("text-body")).toBeTruthy();
+		expect(out.includes("text-danger")).toBeTruthy();
+		expect(!out.includes("text-muted")).toBeTruthy();
 	});
 
 	it("keeps the custom tracking tokens too", () => {
 		const out = cn("text-eyebrow tracking-eyebrow", "text-muted") ?? "";
-		assert.ok(out.includes("tracking-eyebrow"));
-		assert.ok(out.includes("text-eyebrow"));
+		expect(out.includes("tracking-eyebrow")).toBeTruthy();
+		expect(out.includes("text-eyebrow")).toBeTruthy();
 	});
 });
 
 describe("cn still deduplicates what it should", () => {
 	it("lets a later tone replace an earlier one", () => {
-		assert.equal(cn("text-muted", "text-danger"), "text-danger");
+		expect(cn("text-muted", "text-danger")).toBe("text-danger");
 	});
 
 	it("lets a later size replace an earlier one", () => {
-		assert.equal(cn("text-body", "text-title"), "text-title");
+		expect(cn("text-body", "text-title")).toBe("text-title");
 	});
 
 	it("resolves stock Tailwind conflicts as normal", () => {
-		assert.equal(cn("px-2", "px-4"), "px-4");
-		assert.equal(cn("bg-background", "bg-surface"), "bg-surface");
+		expect(cn("px-2", "px-4")).toBe("px-4");
+		expect(cn("bg-background", "bg-surface")).toBe("bg-surface");
 	});
 });
 
 describe("cn input handling", () => {
 	it("ignores falsy so conditional classes read naturally", () => {
-		assert.equal(cn("text-body", false, null, undefined), "text-body");
+		expect(cn("text-body", false, null, undefined)).toBe("text-body");
 	});
 
 	it("returns undefined rather than an empty string when nothing applies", () => {
-		assert.equal(cn(false), undefined);
-		assert.equal(cn(), undefined);
+		expect(cn(false)).toBe(undefined);
+		expect(cn()).toBe(undefined);
 	});
 
 	it("joins several truthy values", () => {
 		const out = cn("flex-1", "px-4", "text-body") ?? "";
 		for (const part of ["flex-1", "px-4", "text-body"]) {
-			assert.ok(out.includes(part));
+			expect(out.includes(part)).toBeTruthy();
 		}
 	});
 });

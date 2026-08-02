@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { SUGGESTED_CATEGORY_PRESETS } from "@/data/categories-core";
 import {
 	curtainShade,
@@ -60,48 +58,45 @@ const PALETTE = [
 
 describe("withAlpha", () => {
 	it("converts #RRGGBB to rgba", () => {
-		assert.equal(withAlpha("#3AD6B2", 0.5), "rgba(58, 214, 178, 0.5)");
+		expect(withAlpha("#3AD6B2", 0.5)).toBe("rgba(58, 214, 178, 0.5)");
 	});
 
 	it("expands #RGB shorthand", () => {
-		assert.equal(withAlpha("#F00", 1), "rgba(255, 0, 0, 1)");
+		expect(withAlpha("#F00", 1)).toBe("rgba(255, 0, 0, 1)");
 	});
 
 	it("clamps alpha into 0..1", () => {
-		assert.equal(withAlpha("#000000", -3), "rgba(0, 0, 0, 0)");
-		assert.equal(withAlpha("#000000", 9), "rgba(0, 0, 0, 1)");
+		expect(withAlpha("#000000", -3)).toBe("rgba(0, 0, 0, 0)");
+		expect(withAlpha("#000000", 9)).toBe("rgba(0, 0, 0, 1)");
 	});
 
 	it("returns the input untouched when the hex is malformed", () => {
-		assert.equal(withAlpha("not-a-color", 0.4), "not-a-color");
-		assert.equal(withAlpha("#12345", 0.4), "#12345");
+		expect(withAlpha("not-a-color", 0.4)).toBe("not-a-color");
+		expect(withAlpha("#12345", 0.4)).toBe("#12345");
 	});
 });
 
 describe("curtainShade", () => {
 	it("mixes halfway to white in light mode", () => {
 		// #000000 halfway to white is #808080 (255 * 0.5 rounds to 128).
-		assert.equal(curtainShade("#000000", false), "#808080");
+		expect(curtainShade("#000000", false)).toBe("#808080");
 	});
 
 	it("keeps 55% of the channel in dark mode", () => {
 		// 255 * 0.55 = 140.25 -> 140 -> 0x8c
-		assert.equal(curtainShade("#FFFFFF", true), "#8c8c8c");
+		expect(curtainShade("#FFFFFF", true)).toBe("#8c8c8c");
 	});
 
 	it("always lightens in light mode and darkens in dark mode", () => {
 		for (const hex of PALETTE) {
 			const light = contrast(curtainShade(hex, false), "#ffffff");
 			const dark = contrast(curtainShade(hex, true), "#ffffff");
-			assert.ok(
-				light <= dark,
-				`${hex}: the light-mode curtain should sit closer to white than the dark one`,
-			);
+			expect(light <= dark).toBeTruthy();
 		}
 	});
 
 	it("returns the input untouched when the hex is malformed", () => {
-		assert.equal(curtainShade("nope", true), "nope");
+		expect(curtainShade("nope", true)).toBe("nope");
 	});
 });
 
@@ -115,10 +110,7 @@ describe("glyphShade", () => {
 				// while color.ts works normalized, so the two round the sheet
 				// differently (0.96 * 255 = 244.8) — the 0.1 of slack absorbs that,
 				// not any shortfall in the implementation.
-				assert.ok(
-					ratio >= 3.4,
-					`${hex} (${isDark ? "dark" : "light"}): glyph ${shade} only reaches ${ratio.toFixed(2)}:1 on its wash`,
-				);
+				expect(ratio >= 3.4).toBeTruthy();
 			}
 		}
 	});
@@ -126,20 +118,19 @@ describe("glyphShade", () => {
 	it("darkens a bright tint that would otherwise vanish on its own wash", () => {
 		// A saturated yellow over a pale yellow wash is the case this exists for.
 		const shaded = glyphShade("#FFC400", false);
-		assert.notEqual(shaded, "#FFC400");
-		assert.ok(
+		expect(shaded).not.toBe("#FFC400");
+		expect(
 			contrast(shaded, washOver("#FFC400", false)) >
 				contrast("#FFC400", washOver("#FFC400", false)),
-			"the shaded glyph must contrast better than the raw tint",
-		);
+		).toBeTruthy();
 	});
 
 	it("leaves a tint that already contrasts untouched", () => {
 		// Near-black on a light wash is already far past the target.
-		assert.equal(glyphShade("#101010", false), "#101010");
+		expect(glyphShade("#101010", false)).toBe("#101010");
 	});
 
 	it("returns the input untouched when the hex is malformed", () => {
-		assert.equal(glyphShade("#zzz", false), "#zzz");
+		expect(glyphShade("#zzz", false)).toBe("#zzz");
 	});
 });

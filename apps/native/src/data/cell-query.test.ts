@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { transactions } from "@/db/schema";
@@ -98,7 +96,7 @@ describe("logCellQuery", () => {
 			date: new Date(Date.UTC(2026, 6, 6, 1)),
 		});
 		const rows = await logCellQuery(db, null, NOW);
-		assert.deepEqual(rows.map((row) => row.dateKey).sort(), [
+		expect(rows.map((row) => row.dateKey).sort()).toStrictEqual([
 			"2026-07-05",
 			"2026-07-06",
 		]);
@@ -119,13 +117,13 @@ describe("logCellQuery", () => {
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		const rows = await logCellQuery(db, null, NOW);
-		assert.equal(rows.length, 1);
+		expect(rows.length).toBe(1);
 		const [cell] = toCurrencyCells(rows);
-		assert.equal(cell.amount, 140);
-		assert.equal(cell.amountUsd, 100);
-		assert.equal(cell.unconvertedAmount, 40);
-		assert.equal(cell.count, 2);
-		assert.equal(cell.unconvertedCount, 1);
+		expect(cell.amount).toBe(140);
+		expect(cell.amountUsd).toBe(100);
+		expect(cell.unconvertedAmount).toBe(40);
+		expect(cell.count).toBe(2);
+		expect(cell.unconvertedCount).toBe(1);
 	});
 
 	it("values each day at its own rate across a period", async () => {
@@ -143,7 +141,7 @@ describe("logCellQuery", () => {
 			date: new Date(Date.UTC(2026, 6, 20, 12)),
 		});
 		// 90 + 95, not 200 at either single rate.
-		assert.deepEqual(await figures(db, "EUR"), [
+		expect(await figures(db, "EUR")).toStrictEqual([
 			{ currencyCode: "EUR", income: 0, expense: 185, count: 2 },
 		]);
 	});
@@ -164,7 +162,7 @@ describe("logCellQuery", () => {
 			date: july5,
 			income: true,
 		});
-		assert.deepEqual(await figures(db, "EUR"), [
+		expect(await figures(db, "EUR")).toStrictEqual([
 			{ currencyCode: "EUR", income: 180, expense: 90, count: 2 },
 		]);
 	});
@@ -183,7 +181,7 @@ describe("logCellQuery", () => {
 			amountUsd: null,
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
-		assert.deepEqual(await figures(db, "EUR"), [
+		expect(await figures(db, "EUR")).toStrictEqual([
 			{ currencyCode: "EUR", income: 0, expense: 60, count: 1 },
 			{ currencyCode: "GBP", income: 0, expense: 25, count: 1 },
 		]);
@@ -198,7 +196,7 @@ describe("logCellQuery", () => {
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		await db.update(transactions).set({ deletedAt: NOW });
-		assert.deepEqual(await figures(db, "EUR"), [
+		expect(await figures(db, "EUR")).toStrictEqual([
 			{ currencyCode: "EUR", income: 0, expense: 0, count: 0 },
 		]);
 	});

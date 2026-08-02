@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -129,10 +127,10 @@ describe("applyPendingWrites", () => {
 	it("commits a queued entry through the repo", async () => {
 		const applied = await applyPendingWrites(db, [walletWrite("a")], NOW);
 
-		assert.equal(applied, 1);
+		expect(applied).toBe(1);
 		const rows = await liveRows(db);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0]?.note, "Blue Bottle");
+		expect(rows.length).toBe(1);
+		expect(rows[0]?.note).toBe("Blue Bottle");
 	});
 
 	it("collapses the authorize and settle runs of one purchase", async () => {
@@ -145,8 +143,8 @@ describe("applyPendingWrites", () => {
 			settled,
 		);
 
-		assert.equal(applied, 0);
-		assert.equal((await liveRows(db)).length, 1);
+		expect(applied).toBe(0);
+		expect((await liveRows(db)).length).toBe(1);
 	});
 
 	it("keeps the same purchase made again past the window", async () => {
@@ -155,8 +153,8 @@ describe("applyPendingWrites", () => {
 
 		const applied = await applyPendingWrites(db, [walletWrite("noon")], later);
 
-		assert.equal(applied, 1);
-		assert.equal((await liveRows(db)).length, 2);
+		expect(applied).toBe(1);
+		expect((await liveRows(db)).length).toBe(2);
 	});
 
 	it("keeps two purchases the automation could tell apart", async () => {
@@ -168,8 +166,8 @@ describe("applyPendingWrites", () => {
 			NOW,
 		);
 
-		assert.equal(applied, 1);
-		assert.equal((await liveRows(db)).length, 2);
+		expect(applied).toBe(1);
+		expect((await liveRows(db)).length).toBe(2);
 	});
 
 	it("does not re-commit a replayed queue file", async () => {
@@ -178,8 +176,8 @@ describe("applyPendingWrites", () => {
 		await applyPendingWrites(db, [job], NOW);
 		const applied = await applyPendingWrites(db, [job], NOW);
 
-		assert.equal(applied, 0);
-		assert.equal((await liveRows(db)).length, 1);
+		expect(applied).toBe(0);
+		expect((await liveRows(db)).length).toBe(1);
 	});
 
 	it("does not re-commit a replayed file whose purchase key has aged out", async () => {
@@ -189,25 +187,25 @@ describe("applyPendingWrites", () => {
 
 		const applied = await applyPendingWrites(db, [job], late);
 
-		assert.equal(applied, 0);
-		assert.equal((await liveRows(db)).length, 1);
+		expect(applied).toBe(0);
+		expect((await liveRows(db)).length).toBe(1);
 	});
 
 	it("lets a purchase the user deleted be logged again", async () => {
 		await applyPendingWrites(db, [walletWrite("auth")], NOW);
 		const [row] = await liveRows(db);
-		assert.ok(row);
+		expect(row).toBeTruthy();
 		await transactionsRepo.remove(db, row.id, NOW);
 
 		const applied = await applyPendingWrites(db, [walletWrite("again")], NOW);
 
-		assert.equal(applied, 1);
+		expect(applied).toBe(1);
 		const live = await db
 			.select({ id: transactions.id })
 			.from(transactions)
 			.where(eq(transactions.deletedAt, NOW));
-		assert.equal(live.length, 1);
-		assert.equal((await liveRows(db)).length, 2);
+		expect(live.length).toBe(1);
+		expect((await liveRows(db)).length).toBe(2);
 	});
 
 	it("files a merchant where it was filed last time", async () => {
@@ -236,7 +234,7 @@ describe("applyPendingWrites", () => {
 			.select({ categoryId: transactions.categoryId })
 			.from(transactions)
 			.where(ne(transactions.id, "old"));
-		assert.equal(row?.categoryId, "cat-eating-out");
+		expect(row?.categoryId).toBe("cat-eating-out");
 	});
 
 	it("reads the card's currency out of the formatted amount", async () => {
@@ -249,7 +247,7 @@ describe("applyPendingWrites", () => {
 		const [row] = await db
 			.select({ currency: transactions.currency })
 			.from(transactions);
-		assert.equal(row?.currency, "PLN");
+		expect(row?.currency).toBe("PLN");
 	});
 
 	it("drops an entry with no category to file it under", async () => {
@@ -257,7 +255,7 @@ describe("applyPendingWrites", () => {
 
 		const applied = await applyPendingWrites(db, [walletWrite("a")], NOW);
 
-		assert.equal(applied, 0);
-		assert.equal((await liveRows(db)).length, 0);
+		expect(applied).toBe(0);
+		expect((await liveRows(db)).length).toBe(0);
 	});
 });

@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -37,30 +35,30 @@ describe("settings defaults", () => {
 	});
 
 	it("returns the faithful defaults on a fresh store", async () => {
-		assert.equal(await readBoolSetting(db, "showCents"), true);
-		assert.equal(await readBoolSetting(db, "showExpenseOrIncomeSign"), true);
-		assert.equal(await readNumberSetting(db, "firstWeekday"), 1);
-		assert.equal(await readNumberSetting(db, "firstDayOfMonth"), 1);
+		expect(await readBoolSetting(db, "showCents")).toBe(true);
+		expect(await readBoolSetting(db, "showExpenseOrIncomeSign")).toBe(true);
+		expect(await readNumberSetting(db, "firstWeekday")).toBe(1);
+		expect(await readNumberSetting(db, "firstDayOfMonth")).toBe(1);
 	});
 
 	it("keeps the celebration off until it is asked for", async () => {
-		assert.equal(await readBoolSetting(db, "confetti"), false);
+		expect(await readBoolSetting(db, "confetti")).toBe(false);
 		await setBoolSetting(db, "confetti", true);
-		assert.equal(await readBoolSetting(db, "confetti"), true);
+		expect(await readBoolSetting(db, "confetti")).toBe(true);
 	});
 
 	it("keeps the subscription notices off until they are asked for", async () => {
-		assert.equal(await readBoolSetting(db, "subscriptionReminders"), false);
+		expect(await readBoolSetting(db, "subscriptionReminders")).toBe(false);
 		await setBoolSetting(db, "subscriptionReminders", true);
-		assert.equal(await readBoolSetting(db, "subscriptionReminders"), true);
+		expect(await readBoolSetting(db, "subscriptionReminders")).toBe(true);
 	});
 
 	it("lists the budgets as rows until the grid is asked for", async () => {
 		// Inverted against Swift's `budgetViewStyle`, which defaulted to the grid:
 		// rows are the shipped budget list here, so the default must not flip it.
-		assert.equal(await readBoolSetting(db, "budgetViewStyle"), true);
+		expect(await readBoolSetting(db, "budgetViewStyle")).toBe(true);
 		await setBoolSetting(db, "budgetViewStyle", false);
-		assert.equal(await readBoolSetting(db, "budgetViewStyle"), false);
+		expect(await readBoolSetting(db, "budgetViewStyle")).toBe(false);
 	});
 });
 
@@ -71,19 +69,19 @@ describe("the 12/24-hour clock", () => {
 	});
 
 	it("reads as a 12-hour clock before anything is stored", async () => {
-		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+		expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
 	});
 
 	it("persists and reads back the user's own choice", async () => {
 		await setBoolSetting(db, "use24HourClock", true);
-		assert.equal(await readBoolSetting(db, "use24HourClock"), true);
+		expect(await readBoolSetting(db, "use24HourClock")).toBe(true);
 		await setBoolSetting(db, "use24HourClock", false);
-		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+		expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
 	});
 
 	it("seeds the device's convention when the user has never chosen", async () => {
 		await seedClockPreference(db, true);
-		assert.equal(await readBoolSetting(db, "use24HourClock"), true);
+		expect(await readBoolSetting(db, "use24HourClock")).toBe(true);
 	});
 
 	// The whole reason the seed reads the raw row: a stored `false` is a choice,
@@ -91,19 +89,19 @@ describe("the 12/24-hour clock", () => {
 	it("never overrules a stored choice, not even a stored false", async () => {
 		await setBoolSetting(db, "use24HourClock", false);
 		await seedClockPreference(db, true);
-		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+		expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
 	});
 
 	it("does not re-seed once it has seeded", async () => {
 		await seedClockPreference(db, true);
 		await setBoolSetting(db, "use24HourClock", false);
 		await seedClockPreference(db, true);
-		assert.equal(await readBoolSetting(db, "use24HourClock"), false);
+		expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
 	});
 
 	it("labels both clocks", () => {
-		assert.equal(clockLabel(false), "clock.twelveHour");
-		assert.equal(clockLabel(true), "clock.twentyFourHour");
+		expect(clockLabel(false)).toBe("clock.twelveHour");
+		expect(clockLabel(true)).toBe("clock.twentyFourHour");
 	});
 });
 
@@ -115,22 +113,22 @@ describe("settings read/write round-trip", () => {
 
 	it("persists and reads back a boolean setting", async () => {
 		await setBoolSetting(db, "showCents", false);
-		assert.equal(await readBoolSetting(db, "showCents"), false);
+		expect(await readBoolSetting(db, "showCents")).toBe(false);
 		await setBoolSetting(db, "showCents", true);
-		assert.equal(await readBoolSetting(db, "showCents"), true);
+		expect(await readBoolSetting(db, "showCents")).toBe(true);
 	});
 
 	it("persists and reads back integer settings", async () => {
 		await setNumberSetting(db, "firstWeekday", 2);
 		await setNumberSetting(db, "firstDayOfMonth", 15);
-		assert.equal(await readNumberSetting(db, "firstWeekday"), 2);
-		assert.equal(await readNumberSetting(db, "firstDayOfMonth"), 15);
+		expect(await readNumberSetting(db, "firstWeekday")).toBe(2);
+		expect(await readNumberSetting(db, "firstDayOfMonth")).toBe(15);
 	});
 
 	it("upserts (a second write replaces the first)", async () => {
 		await setNumberSetting(db, "firstWeekday", 2);
 		await setNumberSetting(db, "firstWeekday", 1);
-		assert.equal(await readNumberSetting(db, "firstWeekday"), 1);
+		expect(await readNumberSetting(db, "firstWeekday")).toBe(1);
 	});
 
 	// The permission-revoke reconcile writes `showNotifications` back off, so a
@@ -138,67 +136,67 @@ describe("settings read/write round-trip", () => {
 	it("holds the subscription notices on a key of their own", async () => {
 		await setBoolSetting(db, "subscriptionReminders", true);
 		await setBoolSetting(db, "showNotifications", false);
-		assert.equal(await readBoolSetting(db, "subscriptionReminders"), true);
-		assert.equal(await readBoolSetting(db, "showNotifications"), false);
+		expect(await readBoolSetting(db, "subscriptionReminders")).toBe(true);
+		expect(await readBoolSetting(db, "showNotifications")).toBe(false);
 	});
 
 	it("writes the global currency under the shared meta key", async () => {
 		await setCurrency(db, "EUR");
-		assert.equal(await getMeta(db, "currency"), "EUR");
+		expect(await getMeta(db, "currency")).toBe("EUR");
 	});
 });
 
 describe("setting parsers", () => {
 	it("falls back on absence and bad input", () => {
-		assert.equal(parseBoolSetting(null, true), true);
-		assert.equal(parseBoolSetting("false", true), false);
-		assert.equal(parseBoolSetting("true", false), true);
-		assert.equal(parseIntSetting(null, 1), 1);
-		assert.equal(parseIntSetting("abc", 1), 1);
-		assert.equal(parseIntSetting("15", 1), 15);
+		expect(parseBoolSetting(null, true)).toBe(true);
+		expect(parseBoolSetting("false", true)).toBe(false);
+		expect(parseBoolSetting("true", false)).toBe(true);
+		expect(parseIntSetting(null, 1)).toBe(1);
+		expect(parseIntSetting("abc", 1)).toBe(1);
+		expect(parseIntSetting("15", 1)).toBe(15);
 	});
 });
 
 describe("time-frame labels", () => {
 	it("labels the weekday setting", () => {
-		assert.equal(weekdayLabel(1), "settings.time.sunday");
-		assert.equal(weekdayLabel(2), "settings.time.monday");
+		expect(weekdayLabel(1)).toBe("settings.time.sunday");
+		expect(weekdayLabel(2)).toBe("settings.time.monday");
 	});
 
 	it("renders English ordinals", () => {
-		assert.equal(ordinalDay(1), "1st");
-		assert.equal(ordinalDay(2), "2nd");
-		assert.equal(ordinalDay(3), "3rd");
-		assert.equal(ordinalDay(4), "4th");
-		assert.equal(ordinalDay(11), "11th");
-		assert.equal(ordinalDay(12), "12th");
-		assert.equal(ordinalDay(13), "13th");
-		assert.equal(ordinalDay(21), "21st");
-		assert.equal(ordinalDay(22), "22nd");
-		assert.equal(ordinalDay(23), "23rd");
+		expect(ordinalDay(1)).toBe("1st");
+		expect(ordinalDay(2)).toBe("2nd");
+		expect(ordinalDay(3)).toBe("3rd");
+		expect(ordinalDay(4)).toBe("4th");
+		expect(ordinalDay(11)).toBe("11th");
+		expect(ordinalDay(12)).toBe("12th");
+		expect(ordinalDay(13)).toBe("13th");
+		expect(ordinalDay(21)).toBe("21st");
+		expect(ordinalDay(22)).toBe("22nd");
+		expect(ordinalDay(23)).toBe("23rd");
 	});
 });
 
 describe("showCents effect on formatting", () => {
 	it("keeps cents when showCents is true (the default)", () => {
 		const parts = amountParts(12.34, "USD", true);
-		assert.equal(parts.integer, "12");
-		assert.equal(parts.fraction, "34");
-		assert.equal(formatAmount(12.34, "USD", true), "$12.34");
+		expect(parts.integer).toBe("12");
+		expect(parts.fraction).toBe("34");
+		expect(formatAmount(12.34, "USD", true)).toBe("$12.34");
 		// Omitting the flag defaults to showing cents.
-		assert.equal(formatAmount(12.34, "USD"), "$12.34");
+		expect(formatAmount(12.34, "USD")).toBe("$12.34");
 	});
 
 	it("drops cents and rounds to whole units when showCents is false", () => {
 		const parts = amountParts(12.34, "USD", false);
-		assert.equal(parts.fraction, "");
-		assert.equal(parts.integer, "12");
-		assert.equal(formatAmount(12.34, "USD", false), "$12");
-		assert.equal(formatAmount(1999.5, "USD", false), "$2,000");
+		expect(parts.fraction).toBe("");
+		expect(parts.integer).toBe("12");
+		expect(formatAmount(12.34, "USD", false)).toBe("$12");
+		expect(formatAmount(1999.5, "USD", false)).toBe("$2,000");
 	});
 
 	it("never adds cents to a zero-minor-unit currency", () => {
-		assert.equal(amountParts(1234, "JPY", true).fraction, "");
-		assert.equal(amountParts(1234, "JPY", true).integer, "1,234");
+		expect(amountParts(1234, "JPY", true).fraction).toBe("");
+		expect(amountParts(1234, "JPY", true).integer).toBe("1,234");
 	});
 });

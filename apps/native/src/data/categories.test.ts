@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -105,19 +103,15 @@ async function assertRejectsWith(
 	fn: () => Promise<unknown>,
 	message: string,
 ): Promise<void> {
-	await assert.rejects(fn, (error: unknown) => {
-		assert.ok(error instanceof Error);
-		assert.equal(error.message, message);
-		return true;
-	});
+	await expect(fn()).rejects.toThrow(new Error(message));
 }
 
 describe("capitalizeCategoryName", () => {
 	it("trims, collapses whitespace, and title-cases", () => {
-		assert.equal(capitalizeCategoryName("  dining   out "), "Dining Out");
-		assert.equal(capitalizeCategoryName("COFFEE"), "Coffee");
-		assert.equal(capitalizeCategoryName("groceries"), "Groceries");
-		assert.equal(capitalizeCategoryName("   "), "");
+		expect(capitalizeCategoryName("  dining   out ")).toBe("Dining Out");
+		expect(capitalizeCategoryName("COFFEE")).toBe("Coffee");
+		expect(capitalizeCategoryName("groceries")).toBe("Groceries");
+		expect(capitalizeCategoryName("   ")).toBe("");
 	});
 });
 
@@ -174,8 +168,8 @@ describe("categoriesRepo.create validation", () => {
 			income: false,
 		});
 		const row = await getCategoryById(db, id);
-		assert.equal(row?.emoji, "☕");
-		assert.equal(row?.icon, null);
+		expect(row?.emoji).toBe("☕");
+		expect(row?.icon).toBe(null);
 	});
 
 	it("title-cases and trims the stored name", async () => {
@@ -186,10 +180,10 @@ describe("categoriesRepo.create validation", () => {
 			income: false,
 		});
 		const row = await getCategoryById(db, id);
-		assert.equal(row?.name, "Coffee Shop");
-		assert.equal(row?.icon, "Coffee02");
-		assert.equal(row?.color, "#279AF4");
-		assert.equal(row?.income, false);
+		expect(row?.name).toBe("Coffee Shop");
+		expect(row?.icon).toBe("Coffee02");
+		expect(row?.color).toBe("#279AF4");
+		expect(row?.income).toBe(false);
 	});
 });
 
@@ -290,7 +284,7 @@ describe("categoriesRepo.create collisions", () => {
 			color: "#279AF4",
 			income: true,
 		});
-		assert.notEqual(await getCategoryById(db, id), null);
+		expect(await getCategoryById(db, id)).not.toBe(null);
 	});
 
 	it("ignores a soft-deleted sibling when checking collisions", async () => {
@@ -310,7 +304,7 @@ describe("categoriesRepo.create collisions", () => {
 			color: "#279AF4",
 			income: false,
 		});
-		assert.notEqual(await getCategoryById(db, reused), null);
+		expect(await getCategoryById(db, reused)).not.toBe(null);
 	});
 });
 
@@ -332,23 +326,23 @@ describe("categoriesRepo.create sortOrder", () => {
 	it("starts at 0 and increments within a namespace", async () => {
 		const first = await getCategoryById(db, await make("A", false));
 		const second = await getCategoryById(db, await make("B", false));
-		assert.equal(first?.sortOrder, 0);
-		assert.equal(second?.sortOrder, 1);
+		expect(first?.sortOrder).toBe(0);
+		expect(second?.sortOrder).toBe(1);
 	});
 
 	it("scopes ordering per income/expense namespace", async () => {
 		await make("A", false);
 		await make("B", false);
 		const income = await getCategoryById(db, await make("Salary", true));
-		assert.equal(income?.sortOrder, 0);
+		expect(income?.sortOrder).toBe(0);
 	});
 
 	it("appends after seeded categories", async () => {
 		await seedCategories(db);
 		const nextExpense = await getCategoryById(db, await make("Coffee", false));
 		const nextIncome = await getCategoryById(db, await make("Bonus", true));
-		assert.equal(nextExpense?.sortOrder, 10);
-		assert.equal(nextIncome?.sortOrder, 4);
+		expect(nextExpense?.sortOrder).toBe(10);
+		expect(nextIncome?.sortOrder).toBe(4);
 	});
 
 	it("scopes ordering to a parent for subcategories", async () => {
@@ -361,8 +355,8 @@ describe("categoriesRepo.create sortOrder", () => {
 			db,
 			await make("Snacks", false, parentId),
 		);
-		assert.equal(childA?.sortOrder, 0);
-		assert.equal(childB?.sortOrder, 1);
+		expect(childA?.sortOrder).toBe(0);
+		expect(childB?.sortOrder).toBe(1);
 	});
 });
 
@@ -384,8 +378,8 @@ describe("validateCategoryCreate", () => {
 			icon: "Restaurant02",
 			income: false,
 		});
-		assert.equal(result.error, null);
-		assert.equal(result.order, 1);
+		expect(result.error).toBe(null);
+		expect(result.order).toBe(1);
 	});
 });
 
@@ -407,10 +401,10 @@ describe("categoriesRepo.update", () => {
 			color: "#EC7A58",
 		});
 		const row = await getCategoryById(db, id);
-		assert.equal(row?.name, "Morning Coffee");
-		assert.equal(row?.color, "#EC7A58");
-		assert.equal(row?.icon, "Coffee02");
-		assert.equal(row?.income, false);
+		expect(row?.name).toBe("Morning Coffee");
+		expect(row?.color).toBe("#EC7A58");
+		expect(row?.icon).toBe("Coffee02");
+		expect(row?.income).toBe(false);
 	});
 
 	it("excludes the edited row from its own collision check", async () => {
@@ -422,7 +416,7 @@ describe("categoriesRepo.update", () => {
 		});
 		await categoriesRepo.update(db, id, { name: "Coffee", icon: "Coffee02" });
 		const row = await getCategoryById(db, id);
-		assert.equal(row?.name, "Coffee");
+		expect(row?.name).toBe("Coffee");
 	});
 
 	it("rejects renaming onto a sibling's name", async () => {
@@ -506,7 +500,7 @@ describe("categoriesRepo.update", () => {
 		});
 		await categoriesRepo.update(db, "legacy", { name: "renamed" });
 		const row = await getCategoryById(db, "legacy");
-		assert.equal(row?.name, "Renamed");
+		expect(row?.name).toBe("Renamed");
 	});
 });
 
@@ -527,7 +521,7 @@ describe("validateCategoryEdit", () => {
 			name: "Coffee",
 			icon: "Coffee02",
 		});
-		assert.equal(result.error, null);
+		expect(result.error).toBe(null);
 	});
 });
 
@@ -559,9 +553,9 @@ describe("categoriesRepo.reorder", () => {
 
 		await categoriesRepo.reorder(db, [c, a, b]);
 
-		assert.equal((await getCategoryById(db, c))?.sortOrder, 0);
-		assert.equal((await getCategoryById(db, a))?.sortOrder, 1);
-		assert.equal((await getCategoryById(db, b))?.sortOrder, 2);
+		expect((await getCategoryById(db, c))?.sortOrder).toBe(0);
+		expect((await getCategoryById(db, a))?.sortOrder).toBe(1);
+		expect((await getCategoryById(db, b))?.sortOrder).toBe(2);
 	});
 });
 
@@ -595,8 +589,8 @@ describe("categoriesRepo.setParent", () => {
 		await categoriesRepo.setParent(db, moving, parent);
 
 		const row = await getCategoryById(db, moving);
-		assert.equal(row?.parentId, parent);
-		assert.equal(row?.sortOrder, 1);
+		expect(row?.parentId).toBe(parent);
+		expect(row?.sortOrder).toBe(1);
 	});
 
 	it("inherits the destination parent's income namespace", async () => {
@@ -616,8 +610,8 @@ describe("categoriesRepo.setParent", () => {
 		await categoriesRepo.setParent(db, expenseChild, incomeParent);
 
 		const row = await getCategoryById(db, expenseChild);
-		assert.equal(row?.income, true);
-		assert.equal(row?.parentId, incomeParent);
+		expect(row?.income).toBe(true);
+		expect(row?.parentId).toBe(incomeParent);
 	});
 
 	it("promotes a subcategory back to the top level", async () => {
@@ -638,7 +632,7 @@ describe("categoriesRepo.setParent", () => {
 		await categoriesRepo.setParent(db, child, null);
 
 		const row = await getCategoryById(db, child);
-		assert.equal(row?.parentId, null);
+		expect(row?.parentId).toBe(null);
 	});
 });
 
@@ -651,8 +645,8 @@ describe("suggestedCategoriesNotAdded", () => {
 	it("returns every preset for an empty namespace", async () => {
 		const expense = await suggestedCategoriesNotAdded(db, false);
 		const income = await suggestedCategoriesNotAdded(db, true);
-		assert.equal(expense.length, SUGGESTED_CATEGORY_PRESETS.expense.length);
-		assert.equal(income.length, SUGGESTED_CATEGORY_PRESETS.income.length);
+		expect(expense.length).toBe(SUGGESTED_CATEGORY_PRESETS.expense.length);
+		expect(income.length).toBe(SUGGESTED_CATEGORY_PRESETS.income.length);
 	});
 
 	it("excludes a preset whose name is already used", async () => {
@@ -663,9 +657,8 @@ describe("suggestedCategoriesNotAdded", () => {
 			income: false,
 		});
 		const remaining = await suggestedCategoriesNotAdded(db, false);
-		assert.ok(!remaining.some((preset) => preset.name === "Coffee"));
-		assert.equal(
-			remaining.length,
+		expect(!remaining.some((preset) => preset.name === "Coffee")).toBeTruthy();
+		expect(remaining.length).toBe(
 			SUGGESTED_CATEGORY_PRESETS.expense.length - 1,
 		);
 	});
@@ -678,7 +671,9 @@ describe("suggestedCategoriesNotAdded", () => {
 			income: false,
 		});
 		const remaining = await suggestedCategoriesNotAdded(db, false);
-		assert.ok(!remaining.some((preset) => preset.icon === "Coffee02"));
+		expect(
+			!remaining.some((preset) => preset.icon === "Coffee02"),
+		).toBeTruthy();
 	});
 
 	it("scopes the filter to the requested namespace", async () => {
@@ -689,7 +684,7 @@ describe("suggestedCategoriesNotAdded", () => {
 			income: false,
 		});
 		const income = await suggestedCategoriesNotAdded(db, true);
-		assert.equal(income.length, SUGGESTED_CATEGORY_PRESETS.income.length);
+		expect(income.length).toBe(SUGGESTED_CATEGORY_PRESETS.income.length);
 	});
 });
 
@@ -707,11 +702,11 @@ describe("categoriesRepo.addSuggested", () => {
 			color: preset.color,
 			income: false,
 		});
-		assert.notEqual(id, null);
+		expect(id).not.toBe(null);
 		const row = await getCategoryById(db, id as string);
-		assert.equal(row?.name, capitalizeCategoryName(preset.name));
-		assert.equal(row?.icon, preset.icon);
-		assert.equal(row?.sortOrder, 0);
+		expect(row?.name).toBe(capitalizeCategoryName(preset.name));
+		expect(row?.icon).toBe(preset.icon);
+		expect(row?.sortOrder).toBe(0);
 
 		const second = await categoriesRepo.addSuggested(db, {
 			name: preset.name,
@@ -719,7 +714,7 @@ describe("categoriesRepo.addSuggested", () => {
 			color: preset.color,
 			income: false,
 		});
-		assert.equal(second, null);
+		expect(second).toBe(null);
 	});
 });
 
@@ -741,13 +736,13 @@ describe("categoriesRepo.remove cascade", () => {
 
 		await categoriesRepo.remove(db, id);
 
-		assert.equal(await getCategoryById(db, id), null);
+		expect(await getCategoryById(db, id)).toBe(null);
 		const categoryRows = await db
 			.select()
 			.from(categories)
 			.where(eq(categories.id, id));
-		assert.equal(categoryRows.length, 1);
-		assert.notEqual(categoryRows[0].deletedAt, null);
+		expect(categoryRows.length).toBe(1);
+		expect(categoryRows[0].deletedAt).not.toBe(null);
 
 		const readable = await db
 			.select()
@@ -755,14 +750,14 @@ describe("categoriesRepo.remove cascade", () => {
 			.where(
 				and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)),
 			);
-		assert.equal(readable.length, 0);
+		expect(readable.length).toBe(0);
 		const replicable = await db
 			.select()
 			.from(transactions)
 			.where(eq(transactions.categoryId, id));
-		assert.equal(replicable.length, 2);
+		expect(replicable.length).toBe(2);
 		for (const row of replicable) {
-			assert.notEqual(row.deletedAt, null);
+			expect(row.deletedAt).not.toBe(null);
 		}
 	});
 
@@ -785,10 +780,10 @@ describe("categoriesRepo.remove cascade", () => {
 			.select()
 			.from(transactions)
 			.where(eq(transactions.categoryId, id));
-		assert.equal(row.imageUri, null);
-		assert.equal(row.recurringType, 0);
-		assert.equal(row.note, "Flat white");
-		assert.equal(row.amount, 10);
+		expect(row.imageUri).toBe(null);
+		expect(row.recurringType).toBe(0);
+		expect(row.note).toBe("Flat white");
+		expect(row.amount).toBe(10);
 	});
 
 	it("does not re-stamp what it already tombstoned", async () => {
@@ -807,15 +802,13 @@ describe("categoriesRepo.remove cascade", () => {
 		await categoriesRepo.remove(db, id);
 
 		const second = await db.select().from(transactions);
-		assert.equal(second[0].deletedAt?.getTime(), first[0].deletedAt?.getTime());
-		assert.equal(second[0].updatedAt.getTime(), first[0].updatedAt.getTime());
+		expect(second[0].deletedAt?.getTime()).toBe(first[0].deletedAt?.getTime());
+		expect(second[0].updatedAt.getTime()).toBe(first[0].updatedAt.getTime());
 		const secondCategory = await db.select().from(categories);
-		assert.equal(
-			secondCategory[0].deletedAt?.getTime(),
+		expect(secondCategory[0].deletedAt?.getTime()).toBe(
 			firstCategory[0].deletedAt?.getTime(),
 		);
-		assert.equal(
-			secondCategory[0].updatedAt.getTime(),
+		expect(secondCategory[0].updatedAt.getTime()).toBe(
 			firstCategory[0].updatedAt.getTime(),
 		);
 	});
@@ -838,8 +831,8 @@ describe("categoriesRepo.remove cascade", () => {
 		await categoriesRepo.remove(db, parentId);
 
 		const child = await getCategoryById(db, childId);
-		assert.notEqual(child, null);
-		assert.equal(child?.parentId, null);
+		expect(child).not.toBe(null);
+		expect(child?.parentId).toBe(null);
 	});
 
 	it("tombstones a budget attached to the category", async () => {
@@ -865,13 +858,13 @@ describe("categoriesRepo.remove cascade", () => {
 			.select()
 			.from(budgets)
 			.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
-		assert.equal(readable.length, 0);
+		expect(readable.length).toBe(0);
 		const replicable = await db
 			.select()
 			.from(budgets)
 			.where(eq(budgets.id, "b1"));
-		assert.equal(replicable.length, 1);
-		assert.notEqual(replicable[0].deletedAt, null);
+		expect(replicable.length).toBe(1);
+		expect(replicable[0].deletedAt).not.toBe(null);
 	});
 
 	it("lets the category hold a budget again after the cascade", async () => {
@@ -907,10 +900,7 @@ describe("categoriesRepo.remove cascade", () => {
 			.select()
 			.from(budgets)
 			.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
-		assert.deepEqual(
-			live.map((row) => row.id),
-			["b2"],
-		);
+		expect(live.map((row) => row.id)).toStrictEqual(["b2"]);
 	});
 });
 
@@ -924,9 +914,8 @@ describe("seedCategories idempotency", () => {
 		await seedCategories(db);
 
 		const rows = await db.select().from(categories);
-		assert.ok(rows.length > 0);
-		assert.equal(
-			rows.length,
+		expect(rows.length > 0).toBeTruthy();
+		expect(rows.length).toBe(
 			SEEDED_CATEGORY_NAMES.expense.length +
 				SEEDED_CATEGORY_NAMES.income.length,
 		);
@@ -941,9 +930,8 @@ describe("seedCategories idempotency", () => {
 
 		// bootstrap writes the firstLaunch marker only after seeding returns, so a
 		// crash in between would otherwise double the whole category set.
-		assert.equal(second.length, first.length);
-		assert.deepEqual(
-			second.map((row) => row.id).sort(),
+		expect(second.length).toBe(first.length);
+		expect(second.map((row) => row.id).sort()).toStrictEqual(
 			first.map((row) => row.id).sort(),
 		);
 	});
@@ -959,7 +947,7 @@ describe("seedCategories idempotency", () => {
 		await seedCategories(db);
 
 		const rows = await db.select().from(categories);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0]?.id, id);
+		expect(rows.length).toBe(1);
+		expect(rows[0]?.id).toBe(id);
 	});
 });

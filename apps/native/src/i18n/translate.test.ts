@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-
 import { interpolate, translate } from "./translate";
 
 const EN = {
@@ -21,38 +18,35 @@ const ES = {
 
 describe("interpolate", () => {
 	it("leaves a template without placeholders untouched", () => {
-		assert.equal(interpolate("Hello", undefined), "Hello");
+		expect(interpolate("Hello", undefined)).toBe("Hello");
 	});
 
 	it("substitutes a named placeholder", () => {
-		assert.equal(
-			interpolate("Welcome, {name}", { name: "Ada" }),
+		expect(interpolate("Welcome, {name}", { name: "Ada" })).toBe(
 			"Welcome, Ada",
 		);
 	});
 
 	it("substitutes every occurrence of the same placeholder", () => {
-		assert.equal(interpolate("{a}-{a}", { a: "x" }), "x-x");
+		expect(interpolate("{a}-{a}", { a: "x" })).toBe("x-x");
 	});
 
 	it("stringifies numbers", () => {
-		assert.equal(interpolate("{count} left", { count: 3 }), "3 left");
+		expect(interpolate("{count} left", { count: 3 })).toBe("3 left");
 	});
 
 	it("leaves an unmatched placeholder in place rather than printing undefined", () => {
-		assert.equal(
-			interpolate("Welcome, {name}", { other: "x" }),
+		expect(interpolate("Welcome, {name}", { other: "x" })).toBe(
 			"Welcome, {name}",
 		);
 	});
 
 	it("renders an explicit null as empty rather than leaking the token", () => {
-		assert.equal(interpolate("Delete '{name}'?", { name: null }), "Delete ''?");
+		expect(interpolate("Delete '{name}'?", { name: null })).toBe("Delete ''?");
 	});
 
 	it("never prints the string 'null' or 'undefined'", () => {
-		assert.doesNotMatch(
-			interpolate("{a} {b}", { a: null, b: undefined }),
+		expect(interpolate("{a} {b}", { a: null, b: undefined })).not.toMatch(
 			/null|undefined/,
 		);
 	});
@@ -60,75 +54,64 @@ describe("interpolate", () => {
 
 describe("translate", () => {
 	it("returns the catalog value", () => {
-		assert.equal(translate("greeting", { catalog: ES, fallback: EN }), "Hola");
+		expect(translate("greeting", { catalog: ES, fallback: EN })).toBe("Hola");
 	});
 
 	it("interpolates params into the catalog value", () => {
-		assert.equal(
+		expect(
 			translate("welcome", {
 				catalog: ES,
 				fallback: EN,
 				params: { name: "Ada" },
 			}),
-			"Bienvenido, Ada",
-		);
+		).toBe("Bienvenido, Ada");
 	});
 
 	it("falls back to English when the catalog lacks the key", () => {
-		assert.equal(
-			translate("greeting", { catalog: {}, fallback: EN }),
-			"Hello",
-			"a partial catalog must show working English, not a raw key",
-		);
+		expect(translate("greeting", { catalog: {}, fallback: EN })).toBe("Hello");
 	});
 
 	it("falls back to English for a plural key too", () => {
-		assert.equal(
+		expect(
 			translate("entry", { catalog: {}, fallback: EN, params: { count: 2 } }),
-			"2 entries",
-		);
+		).toBe("2 entries");
 	});
 
 	it("picks the singular form when count is 1", () => {
-		assert.equal(
+		expect(
 			translate("entry", { catalog: ES, fallback: EN, params: { count: 1 } }),
-			"1 registro",
-		);
+		).toBe("1 registro");
 	});
 
 	it("picks the plural form for zero", () => {
-		assert.equal(
+		expect(
 			translate("entry", { catalog: ES, fallback: EN, params: { count: 0 } }),
-			"0 registros",
-		);
+		).toBe("0 registros");
 	});
 
 	it("picks the plural form for counts above one", () => {
-		assert.equal(
+		expect(
 			translate("entry", { catalog: ES, fallback: EN, params: { count: 5 } }),
-			"5 registros",
-		);
+		).toBe("5 registros");
 	});
 
 	it("treats a negative count as plural", () => {
-		assert.equal(
+		expect(
 			translate("entry", { catalog: ES, fallback: EN, params: { count: -2 } }),
-			"-2 registros",
-		);
+		).toBe("-2 registros");
 	});
 
 	it("ignores count when the key has no plural forms", () => {
-		assert.equal(
+		expect(
 			translate("greeting", {
 				catalog: ES,
 				fallback: EN,
 				params: { count: 3 },
 			}),
-			"Hola",
-		);
+		).toBe("Hola");
 	});
 
 	it("returns the key when it is absent from both catalogs", () => {
-		assert.equal(translate("nope", { catalog: {}, fallback: {} }), "nope");
+		expect(translate("nope", { catalog: {}, fallback: {} })).toBe("nope");
 	});
 });

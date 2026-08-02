@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -23,7 +21,7 @@ import {
 } from "./ledger-adoption";
 import { isSyncEnabled, outboxPendingCount } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -68,22 +66,22 @@ beforeEach(async () => {
 
 describe("local ledger state", () => {
 	it("reads a freshly seeded install as empty", async () => {
-		assert.equal(await localLedgerState(db), "empty");
+		expect(await localLedgerState(db)).toBe("empty");
 	});
 
 	it("errs toward populated on an install that was never seeded", async () => {
 		const bare = makeDb();
-		assert.equal(await localLedgerState(bare), "populated");
+		expect(await localLedgerState(bare)).toBe("populated");
 	});
 
 	it("reads a single transaction as populated", async () => {
 		await addTransaction(db, "t1");
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a transaction deleted offline as populated", async () => {
 		await addTransaction(db, "t1", new Date());
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a budget as populated", async () => {
@@ -95,14 +93,14 @@ describe("local ledger state", () => {
 			categoryId: first?.id ?? null,
 			updatedAt: new Date(),
 		});
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a main budget as populated", async () => {
 		await db
 			.insert(mainBudget)
 			.values({ id: "m1", amount: 100, type: 0, updatedAt: new Date() });
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a template transaction as populated", async () => {
@@ -112,7 +110,7 @@ describe("local ledger state", () => {
 			income: false,
 			updatedAt: new Date(),
 		});
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a renamed category as populated", async () => {
@@ -121,7 +119,7 @@ describe("local ledger state", () => {
 			.update(categories)
 			.set({ name: "Renamed", updatedAt: new Date(Date.now() + 1000) })
 			.where(eq(categories.id, first?.id ?? ""));
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a deleted category as populated", async () => {
@@ -130,7 +128,7 @@ describe("local ledger state", () => {
 			.update(categories)
 			.set({ deletedAt: new Date() })
 			.where(eq(categories.id, first?.id ?? ""));
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads an added category as populated", async () => {
@@ -141,24 +139,24 @@ describe("local ledger state", () => {
 			dateCreated: now,
 			updatedAt: now,
 		});
-		assert.equal(await localLedgerState(db), "populated");
+		expect(await localLedgerState(db)).toBe("populated");
 	});
 });
 
 describe("adoption marker", () => {
 	it("is absent before any account has been reconciled", async () => {
-		assert.equal(await adoptedAccount(db), null);
+		expect(await adoptedAccount(db)).toBe(null);
 	});
 
 	it("holds the account it was resolved for", async () => {
 		await markAdopted(db, "user_a");
-		assert.equal(await adoptedAccount(db), "user_a");
+		expect(await adoptedAccount(db)).toBe("user_a");
 	});
 
 	it("is replaced when a different account signs in", async () => {
 		await markAdopted(db, "user_a");
 		await markAdopted(db, "user_b");
-		assert.equal(await adoptedAccount(db), "user_b");
+		expect(await adoptedAccount(db)).toBe("user_b");
 	});
 });
 
@@ -186,8 +184,8 @@ describe("running an adoption", () => {
 			wipeLocal: false,
 			wipeAccount: false,
 		});
-		assert.equal(await isSyncEnabled(db), true);
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(await isSyncEnabled(db)).toBe(true);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 
 	it("queues every local row when adopting", async () => {
@@ -197,27 +195,27 @@ describe("running an adoption", () => {
 			wipeLocal: false,
 			wipeAccount: false,
 		});
-		assert.equal(await isSyncEnabled(db), true);
-		assert.ok((await outboxPendingCount(db)) > 1);
+		expect(await isSyncEnabled(db)).toBe(true);
+		expect((await outboxPendingCount(db)) > 1).toBeTruthy();
 	});
 
 	it("refuses a destructive plan with no engine to run it through", async () => {
-		await assert.rejects(() =>
+		await expect(
 			runAdoption(db, null, {
 				pushLocal: false,
 				wipeLocal: true,
 				wipeAccount: false,
 			}),
-		);
-		await assert.rejects(() =>
+		).rejects.toThrow();
+		await expect(
 			runAdoption(db, null, {
 				pushLocal: true,
 				wipeLocal: false,
 				wipeAccount: true,
 			}),
-		);
-		assert.equal(await isSyncEnabled(db), false);
-		assert.equal(await outboxPendingCount(db), 0);
+		).rejects.toThrow();
+		expect(await isSyncEnabled(db)).toBe(false);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 
 	it("refills from the account before the gate opens, so the wipe queues nothing", async () => {
@@ -225,16 +223,16 @@ describe("running an adoption", () => {
 		const engine = recordingEngine();
 		engine.replaceFromAccount = async () => {
 			engine.calls.push("replaceFromAccount");
-			assert.equal(await isSyncEnabled(db), false);
+			expect(await isSyncEnabled(db)).toBe(false);
 		};
 		await runAdoption(db, engine, {
 			pushLocal: false,
 			wipeLocal: true,
 			wipeAccount: false,
 		});
-		assert.deepEqual(engine.calls, ["replaceFromAccount"]);
-		assert.equal(await isSyncEnabled(db), true);
-		assert.equal(await outboxPendingCount(db), 0);
+		expect(engine.calls).toStrictEqual(["replaceFromAccount"]);
+		expect(await isSyncEnabled(db)).toBe(true);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 
 	it("discards the account's ledger before queueing this device's", async () => {
@@ -245,8 +243,8 @@ describe("running an adoption", () => {
 			wipeLocal: false,
 			wipeAccount: true,
 		});
-		assert.deepEqual(engine.calls, ["discardAccountLedger"]);
-		assert.ok((await outboxPendingCount(db)) > 1);
+		expect(engine.calls).toStrictEqual(["discardAccountLedger"]);
+		expect((await outboxPendingCount(db)) > 1).toBeTruthy();
 	});
 
 	it("leaves both sides untouched when the engine refuses", async () => {
@@ -255,14 +253,14 @@ describe("running an adoption", () => {
 		engine.discardAccountLedger = async () => {
 			throw new Error("offline");
 		};
-		await assert.rejects(() =>
+		await expect(
 			runAdoption(db, engine, {
 				pushLocal: true,
 				wipeLocal: false,
 				wipeAccount: true,
 			}),
-		);
-		assert.equal(await isSyncEnabled(db), false);
-		assert.equal(await outboxPendingCount(db), 0);
+		).rejects.toThrow();
+		expect(await isSyncEnabled(db)).toBe(false);
+		expect(await outboxPendingCount(db)).toBe(0);
 	});
 });
