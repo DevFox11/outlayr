@@ -54,14 +54,18 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import {
-	CATEGORY_ERROR_MESSAGES,
 	CATEGORY_PALETTE,
 	type Category,
 	categoriesRepo,
 	getCategoryById,
 	useCategoriesByNamespace,
 } from "@/data/categories";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { firstAvailableColor } from "@/domain/category-color";
+import {
+	CATEGORY_ERROR_KEYS,
+	categoryErrorCode,
+} from "@/domain/category-error";
+import { useTranslation } from "@/i18n";
 import {
 	CATEGORY_DETENT,
 	LARGE_ONLY,
@@ -73,32 +77,6 @@ import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
 
 const MAX_EXPENSE_CATEGORIES = 24;
-
-/**
- * The repo signals a rejected save by throwing one of `CATEGORY_ERROR_MESSAGES`,
- * so the only handle the UI has on which rule fired is the English text itself.
- */
-const CATEGORY_ERROR_KEYS: Record<
-	keyof typeof CATEGORY_ERROR_MESSAGES,
-	TranslationKey
-> = {
-	incomplete: "categories.error.incomplete",
-	missingIcon: "categories.error.missingIcon",
-	missingName: "categories.error.missingName",
-	duplicate: "categories.error.duplicate",
-	duplicateIcon: "categories.error.duplicateIcon",
-	duplicateEmoji: "categories.error.duplicateEmoji",
-	duplicateName: "categories.error.duplicateName",
-};
-
-function categoryErrorCode(
-	message: string,
-): keyof typeof CATEGORY_ERROR_MESSAGES | null {
-	const match = Object.entries(CATEGORY_ERROR_MESSAGES).find(
-		([, text]) => text === message,
-	);
-	return match ? (match[0] as keyof typeof CATEGORY_ERROR_MESSAGES) : null;
-}
 
 const FORM_BLUR_RADIUS = 8;
 /**
@@ -167,10 +145,6 @@ export type CategoryEditorProps =
 export default function CategoryEditor(props: CategoryEditorProps) {
 	const db = useDatabase();
 	return <CategoryEditorReady db={db} {...props} />;
-}
-
-function firstAvailableColor(used: ReadonlySet<string>): string {
-	return CATEGORY_PALETTE.find((hex) => !used.has(hex)) ?? "#FFFFFF";
 }
 
 /**
