@@ -54,6 +54,7 @@ const SPARSE_HISTORY = 10;
 const ELAPSED_FLOOR = 0.2;
 
 const CHART_HEIGHT = 200;
+const GUTTER = 20;
 const PAD = { left: 6, right: 6, top: 18, bottom: 18 } as const;
 const PLOT_TOP = PAD.top;
 const PLOT_HEIGHT = CHART_HEIGHT - PAD.top - PAD.bottom;
@@ -101,7 +102,7 @@ export function BudgetLimitPicker({
 	const t = useTranslation();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
-	const width = measured > 0 ? measured : windowWidth - 40;
+	const width = measured > 0 ? measured : windowWidth - GUTTER * 2;
 
 	const cumulative = useMemo(
 		() => burndown.points.map((point) => point.spent),
@@ -273,7 +274,7 @@ export function BudgetLimitPicker({
 	}
 
 	const onLayout = (event: LayoutChangeEvent) => {
-		setMeasured(event.nativeEvent.layout.width);
+		setMeasured(event.nativeEvent.layout.width - GUTTER * 2);
 	};
 
 	// The clips are plain props, so they read the committed React value while the
@@ -281,7 +282,10 @@ export function BudgetLimitPicker({
 	const limitYCommitted = yForLimit(limit, axisTop);
 
 	return (
-		<View onLayout={onLayout}>
+		<View
+			onLayout={onLayout}
+			style={{ width: "100%", paddingHorizontal: GUTTER }}
+		>
 			<View className="flex-row items-baseline justify-between">
 				<MonoLabel>
 					{t("budgets.picker.eyebrow", { month: monthName.toUpperCase() })}
