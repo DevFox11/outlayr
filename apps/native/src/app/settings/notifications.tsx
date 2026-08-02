@@ -8,12 +8,9 @@ import {
 } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import {
-	setBoolSetting,
-	setNumberSetting,
-	useAllSettings,
-} from "@/data/settings";
+import { setBoolSetting, setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import {
 	clampTimeOfDay,
@@ -141,7 +138,7 @@ function Notifications({ db }: { db: Database }) {
 
 	const colors = useColors();
 	const t = useTranslation();
-	const settings = useAllSettings(db);
+	const { state: settings } = useAppSettings();
 	const enabled = settings.bool("showNotifications");
 	const subscriptionsEnabled = settings.bool("subscriptionReminders");
 	const option = settings.number("notificationOption");

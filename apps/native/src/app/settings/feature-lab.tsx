@@ -1,7 +1,11 @@
 import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
+import {
+	useAppSettings,
+	useDisplaySettings,
+} from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setBoolSetting, useAllSettings } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
 
@@ -12,10 +16,10 @@ export default function FeatureLabScreen() {
 
 function FeatureLabContent({ db }: { db: Database }) {
 	const t = useTranslation();
-	const settings = useAllSettings(db);
+	const { state: settings } = useAppSettings();
+	const { swapTimeLabel } = useDisplaySettings().state;
 	const confetti = settings.bool("confetti");
 	const lineGraph = settings.bool("logViewLineGraph");
-	const swapTimeLabel = settings.bool("swapTimeLabel");
 	const budgetRows = settings.bool("budgetViewStyle");
 
 	return (
