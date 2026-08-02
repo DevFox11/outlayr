@@ -1,0 +1,21 @@
+appId: com.tryoutlayr.app
+name: Display Cents reaches every amount on the Log
+---
+- runFlow: launch.yaml
+
+- tapOn: "Settings"
+- assertVisible: "Display Cents"
+- tapOn:
+    id: "toggle-display-cents"
+
+- tapOn: "Log"
+- assertNotVisible: ".*\\$20\\.00.*"
+- takeScreenshot: artifacts/display-cents-off
+
+- tapOn: "Settings"
+- tapOn:
+    id: "toggle-display-cents"
+
+- tapOn: "Log"
+- assertVisible: ".*\\$20\\.00.*"
+- takeScreenshot: artifacts/display-cents-on

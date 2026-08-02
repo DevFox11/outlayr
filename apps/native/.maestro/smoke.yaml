@@ -1,0 +1,15 @@
+appId: com.tryoutlayr.app
+name: Boots past the splash gate
+---
+- runFlow: launch.yaml
+
+- assertVisible: "Log"
+- assertVisible: "Insights"
+- assertVisible: "Budgets"
+- assertVisible: "Settings"
+
+# AppSettingsProvider once mounted above the splash gate and threw on the first
+# frame while every unit test stayed green; this is the assertion that catches it.
+- assertNotVisible: "Render Error"
+
+- takeScreenshot: artifacts/smoke-log

@@ -138,11 +138,16 @@ export function ToggleRow({
 	title,
 	value,
 	onValueChange,
+	testID,
 }: {
 	icon: SettingsIconName;
 	title: string;
 	value: boolean;
 	onValueChange: (value: boolean) => void;
+	/** The switch and its row label share `title` as their accessibility text, so
+	 * an end-to-end driver selecting by text cannot tell them apart. Titles are
+	 * localized, which rules out deriving a handle from them. */
+	testID?: string;
 }) {
 	const colors = useColors();
 	return (
@@ -150,6 +155,7 @@ export function ToggleRow({
 			<Switch
 				accessibilityLabel={title}
 				onValueChange={onValueChange}
+				testID={testID}
 				trackColor={{ true: colors.income, false: colors.subtle }}
 				value={value}
 			/>

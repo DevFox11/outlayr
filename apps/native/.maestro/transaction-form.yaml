@@ -1,0 +1,31 @@
+appId: com.tryoutlayr.app
+name: Create Transaction renders its extracted sections
+---
+- runFlow: launch.yaml
+
+- tapOn: "Log"
+- tapOn: "Add"
+- tapOn: "Create transaction"
+
+- assertVisible: "Create Transaction"
+
+- assertVisible: "One-time"
+- assertVisible: "Subscription"
+
+- assertVisible: "Name"
+- assertVisible: "Type"
+- assertVisible: "Amount"
+
+- assertVisible: "Category"
+- assertVisible: "Tags"
+- assertVisible: "Date"
+- assertVisible: "Time"
+
+- assertVisible: "Add Transaction"
+
+- takeScreenshot: artifacts/transaction-form
+
+- swipe:
+    start: 50%, 12%
+    end: 50%, 90%
+- assertVisible: "Log"
