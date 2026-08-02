@@ -27,7 +27,6 @@ import {
 	labelsHidden,
 	multilineTextAlignment,
 	offset,
-	onGeometryChange,
 	overlay,
 	padding,
 	pickerStyle,
@@ -108,12 +107,12 @@ import {
 } from "../custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
 import { IdentityFlyUpLayer } from "../identity-fly-up";
-import { IdentityHero } from "../identity-hero";
 import { LinearGradient } from "../styled";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
+import { TransactionFormIdentitySection } from "./identity-section";
 import {
 	BODY,
 	BODY_MEDIUM,
@@ -131,15 +130,9 @@ import {
 } from "./style";
 
 /**
- * Swift's `IdentityHero.topPadding` (24) less 6pt: expo-router's native header
- * centres its title 4pt higher than SwiftUI's, and the RN hero sits 2pt lower in
- * the scroll content, so an identical 24 leaves the icon reading 6pt low.
- */
-const HERO_TOP_PADDING = 18;
-const HERO_BOTTOM_PADDING = 28;
-/**
  * Only reached if `onGeometryChange` never fires; a real measurement always
- * supersedes it. A 70pt nav-bar scroll inset plus {@link HERO_TOP_PADDING}.
+ * supersedes it. A 70pt nav-bar scroll inset plus the hero section's own top
+ * padding.
  */
 const HERO_REST_TOP_FALLBACK = 88;
 
@@ -626,49 +619,26 @@ export function TransactionForm({
 						modifiers={[padding({ horizontal: 20, bottom: 120 })]}
 						spacing={18}
 					>
-						<VStack
-							modifiers={[
-								// FIRST in the array on purpose: modifiers reduce in order
-								// (`View+ModifierArray.swift`), so this reads the UNPADDED
-								// stack — the hero ring's own top — and the paddings below
-								// then wrap it. Move it after them and the twin rests
-								// HERO_TOP_PADDING too high, ghosting through the crossfade.
-								onGeometryChange((frame) => {
-									heroWinY.value = frame.y;
-								}),
-								padding({ top: HERO_TOP_PADDING }),
-								padding({ bottom: HERO_BOTTOM_PADDING }),
-							]}
-						>
-							<RNHostView matchContents>
-								{/* An unconstrained RN view stretches to the whole Host, so
-								    `matchContents` reports the FULL screen width back to
-								    SwiftUI — the VStack then overflows its own horizontal
-								    padding and drags every sibling card out to the screen
-								    edge with it. */}
-								<View style={{ width: contentWidth, alignItems: "center" }}>
-									<IdentityHero
-										color={identity.color}
-										emoji={identity.emoji}
-										floatProgress={floatProgress}
-										icon={identity.icon}
-										income={income}
-										onPress={openPicker}
-										onReset={() =>
-											setIdentity({
-												emoji: null,
-												icon: null,
-												photoUri: null,
-												photoColor: null,
-												color: null,
-											})
-										}
-										photoUri={identity.photoUri}
-										variant="transaction"
-									/>
-								</View>
-							</RNHostView>
-						</VStack>
+						<TransactionFormIdentitySection
+							color={identity.color}
+							contentWidth={contentWidth}
+							emoji={identity.emoji}
+							floatProgress={floatProgress}
+							heroWinY={heroWinY}
+							icon={identity.icon}
+							income={income}
+							onPress={openPicker}
+							onReset={() =>
+								setIdentity({
+									emoji: null,
+									icon: null,
+									photoUri: null,
+									photoColor: null,
+									color: null,
+								})
+							}
+							photoUri={identity.photoUri}
+						/>
 
 						<Picker
 							label=""

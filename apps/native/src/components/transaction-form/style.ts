@@ -37,6 +37,14 @@ export const BODY_SEMIBOLD = font({
 });
 export const CAPTION = font({ textStyle: "caption", design: "rounded" });
 
+/**
+ * Swift's `IdentityHero.topPadding` (24) less 6pt: expo-router's native header
+ * centres its title 4pt higher than SwiftUI's, and the RN hero sits 2pt lower in
+ * the scroll content, so an identical 24 leaves the icon reading 6pt low.
+ */
+export const HERO_TOP_PADDING = 18;
+export const HERO_BOTTOM_PADDING = 28;
+
 export const rowLabel = foregroundStyle({
 	type: "hierarchical",
 	style: "secondary",
