@@ -1,8 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -16,10 +13,7 @@ import {
 } from "./splits-core";
 import { transactionsRepo } from "./transactions-core";
 
-const MIGRATIONS = join(
-	dirname(fileURLToPath(import.meta.url)),
-	"../../drizzle",
-);
+const MIGRATIONS = join(__dirname, "../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -77,25 +71,23 @@ describe("splitsRepo", () => {
 			{ categoryId: "travel", amount: 15 },
 		]);
 
-		assert.deepEqual(
+		expect(
 			(await splitsForQuery(db, "t1")).map((row) => [
 				row.categoryId,
 				row.amount,
 			]),
-			[
-				["food", 25],
-				["travel", 15],
-			],
-		);
+		).toStrictEqual([
+			["food", 25],
+			["travel", 15],
+		]);
 	});
 
 	it("refuses a split that does not add up", async () => {
 		// The only guard there is: SQLite cannot express the constraint.
-		await assert.rejects(
+		await expect(
 			splitsRepo.setSplit(db, "t1", 40, [{ categoryId: "food", amount: 25 }]),
-			UnbalancedSplitError,
-		);
-		assert.deepEqual(await splitsForQuery(db, "t1"), []);
+		).rejects.toThrow(UnbalancedSplitError);
+		expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
 	});
 
 	it("replaces a split wholesale rather than merging into it", async () => {
@@ -107,13 +99,12 @@ describe("splitsRepo", () => {
 			{ categoryId: "travel", amount: 40 },
 		]);
 
-		assert.deepEqual(
+		expect(
 			(await splitsForQuery(db, "t1")).map((row) => [
 				row.categoryId,
 				row.amount,
 			]),
-			[["travel", 40]],
-		);
+		).toStrictEqual([["travel", 40]]);
 	});
 
 	it("clears a split so the entry goes back to its own category", async () => {
@@ -124,12 +115,12 @@ describe("splitsRepo", () => {
 		]);
 		await splitsRepo.setSplit(db, "t1", 40, []);
 
-		assert.deepEqual(await splitsForQuery(db, "t1"), []);
+		expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
 		const totals = totalsByCategory(
 			[{ id: "t1", amount: 40, categoryId: "food" }],
 			new Map(),
 		);
-		assert.equal(totals.get("food"), 40);
+		expect(totals.get("food")).toBe(40);
 	});
 
 	it("leaves the replaced rows as tombstones so the change travels", async () => {
@@ -139,8 +130,8 @@ describe("splitsRepo", () => {
 		await splitsRepo.setSplit(db, "t1", 40, []);
 
 		const all = await db.select().from(transactionSplits);
-		assert.equal(all.length, 1);
-		assert.ok(all[0].deletedAt);
+		expect(all.length).toBe(1);
+		expect(all[0].deletedAt).toBeTruthy();
 	});
 
 	it("retires the parts of an entry that is going", async () => {
@@ -153,7 +144,7 @@ describe("splitsRepo", () => {
 
 		await splitsRepo.clearForTransactions(db, ["t1"]);
 
-		assert.deepEqual(await splitsForQuery(db, "t1"), []);
+		expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
 	});
 
 	it("does nothing when given no entries to clear", async () => {
@@ -161,7 +152,7 @@ describe("splitsRepo", () => {
 			{ categoryId: "food", amount: 40 },
 		]);
 		await splitsRepo.clearForTransactions(db, []);
-		assert.equal((await splitsForQuery(db, "t1")).length, 1);
+		expect((await splitsForQuery(db, "t1")).length).toBe(1);
 	});
 
 	it("is not consulted for an entry that is gone", async () => {
@@ -175,10 +166,10 @@ describe("splitsRepo", () => {
 		await transactionsRepo.remove(db, "t1");
 
 		const totals = totalsByCategory([], new Map());
-		assert.equal(totals.size, 0);
+		expect(totals.size).toBe(0);
 		// The rows survive, so an undo needs no repair and replication still
 		// carries whatever the entry is restored to.
-		assert.equal((await splitsForQuery(db, "t1")).length, 2);
+		expect((await splitsForQuery(db, "t1")).length).toBe(2);
 	});
 
 	it("feeds the category totals without double-counting the entry", async () => {
@@ -201,11 +192,8 @@ describe("splitsRepo", () => {
 			byEntry,
 		);
 
-		assert.equal(totals.get("food"), 25);
-		assert.equal(totals.get("travel"), 15);
-		assert.equal(
-			[...totals.values()].reduce((a, b) => a + b, 0),
-			40,
-		);
+		expect(totals.get("food")).toBe(25);
+		expect(totals.get("travel")).toBe(15);
+		expect([...totals.values()].reduce((a, b) => a + b, 0)).toBe(40);
 	});
 });

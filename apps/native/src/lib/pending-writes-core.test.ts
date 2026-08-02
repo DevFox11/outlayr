@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	adoptQueue,
 	claimPendingWrites,
@@ -60,23 +58,21 @@ describe("parseQueue", () => {
 		const good = write("a");
 		const text = `${lines(good)}{"id":"b","amount":3`;
 
-		assert.deepEqual(
-			parseQueue(text).map((job) => job.id),
-			["a"],
-		);
+		expect(parseQueue(text).map((job) => job.id)).toStrictEqual(["a"]);
 	});
 
 	it("rejects a line that is JSON but not a write", () => {
-		assert.deepEqual(parseQueue('{"id":"a"}\nnull\n[]'), []);
+		expect(parseQueue('{"id":"a"}\nnull\n[]')).toStrictEqual([]);
 	});
 
 	it("keeps the order the lines were appended in", () => {
 		const text = lines(write("a"), write("b"), write("c"));
 
-		assert.deepEqual(
-			parseQueue(text).map((job) => job.id),
-			["a", "b", "c"],
-		);
+		expect(parseQueue(text).map((job) => job.id)).toStrictEqual([
+			"a",
+			"b",
+			"c",
+		]);
 	});
 });
 
@@ -86,12 +82,9 @@ describe("claimPendingWrites", () => {
 
 		const claimed = claimPendingWrites(files);
 
-		assert.deepEqual(claimed.names, ["claimed-1.jsonl"]);
-		assert.equal(disk.has(QUEUE_FILE), false);
-		assert.deepEqual(
-			claimed.jobs.map((job) => job.id),
-			["a"],
-		);
+		expect(claimed.names).toStrictEqual(["claimed-1.jsonl"]);
+		expect(disk.has(QUEUE_FILE)).toBe(false);
+		expect(claimed.jobs.map((job) => job.id)).toStrictEqual(["a"]);
 	});
 
 	it("replays what an interrupted drain claimed and never released", () => {
@@ -102,11 +95,8 @@ describe("claimPendingWrites", () => {
 
 		const claimed = claimPendingWrites(files);
 
-		assert.deepEqual(claimed.names, ["claimed-1.jsonl", "claimed-2.jsonl"]);
-		assert.deepEqual(
-			claimed.jobs.map((job) => job.id),
-			["a", "b"],
-		);
+		expect(claimed.names).toStrictEqual(["claimed-1.jsonl", "claimed-2.jsonl"]);
+		expect(claimed.jobs.map((job) => job.id)).toStrictEqual(["a", "b"]);
 	});
 
 	it("orders leftovers oldest first past a single digit", () => {
@@ -117,27 +107,27 @@ describe("claimPendingWrites", () => {
 
 		const claimed = claimPendingWrites(files);
 
-		assert.deepEqual(
-			claimed.jobs.map((job) => job.id),
-			["b", "j"],
-		);
-		assert.deepEqual(claimed.names, ["claimed-2.jsonl", "claimed-10.jsonl"]);
+		expect(claimed.jobs.map((job) => job.id)).toStrictEqual(["b", "j"]);
+		expect(claimed.names).toStrictEqual([
+			"claimed-2.jsonl",
+			"claimed-10.jsonl",
+		]);
 	});
 
 	it("claims nothing when the queue is empty", () => {
 		const { files } = makeFiles();
 
-		assert.deepEqual(claimPendingWrites(files), { names: [], jobs: [] });
+		expect(claimPendingWrites(files)).toStrictEqual({ names: [], jobs: [] });
 	});
 
 	it("leaves the claim in place until it is released", () => {
 		const { disk, files } = makeFiles({ [QUEUE_FILE]: lines(write("a")) });
 
 		const claimed = claimPendingWrites(files);
-		assert.equal(disk.has("claimed-1.jsonl"), true);
+		expect(disk.has("claimed-1.jsonl")).toBe(true);
 
 		releasePendingWrites(files, claimed);
-		assert.deepEqual([...disk.keys()], []);
+		expect([...disk.keys()]).toStrictEqual([]);
 	});
 });
 
@@ -148,10 +138,7 @@ describe("adoptQueue", () => {
 		adoptQueue(files, parseLegacyQueue(JSON.stringify([write("old")])));
 		const claimed = claimPendingWrites(files);
 
-		assert.deepEqual(
-			claimed.jobs.map((job) => job.id),
-			["old", "new"],
-		);
+		expect(claimed.jobs.map((job) => job.id)).toStrictEqual(["old", "new"]);
 	});
 
 	it("writes nothing when the old key held no usable writes", () => {
@@ -159,6 +146,6 @@ describe("adoptQueue", () => {
 
 		adoptQueue(files, parseLegacyQueue("not json"));
 
-		assert.deepEqual([...disk.keys()], []);
+		expect([...disk.keys()]).toStrictEqual([]);
 	});
 });

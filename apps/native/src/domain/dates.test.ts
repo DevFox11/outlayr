@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { runtimeLanguage, setRuntimeLanguage } from "@/i18n/runtime";
 import * as dates from "./dates";
 import {
@@ -30,86 +28,83 @@ function underRuntimeLanguage(language: "en" | "es", body: () => void): void {
 
 describe("startOfWeek", () => {
 	it("walks back to Sunday by default", () => {
-		assert.equal(startOfWeek(WEDNESDAY).getDate(), 19);
+		expect(startOfWeek(WEDNESDAY).getDate()).toBe(19);
 	});
 
 	it("walks back to Monday when the setting says so", () => {
-		assert.equal(startOfWeek(WEDNESDAY, 2).getDate(), 20);
+		expect(startOfWeek(WEDNESDAY, 2).getDate()).toBe(20);
 	});
 
 	it("stays put when the day already is the first weekday", () => {
-		assert.equal(startOfWeek(NOW, 2).getDate(), 27);
+		expect(startOfWeek(NOW, 2).getDate()).toBe(27);
 	});
 
 	it("returns midnight, not the given wall time", () => {
-		assert.equal(startOfWeek(WEDNESDAY).getHours(), 0);
+		expect(startOfWeek(WEDNESDAY).getHours()).toBe(0);
 	});
 });
 
 describe("month names", () => {
 	it("names the month in each language", () => {
-		assert.equal(monthAbbrevTitle(WEDNESDAY, "en"), "Jul");
-		assert.equal(monthAbbrevTitle(WEDNESDAY, "es"), "jul");
-		assert.equal(formatMonthLabel(WEDNESDAY, "en"), "JULY");
-		assert.equal(formatMonthLabel(WEDNESDAY, "es"), "JULIO");
+		expect(monthAbbrevTitle(WEDNESDAY, "en")).toBe("Jul");
+		expect(monthAbbrevTitle(WEDNESDAY, "es")).toBe("jul");
+		expect(formatMonthLabel(WEDNESDAY, "en")).toBe("JULY");
+		expect(formatMonthLabel(WEDNESDAY, "es")).toBe("JULIO");
 	});
 
 	it("shouts the abbreviation without losing the accent", () => {
-		assert.equal(monthAbbrev(WEDNESDAY, "en"), "JUL");
+		expect(monthAbbrev(WEDNESDAY, "en")).toBe("JUL");
 		// March abbreviates to "mar" in Spanish, which must survive upper-casing.
-		assert.equal(monthAbbrev(new Date("2026-03-04T09:00:00"), "es"), "MAR");
+		expect(monthAbbrev(new Date("2026-03-04T09:00:00"), "es")).toBe("MAR");
 	});
 
 	it("indexes December off the end of the year rather than wrapping", () => {
 		const december = new Date("2026-12-01T09:00:00");
-		assert.equal(monthAbbrevTitle(december, "en"), "Dec");
-		assert.equal(monthAbbrevTitle(december, "es"), "dic");
+		expect(monthAbbrevTitle(december, "en")).toBe("Dec");
+		expect(monthAbbrevTitle(december, "es")).toBe("dic");
 	});
 });
 
 describe("weekdayInitial", () => {
 	it("takes the letter the language actually uses", () => {
-		assert.equal(weekdayInitial(WEDNESDAY, "en"), "W");
+		expect(weekdayInitial(WEDNESDAY, "en")).toBe("W");
 		// Spanish disambiguates miércoles from martes with X, so it cannot be
 		// derived by slicing the abbreviation.
-		assert.equal(weekdayInitial(WEDNESDAY, "es"), "X");
-		assert.equal(weekdayInitial(NOW, "en"), "M");
-		assert.equal(weekdayInitial(NOW, "es"), "L");
+		expect(weekdayInitial(WEDNESDAY, "es")).toBe("X");
+		expect(weekdayInitial(NOW, "en")).toBe("M");
+		expect(weekdayInitial(NOW, "es")).toBe("L");
 	});
 });
 
 describe("formatDayHeader", () => {
 	it("names today and yesterday rather than dating them", () => {
-		assert.equal(formatDayHeader(NOW, NOW, "en"), "TODAY");
-		assert.equal(
-			formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "en"),
+		expect(formatDayHeader(NOW, NOW, "en")).toBe("TODAY");
+		expect(formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "en")).toBe(
 			"YESTERDAY",
 		);
-		assert.equal(formatDayHeader(NOW, NOW, "es"), "HOY");
-		assert.equal(
-			formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "es"),
+		expect(formatDayHeader(NOW, NOW, "es")).toBe("HOY");
+		expect(formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "es")).toBe(
 			"AYER",
 		);
 	});
 
 	it("abbreviates the weekday and puts the day before the month", () => {
-		assert.equal(formatDayHeader(WEDNESDAY, NOW, "en"), "WED, 22 JUL");
-		assert.equal(formatDayHeader(WEDNESDAY, NOW, "es"), "MIÉ, 22 JUL");
+		expect(formatDayHeader(WEDNESDAY, NOW, "en")).toBe("WED, 22 JUL");
+		expect(formatDayHeader(WEDNESDAY, NOW, "es")).toBe("MIÉ, 22 JUL");
 	});
 
 	it("adds a shortened year once the day falls before the current one", () => {
 		const lastYear = new Date("2025-12-30T09:00:00");
-		assert.equal(formatDayHeader(lastYear, NOW, "en"), "TUE, 30 DEC '25");
-		assert.equal(formatDayHeader(lastYear, NOW, "es"), "MAR, 30 DIC '25");
+		expect(formatDayHeader(lastYear, NOW, "en")).toBe("TUE, 30 DEC '25");
+		expect(formatDayHeader(lastYear, NOW, "es")).toBe("MAR, 30 DIC '25");
 	});
 });
 
 describe("formatUpcomingDate", () => {
 	it("names only the day and month an entry lands on", () => {
-		assert.equal(formatUpcomingDate(WEDNESDAY, "en"), "22 JUL");
-		assert.equal(formatUpcomingDate(WEDNESDAY, "es"), "22 JUL");
-		assert.equal(
-			formatUpcomingDate(new Date("2026-01-09T09:00:00"), "es"),
+		expect(formatUpcomingDate(WEDNESDAY, "en")).toBe("22 JUL");
+		expect(formatUpcomingDate(WEDNESDAY, "es")).toBe("22 JUL");
+		expect(formatUpcomingDate(new Date("2026-01-09T09:00:00"), "es")).toBe(
 			"9 ENE",
 		);
 	});
@@ -122,36 +117,35 @@ describe("formatTime", () => {
 	const EVENING = new Date("2026-07-22T21:04:00");
 
 	it("keeps midnight and noon on 12 rather than 0", () => {
-		assert.equal(formatTime(MIDNIGHT, false, "en"), "12:07 AM");
-		assert.equal(formatTime(NOON, false, "en"), "12:05 PM");
+		expect(formatTime(MIDNIGHT, false, "en")).toBe("12:07 AM");
+		expect(formatTime(NOON, false, "en")).toBe("12:05 PM");
 	});
 
 	it("drops the leading zero from a 12-hour hour", () => {
-		assert.equal(formatTime(AFTERNOON, false, "en"), "1:04 PM");
-		assert.equal(formatTime(EVENING, false, "en"), "9:04 PM");
+		expect(formatTime(AFTERNOON, false, "en")).toBe("1:04 PM");
+		expect(formatTime(EVENING, false, "en")).toBe("9:04 PM");
 	});
 
 	it("uses the language's own meridiem", () => {
-		assert.equal(formatTime(MIDNIGHT, false, "es"), "12:07 a. m.");
-		assert.equal(formatTime(EVENING, false, "es"), "9:04 p. m.");
+		expect(formatTime(MIDNIGHT, false, "es")).toBe("12:07 a. m.");
+		expect(formatTime(EVENING, false, "es")).toBe("9:04 p. m.");
 	});
 
 	it("pads the hour and drops the meridiem on a 24-hour clock", () => {
-		assert.equal(formatTime(MIDNIGHT, true, "en"), "00:07");
-		assert.equal(formatTime(NOON, true, "en"), "12:05");
-		assert.equal(formatTime(AFTERNOON, true, "en"), "13:04");
-		assert.equal(formatTime(EVENING, true, "en"), "21:04");
+		expect(formatTime(MIDNIGHT, true, "en")).toBe("00:07");
+		expect(formatTime(NOON, true, "en")).toBe("12:05");
+		expect(formatTime(AFTERNOON, true, "en")).toBe("13:04");
+		expect(formatTime(EVENING, true, "en")).toBe("21:04");
 	});
 
 	it("renders the same 24-hour string in either language", () => {
-		assert.equal(
-			formatTime(EVENING, true, "es"),
+		expect(formatTime(EVENING, true, "es")).toBe(
 			formatTime(EVENING, true, "en"),
 		);
 	});
 
 	it("stays on the 12-hour clock until the setting says otherwise", () => {
-		assert.equal(formatTime(EVENING, undefined, "en"), "9:04 PM");
+		expect(formatTime(EVENING, undefined, "en")).toBe("9:04 PM");
 	});
 });
 
@@ -160,19 +154,19 @@ describe("the language argument", () => {
 	// accumulated: every un-migrated call site must still follow the user.
 	it("falls back to the live language, never to English", () => {
 		underRuntimeLanguage("es", () => {
-			assert.equal(monthAbbrevTitle(WEDNESDAY), "jul");
-			assert.equal(monthAbbrev(WEDNESDAY), "JUL");
-			assert.equal(formatMonthLabel(WEDNESDAY), "JULIO");
-			assert.equal(weekdayInitial(WEDNESDAY), "X");
-			assert.equal(formatDayHeader(WEDNESDAY, NOW), "MIÉ, 22 JUL");
-			assert.equal(formatDayHeader(NOW, NOW), "HOY");
-			assert.equal(formatTime(new Date("2026-07-22T21:04:00")), "9:04 p. m.");
+			expect(monthAbbrevTitle(WEDNESDAY)).toBe("jul");
+			expect(monthAbbrev(WEDNESDAY)).toBe("JUL");
+			expect(formatMonthLabel(WEDNESDAY)).toBe("JULIO");
+			expect(weekdayInitial(WEDNESDAY)).toBe("X");
+			expect(formatDayHeader(WEDNESDAY, NOW)).toBe("MIÉ, 22 JUL");
+			expect(formatDayHeader(NOW, NOW)).toBe("HOY");
+			expect(formatTime(new Date("2026-07-22T21:04:00"))).toBe("9:04 p. m.");
 		});
 	});
 
 	it("renders English once the runtime language is English again", () => {
 		underRuntimeLanguage("en", () => {
-			assert.equal(formatDayHeader(WEDNESDAY, NOW), "WED, 22 JUL");
+			expect(formatDayHeader(WEDNESDAY, NOW)).toBe("WED, 22 JUL");
 		});
 	});
 });
@@ -182,7 +176,7 @@ describe("the module surface", () => {
 	// seventh by holding month or weekday names of its own.
 	it("exports no date-name table", () => {
 		for (const value of Object.values(dates)) {
-			assert.equal(Array.isArray(value), false);
+			expect(Array.isArray(value)).toBe(false);
 		}
 	});
 });

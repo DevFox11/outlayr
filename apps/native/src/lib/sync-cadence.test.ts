@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	affectsSpotlight,
 	affectsWidgets,
@@ -14,15 +12,15 @@ const sleep = (ms: number) =>
 describe("sync cadence", () => {
 	it("routes a table change to the surfaces that read it", () => {
 		for (const table of ["transactions", "budgets", "categories", "appMeta"]) {
-			assert.equal(affectsWidgets(table), true, table);
-			assert.equal(affectsSpotlight(table), true, table);
+			expect(affectsWidgets(table)).toBe(true);
+			expect(affectsSpotlight(table)).toBe(true);
 		}
 		// The index reads `budgets`, never the overall-budget singleton.
-		assert.equal(affectsWidgets("mainBudget"), true);
-		assert.equal(affectsSpotlight("mainBudget"), false);
+		expect(affectsWidgets("mainBudget")).toBe(true);
+		expect(affectsSpotlight("mainBudget")).toBe(false);
 
-		assert.equal(affectsWidgets("exchangeRates"), false);
-		assert.equal(affectsSpotlight("exchangeRates"), false);
+		expect(affectsWidgets("exchangeRates")).toBe(false);
+		expect(affectsSpotlight("exchangeRates")).toBe(false);
 	});
 
 	/**
@@ -31,7 +29,7 @@ describe("sync cadence", () => {
 	 * exists rather than reusing the publish one.
 	 */
 	it("paces the index far behind the tiles", () => {
-		assert.ok(SPOTLIGHT_DEBOUNCE_MS >= PUBLISH_DEBOUNCE_MS * 10);
+		expect(SPOTLIGHT_DEBOUNCE_MS >= PUBLISH_DEBOUNCE_MS * 10).toBeTruthy();
 	});
 
 	it("collapses a burst into one trailing run", async () => {
@@ -42,9 +40,9 @@ describe("sync cadence", () => {
 		debounced.schedule();
 		debounced.schedule();
 		debounced.schedule();
-		assert.equal(runs, 0);
+		expect(runs).toBe(0);
 		await sleep(60);
-		assert.equal(runs, 1);
+		expect(runs).toBe(1);
 	});
 
 	it("drops a pending run when cancelled", async () => {
@@ -55,7 +53,7 @@ describe("sync cadence", () => {
 		debounced.schedule();
 		debounced.cancel();
 		await sleep(60);
-		assert.equal(runs, 0);
+		expect(runs).toBe(0);
 	});
 
 	it("schedules again after it has run", async () => {
@@ -67,6 +65,6 @@ describe("sync cadence", () => {
 		await sleep(40);
 		debounced.schedule();
 		await sleep(40);
-		assert.equal(runs, 2);
+		expect(runs).toBe(2);
 	});
 });

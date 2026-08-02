@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { BUDGET_TYPE } from "./budget-math";
 import {
 	effectiveLimit,
@@ -38,7 +36,7 @@ describe("carrying a budget forward", () => {
 			limit: 500,
 			spentIn: () => 0,
 		});
-		assert.deepEqual(carry, { credit: 0, periods: 0, clamped: false });
+		expect(carry).toStrictEqual({ credit: 0, periods: 0, clamped: false });
 	});
 
 	it("carries what a closed window left unspent", () => {
@@ -49,8 +47,8 @@ describe("carrying a budget forward", () => {
 			limit: 500,
 			spentIn: spendBy({ "2026-06-01": 300 }),
 		});
-		assert.equal(carry.credit, 200);
-		assert.equal(carry.periods, 1);
+		expect(carry.credit).toBe(200);
+		expect(carry.periods).toBe(1);
 	});
 
 	it("carries an overspend as a debt rather than forgetting it", () => {
@@ -63,7 +61,7 @@ describe("carrying a budget forward", () => {
 			limit: 500,
 			spentIn: spendBy({ "2026-06-01": 900 }),
 		});
-		assert.equal(carry.credit, -400);
+		expect(carry.credit).toBe(-400);
 	});
 
 	it("accumulates across several closed windows", () => {
@@ -79,8 +77,8 @@ describe("carrying a budget forward", () => {
 			}),
 		});
 		// +100, -200, +50
-		assert.equal(carry.credit, -50);
-		assert.equal(carry.periods, 3);
+		expect(carry.credit).toBe(-50);
+		expect(carry.periods).toBe(3);
 	});
 
 	it("never counts the current window against itself", () => {
@@ -93,7 +91,7 @@ describe("carrying a budget forward", () => {
 			limit: 500,
 			spentIn: spendBy({ "2026-06-01": 300, "2026-07-01": 999 }),
 		});
-		assert.equal(carry.credit, 200);
+		expect(carry.credit).toBe(200);
 	});
 
 	it("stops at the anchor rather than crediting windows before the budget", () => {
@@ -104,8 +102,8 @@ describe("carrying a budget forward", () => {
 			limit: 500,
 			spentIn: spendBy({ "2026-06-01": 500, "2026-05-01": 0, "2026-04-01": 0 }),
 		});
-		assert.equal(carry.periods, 1);
-		assert.equal(carry.credit, 0);
+		expect(carry.periods).toBe(1);
+		expect(carry.credit).toBe(0);
 	});
 
 	it("reports a clamp instead of walking an anchor years back", () => {
@@ -116,8 +114,8 @@ describe("carrying a budget forward", () => {
 			limit: 0,
 			spentIn: () => 0,
 		});
-		assert.equal(carry.periods, MAX_CARRY_PERIODS);
-		assert.equal(carry.clamped, true);
+		expect(carry.periods).toBe(MAX_CARRY_PERIODS);
+		expect(carry.clamped).toBe(true);
 	});
 
 	it("terminates on a type whose period cannot step backwards", () => {
@@ -128,23 +126,23 @@ describe("carrying a budget forward", () => {
 			limit: 500,
 			spentIn: () => 0,
 		});
-		assert.deepEqual(carry, { credit: 0, periods: 0, clamped: false });
+		expect(carry).toStrictEqual({ credit: 0, periods: 0, clamped: false });
 	});
 });
 
 describe("the limit a window actually runs on", () => {
 	it("adds an unspent carry to the target", () => {
-		assert.equal(effectiveLimit(500, 200), 700);
+		expect(effectiveLimit(500, 200)).toBe(700);
 	});
 
 	it("subtracts a debt from the target", () => {
-		assert.equal(effectiveLimit(500, -200), 300);
+		expect(effectiveLimit(500, -200)).toBe(300);
 	});
 
 	it("floors at zero rather than handing a negative target downstream", () => {
 		// Every rail, percentage and "left this period" figure reads a negative
 		// limit as nonsense. The debt is not lost — it is still in the carry, which
 		// is what the screen reports.
-		assert.equal(effectiveLimit(500, -900), 0);
+		expect(effectiveLimit(500, -900)).toBe(0);
 	});
 });

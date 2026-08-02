@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	createDeferredDelete,
 	type DeferredDeleteSnapshot,
@@ -73,12 +71,12 @@ describe("createDeferredDelete", () => {
 		const { clock, controller } = harness(writes.commit);
 
 		controller.requestDelete("a");
-		assert.equal(controller.snapshot.pendingId, "a");
-		assert.deepEqual(writes.committed, []);
+		expect(controller.snapshot.pendingId).toBe("a");
+		expect(writes.committed).toStrictEqual([]);
 
 		clock.elapse(WINDOW_MS);
-		assert.deepEqual(writes.committed, ["a"]);
-		assert.equal(controller.snapshot.pendingId, null);
+		expect(writes.committed).toStrictEqual(["a"]);
+		expect(controller.snapshot.pendingId).toBe(null);
 	});
 
 	it("drops the write entirely when the delete is taken back", () => {
@@ -89,8 +87,8 @@ describe("createDeferredDelete", () => {
 		controller.undo();
 		clock.elapse(WINDOW_MS * 4);
 
-		assert.deepEqual(writes.committed, []);
-		assert.equal(controller.snapshot.pendingId, null);
+		expect(writes.committed).toStrictEqual([]);
+		expect(controller.snapshot.pendingId).toBe(null);
 	});
 
 	it("commits a delete still in its window when a second one starts", () => {
@@ -100,8 +98,8 @@ describe("createDeferredDelete", () => {
 		controller.requestDelete("a");
 		controller.requestDelete("b");
 
-		assert.deepEqual(writes.committed, ["a"]);
-		assert.equal(controller.snapshot.pendingId, "b");
+		expect(writes.committed).toStrictEqual(["a"]);
+		expect(controller.snapshot.pendingId).toBe("b");
 	});
 
 	/**
@@ -116,8 +114,8 @@ describe("createDeferredDelete", () => {
 		clock.elapse(WINDOW_MS);
 		await settle();
 
-		assert.equal(controller.snapshot.pendingId, null);
-		assert.equal(controller.snapshot.failedId, "a");
+		expect(controller.snapshot.pendingId).toBe(null);
+		expect(controller.snapshot.failedId).toBe("a");
 	});
 
 	it("reports nothing when the write lands", async () => {
@@ -128,8 +126,8 @@ describe("createDeferredDelete", () => {
 		clock.elapse(WINDOW_MS);
 		await settle();
 
-		assert.equal(controller.snapshot.failedId, null);
-		assert.ok(seen.every((snapshot) => snapshot.failedId === null));
+		expect(controller.snapshot.failedId).toBe(null);
+		expect(seen.every((snapshot) => snapshot.failedId === null)).toBeTruthy();
 	});
 
 	it("shows a failure once, then forgets it", async () => {
@@ -138,10 +136,10 @@ describe("createDeferredDelete", () => {
 		controller.requestDelete("a");
 		clock.elapse(WINDOW_MS);
 		await settle();
-		assert.equal(controller.snapshot.failedId, "a");
+		expect(controller.snapshot.failedId).toBe("a");
 
 		controller.acknowledgeFailure();
-		assert.equal(controller.snapshot.failedId, null);
+		expect(controller.snapshot.failedId).toBe(null);
 	});
 
 	it("commits a pending delete exactly once when flushed", () => {
@@ -152,7 +150,7 @@ describe("createDeferredDelete", () => {
 		controller.flush();
 		clock.elapse(WINDOW_MS * 4);
 
-		assert.deepEqual(writes.committed, ["a"]);
+		expect(writes.committed).toStrictEqual(["a"]);
 	});
 
 	/** Same hole, other path: the screen going away must not swallow the failure. */
@@ -163,8 +161,8 @@ describe("createDeferredDelete", () => {
 		controller.flush();
 		await settle();
 
-		assert.equal(controller.snapshot.failedId, "a");
-		assert.ok(seen.some((snapshot) => snapshot.failedId === "a"));
+		expect(controller.snapshot.failedId).toBe("a");
+		expect(seen.some((snapshot) => snapshot.failedId === "a")).toBeTruthy();
 	});
 
 	it("has nothing to flush once the delete was taken back", () => {
@@ -175,6 +173,6 @@ describe("createDeferredDelete", () => {
 		controller.undo();
 		controller.flush();
 
-		assert.deepEqual(writes.committed, []);
+		expect(writes.committed).toStrictEqual([]);
 	});
 });

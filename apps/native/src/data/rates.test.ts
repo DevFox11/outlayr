@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
@@ -17,16 +15,16 @@ import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
 describe("chunkRows", () => {
 	it("splits into contiguous chunks with a possibly short tail", () => {
-		assert.deepEqual(chunkRows([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+		expect(chunkRows([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2], [3, 4], [5]]);
 	});
 
 	it("returns nothing for an empty input", () => {
-		assert.deepEqual(chunkRows([], 10), []);
+		expect(chunkRows([], 10)).toStrictEqual([]);
 	});
 
 	it("keeps a full snapshot under SQLite's bound-parameter cap", () => {
 		// 6 bound params per row against SQLite's 32,766 ceiling.
-		assert.ok(RATE_ROWS_PER_CHUNK * 6 < 32_766);
+		expect(RATE_ROWS_PER_CHUNK * 6 < 32_766).toBeTruthy();
 	});
 });
 
@@ -34,19 +32,19 @@ describe("isThrottled", () => {
 	const now = 1_700_000_000_000;
 
 	it("lets the first ever pull through", () => {
-		assert.equal(isThrottled(null, now), false);
+		expect(isThrottled(null, now)).toBe(false);
 	});
 
 	it("holds inside the window and opens on its edge", () => {
-		assert.equal(isThrottled(now - 1, now), true);
-		assert.equal(isThrottled(now - RATES_THROTTLE_MS + 1, now), true);
-		assert.equal(isThrottled(now - RATES_THROTTLE_MS, now), false);
+		expect(isThrottled(now - 1, now)).toBe(true);
+		expect(isThrottled(now - RATES_THROTTLE_MS + 1, now)).toBe(true);
+		expect(isThrottled(now - RATES_THROTTLE_MS, now)).toBe(false);
 	});
 
 	it("treats a backward clock jump as expired rather than locking shut", () => {
 		// A stamp in the future would otherwise hold the throttle closed until
 		// the clock caught up — potentially hours with no rates.
-		assert.equal(isThrottled(now + 60_000, now), false);
+		expect(isThrottled(now + 60_000, now)).toBe(false);
 	});
 });
 
@@ -156,8 +154,8 @@ describe("pullRatesIfDue", () => {
 			{ now: NOW },
 		);
 
-		assert.equal(landed, false);
-		assert.equal(asked, 0);
+		expect(landed).toBe(false);
+		expect(asked).toBe(0);
 	});
 
 	it("pulls once the stamp has aged out", async () => {
@@ -168,8 +166,8 @@ describe("pullRatesIfDue", () => {
 		});
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		assert.equal(await pullRatesIfDue(db, pull, { now: NOW }), true);
-		assert.deepEqual(await storedRates(db), [
+		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
+		expect(await storedRates(db)).toStrictEqual([
 			{ quote: "EUR", date: "2026-07-28" },
 		]);
 	});
@@ -181,11 +179,10 @@ describe("pullRatesIfDue", () => {
 			.values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		assert.equal(
-			await pullRatesIfDue(db, pull, { now: NOW, force: true }),
+		expect(await pullRatesIfDue(db, pull, { now: NOW, force: true })).toBe(
 			true,
 		);
-		assert.equal((await storedRates(db)).length, 1);
+		expect((await storedRates(db)).length).toBe(1);
 	});
 
 	it("walks every page the cursor offers", async () => {
@@ -196,12 +193,13 @@ describe("pullRatesIfDue", () => {
 			[wireRow("JPY", "2026-07-28")],
 		]);
 
-		assert.equal(await pullRatesIfDue(db, pull, { now: NOW }), true);
-		assert.deepEqual(calls, [undefined, 1, 2]);
-		assert.deepEqual(
-			(await storedRates(db)).map((row) => row.quote),
-			["EUR", "GBP", "JPY"],
-		);
+		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
+		expect(calls).toStrictEqual([undefined, 1, 2]);
+		expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual([
+			"EUR",
+			"GBP",
+			"JPY",
+		]);
 	});
 
 	it("replaces the whole cache rather than merging into it", async () => {
@@ -211,7 +209,7 @@ describe("pullRatesIfDue", () => {
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
 		await pullRatesIfDue(db, pull, { now: NOW });
-		assert.deepEqual(await storedRates(db), [
+		expect(await storedRates(db)).toStrictEqual([
 			{ quote: "EUR", date: "2026-07-28" },
 		]);
 	});
@@ -221,7 +219,7 @@ describe("pullRatesIfDue", () => {
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
 		await pullRatesIfDue(db, pull, { now: NOW });
-		assert.equal(await lastPullAt(db), String(NOW));
+		expect(await lastPullAt(db)).toBe(String(NOW));
 	});
 
 	it("re-stamps over a previous pull rather than conflicting", async () => {
@@ -232,7 +230,7 @@ describe("pullRatesIfDue", () => {
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
 		await pullRatesIfDue(db, pull, { now: NOW, force: true });
-		assert.equal(await lastPullAt(db), String(NOW));
+		expect(await lastPullAt(db)).toBe(String(NOW));
 	});
 
 	it("keeps a stale cache rather than emptying it on an empty snapshot", async () => {
@@ -240,9 +238,9 @@ describe("pullRatesIfDue", () => {
 		await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
 		const { pull } = pagedPuller([[]]);
 
-		assert.equal(await pullRatesIfDue(db, pull, { now: NOW }), false);
-		assert.equal((await storedRates(db)).length, 1);
-		assert.equal(await lastPullAt(db), null);
+		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(false);
+		expect((await storedRates(db)).length).toBe(1);
+		expect(await lastPullAt(db)).toBe(null);
 	});
 
 	it("bumps the rates revision when a pull lands", async () => {
@@ -251,7 +249,7 @@ describe("pullRatesIfDue", () => {
 		const before = ratesRevision();
 
 		await pullRatesIfDue(db, pull, { now: NOW });
-		assert.equal(ratesRevision(), before + 1);
+		expect(ratesRevision()).toBe(before + 1);
 	});
 
 	it("leaves the revision alone when throttled", async () => {
@@ -263,7 +261,7 @@ describe("pullRatesIfDue", () => {
 		const before = ratesRevision();
 
 		await pullRatesIfDue(db, pull, { now: NOW });
-		assert.equal(ratesRevision(), before);
+		expect(ratesRevision()).toBe(before);
 	});
 
 	it("leaves the revision alone when the snapshot is empty", async () => {
@@ -272,7 +270,7 @@ describe("pullRatesIfDue", () => {
 		const before = ratesRevision();
 
 		await pullRatesIfDue(db, pull, { now: NOW });
-		assert.equal(ratesRevision(), before);
+		expect(ratesRevision()).toBe(before);
 	});
 
 	it("rolls the wipe back when the replacement fails part-way", async () => {
@@ -286,14 +284,20 @@ describe("pullRatesIfDue", () => {
 		const { pull } = pagedPuller([[duplicate, duplicate]]);
 		const before = ratesRevision();
 
-		await assert.rejects(() => pullRatesIfDue(db, pull, { now: NOW }));
-		assert.deepEqual(await storedRates(db), [
+		// `toMatchObject` rather than `.rejects.toThrow()`: the rejection is a
+		// native-addon `SqliteError`, and Jest gives each test file its own realm,
+		// so `instanceof Error` on it is not reliable across files — `toThrow()`
+		// silently reports "did not throw" when that happens.
+		await expect(pullRatesIfDue(db, pull, { now: NOW })).rejects.toMatchObject({
+			message: expect.any(String),
+		});
+		expect(await storedRates(db)).toStrictEqual([
 			{ quote: "VES", date: "2020-01-01" },
 		]);
 		// Unstamped, so the next foreground retries rather than waiting out the
 		// throttle on a pull that never landed.
-		assert.equal(await lastPullAt(db), null);
-		assert.equal(ratesRevision(), before);
+		expect(await lastPullAt(db)).toBe(null);
+		expect(ratesRevision()).toBe(before);
 	});
 
 	it("bumps only once the replaced cache is readable", async () => {
@@ -313,6 +317,6 @@ describe("pullRatesIfDue", () => {
 
 		await pullRatesIfDue(db, pull, { now: NOW });
 		unsubscribe();
-		assert.deepEqual(atBump, [{ quote: "EUR", date: "2026-07-28" }]);
+		expect(atBump).toStrictEqual([{ quote: "EUR", date: "2026-07-28" }]);
 	});
 });

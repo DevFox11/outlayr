@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { transactions } from "@/db/schema";
@@ -86,17 +84,9 @@ describe("log window", () => {
 
 		const { rows } = await windowFor(db, 2);
 
-		assert.equal(rows.length, 11, "both days must arrive whole");
-		assert.equal(
-			rows.filter((r) => r.day.getDate() === 14).length,
-			9,
-			"the boundary day must not be truncated",
-		);
-		assert.equal(
-			rows.filter((r) => r.day.getDate() === 13).length,
-			0,
-			"the day past the window must not leak in",
-		);
+		expect(rows.length).toBe(11);
+		expect(rows.filter((r) => r.day.getDate() === 14).length).toBe(9);
+		expect(rows.filter((r) => r.day.getDate() === 13).length).toBe(0);
 	});
 
 	it("projects the identity a row stores, so the list can paint it", async () => {
@@ -119,20 +109,17 @@ describe("log window", () => {
 
 		const { rows } = await windowFor(db, 1);
 
-		assert.deepEqual(
-			{
-				icon: rows[0]?.icon,
-				emoji: rows[0]?.emoji,
-				customColor: rows[0]?.customColor,
-				imageColor: rows[0]?.imageColor,
-			},
-			{
-				icon: "Coffee02",
-				emoji: "🍕",
-				customColor: "#FF0000",
-				imageColor: "#00FF00",
-			},
-		);
+		expect({
+			icon: rows[0]?.icon,
+			emoji: rows[0]?.emoji,
+			customColor: rows[0]?.customColor,
+			imageColor: rows[0]?.imageColor,
+		}).toStrictEqual({
+			icon: "Coffee02",
+			emoji: "🍕",
+			customColor: "#FF0000",
+			imageColor: "#00FF00",
+		});
 	});
 
 	it("widens by whole days and keeps the rows it already had", async () => {
@@ -144,10 +131,10 @@ describe("log window", () => {
 		const first = await windowFor(db, 2);
 		const second = await windowFor(db, 3);
 
-		assert.equal(second.rows.length, 14);
+		expect(second.rows.length).toBe(14);
 		const kept = new Set(second.rows.map((r) => r.id));
 		for (const row of first.rows) {
-			assert.ok(kept.has(row.id), `${row.id} disappeared when the window grew`);
+			expect(kept.has(row.id)).toBeTruthy();
 		}
 	});
 
@@ -156,9 +143,9 @@ describe("log window", () => {
 		await seedDay(db, 15, 1);
 		await seedDay(db, 14, 1);
 
-		assert.equal((await windowFor(db, 1)).reachedEnd, false);
-		assert.equal((await windowFor(db, 2)).reachedEnd, false);
-		assert.equal((await windowFor(db, 3)).reachedEnd, true);
+		expect((await windowFor(db, 1)).reachedEnd).toBe(false);
+		expect((await windowFor(db, 2)).reachedEnd).toBe(false);
+		expect((await windowFor(db, 3)).reachedEnd).toBe(true);
 	});
 
 	it("counts days, not rows, so one busy day cannot fill the window", async () => {
@@ -168,8 +155,8 @@ describe("log window", () => {
 
 		const { dayRows, rows } = await windowFor(db, 2);
 
-		assert.equal(dayRows.length, 2);
-		assert.equal(rows.length, 41);
+		expect(dayRows.length).toBe(2);
+		expect(rows.length).toBe(41);
 	});
 
 	it("excludes deleted and future rows from the window it measures", async () => {
@@ -202,25 +189,17 @@ describe("log window", () => {
 
 		const { dayRows, rows, reachedEnd } = await windowFor(db, 5);
 
-		assert.deepEqual(
-			dayRows.map((r) => r.day.getDate()),
-			[15, 14],
-			"a deleted-only day and a future day are not days of history",
-		);
-		assert.equal(rows.length, 2);
-		assert.equal(reachedEnd, true);
+		expect(dayRows.map((r) => r.day.getDate())).toStrictEqual([15, 14]);
+		expect(rows.length).toBe(2);
+		expect(reachedEnd).toBe(true);
 	});
 
 	it("returns nothing at all when no row is visible", async () => {
 		const db = makeDb();
 		const { dayRows, rows, reachedEnd } = await windowFor(db, 30);
 
-		assert.equal(dayRows.length, 0);
-		assert.equal(
-			rows.length,
-			0,
-			"a null floor must not fall back to every row",
-		);
-		assert.equal(reachedEnd, true);
+		expect(dayRows.length).toBe(0);
+		expect(rows.length).toBe(0);
+		expect(reachedEnd).toBe(true);
 	});
 });

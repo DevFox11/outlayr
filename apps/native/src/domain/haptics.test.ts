@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	HAPTIC_EVENTS,
 	HAPTICS_EXCESSIVE,
@@ -22,62 +20,50 @@ const TICKS: HapticEvent[] = ["selection", "keyTap"];
 describe("haptics setting", () => {
 	it("plays nothing at all on None", () => {
 		for (const event of HAPTIC_EVENTS) {
-			assert.equal(
-				hapticPlay(HAPTICS_OFF, event),
-				null,
-				`${event} escaped the None setting`,
-			);
+			expect(hapticPlay(HAPTICS_OFF, event)).toBe(null);
 		}
 	});
 
 	it("plays every event on Excessive", () => {
 		for (const event of HAPTIC_EVENTS) {
-			assert.notEqual(
-				hapticPlay(HAPTICS_EXCESSIVE, event),
-				null,
-				`${event} is silent on Excessive`,
-			);
+			expect(hapticPlay(HAPTICS_EXCESSIVE, event)).not.toBe(null);
 		}
 	});
 
 	it("keeps per-action ticks silent on Subtle", () => {
 		for (const event of TICKS) {
-			assert.equal(hapticPlay(HAPTICS_SUBTLE, event), null);
+			expect(hapticPlay(HAPTICS_SUBTLE, event)).toBe(null);
 		}
 	});
 
 	it("plays landings on Subtle", () => {
 		for (const event of LANDINGS) {
-			assert.notEqual(
-				hapticPlay(HAPTICS_SUBTLE, event),
-				null,
-				`${event} is silent on Subtle`,
-			);
+			expect(hapticPlay(HAPTICS_SUBTLE, event)).not.toBe(null);
 		}
 	});
 
 	it("keeps each landing's declared strength", () => {
-		assert.deepEqual(hapticPlay(HAPTICS_SUBTLE, "light"), {
+		expect(hapticPlay(HAPTICS_SUBTLE, "light")).toStrictEqual({
 			kind: "impact",
 			style: "light",
 		});
-		assert.deepEqual(hapticPlay(HAPTICS_SUBTLE, "medium"), {
+		expect(hapticPlay(HAPTICS_SUBTLE, "medium")).toStrictEqual({
 			kind: "impact",
 			style: "medium",
 		});
-		assert.deepEqual(hapticPlay(HAPTICS_SUBTLE, "heavy"), {
+		expect(hapticPlay(HAPTICS_SUBTLE, "heavy")).toStrictEqual({
 			kind: "impact",
 			style: "heavy",
 		});
-		assert.deepEqual(hapticPlay(HAPTICS_SUBTLE, "success"), {
+		expect(hapticPlay(HAPTICS_SUBTLE, "success")).toStrictEqual({
 			kind: "notification",
 			type: "success",
 		});
-		assert.deepEqual(hapticPlay(HAPTICS_SUBTLE, "warning"), {
+		expect(hapticPlay(HAPTICS_SUBTLE, "warning")).toStrictEqual({
 			kind: "notification",
 			type: "warning",
 		});
-		assert.deepEqual(hapticPlay(HAPTICS_SUBTLE, "error"), {
+		expect(hapticPlay(HAPTICS_SUBTLE, "error")).toStrictEqual({
 			kind: "notification",
 			type: "error",
 		});
@@ -85,14 +71,14 @@ describe("haptics setting", () => {
 
 	it("plays both ticks as a selection tap", () => {
 		for (const event of TICKS) {
-			assert.deepEqual(hapticPlay(HAPTICS_EXCESSIVE, event), {
+			expect(hapticPlay(HAPTICS_EXCESSIVE, event)).toStrictEqual({
 				kind: "selection",
 			});
 		}
 	});
 
 	it("treats a value outside the three options as its nearest neighbour", () => {
-		assert.equal(hapticPlay(-1, "success"), null);
-		assert.deepEqual(hapticPlay(9, "keyTap"), { kind: "selection" });
+		expect(hapticPlay(-1, "success")).toBe(null);
+		expect(hapticPlay(9, "keyTap")).toStrictEqual({ kind: "selection" });
 	});
 });

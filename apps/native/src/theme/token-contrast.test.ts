@@ -1,8 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
 import {
 	AA_LARGE_CONTRAST,
 	AA_TEXT_CONTRAST,
@@ -10,7 +7,7 @@ import {
 	relativeLuminance,
 } from "./token-contrast";
 
-const nativeRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const nativeRoot = join(__dirname, "../..");
 const stylesheet = readFileSync(join(nativeRoot, "global.css"), "utf8");
 
 type Theme = "light" | "dark";
@@ -146,7 +143,7 @@ function pairKey(theme: Theme, token: string, ground: string): string {
 /** The `--token: value;` declarations inside `@variant <theme> { … }`. */
 function themeTokens(theme: Theme): Map<string, string> {
 	const open = stylesheet.indexOf(`@variant ${theme} {`);
-	assert.notEqual(open, -1, `global.css no longer declares @variant ${theme}`);
+	expect(open).not.toBe(-1);
 	return new Map(
 		[...braced(open).matchAll(/--([\w-]+):\s*([^;]+);/g)].map((match) => [
 			match[1],
@@ -158,7 +155,7 @@ function themeTokens(theme: Theme): Map<string, string> {
 /** The `@theme inline` bridge, as utility suffix -> the token it reads. */
 function exposedTokens(): Map<string, string> {
 	const open = stylesheet.indexOf("@theme inline");
-	assert.notEqual(open, -1, "global.css no longer declares @theme inline");
+	expect(open).not.toBe(-1);
 	return new Map(
 		[...braced(open).matchAll(/--color-([\w-]+):\s*var\(--([\w-]+)\);/g)].map(
 			(match) => [match[1], match[2]],
@@ -181,7 +178,8 @@ function braced(from: number): string {
 
 function tokenValue(theme: Theme, token: string): string {
 	const value = themeTokens(theme).get(token);
-	assert.ok(value, `@variant ${theme} no longer declares --${token}`);
+	if (!value)
+		throw new Error(`@variant ${theme} no longer declares --${token}`);
 	return value;
 }
 
@@ -225,43 +223,52 @@ function sourceFiles(dir: string): string[] {
 describe("contrast maths", () => {
 	// Hand-derived, so a broken helper cannot certify a broken stylesheet.
 	it("gives the defining 21:1 for pure black on pure white", () => {
-		assert.equal(contrastRatio("#000000", "#ffffff"), 21);
+		expect(contrastRatio("#000000", "#ffffff")).toBe(21);
 	});
 
 	it("weights the green channel at 0.7152", () => {
 		// A fully lit channel is linear 1, so luminance is that channel's weight.
-		assert.equal(relativeLuminance("#00ff00"), 0.7152);
-		assert.ok(Math.abs(contrastRatio("#00ff00", "#000000") - 15.304) < 1e-9);
+		expect(relativeLuminance("#00ff00")).toBe(0.7152);
+		expect(
+			Math.abs(contrastRatio("#00ff00", "#000000") - 15.304) < 1e-9,
+		).toBeTruthy();
 	});
 
 	it("weights the blue channel at 0.0722", () => {
-		assert.equal(relativeLuminance("#0000ff"), 0.0722);
-		assert.equal(contrastRatio("#0000ff", "#ffffff"), 1.05 / 0.1222);
+		expect(relativeLuminance("#0000ff")).toBe(0.0722);
+		expect(contrastRatio("#0000ff", "#ffffff")).toBe(1.05 / 0.1222);
 	});
 
 	it("takes the linear branch below the 0.03928 knee", () => {
 		// 5/255 = 0.019608, under the knee, so luminance is that over 12.92.
-		assert.ok(Math.abs(relativeLuminance("#050505") - 0.001517635) < 1e-8);
-		assert.ok(Math.abs(contrastRatio("#050505", "#000000") - 1.0303527) < 1e-6);
+		expect(
+			Math.abs(relativeLuminance("#050505") - 0.001517635) < 1e-8,
+		).toBeTruthy();
+		expect(
+			Math.abs(contrastRatio("#050505", "#000000") - 1.0303527) < 1e-6,
+		).toBeTruthy();
 	});
 
 	it("takes the 2.4 gamma above the knee", () => {
 		// ((128/255 + 0.055) / 1.055) ** 2.4 = 0.2158605, all three channels.
-		assert.ok(Math.abs(relativeLuminance("#808080") - 0.2158605) < 1e-6);
-		assert.ok(Math.abs(contrastRatio("#808080", "#ffffff") - 3.9494397) < 1e-6);
+		expect(
+			Math.abs(relativeLuminance("#808080") - 0.2158605) < 1e-6,
+		).toBeTruthy();
+		expect(
+			Math.abs(contrastRatio("#808080", "#ffffff") - 3.9494397) < 1e-6,
+		).toBeTruthy();
 	});
 
 	it("is symmetric in its arguments", () => {
-		assert.equal(
-			contrastRatio("#6d6d6d", "#f0f0f0"),
+		expect(contrastRatio("#6d6d6d", "#f0f0f0")).toBe(
 			contrastRatio("#f0f0f0", "#6d6d6d"),
 		);
 	});
 
 	it("refuses a value it cannot measure rather than passing it", () => {
-		assert.throws(() => relativeLuminance("rgba(241, 120, 121, 0.22)"));
-		assert.throws(() => relativeLuminance("#fff"));
-		assert.throws(() => relativeLuminance("#gggggg"));
+		expect(() => relativeLuminance("rgba(241, 120, 121, 0.22)")).toThrow();
+		expect(() => relativeLuminance("#fff")).toThrow();
+		expect(() => relativeLuminance("#gggggg")).toThrow();
 	});
 });
 
@@ -275,10 +282,7 @@ describe("the token layer", () => {
 			...Object.keys(FIRST_RUN_TEXT),
 		]);
 		for (const token of exposedTokens().values()) {
-			assert.ok(
-				classified.has(token),
-				`--${token} is exposed as a utility but is not classified as text, inverse or fill — it has no contrast floor`,
-			);
+			expect(classified.has(token)).toBeTruthy();
 		}
 	});
 
@@ -291,17 +295,13 @@ describe("the token layer", () => {
 			...FIRST_RUN_GROUNDS,
 			...Object.keys(FIRST_RUN_TEXT),
 		]) {
-			assert.ok(exposed.has(token), `--${token} is classified but gone`);
+			expect(exposed.has(token)).toBeTruthy();
 		}
 	});
 
 	it("exposes each token under its own name", () => {
 		for (const [utility, token] of exposedTokens()) {
-			assert.equal(
-				utility,
-				token,
-				`text-${utility} resolves to --${token}, so the floor measured for one is not the colour drawn by the other`,
-			);
+			expect(utility).toBe(token);
 		}
 	});
 
@@ -309,10 +309,7 @@ describe("the token layer", () => {
 		for (const theme of THEMES) {
 			const declared = themeTokens(theme);
 			for (const token of exposedTokens().values()) {
-				assert.ok(
-					declared.has(token),
-					`--${token} is exposed but undeclared in ${theme}`,
-				);
+				expect(declared.has(token)).toBeTruthy();
 			}
 		}
 	});
@@ -337,7 +334,7 @@ describe("WCAG AA for text on every ground its theme paints", () => {
 					}
 				}
 			}
-			assert.deepEqual(failures, []);
+			expect(failures).toStrictEqual([]);
 		});
 	}
 
@@ -358,7 +355,7 @@ describe("WCAG AA for text on every ground its theme paints", () => {
 				}
 			}
 		}
-		assert.deepEqual(failures, []);
+		expect(failures).toStrictEqual([]);
 	});
 
 	it("holds the floor for each inverse token on the fill it is named for", () => {
@@ -376,7 +373,7 @@ describe("WCAG AA for text on every ground its theme paints", () => {
 				}
 			}
 		}
-		assert.deepEqual(failures, []);
+		expect(failures).toStrictEqual([]);
 	});
 });
 
@@ -398,7 +395,7 @@ describe("the exemptions", () => {
 				);
 			}
 		}
-		assert.deepEqual(failures, []);
+		expect(failures).toStrictEqual([]);
 	});
 
 	it("carries no exemption whose pair now passes", () => {
@@ -411,19 +408,13 @@ describe("the exemptions", () => {
 				);
 			}
 		}
-		assert.deepEqual(stale, []);
+		expect(stale).toStrictEqual([]);
 	});
 
 	it("exempts nothing that is not a text token on a ground", () => {
 		for (const pair of EXEMPT_PAIRS) {
-			assert.ok(
-				TEXT_TOKENS.some((token) => token === pair.token),
-				`--${pair.token} is exempted but is not a text token`,
-			);
-			assert.ok(
-				GROUNDS.some((ground) => ground === pair.ground),
-				`--${pair.ground} is exempted as a ground but is not one`,
-			);
+			expect(TEXT_TOKENS.some((token) => token === pair.token)).toBeTruthy();
+			expect(GROUNDS.some((ground) => ground === pair.ground)).toBeTruthy();
 		}
 	});
 });
@@ -439,22 +430,21 @@ describe("fills that carry literal white text", () => {
 				}
 			}
 		}
-		assert.deepEqual(failures, []);
+		expect(failures).toStrictEqual([]);
 	});
 
 	it("names every file that writes text-white", () => {
-		assert.deepEqual(whiteTextSites(), [...WHITE_TEXT_SITES]);
+		expect(whiteTextSites()).toStrictEqual([...WHITE_TEXT_SITES]);
 	});
 
 	it("draws a declared fill at each of those sites", () => {
 		for (const site of WHITE_TEXT_SITES) {
 			const source = readFileSync(join(nativeRoot, "src", site), "utf8");
-			assert.ok(
+			expect(
 				WHITE_TEXT_FILLS.some((fill) =>
 					new RegExp(`\\bbg-${fill}\\b`).test(source),
 				),
-				`${site} writes text-white but no declared fill, so the colour under that text is unmeasured`,
-			);
+			).toBeTruthy();
 		}
 	});
 });
@@ -463,10 +453,7 @@ describe("tokens classified as fills", () => {
 	it("never appears as a text utility", () => {
 		const written = textUtilities();
 		for (const token of NON_TEXT_TOKENS) {
-			assert.ok(
-				!written.has(token),
-				`text-${token} is now written somewhere in src, so --${token} needs a measured text floor — reclassify it`,
-			);
+			expect(!written.has(token)).toBeTruthy();
 		}
 	});
 });

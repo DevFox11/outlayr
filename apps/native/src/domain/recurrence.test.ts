@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	cadenceUnit,
 	nextDate,
@@ -14,52 +12,42 @@ const ymd = (d: Date | null): [number, number, number] | null =>
 
 describe("advancing one occurrence", () => {
 	it("advances each cadence by its own unit", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.daily, 1)),
-			[2026, 3, 11],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 3, 11]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.weekly, 1)),
-			[2026, 3, 17],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 3, 17]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.monthly, 1)),
-			[2026, 4, 10],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 4, 10]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.yearly, 1)),
-			[2027, 3, 10],
-		);
+		).toStrictEqual([2027, 3, 10]);
 	});
 
 	it("multiplies by the coefficient", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.daily, 5)),
-			[2026, 3, 15],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 3, 15]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.weekly, 2)),
-			[2026, 3, 24],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 3, 24]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.monthly, 3)),
-			[2026, 6, 10],
-		);
+		).toStrictEqual([2026, 6, 10]);
 	});
 
 	it("clamps a day the target month does not have", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextDate(at(2026, 1, 31), RECURRING_TYPE.monthly, 1)),
-			[2026, 2, 28],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 2, 28]);
+		expect(
 			ymd(nextDate(at(2026, 3, 31), RECURRING_TYPE.monthly, 1)),
-			[2026, 4, 30],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 4, 30]);
+		expect(
 			ymd(nextDate(at(2024, 2, 29), RECURRING_TYPE.yearly, 1)),
-			[2025, 2, 28],
-		);
+		).toStrictEqual([2025, 2, 28]);
 	});
 
 	it("keeps the charge's time of day", () => {
@@ -68,40 +56,37 @@ describe("advancing one occurrence", () => {
 			RECURRING_TYPE.monthly,
 			1,
 		);
-		assert.notEqual(advanced, null);
-		assert.equal(advanced?.getHours(), 14);
-		assert.equal(advanced?.getMinutes(), 30);
+		expect(advanced).not.toBe(null);
+		expect(advanced?.getHours()).toBe(14);
+		expect(advanced?.getMinutes()).toBe(30);
 	});
 
 	it("treats a coefficient that cannot mean anything as one step", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.daily, 0)),
-			[2026, 3, 11],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 3, 11]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.daily, -4)),
-			[2026, 3, 11],
-		);
-		assert.deepEqual(
+		).toStrictEqual([2026, 3, 11]);
+		expect(
 			ymd(nextDate(at(2026, 3, 10), RECURRING_TYPE.daily, 2.4)),
-			[2026, 3, 12],
-		);
+		).toStrictEqual([2026, 3, 12]);
 	});
 
 	it("has no next occurrence without a cadence", () => {
-		assert.equal(nextDate(at(2026, 3, 10), RECURRING_TYPE.none, 1), null);
-		assert.equal(nextDate(at(2026, 3, 10), 99, 1), null);
+		expect(nextDate(at(2026, 3, 10), RECURRING_TYPE.none, 1)).toBe(null);
+		expect(nextDate(at(2026, 3, 10), 99, 1)).toBe(null);
 	});
 });
 
 describe("cadence unit", () => {
 	it("names the unit each cadence steps in", () => {
-		assert.equal(cadenceUnit(RECURRING_TYPE.daily), "day");
-		assert.equal(cadenceUnit(RECURRING_TYPE.yearly), "year");
+		expect(cadenceUnit(RECURRING_TYPE.daily)).toBe("day");
+		expect(cadenceUnit(RECURRING_TYPE.yearly)).toBe("year");
 	});
 
 	it("falls back to the month for a cadence nothing declares", () => {
-		assert.equal(cadenceUnit(RECURRING_TYPE.none), "month");
+		expect(cadenceUnit(RECURRING_TYPE.none)).toBe("month");
 	});
 });
 
@@ -109,52 +94,46 @@ describe("the next landing after today", () => {
 	const now = new Date(2026, 2, 20, 10, 30);
 
 	it("walks past the charges that have already settled", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextLanding(at(2026, 1, 15), RECURRING_TYPE.monthly, 1, null, now)),
-			[2026, 4, 15],
-		);
+		).toStrictEqual([2026, 4, 15]);
 	});
 
 	it("skips a charge landing today — today is not ahead of today", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextLanding(at(2026, 1, 20), RECURRING_TYPE.monthly, 1, null, now)),
-			[2026, 4, 20],
-		);
+		).toStrictEqual([2026, 4, 20]);
 	});
 
 	// Clamping is lossy on the way through: once February pulls the 31st back to
 	// the 28th, every later step walks from the 28th. The back-fill writes the
 	// same days, which is the reason the landing is walked and not projected.
 	it("keeps the day the walk actually clamped to", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextLanding(at(2026, 1, 31), RECURRING_TYPE.monthly, 1, null, now)),
-			[2026, 3, 28],
-		);
+		).toStrictEqual([2026, 3, 28]);
 	});
 
 	it("returns a charge still ahead of today rather than stepping past it", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextLanding(at(2026, 4, 1), RECURRING_TYPE.monthly, 1, null, now)),
-			[2026, 4, 1],
-		);
+		).toStrictEqual([2026, 4, 1]);
 	});
 
 	it("returns a charge ahead of today even on the very next day", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextLanding(at(2026, 3, 21), RECURRING_TYPE.monthly, 1, null, now)),
-			[2026, 3, 21],
-		);
+		).toStrictEqual([2026, 3, 21]);
 	});
 
 	it("has no landing for a future charge that carries no cadence", () => {
-		assert.equal(
-			nextLanding(at(2026, 4, 1), RECURRING_TYPE.none, 1, null, now),
+		expect(nextLanding(at(2026, 4, 1), RECURRING_TYPE.none, 1, null, now)).toBe(
 			null,
 		);
 	});
 
 	it("returns a charge ahead of today that lands on the end date itself", () => {
-		assert.deepEqual(
+		expect(
 			ymd(
 				nextLanding(
 					at(2026, 4, 1),
@@ -164,12 +143,11 @@ describe("the next landing after today", () => {
 					now,
 				),
 			),
-			[2026, 4, 1],
-		);
+		).toStrictEqual([2026, 4, 1]);
 	});
 
 	it("has no landing when the charge ahead of today is past the end date", () => {
-		assert.equal(
+		expect(
 			nextLanding(
 				at(2026, 4, 1),
 				RECURRING_TYPE.monthly,
@@ -177,12 +155,11 @@ describe("the next landing after today", () => {
 				at(2026, 3, 25),
 				now,
 			),
-			null,
-		);
+		).toBe(null);
 	});
 
 	it("stops once the schedule runs past its end date", () => {
-		assert.equal(
+		expect(
 			nextLanding(
 				at(2026, 1, 15),
 				RECURRING_TYPE.monthly,
@@ -190,12 +167,11 @@ describe("the next landing after today", () => {
 				at(2026, 4, 1),
 				now,
 			),
-			null,
-		);
+		).toBe(null);
 	});
 
 	it("allows a landing on the end date itself", () => {
-		assert.deepEqual(
+		expect(
 			ymd(
 				nextLanding(
 					at(2026, 1, 15),
@@ -205,12 +181,11 @@ describe("the next landing after today", () => {
 					now,
 				),
 			),
-			[2026, 4, 15],
-		);
+		).toStrictEqual([2026, 4, 15]);
 	});
 
 	it("ignores the end date's time of day", () => {
-		assert.deepEqual(
+		expect(
 			ymd(
 				nextLanding(
 					at(2026, 1, 15),
@@ -220,22 +195,19 @@ describe("the next landing after today", () => {
 					now,
 				),
 			),
-			[2026, 4, 15],
-		);
+		).toStrictEqual([2026, 4, 15]);
 	});
 
 	it("has no landing when the cadence cannot advance", () => {
-		assert.equal(
+		expect(
 			nextLanding(at(2026, 1, 15), RECURRING_TYPE.none, 1, null, now),
-			null,
-		);
-		assert.equal(nextLanding(at(2026, 1, 15), 99, 1, null, now), null);
+		).toBe(null);
+		expect(nextLanding(at(2026, 1, 15), 99, 1, null, now)).toBe(null);
 	});
 
 	it("walks a weekly cadence the same way", () => {
-		assert.deepEqual(
+		expect(
 			ymd(nextLanding(at(2026, 3, 1), RECURRING_TYPE.weekly, 1, null, now)),
-			[2026, 3, 22],
-		);
+		).toStrictEqual([2026, 3, 22]);
 	});
 });

@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	type CategoryBreakdownEntry,
 	type CategoryMeta,
@@ -38,14 +36,14 @@ describe("runningTotals", () => {
 
 	it("carries each slot forward", () => {
 		const series = [bucket(10, 1), bucket(-4, 2), bucket(6, 3)];
-		assert.deepEqual(runningTotals(series), [10, 6, 12]);
+		expect(runningTotals(series)).toStrictEqual([10, 6, 12]);
 	});
 
 	it("ends on the window's own total, so the line lands on the hero figure", () => {
 		const series = [bucket(-500, 1), bucket(2000, 2), bucket(-300, 3)];
 		const totals = runningTotals(series);
 		const sum = series.reduce((acc, b) => acc + b.value, 0);
-		assert.equal(totals.at(-1), sum);
+		expect(totals.at(-1)).toBe(sum);
 	});
 
 	it("stays well-scaled where per-slot net collapses", () => {
@@ -55,28 +53,22 @@ describe("runningTotals", () => {
 		);
 		const perSlot = series.map((b) => b.value);
 		const slotSpan = Math.max(...perSlot) - Math.min(...perSlot);
-		assert.ok(
-			2500 / slotSpan < 0.01,
-			"an ordinary day is under 1% of the span",
-		);
+		expect(2500 / slotSpan < 0.01).toBeTruthy();
 
 		const totals = runningTotals(series);
 		const runSpan = Math.max(...totals) - Math.min(...totals);
-		assert.ok(
-			2500 / runSpan > 0.005,
-			"the running balance gives an ordinary day real height",
-		);
+		expect(2500 / runSpan > 0.005).toBeTruthy();
 	});
 
 	it("returns nothing for an empty window rather than a stray zero", () => {
-		assert.deepEqual(runningTotals([]), []);
+		expect(runningTotals([])).toStrictEqual([]);
 	});
 });
 
 describe("categoryMovers", () => {
 	it("says nothing when there is no prior window to compare against", () => {
 		// The first window a new user opens has no history behind it.
-		assert.deepEqual(categoryMovers([entry("a", 500)], [], 500), []);
+		expect(categoryMovers([entry("a", 500)], [], 500)).toStrictEqual([]);
 	});
 
 	it("ranks on currency, not on percentage", () => {
@@ -86,36 +78,32 @@ describe("categoryMovers", () => {
 		const prior = [entry("rent", 4000), entry("gum", 10)];
 		const movers = categoryMovers(current, prior, 4830);
 
-		assert.equal(movers[0].id, "rent");
-		assert.equal(
-			movers.length,
-			1,
-			"gum is below the floor and must not appear",
-		);
+		expect(movers[0].id).toBe("rent");
+		expect(movers.length).toBe(1);
 	});
 
 	it("drops anything moving less than 5% of the window", () => {
 		const current = [entry("a", 1020)];
 		const prior = [entry("a", 1000)];
 		// A $20 move on a $1,020 window is 2% — noise.
-		assert.deepEqual(categoryMovers(current, prior, 1020), []);
+		expect(categoryMovers(current, prior, 1020)).toStrictEqual([]);
 	});
 
 	it("keeps a move that clears the floor", () => {
 		const current = [entry("a", 1100)];
 		const prior = [entry("a", 1000)];
 		const movers = categoryMovers(current, prior, 1100);
-		assert.equal(movers.length, 1);
-		assert.equal(movers[0].delta, 100);
+		expect(movers.length).toBe(1);
+		expect(movers[0].delta).toBe(100);
 	});
 
 	it("reports a category that stopped entirely", () => {
 		// It cannot be found by walking the current window, which no longer has it.
 		const movers = categoryMovers([entry("a", 1000)], [entry("b", 900)], 1000);
 		const stopped = movers.find((mover) => mover.id === "b");
-		assert.ok(stopped, "a category that went to zero should still be a mover");
-		assert.equal(stopped.delta, -900);
-		assert.equal(stopped.fraction, -1);
+		if (!stopped) throw new Error("expected a mover for the stopped category");
+		expect(stopped.delta).toBe(-900);
+		expect(stopped.fraction).toBe(-1);
 	});
 
 	it("leaves a brand-new category's fraction null rather than +100%", () => {
@@ -125,13 +113,9 @@ describe("categoryMovers", () => {
 			800,
 		);
 		const fresh = movers.find((mover) => mover.id === "new");
-		assert.ok(fresh);
-		assert.equal(fresh.delta, 800);
-		assert.equal(
-			fresh.fraction,
-			null,
-			"a category that did not exist did not grow by a percentage",
-		);
+		if (!fresh) throw new Error("expected a mover for the new category");
+		expect(fresh.delta).toBe(800);
+		expect(fresh.fraction).toBe(null);
 	});
 
 	it("caps at three so the strip cannot crowd out the chart", () => {
@@ -149,49 +133,49 @@ describe("categoryMovers", () => {
 			entry("d", 1),
 			entry("e", 1),
 		];
-		assert.equal(categoryMovers(current, prior, 1500).length, 3);
+		expect(categoryMovers(current, prior, 1500).length).toBe(3);
 	});
 
 	it("orders by magnitude regardless of direction", () => {
 		const current = [entry("up", 300), entry("down", 100)];
 		const prior = [entry("up", 100), entry("down", 900)];
 		const movers = categoryMovers(current, prior, 400);
-		assert.equal(movers[0].id, "down", "-800 outranks +200");
-		assert.ok(movers[0].delta < 0);
+		expect(movers[0].id).toBe("down");
+		expect(movers[0].delta < 0).toBeTruthy();
 	});
 
 	it("stays quiet on an empty window rather than dividing by it", () => {
-		assert.deepEqual(categoryMovers([], [entry("a", 100)], 0), []);
+		expect(categoryMovers([], [entry("a", 100)], 0)).toStrictEqual([]);
 	});
 });
 
 describe("withCategoryDeltas", () => {
 	it("expresses the change as a fraction of what came before", () => {
 		const [only] = withCategoryDeltas([entry("a", 150)], [entry("a", 100)]);
-		assert.equal(only.delta, 0.5);
+		expect(only.delta).toBe(0.5);
 	});
 
 	it("signs a fall negative", () => {
 		const [only] = withCategoryDeltas([entry("a", 50)], [entry("a", 100)]);
-		assert.equal(only.delta, -0.5);
+		expect(only.delta).toBe(-0.5);
 	});
 
 	it("leaves a category with no prior spend null", () => {
 		const [only] = withCategoryDeltas([entry("a", 50)], []);
-		assert.equal(only.delta, null);
+		expect(only.delta).toBe(null);
 	});
 
 	it("never divides by a zero prior amount", () => {
 		const [only] = withCategoryDeltas([entry("a", 50)], [entry("a", 0)]);
-		assert.equal(only.delta, null);
+		expect(only.delta).toBe(null);
 	});
 
 	it("preserves every other field", () => {
 		const source = entry("a", 150, 0.4);
 		const [only] = withCategoryDeltas([source], [entry("a", 100)]);
-		assert.equal(only.id, source.id);
-		assert.equal(only.amount, source.amount);
-		assert.equal(only.fraction, source.fraction);
+		expect(only.id).toBe(source.id);
+		expect(only.amount).toBe(source.amount);
+		expect(only.fraction).toBe(source.fraction);
 	});
 });
 
@@ -250,7 +234,7 @@ describe("categoryBreakdownWithin", () => {
 		};
 		const breakdown = categoryBreakdownWithin(rows, meta, "spent", bounds, now);
 		const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
-		assert.equal(total, 140, "the 20th's 900 must not leak into the 10th");
+		expect(total).toBe(140);
 	});
 
 	it("recomputes shares against the narrowed total, not the window's", () => {
@@ -260,9 +244,9 @@ describe("categoryBreakdownWithin", () => {
 		};
 		const breakdown = categoryBreakdownWithin(rows, meta, "spent", bounds, now);
 		const food = breakdown.find((e) => e.id === "food");
-		assert.ok(food);
+		if (!food) throw new Error("expected a breakdown entry for food");
 		// 100 of 140 within the bucket, not 1000 of 1040 across the window.
-		assert.ok(Math.abs(food.fraction - 100 / 140) < 1e-9);
+		expect(Math.abs(food.fraction - 100 / 140) < 1e-9).toBeTruthy();
 	});
 
 	it("never counts a future-dated row", () => {
@@ -271,10 +255,9 @@ describe("categoryBreakdownWithin", () => {
 			start: new Date(2025, 6, 1).getTime(),
 			end: new Date(2025, 8, 1).getTime(),
 		};
-		assert.deepEqual(
+		expect(
 			categoryBreakdownWithin(future, meta, "spent", bounds, now),
-			[],
-		);
+		).toStrictEqual([]);
 	});
 
 	it("reads inflows for the income measure and ignores outflows", () => {
@@ -299,7 +282,7 @@ describe("categoryBreakdownWithin", () => {
 			bounds,
 			now,
 		);
-		assert.equal(breakdown.length, 1);
-		assert.equal(breakdown[0].amount, 700);
+		expect(breakdown.length).toBe(1);
+		expect(breakdown[0].amount).toBe(700);
 	});
 });

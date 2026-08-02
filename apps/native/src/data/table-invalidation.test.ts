@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	invalidate,
 	invalidateAll,
@@ -14,7 +12,7 @@ describe("table invalidation", () => {
 
 		invalidate("transactions");
 
-		assert.deepEqual(seen, ["a", "b"]);
+		expect(seen).toStrictEqual(["a", "b"]);
 		off1();
 		off2();
 	});
@@ -27,7 +25,7 @@ describe("table invalidation", () => {
 
 		invalidate("transactions");
 
-		assert.equal(hits, 0);
+		expect(hits).toBe(0);
 		off();
 	});
 
@@ -41,11 +39,11 @@ describe("table invalidation", () => {
 		off();
 		invalidate("categories");
 
-		assert.equal(hits, 1);
+		expect(hits).toBe(1);
 	});
 
 	it("is a no-op for a table nobody is watching", () => {
-		assert.doesNotThrow(() => invalidate("nobody-here"));
+		expect(() => invalidate("nobody-here")).not.toThrow();
 	});
 
 	it("still reaches the later subscriber when an earlier one unsubscribes itself", () => {
@@ -60,7 +58,7 @@ describe("table invalidation", () => {
 
 		invalidate("mainBudget");
 
-		assert.equal(reached, true);
+		expect(reached).toBe(true);
 		off2();
 	});
 
@@ -72,7 +70,7 @@ describe("table invalidation", () => {
 
 		invalidateAll(["templateTransactions", "templateTransactions", "appMeta"]);
 
-		assert.equal(hits, 1);
+		expect(hits).toBe(1);
 		off();
 	});
 });

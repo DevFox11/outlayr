@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { asc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -153,30 +151,29 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 3);
-		assert.deepEqual(
-			generated.map((row) => row.date.getTime()),
+		expect(generated.length).toBe(3);
+		expect(generated.map((row) => row.date.getTime())).toStrictEqual(
 			[at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map((d) =>
 				startOfDay(d).getTime(),
 			),
 		);
 
 		for (const row of generated) {
-			assert.equal(row.onceRecurring, true);
-			assert.equal(row.amount, 9.99);
-			assert.equal(row.income, false);
-			assert.equal(row.currency, "USD");
-			assert.equal(row.note, "Netflix");
-			assert.equal(row.details, "family plan");
-			assert.equal(row.icon, "Tv01");
-			assert.equal(row.customColor, "#FF0000");
-			assert.equal(row.categoryId, "bills");
-			assert.equal(row.day.getTime(), startOfDay(row.date).getTime());
+			expect(row.onceRecurring).toBe(true);
+			expect(row.amount).toBe(9.99);
+			expect(row.income).toBe(false);
+			expect(row.currency).toBe("USD");
+			expect(row.note).toBe("Netflix");
+			expect(row.details).toBe("family plan");
+			expect(row.icon).toBe("Tv01");
+			expect(row.customColor).toBe("#FF0000");
+			expect(row.categoryId).toBe("bills");
+			expect(row.day.getTime()).toBe(startOfDay(row.date).getTime());
 		}
 
 		const source = (await allRows(db)).find((row) => row.id === id);
-		assert.equal(source?.recurringType, RECURRING_TYPE.none);
-		assert.equal(source?.date.getTime(), startOfDay(at(2025, 3, 15)).getTime());
+		expect(source?.recurringType).toBe(RECURRING_TYPE.none);
+		expect(source?.date.getTime()).toBe(startOfDay(at(2025, 3, 15)).getTime());
 	});
 
 	it("carries the schedule onto the newest occurrence, leaving the rest inert", async () => {
@@ -190,18 +187,15 @@ describe("backfillRecurring", () => {
 
 		const generated = await generatedRows(db, id);
 		const newest = generated.at(-1);
-		assert.equal(newest?.date.getTime(), startOfDay(at(2025, 6, 15)).getTime());
-		assert.equal(newest?.recurringType, RECURRING_TYPE.monthly);
-		assert.equal(newest?.recurringCoefficient, 1);
-		assert.equal(
-			newest?.recurringEndDate?.getTime(),
-			at(2026, 3, 15).getTime(),
-		);
+		expect(newest?.date.getTime()).toBe(startOfDay(at(2025, 6, 15)).getTime());
+		expect(newest?.recurringType).toBe(RECURRING_TYPE.monthly);
+		expect(newest?.recurringCoefficient).toBe(1);
+		expect(newest?.recurringEndDate?.getTime()).toBe(at(2026, 3, 15).getTime());
 
 		for (const row of generated.slice(0, -1)) {
-			assert.equal(row.recurringType, RECURRING_TYPE.none);
-			assert.equal(row.recurringCoefficient, 1);
-			assert.equal(row.recurringEndDate, null);
+			expect(row.recurringType).toBe(RECURRING_TYPE.none);
+			expect(row.recurringCoefficient).toBe(1);
+			expect(row.recurringEndDate).toBe(null);
 		}
 	});
 
@@ -215,13 +209,13 @@ describe("backfillRecurring", () => {
 
 		const generated = await generatedRows(db, id);
 		const newest = generated.at(-1);
-		assert.equal(newest?.recurringType, RECURRING_TYPE.monthly);
-		assert.equal(newest?.reminderLeadDays, 3);
+		expect(newest?.recurringType).toBe(RECURRING_TYPE.monthly);
+		expect(newest?.reminderLeadDays).toBe(3);
 		for (const row of generated.slice(0, -1)) {
-			assert.equal(row.reminderLeadDays, null);
+			expect(row.reminderLeadDays).toBe(null);
 		}
 		const source = (await allRows(db)).find((row) => row.id === id);
-		assert.equal(source?.reminderLeadDays, null);
+		expect(source?.reminderLeadDays).toBe(null);
 	});
 
 	it("keeps a same-day notice, which is not the off state", async () => {
@@ -233,7 +227,7 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const newest = (await generatedRows(db, id)).at(-1);
-		assert.equal(newest?.reminderLeadDays, 0);
+		expect(newest?.reminderLeadDays).toBe(0);
 	});
 
 	it("leaves the notice off a chain that has run out of schedule to carry", async () => {
@@ -246,7 +240,7 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		for (const row of await generatedRows(db, id)) {
-			assert.equal(row.reminderLeadDays, null);
+			expect(row.reminderLeadDays).toBe(null);
 		}
 	});
 
@@ -259,9 +253,9 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 3);
+		expect(generated.length).toBe(3);
 		for (const row of generated) {
-			assert.equal(row.recurringType, RECURRING_TYPE.none);
+			expect(row.recurringType).toBe(RECURRING_TYPE.none);
 		}
 	});
 
@@ -271,14 +265,13 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 1);
-		assert.equal(
-			generated[0]?.date.getTime(),
+		expect(generated.length).toBe(1);
+		expect(generated[0]?.date.getTime()).toBe(
 			startOfDay(at(2025, 6, 15)).getTime(),
 		);
-		assert.equal(generated[0]?.recurringType, RECURRING_TYPE.monthly);
+		expect(generated[0]?.recurringType).toBe(RECURRING_TYPE.monthly);
 		const source = (await allRows(db)).find((row) => row.id === id);
-		assert.equal(source?.recurringType, RECURRING_TYPE.none);
+		expect(source?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
 	it("stops generation at a past end date (Case B — end limit)", async () => {
@@ -290,15 +283,14 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 2);
-		assert.deepEqual(
-			generated.map((row) => row.date.getTime()),
+		expect(generated.length).toBe(2);
+		expect(generated.map((row) => row.date.getTime())).toStrictEqual(
 			[at(2025, 4, 15), at(2025, 5, 15)].map((d) => startOfDay(d).getTime()),
 		);
 		const past = generated.some(
 			(row) => row.date.getTime() > startOfDay(at(2025, 5, 15)).getTime(),
 		);
-		assert.equal(past, false);
+		expect(past).toBe(false);
 	});
 
 	it("is a no-op for a future-dated subscription (Case C)", async () => {
@@ -307,9 +299,9 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 0);
+		expect(generated.length).toBe(0);
 		const source = (await allRows(db)).find((row) => row.id === id);
-		assert.equal(source?.recurringType, RECURRING_TYPE.monthly);
+		expect(source?.recurringType).toBe(RECURRING_TYPE.monthly);
 	});
 
 	it("makes forward progress under a malformed coefficient (guard)", async () => {
@@ -322,19 +314,18 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 3);
+		expect(generated.length).toBe(3);
 		const times = generated.map((row) => row.date.getTime());
-		assert.deepEqual(
-			times,
+		expect(times).toStrictEqual(
 			[at(2025, 6, 13), at(2025, 6, 14), at(2025, 6, 15)].map((d) =>
 				startOfDay(d).getTime(),
 			),
 		);
 		for (let i = 1; i < times.length; i++) {
-			assert.ok((times[i] ?? 0) > (times[i - 1] ?? 0));
+			expect((times[i] ?? 0) > (times[i - 1] ?? 0)).toBeTruthy();
 		}
 		const source = (await allRows(db)).find((row) => row.id === id);
-		assert.equal(source?.recurringType, RECURRING_TYPE.none);
+		expect(source?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
 	it("leaves a non-recurring source untouched", async () => {
@@ -347,7 +338,7 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const generated = await generatedRows(db, id);
-		assert.equal(generated.length, 0);
+		expect(generated.length).toBe(0);
 	});
 });
 
@@ -364,8 +355,7 @@ describe("backfillAllRecurring", () => {
 		await backfillAllRecurring(db, new Date(2025, 6, 20, 9, 0));
 
 		const dates = (await allRows(db)).map((row) => row.date.getTime());
-		assert.deepEqual(
-			dates,
+		expect(dates).toStrictEqual(
 			[
 				at(2025, 3, 15),
 				at(2025, 4, 15),
@@ -383,7 +373,7 @@ describe("backfillAllRecurring", () => {
 		const first = (await allRows(db)).length;
 		await backfillAllRecurring(db, NOW);
 
-		assert.equal((await allRows(db)).length, first);
+		expect((await allRows(db)).length).toBe(first);
 	});
 
 	// The carrier is a different row after every sweep, so a notice that survives
@@ -396,12 +386,11 @@ describe("backfillAllRecurring", () => {
 
 		const rows = await allRows(db);
 		const carrying = rows.filter((row) => row.reminderLeadDays != null);
-		assert.deepEqual(
-			carrying.map((row) => row.date.getTime()),
-			[at(2025, 7, 15).getTime()],
-		);
-		assert.equal(carrying[0]?.recurringType, RECURRING_TYPE.monthly);
-		assert.equal(carrying[0]?.reminderLeadDays, 2);
+		expect(carrying.map((row) => row.date.getTime())).toStrictEqual([
+			at(2025, 7, 15).getTime(),
+		]);
+		expect(carrying[0]?.recurringType).toBe(RECURRING_TYPE.monthly);
+		expect(carrying[0]?.reminderLeadDays).toBe(2);
 	});
 
 	it("sweeps every live subscription", async () => {
@@ -418,13 +407,12 @@ describe("backfillAllRecurring", () => {
 		const live = rows.filter(
 			(row) => row.recurringType !== RECURRING_TYPE.none,
 		);
-		assert.equal(rows.length, 5);
-		assert.deepEqual(
-			live.map((row) => row.date.getTime()),
-			[at(2025, 6, 15).getTime(), at(2025, 6, 15).getTime()],
-		);
-		assert.deepEqual(
-			live.map((row) => row.recurringType).sort(),
+		expect(rows.length).toBe(5);
+		expect(live.map((row) => row.date.getTime())).toStrictEqual([
+			at(2025, 6, 15).getTime(),
+			at(2025, 6, 15).getTime(),
+		]);
+		expect(live.map((row) => row.recurringType).sort()).toStrictEqual(
 			[RECURRING_TYPE.weekly, RECURRING_TYPE.monthly].sort(),
 		);
 	});
@@ -434,7 +422,7 @@ describe("backfillAllRecurring", () => {
 
 		await backfillAllRecurring(db, NOW);
 
-		assert.equal((await allRows(db)).length, 0);
+		expect((await allRows(db)).length).toBe(0);
 	});
 });
 
@@ -452,12 +440,12 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
 
 		const successor = await liveCarrier(db);
-		assert.notEqual(successor, null);
-		assert.equal(successor?.date.getTime(), at(2025, 7, 15).getTime());
-		assert.equal(successor?.recurringType, RECURRING_TYPE.monthly);
-		assert.equal(successor?.note, "Netflix");
-		assert.equal(successor?.amount, 9.99);
-		assert.equal(successor?.categoryId, "bills");
+		expect(successor).not.toBe(null);
+		expect(successor?.date.getTime()).toBe(at(2025, 7, 15).getTime());
+		expect(successor?.recurringType).toBe(RECURRING_TYPE.monthly);
+		expect(successor?.note).toBe("Netflix");
+		expect(successor?.amount).toBe(9.99);
+		expect(successor?.categoryId).toBe("bills");
 	});
 
 	it("leaves the deleted charge deleted", async () => {
@@ -468,14 +456,10 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
 
 		const live = await allRows(db);
-		assert.equal(
-			live.some((row) => row.id === carrier?.id),
-			false,
-		);
-		assert.equal(
+		expect(live.some((row) => row.id === carrier?.id)).toBe(false);
+		expect(
 			live.some((row) => row.date.getTime() === at(2025, 6, 15).getTime()),
-			false,
-		);
+		).toBe(false);
 	});
 
 	it("retires the schedule on the tombstone", async () => {
@@ -488,8 +472,8 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		const tombstone = (await everyRow(db)).find(
 			(row) => row.id === carrier?.id,
 		);
-		assert.notEqual(tombstone?.deletedAt, null);
-		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+		expect(tombstone?.deletedAt).not.toBe(null);
+		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
 	it("carries the coefficient and end date onto the successor", async () => {
@@ -504,10 +488,9 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
 
 		const successor = await liveCarrier(db);
-		assert.equal(successor?.date.getTime(), at(2025, 7, 15).getTime());
-		assert.equal(successor?.recurringCoefficient, 2);
-		assert.equal(
-			successor?.recurringEndDate?.getTime(),
+		expect(successor?.date.getTime()).toBe(at(2025, 7, 15).getTime());
+		expect(successor?.recurringCoefficient).toBe(2);
+		expect(successor?.recurringEndDate?.getTime()).toBe(
 			at(2026, 3, 15).getTime(),
 		);
 	});
@@ -521,7 +504,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		await transactionsRepo.remove(db, id, NOW);
 
-		assert.equal((await allRows(db)).length, 0);
+		expect((await allRows(db)).length).toBe(0);
 	});
 
 	it("stops the chain when the pending charge itself is deleted", async () => {
@@ -529,9 +512,9 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		await transactionsRepo.remove(db, id, NOW);
 
-		assert.equal((await allRows(db)).length, 0);
+		expect((await allRows(db)).length).toBe(0);
 		const [tombstone] = await everyRow(db);
-		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
 	it("does not fabricate the charges a stale carrier missed", async () => {
@@ -540,8 +523,8 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		await transactionsRepo.remove(db, id, NOW);
 
 		const live = await allRows(db);
-		assert.equal(live.length, 1);
-		assert.equal(live[0]?.date.getTime(), at(2025, 7, 15).getTime());
+		expect(live.length).toBe(1);
+		expect(live[0]?.date.getTime()).toBe(at(2025, 7, 15).getTime());
 	});
 
 	it("leaves a settled occurrence's delete alone", async () => {
@@ -554,8 +537,8 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		await transactionsRepo.remove(db, inert?.id ?? "", NOW);
 
-		assert.equal((await allRows(db)).length, before - 1);
-		assert.notEqual(await liveCarrier(db), null);
+		expect((await allRows(db)).length).toBe(before - 1);
+		expect(await liveCarrier(db)).not.toBe(null);
 	});
 
 	it("keeps sweeping the chain after the handover", async () => {
@@ -566,8 +549,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
 
-		assert.deepEqual(
-			(await allRows(db)).map((row) => row.date.getTime()),
+		expect((await allRows(db)).map((row) => row.date.getTime())).toStrictEqual(
 			[
 				at(2025, 3, 15),
 				at(2025, 4, 15),
@@ -588,8 +570,8 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		await transactionsRepo.remove(db, id, NOW);
 
-		assert.equal((await allRows(db)).length, 0);
-		assert.equal((await everyRow(db)).length, 1);
+		expect((await allRows(db)).length).toBe(0);
+		expect((await everyRow(db)).length).toBe(1);
 	});
 });
 
@@ -607,8 +589,8 @@ describe("transactionsRepo.stopRecurring", () => {
 
 		await transactionsRepo.stopRecurring(db, carrier?.id ?? "", NOW);
 
-		assert.equal((await allRows(db)).length, before);
-		assert.equal(await liveCarrier(db), null);
+		expect((await allRows(db)).length).toBe(before);
+		expect(await liveCarrier(db)).toBe(null);
 	});
 
 	it("anchors no successor, so later sweeps generate nothing", async () => {
@@ -619,8 +601,7 @@ describe("transactionsRepo.stopRecurring", () => {
 
 		await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
 
-		assert.deepEqual(
-			(await allRows(db)).map((row) => row.date.getTime()),
+		expect((await allRows(db)).map((row) => row.date.getTime())).toStrictEqual(
 			[at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map(
 				(d) => d.getTime(),
 			),
@@ -635,9 +616,9 @@ describe("transactionsRepo.stopRecurring", () => {
 		await transactionsRepo.stopRecurring(db, id, NOW);
 
 		const live = await allRows(db);
-		assert.equal(live.length, 1);
-		assert.equal(live[0]?.date.getTime(), at(2025, 7, 15).getTime());
-		assert.equal(live[0]?.recurringType, RECURRING_TYPE.none);
+		expect(live.length).toBe(1);
+		expect(live[0]?.date.getTime()).toBe(at(2025, 7, 15).getTime());
+		expect(live[0]?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
 	it("keeps the row listed as a member of its chain", async () => {
@@ -646,7 +627,7 @@ describe("transactionsRepo.stopRecurring", () => {
 		await transactionsRepo.stopRecurring(db, id, NOW);
 
 		const [row] = await allRows(db);
-		assert.equal(row?.onceRecurring, true);
+		expect(row?.onceRecurring).toBe(true);
 	});
 
 	it("leaves a tombstone the one-shot repair still has to read", async () => {
@@ -656,7 +637,7 @@ describe("transactionsRepo.stopRecurring", () => {
 		await transactionsRepo.stopRecurring(db, id, NOW);
 
 		const [tombstone] = await everyRow(db);
-		assert.equal(tombstone?.recurringType, RECURRING_TYPE.monthly);
+		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.monthly);
 	});
 });
 
@@ -671,14 +652,14 @@ describe("repairOrphanedRecurrence", () => {
 		await backfillRecurring(db, id, NOW);
 		const carrier = await liveCarrier(db);
 		await orphanCarrier(db, carrier?.id ?? "");
-		assert.equal(await liveCarrier(db), null);
+		expect(await liveCarrier(db)).toBe(null);
 
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 1);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(1);
 
 		const revived = await liveCarrier(db);
-		assert.equal(revived?.date.getTime(), at(2025, 7, 15).getTime());
-		assert.equal(revived?.recurringType, RECURRING_TYPE.monthly);
-		assert.equal(revived?.note, "Netflix");
+		expect(revived?.date.getTime()).toBe(at(2025, 7, 15).getTime());
+		expect(revived?.recurringType).toBe(RECURRING_TYPE.monthly);
+		expect(revived?.note).toBe("Netflix");
 	});
 
 	it("moves the notice onto the revived carrier and off the tombstone", async () => {
@@ -692,11 +673,11 @@ describe("repairOrphanedRecurrence", () => {
 
 		await repairOrphanedRecurrence(db, NOW);
 
-		assert.equal((await liveCarrier(db))?.reminderLeadDays, 1);
+		expect((await liveCarrier(db))?.reminderLeadDays).toBe(1);
 		const tombstone = (await everyRow(db)).find(
 			(row) => row.id === carrier?.id,
 		);
-		assert.equal(tombstone?.reminderLeadDays, null);
+		expect(tombstone?.reminderLeadDays).toBe(null);
 	});
 
 	it("clears the tombstone it repaired so a rerun cannot double-charge", async () => {
@@ -710,7 +691,7 @@ describe("repairOrphanedRecurrence", () => {
 		const tombstone = (await everyRow(db)).find(
 			(row) => row.id === carrier?.id,
 		);
-		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
 	it("is a no-op on a healthy ledger", async () => {
@@ -718,11 +699,10 @@ describe("repairOrphanedRecurrence", () => {
 		await backfillRecurring(db, id, NOW);
 		const before = (await everyRow(db)).length;
 
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
-		assert.equal((await everyRow(db)).length, before);
-		assert.equal(
-			(await liveCarrier(db))?.date.getTime(),
+		expect((await everyRow(db)).length).toBe(before);
+		expect((await liveCarrier(db))?.date.getTime()).toBe(
 			at(2025, 6, 15).getTime(),
 		);
 	});
@@ -730,15 +710,15 @@ describe("repairOrphanedRecurrence", () => {
 	it("only ever runs once, so a later tombstone is not swept up", async () => {
 		const id = await seedSource(db, { date: at(2025, 3, 15) });
 		await backfillRecurring(db, id, NOW);
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
 		const carrier = await liveCarrier(db);
 		await orphanCarrier(db, carrier?.id ?? "");
 		const before = (await everyRow(db)).length;
 
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
-		assert.equal((await everyRow(db)).length, before);
+		expect((await everyRow(db)).length).toBe(before);
 	});
 
 	it("does not double-charge a chain the delete handover already re-anchored", async () => {
@@ -748,18 +728,18 @@ describe("repairOrphanedRecurrence", () => {
 		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
 		const before = (await everyRow(db)).length;
 
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
-		assert.equal((await everyRow(db)).length, before);
+		expect((await everyRow(db)).length).toBe(before);
 	});
 
 	it("does not reinstate a deleted pending charge", async () => {
 		const id = await seedSource(db, { date: at(2025, 7, 15) });
 		await orphanCarrier(db, id);
 
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
-		assert.equal((await allRows(db)).length, 0);
+		expect((await allRows(db)).length).toBe(0);
 	});
 
 	it("retires a tombstone whose chain has run past its end date", async () => {
@@ -770,11 +750,11 @@ describe("repairOrphanedRecurrence", () => {
 		});
 		await orphanCarrier(db, id);
 
-		assert.equal(await repairOrphanedRecurrence(db, NOW), 0);
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
-		assert.equal((await allRows(db)).length, 0);
+		expect((await allRows(db)).length).toBe(0);
 		const [tombstone] = await everyRow(db);
-		assert.equal(tombstone?.recurringType, RECURRING_TYPE.none);
+		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 });
 
@@ -795,8 +775,8 @@ describe("occurrence identity across devices", () => {
 
 		const left = (await everyRow(first)).map((row) => row.id);
 		const right = (await everyRow(second)).map((row) => row.id);
-		assert.ok(left.length > 1, "expected the sweep to generate occurrences");
-		assert.deepEqual(left, right);
+		expect(left.length > 1).toBeTruthy();
+		expect(left).toStrictEqual(right);
 	});
 
 	it("upserts rather than doubling a charge already replicated in", async () => {
@@ -812,17 +792,11 @@ describe("occurrence identity across devices", () => {
 		await backfillRecurring(db, "src", NOW);
 
 		const rows = await everyRow(db);
-		assert.equal(
-			rows.filter((row) => row.id === replicated.id).length,
-			1,
-			"the same charge must not exist twice",
-		);
-		assert.equal(
-			rows.find((row) => row.id === replicated.id)?.note,
+		expect(rows.filter((row) => row.id === replicated.id).length).toBe(1);
+		expect(rows.find((row) => row.id === replicated.id)?.note).toBe(
 			"from-peer",
-			"a replicated row must not be clobbered by the local sweep",
 		);
-		assert.equal(rows.length, (await everyRow(solo)).length);
+		expect(rows.length).toBe((await everyRow(solo)).length);
 	});
 
 	it("keeps a peer's deletion of one occurrence deleted", async () => {
@@ -839,7 +813,7 @@ describe("occurrence identity across devices", () => {
 		await backfillRecurring(db, "src", NOW);
 
 		const raised = (await allRows(db)).find((row) => row.id === replicated.id);
-		assert.equal(raised, undefined, "the sweep resurrected a deleted charge");
+		expect(raised).toBe(undefined);
 	});
 
 	it("gives each occurrence in a chain its own id", async () => {
@@ -849,7 +823,7 @@ describe("occurrence identity across devices", () => {
 		await backfillRecurring(db, "src", NOW);
 
 		const ids = (await everyRow(db)).map((row) => row.id);
-		assert.equal(new Set(ids).size, ids.length);
+		expect(new Set(ids).size).toBe(ids.length);
 	});
 
 	it("anchors the same successor on two devices deleting the same carrier", async () => {
@@ -861,8 +835,7 @@ describe("occurrence identity across devices", () => {
 		await transactionsRepo.remove(first, "src", NOW);
 		await transactionsRepo.remove(second, "src", NOW);
 
-		assert.deepEqual(
-			(await everyRow(first)).map((row) => row.id),
+		expect((await everyRow(first)).map((row) => row.id)).toStrictEqual(
 			(await everyRow(second)).map((row) => row.id),
 		);
 	});

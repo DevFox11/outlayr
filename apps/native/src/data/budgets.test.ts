@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -73,7 +71,7 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 /**
  * The shipped migrations, applied in order. The delete tests need the real
@@ -119,7 +117,7 @@ describe("budgetsRepo.createBudget", () => {
 			startDate: BACKDATE,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 	});
 
 	it("anchors an omitted start date to the period start", async () => {
@@ -129,8 +127,7 @@ describe("budgetsRepo.createBudget", () => {
 			type: BUDGET_TYPE.month,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		assert.equal(
-			row?.startDate?.getTime(),
+		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.month).getTime(),
 		);
 	});
@@ -143,8 +140,7 @@ describe("budgetsRepo.createBudget", () => {
 			type: BUDGET_TYPE.week,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		assert.equal(
-			row?.startDate?.getTime(),
+		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.week, {
 				firstWeekday: 2,
 				firstDayOfMonth: 1,
@@ -160,8 +156,7 @@ describe("budgetsRepo.createBudget", () => {
 			type: BUDGET_TYPE.month,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		assert.equal(
-			row?.startDate?.getTime(),
+		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.month, {
 				firstWeekday: 1,
 				firstDayOfMonth: 25,
@@ -183,8 +178,8 @@ describe("budgetsRepo.createBudget", () => {
 			name: "   ",
 		});
 		const rows = await db.select().from(budgets);
-		assert.equal(rows.find((r) => r.id === named)?.name, "Coffee run");
-		assert.equal(rows.find((r) => r.id === blank)?.name, null);
+		expect(rows.find((r) => r.id === named)?.name).toBe("Coffee run");
+		expect(rows.find((r) => r.id === blank)?.name).toBe(null);
 	});
 });
 
@@ -204,7 +199,7 @@ describe("budgetsRepo.createMainBudget", () => {
 			.select()
 			.from(mainBudget)
 			.where(eq(mainBudget.id, id));
-		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 	});
 
 	it("anchors an omitted start date to the period start", async () => {
@@ -216,8 +211,7 @@ describe("budgetsRepo.createMainBudget", () => {
 			.select()
 			.from(mainBudget)
 			.where(eq(mainBudget.id, id));
-		assert.equal(
-			row?.startDate?.getTime(),
+		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.week).getTime(),
 		);
 	});
@@ -232,8 +226,7 @@ describe("budgetsRepo.createMainBudget", () => {
 			.select()
 			.from(mainBudget)
 			.where(eq(mainBudget.id, id));
-		assert.equal(
-			row?.startDate?.getTime(),
+		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.month, {
 				firstWeekday: 1,
 				firstDayOfMonth: 1,
@@ -253,9 +246,9 @@ describe("budgetsRepo.createMainBudget", () => {
 			startDate: null,
 		});
 		const rows = await db.select().from(mainBudget);
-		assert.equal(second, first);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0]?.amount, 3000);
+		expect(second).toBe(first);
+		expect(rows.length).toBe(1);
+		expect(rows[0]?.amount).toBe(3000);
 	});
 
 	it("re-points the singleton rather than inserting a second", async () => {
@@ -270,10 +263,10 @@ describe("budgetsRepo.createMainBudget", () => {
 			startDate: BACKDATE,
 		});
 		const rows = await db.select().from(mainBudget);
-		assert.equal(second, first);
-		assert.equal(rows.length, 1);
-		assert.equal(rows[0]?.amount, 1200);
-		assert.equal(rows[0]?.startDate?.getTime(), BACKDATE.getTime());
+		expect(second).toBe(first);
+		expect(rows.length).toBe(1);
+		expect(rows[0]?.amount).toBe(1200);
+		expect(rows[0]?.startDate?.getTime()).toBe(BACKDATE.getTime());
 	});
 
 	it("keeps an existing name when the caller supplies none", async () => {
@@ -289,7 +282,7 @@ describe("budgetsRepo.createMainBudget", () => {
 			type: BUDGET_TYPE.month,
 		});
 		const rows = await db.select().from(mainBudget);
-		assert.equal(rows[0]?.name, "Household");
+		expect(rows[0]?.name).toBe("Household");
 	});
 
 	it("clears the name when the caller explicitly blanks it", async () => {
@@ -304,7 +297,7 @@ describe("budgetsRepo.createMainBudget", () => {
 			name: "   ",
 		});
 		const rows = await db.select().from(mainBudget);
-		assert.equal(rows[0]?.name, null);
+		expect(rows[0]?.name).toBe(null);
 	});
 });
 
@@ -319,15 +312,15 @@ describe("getBudgetById", () => {
 			startDate: BACKDATE,
 		});
 		const row = getBudgetById(db, id);
-		assert.equal(row?.name, "Coffee run");
-		assert.equal(row?.amount, 250);
-		assert.equal(row?.categoryId, "cat-1");
-		assert.equal(row?.type, BUDGET_TYPE.month);
-		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+		expect(row?.name).toBe("Coffee run");
+		expect(row?.amount).toBe(250);
+		expect(row?.categoryId).toBe("cat-1");
+		expect(row?.type).toBe(BUDGET_TYPE.month);
+		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 	});
 
 	it("declines an id that names nothing", () => {
-		assert.equal(getBudgetById(makeDb(), "gone"), null);
+		expect(getBudgetById(makeDb(), "gone")).toBe(null);
 	});
 });
 
@@ -353,8 +346,8 @@ describe("budgetsRepo.updateBudget", () => {
 		});
 
 		const row = getBudgetById(db, id);
-		assert.equal(row?.amount, 300);
-		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+		expect(row?.amount).toBe(300);
+		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 	});
 
 	it("honours an explicit start date and falls back to the period start", async () => {
@@ -372,7 +365,7 @@ describe("budgetsRepo.updateBudget", () => {
 			startDate: BACKDATE,
 		});
 		let [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		assert.equal(row?.startDate?.getTime(), BACKDATE.getTime());
+		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 
 		await budgetsRepo.updateBudget(db, id, {
 			categoryId: "cat-1",
@@ -380,8 +373,7 @@ describe("budgetsRepo.updateBudget", () => {
 			type: BUDGET_TYPE.month,
 		});
 		[row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		assert.equal(
-			row?.startDate?.getTime(),
+		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.month).getTime(),
 		);
 	});
@@ -417,10 +409,10 @@ describe("an edited budget stays coherent", () => {
 		});
 
 		const created = getBudgetById(db, id);
-		assert.ok(created);
-		assert.equal(created.startDate?.getTime(), anchor.getTime());
-		assert.equal(created.amountUsd, 500);
-		assert.equal(limitIn(created, anchor, "USD", rates), 500);
+		if (!created) throw new Error("expected the budget to exist");
+		expect(created.startDate?.getTime()).toBe(anchor.getTime());
+		expect(created.amountUsd).toBe(500);
+		expect(limitIn(created, anchor, "USD", rates)).toBe(500);
 
 		await budgetsRepo.updateBudget(db, id, {
 			categoryId: created.categoryId ?? "cat-1",
@@ -431,10 +423,10 @@ describe("an edited budget stays coherent", () => {
 		});
 
 		const edited = getBudgetById(db, id);
-		assert.ok(edited);
-		assert.equal(edited.startDate?.getTime(), anchor.getTime());
-		assert.equal(edited.amountUsd, 1000);
-		assert.equal(limitIn(edited, anchor, "USD", rates), 1000);
+		if (!edited) throw new Error("expected the budget to exist");
+		expect(edited.startDate?.getTime()).toBe(anchor.getTime());
+		expect(edited.amountUsd).toBe(1000);
+		expect(limitIn(edited, anchor, "USD", rates)).toBe(1000);
 	});
 });
 
@@ -467,10 +459,10 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 			})
 			.from(budgets)
 			.where(eq(budgets.id, id));
-		assert.equal(row.amount, 400);
-		assert.equal(row.currency, "EUR");
+		expect(row.amount).toBe(400);
+		expect(row.currency).toBe("EUR");
 		// 400 EUR / 0.9.
-		assert.equal(Math.round((row.amountUsd ?? 0) * 100) / 100, 444.44);
+		expect(Math.round((row.amountUsd ?? 0) * 100) / 100).toBe(444.44);
 	});
 
 	it("freezes the USD value on the day the anchored window opens", async () => {
@@ -509,7 +501,7 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 			.from(budgets)
 			.where(eq(budgets.id, id));
 		// 400 EUR / 0.9, February's rate — not 0.5, the rate on the day of the write.
-		assert.equal(Math.round((row.amountUsd ?? 0) * 100) / 100, 444.44);
+		expect(Math.round((row.amountUsd ?? 0) * 100) / 100).toBe(444.44);
 	});
 
 	it("stores the amount unsigned", async () => {
@@ -525,7 +517,7 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 			.select({ amount: budgets.amount })
 			.from(budgets)
 			.where(eq(budgets.id, id));
-		assert.equal(row.amount, 250);
+		expect(row.amount).toBe(250);
 	});
 });
 
@@ -567,14 +559,14 @@ describe("a budget stepped back to a closed window", () => {
 			startDate: current,
 		});
 		const row = getBudgetById(db, id);
-		assert.ok(row);
+		if (!row) throw new Error("expected the budget to exist");
 
 		const july = shiftWindow(current, BUDGET_TYPE.month, 0);
 		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
-		assert.deepEqual(march.start, new Date(2026, 2, 1));
+		expect(march.start).toStrictEqual(new Date(2026, 2, 1));
 
-		assert.equal(limitIn(row, july.start, "USD", rates), 900);
-		assert.equal(limitIn(row, march.start, "USD", rates), 500);
+		expect(limitIn(row, july.start, "USD", rates)).toBe(900);
+		expect(limitIn(row, march.start, "USD", rates)).toBe(500);
 	});
 
 	it("falls back to the frozen value when no rate reaches the window", async () => {
@@ -600,11 +592,11 @@ describe("a budget stepped back to a closed window", () => {
 			startDate: current,
 		});
 		const row = getBudgetById(db, id);
-		assert.ok(row);
+		if (!row) throw new Error("expected the budget to exist");
 
 		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
 		// 450 / 0.5: the write-time freeze, since March predates every EUR rate.
-		assert.equal(limitIn(row, march.start, "USD", rates), 900);
+		expect(limitIn(row, march.start, "USD", rates)).toBe(900);
 	});
 });
 
@@ -642,7 +634,7 @@ describe("budgetsRepo.deleteBudget", () => {
 		// A hard delete fires the AFTER DELETE trigger, which removes the entry: the
 		// peer never hears of the delete, keeps the budget, and pushes it back at a
 		// fresh seq the moment its own period rolls over.
-		assert.deepEqual(await queued(db), [["budgets", id]]);
+		expect(await queued(db)).toStrictEqual([["budgets", id]]);
 	});
 
 	it("leaves a tombstone no read can reach", async () => {
@@ -650,17 +642,17 @@ describe("budgetsRepo.deleteBudget", () => {
 
 		await budgetsRepo.deleteBudget(db, id);
 
-		assert.equal(getBudgetById(db, id), null);
+		expect(getBudgetById(db, id)).toBe(null);
 		const live = await db
 			.select()
 			.from(budgets)
 			.where(isNull(budgets.deletedAt));
-		assert.equal(live.length, 0);
+		expect(live.length).toBe(0);
 
 		const replicable = await db.select().from(budgets);
-		assert.equal(replicable.length, 1);
-		assert.equal(replicable[0]?.id, id);
-		assert.notEqual(replicable[0]?.deletedAt, null);
+		expect(replicable.length).toBe(1);
+		expect(replicable[0]?.id).toBe(id);
+		expect(replicable[0]?.deletedAt).not.toBe(null);
 	});
 
 	it("strips everything personal off the tombstone", async () => {
@@ -669,15 +661,15 @@ describe("budgetsRepo.deleteBudget", () => {
 		await budgetsRepo.deleteBudget(db, id);
 
 		const [row] = await db.select().from(budgets);
-		assert.equal(row.name, null);
-		assert.equal(row.amount, 0);
-		assert.equal(row.type, 0);
-		assert.equal(row.startDate, null);
-		assert.equal(row.dateCreated, null);
-		assert.equal(row.currency, null);
-		assert.equal(row.amountUsd, null);
-		assert.equal(row.green, false);
-		assert.equal(row.categoryId, null);
+		expect(row.name).toBe(null);
+		expect(row.amount).toBe(0);
+		expect(row.type).toBe(0);
+		expect(row.startDate).toBe(null);
+		expect(row.dateCreated).toBe(null);
+		expect(row.currency).toBe(null);
+		expect(row.amountUsd).toBe(null);
+		expect(row.green).toBe(false);
+		expect(row.categoryId).toBe(null);
 	});
 
 	it("frees the category so the same one can be budgeted again", async () => {
@@ -690,9 +682,9 @@ describe("budgetsRepo.deleteBudget", () => {
 			.select()
 			.from(budgets)
 			.where(isNull(budgets.deletedAt));
-		assert.equal(live.length, 1);
-		assert.equal(live[0]?.id, second);
-		assert.equal(live[0]?.categoryId, "cat-1");
+		expect(live.length).toBe(1);
+		expect(live[0]?.id).toBe(second);
+		expect(live[0]?.categoryId).toBe("cat-1");
 	});
 
 	it("leaves a tombstone it already wrote alone", async () => {
@@ -704,9 +696,9 @@ describe("budgetsRepo.deleteBudget", () => {
 		await budgetsRepo.deleteBudget(db, id);
 
 		const [second] = await db.select().from(budgets);
-		assert.equal(second.deletedAt?.getTime(), first.deletedAt?.getTime());
-		assert.equal(second.updatedAt.getTime(), first.updatedAt.getTime());
-		assert.deepEqual(await queued(db), []);
+		expect(second.deletedAt?.getTime()).toBe(first.deletedAt?.getTime());
+		expect(second.updatedAt.getTime()).toBe(first.updatedAt.getTime());
+		expect(await queued(db)).toStrictEqual([]);
 	});
 });
 
@@ -733,19 +725,19 @@ describe("budgetsRepo.deleteMainBudget", () => {
 
 		await budgetsRepo.deleteMainBudget(db, id);
 
-		assert.deepEqual(await queued(db), [["mainBudget", id]]);
+		expect(await queued(db)).toStrictEqual([["mainBudget", id]]);
 		const replicable = await db.select().from(mainBudget);
-		assert.equal(replicable.length, 1);
-		assert.notEqual(replicable[0]?.deletedAt, null);
-		assert.equal(replicable[0]?.name, null);
-		assert.equal(replicable[0]?.amount, 0);
-		assert.equal(replicable[0]?.startDate, null);
+		expect(replicable.length).toBe(1);
+		expect(replicable[0]?.deletedAt).not.toBe(null);
+		expect(replicable[0]?.name).toBe(null);
+		expect(replicable[0]?.amount).toBe(0);
+		expect(replicable[0]?.startDate).toBe(null);
 
 		const live = await db
 			.select()
 			.from(mainBudget)
 			.where(isNull(mainBudget.deletedAt));
-		assert.equal(live.length, 0);
+		expect(live.length).toBe(0);
 	});
 
 	it("lets a new overall budget be set without reviving the tombstone", async () => {
@@ -754,14 +746,14 @@ describe("budgetsRepo.deleteMainBudget", () => {
 
 		const second = await add();
 
-		assert.notEqual(second, first);
+		expect(second).not.toBe(first);
 		const live = await db
 			.select()
 			.from(mainBudget)
 			.where(isNull(mainBudget.deletedAt));
-		assert.equal(live.length, 1);
-		assert.equal(live[0]?.id, second);
-		assert.equal(live[0]?.amount, 2000);
+		expect(live.length).toBe(1);
+		expect(live[0]?.id).toBe(second);
+		expect(live[0]?.amount).toBe(2000);
 	});
 });
 
@@ -777,7 +769,9 @@ describe("the budget tombstone shapes", () => {
 			(name) => !ENVELOPE.has(name),
 		);
 
-		assert.deepEqual(Object.keys(TOMBSTONED_BUDGET).sort(), declared.sort());
+		expect(Object.keys(TOMBSTONED_BUDGET).sort()).toStrictEqual(
+			declared.sort(),
+		);
 	});
 
 	it("names every column of the overall budget that is not the envelope", () => {
@@ -785,8 +779,7 @@ describe("the budget tombstone shapes", () => {
 			(name) => !ENVELOPE.has(name),
 		);
 
-		assert.deepEqual(
-			Object.keys(TOMBSTONED_MAIN_BUDGET).sort(),
+		expect(Object.keys(TOMBSTONED_MAIN_BUDGET).sort()).toStrictEqual(
 			declared.sort(),
 		);
 	});

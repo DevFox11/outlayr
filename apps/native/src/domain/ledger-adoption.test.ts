@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	ADOPTION_CHOICES,
 	adoptionActions,
@@ -10,30 +8,30 @@ import {
 
 describe("adoption plan", () => {
 	it("has nothing to reconcile when neither side holds a ledger", () => {
-		assert.equal(adoptionPlan("empty", "empty"), "fresh");
+		expect(adoptionPlan("empty", "empty")).toBe("fresh");
 	});
 
 	it("adopts a ledger built up before the account existed", () => {
-		assert.equal(adoptionPlan("populated", "empty"), "adopt");
+		expect(adoptionPlan("populated", "empty")).toBe("adopt");
 	});
 
 	it("replaces an untouched install with the account's ledger", () => {
-		assert.equal(adoptionPlan("empty", "populated"), "replace");
+		expect(adoptionPlan("empty", "populated")).toBe("replace");
 	});
 
 	it("asks only when both sides hold a ledger", () => {
-		assert.equal(adoptionPlan("populated", "populated"), "ask");
+		expect(adoptionPlan("populated", "populated")).toBe("ask");
 	});
 
 	it("defers while the account's ledger cannot be read", () => {
-		assert.equal(adoptionPlan("empty", "unknown"), "defer");
-		assert.equal(adoptionPlan("populated", "unknown"), "defer");
+		expect(adoptionPlan("empty", "unknown")).toBe("defer");
+		expect(adoptionPlan("populated", "unknown")).toBe("defer");
 	});
 });
 
 describe("adoption actions", () => {
 	it("does nothing on a fresh pairing", () => {
-		assert.deepEqual(adoptionActions("fresh"), {
+		expect(adoptionActions("fresh")).toStrictEqual({
 			pushLocal: false,
 			wipeLocal: false,
 			wipeAccount: false,
@@ -41,7 +39,7 @@ describe("adoption actions", () => {
 	});
 
 	it("pushes and destroys nothing when adopting", () => {
-		assert.deepEqual(adoptionActions("adopt"), {
+		expect(adoptionActions("adopt")).toStrictEqual({
 			pushLocal: true,
 			wipeLocal: false,
 			wipeAccount: false,
@@ -49,7 +47,7 @@ describe("adoption actions", () => {
 	});
 
 	it("keeps the account's ledger by discarding the local replica", () => {
-		assert.deepEqual(adoptionActions("replace"), {
+		expect(adoptionActions("replace")).toStrictEqual({
 			pushLocal: false,
 			wipeLocal: true,
 			wipeAccount: false,
@@ -57,19 +55,23 @@ describe("adoption actions", () => {
 	});
 
 	it("has no actions of its own while the choice is unmade", () => {
-		assert.equal(adoptionActions("ask"), null);
-		assert.equal(adoptionActions("defer"), null);
+		expect(adoptionActions("ask")).toBe(null);
+		expect(adoptionActions("defer")).toBe(null);
 	});
 });
 
 describe("adoption choice", () => {
 	it("offers merge first, because it is the only one that keeps everything", () => {
-		assert.deepEqual(ADOPTION_CHOICES, ["merge", "keep-local", "keep-account"]);
+		expect(ADOPTION_CHOICES).toStrictEqual([
+			"merge",
+			"keep-local",
+			"keep-account",
+		]);
 	});
 
 	it("destroys nothing when merging", () => {
-		assert.equal(isDestructiveChoice("merge"), false);
-		assert.deepEqual(choiceActions("merge"), {
+		expect(isDestructiveChoice("merge")).toBe(false);
+		expect(choiceActions("merge")).toStrictEqual({
 			pushLocal: true,
 			wipeLocal: false,
 			wipeAccount: false,
@@ -77,8 +79,8 @@ describe("adoption choice", () => {
 	});
 
 	it("discards the account's rows to keep this device's", () => {
-		assert.equal(isDestructiveChoice("keep-local"), true);
-		assert.deepEqual(choiceActions("keep-local"), {
+		expect(isDestructiveChoice("keep-local")).toBe(true);
+		expect(choiceActions("keep-local")).toStrictEqual({
 			pushLocal: true,
 			wipeLocal: false,
 			wipeAccount: true,
@@ -86,8 +88,8 @@ describe("adoption choice", () => {
 	});
 
 	it("discards this device's rows to keep the account's", () => {
-		assert.equal(isDestructiveChoice("keep-account"), true);
-		assert.deepEqual(choiceActions("keep-account"), {
+		expect(isDestructiveChoice("keep-account")).toBe(true);
+		expect(choiceActions("keep-account")).toStrictEqual({
 			pushLocal: false,
 			wipeLocal: true,
 			wipeAccount: false,
@@ -97,7 +99,7 @@ describe("adoption choice", () => {
 	it("never both pushes and wipes the side it is pushing from", () => {
 		for (const choice of ADOPTION_CHOICES) {
 			const actions = choiceActions(choice);
-			assert.equal(actions.pushLocal && actions.wipeLocal, false, choice);
+			expect(actions.pushLocal && actions.wipeLocal).toBe(false);
 		}
 	});
 });

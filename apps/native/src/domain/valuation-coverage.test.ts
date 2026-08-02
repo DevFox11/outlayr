@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
@@ -11,33 +9,34 @@ const t: TranslateFn = (key, params) =>
 
 describe("coverageNote", () => {
 	it("says nothing when every figure rests on a converted row", () => {
-		assert.equal(
+		expect(
 			coverageNote({ converted: 120, pending: 0, beyondRateHistory: 0 }, t),
-			null,
-		);
-		assert.equal(
+		).toBe(null);
+		expect(
 			coverageNote({ converted: 0, pending: 0, beyondRateHistory: 0 }, t),
-			null,
-		);
+		).toBe(null);
 	});
 
 	it("says a backlog is draining when the rows are still reachable", () => {
-		assert.equal(
+		expect(
 			coverageNote({ converted: 117, pending: 3, beyondRateHistory: 0 }, t),
+		).toBe(
 			"Rates are still catching up: 3 of 120 entries are counted at the amount they were logged in.",
 		);
 	});
 
 	it("does not promise a permanent tail will ever resolve", () => {
-		assert.equal(
+		expect(
 			coverageNote({ converted: 118, pending: 0, beyondRateHistory: 2 }, t),
+		).toBe(
 			"2 of 120 entries predate the rate history, so they are counted at the amount they were logged in.",
 		);
 	});
 
 	it("keeps the two apart when the ledger has both", () => {
-		assert.equal(
+		expect(
 			coverageNote({ converted: 115, pending: 3, beyondRateHistory: 2 }, t),
+		).toBe(
 			"Rates are still catching up: 3 of 120 entries are counted at the amount they were logged in. 2 more predate the rate history and always will be.",
 		);
 	});
@@ -65,7 +64,7 @@ const row = (
 
 describe("coverageOf", () => {
 	it("counts a row the display currency can reach as converted", () => {
-		assert.deepEqual(coverageOf([row()], "USD", RATES), {
+		expect(coverageOf([row()], "USD", RATES)).toStrictEqual({
 			converted: 1,
 			pending: 0,
 			beyondRateHistory: 0,
@@ -73,7 +72,7 @@ describe("coverageOf", () => {
 	});
 
 	it("counts an un-canonicalized row a later pull can still value as pending", () => {
-		assert.deepEqual(coverageOf([row({ amountUsd: null })], "USD", RATES), {
+		expect(coverageOf([row({ amountUsd: null })], "USD", RATES)).toStrictEqual({
 			converted: 0,
 			pending: 1,
 			beyondRateHistory: 0,
@@ -85,7 +84,7 @@ describe("coverageOf", () => {
 			amountUsd: null,
 			date: new Date(Date.UTC(2025, 2, 4)),
 		});
-		assert.deepEqual(coverageOf([stepped], "USD", RATES), {
+		expect(coverageOf([stepped], "USD", RATES)).toStrictEqual({
 			converted: 0,
 			pending: 0,
 			beyondRateHistory: 1,
@@ -100,7 +99,7 @@ describe("coverageOf", () => {
 			amountUsd: 10,
 			date: new Date(Date.UTC(2025, 2, 4)),
 		});
-		assert.deepEqual(coverageOf([stepped], "EUR", RATES), {
+		expect(coverageOf([stepped], "EUR", RATES)).toStrictEqual({
 			converted: 0,
 			pending: 0,
 			beyondRateHistory: 1,
@@ -115,7 +114,7 @@ describe("coverageOf", () => {
 			amountUsd: null,
 			date: new Date(Date.UTC(2020, 0, 1)),
 		});
-		assert.deepEqual(coverageOf([unknown], "USD", RATES), {
+		expect(coverageOf([unknown], "USD", RATES)).toStrictEqual({
 			converted: 0,
 			pending: 1,
 			beyondRateHistory: 0,
@@ -123,6 +122,6 @@ describe("coverageOf", () => {
 	});
 
 	it("says nothing for an empty window", () => {
-		assert.equal(coverageNote(coverageOf([], "USD", RATES), t), null);
+		expect(coverageNote(coverageOf([], "USD", RATES), t)).toBe(null);
 	});
 });

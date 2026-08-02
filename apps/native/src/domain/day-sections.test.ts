@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { groupByDay } from "./day-sections";
 import { buildRateTable } from "./valuation";
 
@@ -9,15 +7,15 @@ function row(day: string, amount: number, income = false) {
 
 describe("groupByDay", () => {
 	it("returns no sections for no rows", () => {
-		assert.deepEqual(groupByDay([]), []);
+		expect(groupByDay([])).toStrictEqual([]);
 	});
 
 	it("collects a day's rows under one section in input order", () => {
 		const rows = [row("2026-07-24", 12), row("2026-07-24", 30)];
 		const sections = groupByDay(rows);
-		assert.equal(sections.length, 1);
-		assert.equal(sections[0].day.getTime(), rows[0].day.getTime());
-		assert.deepEqual(sections[0].data, rows);
+		expect(sections.length).toBe(1);
+		expect(sections[0].day.getTime()).toBe(rows[0].day.getTime());
+		expect(sections[0].data).toStrictEqual(rows);
 	});
 
 	it("subtracts expense and adds income into the day total", () => {
@@ -25,7 +23,7 @@ describe("groupByDay", () => {
 			row("2026-07-24", 40),
 			row("2026-07-24", 15, true),
 		]);
-		assert.equal(sections[0].total, -25);
+		expect(sections[0].total).toBe(-25);
 	});
 
 	it("keeps sections in first-appearance order so a day-desc query stays desc", () => {
@@ -34,10 +32,9 @@ describe("groupByDay", () => {
 			row("2026-07-23", 20),
 			row("2026-07-21", 30),
 		]);
-		assert.deepEqual(
-			sections.map((section) => section.day.getDate()),
-			[24, 23, 21],
-		);
+		expect(sections.map((section) => section.day.getDate())).toStrictEqual([
+			24, 23, 21,
+		]);
 	});
 
 	it("merges a day that reappears later without opening a second section", () => {
@@ -48,10 +45,10 @@ describe("groupByDay", () => {
 			row("2026-07-23", 20),
 			row("2026-07-24", 5),
 		]);
-		assert.equal(sections.length, 2);
-		assert.equal(sections[0].data.length, 2);
-		assert.equal(sections[0].total, -15);
-		assert.equal(sections[1].total, -20);
+		expect(sections.length).toBe(2);
+		expect(sections[0].data.length).toBe(2);
+		expect(sections[0].total).toBe(-15);
+		expect(sections[1].total).toBe(-20);
 	});
 
 	it("buckets a day's total per currency rather than adding two together", () => {
@@ -62,20 +59,19 @@ describe("groupByDay", () => {
 			],
 			"USD",
 		);
-		assert.deepEqual(
+		expect(
 			section.totals.map((bucket) => [bucket.currencyCode, bucket.amount]),
-			[
-				["USD", -40],
-				["EUR", -10],
-			],
-		);
+		).toStrictEqual([
+			["USD", -40],
+			["EUR", -10],
+		]);
 	});
 
 	it("copies the day key so callers cannot mutate a row's date through it", () => {
 		const rows = [row("2026-07-24", 10)];
 		const [section] = groupByDay(rows);
 		section.day.setDate(1);
-		assert.equal(rows[0].day.getDate(), 24);
+		expect(rows[0].day.getDate()).toBe(24);
 	});
 });
 
@@ -98,10 +94,9 @@ describe("groupByDay with rates", () => {
 			"EUR",
 			eurRates,
 		);
-		assert.deepEqual(
+		expect(
 			section.totals.map((bucket) => [bucket.currencyCode, bucket.amount]),
-			[["EUR", -49]],
-		);
+		).toStrictEqual([["EUR", -49]]);
 	});
 
 	it("keeps `total` equal to the sum of the buckets it prints", () => {
@@ -135,7 +130,7 @@ describe("groupByDay with rates", () => {
 		for (const bucket of section.totals) {
 			summed += bucket.amount;
 		}
-		assert.equal(section.total, summed);
-		assert.equal(section.total, -0.27);
+		expect(section.total).toBe(summed);
+		expect(section.total).toBe(-0.27);
 	});
 });

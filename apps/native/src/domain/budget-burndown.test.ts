@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildBurndown } from "./budget-burndown";
 import type { BudgetWindow } from "./budget-math";
@@ -47,8 +45,8 @@ describe("buildBurndown", () => {
 		});
 
 		const today = result.points.at(-1);
-		assert.equal(today?.spent, 2881.5);
-		assert.equal(today?.balance, -881.5);
+		expect(today?.spent).toBe(2881.5);
+		expect(today?.balance).toBe(-881.5);
 	});
 
 	it("reports the day the balance first went negative", () => {
@@ -58,8 +56,8 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 25),
 		});
 
-		assert.equal(result.runwayDay, 23);
-		assert.deepEqual(result.runwayDate, at(2026, 7, 23));
+		expect(result.runwayDay).toBe(23);
+		expect(result.runwayDate).toStrictEqual(at(2026, 7, 23));
 	});
 
 	it("leaves the runway empty while the budget still holds", () => {
@@ -69,8 +67,8 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 25),
 		});
 
-		assert.equal(result.runwayDay, null);
-		assert.equal(result.runwayDate, null);
+		expect(result.runwayDay).toBe(null);
+		expect(result.runwayDate).toBe(null);
 	});
 
 	it("stops the actual series at today rather than the window end", () => {
@@ -80,9 +78,9 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 25),
 		});
 
-		assert.equal(result.totalDays, 31);
-		assert.equal(result.points.length, 25);
-		assert.equal(result.points.at(-1)?.day, 25);
+		expect(result.totalDays).toBe(31);
+		expect(result.points.length).toBe(25);
+		expect(result.points.at(-1)?.day).toBe(25);
 	});
 
 	it("carries the balance across days with no spending", () => {
@@ -92,10 +90,9 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 4),
 		});
 
-		assert.deepEqual(
-			result.points.map((p) => p.balance),
-			[400, 400, 400, 400],
-		);
+		expect(result.points.map((p) => p.balance)).toStrictEqual([
+			400, 400, 400, 400,
+		]);
 	});
 
 	it("counts a subcategory's spending toward its parent's budget", () => {
@@ -112,7 +109,7 @@ describe("buildBurndown", () => {
 			categoryId: "dining",
 		});
 
-		assert.equal(result.points.at(-1)?.spent, 75);
+		expect(result.points.at(-1)?.spent).toBe(75);
 	});
 
 	it("ignores expenses outside the window", () => {
@@ -128,7 +125,7 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 10),
 		});
 
-		assert.equal(result.points.at(-1)?.spent, 40);
+		expect(result.points.at(-1)?.spent).toBe(40);
 	});
 
 	it("ignores expenses dated after now but still inside the window", () => {
@@ -138,7 +135,7 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 10),
 		});
 
-		assert.equal(result.points.at(-1)?.spent, 40);
+		expect(result.points.at(-1)?.spent).toBe(40);
 	});
 
 	it("projects the end-of-window balance from the current rate", () => {
@@ -152,7 +149,7 @@ describe("buildBurndown", () => {
 		});
 
 		// 31 days x $100 = $3,100 spent, against a $2,000 limit.
-		assert.equal(result.projectedBalance, -1100);
+		expect(result.projectedBalance).toBe(-1100);
 	});
 
 	it("keeps a lone outlier from dominating the projection", () => {
@@ -165,11 +162,10 @@ describe("buildBurndown", () => {
 		// A mean rate spreads the single $2,500 charge across all 31 days and
 		// forecasts -$1,573. Taking a typical purchase instead lands near the
 		// -$881.50 already spent, plus a realistic six days more of small ones.
-		assert.ok(
+		expect(
 			result.projectedBalance != null && result.projectedBalance > -1100,
-			`outlier still dominating: ${result.projectedBalance}`,
-		);
-		assert.equal(result.projectedBalance, -970.54);
+		).toBeTruthy();
+		expect(result.projectedBalance).toBe(-970.54);
 	});
 
 	it("keeps forecasting for someone who only shops some days", () => {
@@ -184,7 +180,7 @@ describe("buildBurndown", () => {
 		});
 
 		// $300 a shop, 3 shops in 10 days, 21 days left: 300 * 0.3 * 21 = 1890.
-		assert.equal(result.projectedBalance, 2000 - 900 - 1890);
+		expect(result.projectedBalance).toBe(2000 - 900 - 1890);
 	});
 
 	it("still warns before the blowout when spending is sparse", () => {
@@ -200,12 +196,11 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 25),
 		});
 
-		assert.equal(result.runwayDay, null);
-		assert.ok(
+		expect(result.runwayDay).toBe(null);
+		expect(
 			result.projectedBalance != null && result.projectedBalance < 0,
-			`expected a shortfall, got ${result.projectedBalance}`,
-		);
-		assert.equal(result.projectedBalance, -356);
+		).toBeTruthy();
+		expect(result.projectedBalance).toBe(-356);
 	});
 
 	it("averages the middle pair when an even number of days has elapsed", () => {
@@ -220,7 +215,7 @@ describe("buildBurndown", () => {
 		});
 
 		// Median of 8 days is (40 + 50) / 2 = 45, across the 23 days left.
-		assert.equal(result.projectedBalance, 2000 - 360 - 45 * 23);
+		expect(result.projectedBalance).toBe(2000 - 360 - 45 * 23);
 	});
 
 	it("withholds the projection while too little of the window has elapsed", () => {
@@ -230,7 +225,7 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 2),
 		});
 
-		assert.equal(result.projectedBalance, null);
+		expect(result.projectedBalance).toBe(null);
 	});
 
 	it("survives a zero limit without dividing by it", () => {
@@ -240,8 +235,8 @@ describe("buildBurndown", () => {
 			now: at(2026, 7, 10),
 		});
 
-		assert.equal(result.points.at(-1)?.balance, -50);
-		assert.equal(result.runwayDay, 2);
+		expect(result.points.at(-1)?.balance).toBe(-50);
+		expect(result.runwayDay).toBe(2);
 	});
 
 	it("buckets by calendar day so a DST shift cannot smear spending", () => {
@@ -261,9 +256,8 @@ describe("buildBurndown", () => {
 			now: at(2026, 11, 5),
 		});
 
-		assert.deepEqual(
-			result.points.map((p) => p.spent),
-			[10, 10, 30, 30, 30],
-		);
+		expect(result.points.map((p) => p.spent)).toStrictEqual([
+			10, 10, 30, 30, 30,
+		]);
 	});
 });

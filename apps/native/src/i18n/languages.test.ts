@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-
 import {
 	DEFAULT_LANGUAGE,
 	LANGUAGE_OPTIONS,
@@ -14,79 +11,79 @@ import {
 describe("resolveLanguagePreference", () => {
 	it("accepts every supported language", () => {
 		for (const language of SUPPORTED_LANGUAGES) {
-			assert.equal(resolveLanguagePreference(language), language);
+			expect(resolveLanguagePreference(language)).toBe(language);
 		}
 	});
 
 	it("accepts the system preference", () => {
-		assert.equal(resolveLanguagePreference("system"), "system");
+		expect(resolveLanguagePreference("system")).toBe("system");
 	});
 
 	it("falls back to system for an unknown stored value", () => {
-		assert.equal(resolveLanguagePreference("klingon"), "system");
+		expect(resolveLanguagePreference("klingon")).toBe("system");
 	});
 
 	it("falls back to system for a missing stored value", () => {
-		assert.equal(resolveLanguagePreference(null), "system");
-		assert.equal(resolveLanguagePreference(undefined), "system");
+		expect(resolveLanguagePreference(null)).toBe("system");
+		expect(resolveLanguagePreference(undefined)).toBe("system");
 	});
 });
 
 describe("languageFromTag", () => {
 	it("matches a bare language code", () => {
-		assert.equal(languageFromTag("es"), "es");
+		expect(languageFromTag("es")).toBe("es");
 	});
 
 	it("matches a regional tag by its primary subtag", () => {
-		assert.equal(languageFromTag("es-419"), "es");
-		assert.equal(languageFromTag("es-MX"), "es");
-		assert.equal(languageFromTag("en-GB"), "en");
+		expect(languageFromTag("es-419")).toBe("es");
+		expect(languageFromTag("es-MX")).toBe("es");
+		expect(languageFromTag("en-GB")).toBe("en");
 	});
 
 	it("is case insensitive", () => {
-		assert.equal(languageFromTag("ES-mx"), "es");
+		expect(languageFromTag("ES-mx")).toBe("es");
 	});
 
 	it("tolerates an underscore-separated tag", () => {
-		assert.equal(languageFromTag("es_419"), "es");
+		expect(languageFromTag("es_419")).toBe("es");
 	});
 
 	it("returns null for an unsupported language", () => {
-		assert.equal(languageFromTag("fr-FR"), null);
-		assert.equal(languageFromTag(""), null);
-		assert.equal(languageFromTag(null), null);
+		expect(languageFromTag("fr-FR")).toBe(null);
+		expect(languageFromTag("")).toBe(null);
+		expect(languageFromTag(null)).toBe(null);
 	});
 });
 
 describe("resolveLanguage", () => {
 	it("honours an explicit override regardless of the device", () => {
-		assert.equal(resolveLanguage("es", "en-US"), "es");
-		assert.equal(resolveLanguage("en", "es-419"), "en");
+		expect(resolveLanguage("es", "en-US")).toBe("es");
+		expect(resolveLanguage("en", "es-419")).toBe("en");
 	});
 
 	it("follows the device when the preference is system", () => {
-		assert.equal(resolveLanguage("system", "es-419"), "es");
+		expect(resolveLanguage("system", "es-419")).toBe("es");
 	});
 
 	it("falls back to the default when the device speaks an unsupported language", () => {
-		assert.equal(resolveLanguage("system", "fr-FR"), DEFAULT_LANGUAGE);
+		expect(resolveLanguage("system", "fr-FR")).toBe(DEFAULT_LANGUAGE);
 	});
 
 	it("falls back to the default when the device tag is unknown", () => {
-		assert.equal(resolveLanguage("system", null), DEFAULT_LANGUAGE);
+		expect(resolveLanguage("system", null)).toBe(DEFAULT_LANGUAGE);
 	});
 });
 
 describe("LANGUAGE_OPTIONS", () => {
 	it("offers system plus every supported language", () => {
-		assert.deepEqual(
-			LANGUAGE_OPTIONS.map((option) => option.value),
-			["system", ...SUPPORTED_LANGUAGES],
-		);
+		expect(LANGUAGE_OPTIONS.map((option) => option.value)).toStrictEqual([
+			"system",
+			...SUPPORTED_LANGUAGES,
+		]);
 	});
 
 	it("names each language in that language, so it is legible to its own speakers", () => {
-		assert.equal(languageLabel("en"), "English");
-		assert.equal(languageLabel("es"), "Español");
+		expect(languageLabel("en")).toBe("English");
+		expect(languageLabel("es")).toBe("Español");
 	});
 });

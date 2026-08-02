@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -13,10 +11,15 @@ import {
 	replaceLocalFromAccount,
 } from "./adoption-engine-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
-import type { PulledRow, PushFn } from "./sync-engine-core";
+import {
+	drainOutbox,
+	type PulledRow,
+	type PushFn,
+	runSync,
+} from "./sync-engine-core";
 import { enqueueAllForSync, setSyncEnabled } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -151,13 +154,13 @@ describe("accountLedgerState", () => {
 			deviceId: "peer",
 			rows: [{ ...serverRow("a", 100, 100) }],
 		});
-		assert.equal(await accountLedgerState(server.pull), "empty");
+		expect(await accountLedgerState(server.pull)).toBe("empty");
 	});
 
 	it("reads one live row as populated", async () => {
 		const server = makeServer();
 		await server.push({ deviceId: "peer", rows: [serverRow("a", 100)] });
-		assert.equal(await accountLedgerState(server.pull), "populated");
+		expect(await accountLedgerState(server.pull)).toBe("populated");
 	});
 });
 
@@ -175,10 +178,7 @@ describe("replaceLocalFromAccount", () => {
 		await replaceLocalFromAccount(db, server.pull);
 
 		const rows = await db.select().from(transactions);
-		assert.deepEqual(
-			rows.map((row) => row.id),
-			["remote"],
-		);
+		expect(rows.map((row) => row.id)).toStrictEqual(["remote"]);
 	});
 
 	it("keeps device-local meta that no pull would hand back", async () => {
@@ -189,10 +189,10 @@ describe("replaceLocalFromAccount", () => {
 
 		await replaceLocalFromAccount(db, server.pull);
 
-		assert.equal(await getMeta(db, META_KEYS.syncDeviceId), "this-device");
-		assert.equal(await getMeta(db, META_KEYS.onboardingComplete), "1");
+		expect(await getMeta(db, META_KEYS.syncDeviceId)).toBe("this-device");
+		expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("1");
 		// Account-scoped, so the account's absence of it is authoritative.
-		assert.equal(await getMeta(db, META_KEYS.currency), null);
+		expect(await getMeta(db, META_KEYS.currency)).toBe(null);
 	});
 });
 
@@ -215,16 +215,15 @@ describe("discardAccountLedger", () => {
 
 		await discardAccountLedger(db, server.transport);
 
-		assert.equal(server.rows.get("transactions shared")?.deletedAt, null);
+		expect(server.rows.get("transactions shared")?.deletedAt).toBe(null);
 
 		await setSyncEnabled(db, true);
 		await enqueueAllForSync(db);
-		const { drainOutbox } = await import("./sync-engine-core");
 		await drainOutbox(db, server.push);
 
 		const survivor = server.rows.get("transactions shared");
-		assert.equal(survivor?.deletedAt, null);
-		assert.equal(survivor?.fields.note, "shared");
+		expect(survivor?.deletedAt).toBe(null);
+		expect(survivor?.fields.note).toBe("shared");
 	});
 
 	it("tombstones only rows this device has never seen", async () => {
@@ -237,8 +236,8 @@ describe("discardAccountLedger", () => {
 
 		await discardAccountLedger(db, server.transport);
 
-		assert.notEqual(server.rows.get("transactions theirs")?.deletedAt, null);
-		assert.equal(server.rows.get("transactions shared")?.deletedAt, null);
+		expect(server.rows.get("transactions theirs")?.deletedAt).not.toBe(null);
+		expect(server.rows.get("transactions shared")?.deletedAt).toBe(null);
 	});
 
 	it("is safe to run twice", async () => {
@@ -249,8 +248,8 @@ describe("discardAccountLedger", () => {
 		const afterFirst = server.rows.get("transactions theirs")?.deletedAt;
 		await discardAccountLedger(db, server.transport);
 
-		assert.notEqual(afterFirst, null);
-		assert.equal(server.rows.size, 1);
+		expect(afterFirst).not.toBe(null);
+		expect(server.rows.size).toBe(1);
 	});
 });
 
@@ -268,14 +267,13 @@ describe("a tombstoned account row does not come back to bite", () => {
 		await discardAccountLedger(db, server.transport);
 		await setSyncEnabled(db, true);
 		await enqueueAllForSync(db);
-		const { runSync } = await import("./sync-engine-core");
 		await runSync(db, server.transport);
 
 		const live = (await db.select().from(transactions))
 			.filter((row) => row.deletedAt === null)
 			.map((row) => row.id)
 			.sort();
-		assert.deepEqual(live, ["mine", "shared"]);
+		expect(live).toStrictEqual(["mine", "shared"]);
 		// The account's row arrives as a tombstone rather than not at all: readers
 		// filter `deletedAt`, and keeping the row is what stops a later pull from
 		// resurrecting it.
@@ -283,7 +281,7 @@ describe("a tombstoned account row does not come back to bite", () => {
 			.select()
 			.from(transactions)
 			.where(eq(transactions.id, "theirs"));
-		assert.equal(theirs.length, 1);
-		assert.notEqual(theirs[0]?.deletedAt, null);
+		expect(theirs.length).toBe(1);
+		expect(theirs[0]?.deletedAt).not.toBe(null);
 	});
 });

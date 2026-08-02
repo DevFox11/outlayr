@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { EN } from "@/i18n/catalog";
 import { interpolate } from "@/i18n/translate";
 import { RECURRING_TYPE } from "./recurrence";
@@ -21,9 +19,9 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canStopRecurring, false);
-		assert.equal(actions.canDelete, true);
-		assert.equal(actions.canLogAgain, true);
+		expect(actions.canStopRecurring).toBe(false);
+		expect(actions.canDelete).toBe(true);
+		expect(actions.canLogAgain).toBe(true);
 	});
 
 	it("offers Stop Recurring on a live carrier", () => {
@@ -34,8 +32,8 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canStopRecurring, true);
-		assert.equal(actions.canDelete, true);
+		expect(actions.canStopRecurring).toBe(true);
+		expect(actions.canDelete).toBe(true);
 	});
 
 	it("offers Log again on a settled carrier, whose charge did happen", () => {
@@ -46,7 +44,7 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canLogAgain, true);
+		expect(actions.canLogAgain).toBe(true);
 	});
 
 	it("withholds Delete from a carrier Upcoming is projecting forward", () => {
@@ -57,9 +55,9 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canStopRecurring, true);
-		assert.equal(actions.canDelete, false);
-		assert.equal(actions.canLogAgain, false);
+		expect(actions.canStopRecurring).toBe(true);
+		expect(actions.canDelete).toBe(false);
+		expect(actions.canLogAgain).toBe(false);
 	});
 
 	it("keeps Delete on the pending charge itself", () => {
@@ -70,8 +68,8 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canStopRecurring, true);
-		assert.equal(actions.canDelete, true);
+		expect(actions.canStopRecurring).toBe(true);
+		expect(actions.canDelete).toBe(true);
 	});
 
 	it("withholds Log again from a charge that has not landed yet", () => {
@@ -82,7 +80,7 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canLogAgain, false);
+		expect(actions.canLogAgain).toBe(false);
 	});
 
 	it("keeps Delete on an inert row shown under Upcoming", () => {
@@ -93,9 +91,9 @@ describe("transactionRowActions", () => {
 			now: NOW,
 		});
 
-		assert.equal(actions.canStopRecurring, false);
-		assert.equal(actions.canDelete, true);
-		assert.equal(actions.canLogAgain, false);
+		expect(actions.canStopRecurring).toBe(false);
+		expect(actions.canDelete).toBe(true);
+		expect(actions.canLogAgain).toBe(false);
 	});
 });
 
@@ -124,7 +122,7 @@ describe("logAgainDraft", () => {
 	};
 
 	it("carries the charge over field for field", () => {
-		assert.deepEqual(logAgainDraft(row), {
+		expect(logAgainDraft(row)).toStrictEqual({
 			amount: 4.75,
 			income: false,
 			categoryId: "cat-coffee",
@@ -138,7 +136,7 @@ describe("logAgainDraft", () => {
 	});
 
 	it("copies exactly these fields and no others", () => {
-		assert.deepEqual(Object.keys(logAgainDraft(row)).sort(), [
+		expect(Object.keys(logAgainDraft(row)).sort()).toStrictEqual([
 			"amount",
 			"categoryId",
 			"currency",
@@ -161,29 +159,25 @@ describe("logAgainDraft", () => {
 			"reminderLeadDays",
 			"onceRecurring",
 		]) {
-			assert.equal(
-				copied.includes(field),
-				false,
-				`${field} must not be copied`,
-			);
+			expect(copied.includes(field)).toBe(false);
 		}
 	});
 
 	it("carries no date, so the copy can only land today", () => {
-		assert.equal(Object.keys(logAgainDraft(row)).includes("date"), false);
+		expect(Object.keys(logAgainDraft(row)).includes("date")).toBe(false);
 	});
 
 	it("carries no photo, whose stored bytes belong to the row it came from", () => {
 		const copied = Object.keys(logAgainDraft(row));
 
-		assert.equal(copied.includes("imageUri"), false);
-		assert.equal(copied.includes("imageColor"), false);
+		expect(copied.includes("imageUri")).toBe(false);
+		expect(copied.includes("imageColor")).toBe(false);
 	});
 
 	it("keeps an income row income", () => {
 		const earned = { ...row, income: true };
 
-		assert.equal(logAgainDraft(earned).income, true);
+		expect(logAgainDraft(earned).income).toBe(true);
 	});
 
 	it("carries an absent note, category and detail through as they are", () => {
@@ -197,7 +191,7 @@ describe("logAgainDraft", () => {
 			customColor: null,
 		};
 
-		assert.deepEqual(logAgainDraft(bare), {
+		expect(logAgainDraft(bare)).toStrictEqual({
 			amount: 4.75,
 			income: false,
 			categoryId: null,
@@ -221,28 +215,28 @@ describe("stopRecurringPrompt", () => {
 	};
 
 	it("names the entry it is about to stop", () => {
-		assert.equal(render("Netflix", false).title, "Stop recurring 'Netflix'?");
+		expect(render("Netflix", false).title).toBe("Stop recurring 'Netflix'?");
 	});
 
 	it("falls back to a plain title when the entry has no note", () => {
-		assert.equal(render("  ", false).title, "Stop recurring?");
+		expect(render("  ", false).title).toBe("Stop recurring?");
 	});
 
 	it("carries no note to interpolate when the entry has none", () => {
-		assert.equal(stopRecurringPrompt("  ", false).note, null);
+		expect(stopRecurringPrompt("  ", false).note).toBe(null);
 	});
 
 	it("says the scheduled charge still lands when the row is the pending one", () => {
 		const { message } = render("Netflix", true);
 
-		assert.match(message, /still lands/);
-		assert.match(message, /Nothing is logged after it/);
+		expect(message).toMatch(/still lands/);
+		expect(message).toMatch(/Nothing is logged after it/);
 	});
 
 	it("promises entries already logged survive when the row has settled", () => {
 		const { message } = render("Netflix", false);
 
-		assert.match(message, /no longer be logged automatically/);
-		assert.match(message, /already logged are kept/);
+		expect(message).toMatch(/no longer be logged automatically/);
+		expect(message).toMatch(/already logged are kept/);
 	});
 });

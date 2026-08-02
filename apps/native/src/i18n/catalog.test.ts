@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { getIntlayer } from "intlayer";
 import { CATALOGS, DICTIONARY_KEYS, EN, ES } from "./catalog";
 import { SUPPORTED_LANGUAGES } from "./languages";
@@ -19,42 +17,26 @@ function placeholders(template: string): Set<string> {
 describe("catalog parity", () => {
 	it("ships a catalog for every supported language", () => {
 		for (const language of SUPPORTED_LANGUAGES) {
-			assert.ok(CATALOGS[language], `no catalog for "${language}"`);
+			expect(CATALOGS[language]).toBeTruthy();
 		}
 	});
 
 	it("translates every English key into Spanish", () => {
 		const missing = Object.keys(EN).filter((key) => !(key in ES));
-		assert.deepEqual(
-			missing,
-			[],
-			`Spanish is missing ${missing.length} key(s); every new string needs both languages`,
-		);
+		expect(missing).toStrictEqual([]);
 	});
 
 	it("has no Spanish key without an English source", () => {
 		const orphaned = Object.keys(ES).filter((key) => !(key in EN));
-		assert.deepEqual(
-			orphaned,
-			[],
-			`Spanish declares ${orphaned.length} key(s) English does not; English is the source of truth`,
-		);
+		expect(orphaned).toStrictEqual([]);
 	});
 
 	it("keeps each dictionary internally in parity", () => {
 		for (const name of DICTIONARY_KEYS) {
 			const en = Object.keys(getIntlayer(name, "en"));
 			const es = Object.keys(getIntlayer(name, "es"));
-			assert.deepEqual(
-				en.filter((key) => !es.includes(key)),
-				[],
-				`content/${name}.content.ts: English keys with no Spanish translation`,
-			);
-			assert.deepEqual(
-				es.filter((key) => !en.includes(key)),
-				[],
-				`content/${name}.content.ts: Spanish keys with no English source`,
-			);
+			expect(en.filter((key) => !es.includes(key))).toStrictEqual([]);
+			expect(es.filter((key) => !en.includes(key))).toStrictEqual([]);
 		}
 	});
 
@@ -63,11 +45,7 @@ describe("catalog parity", () => {
 		for (const name of DICTIONARY_KEYS) {
 			for (const key of Object.keys(getIntlayer(name, "en"))) {
 				const owner = seen.get(key);
-				assert.equal(
-					owner,
-					undefined,
-					`"${key}" is declared in both content/${owner}.content.ts and content/${name}.content.ts; the flat map would silently keep one`,
-				);
+				expect(owner).toBe(undefined);
 				seen.set(key, name);
 			}
 		}
@@ -79,10 +57,8 @@ describe("catalog parity", () => {
 			if (!spanish) {
 				continue;
 			}
-			assert.deepEqual(
-				[...placeholders(spanish)].sort(),
+			expect([...placeholders(spanish)].sort()).toStrictEqual(
 				[...placeholders(english)].sort(),
-				`"${key}": a placeholder mismatch renders a literal "{token}" on screen`,
 			);
 		}
 	});
@@ -99,10 +75,7 @@ describe("catalog parity", () => {
 					match[1] === "one"
 						? key.replace(PLURAL_SUFFIX, "_other")
 						: key.replace(PLURAL_SUFFIX, "_one");
-				assert.ok(
-					counterpart in catalog,
-					`${catalogName}: "${key}" has no "${counterpart}"; the missing form would fall through to English`,
-				);
+				expect(counterpart in catalog).toBeTruthy();
 			}
 		}
 	});
@@ -116,31 +89,25 @@ describe("catalog parity", () => {
 				if (!key.endsWith("_other")) {
 					continue;
 				}
-				assert.ok(
-					placeholders(template).has("count"),
-					`${catalogName}: plural "${key}" never shows its count`,
-				);
+				expect(placeholders(template).has("count")).toBeTruthy();
 			}
 		}
 	});
 
 	it("leaves no empty string in either catalog", () => {
 		for (const catalogName of SUPPORTED_LANGUAGES) {
-			for (const [key, value] of Object.entries(CATALOGS[catalogName])) {
-				assert.ok(value.trim().length > 0, `${catalogName}: "${key}" is blank`);
+			for (const [, value] of Object.entries(CATALOGS[catalogName])) {
+				expect(value.trim().length > 0).toBeTruthy();
 			}
 		}
 	});
 
 	it("renders every Spanish string without leaking a placeholder", () => {
-		for (const [key, template] of Object.entries(ES)) {
+		for (const [, template] of Object.entries(ES)) {
 			const params = Object.fromEntries(
 				[...placeholders(template)].map((name) => [name, "x"]),
 			);
-			assert.ok(
-				!interpolate(template, params).includes("{"),
-				`"${key}" still holds an unresolved placeholder`,
-			);
+			expect(!interpolate(template, params).includes("{")).toBeTruthy();
 		}
 	});
 });

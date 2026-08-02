@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { supportBody, supportMailto } from "./support-mailto";
 
 const INFO = {
@@ -14,38 +12,38 @@ const INFO = {
 describe("support email body", () => {
 	it("carries every diagnostic Swift prefilled", () => {
 		const body = supportBody(INFO);
-		assert.match(body, /Application Name: Outlayr/);
-		assert.match(body, /Platform: iOS 26\.0/);
-		assert.match(body, /Device: iPhone/);
-		assert.match(body, /App Version: 1\.2\.0/);
-		assert.match(body, /App Build: 42/);
+		expect(body).toMatch(/Application Name: Outlayr/);
+		expect(body).toMatch(/Platform: iOS 26\.0/);
+		expect(body).toMatch(/Device: iPhone/);
+		expect(body).toMatch(/App Version: 1\.2\.0/);
+		expect(body).toMatch(/App Build: 42/);
 	});
 
 	it("ends with a rule the user writes below", () => {
 		const lines = supportBody(INFO).split("\n");
-		assert.equal(lines.at(-1), "--------------------------------------");
+		expect(lines.at(-1)).toBe("--------------------------------------");
 	});
 
 	it("keeps an unknown field readable rather than printing undefined", () => {
 		const body = supportBody({ ...INFO, deviceName: "" });
-		assert.match(body, /Device: Unknown/);
-		assert.doesNotMatch(body, /undefined/);
+		expect(body).toMatch(/Device: Unknown/);
+		expect(body).not.toMatch(/undefined/);
 	});
 });
 
 describe("support mailto", () => {
 	it("addresses the mail and encodes the subject", () => {
 		const url = supportMailto("help@example.com", "Feature Request", INFO);
-		assert.match(url, /^mailto:help@example\.com\?/);
-		assert.match(url, /subject=Feature%20Request/);
+		expect(url).toMatch(/^mailto:help@example\.com\?/);
+		expect(url).toMatch(/subject=Feature%20Request/);
 	});
 
 	it("percent-encodes the body so newlines never truncate the link", () => {
 		const url = supportMailto("help@example.com", "Support Email", INFO);
 		const body = url.split("&body=")[1];
-		assert.ok(body);
-		assert.doesNotMatch(body, /\n/);
-		assert.equal(decodeURIComponent(body), supportBody(INFO));
+		expect(body).toBeTruthy();
+		expect(body).not.toMatch(/\n/);
+		expect(decodeURIComponent(body)).toBe(supportBody(INFO));
 	});
 
 	it("escapes an ampersand in the body instead of starting a new parameter", () => {
@@ -53,13 +51,13 @@ describe("support mailto", () => {
 			...INFO,
 			appName: "Out&layr",
 		});
-		assert.equal(url.split("&body=").length, 2);
-		assert.match(url, /Out%26layr/);
+		expect(url.split("&body=").length).toBe(2);
+		expect(url).toMatch(/Out%26layr/);
 	});
 
 	it("escapes an ampersand in the subject", () => {
 		const url = supportMailto("help@example.com", "Bugs & Ideas", INFO);
-		assert.match(url, /subject=Bugs%20%26%20Ideas/);
-		assert.equal(url.split("&body=").length, 2);
+		expect(url).toMatch(/subject=Bugs%20%26%20Ideas/);
+		expect(url.split("&body=").length).toBe(2);
 	});
 });

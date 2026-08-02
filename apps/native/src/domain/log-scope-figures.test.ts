@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { currencyTotals } from "./currency-totals";
 import { netTotal } from "./log-measure";
 import { scopeTotals } from "./log-scope-figures";
@@ -14,21 +12,21 @@ function entry(amount: number, currency: string | null = null, income = false) {
 describe("scopeTotals", () => {
 	it("gives an empty scope a zero bucket in the currency the screen is read in", () => {
 		const { shown, others } = scopeTotals([], "EUR");
-		assert.deepEqual(shown, {
+		expect(shown).toStrictEqual({
 			currencyCode: "EUR",
 			income: 0,
 			expense: 0,
 			count: 0,
 		});
-		assert.deepEqual(others, []);
+		expect(others).toStrictEqual([]);
 	});
 
 	it("keeps in and out apart rather than only reporting the net", () => {
 		const { shown } = scopeTotals([entry(40), entry(15, null, true)], "USD");
-		assert.equal(shown.expense, 40);
-		assert.equal(shown.income, 15);
-		assert.equal(netTotal(shown), -25);
-		assert.equal(shown.count, 2);
+		expect(shown.expense).toBe(40);
+		expect(shown.income).toBe(15);
+		expect(netTotal(shown)).toBe(-25);
+		expect(shown.count).toBe(2);
 	});
 
 	/**
@@ -39,17 +37,17 @@ describe("scopeTotals", () => {
 		const scope = Array.from({ length: 60 }, () => entry(10));
 		const page = scope.slice(0, 20);
 
-		assert.equal(netTotal(scopeTotals(scope, "USD").shown), -600);
-		assert.equal(scopeTotals(scope, "USD").shown.count, 60);
+		expect(netTotal(scopeTotals(scope, "USD").shown)).toBe(-600);
+		expect(scopeTotals(scope, "USD").shown.count).toBe(60);
 		// The wrong answer this exists to rule out: the same rows, windowed.
-		assert.equal(netTotal(scopeTotals(page, "USD").shown), -200);
+		expect(netTotal(scopeTotals(page, "USD").shown)).toBe(-200);
 	});
 
 	it("splits a mixed-currency scope instead of inventing a sum", () => {
 		const scope = [entry(40, "USD"), entry(10, "EUR"), entry(10, "EUR")];
 		const { shown, others } = scopeTotals(scope, "USD");
 
-		assert.equal(others.length, 1);
+		expect(others.length).toBe(1);
 		// Pinned against the summer the rest of the app totals with, per bucket.
 		const buckets = new Map(
 			currencyTotals(scope, "USD").map((bucket) => [
@@ -57,12 +55,14 @@ describe("scopeTotals", () => {
 				bucket.amount,
 			]),
 		);
-		assert.equal(buckets.size, 2);
+		expect(buckets.size).toBe(2);
 		for (const figures of [shown, ...others]) {
-			assert.equal(netTotal(figures), buckets.get(figures.currencyCode));
+			expect(netTotal(figures)).toBe(buckets.get(figures.currencyCode));
 		}
 		// -60 is what adding two currencies together would have produced.
-		assert.ok([shown, ...others].every((figures) => netTotal(figures) !== -60));
+		expect(
+			[shown, ...others].every((figures) => netTotal(figures) !== -60),
+		).toBeTruthy();
 	});
 
 	it("promotes the currency the screen is read in over the dominant one", () => {
@@ -70,16 +70,16 @@ describe("scopeTotals", () => {
 			[entry(40, "USD"), entry(10, "EUR"), entry(10, "EUR")],
 			"USD",
 		);
-		assert.equal(shown.currencyCode, "USD");
-		assert.equal(netTotal(shown), -40);
+		expect(shown.currencyCode).toBe("USD");
+		expect(netTotal(shown)).toBe(-40);
 	});
 
 	it("falls back to the dominant bucket when the scope holds no such currency", () => {
 		// A zero USD bucket would claim the scope was empty; it is not, it is EUR.
 		const { shown, others } = scopeTotals([entry(10, "EUR")], "USD");
-		assert.equal(shown.currencyCode, "EUR");
-		assert.equal(netTotal(shown), -10);
-		assert.deepEqual(others, []);
+		expect(shown.currencyCode).toBe("EUR");
+		expect(netTotal(shown)).toBe(-10);
+		expect(others).toStrictEqual([]);
 	});
 
 	it("folds a foreign entry in once a rate reaches it", () => {
@@ -99,8 +99,8 @@ describe("scopeTotals", () => {
 			"EUR",
 			rates,
 		);
-		assert.equal(others.length, 0);
-		assert.equal(shown.currencyCode, "EUR");
-		assert.equal(shown.expense, 90);
+		expect(others.length).toBe(0);
+		expect(shown.currencyCode).toBe("EUR");
+		expect(shown.expense).toBe(90);
 	});
 });

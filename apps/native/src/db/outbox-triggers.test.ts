@@ -1,12 +1,10 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { META_KEYS } from "@/data/app-meta-core";
 import { SYNCED_META_KEYS, SYNCED_TABLES } from "@/data/sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 /**
  * The shipped migrations, applied in order — the triggers under test only exist
@@ -83,7 +81,7 @@ describe("outbox triggers", () => {
 		addTransaction(sqlite, "t1");
 		sqlite.prepare("UPDATE transactions SET note = 'x'").run();
 
-		assert.deepEqual(outbox(sqlite), []);
+		expect(outbox(sqlite)).toStrictEqual([]);
 	});
 
 	it("enqueues an insert on every replicated table", () => {
@@ -108,16 +106,15 @@ describe("outbox triggers", () => {
 			)
 			.run();
 
-		assert.deepEqual(
+		expect(
 			outbox(sqlite).map((row) => [row.tableName, row.localId]),
-			[
-				["categories", "c1"],
-				["transactions", "t1"],
-				["budgets", "b1"],
-				["mainBudget", "m1"],
-				["templateTransactions", "p1"],
-			],
-		);
+		).toStrictEqual([
+			["categories", "c1"],
+			["transactions", "t1"],
+			["budgets", "b1"],
+			["mainBudget", "m1"],
+			["templateTransactions", "p1"],
+		]);
 	});
 
 	it("enqueues an update, including a tombstone", () => {
@@ -128,10 +125,9 @@ describe("outbox triggers", () => {
 			.prepare("UPDATE transactions SET deletedAt = 5, updatedAt = 5")
 			.run();
 
-		assert.deepEqual(
+		expect(
 			outbox(sqlite).map((row) => [row.tableName, row.localId]),
-			[["transactions", "t1"]],
-		);
+		).toStrictEqual([["transactions", "t1"]]);
 	});
 
 	it("coalesces repeated writes to one row, with a fresh seq each time", () => {
@@ -142,14 +138,11 @@ describe("outbox triggers", () => {
 		for (const note of ["a", "b", "c"]) {
 			sqlite.prepare("UPDATE transactions SET note = ?").run(note);
 			const rows = outbox(sqlite);
-			assert.equal(rows.length, 1);
+			expect(rows.length).toBe(1);
 			seqs.push(rows[0].seq);
 		}
 
-		assert.ok(
-			seqs[0] < seqs[1] && seqs[1] < seqs[2],
-			`expected strictly increasing seqs, got ${seqs.join(", ")}`,
-		);
+		expect(seqs[0] < seqs[1] && seqs[1] < seqs[2]).toBeTruthy();
 	});
 
 	it("holds one row per row a bulk write touches, however often it runs", () => {
@@ -159,11 +152,11 @@ describe("outbox triggers", () => {
 		enableSync(sqlite);
 
 		sqlite.prepare("UPDATE transactions SET amountUsd = 2").run();
-		assert.equal(outbox(sqlite).length, 5);
+		expect(outbox(sqlite).length).toBe(5);
 
 		sqlite.prepare("UPDATE transactions SET amountUsd = 3").run();
 		sqlite.prepare("UPDATE transactions SET amountUsd = 4").run();
-		assert.equal(outbox(sqlite).length, 5);
+		expect(outbox(sqlite).length).toBe(5);
 	});
 
 	it("never enqueues the onboarding gate migration marker", () => {
@@ -171,7 +164,7 @@ describe("outbox triggers", () => {
 
 		setMeta(sqlite, META_KEYS.onboardingGateMigrated, "true");
 
-		assert.deepEqual(outbox(sqlite), []);
+		expect(outbox(sqlite)).toStrictEqual([]);
 	});
 
 	it("enqueues only the appMeta keys the allow-list names", () => {
@@ -187,10 +180,9 @@ describe("outbox triggers", () => {
 			setMeta(sqlite, key, "x");
 		}
 
-		assert.deepEqual(
-			outbox(sqlite).map((row) => row.localId),
-			[...SYNCED_META_KEYS],
-		);
+		expect(outbox(sqlite).map((row) => row.localId)).toStrictEqual([
+			...SYNCED_META_KEYS,
+		]);
 	});
 
 	it("covers every table the sync layer claims to replicate", () => {
@@ -205,7 +197,7 @@ describe("outbox triggers", () => {
 				.filter((trigger) => !names.has(trigger)),
 		);
 
-		assert.deepEqual(missing, []);
+		expect(missing).toStrictEqual([]);
 	});
 
 	it("lets a writer remove exactly what it just wrote", () => {
@@ -218,10 +210,7 @@ describe("outbox triggers", () => {
 			.prepare("DELETE FROM outbox WHERE tableName = ? AND localId = ?")
 			.run("transactions", "applied");
 
-		assert.deepEqual(
-			outbox(sqlite).map((row) => row.localId),
-			["pending"],
-		);
+		expect(outbox(sqlite).map((row) => row.localId)).toStrictEqual(["pending"]);
 	});
 
 	it("does not let a drain delete an edit made after it read", () => {
@@ -235,10 +224,7 @@ describe("outbox triggers", () => {
 			.prepare(`DELETE FROM outbox WHERE seq IN (${drained.join(",")})`)
 			.run();
 
-		assert.deepEqual(
-			outbox(sqlite).map((row) => row.localId),
-			["t1"],
-		);
+		expect(outbox(sqlite).map((row) => row.localId)).toStrictEqual(["t1"]);
 	});
 
 	it("never reissues a seq the drain has already seen", () => {
@@ -250,10 +236,7 @@ describe("outbox triggers", () => {
 		sqlite.prepare("DELETE FROM outbox").run();
 		sqlite.prepare("UPDATE transactions SET note = 'second'").run();
 
-		assert.ok(
-			outbox(sqlite)[0].seq > drained,
-			"a reused seq lets a drain delete a change it never pushed",
-		);
+		expect(outbox(sqlite)[0].seq > drained).toBeTruthy();
 	});
 
 	it("drops the queue entry when a row is hard-deleted", () => {
@@ -263,6 +246,6 @@ describe("outbox triggers", () => {
 
 		sqlite.prepare("DELETE FROM transactions WHERE id = 't1'").run();
 
-		assert.deepEqual(outbox(sqlite), []);
+		expect(outbox(sqlite)).toStrictEqual([]);
 	});
 });

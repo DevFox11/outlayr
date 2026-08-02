@@ -1,7 +1,5 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -65,7 +63,7 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
 
 /**
  * The hand-rolled schema above carries no outbox and no triggers, so anything
@@ -144,9 +142,9 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 
 	it("freezes the value at the rate of the day it happened", async () => {
 		const row = await frozen(db, id);
-		assert.equal(row.amountUsd, 111.111111);
-		assert.equal(row.exchangeRate, 0.9);
-		assert.equal(row.exchangeRateType, "official");
+		expect(row.amountUsd).toBe(111.111111);
+		expect(row.exchangeRate).toBe(0.9);
+		expect(row.exchangeRateType).toBe("official");
 	});
 
 	it("keeps that value when the edit leaves the money alone", async () => {
@@ -156,20 +154,20 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 		});
 
 		const row = await frozen(db, id);
-		assert.equal(row.note, "Bakery, corner one");
-		assert.equal(row.amountUsd, 111.111111);
-		assert.equal(row.exchangeRate, 0.9);
-		assert.equal(row.exchangeRateType, "official");
+		expect(row.note).toBe("Bakery, corner one");
+		expect(row.amountUsd).toBe(111.111111);
+		expect(row.exchangeRate).toBe(0.9);
+		expect(row.exchangeRateType).toBe("official");
 	});
 
 	it("declines to carry it onto an amount it no longer describes", async () => {
 		await transactionsRepo.update(db, id, { ...DRAFT, amount: 200 });
 
 		const row = await frozen(db, id);
-		assert.equal(row.amount, 200);
-		assert.equal(row.amountUsd, null);
-		assert.equal(row.exchangeRate, null);
-		assert.equal(row.exchangeRateType, null);
+		expect(row.amount).toBe(200);
+		expect(row.amountUsd).toBe(null);
+		expect(row.exchangeRate).toBe(null);
+		expect(row.exchangeRateType).toBe(null);
 	});
 
 	it("re-freezes a changed amount whenever the rate is back", async () => {
@@ -185,8 +183,8 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 		await transactionsRepo.update(db, id, { ...DRAFT, amount: 200 });
 
 		const row = await frozen(db, id);
-		assert.equal(row.amountUsd, 222.222222);
-		assert.equal(row.exchangeRate, 0.9);
+		expect(row.amountUsd).toBe(222.222222);
+		expect(row.exchangeRate).toBe(0.9);
 	});
 });
 
@@ -215,7 +213,7 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 
 		await transactionsRepo.update(db, id, { ...DRAFT, imageUri: null });
 
-		assert.deepEqual(await photoColumns(db, id), {
+		expect(await photoColumns(db, id)).toStrictEqual({
 			imageUri: null,
 			imageKey: null,
 		});
@@ -233,7 +231,7 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 		// not read as "the user removed the photo" — that would delete it account-wide.
 		await transactionsRepo.update(db, id, { ...DRAFT, note: "Renamed" });
 
-		assert.equal((await photoColumns(db, id)).imageKey, KEY);
+		expect((await photoColumns(db, id)).imageKey).toBe(KEY);
 	});
 
 	it("keeps the superseded key when the photo is replaced, for the uploader to release", async () => {
@@ -249,7 +247,7 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 			imageUri: "file:///container/Documents/transaction-photos/b.jpg",
 		});
 
-		assert.equal((await photoColumns(db, id)).imageKey, KEY);
+		expect((await photoColumns(db, id)).imageKey).toBe(KEY);
 	});
 });
 
@@ -286,10 +284,10 @@ describe("the reminder notice on a subscription", () => {
 		await transactionsRepo.remove(db, id, NOW);
 
 		const rows = await notices(db);
-		assert.equal(rows.find((row) => row.id === id)?.reminderLeadDays, null);
+		expect(rows.find((row) => row.id === id)?.reminderLeadDays).toBe(null);
 		const successor = rows.find((row) => row.id !== id);
-		assert.equal(successor?.deletedAt, null);
-		assert.equal(successor?.reminderLeadDays, 3);
+		expect(successor?.deletedAt).toBe(null);
+		expect(successor?.reminderLeadDays).toBe(3);
 	});
 
 	it("clears the notice when the schedule is stopped", async () => {
@@ -299,7 +297,7 @@ describe("the reminder notice on a subscription", () => {
 		await transactionsRepo.stopRecurring(db, id, NOW);
 
 		const [row] = await notices(db);
-		assert.equal(row?.reminderLeadDays, null);
+		expect(row?.reminderLeadDays).toBe(null);
 	});
 
 	it("writes no notice on a transaction that does not recur", async () => {
@@ -311,8 +309,8 @@ describe("the reminder notice on a subscription", () => {
 		});
 
 		const [row] = await notices(db);
-		assert.equal(row?.id, id);
-		assert.equal(row?.reminderLeadDays, null);
+		expect(row?.id).toBe(id);
+		expect(row?.reminderLeadDays).toBe(null);
 	});
 
 	// A lead outside the picker's set reaches the row from a legacy or restored
@@ -325,7 +323,7 @@ describe("the reminder notice on a subscription", () => {
 		});
 
 		const [row] = await notices(db);
-		assert.equal(row?.reminderLeadDays, 0);
+		expect(row?.reminderLeadDays).toBe(0);
 	});
 
 	it("keeps a same-day notice distinct from no notice", async () => {
@@ -340,8 +338,8 @@ describe("the reminder notice on a subscription", () => {
 		});
 
 		const rows = await notices(db);
-		assert.equal(rows.find((row) => row.id === sameDay)?.reminderLeadDays, 0);
-		assert.equal(rows.find((row) => row.id === off)?.reminderLeadDays, null);
+		expect(rows.find((row) => row.id === sameDay)?.reminderLeadDays).toBe(0);
+		expect(rows.find((row) => row.id === off)?.reminderLeadDays).toBe(null);
 	});
 
 	// The form builds its input from the fields it paints, so an edit made on a
@@ -354,7 +352,7 @@ describe("the reminder notice on a subscription", () => {
 		await transactionsRepo.update(db, id, { ...silentEdit, amount: 13 });
 
 		const [row] = await notices(db);
-		assert.equal(row?.reminderLeadDays, 3);
+		expect(row?.reminderLeadDays).toBe(3);
 	});
 
 	it("turns the notice off when an edit says null", async () => {
@@ -367,7 +365,7 @@ describe("the reminder notice on a subscription", () => {
 		});
 
 		const [row] = await notices(db);
-		assert.equal(row?.reminderLeadDays, null);
+		expect(row?.reminderLeadDays).toBe(null);
 	});
 
 	it("drops the notice when an edit ends the subscription", async () => {
@@ -382,7 +380,7 @@ describe("the reminder notice on a subscription", () => {
 		});
 
 		const [row] = await notices(db);
-		assert.equal(row?.reminderLeadDays, null);
+		expect(row?.reminderLeadDays).toBe(null);
 	});
 });
 
@@ -414,42 +412,39 @@ describe("restoring a tombstoned transaction", () => {
 	});
 
 	it("puts the entry back in every read that hides tombstones", async () => {
-		assert.deepEqual(await ledgerSizeQuery(db), []);
+		expect(await ledgerSizeQuery(db)).toStrictEqual([]);
 
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
-		assert.deepEqual(
-			(await ledgerSizeQuery(db)).map((row) => row.id),
-			[id],
-		);
-		assert.equal((await logWindowDaysQuery(db, Date.now(), 30)).length, 1);
+		expect((await ledgerSizeQuery(db)).map((row) => row.id)).toStrictEqual([
+			id,
+		]);
+		expect((await logWindowDaysQuery(db, Date.now(), 30)).length).toBe(1);
 	});
 
 	it("takes the entry off the deleted list it was restored from", async () => {
-		assert.deepEqual(
+		expect(
 			(await deletedTransactionsQuery(db)).map((row) => row.id),
-			[id],
-		);
+		).toStrictEqual([id]);
 
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
-		assert.deepEqual(await deletedTransactionsQuery(db), []);
+		expect(await deletedTransactionsQuery(db)).toStrictEqual([]);
 	});
 
 	it("moves updatedAt, so a peer is told the row came back", async () => {
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
 		const row = await timestamps(db, id);
-		assert.equal(row?.deletedAt, null);
-		assert.equal(row?.updatedAt.getTime(), RESTORED_AT.getTime());
+		expect(row?.deletedAt).toBe(null);
+		expect(row?.updatedAt.getTime()).toBe(RESTORED_AT.getTime());
 	});
 
 	it("writes nothing the second time, so a restore is idempotent", async () => {
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 		await transactionsRepo.restore(db, id, LATER_STILL);
 
-		assert.equal(
-			(await timestamps(db, id))?.updatedAt.getTime(),
+		expect((await timestamps(db, id))?.updatedAt.getTime()).toBe(
 			RESTORED_AT.getTime(),
 		);
 	});
@@ -467,8 +462,8 @@ describe("restoring a tombstoned transaction", () => {
 		await transactionsRepo.restore(db, carrier, RESTORED_AT);
 
 		const row = await timestamps(db, carrier);
-		assert.equal(row?.recurringType, RECURRING_TYPE.none);
-		assert.equal(row?.reminderLeadDays, null);
+		expect(row?.recurringType).toBe(RECURRING_TYPE.none);
+		expect(row?.reminderLeadDays).toBe(null);
 	});
 });
 
@@ -496,10 +491,9 @@ describe("a restore the account has to hear about", () => {
 
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
-		assert.deepEqual(
+		expect(
 			(await queued(db)).map((row) => [row.tableName, row.localId]),
-			[["transactions", id]],
-		);
+		).toStrictEqual([["transactions", id]]);
 	});
 
 	it("queues nothing for a restore that had nothing to lift", async () => {
@@ -513,7 +507,7 @@ describe("a restore the account has to hear about", () => {
 		await transactionsRepo.restore(db, id, LATER_STILL);
 
 		// A fresh seq would mean a second write went out saying nothing at all.
-		assert.equal((await queued(db))[0]?.seq, first);
+		expect((await queued(db))[0]?.seq).toBe(first);
 	});
 });
 
@@ -530,15 +524,13 @@ describe("switching sync off over a ledger already logged", () => {
 		await setSyncEnabled(db, false);
 		const afterOff = await transactionsRepo.create(db, DRAFT);
 
-		assert.deepEqual(await db.select({ seq: outbox.seq }).from(outbox), []);
-		assert.deepEqual(
+		expect(await db.select({ seq: outbox.seq }).from(outbox)).toStrictEqual([]);
+		expect(
 			(await ledgerSizeQuery(db)).map((row) => row.id).sort(),
-			[kept, afterOff].sort(),
-		);
-		assert.deepEqual(
+		).toStrictEqual([kept, afterOff].sort());
+		expect(
 			(await deletedTransactionsQuery(db)).map((row) => row.id),
-			[tombstoned],
-		);
+		).toStrictEqual([tombstoned]);
 	});
 });
 
@@ -571,9 +563,6 @@ describe("ledgerSizeQuery", () => {
 		]);
 
 		const rows = await ledgerSizeQuery(db);
-		assert.deepEqual(
-			rows.map((row) => row.id),
-			["live"],
-		);
+		expect(rows.map((row) => row.id)).toStrictEqual(["live"]);
 	});
 });

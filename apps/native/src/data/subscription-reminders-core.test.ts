@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -116,15 +114,13 @@ describe("reminderCandidates", () => {
 
 		const candidates = await reminderCandidates(db, NOW);
 
-		assert.equal(candidates.length, 1);
-		assert.equal(candidates[0]?.localId, "src");
-		assert.equal(candidates[0]?.leadDays, 2);
-		assert.equal(
-			candidates[0]?.landing.getTime(),
-			at(2025, 7, 15).getTime(),
-			"a stale carrier must resume forward, not re-announce the gap it slept through",
-		);
-		assert.ok((candidates[0]?.landing.getTime() ?? 0) > NOW.getTime());
+		expect(candidates.length).toBe(1);
+		expect(candidates[0]?.localId).toBe("src");
+		expect(candidates[0]?.leadDays).toBe(2);
+		expect(candidates[0]?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
+		expect(
+			(candidates[0]?.landing.getTime() ?? 0) > NOW.getTime(),
+		).toBeTruthy();
 	});
 
 	// Reading the landing off `date` would carry the last charge's clock time onto
@@ -137,9 +133,9 @@ describe("reminderCandidates", () => {
 
 		const [candidate] = await reminderCandidates(db, NOW);
 
-		assert.equal(candidate?.landing.getHours(), 0);
-		assert.equal(candidate?.landing.getMinutes(), 0);
-		assert.equal(candidate?.landing.getTime(), at(2025, 7, 15).getTime());
+		expect(candidate?.landing.getHours()).toBe(0);
+		expect(candidate?.landing.getMinutes()).toBe(0);
+		expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
 	});
 
 	it("keeps a future-dated pending charge as its own landing", async () => {
@@ -150,7 +146,7 @@ describe("reminderCandidates", () => {
 
 		const [candidate] = await reminderCandidates(db, NOW);
 
-		assert.equal(candidate?.landing.getTime(), at(2025, 7, 15).getTime());
+		expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
 	});
 
 	it("carries the copy a notice has to print", async () => {
@@ -164,9 +160,9 @@ describe("reminderCandidates", () => {
 
 		const [candidate] = await reminderCandidates(db, NOW);
 
-		assert.equal(candidate?.note, "Spotify");
-		assert.equal(candidate?.amount, 11.99);
-		assert.equal(candidate?.currency, "EUR");
+		expect(candidate?.note).toBe("Spotify");
+		expect(candidate?.amount).toBe(11.99);
+		expect(candidate?.currency).toBe("EUR");
 	});
 
 	it("stamps a row that stored no currency with the ledger's", async () => {
@@ -179,7 +175,7 @@ describe("reminderCandidates", () => {
 
 		const [candidate] = await reminderCandidates(db, NOW);
 
-		assert.equal(candidate?.currency, "MXN");
+		expect(candidate?.currency).toBe("MXN");
 	});
 
 	it("falls back to the app default when the ledger names no currency", async () => {
@@ -191,13 +187,13 @@ describe("reminderCandidates", () => {
 
 		const [candidate] = await reminderCandidates(db, NOW);
 
-		assert.equal(candidate?.currency, "USD");
+		expect(candidate?.currency).toBe("USD");
 	});
 
 	it("yields nothing for a carrier with no notice set", async () => {
 		await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: null });
 
-		assert.deepEqual(await reminderCandidates(db, NOW), []);
+		expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
 	});
 
 	it("keeps a same-day notice, which is not the off state", async () => {
@@ -205,8 +201,8 @@ describe("reminderCandidates", () => {
 
 		const candidates = await reminderCandidates(db, NOW);
 
-		assert.equal(candidates.length, 1);
-		assert.equal(candidates[0]?.leadDays, 0);
+		expect(candidates.length).toBe(1);
+		expect(candidates[0]?.leadDays).toBe(0);
 	});
 
 	it("yields nothing for a soft-deleted carrier", async () => {
@@ -216,7 +212,7 @@ describe("reminderCandidates", () => {
 			deletedAt: NOW,
 		});
 
-		assert.deepEqual(await reminderCandidates(db, NOW), []);
+		expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
 	});
 
 	// Every retire path clears the column, but a peer's hand-off replicates in
@@ -228,7 +224,7 @@ describe("reminderCandidates", () => {
 			reminderLeadDays: 2,
 		});
 
-		assert.deepEqual(await reminderCandidates(db, NOW), []);
+		expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
 	});
 
 	it("yields nothing once the chain has run past its end date", async () => {
@@ -239,7 +235,7 @@ describe("reminderCandidates", () => {
 			reminderLeadDays: 1,
 		});
 
-		assert.deepEqual(await reminderCandidates(db, NOW), []);
+		expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
 	});
 
 	it("resolves every live carrier, each on its own cadence", async () => {
@@ -257,10 +253,11 @@ describe("reminderCandidates", () => {
 
 		const candidates = await reminderCandidates(db, NOW);
 
-		assert.deepEqual(
+		expect(
 			candidates
 				.map((candidate) => [candidate.localId, candidate.landing.getTime()])
 				.sort(),
+		).toStrictEqual(
 			[
 				["gym", at(2025, 6, 17).getTime()],
 				["netflix", at(2025, 7, 15).getTime()],
@@ -283,10 +280,10 @@ describe("pendingReminderPlan", () => {
 
 		const arm = await pendingReminderPlan(db, NOW, NINE_AM);
 
-		assert.equal(arm.length, 1);
-		assert.equal(arm[0]?.id, "outlayr.sub-due.src");
-		assert.equal(arm[0]?.localId, "src");
-		assert.equal(arm[0]?.fireAt.getTime(), at(2025, 7, 13, 9, 0).getTime());
+		expect(arm.length).toBe(1);
+		expect(arm[0]?.id).toBe("outlayr.sub-due.src");
+		expect(arm[0]?.localId).toBe("src");
+		expect(arm[0]?.fireAt.getTime()).toBe(at(2025, 7, 13, 9, 0).getTime());
 	});
 
 	it("drops a notice whose fire time has already passed", async () => {
@@ -296,7 +293,7 @@ describe("pendingReminderPlan", () => {
 			reminderLeadDays: 7,
 		});
 
-		assert.deepEqual(await pendingReminderPlan(db, NOW, NINE_AM), []);
+		expect(await pendingReminderPlan(db, NOW, NINE_AM)).toStrictEqual([]);
 	});
 
 	it("keeps the soonest notices when the cap truncates", async () => {
@@ -314,10 +311,7 @@ describe("pendingReminderPlan", () => {
 
 		const arm = await pendingReminderPlan(db, NOW, NINE_AM, 1);
 
-		assert.deepEqual(
-			arm.map((armed) => armed.localId),
-			["gym"],
-		);
+		expect(arm.map((armed) => armed.localId)).toStrictEqual(["gym"]);
 	});
 
 	it("writes nothing", async () => {
@@ -326,7 +320,7 @@ describe("pendingReminderPlan", () => {
 
 		await pendingReminderPlan(db, NOW, NINE_AM);
 
-		assert.deepEqual(await everyRow(db), before);
+		expect(await everyRow(db)).toStrictEqual(before);
 	});
 
 	// The plan is what the scheduler hands to iOS, so a request that reached it
@@ -342,10 +336,10 @@ describe("pendingReminderPlan", () => {
 
 		const [reminder] = await pendingReminderPlan(db, NOW, NINE_AM);
 
-		assert.equal(reminder?.note, "Spotify");
-		assert.equal(reminder?.amount, 11.99);
-		assert.equal(reminder?.currency, "EUR");
-		assert.equal(reminder?.landing.getTime(), at(2025, 7, 15).getTime());
+		expect(reminder?.note).toBe("Spotify");
+		expect(reminder?.amount).toBe(11.99);
+		expect(reminder?.currency).toBe("EUR");
+		expect(reminder?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
 	});
 
 	it("resolves a row with no currency of its own against the ledger's", async () => {
@@ -358,7 +352,7 @@ describe("pendingReminderPlan", () => {
 
 		const [reminder] = await pendingReminderPlan(db, NOW, NINE_AM);
 
-		assert.equal(reminder?.currency, "MXN");
+		expect(reminder?.currency).toBe("MXN");
 	});
 
 	// Two carriers, one truncated away: the surviving request has to keep ITS own
@@ -382,9 +376,9 @@ describe("pendingReminderPlan", () => {
 
 		const arm = await pendingReminderPlan(db, NOW, NINE_AM, 1);
 
-		assert.equal(arm.length, 1);
-		assert.equal(arm[0]?.localId, "gym");
-		assert.equal(arm[0]?.note, "Gym");
-		assert.equal(arm[0]?.amount, 40);
+		expect(arm.length).toBe(1);
+		expect(arm[0]?.localId).toBe("gym");
+		expect(arm[0]?.note).toBe("Gym");
+		expect(arm[0]?.amount).toBe(40);
 	});
 });

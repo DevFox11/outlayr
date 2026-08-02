@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
 	sparklineIsPositive,
 	sparklineRange,
@@ -14,14 +12,13 @@ function row(iso: string, amount: number, income = false) {
 
 describe("sparklineSeries", () => {
 	it("has no series for all-time, which has no window to sample", () => {
-		assert.deepEqual(sparklineSeries([], "net", "all", NOW), []);
+		expect(sparklineSeries([], "net", "all", NOW)).toStrictEqual([]);
 	});
 
 	it("samples a week period at eight points ending today", () => {
 		const points = sparklineSeries([], "net", "week", NOW);
-		assert.equal(points.length, 8);
-		assert.equal(
-			points.at(-1)?.date.getTime(),
+		expect(points.length).toBe(8);
+		expect(points.at(-1)?.date.getTime()).toBe(
 			new Date("2026-07-27T00:00:00").getTime(),
 		);
 	});
@@ -37,8 +34,8 @@ describe("sparklineSeries", () => {
 			"week",
 			NOW,
 		);
-		assert.equal(points[0].amount, 500);
-		assert.equal(points.at(-1)?.amount, 300);
+		expect(points[0].amount).toBe(500);
+		expect(points.at(-1)?.amount).toBe(300);
 	});
 
 	it("never lets the running net fall back once nothing more is logged", () => {
@@ -49,7 +46,7 @@ describe("sparklineSeries", () => {
 			NOW,
 		);
 		const tail = points.slice(-3).map((point) => point.amount);
-		assert.deepEqual(tail, [-100, -100, -100]);
+		expect(tail).toStrictEqual([-100, -100, -100]);
 	});
 
 	it("buckets Out per sample instead of accumulating it", () => {
@@ -64,10 +61,7 @@ describe("sparklineSeries", () => {
 			NOW,
 		);
 		const nonZero = points.filter((point) => point.amount !== 0);
-		assert.deepEqual(
-			nonZero.map((point) => point.amount),
-			[50, 7],
-		);
+		expect(nonZero.map((point) => point.amount)).toStrictEqual([50, 7]);
 	});
 
 	it("keeps income out of the Out series and expense out of the In series", () => {
@@ -77,35 +71,29 @@ describe("sparklineSeries", () => {
 		];
 		const out = sparklineSeries(rows, "out", "week", NOW);
 		const income = sparklineSeries(rows, "in", "week", NOW);
-		assert.equal(
-			out.reduce((sum, point) => sum + point.amount, 0),
-			40,
-		);
-		assert.equal(
-			income.reduce((sum, point) => sum + point.amount, 0),
-			90,
-		);
+		expect(out.reduce((sum, point) => sum + point.amount, 0)).toBe(40);
+		expect(income.reduce((sum, point) => sum + point.amount, 0)).toBe(90);
 	});
 
 	it("samples a year period monthly", () => {
 		const points = sparklineSeries([], "net", "year", NOW);
-		assert.equal(points.length, 13);
+		expect(points.length).toBe(13);
 	});
 });
 
 describe("sparklineRange", () => {
 	it("counts the days elapsed this month, inclusive of today", () => {
-		assert.equal(sparklineRange("month", NOW), 27);
+		expect(sparklineRange("month", NOW)).toBe(27);
 	});
 
 	it("counts the months elapsed this year, inclusive of this one", () => {
-		assert.equal(sparklineRange("year", NOW), 7);
+		expect(sparklineRange("year", NOW)).toBe(7);
 	});
 
 	it("counts from the configured first weekday", () => {
 		// 2026-07-27 is a Monday.
-		assert.equal(sparklineRange("week", NOW, 1), 2);
-		assert.equal(sparklineRange("week", NOW, 2), 1);
+		expect(sparklineRange("week", NOW, 1)).toBe(2);
+		expect(sparklineRange("week", NOW, 2)).toBe(1);
 	});
 });
 
@@ -115,12 +103,12 @@ describe("sparklineIsPositive", () => {
 			{ date: NOW, amount: 1 },
 			{ date: NOW, amount: 5 },
 		];
-		assert.equal(sparklineIsPositive("net", rising), true);
-		assert.equal(sparklineIsPositive("net", [...rising].reverse()), false);
+		expect(sparklineIsPositive("net", rising)).toBe(true);
+		expect(sparklineIsPositive("net", [...rising].reverse())).toBe(false);
 	});
 
 	it("reads money in as always good and money out as never", () => {
-		assert.equal(sparklineIsPositive("in", []), true);
-		assert.equal(sparklineIsPositive("out", []), false);
+		expect(sparklineIsPositive("in", [])).toBe(true);
+		expect(sparklineIsPositive("out", [])).toBe(false);
 	});
 });

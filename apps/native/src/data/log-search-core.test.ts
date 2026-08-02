@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { transactions } from "@/db/schema";
@@ -103,7 +101,7 @@ describe("search query", () => {
 			{ id: "miss", note: "Petrol", date: at(2025, 7, 14) },
 		]);
 
-		assert.deepEqual(await search(db, "groceries"), ["hit"]);
+		expect(await search(db, "groceries")).toStrictEqual(["hit"]);
 	});
 
 	it("matches every row of a category whose name matched", async () => {
@@ -118,7 +116,7 @@ describe("search query", () => {
 			{ id: "other", note: "nothing textual to match", date: at(2025, 7, 14) },
 		]);
 
-		assert.deepEqual(await search(db, "food", ["cat-food"]), ["in-cat"]);
+		expect(await search(db, "food", ["cat-food"])).toStrictEqual(["in-cat"]);
 	});
 
 	it("matches an exact amount when the query reads as a number", async () => {
@@ -128,7 +126,7 @@ describe("search query", () => {
 			{ id: "near", amount: 4200, note: "rent", date: at(2025, 7, 13) },
 		]);
 
-		assert.deepEqual(await search(db, "42"), ["exact"]);
+		expect(await search(db, "42")).toStrictEqual(["exact"]);
 	});
 
 	it("excludes rows dated ahead of the clock, which have not been spent yet", async () => {
@@ -138,11 +136,7 @@ describe("search query", () => {
 			{ id: "scheduled", note: "Rent", amount: 1500, date: at(2025, 8, 1) },
 		]);
 
-		assert.deepEqual(
-			await search(db, "rent"),
-			["landed"],
-			"a total over the result set must mean the same thing as the Log's",
-		);
+		expect(await search(db, "rent")).toStrictEqual(["landed"]);
 	});
 
 	it("takes in a row the moment the clock reaches it", async () => {
@@ -151,11 +145,10 @@ describe("search query", () => {
 			{ id: "later-today", note: "Rent", date: at(2025, 7, 15, 18) },
 		]);
 
-		assert.deepEqual(await search(db, "rent"), []);
-		assert.deepEqual(
+		expect(await search(db, "rent")).toStrictEqual([]);
+		expect(
 			await search(db, "rent", [], at(2025, 7, 15, 19).getTime()),
-			["later-today"],
-		);
+		).toStrictEqual(["later-today"]);
 	});
 
 	it("excludes tombstones", async () => {
@@ -169,7 +162,7 @@ describe("search query", () => {
 			},
 		]);
 
-		assert.deepEqual(await search(db, "rent"), []);
+		expect(await search(db, "rent")).toStrictEqual([]);
 	});
 
 	it("matches nothing at all on an empty query", async () => {
@@ -178,7 +171,7 @@ describe("search query", () => {
 			{ id: "any", note: "Rent", details: "anything", date: at(2025, 7, 1) },
 		]);
 
-		assert.deepEqual(await search(db, ""), []);
+		expect(await search(db, "")).toStrictEqual([]);
 	});
 
 	it("returns newest first", async () => {
@@ -189,7 +182,11 @@ describe("search query", () => {
 			{ id: "oldest", note: "Rent", date: at(2025, 6, 30) },
 		]);
 
-		assert.deepEqual(await search(db, "rent"), ["newest", "middle", "oldest"]);
+		expect(await search(db, "rent")).toStrictEqual([
+			"newest",
+			"middle",
+			"oldest",
+		]);
 	});
 });
 
@@ -206,11 +203,7 @@ describe("search over the note's free text", () => {
 			{ id: "other", note: "Card 4471", date: at(2025, 7, 14) },
 		]);
 
-		assert.deepEqual(
-			await search(db, "dentist"),
-			["in-details"],
-			"the app indexes this text for Spotlight, so it has to find it too",
-		);
+		expect(await search(db, "dentist")).toStrictEqual(["in-details"]);
 	});
 
 	it("returns a row matching both the note and the free text once", async () => {
@@ -224,7 +217,7 @@ describe("search over the note's free text", () => {
 			},
 		]);
 
-		assert.deepEqual(await search(db, "coffee"), ["both"]);
+		expect(await search(db, "coffee")).toStrictEqual(["both"]);
 	});
 
 	it("holds the clock and tombstone bounds the note match holds", async () => {
@@ -245,7 +238,7 @@ describe("search over the note's free text", () => {
 			},
 		]);
 
-		assert.deepEqual(await search(db, "dentist"), []);
+		expect(await search(db, "dentist")).toStrictEqual([]);
 	});
 });
 
@@ -267,11 +260,7 @@ describe("wildcards in the query", () => {
 			},
 		]);
 
-		assert.deepEqual(
-			await search(db, "50%"),
-			["literal"],
-			"an unescaped % would drag in every note merely containing 50",
-		);
+		expect(await search(db, "50%")).toStrictEqual(["literal"]);
 	});
 
 	it("matches a literal underscore in the free text", async () => {
@@ -291,7 +280,7 @@ describe("wildcards in the query", () => {
 			},
 		]);
 
-		assert.deepEqual(await search(db, "a_b"), ["literal"]);
+		expect(await search(db, "a_b")).toStrictEqual(["literal"]);
 	});
 });
 
@@ -313,10 +302,9 @@ describe("the search projection", () => {
 			nowMs: NOW,
 		});
 
-		assert.deepEqual(
-			rows.map((found) => found.details),
-			["Quarterly dentist deposit"],
-		);
+		expect(rows.map((found) => found.details)).toStrictEqual([
+			"Quarterly dentist deposit",
+		]);
 	});
 
 	it("leaves the free text out of the Log's own read", async () => {
@@ -325,11 +313,9 @@ describe("the search projection", () => {
 
 		const rows = await logWindowRowsQuery(db, NOW, null);
 
-		assert.equal(rows.length, 1);
-		assert.equal(
+		expect(rows.length).toBe(1);
+		expect(
 			rows.flatMap((found) => Object.keys(found)).includes("details"),
-			false,
-			"the Log paints no note, so widening search must not widen it",
-		);
+		).toBe(false);
 	});
 });

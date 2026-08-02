@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
-
 import { EN, ES } from "./catalog";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { runtimeLanguage, setRuntimeLanguage, translateNow } from "./runtime";
@@ -11,22 +8,21 @@ afterEach(() => {
 
 describe("translateNow", () => {
 	it("starts on the default language", () => {
-		assert.equal(runtimeLanguage(), DEFAULT_LANGUAGE);
+		expect(runtimeLanguage()).toBe(DEFAULT_LANGUAGE);
 	});
 
 	it("renders English before the provider has set anything", () => {
-		assert.equal(translateNow("common.cancel"), EN["common.cancel"]);
+		expect(translateNow("common.cancel")).toBe(EN["common.cancel"]);
 	});
 
 	it("follows the language the provider set", () => {
 		setRuntimeLanguage("es");
-		assert.equal(translateNow("common.cancel"), ES["common.cancel"]);
+		expect(translateNow("common.cancel")).toBe(ES["common.cancel"]);
 	});
 
 	it("interpolates params", () => {
 		setRuntimeLanguage("en");
-		assert.equal(
-			translateNow("alerts.budget.deleteNamed", { name: "Rent" }),
+		expect(translateNow("alerts.budget.deleteNamed", { name: "Rent" })).toBe(
 			"Delete the 'Rent' budget?",
 		);
 	});

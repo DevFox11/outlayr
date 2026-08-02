@@ -1,9 +1,7 @@
-import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { describe, it } from "node:test";
 
-const SRC = join(import.meta.dirname, "..");
+const SRC = join(__dirname, "..");
 
 /** Where the ban is explained, so it necessarily names the API it bans. */
 const EXEMPT = join(SRC, "db", "transaction.ts");
@@ -46,20 +44,13 @@ describe("drizzle transaction ban", () => {
 			.filter((path) => DRIZZLE_TRANSACTION.test(readFileSync(path, "utf8")))
 			.map((path) => relative(SRC, path));
 
-		assert.deepEqual(
-			offenders,
-			[],
-			`${offenders.join(", ")} calls .transaction() directly. Use withTransaction ` +
-				"from @/db/transaction, which wraps expo-sqlite's withTransactionAsync on " +
-				"the same connection.",
-		);
+		expect(offenders).toStrictEqual([]);
 	});
 
 	it("the exempt file still carries the helper the ban points at", () => {
 		const source = readFileSync(EXEMPT, "utf8");
-		assert.ok(
+		expect(
 			source.includes("export async function withTransaction"),
-			"withTransaction moved; this guard's error message now names nothing.",
-		);
+		).toBeTruthy();
 	});
 });

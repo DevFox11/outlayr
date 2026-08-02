@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { dayCardContent, dayCardFileName } from "./day-card-content";
 
 const DAY = new Date(2026, 6, 29);
@@ -39,7 +37,7 @@ const OPTIONS = {
 
 describe("dayCardContent", () => {
 	it("titles the card with the day", () => {
-		assert.equal(dayCardContent(SECTION, OPTIONS, DAY).dayLabel, "TODAY");
+		expect(dayCardContent(SECTION, OPTIONS, DAY).dayLabel).toBe("TODAY");
 	});
 
 	it("falls back to the calendar label for a day that is not today", () => {
@@ -48,11 +46,11 @@ describe("dayCardContent", () => {
 			OPTIONS,
 			new Date(2026, 7, 20),
 		).dayLabel;
-		assert.ok(label.includes("JUL"));
+		expect(label.includes("JUL")).toBeTruthy();
 	});
 
 	it("prints the day's signed total", () => {
-		assert.equal(dayCardContent(SECTION, OPTIONS, DAY).total, "-$42.50");
+		expect(dayCardContent(SECTION, OPTIONS, DAY).total).toBe("-$42.50");
 	});
 
 	it("joins two currencies with a slash rather than adding them", () => {
@@ -63,38 +61,32 @@ describe("dayCardContent", () => {
 				{ currencyCode: "EUR", amount: -12.5, transactionCount: 1 },
 			],
 		};
-		assert.equal(
-			dayCardContent(mixed, OPTIONS, DAY).total,
-			"-$20.00 / -€12.50",
-		);
+		expect(dayCardContent(mixed, OPTIONS, DAY).total).toBe("-$20.00 / -€12.50");
 	});
 
 	it("signs each row and uses the row's own currency", () => {
 		const card = dayCardContent(SECTION, OPTIONS, DAY);
-		assert.equal(card.rows[0]?.amount, "-€12.50");
-		assert.equal(card.rows[1]?.amount, "+$30.00");
+		expect(card.rows[0]?.amount).toBe("-€12.50");
+		expect(card.rows[1]?.amount).toBe("+$30.00");
 	});
 
 	it("drops the sign when the setting is off", () => {
 		const card = dayCardContent(SECTION, { ...OPTIONS, showSign: false }, DAY);
-		assert.equal(card.rows[0]?.amount, "€12.50");
+		expect(card.rows[0]?.amount).toBe("€12.50");
 	});
 
 	it("drops the cents when the setting is off", () => {
 		const card = dayCardContent(SECTION, { ...OPTIONS, showCents: false }, DAY);
-		assert.equal(card.rows[0]?.amount, "-€12");
+		expect(card.rows[0]?.amount).toBe("-€12");
 	});
 
 	it("subtitles a row with its time", () => {
-		assert.equal(
-			dayCardContent(SECTION, OPTIONS, DAY).rows[0]?.meta,
-			"9:30 AM",
-		);
+		expect(dayCardContent(SECTION, OPTIONS, DAY).rows[0]?.meta).toBe("9:30 AM");
 	});
 
 	it("subtitles a row on a 24-hour clock when the setting asks for one", () => {
 		const card = dayCardContent(SECTION, { ...OPTIONS, use24Hour: true }, DAY);
-		assert.equal(card.rows[0]?.meta, "09:30");
+		expect(card.rows[0]?.meta).toBe("09:30");
 	});
 
 	it("subtitles with the category when the label is swapped", () => {
@@ -103,20 +95,20 @@ describe("dayCardContent", () => {
 			{ ...OPTIONS, swapTimeLabel: true },
 			DAY,
 		);
-		assert.equal(card.rows[0]?.meta, "Groceries");
+		expect(card.rows[0]?.meta).toBe("Groceries");
 	});
 
 	it("keeps the rows in the order the list painted them", () => {
 		const card = dayCardContent(SECTION, OPTIONS, DAY);
-		assert.deepEqual(
-			card.rows.map((row) => row.note),
-			["Bakery", "Refund"],
-		);
+		expect(card.rows.map((row) => row.note)).toStrictEqual([
+			"Bakery",
+			"Refund",
+		]);
 	});
 });
 
 describe("dayCardFileName", () => {
 	it("names the file after the day it shows", () => {
-		assert.equal(dayCardFileName(DAY), "outlayr-2026-07-29.png");
+		expect(dayCardFileName(DAY)).toBe("outlayr-2026-07-29.png");
 	});
 });

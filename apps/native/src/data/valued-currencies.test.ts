@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -76,15 +74,14 @@ describe("what the Log's currency chip may offer", () => {
 		// chip silently offered none of them.
 		const db = makeDb();
 		seed(db);
-		assert.deepEqual(
+		expect(
 			logCurrencyOptions({
 				global: "USD",
 				favourites: ["AED", "EUR"],
 				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
 			}),
-			["USD", "AED", "EUR"],
-		);
+		).toStrictEqual(["USD", "AED", "EUR"]);
 	});
 
 	it("is exactly what the old predicate got wrong", () => {
@@ -92,29 +89,27 @@ describe("what the Log's currency chip may offer", () => {
 		const db = makeDb();
 		seed(db);
 		const rates = ratesFor(db, "USD");
-		assert.deepEqual(
+		expect(
 			logCurrencyOptions({
 				global: "USD",
 				favourites: ["AED", "EUR"],
 				produced: [],
 				convertible: (code) => code === "USD" || rates.earliest(code) !== null,
 			}),
-			["USD"],
-		);
+		).toStrictEqual(["USD"]);
 	});
 
 	it("still drops a favourite no rate can reach", () => {
 		const db = makeDb();
 		seed(db);
-		assert.deepEqual(
+		expect(
 			logCurrencyOptions({
 				global: "USD",
 				favourites: ["AED", "XXX"],
 				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
 			}),
-			["USD", "AED"],
-		);
+		).toStrictEqual(["USD", "AED"]);
 	});
 
 	it("offers USD without a row of its own", () => {
@@ -122,16 +117,15 @@ describe("what the Log's currency chip may offer", () => {
 		// though `exchangeRates` never quotes it.
 		const db = makeDb();
 		seed(db);
-		assert.ok(!valued(db).has("USD"));
-		assert.deepEqual(
+		expect(!valued(db).has("USD")).toBeTruthy();
+		expect(
 			logCurrencyOptions({
 				global: "AED",
 				favourites: ["USD"],
 				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
 			}),
-			["AED", "USD"],
-		);
+		).toStrictEqual(["AED", "USD"]);
 	});
 
 	it("offers USD on a ledger that has never pulled a rate, and means it", () => {
@@ -139,37 +133,34 @@ describe("what the Log's currency chip may offer", () => {
 		// display never reaches the rate table: it reads the row's frozen
 		// `amountUsd`. So USD is a real option on an empty table, not a dead one.
 		const db = makeDb();
-		assert.equal(valued(db).size, 0);
-		assert.deepEqual(
+		expect(valued(db).size).toBe(0);
+		expect(
 			logCurrencyOptions({
 				global: "AED",
 				favourites: ["USD"],
 				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
 			}),
-			["AED", "USD"],
-		);
-		assert.equal(
+		).toStrictEqual(["AED", "USD"]);
+		expect(
 			valueExactIn(
 				{ amount: 36.7, amountUsd: 10, currency: "AED", dateKey: "2026-07-30" },
 				"USD",
 				buildRateTable([]),
 			),
-			10,
-		);
+		).toBe(10);
 	});
 
 	it("answers nothing on a ledger that has never pulled a rate", () => {
 		const db = makeDb();
-		assert.equal(valued(db).size, 0);
-		assert.deepEqual(
+		expect(valued(db).size).toBe(0);
+		expect(
 			logCurrencyOptions({
 				global: "USD",
 				favourites: ["AED"],
 				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
 			}),
-			["USD"],
-		);
+		).toStrictEqual(["USD"]);
 	});
 });

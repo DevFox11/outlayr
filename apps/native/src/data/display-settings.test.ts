@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { selectDisplaySettings } from "./display-settings";
 import type { BoolSettingKey, NumberSettingKey } from "./settings-core";
 
@@ -20,7 +18,7 @@ describe("selectDisplaySettings", () => {
 				swapTimeLabel: false,
 			}),
 		);
-		assert.deepEqual(result, {
+		expect(result).toStrictEqual({
 			showCents: true,
 			showSign: false,
 			use24Hour: true,
@@ -30,7 +28,7 @@ describe("selectDisplaySettings", () => {
 
 	it("defaults every field to false when nothing is set", () => {
 		const result = selectDisplaySettings(snapshot({}));
-		assert.deepEqual(result, {
+		expect(result).toStrictEqual({
 			showCents: false,
 			showSign: false,
 			use24Hour: false,

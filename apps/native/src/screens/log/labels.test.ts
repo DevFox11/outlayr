@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
@@ -10,8 +8,7 @@ const t: TranslateFn = (key, params) =>
 
 describe("scopeMeasureLabel", () => {
 	it("says only the measure when the figure is in the currency asked for", () => {
-		assert.equal(
-			scopeMeasureLabel(t, "out", "USD", "USD"),
+		expect(scopeMeasureLabel(t, "out", "USD", "USD")).toBe(
 			t("log.measure.out"),
 		);
 	});
@@ -24,14 +21,14 @@ describe("scopeMeasureLabel", () => {
 	it("names the currency when the figure fell back to another bucket", () => {
 		const label = scopeMeasureLabel(t, "out", "COP", "USD");
 
-		assert.equal(label, `${t("log.measure.out")} · COP`);
-		assert.match(label, /COP/);
+		expect(label).toBe(`${t("log.measure.out")} · COP`);
+		expect(label).toMatch(/COP/);
 	});
 
 	it("names the fallback for every measure, not just the promoted one", () => {
 		for (const measure of ["net", "in", "out"] as const) {
-			assert.match(scopeMeasureLabel(t, measure, "JPY", "EUR"), /· JPY$/);
-			assert.doesNotMatch(scopeMeasureLabel(t, measure, "EUR", "EUR"), /·/);
+			expect(scopeMeasureLabel(t, measure, "JPY", "EUR")).toMatch(/· JPY$/);
+			expect(scopeMeasureLabel(t, measure, "EUR", "EUR")).not.toMatch(/·/);
 		}
 	});
 });
