@@ -456,8 +456,32 @@ const settings = {
 			es: "Quitar {code} de favoritas",
 		}),
 		"settings.currency.favouritesFull": t({
-			en: "You already keep {limit} favourites. Remove one to make room.",
-			es: "Ya tienes {limit} favoritas. Quita una para hacer espacio.",
+			en: "Favourites full ({limit})",
+			es: "Favoritas al límite ({limit})",
+		}),
+		"settings.currency.favouritesFullBody": t({
+			en: "Remove one to make room.",
+			es: "Quita una para hacer espacio.",
+		}),
+		"settings.currency.favouritesHint": t({
+			en: "Hold a currency to keep it here.",
+			es: "Mantén presionada una moneda para guardarla aquí.",
+		}),
+		"settings.currency.use": t({
+			en: "Use {code}",
+			es: "Usar {code}",
+		}),
+		"settings.currency.favouriteAction": t({
+			en: "Favourite",
+			es: "Favorita",
+		}),
+		"settings.currency.unfavouriteAction": t({
+			en: "Unfavourite",
+			es: "Quitar",
+		}),
+		"settings.currency.favouritesFullShort": t({
+			en: "Full ({limit})",
+			es: "Al límite ({limit})",
 		}),
 		"settings.erase.onThisDevice": t({
 			en: "On this device",

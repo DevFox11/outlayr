@@ -70,6 +70,7 @@ const NON_TEXT_TOKENS = [
 	"warning",
 	"chip",
 	"danger-fill",
+	"gold-fill",
 	"rail-over",
 	"rail-track",
 	"fr-rule",
@@ -104,7 +105,7 @@ const WHITE = "#ffffff";
  * not a token and the fill is not a ground — so it is named here or it is
  * measured nowhere.
  */
-const WHITE_TEXT_FILLS = ["danger-fill"] as const;
+const WHITE_TEXT_FILLS = ["danger-fill", "gold-fill"] as const;
 
 /**
  * Every file writing literal `text-white`, relative to `src`. The list is the
@@ -113,6 +114,7 @@ const WHITE_TEXT_FILLS = ["danger-fill"] as const;
  * fill a literal colour was written over.
  */
 const WHITE_TEXT_SITES = [
+	"components/currency-picker-row.tsx",
 	"screens/budgets/components/budget-row.tsx",
 	"screens/log/components/swipeable-transaction-row.tsx",
 ] as const;

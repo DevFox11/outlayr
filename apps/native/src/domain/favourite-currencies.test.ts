@@ -5,6 +5,7 @@ import {
 	FAVOURITE_CURRENCY_LIMIT,
 	isFavourite,
 	parseFavourites,
+	seedFavourites,
 	serialiseFavourites,
 	toggleFavourite,
 } from "./favourite-currencies";
@@ -144,5 +145,40 @@ describe("isFavourite", () => {
 	it("is false for a code that is not there", () => {
 		assert.equal(isFavourite(["EUR", "JPY"], "GBP"), false);
 		assert.equal(isFavourite([], "EUR"), false);
+	});
+});
+
+describe("the cluster a new ledger starts with", () => {
+	it("always offers the two anchors", () => {
+		assert.deepEqual(seedFavourites(null), ["USD", "EUR"]);
+	});
+
+	it("appends the device's own currency", () => {
+		assert.deepEqual(seedFavourites("VES"), ["USD", "EUR", "VES"]);
+	});
+
+	it("does not repeat an anchor the device already uses", () => {
+		assert.deepEqual(seedFavourites("EUR"), ["USD", "EUR"]);
+		assert.deepEqual(seedFavourites("usd"), ["USD", "EUR"]);
+	});
+
+	it("prices a redenominated code under the name the catalogue carries", () => {
+		// iOS reports VED for Venezuela; rates are quoted in VES, so the catalogue
+		// carries VES. Without the alias a device in Caracas seeds nothing.
+		assert.deepEqual(seedFavourites("VED"), ["USD", "EUR", "VES"]);
+	});
+
+	it("ignores a code the catalogue does not know", () => {
+		// A locale can name a currency this app cannot price, and a stored code the
+		// catalogue has never heard of reaches a row with no name or symbol to draw.
+		assert.deepEqual(seedFavourites("XXX"), ["USD", "EUR"]);
+	});
+
+	it("stays inside the limit, so nothing it seeds is dropped on read", () => {
+		assert.ok(seedFavourites("JPY").length <= FAVOURITE_CURRENCY_LIMIT);
+		assert.deepEqual(
+			parseFavourites(serialiseFavourites(seedFavourites("JPY"))),
+			["USD", "EUR", "JPY"],
+		);
 	});
 });

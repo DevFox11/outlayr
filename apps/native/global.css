@@ -38,6 +38,13 @@
 			--expense: #010101;
 			--future: #6d6d6d;
 
+
+			/* The favourite swipe pill, which writes literal white over it. Same value
+			   in both themes for the reason `--danger-fill` is: white is the text in
+			   both, and #8a6a14 at 5.06:1 is about as bright as gold gets before white
+			   stops clearing 4.5:1. */
+			--gold-fill: #8a6a14;
+
 			--danger: #da0f01;
 			--over-budget: #d61d1f;
 
@@ -104,6 +111,8 @@
 			--expense: #ffffff;
 			--future: #a4a4a9;
 
+			--gold-fill: #8a6a14;
+
 			--danger: #fe473a;
 			--over-budget: #f17879;
 
@@ -150,6 +159,7 @@
 	--color-income: var(--income);
 	--color-expense: var(--expense);
 	--color-future: var(--future);
+	--color-gold-fill: var(--gold-fill);
 	--color-danger: var(--danger);
 	--color-danger-fill: var(--danger-fill);
 	--color-over-budget: var(--over-budget);

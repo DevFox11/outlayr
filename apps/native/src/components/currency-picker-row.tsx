@@ -1,0 +1,412 @@
+import {
+	type MenuAction,
+	MenuView,
+	type NativeActionEvent,
+} from "@expo/ui/community/menu";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react-native";
+import { StarIcon as StarSolidIcon } from "@hugeicons-pro/core-solid-rounded";
+import { StarIcon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import { CURRENCY_META } from "@outlayr/money";
+import { useRef } from "react";
+import { Pressable, useWindowDimensions, View } from "react-native";
+import ReanimatedSwipeable, {
+	type SwipeableMethods,
+} from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, {
+	Easing,
+	ReduceMotion,
+	runOnJS,
+	type SharedValue,
+	useAnimatedReaction,
+	useAnimatedStyle,
+	useSharedValue,
+	withTiming,
+	ZoomIn,
+} from "react-native-reanimated";
+import type { CurrencyCode } from "@/domain/currency-picker-rows";
+import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
+import { useTranslation } from "@/i18n";
+import { useHaptics } from "@/lib/use-haptics";
+import { useColors } from "@/theme/use-colors";
+import { MonoLabel } from "./mono-label";
+import { Text } from "./text";
+import { cn } from "./tw";
+
+/** The app's motion curve, shared so nothing here invents a second one. */
+const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
+
+export function CurrencySectionHeader({
+	section,
+}: {
+	section: "favourites" | "all";
+}) {
+	const t = useTranslation();
+	return (
+		<MonoLabel className="pt-4 pb-1">
+			{t(
+				section === "favourites"
+					? "settings.currency.favourites"
+					: "settings.currency.all",
+			)}
+		</MonoLabel>
+	);
+}
+
+export function CurrencyHint() {
+	const t = useTranslation();
+	return (
+		<Text className="pb-3 text-footnote text-muted">
+			{t("settings.currency.favouritesHint")}
+		</Text>
+	);
+}
+
+/**
+ * Only the tick animates on entry, and only because exactly one row carries it.
+ * An entering animation on the rows themselves would fire on every row that
+ * scrolls into the virtualised window.
+ */
+const TICK_ARRIVES = ZoomIn.duration(240)
+	.easing(EASE.factory())
+	.reduceMotion(ReduceMotion.System);
+
+/**
+ * `bg-background` is required: UIKit snapshots the context-menu trigger for its
+ * platter, and a transparent trigger composites the preview over the row
+ * beneath. The travelling copy shares the class so it matches the row it stands
+ * in for.
+ */
+const ROW_SURFACE = "flex-row items-center gap-3 bg-background py-3";
+
+/**
+ * The separator belongs to the row rather than the list, so the row that closes
+ * a section has to leave it off — otherwise it stacks a hairline directly
+ * against the next section's header.
+ */
+const ROW_RULE = "border-border border-b";
+
+const HELD_BACK = { opacity: 0 } as const;
+
+const LANE_WIDTH = 96;
+
+/** `ReanimatedSwipeable` has no `allowsFullSwipe`, so it is rebuilt here. */
+const FULL_SWIPE_FRACTION = 0.45;
+
+function SwipeAction({
+	accessibilityHint,
+	accessibilityLabel,
+	fillClassName,
+	icon,
+	iconColor,
+	label,
+	labelClassName,
+	onArm,
+	onPress,
+	translation,
+}: {
+	accessibilityHint?: string;
+	accessibilityLabel: string;
+	fillClassName: string;
+	icon: IconSvgElement;
+	iconColor: string;
+	label: string;
+	labelClassName: string;
+	onArm: (armed: boolean) => void;
+	onPress: () => void;
+	translation: SharedValue<number>;
+}) {
+	const { width } = useWindowDimensions();
+	const threshold = width * FULL_SWIPE_FRACTION;
+	const armed = useSharedValue(false);
+
+	// Reports crossings only. Acting mid-drag freezes the row: the close is undone
+	// when the gesture settles the lane open, and it can only close again after.
+	useAnimatedReaction(
+		() => translation.value <= -threshold,
+		(next) => {
+			if (next !== armed.value) {
+				armed.value = next;
+				runOnJS(onArm)(next);
+			}
+		},
+	);
+
+	const style = useAnimatedStyle(() => ({
+		width: Math.max(LANE_WIDTH, -translation.value - 12),
+	}));
+
+	// The lane already follows the finger; what it could not say is when the
+	// threshold has been passed. You used to find that out by letting go.
+	const glyph = useAnimatedStyle(() => ({
+		transform: [
+			{
+				scale: withTiming(translation.value <= -threshold ? 1.35 : 1, {
+					duration: 160,
+					easing: EASE,
+				}),
+			},
+		],
+	}));
+
+	return (
+		<Animated.View className="my-1 ml-3" style={style}>
+			<Pressable
+				accessibilityHint={accessibilityHint}
+				accessibilityLabel={accessibilityLabel}
+				accessibilityRole="button"
+				className={cn(
+					"flex-1 items-center justify-center gap-1 rounded-xl",
+					fillClassName,
+				)}
+				onPress={onPress}
+			>
+				<Animated.View style={glyph}>
+					<HugeiconsIcon
+						color={iconColor}
+						icon={icon}
+						size={18}
+						strokeWidth={2}
+					/>
+				</Animated.View>
+				<Text
+					className={cn("font-sans-semibold text-footnote", labelClassName)}
+				>
+					{label}
+				</Text>
+			</Pressable>
+		</Animated.View>
+	);
+}
+
+function CurrencyRowFace({
+	code,
+	selected,
+	tickEnters,
+}: {
+	code: CurrencyCode;
+	selected: boolean;
+	tickEnters: boolean;
+}) {
+	const colors = useColors();
+	const meta = CURRENCY_META[code];
+
+	return (
+		<>
+			<View className="w-9 items-center">
+				<Text
+					className="text-body text-muted"
+					style={{ fontVariant: ["tabular-nums"] }}
+				>
+					{meta.symbol}
+				</Text>
+			</View>
+			<View className="flex-1">
+				<Text className="text-body text-foreground">{code}</Text>
+				<Text className="text-footnote text-muted" numberOfLines={1}>
+					{meta.name}
+				</Text>
+			</View>
+			<View className="w-5 items-center">
+				{selected ? (
+					<Animated.View entering={tickEnters ? TICK_ARRIVES : undefined}>
+						<HugeiconsIcon
+							color={colors.tint}
+							icon={Tick02Icon}
+							size={20}
+							strokeWidth={2.4}
+						/>
+					</Animated.View>
+				) : null}
+			</View>
+		</>
+	);
+}
+
+/**
+ * The row stripped of its gestures, for the copy the list flies between
+ * sections. Its tick never re-enters: the copy is lifted off a row that is
+ * already on screen.
+ */
+export function CurrencyRowCopy({
+	code,
+	selected,
+}: {
+	code: CurrencyCode;
+	selected: boolean;
+}) {
+	return (
+		<View className={ROW_SURFACE}>
+			<CurrencyRowFace code={code} selected={selected} tickEnters={false} />
+		</View>
+	);
+}
+
+interface CurrencyRowProps {
+	code: CurrencyCode;
+	favourite: boolean;
+	selected: boolean;
+	full: boolean;
+	/** Held back while the list flies a copy of this row to its new section. */
+	travelling: boolean;
+	/** Last of its section, so it draws no separator beneath itself. */
+	last: boolean;
+	onPress: () => void;
+	/** `null` while no database is open, so favouriting is absent rather than dead. */
+	onToggleFavourite: (() => void) | null;
+}
+
+export function CurrencyRow({
+	code,
+	favourite,
+	last,
+	selected,
+	full,
+	travelling,
+	onPress,
+	onToggleFavourite,
+}: CurrencyRowProps) {
+	const colors = useColors();
+	const haptics = useHaptics();
+	const t = useTranslation();
+	const swipeRef = useRef<SwipeableMethods>(null);
+	const armedFullSwipe = useRef(false);
+
+	const refuses = !favourite && full;
+	const fullLabel = t("settings.currency.favouritesFull", {
+		limit: FAVOURITE_CURRENCY_LIMIT,
+	});
+	const laneFill = refuses
+		? "bg-surface-secondary"
+		: favourite
+			? "bg-danger-fill"
+			: "bg-gold-fill";
+
+	// Answers only the refusal this row can already see. `full` comes from a live
+	// query, so two rows pressed a tick apart at seven favourites both render as
+	// not-full; the caller owns the outcome haptic because only the write knows.
+	const commit = () => {
+		swipeRef.current?.close();
+		if (refuses) {
+			haptics("warning");
+			return;
+		}
+		onToggleFavourite?.();
+	};
+
+	const renderRightActions = (
+		_progress: SharedValue<number>,
+		translation: SharedValue<number>,
+	) => (
+		<SwipeAction
+			accessibilityHint={
+				refuses ? t("settings.currency.favouritesFullBody") : undefined
+			}
+			accessibilityLabel={
+				refuses
+					? fullLabel
+					: t(
+							favourite
+								? "settings.currency.unfavourite"
+								: "settings.currency.favourite",
+							{ code },
+						)
+			}
+			fillClassName={laneFill}
+			icon={favourite || refuses ? StarIcon : StarSolidIcon}
+			iconColor={refuses ? colors.muted : "#ffffff"}
+			label={
+				refuses
+					? t("settings.currency.favouritesFullShort", {
+							limit: FAVOURITE_CURRENCY_LIMIT,
+						})
+					: t(
+							favourite
+								? "settings.currency.unfavouriteAction"
+								: "settings.currency.favouriteAction",
+						)
+			}
+			labelClassName={refuses ? "text-muted" : "text-white"}
+			onArm={(armed) => {
+				armedFullSwipe.current = armed;
+			}}
+			onPress={commit}
+			translation={translation}
+		/>
+	);
+
+	const actions: MenuAction[] = [];
+	if (onToggleFavourite !== null) {
+		actions.push({
+			id: "favourite",
+			title: refuses
+				? fullLabel
+				: t(
+						favourite
+							? "settings.currency.unfavourite"
+							: "settings.currency.favourite",
+						{ code },
+					),
+			image: favourite ? "star.slash" : "star",
+			attributes: refuses ? { disabled: true } : undefined,
+		});
+	}
+	actions.push({
+		id: "use",
+		title: t("settings.currency.use", { code }),
+		state: selected ? "on" : "off",
+	});
+
+	const onPressAction = ({ nativeEvent }: NativeActionEvent) => {
+		if (nativeEvent.event === "use") {
+			onPress();
+			return;
+		}
+		commit();
+	};
+
+	return (
+		<ReanimatedSwipeable
+			containerStyle={travelling ? HELD_BACK : undefined}
+			friction={1}
+			// Without overshoot `translation` clamps at the lane's width and can
+			// never reach the full-swipe threshold.
+			overshootFriction={1}
+			// On release rather than mid-drag — see `SwipeAction`.
+			onSwipeableWillOpen={() => {
+				if (!armedFullSwipe.current) {
+					return;
+				}
+				armedFullSwipe.current = false;
+				commit();
+			}}
+			ref={swipeRef}
+			renderRightActions={
+				onToggleFavourite === null ? undefined : renderRightActions
+			}
+			rightThreshold={40}
+		>
+			{/* Not `@expo/ui/swift-ui`'s ContextMenu: that needs a SwiftUI `Host` per
+			    row, which cannot be told to fill its parent's width, so every row
+			    sat as its own inset card. */}
+			<MenuView
+				actions={actions}
+				onPressAction={onPressAction}
+				shouldOpenOnLongPress
+				title={refuses ? t("settings.currency.favouritesFullBody") : undefined}
+			>
+				<Pressable
+					accessibilityRole="button"
+					accessibilityState={{ selected }}
+					className={cn(
+						ROW_SURFACE,
+						last ? undefined : ROW_RULE,
+						"active:opacity-60",
+					)}
+					onPress={onPress}
+				>
+					<CurrencyRowFace code={code} selected={selected} tickEnters />
+				</Pressable>
+			</MenuView>
+		</ReanimatedSwipeable>
+	);
+}

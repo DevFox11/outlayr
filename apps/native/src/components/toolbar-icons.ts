@@ -22,9 +22,10 @@ import suggestionsOffIcon from "@/assets/toolbar-icons/suggestions-off.png";
 import suggestionsOnIcon from "@/assets/toolbar-icons/suggestions-on.png";
 
 /**
- * Rasterized by `scripts/generate-toolbar-icons.ts`. A toolbar item takes an SF
- * Symbol name or an image source and drops any React element, so a Hugeicon can
- * only reach one as a bitmap.
+ * Rasterized by `scripts/generate-icons.ts` from the `toolbar-icons` set in
+ * `scripts/icon-sets.ts`. A toolbar item takes an SF Symbol name or an image
+ * source and drops any React element, so a Hugeicon can only reach one as a
+ * bitmap.
  */
 const SOURCE = {
 	add: addIcon,

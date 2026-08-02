@@ -1,6 +1,6 @@
+import { SectionList } from "@legendapp/list/section-list";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { SectionList } from "react-native";
 
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
@@ -24,6 +24,7 @@ import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
+import { useValuedCurrencies } from "@/data/valued-currencies";
 import type { Database } from "@/db/client";
 import { addDays, addMonths, startOfDay } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
@@ -118,6 +119,7 @@ function LogContent({ db }: { db: Database }) {
 		db,
 		displayOverride ?? globalCurrency,
 	);
+	const valued = useValuedCurrencies(db);
 	// Every preference off one subscription: a per-key hook would register a
 	// separate `appMeta` listener each, and each fires on any write to the table.
 	const settings = useAllSettings(db);
@@ -182,11 +184,16 @@ function LogContent({ db }: { db: Database }) {
 				global: globalCurrency,
 				favourites: favouriteCurrencies,
 				produced: insights.perCurrency.map((figures) => figures.currencyCode),
-				// USD is the canonical side of every stored rate, so it needs no row of
-				// its own to be reachable.
-				convertible: (code) => code === "USD" || rates.earliest(code) !== null,
+				// Asked of `valued`, not of `rates`: `rates` holds one currency — the
+				// one on screen — so it answers no for every other code, and the chip
+				// offered no favourite at all (#237).
+				//
+				// USD is admitted unconditionally, including on a ledger that has never
+				// pulled a rate: `valueExactIn` returns the row's frozen `amountUsd` for
+				// a USD display and never reaches the rate table.
+				convertible: (code) => code === "USD" || valued.has(code),
 			}),
-		[globalCurrency, favouriteCurrencies, insights, rates],
+		[globalCurrency, favouriteCurrencies, insights, valued],
 	);
 	const sparkline = useSparkline(
 		db,
@@ -282,6 +289,9 @@ function LogContent({ db }: { db: Database }) {
 				sections={filter === "upcoming" ? [] : sections}
 				keyExtractor={(item) => item.id}
 				stickySectionHeadersEnabled={false}
+				// `ReanimatedSwipeable` keeps its open/closed offset inside the row
+				// instance, so a recycled row would inherit the previous row's swipe.
+				recycleItems={false}
 				onEndReachedThreshold={0.5}
 				onEndReached={() => {
 					if (filter === "all" && !reachedEnd) {

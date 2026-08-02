@@ -1,5 +1,6 @@
+import { SectionList } from "@legendapp/list/section-list";
 import { type ReactNode, useMemo } from "react";
-import { SectionList, View } from "react-native";
+import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { HeroNumber } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
@@ -101,6 +102,7 @@ export function BudgetDetailView({
 				sections={sections}
 				keyExtractor={(item) => item.id}
 				stickySectionHeadersEnabled={false}
+				recycleItems
 				contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
 				ListHeaderComponent={
 					<BudgetSummary
