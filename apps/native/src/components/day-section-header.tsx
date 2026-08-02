@@ -1,4 +1,5 @@
 import { Pressable, View } from "react-native";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { formatDayHeader } from "@/domain/dates";
 import type { DaySection } from "@/domain/day-sections";
 import { DayTotal } from "./amount-text";
@@ -6,7 +7,6 @@ import { MonoLabel } from "./mono-label";
 
 interface DaySectionHeaderProps {
 	section: DaySection<unknown>;
-	showCents: boolean;
 	/**
 	 * The top inset is the gap between one day group and the next — the previous
 	 * group's 18pt trailing padding plus this header's own 10pt. The first group
@@ -19,10 +19,10 @@ interface DaySectionHeaderProps {
 
 export function DaySectionHeader({
 	section,
-	showCents,
 	first = false,
 	onLongPress,
 }: DaySectionHeaderProps) {
+	const { showCents } = useDisplaySettings().state;
 	const body = (
 		<>
 			<View className="flex-row items-baseline justify-between gap-2">

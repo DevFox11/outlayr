@@ -10,7 +10,6 @@ import {
 	useMainBudget,
 	windowEndMs,
 } from "@/data/budgets";
-import { useBoolSetting } from "@/data/settings";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
@@ -50,9 +49,6 @@ function MainBudgetDetail({
 	const router = useRouter();
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
-	const showCents = useBoolSetting(db, "showCents");
-	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
-	const use24Hour = useBoolSetting(db, "use24HourClock");
 	const nowMs = useNow();
 	const [periodOffset, setPeriodOffset] = useState(0);
 	const contributions = useExpenseContributions(db, nowMs);
@@ -111,9 +107,6 @@ function MainBudgetDetail({
 				paceRemaining={showMarker ? pace.remaining : null}
 				paceBehind={!closed && behind}
 				leftPerDayAmount={perDay}
-				showCents={showCents}
-				showSign={showSign}
-				use24Hour={use24Hour}
 				closed={closed}
 				stepper={
 					budget.periodsBack > 0 ? (

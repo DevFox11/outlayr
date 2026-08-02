@@ -3,7 +3,7 @@ import {
 	BottomSheetTextInput,
 } from "@expo/ui/community/bottom-sheet";
 import { SymbolView } from "expo-symbols";
-import { forwardRef, useState } from "react";
+import { type Ref, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalData } from "@/contexts/local-data-context";
@@ -21,6 +21,7 @@ import { Text } from "./text";
 interface CurrencyPickerSheetProps {
 	selected: string;
 	onSelect: (code: string) => void;
+	ref?: Ref<BottomSheetModal>;
 }
 
 const SHORT_DETENT = 0.55;
@@ -32,10 +33,11 @@ const TITLE_HEIGHT = 48;
 const SEARCH_HEIGHT = 52;
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
-export const CurrencyPickerSheet = forwardRef<
-	BottomSheetModal,
-	CurrencyPickerSheetProps
->(function CurrencyPickerSheet({ selected, onSelect }, ref) {
+export function CurrencyPickerSheet({
+	selected,
+	onSelect,
+	ref,
+}: CurrencyPickerSheetProps) {
 	const colors = useColors();
 	const { height } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
@@ -136,4 +138,4 @@ export const CurrencyPickerSheet = forwardRef<
 			</View>
 		</BottomSheetModal>
 	);
-});
+}

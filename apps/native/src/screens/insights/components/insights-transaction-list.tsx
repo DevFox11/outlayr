@@ -17,10 +17,6 @@ interface InsightsTransactionListProps {
 	transactions: TransactionWithCategory[];
 	currency: string;
 	onPress: (id: string) => void;
-	showCents?: boolean;
-	showSign?: boolean;
-	swapTimeLabel?: boolean;
-	use24Hour?: boolean;
 	/** Break the list into day sections with their signed subtotals. */
 	grouped?: boolean;
 	/**
@@ -38,10 +34,6 @@ export function InsightsTransactionList({
 	transactions,
 	currency,
 	onPress,
-	showCents = true,
-	showSign = true,
-	swapTimeLabel = false,
-	use24Hour = false,
 	grouped = true,
 	pendingDeleteId,
 	onRequestDelete,
@@ -71,10 +63,6 @@ export function InsightsTransactionList({
 			onLongPress={(id) => openRowActions(id, false)}
 			onPress={onPress}
 			rates={rates}
-			showCents={showCents}
-			showSign={showSign}
-			swapTimeLabel={swapTimeLabel}
-			use24Hour={use24Hour}
 			transaction={transaction}
 		/>
 	);
@@ -87,11 +75,7 @@ export function InsightsTransactionList({
 		<View>
 			{sections.map((section, index) => (
 				<View key={section.day.getTime()}>
-					<DaySectionHeader
-						first={index === 0}
-						section={section}
-						showCents={showCents}
-					/>
+					<DaySectionHeader first={index === 0} section={section} />
 					{section.data.map(row)}
 				</View>
 			))}

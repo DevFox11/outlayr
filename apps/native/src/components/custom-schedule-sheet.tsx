@@ -17,7 +17,7 @@ import {
 	scrollDisabled,
 	tag,
 } from "@expo/ui/swift-ui/modifiers";
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { type Ref, useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import {
 	RECURRING_TYPE,
@@ -86,6 +86,7 @@ interface CustomScheduleSheetProps {
 	recurringType: number;
 	recurringCoefficient: number;
 	onDone: (recurringType: number, recurringCoefficient: number) => void;
+	ref?: Ref<BottomSheetModal>;
 }
 
 export type CustomScheduleSheetRef = BottomSheetModal;
@@ -94,13 +95,12 @@ export type CustomScheduleSheetRef = BottomSheetModal;
  * Edits are LOCAL until Done, so Cancel leaves the form's schedule untouched.
  * Present via the forwarded ref: `ref.current?.present()`.
  */
-export const CustomScheduleSheet = forwardRef<
-	BottomSheetModal,
-	CustomScheduleSheetProps
->(function CustomScheduleSheet(
-	{ recurringType, recurringCoefficient, onDone },
+export function CustomScheduleSheet({
+	recurringType,
+	recurringCoefficient,
+	onDone,
 	ref,
-) {
+}: CustomScheduleSheetProps) {
 	const colors = useColors();
 	const t = useTranslation();
 	const sheetRef = useRef<BottomSheetModal>(null);
@@ -220,4 +220,4 @@ export const CustomScheduleSheet = forwardRef<
 			</Host>
 		</BottomSheetModal>
 	);
-});
+}

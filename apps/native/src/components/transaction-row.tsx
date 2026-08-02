@@ -2,6 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { RefreshIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { utcDateString } from "@outlayr/money";
 import { type AccessibilityActionEvent, Pressable, View } from "react-native";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
@@ -41,14 +42,6 @@ interface TransactionRowProps {
 	 * also exist as an accessibility action.
 	 */
 	onDelete?: (id: string) => void;
-	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
-	showCents?: boolean;
-	/** Mirrors "Display +/- Symbol"; false drops the row's sign prefix. */
-	showSign?: boolean;
-	/** Mirrors "Swap Time Label": the subtitle shows the category name over the time. */
-	swapTimeLabel?: boolean;
-	/** Mirrors the Clock setting; true prints the subtitle time as "21:04". */
-	use24Hour?: boolean;
 	/**
 	 * Forces the upcoming variant. A scheduled entry whose stored date is already
 	 * past is still upcoming — what is upcoming is its next occurrence — so the
@@ -66,13 +59,11 @@ export function TransactionRow({
 	onPress,
 	onLongPress,
 	onDelete,
-	showCents = true,
-	showSign = true,
-	swapTimeLabel = false,
-	use24Hour = false,
 	future: forcedFuture,
 	landsOn,
 }: TransactionRowProps) {
+	const { showCents, showSign, swapTimeLabel, use24Hour } =
+		useDisplaySettings().state;
 	const colors = useColors();
 	const t = useTranslation();
 	const date = new Date(transaction.date);

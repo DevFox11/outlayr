@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -13,7 +14,6 @@ import {
 	useMainBudget,
 	usePerCategoryBudgets,
 } from "@/data/budgets";
-import { useBoolSetting } from "@/data/settings";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
@@ -43,8 +43,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
-	const showCents = useBoolSetting(db, "showCents");
-	const asRows = useBoolSetting(db, "budgetViewStyle");
+	const asRows = useAppSettings().state.bool("budgetViewStyle");
 	const nowMs = useNow();
 
 	// One transactions subscription for the screen: every hook below derives from
@@ -136,7 +135,6 @@ function BudgetContent({ db }: { db: Database }) {
 					onAddTransaction={() => router.push("/transaction/new")}
 					onCommit={createMainBudget}
 					sampleSize={monthExpenseCount}
-					showCents={showCents}
 					windowStart={monthWindow.start}
 				/>
 			</View>
@@ -163,7 +161,6 @@ function BudgetContent({ db }: { db: Database }) {
 					currency={currency}
 					nowMs={nowMs}
 					onPress={() => router.push("/budgets/overall")}
-					showCents={showCents}
 				/>
 			) : null}
 
@@ -195,7 +192,6 @@ function BudgetContent({ db }: { db: Database }) {
 									onDelete={deleteBudget}
 									onLongPress={openActions}
 									onPress={(id) => router.push(`/budgets/${id}`)}
-									showCents={showCents}
 								/>
 							))}
 						</View>
@@ -211,7 +207,6 @@ function BudgetContent({ db }: { db: Database }) {
 										nowMs={nowMs}
 										onLongPress={openActions}
 										onPress={(id) => router.push(`/budgets/${id}`)}
-										showCents={showCents}
 									/>
 									{right ? (
 										<BudgetCard
@@ -222,7 +217,6 @@ function BudgetContent({ db }: { db: Database }) {
 											nowMs={nowMs}
 											onLongPress={openActions}
 											onPress={(id) => router.push(`/budgets/${id}`)}
-											showCents={showCents}
 										/>
 									) : (
 										// Holds the odd budget out to one column instead of

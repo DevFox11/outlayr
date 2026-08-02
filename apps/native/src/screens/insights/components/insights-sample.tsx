@@ -194,7 +194,7 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 					</Text>
 
 					<View className="pt-3">
-						<LedgerHead cells={sampleCells(t)} code="USD" showCents />
+						<LedgerHead cells={sampleCells(t)} code="USD" />
 					</View>
 
 					<View className="pt-4">
@@ -217,7 +217,6 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 							measure="spent"
 							movers={sampleMovers(t)}
 							priorLabel={t("insights.sample.priorLabel")}
-							showCents
 						/>
 					</View>
 

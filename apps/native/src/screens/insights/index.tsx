@@ -9,6 +9,10 @@ import { type LedgerCell, LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { ScopeChip } from "@/components/scope-chip";
 import { Text } from "@/components/text";
+import {
+	useAppSettings,
+	useDisplaySettings,
+} from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -21,7 +25,7 @@ import {
 	subcategoryBreakdownWithin,
 } from "@/data/insights";
 import { useWindowTransactions } from "@/data/insights-transactions";
-import { setNumberSetting, useAllSettings } from "@/data/settings";
+import { setNumberSetting } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useInsights } from "@/data/use-insights";
 import { useNow } from "@/data/use-now";
@@ -79,13 +83,10 @@ function InsightsContent({ db }: { db: Database }) {
 	const t = useTranslation();
 	const router = useRouter();
 	const currency = useGlobalCurrency(db);
-	const settings = useAllSettings(db);
+	const { state: settings } = useAppSettings();
+	const { showCents } = useDisplaySettings().state;
 	const nowMs = useNow();
 
-	const showCents = settings.bool("showCents");
-	const showSign = settings.bool("showExpenseOrIncomeSign");
-	const swapTimeLabel = settings.bool("swapTimeLabel");
-	const use24Hour = settings.bool("use24HourClock");
 	const incomeTracking = settings.bool("incomeTracking");
 	const period =
 		PERIOD_BY_VALUE[settings.number("insightsTimeFrame")] ?? "week";
@@ -482,7 +483,6 @@ function InsightsContent({ db }: { db: Database }) {
 									}),
 								)}
 								code={currency}
-								showCents={showCents}
 							/>
 						</View>
 					) : null}
@@ -496,7 +496,6 @@ function InsightsContent({ db }: { db: Database }) {
 								measure={measure}
 								movers={result.movers}
 								priorLabel={result.priorLabel}
-								showCents={showCents}
 							/>
 						</View>
 					) : null}
@@ -566,11 +565,7 @@ function InsightsContent({ db }: { db: Database }) {
 							onPress={(id) => router.push(`/transaction/${id}`)}
 							onRequestDelete={requestDelete}
 							pendingDeleteId={pendingId}
-							showCents={showCents}
-							showSign={showSign}
-							swapTimeLabel={swapTimeLabel}
 							transactions={listTransactions}
-							use24Hour={use24Hour}
 						/>
 					</View>
 				) : null}

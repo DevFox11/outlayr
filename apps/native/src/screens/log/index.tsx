@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
+import {
+	useAppSettings,
+	useDisplaySettings,
+} from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoryMeta } from "@/data/categories";
@@ -19,7 +23,7 @@ import {
 	useLogInsights,
 	useSparklineRows,
 } from "@/data/log-totals";
-import { setNumberSetting, useAllSettings } from "@/data/settings";
+import { setNumberSetting } from "@/data/settings";
 import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
@@ -122,11 +126,9 @@ function LogContent({ db }: { db: Database }) {
 	const valued = useValuedCurrencies(db);
 	// Every preference off one subscription: a per-key hook would register a
 	// separate `appMeta` listener each, and each fires on any write to the table.
-	const settings = useAllSettings(db);
-	const showCents = settings.bool("showCents");
-	const showSign = settings.bool("showExpenseOrIncomeSign");
-	const swapTimeLabel = settings.bool("swapTimeLabel");
-	const use24Hour = settings.bool("use24HourClock");
+	const { state: settings } = useAppSettings();
+	const { showCents, showSign, swapTimeLabel, use24Hour } =
+		useDisplaySettings().state;
 	const showUpcoming = settings.bool("showUpcoming");
 	const firstWeekday = settings.number("firstWeekday");
 	const period = logPeriodFromStored(settings.number("logInsightsTimeFrame"));
@@ -317,7 +319,6 @@ function LogContent({ db }: { db: Database }) {
 								currencyOptions={currencyOptions}
 								onDisplayCurrency={setDisplayOverride}
 								onManageCurrencies={() => router.push("/settings/currency")}
-								showCents={showCents}
 								sparkline={sparkline}
 							/>
 						) : (
@@ -347,7 +348,6 @@ function LogContent({ db }: { db: Database }) {
 								measure={measure}
 								onMeasure={onMeasure}
 								displayCurrency={currency}
-								showCents={showCents}
 							/>
 						)}
 						{showUpcomingSection ? (
@@ -358,10 +358,6 @@ function LogContent({ db }: { db: Database }) {
 								rates={rates}
 								onPress={(id) => router.push(`/transaction/${id}`)}
 								onLongPress={(id) => openRowActions(id, true)}
-								showCents={showCents}
-								showSign={showSign}
-								swapTimeLabel={swapTimeLabel}
-								use24Hour={use24Hour}
 								nowMs={nowMs}
 							/>
 						) : null}
@@ -371,7 +367,6 @@ function LogContent({ db }: { db: Database }) {
 				renderSectionHeader={({ section }) => (
 					<DaySectionHeader
 						section={section}
-						showCents={showCents}
 						first={sections[0] === section && upcomingRows.length === 0}
 						onLongPress={() => shareDay(section)}
 					/>
@@ -384,10 +379,6 @@ function LogContent({ db }: { db: Database }) {
 						onPress={(id) => router.push(`/transaction/${id}`)}
 						onLongPress={(id) => openRowActions(id, false)}
 						onDelete={requestDelete}
-						showCents={showCents}
-						showSign={showSign}
-						swapTimeLabel={swapTimeLabel}
-						use24Hour={use24Hour}
 					/>
 				)}
 			/>

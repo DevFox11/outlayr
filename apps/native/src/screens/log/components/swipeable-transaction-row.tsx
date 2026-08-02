@@ -17,12 +17,6 @@ interface SwipeableTransactionRowProps {
 	onPress: (id: string) => void;
 	onLongPress: (id: string) => void;
 	onDelete: (id: string) => void;
-	showCents?: boolean;
-	showSign?: boolean;
-	/** The subtitle shows the category name over the time. */
-	swapTimeLabel?: boolean;
-	/** The subtitle prints the time on a 24-hour clock. */
-	use24Hour?: boolean;
 }
 
 export function SwipeableTransactionRow({
@@ -32,10 +26,6 @@ export function SwipeableTransactionRow({
 	onPress,
 	onLongPress,
 	onDelete,
-	showCents = true,
-	showSign = true,
-	swapTimeLabel = false,
-	use24Hour = false,
 }: SwipeableTransactionRowProps) {
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const t = useTranslation();
@@ -72,10 +62,6 @@ export function SwipeableTransactionRow({
 					onPress={onPress}
 					onLongPress={onLongPress}
 					onDelete={onDelete}
-					showCents={showCents}
-					showSign={showSign}
-					swapTimeLabel={swapTimeLabel}
-					use24Hour={use24Hour}
 				/>
 			</Animated.View>
 		</ReanimatedSwipeable>

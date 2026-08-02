@@ -29,6 +29,7 @@ import { AuthCover } from "@/components/auth-cover";
 import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
 import { AppThemeProvider, useAppTheme } from "@/contexts/app-theme-context";
+import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import {
 	LocalDataProvider,
@@ -397,9 +398,11 @@ export default function RootLayout() {
 								<ConvexShell>
 									<AuthSessionProvider>
 										<LocalDataProvider>
-											<IdentityDraftProvider>
-												<RootNavigator fontsLoaded={fontsLoaded} />
-											</IdentityDraftProvider>
+											<AppSettingsProvider>
+												<IdentityDraftProvider>
+													<RootNavigator fontsLoaded={fontsLoaded} />
+												</IdentityDraftProvider>
+											</AppSettingsProvider>
 										</LocalDataProvider>
 									</AuthSessionProvider>
 								</ConvexShell>

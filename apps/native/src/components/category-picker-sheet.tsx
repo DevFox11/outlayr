@@ -4,7 +4,7 @@ import {
 } from "@expo/ui/community/bottom-sheet";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ArrowRight01Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { forwardRef, useCallback, useRef, useState } from "react";
+import { type Ref, useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
 	Easing,
@@ -31,15 +31,19 @@ interface CategoryPickerSheetProps {
 	income: boolean;
 	selectedId: string | null;
 	onSelect: (category: Category) => void;
+	ref?: Ref<BottomSheetModal>;
 }
 
 export type CategoryPickerSheetRef = BottomSheetModal;
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
-export const CategoryPickerSheet = forwardRef<
-	BottomSheetModal,
-	CategoryPickerSheetProps
->(function CategoryPickerSheet({ db, income, selectedId, onSelect }, ref) {
+export function CategoryPickerSheet({
+	db,
+	income,
+	selectedId,
+	onSelect,
+	ref,
+}: CategoryPickerSheetProps) {
 	const t = useTranslation();
 	const colors = useColors();
 	const categories = useCategoriesByNamespace(db, income);
@@ -149,7 +153,7 @@ export const CategoryPickerSheet = forwardRef<
 			</BottomSheetScrollView>
 		</BottomSheetModal>
 	);
-});
+}
 
 function CategoryRow({
 	category,

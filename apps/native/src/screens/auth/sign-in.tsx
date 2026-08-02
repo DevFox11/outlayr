@@ -4,10 +4,10 @@ import { AppleSignInButton } from "@/components/account/apple-sign-in-button";
 import { GoogleSignInButton } from "@/components/account/google-sign-in-button";
 import { FirstRun } from "@/components/first-run";
 import { Text } from "@/components/text";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { deferAccount, useReminderChosen } from "@/data/onboarding";
-import { useNumberSetting } from "@/data/settings";
 import { flyleafDate } from "@/domain/flyleaf";
 import {
 	clampTimeOfDay,
@@ -82,9 +82,10 @@ function FlyleafCard() {
 	const { language } = useLanguage();
 	const currency = useGlobalCurrency(db);
 	const reminderChosen = useReminderChosen(db);
-	const option = useNumberSetting(db, "notificationOption");
-	const hour = useNumberSetting(db, "notificationHour");
-	const minute = useNumberSetting(db, "notificationMinute");
+	const { state: settings } = useAppSettings();
+	const option = settings.number("notificationOption");
+	const hour = settings.number("notificationHour");
+	const minute = settings.number("notificationMinute");
 	const time = reminderTime(option, clampTimeOfDay(hour, minute));
 
 	return (

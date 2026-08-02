@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import {
 	createContext,
+	use,
 	useCallback,
-	useContext,
 	useEffect,
 	useMemo,
 	useState,
@@ -101,7 +101,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 
 function useLanguageContext(): LanguageContextValue {
-	const context = useContext(LanguageContext);
+	const context = use(LanguageContext);
 	if (!context) {
 		throw new Error("useTranslation must be used within LanguageProvider");
 	}

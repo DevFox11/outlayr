@@ -1,4 +1,5 @@
 import { Pressable, View } from "react-native";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useTranslation } from "@/i18n";
 import { MeasureCellAmount } from "./amount-text";
 import { MonoLabel } from "./mono-label";
@@ -25,15 +26,14 @@ interface LedgerHeadProps {
 	/** The measures the hero is *not* showing, in a stable declaration order. */
 	cells: readonly LedgerCell[];
 	code: string;
-	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
-	showCents?: boolean;
 }
 
 /**
  * The order of `cells` must not depend on which measure is promoted — the pair
  * reshuffling under your thumb is how you tap the wrong one.
  */
-export function LedgerHead({ cells, code, showCents = true }: LedgerHeadProps) {
+export function LedgerHead({ cells, code }: LedgerHeadProps) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	return (
 		<View>

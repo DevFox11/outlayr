@@ -1,0 +1,19 @@
+appId: com.tryoutlayr.app
+name: Launch into the app, dev client or release
+---
+# A cold launch of a development build lands on the dev-client server picker
+# rather than the app, so the bundle has to be selected before anything else.
+# A release build skips straight past this.
+- launchApp
+
+- runFlow:
+    when:
+      visible: "Development Build"
+    commands:
+      - tapOn: "http://localhost:8081"
+
+# Splash is held until the database is open, migrated and seeded, and a cold
+# start also pays for the JS bundle — both outlast the default 7s wait.
+- extendedWaitUntil:
+    visible: "Insights"
+    timeout: 180000

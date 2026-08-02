@@ -4,9 +4,10 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { EmptyState, useMark } from "@/components/empty-state";
 import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useUpcomingTransactions } from "@/data/log-filtered";
-import { setBoolSetting, useAllSettings } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
@@ -65,7 +66,7 @@ export default function UpcomingScreen() {
 function UpcomingContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
-	const settings = useAllSettings(db);
+	const { state: settings } = useAppSettings();
 	const { displayCurrency: currency, rates } = useValuation(db);
 	const showUpcoming = settings.bool("showUpcoming");
 	const showSoon = settings.bool("showUpcomingSoon");
@@ -114,12 +115,8 @@ function UpcomingContent({ db }: { db: Database }) {
 						rates={rates}
 						onLongPress={(id) => openRowActions(id, true)}
 						onPress={(id) => router.push(`/transaction/${id}`)}
-						showCents={settings.bool("showCents")}
 						schedules={upcoming}
-						showSign={settings.bool("showExpenseOrIncomeSign")}
-						swapTimeLabel={settings.bool("swapTimeLabel")}
 						transactions={upcoming}
-						use24Hour={settings.bool("use24HourClock")}
 					/>
 					{upcoming.length === 0 ? (
 						<EmptyState

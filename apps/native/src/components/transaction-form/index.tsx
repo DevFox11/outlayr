@@ -18,27 +18,19 @@ import {
 	VStack,
 } from "@expo/ui/swift-ui";
 import {
-	Animation,
 	animation,
 	background,
 	blur,
 	buttonStyle,
-	contentShape,
-	controlSize,
 	datePickerStyle,
-	disabled,
-	font,
 	foregroundStyle,
-	frame,
 	labelsHidden,
-	lineLimit,
 	multilineTextAlignment,
 	offset,
 	onGeometryChange,
 	overlay,
 	padding,
 	pickerStyle,
-	shapes,
 	strokeBorder,
 	tag,
 	tint,
@@ -55,13 +47,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { Confetti } from "@/components/confetti";
 import { menuTint } from "@/components/native/styles";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	useIdentityDraft,
 	useIdentityFlyUp,
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Category, getCategoryById } from "@/data/categories";
-import { setBoolSetting, useBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings";
 import { tagsRepo, useTagIdsFor, useTags } from "@/data/tags";
 import {
 	backfillRecurring,
@@ -70,6 +63,7 @@ import {
 } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
+import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
@@ -78,13 +72,12 @@ import {
 } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
 import {
-	type LeadLabelKey,
-	leadLabelKey,
 	normalizeLead,
 	REMINDER_LEAD_OPTIONS,
 } from "@/domain/subscription-reminder";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
+import { ctaKey, leadLabel } from "@/domain/transaction-form-labels";
+import { type TranslationKey, useTranslation } from "@/i18n";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -95,23 +88,40 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
-import { AmountEntrySheet } from "./amount-entry-sheet";
-import { CategoryIcon } from "./category-icon";
+import { AmountEntrySheet } from "../amount-entry-sheet";
+import { CategoryIcon } from "../category-icon";
 import {
 	CategoryPickerSheet,
 	type CategoryPickerSheetRef,
-} from "./category-picker-sheet";
+} from "../category-picker-sheet";
 import {
 	CustomScheduleSheet,
 	type CustomScheduleSheetRef,
 	intervalPhrase,
-} from "./custom-schedule-sheet";
-import { CURTAIN_LAYER_SIZE, curtainGradient } from "./identity-curtain";
-import { IdentityFlyUpLayer } from "./identity-fly-up";
-import { IdentityHero } from "./identity-hero";
-import { LinearGradient } from "./styled";
-import { TagPickerSheet } from "./tag-picker-sheet";
-import { Text } from "./text";
+} from "../custom-schedule-sheet";
+import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
+import { IdentityFlyUpLayer } from "../identity-fly-up";
+import { IdentityHero } from "../identity-hero";
+import { LinearGradient } from "../styled";
+import { TagPickerSheet } from "../tag-picker-sheet";
+import { Text } from "../text";
+import { TransactionFormCta } from "./cta";
+import { TransactionFormDetailsSection } from "./details-section";
+import {
+	BODY,
+	BODY_MEDIUM,
+	CAPTION,
+	CARD_SHAPE,
+	FLY_BACK,
+	FLY_UP,
+	FORM_BLUR_RADIUS,
+	MORPH,
+	ROW,
+	rowLabel,
+	SHAKE,
+	TAP_ROW,
+	tertiary,
+} from "./style";
 
 /**
  * Swift's `IdentityHero.topPadding` (24) less 6pt: expo-router's native header
@@ -125,51 +135,6 @@ const HERO_BOTTOM_PADDING = 28;
  * supersedes it. A 70pt nav-bar scroll inset plus {@link HERO_TOP_PADDING}.
  */
 const HERO_REST_TOP_FALLBACK = 88;
-
-const ROW = [padding({ horizontal: 16 }), frame({ minHeight: 50 })];
-/**
- * For the rows that ARE buttons: a `.plain` Button hit-tests only its drawn
- * glyphs, so without a content shape the `Spacer` gap mid-row is dead and a tap
- * anywhere but directly on the label or value silently does nothing.
- *
- * Deliberately NOT applied to every row — a greedy rect over the Name,
- * date/time or toggle rows would swallow the taps meant for the control
- * living inside them.
- */
-const TAP_ROW = [...ROW, contentShape(shapes.rectangle())];
-const CARD_SHAPE = shapes.roundedRectangle({
-	cornerRadius: 12,
-	roundedCornerStyle: "continuous",
-});
-
-const BODY = font({ textStyle: "body", design: "rounded" });
-const BODY_MEDIUM = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "medium",
-});
-const BODY_SEMIBOLD = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "semibold",
-});
-const CAPTION = font({ textStyle: "caption", design: "rounded" });
-
-const rowLabel = foregroundStyle({ type: "hierarchical", style: "secondary" });
-const tertiary = foregroundStyle({ type: "hierarchical", style: "tertiary" });
-
-const MORPH = Animation.easeInOut({ duration: 0.25 });
-const SHAKE = Animation.easeInOut({ duration: 0.1 }).repeat({ repeatCount: 5 });
-const FORM_BLUR_RADIUS = 8;
-/**
- * MUST track `LAUNCH_SPRING`/`RETURN_SPRING` in the fly-up context — the hero is
- * a Reanimated view and the blur is a SwiftUI one, so nothing but this pairing
- * keeps them on the same curve. Directional because the return is the snappier
- * of the two; one shared curve leaves the blur clearing ~200ms after the hero is
- * home and the sheet has gone.
- */
-const FLY_UP = Animation.spring({ response: 0.4, dampingFraction: 0.85 });
-const FLY_BACK = Animation.spring({ response: 0.29, dampingFraction: 0.98 });
 
 const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
@@ -186,36 +151,6 @@ const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
  * reminder on the due day for the owner who just switched reminders off.
  */
 const LEAD_OFF_TAG = -1;
-
-/**
- * Only names what this screen calls each phrasing. Which phrasing a lead reads
- * as stays with {@link leadLabelKey}, including the counted fallback a lead the
- * picker never offered needs — one restored from another device. Several domain
- * keys therefore share a string: "2 days before" and "5 days before" are the
- * same counted form.
- */
-const LEAD_LABEL_KEY: Record<LeadLabelKey, TranslationKey> = {
-	"settings.notifications.leadOff": "transaction.remind.off",
-	"settings.notifications.leadSameDay": "transaction.remind.sameDay",
-	"settings.notifications.leadOneDay": "transaction.remind.dayBefore",
-	"settings.notifications.leadTwoDays": "transaction.remind.daysBefore",
-	"settings.notifications.leadThreeDays": "transaction.remind.daysBefore",
-	"settings.notifications.leadOneWeek": "transaction.remind.weekBefore",
-	"settings.notifications.leadDaysBefore": "transaction.remind.daysBefore",
-};
-
-function leadLabel(t: TranslateFn, lead: number | null): string {
-	return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
-}
-
-function ctaKey(mode: "create" | "edit", isSubscription: boolean) {
-	if (mode === "edit") {
-		return "transaction.cta.save";
-	}
-	return isSubscription
-		? "transaction.cta.addSubscription"
-		: "transaction.cta.add";
-}
 
 /**
  * What an outside surface — a quick action, a widget, an App Intent — can put in
@@ -332,7 +267,7 @@ export function TransactionForm({
 	const [categoryShake, setCategoryShake] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [showToast, setShowToast] = useState(false);
-	const celebrate = useBoolSetting(db, "confetti");
+	const celebrate = useAppSettings().state.bool("confetti");
 	const [burstSeed, setBurstSeed] = useState(0);
 	// Shared values, not state: the fly-up is the only reader and it reads them from
 	// the UI thread, so measuring the form must not cost the SwiftUI tree a render.
@@ -630,18 +565,16 @@ export function TransactionForm({
 				: colors.foreground
 			: colors.muted;
 
-	const identityEmpty = !identity.emoji && !identity.icon && !identity.photoUri;
-	const curtainTint =
-		identity.color ??
-		identity.photoColor ??
-		(income ? colors.income : (category?.color ?? colors.foreground));
-	const curtainHues = identityEmpty
-		? null
-		: identity.emoji
-			? [...glowFromEmoji(identity.emoji).slice(0, 2), curtainTint]
-			: identity.photoUri
-				? [identity.photoColor ?? curtainTint]
-				: [curtainTint];
+	const curtainHues = computeCurtainHues(
+		{
+			categoryColor: category?.color,
+			foregroundColor: colors.foreground,
+			identity,
+			income,
+			incomeColor: colors.income,
+		},
+		glowFromEmoji,
+	);
 	const toastLabel = t(
 		isSubscription
 			? "transaction.toast.subscriptionAdded"
@@ -1109,28 +1042,13 @@ export function TransactionForm({
 							)}
 						</VStack>
 
-						<VStack
-							alignment="leading"
-							modifiers={[padding({ all: 16 }), ...card]}
-							spacing={8}
-						>
-							<HStack>
-								<SwiftText modifiers={[BODY, rowLabel]}>
-									{t("transaction.field.notes")}
-								</SwiftText>
-								<Spacer />
-							</HStack>
-							<TextField
-								axis="vertical"
-								modifiers={[
-									BODY,
-									foregroundStyle(colors.foreground),
-									lineLimit({ min: 3, max: 6 }),
-								]}
-								placeholder={t("transaction.field.notesPlaceholder")}
-								text={notes}
-							/>
-						</VStack>
+						<TransactionFormDetailsSection
+							card={card}
+							foregroundColor={colors.foreground}
+							notes={notes}
+							notesLabel={t("transaction.field.notes")}
+							notesPlaceholder={t("transaction.field.notesPlaceholder")}
+						/>
 					</VStack>
 				</ScrollView>
 			</Host>
@@ -1151,27 +1069,13 @@ export function TransactionForm({
 					pointerEvents="none"
 				/>
 				<View className="px-5 pt-9 pb-safe-offset-3">
-					{/* No `matchContents` — the Host must take the full available width
-					    so the button's Spacer-flanked label can stretch across it,
-					    standing in for Swift's `.frame(maxWidth: .infinity)`. */}
-					<Host style={{ height: 50 }}>
-						<Button
-							modifiers={[
-								buttonStyle("borderedProminent"),
-								controlSize("large"),
-								tint(colors.foreground),
-								foregroundStyle(colors.background),
-								disabled(!canSave),
-							]}
-							onPress={handleSave}
-						>
-							<HStack>
-								<Spacer />
-								<SwiftText modifiers={[BODY_SEMIBOLD]}>{ctaLabel}</SwiftText>
-								<Spacer />
-							</HStack>
-						</Button>
-					</Host>
+					<TransactionFormCta
+						canSave={canSave}
+						labelColor={colors.background}
+						label={ctaLabel}
+						onPress={handleSave}
+						tintColor={colors.foreground}
+					/>
 				</View>
 			</View>
 

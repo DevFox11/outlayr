@@ -4,7 +4,7 @@ import {
 } from "@expo/ui/community/bottom-sheet";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
-import { forwardRef, useRef } from "react";
+import { type Ref, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { currencySymbol } from "@/domain/money";
 import { useTranslation } from "@/i18n";
@@ -24,15 +24,19 @@ interface AmountEntrySheetProps {
 	onChange: (next: string) => void;
 	onCurrencyChange?: (code: string) => void;
 	onDone: () => void;
+	ref?: Ref<BottomSheetModal>;
 }
 
-export const AmountEntrySheet = forwardRef<
-	BottomSheetModal,
-	AmountEntrySheetProps
->(function AmountEntrySheet(
-	{ value, minorUnits, code, toneClass, onChange, onCurrencyChange, onDone },
+export function AmountEntrySheet({
+	value,
+	minorUnits,
+	code,
+	toneClass,
+	onChange,
+	onCurrencyChange,
+	onDone,
 	ref,
-) {
+}: AmountEntrySheetProps) {
 	const colors = useColors();
 	const t = useTranslation();
 	const symbol = currencySymbol(code);
@@ -107,7 +111,7 @@ export const AmountEntrySheet = forwardRef<
 			/>
 		</BottomSheetModal>
 	);
-});
+}
 
 function GlassButton({
 	onPress,

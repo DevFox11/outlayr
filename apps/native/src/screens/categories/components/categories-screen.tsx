@@ -49,6 +49,7 @@ import {
 import { MarkInk } from "@/components/empty-state";
 import { Slot, Tile } from "@/components/empty-state-parts";
 import { toolbarIcon } from "@/components/toolbar-icons";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -60,7 +61,7 @@ import {
 	useCategoriesByNamespace,
 	useCategoryTotals,
 } from "@/data/categories";
-import { setBoolSetting, useBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
@@ -149,7 +150,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 	const t = useTranslation();
 	const colors = useColors();
 	const currency = useGlobalCurrency(db);
-	const showSuggestions = useBoolSetting(db, "categorySuggestions");
+	const showSuggestions = useAppSettings().state.bool("categorySuggestions");
 	const parents = useCategoriesByNamespace(db, income);
 	const totals = useCategoryTotals(db);
 

@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { createContext, type ReactNode, use, useMemo } from "react";
 import { View } from "react-native";
 
 import {
@@ -14,7 +14,7 @@ import { cn } from "./tw";
 const MarkInkContext = createContext<GhostInk | null>(null);
 
 export function useMark(): GhostInk {
-	const inherited = useContext(MarkInkContext);
+	const inherited = use(MarkInkContext);
 	const colors = useColors();
 	return useMemo(
 		() => inherited ?? ghostInk(colors.foreground, "takeover"),

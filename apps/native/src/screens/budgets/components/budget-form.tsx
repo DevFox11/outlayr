@@ -25,10 +25,10 @@ import { MonoLabel } from "@/components/mono-label";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Budget, budgetsRepo } from "@/data/budgets";
 import { type Category, getCategoryById } from "@/data/categories";
-import { useAllSettings } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
@@ -68,7 +68,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const minorUnits = minorUnitsFor(currency);
-	const settings = useAllSettings(db);
+	const { state: settings } = useAppSettings();
 	const calendar = useMemo(
 		() => ({
 			firstWeekday: settings.number("firstWeekday"),

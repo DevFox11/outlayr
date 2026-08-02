@@ -15,13 +15,12 @@ import {
 	withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useDatabase } from "@/contexts/local-data-context";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	bucketDateLabel,
 	type InsightsBucket,
 	type InsightsPeriod,
 } from "@/data/insights";
-import { useBoolSetting } from "@/data/settings";
 import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
 import { hatchPathD } from "@/lib/chart-paths";
@@ -59,9 +58,9 @@ export function InsightsNetChart({
 }: InsightsNetChartProps) {
 	const colors = useColors();
 	const t = useTranslation();
-	const db = useDatabase();
 	const reduceMotion = useReducedMotion();
-	const animated = useBoolSetting(db, "animatedCharts") && !reduceMotion;
+	const animated =
+		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
 
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);

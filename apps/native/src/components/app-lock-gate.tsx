@@ -9,8 +9,7 @@ import {
 } from "react";
 import { AppState, Pressable, View } from "react-native";
 import { Text } from "@/components/text";
-import { useDatabase } from "@/contexts/local-data-context";
-import { useBoolSetting } from "@/data/settings";
+import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	lockFailureMessage,
 	lockGate,
@@ -27,9 +26,9 @@ import { useColors } from "@/theme/use-colors";
  * from a background would drop the user back on the Log.
  */
 export function AppLockGate({ children }: { children: ReactNode }) {
-	const db = useDatabase();
 	const t = useTranslation();
-	const enabled = useBoolSetting(db, "biometricLock");
+	const { state: settings } = useAppSettings();
+	const enabled = settings.bool("biometricLock");
 	const [unlocked, setUnlocked] = useState(false);
 	const [enforceable, setEnforceable] = useState<boolean | null>(null);
 	const [failure, setFailure] = useState<TranslationKey | null>(null);

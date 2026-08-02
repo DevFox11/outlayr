@@ -9,6 +9,10 @@ import {
 } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppTheme } from "@/contexts/app-theme-context";
+import {
+	useAppSettings,
+	useDisplaySettings,
+} from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -17,8 +21,6 @@ import {
 	onOffLabel,
 	setBoolSetting,
 	shownHiddenLabel,
-	useBoolSetting,
-	useNumberSetting,
 } from "@/data/settings";
 import { useSyncStatus } from "@/data/use-sync-status";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
@@ -79,16 +81,16 @@ function SettingsContent({ db }: { db: Database }) {
 	const currency = useGlobalCurrency(db);
 	const coverage = useValuationCoverage(db);
 	const sync = useSyncStatus(db);
-	const showNotifications = useBoolSetting(db, "showNotifications");
-	const biometricLock = useBoolSetting(db, "biometricLock");
-	const incomeTracking = useBoolSetting(db, "incomeTracking");
-	const showCents = useBoolSetting(db, "showCents");
-	const showUpcoming = useBoolSetting(db, "showUpcoming");
-	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
-	const animatedCharts = useBoolSetting(db, "animatedCharts");
-	const logTrendLine = useBoolSetting(db, "logViewLineGraph");
-	const numberEntryType = useNumberSetting(db, "numberEntryType");
-	const haptics = useNumberSetting(db, "haptics");
+	const { state: settings } = useAppSettings();
+	const { showCents, showSign } = useDisplaySettings().state;
+	const showNotifications = settings.bool("showNotifications");
+	const biometricLock = settings.bool("biometricLock");
+	const incomeTracking = settings.bool("incomeTracking");
+	const showUpcoming = settings.bool("showUpcoming");
+	const animatedCharts = settings.bool("animatedCharts");
+	const logTrendLine = settings.bool("logViewLineGraph");
+	const numberEntryType = settings.number("numberEntryType");
+	const haptics = settings.number("haptics");
 
 	const version = Constants.expoConfig?.version ?? "1.0.0";
 	const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
@@ -158,6 +160,7 @@ function SettingsContent({ db }: { db: Database }) {
 					onValueChange={(next) => {
 						setBoolSetting(db, "showCents", next);
 					}}
+					testID="toggle-display-cents"
 					title={t("settings.row.displayCents")}
 					value={showCents}
 				/>
