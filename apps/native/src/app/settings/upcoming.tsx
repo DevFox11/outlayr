@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
 import { View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
+import { EmptyState, useMark } from "@/components/empty-state";
 import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
-import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting, useAllSettings } from "@/data/settings";
@@ -14,6 +15,47 @@ import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogUpcoming } from "@/screens/log/components/log-upcoming";
 import { UndoToast } from "@/screens/log/components/undo-toast";
+import { MARK_CEILING } from "@/theme/empty-state-ink";
+import { useColors } from "@/theme/use-colors";
+
+const TIMELINE_W = MARK_CEILING.insetRow;
+const TIMELINE_H = 20;
+
+function TimelineStops() {
+	const ink = useMark();
+	const colors = useColors();
+	const mid = TIMELINE_H / 2;
+	const today = TIMELINE_W * 0.5;
+
+	return (
+		<Svg
+			height={TIMELINE_H}
+			viewBox={`0 0 ${TIMELINE_W} ${TIMELINE_H}`}
+			width={TIMELINE_W}
+		>
+			<Path
+				d={`M1 ${mid} H${today}`}
+				stroke={colors.foreground}
+				strokeLinecap="round"
+				strokeWidth={1.5}
+			/>
+			<Circle cx={6} cy={mid} fill={ink.fill} r={2} />
+			<Circle cx={12} cy={mid} fill={ink.fill} r={2} />
+			<Path
+				d={`M${today} ${mid} H${TIMELINE_W - 1}`}
+				stroke={ink.edge}
+				strokeDasharray="3 3"
+				strokeWidth={1.5}
+			/>
+			<Path
+				d={`M${today} ${mid - 5} V${mid + 5}`}
+				stroke={colors.foreground}
+				strokeLinecap="round"
+				strokeWidth={1.5}
+			/>
+		</Svg>
+	);
+}
 
 export default function UpcomingScreen() {
 	const db = useDatabase();
@@ -80,9 +122,11 @@ function UpcomingContent({ db }: { db: Database }) {
 						use24Hour={settings.bool("use24HourClock")}
 					/>
 					{upcoming.length === 0 ? (
-						<Text className="pt-2 text-muted text-subtitle leading-snug">
-							{t("settings.upcoming.empty")}
-						</Text>
+						<EmptyState
+							body={t("settings.upcoming.empty")}
+							mark={<TimelineStops />}
+							tier="insetRow"
+						/>
 					) : null}
 				</View>
 			</SettingsScreen>

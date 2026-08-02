@@ -1,8 +1,12 @@
 import { View } from "react-native";
+import Svg, { Path, Rect } from "react-native-svg";
+import { MarkInk, useMark } from "@/components/empty-state";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import type { InsightsMeasure, InsightsPeriod } from "@/data/insights";
 import { type TranslationKey, useTranslation } from "@/i18n";
+import { MARK_CEILING } from "@/theme/empty-state-ink";
+import { useColors } from "@/theme/use-colors";
 import { MEASURE_KEY } from "../measure-label";
 
 export { quietAlternative } from "@/domain/insights-quiet";
@@ -52,11 +56,66 @@ export function InsightsQuiet({
 				style={{ height: PLOT_HEIGHT }}
 			>
 				<MonoLabel>{t("insights.quiet.title")}</MonoLabel>
-				<Text className="max-w-60 pt-1.5 text-center text-footnote text-muted">
+				<View className="py-3">
+					<MarkInk tier="inFlow">
+						<ChartAtZero />
+					</MarkInk>
+				</View>
+				<Text className="max-w-60 text-center text-footnote text-muted">
 					{sentence}
 				</Text>
 			</View>
 			<View className="h-px w-full bg-border" />
 		</View>
+	);
+}
+
+const CHART_W = MARK_CEILING.inFlow;
+const CHART_H = 44;
+const COLUMNS = 6;
+
+function ChartAtZero() {
+	const ink = useMark();
+	const colors = useColors();
+	const floor = CHART_H - 8;
+	const left = 5;
+	const step = (CHART_W - left - 4) / COLUMNS;
+	const stub = step * 0.62;
+
+	return (
+		<Svg height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`} width={CHART_W}>
+			<Path
+				d={`M${left} 3 V${floor} H${CHART_W - 2}`}
+				fill="none"
+				stroke={ink.rule}
+				strokeWidth={1}
+			/>
+			<Path
+				d={`M${left} 14 H${CHART_W - 2} M${left} 27 H${CHART_W - 2}`}
+				stroke={ink.rule}
+				strokeDasharray="2 5"
+				strokeWidth={1}
+			/>
+			{Array.from({ length: COLUMNS }, (_, index) => {
+				const x = left + step * index + (step - stub) / 2;
+				return (
+					<Rect
+						fill={ink.fill}
+						height={3}
+						key={x}
+						rx={1.5}
+						width={stub}
+						x={x}
+						y={floor - 3}
+					/>
+				);
+			})}
+			<Path
+				d={`M${left} ${floor} H${CHART_W - 2}`}
+				stroke={colors.foreground}
+				strokeLinecap="round"
+				strokeWidth={2}
+			/>
+		</Svg>
 	);
 }

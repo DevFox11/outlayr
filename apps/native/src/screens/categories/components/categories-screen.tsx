@@ -46,6 +46,8 @@ import {
 	PARENT_NAME,
 	PARENT_TILE,
 } from "@/components/category-list-chrome";
+import { MarkInk } from "@/components/empty-state";
+import { Slot, Tile } from "@/components/empty-state-parts";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -132,11 +134,6 @@ const CHILD_CHEVRON = font({
 });
 const SUGGESTED_NAME = font({ textStyle: "body", design: "rounded" });
 const SUGGESTED_PLUS = font({ textStyle: "title3", design: "rounded" });
-const EMPTY_GLYPH = font({
-	textStyle: "largeTitle",
-	design: "rounded",
-	weight: "light",
-});
 const EMPTY_TEXT = font({
 	textStyle: "body",
 	design: "rounded",
@@ -270,7 +267,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 				<List modifiers={[listStyle("insetGrouped")]}>
 					{parents.length === 0 ? (
 						<Section>
-							<EmptyState income={income} colors={colors} />
+							<CategoriesEmpty income={income} colors={colors} />
 						</Section>
 					) : (
 						<Section header={<CensusLine colors={colors} parents={parents} />}>
@@ -370,7 +367,39 @@ function TreeConnector({ kind }: { kind: ConnectorKind }) {
 	);
 }
 
-function EmptyState({
+const EMPTY_MARK_TILE = 34;
+const EMPTY_MARK_GAP = 11;
+const EMPTY_MARK_WIDTH = EMPTY_MARK_TILE * 4 + EMPTY_MARK_GAP * 3;
+
+function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
+	return (
+		<MarkInk tier="inFlow">
+			<View
+				className="flex-row items-center"
+				style={{ width: EMPTY_MARK_WIDTH, gap: EMPTY_MARK_GAP }}
+			>
+				<Tile opacity={1} size={EMPTY_MARK_TILE} />
+				<Tile opacity={0.6} size={EMPTY_MARK_TILE} />
+				<Slot
+					height={EMPTY_MARK_TILE}
+					radius={EMPTY_MARK_TILE * 0.24}
+					style={{ alignItems: "center", justifyContent: "center" }}
+					width={EMPTY_MARK_TILE}
+				>
+					<HugeiconsIcon
+						color={colors.foreground}
+						icon={PlusSignIcon}
+						size={15}
+						strokeWidth={2.4}
+					/>
+				</Slot>
+				<Tile opacity={0.28} size={EMPTY_MARK_TILE} />
+			</View>
+		</MarkInk>
+	);
+}
+
+function CategoriesEmpty({
 	income,
 	colors,
 }: {
@@ -386,7 +415,11 @@ function EmptyState({
 			]}
 			spacing={10}
 		>
-			<Image color={colors.muted} modifiers={[EMPTY_GLYPH]} systemName="tray" />
+			<RNHostView matchContents>
+				<View style={{ width: EMPTY_MARK_WIDTH, height: EMPTY_MARK_TILE }}>
+					<CategoryGridOpen colors={colors} />
+				</View>
+			</RNHostView>
 			<SwiftText
 				modifiers={[
 					EMPTY_TEXT,

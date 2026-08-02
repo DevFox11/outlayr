@@ -1,7 +1,9 @@
 import { type ReactNode, useMemo } from "react";
 import { SectionList, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { HeroNumber } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
+import { EmptyState, useMark } from "@/components/empty-state";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
@@ -16,6 +18,8 @@ import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
 import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
+import { MARK_CEILING } from "@/theme/empty-state-ink";
+import { useColors } from "@/theme/use-colors";
 import { BudgetProgressBar } from "./budget-progress-bar";
 
 interface BudgetDetailViewProps {
@@ -116,11 +120,15 @@ export function BudgetDetailView({
 					/>
 				}
 				ListEmptyComponent={
-					<Text className="py-3 text-muted text-subtitle">
-						{closed
-							? t("budgets.detail.emptyClosed")
-							: t("budgets.detail.emptyOpen")}
-					</Text>
+					<EmptyState
+						body={
+							closed
+								? t("budgets.detail.emptyClosed")
+								: t("budgets.detail.emptyOpen")
+						}
+						mark={<PeriodFloor closed={closed} />}
+						tier="inFlow"
+					/>
 				}
 				renderSectionHeader={({ section }) => (
 					<DaySectionHeader
@@ -257,5 +265,61 @@ function BudgetSummary({
 				<MonoLabel>{t("budgets.detail.transactions")}</MonoLabel>
 			</View>
 		</View>
+	);
+}
+
+const FLOOR_W = MARK_CEILING.inFlow;
+const FLOOR_H = 40;
+
+function PeriodFloor({ closed }: { closed: boolean }) {
+	const ink = useMark();
+	const colors = useColors();
+	const floor = FLOOR_H - 12;
+	const right = FLOOR_W - 2;
+	const today = FLOOR_W * 0.55;
+
+	return (
+		<Svg height={FLOOR_H} viewBox={`0 0 ${FLOOR_W} ${FLOOR_H}`} width={FLOOR_W}>
+			<Path
+				d={`M4 4 V${floor} H${right}`}
+				fill="none"
+				stroke={ink.rule}
+				strokeWidth={1}
+			/>
+			<Path
+				d={`M4 12 H${right}`}
+				stroke={ink.rule}
+				strokeDasharray="2 5"
+				strokeWidth={1}
+			/>
+			<Path
+				d={`M4 ${floor} H${closed ? right : today}`}
+				stroke={colors.foreground}
+				strokeLinecap="round"
+				strokeWidth={2}
+			/>
+			{closed ? (
+				<Path
+					d={`M4 ${floor + 5} V${floor + 10} M${right} ${floor + 5} V${floor + 10} M4 ${floor + 7.5} H${right}`}
+					stroke={ink.rule}
+					strokeWidth={1}
+				/>
+			) : (
+				<>
+					<Path
+						d={`M${today} ${floor} H${right}`}
+						stroke={ink.edge}
+						strokeDasharray="4 4"
+						strokeWidth={1.5}
+					/>
+					<Path
+						d={`M${today} ${floor - 7} V${floor + 7}`}
+						stroke={colors.foreground}
+						strokeLinecap="round"
+						strokeWidth={1.5}
+					/>
+				</>
+			)}
+		</Svg>
 	);
 }
