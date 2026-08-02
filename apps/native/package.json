@@ -17,7 +17,8 @@
 		"lint": "biome check .",
 		"prebuild": "expo prebuild",
 		"start": "intlayer build && expo start",
-		"test": "intlayer build && node --import tsx --test \"src/**/*.test.ts?(x)\"",
+		"test": "intlayer build && node --import tsx --test \"src/**/*.test.ts\"",
+		"test:react": "jest",
 		"web": "expo start --web"
 	},
 	"dependencies": {
@@ -93,11 +94,15 @@
 	},
 	"devDependencies": {
 		"@outlayr/config": "workspace:*",
+		"@testing-library/react-native": "^14.0.1",
 		"@types/better-sqlite3": "catalog:",
+		"@types/jest": "29.5.14",
 		"@types/react": "~19.2.2",
 		"babel-plugin-inline-import": "catalog:",
 		"better-sqlite3": "catalog:",
 		"drizzle-kit": "catalog:",
+		"jest": "~29.7.0",
+		"jest-expo": "~57.0.3",
 		"tsx": "^4.22.4",
 		"typescript": "catalog:"
 	}

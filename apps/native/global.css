@@ -38,7 +38,6 @@
 			--expense: #010101;
 			--future: #6d6d6d;
 
-
 			/* The favourite swipe pill, which writes literal white over it. Same value
 			   in both themes for the reason `--danger-fill` is: white is the text in
 			   both, and #8a6a14 at 5.06:1 is about as bright as gold gets before white
