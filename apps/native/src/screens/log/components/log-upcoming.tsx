@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { DayTotal } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { TransactionRow } from "@/components/transaction-row";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { landingDate } from "@/data/log-filtered";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { currencyTotals } from "@/domain/currency-totals";
@@ -28,10 +29,6 @@ interface LogUpcomingProps {
 	rates: RateTable;
 	onPress: (id: string) => void;
 	onLongPress: (id: string) => void;
-	showCents: boolean;
-	showSign: boolean;
-	swapTimeLabel: boolean;
-	use24Hour: boolean;
 	/** Frozen "now", so a row's landing date does not drift mid-session. */
 	nowMs: number;
 }
@@ -43,12 +40,9 @@ export function LogUpcoming({
 	rates,
 	onPress,
 	onLongPress,
-	showCents,
-	showSign,
-	swapTimeLabel,
-	use24Hour,
 	nowMs,
 }: LogUpcomingProps) {
+	const { showCents } = useDisplaySettings().state;
 	const now = new Date(nowMs);
 	const t = useTranslation();
 	const totals = useMemo(
@@ -99,10 +93,6 @@ export function LogUpcoming({
 					rates={rates}
 					onPress={onPress}
 					onLongPress={onLongPress}
-					showCents={showCents}
-					showSign={showSign}
-					swapTimeLabel={swapTimeLabel}
-					use24Hour={use24Hour}
 					future
 					landsOn={landingDate(transaction, now)}
 				/>

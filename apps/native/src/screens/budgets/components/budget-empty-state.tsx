@@ -16,7 +16,6 @@ interface BudgetEmptyStateProps {
 	sampleSize: number;
 	currency: string;
 	windowStart: Date;
-	showCents?: boolean;
 	onAddTransaction: () => void;
 	onCommit: (limit: number) => void;
 }
@@ -26,7 +25,6 @@ export function BudgetEmptyState({
 	sampleSize,
 	currency,
 	windowStart,
-	showCents = true,
 	onAddTransaction,
 	onCommit,
 }: BudgetEmptyStateProps) {
@@ -40,7 +38,6 @@ export function BudgetEmptyState({
 			currency={currency}
 			onCommit={onCommit}
 			sampleSize={sampleSize}
-			showCents={showCents}
 			windowStart={windowStart}
 		/>
 	);

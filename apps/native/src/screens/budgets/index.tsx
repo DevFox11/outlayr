@@ -43,7 +43,6 @@ function BudgetContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
-	const showCents = useBoolSetting(db, "showCents");
 	const asRows = useBoolSetting(db, "budgetViewStyle");
 	const nowMs = useNow();
 
@@ -136,7 +135,6 @@ function BudgetContent({ db }: { db: Database }) {
 					onAddTransaction={() => router.push("/transaction/new")}
 					onCommit={createMainBudget}
 					sampleSize={monthExpenseCount}
-					showCents={showCents}
 					windowStart={monthWindow.start}
 				/>
 			</View>
@@ -163,7 +161,6 @@ function BudgetContent({ db }: { db: Database }) {
 					currency={currency}
 					nowMs={nowMs}
 					onPress={() => router.push("/budgets/overall")}
-					showCents={showCents}
 				/>
 			) : null}
 
@@ -195,7 +192,6 @@ function BudgetContent({ db }: { db: Database }) {
 									onDelete={deleteBudget}
 									onLongPress={openActions}
 									onPress={(id) => router.push(`/budgets/${id}`)}
-									showCents={showCents}
 								/>
 							))}
 						</View>
@@ -211,7 +207,6 @@ function BudgetContent({ db }: { db: Database }) {
 										nowMs={nowMs}
 										onLongPress={openActions}
 										onPress={(id) => router.push(`/budgets/${id}`)}
-										showCents={showCents}
 									/>
 									{right ? (
 										<BudgetCard
@@ -222,7 +217,6 @@ function BudgetContent({ db }: { db: Database }) {
 											nowMs={nowMs}
 											onLongPress={openActions}
 											onPress={(id) => router.push(`/budgets/${id}`)}
-											showCents={showCents}
 										/>
 									) : (
 										// Holds the odd budget out to one column instead of

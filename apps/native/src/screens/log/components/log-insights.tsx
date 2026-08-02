@@ -7,6 +7,7 @@ import { type LedgerCell, LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type {
 	LogInsights as LogInsightsData,
 	LogPeriod,
@@ -43,7 +44,6 @@ interface LogInsightsProps {
 	 * that cannot do anything.
 	 */
 	onManageCurrencies: () => void;
-	showCents: boolean;
 	sparkline?: SparklineData | null;
 }
 
@@ -67,9 +67,9 @@ export function LogInsights({
 	currencyOptions,
 	onDisplayCurrency,
 	onManageCurrencies,
-	showCents,
 	sparkline = null,
 }: LogInsightsProps) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	// The buckets are already expressed in `displayCurrency`; it only fails to
 	// name one when nothing in the period could be placed there.
@@ -126,7 +126,6 @@ export function LogInsights({
 						}),
 					)}
 					code={figures.currencyCode}
-					showCents={showCents}
 				/>
 			</View>
 

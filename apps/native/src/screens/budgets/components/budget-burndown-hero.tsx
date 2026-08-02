@@ -9,6 +9,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { MainBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
@@ -31,7 +32,6 @@ interface BudgetBurndownHeroProps {
 	onPress: () => void;
 	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
 	nowMs: number;
-	showCents?: boolean;
 	/** How far the chart reaches past the screen's text gutter. */
 	bleed?: number;
 }
@@ -58,9 +58,9 @@ export function BudgetBurndownHero({
 	currency,
 	onPress,
 	nowMs,
-	showCents = true,
 	bleed = 8,
 }: BudgetBurndownHeroProps) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
@@ -192,7 +192,6 @@ export function BudgetBurndownHero({
 							currency={currency}
 							limit={budget.amount}
 							nowMs={nowMs}
-							showCents={showCents}
 							window={budget.window}
 						/>
 					) : null}

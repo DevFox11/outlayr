@@ -3,6 +3,7 @@ import { CategoryIconTile } from "@/components/category-icon-tile";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { CategoryMover, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
@@ -14,7 +15,6 @@ interface InsightsMoversProps {
 	/** What the window is being compared against, e.g. "2025". */
 	priorLabel: string;
 	code: string;
-	showCents?: boolean;
 }
 
 export function InsightsMovers({
@@ -22,8 +22,8 @@ export function InsightsMovers({
 	measure,
 	priorLabel,
 	code,
-	showCents = true,
 }: InsightsMoversProps) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 
 	if (movers.length === 0) {

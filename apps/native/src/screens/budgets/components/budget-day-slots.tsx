@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import type { BudgetWindow } from "@/domain/budget-math";
@@ -21,7 +22,6 @@ interface BudgetDaySlotsProps {
 	noun?: string;
 	/** Draw the blocks alone, for callers that place the verdict themselves. */
 	bandOnly?: boolean;
-	showCents?: boolean;
 	compact?: boolean;
 }
 
@@ -37,10 +37,10 @@ export function BudgetDaySlots({
 	categoryId = null,
 	currency,
 	noun = "purchase",
-	showCents = true,
 	compact = false,
 	bandOnly = false,
 }: BudgetDaySlotsProps) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	const slots = useMemo(
 		() =>

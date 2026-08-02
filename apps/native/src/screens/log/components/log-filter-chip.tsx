@@ -5,6 +5,7 @@ import { MeasureCellAmount } from "@/components/amount-text";
 import { type LedgerCell, LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { ScopeChip } from "@/components/scope-chip";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { CategoryMetaRow } from "@/data/categories";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterHasMenu, filterPeriodUnit } from "@/domain/log-filter";
@@ -48,7 +49,6 @@ interface LogFilterChipProps {
 	onMeasure: (measure: LogMeasure) => void;
 	/** The currency the whole screen is being read in. */
 	displayCurrency: string;
-	showCents: boolean;
 }
 
 export function LogFilterChip({
@@ -68,8 +68,8 @@ export function LogFilterChip({
 	measure,
 	onMeasure,
 	displayCurrency,
-	showCents,
 }: LogFilterChipProps) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	const hasMenu = filterHasMenu(filter);
 	// `detail` may not have resolved yet, and the chip has to say what it is
@@ -170,7 +170,6 @@ function ScopeFigures({
 						}),
 					)}
 					code={shown.currencyCode}
-					showCents={showCents}
 				/>
 			</View>
 			{others.length > 0 ? (

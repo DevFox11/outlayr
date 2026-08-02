@@ -5,7 +5,6 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { budgetsRepo, useCategoryBudget } from "@/data/budgets";
-import { useBoolSetting } from "@/data/settings";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
@@ -41,9 +40,6 @@ function BudgetDetail({
 	const router = useRouter();
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
-	const showCents = useBoolSetting(db, "showCents");
-	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
-	const use24Hour = useBoolSetting(db, "use24HourClock");
 	const nowMs = useNow();
 	const [periodOffset, setPeriodOffset] = useState(0);
 	const { budget, transactions, periodsBack } = useCategoryBudget(
@@ -104,9 +100,6 @@ function BudgetDetail({
 				paceRemaining={showMarker ? pace.remaining : null}
 				paceBehind={!closed && behind}
 				leftPerDayAmount={perDay}
-				showCents={showCents}
-				showSign={showSign}
-				use24Hour={use24Hour}
 				closed={closed}
 				stepper={
 					periodsBack > 0 ? (

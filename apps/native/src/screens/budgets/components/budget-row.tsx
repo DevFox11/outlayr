@@ -7,6 +7,7 @@ import Animated from "react-native-reanimated";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
@@ -30,7 +31,6 @@ interface BudgetRowProps {
 	onLongPress?: (id: string) => void;
 	/** Runs once the swipe's Delete is confirmed; the row asks the question itself. */
 	onDelete: (id: string) => void;
-	showCents?: boolean;
 	burndown?: Burndown | null;
 	contributions: readonly ExpenseContribution[];
 	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
@@ -49,11 +49,11 @@ export function BudgetRow({
 	onPress,
 	onLongPress,
 	onDelete,
-	showCents = true,
 	burndown,
 	contributions,
 	nowMs,
 }: BudgetRowProps) {
+	const { showCents } = useDisplaySettings().state;
 	const haptics = useHaptics();
 	const t = useTranslation();
 	const swipeRef = useRef<SwipeableMethods>(null);
@@ -189,7 +189,6 @@ export function BudgetRow({
 								limit={budget.amount}
 								noun={budget.name}
 								nowMs={nowMs}
-								showCents={showCents}
 								window={budget.window}
 							/>
 						</View>

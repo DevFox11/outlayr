@@ -21,6 +21,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
 import { crossingDay } from "@/domain/budget-limit-crossing";
 import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
@@ -38,7 +39,6 @@ interface BudgetLimitPickerProps {
 	sampleSize: number;
 	currency: string;
 	windowStart: Date;
-	showCents?: boolean;
 	onCommit: (limit: number) => void;
 }
 
@@ -94,9 +94,9 @@ export function BudgetLimitPicker({
 	sampleSize,
 	currency,
 	windowStart,
-	showCents = true,
 	onCommit,
 }: BudgetLimitPickerProps) {
+	const { showCents } = useDisplaySettings().state;
 	const colors = useColors();
 	const haptics = useHaptics();
 	const t = useTranslation();

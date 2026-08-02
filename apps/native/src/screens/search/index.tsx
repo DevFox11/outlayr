@@ -7,9 +7,9 @@ import { MeasureCellAmount } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { MonoLabel } from "@/components/mono-label";
 import { TransactionRow } from "@/components/transaction-row";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useSearchedTransactions } from "@/data/log-search";
-import { useAllSettings } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
@@ -38,11 +38,7 @@ function SearchContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const { displayCurrency: currency, rates } = useValuation(db);
-	const settings = useAllSettings(db);
-	const showCents = settings.bool("showCents");
-	const showSign = settings.bool("showExpenseOrIncomeSign");
-	const swapTimeLabel = settings.bool("swapTimeLabel");
-	const use24Hour = settings.bool("use24HourClock");
+	const { showCents } = useDisplaySettings().state;
 	const [query, setQuery] = useState("");
 	const nowMs = useNow();
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
@@ -102,7 +98,7 @@ function SearchContent({ db }: { db: Database }) {
 						/>
 					}
 					renderSectionHeader={({ section }) => (
-						<DaySectionHeader section={section} showCents={showCents} />
+						<DaySectionHeader section={section} />
 					)}
 					renderItem={({ item }) => (
 						<TransactionRow
@@ -111,10 +107,6 @@ function SearchContent({ db }: { db: Database }) {
 							rates={rates}
 							onPress={(id) => router.push(`/transaction/${id}`)}
 							onLongPress={(id) => openRowActions(id, false)}
-							showCents={showCents}
-							showSign={showSign}
-							swapTimeLabel={swapTimeLabel}
-							use24Hour={use24Hour}
 						/>
 					)}
 				/>

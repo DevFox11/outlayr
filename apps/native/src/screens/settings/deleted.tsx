@@ -5,10 +5,10 @@ import { Bar, GhostAvatar, Slot } from "@/components/empty-state-parts";
 import { SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useLiveQuery } from "@/data/live-query";
-import { useBoolSetting } from "@/data/settings";
 import {
 	type DeletedTransaction,
 	deletedTransactionsQuery,
@@ -27,8 +27,6 @@ export default function RecentlyDeletedRoute() {
 function RecentlyDeleted({ db }: { db: Database }) {
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
-	const showCents = useBoolSetting(db, "showCents");
-	const showSign = useBoolSetting(db, "showExpenseOrIncomeSign");
 	const rows = useLiveQuery(transactions, () => deletedTransactionsQuery(db));
 
 	const restore = (id: string) => {
@@ -60,8 +58,6 @@ function RecentlyDeleted({ db }: { db: Database }) {
 							key={row.id}
 							onRestore={() => restore(row.id)}
 							row={row}
-							showCents={showCents}
-							showSign={showSign}
 						/>
 					))
 				)}
@@ -87,16 +83,13 @@ function HeldSlot() {
 function DeletedRow({
 	row,
 	currency,
-	showCents,
-	showSign,
 	onRestore,
 }: {
 	row: DeletedTransaction;
 	currency: string;
-	showCents: boolean;
-	showSign: boolean;
 	onRestore: () => void;
 }) {
+	const { showCents, showSign } = useDisplaySettings().state;
 	const t = useTranslation();
 	// The query selects tombstones only, so the fallback satisfies the column's
 	// nullability rather than describing a row this list can hold.

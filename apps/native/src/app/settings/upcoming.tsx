@@ -114,12 +114,8 @@ function UpcomingContent({ db }: { db: Database }) {
 						rates={rates}
 						onLongPress={(id) => openRowActions(id, true)}
 						onPress={(id) => router.push(`/transaction/${id}`)}
-						showCents={settings.bool("showCents")}
 						schedules={upcoming}
-						showSign={settings.bool("showExpenseOrIncomeSign")}
-						swapTimeLabel={settings.bool("swapTimeLabel")}
 						transactions={upcoming}
-						use24Hour={settings.bool("use24HourClock")}
 					/>
 					{upcoming.length === 0 ? (
 						<EmptyState

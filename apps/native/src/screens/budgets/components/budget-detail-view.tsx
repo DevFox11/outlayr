@@ -8,6 +8,7 @@ import { EmptyState, useMark } from "@/components/empty-state";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
@@ -38,10 +39,6 @@ interface BudgetDetailViewProps {
 	/** True when spending has outrun the clock. */
 	paceBehind?: boolean;
 	leftPerDayAmount?: number | null;
-	showCents?: boolean;
-	showSign?: boolean;
-	/** Mirrors the Clock setting; true prints each row's time as "21:04". */
-	use24Hour?: boolean;
 	/** The window has ended: nothing about it is still in play. */
 	closed?: boolean;
 	stepper?: ReactNode;
@@ -63,9 +60,6 @@ export function BudgetDetailView({
 	paceRemaining = null,
 	paceBehind = false,
 	leftPerDayAmount = null,
-	showCents = true,
-	showSign = true,
-	use24Hour = false,
 	closed = false,
 	stepper = null,
 }: BudgetDetailViewProps) {
@@ -115,7 +109,6 @@ export function BudgetDetailView({
 						paceRemaining={paceRemaining}
 						paceBehind={paceBehind}
 						leftPerDayAmount={leftPerDayAmount}
-						showCents={showCents}
 						closed={closed}
 						note={note}
 						stepper={stepper}
@@ -133,11 +126,7 @@ export function BudgetDetailView({
 					/>
 				}
 				renderSectionHeader={({ section }) => (
-					<DaySectionHeader
-						section={section}
-						showCents={showCents}
-						first={sections[0] === section}
-					/>
+					<DaySectionHeader section={section} first={sections[0] === section} />
 				)}
 				renderItem={({ item }) => (
 					<TransactionRow
@@ -146,9 +135,6 @@ export function BudgetDetailView({
 						rates={rates}
 						onPress={onPressTransaction}
 						onLongPress={(id) => openRowActions(id, false)}
-						showCents={showCents}
-						showSign={showSign}
-						use24Hour={use24Hour}
 					/>
 				)}
 			/>
@@ -167,7 +153,6 @@ function BudgetSummary({
 	paceRemaining,
 	paceBehind,
 	leftPerDayAmount,
-	showCents,
 	closed,
 	note,
 	stepper,
@@ -181,11 +166,11 @@ function BudgetSummary({
 	paceRemaining: number | null;
 	paceBehind: boolean;
 	leftPerDayAmount: number | null;
-	showCents: boolean;
 	closed: boolean;
 	note: string | null;
 	stepper: ReactNode;
 }) {
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	const spentPct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
 	const difference = Math.abs(leftover);
