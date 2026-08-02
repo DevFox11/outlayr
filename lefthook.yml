@@ -12,13 +12,10 @@ pre-commit:
 # Kept off pre-commit deliberately: these run on the whole graph, not staged
 # files, so they are too slow to sit between "git commit" and a prompt. Pushing
 # is the right gate — it is the last point before anyone else sees the code.
-# @outlayr/ios is excluded: its test target is an xcodebuild run that needs Xcode
-# and a booted simulator, so it fails on destination selection here and is not a
-# gate anyone can satisfy before a push. CI owns that one.
 pre-push:
   parallel: true
   jobs:
     - name: types
-      run: pnpm turbo run check-types --filter='!@outlayr/ios'
+      run: pnpm turbo run check-types
     - name: tests
-      run: pnpm turbo run test --filter='!@outlayr/ios'
+      run: pnpm turbo run test

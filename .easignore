@@ -73,22 +73,7 @@ apps/native/assets/fonts/*.otf
 # is worse than shipping none.
 apps/native/uniwind-types.d.ts
 
-# apps/ios is excluded wholesale below, which subsumes its own .gitignore.
-
 # ── Excluded beyond .gitignore ────────────────────────────────────────────────
-
-# The SwiftUI app. A workspace member with no JS, so the Expo build never reads
-# it — metro.config.cjs already drops it from the crawl for the same reason.
-#
-# The trailing `/*` is load-bearing. Excluding the directory itself (`apps/ios`)
-# would make the negation below dead: git never descends into an excluded
-# directory, so a file inside it cannot be re-included. Excluding the *contents*
-# leaves the directory walkable and the negation effective.
-#
-# package.json survives because pnpm resolves `apps/*` from pnpm-workspace.yaml,
-# and a member whose manifest is missing breaks `--frozen-lockfile`.
-apps/ios/*
-!apps/ios/package.json
 
 # Prose. Nothing imports it.
 docs/
