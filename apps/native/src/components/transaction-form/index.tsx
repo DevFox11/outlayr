@@ -22,12 +22,9 @@ import {
 	background,
 	blur,
 	buttonStyle,
-	controlSize,
 	datePickerStyle,
-	disabled,
 	foregroundStyle,
 	labelsHidden,
-	lineLimit,
 	multilineTextAlignment,
 	offset,
 	onGeometryChange,
@@ -108,10 +105,11 @@ import { IdentityHero } from "../identity-hero";
 import { LinearGradient } from "../styled";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
+import { TransactionFormCta } from "./cta";
+import { TransactionFormDetailsSection } from "./details-section";
 import {
 	BODY,
 	BODY_MEDIUM,
-	BODY_SEMIBOLD,
 	CAPTION,
 	CARD_SHAPE,
 	FLY_BACK,
@@ -1044,28 +1042,13 @@ export function TransactionForm({
 							)}
 						</VStack>
 
-						<VStack
-							alignment="leading"
-							modifiers={[padding({ all: 16 }), ...card]}
-							spacing={8}
-						>
-							<HStack>
-								<SwiftText modifiers={[BODY, rowLabel]}>
-									{t("transaction.field.notes")}
-								</SwiftText>
-								<Spacer />
-							</HStack>
-							<TextField
-								axis="vertical"
-								modifiers={[
-									BODY,
-									foregroundStyle(colors.foreground),
-									lineLimit({ min: 3, max: 6 }),
-								]}
-								placeholder={t("transaction.field.notesPlaceholder")}
-								text={notes}
-							/>
-						</VStack>
+						<TransactionFormDetailsSection
+							card={card}
+							foregroundColor={colors.foreground}
+							notes={notes}
+							notesLabel={t("transaction.field.notes")}
+							notesPlaceholder={t("transaction.field.notesPlaceholder")}
+						/>
 					</VStack>
 				</ScrollView>
 			</Host>
@@ -1086,27 +1069,13 @@ export function TransactionForm({
 					pointerEvents="none"
 				/>
 				<View className="px-5 pt-9 pb-safe-offset-3">
-					{/* No `matchContents` — the Host must take the full available width
-					    so the button's Spacer-flanked label can stretch across it,
-					    standing in for Swift's `.frame(maxWidth: .infinity)`. */}
-					<Host style={{ height: 50 }}>
-						<Button
-							modifiers={[
-								buttonStyle("borderedProminent"),
-								controlSize("large"),
-								tint(colors.foreground),
-								foregroundStyle(colors.background),
-								disabled(!canSave),
-							]}
-							onPress={handleSave}
-						>
-							<HStack>
-								<Spacer />
-								<SwiftText modifiers={[BODY_SEMIBOLD]}>{ctaLabel}</SwiftText>
-								<Spacer />
-							</HStack>
-						</Button>
-					</Host>
+					<TransactionFormCta
+						canSave={canSave}
+						labelColor={colors.background}
+						label={ctaLabel}
+						onPress={handleSave}
+						tintColor={colors.foreground}
+					/>
 				</View>
 			</View>
 
