@@ -1,0 +1,44 @@
+appId: com.tryoutlayr.app
+name: Key screens still look right
+---
+- runFlow: launch.yaml
+
+# Pin the theme. The app follows the device by default, and a light/dark flip is
+# far past assertScreenshot's 95% threshold, so an unpinned baseline fails the
+# moment the simulator's appearance changes.
+- openLink: outlayr://settings/theme
+- extendedWaitUntil:
+    visible: ".*Always light.*"
+    timeout: 20000
+- tapOn: ".*Always light.*"
+
+- openLink: outlayr://
+- extendedWaitUntil:
+    visible: "Insights"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertScreenshot: log
+
+- openLink: outlayr://transaction/new
+- extendedWaitUntil:
+    visible: "Add Transaction"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertScreenshot: transaction-form
+
+- openLink: outlayr://settings/categories/create
+- extendedWaitUntil:
+    visible: "New Category"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertScreenshot: category-editor
+
+# Hand the device back the way we found it.
+- openLink: outlayr://settings/theme
+- extendedWaitUntil:
+    visible: ".*Follows your device.*"
+    timeout: 20000
+- tapOn: ".*Follows your device.*"
