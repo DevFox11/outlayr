@@ -1,15 +1,7 @@
 import { View } from "react-native";
-import Svg, {
-	Circle,
-	ClipPath,
-	Defs,
-	G,
-	Line,
-	Path,
-	Rect,
-} from "react-native-svg";
 
-import { Text } from "@/components/text";
+import { EmptyState, useMark } from "@/components/empty-state";
+import { Hairline } from "@/components/empty-state-parts";
 import { useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -23,170 +15,209 @@ export function SearchEmptyState({ kind, query }: SearchEmptyStateProps) {
 	const idle = kind === "idle";
 	const t = useTranslation();
 	return (
-		<View className="items-center gap-3.5 px-8 pt-20">
-			<View className="pb-1.5">
-				{idle ? <SearchIdleMark /> : <SearchNoResultsMark />}
-			</View>
-			<Text className="text-center font-sans-semibold text-foreground text-title">
-				{idle
-					? t("search.empty.idle.title")
-					: t("search.empty.noResults.title")}
-			</Text>
-			<Text className="max-w-70 text-center font-sans-medium text-muted text-subtitle">
-				{idle
+		<EmptyState
+			className="w-full justify-start px-5 pt-28"
+			body={
+				idle
 					? t("search.empty.idle.body")
-					: t("search.empty.noResults.body", { query: query ?? "" })}
-			</Text>
+					: t("search.empty.noResults.body", { query: query ?? "" })
+			}
+			mark={idle ? <LedgerUnderLens /> : <LedgerEmptied />}
+			tier="takeover"
+			title={
+				idle ? t("search.empty.idle.title") : t("search.empty.noResults.title")
+			}
+		/>
+	);
+}
+
+const PAGE_AVATAR = 20;
+const PAGE_PAD = 7;
+const RULE = 1;
+const ROW_HEIGHT = PAGE_AVATAR + PAGE_PAD * 2;
+const DAY_HEIGHT = 22;
+const LENS_HEIGHT = 30 + 11 * 2 + 2 * 2;
+
+interface PageRow {
+	kind: "row";
+	note: number;
+	sub: number;
+	amount: number;
+	underLens?: true;
+}
+
+interface PageDay {
+	kind: "day";
+	label: number;
+	total: number;
+}
+
+type PageItem = PageRow | PageDay;
+
+const PAGE: readonly PageItem[] = [
+	{ kind: "day", label: 54, total: 46 },
+	{ kind: "row", note: 104, sub: 52, amount: 46 },
+	{ kind: "row", note: 136, sub: 44, amount: 54 },
+	{ kind: "row", note: 88, sub: 62, amount: 42, underLens: true },
+	{ kind: "day", label: 48, total: 52 },
+	{ kind: "row", note: 118, sub: 48, amount: 50 },
+	{ kind: "row", note: 96, sub: 56, amount: 44 },
+	{ kind: "row", note: 128, sub: 40, amount: 58 },
+];
+
+const LENS_OVER = PAGE.findIndex(
+	(item) => item.kind === "row" && item.underLens === true,
+);
+
+const heightOf = (item: PageItem) =>
+	(item.kind === "day" ? DAY_HEIGHT : ROW_HEIGHT) + RULE;
+
+const LENS_TOP =
+	RULE +
+	PAGE.slice(0, LENS_OVER).reduce((sum, item) => sum + heightOf(item), 0) +
+	(ROW_HEIGHT - LENS_HEIGHT) / 2;
+
+function LedgerUnderLens() {
+	return (
+		<View className="w-full">
+			<View>
+				<Hairline opacity={0.55} />
+				{PAGE.map((item, index) => (
+					<View
+						key={`${item.kind}-${index === LENS_OVER ? "lens" : ""}${
+							item.kind === "day" ? item.label : item.note
+						}`}
+					>
+						{item.kind === "day" ? (
+							<DayHeader fade={fadeAt(index)} item={item} />
+						) : (
+							<Row fade={fadeAt(index)} item={item} />
+						)}
+						<Hairline opacity={0.55 * fadeAt(index)} />
+					</View>
+				))}
+			</View>
+
+			<View
+				className="items-center"
+				pointerEvents="none"
+				style={{ position: "absolute", top: LENS_TOP, left: 0, right: 0 }}
+			>
+				<Lens />
+			</View>
 		</View>
 	);
 }
 
-const IDLE_SIDE = 120;
+const fadeAt = (index: number) => Math.max(0.34, 1 - index * 0.085);
 
-/** A magnifier over a ledger page, one row showing through the glass. */
-function SearchIdleMark() {
-	const colors = useColors();
-	const rule = colors.border;
-	const ink = colors.foreground;
-	const w = IDLE_SIDE;
-	const h = IDLE_SIDE;
-
-	const cx = w * 0.42;
-	const cy = h * 0.4;
-	const r = w * 0.34;
-
-	const rowCount = 5;
-	const rowTop = cy - r * 0.78;
-	const rowGap = (r * 1.56) / (rowCount - 1);
-	const gutterX = cx - r * 0.3;
-	const midY = rowTop + rowGap * 2;
-	// cos(45°): where the handle meets the rim.
-	const diagonal = Math.SQRT1_2;
-
+function DayHeader({ item, fade }: { item: PageDay; fade: number }) {
+	const ink = useMark();
 	return (
-		<Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-			<Defs>
-				<ClipPath id="lens">
-					<Circle cx={cx} cy={cy} r={r} />
-				</ClipPath>
-			</Defs>
-
-			<Circle cx={cx} cy={cy} r={r} fill={withAlpha(ink, 0.04)} />
-
-			<G clipPath="url(#lens)">
-				{Array.from({ length: rowCount }, (_, index) => {
-					const y = rowTop + rowGap * index;
-					return (
-						<Line
-							key={y}
-							x1={cx - r}
-							y1={y}
-							x2={cx + r}
-							y2={y}
-							stroke={rule}
-							strokeWidth={1}
-						/>
-					);
-				})}
-				<Line
-					x1={gutterX}
-					y1={cy - r}
-					x2={gutterX}
-					y2={cy + r}
-					stroke={rule}
-					strokeWidth={1}
-				/>
-				<Line
-					x1={gutterX + r * 0.14}
-					y1={midY}
-					x2={cx + r * 0.68}
-					y2={midY}
-					stroke={withAlpha(ink, 0.42)}
-					strokeWidth={2}
-					strokeLinecap="round"
-				/>
-			</G>
-
-			<Circle
-				cx={cx}
-				cy={cy}
-				r={r}
-				stroke={ink}
-				strokeWidth={2.5}
-				fill="none"
-			/>
-			<Line
-				x1={cx + diagonal * r}
-				y1={cy + diagonal * r}
-				x2={w * 0.91}
-				y2={h * 0.91}
-				stroke={ink}
-				strokeWidth={3.5}
-				strokeLinecap="round"
-			/>
-		</Svg>
+		<View
+			className="flex-row items-center justify-between"
+			style={{ height: DAY_HEIGHT, opacity: fade }}
+		>
+			<Bar color={ink.fill} height={6} width={item.label} />
+			<Bar color={ink.fill} height={6} width={item.total} />
+		</View>
 	);
 }
 
-const NO_RESULTS_SIDE = 96;
+function Row({ item, fade }: { item: PageRow; fade: number }) {
+	const ink = useMark();
+	return (
+		<View
+			className="flex-row items-center"
+			style={{ paddingVertical: PAGE_PAD, opacity: fade }}
+		>
+			<View
+				style={{
+					width: PAGE_AVATAR,
+					height: PAGE_AVATAR,
+					borderRadius: PAGE_AVATAR / 2,
+					backgroundColor: ink.fill,
+				}}
+			/>
+			<View style={{ marginLeft: 9, gap: 4 }}>
+				<Bar color={ink.fill} height={7} width={item.note} />
+				<Bar color={ink.fill} height={5} width={item.sub} />
+			</View>
+			<View style={{ flex: 1 }} />
+			<Bar color={ink.fill} height={7} width={item.amount} />
+		</View>
+	);
+}
 
-/** The same ledger page with a single diagonal strike through it. */
-function SearchNoResultsMark() {
+function Lens() {
 	const colors = useColors();
-	const rule = colors.border;
-	const ink = colors.foreground;
-	const side = NO_RESULTS_SIDE;
-	const inset = 0.5;
-	const pageSide = side - inset * 2;
-
-	const rowCount = 4;
-	const top = inset + pageSide * 0.26;
-	const spacing = (side - inset - top) / rowCount;
-	const gutter = inset + pageSide * 0.28;
-	const pad = pageSide * 0.1;
+	const read = withAlpha(colors.foreground, 0.42);
+	const quiet = withAlpha(colors.foreground, 0.24);
 
 	return (
-		<Svg width={side} height={side} viewBox={`0 0 ${side} ${side}`}>
-			<Rect
-				x={inset}
-				y={inset}
-				width={pageSide}
-				height={pageSide}
-				rx={side * 0.09}
-				stroke={rule}
-				strokeWidth={1}
-				fill="none"
-			/>
-			{Array.from({ length: rowCount }, (_, index) => {
-				const y = top + spacing * index;
-				return (
-					<Line
-						key={y}
-						x1={inset}
-						y1={y}
-						x2={side - inset}
-						y2={y}
-						stroke={rule}
-						strokeWidth={1}
-					/>
-				);
-			})}
-			<Line
-				x1={gutter}
-				y1={top}
-				x2={gutter}
-				y2={side - inset}
-				stroke={rule}
-				strokeWidth={1}
-			/>
-			<Path
-				d={`M${inset + pad} ${inset + pad} L${side - inset - pad} ${
-					side - inset - pad
-				}`}
-				stroke={ink}
-				strokeWidth={2.5}
-				strokeLinecap="round"
-			/>
-		</Svg>
+		<View
+			style={{
+				width: "70%",
+				borderWidth: 2,
+				borderColor: colors.foreground,
+				borderRadius: 16,
+				backgroundColor: colors.background,
+				paddingHorizontal: 13,
+				paddingVertical: 11,
+				shadowColor: "#000000",
+				shadowOpacity: 0.07,
+				shadowRadius: 9,
+				shadowOffset: { width: 0, height: 3 },
+			}}
+		>
+			<View className="flex-row items-center">
+				<View
+					style={{
+						width: 30,
+						height: 30,
+						borderRadius: 15,
+						backgroundColor: read,
+					}}
+				/>
+				<View style={{ marginLeft: 11, gap: 5 }}>
+					<Bar color={read} height={9} width={84} />
+					<Bar color={quiet} height={7} width={48} />
+				</View>
+				<View style={{ flex: 1 }} />
+				<Bar color={read} height={9} width={44} />
+			</View>
+		</View>
+	);
+}
+
+function Bar({
+	width,
+	height,
+	color,
+}: {
+	width: number;
+	height: number;
+	color: string;
+}) {
+	return (
+		<View
+			style={{
+				width,
+				height,
+				borderRadius: height / 2,
+				backgroundColor: color,
+			}}
+		/>
+	);
+}
+
+function LedgerEmptied() {
+	const RULES = [1, 0.72, 0.52, 0.36, 0.24, 0.14, 0.08];
+	return (
+		<View className="w-full" style={{ gap: 32 }}>
+			{RULES.map((opacity) => (
+				<Hairline key={opacity} opacity={opacity} />
+			))}
+		</View>
 	);
 }

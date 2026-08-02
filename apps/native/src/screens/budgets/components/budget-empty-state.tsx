@@ -1,7 +1,12 @@
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
+import Svg, { Path } from "react-native-svg";
+
+import { EmptyState, useMark } from "@/components/empty-state";
 import { Text } from "@/components/text";
 import type { Burndown } from "@/domain/budget-burndown";
 import { useTranslation } from "@/i18n";
+import { MARK_CEILING } from "@/theme/empty-state-ink";
+import { useColors } from "@/theme/use-colors";
 import { BudgetLimitPicker } from "./budget-limit-picker";
 
 interface BudgetEmptyStateProps {
@@ -48,22 +53,60 @@ function NothingToBudget({
 }) {
 	const t = useTranslation();
 	return (
-		<View className="flex-1 items-center justify-center px-8">
-			<Text className="pb-2 font-sans-semibold text-foreground text-title">
-				{t("budgets.empty.title")}
-			</Text>
-			<Text className="pb-7 text-center text-muted text-subtitle">
-				{t("budgets.empty.body")}
-			</Text>
-			<Pressable
-				accessibilityRole="button"
-				className="rounded-full bg-accent px-7 py-3.5 active:opacity-80"
-				onPress={onAddTransaction}
-			>
-				<Text className="font-sans-semibold text-accent-foreground text-body">
-					{t("budgets.empty.action")}
-				</Text>
-			</Pressable>
-		</View>
+		<EmptyState
+			action={
+				<Pressable
+					accessibilityRole="button"
+					className="rounded-full bg-accent px-7 py-3.5 active:opacity-80"
+					onPress={onAddTransaction}
+				>
+					<Text className="font-sans-semibold text-accent-foreground text-body">
+						{t("budgets.empty.action")}
+					</Text>
+				</Pressable>
+			}
+			body={t("budgets.empty.body")}
+			mark={<PlotUnset />}
+			tier="takeover"
+			title={t("budgets.empty.title")}
+		/>
+	);
+}
+
+const PLOT_W = MARK_CEILING.takeover;
+const PLOT_H = 128;
+
+function PlotUnset() {
+	const ink = useMark();
+	const colors = useColors();
+	return (
+		<Svg height={PLOT_H} viewBox={`0 0 ${PLOT_W} ${PLOT_H}`} width={PLOT_W}>
+			<Path
+				d={`M14 6 V${PLOT_H - 16} H${PLOT_W - 4}`}
+				fill="none"
+				stroke={ink.rule}
+				strokeWidth={1.5}
+			/>
+			<Path
+				d={`M14 30 H${PLOT_W - 4}`}
+				fill="none"
+				stroke={ink.edge}
+				strokeDasharray="6 6"
+				strokeWidth={2}
+			/>
+			<Path
+				d={`M14 ${(PLOT_H - 16 + 30) / 2} H${PLOT_W - 4}`}
+				fill="none"
+				stroke={ink.rule}
+				strokeDasharray="2 7"
+				strokeWidth={1}
+			/>
+			<Path
+				d={`M14 ${PLOT_H - 16} H${PLOT_W - 4}`}
+				stroke={colors.foreground}
+				strokeLinecap="round"
+				strokeWidth={3}
+			/>
+		</Svg>
 	);
 }

@@ -1,5 +1,7 @@
 import { Alert, Pressable, View } from "react-native";
 import { RowAmount } from "@/components/amount-text";
+import { EmptyState } from "@/components/empty-state";
+import { Bar, GhostAvatar, Slot } from "@/components/empty-state-parts";
 import { SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
@@ -46,9 +48,11 @@ function RecentlyDeleted({ db }: { db: Database }) {
 				title={t("settings.deleted.section")}
 			>
 				{rows.length === 0 ? (
-					<Text className="py-4 text-muted text-subtitle leading-snug">
-						{t("settings.deleted.empty")}
-					</Text>
+					<EmptyState
+						body={t("settings.deleted.empty")}
+						mark={<HeldSlot />}
+						tier="insetRow"
+					/>
 				) : (
 					rows.map((row) => (
 						<DeletedRow
@@ -63,6 +67,20 @@ function RecentlyDeleted({ db }: { db: Database }) {
 				)}
 			</SettingsSection>
 		</SettingsScreen>
+	);
+}
+
+function HeldSlot() {
+	return (
+		<Slot height={27} radius={6} width={34}>
+			<View className="flex-1 flex-row items-center gap-1.5 px-1.5">
+				<GhostAvatar size={7} />
+				<View className="gap-1">
+					<Bar height={2.5} width={12} />
+					<Bar height={2.5} width={7} />
+				</View>
+			</View>
+		</Slot>
 	);
 }
 

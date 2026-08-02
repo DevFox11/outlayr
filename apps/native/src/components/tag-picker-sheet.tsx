@@ -13,9 +13,19 @@ import {
 	normalizeTagName,
 } from "@/domain/tags";
 import { useTranslation } from "@/i18n";
+import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
+import { EmptyState } from "./empty-state";
+import { Slot } from "./empty-state-parts";
 import { Text } from "./text";
 import { cn } from "./tw";
+
+function TagSlot() {
+	const height = 22;
+	return (
+		<Slot height={height} radius={height / 2} width={MARK_CEILING.insetRow} />
+	);
+}
 
 interface TagPickerSheetProps {
 	tags: readonly TagRow[];
@@ -122,9 +132,11 @@ export const TagPickerSheet = forwardRef<BottomSheetModal, TagPickerSheetProps>(
 						keyExtractor={(tag: TagRow) => tag.id}
 						ListEmptyComponent={
 							canCreate ? null : (
-								<Text className="py-6 text-center text-muted text-subtitle">
-									{t("transaction.tags.empty")}
-								</Text>
+								<EmptyState
+									body={t("transaction.tags.empty")}
+									mark={<TagSlot />}
+									tier="insetRow"
+								/>
 							)
 						}
 						renderItem={({ item }: { item: TagRow }) => {

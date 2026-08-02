@@ -283,10 +283,12 @@ function RootStack() {
 				name="search"
 				options={{
 					presentation: "modal",
-					title: t("nav.search"),
 					sheetGrabberVisible: true,
 				}}
-			/>
+			>
+				<Stack.Header transparent />
+				<Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
+			</Stack.Screen>
 
 			{SETTINGS_SCREENS.map((screen) => (
 				<Stack.Screen key={screen.name} name={screen.name}>

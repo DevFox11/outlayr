@@ -1,9 +1,8 @@
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Archive02Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useMemo } from "react";
 import { View } from "react-native";
 import { DaySectionHeader } from "@/components/day-section-header";
-import { Text } from "@/components/text";
+import { EmptyState } from "@/components/empty-state";
+import { Hairline } from "@/components/empty-state-parts";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDatabase } from "@/contexts/local-data-context";
 import type { TransactionWithCategory } from "@/data/transactions";
@@ -12,7 +11,7 @@ import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
-import { useColors } from "@/theme/use-colors";
+import { MARK_CEILING } from "@/theme/empty-state-ink";
 
 interface InsightsTransactionListProps {
 	transactions: TransactionWithCategory[];
@@ -101,14 +100,23 @@ export function InsightsTransactionList({
 }
 
 function InsightsNoResults() {
-	const colors = useColors();
 	const t = useTranslation();
 	return (
-		<View className="items-center justify-center gap-3 py-12 opacity-70">
-			<HugeiconsIcon color={colors.muted} icon={Archive02Icon} size={38} />
-			<Text className="font-sans-medium text-muted text-title">
-				{t("insights.list.empty")}
-			</Text>
+		<EmptyState
+			body={t("insights.list.empty")}
+			mark={<RulesEmptied />}
+			tier="inFlow"
+		/>
+	);
+}
+
+function RulesEmptied() {
+	const RULES = [1, 0.62, 0.34, 0.15];
+	return (
+		<View style={{ width: MARK_CEILING.inFlow, gap: 13 }}>
+			{RULES.map((opacity) => (
+				<Hairline key={opacity} opacity={opacity} />
+			))}
 		</View>
 	);
 }
