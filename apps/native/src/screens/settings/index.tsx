@@ -160,6 +160,7 @@ function SettingsContent({ db }: { db: Database }) {
 					onValueChange={(next) => {
 						setBoolSetting(db, "showCents", next);
 					}}
+					testID="toggle-display-cents"
 					title={t("settings.row.displayCents")}
 					value={showCents}
 				/>
