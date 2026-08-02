@@ -788,7 +788,7 @@ export function TransactionForm({
 						</Button>
 
 						<Button
-							modifiers={[...card]}
+							modifiers={[buttonStyle("plain"), ...card]}
 							onPress={() => tagSheetRef.current?.present()}
 						>
 							<HStack modifiers={TAP_ROW} spacing={12}>
