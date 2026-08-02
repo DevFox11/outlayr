@@ -12,13 +12,11 @@ import {
 	useNativeState,
 } from "@expo/ui/swift-ui";
 import {
-	Animation,
 	animation,
 	blur,
 	buttonStyle,
 	controlSize,
 	disabled,
-	font,
 	foregroundStyle,
 	listSectionMargins,
 	listStyle,
@@ -75,44 +73,21 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import {
+	BODY_SEMIBOLD,
+	CAPTION_CLEARANCE,
+	CTA_BOTTOM_PADDING,
+	CTA_HEIGHT,
+	FLY_BACK,
+	FLY_UP,
+	FORM_BLUR_RADIUS,
+	FORM_TOP_MARGIN,
+	HEADER_HEIGHT,
+	HERO_BOTTOM_PADDING,
+	HERO_TOP_PADDING,
+} from "./style";
 
 const MAX_EXPENSE_CATEGORIES = 24;
-
-const FORM_BLUR_RADIUS = 8;
-/**
- * MUST track `LAUNCH_SPRING`/`RETURN_SPRING` in the fly-up context: the hero is
- * a Reanimated view, this blur is a SwiftUI one, and only this pairing keeps
- * them on the same curve. Directional because the return is the snappier of the
- * two; a single curve leaves the form still un-blurring after the hero has
- * landed and the sheet has gone.
- */
-const FLY_UP = Animation.spring({ response: 0.4, dampingFraction: 0.85 });
-const FLY_BACK = Animation.spring({ response: 0.29, dampingFraction: 0.98 });
-
-const BODY_SEMIBOLD = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "semibold",
-});
-
-/**
- * What the sheet's chrome takes off the top before this screen's own content:
- * `UINavigationBar` in this form sheet reports y=16 (react-native-screens'
- * grabber band) and a height of 54.
- */
-const HEADER_HEIGHT = 70;
-/**
- * Swift `IdentityHero.topPadding` (24) less the 6pt the hero's ring adds above
- * its 90pt tile: Swift pads from the tile's edge and this pads from the ring's,
- * so the tile itself still lands 24pt under the bar.
- */
-const HERO_TOP_PADDING = 18;
-/**
- * Swift `IdentityHero.bottomPadding` (28) less the 6pt the hero's ring adds under
- * its 90pt tile — Swift pads from the tile's edge, this pads from the ring's.
- */
-const HERO_BOTTOM_PADDING = 22;
-const FORM_TOP_MARGIN = 8;
 
 function FormSection({
 	footer,
@@ -132,11 +107,6 @@ function FormSection({
 		</Section>
 	);
 }
-/** Room for the empty hero's caption, which hangs below the tile until a symbol is picked. */
-const CAPTION_CLEARANCE = 24;
-const CTA_BOTTOM_PADDING = 8;
-/** What `.controlSize(.large)` on a bordered-prominent button measures. */
-const CTA_HEIGHT = 50;
 
 export type CategoryEditorProps =
 	| { mode: "create"; income?: boolean; parentId?: string | null }
