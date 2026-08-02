@@ -1,0 +1,40 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { selectDisplaySettings } from "./display-settings";
+import type { BoolSettingKey, NumberSettingKey } from "./settings-core";
+
+function snapshot(bools: Partial<Record<BoolSettingKey, boolean>>) {
+	return {
+		bool: (key: BoolSettingKey) => bools[key] ?? false,
+		number: (_key: NumberSettingKey) => 0,
+	};
+}
+
+describe("selectDisplaySettings", () => {
+	it("maps each display field to its underlying setting key", () => {
+		const result = selectDisplaySettings(
+			snapshot({
+				showCents: true,
+				showExpenseOrIncomeSign: false,
+				use24HourClock: true,
+				swapTimeLabel: false,
+			}),
+		);
+		assert.deepEqual(result, {
+			showCents: true,
+			showSign: false,
+			use24Hour: true,
+			swapTimeLabel: false,
+		});
+	});
+
+	it("defaults every field to false when nothing is set", () => {
+		const result = selectDisplaySettings(snapshot({}));
+		assert.deepEqual(result, {
+			showCents: false,
+			showSign: false,
+			use24Hour: false,
+			swapTimeLabel: false,
+		});
+	});
+});
