@@ -1,0 +1,82 @@
+appId: com.tryoutlayr.app
+name: Creating a subscription writes it to the Log
+---
+- runFlow: launch.yaml
+
+- openLink: outlayr://transaction/new
+- extendedWaitUntil:
+    visible: "Create Transaction"
+    timeout: 30000
+
+- tapOn: "Subscription"
+
+# ensureRecurringType defaults a new subscription to monthly, and the CTA label
+# switching is what proves the kind change reached the parent's state at all.
+- assertVisible: "Every month"
+- assertVisible: "First Payment"
+- assertVisible: "Add Subscription"
+- assertNotVisible: "Add Transaction"
+
+- tapOn:
+    text: "Amount.*"
+- extendedWaitUntil:
+    visible: "Done"
+    timeout: 15000
+- tapOn: "9"
+- tapOn: "9"
+- tapOn: "Done"
+- extendedWaitUntil:
+    notVisible: "Done"
+    timeout: 15000
+
+- tapOn: "Netflix, Groceries…"
+- inputText: "Maestro Sub"
+- pressKey: Enter
+- extendedWaitUntil:
+    notVisible: "space"
+    timeout: 10000
+
+- tapOn:
+    text: "Category.*"
+- extendedWaitUntil:
+    visible: "Groceries"
+    timeout: 15000
+- tapOn: "Groceries"
+
+- tapOn: "Add Subscription"
+
+# Assert the sheet CLOSED before looking for the row: the form's own name field
+# carries the same text, so asserting it alone also passes on a rejected save.
+- extendedWaitUntil:
+    notVisible: "Create Transaction"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: ".*Maestro Sub.*"
+    timeout: 20000
+- takeScreenshot: artifacts/create-subscription-saved
+
+# Leave the dev database as we found it. A subscription produces TWO rows — the
+# occurrence dated today and the upcoming one — and deleting an occurrence does
+# not cancel the series, so this loops until no row named Maestro Sub is left.
+- repeat:
+    while:
+      visible: ".*Maestro Sub.*"
+    commands:
+      - tapOn: ".*Maestro Sub.*"
+      - extendedWaitUntil:
+          visible: "Edit Transaction"
+          timeout: 15000
+      # The toolbar trash and the confirm button share the label "Delete"; the
+      # toolbar one comes first in reading order, so the confirm needs index 1.
+      - tapOn: "Delete"
+      - extendedWaitUntil:
+          visible: ".*cannot be undone.*"
+          timeout: 15000
+      - tapOn:
+          text: "Delete"
+          index: 1
+      - extendedWaitUntil:
+          notVisible: ".*cannot be undone.*"
+          timeout: 15000
+
+- assertNotVisible: ".*Maestro Sub.*"
