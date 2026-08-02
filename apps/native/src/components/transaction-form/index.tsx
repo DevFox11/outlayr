@@ -18,18 +18,14 @@ import {
 	VStack,
 } from "@expo/ui/swift-ui";
 import {
-	Animation,
 	animation,
 	background,
 	blur,
 	buttonStyle,
-	contentShape,
 	controlSize,
 	datePickerStyle,
 	disabled,
-	font,
 	foregroundStyle,
-	frame,
 	labelsHidden,
 	lineLimit,
 	multilineTextAlignment,
@@ -38,7 +34,6 @@ import {
 	overlay,
 	padding,
 	pickerStyle,
-	shapes,
 	strokeBorder,
 	tag,
 	tint,
@@ -96,23 +91,39 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
-import { AmountEntrySheet } from "./amount-entry-sheet";
-import { CategoryIcon } from "./category-icon";
+import { AmountEntrySheet } from "../amount-entry-sheet";
+import { CategoryIcon } from "../category-icon";
 import {
 	CategoryPickerSheet,
 	type CategoryPickerSheetRef,
-} from "./category-picker-sheet";
+} from "../category-picker-sheet";
 import {
 	CustomScheduleSheet,
 	type CustomScheduleSheetRef,
 	intervalPhrase,
-} from "./custom-schedule-sheet";
-import { CURTAIN_LAYER_SIZE, curtainGradient } from "./identity-curtain";
-import { IdentityFlyUpLayer } from "./identity-fly-up";
-import { IdentityHero } from "./identity-hero";
-import { LinearGradient } from "./styled";
-import { TagPickerSheet } from "./tag-picker-sheet";
-import { Text } from "./text";
+} from "../custom-schedule-sheet";
+import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
+import { IdentityFlyUpLayer } from "../identity-fly-up";
+import { IdentityHero } from "../identity-hero";
+import { LinearGradient } from "../styled";
+import { TagPickerSheet } from "../tag-picker-sheet";
+import { Text } from "../text";
+import {
+	BODY,
+	BODY_MEDIUM,
+	BODY_SEMIBOLD,
+	CAPTION,
+	CARD_SHAPE,
+	FLY_BACK,
+	FLY_UP,
+	FORM_BLUR_RADIUS,
+	MORPH,
+	ROW,
+	rowLabel,
+	SHAKE,
+	TAP_ROW,
+	tertiary,
+} from "./style";
 
 /**
  * Swift's `IdentityHero.topPadding` (24) less 6pt: expo-router's native header
@@ -126,51 +137,6 @@ const HERO_BOTTOM_PADDING = 28;
  * supersedes it. A 70pt nav-bar scroll inset plus {@link HERO_TOP_PADDING}.
  */
 const HERO_REST_TOP_FALLBACK = 88;
-
-const ROW = [padding({ horizontal: 16 }), frame({ minHeight: 50 })];
-/**
- * For the rows that ARE buttons: a `.plain` Button hit-tests only its drawn
- * glyphs, so without a content shape the `Spacer` gap mid-row is dead and a tap
- * anywhere but directly on the label or value silently does nothing.
- *
- * Deliberately NOT applied to every row — a greedy rect over the Name,
- * date/time or toggle rows would swallow the taps meant for the control
- * living inside them.
- */
-const TAP_ROW = [...ROW, contentShape(shapes.rectangle())];
-const CARD_SHAPE = shapes.roundedRectangle({
-	cornerRadius: 12,
-	roundedCornerStyle: "continuous",
-});
-
-const BODY = font({ textStyle: "body", design: "rounded" });
-const BODY_MEDIUM = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "medium",
-});
-const BODY_SEMIBOLD = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "semibold",
-});
-const CAPTION = font({ textStyle: "caption", design: "rounded" });
-
-const rowLabel = foregroundStyle({ type: "hierarchical", style: "secondary" });
-const tertiary = foregroundStyle({ type: "hierarchical", style: "tertiary" });
-
-const MORPH = Animation.easeInOut({ duration: 0.25 });
-const SHAKE = Animation.easeInOut({ duration: 0.1 }).repeat({ repeatCount: 5 });
-const FORM_BLUR_RADIUS = 8;
-/**
- * MUST track `LAUNCH_SPRING`/`RETURN_SPRING` in the fly-up context — the hero is
- * a Reanimated view and the blur is a SwiftUI one, so nothing but this pairing
- * keeps them on the same curve. Directional because the return is the snappier
- * of the two; one shared curve leaves the blur clearing ~200ms after the hero is
- * home and the sheet has gone.
- */
-const FLY_UP = Animation.spring({ response: 0.4, dampingFraction: 0.85 });
-const FLY_BACK = Animation.spring({ response: 0.29, dampingFraction: 0.98 });
 
 const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
