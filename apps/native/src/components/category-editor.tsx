@@ -34,6 +34,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import type { ReactElement, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
 import Animated, {
@@ -134,6 +135,25 @@ const HERO_TOP_PADDING = 18;
  */
 const HERO_BOTTOM_PADDING = 22;
 const FORM_TOP_MARGIN = 8;
+
+function FormSection({
+	footer,
+	children,
+}: {
+	footer?: ReactElement;
+	children: ReactNode;
+}) {
+	return (
+		<Section
+			footer={footer}
+			modifiers={[
+				listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN }),
+			]}
+		>
+			{children}
+		</Section>
+	);
+}
 /** Room for the empty hero's caption, which hangs below the tile until a symbol is picked. */
 const CAPTION_CLEARANCE = 24;
 const CTA_BOTTOM_PADDING = 8;
@@ -559,14 +579,8 @@ function CategoryEditorReady(
 							...underPicker,
 						]}
 					>
-						<Section
+						<FormSection
 							footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
-							modifiers={[
-								listSectionMargins({
-									edges: "top",
-									length: FORM_TOP_MARGIN,
-								}),
-							]}
 						>
 							<HStack>
 								<SwiftText
@@ -627,7 +641,7 @@ function CategoryEditorReady(
 									</Picker>
 								</HStack>
 							) : null}
-						</Section>
+						</FormSection>
 					</Form>
 				</Host>
 			</View>
