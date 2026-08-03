@@ -30,6 +30,8 @@ function TagSlot() {
 interface TagPickerSheetProps {
 	tags: readonly TagRow[];
 	selected: readonly string[];
+	/** Not yet real tags — offered as one-tap create affordances. */
+	pendingTagNames?: readonly string[];
 	onToggle: (tagId: string) => void;
 	/** Resolves to the tag's id, existing or newly created. */
 	onCreate: (name: string) => Promise<string | null>;
@@ -40,6 +42,7 @@ interface TagPickerSheetProps {
 export function TagPickerSheet({
 	tags,
 	selected,
+	pendingTagNames = [],
 	onToggle,
 	onCreate,
 	ref,
@@ -61,6 +64,17 @@ export function TagPickerSheet({
 	// mint a near-duplicate of a tag one line below it.
 	const canCreate =
 		isUsableTagName(query) && findTagByName(tags, trimmed) === null;
+
+	const pendingToOffer = useMemo(
+		() =>
+			pendingTagNames.filter(
+				(name) =>
+					isUsableTagName(name) &&
+					normalizeTagName(name) !== trimmed &&
+					findTagByName(tags, name) === null,
+			),
+		[pendingTagNames, tags, trimmed],
+	);
 
 	const create = () => {
 		onCreate(trimmed).then((id) => {
@@ -129,13 +143,32 @@ export function TagPickerSheet({
 					</Pressable>
 				) : null}
 
+				{pendingToOffer.map((name) => (
+					<Pressable
+						accessibilityRole="button"
+						className="mx-5 mb-2 flex-row items-center gap-2 py-3 active:opacity-60"
+						key={name}
+						onPress={() => onCreate(normalizeTagName(name))}
+					>
+						<SymbolView
+							name="plus.circle.fill"
+							size={18}
+							tintColor={colors.tint}
+							type="monochrome"
+						/>
+						<Text className="font-sans-medium text-body text-foreground">
+							{t("transaction.tags.create", { name })}
+						</Text>
+					</Pressable>
+				))}
+
 				<BottomSheetFlatList
 					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
 					data={results}
 					keyboardShouldPersistTaps="handled"
 					keyExtractor={(tag: TagRow) => tag.id}
 					ListEmptyComponent={
-						canCreate ? null : (
+						canCreate || pendingToOffer.length > 0 ? null : (
 							<EmptyState
 								body={t("transaction.tags.empty")}
 								mark={<TagSlot />}

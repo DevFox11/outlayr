@@ -1,7 +1,12 @@
 import { renderHook } from "@testing-library/react-native";
-import { clearEnrichmentCache } from "@/domain/enrichment-cache";
+import {
+	clearEnrichmentCache,
+	getCachedEnrichment,
+} from "@/domain/enrichment-cache";
+import { merchantKey } from "@/domain/merchant-resolver";
 import {
 	type EnrichmentSuggestion,
+	TIER2_STUB_DELAY_MS,
 	type UseTransactionEnrichmentArgs,
 	useTransactionEnrichment,
 } from "./use-transaction-enrichment";
@@ -108,6 +113,30 @@ describe("tier 1: curated match", () => {
 		jest.advanceTimersByTime(DEBOUNCE_MS);
 
 		expect(onSuggest).not.toHaveBeenCalled();
+	});
+
+	it("drops a stale Tier 2 result once a newer request supersedes it", async () => {
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest })),
+		);
+
+		const staleName = "zzq unresolvable merchant alpha";
+		const freshName = "zzq unresolvable merchant beta";
+
+		result.current.onNameChange(staleName);
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+		result.current.onNameChange(freshName);
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+		jest.advanceTimersByTime(TIER2_STUB_DELAY_MS + 1);
+
+		expect(getCachedEnrichment(merchantKey(staleName))).toStrictEqual({
+			hit: false,
+		});
+		expect(getCachedEnrichment(merchantKey(freshName))).toStrictEqual({
+			hit: true,
+			value: null,
+		});
 	});
 
 	it("passes the raw curated candidate through resolveLocal before emitting", async () => {

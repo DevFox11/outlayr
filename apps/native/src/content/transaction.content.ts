@@ -143,6 +143,10 @@ const transaction = {
 			en: "Choose",
 			es: "Elegir",
 		}),
+		"transaction.category.willBeCreated": t({
+			en: "Will be created",
+			es: "Se creará",
+		}),
 		"transaction.cta.save": t({
 			en: "Save Changes",
 			es: "Guardar cambios",

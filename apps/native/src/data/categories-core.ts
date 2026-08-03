@@ -267,6 +267,26 @@ function detectCollision(
 	return null;
 }
 
+/** The first entry in `siblings` not already claiming `preferred`, otherwise `preferred` itself. */
+export function pickFreeCategoryIcon(
+	siblings: readonly Category[],
+	preferred: string,
+): string {
+	const used = new Set(
+		siblings
+			.map((row) => row.icon)
+			.filter((icon): icon is string => icon != null && icon !== ""),
+	);
+	if (!used.has(preferred)) {
+		return preferred;
+	}
+	const fallback = [
+		...SUGGESTED_CATEGORY_PRESETS.expense,
+		...SUGGESTED_CATEGORY_PRESETS.income,
+	].find((preset) => !used.has(preset.icon));
+	return fallback?.icon ?? preferred;
+}
+
 /** Ports Swift `categoryCheck`. */
 export async function validateCategoryCreate(
 	db: Database,
@@ -621,3 +641,33 @@ export const categoriesRepo = {
 		});
 	},
 };
+
+/**
+ * The category answering to `name` in the given namespace, creating it only if
+ * none does — mirrors `tagsRepo.ensureTag`'s match-before-insert shape.
+ *
+ * The icon is picked free BEFORE `create` (not caught and retried after),
+ * because `create` rejects an icon collision namespace-wide.
+ */
+export async function ensureCategoryByName(
+	db: Database,
+	name: string,
+	income: boolean,
+	icon: string,
+	color: string,
+): Promise<string> {
+	const cleanName = capitalizeCategoryName(name);
+	const siblings = await namespaceSiblings(db, income);
+	const existing = siblings.find(
+		(row) => row.name != null && capitalizeCategoryName(row.name) === cleanName,
+	);
+	if (existing != null) {
+		return existing.id;
+	}
+	return categoriesRepo.create(db, {
+		name: cleanName,
+		icon: pickFreeCategoryIcon(siblings, icon),
+		color,
+		income,
+	});
+}
