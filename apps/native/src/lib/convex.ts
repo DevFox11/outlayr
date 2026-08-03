@@ -87,11 +87,17 @@ export function watchSyncWatermark(
 	});
 }
 
+export interface CategoryBranch {
+	name: string;
+	children: string[];
+}
+
 export interface EnrichmentRequest {
 	name: string;
 	income: boolean;
 	locale?: string;
-	knownCategoryNames: string[];
+	/** Names only — the shape of the ledger, never its figures. */
+	categoryTree: CategoryBranch[];
 }
 
 export type EnrichmentFn = (

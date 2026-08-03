@@ -47,7 +47,10 @@ function mockModel(payload: unknown) {
 const BASE_ARGS = {
 	name: "netflix",
 	income: false,
-	knownCategoryNames: ["Entertainment", "Groceries"],
+	categoryTree: [
+		{ name: "Entertainment", children: [] },
+		{ name: "Groceries", children: ["Supermarket"] },
+	],
 };
 
 describe("suggestArgs", () => {
@@ -55,7 +58,7 @@ describe("suggestArgs", () => {
 		// Amounts, dates, accounts, balances, and identity must never leave the
 		// device — this is a threat-matrix assertion, not a shape convenience.
 		expect(Object.keys(suggestArgs).sort()).toEqual(
-			["income", "knownCategoryNames", "locale", "name"].sort(),
+			["categoryTree", "income", "locale", "name"].sort(),
 		);
 	});
 });
@@ -173,10 +176,12 @@ describe("runSuggest sanitisation", () => {
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames: [] }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
 		).resolves.toEqual({
 			categoryName: "Streaming",
 			isNewCategory: true,
+			parentCategoryName: null,
+			emoji: null,
 			tags: ["Music", "Streaming"],
 			domain: "netflix.com",
 		});
@@ -192,7 +197,7 @@ describe("runSuggest sanitisation", () => {
 
 		const result = await runSuggest(model, {
 			...BASE_ARGS,
-			knownCategoryNames: [],
+			categoryTree: [],
 		});
 
 		expect(result.tags).toEqual(["a".repeat(24), "second", "third"]);
@@ -207,7 +212,7 @@ describe("runSuggest sanitisation", () => {
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames: [] }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
 		).resolves.toMatchObject({ domain: null });
 	});
 
@@ -220,7 +225,7 @@ describe("runSuggest sanitisation", () => {
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames: [] }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
 		).resolves.toMatchObject({ domain: "netflix.com" });
 	});
 
@@ -235,7 +240,7 @@ describe("runSuggest sanitisation", () => {
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames: [] }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
 		).resolves.toMatchObject({ domain: null });
 	});
 
@@ -248,7 +253,7 @@ describe("runSuggest sanitisation", () => {
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames: [] }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
 		).resolves.toMatchObject({ categoryName: null });
 	});
 
@@ -261,7 +266,7 @@ describe("runSuggest sanitisation", () => {
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames: [] }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
 		).resolves.toMatchObject({ categoryName: null });
 	});
 
@@ -276,7 +281,10 @@ describe("runSuggest sanitisation", () => {
 		await expect(
 			runSuggest(model, {
 				...BASE_ARGS,
-				knownCategoryNames: ["Entertainment", "Groceries"],
+				categoryTree: [
+					{ name: "Entertainment", children: [] },
+					{ name: "Groceries", children: [] },
+				],
 			}),
 		).resolves.toMatchObject({ categoryName: "Pets", isNewCategory: true });
 	});
@@ -292,7 +300,10 @@ describe("runSuggest sanitisation", () => {
 		await expect(
 			runSuggest(model, {
 				...BASE_ARGS,
-				knownCategoryNames: ["Entertainment", "Groceries"],
+				categoryTree: [
+					{ name: "Entertainment", children: [] },
+					{ name: "Groceries", children: [] },
+				],
 			}),
 		).resolves.toMatchObject({
 			categoryName: "Entertainment",
@@ -300,19 +311,90 @@ describe("runSuggest sanitisation", () => {
 		});
 	});
 
-	test("caps knownCategoryNames at 60 entries for the isNewCategory check", async () => {
-		const knownCategoryNames = Array.from({ length: 61 }, (_, i) => `Cat${i}`);
-		// The 61st name is pushed out of the server-side cap, so it must read as
+	test("caps the category tree at 60 branches for the isNewCategory check", async () => {
+		const categoryTree = Array.from({ length: 61 }, (_, i) => ({
+			name: `Cat${i}`,
+			children: [],
+		}));
+		// The 61st branch is pushed out of the server-side cap, so it must read as
 		// "new" even though the caller technically listed it as known.
 		const model = mockModel({
 			categoryName: "Cat60",
 			isNewCategory: false,
+			parentCategoryName: null,
+			emoji: null,
 			tags: [],
 			domain: null,
 		});
 
 		await expect(
-			runSuggest(model, { ...BASE_ARGS, knownCategoryNames }),
+			runSuggest(model, { ...BASE_ARGS, categoryTree }),
 		).resolves.toMatchObject({ categoryName: "Cat60", isNewCategory: true });
+	});
+
+	test("keeps a parent the user actually has, for a category being created", async () => {
+		const model = mockModel({
+			categoryName: "Streaming",
+			isNewCategory: true,
+			parentCategoryName: "Entertainment",
+			emoji: "📺",
+			tags: [],
+			domain: null,
+		});
+
+		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
+			categoryName: "Streaming",
+			isNewCategory: true,
+			parentCategoryName: "Entertainment",
+			emoji: "📺",
+		});
+	});
+
+	test("drops a parent the user does not have", async () => {
+		// The model cannot know this ledger's shape, so an invented parent is not
+		// taken on trust.
+		const model = mockModel({
+			categoryName: "Streaming",
+			isNewCategory: true,
+			parentCategoryName: "Invented Parent",
+			emoji: null,
+			tags: [],
+			domain: null,
+		});
+
+		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
+			parentCategoryName: null,
+		});
+	});
+
+	test("drops a parent when the category already exists", async () => {
+		const model = mockModel({
+			categoryName: "Entertainment",
+			isNewCategory: true,
+			parentCategoryName: "Groceries",
+			emoji: null,
+			tags: [],
+			domain: null,
+		});
+
+		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
+			isNewCategory: false,
+			parentCategoryName: null,
+		});
+	});
+
+	test("rejects an emoji field that is really a sentence", async () => {
+		const model = mockModel({
+			categoryName: "Streaming",
+			isNewCategory: true,
+			parentCategoryName: null,
+			emoji: "a television set",
+			tags: [],
+			domain: null,
+		});
+
+		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
+			emoji: null,
+		});
 	});
 });

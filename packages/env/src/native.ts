@@ -27,6 +27,9 @@ export const env = createEnv({
 		).optional(),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: z.string().optional(),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: z.string().optional(),
+		// logo.dev publishable token (`pk_…`), meant to ship in the client. Absent
+		// simply drops that tier: App Store icons and favicons still resolve.
+		EXPO_PUBLIC_LOGO_DEV_TOKEN: z.string().optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

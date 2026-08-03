@@ -1,116 +1,101 @@
-import { useEffect } from "react";
-import Animated, {
-	Easing,
-	useAnimatedStyle,
-	useSharedValue,
-	withRepeat,
-	withTiming,
-} from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { spectrumRamp } from "@/theme/spectrum";
 
 const STROKE = 2;
 const OPACITY = 0.45;
-const SPIN_MS = 14_000;
 /**
- * One whole turn, so the angle the ring comes to rest at is congruent to zero.
- * Load-bearing under Reduce Motion — see {@link SpectrumRing}.
- */
-const SPIN_DEG = 360;
-/**
- * Arc count for the conic approximation. 36 keeps each segment at 10°, which at
- * a 2pt stroke is well below the width at which a solid-filled arc reads as a
- * band rather than a gradient.
+ * Segment count for the conic approximation. 36 keeps each slice short enough
+ * that a 2pt stroke reads as a gradient rather than a run of bands.
  */
 const SEGMENTS = 36;
 /**
- * Angular overlap per segment. Adjacent arcs share this much so antialiased end
- * caps never leave a hairline gap on the seam — without it the ring reads as a
- * dotted circle at exactly the opacity that is supposed to make it subtle.
+ * Overlap in points. Adjacent slices share this much so antialiased ends never
+ * leave a hairline gap on the seam — without it the outline reads as a dotted
+ * border at exactly the opacity meant to make it subtle.
  */
-const OVERLAP_DEG = 0.6;
+const OVERLAP = 1.2;
 
 interface SpectrumRingProps {
-	/** Outer diameter, matching SwiftUI's `strokeBorder` (stroke sits inside). */
+	/** Outer size, matching SwiftUI's `strokeBorder` (stroke sits inside). */
 	size: number;
+	/** Outer corner radius, so the outline stays concentric with the tile. */
+	radius: number;
 }
 
 /**
- * The conic gradient is faked: react-native-svg has no angular gradient, so the
- * ring is 36 solid-colored arcs sampled off {@link spectrumRamp}. They are laid
- * out once and never re-render — the spin is a `transform` on the parent, so
- * every frame is a GPU-composited rotation rather than an SVG rebuild.
+ * The spectrum outline around an empty identity well, following the same
+ * rounded square the filled well draws rather than a circle.
  *
- * Reduced motion needs no branch here, but not because Reanimated declines the
- * animation. Under the default `ReduceMotion.System` the inner `withTiming`
- * assigns its `toValue` outright and reports finished on its first frame, and
- * `withRepeat` then stops rather than looping — so the ring is parked at
- * {@link SPIN_DEG} permanently. It only *reads* as untouched because a whole
- * turn is congruent to zero: any other target angle would leave every
- * reduced-motion user staring at a ring frozen mid-rotation.
+ * The conic gradient is faked twice over: react-native-svg has no angular
+ * gradient, so the outline is 36 solid-colored slices sampled off
+ * {@link spectrumRamp} — and rather than 36 hand-built sub-paths, each slice is
+ * the *same* rounded-rect path wearing a dash pattern that exposes only its own
+ * run of the perimeter. One geometry, 36 strokes, no trigonometry at the
+ * corners where a hand-rolled arc would drift out of the radius.
+ *
+ * It does not spin. The circle it replaced could rotate and read as still,
+ * because a circle is congruent to itself at every angle; a rounded square
+ * turned even slightly reads as a tumbling corner, which is worse than a
+ * static outline.
  */
-export function SpectrumRing({ size }: SpectrumRingProps) {
-	const spin = useSharedValue(0);
-
-	useEffect(() => {
-		spin.value = withRepeat(
-			withTiming(SPIN_DEG, { duration: SPIN_MS, easing: Easing.linear }),
-			-1,
-			false,
-		);
-	}, [spin]);
-
-	const style = useAnimatedStyle(() => ({
-		transform: [{ rotate: `${spin.value}deg` }],
-	}));
-
-	const center = size / 2;
-	const radius = (size - STROKE) / 2;
-	const step = 360 / SEGMENTS;
+export function SpectrumRing({ size, radius }: SpectrumRingProps) {
+	const inset = STROKE / 2;
+	const side = size - STROKE;
+	const corner = Math.max(0, Math.min(radius - inset, side / 2));
+	// Four straight runs plus the four corner quarters, which together make one
+	// full circle of that radius.
+	const perimeter = 4 * (side - 2 * corner) + 2 * Math.PI * corner;
+	const slice = perimeter / SEGMENTS;
 	const colors = spectrumRamp(SEGMENTS);
 
+	const d = roundedRectPath(inset, inset, side, side, corner);
+
 	return (
-		<Animated.View
+		<Svg
 			accessibilityElementsHidden
+			height={size}
 			importantForAccessibility="no-hide-descendants"
 			pointerEvents="none"
-			style={[{ position: "absolute", width: size, height: size }, style]}
+			style={{ position: "absolute" }}
+			width={size}
 		>
-			<Svg height={size} width={size}>
-				{colors.map((color, index) => (
-					<Path
-						d={arc(
-							center,
-							radius,
-							index * step - OVERLAP_DEG,
-							(index + 1) * step + OVERLAP_DEG,
-						)}
-						fill="none"
-						// biome-ignore lint/suspicious/noArrayIndexKey: arcs are a fixed-length ramp, never reordered
-						key={index}
-						opacity={OPACITY}
-						stroke={color}
-						strokeLinecap="butt"
-						strokeWidth={STROKE}
-					/>
-				))}
-			</Svg>
-		</Animated.View>
+			{colors.map((color, index) => (
+				<Path
+					d={d}
+					fill="none"
+					// biome-ignore lint/suspicious/noArrayIndexKey: a fixed-length ramp, never reordered
+					key={index}
+					opacity={OPACITY}
+					stroke={color}
+					strokeDasharray={`${slice + OVERLAP} ${perimeter - slice - OVERLAP}`}
+					strokeDashoffset={-index * slice}
+					strokeLinecap="butt"
+					strokeWidth={STROKE}
+				/>
+			))}
+		</Svg>
 	);
 }
 
-function arc(
-	center: number,
+function roundedRectPath(
+	x: number,
+	y: number,
+	width: number,
+	height: number,
 	radius: number,
-	fromDeg: number,
-	toDeg: number,
 ): string {
-	const point = (deg: number) => {
-		const rad = (deg * Math.PI) / 180;
-		return [center + radius * Math.cos(rad), center + radius * Math.sin(rad)];
-	};
-	const [x0, y0] = point(fromDeg);
-	const [x1, y1] = point(toDeg);
-	// Every segment is far under 180°, so the large-arc flag is always 0.
-	return `M ${x0} ${y0} A ${radius} ${radius} 0 0 1 ${x1} ${y1}`;
+	const right = x + width;
+	const bottom = y + height;
+	return [
+		`M ${x + radius} ${y}`,
+		`L ${right - radius} ${y}`,
+		`A ${radius} ${radius} 0 0 1 ${right} ${y + radius}`,
+		`L ${right} ${bottom - radius}`,
+		`A ${radius} ${radius} 0 0 1 ${right - radius} ${bottom}`,
+		`L ${x + radius} ${bottom}`,
+		`A ${radius} ${radius} 0 0 1 ${x} ${bottom - radius}`,
+		`L ${x} ${y + radius}`,
+		`A ${radius} ${radius} 0 0 1 ${x + radius} ${y}`,
+		"Z",
+	].join(" ");
 }

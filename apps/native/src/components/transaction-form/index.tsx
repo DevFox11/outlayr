@@ -90,6 +90,7 @@ import {
 	useTransactionEnrichment,
 } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
+import { fetchMerchantImage } from "@/lib/logo-fetch";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -97,7 +98,7 @@ import {
 } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
-import { glowFromEmoji } from "@/theme/glow";
+import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { AmountEntrySheet } from "../amount-entry-sheet";
@@ -252,7 +253,7 @@ export function TransactionForm({
 		initial ? new Date(initial.date) : new Date(),
 	);
 	const { draft: identity, setDraft: setIdentity } = useIdentityDraft();
-	const [identityTouched, setIdentityTouched] = useState(false);
+	const [identitySource, setIdentitySource] = useState<FieldSource>("initial");
 	const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
 	const [recurringType, setRecurringType] = useState(
 		initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
@@ -331,13 +332,20 @@ export function TransactionForm({
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const categoriesForNamespace = useCategoriesByNamespace(db, income);
-	const knownCategoryNames = useMemo(
-		() =>
-			categoriesForNamespace
-				.map((candidate) => candidate.name)
-				.filter((name): name is string => name != null),
-		[categoriesForNamespace],
-	);
+	// Shape only — the names, and what sits under what. No figures leave here.
+	const categoryTree = useMemo(() => {
+		const named = categoriesForNamespace.filter(
+			(candidate) => candidate.name != null,
+		);
+		return named
+			.filter((candidate) => candidate.parentId == null)
+			.map((parent) => ({
+				name: parent.name as string,
+				children: named
+					.filter((child) => child.parentId === parent.id)
+					.map((child) => child.name as string),
+			}));
+	}, [categoriesForNamespace]);
 	const categoriesRef = useRef(categoriesForNamespace);
 	useEffect(() => {
 		categoriesRef.current = categoriesForNamespace;
@@ -381,6 +389,83 @@ export function TransactionForm({
 		[],
 	);
 
+	const identitySourceRef = useRef(identitySource);
+	identitySourceRef.current = identitySource;
+	// Whether the well is already showing something, read at write time rather
+	// than closed over — the seeding effect can fill it while a request is out.
+	const hasIdentityRef = useRef(false);
+	hasIdentityRef.current = Boolean(
+		identity.emoji || identity.icon || identity.photoUri,
+	);
+	const logoRequestRef = useRef(0);
+	const pickerOpenRef = useRef(pickerOpen);
+	pickerOpenRef.current = pickerOpen;
+
+	/**
+	 * A suggested logo stays replaceable: typing on past one merchant to another
+	 * has to move the image with the name, so only a real choice ("user") or an
+	 * open picker stops it. Each run takes a ticket, and a result that settles
+	 * after a newer one started is dropped rather than painted over it.
+	 */
+	const attachLogo = useCallback(
+		async (domain: string | null) => {
+			const blocked = () =>
+				identitySourceRef.current === "user" ||
+				pickerOpenRef.current ||
+				// An emoji or photo carried in from `initial`/`copyOf` is a choice
+				// already made; only an empty well or an earlier suggestion moves.
+				(identitySourceRef.current === "initial" && hasIdentityRef.current);
+			if (blocked()) {
+				return;
+			}
+			const ticket = ++logoRequestRef.current;
+			const stale = () => ticket !== logoRequestRef.current || blocked();
+
+			const outcome = await fetchMerchantImage({ name: name.value, domain });
+			if (stale()) {
+				return;
+			}
+			if (outcome.kind !== "logo") {
+				// The new merchant resolved to nothing, so the previous merchant's
+				// logo has to go with it — keeping it would caption this entry with
+				// the wrong brand.
+				if (identitySourceRef.current === "suggested") {
+					setIdentitySource("initial");
+					setIdentity((previous) => ({
+						...previous,
+						photoUri: null,
+						photoColor: null,
+					}));
+				}
+				return;
+			}
+			let photoUri: string;
+			try {
+				// Required lazily so rendering this form does not pull Skia's downscaler
+				// into the module graph, matching `domain/ids.ts`.
+				const photoStorage =
+					require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+				photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
+			} catch {
+				return;
+			}
+			// Same tint the picker extracts for a chosen photo, so an auto-attached
+			// logo colours the well and the curtain behind it rather than sitting on
+			// the neutral fallback. An unreadable image costs the tint alone.
+			const hues = await glowFromImage(photoUri);
+			if (stale()) {
+				return;
+			}
+			setIdentitySource("suggested");
+			setIdentity((previous) => ({
+				...previous,
+				photoUri,
+				photoColor: hues[0] ?? null,
+			}));
+		},
+		[name, setIdentity],
+	);
+
 	const applySuggestion = useCallback(
 		(suggestion: EnrichmentSuggestion) => {
 			if (categorySource !== "user") {
@@ -397,16 +482,29 @@ export function TransactionForm({
 					setPendingCategory(suggestion.pendingCategory);
 					setCategoryError(false);
 					setCategorySource("suggested");
+				} else if (categorySource === "suggested") {
+					// This name has no answer, so the last one's category goes with it
+					// rather than captioning an entry it has nothing to do with.
+					setCategory(null);
+					setPendingCategory(null);
+					setCategorySource("initial");
 				}
 			}
-			if (
-				tagsSource !== "user" &&
-				(suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0)
-			) {
-				setTagIds([...suggestion.tagIds]);
-				setPendingTagNames([...suggestion.pendingTagNames]);
-				setTagsSource("suggested");
+			if (tagsSource !== "user") {
+				if (
+					suggestion.tagIds.length > 0 ||
+					suggestion.pendingTagNames.length > 0
+				) {
+					setTagIds([...suggestion.tagIds]);
+					setPendingTagNames([...suggestion.pendingTagNames]);
+					setTagsSource("suggested");
+				} else if (tagsSource === "suggested") {
+					setTagIds([]);
+					setPendingTagNames([]);
+					setTagsSource("initial");
+				}
 			}
+			void attachLogo(suggestion.domain);
 		},
 		[categorySource, tagsSource, db],
 	);
@@ -414,7 +512,7 @@ export function TransactionForm({
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
 		enabled: mode === "create",
 		income,
-		knownCategoryNames,
+		categoryTree,
 		onSuggest: applySuggestion,
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
@@ -440,7 +538,10 @@ export function TransactionForm({
 	// Skipped once the user has touched identity, so a stale `initial`/`copyOf`
 	// reference re-rendering later never clobbers an in-progress choice.
 	useEffect(() => {
-		if (identityTouched) {
+		// Also skipped once a suggestion has filled the well: these deps change on
+		// any `initial`/`copyOf` re-render, and re-seeding would wipe a logo that
+		// is still correct for the name in the field.
+		if (identitySource !== "initial") {
 			return;
 		}
 		setIdentity({
@@ -451,7 +552,7 @@ export function TransactionForm({
 			color: initial?.customColor ?? copyOf?.customColor ?? null,
 		});
 	}, [
-		identityTouched,
+		identitySource,
 		initial?.imageUri,
 		initial?.emoji,
 		setIdentity,
@@ -577,6 +678,19 @@ export function TransactionForm({
 					income,
 					pending.icon,
 					pending.color,
+					{
+						emoji: pending.emoji,
+						// Resolved here rather than carried as an id: the suggestion
+						// names a parent, and only this ledger knows which row that is.
+						parentId:
+							pending.parentName == null
+								? null
+								: (categoriesRef.current.find(
+										(candidate) =>
+											candidate.parentId == null &&
+											candidate.name === pending.parentName,
+									)?.id ?? null),
+					},
 				);
 			} catch (error) {
 				console.error("Failed to create the pending category", error);
@@ -705,7 +819,7 @@ export function TransactionForm({
 	// hero launches on the tap frame instead of waiting for navigation to commit
 	// the new screen.
 	const openPicker = () => {
-		setIdentityTouched(true);
+		setIdentitySource("user");
 		setPickerOpen(true);
 		router.push("/transaction/identity");
 	};
@@ -798,7 +912,7 @@ export function TransactionForm({
 							income={income}
 							onPress={openPicker}
 							onReset={() => {
-								setIdentityTouched(true);
+								setIdentitySource("user");
 								setIdentity({
 									emoji: null,
 									icon: null,
@@ -974,7 +1088,11 @@ export function TransactionForm({
 										<SwiftText
 											modifiers={[CAPTION, foregroundStyle(colors.muted)]}
 										>
-											{t("transaction.category.willBeCreated")}
+											{pendingCategory?.parentName
+												? t("transaction.category.willBeCreatedUnder", {
+														parent: pendingCategory.parentName,
+													})
+												: t("transaction.category.willBeCreated")}
 										</SwiftText>
 									</HStack>
 								) : null}

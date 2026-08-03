@@ -53,6 +53,8 @@ describe("CategoryPickerSheet", () => {
 						name: "Entertainment",
 						icon: "FilmRoll01",
 						color: "#AF52DE",
+						emoji: null,
+						parentName: null,
 					}}
 					ref={ref}
 					selectedId={null}

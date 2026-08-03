@@ -10,6 +10,7 @@ import { useTranslation } from "@/i18n";
 const OUTLAYR_REPO = "https://github.com/danestves/outlayr";
 const DIME_REPO = "https://github.com/rafsoh/dimeApp";
 const GPL_LICENSE = "https://www.gnu.org/licenses/gpl-3.0.html";
+const LOGO_DEV = "https://logo.dev";
 
 export default function AboutScreen() {
 	const t = useTranslation();
@@ -42,6 +43,12 @@ export default function AboutScreen() {
 					icon="License"
 					onPress={() => open(GPL_LICENSE)}
 					title={t("settings.about.gplLink")}
+				/>
+				{/* Required by logo.dev's free plan: a visible, followable link. */}
+				<LinkRow
+					icon="Sparkles"
+					onPress={() => open(LOGO_DEV)}
+					title={t("settings.about.logoDev")}
 				/>
 			</SettingsSection>
 

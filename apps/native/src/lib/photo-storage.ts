@@ -134,6 +134,23 @@ export async function persistPickedPhoto(sourceUri: string): Promise<string> {
 	return target.uri;
 }
 
+/**
+ * A fetched logo arrives as bytes while the persist path takes a uri, so the
+ * bytes sit in the cache directory just long enough to go through the same
+ * downscale every picked photo does. That re-encode is also what neutralises
+ * anything hiding behind a valid image header.
+ */
+export async function persistLogoBytes(bytes: Uint8Array): Promise<string> {
+	const temp = new File(Paths.cache, `${newId()}.img`);
+	temp.create({ overwrite: true });
+	temp.write(bytes);
+	try {
+		return await persistPickedPhoto(temp.uri);
+	} finally {
+		temp.delete();
+	}
+}
+
 /** Drops every stored photo. Paired with erasing the ledger that references them. */
 export function clearStoredPhotos(): void {
 	const directory = new Directory(Paths.document, PHOTO_DIRECTORY);
