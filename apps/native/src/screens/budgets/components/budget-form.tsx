@@ -5,8 +5,9 @@ import {
 	labelsHidden,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
+import { useStore } from "@tanstack/react-form";
 import { useMemo, useRef, useState } from "react";
-import { Alert, Pressable, TextInput, Vibration, View } from "react-native";
+import { Pressable, TextInput, Vibration, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
 	useAnimatedStyle,
@@ -21,6 +22,8 @@ import {
 	CategoryPickerSheet,
 	type CategoryPickerSheetRef,
 } from "@/components/category-picker-sheet";
+import { useAppForm } from "@/components/form/create-app-form";
+import { pressSubmit, reportSaveFailure } from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
@@ -77,24 +80,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 		[settings],
 	);
 
-	const [kind, setKind] = useState<Kind>(initial ? "category" : "overall");
-	const [category, setCategory] = useState<Category | null>(() =>
-		initial?.categoryId ? getCategoryById(db, initial.categoryId) : null,
-	);
-	const [amount, setAmount] = useState(() =>
-		initial ? numberToNumpad(initial.amount, minorUnits) : "",
-	);
-	const [name, setName] = useState(initial?.name ?? "");
-	const [period, setPeriod] = useState<Period>(
-		initial ? (PERIOD_BY_TYPE[initial.type] ?? "month") : "month",
-	);
-	const [startDate, setStartDate] = useState<Date | null>(
-		initial?.startDate ?? null,
-	);
 	const colors = useColors();
-	const [rollover, setRollover] = useState(initial?.rollover ?? false);
 	const [missingCategory, setMissingCategory] = useState(false);
-	const [saving, setSaving] = useState(false);
 
 	const amountSheetRef = useRef<BottomSheetModal>(null);
 	const categorySheetRef = useRef<CategoryPickerSheetRef>(null);
@@ -103,9 +90,94 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 		transform: [{ translateX: shakeX.value }],
 	}));
 
+	const shake = () => {
+		shakeX.value = withSequence(
+			withTiming(-8, { duration: 45 }),
+			withTiming(8, { duration: 45 }),
+			withTiming(-6, { duration: 45 }),
+			withTiming(0, { duration: 45 }),
+		);
+	};
+
+	const [initialValues] = useState(() => ({
+		kind: (initial ? "category" : "overall") as Kind,
+		category: initial?.categoryId
+			? getCategoryById(db, initial.categoryId)
+			: null,
+		amount: initial ? numberToNumpad(initial.amount, minorUnits) : "",
+		name: initial?.name ?? "",
+		period: (initial
+			? (PERIOD_BY_TYPE[initial.type] ?? "month")
+			: "month") as Period,
+		startDate: initial?.startDate ?? null,
+		rollover: initial?.rollover ?? false,
+	}));
+
+	const form = useAppForm({
+		defaultValues: initialValues,
+		onSubmit: async ({ value }) => {
+			const amountNumber = numpadToNumber(value.amount);
+			if (amountNumber <= 0) {
+				return;
+			}
+			const type = PERIOD_TYPE[value.period];
+			if (value.kind === "category" && !value.category) {
+				setMissingCategory(true);
+				shake();
+				Vibration.vibrate(40);
+				return;
+			}
+			try {
+				if (initial) {
+					if (value.category) {
+						await budgetsRepo.updateBudget(db, initial.id, {
+							categoryId: value.category.id,
+							amount: amountNumber,
+							type,
+							name: value.name,
+							startDate: value.startDate,
+							rollover: value.rollover,
+						});
+					}
+				} else if (value.kind === "overall") {
+					await budgetsRepo.createMainBudget(db, {
+						amount: amountNumber,
+						type,
+						name: value.name,
+						startDate: value.startDate,
+						rollover: value.rollover,
+					});
+				} else if (value.category) {
+					await budgetsRepo.createBudget(db, {
+						categoryId: value.category.id,
+						amount: amountNumber,
+						type,
+						name: value.name,
+						startDate: value.startDate,
+						rollover: value.rollover,
+					});
+				}
+				onDone();
+			} catch (error) {
+				reportSaveFailure({
+					title: t("budgets.save.failedTitle"),
+					body: t("budgets.save.failedBody"),
+					log: "Failed to save budget",
+					cause: error,
+				});
+			}
+		},
+	});
+
+	const { kind, category, amount, name, period, startDate, rollover } =
+		useStore(form.store, (s) => s.values);
+	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+
 	const amountNumber = numpadToNumber(amount);
 	const canSave =
-		amountNumber > 0 && (kind === "overall" || category != null) && !saving;
+		amountNumber > 0 &&
+		(kind === "overall" || category != null) &&
+		!isSubmitting;
 	const defaultName =
 		kind === "overall"
 			? t("budgets.form.defaultOverall")
@@ -126,71 +198,10 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 		return { start, end: new Date() };
 	}, [periodStart, initial]);
 
-	const shake = () => {
-		shakeX.value = withSequence(
-			withTiming(-8, { duration: 45 }),
-			withTiming(8, { duration: 45 }),
-			withTiming(-6, { duration: 45 }),
-			withTiming(0, { duration: 45 }),
-		);
-	};
-
 	const handleSelectCategory = (picked: Category) => {
-		setCategory(picked);
+		form.setFieldValue("category", picked);
 		setMissingCategory(false);
 		categorySheetRef.current?.dismiss();
-	};
-
-	const handleSave = async () => {
-		if (amountNumber <= 0) {
-			return;
-		}
-		const type = PERIOD_TYPE[period];
-		if (kind === "category" && !category) {
-			setMissingCategory(true);
-			shake();
-			Vibration.vibrate(40);
-			return;
-		}
-		setSaving(true);
-		try {
-			if (initial) {
-				if (category) {
-					await budgetsRepo.updateBudget(db, initial.id, {
-						categoryId: category.id,
-						amount: amountNumber,
-						type,
-						name,
-						startDate,
-						rollover,
-					});
-				}
-			} else if (kind === "overall") {
-				await budgetsRepo.createMainBudget(db, {
-					amount: amountNumber,
-					type,
-					name,
-					startDate,
-					rollover,
-				});
-			} else if (category) {
-				await budgetsRepo.createBudget(db, {
-					categoryId: category.id,
-					amount: amountNumber,
-					type,
-					name,
-					startDate,
-					rollover,
-				});
-			}
-			onDone();
-		} catch (error) {
-			console.error("Failed to save budget", error);
-			// Without this the CTA simply un-dims and the form stays put, which reads
-			// as a tap that never landed rather than a write that failed.
-			setSaving(false);
-			Alert.alert(t("budgets.save.failedTitle"), t("budgets.save.failedBody"));
-		}
 	};
 
 	return (
@@ -208,7 +219,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							{ label: t("budgets.form.kindCategory"), value: "category" },
 						]}
 						value={kind}
-						onChange={(next) => setKind(next as Kind)}
+						onChange={(next) => form.setFieldValue("kind", next as Kind)}
 					/>
 				)}
 
@@ -231,7 +242,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					<TextInput
 						className="rounded-xl border border-border px-3 py-3 font-sans text-body text-foreground"
 						value={name}
-						onChangeText={setName}
+						onChangeText={(next) => form.setFieldValue("name", next)}
 						placeholder={defaultName}
 						placeholderTextColorClassName="accent-muted"
 						autoCapitalize="words"
@@ -282,7 +293,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							{ label: t("budgets.form.periodYear"), value: "year" },
 						]}
 						value={period}
-						onChange={(next) => setPeriod(next as Period)}
+						onChange={(next) => form.setFieldValue("period", next as Period)}
 					/>
 				</Field>
 
@@ -292,7 +303,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							<DatePicker
 								displayedComponents={["date"]}
 								modifiers={[datePickerStyle("compact"), labelsHidden()]}
-								onDateChange={setStartDate}
+								onDateChange={(next) => form.setFieldValue("startDate", next)}
 								range={backdateRange}
 								selection={startDate ?? periodStart}
 							/>
@@ -307,7 +318,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							<Toggle
 								isOn={rollover}
 								modifiers={[tint(colors.income), labelsHidden()]}
-								onIsOnChange={setRollover}
+								onIsOnChange={(next) => form.setFieldValue("rollover", next)}
 							/>
 							<Spacer />
 						</HStack>
@@ -323,7 +334,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 						canSave ? "bg-accent active:opacity-80" : "bg-surface",
 					)}
 					disabled={!canSave}
-					onPress={handleSave}
+					onPress={() => pressSubmit(form)}
 					accessibilityRole="button"
 				>
 					<Text
@@ -342,7 +353,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 				value={amount}
 				minorUnits={minorUnits}
 				code={currency}
-				onChange={setAmount}
+				onChange={(next) => form.setFieldValue("amount", next)}
 				onDone={() => amountSheetRef.current?.dismiss()}
 			/>
 			<CategoryPickerSheet
