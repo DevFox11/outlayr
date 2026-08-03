@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
@@ -249,5 +249,39 @@ describe("BudgetForm", () => {
 
 		createSpy.mockRestore();
 		alertSpy.mockRestore();
+	});
+
+	it("keeps the CTA disabled after a successful create instead of re-enabling it", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		selectedCategoryHolder.current = getCategoryById(db, categoryId);
+		const onDone = jest.fn();
+
+		const { getByRole, getByTestId } = await render(
+			<Providers>
+				<BudgetForm db={db} onDone={onDone} />
+			</Providers>,
+		);
+
+		await fireEvent.changeText(getByTestId("amount-sheet-input"), "25");
+		await fireEvent.press(
+			getByRole("button", { name: "budgets.form.kindCategory" }),
+		);
+		await fireEvent.press(getByTestId("category-picker-select"));
+		await fireEvent.press(getByRole("button", { name: "budgets.form.create" }));
+
+		await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+
+		// Flushes the microtask/macrotask queue past `onDone`, giving a
+		// dropped `holdSubmitting()` call room to let `isSubmitting` settle
+		// back to false before this assertion runs.
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+
+		expect(
+			getByRole("button", { name: "budgets.form.create" }).props
+				.accessibilityState?.disabled,
+		).toBe(true);
 	});
 });

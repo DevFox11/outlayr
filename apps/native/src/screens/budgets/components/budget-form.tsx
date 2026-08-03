@@ -21,7 +21,11 @@ import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { useAppForm } from "@/components/form/create-app-form";
 import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
-import { pressSubmit, reportSaveFailure } from "@/components/form/submit-guard";
+import {
+	holdSubmitting,
+	pressSubmit,
+	reportSaveFailure,
+} from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
@@ -154,6 +158,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					});
 				}
 				onDone();
+				return await holdSubmitting();
 			} catch (error) {
 				reportSaveFailure({
 					title: t("budgets.save.failedTitle"),
