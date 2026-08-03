@@ -16,6 +16,7 @@ import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { FirstRun } from "@/components/first-run";
 import { useAppForm } from "@/components/form/create-app-form";
 import {
+	holdSubmitting,
 	pressSubmitWith,
 	reportSaveFailure,
 } from "@/components/form/submit-guard";
@@ -112,6 +113,7 @@ function OnboardingCurrency({ db }: { db: Database }) {
 					// would race it.
 					await finishOnboarding(db);
 				}
+				return await holdSubmitting();
 			} catch {
 				reportSaveFailure({
 					title: t("onboarding.currency.saveFailed.title"),

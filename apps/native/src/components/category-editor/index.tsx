@@ -20,7 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppForm } from "@/components/form/create-app-form";
-import { pressSubmit } from "@/components/form/submit-guard";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
 import { Text } from "@/components/text";
@@ -145,7 +145,7 @@ function CategoryEditorReady(
 					// to the row it was added from.
 					if (isSubcategory) {
 						router.back();
-						return;
+						return await holdSubmitting();
 					}
 					nameState.set("");
 					form.setFieldValue("name", "");
@@ -177,6 +177,7 @@ function CategoryEditorReady(
 				});
 				haptics("success");
 				router.back();
+				return await holdSubmitting();
 			} catch (error) {
 				haptics("error");
 				const code =
