@@ -550,6 +550,49 @@ describe("TransactionForm", () => {
 	});
 });
 
+describe("TransactionForm submit re-entrancy", () => {
+	it("does not create a second row when the CTA is pressed twice before the first save settles", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			income: false,
+			categoryId,
+			note: "",
+			details: null,
+			currency: null,
+			icon: null,
+			emoji: null,
+			customColor: null,
+		};
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={copyOf}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const saveButton = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.add",
+		);
+		expect(saveButton).not.toBeNull();
+
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+			saveButton?.props.onButtonPress();
+		});
+
+		const savedTx = await db.select().from(transactions);
+		expect(savedTx).toHaveLength(1);
+	});
+});
+
 describe("TransactionForm enrichment", () => {
 	beforeEach(() => {
 		jest.useFakeTimers();
