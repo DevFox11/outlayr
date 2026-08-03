@@ -26,7 +26,14 @@ const RETURN_SPRING = { stiffness: 300, damping: 32, mass: 1 } as const;
 
 interface IdentityDraftValue {
 	draft: IdentitySelection;
-	setDraft: (next: IdentitySelection) => void;
+	// Accepts an updater as well as a value: an async writer (a fetched logo)
+	// has to re-read the draft at write time, because the seeding effect may
+	// have replaced it while the request was out.
+	setDraft: (
+		next:
+			| IdentitySelection
+			| ((previous: IdentitySelection) => IdentitySelection),
+	) => void;
 }
 
 interface IdentityFlyUpValue {

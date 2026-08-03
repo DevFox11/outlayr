@@ -90,6 +90,7 @@ import {
 	useTransactionEnrichment,
 } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
+import { fetchLogo } from "@/lib/logo-fetch";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -381,6 +382,45 @@ export function TransactionForm({
 		[],
 	);
 
+	const identityTouchedRef = useRef(identityTouched);
+	identityTouchedRef.current = identityTouched;
+	const pickerOpenRef = useRef(pickerOpen);
+	pickerOpenRef.current = pickerOpen;
+
+	/**
+	 * A logo only ever fills an identity nobody has touched, and the emptiness
+	 * is re-read inside the setter: the draft is context, and its seeding effect
+	 * can replace the whole object while this request is out. An open picker
+	 * counts as touched — the user is choosing right now.
+	 */
+	const attachLogo = useCallback(async (domain: string | null) => {
+		if (domain == null || identityTouchedRef.current || pickerOpenRef.current) {
+			return;
+		}
+		const outcome = await fetchLogo(domain);
+		if (outcome.kind !== "logo") {
+			return;
+		}
+		if (identityTouchedRef.current || pickerOpenRef.current) {
+			return;
+		}
+		let photoUri: string;
+		try {
+			// Required lazily so rendering this form does not pull Skia's downscaler
+			// into the module graph, matching `domain/ids.ts`.
+			const photoStorage =
+				require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+			photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
+		} catch {
+			return;
+		}
+		setIdentity((previous) =>
+			previous.photoUri || previous.emoji || previous.icon
+				? previous
+				: { ...previous, photoUri },
+		);
+	}, []);
+
 	const applySuggestion = useCallback(
 		(suggestion: EnrichmentSuggestion) => {
 			if (categorySource !== "user") {
@@ -407,6 +447,7 @@ export function TransactionForm({
 				setPendingTagNames([...suggestion.pendingTagNames]);
 				setTagsSource("suggested");
 			}
+			void attachLogo(suggestion.domain);
 		},
 		[categorySource, tagsSource, db],
 	);
