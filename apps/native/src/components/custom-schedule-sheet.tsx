@@ -17,6 +17,7 @@ import {
 	scrollDisabled,
 	tag,
 } from "@expo/ui/swift-ui/modifiers";
+import { useStore } from "@tanstack/react-form";
 import { type Ref, useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import {
@@ -25,6 +26,8 @@ import {
 } from "@/domain/recurrence";
 import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
+import { useAppForm } from "./form/create-app-form";
+import { pressSubmit } from "./form/submit-guard";
 import { Text } from "./text";
 
 const SNAP_POINTS = ["50%"];
@@ -91,6 +94,13 @@ interface CustomScheduleSheetProps {
 
 export type CustomScheduleSheetRef = BottomSheetModal;
 
+function normalizeSchedule(type: number, coefficient: number) {
+	return {
+		type: type === RECURRING_TYPE.none ? RECURRING_TYPE.monthly : type,
+		coefficient: Math.max(1, coefficient),
+	};
+}
+
 /**
  * Edits are LOCAL until Done, so Cancel leaves the form's schedule untouched.
  * Present via the forwarded ref: `ref.current?.present()`.
@@ -104,8 +114,21 @@ export function CustomScheduleSheet({
 	const colors = useColors();
 	const t = useTranslation();
 	const sheetRef = useRef<BottomSheetModal>(null);
-	const [localType, setLocalType] = useState(RECURRING_TYPE.monthly as number);
-	const [localCoefficient, setLocalCoefficient] = useState(2);
+
+	const [initialValues] = useState(() =>
+		normalizeSchedule(recurringType, recurringCoefficient),
+	);
+	const form = useAppForm({
+		defaultValues: initialValues,
+		onSubmit: async ({ value }) => {
+			onDone(value.type, value.coefficient);
+			sheetRef.current?.dismiss();
+		},
+	});
+	const { type: localType, coefficient: localCoefficient } = useStore(
+		form.store,
+		(s) => s.values,
+	);
 
 	const setRefs = useCallback(
 		(node: BottomSheetModal | null) => {
@@ -120,18 +143,8 @@ export function CustomScheduleSheet({
 	);
 
 	useEffect(() => {
-		setLocalType(
-			recurringType === RECURRING_TYPE.none
-				? RECURRING_TYPE.monthly
-				: recurringType,
-		);
-		setLocalCoefficient(Math.max(1, recurringCoefficient));
-	}, [recurringType, recurringCoefficient]);
-
-	const confirm = () => {
-		onDone(localType, localCoefficient);
-		sheetRef.current?.dismiss();
-	};
+		form.reset(normalizeSchedule(recurringType, recurringCoefficient));
+	}, [recurringType, recurringCoefficient, form.reset]);
 
 	return (
 		<BottomSheetModal
@@ -160,7 +173,7 @@ export function CustomScheduleSheet({
 					accessibilityRole="button"
 					className="absolute top-0 right-4 bottom-0 justify-center active:opacity-60"
 					hitSlop={8}
-					onPress={confirm}
+					onPress={() => pressSubmit(form)}
 				>
 					<Text className="font-sans-semibold text-callout text-tint">
 						{t("common.done")}
@@ -198,7 +211,9 @@ export function CustomScheduleSheet({
 								max={30}
 								min={1}
 								modifiers={[labelsHidden()]}
-								onValueChange={(next) => setLocalCoefficient(Math.round(next))}
+								onValueChange={(next) =>
+									form.setFieldValue("coefficient", Math.round(next))
+								}
 								step={1}
 								value={localCoefficient}
 							/>
@@ -206,7 +221,7 @@ export function CustomScheduleSheet({
 						<Picker
 							label={t("transaction.schedule.unit")}
 							modifiers={[pickerStyle("segmented")]}
-							onSelectionChange={setLocalType}
+							onSelectionChange={(next) => form.setFieldValue("type", next)}
 							selection={localType}
 						>
 							{SELECTABLE_RECURRING_TYPES.map((type) => (
