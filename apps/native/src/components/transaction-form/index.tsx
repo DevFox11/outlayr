@@ -98,7 +98,7 @@ import {
 } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
-import { glowFromEmoji } from "@/theme/glow";
+import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { AmountEntrySheet } from "../amount-entry-sheet";
@@ -414,10 +414,14 @@ export function TransactionForm({
 		} catch {
 			return;
 		}
+		// Same tint the picker extracts for a chosen photo, so an auto-attached
+		// logo colours the well and the curtain behind it rather than sitting on
+		// the neutral fallback. An unreadable image costs the tint alone.
+		const hues = await glowFromImage(photoUri);
 		setIdentity((previous) =>
 			previous.photoUri || previous.emoji || previous.icon
 				? previous
-				: { ...previous, photoUri },
+				: { ...previous, photoUri, photoColor: hues[0] ?? null },
 		);
 	}, []);
 
