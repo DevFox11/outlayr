@@ -52,6 +52,7 @@ export const SYNCED_META_KEYS = [
 	"logViewLineGraph",
 	"animatedCharts",
 	"categorySuggestions",
+	"aiEnrichment",
 	"swapTimeLabel",
 	"confetti",
 	"budgetViewStyle",

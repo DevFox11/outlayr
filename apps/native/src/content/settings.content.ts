@@ -631,6 +631,18 @@ const settings = {
 			en: "Celebrate Expenses",
 			es: "Celebrar gastos",
 		}),
+		"settings.featureLab.aiSection": t({
+			en: "Smart fill",
+			es: "Autocompletado",
+		}),
+		"settings.featureLab.aiEnrichment": t({
+			en: "Suggest Category and Tags",
+			es: "Sugerir categoría y etiquetas",
+		}),
+		"settings.featureLab.aiEnrichmentNote": t({
+			en: "Well-known services are recognised on this device, with nothing sent anywhere. For anything else, only the name you typed and your own category names leave the device — never amounts, dates or accounts.",
+			es: "Los servicios conocidos se reconocen en este dispositivo, sin enviar nada. En los demás casos solo salen del dispositivo el nombre que escribiste y los nombres de tus categorías, nunca importes, fechas ni cuentas.",
+		}),
 		"settings.featureLab.experimental": t({
 			en: "Experimental — these can change or disappear.",
 			es: "Experimental — esto puede cambiar o desaparecer.",

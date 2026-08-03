@@ -92,6 +92,13 @@
       "when": 1785439774054,
       "tag": "0012_transaction_splits",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1785719000000,
+      "tag": "0013_ai_enrichment_synced",
+      "breakpoints": true
     }
   ]
 }
