@@ -382,6 +382,12 @@
       "skillPath": "swiftui-whats-new-27/SKILL.md",
       "computedHash": "33c097354c14985ccf7571cfda16b79eabe5ef14db176aa349297341d25dd8d2"
     },
+    "tanstack-form": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/tanstack-form/skills/tanstack-form/SKILL.md",
+      "computedHash": "1eb9f9fc43ab2777f586f916b2234c5340ed98f296a98b22c75cbbafcbd29b86"
+    },
     "test-modernizer": {
       "source": "superagents-lab/xcode27-skills",
       "sourceType": "github",
