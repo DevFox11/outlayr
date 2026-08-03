@@ -332,13 +332,20 @@ export function TransactionForm({
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const categoriesForNamespace = useCategoriesByNamespace(db, income);
-	const knownCategoryNames = useMemo(
-		() =>
-			categoriesForNamespace
-				.map((candidate) => candidate.name)
-				.filter((name): name is string => name != null),
-		[categoriesForNamespace],
-	);
+	// Shape only — the names, and what sits under what. No figures leave here.
+	const categoryTree = useMemo(() => {
+		const named = categoriesForNamespace.filter(
+			(candidate) => candidate.name != null,
+		);
+		return named
+			.filter((candidate) => candidate.parentId == null)
+			.map((parent) => ({
+				name: parent.name as string,
+				children: named
+					.filter((child) => child.parentId === parent.id)
+					.map((child) => child.name as string),
+			}));
+	}, [categoriesForNamespace]);
 	const categoriesRef = useRef(categoriesForNamespace);
 	useEffect(() => {
 		categoriesRef.current = categoriesForNamespace;
@@ -505,7 +512,7 @@ export function TransactionForm({
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
 		enabled: mode === "create",
 		income,
-		knownCategoryNames,
+		categoryTree,
 		onSuggest: applySuggestion,
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
@@ -671,6 +678,19 @@ export function TransactionForm({
 					income,
 					pending.icon,
 					pending.color,
+					{
+						emoji: pending.emoji,
+						// Resolved here rather than carried as an id: the suggestion
+						// names a parent, and only this ledger knows which row that is.
+						parentId:
+							pending.parentName == null
+								? null
+								: (categoriesRef.current.find(
+										(candidate) =>
+											candidate.parentId == null &&
+											candidate.name === pending.parentName,
+									)?.id ?? null),
+					},
 				);
 			} catch (error) {
 				console.error("Failed to create the pending category", error);
@@ -1068,7 +1088,11 @@ export function TransactionForm({
 										<SwiftText
 											modifiers={[CAPTION, foregroundStyle(colors.muted)]}
 										>
-											{t("transaction.category.willBeCreated")}
+											{pendingCategory?.parentName
+												? t("transaction.category.willBeCreatedUnder", {
+														parent: pendingCategory.parentName,
+													})
+												: t("transaction.category.willBeCreated")}
 										</SwiftText>
 									</HStack>
 								) : null}

@@ -332,14 +332,16 @@ function RootStack() {
 				}}
 			/>
 
-			<Stack.Screen
-				name="transaction/new"
-				options={{ presentation: "modal", title: t("nav.newTransaction") }}
-			/>
-			<Stack.Screen
-				name="transaction/[id]"
-				options={{ presentation: "modal", title: t("nav.editTransaction") }}
-			/>
+			<Stack.Screen name="transaction/new" options={{ presentation: "modal" }}>
+				<Stack.Header transparent />
+				<Stack.Screen.BackButton displayMode="minimal" />
+				<Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
+			</Stack.Screen>
+			<Stack.Screen name="transaction/[id]" options={{ presentation: "modal" }}>
+				<Stack.Header transparent />
+				<Stack.Screen.BackButton displayMode="minimal" />
+				<Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
+			</Stack.Screen>
 			<Stack.Screen
 				name="transaction/identity"
 				options={{

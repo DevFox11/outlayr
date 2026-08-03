@@ -41,19 +41,32 @@ export const suggestArgs = {
 	name: v.string(),
 	income: v.boolean(),
 	locale: v.optional(v.string()),
-	knownCategoryNames: v.array(v.string()),
+	/** The user's own categories, each with the names nested under it. */
+	categoryTree: v.array(
+		v.object({ name: v.string(), children: v.array(v.string()) }),
+	),
 };
 
 const suggestion = v.object({
 	categoryName: v.union(v.string(), v.null()),
 	isNewCategory: v.boolean(),
+	/** Set only when the suggestion belongs under an existing category. */
+	parentCategoryName: v.union(v.string(), v.null()),
+	emoji: v.union(v.string(), v.null()),
 	tags: v.array(v.string()),
 	domain: v.union(v.string(), v.null()),
 });
 
+export interface CategoryBranch {
+	name: string;
+	children: string[];
+}
+
 export interface Suggestion {
 	categoryName: string | null;
 	isNewCategory: boolean;
+	parentCategoryName: string | null;
+	emoji: string | null;
 	tags: string[];
 	domain: string | null;
 }
@@ -61,6 +74,8 @@ export interface Suggestion {
 export const EMPTY: Suggestion = {
 	categoryName: null,
 	isNewCategory: false,
+	parentCategoryName: null,
+	emoji: null,
 	tags: [],
 	domain: null,
 };
@@ -69,6 +84,11 @@ export const EMPTY: Suggestion = {
 const modelOutputSchema = z.object({
 	categoryName: z.string().nullable(),
 	isNewCategory: z.boolean(),
+	// Nullish rather than nullable: a model that simply omits one of these has
+	// still answered the question that matters, and failing the whole call over
+	// a missing optional field would cost the category and tags too.
+	parentCategoryName: z.string().nullish(),
+	emoji: z.string().nullish(),
 	tags: z.array(z.string()),
 	domain: z.string().nullable(),
 });
@@ -135,19 +155,32 @@ function sanitizeCategoryName(name: string | null): string | null {
 	return trimmed;
 }
 
+function describeTree(tree: readonly CategoryBranch[]): string {
+	if (tree.length === 0) {
+		return "none";
+	}
+	return tree
+		.map((branch) =>
+			branch.children.length > 0
+				? `${branch.name} (containing ${branch.children.join(", ")})`
+				: branch.name,
+		)
+		.join("; ");
+}
+
 function buildPrompt(
 	name: string,
 	income: boolean,
 	locale: string | undefined,
-	knownCategoryNames: readonly string[],
+	tree: readonly CategoryBranch[],
 ): string {
 	const kind = income ? "income" : "expense";
-	const known =
-		knownCategoryNames.length > 0 ? knownCategoryNames.join(", ") : "none";
 	return [
 		`Classify this ${kind} transaction merchant name: "${name}".`,
-		`The user's existing categories are: ${known}.`,
-		"Prefer reusing one of those category names verbatim when it fits; otherwise suggest a short new category name.",
+		`The user's categories, with any nested under them, are: ${describeTree(tree)}.`,
+		"Reuse one of those names verbatim when it fits, and set parentCategoryName to null.",
+		"Otherwise suggest a short new category name. If it clearly belongs beneath one of the user's existing top-level categories, set parentCategoryName to that name exactly; if it stands on its own, set parentCategoryName to null.",
+		"Set emoji to a single emoji that suits the category, or null.",
 		"Suggest at most 3 short tags, and the merchant's primary web domain only if you are confident of it (otherwise null).",
 		locale ? `The user's locale is ${locale}.` : "",
 	]
@@ -159,7 +192,23 @@ export interface RunSuggestArgs {
 	name: string;
 	income: boolean;
 	locale?: string;
-	knownCategoryNames: readonly string[];
+	categoryTree: readonly CategoryBranch[];
+}
+
+/**
+ * At most a couple of glyphs. A model asked for "a single emoji" will now and
+ * then answer with a sentence, and that would end up rendered as a category's
+ * symbol.
+ */
+function sanitizeEmoji(emoji: string | null): string | null {
+	if (emoji === null) {
+		return null;
+	}
+	const trimmed = emoji.trim();
+	if (trimmed.length === 0 || [...trimmed].length > 3) {
+		return null;
+	}
+	return /\p{Extended_Pictographic}/u.test(trimmed) ? trimmed : null;
 }
 
 /**
@@ -171,20 +220,13 @@ export async function runSuggest(
 	model: LanguageModel,
 	args: RunSuggestArgs,
 ): Promise<Suggestion> {
-	const knownCategoryNames = args.knownCategoryNames.slice(
-		0,
-		MAX_KNOWN_CATEGORY_NAMES,
-	);
+	const tree = args.categoryTree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
+	const everyName = tree.flatMap((branch) => [branch.name, ...branch.children]);
 
 	const { output } = await generateText({
 		model,
 		output: Output.object({ schema: modelOutputSchema }),
-		prompt: buildPrompt(
-			args.name,
-			args.income,
-			args.locale,
-			knownCategoryNames,
-		),
+		prompt: buildPrompt(args.name, args.income, args.locale, tree),
 		abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 		// The SDK default is 2 retries, which alone would triple worst-case
 		// latency past the client's own 4s `Promise.race` abort.
@@ -192,12 +234,29 @@ export async function runSuggest(
 	});
 
 	const categoryName = sanitizeCategoryName(output.categoryName);
+	const isNewCategory =
+		categoryName !== null && !everyName.includes(categoryName);
+	// A parent is only ever one of the top-level names actually sent, and only
+	// for a category being created. Anything else the model names is dropped
+	// rather than trusted — it cannot know this ledger's shape.
+	const proposedParent = sanitizeCategoryName(
+		output.parentCategoryName ?? null,
+	);
+	const parentCategoryName =
+		isNewCategory &&
+		proposedParent !== null &&
+		proposedParent !== categoryName &&
+		tree.some((branch) => branch.name === proposedParent)
+			? proposedParent
+			: null;
+
 	return {
 		categoryName,
 		// The model's own `isNewCategory` claim is discarded — it has no reason
 		// to be authoritative about the user's own local data.
-		isNewCategory:
-			categoryName !== null && !knownCategoryNames.includes(categoryName),
+		isNewCategory,
+		parentCategoryName,
+		emoji: sanitizeEmoji(output.emoji ?? null),
 		tags: sanitizeTags(output.tags),
 		domain: sanitizeDomain(output.domain),
 	};
@@ -249,7 +308,7 @@ export const suggest = action({
 				name: trimmedName,
 				income: args.income,
 				locale: args.locale,
-				knownCategoryNames: args.knownCategoryNames,
+				categoryTree: args.categoryTree,
 			});
 		} catch {
 			// A rejected xAI call surfaces here as a normal degradation, not a

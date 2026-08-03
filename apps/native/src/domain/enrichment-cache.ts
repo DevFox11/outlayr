@@ -1,6 +1,9 @@
 export interface RemoteEnrichmentResult {
 	readonly categoryName: string | null;
 	readonly isNewCategory: boolean;
+	/** An existing top-level category this one belongs beneath, if any. */
+	readonly parentCategoryName?: string | null;
+	readonly emoji?: string | null;
 	readonly tags: readonly string[];
 	readonly domain: string | null;
 }

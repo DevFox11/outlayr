@@ -147,6 +147,10 @@ const transaction = {
 			en: "Will be created",
 			es: "Se creará",
 		}),
+		"transaction.category.willBeCreatedUnder": t({
+			en: "Will be created under {parent}",
+			es: "Se creará dentro de {parent}",
+		}),
 		"transaction.cta.save": t({
 			en: "Save Changes",
 			es: "Guardar cambios",

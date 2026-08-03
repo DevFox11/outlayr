@@ -27,7 +27,7 @@ function baseArgs(
 	return {
 		enabled: true,
 		income: false,
-		knownCategoryNames: [],
+		categoryTree: [],
 		resolveLocal: (suggestion) => suggestion,
 		onSuggest: () => {},
 		transport: null,
@@ -124,6 +124,8 @@ describe("tier 1: curated match", () => {
 			name: "Entertainment",
 			icon: "FilmRoll01",
 			color: "#AF52DE",
+			emoji: null,
+			parentName: null,
 		});
 		expect(result.current.pending).toBe(false);
 	});
@@ -227,7 +229,10 @@ describe("tier 2: remote fallback", () => {
 		const { fn, calls } = deferredTransport();
 		const { result } = await renderHook(() =>
 			useTransactionEnrichment(
-				baseArgs({ transport: fn, knownCategoryNames: ["Groceries"] }),
+				baseArgs({
+					transport: fn,
+					categoryTree: [{ name: "Groceries", children: [] }],
+				}),
 			),
 		);
 
@@ -237,8 +242,8 @@ describe("tier 2: remote fallback", () => {
 		});
 
 		expect(Object.keys(calls[0].args).sort()).toStrictEqual([
+			"categoryTree",
 			"income",
-			"knownCategoryNames",
 			"locale",
 			"name",
 		]);

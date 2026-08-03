@@ -655,6 +655,7 @@ export async function ensureCategoryByName(
 	income: boolean,
 	icon: string,
 	color: string,
+	nested?: { emoji?: string | null; parentId?: string | null },
 ): Promise<string> {
 	const cleanName = capitalizeCategoryName(name);
 	const siblings = await namespaceSiblings(db, income);
@@ -664,10 +665,15 @@ export async function ensureCategoryByName(
 	if (existing != null) {
 		return existing.id;
 	}
+	// An emoji and an icon are alternatives, not a pair: sending both trips the
+	// duplicate-symbol check that `validateCategoryCreate` runs namespace-wide.
+	const emoji = nested?.emoji ?? null;
 	return categoriesRepo.create(db, {
 		name: cleanName,
-		icon: pickFreeCategoryIcon(siblings, icon),
+		icon: emoji == null ? pickFreeCategoryIcon(siblings, icon) : undefined,
+		emoji,
 		color,
 		income,
+		parentId: nested?.parentId ?? null,
 	});
 }

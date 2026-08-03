@@ -13,12 +13,19 @@ import {
 	merchantKey,
 	resolveMerchant,
 } from "@/domain/merchant-resolver";
-import { type EnrichmentFn, enrichmentTransport } from "@/lib/convex";
+import {
+	type CategoryBranch,
+	type EnrichmentFn,
+	enrichmentTransport,
+} from "@/lib/convex";
 
 export interface PendingCategory {
 	name: string;
 	icon: string;
 	color: string;
+	emoji: string | null;
+	/** An existing top-level category this one will be nested under. */
+	parentName: string | null;
 }
 
 export interface EnrichmentSuggestion {
@@ -33,7 +40,7 @@ export interface EnrichmentSuggestion {
 export interface UseTransactionEnrichmentArgs {
 	enabled: boolean;
 	income: boolean;
-	knownCategoryNames: readonly string[];
+	categoryTree: readonly CategoryBranch[];
 	resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
 	onSuggest: (suggestion: EnrichmentSuggestion) => void;
 	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
@@ -91,7 +98,14 @@ function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 	return {
 		categoryId: null,
 		pendingCategory: preset
-			? { name: match.categoryName, icon: preset.icon, color: preset.color }
+			? {
+					name: match.categoryName,
+					icon: preset.icon,
+					color: preset.color,
+					emoji: null,
+					// The curated map only ever names top-level categories.
+					parentName: null,
+				}
 			: null,
 		tagIds: [],
 		pendingTagNames: match.tags,
@@ -114,6 +128,8 @@ function toRemoteSuggestion(
 						name: result.categoryName,
 						icon: preset.icon,
 						color: preset.color,
+						emoji: result.emoji ?? null,
+						parentName: result.parentCategoryName ?? null,
 					},
 		tagIds: [],
 		pendingTagNames: result.tags,
@@ -128,7 +144,7 @@ export function useTransactionEnrichment(
 	const {
 		enabled,
 		income,
-		knownCategoryNames,
+		categoryTree,
 		resolveLocal,
 		onSuggest,
 		remoteEnabled = true,
@@ -147,8 +163,8 @@ export function useTransactionEnrichment(
 	enabledRef.current = enabled;
 	const incomeRef = useRef(income);
 	incomeRef.current = income;
-	const knownNamesRef = useRef(knownCategoryNames);
-	knownNamesRef.current = knownCategoryNames;
+	const treeRef = useRef(categoryTree);
+	treeRef.current = categoryTree;
 	const resolveLocalRef = useRef(resolveLocal);
 	resolveLocalRef.current = resolveLocal;
 	const onSuggestRef = useRef(onSuggest);
@@ -199,7 +215,10 @@ export function useTransactionEnrichment(
 						name: nameRef.current.trim(),
 						income: incomeRef.current,
 						locale: localeRef.current,
-						knownCategoryNames: [...knownNamesRef.current],
+						categoryTree: treeRef.current.map((branch) => ({
+							name: branch.name,
+							children: [...branch.children],
+						})),
 					}),
 					new Promise<null>((resolve) => {
 						setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
