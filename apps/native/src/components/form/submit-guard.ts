@@ -1,0 +1,57 @@
+import { Alert, type AlertButton } from "react-native";
+
+interface SubmittableForm {
+	readonly state: { readonly isSubmitting: boolean };
+	handleSubmit: () => Promise<void>;
+}
+
+/**
+ * `handleSubmit` re-throws after a failed `onSubmit` (form-core's
+ * `_handleSubmit`), so the `.catch` below is a bug net, not the normal error
+ * path — every consumer's `onSubmit` already handles its own errors.
+ */
+export function pressSubmit(form: SubmittableForm): void {
+	if (form.state.isSubmitting) {
+		return;
+	}
+	form.handleSubmit().catch((error) => {
+		console.error("Form submit threw", error);
+	});
+}
+
+interface SubmittableFormWithMeta<TMeta> {
+	readonly state: { readonly isSubmitting: boolean };
+	handleSubmit: (meta: TMeta) => Promise<void>;
+}
+
+export function pressSubmitWith<TMeta>(
+	form: SubmittableFormWithMeta<TMeta>,
+	meta: TMeta,
+): void {
+	if (form.state.isSubmitting) {
+		return;
+	}
+	form.handleSubmit(meta).catch((error) => {
+		console.error("Form submit threw", error);
+	});
+}
+
+/** Never settles: the caller's write has committed and the CTA must not re-enable. */
+export function holdSubmitting(): Promise<never> {
+	return new Promise<never>(() => {});
+}
+
+interface ReportSaveFailureOptions {
+	title: string;
+	body: string;
+	buttons?: AlertButton[];
+	log?: string;
+	cause?: unknown;
+}
+
+export function reportSaveFailure(options: ReportSaveFailureOptions): void {
+	if (options.log !== undefined) {
+		console.error(options.log, options.cause);
+	}
+	Alert.alert(options.title, options.body, options.buttons);
+}
