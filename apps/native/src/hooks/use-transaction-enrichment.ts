@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	SUGGESTED_CATEGORY_PRESETS,
 	type SuggestedCategoryPreset,
 } from "@/data/categories-core";
-import { setCachedEnrichment } from "@/domain/enrichment-cache";
+import {
+	getCachedEnrichment,
+	type RemoteEnrichmentResult,
+	setCachedEnrichment,
+} from "@/domain/enrichment-cache";
 import {
 	type MerchantMatch,
 	merchantKey,
 	resolveMerchant,
 } from "@/domain/merchant-resolver";
+import { type EnrichmentFn, enrichmentTransport } from "@/lib/convex";
 
 export interface PendingCategory {
 	name: string;
@@ -31,23 +36,25 @@ export interface UseTransactionEnrichmentArgs {
 	knownCategoryNames: readonly string[];
 	resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
 	onSuggest: (suggestion: EnrichmentSuggestion) => void;
+	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
+	remoteEnabled?: boolean;
+	locale?: string;
+	/** Injected in tests; production resolves the real Convex call. */
+	transport?: EnrichmentFn | null;
 }
 
 export interface UseTransactionEnrichmentResult {
 	onNameChange: (next: string) => void;
-	categoryPending: boolean;
-	tagsPending: boolean;
+	/**
+	 * A remote lookup is outstanding. The form decides which rows may show it —
+	 * a field the user has already edited is theirs, so it never dims.
+	 */
+	pending: boolean;
 }
 
 const DEBOUNCE_MS = 600;
 const MIN_KEY_LENGTH = 3;
-/**
- * Matches the real Tier 2 client-abort budget (design P7 `Promise.race`
- * timeout) so a stubbed request stays "in flight" long enough for a later
- * request to genuinely supersede it, exercising the requestId-drop path for
- * real instead of asserting on an already-synchronous no-op.
- */
-export const TIER2_STUB_DELAY_MS = 4000;
+export const REMOTE_TIMEOUT_MS = 4000;
 
 const ALL_CATEGORY_PRESETS: readonly SuggestedCategoryPreset[] = [
 	...SUGGESTED_CATEGORY_PRESETS.expense,
@@ -62,7 +69,24 @@ function findCategoryPreset(
 	);
 }
 
-function toRawSuggestion(match: MerchantMatch): EnrichmentSuggestion {
+/**
+ * A model may name a category no preset covers. Hashing the name rather than
+ * picking at random keeps the same suggestion looking the same on every device
+ * and across re-renders, so the chip does not change colour under the user.
+ */
+function presetForName(categoryName: string): SuggestedCategoryPreset {
+	const exact = findCategoryPreset(categoryName);
+	if (exact != null) {
+		return exact;
+	}
+	let hash = 0;
+	for (let index = 0; index < categoryName.length; index++) {
+		hash = (hash * 31 + categoryName.charCodeAt(index)) >>> 0;
+	}
+	return ALL_CATEGORY_PRESETS[hash % ALL_CATEGORY_PRESETS.length];
+}
+
+function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 	const preset = findCategoryPreset(match.categoryName);
 	return {
 		categoryId: null,
@@ -76,50 +100,110 @@ function toRawSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 	};
 }
 
-/**
- * Tier 2 (remote, gated, cached) ships in PR5 — see design P7 run() steps 3-7.
- * The real gates (settings toggle, signed-in, dedupe) and the real transport
- * call are PR5 scope; this stub only proves the requestId-drop mechanism
- * itself works, by resolving to a negative cache write after a real delay
- * instead of synchronously — a synchronous stub has nothing to race against.
- */
-function scheduleTier2Stub(
-	key: string,
-	id: number,
-	requestIdRef: { current: number },
-): void {
-	setTimeout(() => {
-		if (id !== requestIdRef.current) {
-			return;
-		}
-		setCachedEnrichment(key, null);
-	}, TIER2_STUB_DELAY_MS);
+function toRemoteSuggestion(
+	result: RemoteEnrichmentResult,
+): EnrichmentSuggestion {
+	const preset =
+		result.categoryName == null ? null : presetForName(result.categoryName);
+	return {
+		categoryId: null,
+		pendingCategory:
+			result.categoryName == null || preset == null
+				? null
+				: {
+						name: result.categoryName,
+						icon: preset.icon,
+						color: preset.color,
+					},
+		tagIds: [],
+		pendingTagNames: result.tags,
+		domain: result.domain,
+		source: "remote",
+	};
 }
 
 export function useTransactionEnrichment(
 	args: UseTransactionEnrichmentArgs,
 ): UseTransactionEnrichmentResult {
-	const { enabled, knownCategoryNames, resolveLocal, onSuggest } = args;
+	const {
+		enabled,
+		income,
+		knownCategoryNames,
+		resolveLocal,
+		onSuggest,
+		remoteEnabled = true,
+		locale,
+		transport,
+	} = args;
+
+	const [pending, setPending] = useState(false);
 
 	const nameRef = useRef("");
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const requestIdRef = useRef(0);
-	const abortRef = useRef<AbortController | null>(null);
-	const inFlightRef = useRef<Map<string, Promise<unknown>>>(new Map());
+	const inFlightRef = useRef<Set<string>>(new Set());
 
 	const enabledRef = useRef(enabled);
 	enabledRef.current = enabled;
+	const incomeRef = useRef(income);
+	incomeRef.current = income;
 	const knownNamesRef = useRef(knownCategoryNames);
 	knownNamesRef.current = knownCategoryNames;
 	const resolveLocalRef = useRef(resolveLocal);
 	resolveLocalRef.current = resolveLocal;
 	const onSuggestRef = useRef(onSuggest);
 	onSuggestRef.current = onSuggest;
+	const remoteEnabledRef = useRef(remoteEnabled);
+	remoteEnabledRef.current = remoteEnabled;
+	const localeRef = useRef(locale);
+	localeRef.current = locale;
+	const transportRef = useRef<EnrichmentFn | null | undefined>(transport);
+	transportRef.current = transport;
 
-	const emit = useCallback((match: MerchantMatch) => {
-		const raw = toRawSuggestion(match);
-		onSuggestRef.current(resolveLocalRef.current(raw));
+	const emit = useCallback((suggestion: EnrichmentSuggestion) => {
+		onSuggestRef.current(resolveLocalRef.current(suggestion));
 	}, []);
+
+	const runRemote = useCallback(
+		async (key: string) => {
+			const call =
+				transportRef.current === undefined
+					? enrichmentTransport()
+					: transportRef.current;
+			if (call == null) {
+				return;
+			}
+			const id = ++requestIdRef.current;
+			inFlightRef.current.add(key);
+			setPending(true);
+			let result: RemoteEnrichmentResult | null = null;
+			try {
+				result = await Promise.race([
+					call({
+						name: nameRef.current.trim(),
+						income: incomeRef.current,
+						locale: localeRef.current,
+						knownCategoryNames: [...knownNamesRef.current],
+					}),
+					new Promise<null>((resolve) => {
+						setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
+					}),
+				]);
+			} catch {
+				result = null;
+			}
+			inFlightRef.current.delete(key);
+			if (id !== requestIdRef.current) {
+				return;
+			}
+			setPending(false);
+			setCachedEnrichment(key, result);
+			if (result != null) {
+				emit(toRemoteSuggestion(result));
+			}
+		},
+		[emit],
+	);
 
 	const run = useCallback(() => {
 		const key = merchantKey(nameRef.current);
@@ -128,12 +212,24 @@ export function useTransactionEnrichment(
 		}
 		const match = resolveMerchant(key);
 		if (match != null) {
-			emit(match);
+			emit(toCuratedSuggestion(match));
 			return;
 		}
-		const id = ++requestIdRef.current;
-		scheduleTier2Stub(key, id, requestIdRef);
-	}, [emit]);
+		if (!remoteEnabledRef.current) {
+			return;
+		}
+		const cached = getCachedEnrichment(key);
+		if (cached.hit) {
+			if (cached.value != null) {
+				emit(toRemoteSuggestion(cached.value));
+			}
+			return;
+		}
+		if (inFlightRef.current.has(key)) {
+			return;
+		}
+		void runRemote(key);
+	}, [emit, runRemote]);
 
 	const onNameChange = useCallback(
 		(next: string) => {
@@ -149,30 +245,23 @@ export function useTransactionEnrichment(
 		[run],
 	);
 
+	const teardown = useCallback(() => {
+		if (timerRef.current != null) {
+			clearTimeout(timerRef.current);
+			timerRef.current = null;
+		}
+		requestIdRef.current += 1;
+		inFlightRef.current.clear();
+		setPending(false);
+	}, []);
+
 	useEffect(() => {
 		if (!enabled) {
-			if (timerRef.current != null) {
-				clearTimeout(timerRef.current);
-				timerRef.current = null;
-			}
-			abortRef.current?.abort();
-			requestIdRef.current += 1;
-			inFlightRef.current.clear();
+			teardown();
 		}
-	}, [enabled]);
+	}, [enabled, teardown]);
 
-	useEffect(
-		() => () => {
-			if (timerRef.current != null) {
-				clearTimeout(timerRef.current);
-				timerRef.current = null;
-			}
-			abortRef.current?.abort();
-			requestIdRef.current += 1;
-			inFlightRef.current.clear();
-		},
-		[],
-	);
+	useEffect(() => () => teardown(), [teardown]);
 
-	return { onNameChange, categoryPending: false, tagsPending: false };
+	return { onNameChange, pending };
 }

@@ -125,6 +125,7 @@ import {
 	BODY,
 	CAPTION,
 	CARD_SHAPE,
+	ENRICHING,
 	FLY_BACK,
 	FLY_UP,
 	FORM_BLUR_RADIUS,
@@ -277,6 +278,7 @@ export function TransactionForm({
 	const [saving, setSaving] = useState(false);
 	const [showToast, setShowToast] = useState(false);
 	const celebrate = useAppSettings().state.bool("confetti");
+	const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
 	const [burstSeed, setBurstSeed] = useState(0);
 	// Shared values, not state: the fly-up is the only reader and it reads them from
 	// the UI thread, so measuring the form must not cost the SwiftUI tree a render.
@@ -409,13 +411,18 @@ export function TransactionForm({
 		[categorySource, tagsSource, db],
 	);
 
-	const { onNameChange } = useTransactionEnrichment({
+	const { onNameChange, pending: enriching } = useTransactionEnrichment({
 		enabled: mode === "create",
 		income,
 		knownCategoryNames,
 		onSuggest: applySuggestion,
+		remoteEnabled: aiEnrichment,
 		resolveLocal,
 	});
+	// A field the user has already edited is theirs — it never dims, because
+	// nothing arriving can change it.
+	const categoryEnriching = enriching && categorySource !== "user";
+	const tagsEnriching = enriching && tagsSource !== "user";
 
 	useEffect(
 		() => () => {
@@ -935,10 +942,13 @@ export function TransactionForm({
 											modifiers={[
 												BODY,
 												foregroundStyle(
-													category || pendingCategory
-														? colors.foreground
-														: colors.muted,
+													categoryEnriching
+														? withAlpha(colors.muted, 0.45)
+														: category || pendingCategory
+															? colors.foreground
+															: colors.muted,
 												),
+												animation(ENRICHING, categoryEnriching),
 											]}
 										>
 											{category
@@ -985,8 +995,13 @@ export function TransactionForm({
 										modifiers={[
 											BODY,
 											foregroundStyle(
-												selectedTagNames ? colors.foreground : colors.muted,
+												tagsEnriching
+													? withAlpha(colors.muted, 0.45)
+													: selectedTagNames
+														? colors.foreground
+														: colors.muted,
 											),
+											animation(ENRICHING, tagsEnriching),
 										]}
 									>
 										{selectedTagNames ?? t("transaction.tags.none")}

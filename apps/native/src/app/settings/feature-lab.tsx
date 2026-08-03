@@ -21,9 +21,24 @@ function FeatureLabContent({ db }: { db: Database }) {
 	const confetti = settings.bool("confetti");
 	const lineGraph = settings.bool("logViewLineGraph");
 	const budgetRows = settings.bool("budgetViewStyle");
+	const aiEnrichment = settings.bool("aiEnrichment");
 
 	return (
 		<SettingsScreen>
+			<SettingsSection
+				footer={t("settings.featureLab.aiEnrichmentNote")}
+				title={t("settings.featureLab.aiSection")}
+			>
+				<ToggleRow
+					icon="Sparkles"
+					onValueChange={(next) => {
+						setBoolSetting(db, "aiEnrichment", next);
+					}}
+					title={t("settings.featureLab.aiEnrichment")}
+					value={aiEnrichment}
+				/>
+			</SettingsSection>
+
 			<SettingsSection
 				footer={t("settings.featureLab.confettiNote")}
 				title={t("settings.featureLab.addingSection")}

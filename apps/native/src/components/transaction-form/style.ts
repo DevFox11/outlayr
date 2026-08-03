@@ -74,3 +74,4 @@ export const FLY_BACK = Animation.spring({
 	response: 0.29,
 	dampingFraction: 0.98,
 });
+export const ENRICHING = Animation.easeInOut({ duration: 0.25 });

@@ -3,6 +3,7 @@ import { ConvexReactClient } from "convex/react";
 import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
+import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 
 /**
  * The Convex client, or null when this build has no backend configured: this app
@@ -84,6 +85,38 @@ export function watchSyncWatermark(
 			onWatermark(watermark);
 		}
 	});
+}
+
+export interface EnrichmentRequest {
+	name: string;
+	income: boolean;
+	locale?: string;
+	knownCategoryNames: string[];
+}
+
+export type EnrichmentFn = (
+	args: EnrichmentRequest,
+) => Promise<RemoteEnrichmentResult>;
+
+/**
+ * The enrichment call, or null when there is no backend.
+ *
+ * Only the merchant name and the user's own category names are sent — the
+ * action's argument validator is asserted against that exact field set in
+ * `packages/backend/convex/enrichment.test.ts`, so amounts, dates, accounts
+ * and balances cannot be added here without failing that test.
+ *
+ * Signed-out callers are refused server-side and answered with the empty
+ * suggestion rather than an error, so there is no client-side identity check
+ * to keep in step: authentication rides on `convex` itself, exactly as it does
+ * for `syncTransport`.
+ */
+export function enrichmentTransport(): EnrichmentFn | null {
+	if (!convex) {
+		return null;
+	}
+	return async (args) =>
+		convex.action("enrichment:suggest" as never, args as never);
 }
 
 /**

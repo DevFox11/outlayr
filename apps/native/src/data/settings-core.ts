@@ -26,6 +26,7 @@ export type BoolSettingKey =
 	// off, and sharing it would take the daily reminder's switch down with it.
 	| "subscriptionReminders"
 	| "categorySuggestions"
+	| "aiEnrichment"
 	// Swaps a Log row's time label for its category. No Settings row writes it
 	// yet, so it always resolves to the default.
 	| "swapTimeLabel"
@@ -80,6 +81,7 @@ export const SETTING_DEFAULTS = {
 	showNotifications: false,
 	subscriptionReminders: false,
 	categorySuggestions: true,
+	aiEnrichment: true,
 	swapTimeLabel: false,
 	confetti: false,
 	budgetViewStyle: true,
