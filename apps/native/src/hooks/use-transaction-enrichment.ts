@@ -3,6 +3,7 @@ import {
 	SUGGESTED_CATEGORY_PRESETS,
 	type SuggestedCategoryPreset,
 } from "@/data/categories-core";
+import { setCachedEnrichment } from "@/domain/enrichment-cache";
 import {
 	type MerchantMatch,
 	merchantKey,
@@ -40,6 +41,13 @@ export interface UseTransactionEnrichmentResult {
 
 const DEBOUNCE_MS = 600;
 const MIN_KEY_LENGTH = 3;
+/**
+ * Matches the real Tier 2 client-abort budget (design P7 `Promise.race`
+ * timeout) so a stubbed request stays "in flight" long enough for a later
+ * request to genuinely supersede it, exercising the requestId-drop path for
+ * real instead of asserting on an already-synchronous no-op.
+ */
+export const TIER2_STUB_DELAY_MS = 4000;
 
 const ALL_CATEGORY_PRESETS: readonly SuggestedCategoryPreset[] = [
 	...SUGGESTED_CATEGORY_PRESETS.expense,
@@ -70,11 +78,22 @@ function toRawSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 
 /**
  * Tier 2 (remote, gated, cached) ships in PR5 — see design P7 run() steps 3-7.
- * This stub keeps the requestId/abort/in-flight plumbing declared now so PR5
- * only needs to fill in the branch body, not restructure the hook.
+ * The real gates (settings toggle, signed-in, dedupe) and the real transport
+ * call are PR5 scope; this stub only proves the requestId-drop mechanism
+ * itself works, by resolving to a negative cache write after a real delay
+ * instead of synchronously — a synchronous stub has nothing to race against.
  */
-function runTier2Stub(): void {
-	// no-op
+function scheduleTier2Stub(
+	key: string,
+	id: number,
+	requestIdRef: { current: number },
+): void {
+	setTimeout(() => {
+		if (id !== requestIdRef.current) {
+			return;
+		}
+		setCachedEnrichment(key, null);
+	}, TIER2_STUB_DELAY_MS);
 }
 
 export function useTransactionEnrichment(
@@ -112,7 +131,8 @@ export function useTransactionEnrichment(
 			emit(match);
 			return;
 		}
-		runTier2Stub();
+		const id = ++requestIdRef.current;
+		scheduleTier2Stub(key, id, requestIdRef);
 	}, [emit]);
 
 	const onNameChange = useCallback(
