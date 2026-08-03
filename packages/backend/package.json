@@ -11,11 +11,14 @@
 		"check-types": "tsc --noEmit -p convex"
 	},
 	"dependencies": {
+		"@ai-sdk/xai": "^4.0.25",
 		"@better-auth/expo": "catalog:",
 		"@convex-dev/better-auth": "catalog:",
 		"@convex-dev/r2": "^0.10.2",
+		"@convex-dev/rate-limiter": "^0.3.2",
 		"@outlayr/env": "workspace:*",
 		"@outlayr/money": "workspace:*",
+		"ai": "^7.0.48",
 		"better-auth": "catalog:",
 		"convex": "^1.42.2",
 		"dotenv": "catalog:",

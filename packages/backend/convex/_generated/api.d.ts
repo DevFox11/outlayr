@@ -12,6 +12,7 @@ import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as cotizave from "../cotizave.js";
 import type * as crons from "../crons.js";
+import type * as enrichment from "../enrichment.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as frankfurter from "../frankfurter.js";
 import type * as healthCheck from "../healthCheck.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   cotizave: typeof cotizave;
   crons: typeof crons;
+  enrichment: typeof enrichment;
   exchangeRates: typeof exchangeRates;
   frankfurter: typeof frankfurter;
   healthCheck: typeof healthCheck;
@@ -77,4 +79,5 @@ export declare const internal: FilterApi<
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };
