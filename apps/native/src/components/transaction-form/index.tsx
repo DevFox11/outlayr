@@ -42,6 +42,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Confetti } from "@/components/confetti";
 import { useAppForm } from "@/components/form/create-app-form";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { menuTint } from "@/components/native/styles";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import {
@@ -270,21 +271,13 @@ export function TransactionForm({
 	const form = useAppForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
-			if (amountNumber <= 0) {
-				return;
-			}
-			const pending = value.pendingCategory;
-			if (!value.category && !pending) {
-				flagMissingCategory();
-				return;
-			}
-			setSaving(true);
 			haptics("success");
 
 			let categoryId: string;
 			if (value.category) {
 				categoryId = value.category.id;
-			} else if (pending) {
+			} else if (value.pendingCategory) {
+				const pending = value.pendingCategory;
 				try {
 					categoryId = await ensureCategoryByName(
 						db,
@@ -308,12 +301,11 @@ export function TransactionForm({
 					);
 				} catch (error) {
 					console.error("Failed to create the pending category", error);
-					setSaving(false);
 					flagMissingCategory();
 					return;
 				}
 			} else {
-				setSaving(false);
+				// `precheckSave` already guarantees this branch is unreachable.
 				flagMissingCategory();
 				return;
 			}
@@ -352,7 +344,6 @@ export function TransactionForm({
 				// first: un-dimming the CTA in silence is indistinguishable from having
 				// missed the button.
 				haptics("error");
-				setSaving(false);
 				Alert.alert(
 					t("transaction.save.failedTitle"),
 					t("transaction.save.failedBody"),
@@ -409,11 +400,11 @@ export function TransactionForm({
 					t("transaction.save.scheduleFailedBody"),
 					[{ text: t("common.done"), onPress: onDone }],
 				);
-				return;
+				return await holdSubmitting();
 			}
 			if (mode === "edit") {
 				onDone();
-				return;
+				return await holdSubmitting();
 			}
 			setShowToast(true);
 			// The form owns the celebration, so it has to outlive its own
@@ -427,6 +418,7 @@ export function TransactionForm({
 				onDone,
 				celebrate ? CONFETTI_FLIGHT_MS : 600,
 			);
+			return await holdSubmitting();
 		},
 	});
 	const {
@@ -445,7 +437,7 @@ export function TransactionForm({
 		tagIds,
 		pendingTagNames,
 	} = useStore(form.store, (s) => s.values);
-	const [saving, setSaving] = useState(false);
+	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
 	const currency = txCurrency ?? globalCurrency;
 	const minorUnits = minorUnitsFor(currency);
@@ -744,7 +736,7 @@ export function TransactionForm({
 	]);
 
 	const amountNumber = numpadToNumber(amount);
-	const canSave = amountNumber > 0 && !saving;
+	const canSave = amountNumber > 0 && !isSubmitting;
 
 	const handleKindChange = (next: "once" | "subscription") => {
 		const sub = next === "subscription";
@@ -832,6 +824,17 @@ export function TransactionForm({
 		setCategoryError(true);
 		setCategoryShake(true);
 		shakeTimer.current = setTimeout(() => setCategoryShake(false), 500);
+	};
+
+	const precheckSave = () => {
+		if (amountNumber <= 0) {
+			return false;
+		}
+		if (!category && !pendingCategory) {
+			flagMissingCategory();
+			return false;
+		}
+		return true;
 	};
 
 	// The spring starts here, not from the picker route's mount effect, so the
@@ -1222,7 +1225,9 @@ export function TransactionForm({
 						labelColor={colors.background}
 						label={ctaLabel}
 						onPress={() => {
-							void form.handleSubmit();
+							if (precheckSave()) {
+								pressSubmit(form);
+							}
 						}}
 						tintColor={colors.foreground}
 					/>
