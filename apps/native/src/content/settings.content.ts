@@ -1095,6 +1095,14 @@ const settings = {
 			en: "transactions added to your ledger.",
 			es: "transacciones agregadas a tu registro.",
 		}),
+		"settings.import.sourceCsvTitle": t({
+			en: "CSV file",
+			es: "Archivo CSV",
+		}),
+		"settings.import.sourceCsvSubtitle": t({
+			en: "Comma-separated values from your bank.",
+			es: "Valores separados por comas de tu banco.",
+		}),
 	},
 } satisfies Dictionary;
 
