@@ -49,6 +49,7 @@ import {
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
 	type Category,
+	ensureCategoryByName,
 	getCategoryById,
 	useCategoriesByNamespace,
 } from "@/data/categories";
@@ -75,7 +76,7 @@ import {
 	REMINDER_LEAD_OPTIONS,
 	resolveLeadSelection,
 } from "@/domain/subscription-reminder";
-import { findTagByName } from "@/domain/tags";
+import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import {
 	cadenceLabel,
@@ -85,6 +86,7 @@ import {
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import {
 	type EnrichmentSuggestion,
+	type PendingCategory,
 	useTransactionEnrichment,
 } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
@@ -121,6 +123,7 @@ import { TransactionFormIdentitySection } from "./identity-section";
 import { TransactionFormScheduleSection } from "./schedule-section";
 import {
 	BODY,
+	CAPTION,
 	CARD_SHAPE,
 	FLY_BACK,
 	FLY_UP,
@@ -229,6 +232,8 @@ export function TransactionForm({
 	const [categorySource, setCategorySource] = useState<FieldSource>(() =>
 		category !== null ? "user" : "initial",
 	);
+	const [pendingCategory, setPendingCategory] =
+		useState<PendingCategory | null>(null);
 	const [income, setIncome] = useState(
 		category?.income ??
 			initial?.income ??
@@ -309,12 +314,16 @@ export function TransactionForm({
 	// write until the entry is saved — the same contract every other field keeps.
 	const [tagIds, setTagIds] = useState<string[]>([]);
 	const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
+	const [pendingTagNames, setPendingTagNames] = useState<readonly string[]>([]);
 	const effectiveTagIds = tagsSource === "initial" ? savedTagIds : tagIds;
-	const selectedTagNames =
-		allTags
+	const selectedTagLabels = [
+		...allTags
 			.filter((tag) => effectiveTagIds.includes(tag.id))
-			.map((tag) => tag.name)
-			.join(", ") || null;
+			.map((tag) => tag.name),
+		...pendingTagNames,
+	];
+	const selectedTagNames =
+		selectedTagLabels.length > 0 ? selectedTagLabels.join(", ") : null;
 	const scheduleSheetRef = useRef<CustomScheduleSheetRef>(null);
 	const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -372,16 +381,28 @@ export function TransactionForm({
 
 	const applySuggestion = useCallback(
 		(suggestion: EnrichmentSuggestion) => {
-			if (categorySource !== "user" && suggestion.categoryId != null) {
-				const matchedCategory = getCategoryById(db, suggestion.categoryId);
-				if (matchedCategory != null) {
-					setCategory(matchedCategory);
+			if (categorySource !== "user") {
+				if (suggestion.categoryId != null) {
+					const matchedCategory = getCategoryById(db, suggestion.categoryId);
+					if (matchedCategory != null) {
+						setCategory(matchedCategory);
+						setPendingCategory(null);
+						setCategoryError(false);
+						setCategorySource("suggested");
+					}
+				} else if (suggestion.pendingCategory != null) {
+					setCategory(null);
+					setPendingCategory(suggestion.pendingCategory);
 					setCategoryError(false);
 					setCategorySource("suggested");
 				}
 			}
-			if (tagsSource !== "user" && suggestion.tagIds.length > 0) {
+			if (
+				tagsSource !== "user" &&
+				(suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0)
+			) {
 				setTagIds([...suggestion.tagIds]);
+				setPendingTagNames([...suggestion.pendingTagNames]);
 				setTagsSource("suggested");
 			}
 		},
@@ -451,6 +472,7 @@ export function TransactionForm({
 		if (nextIncome !== income) {
 			setIncome(nextIncome);
 			setCategory(null);
+			setPendingCategory(null);
 			setCategorySource("initial");
 		}
 	};
@@ -512,6 +534,7 @@ export function TransactionForm({
 
 	const handleSelectCategory = (picked: Category) => {
 		setCategory(picked);
+		setPendingCategory(null);
 		setCategorySource("user");
 		setCategoryError(false);
 		categorySheetRef.current?.dismiss();
@@ -528,16 +551,42 @@ export function TransactionForm({
 		if (amountNumber <= 0) {
 			return;
 		}
-		if (!category) {
+		const pending = pendingCategory;
+		if (!category && !pending) {
 			flagMissingCategory();
 			return;
 		}
 		setSaving(true);
 		haptics("success");
+
+		let categoryId: string;
+		if (category) {
+			categoryId = category.id;
+		} else if (pending) {
+			try {
+				categoryId = await ensureCategoryByName(
+					db,
+					pending.name,
+					income,
+					pending.icon,
+					pending.color,
+				);
+			} catch (error) {
+				console.error("Failed to create the pending category", error);
+				setSaving(false);
+				flagMissingCategory();
+				return;
+			}
+		} else {
+			setSaving(false);
+			flagMissingCategory();
+			return;
+		}
+
 		const input = buildTransactionInput({
 			amount: amountNumber,
 			income,
-			categoryId: category.id,
+			categoryId,
 			note: name.value,
 			details: notes.value,
 			date,
@@ -583,7 +632,14 @@ export function TransactionForm({
 			// After the row exists, because the link points at it. A failure here
 			// costs the tags, not the entry, so it is reported rather than thrown.
 			try {
-				await tagsRepo.setTagsFor(db, id, tagIds);
+				const materializedTagIds = [...effectiveTagIds];
+				for (const tagName of pendingTagNames) {
+					const tagId = await tagsRepo.ensureTag(db, tagName);
+					if (tagId != null && !materializedTagIds.includes(tagId)) {
+						materializedTagIds.push(tagId);
+					}
+				}
+				await tagsRepo.setTagsFor(db, id, materializedTagIds);
 			} catch (error) {
 				console.error("Failed to save tags", error);
 				Alert.alert(
@@ -681,7 +737,7 @@ export function TransactionForm({
 		? category.income
 			? colors.income
 			: (category.color ?? colors.foreground)
-		: colors.muted;
+		: (pendingCategory?.color ?? colors.muted);
 
 	const cadenceOptions = SELECTABLE_RECURRING_TYPES.map((type) => ({
 		type,
@@ -850,47 +906,69 @@ export function TransactionForm({
 							]}
 							onPress={() => categorySheetRef.current?.present()}
 						>
-							<HStack modifiers={TAP_ROW} spacing={12}>
-								<SwiftText
-									modifiers={[
-										BODY,
-										categoryError ? foregroundStyle(colors.danger) : rowLabel,
-									]}
-								>
-									{t("transaction.field.category")}
-								</SwiftText>
-								<Spacer />
-								<HStack spacing={5}>
-									{category ? (
-										<RNHostView matchContents>
-											<View style={{ width: 18, height: 18 }}>
-												<CategoryIcon
-													color={categoryGlyphTint}
-													name={category.icon}
-													size={18}
-												/>
-											</View>
-										</RNHostView>
-									) : null}
+							<VStack spacing={0}>
+								<HStack modifiers={TAP_ROW} spacing={12}>
 									<SwiftText
 										modifiers={[
 											BODY,
-											foregroundStyle(
-												category ? colors.foreground : colors.muted,
-											),
+											categoryError ? foregroundStyle(colors.danger) : rowLabel,
 										]}
 									>
-										{category
-											? category.name
-											: t("transaction.category.choose")}
+										{t("transaction.field.category")}
 									</SwiftText>
-									<Image
-										color={colors.muted}
-										size={12}
-										systemName="chevron.up.chevron.down"
-									/>
+									<Spacer />
+									<HStack spacing={5}>
+										{category || pendingCategory ? (
+											<RNHostView matchContents>
+												<View style={{ width: 18, height: 18 }}>
+													<CategoryIcon
+														color={categoryGlyphTint}
+														name={
+															category ? category.icon : pendingCategory?.icon
+														}
+														size={18}
+													/>
+												</View>
+											</RNHostView>
+										) : null}
+										<SwiftText
+											modifiers={[
+												BODY,
+												foregroundStyle(
+													category || pendingCategory
+														? colors.foreground
+														: colors.muted,
+												),
+											]}
+										>
+											{category
+												? category.name
+												: (pendingCategory?.name ??
+													t("transaction.category.choose"))}
+										</SwiftText>
+										<Image
+											color={colors.muted}
+											size={12}
+											systemName="chevron.up.chevron.down"
+										/>
+									</HStack>
 								</HStack>
-							</HStack>
+								{pendingCategory ? (
+									<HStack
+										modifiers={[
+											padding({ leading: 16, trailing: 16, bottom: 10 }),
+										]}
+										spacing={0}
+									>
+										<Spacer />
+										<SwiftText
+											modifiers={[CAPTION, foregroundStyle(colors.muted)]}
+										>
+											{t("transaction.category.willBeCreated")}
+										</SwiftText>
+									</HStack>
+								) : null}
+							</VStack>
 						</Button>
 
 						<Button
@@ -1052,6 +1130,11 @@ export function TransactionForm({
 					if (id) {
 						setTagsSource("user");
 						setTagIds([...effectiveTagIds, id]);
+						setPendingTagNames((current) =>
+							current.filter(
+								(pendingName) => normalizeTagName(pendingName) !== name,
+							),
+						);
 					}
 					return id;
 				}}
@@ -1063,6 +1146,7 @@ export function TransactionForm({
 							: [...effectiveTagIds, tagId],
 					);
 				}}
+				pendingTagNames={pendingTagNames}
 				ref={tagSheetRef}
 				selected={effectiveTagIds}
 				tags={allTags}
@@ -1072,6 +1156,7 @@ export function TransactionForm({
 				db={db}
 				income={income}
 				onSelect={handleSelectCategory}
+				pendingCategory={pendingCategory}
 				ref={categorySheetRef}
 				selectedId={category?.id ?? null}
 			/>

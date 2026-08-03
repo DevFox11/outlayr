@@ -2,12 +2,16 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, render } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { Alert } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
+import { categoriesRepo } from "@/data/categories";
+import { tagsRepo } from "@/data/tags";
 import type { Transaction } from "@/data/transactions";
 import type { Database } from "@/db/client";
-import { categories, tags } from "@/db/schema";
+import { categories, tags, transactions } from "@/db/schema";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { TransactionForm } from "./index";
 
@@ -209,6 +213,60 @@ async function seedTag(db: Database, id: string, name: string) {
 
 function hasSwiftText(tree: JsonNode, value: string): boolean {
 	return findByProp(tree, "text", value) !== null;
+}
+
+function countSwiftText(
+	node: JsonNode | JsonNode[] | null,
+	value: string,
+): number {
+	if (node == null) {
+		return 0;
+	}
+	if (Array.isArray(node)) {
+		return node.reduce((sum, child) => sum + countSwiftText(child, value), 0);
+	}
+	let count = node.props?.text === value ? 1 : 0;
+	for (const child of node.children ?? []) {
+		if (typeof child === "string") {
+			continue;
+		}
+		count += countSwiftText(child, value);
+	}
+	return count;
+}
+
+function findButtonWithText(
+	node: JsonNode | JsonNode[] | null,
+	text: string,
+): (JsonNode & { props: { onButtonPress: () => void } }) | null {
+	if (node == null) {
+		return null;
+	}
+	if (Array.isArray(node)) {
+		for (const child of node) {
+			const found = findButtonWithText(child, text);
+			if (found) {
+				return found;
+			}
+		}
+		return null;
+	}
+	if (
+		typeof node.props?.onButtonPress === "function" &&
+		hasSwiftText(node, text)
+	) {
+		return node as JsonNode & { props: { onButtonPress: () => void } };
+	}
+	for (const child of node.children ?? []) {
+		if (typeof child === "string") {
+			continue;
+		}
+		const found = findButtonWithText(child, text);
+		if (found) {
+			return found;
+		}
+	}
+	return null;
 }
 
 function findTextChangeHandler(tree: JsonNode): (text: string) => void {
@@ -641,5 +699,179 @@ describe("TransactionForm enrichment", () => {
 		const tree = toJSON() as JsonNode;
 		expect(hasSwiftText(tree, "Groceries")).toBe(true);
 		expect(hasSwiftText(tree, "Entertainment")).toBe(false);
+	});
+});
+
+describe("TransactionForm pending category and tag materialization", () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
+	it("saves with only a pending category — no shake, no category error — and materializes it", async () => {
+		const db = dbHolder.current as Database;
+		const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					db={db}
+					mode="create"
+					onDone={() => {}}
+					seed={{ amount: 25 }}
+				/>
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+
+		let tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Entertainment")).toBe(true);
+		expect(hasSwiftText(tree, "transaction.category.willBeCreated")).toBe(true);
+		expect(JSON.stringify(tree)).not.toContain('"$type":"strokeBorder"');
+
+		const saveButton = findButtonWithText(tree, "transaction.cta.add");
+		expect(saveButton).not.toBeNull();
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+		});
+
+		expect(alertSpy).not.toHaveBeenCalled();
+		const created = await db
+			.select()
+			.from(categories)
+			.where(eq(categories.name, "Entertainment"));
+		expect(created).toHaveLength(1);
+
+		const savedTx = await db.select().from(transactions);
+		expect(savedTx).toHaveLength(1);
+		expect(savedTx[0].categoryId).toBe(created[0].id);
+
+		tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "transaction.category.choose")).toBe(false);
+
+		alertSpy.mockRestore();
+	});
+
+	it("materializes pending tags via ensureTag and merges them into a single setTagsFor call", async () => {
+		const db = dbHolder.current as Database;
+		const setTagsSpy = jest.spyOn(tagsRepo, "setTagsFor");
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					db={db}
+					mode="create"
+					onDone={() => {}}
+					seed={{ amount: 25 }}
+				/>
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Streaming, Subscription")).toBe(true);
+
+		const saveButton = findButtonWithText(tree, "transaction.cta.add");
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+		});
+
+		expect(setTagsSpy).toHaveBeenCalledTimes(1);
+		const [, , calledTagIds] = setTagsSpy.mock.calls[0];
+		expect(calledTagIds).toHaveLength(2);
+
+		const createdTags = await db.select().from(tags);
+		expect(createdTags.map((row) => row.name).sort()).toStrictEqual([
+			"Streaming",
+			"Subscription",
+		]);
+
+		setTagsSpy.mockRestore();
+	});
+
+	it("renders the pending-category caption exactly once and it does not grow while typing continues", async () => {
+		const db = dbHolder.current as Database;
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+		expect(
+			countSwiftText(
+				toJSON() as JsonNode,
+				"transaction.category.willBeCreated",
+			),
+		).toBe(1);
+
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+		expect(
+			countSwiftText(
+				toJSON() as JsonNode,
+				"transaction.category.willBeCreated",
+			),
+		).toBe(1);
+	});
+
+	it("aborts before writing any transaction row when the pending category fails to materialize", async () => {
+		const db = dbHolder.current as Database;
+		const createSpy = jest
+			.spyOn(categoriesRepo, "create")
+			.mockRejectedValueOnce(new Error("boom"));
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					db={db}
+					mode="create"
+					onDone={() => {}}
+					seed={{ amount: 25 }}
+				/>
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+		expect(hasSwiftText(toJSON() as JsonNode, "Entertainment")).toBe(true);
+		expect(createSpy).not.toHaveBeenCalled();
+
+		const saveButton = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.add",
+		);
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+		});
+
+		expect(createSpy).toHaveBeenCalledTimes(1);
+		expect(await db.select().from(transactions)).toHaveLength(0);
+		expect(JSON.stringify(toJSON())).toContain('"$type":"strokeBorder"');
+
+		createSpy.mockRestore();
 	});
 });

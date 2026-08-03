@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { type Category, useCategoriesByNamespace } from "@/data/categories";
 import type { Database } from "@/db/client";
+import type { PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -26,10 +27,14 @@ const CARD_LAYOUT = LinearTransition.duration(300).easing(EASE);
 const CHILD_IN = FadeIn.duration(300).easing(EASE);
 const CHILD_OUT = FadeOut.duration(300).easing(EASE);
 
+const PENDING_CATEGORY_ID = "__pending__";
+
 interface CategoryPickerSheetProps {
 	db: Database;
 	income: boolean;
 	selectedId: string | null;
+	/** Not yet a real row — shown as the top pick, materialized only on save. */
+	pendingCategory?: PendingCategory | null;
 	onSelect: (category: Category) => void;
 	ref?: Ref<BottomSheetModal>;
 }
@@ -41,6 +46,7 @@ export function CategoryPickerSheet({
 	db,
 	income,
 	selectedId,
+	pendingCategory,
 	onSelect,
 	ref,
 }: CategoryPickerSheetProps) {
@@ -108,6 +114,31 @@ export function CategoryPickerSheet({
 				showsVerticalScrollIndicator={false}
 				style={{ flex: 1 }}
 			>
+				{pendingCategory ? (
+					<Animated.View
+						className="overflow-hidden rounded-xl bg-surface"
+						layout={CARD_LAYOUT}
+					>
+						<CategoryRow
+							caption={t("transaction.category.willBeCreated")}
+							category={{
+								id: PENDING_CATEGORY_ID,
+								name: pendingCategory.name,
+								icon: pendingCategory.icon,
+								emoji: null,
+								color: pendingCategory.color,
+								income,
+								sortOrder: -1,
+								parentId: null,
+								dateCreated: new Date(0),
+								updatedAt: new Date(0),
+								deletedAt: null,
+							}}
+							onSelect={() => sheetRef.current?.dismiss()}
+							selected={selectedId === null}
+						/>
+					</Animated.View>
+				) : null}
 				{categories.map((parent) => {
 					const isExpanded = expanded.has(parent.id);
 					return (
@@ -161,6 +192,7 @@ function CategoryRow({
 	indented = false,
 	hasChildren = false,
 	expanded = false,
+	caption,
 	onSelect,
 	onToggle,
 }: {
@@ -169,6 +201,7 @@ function CategoryRow({
 	indented?: boolean;
 	hasChildren?: boolean;
 	expanded?: boolean;
+	caption?: string;
 	onSelect: (category: Category) => void;
 	onToggle?: () => void;
 }) {
@@ -195,15 +228,22 @@ function CategoryRow({
 					icon={category.icon}
 					size={28}
 				/>
-				<Text
-					className={cn(
-						"flex-1 font-sans-medium text-foreground",
-						indented ? "text-subtitle" : "text-callout",
-					)}
-					numberOfLines={1}
-				>
-					{category.name}
-				</Text>
+				<View className="flex-1">
+					<Text
+						className={cn(
+							"font-sans-medium text-foreground",
+							indented ? "text-subtitle" : "text-callout",
+						)}
+						numberOfLines={1}
+					>
+						{category.name}
+					</Text>
+					{caption ? (
+						<Text className="text-footnote text-muted" numberOfLines={1}>
+							{caption}
+						</Text>
+					) : null}
+				</View>
 				{selected ? (
 					<Text className="font-sans-bold text-income text-subtitle">
 						{"✓"}
