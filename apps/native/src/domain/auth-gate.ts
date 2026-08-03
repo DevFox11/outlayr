@@ -84,3 +84,11 @@ export function authRoute(state: AccountState): AuthRoute {
 	}
 	return state.reconciled ? "ledger" : "adopt";
 }
+
+export type RootStackGroup = "onboarding" | AuthRoute;
+
+export function rootStackGroup(
+	state: AccountState & { onboarded: boolean },
+): RootStackGroup {
+	return state.onboarded ? authRoute(state) : "onboarding";
+}

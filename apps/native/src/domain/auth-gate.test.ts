@@ -1,4 +1,10 @@
-import { authGate, authRoute } from "./auth-gate";
+import {
+	type AuthGate,
+	authGate,
+	authRoute,
+	rootStackGroup,
+} from "./auth-gate";
+import { ROOT_STACK_SCREEN_NAMES } from "./root-stack";
 
 describe("auth gate", () => {
 	it("opens on a restored session", () => {
@@ -132,5 +138,60 @@ describe("account routing", () => {
 	it("still reconciles when a device that declined signs in later", () => {
 		expect(at("signed-in", false, true)).toBe("adopt");
 		expect(at("signed-in", true, true)).toBe("ledger");
+	});
+});
+
+describe("rootStackGroup", () => {
+	const GATES: AuthGate[] = [
+		"restoring",
+		"signed-in",
+		"signed-out",
+		"unconfigured",
+	];
+	const BOOLEANS = [true, false];
+
+	it("returns exactly one of the four groups for every state, each with screens to admit", () => {
+		for (const onboarded of BOOLEANS) {
+			for (const gate of GATES) {
+				for (const reconciled of BOOLEANS) {
+					for (const deferred of BOOLEANS) {
+						const group = rootStackGroup({
+							onboarded,
+							gate,
+							reconciled,
+							deferred,
+						});
+						expect(["onboarding", "sign-in", "adopt", "ledger"]).toContain(
+							group,
+						);
+						expect(ROOT_STACK_SCREEN_NAMES[group].length).toBeGreaterThan(0);
+					}
+				}
+			}
+		}
+	});
+
+	it("routes to onboarding whenever the device has not onboarded, regardless of gate", () => {
+		for (const gate of GATES) {
+			for (const reconciled of BOOLEANS) {
+				for (const deferred of BOOLEANS) {
+					expect(
+						rootStackGroup({ onboarded: false, gate, reconciled, deferred }),
+					).toBe("onboarding");
+				}
+			}
+		}
+	});
+
+	it("delegates to authRoute once onboarded", () => {
+		for (const gate of GATES) {
+			for (const reconciled of BOOLEANS) {
+				for (const deferred of BOOLEANS) {
+					expect(
+						rootStackGroup({ onboarded: true, gate, reconciled, deferred }),
+					).toBe(authRoute({ gate, reconciled, deferred }));
+				}
+			}
+		}
 	});
 });

@@ -79,6 +79,14 @@ const settings = {
 			en: "Outlayr keeps your ledger on this device and behaves exactly the same signed out. An account exists only so a later release can sync it to your other devices.",
 			es: "Outlayr guarda tu registro en este dispositivo y funciona igual sin sesi\u00f3n. La cuenta existe solo para que una versi\u00f3n futura pueda sincronizarlo con tus otros dispositivos.",
 		}),
+		"settings.account.signInSection": t({
+			en: "Sign in",
+			es: "Iniciar sesi\u00f3n",
+		}),
+		"settings.account.signInFooter": t({
+			en: "Signing in doesn't change your ledger today \u2014 it only makes this account ready to sync from another device later.",
+			es: "Iniciar sesi\u00f3n no cambia tu registro por ahora \u2014 solo deja la cuenta lista para sincronizar desde otro dispositivo m\u00e1s adelante.",
+		}),
 		"settings.account.unavailableDetail": t({
 			en: "This build ships without a backend, so there is no account to sign in to. Nothing else is affected \u2014 your ledger lives on this device.",
 			es: "Esta versi\u00f3n no incluye backend, as\u00ed que no hay cuenta con la que iniciar sesi\u00f3n. Nada m\u00e1s se ve afectado \u2014 tu registro vive en este dispositivo.",

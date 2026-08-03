@@ -1,7 +1,6 @@
 import { currencyDisplayFor } from "@outlayr/money";
-import { Platform, View } from "react-native";
-import { AppleSignInButton } from "@/components/account/apple-sign-in-button";
-import { GoogleSignInButton } from "@/components/account/google-sign-in-button";
+import { View } from "react-native";
+import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
 import { FirstRun } from "@/components/first-run";
 import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
@@ -15,9 +14,7 @@ import {
 	reminderTime,
 } from "@/domain/reminder";
 import { useLanguage, useTranslation } from "@/i18n";
-import { appleIdToken } from "@/lib/apple-sign-in";
 import { authClient } from "@/lib/auth-client";
-import { googleIdToken, isGoogleSignInAvailable } from "@/lib/google-sign-in";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = NonNullable<typeof authClient>;
@@ -113,8 +110,6 @@ function SignIn({ client }: { client: AuthClient }) {
 	const db = useDatabase();
 	const t = useTranslation();
 	const { busy, error, start } = useProviderSignIn(client);
-	const apple = Platform.OS === "ios";
-	const google = isGoogleSignInAvailable;
 
 	return (
 		<FirstRun
@@ -133,27 +128,11 @@ function SignIn({ client }: { client: AuthClient }) {
 			}}
 			title={t("auth.signIn.title")}
 		>
-			<View className="gap-3">
-				{apple ? (
-					<AppleSignInButton
-						disabled={busy !== null}
-						onPress={() => start("apple", appleIdToken)}
-						pending={busy === "apple"}
-					/>
-				) : null}
-				{google ? (
-					<GoogleSignInButton
-						disabled={busy !== null}
-						onPress={() => start("google", googleIdToken)}
-						pending={busy === "google"}
-					/>
-				) : null}
-				{apple || google ? null : (
-					<Text className="text-fr-muted text-subtitle leading-snug">
-						{t("settings.account.noProvider")}
-					</Text>
-				)}
-			</View>
+			<ProviderSignInButtons
+				busy={busy}
+				fallbackClassName="text-fr-muted text-subtitle leading-snug"
+				start={start}
+			/>
 		</FirstRun>
 	);
 }
