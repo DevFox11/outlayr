@@ -1,0 +1,38 @@
+export interface RemoteEnrichmentResult {
+	readonly categoryName: string | null;
+	readonly isNewCategory: boolean;
+	readonly tags: readonly string[];
+	readonly domain: string | null;
+}
+
+export type EnrichmentCacheLookup =
+	| { hit: true; value: RemoteEnrichmentResult | null }
+	| { hit: false };
+
+const CACHE_LIMIT = 50;
+
+const cache = new Map<string, RemoteEnrichmentResult | null>();
+
+export function getCachedEnrichment(key: string): EnrichmentCacheLookup {
+	if (!cache.has(key)) {
+		return { hit: false };
+	}
+	return { hit: true, value: cache.get(key) ?? null };
+}
+
+export function setCachedEnrichment(
+	key: string,
+	value: RemoteEnrichmentResult | null,
+): void {
+	if (!cache.has(key) && cache.size >= CACHE_LIMIT) {
+		const oldestKey = cache.keys().next().value;
+		if (oldestKey !== undefined) {
+			cache.delete(oldestKey);
+		}
+	}
+	cache.set(key, value);
+}
+
+export function clearEnrichmentCache(): void {
+	cache.clear();
+}
