@@ -18,6 +18,8 @@ export const env = createEnv({
 		GOOGLE_CLIENT_ID_WEB: z.string().optional(),
 		GOOGLE_CLIENT_ID_IOS: z.string().optional(),
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
+		XAI_API_KEY: z.string().optional(),
+		XAI_MODEL_ID: z.string().optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
