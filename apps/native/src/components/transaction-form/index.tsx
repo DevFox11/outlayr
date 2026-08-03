@@ -41,7 +41,9 @@ import Animated, {
 	useSharedValue,
 } from "react-native-reanimated";
 import { Confetti } from "@/components/confetti";
+import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { useAppForm } from "@/components/form/create-app-form";
+import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { menuTint } from "@/components/native/styles";
 import { useAppSettings } from "@/contexts/display-settings-context";
@@ -51,7 +53,6 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
-	type Category,
 	ensureCategoryByName,
 	getCategoryById,
 	useCategoriesByNamespace,
@@ -106,10 +107,7 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { AmountEntrySheet } from "../amount-entry-sheet";
 import { CategoryIcon } from "../category-icon";
-import {
-	CategoryPickerSheet,
-	type CategoryPickerSheetRef,
-} from "../category-picker-sheet";
+import { CategoryPickerSheet } from "../category-picker-sheet";
 import {
 	CustomScheduleSheet,
 	type CustomScheduleSheetRef,
@@ -481,8 +479,20 @@ export function TransactionForm({
 	const isDark = scheme === "dark";
 	const router = useRouter();
 
-	const amountSheetRef = useRef<BottomSheetModal>(null);
-	const categorySheetRef = useRef<CategoryPickerSheetRef>(null);
+	const amountField = useNumpadAmountField({
+		code: currency,
+		minorUnits,
+		onChange: (next) => form.setFieldValue("amount", next),
+		onCurrencyChange: (next) => form.setFieldValue("txCurrency", next),
+		toneClass: income ? "text-income" : "text-foreground",
+		value: amount,
+	});
+	const categoryField = useCategoryPickerField((picked) => {
+		form.setFieldValue("category", picked);
+		form.setFieldValue("pendingCategory", null);
+		setCategorySource("user");
+		setCategoryError(false);
+	});
 	const tagSheetRef = useRef<BottomSheetModal>(null);
 	const allTags = useTags(db);
 	const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
@@ -735,7 +745,7 @@ export function TransactionForm({
 		copyOf?.customColor,
 	]);
 
-	const amountNumber = numpadToNumber(amount);
+	const amountNumber = amountField.amount;
 	const canSave = amountNumber > 0 && !isSubmitting;
 
 	const handleKindChange = (next: "once" | "subscription") => {
@@ -809,14 +819,6 @@ export function TransactionForm({
 				console.error("Reminder permission check failed", error);
 			});
 		}
-	};
-
-	const handleSelectCategory = (picked: Category) => {
-		form.setFieldValue("category", picked);
-		form.setFieldValue("pendingCategory", null);
-		setCategorySource("user");
-		setCategoryError(false);
-		categorySheetRef.current?.dismiss();
 	};
 
 	const flagMissingCategory = () => {
@@ -1024,7 +1026,7 @@ export function TransactionForm({
 								currency={currency}
 								hairline={hairline}
 								label={t("transaction.field.amount")}
-								onPress={() => amountSheetRef.current?.present()}
+								onPress={amountField.present}
 								value={formatAmount(amountNumber, currency)}
 								valueColor={amountColor}
 							/>
@@ -1047,7 +1049,7 @@ export function TransactionForm({
 								offset({ x: categoryShake ? -5 : 0 }),
 								animation(SHAKE, categoryShake),
 							]}
-							onPress={() => categorySheetRef.current?.present()}
+							onPress={categoryField.present}
 						>
 							<VStack spacing={0}>
 								<HStack modifiers={TAP_ROW} spacing={12}>
@@ -1275,16 +1277,7 @@ export function TransactionForm({
 				<Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
 			) : null}
 
-			<AmountEntrySheet
-				code={currency}
-				minorUnits={minorUnits}
-				onChange={(next) => form.setFieldValue("amount", next)}
-				onCurrencyChange={(next) => form.setFieldValue("txCurrency", next)}
-				onDone={() => amountSheetRef.current?.dismiss()}
-				ref={amountSheetRef}
-				toneClass={income ? "text-income" : "text-foreground"}
-				value={amount}
-			/>
+			<AmountEntrySheet {...amountField.sheetProps} />
 			<TagPickerSheet
 				onCreate={async (name) => {
 					const id = await tagsRepo.ensureTag(db, name);
@@ -1317,9 +1310,9 @@ export function TransactionForm({
 			<CategoryPickerSheet
 				db={db}
 				income={income}
-				onSelect={handleSelectCategory}
+				onSelect={categoryField.select}
 				pendingCategory={pendingCategory}
-				ref={categorySheetRef}
+				ref={categoryField.ref}
 				selectedId={category?.id ?? null}
 			/>
 			<CustomScheduleSheet

@@ -1,4 +1,3 @@
-import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { DatePicker, Host, HStack, Spacer, Toggle } from "@expo/ui/swift-ui";
 import {
 	datePickerStyle,
@@ -6,7 +5,7 @@ import {
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useStore } from "@tanstack/react-form";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, TextInput, Vibration, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
@@ -18,11 +17,10 @@ import Animated, {
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { HeroNumber } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import {
-	CategoryPickerSheet,
-	type CategoryPickerSheetRef,
-} from "@/components/category-picker-sheet";
+import { CategoryPickerSheet } from "@/components/category-picker-sheet";
+import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { useAppForm } from "@/components/form/create-app-form";
+import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
 import { pressSubmit, reportSaveFailure } from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -31,7 +29,7 @@ import { cn } from "@/components/tw";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Budget, budgetsRepo } from "@/data/budgets";
-import { type Category, getCategoryById } from "@/data/categories";
+import { getCategoryById } from "@/data/categories";
 import type { Database } from "@/db/client";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
@@ -83,8 +81,6 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	const colors = useColors();
 	const [missingCategory, setMissingCategory] = useState(false);
 
-	const amountSheetRef = useRef<BottomSheetModal>(null);
-	const categorySheetRef = useRef<CategoryPickerSheetRef>(null);
 	const shakeX = useSharedValue(0);
 	const shakeStyle = useAnimatedStyle(() => ({
 		transform: [{ translateX: shakeX.value }],
@@ -173,7 +169,18 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 		useStore(form.store, (s) => s.values);
 	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
-	const amountNumber = numpadToNumber(amount);
+	const amountField = useNumpadAmountField({
+		code: currency,
+		minorUnits,
+		onChange: (next) => form.setFieldValue("amount", next),
+		value: amount,
+	});
+	const categoryField = useCategoryPickerField((picked) => {
+		form.setFieldValue("category", picked);
+		setMissingCategory(false);
+	});
+
+	const amountNumber = amountField.amount;
 	const canSave =
 		amountNumber > 0 &&
 		(kind === "overall" || category != null) &&
@@ -198,12 +205,6 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 		return { start, end: new Date() };
 	}, [periodStart, initial]);
 
-	const handleSelectCategory = (picked: Category) => {
-		form.setFieldValue("category", picked);
-		setMissingCategory(false);
-		categorySheetRef.current?.dismiss();
-	};
-
 	return (
 		<View className="flex-1 bg-background">
 			<KeyboardAwareScrollView
@@ -225,7 +226,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 
 				<Pressable
 					className="items-center py-8 active:opacity-70"
-					onPress={() => amountSheetRef.current?.present()}
+					onPress={amountField.present}
 					accessibilityRole="button"
 					accessibilityLabel={t("budgets.form.amountA11y")}
 				>
@@ -258,7 +259,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 									"flex-row items-center gap-3 rounded-xl border px-3 py-3 active:opacity-70",
 									missingCategory ? "border-danger" : "border-border",
 								)}
-								onPress={() => categorySheetRef.current?.present()}
+								onPress={categoryField.present}
 								accessibilityRole="button"
 							>
 								{category ? (
@@ -348,20 +349,13 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 				</Pressable>
 			</KeyboardAwareScrollView>
 
-			<AmountEntrySheet
-				ref={amountSheetRef}
-				value={amount}
-				minorUnits={minorUnits}
-				code={currency}
-				onChange={(next) => form.setFieldValue("amount", next)}
-				onDone={() => amountSheetRef.current?.dismiss()}
-			/>
+			<AmountEntrySheet {...amountField.sheetProps} />
 			<CategoryPickerSheet
-				ref={categorySheetRef}
+				ref={categoryField.ref}
 				db={db}
 				income={false}
 				selectedId={category?.id ?? null}
-				onSelect={handleSelectCategory}
+				onSelect={categoryField.select}
 			/>
 		</View>
 	);
