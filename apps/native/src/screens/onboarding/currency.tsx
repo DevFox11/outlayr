@@ -1,8 +1,9 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { currencyDisplayFor } from "@outlayr/money";
+import { useStore } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, {
 	Easing,
 	runOnJS,
@@ -13,6 +14,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { FirstRun } from "@/components/first-run";
+import { useAppForm } from "@/components/form/create-app-form";
+import {
+	pressSubmitWith,
+	reportSaveFailure,
+} from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -21,6 +27,8 @@ import { finishOnboarding } from "@/data/onboarding-core";
 import { setCurrency } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
+
+type CommitKind = "continue" | "finish";
 
 const EASE_OUT = Easing.bezier(0.19, 1, 0.22, 1);
 
@@ -83,51 +91,57 @@ export default function OnboardingCurrencyScreen() {
 function OnboardingCurrency({ db }: { db: Database }) {
 	const router = useRouter();
 	const stored = useGlobalCurrency(db);
-	const [picked, setPicked] = useState<string | null>(null);
-	const [saving, setSaving] = useState(false);
 	const sheet = useRef<BottomSheetModal>(null);
 	const t = useTranslation();
+
+	const [initialValues] = useState(() => ({ picked: null as string | null }));
+	const form = useAppForm({
+		defaultValues: initialValues,
+		onSubmitMeta: "continue" as CommitKind,
+		onSubmit: async ({ value, meta }) => {
+			const code = value.picked ?? stored;
+			try {
+				await setCurrency(db, code);
+				if (meta === "continue") {
+					// The root guard does not swap on this write alone — rhythm is
+					// next, so this screen has to push there itself.
+					router.push("/onboarding/rhythm");
+				} else {
+					// Nothing navigates on success here: `finishOnboarding` settles the
+					// root guard, which swaps this stack for sign-in. Pushing as well
+					// would race it.
+					await finishOnboarding(db);
+				}
+			} catch {
+				reportSaveFailure({
+					title: t("onboarding.currency.saveFailed.title"),
+					body: t("onboarding.currency.saveFailed.body"),
+				});
+			}
+		},
+	});
+	const { picked } = useStore(form.store, (s) => s.values);
+	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
 	const code = picked ?? stored;
 	const display = currencyDisplayFor(code);
 
-	const fail = () => {
-		setSaving(false);
-		Alert.alert(
-			t("onboarding.currency.saveFailed.title"),
-			t("onboarding.currency.saveFailed.body"),
-		);
-	};
-
-	const confirm = () => {
-		setSaving(true);
-		// The root guard does not swap on this write alone — rhythm is next, so
-		// this screen has to push there itself.
-		setCurrency(db, code)
-			.then(() => router.push("/onboarding/rhythm"))
-			.catch(fail);
-	};
-
-	const shortcut = () => {
-		setSaving(true);
-		// Nothing navigates on success here: `finishOnboarding` settles the root
-		// guard, which swaps this stack for sign-in. Pushing as well would race it.
-		setCurrency(db, code)
-			.then(() => finishOnboarding(db))
-			.catch(fail);
-	};
-
 	return (
 		<FirstRun
 			action={{
-				disabled: saving,
-				label: saving ? t("onboarding.currency.saving") : t("common.continue"),
-				onPress: confirm,
+				disabled: isSubmitting,
+				label: isSubmitting
+					? t("onboarding.currency.saving")
+					: t("common.continue"),
+				onPress: () => pressSubmitWith(form, "continue" as CommitKind),
 			}}
 			body={t("onboarding.currency.body")}
 			eyebrow={t("onboarding.currency.eyebrow")}
 			object={<CurrencyGlyph symbol={display.symbol} />}
-			skip={{ label: t("onboarding.currency.shortcut"), onPress: shortcut }}
+			skip={{
+				label: t("onboarding.currency.shortcut"),
+				onPress: () => pressSubmitWith(form, "finish" as CommitKind),
+			}}
 			title={t("onboarding.currency.title")}
 		>
 			<Pressable
@@ -154,7 +168,7 @@ function OnboardingCurrency({ db }: { db: Database }) {
 
 			<CurrencyPickerSheet
 				onSelect={(next) => {
-					setPicked(next);
+					form.setFieldValue("picked", next);
 					sheet.current?.dismiss();
 				}}
 				ref={sheet}
