@@ -7,7 +7,8 @@ import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import type { Transaction } from "@/data/transactions";
 import type { Database } from "@/db/client";
-import { categories } from "@/db/schema";
+import { categories, tags } from "@/db/schema";
+import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { TransactionForm } from "./index";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -183,10 +184,10 @@ function migratedDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-async function seedCategory(db: Database, id = "c1") {
+async function seedCategory(db: Database, id = "c1", name = "Groceries") {
 	await db.insert(categories).values({
 		id,
-		name: "Groceries",
+		name,
 		color: "#3D7A5C",
 		emoji: "🛒",
 		income: false,
@@ -194,6 +195,39 @@ async function seedCategory(db: Database, id = "c1") {
 		updatedAt: new Date(),
 	});
 	return id;
+}
+
+async function seedTag(db: Database, id: string, name: string) {
+	await db.insert(tags).values({
+		id,
+		name,
+		color: null,
+		sortOrder: 0,
+		updatedAt: new Date(),
+	});
+}
+
+function hasSwiftText(tree: JsonNode, value: string): boolean {
+	return findByProp(tree, "text", value) !== null;
+}
+
+function findTextChangeHandler(tree: JsonNode): (text: string) => void {
+	const node = findByProp(
+		tree,
+		"placeholder",
+		"transaction.field.namePlaceholder",
+	) as
+		| (JsonNode & {
+				props: {
+					onTextChange: (event: { nativeEvent: { value: string } }) => void;
+				};
+		  })
+		| null;
+	if (node == null) {
+		throw new Error("Could not find the name TextField in the render tree.");
+	}
+	return (text: string) =>
+		node.props.onTextChange({ nativeEvent: { value: text } });
 }
 
 const dbHolder: { current: Database | null } = { current: null };
@@ -455,5 +489,157 @@ describe("TransactionForm", () => {
 		);
 		expect(hookOrderViolations).toHaveLength(0);
 		errorSpy.mockRestore();
+	});
+});
+
+describe("TransactionForm enrichment", () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
+	it("auto-selects an existing curated category and its tags for an exact merchant name", async () => {
+		const db = dbHolder.current as Database;
+		await seedCategory(db, "c-entertainment", "Entertainment");
+		await seedTag(db, "tag-streaming", "Streaming");
+		await seedTag(db, "tag-subscription", "Subscription");
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Entertainment")).toBe(true);
+		expect(hasSwiftText(tree, "Streaming, Subscription")).toBe(true);
+	});
+
+	it("does not let a later suggestion overwrite a category the form already carries", async () => {
+		const db = dbHolder.current as Database;
+		const groceriesId = await seedCategory(db, "c-groceries", "Groceries");
+		await seedCategory(db, "c-entertainment", "Entertainment");
+		const copyOf: LogAgainDraft = {
+			amount: 15,
+			income: false,
+			categoryId: groceriesId,
+			note: "",
+			details: null,
+			currency: null,
+			icon: null,
+			emoji: null,
+			customColor: null,
+		};
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={copyOf}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Groceries")).toBe(true);
+		expect(hasSwiftText(tree, "Entertainment")).toBe(false);
+	});
+
+	it("replaces an earlier suggestion when the name changes to another merchant", async () => {
+		const db = dbHolder.current as Database;
+		await seedCategory(db, "c-entertainment", "Entertainment");
+		await seedCategory(db, "c-transport", "Transport");
+		await seedTag(db, "tag-streaming", "Streaming");
+		await seedTag(db, "tag-subscription", "Subscription");
+		await seedTag(db, "tag-rideshare", "Rideshare");
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+		expect(hasSwiftText(toJSON() as JsonNode, "Entertainment")).toBe(true);
+
+		await act(async () => {
+			onTextChange("uber");
+			jest.advanceTimersByTime(600);
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Transport")).toBe(true);
+		expect(hasSwiftText(tree, "Entertainment")).toBe(false);
+		expect(hasSwiftText(tree, "Rideshare")).toBe(true);
+		expect(hasSwiftText(tree, "Streaming, Subscription")).toBe(false);
+	});
+
+	it("issues no enrichment call in edit mode", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db, "c-groceries", "Groceries");
+		await seedCategory(db, "c-entertainment", "Entertainment");
+		const initial: Partial<Transaction> = {
+			id: "t1",
+			amount: 12.5,
+			income: false,
+			categoryId,
+			note: "Groceries run",
+			details: null,
+			date: new Date(),
+			icon: null,
+			emoji: null,
+			recurringType: 0,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			reminderLeadDays: null,
+			currency: null,
+			customColor: null,
+			imageColor: null,
+			imageUri: null,
+			onceRecurring: false,
+		};
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					db={db}
+					mode="edit"
+					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
+					initial={initial as any}
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
+		await act(async () => {
+			onTextChange("netflix");
+			jest.advanceTimersByTime(600);
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Groceries")).toBe(true);
+		expect(hasSwiftText(tree, "Entertainment")).toBe(false);
 	});
 });

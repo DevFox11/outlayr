@@ -31,7 +31,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
 import Animated, {
 	FadeInDown,
@@ -47,7 +47,11 @@ import {
 	useIdentityFlyUp,
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { type Category, getCategoryById } from "@/data/categories";
+import {
+	type Category,
+	getCategoryById,
+	useCategoriesByNamespace,
+} from "@/data/categories";
 import { setBoolSetting } from "@/data/settings";
 import { tagsRepo, useTagIdsFor, useTags } from "@/data/tags";
 import {
@@ -71,6 +75,7 @@ import {
 	REMINDER_LEAD_OPTIONS,
 	resolveLeadSelection,
 } from "@/domain/subscription-reminder";
+import { findTagByName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import {
 	cadenceLabel,
@@ -78,6 +83,10 @@ import {
 	leadLabel,
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
+import {
+	type EnrichmentSuggestion,
+	useTransactionEnrichment,
+} from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
 import {
 	openNotificationSettings,
@@ -212,6 +221,14 @@ export function TransactionForm({
 		const sourceId = initial?.categoryId ?? copyOf?.categoryId;
 		return sourceId ? getCategoryById(db, sourceId) : null;
 	});
+	// Separated from a plain "touched" flag so a later suggestion can still
+	// replace an earlier one: only a human edit ("user") locks a field.
+	type FieldSource = "initial" | "suggested" | "user";
+	// A category carried in from `copyOf` is a deliberate choice, not a blank
+	// slot an enrichment suggestion is free to fill.
+	const [categorySource, setCategorySource] = useState<FieldSource>(() =>
+		category !== null ? "user" : "initial",
+	);
 	const [income, setIncome] = useState(
 		category?.income ??
 			initial?.income ??
@@ -229,6 +246,7 @@ export function TransactionForm({
 		initial ? new Date(initial.date) : new Date(),
 	);
 	const { draft: identity, setDraft: setIdentity } = useIdentityDraft();
+	const [identityTouched, setIdentityTouched] = useState(false);
 	const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
 	const [recurringType, setRecurringType] = useState(
 		initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
@@ -290,8 +308,8 @@ export function TransactionForm({
 	// Seeded from the row and then owned by the form, so toggling a tag does not
 	// write until the entry is saved — the same contract every other field keeps.
 	const [tagIds, setTagIds] = useState<string[]>([]);
-	const [tagsTouched, setTagsTouched] = useState(false);
-	const effectiveTagIds = tagsTouched ? tagIds : savedTagIds;
+	const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
+	const effectiveTagIds = tagsSource === "initial" ? savedTagIds : tagIds;
 	const selectedTagNames =
 		allTags
 			.filter((tag) => effectiveTagIds.includes(tag.id))
@@ -300,6 +318,83 @@ export function TransactionForm({
 	const scheduleSheetRef = useRef<CustomScheduleSheetRef>(null);
 	const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const categoriesForNamespace = useCategoriesByNamespace(db, income);
+	const knownCategoryNames = useMemo(
+		() =>
+			categoriesForNamespace
+				.map((candidate) => candidate.name)
+				.filter((name): name is string => name != null),
+		[categoriesForNamespace],
+	);
+	const categoriesRef = useRef(categoriesForNamespace);
+	useEffect(() => {
+		categoriesRef.current = categoriesForNamespace;
+	}, [categoriesForNamespace]);
+	const tagsRef = useRef(allTags);
+	useEffect(() => {
+		tagsRef.current = allTags;
+	}, [allTags]);
+
+	const resolveLocal = useCallback(
+		(suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
+			let categoryId = suggestion.categoryId;
+			let pendingCategory = suggestion.pendingCategory;
+			if (categoryId == null && pendingCategory != null) {
+				const matchedCategory = categoriesRef.current.find(
+					(candidate) => candidate.name === pendingCategory?.name,
+				);
+				if (matchedCategory != null) {
+					categoryId = matchedCategory.id;
+					pendingCategory = null;
+				}
+			}
+			const resolvedTagIds: string[] = [...suggestion.tagIds];
+			const pendingTagNames: string[] = [];
+			for (const tagName of suggestion.pendingTagNames) {
+				const matchedTag = findTagByName(tagsRef.current, tagName);
+				if (matchedTag != null) {
+					resolvedTagIds.push(matchedTag.id);
+				} else {
+					pendingTagNames.push(tagName);
+				}
+			}
+			return {
+				...suggestion,
+				categoryId,
+				pendingCategory,
+				tagIds: resolvedTagIds,
+				pendingTagNames,
+			};
+		},
+		[],
+	);
+
+	const applySuggestion = useCallback(
+		(suggestion: EnrichmentSuggestion) => {
+			if (categorySource !== "user" && suggestion.categoryId != null) {
+				const matchedCategory = getCategoryById(db, suggestion.categoryId);
+				if (matchedCategory != null) {
+					setCategory(matchedCategory);
+					setCategoryError(false);
+					setCategorySource("suggested");
+				}
+			}
+			if (tagsSource !== "user" && suggestion.tagIds.length > 0) {
+				setTagIds([...suggestion.tagIds]);
+				setTagsSource("suggested");
+			}
+		},
+		[categorySource, tagsSource, db],
+	);
+
+	const { onNameChange } = useTransactionEnrichment({
+		enabled: mode === "create",
+		income,
+		knownCategoryNames,
+		onSuggest: applySuggestion,
+		resolveLocal,
+	});
 
 	useEffect(
 		() => () => {
@@ -314,7 +409,12 @@ export function TransactionForm({
 	);
 
 	// The draft is shared context, read by the fly-up hero and the picker route.
+	// Skipped once the user has touched identity, so a stale `initial`/`copyOf`
+	// reference re-rendering later never clobbers an in-progress choice.
 	useEffect(() => {
+		if (identityTouched) {
+			return;
+		}
 		setIdentity({
 			emoji: initial?.emoji ?? copyOf?.emoji ?? null,
 			icon: initial?.icon ?? copyOf?.icon ?? null,
@@ -323,6 +423,7 @@ export function TransactionForm({
 			color: initial?.customColor ?? copyOf?.customColor ?? null,
 		});
 	}, [
+		identityTouched,
 		initial?.imageUri,
 		initial?.emoji,
 		setIdentity,
@@ -350,6 +451,7 @@ export function TransactionForm({
 		if (nextIncome !== income) {
 			setIncome(nextIncome);
 			setCategory(null);
+			setCategorySource("initial");
 		}
 	};
 
@@ -410,6 +512,7 @@ export function TransactionForm({
 
 	const handleSelectCategory = (picked: Category) => {
 		setCategory(picked);
+		setCategorySource("user");
 		setCategoryError(false);
 		categorySheetRef.current?.dismiss();
 	};
@@ -476,7 +579,7 @@ export function TransactionForm({
 		// CTA: a second tap runs `create` again, which mints a fresh id rather than
 		// rewriting this row, and the ledger ends up with two subscriptions — each
 		// walked forward into its own chain of charges by the next sweep.
-		if (tagsTouched) {
+		if (tagsSource !== "initial") {
 			// After the row exists, because the link points at it. A failure here
 			// costs the tags, not the entry, so it is reported rather than thrown.
 			try {
@@ -539,6 +642,7 @@ export function TransactionForm({
 	// hero launches on the tap frame instead of waiting for navigation to commit
 	// the new screen.
 	const openPicker = () => {
+		setIdentityTouched(true);
 		setPickerOpen(true);
 		router.push("/transaction/identity");
 	};
@@ -630,15 +734,16 @@ export function TransactionForm({
 							icon={identity.icon}
 							income={income}
 							onPress={openPicker}
-							onReset={() =>
+							onReset={() => {
+								setIdentityTouched(true);
 								setIdentity({
 									emoji: null,
 									icon: null,
 									photoUri: null,
 									photoColor: null,
 									color: null,
-								})
-							}
+								});
+							}}
 							photoUri={identity.photoUri}
 						/>
 
@@ -666,6 +771,7 @@ export function TransactionForm({
 								<TextField
 									maxLength={50}
 									modifiers={[BODY, multilineTextAlignment("trailing")]}
+									onTextChange={onNameChange}
 									placeholder={t("transaction.field.namePlaceholder")}
 									text={name}
 								/>
@@ -944,13 +1050,13 @@ export function TransactionForm({
 				onCreate={async (name) => {
 					const id = await tagsRepo.ensureTag(db, name);
 					if (id) {
-						setTagsTouched(true);
+						setTagsSource("user");
 						setTagIds([...effectiveTagIds, id]);
 					}
 					return id;
 				}}
 				onToggle={(tagId) => {
-					setTagsTouched(true);
+					setTagsSource("user");
 					setTagIds(
 						effectiveTagIds.includes(tagId)
 							? effectiveTagIds.filter((id) => id !== tagId)
