@@ -52,6 +52,23 @@ describe("isPlausibleAppMatch", () => {
 		);
 	});
 
+	it("accepts a typed name carrying a word the store title drops", () => {
+		expect(isPlausibleAppMatch("Disney Plus", "Disney+", "Disney")).toBe(true);
+		expect(
+			isPlausibleAppMatch("netflix party", "Netflix", "Netflix, Inc."),
+		).toBe(true);
+	});
+
+	it("does not read a publisher backwards", () => {
+		// "Apple" as a seller would otherwise claim every query starting with it.
+		expect(isPlausibleAppMatch("apple music", "Apple Store", "Apple")).toBe(
+			false,
+		);
+		expect(isPlausibleAppMatch("zzqq nonsense", "ZOX.", "ZOX, LLC")).toBe(
+			false,
+		);
+	});
+
 	it("rejects a brand that only appears mid-title", () => {
 		expect(
 			isPlausibleAppMatch("uber", "Rides for Uber Drivers", "Someone Else"),

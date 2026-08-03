@@ -27,7 +27,13 @@ export function isPlausibleAppMatch(
 	if (wanted.length < 3) {
 		return false;
 	}
-	return (
-		fold(trackName).startsWith(wanted) || fold(sellerName).startsWith(wanted)
-	);
+	const track = fold(trackName);
+	if (track.startsWith(wanted) || fold(sellerName).startsWith(wanted)) {
+		return true;
+	}
+	// The other direction, for a typed name carrying a word the store drops:
+	// "Disney Plus" against the app called "Disney+". Title only — a publisher
+	// is far too broad to read backwards, and "Apple" would then claim every
+	// query that merely begins with it.
+	return track.length >= 4 && wanted.startsWith(track);
 }
