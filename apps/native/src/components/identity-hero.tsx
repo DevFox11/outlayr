@@ -398,7 +398,12 @@ function EmptyTile({
 			}}
 		>
 			{/* First, so the ring sits behind the dashed outline and the glyph. */}
-			{isCategory ? null : <SpectrumRing size={HERO_RING} />}
+			{isCategory ? null : (
+				<SpectrumRing
+					radius={RADIUS + (HERO_RING - TILE) / 2}
+					size={HERO_RING}
+				/>
+			)}
 
 			<Svg width={TILE} height={TILE} style={{ position: "absolute" }}>
 				<Defs>

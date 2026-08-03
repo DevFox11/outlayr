@@ -475,15 +475,27 @@ export function TransactionForm({
 					setPendingCategory(suggestion.pendingCategory);
 					setCategoryError(false);
 					setCategorySource("suggested");
+				} else if (categorySource === "suggested") {
+					// This name has no answer, so the last one's category goes with it
+					// rather than captioning an entry it has nothing to do with.
+					setCategory(null);
+					setPendingCategory(null);
+					setCategorySource("initial");
 				}
 			}
-			if (
-				tagsSource !== "user" &&
-				(suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0)
-			) {
-				setTagIds([...suggestion.tagIds]);
-				setPendingTagNames([...suggestion.pendingTagNames]);
-				setTagsSource("suggested");
+			if (tagsSource !== "user") {
+				if (
+					suggestion.tagIds.length > 0 ||
+					suggestion.pendingTagNames.length > 0
+				) {
+					setTagIds([...suggestion.tagIds]);
+					setPendingTagNames([...suggestion.pendingTagNames]);
+					setTagsSource("suggested");
+				} else if (tagsSource === "suggested") {
+					setTagIds([]);
+					setPendingTagNames([]);
+					setTagsSource("initial");
+				}
 			}
 			void attachLogo(suggestion.domain);
 		},

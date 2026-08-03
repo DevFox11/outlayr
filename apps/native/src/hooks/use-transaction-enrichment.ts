@@ -164,6 +164,22 @@ export function useTransactionEnrichment(
 		onSuggestRef.current(resolveLocalRef.current(suggestion));
 	}, []);
 
+	/**
+	 * A name nobody can answer for still has to be reported. Staying silent
+	 * leaves the previous merchant's category, tags and logo sitting on an entry
+	 * they have nothing to do with.
+	 */
+	const emitNothing = useCallback(() => {
+		onSuggestRef.current({
+			categoryId: null,
+			pendingCategory: null,
+			tagIds: [],
+			pendingTagNames: [],
+			domain: null,
+			source: "curated",
+		});
+	}, []);
+
 	const runRemote = useCallback(
 		async (key: string) => {
 			const call =
@@ -198,16 +214,19 @@ export function useTransactionEnrichment(
 			}
 			setPending(false);
 			setCachedEnrichment(key, result);
-			if (result != null) {
-				emit(toRemoteSuggestion(result));
+			if (result == null) {
+				emitNothing();
+				return;
 			}
+			emit(toRemoteSuggestion(result));
 		},
-		[emit],
+		[emit, emitNothing],
 	);
 
 	const run = useCallback(() => {
 		const key = merchantKey(nameRef.current);
 		if (key.length < MIN_KEY_LENGTH) {
+			emitNothing();
 			return;
 		}
 		const match = resolveMerchant(key);
@@ -216,20 +235,23 @@ export function useTransactionEnrichment(
 			return;
 		}
 		if (!remoteEnabledRef.current) {
+			emitNothing();
 			return;
 		}
 		const cached = getCachedEnrichment(key);
 		if (cached.hit) {
-			if (cached.value != null) {
-				emit(toRemoteSuggestion(cached.value));
+			if (cached.value == null) {
+				emitNothing();
+				return;
 			}
+			emit(toRemoteSuggestion(cached.value));
 			return;
 		}
 		if (inFlightRef.current.has(key)) {
 			return;
 		}
 		void runRemote(key);
-	}, [emit, runRemote]);
+	}, [emit, emitNothing, runRemote]);
 
 	const onNameChange = useCallback(
 		(next: string) => {

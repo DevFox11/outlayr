@@ -128,16 +128,30 @@ describe("tier 1: curated match", () => {
 		expect(result.current.pending).toBe(false);
 	});
 
-	it("does not emit for a merchant name shorter than the 3-character floor", async () => {
+	it("reports an empty suggestion below the 3-character floor so stale fields clear", async () => {
 		const onSuggest = jest.fn();
 		const { result } = await renderHook(() =>
 			useTransactionEnrichment(baseArgs({ onSuggest })),
 		);
 
+		result.current.onNameChange("netflix");
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({ domain: "netflix.com" }),
+		);
+
+		// Silence here would leave Netflix's category and logo on an entry that
+		// is no longer Netflix.
 		result.current.onNameChange("hi");
 		jest.advanceTimersByTime(DEBOUNCE_MS);
-
-		expect(onSuggest).not.toHaveBeenCalled();
+		expect(onSuggest).toHaveBeenLastCalledWith({
+			categoryId: null,
+			pendingCategory: null,
+			tagIds: [],
+			pendingTagNames: [],
+			domain: null,
+			source: "curated",
+		});
 	});
 
 	it("does not emit for a merchant name with no curated or remote match", async () => {
@@ -299,7 +313,11 @@ describe("tier 2: remote fallback", () => {
 		await act(async () => {
 			jest.advanceTimersByTime(DEBOUNCE_MS);
 		});
-		expect(onSuggest).toHaveBeenCalledTimes(1);
+		// Twice: the empty report for the unresolvable name, then the curated hit.
+		expect(onSuggest).toHaveBeenCalledTimes(2);
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({ domain: "netflix.com", source: "curated" }),
+		);
 		expect(fn).not.toHaveBeenCalled();
 	});
 
