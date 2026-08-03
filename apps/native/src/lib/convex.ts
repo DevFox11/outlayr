@@ -125,6 +125,46 @@ export function enrichmentTransport(): EnrichmentFn | null {
 		convex.action("enrichment:suggest" as never, args as never);
 }
 
+export interface LabelSuggestion {
+	label: string;
+	categoryName: string;
+}
+
+export type CsvImportStatus =
+	| "ok"
+	| "unauthenticated"
+	| "notConfigured"
+	| "rateLimited"
+	| "invalid"
+	| "providerError"
+	| "invalidResponse";
+
+export interface CsvImportResult {
+	status: CsvImportStatus;
+	suggestions: LabelSuggestion[] | null;
+}
+
+export interface CsvImportRequest {
+	labels: string[];
+	categoryTree: CategoryBranch[];
+}
+
+export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
+
+/**
+ * Args are exactly `{labels, categoryTree}` — the same privacy boundary the
+ * action's own validator asserts in `packages/backend/convex/csvImport.ts`.
+ * Authentication rides on `convex` itself, exactly as it does for
+ * `enrichmentTransport`.
+ */
+export function csvImportTransport(): CsvImportFn | null {
+	if (!convex) {
+		return null;
+	}
+	return async (args) =>
+		convex.action("csvImport:csvImport" as never, args as never);
+}
+
 /**
  * The photo transport, or null when there is no backend.
  *
