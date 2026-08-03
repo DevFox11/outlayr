@@ -399,6 +399,10 @@ const settings = {
 			en: "GPL-3.0 License",
 			es: "Licencia GPL-3.0",
 		}),
+		"settings.about.logoDev": t({
+			en: "Logos provided by Logo.dev",
+			es: "Logos proporcionados por Logo.dev",
+		}),
 		"settings.about.licenceHeading": t({
 			en: "Licence",
 			es: "Licencia",

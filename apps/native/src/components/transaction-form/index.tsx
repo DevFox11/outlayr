@@ -90,7 +90,7 @@ import {
 	useTransactionEnrichment,
 } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
-import { fetchLogo } from "@/lib/logo-fetch";
+import { fetchMerchantImage } from "@/lib/logo-fetch";
 import {
 	openNotificationSettings,
 	reminderPermission,
@@ -394,10 +394,13 @@ export function TransactionForm({
 	 * counts as touched — the user is choosing right now.
 	 */
 	const attachLogo = useCallback(async (domain: string | null) => {
-		if (domain == null || identityTouchedRef.current || pickerOpenRef.current) {
+		if (identityTouchedRef.current || pickerOpenRef.current) {
 			return;
 		}
-		const outcome = await fetchLogo(domain);
+		const outcome = await fetchMerchantImage({
+			name: name.value,
+			domain,
+		});
 		if (outcome.kind !== "logo") {
 			return;
 		}

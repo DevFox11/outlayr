@@ -1,4 +1,15 @@
-import { fetchLogo, logoUrl } from "./logo-fetch";
+import {
+	appIconSearchUrl,
+	faviconUrl,
+	fetchMerchantImage,
+	logoDevUrl,
+} from "./logo-fetch";
+
+jest.mock("@/lib/logo-cache", () => ({
+	logoCacheKey: () => "test-key",
+	readCachedLogo: () => ({ kind: "unknown" }),
+	writeCachedLogo: () => {},
+}));
 
 function png(length = 1024): Uint8Array {
 	const bytes = new Uint8Array(length).fill(0x42);
@@ -6,67 +17,109 @@ function png(length = 1024): Uint8Array {
 	return bytes;
 }
 
-function respond(
-	status: number,
-	contentType: string | null,
-	bytes: Uint8Array,
-): Response {
+function imageResponse(status: number, bytes: Uint8Array): Response {
 	return {
 		status,
-		headers: { get: () => contentType },
+		headers: { get: () => "image/png" },
 		arrayBuffer: async () => bytes.buffer,
 	} as unknown as Response;
 }
 
-describe("logoUrl", () => {
-	it("escapes the domain rather than interpolating it raw", () => {
-		expect(logoUrl("music.apple.com")).toBe(
-			"https://www.google.com/s2/favicons?domain=music.apple.com&sz=128",
-		);
-		expect(logoUrl("a b&c")).toContain("domain=a%20b%26c");
+function searchResponse(trackName: string, sellerName: string): Response {
+	return {
+		status: 200,
+		headers: { get: () => "application/json" },
+		json: async () => ({
+			results: [
+				{ trackName, sellerName, artworkUrl512: "https://icons/app.jpg" },
+			],
+		}),
+	} as unknown as Response;
+}
+
+const notFound = {
+	status: 404,
+	headers: { get: () => "application/json" },
+	arrayBuffer: async () => new Uint8Array(0).buffer,
+} as unknown as Response;
+
+describe("url builders", () => {
+	it("asks logo.dev for a 404 rather than its monogram fallback", () => {
+		// The default is a generic letter tile returned with a 200 — the exact
+		// avatar this feature promises never to show.
+		expect(logoDevUrl("netflix.com", "pk_test")).toContain("fallback=404");
+		expect(logoDevUrl("netflix.com", "pk_test")).toContain("size=512");
+	});
+
+	it("escapes the domain and the term", () => {
+		expect(faviconUrl("a b&c")).toContain("domain=a%20b%26c");
+		expect(appIconSearchUrl("apple music")).toContain("term=apple%20music");
 	});
 });
 
-describe("fetchLogo", () => {
-	it("returns the bytes for a real logo", async () => {
-		const bytes = png();
-		const result = await fetchLogo("netflix.com", async () =>
-			respond(200, "image/png", bytes),
+describe("fetchMerchantImage", () => {
+	it("prefers an app icon when the store hit is plausibly the same brand", async () => {
+		const icon = png(2048);
+		const calls: string[] = [];
+		const result = await fetchMerchantImage(
+			{ name: "Netflix", domain: "netflix.com" },
+			(async (url: string) => {
+				calls.push(String(url));
+				return String(url).includes("itunes")
+					? searchResponse("Netflix", "Netflix, Inc.")
+					: imageResponse(200, icon);
+			}) as unknown as typeof fetch,
 		);
-		expect(result).toStrictEqual({ kind: "logo", bytes });
+
+		expect(result).toStrictEqual({ kind: "logo", bytes: icon });
+		expect(calls.some((u) => u.includes("img.logo.dev"))).toBe(false);
+		expect(calls.some((u) => u.includes("s2/favicons"))).toBe(false);
 	});
 
-	it("returns none for a null domain without calling out", async () => {
+	it("falls past an unrelated store hit to the domain tiers", async () => {
+		const favicon = png(1500);
+		const result = await fetchMerchantImage(
+			{ name: "Trader Joes", domain: "traderjoes.com" },
+			(async (url: string) =>
+				String(url).includes("itunes")
+					? searchResponse("TJ Near & Hot: Grocery Finder", "DNNR Tech")
+					: imageResponse(200, favicon)) as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
+	});
+
+	it("returns none when every tier refuses", async () => {
+		const result = await fetchMerchantImage(
+			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
+			(async (url: string) =>
+				String(url).includes("itunes")
+					? searchResponse("ZOX.", "ZOX, LLC")
+					: notFound) as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "none" });
+	});
+
+	it("returns none without calling out when there is no name or domain", async () => {
 		const fetchImpl = jest.fn();
-		expect(
-			await fetchLogo(null, fetchImpl as unknown as typeof fetch),
-		).toStrictEqual({
-			kind: "none",
-		});
+		const result = await fetchMerchantImage(
+			{ name: "", domain: null },
+			fetchImpl as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "none" });
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
-	it("returns none for the 404 a miss actually arrives as", async () => {
-		const result = await fetchLogo("nope.example", async () =>
-			respond(404, "image/png", png(726)),
+	it("survives a thrown request", async () => {
+		const result = await fetchMerchantImage(
+			{ name: "Netflix", domain: "netflix.com" },
+			(async () => {
+				throw new Error("offline");
+			}) as unknown as typeof fetch,
 		);
-		expect(result).toStrictEqual({ kind: "none" });
-	});
 
-	it("returns none when the request throws", async () => {
-		const result = await fetchLogo("netflix.com", async () => {
-			throw new Error("offline");
-		});
-		expect(result).toStrictEqual({ kind: "none" });
-	});
-
-	it("returns none when the body is not an image", async () => {
-		const html = new TextEncoder().encode(
-			"<html>not an image</html>".repeat(40),
-		);
-		const result = await fetchLogo("netflix.com", async () =>
-			respond(200, "image/png", html),
-		);
 		expect(result).toStrictEqual({ kind: "none" });
 	});
 });
