@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, View } from "react-native";
+import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
 import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
@@ -10,6 +11,7 @@ import type { Database } from "@/db/client";
 import { accountLabel, signInFailureMessage } from "@/domain/account";
 import { useTranslation } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
+import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = NonNullable<typeof authClient>;
 
@@ -27,6 +29,11 @@ function Account({ client, db }: { client: AuthClient; db: Database }) {
 	const { data: session, isPending: restoring } = client.useSession();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const {
+		busy: signingIn,
+		error: signInError,
+		start,
+	} = useProviderSignIn(client);
 
 	// The outbox is dropped first: its entries name rows this device is no longer
 	// replicating, and leaving them would push edits made while signed out to
@@ -67,17 +74,40 @@ function Account({ client, db }: { client: AuthClient; db: Database }) {
 		);
 	};
 
-	if (!session) {
+	if (!session && restoring) {
 		return (
 			<SettingsScreen>
 				<Header
 					eyebrow={t("settings.account.eyebrow")}
-					title={t(
-						restoring
-							? "settings.account.checking"
-							: "settings.account.notSignedIn",
-					)}
+					title={t("settings.account.checking")}
 				/>
+			</SettingsScreen>
+		);
+	}
+
+	if (!session) {
+		return (
+			<SettingsScreen>
+				<Header
+					detail={t("settings.account.signedOutDetail")}
+					eyebrow={t("settings.account.eyebrow")}
+					title={t("settings.account.notSignedIn")}
+				/>
+
+				<SettingsSection
+					footer={t("settings.account.signInFooter")}
+					title={t("settings.account.signInSection")}
+				>
+					<View className="py-4">
+						<ProviderSignInButtons
+							busy={signingIn}
+							fallbackClassName="text-muted text-subtitle leading-snug"
+							start={start}
+						/>
+					</View>
+				</SettingsSection>
+
+				{signInError ? <Failure message={signInError} /> : null}
 			</SettingsScreen>
 		);
 	}
