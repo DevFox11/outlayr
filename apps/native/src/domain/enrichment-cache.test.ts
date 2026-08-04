@@ -1,6 +1,7 @@
 import {
 	clearEnrichmentCache,
 	getCachedEnrichment,
+	type RemoteEnrichmentResult,
 	setCachedEnrichment,
 } from "./enrichment-cache";
 
@@ -81,6 +82,39 @@ describe("setCachedEnrichment eviction", () => {
 		expect(getCachedEnrichment("merchant-1")).toStrictEqual({
 			hit: true,
 			value: null,
+		});
+	});
+});
+
+describe("shared-cache fields on RemoteEnrichmentResult", () => {
+	it("round-trips a cache hit carrying logoKey, logoUrl and grounding", () => {
+		const value: RemoteEnrichmentResult = {
+			categoryName: "Healthcare",
+			isNewCategory: false,
+			tags: ["pharmacy"],
+			domain: "farmatodo.com",
+			logoKey: "merchant/farmatodo",
+			logoUrl: "https://r2.example.com/merchant/farmatodo",
+			grounding: false,
+		};
+		setCachedEnrichment("farmatodo", value);
+		expect(getCachedEnrichment("farmatodo")).toStrictEqual({
+			hit: true,
+			value,
+		});
+	});
+
+	it("omits logoKey, logoUrl and grounding without a type error", () => {
+		const value: RemoteEnrichmentResult = {
+			categoryName: "Entertainment",
+			isNewCategory: false,
+			tags: [],
+			domain: null,
+		};
+		setCachedEnrichment("netflix", value);
+		expect(getCachedEnrichment("netflix")).toStrictEqual({
+			hit: true,
+			value,
 		});
 	});
 });
