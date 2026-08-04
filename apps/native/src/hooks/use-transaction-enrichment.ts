@@ -48,7 +48,11 @@ export interface UseTransactionEnrichmentArgs {
 	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
 	remoteEnabled?: boolean;
 	locale?: string;
-	/** The `groundedLookup` setting; the server re-checks it too (ADR-6). */
+	/**
+	 * The `groundedLookup` setting; gates the idle follow-up call only — the
+	 * fast tier never requests grounding (see `runGroundedFollowUp`). The
+	 * server re-checks it too (ADR-6).
+	 */
 	groundedLookup?: boolean;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
@@ -64,6 +68,13 @@ export interface UseTransactionEnrichmentResult {
 }
 
 const DEBOUNCE_MS = 600;
+/**
+ * A grounded search costs ~3x more than assumed (measured: one answer bills 3
+ * search calls). Waiting this much longer than `DEBOUNCE_MS` before allowing
+ * it means a mid-name pause (e.g. "Rio" before "rio supermercado" finishes)
+ * never spends a grounded lookup on a fragment.
+ */
+const GROUNDED_IDLE_MS = 1800;
 const MIN_KEY_LENGTH = 3;
 export const REMOTE_TIMEOUT_MS = 4000;
 
@@ -165,8 +176,13 @@ export function useTransactionEnrichment(
 
 	const nameRef = useRef("");
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const requestIdRef = useRef(0);
 	const inFlightRef = useRef<Set<string>>(new Set());
+	const lastRemoteOutcomeRef = useRef<{
+		key: string;
+		hasDomain: boolean;
+	} | null>(null);
 
 	const enabledRef = useRef(enabled);
 	enabledRef.current = enabled;
@@ -232,7 +248,9 @@ export function useTransactionEnrichment(
 							name: branch.name,
 							children: [...branch.children],
 						})),
-						groundedLookup: groundedLookupRef.current,
+						// The fast tier never requests grounding — see
+						// `runGroundedFollowUp` for the idle-gated retry.
+						groundedLookup: false,
 					}),
 					new Promise<null>((resolve) => {
 						setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
@@ -242,6 +260,7 @@ export function useTransactionEnrichment(
 				result = null;
 			}
 			inFlightRef.current.delete(key);
+			lastRemoteOutcomeRef.current = { key, hasDomain: result?.domain != null };
 			if (id !== requestIdRef.current) {
 				return;
 			}
@@ -257,6 +276,42 @@ export function useTransactionEnrichment(
 		},
 		[emit, emitNothing],
 	);
+
+	/**
+	 * Fires once, `GROUNDED_IDLE_MS` after the name last changed. Only issues a
+	 * second transport call — this time with `groundedLookup: true` — when the
+	 * fast tier's own result for this exact key already came back with no
+	 * domain; a fast result WITH a domain, or one that hasn't resolved yet,
+	 * means no follow-up. The setting gates this call entirely: when it is
+	 * off, device egress must stay unchanged (spec's "off" scenario).
+	 */
+	const runGroundedFollowUp = useCallback(() => {
+		if (!groundedLookupRef.current) {
+			return;
+		}
+		const key = merchantKey(nameRef.current);
+		const outcome = lastRemoteOutcomeRef.current;
+		if (outcome == null || outcome.key !== key || outcome.hasDomain) {
+			return;
+		}
+		const call =
+			transportRef.current === undefined
+				? enrichmentTransport()
+				: transportRef.current;
+		if (call == null) {
+			return;
+		}
+		void call({
+			name: nameRef.current.trim(),
+			income: incomeRef.current,
+			locale: localeRef.current,
+			categoryTree: treeRef.current.map((branch) => ({
+				name: branch.name,
+				children: [...branch.children],
+			})),
+			groundedLookup: true,
+		});
+	}, []);
 
 	const run = useCallback(() => {
 		const key = merchantKey(nameRef.current);
@@ -297,15 +352,26 @@ export function useTransactionEnrichment(
 			if (timerRef.current != null) {
 				clearTimeout(timerRef.current);
 			}
+			if (groundedTimerRef.current != null) {
+				clearTimeout(groundedTimerRef.current);
+			}
 			timerRef.current = setTimeout(run, DEBOUNCE_MS);
+			groundedTimerRef.current = setTimeout(
+				runGroundedFollowUp,
+				GROUNDED_IDLE_MS,
+			);
 		},
-		[run],
+		[run, runGroundedFollowUp],
 	);
 
 	const teardown = useCallback(() => {
 		if (timerRef.current != null) {
 			clearTimeout(timerRef.current);
 			timerRef.current = null;
+		}
+		if (groundedTimerRef.current != null) {
+			clearTimeout(groundedTimerRef.current);
+			groundedTimerRef.current = null;
 		}
 		requestIdRef.current += 1;
 		inFlightRef.current.clear();

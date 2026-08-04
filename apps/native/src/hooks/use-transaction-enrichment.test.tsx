@@ -14,6 +14,7 @@ import {
 } from "./use-transaction-enrichment";
 
 const DEBOUNCE_MS = 600;
+const GROUNDED_IDLE_MS = 1800;
 const UNKNOWN = "zzq unresolvable merchant alpha";
 const OTHER_UNKNOWN = "zzq unresolvable merchant beta";
 
@@ -260,7 +261,7 @@ describe("tier 2: remote fallback", () => {
 		]);
 	});
 
-	it("sends groundedLookup true by default", async () => {
+	it("the fast 600ms pass always sends groundedLookup false", async () => {
 		const { fn, calls } = deferredTransport();
 		const { result } = await renderHook(() =>
 			useTransactionEnrichment(baseArgs({ transport: fn })),
@@ -271,10 +272,80 @@ describe("tier 2: remote fallback", () => {
 			jest.advanceTimersByTime(DEBOUNCE_MS);
 		});
 
-		expect(calls[0].args.groundedLookup).toBe(true);
+		expect(calls[0].args.groundedLookup).toBe(false);
 	});
 
-	it("sends groundedLookup sourced from the setting when it is off", async () => {
+	it("typing then settling issues exactly one grounded-enabled follow-up call", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(2);
+		expect(calls[0].args.groundedLookup).toBe(false);
+		expect(calls[1].args.groundedLookup).toBe(true);
+	});
+
+	it("typing a prefix then continuing issues no grounded call for the abandoned prefix", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange("Rio");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(1000);
+		});
+		result.current.onNameChange("Rio supermercado");
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS);
+		});
+
+		expect(calls.every((call) => call.args.groundedLookup === false)).toBe(
+			true,
+		);
+	});
+
+	it("a fast result with a domain issues no follow-up", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle(REMOTE_RESULT);
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(1);
+	});
+
+	it("never issues a grounded-enabled follow-up when the setting is off", async () => {
 		const { fn, calls } = deferredTransport();
 		const { result } = await renderHook(() =>
 			useTransactionEnrichment(
@@ -286,8 +357,20 @@ describe("tier 2: remote fallback", () => {
 		await act(async () => {
 			jest.advanceTimersByTime(DEBOUNCE_MS);
 		});
-
 		expect(calls[0].args.groundedLookup).toBe(false);
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(1);
 	});
 
 	it("reuses a cached negative result rather than calling again", async () => {
@@ -477,6 +560,19 @@ describe("unmount and disable", () => {
 		jest.advanceTimersByTime(DEBOUNCE_MS);
 
 		expect(onSuggest).not.toHaveBeenCalled();
+	});
+
+	it("unmount cancels both the fast and grounded-follow-up timers", async () => {
+		const { fn } = deferredTransport();
+		const { result, unmount } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await unmount();
+		jest.advanceTimersByTime(GROUNDED_IDLE_MS + 1);
+
+		expect(fn).not.toHaveBeenCalled();
 	});
 
 	it("is fully inert when disabled: no timer, no suggestion, constant pending flags", async () => {
