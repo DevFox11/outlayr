@@ -102,7 +102,7 @@ jest.mock("@/contexts/local-data-context", () => ({
 	useLocalData: () => ({ db: dbHolder.current }),
 }));
 
-const mockUseTransactionEnrichment = jest.fn(() => ({
+const mockUseTransactionEnrichment = jest.fn((..._args: unknown[]) => ({
 	onNameChange: () => {},
 	pending: false,
 }));
