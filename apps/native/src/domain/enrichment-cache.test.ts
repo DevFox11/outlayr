@@ -86,15 +86,13 @@ describe("setCachedEnrichment eviction", () => {
 	});
 });
 
-describe("shared-cache fields on RemoteEnrichmentResult", () => {
-	it("round-trips a cache hit carrying logoKey, logoUrl and grounding", () => {
+describe("grounding field on RemoteEnrichmentResult", () => {
+	it("round-trips a cache hit carrying grounding", () => {
 		const value: RemoteEnrichmentResult = {
 			categoryName: "Healthcare",
 			isNewCategory: false,
 			tags: ["pharmacy"],
 			domain: "farmatodo.com",
-			logoKey: "merchant/farmatodo",
-			logoUrl: "https://r2.example.com/merchant/farmatodo",
 			grounding: false,
 		};
 		setCachedEnrichment("farmatodo", value);
@@ -104,7 +102,7 @@ describe("shared-cache fields on RemoteEnrichmentResult", () => {
 		});
 	});
 
-	it("omits logoKey, logoUrl and grounding without a type error", () => {
+	it("omits grounding without a type error", () => {
 		const value: RemoteEnrichmentResult = {
 			categoryName: "Entertainment",
 			isNewCategory: false,

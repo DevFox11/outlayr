@@ -203,7 +203,6 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 				parentCategoryName: null,
 				emoji: "💊",
 				tags: ["pharmacy"],
-				logoKey: null,
 				resolvedAt: Date.now(),
 				modelId: "test-model",
 			}),
@@ -449,8 +448,6 @@ describe("runSuggest sanitisation", () => {
 			emoji: null,
 			tags: ["Music", "Streaming"],
 			domain: "netflix.com",
-			logoKey: null,
-			logoUrl: null,
 			grounding: false,
 		});
 	});

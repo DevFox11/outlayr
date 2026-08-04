@@ -23,7 +23,6 @@ import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bgn from "../lib/bgn.js";
 import type * as lib_currencies from "../lib/currencies.js";
-import type * as lib_logoAcceptance from "../lib/logoAcceptance.js";
 import type * as lib_merchantKey from "../lib/merchantKey.js";
 import type * as lib_merchantTrust from "../lib/merchantTrust.js";
 import type * as lib_photoKeys from "../lib/photoKeys.js";
@@ -55,7 +54,6 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/bgn": typeof lib_bgn;
   "lib/currencies": typeof lib_currencies;
-  "lib/logoAcceptance": typeof lib_logoAcceptance;
   "lib/merchantKey": typeof lib_merchantKey;
   "lib/merchantTrust": typeof lib_merchantTrust;
   "lib/photoKeys": typeof lib_photoKeys;

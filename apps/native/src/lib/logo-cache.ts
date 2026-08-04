@@ -21,18 +21,9 @@ function directory(): Directory {
  * The lookup key, not a filename the user ever sees — folded to letters and
  * digits so `Netflix`, `netflix` and `NETFLIX.COM` all land on one entry and
  * nothing can escape the directory.
- *
- * `logoKey` folds in the shared-cache object key when one is known, so a
- * merchant whose stored image changed (a new `logoKey` after re-resolution)
- * lands on a fresh on-device entry instead of serving the stale bytes under
- * the old one forever.
  */
-export function logoCacheKey(
-	name: string,
-	domain: string | null,
-	logoKey?: string | null,
-): string {
-	const folded = `${name}|${domain ?? ""}|${logoKey ?? ""}`
+export function logoCacheKey(name: string, domain: string | null): string {
+	const folded = `${name}|${domain ?? ""}`
 		.normalize("NFD")
 		.replace(/\p{Diacritic}/gu, "")
 		.toLocaleLowerCase()

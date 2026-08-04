@@ -8,11 +8,7 @@ import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
 import { rateLimiter } from "./enrichment";
-import {
-	fetchOwnOriginLogo,
-	runGroundedLookup,
-	runGroundedLookupCall,
-} from "./groundedLookup";
+import { runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
 import { budgetConfig } from "./lib/spend";
 import schema from "./schema";
 
@@ -337,22 +333,11 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 			sourceUrl: "https://farmatodo.com/about",
 		});
 
-		// A stub, never the real `fetch`: this is a published-candidate test, not
-		// an image-fetch one — see the `fetchOwnOriginLogo` suite below for that.
-		const noLogo = vi.fn(async () => {
-			throw new Error("no network in tests");
-		});
-
 		await t.action(async (ctx) =>
-			runGroundedLookup(
-				ctx,
-				BASE_ARGS,
-				{
-					grounding,
-					groundingTools: { web_search: fakeWebSearchTool },
-				},
-				noLogo as unknown as typeof fetch,
-			),
+			runGroundedLookup(ctx, BASE_ARGS, {
+				grounding,
+				groundingTools: { web_search: fakeWebSearchTool },
+			}),
 		);
 
 		const knowledge = await t.run((ctx) =>
@@ -364,10 +349,8 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 		expect(knowledge).toMatchObject({
 			categoryName: "Healthcare",
 			domain: "farmatodo.com",
-			// On ANY logo-fetch failure the metadata still writes — absence of an
-			// image is never a reason to withhold category/tags/domain.
-			logoKey: null,
 		});
+		expect(knowledge).not.toHaveProperty("logoKey");
 
 		const spend = await t.run((ctx) => ctx.db.query("groundedSpend").collect());
 		expect(spend).toHaveLength(1);
@@ -401,121 +384,39 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 	});
 });
 
-function pngBytes(length: number): Uint8Array {
-	const bytes = new Uint8Array(length).fill(0x42);
-	bytes.set([0x89, 0x50, 0x4e, 0x47], 0);
-	return bytes;
-}
+describe("runGroundedLookupCall domain guard (model-hallucinated denylisted domain)", () => {
+	test.each([
+		["img.logo.dev", "https://img.logo.dev/about"],
+		["itunes.apple.com", "https://itunes.apple.com/about"],
+		["is1-ssl.mzstatic.com", "https://is1-ssl.mzstatic.com/about"],
+	])(
+		"nulls a corroborated but denylisted domain %s",
+		async (domain, sourceUrl) => {
+			const grounding = mockTextModel(
+				JSON.stringify({ ...CONFIDENT_PAYLOAD, domain }),
+				{ sourceUrl },
+			);
 
-function fakeResponse(options: {
-	url: string;
-	status?: number;
-	contentType?: string | null;
-	bytes?: Uint8Array;
-}): Response {
-	const bytes = options.bytes ?? new Uint8Array(0);
-	return {
-		url: options.url,
-		status: options.status ?? 200,
-		headers: {
-			get: (name: string) =>
-				name.toLowerCase() === "content-type"
-					? (options.contentType ?? null)
-					: null,
+			const outcome = await runGroundedLookupCall(
+				{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
+				BASE_ARGS,
+			);
+
+			expect(outcome.candidate.domain).toBeNull();
 		},
-		arrayBuffer: async () =>
-			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-	} as unknown as Response;
-}
+	);
 
-describe("fetchOwnOriginLogo (ADR-8, T2, T10)", () => {
-	test("a redirect to a different host is rejected even though the bytes are a valid image", async () => {
-		const fetchImpl = vi.fn(async () =>
-			fakeResponse({
-				url: "https://attacker.example/apple-touch-icon.png",
-				contentType: "image/png",
-				bytes: pngBytes(1024),
-			}),
+	test("keeps an ordinary corroborated domain untouched", async () => {
+		const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
+			sourceUrl: "https://farmatodo.com/about",
+		});
+
+		const outcome = await runGroundedLookupCall(
+			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
+			BASE_ARGS,
 		);
 
-		await expect(
-			fetchOwnOriginLogo("farmatodo.com", fetchImpl as unknown as typeof fetch),
-		).resolves.toBeNull();
-	});
-
-	test("a 600 KB body is rejected as too large", async () => {
-		const fetchImpl = vi.fn(async () =>
-			fakeResponse({
-				url: "https://farmatodo.com/apple-touch-icon.png",
-				contentType: "image/png",
-				bytes: pngBytes(600_000),
-			}),
-		);
-
-		await expect(
-			fetchOwnOriginLogo("farmatodo.com", fetchImpl as unknown as typeof fetch),
-		).resolves.toBeNull();
-	});
-
-	test("a logo.dev domain is never fetched server-side", async () => {
-		const fetchImpl = vi.fn();
-
-		await expect(
-			fetchOwnOriginLogo("img.logo.dev", fetchImpl as unknown as typeof fetch),
-		).resolves.toBeNull();
-		expect(fetchImpl).not.toHaveBeenCalled();
-	});
-
-	test("an itunes.apple.com or mzstatic.com domain is never fetched server-side", async () => {
-		const fetchImpl = vi.fn();
-
-		await fetchOwnOriginLogo(
-			"itunes.apple.com",
-			fetchImpl as unknown as typeof fetch,
-		);
-		await fetchOwnOriginLogo(
-			"is1-ssl.mzstatic.com",
-			fetchImpl as unknown as typeof fetch,
-		);
-
-		expect(fetchImpl).not.toHaveBeenCalled();
-	});
-
-	test("accepts a real own-origin image and reports its content type", async () => {
-		const bytes = pngBytes(1024);
-		const fetchImpl = vi.fn(async (input: string | URL | Request) =>
-			fakeResponse({
-				url: String(input),
-				contentType: "image/png",
-				bytes,
-			}),
-		);
-
-		await expect(
-			fetchOwnOriginLogo("farmatodo.com", fetchImpl as unknown as typeof fetch),
-		).resolves.toStrictEqual({ bytes, contentType: "image/png" });
-		expect(fetchImpl).toHaveBeenCalledWith(
-			"https://farmatodo.com/apple-touch-icon.png",
-			expect.anything(),
-		);
-	});
-
-	test("falls through to /favicon.ico when apple-touch-icon.png fails", async () => {
-		const bytes = pngBytes(1024);
-		const fetchImpl = vi.fn(async (input: string | URL | Request) =>
-			String(input).endsWith("apple-touch-icon.png")
-				? fakeResponse({ url: String(input), status: 404 })
-				: fakeResponse({
-						url: String(input),
-						contentType: "image/png",
-						bytes,
-					}),
-		);
-
-		await expect(
-			fetchOwnOriginLogo("farmatodo.com", fetchImpl as unknown as typeof fetch),
-		).resolves.toStrictEqual({ bytes, contentType: "image/png" });
-		expect(fetchImpl).toHaveBeenCalledTimes(2);
+		expect(outcome.candidate.domain).toBe("farmatodo.com");
 	});
 });
 

@@ -220,8 +220,8 @@ describe("TransactionForm groundedLookup wiring", () => {
 	});
 });
 
-describe("TransactionForm shared-cache logo wiring", () => {
-	it("passes a remote suggestion's logoUrl and logoKey into fetchMerchantImage", async () => {
+describe("TransactionForm merchant logo wiring", () => {
+	it("passes a remote suggestion's domain into fetchMerchantImage", async () => {
 		const db = dbHolder.current as Database;
 		await render(
 			<Providers>
@@ -236,22 +236,16 @@ describe("TransactionForm shared-cache logo wiring", () => {
 				tagIds: [],
 				pendingTagNames: [],
 				domain: "example.com",
-				logoUrl: "https://r2.example/merchant/example",
-				logoKey: "merchant/example",
 				source: "remote",
 			});
 		});
 
 		expect(mockFetchMerchantImage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				domain: "example.com",
-				logoUrl: "https://r2.example/merchant/example",
-				logoKey: "merchant/example",
-			}),
+			expect.objectContaining({ domain: "example.com" }),
 		);
 	});
 
-	it("passes null logoUrl and logoKey for a curated suggestion", async () => {
+	it("passes a null domain for a curated suggestion with none", async () => {
 		const db = dbHolder.current as Database;
 		await render(
 			<Providers>
@@ -265,15 +259,13 @@ describe("TransactionForm shared-cache logo wiring", () => {
 				pendingCategory: null,
 				tagIds: [],
 				pendingTagNames: [],
-				domain: "netflix.com",
-				logoUrl: null,
-				logoKey: null,
+				domain: null,
 				source: "curated",
 			});
 		});
 
 		expect(mockFetchMerchantImage).toHaveBeenCalledWith(
-			expect.objectContaining({ logoUrl: null, logoKey: null }),
+			expect.objectContaining({ domain: null }),
 		);
 	});
 });

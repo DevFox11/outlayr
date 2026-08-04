@@ -6,6 +6,10 @@ jest.mock("@/lib/logo-cache", () => ({
 	writeCachedLogo: () => {},
 }));
 
+jest.mock("@outlayr/env/native", () => ({
+	env: { EXPO_PUBLIC_LOGO_DEV_TOKEN: "pk_test" },
+}));
+
 function png(length = 1024): Uint8Array {
 	const bytes = new Uint8Array(length).fill(0x42);
 	bytes.set([0x89, 0x50, 0x4e, 0x47], 0);
@@ -40,48 +44,40 @@ describe("url builders", () => {
 });
 
 describe("fetchMerchantImage", () => {
-	it("tries the shared cached logo before logo.dev and the favicon", async () => {
-		const shared = png(900);
+	it("tries logo.dev before the favicon, with no shared-cache tier ahead of it", async () => {
+		const branded = png(900);
 		const calls: string[] = [];
 		const result = await fetchMerchantImage(
-			{
-				name: "zzqq nothing",
-				domain: "zzqq-nothing.example",
-				logoUrl: "https://r2.example/merchant/zzqq",
-			},
+			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
 			(async (url: string) => {
 				calls.push(String(url));
-				return String(url) === "https://r2.example/merchant/zzqq"
-					? imageResponse(200, shared)
+				return String(url).includes("img.logo.dev")
+					? imageResponse(200, branded)
 					: notFound;
 			}) as unknown as typeof fetch,
 		);
 
-		expect(result).toStrictEqual({ kind: "logo", bytes: shared });
-		expect(calls).toStrictEqual(["https://r2.example/merchant/zzqq"]);
-		expect(calls.some((u) => u.includes("img.logo.dev"))).toBe(false);
-		expect(calls.some((u) => u.includes("s2/favicons"))).toBe(false);
+		expect(result).toStrictEqual({ kind: "logo", bytes: branded });
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toContain("img.logo.dev");
 	});
 
-	it("falls through to the favicon tier when the shared cached logo url refuses", async () => {
+	it("falls through to the favicon tier when logo.dev refuses", async () => {
 		const favicon = png(1200);
 		const calls: string[] = [];
 		const result = await fetchMerchantImage(
-			{
-				name: "zzqq nothing",
-				domain: "zzqq-nothing.example",
-				logoUrl: "https://r2.example/merchant/zzqq",
-			},
+			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
 			(async (url: string) => {
 				calls.push(String(url));
-				return String(url) === "https://r2.example/merchant/zzqq"
+				return String(url).includes("img.logo.dev")
 					? notFound
 					: imageResponse(200, favicon);
 			}) as unknown as typeof fetch,
 		);
 
 		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
-		expect(calls[0]).toBe("https://r2.example/merchant/zzqq");
+		expect(calls[0]).toContain("img.logo.dev");
+		expect(calls[1]).toContain("s2/favicons");
 	});
 
 	it("returns none when every tier refuses", async () => {
@@ -115,31 +111,27 @@ describe("fetchMerchantImage", () => {
 		expect(result).toStrictEqual({ kind: "none" });
 	});
 
-	it("falls all the way through to no image when a rejected shared logo and every domain tier refuse", async () => {
-		const result = await fetchMerchantImage(
-			{
-				name: "",
-				domain: "zzqq-nothing.example",
-				logoUrl: "https://r2.example/merchant/zzq",
-			},
-			(async () => notFound) as unknown as typeof fetch,
-		);
+	it("skips straight to the favicon when no logo.dev token is configured", async () => {
+		jest.resetModules();
+		jest.doMock("@outlayr/env/native", () => ({
+			env: { EXPO_PUBLIC_LOGO_DEV_TOKEN: undefined },
+		}));
+		const { fetchMerchantImage: fetchWithNoToken } =
+			require("./logo-fetch") as typeof import("./logo-fetch");
 
-		expect(result).toStrictEqual({ kind: "none" });
-	});
-
-	it("skips the shared cached logo tier entirely when no logoUrl is given", async () => {
-		const fetchImpl = jest.fn(async (_url: string) => notFound);
-
-		await fetchMerchantImage(
+		const favicon = png(1300);
+		const calls: string[] = [];
+		const result = await fetchWithNoToken(
 			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
-			fetchImpl as unknown as typeof fetch,
+			(async (url: string) => {
+				calls.push(String(url));
+				return imageResponse(200, favicon);
+			}) as unknown as typeof fetch,
 		);
 
-		expect(
-			(fetchImpl.mock.calls as [string][]).some(([url]) =>
-				url.includes("r2.example"),
-			),
-		).toBe(false);
+		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toContain("s2/favicons");
+		jest.dontMock("@outlayr/env/native");
 	});
 });

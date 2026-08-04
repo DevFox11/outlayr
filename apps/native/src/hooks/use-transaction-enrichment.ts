@@ -33,8 +33,6 @@ export interface EnrichmentSuggestion {
 	tagIds: readonly string[];
 	pendingTagNames: readonly string[];
 	domain: string | null;
-	logoUrl: string | null;
-	logoKey: string | null;
 	source: "curated" | "remote";
 }
 
@@ -125,8 +123,6 @@ function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 		tagIds: [],
 		pendingTagNames: match.tags,
 		domain: match.domain,
-		logoUrl: null,
-		logoKey: null,
 		source: "curated",
 	};
 }
@@ -151,8 +147,6 @@ function toRemoteSuggestion(
 		tagIds: [],
 		pendingTagNames: result.tags,
 		domain: result.domain,
-		logoUrl: result.logoUrl ?? null,
-		logoKey: result.logoKey ?? null,
 		source: "remote",
 	};
 }
@@ -222,8 +216,6 @@ export function useTransactionEnrichment(
 			tagIds: [],
 			pendingTagNames: [],
 			domain: null,
-			logoUrl: null,
-			logoKey: null,
 			source: "curated",
 		});
 	}, []);
