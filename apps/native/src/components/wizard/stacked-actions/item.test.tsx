@@ -124,6 +124,27 @@ describe("StackedActionsItem — pointerEvents and accessibility gating", () => 
 		announce.mockRestore();
 	});
 
+	it("a busy item is non-tappable and assistive-unreachable even when not disabled (W-11)", async () => {
+		const onPress = jest.fn();
+		const { getByTestId } = await render(
+			<StackedActions>
+				<StackedActionsItem
+					busy
+					label="Importing"
+					onPress={onPress}
+					testID="strip-busy"
+				/>
+			</StackedActions>,
+		);
+		const item = getByTestId("strip-busy", { includeHiddenElements: true });
+		expect(item.props.pointerEvents).toBe("none");
+		expect(item.props.accessibilityElementsHidden).toBe(true);
+		expect(item.props.importantForAccessibility).toBe("no-hide-descendants");
+
+		fireEvent.press(item);
+		expect(onPress).not.toHaveBeenCalled();
+	});
+
 	it("a plain item (no confirmLabel) fires onPress on the first press", async () => {
 		const onPress = jest.fn();
 		const { getByTestId } = await renderStrip({ onPressBack: onPress });

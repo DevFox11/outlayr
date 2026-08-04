@@ -47,6 +47,30 @@ describe("WizardContent child validation", () => {
 		expect(getByText("B")).toBeTruthy();
 	});
 
+	it("only the active step's content is mounted; the previous step's is unmounted", async () => {
+		function twoSteps(step: Step) {
+			return withWizard(
+				step,
+				<WizardContent>
+					<WizardStep name="a">
+						<Text>A</Text>
+					</WizardStep>
+					<WizardStep name="b">
+						<Text>B</Text>
+					</WizardStep>
+				</WizardContent>,
+			);
+		}
+		const { getByText, queryByText, rerender } = await render(twoSteps("a"));
+		expect(getByText("A")).toBeTruthy();
+		expect(queryByText("B")).toBeNull();
+
+		await rerender(twoSteps("b"));
+
+		expect(getByText("B")).toBeTruthy();
+		expect(queryByText("A")).toBeNull();
+	});
+
 	it("throws in __DEV__ on a duplicate <Wizard.Step name>", async () => {
 		await expect(
 			render(

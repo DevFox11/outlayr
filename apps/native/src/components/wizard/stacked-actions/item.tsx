@@ -61,7 +61,8 @@ export function StackedActionsItem({
 	const { index1 } = position;
 
 	const active = expandedIndex === index1;
-	const interactive = isInteractive(index1, expandedIndex) && !disabled;
+	const interactive =
+		isInteractive(index1, expandedIndex) && !disabled && !busy;
 
 	function handlePress() {
 		if (!interactive || busy) {

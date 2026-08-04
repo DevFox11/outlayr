@@ -179,16 +179,27 @@ describe("ImportSheet", () => {
 			},
 			gaps: [],
 		});
+		importDraftStore.dispatch({
+			type: "resolutionSettled",
+			outcome: "applied",
+			reason: null,
+			links: new Map(),
+			fromModel: new Set(),
+		});
 		importDraftStore.setStep("resolve");
 		importDraftStore.commitDismissal();
 		expect(importDraftStore.getSnapshot().ui.resumed).toBe(true);
+		mockCsvImportContext = baseCsvImportContext({ outcome: "applied" });
 
-		const { getByTestId, queryByTestId } = await render(<ImportSheet />);
+		const { getByTestId, getByText, queryByTestId } = await render(
+			<ImportSheet />,
+		);
 
 		expect(getByTestId("import-chrome-title")).toHaveTextContent(
 			"import.titleResolve",
 		);
 		expect(getByTestId("import-resume-notice")).toBeTruthy();
+		expect(getByText('import.resolveReviewCta:{"count":0}')).toBeTruthy();
 
 		fireEvent.press(getByTestId("import-chrome-back"));
 

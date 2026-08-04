@@ -235,6 +235,17 @@ describe("useImportReview", () => {
 		expect(result.current.onToggle).toBe(first);
 	});
 
+	it("writes nothing to the database before commit is invoked", async () => {
+		const db = dbHolder.current as Database;
+		await seedCategories(db);
+		withReview();
+
+		const { result } = await renderHook(() => useImportReview());
+		await waitFor(() => expect(result.current.plan.entries.length).toBe(2));
+
+		expect((await db.select().from(transactions)).length).toBe(0);
+	});
+
 	it("onCommit writes every non-excluded entry, clears the draft, navigates back and reports success", async () => {
 		const db = dbHolder.current as Database;
 		await seedCategories(db);
