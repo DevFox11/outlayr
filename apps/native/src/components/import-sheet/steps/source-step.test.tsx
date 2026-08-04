@@ -4,6 +4,7 @@ import { SourceStep } from "./source-step";
 const mockPush = jest.fn();
 const mockDismissAll = jest.fn();
 const mockDispatch = jest.fn();
+const mockGoTo = jest.fn();
 
 jest.mock("expo-router", () => ({
 	useRouter: () => ({ push: mockPush, dismissAll: mockDismissAll }),
@@ -18,8 +19,13 @@ jest.mock("@/theme/use-colors", () => ({
 		background: "#F2F0EA",
 	}),
 }));
-jest.mock("@/contexts/import-flow-context", () => ({
-	useImportFlow: () => ({ state: null, dispatch: mockDispatch }),
+jest.mock("@/components/wizard", () => ({
+	useWizard: () => ({ goTo: mockGoTo }),
+}));
+jest.mock("@/lib/import-draft-store", () => ({
+	importDraftStore: {
+		dispatch: (...args: unknown[]) => mockDispatch(...args),
+	},
 }));
 jest.mock("@/domain/import-sources", () => ({
 	IMPORT_SOURCES: [
@@ -29,7 +35,6 @@ jest.mock("@/domain/import-sources", () => ({
 			subtitleKey: "settings.import.sourceCsvSubtitle",
 			icon: [],
 			available: true,
-			entryRoute: "/import/file",
 		},
 		{
 			id: "ofx",
@@ -37,7 +42,6 @@ jest.mock("@/domain/import-sources", () => ({
 			subtitleKey: "settings.import.sourceCsvSubtitle",
 			icon: [],
 			available: false,
-			entryRoute: "/import/file",
 		},
 	],
 }));
@@ -47,6 +51,7 @@ describe("SourceStep", () => {
 		mockPush.mockClear();
 		mockDismissAll.mockClear();
 		mockDispatch.mockClear();
+		mockGoTo.mockClear();
 	});
 
 	it("renders every registry row", async () => {
@@ -57,7 +62,7 @@ describe("SourceStep", () => {
 		expect(rows).toHaveLength(2);
 	});
 
-	it("renders an unavailable entry disabled, with no chevron and a Coming soon subtitle", async () => {
+	it("renders an unavailable entry disabled, with no chevron and a Coming soon subtitle, and tapping it moves nothing", async () => {
 		const { getByText, getAllByRole } = await render(<SourceStep />);
 		expect(getByText("import.sourceComingSoon")).toBeTruthy();
 
@@ -70,11 +75,11 @@ describe("SourceStep", () => {
 		);
 
 		fireEvent.press(disabledRow);
-		expect(mockPush).not.toHaveBeenCalled();
 		expect(mockDispatch).not.toHaveBeenCalled();
+		expect(mockGoTo).not.toHaveBeenCalled();
 	});
 
-	it("advances when the available CSV row is tapped", async () => {
+	it("dispatches sourceSelected and moves the cursor to file when the available CSV row is tapped, with no router push", async () => {
 		const { getAllByRole } = await render(<SourceStep />);
 		const rows = getAllByRole("button", {
 			name: /settings.import.sourceCsvTitle/,
@@ -85,7 +90,8 @@ describe("SourceStep", () => {
 			type: "sourceSelected",
 			sourceId: "csv",
 		});
-		expect(mockPush).toHaveBeenCalledWith("/import/file");
+		expect(mockGoTo).toHaveBeenCalledWith("file");
+		expect(mockPush).not.toHaveBeenCalled();
 	});
 
 	it("pushes /settings/import and dismisses the sheet from Map columns manually", async () => {

@@ -7,8 +7,8 @@ import { Component, type ReactNode } from "react";
 import { Text } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import type { Database } from "@/db/client";
+import { importDraftStore } from "@/lib/import-draft-store";
 import { CsvImportProvider, useCsvImportContext } from "./csv-import-context";
-import { ImportFlowProvider } from "./import-flow-context";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
@@ -44,15 +44,14 @@ jest.mock("@/contexts/local-data-context", () => ({
 
 beforeEach(() => {
 	dbHolder.current = migratedDb();
+	importDraftStore.clear();
 });
 
 function Providers({ children }: { children: React.ReactNode }) {
 	return (
-		<ImportFlowProvider>
-			<AppSettingsProvider>
-				<CsvImportProvider>{children}</CsvImportProvider>
-			</AppSettingsProvider>
-		</ImportFlowProvider>
+		<AppSettingsProvider>
+			<CsvImportProvider>{children}</CsvImportProvider>
+		</AppSettingsProvider>
 	);
 }
 
