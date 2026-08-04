@@ -103,7 +103,7 @@ export interface EnrichmentRequest {
 	regionCode?: string;
 	/** Names only — the shape of the ledger, never its figures. */
 	categoryTree: CategoryBranch[];
-	/** The synced `groundedLookup` setting; the server re-checks it too (ADR-6). */
+	/** The synced `groundedLookup` setting; the server re-checks it too. */
 	groundedLookup: boolean;
 }
 

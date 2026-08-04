@@ -24,7 +24,6 @@ export interface PendingCategory {
 	icon: string;
 	color: string;
 	emoji: string | null;
-	/** An existing top-level category this one will be nested under. */
 	parentName: string | null;
 }
 
@@ -53,11 +52,7 @@ export interface UseTransactionEnrichmentArgs {
 	 * user may run an English UI on a device set to a different region.
 	 */
 	regionCode?: string;
-	/**
-	 * The `groundedLookup` setting; gates the idle follow-up call only — the
-	 * fast tier never requests grounding (see `runGroundedFollowUp`). The
-	 * server re-checks it too (ADR-6).
-	 */
+	/** The server re-checks the `groundedLookup` setting independently. */
 	groundedLookup?: boolean;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
@@ -286,14 +281,7 @@ export function useTransactionEnrichment(
 		[emit, emitNothing],
 	);
 
-	/**
-	 * Fires once, `GROUNDED_IDLE_MS` after the name last changed. Only issues a
-	 * second transport call — this time with `groundedLookup: true` — when the
-	 * fast tier's own result for this exact key already came back with no
-	 * domain; a fast result WITH a domain, or one that hasn't resolved yet,
-	 * means no follow-up. The setting gates this call entirely: when it is
-	 * off, device egress must stay unchanged (spec's "off" scenario).
-	 */
+	/** A fast result that already carried a domain suppresses this follow-up entirely. */
 	const runGroundedFollowUp = useCallback(() => {
 		if (!groundedLookupRef.current) {
 			return;
