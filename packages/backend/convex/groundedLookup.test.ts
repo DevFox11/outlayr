@@ -443,12 +443,12 @@ describe("fetchOwnOriginLogo (ADR-8, T2, T10)", () => {
 		).resolves.toBeNull();
 	});
 
-	test("a 300 KB body is rejected as too large", async () => {
+	test("a 600 KB body is rejected as too large", async () => {
 		const fetchImpl = vi.fn(async () =>
 			fakeResponse({
 				url: "https://farmatodo.com/apple-touch-icon.png",
 				contentType: "image/png",
-				bytes: pngBytes(300_000),
+				bytes: pngBytes(600_000),
 			}),
 		);
 

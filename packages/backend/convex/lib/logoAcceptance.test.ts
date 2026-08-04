@@ -79,9 +79,15 @@ describe("isRealLogo", () => {
 		).toStrictEqual({ ok: false, reason: "too-small" });
 	});
 
-	it("rejects an oversized payload", () => {
+	it("accepts a multi-resolution icon", () => {
 		expect(
 			isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 300_000)),
+		).toStrictEqual({ ok: true });
+	});
+
+	it("rejects an oversized payload", () => {
+		expect(
+			isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 600_000)),
 		).toStrictEqual({ ok: false, reason: "too-large" });
 	});
 
