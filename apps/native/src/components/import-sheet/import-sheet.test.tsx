@@ -48,6 +48,16 @@ describe("ImportSheet", () => {
 		importDraftStore.clear();
 	});
 
+	it("calls store.commitDismissal() exactly once when the sheet root unmounts", async () => {
+		const spy = jest.spyOn(importDraftStore, "commitDismissal");
+		const { unmount } = await render(<ImportSheet />);
+
+		await unmount();
+
+		expect(spy).toHaveBeenCalledTimes(1);
+		spy.mockRestore();
+	});
+
 	it("shows no footer on the source step", async () => {
 		const { queryByTestId } = await render(<ImportSheet />);
 		expect(queryByTestId("import-chrome-footer")).toBeNull();
@@ -115,7 +125,105 @@ describe("ImportSheet", () => {
 		});
 	});
 
-	it("calls router.back on Cancel, and unmount unconditionally clears the draft (discard-only in this slice)", async () => {
+	it("shows the resume notice on the resumed step, and the first setStep clears it", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 42 },
+			parsed: {
+				header: ["date", "description", "amount"],
+				rows: [["01/08/2026", "Coffee", "3,50"]],
+				width: 3,
+			},
+			draft: {
+				category: 1,
+				note: 1,
+				date: 0,
+				amount: 2,
+				currency: null,
+				type: null,
+			},
+			resolved: {
+				mapping: {
+					category: 1,
+					note: 1,
+					date: 0,
+					amount: 2,
+					currency: null,
+					type: null,
+				},
+				labelSource: "descriptionColumn",
+			},
+			gaps: [],
+		});
+		importDraftStore.setStep("resolve");
+		importDraftStore.commitDismissal();
+		expect(importDraftStore.getSnapshot().ui.resumed).toBe(true);
+
+		const { getByTestId, queryByTestId } = await render(<ImportSheet />);
+
+		expect(getByTestId("import-chrome-title")).toHaveTextContent(
+			"import.titleResolve",
+		);
+		expect(getByTestId("import-resume-notice")).toBeTruthy();
+
+		fireEvent.press(getByTestId("import-chrome-back"));
+
+		await waitFor(() => {
+			expect(getByTestId("import-chrome-title")).toHaveTextContent(
+				"import.titleFile",
+			);
+		});
+		expect(queryByTestId("import-resume-notice")).toBeNull();
+		expect(importDraftStore.getSnapshot().ui.resumed).toBe(false);
+	});
+
+	it("Start over resets the resumed draft to the source step", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 42 },
+			parsed: {
+				header: ["date", "description", "amount"],
+				rows: [["01/08/2026", "Coffee", "3,50"]],
+				width: 3,
+			},
+			draft: {
+				category: 1,
+				note: 1,
+				date: 0,
+				amount: 2,
+				currency: null,
+				type: null,
+			},
+			resolved: {
+				mapping: {
+					category: 1,
+					note: 1,
+					date: 0,
+					amount: 2,
+					currency: null,
+					type: null,
+				},
+				labelSource: "descriptionColumn",
+			},
+			gaps: [],
+		});
+		importDraftStore.setStep("resolve");
+		importDraftStore.commitDismissal();
+
+		const { getByTestId } = await render(<ImportSheet />);
+		fireEvent.press(getByTestId("import-resume-start-over"));
+
+		await waitFor(() => {
+			expect(getByTestId("import-chrome-title")).toHaveTextContent(
+				"import.titleSource",
+			);
+		});
+		expect(importDraftStore.getSnapshot().flow.sourceId).toBeNull();
+	});
+
+	it("calls router.back on Cancel, and unmount discards a non-resumable draft (no file parsed yet)", async () => {
 		const { getByText, unmount } = await render(<ImportSheet />);
 		await act(async () => {
 			importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });

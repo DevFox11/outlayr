@@ -123,6 +123,14 @@ const importSheet = {
 			en: "Review",
 			es: "Revisar",
 		}),
+		"import.resumeNotice": t({
+			en: "Picking up where you left off.",
+			es: "Continuamos donde lo dejaste.",
+		}),
+		"import.startOver": t({
+			en: "Start over",
+			es: "Empezar de nuevo",
+		}),
 		"import.resolveConsentHeading": t({
 			en: "What leaves your device",
 			es: "Qué sale de tu dispositivo",

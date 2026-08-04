@@ -18,6 +18,8 @@ export type FileStepError =
 export interface ImportDraftUi {
 	step: ImportStep;
 	fileError: FileStepError | null;
+	/** True only for the first render after a resumed reopen; cleared by any dispatch/setStep. */
+	resumed: boolean;
 }
 
 export interface ImportDraftSnapshot {
@@ -28,32 +30,66 @@ export interface ImportDraftSnapshot {
 export interface ImportDraftStore {
 	getSnapshot(): ImportDraftSnapshot;
 	subscribe(listener: () => void): () => void;
+	/** Committed only by `commitDismissal`/`clear`, so this rarely changes. */
+	getResumeStep(): ImportStep;
+	subscribeResume(listener: () => void): () => void;
 	dispatch(event: ImportFlowEvent): void;
 	setStep(step: ImportStep): void;
 	setFileError(error: FileStepError | null): void;
+	/** Called from the sheet root's unmount cleanup. */
+	commitDismissal(): void;
 	clear(): void;
 }
 
-const INITIAL_UI: ImportDraftUi = { step: "source", fileError: null };
+const INITIAL_UI: ImportDraftUi = {
+	step: "source",
+	fileError: null,
+	resumed: false,
+};
 const INITIAL_SNAPSHOT: ImportDraftSnapshot = {
 	flow: INITIAL_IMPORT_FLOW_STATE,
 	ui: INITIAL_UI,
 };
 
-/**
- * Discard-only in this slice: the draft dies with the route on every
- * dismissal path. `commitDismissal`/`resumeStep`/`isResumable` land in the
- * resume slice (design §2.1) without reshaping this factory.
- */
+export function isResumable(flow: ImportFlowState): boolean {
+	return flow.parsed != null;
+}
+
 export function createImportDraftStore(): ImportDraftStore {
 	let snapshot: ImportDraftSnapshot = INITIAL_SNAPSHOT;
+	let resumeStep: ImportStep = "source";
 	const listeners = new Set<() => void>();
+	const resumeListeners = new Set<() => void>();
 
 	function commit(next: ImportDraftSnapshot) {
 		snapshot = next;
 		for (const listener of listeners) {
 			listener();
 		}
+	}
+
+	function commitResumeStep(next: ImportStep) {
+		if (next === resumeStep) {
+			return;
+		}
+		resumeStep = next;
+		for (const listener of resumeListeners) {
+			listener();
+		}
+	}
+
+	function clear() {
+		commit(INITIAL_SNAPSHOT);
+		commitResumeStep("source");
+	}
+
+	function commitDismissal() {
+		if (!isResumable(snapshot.flow)) {
+			clear();
+			return;
+		}
+		commitResumeStep(snapshot.ui.step);
+		commit({ ...snapshot, ui: { ...snapshot.ui, resumed: true } });
 	}
 
 	return {
@@ -64,24 +100,30 @@ export function createImportDraftStore(): ImportDraftStore {
 			listeners.add(listener);
 			return () => listeners.delete(listener);
 		},
+		getResumeStep() {
+			return resumeStep;
+		},
+		subscribeResume(listener) {
+			resumeListeners.add(listener);
+			return () => resumeListeners.delete(listener);
+		},
 		dispatch(event) {
 			const flow = importFlowReducer(snapshot.flow, event);
-			if (flow !== snapshot.flow) {
-				commit({ ...snapshot, flow });
+			if (flow !== snapshot.flow || snapshot.ui.resumed) {
+				commit({ ...snapshot, flow, ui: { ...snapshot.ui, resumed: false } });
 			}
 		},
 		setStep(step) {
-			if (step === snapshot.ui.step) {
+			if (step === snapshot.ui.step && !snapshot.ui.resumed) {
 				return;
 			}
-			commit({ ...snapshot, ui: { ...snapshot.ui, step } });
+			commit({ ...snapshot, ui: { ...snapshot.ui, step, resumed: false } });
 		},
 		setFileError(error) {
 			commit({ ...snapshot, ui: { ...snapshot.ui, fileError: error } });
 		},
-		clear() {
-			commit(INITIAL_SNAPSHOT);
-		},
+		commitDismissal,
+		clear,
 	};
 }
 
