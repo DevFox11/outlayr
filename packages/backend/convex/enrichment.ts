@@ -414,28 +414,18 @@ export async function maybeScheduleGrounded(
 	args: GroundedScheduleArgs,
 ): Promise<boolean> {
 	if (!args.groundedLookup) {
-		console.log(
-			"[grounded] NOT scheduled: client sent groundedLookup:false (Feature Lab toggle off)",
-		);
 		return false;
 	}
 	const consented = await ctx.runQuery(internal.enrichment.groundedConsent, {});
 	if (!consented) {
-		console.log(
-			"[grounded] NOT scheduled: synced appMeta consent row says false",
-		);
 		return false;
 	}
 	const gate = await rateLimiter.limit(ctx, "groundedPerUser", {
 		key: tokenIdentifier,
 	});
 	if (!gate.ok) {
-		console.log(
-			`[grounded] NOT scheduled: per-user gate (5/day); retry in ${gate.retryAfter}ms`,
-		);
 		return false;
 	}
-	console.log(`[grounded] scheduling lookup for "${args.name}"`);
 	await ctx.scheduler.runAfter(0, internal.groundedLookup.run, {
 		key: merchantKey(args.name),
 		name: args.name,
@@ -454,10 +444,8 @@ export const suggest = action({
 	args: suggestArgs,
 	returns: suggestion,
 	handler: async (ctx, args): Promise<Suggestion> => {
-		console.log("[enrichment] in:", JSON.stringify(args));
 		const identity = await ctx.auth.getUserIdentity();
 		if (identity === null) {
-			console.log("[enrichment] BAIL 1/6: signed out — getUserIdentity() null");
 			return EMPTY;
 		}
 
@@ -466,9 +454,6 @@ export const suggest = action({
 			trimmedName.length < MIN_NAME_LENGTH ||
 			trimmedName.length > MAX_NAME_LENGTH
 		) {
-			console.log(
-				`[enrichment] BAIL 2/6: name length ${trimmedName.length} outside [${MIN_NAME_LENGTH}, ${MAX_NAME_LENGTH}]`,
-			);
 			return EMPTY;
 		}
 
@@ -479,7 +464,6 @@ export const suggest = action({
 			key: merchantKey(trimmedName),
 		});
 		if (cached !== null) {
-			console.log("[enrichment] shared-cache HIT:", JSON.stringify(cached));
 			return {
 				...applyToTree(args.categoryTree, cached),
 				logoKey: cached.logoKey,
@@ -487,15 +471,9 @@ export const suggest = action({
 				grounding: false,
 			};
 		}
-		console.log(
-			`[enrichment] shared-cache miss for key "${merchantKey(trimmedName)}"`,
-		);
 
 		const apiKey = process.env.XAI_API_KEY;
 		if (!apiKey) {
-			console.log(
-				"[enrichment] BAIL 3/6: XAI_API_KEY unset on this deployment — run `npx convex env set XAI_API_KEY ...`",
-			);
 			return EMPTY;
 		}
 
@@ -503,20 +481,13 @@ export const suggest = action({
 			key: identity.tokenIdentifier,
 		});
 		if (!perUser.ok) {
-			console.log(
-				`[enrichment] BAIL 4/6: per-user rate limit (30/h, burst 8); retry in ${perUser.retryAfter}ms`,
-			);
 			return EMPTY;
 		}
 
 		const global = await rateLimiter.limit(ctx, "enrichmentGlobal");
 		if (!global.ok) {
-			console.log(
-				`[enrichment] BAIL 5/6: global rate limit (2000/h); retry in ${global.retryAfter}ms`,
-			);
 			return EMPTY;
 		}
-		console.log(`[enrichment] calling xAI for "${trimmedName}"`);
 
 		try {
 			const xaiProvider = createXai({ apiKey });
@@ -528,10 +499,6 @@ export const suggest = action({
 				categoryTree: args.categoryTree,
 			});
 
-			console.log(
-				`[enrichment] xAI out for "${trimmedName}":`,
-				JSON.stringify(result),
-			);
 			// A missing domain counts as a miss, not just a missing category. The
 			// model can infer "Supermercados X" is groceries from the name alone,
 			// but it cannot invent a regional chain's domain — so the case that
@@ -549,9 +516,6 @@ export const suggest = action({
 						locale: args.locale,
 					},
 				);
-				console.log(
-					`[enrichment] miss (category=${result.categoryName === null ? "null" : "ok"}, domain=${result.domain === null ? "null" : "ok"}); grounded lookup scheduled = ${scheduled}`,
-				);
 				// Whatever the model did answer is kept — blanking it would throw
 				// away a good category to report a missing logo. `grounding: true`
 				// is what stops the client caching this as final.
@@ -559,11 +523,10 @@ export const suggest = action({
 					return { ...result, grounding: true };
 				}
 			}
-			console.log("[enrichment] out:", JSON.stringify(result));
 			return result;
 		} catch (error) {
 			console.warn(
-				`[enrichment] BAIL 6/6: xAI call threw for "${trimmedName}" (model ${process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID}):`,
+				`[enrichment] xAI call threw for "${trimmedName}":`,
 				error instanceof Error
 					? `${error.name}: ${error.message}`
 					: String(error),
