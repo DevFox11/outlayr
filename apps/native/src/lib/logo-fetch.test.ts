@@ -122,4 +122,71 @@ describe("fetchMerchantImage", () => {
 
 		expect(result).toStrictEqual({ kind: "none" });
 	});
+
+	it("tries the shared cached logo before the domain-based tiers", async () => {
+		const shared = png(900);
+		const calls: string[] = [];
+		const result = await fetchMerchantImage(
+			{
+				name: "zzqq nothing",
+				domain: "zzqq-nothing.example",
+				logoUrl: "https://r2.example/merchant/zzqq",
+			},
+			(async (url: string) => {
+				calls.push(String(url));
+				if (String(url).includes("itunes")) {
+					return searchResponse("ZOX.", "ZOX, LLC");
+				}
+				if (String(url) === "https://r2.example/merchant/zzqq") {
+					return imageResponse(200, shared);
+				}
+				return notFound;
+			}) as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "logo", bytes: shared });
+		expect(calls.some((u) => u.includes("img.logo.dev"))).toBe(false);
+		expect(calls.some((u) => u.includes("s2/favicons"))).toBe(false);
+	});
+
+	it("falls through to the favicon tier when the shared cached logo url refuses", async () => {
+		const favicon = png(1200);
+		const result = await fetchMerchantImage(
+			{
+				name: "zzqq nothing",
+				domain: "zzqq-nothing.example",
+				logoUrl: "https://r2.example/merchant/zzqq",
+			},
+			(async (url: string) => {
+				if (String(url).includes("itunes")) {
+					return searchResponse("ZOX.", "ZOX, LLC");
+				}
+				if (String(url) === "https://r2.example/merchant/zzqq") {
+					return notFound;
+				}
+				return imageResponse(200, favicon);
+			}) as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
+	});
+
+	it("skips the shared cached logo tier entirely when no logoUrl is given", async () => {
+		const fetchImpl = jest.fn(async (url: string) =>
+			String(url).includes("itunes")
+				? searchResponse("ZOX.", "ZOX, LLC")
+				: notFound,
+		);
+
+		await fetchMerchantImage(
+			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
+			fetchImpl as unknown as typeof fetch,
+		);
+
+		expect(
+			(fetchImpl.mock.calls as [string][]).some(([url]) =>
+				url.includes("r2.example"),
+			),
+		).toBe(false);
+	});
 });

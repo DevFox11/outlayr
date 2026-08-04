@@ -108,6 +108,10 @@ export interface MerchantImageRequest {
 	name: string;
 	/** The resolved domain, used by the logo and favicon tiers. */
 	domain: string | null;
+	/** A signed url from a `merchantKnowledge` cache hit, if any. */
+	logoUrl?: string | null;
+	/** The shared-cache object key backing `logoUrl`, folded into the on-device cache key. */
+	logoKey?: string | null;
 }
 
 /**
@@ -128,7 +132,9 @@ export async function fetchMerchantImage(
 	} catch {
 		cache = null;
 	}
-	const key = cache?.logoCacheKey(request.name.trim(), request.domain) ?? "";
+	const key =
+		cache?.logoCacheKey(request.name.trim(), request.domain, request.logoKey) ??
+		"";
 	const cached = (await cache?.readCachedLogo(key)) ?? {
 		kind: "unknown" as const,
 	};
@@ -155,6 +161,13 @@ async function resolveMerchantImage(
 		const icon = await fetchAppIcon(term, fetchImpl);
 		if (icon.kind === "logo") {
 			return icon;
+		}
+	}
+
+	if (request.logoUrl) {
+		const shared = await fetchAccepted(request.logoUrl, fetchImpl);
+		if (shared.kind === "logo") {
+			return shared;
 		}
 	}
 
