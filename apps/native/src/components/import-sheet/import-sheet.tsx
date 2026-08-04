@@ -14,6 +14,7 @@ import {
 import { type TranslationKey, useTranslation } from "@/i18n";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
 import { ImportSheetChrome } from "./chrome";
+import { ResumeNotice } from "./resume-notice";
 import { FileStep } from "./steps/file-step";
 import { ResolveStep } from "./steps/resolve-step";
 import { SourceStep } from "./steps/source-step";
@@ -32,7 +33,7 @@ export function ImportSheet() {
 
 	useEffect(() => {
 		return () => {
-			importDraftStore.clear();
+			importDraftStore.commitDismissal();
 		};
 	}, []);
 
@@ -102,6 +103,9 @@ function ImportSheetShell() {
 				onCancel={exit}
 				title={t(STEP_TITLE[step])}
 			>
+				{draft.ui.resumed ? (
+					<ResumeNotice onStartOver={() => importDraftStore.clear()} />
+				) : null}
 				<Wizard.Content>
 					<Wizard.Step name="source">
 						<SourceStep />

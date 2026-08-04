@@ -111,6 +111,59 @@ describe("CsvImportProvider", () => {
 		expect(captured.a).toBe(captured.b);
 	});
 
+	it("does not clobber a resolved draft on remount, and never re-dispatches resolutionSettled from a fresh hook (design §2.3.1 regression guard)", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 42 },
+			parsed: {
+				header: ["date", "description", "amount"],
+				rows: [["01/08/2026", "Coffee", "3,50"]],
+				width: 3,
+			},
+			draft: {
+				category: 1,
+				note: 1,
+				date: 0,
+				amount: 2,
+				currency: null,
+				type: null,
+			},
+			resolved: {
+				mapping: {
+					category: 1,
+					note: 1,
+					date: 0,
+					amount: 2,
+					currency: null,
+					type: null,
+				},
+				labelSource: "descriptionColumn",
+			},
+			gaps: [],
+		});
+		importDraftStore.dispatch({
+			type: "resolutionSettled",
+			outcome: "applied",
+			reason: null,
+			links: new Map([["coffee", "cat-1"]]),
+			fromModel: new Set(),
+		});
+		const resolutionBefore = importDraftStore.getSnapshot().flow.resolution;
+
+		await render(
+			<Providers>
+				<ProbeA />
+			</Providers>,
+		);
+		await waitFor(() => expect(captured.a).not.toBeNull());
+
+		expect(importDraftStore.getSnapshot().flow.resolution).toBe(
+			resolutionBefore,
+		);
+		expect(captured.a?.outcome).toBeNull();
+	});
+
 	it("throws when consumed outside CsvImportProvider instead of silently returning undefined", async () => {
 		const consoleError = jest
 			.spyOn(console, "error")

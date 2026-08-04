@@ -421,6 +421,31 @@ describe("changing the selected file resets a settled resolution", () => {
 	});
 });
 
+describe("resuming with the same file after a remount stays idle (design §2.3.2 regression guard)", () => {
+	it("never auto-runs on a fresh mount whose fileKey matches a prior, already-settled session", async () => {
+		const { fn } = deferredTransport();
+		const args = baseArgs({
+			fileKey: "resumed-file",
+			labels: ["netflix"],
+			categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+			transport: fn,
+		});
+
+		const first = await renderHook(() => useCsvImport(args));
+		await act(async () => {
+			first.result.current.run();
+		});
+		expect(first.result.current.outcome).toBe("applied");
+		await first.unmount();
+
+		const second = await renderHook(() => useCsvImport(args));
+
+		expect(second.result.current.running).toBe(false);
+		expect(second.result.current.outcome).toBeNull();
+		expect(fn).not.toHaveBeenCalled();
+	});
+});
+
 describe("any throw during the run settles unavailable instead of rejecting", () => {
 	it("recovers when on-device resolution throws", async () => {
 		const spy = jest

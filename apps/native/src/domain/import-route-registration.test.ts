@@ -36,6 +36,20 @@ describe("_layout.tsx: import sheet registration", () => {
 	});
 });
 
+describe("_layout.tsx: import sheet resume-aware initial detent", () => {
+	it('derives the initial sheetAllowedDetents from the resume step, not a hardcoded "source"', () => {
+		expect(screenBlock("import")).toMatch(
+			/sheetAllowedDetents:\s*importStepDetents\(resumeStep,\s*windowHeight\)/,
+		);
+	});
+
+	it("subscribes to the draft store's resume primitive via useSyncExternalStore", () => {
+		expect(LAYOUT_SOURCE).toMatch(
+			/useSyncExternalStore\(\s*importDraftStore\.subscribeResume,\s*importDraftStore\.getResumeStep,?\s*\)/,
+		);
+	});
+});
+
 describe("import route: single leaf file", () => {
 	it("no per-step import route exists under app/import/", () => {
 		for (const file of [
