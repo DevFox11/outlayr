@@ -852,7 +852,7 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		patterns: ["central madeirense"],
 		categoryName: "Groceries",
 		tags: ["Groceries"],
-		domain: null,
+		domain: "centralmadeirense.com",
 	},
 	{
 		id: "automercados-plazas",
@@ -873,21 +873,21 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		patterns: ["locatel"],
 		categoryName: "Healthcare",
 		tags: ["Pharmacy"],
-		domain: null,
+		domain: "locatel.com.ve",
 	},
 	{
 		id: "farmahorro",
 		patterns: ["farmahorro"],
 		categoryName: "Healthcare",
 		tags: ["Pharmacy"],
-		domain: null,
+		domain: "farmahorro.com",
 	},
 	{
 		id: "traki",
 		patterns: ["traki"],
 		categoryName: "Shopping",
 		tags: ["Electronics"],
-		domain: null,
+		domain: "traki.com",
 	},
 	{
 		id: "mercado-libre",
@@ -1041,7 +1041,7 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		patterns: ["digitel"],
 		categoryName: "Phone & Internet",
 		tags: ["Phone"],
-		domain: null,
+		domain: "digitel.com.ve",
 	},
 ] as const;
 
