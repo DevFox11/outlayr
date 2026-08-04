@@ -2,6 +2,7 @@
 module.exports = {
 	preset: "jest-expo",
 	testMatch: ["**/*.test.ts?(x)"],
+	setupFiles: ["react-native-gesture-handler/jestSetup.js"],
 	moduleNameMapper: {
 		// See jest/worklets-stub.js for why: react-native-worklets@0.10.1's
 		// NativeWorklets.native.ts crashes at import time under jest, before

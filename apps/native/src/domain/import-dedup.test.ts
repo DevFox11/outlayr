@@ -1,0 +1,92 @@
+import type { ImportEntry } from "@/data/transfer-core";
+import {
+	dedupFingerprint,
+	fingerprintsOf,
+	flagDuplicates,
+} from "./import-dedup";
+
+function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
+	return {
+		note: "Coffee Shop",
+		categoryId: "cat-1",
+		income: false,
+		amount: 42.5,
+		currency: null,
+		date: new Date(2026, 7, 1, 9, 30),
+		...overrides,
+	};
+}
+
+describe("dedupFingerprint", () => {
+	it("matches two rows on the same day, amount, direction and note", () => {
+		const a = dedupFingerprint(entry({ date: new Date(2026, 7, 1, 8, 0) }));
+		const b = dedupFingerprint(entry({ date: new Date(2026, 7, 1, 20, 0) }));
+		expect(a).toBe(b);
+	});
+
+	it("differs when the day differs", () => {
+		const a = dedupFingerprint(entry({ date: new Date(2026, 7, 1) }));
+		const b = dedupFingerprint(entry({ date: new Date(2026, 7, 2) }));
+		expect(a).not.toBe(b);
+	});
+
+	it("differs when the direction differs", () => {
+		const a = dedupFingerprint(entry({ income: false }));
+		const b = dedupFingerprint(entry({ income: true }));
+		expect(a).not.toBe(b);
+	});
+
+	it("differs when the amount differs", () => {
+		const a = dedupFingerprint(entry({ amount: 42.5 }));
+		const b = dedupFingerprint(entry({ amount: 42.6 }));
+		expect(a).not.toBe(b);
+	});
+
+	it("folds note text the same way merchantKey does", () => {
+		const a = dedupFingerprint(entry({ note: "Café Central" }));
+		const b = dedupFingerprint(entry({ note: "CAFE CENTRAL" }));
+		expect(a).toBe(b);
+	});
+
+	it("does not match differing note text — no fuzzy matching", () => {
+		const a = dedupFingerprint(entry({ note: "Coffee Shop" }));
+		const b = dedupFingerprint(entry({ note: "Coffee Shop #2" }));
+		expect(a).not.toBe(b);
+	});
+});
+
+describe("fingerprintsOf", () => {
+	it("returns one fingerprint per existing row", () => {
+		const rows = [
+			{ date: new Date(2026, 7, 1), amount: 10, income: false, note: "A" },
+			{ date: new Date(2026, 7, 2), amount: 20, income: true, note: "B" },
+		];
+		const set = fingerprintsOf(rows);
+		expect(set.size).toBe(2);
+		expect(set.has(dedupFingerprint(rows[0]))).toBe(true);
+		expect(set.has(dedupFingerprint(rows[1]))).toBe(true);
+	});
+});
+
+describe("flagDuplicates", () => {
+	it("flags exact indices whose fingerprint already exists", () => {
+		const entries = [
+			entry({ note: "Coffee Shop" }),
+			entry({ note: "Rent" }),
+			entry({ note: "Coffee Shop" }),
+		];
+		const existing = fingerprintsOf([
+			{
+				date: entries[0].date,
+				amount: entries[0].amount,
+				income: entries[0].income,
+				note: entries[0].note,
+			},
+		]);
+		expect(flagDuplicates(entries, existing)).toStrictEqual(new Set([0, 2]));
+	});
+
+	it("flags nothing against an empty existing set", () => {
+		expect(flagDuplicates([entry()], new Set())).toStrictEqual(new Set());
+	});
+});

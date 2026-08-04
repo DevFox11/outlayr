@@ -38,10 +38,10 @@ import {
 } from "@/contexts/local-data-context";
 import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
-import { authRoute } from "@/domain/auth-gate";
+import { rootStackGroup } from "@/domain/auth-gate";
+import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
 import {
 	LanguageProvider,
-	type TranslationKey,
 	translateNow,
 	useLanguageReady,
 	useTranslation,
@@ -53,11 +53,7 @@ import {
 	LedgerAdoptionProvider,
 	useLedgerAdoption,
 } from "@/lib/ledger-adoption";
-import {
-	CATEGORY_DETENT,
-	identityPickerDetent,
-	SUBCATEGORY_DETENT,
-} from "@/lib/sheet-detents";
+import { identityPickerDetent, importStepDetents } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
@@ -65,59 +61,6 @@ preventAutoHideAsync();
 export const unstable_settings = {
 	anchor: "(tabs)",
 };
-
-/**
- * Settings subscreens live outside `(tabs)` so pushing one drops the tab bar,
- * and on the root stack rather than a nested one so it keeps a back button.
- * `categories/index` is absent because it declares its own chrome.
- */
-const SETTINGS_SCREENS: readonly { name: string; titleKey: TranslationKey }[] =
-	[
-		{ name: "settings/about", titleKey: "nav.settings.about" },
-		{ name: "settings/account", titleKey: "nav.settings.account" },
-		{ name: "settings/app-icon", titleKey: "nav.settings.appIcon" },
-		{ name: "settings/currency", titleKey: "nav.settings.currency" },
-		{ name: "settings/deleted", titleKey: "settings.deleted.navTitle" },
-		{ name: "settings/erase", titleKey: "nav.settings.erase" },
-		{ name: "settings/export", titleKey: "nav.settings.export" },
-		{ name: "settings/feature-lab", titleKey: "nav.settings.featureLab" },
-		{ name: "settings/haptics", titleKey: "nav.settings.haptics" },
-		{ name: "settings/import", titleKey: "nav.settings.import" },
-		{ name: "settings/language", titleKey: "nav.settings.language" },
-		{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
-		{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },
-		{ name: "settings/sync", titleKey: "settings.sync.navTitle" },
-		{ name: "settings/theme", titleKey: "nav.settings.theme" },
-		{ name: "settings/time", titleKey: "nav.settings.time" },
-		{ name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
-	];
-
-const CATEGORY_SHEETS: readonly {
-	name: string;
-	titleKey: TranslationKey;
-	detent: number;
-}[] = [
-	{
-		name: "settings/categories/create",
-		titleKey: "nav.newCategory",
-		detent: CATEGORY_DETENT,
-	},
-	{
-		name: "settings/categories/[categoryId]/index",
-		titleKey: "nav.editCategory",
-		detent: CATEGORY_DETENT,
-	},
-	{
-		name: "settings/categories/[categoryId]/subcategories/create",
-		titleKey: "nav.newSubcategory",
-		detent: SUBCATEGORY_DETENT,
-	},
-	{
-		name: "settings/categories/[categoryId]/subcategories/[subcategoryId]",
-		titleKey: "nav.subcategory",
-		detent: SUBCATEGORY_DETENT,
-	},
-];
 
 /**
  * Renders in place of the provider tree it is guarding, so it reads the language
@@ -237,7 +180,8 @@ function RootStack() {
 	useSubscriptionReminderSync(db);
 	useSeededClockPreference(db);
 
-	const route = authRoute({
+	const group = rootStackGroup({
+		onboarded,
 		gate,
 		reconciled: adoption === "settled",
 		deferred,
@@ -247,7 +191,7 @@ function RootStack() {
 		<Stack>
 			{/* Declared before `(tabs)`: with the anchor guarded away on a first run,
 			    the stack opens on whatever screen is left first. */}
-			<Stack.Protected guard={!onboarded}>
+			<Stack.Protected guard={group === "onboarding"}>
 				<Stack.Screen
 					name="onboarding/index"
 					options={{ headerShown: false }}
@@ -265,95 +209,118 @@ function RootStack() {
 			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
-			<Stack.Protected guard={onboarded && route === "sign-in"}>
+			<Stack.Protected guard={group === "sign-in"}>
 				<Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
 			</Stack.Protected>
 
-			<Stack.Protected guard={onboarded && route === "adopt"}>
+			<Stack.Protected guard={group === "adopt"}>
 				<Stack.Screen
 					name="auth/adopt"
 					options={{ headerShown: false, gestureEnabled: false }}
 				/>
 			</Stack.Protected>
 
-			<Stack.Protected guard={onboarded && route === "ledger"}>
+			{/* `StackRouter.getStateForRouteNamesChange` only filters `state.routes`
+			    against the new `routeNames` and re-seats on `routeNames[0]` solely
+			    when that filter leaves zero routes. Every root screen has to sit in
+			    exactly one of these four groups — an aux screen declared outside all
+			    of them would survive a guard flip and strand the stack on it, with no
+			    tab bar and no way back. */}
+			<Stack.Protected guard={group === "ledger"}>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-			</Stack.Protected>
 
-			<Stack.Screen
-				name="search"
-				options={{
-					presentation: "modal",
-					sheetGrabberVisible: true,
-				}}
-			>
-				<Stack.Header transparent />
-				<Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
-			</Stack.Screen>
-
-			{SETTINGS_SCREENS.map((screen) => (
-				<Stack.Screen key={screen.name} name={screen.name}>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
-				</Stack.Screen>
-			))}
-			<Stack.Screen name="settings/categories/index">
-				<Stack.Header transparent />
-				<Stack.Screen.BackButton displayMode="minimal" />
-				<Stack.Screen.Title>{t("nav.categories")}</Stack.Screen.Title>
-			</Stack.Screen>
-			{CATEGORY_SHEETS.map((sheet) => (
 				<Stack.Screen
-					key={sheet.name}
-					name={sheet.name}
+					name="search"
 					options={{
-						presentation: "formSheet",
-						title: t(sheet.titleKey),
-						sheetAllowedDetents: [sheet.detent, 1],
+						presentation: "modal",
 						sheetGrabberVisible: true,
 					}}
 				>
 					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t(sheet.titleKey)}</Stack.Screen.Title>
+					<Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
 				</Stack.Screen>
-			))}
-			<Stack.Screen
-				name="settings/category-symbol"
-				options={{
-					presentation: "formSheet",
-					headerShown: false,
-					sheetGrabberVisible: true,
-					sheetAllowedDetents: [pickerDetent, 1],
-					sheetLargestUndimmedDetentIndex: 0,
-					sheetCornerRadius: 40,
-					contentStyle: { backgroundColor: "transparent" },
-				}}
-			/>
 
-			<Stack.Screen name="transaction/new" options={{ presentation: "modal" }}>
-				<Stack.Header transparent />
-				<Stack.Screen.BackButton displayMode="minimal" />
-				<Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
-			</Stack.Screen>
-			<Stack.Screen name="transaction/[id]" options={{ presentation: "modal" }}>
-				<Stack.Header transparent />
-				<Stack.Screen.BackButton displayMode="minimal" />
-				<Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
-			</Stack.Screen>
-			<Stack.Screen
-				name="transaction/identity"
-				options={{
-					presentation: "formSheet",
-					headerShown: false,
-					sheetGrabberVisible: true,
-					sheetAllowedDetents: [pickerDetent, 1],
-					sheetLargestUndimmedDetentIndex: 0,
-					sheetCornerRadius: 40,
-					contentStyle: { backgroundColor: "transparent" },
-				}}
-			/>
+				{SETTINGS_SCREENS.map((screen) => (
+					<Stack.Screen key={screen.name} name={screen.name}>
+						<Stack.Header transparent />
+						<Stack.Screen.BackButton displayMode="minimal" />
+						<Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
+					</Stack.Screen>
+				))}
+				<Stack.Screen name="settings/categories/index">
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("nav.categories")}</Stack.Screen.Title>
+				</Stack.Screen>
+				<Stack.Screen name="settings/categories/reorder" />
+				{CATEGORY_SHEETS.map((sheet) => (
+					<Stack.Screen
+						key={sheet.name}
+						name={sheet.name}
+						options={{
+							presentation: "formSheet",
+							title: t(sheet.titleKey),
+							sheetAllowedDetents: [sheet.detent, 1],
+							sheetGrabberVisible: true,
+						}}
+					>
+						<Stack.Header transparent />
+						<Stack.Screen.BackButton displayMode="minimal" />
+						<Stack.Screen.Title>{t(sheet.titleKey)}</Stack.Screen.Title>
+					</Stack.Screen>
+				))}
+				<Stack.Screen
+					name="settings/category-symbol"
+					options={{
+						presentation: "formSheet",
+						headerShown: false,
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: [pickerDetent, 1],
+						sheetLargestUndimmedDetentIndex: 0,
+						sheetCornerRadius: 40,
+						contentStyle: { backgroundColor: "transparent" },
+					}}
+				/>
+
+				<Stack.Screen
+					name="transaction/new"
+					options={{ presentation: "modal" }}
+				>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
+				</Stack.Screen>
+				<Stack.Screen
+					name="transaction/[id]"
+					options={{ presentation: "modal" }}
+				>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
+				</Stack.Screen>
+				<Stack.Screen
+					name="transaction/identity"
+					options={{
+						presentation: "formSheet",
+						headerShown: false,
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: [pickerDetent, 1],
+						sheetLargestUndimmedDetentIndex: 0,
+						sheetCornerRadius: 40,
+						contentStyle: { backgroundColor: "transparent" },
+					}}
+				/>
+				<Stack.Screen
+					name="import"
+					options={{
+						presentation: "formSheet",
+						headerShown: false,
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: importStepDetents("source", windowHeight),
+						sheetCornerRadius: 40,
+					}}
+				/>
+			</Stack.Protected>
 		</Stack>
 	);
 }
