@@ -8,6 +8,7 @@ import {
 	parseCsvAmount,
 	parseCsvDate,
 } from "@/domain/transaction-csv";
+import { transactionsRepo } from "./transactions-core";
 import {
 	applyImport,
 	buildImportPlan,
@@ -19,8 +20,31 @@ import {
 	uniqueCategoryValues,
 } from "./transfer-core";
 
-function makeDb(): Database {
+/**
+ * The better-sqlite3 client this suite injects has no `withTransactionAsync`,
+ * so `withTransaction` (src/db/transaction.ts) falls back to running its task
+ * bare — real by design for every other test here, which asserts statement
+ * order and resulting rows, not atomicity. The rollback test below needs the
+ * real boundary, so it opts in with manual BEGIN/COMMIT/ROLLBACK over the same
+ * connection, mirroring what expo-sqlite's `withTransactionAsync` gives production.
+ */
+function makeDb(options?: { withRealTransactions?: boolean }): Database {
 	const sqlite = new BetterSqlite3(":memory:");
+	if (options?.withRealTransactions) {
+		const client = sqlite as BetterSqlite3.Database & {
+			withTransactionAsync?: (task: () => Promise<void>) => Promise<void>;
+		};
+		client.withTransactionAsync = async (task) => {
+			sqlite.exec("BEGIN");
+			try {
+				await task();
+				sqlite.exec("COMMIT");
+			} catch (error) {
+				sqlite.exec("ROLLBACK");
+				throw error;
+			}
+		};
+	}
 	sqlite.exec(`
 		CREATE TABLE appMeta (key text PRIMARY KEY NOT NULL, value text);
 		CREATE TABLE exchangeRates (
@@ -550,6 +574,37 @@ describe("applyImport", () => {
 		const plan = buildImportPlan([], MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(await applyImport(db, plan)).toBe(0);
 		expect((await db.select().from(transactions)).length).toBe(0);
+	});
+
+	it("rolls back every entry when the write fails partway through", async () => {
+		const transactionalDb = makeDb({ withRealTransactions: true });
+		await seed(transactionalDb);
+		const plan = buildImportPlan(
+			rows,
+			MAPPING,
+			"yyyy-MM-dd",
+			".",
+			links,
+			income,
+		);
+		const originalCreate = transactionsRepo.create;
+		let calls = 0;
+		const spy = jest
+			.spyOn(transactionsRepo, "create")
+			.mockImplementation(async (targetDb, input) => {
+				calls += 1;
+				if (calls === 2) {
+					throw new Error("disk full");
+				}
+				return originalCreate(targetDb, input);
+			});
+
+		await expect(applyImport(transactionalDb, plan)).rejects.toThrow(
+			"disk full",
+		);
+		expect((await transactionalDb.select().from(transactions)).length).toBe(0);
+
+		spy.mockRestore();
 	});
 
 	it("leaves imported rows non-recurring", async () => {
