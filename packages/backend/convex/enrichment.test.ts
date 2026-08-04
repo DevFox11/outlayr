@@ -13,6 +13,7 @@ import {
 	REQUEST_TIMEOUT_MS,
 	rateLimiter,
 	runSuggest,
+	sanitizeDomain,
 	suggestArgs,
 } from "./enrichment";
 import { merchantKey } from "./lib/merchantKey";
@@ -633,5 +634,27 @@ describe("runSuggest sanitisation", () => {
 		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
 			emoji: null,
 		});
+	});
+});
+
+describe("sanitizeDomain", () => {
+	test("strips a leading www. so logo.dev's apex-only lookup still matches", () => {
+		expect(sanitizeDomain("www.unicasa.com.ve")).toBe("unicasa.com.ve");
+	});
+
+	test("leaves an already-apex domain unchanged", () => {
+		expect(sanitizeDomain("unicasa.com.ve")).toBe("unicasa.com.ve");
+	});
+
+	test("does not strip a host that merely starts with the letters www", () => {
+		expect(sanitizeDomain("wwwfoo.com")).toBe("wwwfoo.com");
+	});
+
+	test("rejects www. alone, since nothing remains after stripping", () => {
+		expect(sanitizeDomain("www.")).toBeNull();
+	});
+
+	test("case-folds before stripping, so WWW.NETFLIX.COM also loses its prefix", () => {
+		expect(sanitizeDomain("WWW.NETFLIX.COM")).toBe("netflix.com");
 	});
 });

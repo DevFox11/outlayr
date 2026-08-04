@@ -184,7 +184,10 @@ export function sanitizeDomain(domain: string | null): string | null {
 	if (trimmed.length === 0 || trimmed.length > MAX_DOMAIN_LENGTH) {
 		return null;
 	}
-	return DOMAIN_PATTERN.test(trimmed) ? trimmed : null;
+	// Measured: the grounded lookup returns `www.`-prefixed domains, which
+	// logo.dev's apex-only lookup would otherwise miss.
+	const apex = trimmed.startsWith("www.") ? trimmed.slice(4) : trimmed;
+	return DOMAIN_PATTERN.test(apex) ? apex : null;
 }
 
 export function sanitizeCategoryName(name: string | null): string | null {
