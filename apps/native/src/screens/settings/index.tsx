@@ -219,7 +219,7 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 				<LinkRow
 					icon="FileImport"
-					onPress={() => router.push("/settings/import")}
+					onPress={() => router.push("/import")}
 					title={t("settings.row.import")}
 				/>
 				<LinkRow
