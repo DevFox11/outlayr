@@ -6,7 +6,7 @@ import { convexTest, type TestConvex } from "convex-test";
 import { describe, expect, test } from "vitest";
 
 import { api, internal } from "./_generated/api";
-import { photoKeyFor } from "./lib/photoKeys";
+import { photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
 import { PHOTO_QUOTA_BYTES, PHOTO_URL_BATCH_LIMIT } from "./photos";
 import schema from "./schema";
 import {
@@ -291,6 +291,23 @@ describe("releaseUnreferenced", () => {
 				key,
 			}),
 		).rejects.toThrow();
+	});
+});
+
+describe("merchant cache keys stay unowned (T8)", () => {
+	test("photoOwnerFromKey returns null for a merchant key", () => {
+		expect(photoOwnerFromKey("merchant/farmatodo")).toBeNull();
+	});
+
+	test("readUrls drops a merchant key even for an authenticated caller", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+
+		await expect(
+			authenticatedAs(t, owner).query(api.photos.readUrls, {
+				keys: ["merchant/farmatodo"],
+			}),
+		).resolves.toEqual([]);
 	});
 });
 
