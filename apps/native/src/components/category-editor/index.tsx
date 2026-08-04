@@ -7,6 +7,7 @@ import {
 	opacity,
 	scrollContentBackground,
 } from "@expo/ui/swift-ui/modifiers";
+import { useStore } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,6 +19,8 @@ import Animated, {
 	useSharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppForm } from "@/components/form/create-app-form";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
 import { Text } from "@/components/text";
@@ -115,12 +118,87 @@ function CategoryEditorReady(
 	const nameState = useNativeState(loaded?.name ?? "");
 	const nameRef = useRef<TextFieldRef>(null);
 
-	const [name, setName] = useState(loaded?.name ?? "");
+	const [initialValues] = useState(() => ({
+		name: loaded?.name ?? "",
+		income: parent?.income ?? initialIncome,
+	}));
+	const form = useAppForm({
+		defaultValues: initialValues,
+		onSubmit: async ({ value }) => {
+			try {
+				if (mode === "create") {
+					const saveColor = value.income
+						? colors.income
+						: isSubcategory
+							? (parent?.color ?? draft.color ?? CATEGORY_PALETTE[0])
+							: (draft.color ?? CATEGORY_PALETTE[0]);
+					await categoriesRepo.create(db, {
+						name: value.name,
+						icon: draft.icon ?? undefined,
+						emoji: draft.emoji ?? null,
+						color: saveColor,
+						income: value.income,
+						parentId,
+					});
+					haptics("success");
+					// A top-level add stays put for a run of them; a subcategory returns
+					// to the row it was added from.
+					if (isSubcategory) {
+						router.back();
+						return await holdSubmitting();
+					}
+					nameState.set("");
+					form.setFieldValue("name", "");
+					// Cleared rather than advanced here: with `colorTouched` released,
+					// the auto-color effect assigns the first free slot AFTER this
+					// insert has landed, where a value chosen now comes from the
+					// pre-insert set.
+					setColorTouched(false);
+					setDraft({
+						emoji: null,
+						icon: null,
+						photoUri: null,
+						photoColor: null,
+						color: null,
+					});
+					flashAdded();
+					return;
+				}
+				if (loaded == null) {
+					return;
+				}
+				await categoriesRepo.update(db, loaded.id, {
+					name: value.name,
+					icon: draft.icon ?? null,
+					emoji: draft.emoji ?? null,
+					color: loaded.income
+						? undefined
+						: (draft.color ?? CATEGORY_PALETTE[0]),
+				});
+				haptics("success");
+				router.back();
+				return await holdSubmitting();
+			} catch (error) {
+				haptics("error");
+				const code =
+					error instanceof Error ? categoryErrorCode(error.message) : null;
+				const message = code
+					? t(CATEGORY_ERROR_KEYS[code])
+					: t("categories.error.generic");
+				const refocus = code === "missingName" || code === "duplicateName";
+				Alert.alert(errorTitle, message, [
+					{
+						text: t("categories.ok"),
+						onPress: refocus ? () => nameRef.current?.focus() : undefined,
+					},
+				]);
+			}
+		},
+	});
+	const { name, income: formIncome } = useStore(form.store, (s) => s.values);
+	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+
 	const [colorTouched, setColorTouched] = useState(false);
-	const [createIncome, setCreateIncome] = useState(
-		parent?.income ?? initialIncome,
-	);
-	const [saving, setSaving] = useState(false);
 	const [showToast, setShowToast] = useState(false);
 	const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	// A shared value, not state: only the fly-up reads it and it does so from the
@@ -221,7 +299,7 @@ function CategoryEditorReady(
 
 	const isSubcategory =
 		mode === "create" ? parentId != null : (loaded?.parentId ?? null) != null;
-	const income = mode === "create" ? createIncome : (loaded?.income ?? false);
+	const income = mode === "create" ? formIncome : (loaded?.income ?? false);
 	const atExpenseLimit = expenseCount >= MAX_EXPENSE_CATEGORIES;
 
 	// The sheet grows to `.large` before the picker is presented: a 430pt picker
@@ -260,9 +338,9 @@ function CategoryEditorReady(
 			return;
 		}
 		if (atExpenseLimit) {
-			setCreateIncome(true);
+			form.setFieldValue("income", true);
 		}
-	}, [mode, parentId, atExpenseLimit]);
+	}, [mode, parentId, atExpenseLimit, form.setFieldValue]);
 
 	// An add that fills the expense namespace closes the sheet. Keyed on the count
 	// CHANGING, not on its value — firing on mount would race the force-income
@@ -299,7 +377,7 @@ function CategoryEditorReady(
 			: name.trim() !== "" &&
 				(!symbolEmpty ||
 					(loaded != null && loaded.icon == null && loaded.emoji == null));
-	const canSave = valid && !saving;
+	const canSave = valid && !isSubmitting;
 
 	const namePlaceholder = t(
 		isSubcategory
@@ -370,80 +448,6 @@ function CategoryEditorReady(
 		toastTimer.current = setTimeout(() => setShowToast(false), 2000);
 	};
 
-	const submit = async () => {
-		if (saving) {
-			return;
-		}
-		setSaving(true);
-		try {
-			if (mode === "create") {
-				const saveColor = income
-					? colors.income
-					: isSubcategory
-						? (parent?.color ?? draft.color ?? CATEGORY_PALETTE[0])
-						: (draft.color ?? CATEGORY_PALETTE[0]);
-				await categoriesRepo.create(db, {
-					name,
-					icon: draft.icon ?? undefined,
-					emoji: draft.emoji ?? null,
-					color: saveColor,
-					income,
-					parentId,
-				});
-				haptics("success");
-				// A top-level add stays put for a run of them; a subcategory returns to
-				// the row it was added from.
-				if (isSubcategory) {
-					router.back();
-					return;
-				}
-				nameState.set("");
-				setName("");
-				// Cleared rather than advanced here: with `colorTouched` released, the
-				// auto-color effect assigns the first free slot AFTER this insert has
-				// landed, where a value chosen now comes from the pre-insert set.
-				setColorTouched(false);
-				setDraft({
-					emoji: null,
-					icon: null,
-					photoUri: null,
-					photoColor: null,
-					color: null,
-				});
-				flashAdded();
-				setSaving(false);
-				return;
-			}
-			if (loaded == null) {
-				setSaving(false);
-				return;
-			}
-			await categoriesRepo.update(db, loaded.id, {
-				name,
-				icon: draft.icon ?? null,
-				emoji: draft.emoji ?? null,
-				color: income ? undefined : (draft.color ?? CATEGORY_PALETTE[0]),
-			});
-			haptics("success");
-			router.back();
-		} catch (error) {
-			haptics("error");
-			const code =
-				error instanceof Error ? categoryErrorCode(error.message) : null;
-			const message = code
-				? t(CATEGORY_ERROR_KEYS[code])
-				: t("categories.error.generic");
-			const refocus = code === "missingName" || code === "duplicateName";
-			Alert.alert(errorTitle, message, [
-				{
-					text: t("categories.ok"),
-					onPress: refocus ? () => nameRef.current?.focus() : undefined,
-				},
-			]);
-			setSaving(false);
-		}
-	};
-
 	return (
 		<View
 			onLayout={(e) => {
@@ -489,9 +493,9 @@ function CategoryEditorReady(
 							nameLabel={t("categories.field.name")}
 							namePlaceholder={namePlaceholder}
 							nameState={nameState}
-							onIncomeChange={setCreateIncome}
-							onNameChange={setName}
-							onSubmitName={submit}
+							onIncomeChange={(next) => form.setFieldValue("income", next)}
+							onNameChange={(next) => form.setFieldValue("name", next)}
+							onSubmitName={() => pressSubmit(form)}
 							tintColor={colors.foreground}
 							typeLabel={t("categories.field.type")}
 							typePickerVisible={typePickerVisible}
@@ -529,7 +533,7 @@ function CategoryEditorReady(
 				<CategoryEditorCta
 					canSave={canSave}
 					label={ctaLabel}
-					onPress={submit}
+					onPress={() => pressSubmit(form)}
 					tintColor={colors.foreground}
 					underPicker={underPicker}
 				/>

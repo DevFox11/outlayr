@@ -9,7 +9,7 @@ import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { categoriesRepo } from "@/data/categories";
 import { tagsRepo } from "@/data/tags";
-import type { Transaction } from "@/data/transactions";
+import { backfillRecurring, type Transaction } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import { categories, tags, transactions } from "@/db/schema";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
@@ -59,6 +59,19 @@ jest.mock("expo-router", () => ({
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+jest.mock("@/lib/subscription-reminder-sync", () => ({
+	syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
+}));
+// `backfillRecurring` defaults to the real implementation; the re-entrancy
+// suite below overrides it once to hold the pipeline open past the row
+// commit, so it can observe the CTA before `holdSubmitting()` would settle.
+jest.mock("@/data/transactions", () => {
+	const actual = jest.requireActual("@/data/transactions");
+	return {
+		...actual,
+		backfillRecurring: jest.fn(actual.backfillRecurring),
+	};
+});
 
 // `useNativeState` bridges to a real native `ObservableState` (SwiftUI/Jetpack
 // Compose) that jest has no runtime for — unrelated to the reanimated/worklets
@@ -547,6 +560,117 @@ describe("TransactionForm", () => {
 		);
 		expect(hookOrderViolations).toHaveLength(0);
 		errorSpy.mockRestore();
+	});
+});
+
+describe("TransactionForm submit re-entrancy", () => {
+	it("does not create a second row when the CTA is pressed twice before the first save settles", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			income: false,
+			categoryId,
+			note: "",
+			details: null,
+			currency: null,
+			icon: null,
+			emoji: null,
+			customColor: null,
+		};
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={copyOf}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const saveButton = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.add",
+		);
+		expect(saveButton).not.toBeNull();
+
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+			saveButton?.props.onButtonPress();
+		});
+
+		const savedTx = await db.select().from(transactions);
+		expect(savedTx).toHaveLength(1);
+	});
+
+	it("keeps the CTA disabled through the recurrence backfill after the row commits", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			income: false,
+			categoryId,
+			note: "",
+			details: null,
+			currency: null,
+			icon: null,
+			emoji: null,
+			customColor: null,
+		};
+
+		let resolveBackfill: () => void = () => {};
+		(backfillRecurring as jest.Mock).mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					resolveBackfill = resolve;
+				}),
+		);
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={copyOf}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
+			| (JsonNode & { props: { onSelectionChange: (next: unknown) => void } })
+			| null;
+		expect(kindPicker).not.toBeNull();
+		await act(async () => {
+			kindPicker?.props.onSelectionChange({
+				nativeEvent: { selection: "subscription" },
+			});
+		});
+
+		const saveButton = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.addSubscription",
+		);
+		expect(saveButton).not.toBeNull();
+
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+		});
+
+		const savedTx = await db.select().from(transactions);
+		expect(savedTx).toHaveLength(1);
+		expect(backfillRecurring).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			resolveBackfill();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+
+		expect(JSON.stringify(toJSON())).toContain(
+			'"$type":"disabled","disabled":true',
+		);
 	});
 });
 

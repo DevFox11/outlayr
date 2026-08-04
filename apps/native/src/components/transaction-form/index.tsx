@@ -29,6 +29,7 @@ import {
 	strokeBorder,
 	tag,
 } from "@expo/ui/swift-ui/modifiers";
+import { useStore } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -40,6 +41,10 @@ import Animated, {
 	useSharedValue,
 } from "react-native-reanimated";
 import { Confetti } from "@/components/confetti";
+import { useCategoryPickerField } from "@/components/form/category-picker-field";
+import { useAppForm } from "@/components/form/create-app-form";
+import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { menuTint } from "@/components/native/styles";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import {
@@ -48,7 +53,6 @@ import {
 } from "@/contexts/identity-draft-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
-	type Category,
 	ensureCategoryByName,
 	getCategoryById,
 	useCategoriesByNamespace,
@@ -103,10 +107,7 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { AmountEntrySheet } from "../amount-entry-sheet";
 import { CategoryIcon } from "../category-icon";
-import {
-	CategoryPickerSheet,
-	type CategoryPickerSheetRef,
-} from "../category-picker-sheet";
+import { CategoryPickerSheet } from "../category-picker-sheet";
 import {
 	CustomScheduleSheet,
 	type CustomScheduleSheetRef,
@@ -151,6 +152,10 @@ const HERO_REST_TOP_FALLBACK = 88;
  * reminder on the due day for the owner who just switched reminders off.
  */
 const LEAD_OFF_TAG = -1;
+
+/** Separated from a plain "touched" flag so a later suggestion can still
+ * replace an earlier one: only a human edit ("user") locks a field. */
+type FieldSource = "initial" | "suggested" | "user";
 
 /**
  * What an outside surface — a quick action, a widget, an App Intent — can put in
@@ -202,81 +207,247 @@ export function TransactionForm({
 	/** Swift's `.padding(.horizontal, 20)` content box. */
 	const contentWidth = windowWidth - 40;
 	const globalCurrency = useGlobalCurrency(db);
-	const [txCurrency, setTxCurrency] = useState<string | null>(
-		initial?.currency ?? copyOf?.currency ?? null,
-	);
-	const currency = txCurrency ?? globalCurrency;
-	const minorUnits = minorUnitsFor(currency);
 
 	const name = useNativeState(
 		initial?.note ?? copyOf?.note ?? seed?.note ?? "",
 	);
 	const notes = useNativeState(initial?.details ?? copyOf?.details ?? "");
 
-	// Seeded from the live schedule, not `onceRecurring`: that flag stays true on
-	// every occurrence the back-fill materialized, so reading it here opens a
-	// settled charge as an active subscription and re-projects the whole schedule
-	// on save. Exactly one row in a chain carries `recurringType > 0` — the one
-	// that is genuinely still charging.
-	const [isSubscription, setIsSubscription] = useState(
-		(initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
-	);
-	// Seeded synchronously so an edit renders with its category already resolved.
-	const [category, setCategory] = useState<Category | null>(() => {
-		const sourceId = initial?.categoryId ?? copyOf?.categoryId;
-		return sourceId ? getCategoryById(db, sourceId) : null;
-	});
-	// Separated from a plain "touched" flag so a later suggestion can still
-	// replace an earlier one: only a human edit ("user") locks a field.
-	type FieldSource = "initial" | "suggested" | "user";
-	// A category carried in from `copyOf` is a deliberate choice, not a blank
-	// slot an enrichment suggestion is free to fill.
-	const [categorySource, setCategorySource] = useState<FieldSource>(() =>
-		category !== null ? "user" : "initial",
-	);
-	const [pendingCategory, setPendingCategory] =
-		useState<PendingCategory | null>(null);
-	const [income, setIncome] = useState(
-		category?.income ??
-			initial?.income ??
-			copyOf?.income ??
-			seed?.income ??
-			false,
-	);
-	const [amount, setAmount] = useState(() => {
-		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
-		return amountSeed == null
-			? ""
-			: numberToNumpad(amountSeed, minorUnitsFor(currency));
-	});
-	const [date, setDate] = useState(() =>
-		initial ? new Date(initial.date) : new Date(),
-	);
 	const { draft: identity, setDraft: setIdentity } = useIdentityDraft();
 	const [identitySource, setIdentitySource] = useState<FieldSource>("initial");
 	const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
-	const [recurringType, setRecurringType] = useState(
-		initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
-			? initial.recurringType
-			: RECURRING_TYPE.monthly,
+
+	// Frozen at mount: `useForm` re-applies changed `defaultValues` on every
+	// render while untouched, and `date`/`endDate` are `new Date()` here — an
+	// inline object would silently re-seed both to "now" every render.
+	const [initialValues] = useState(() => {
+		const sourceId = initial?.categoryId ?? copyOf?.categoryId;
+		const seedCategory = sourceId ? getCategoryById(db, sourceId) : null;
+		const currencySeed = initial?.currency ?? copyOf?.currency ?? null;
+		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
+		return {
+			txCurrency: currencySeed,
+			// Seeded from the live schedule, not `onceRecurring`: that flag stays
+			// true on every occurrence the back-fill materialized, so reading it
+			// here opens a settled charge as an active subscription and
+			// re-projects the whole schedule on save. Exactly one row in a chain
+			// carries `recurringType > 0` — the one that is genuinely still
+			// charging.
+			isSubscription:
+				(initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
+			category: seedCategory,
+			pendingCategory: null as PendingCategory | null,
+			income:
+				seedCategory?.income ??
+				initial?.income ??
+				copyOf?.income ??
+				seed?.income ??
+				false,
+			amount:
+				amountSeed == null
+					? ""
+					: numberToNumpad(
+							amountSeed,
+							minorUnitsFor(currencySeed ?? globalCurrency),
+						),
+			date: initial ? new Date(initial.date) : new Date(),
+			recurringType:
+				initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
+					? initial.recurringType
+					: RECURRING_TYPE.monthly,
+			coefficient: initial?.recurringCoefficient ?? 1,
+			hasEndDate: initial?.recurringEndDate != null,
+			endDate: initial?.recurringEndDate
+				? new Date(initial.recurringEndDate)
+				: oneYearFrom(new Date()),
+			leadDays: normalizeLead(initial?.reminderLeadDays ?? null),
+			tagIds: [] as string[],
+			pendingTagNames: [] as readonly string[],
+		};
+	});
+
+	const form = useAppForm({
+		defaultValues: initialValues,
+		onSubmit: async ({ value }) => {
+			haptics("success");
+
+			let categoryId: string;
+			if (value.category) {
+				categoryId = value.category.id;
+			} else if (value.pendingCategory) {
+				const pending = value.pendingCategory;
+				try {
+					categoryId = await ensureCategoryByName(
+						db,
+						pending.name,
+						value.income,
+						pending.icon,
+						pending.color,
+						{
+							emoji: pending.emoji,
+							// Resolved here rather than carried as an id: the suggestion
+							// names a parent, and only this ledger knows which row that is.
+							parentId:
+								pending.parentName == null
+									? null
+									: (categoriesRef.current.find(
+											(candidate) =>
+												candidate.parentId == null &&
+												candidate.name === pending.parentName,
+										)?.id ?? null),
+						},
+					);
+				} catch (error) {
+					console.error("Failed to create the pending category", error);
+					flagMissingCategory();
+					return;
+				}
+			} else {
+				// `precheckSave` already guarantees this branch is unreachable.
+				flagMissingCategory();
+				return;
+			}
+
+			const input = buildTransactionInput({
+				amount: numpadToNumber(value.amount),
+				income: value.income,
+				categoryId,
+				note: name.value,
+				details: notes.value,
+				date: value.date,
+				currency: value.txCurrency,
+				icon: identity.icon,
+				emoji: identity.emoji,
+				customColor: identity.color,
+				imageUri: identity.photoUri,
+				imageColor: identity.photoColor,
+				isSubscription: value.isSubscription,
+				recurringType: value.recurringType,
+				coefficient: value.coefficient,
+				hasEndDate: value.hasEndDate,
+				endDate: value.endDate,
+				leadDays: value.leadDays,
+			});
+			let id: string;
+			try {
+				if (mode === "edit" && initial) {
+					await transactionsRepo.update(db, initial.id, input);
+					id = initial.id;
+				} else {
+					id = await transactionsRepo.create(db, input);
+				}
+			} catch (error) {
+				console.error("Failed to save transaction", error);
+				// Nothing was written, so the retry is the same tap again — but say so
+				// first: un-dimming the CTA in silence is indistinguishable from having
+				// missed the button.
+				haptics("error");
+				Alert.alert(
+					t("transaction.save.failedTitle"),
+					t("transaction.save.failedBody"),
+				);
+				return;
+			}
+			// The row is COMMITTED from here down, so no failure below may re-enable the
+			// CTA: a second tap runs `create` again, which mints a fresh id rather than
+			// rewriting this row, and the ledger ends up with two subscriptions — each
+			// walked forward into its own chain of charges by the next sweep.
+			if (tagsSource !== "initial") {
+				// After the row exists, because the link points at it. A failure here
+				// costs the tags, not the entry, so it is reported rather than thrown.
+				try {
+					const materializedTagIds = [...effectiveTagIds];
+					for (const tagName of value.pendingTagNames) {
+						const tagId = await tagsRepo.ensureTag(db, tagName);
+						if (tagId != null && !materializedTagIds.includes(tagId)) {
+							materializedTagIds.push(tagId);
+						}
+					}
+					await tagsRepo.setTagsFor(db, id, materializedTagIds);
+				} catch (error) {
+					console.error("Failed to save tags", error);
+					Alert.alert(
+						t("transaction.tags.failedTitle"),
+						t("transaction.tags.failedBody"),
+					);
+				}
+			}
+			let scheduleFailed = false;
+			if (value.isSubscription) {
+				try {
+					await backfillRecurring(db, id);
+				} catch (error) {
+					console.error("Failed to back-fill the subscription", error);
+					scheduleFailed = true;
+				}
+			}
+			// After the backfill, which is what moves the chain's next landing: the
+			// sweep dates its requests off that. Not awaited, and its failure is not
+			// the save's: the row is already written, so a notification the queue
+			// refused must not send this down the catch and re-enable the CTA.
+			syncSubscriptionReminders(db).catch((error) => {
+				console.error("Subscription reminder sync failed", error);
+			});
+			if (scheduleFailed) {
+				haptics("error");
+				// Dismissed from the alert's own button rather than alongside it: an
+				// alert raised as the modal route is being torn down has no presenter
+				// left and never appears, which is the silence this replaces.
+				Alert.alert(
+					t("transaction.save.scheduleFailedTitle"),
+					t("transaction.save.scheduleFailedBody"),
+					[{ text: t("common.done"), onPress: onDone }],
+				);
+				return await holdSubmitting();
+			}
+			if (mode === "edit") {
+				onDone();
+				return await holdSubmitting();
+			}
+			setShowToast(true);
+			// The form owns the celebration, so it has to outlive its own
+			// dismissal: Swift fired the cannon on the screen behind the sheet,
+			// which has no equivalent here without hoisting state out of the
+			// route.
+			if (celebrate) {
+				setBurstSeed(Date.now());
+			}
+			doneTimer.current = setTimeout(
+				onDone,
+				celebrate ? CONFETTI_FLIGHT_MS : 600,
+			);
+			return await holdSubmitting();
+		},
+	});
+	const {
+		txCurrency,
+		isSubscription,
+		category,
+		pendingCategory,
+		income,
+		amount,
+		date,
+		recurringType,
+		coefficient,
+		hasEndDate,
+		endDate,
+		leadDays,
+		tagIds,
+		pendingTagNames,
+	} = useStore(form.store, (s) => s.values);
+	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+
+	const currency = txCurrency ?? globalCurrency;
+	const minorUnits = minorUnitsFor(currency);
+
+	// A category carried in from `copyOf` is a deliberate choice, not a blank
+	// slot an enrichment suggestion is free to fill.
+	const [categorySource, setCategorySource] = useState<FieldSource>(() =>
+		initialValues.category !== null ? "user" : "initial",
 	);
-	const [coefficient, setCoefficient] = useState(
-		initial?.recurringCoefficient ?? 1,
-	);
-	const [hasEndDate, setHasEndDate] = useState(
-		initial?.recurringEndDate != null,
-	);
-	const [endDate, setEndDate] = useState(() =>
-		initial?.recurringEndDate
-			? new Date(initial.recurringEndDate)
-			: oneYearFrom(new Date()),
-	);
-	const [leadDays, setLeadDays] = useState<number | null>(
-		normalizeLead(initial?.reminderLeadDays ?? null),
-	);
+
 	const [categoryError, setCategoryError] = useState(false);
 	const [categoryShake, setCategoryShake] = useState(false);
-	const [saving, setSaving] = useState(false);
 	const [showToast, setShowToast] = useState(false);
 	const celebrate = useAppSettings().state.bool("confetti");
 	const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
@@ -308,16 +479,24 @@ export function TransactionForm({
 	const isDark = scheme === "dark";
 	const router = useRouter();
 
-	const amountSheetRef = useRef<BottomSheetModal>(null);
-	const categorySheetRef = useRef<CategoryPickerSheetRef>(null);
+	const amountField = useNumpadAmountField({
+		code: currency,
+		minorUnits,
+		onChange: (next) => form.setFieldValue("amount", next),
+		onCurrencyChange: (next) => form.setFieldValue("txCurrency", next),
+		toneClass: income ? "text-income" : "text-foreground",
+		value: amount,
+	});
+	const categoryField = useCategoryPickerField((picked) => {
+		form.setFieldValue("category", picked);
+		form.setFieldValue("pendingCategory", null);
+		setCategorySource("user");
+		setCategoryError(false);
+	});
 	const tagSheetRef = useRef<BottomSheetModal>(null);
 	const allTags = useTags(db);
 	const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
-	// Seeded from the row and then owned by the form, so toggling a tag does not
-	// write until the entry is saved — the same contract every other field keeps.
-	const [tagIds, setTagIds] = useState<string[]>([]);
 	const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
-	const [pendingTagNames, setPendingTagNames] = useState<readonly string[]>([]);
 	const effectiveTagIds = tagsSource === "initial" ? savedTagIds : tagIds;
 	const selectedTagLabels = [
 		...allTags
@@ -472,21 +651,21 @@ export function TransactionForm({
 				if (suggestion.categoryId != null) {
 					const matchedCategory = getCategoryById(db, suggestion.categoryId);
 					if (matchedCategory != null) {
-						setCategory(matchedCategory);
-						setPendingCategory(null);
+						form.setFieldValue("category", matchedCategory);
+						form.setFieldValue("pendingCategory", null);
 						setCategoryError(false);
 						setCategorySource("suggested");
 					}
 				} else if (suggestion.pendingCategory != null) {
-					setCategory(null);
-					setPendingCategory(suggestion.pendingCategory);
+					form.setFieldValue("category", null);
+					form.setFieldValue("pendingCategory", suggestion.pendingCategory);
 					setCategoryError(false);
 					setCategorySource("suggested");
 				} else if (categorySource === "suggested") {
 					// This name has no answer, so the last one's category goes with it
 					// rather than captioning an entry it has nothing to do with.
-					setCategory(null);
-					setPendingCategory(null);
+					form.setFieldValue("category", null);
+					form.setFieldValue("pendingCategory", null);
 					setCategorySource("initial");
 				}
 			}
@@ -495,18 +674,20 @@ export function TransactionForm({
 					suggestion.tagIds.length > 0 ||
 					suggestion.pendingTagNames.length > 0
 				) {
-					setTagIds([...suggestion.tagIds]);
-					setPendingTagNames([...suggestion.pendingTagNames]);
+					form.setFieldValue("tagIds", [...suggestion.tagIds]);
+					form.setFieldValue("pendingTagNames", [
+						...suggestion.pendingTagNames,
+					]);
 					setTagsSource("suggested");
 				} else if (tagsSource === "suggested") {
-					setTagIds([]);
-					setPendingTagNames([]);
+					form.setFieldValue("tagIds", []);
+					form.setFieldValue("pendingTagNames", []);
 					setTagsSource("initial");
 				}
 			}
 			void attachLogo(suggestion.domain);
 		},
-		[categorySource, tagsSource, db],
+		[categorySource, tagsSource, db, form.setFieldValue, attachLogo],
 	);
 
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
@@ -564,31 +745,31 @@ export function TransactionForm({
 		copyOf?.customColor,
 	]);
 
-	const amountNumber = numpadToNumber(amount);
-	const canSave = amountNumber > 0 && !saving;
+	const amountNumber = amountField.amount;
+	const canSave = amountNumber > 0 && !isSubmitting;
 
 	const handleKindChange = (next: "once" | "subscription") => {
 		const sub = next === "subscription";
-		setIsSubscription(sub);
+		form.setFieldValue("isSubscription", sub);
 		if (sub) {
-			setRecurringType(ensureRecurringType(recurringType));
+			form.setFieldValue("recurringType", ensureRecurringType(recurringType));
 		}
 	};
 
 	const handleTypeChange = (next: "expense" | "income") => {
 		const nextIncome = next === "income";
 		if (nextIncome !== income) {
-			setIncome(nextIncome);
-			setCategory(null);
-			setPendingCategory(null);
+			form.setFieldValue("income", nextIncome);
+			form.setFieldValue("category", null);
+			form.setFieldValue("pendingCategory", null);
 			setCategorySource("initial");
 		}
 	};
 
 	// Custom intervals come from the stepper sheet, not from this menu.
 	const handleScheduleChange = (type: number) => {
-		setRecurringType(type);
-		setCoefficient(1);
+		form.setFieldValue("recurringType", type);
+		form.setFieldValue("coefficient", 1);
 	};
 
 	// The same ladder the notifications setting runs, for the same reason: a lead
@@ -616,7 +797,7 @@ export function TransactionForm({
 					},
 				],
 			);
-			setLeadDays(null);
+			form.setFieldValue("leadDays", null);
 			return;
 		}
 		if (existing === "granted") {
@@ -627,25 +808,17 @@ export function TransactionForm({
 			await armSubscriptionReminders();
 			return;
 		}
-		setLeadDays(null);
+		form.setFieldValue("leadDays", null);
 	};
 
 	const handleLeadChange = (next: number) => {
 		const lead = resolveLeadSelection(next, LEAD_OFF_TAG);
-		setLeadDays(lead);
+		form.setFieldValue("leadDays", lead);
 		if (lead !== null) {
 			confirmRemindersAllowed().catch((error) => {
 				console.error("Reminder permission check failed", error);
 			});
 		}
-	};
-
-	const handleSelectCategory = (picked: Category) => {
-		setCategory(picked);
-		setPendingCategory(null);
-		setCategorySource("user");
-		setCategoryError(false);
-		categorySheetRef.current?.dismiss();
 	};
 
 	const flagMissingCategory = () => {
@@ -655,164 +828,15 @@ export function TransactionForm({
 		shakeTimer.current = setTimeout(() => setCategoryShake(false), 500);
 	};
 
-	const handleSave = async () => {
+	const precheckSave = () => {
 		if (amountNumber <= 0) {
-			return;
+			return false;
 		}
-		const pending = pendingCategory;
-		if (!category && !pending) {
+		if (!category && !pendingCategory) {
 			flagMissingCategory();
-			return;
+			return false;
 		}
-		setSaving(true);
-		haptics("success");
-
-		let categoryId: string;
-		if (category) {
-			categoryId = category.id;
-		} else if (pending) {
-			try {
-				categoryId = await ensureCategoryByName(
-					db,
-					pending.name,
-					income,
-					pending.icon,
-					pending.color,
-					{
-						emoji: pending.emoji,
-						// Resolved here rather than carried as an id: the suggestion
-						// names a parent, and only this ledger knows which row that is.
-						parentId:
-							pending.parentName == null
-								? null
-								: (categoriesRef.current.find(
-										(candidate) =>
-											candidate.parentId == null &&
-											candidate.name === pending.parentName,
-									)?.id ?? null),
-					},
-				);
-			} catch (error) {
-				console.error("Failed to create the pending category", error);
-				setSaving(false);
-				flagMissingCategory();
-				return;
-			}
-		} else {
-			setSaving(false);
-			flagMissingCategory();
-			return;
-		}
-
-		const input = buildTransactionInput({
-			amount: amountNumber,
-			income,
-			categoryId,
-			note: name.value,
-			details: notes.value,
-			date,
-			currency: txCurrency,
-			icon: identity.icon,
-			emoji: identity.emoji,
-			customColor: identity.color,
-			imageUri: identity.photoUri,
-			imageColor: identity.photoColor,
-			isSubscription,
-			recurringType,
-			coefficient,
-			hasEndDate,
-			endDate,
-			leadDays,
-		});
-		let id: string;
-		try {
-			if (mode === "edit" && initial) {
-				await transactionsRepo.update(db, initial.id, input);
-				id = initial.id;
-			} else {
-				id = await transactionsRepo.create(db, input);
-			}
-		} catch (error) {
-			console.error("Failed to save transaction", error);
-			// Nothing was written, so the retry is the same tap again — but say so
-			// first: un-dimming the CTA in silence is indistinguishable from having
-			// missed the button.
-			haptics("error");
-			setSaving(false);
-			Alert.alert(
-				t("transaction.save.failedTitle"),
-				t("transaction.save.failedBody"),
-			);
-			return;
-		}
-		// The row is COMMITTED from here down, so no failure below may re-enable the
-		// CTA: a second tap runs `create` again, which mints a fresh id rather than
-		// rewriting this row, and the ledger ends up with two subscriptions — each
-		// walked forward into its own chain of charges by the next sweep.
-		if (tagsSource !== "initial") {
-			// After the row exists, because the link points at it. A failure here
-			// costs the tags, not the entry, so it is reported rather than thrown.
-			try {
-				const materializedTagIds = [...effectiveTagIds];
-				for (const tagName of pendingTagNames) {
-					const tagId = await tagsRepo.ensureTag(db, tagName);
-					if (tagId != null && !materializedTagIds.includes(tagId)) {
-						materializedTagIds.push(tagId);
-					}
-				}
-				await tagsRepo.setTagsFor(db, id, materializedTagIds);
-			} catch (error) {
-				console.error("Failed to save tags", error);
-				Alert.alert(
-					t("transaction.tags.failedTitle"),
-					t("transaction.tags.failedBody"),
-				);
-			}
-		}
-		let scheduleFailed = false;
-		if (isSubscription) {
-			try {
-				await backfillRecurring(db, id);
-			} catch (error) {
-				console.error("Failed to back-fill the subscription", error);
-				scheduleFailed = true;
-			}
-		}
-		// After the backfill, which is what moves the chain's next landing: the
-		// sweep dates its requests off that. Not awaited, and its failure is not
-		// the save's: the row is already written, so a notification the queue
-		// refused must not send this down the catch and re-enable the CTA.
-		syncSubscriptionReminders(db).catch((error) => {
-			console.error("Subscription reminder sync failed", error);
-		});
-		if (scheduleFailed) {
-			haptics("error");
-			// Dismissed from the alert's own button rather than alongside it: an
-			// alert raised as the modal route is being torn down has no presenter
-			// left and never appears, which is the silence this replaces.
-			Alert.alert(
-				t("transaction.save.scheduleFailedTitle"),
-				t("transaction.save.scheduleFailedBody"),
-				[{ text: t("common.done"), onPress: onDone }],
-			);
-			return;
-		}
-		if (mode === "edit") {
-			onDone();
-		} else {
-			setShowToast(true);
-			// The form owns the celebration, so it has to outlive its own
-			// dismissal: Swift fired the cannon on the screen behind the sheet,
-			// which has no equivalent here without hoisting state out of the
-			// route.
-			if (celebrate) {
-				setBurstSeed(Date.now());
-			}
-			doneTimer.current = setTimeout(
-				onDone,
-				celebrate ? CONFETTI_FLIGHT_MS : 600,
-			);
-		}
+		return true;
 	};
 
 	// The spring starts here, not from the picker route's mount effect, so the
@@ -1002,7 +1026,7 @@ export function TransactionForm({
 								currency={currency}
 								hairline={hairline}
 								label={t("transaction.field.amount")}
-								onPress={() => amountSheetRef.current?.present()}
+								onPress={amountField.present}
 								value={formatAmount(amountNumber, currency)}
 								valueColor={amountColor}
 							/>
@@ -1025,7 +1049,7 @@ export function TransactionForm({
 								offset({ x: categoryShake ? -5 : 0 }),
 								animation(SHAKE, categoryShake),
 							]}
-							onPress={() => categorySheetRef.current?.present()}
+							onPress={categoryField.present}
 						>
 							<VStack spacing={0}>
 								<HStack modifiers={TAP_ROW} spacing={12}>
@@ -1153,9 +1177,11 @@ export function TransactionForm({
 							leadOffTag={LEAD_OFF_TAG}
 							leadOptions={leadOptions}
 							mutedColor={colors.muted}
-							onDateChange={setDate}
-							onEndDateChange={setEndDate}
-							onHasEndDateChange={setHasEndDate}
+							onDateChange={(next) => form.setFieldValue("date", next)}
+							onEndDateChange={(next) => form.setFieldValue("endDate", next)}
+							onHasEndDateChange={(next) =>
+								form.setFieldValue("hasEndDate", next)
+							}
 							onLeadChange={handleLeadChange}
 							onOpenCustomSchedule={() => scheduleSheetRef.current?.present()}
 							onScheduleChange={handleScheduleChange}
@@ -1200,7 +1226,11 @@ export function TransactionForm({
 						canSave={canSave}
 						labelColor={colors.background}
 						label={ctaLabel}
-						onPress={handleSave}
+						onPress={() => {
+							if (precheckSave()) {
+								pressSubmit(form);
+							}
+						}}
 						tintColor={colors.foreground}
 					/>
 				</View>
@@ -1247,23 +1277,14 @@ export function TransactionForm({
 				<Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
 			) : null}
 
-			<AmountEntrySheet
-				code={currency}
-				minorUnits={minorUnits}
-				onChange={setAmount}
-				onCurrencyChange={setTxCurrency}
-				onDone={() => amountSheetRef.current?.dismiss()}
-				ref={amountSheetRef}
-				toneClass={income ? "text-income" : "text-foreground"}
-				value={amount}
-			/>
+			<AmountEntrySheet {...amountField.sheetProps} />
 			<TagPickerSheet
 				onCreate={async (name) => {
 					const id = await tagsRepo.ensureTag(db, name);
 					if (id) {
 						setTagsSource("user");
-						setTagIds([...effectiveTagIds, id]);
-						setPendingTagNames((current) =>
+						form.setFieldValue("tagIds", [...effectiveTagIds, id]);
+						form.setFieldValue("pendingTagNames", (current) =>
 							current.filter(
 								(pendingName) => normalizeTagName(pendingName) !== name,
 							),
@@ -1273,7 +1294,8 @@ export function TransactionForm({
 				}}
 				onToggle={(tagId) => {
 					setTagsSource("user");
-					setTagIds(
+					form.setFieldValue(
+						"tagIds",
 						effectiveTagIds.includes(tagId)
 							? effectiveTagIds.filter((id) => id !== tagId)
 							: [...effectiveTagIds, tagId],
@@ -1288,15 +1310,15 @@ export function TransactionForm({
 			<CategoryPickerSheet
 				db={db}
 				income={income}
-				onSelect={handleSelectCategory}
+				onSelect={categoryField.select}
 				pendingCategory={pendingCategory}
-				ref={categorySheetRef}
+				ref={categoryField.ref}
 				selectedId={category?.id ?? null}
 			/>
 			<CustomScheduleSheet
 				onDone={(type, every) => {
-					setRecurringType(type);
-					setCoefficient(every);
+					form.setFieldValue("recurringType", type);
+					form.setFieldValue("coefficient", every);
 				}}
 				recurringCoefficient={coefficient}
 				recurringType={recurringType}
