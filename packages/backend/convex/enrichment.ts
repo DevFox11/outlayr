@@ -139,14 +139,17 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 		shards: 10,
 	},
 	// ADR-11: checked in `suggest` itself, before the internal action is ever
-	// scheduled. Deliberately generous — a user in an uncovered country is
-	// seeding the shared cache for everyone else; `groundedBudgetMicros` is
-	// the real backstop.
+	// scheduled. This gate is anti-abuse, NOT cost control — `groundedBudgetMicros`
+	// is the real backstop, and `groundedPerKey` already stops the same merchant
+	// being looked up twice in a day. At 5/day it fired during ordinary use: a
+	// user in an uncovered country hits five unknown merchants in one sitting and
+	// is then locked out for hours, which is exactly the person this feature is
+	// for.
 	groundedPerUser: {
 		kind: "token bucket",
-		rate: 5,
+		rate: 100,
 		period: DAY,
-		capacity: 5,
+		capacity: 20,
 	},
 	// ADR-10: kills both a user retyping the same unknown name and a
 	// thundering herd across many users hitting one new merchant at once.
@@ -526,9 +529,13 @@ export const suggest = action({
 				`[enrichment] xAI out for "${trimmedName}":`,
 				JSON.stringify(result),
 			);
+			// A missing domain counts as a miss, not just a missing category. The
+			// model can infer "Supermercados X" is groceries from the name alone,
+			// but it cannot invent a regional chain's domain — so the case that
+			// most needs a grounded search is the one that still has a category.
 			// Scheduling is never awaited: it fills Tier 1.5 for the NEXT lookup
 			// of this merchant, never this transaction.
-			if (needsGroundedLookup(result)) {
+			if (result.categoryName === null || result.domain === null) {
 				const scheduled = await maybeScheduleGrounded(
 					ctx,
 					identity.tokenIdentifier,
