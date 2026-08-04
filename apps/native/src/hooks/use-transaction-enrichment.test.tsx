@@ -73,6 +73,12 @@ afterEach(() => {
 	jest.useRealTimers();
 });
 
+describe("latency contract", () => {
+	test("REMOTE_TIMEOUT_MS is unchanged at 4000ms", () => {
+		expect(REMOTE_TIMEOUT_MS).toBe(4000);
+	});
+});
+
 describe("debouncing", () => {
 	it("collapses 20 rapid keystrokes into exactly one suggestion at 600ms", async () => {
 		const onSuggest = jest.fn();
