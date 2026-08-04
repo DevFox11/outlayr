@@ -5,7 +5,7 @@ import { MockLanguageModelV3 } from "ai/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import {
 	EMPTY,
 	maybeScheduleGrounded,
