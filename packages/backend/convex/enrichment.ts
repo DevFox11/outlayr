@@ -13,13 +13,14 @@ import { merchantKey } from "./lib/merchantKey";
  * `grok-4-fast-non-reasoning` and `grok-3-mini` — the original design's pick
  * and fallback — do not exist in this account's model lineup (`GET
  * https://api.x.ai/v1/models`). Measured live against a real
- * merchant-extraction prompt: `grok-4.20-0309-non-reasoning` settled in
- * 841ms with correct structured output; `grok-4.5` took 2.69s. `grok-4.5` is
- * kept here only as the documented too-slow fallback — it is never selected
- * automatically. `XAI_MODEL_ID` overrides the primary id without a deploy.
- * Exported so `groundedLookup.ts` shares the same default (ADR-12).
+ * merchant-extraction prompt: the `grok-4.20-0309` non-reasoning snapshot
+ * settled in 841ms with correct structured output; `grok-4.5` took 2.69s.
+ * `grok-4.5` is kept here only as the documented too-slow fallback — it is
+ * never selected automatically. `XAI_MODEL_ID` overrides the primary id
+ * without a deploy. Exported so `groundedLookup.ts` shares the same default
+ * (ADR-12).
  */
-export const ENRICHMENT_MODEL_ID = "grok-4.20-0309-non-reasoning";
+export const ENRICHMENT_MODEL_ID = "grok-4.20-non-reasoning";
 export const ENRICHMENT_FALLBACK_MODEL_ID = "grok-4.5";
 
 const MIN_NAME_LENGTH = 3;
@@ -425,6 +426,7 @@ export const suggest = action({
 	args: suggestArgs,
 	returns: suggestion,
 	handler: async (ctx, args): Promise<Suggestion> => {
+		console.log(args);
 		const identity = await ctx.auth.getUserIdentity();
 		if (identity === null) {
 			return EMPTY;
@@ -500,6 +502,9 @@ export const suggest = action({
 			}
 			return result;
 		} catch {
+			console.warn(
+				`xAI enrichment failed for "${trimmedName}" — returning empty suggestion`,
+			);
 			// A rejected xAI call surfaces here as a normal degradation, not a
 			// thrown ConvexError — throwing would fill function logs with stack
 			// traces for an entirely ordinary timeout or provider outage.
