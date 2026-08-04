@@ -5,8 +5,15 @@ import { MockLanguageModelV3 } from "ai/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "./_generated/api";
-import { EMPTY, rateLimiter, runSuggest, suggestArgs } from "./enrichment";
+import { api, internal } from "./_generated/api";
+import {
+	EMPTY,
+	maybeScheduleGrounded,
+	REQUEST_TIMEOUT_MS,
+	rateLimiter,
+	runSuggest,
+	suggestArgs,
+} from "./enrichment";
 import { merchantKey } from "./lib/merchantKey";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
@@ -52,6 +59,7 @@ function mockModel(payload: unknown) {
 const BASE_ARGS = {
 	name: "netflix",
 	income: false,
+	groundedLookup: false,
 	categoryTree: [
 		{ name: "Entertainment", children: [] },
 		{ name: "Groceries", children: ["Supermarket"] },
@@ -59,11 +67,12 @@ const BASE_ARGS = {
 };
 
 describe("suggestArgs", () => {
-	test("carries exactly the four privacy-boundary fields", () => {
+	test("carries exactly the five privacy-boundary fields", () => {
 		// Amounts, dates, accounts, balances, and identity must never leave the
 		// device — this is a threat-matrix assertion, not a shape convenience.
+		// `groundedLookup` is the one new field this slice adds.
 		expect(Object.keys(suggestArgs).sort()).toEqual(
-			["categoryTree", "income", "locale", "name"].sort(),
+			["categoryTree", "groundedLookup", "income", "locale", "name"].sort(),
 		);
 	});
 });
@@ -233,6 +242,134 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 				name: "totally unknown merchant xyz",
 			}),
 		).resolves.toEqual(EMPTY);
+	});
+});
+
+describe("latency/retry regression guard (task 3.13)", () => {
+	test("REQUEST_TIMEOUT_MS is unchanged at 3500ms", () => {
+		expect(REQUEST_TIMEOUT_MS).toBe(3500);
+	});
+
+	test("runSuggest never retries a thrown provider error (maxRetries: 0)", async () => {
+		let calls = 0;
+		const throwing = new MockLanguageModelV3({
+			doGenerate: async () => {
+				calls += 1;
+				throw new Error("network down");
+			},
+		});
+
+		await expect(runSuggest(throwing, BASE_ARGS)).rejects.toThrow();
+		expect(calls).toBe(1);
+	});
+});
+
+describe("maybeScheduleGrounded", () => {
+	async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
+		const rows = await t.run((ctx) =>
+			ctx.db.system.query("_scheduled_functions").collect(),
+		);
+		return rows.filter((row) => row.name.includes("groundedLookup"));
+	}
+
+	/**
+	 * `authenticatedAs` returns `AnyTestConvex` (widened for Better Auth's
+	 * generic component schema — see `test.helpers.ts`), which loses this
+	 * file's concrete `DataModel` and makes an inline `t.action` callback fail
+	 * to typecheck against `ActionCtx`. Calling `t.withIdentity` directly on
+	 * the concretely-typed `t` keeps the same runtime identity without that
+	 * widening.
+	 */
+	function asIdentity(
+		t: ReturnType<typeof convexTest>,
+		identity: Awaited<ReturnType<typeof seedAuthUser>>,
+	) {
+		return t.withIdentity({
+			subject: identity.subject,
+			sessionId: identity.sessionId,
+		});
+	}
+
+	test("does not schedule when the client arg is false", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+
+		await asIdentity(t, identity).run((ctx) =>
+			maybeScheduleGrounded(ctx, "token-a", {
+				groundedLookup: false,
+				name: "Farmatodo",
+				income: false,
+			}),
+		);
+
+		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+	});
+
+	test("does not schedule when the synced appMeta row is false despite a true arg", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+		await t.run((ctx) =>
+			ctx.db.insert("appMeta", {
+				userId: identity.userId,
+				key: "groundedLookup",
+				seq: 1,
+				deviceId: "test-device",
+				updatedAt: Date.now(),
+				value: "false",
+			}),
+		);
+
+		await asIdentity(t, identity).run((ctx) =>
+			maybeScheduleGrounded(ctx, "token-b", {
+				groundedLookup: true,
+				name: "Farmatodo",
+				income: false,
+			}),
+		);
+
+		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+	});
+
+	test("schedules when the arg is true and no appMeta row exists", async () => {
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const identity = await seedAuthUser(t);
+
+		const scheduled = await asIdentity(t, identity).run((ctx) =>
+			maybeScheduleGrounded(ctx, "token-c", {
+				groundedLookup: true,
+				name: "Farmatodo",
+				income: false,
+			}),
+		);
+
+		expect(scheduled).toBe(true);
+		expect(await scheduledGroundedRuns(t)).toHaveLength(1);
+	});
+
+	test("the scheduled args never carry categoryTree (ADR-7)", async () => {
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const identity = await seedAuthUser(t);
+
+		await asIdentity(t, identity).run((ctx) =>
+			maybeScheduleGrounded(ctx, "token-d", {
+				groundedLookup: true,
+				name: "Farmatodo",
+				income: false,
+				locale: "es-VE",
+			}),
+		);
+
+		const [row] = await scheduledGroundedRuns(t);
+		const scheduledArgs = row.args[0] as Record<string, unknown>;
+		expect(scheduledArgs).not.toHaveProperty("categoryTree");
+		expect(scheduledArgs).toEqual({
+			key: merchantKey("Farmatodo"),
+			name: "Farmatodo",
+			income: false,
+			locale: "es-VE",
+		});
 	});
 });
 

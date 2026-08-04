@@ -1,0 +1,249 @@
+import { createXai } from "@ai-sdk/xai";
+import {
+	generateText,
+	isStepCount,
+	type LanguageModel,
+	Output,
+	type ToolSet,
+} from "ai";
+import { v } from "convex/values";
+import { z } from "zod";
+
+import { internal } from "./_generated/api";
+import { type ActionCtx, internalAction } from "./_generated/server";
+import {
+	ENRICHMENT_MODEL_ID,
+	rateLimiter,
+	sanitizeCategoryName,
+	sanitizeDomain,
+	sanitizeEmoji,
+	sanitizeTags,
+} from "./enrichment";
+import {
+	CANONICAL_CATEGORY_NAMES,
+	type KnowledgeCandidate,
+	shouldPublish,
+} from "./lib/merchantTrust";
+import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
+
+/** Same worst-case budget as Tier 2 — off the typing path, so no client race depends on it. */
+const GROUNDED_REQUEST_TIMEOUT_MS = 3500;
+const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
+
+export interface GroundedRunArgs {
+	key: string;
+	name: string;
+	income: boolean;
+	locale?: string;
+}
+
+export interface GroundedPassesDeps {
+	grounding: LanguageModel;
+	structuring: LanguageModel;
+	groundingTools: ToolSet;
+}
+
+/** No `categoryTree` parameter anywhere in this file — ADR-7, structurally. */
+function buildGroundedPrompt(
+	name: string,
+	income: boolean,
+	locale: string | undefined,
+): string {
+	const kind = income ? "income" : "expense";
+	return [
+		`Identify this real-world ${kind} merchant or business: "${name}".`,
+		"Use web search to confirm its primary website domain before answering.",
+		`State which of these categories it best fits, if any: ${CANONICAL_NAMES_LIST}.`,
+		"Also state a single emoji that suits the category, at most 3 short tags, and its primary web domain only if a search result confirms it.",
+		locale ? `The user's locale is ${locale}.` : "",
+	]
+		.filter((line) => line.length > 0)
+		.join(" ");
+}
+
+function buildStructuringPrompt(name: string, findings: string): string {
+	return [
+		`Extract structured data for the merchant "${name}" from these research findings: ${findings}`,
+		`Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
+		"Set emoji to a single emoji that suits the category, or null.",
+		"Suggest at most 3 short tags, and the confirmed web domain, or null.",
+	].join(" ");
+}
+
+const groundedOutputSchema = z.object({
+	categoryName: z.string().nullable(),
+	emoji: z.string().nullish(),
+	tags: z.array(z.string()),
+	domain: z.string().nullable(),
+});
+
+export interface GroundedPassOutcome {
+	candidate: KnowledgeCandidate;
+	sources: readonly { url: string }[];
+	inputTokens: number;
+	outputTokens: number;
+	searchCalls: number;
+}
+
+/**
+ * ADR-1's two-pass core. No ctx, no rate limiting, no writes — testable by
+ * injecting both models (and pass A's tool set) directly. Pass B carries no
+ * `tools` key at all: `Output.object` alone means the default `isStepCount(1)`
+ * is exactly correct and `NoOutputGeneratedError` cannot arise.
+ */
+export async function runGroundedPasses(
+	deps: GroundedPassesDeps,
+	args: GroundedRunArgs,
+): Promise<GroundedPassOutcome> {
+	const passA = await generateText({
+		model: deps.grounding,
+		tools: deps.groundingTools,
+		stopWhen: isStepCount(4),
+		prompt: buildGroundedPrompt(args.name, args.income, args.locale),
+		abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
+		maxRetries: 0,
+	});
+
+	const passB = await generateText({
+		model: deps.structuring,
+		output: Output.object({ schema: groundedOutputSchema }),
+		prompt: buildStructuringPrompt(args.name, passA.text),
+		abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
+		maxRetries: 0,
+	});
+
+	const candidate: KnowledgeCandidate = {
+		key: args.key,
+		domain: sanitizeDomain(passB.output.domain),
+		// No user tree exists for a globally-shared record (ADR-7) — the model
+		// is asked to pick from the closed canonical set instead.
+		categoryName: sanitizeCategoryName(passB.output.categoryName),
+		parentCategoryName: null,
+		emoji: sanitizeEmoji(passB.output.emoji ?? null),
+		tags: sanitizeTags(passB.output.tags),
+	};
+
+	// `corroborates` only ever needs a url; document-type sources (no `.url`)
+	// can never corroborate a domain, so they are dropped here rather than
+	// widening `KnowledgeCandidate`'s source shape to accommodate them.
+	const urlSources = passA.sources
+		.filter((source) => source.sourceType === "url")
+		.map((source) => ({ url: source.url }));
+
+	return {
+		candidate,
+		sources: urlSources,
+		inputTokens:
+			(passA.usage.inputTokens ?? 0) + (passB.usage.inputTokens ?? 0),
+		outputTokens:
+			(passA.usage.outputTokens ?? 0) + (passB.usage.outputTokens ?? 0),
+		// `web_search` is the only registered tool, so every recorded call is a
+		// search round.
+		searchCalls: passA.toolCalls.length,
+	};
+}
+
+/**
+ * The least ctx capability this needs — see `enrichment.ts`'s
+ * `GroundedScheduleCtx` for why `Pick` rather than the full `ActionCtx`.
+ */
+export type GroundedLookupCtx = Pick<ActionCtx, "runQuery" | "runMutation">;
+
+/**
+ * ADR-11's order continued: `groundedPerKey` then `groundedBudgetMicros`
+ * (both live here, never in `suggest`). `overrideDeps` is a test-only seam —
+ * production never passes it, so the real xAI provider is always constructed
+ * fresh per call (`XAI_GROUNDED_MODEL_ID`/`XAI_API_KEY` read live, matching
+ * `enrichment.ts`'s own rollback-lever pattern).
+ */
+export async function runGroundedLookup(
+	ctx: GroundedLookupCtx,
+	args: GroundedRunArgs,
+	overrideDeps?: GroundedPassesDeps,
+): Promise<void> {
+	const perKey = await rateLimiter.limit(ctx, "groundedPerKey", {
+		key: args.key,
+	});
+	if (!perKey.ok) {
+		return;
+	}
+
+	const estimated = estimateMicros();
+	const budget = await rateLimiter.limit(ctx, "groundedBudgetMicros", {
+		count: estimated,
+		config: budgetConfig(),
+	});
+	if (!budget.ok) {
+		return;
+	}
+
+	let deps = overrideDeps;
+	let modelId: string = ENRICHMENT_MODEL_ID;
+	if (!deps) {
+		const apiKey = process.env.XAI_API_KEY;
+		if (!apiKey) {
+			return;
+		}
+		const xaiProvider = createXai({ apiKey });
+		modelId =
+			process.env.XAI_GROUNDED_MODEL_ID ||
+			process.env.XAI_MODEL_ID ||
+			ENRICHMENT_MODEL_ID;
+		const model = xaiProvider(modelId);
+		deps = {
+			grounding: model,
+			structuring: model,
+			groundingTools: { web_search: xaiProvider.tools.webSearch() },
+		};
+	}
+
+	const outcome = await runGroundedPasses(deps, args);
+	const published = shouldPublish(outcome.candidate, outcome.sources);
+
+	if (
+		published &&
+		outcome.candidate.domain !== null &&
+		outcome.candidate.categoryName !== null
+	) {
+		await ctx.runMutation(internal.merchantKnowledge.record, {
+			key: outcome.candidate.key,
+			domain: outcome.candidate.domain,
+			categoryName: outcome.candidate.categoryName,
+			parentCategoryName: null,
+			emoji: outcome.candidate.emoji,
+			tags: [...outcome.candidate.tags],
+			logoKey: null,
+			resolvedAt: Date.now(),
+			modelId,
+		});
+	}
+
+	// Recorded unconditionally — a spent budget is a spent budget whether or
+	// not the result cleared `shouldPublish`.
+	await ctx.runMutation(internal.groundedSpend.record, {
+		at: Date.now(),
+		chargedMicros: estimated,
+		actualMicros: measureMicros(
+			{ inputTokens: outcome.inputTokens, outputTokens: outcome.outputTokens },
+			outcome.searchCalls,
+		),
+		searchCalls: outcome.searchCalls,
+		inputTokens: outcome.inputTokens,
+		outputTokens: outcome.outputTokens,
+		published,
+	});
+}
+
+export const run = internalAction({
+	args: {
+		key: v.string(),
+		name: v.string(),
+		income: v.boolean(),
+		locale: v.optional(v.string()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await runGroundedLookup(ctx, args);
+		return null;
+	},
+});

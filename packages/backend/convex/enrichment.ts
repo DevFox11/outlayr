@@ -1,11 +1,12 @@
 import { createXai } from "@ai-sdk/xai";
-import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
+import { DAY, HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, type LanguageModel, Output } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
-import { action } from "./_generated/server";
+import { type ActionCtx, action, internalQuery } from "./_generated/server";
+import { requireUserId } from "./lib/auth";
 import { merchantKey } from "./lib/merchantKey";
 
 /**
@@ -16,8 +17,9 @@ import { merchantKey } from "./lib/merchantKey";
  * 841ms with correct structured output; `grok-4.5` took 2.69s. `grok-4.5` is
  * kept here only as the documented too-slow fallback — it is never selected
  * automatically. `XAI_MODEL_ID` overrides the primary id without a deploy.
+ * Exported so `groundedLookup.ts` shares the same default (ADR-12).
  */
-const ENRICHMENT_MODEL_ID = "grok-4.20-0309-non-reasoning";
+export const ENRICHMENT_MODEL_ID = "grok-4.20-0309-non-reasoning";
 export const ENRICHMENT_FALLBACK_MODEL_ID = "grok-4.5";
 
 const MIN_NAME_LENGTH = 3;
@@ -28,7 +30,7 @@ const MAX_CATEGORY_NAME_LENGTH = 40;
 const MAX_DOMAIN_LENGTH = 253;
 const MAX_KNOWN_CATEGORY_NAMES = 60;
 /** The action's own budget under the client's 4s `Promise.race` abort. */
-const REQUEST_TIMEOUT_MS = 3500;
+export const REQUEST_TIMEOUT_MS = 3500;
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
 /**
@@ -46,6 +48,12 @@ export const suggestArgs = {
 	categoryTree: v.array(
 		v.object({ name: v.string(), children: v.array(v.string()) }),
 	),
+	/**
+	 * One side of ADR-6's dual-authority consent gate. A forged `true` alone
+	 * cannot enable a grounded lookup — the synced `appMeta` row must also
+	 * agree — but a `false` always blocks, from either side.
+	 */
+	groundedLookup: v.boolean(),
 };
 
 const suggestion = v.object({
@@ -129,9 +137,28 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 		period: HOUR,
 		shards: 10,
 	},
+	// ADR-11: checked in `suggest` itself, before the internal action is ever
+	// scheduled. Deliberately generous — a user in an uncovered country is
+	// seeding the shared cache for everyone else; `groundedBudgetMicros` is
+	// the real backstop.
+	groundedPerUser: {
+		kind: "token bucket",
+		rate: 5,
+		period: DAY,
+		capacity: 5,
+	},
+	// ADR-10: kills both a user retyping the same unknown name and a
+	// thundering herd across many users hitting one new merchant at once.
+	// Checked inside `groundedLookup.run`, never here — see ADR-11's order.
+	groundedPerKey: {
+		kind: "token bucket",
+		rate: 1,
+		period: DAY,
+		capacity: 1,
+	},
 });
 
-function sanitizeTags(tags: readonly string[]): string[] {
+export function sanitizeTags(tags: readonly string[]): string[] {
 	return tags
 		.map((tag) => tag.trim())
 		.filter((tag) => tag.length > 0)
@@ -145,7 +172,7 @@ function sanitizeTags(tags: readonly string[]): string[] {
  * the logo fetcher (PR 6). Case-folded before the match so `NETFLIX.COM`
  * survives; the pattern itself only accepts lowercase.
  */
-function sanitizeDomain(domain: string | null): string | null {
+export function sanitizeDomain(domain: string | null): string | null {
 	if (domain === null) {
 		return null;
 	}
@@ -156,7 +183,7 @@ function sanitizeDomain(domain: string | null): string | null {
 	return DOMAIN_PATTERN.test(trimmed) ? trimmed : null;
 }
 
-function sanitizeCategoryName(name: string | null): string | null {
+export function sanitizeCategoryName(name: string | null): string | null {
 	if (name === null) {
 		return null;
 	}
@@ -212,7 +239,7 @@ export interface RunSuggestArgs {
  * then answer with a sentence, and that would end up rendered as a category's
  * symbol.
  */
-function sanitizeEmoji(emoji: string | null): string | null {
+export function sanitizeEmoji(emoji: string | null): string | null {
 	if (emoji === null) {
 		return null;
 	}
@@ -312,6 +339,83 @@ export async function runSuggest(
 	};
 }
 
+const GROUNDED_LOOKUP_META_KEY = "groundedLookup";
+
+/**
+ * ADR-6's server-side half of the dual-authority gate: the synced `appMeta`
+ * row, keyed the same way `sync.ts` writes it (`requireUserId`, NOT
+ * `identity.tokenIdentifier` — those are different id spaces in this app).
+ * An absent row defaults to consented, matching `SETTING_DEFAULTS.groundedLookup`
+ * on the client (slice 4) — a device that has never synced this key has never
+ * turned it off.
+ */
+export const groundedConsent = internalQuery({
+	args: {},
+	returns: v.boolean(),
+	handler: async (ctx) => {
+		const userId = await requireUserId(ctx);
+		const row = await ctx.db
+			.query("appMeta")
+			.withIndex("by_user_and_key", (q) =>
+				q.eq("userId", userId).eq("key", GROUNDED_LOOKUP_META_KEY),
+			)
+			.unique();
+		return row === null || row.value !== "false";
+	},
+});
+
+export interface GroundedScheduleArgs {
+	groundedLookup: boolean;
+	name: string;
+	income: boolean;
+	locale?: string;
+}
+
+/**
+ * The least ctx capability this needs — `Pick` rather than the full
+ * `ActionCtx` so a `convex-test` `t.run` mutation-shaped ctx (which carries
+ * the same `runQuery`/`runMutation`/`scheduler` signatures) can exercise this
+ * function directly in tests, concretely typed, with no widening cast.
+ */
+export type GroundedScheduleCtx = Pick<
+	ActionCtx,
+	"runQuery" | "runMutation" | "scheduler"
+>;
+
+/**
+ * ADR-11's order: `groundedPerUser` here, `groundedPerKey` and
+ * `groundedBudgetMicros` inside `groundedLookup.run` itself. Returns whether a
+ * lookup was actually scheduled, so `suggest` knows whether to report
+ * `grounding: true`. `categoryTree` is deliberately not a parameter — ADR-7,
+ * the scheduled args below can never carry it.
+ */
+export async function maybeScheduleGrounded(
+	ctx: GroundedScheduleCtx,
+	tokenIdentifier: string,
+	args: GroundedScheduleArgs,
+): Promise<boolean> {
+	if (!args.groundedLookup) {
+		return false;
+	}
+	const consented = await ctx.runQuery(internal.enrichment.groundedConsent, {});
+	if (!consented) {
+		return false;
+	}
+	const gate = await rateLimiter.limit(ctx, "groundedPerUser", {
+		key: tokenIdentifier,
+	});
+	if (!gate.ok) {
+		return false;
+	}
+	await ctx.scheduler.runAfter(0, internal.groundedLookup.run, {
+		key: merchantKey(args.name),
+		name: args.name,
+		income: args.income,
+		locale: args.locale,
+	});
+	return true;
+}
+
 /**
  * Read live rather than through `@outlayr/env/backend`'s frozen snapshot, so
  * that `npx convex env set XAI_API_KEY=""` (design rollback lever 2) takes
@@ -369,12 +473,32 @@ export const suggest = action({
 		try {
 			const xaiProvider = createXai({ apiKey });
 			const modelId = process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID;
-			return await runSuggest(xaiProvider(modelId), {
+			const result = await runSuggest(xaiProvider(modelId), {
 				name: trimmedName,
 				income: args.income,
 				locale: args.locale,
 				categoryTree: args.categoryTree,
 			});
+			// On a genuine Tier-2 miss only: scheduling (never awaited) fills Tier
+			// 1.5 for the NEXT lookup of this merchant, never this transaction. When
+			// consent/rate-limit refuses, `result` — Tier 2's own sanitised output,
+			// unchanged from today — is returned instead of a manufactured miss.
+			if (result.categoryName === null) {
+				const scheduled = await maybeScheduleGrounded(
+					ctx,
+					identity.tokenIdentifier,
+					{
+						groundedLookup: args.groundedLookup,
+						name: trimmedName,
+						income: args.income,
+						locale: args.locale,
+					},
+				);
+				if (scheduled) {
+					return { ...EMPTY, grounding: true };
+				}
+			}
+			return result;
 		} catch {
 			// A rejected xAI call surfaces here as a normal degradation, not a
 			// thrown ConvexError — throwing would fill function logs with stack
