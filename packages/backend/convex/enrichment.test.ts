@@ -9,6 +9,7 @@ import { api } from "./_generated/api";
 import {
 	EMPTY,
 	maybeScheduleGrounded,
+	needsGroundedLookup,
 	REQUEST_TIMEOUT_MS,
 	rateLimiter,
 	runSuggest,
@@ -261,6 +262,32 @@ describe("latency/retry regression guard (task 3.13)", () => {
 
 		await expect(runSuggest(throwing, BASE_ARGS)).rejects.toThrow();
 		expect(calls).toBe(1);
+	});
+});
+
+describe("needsGroundedLookup", () => {
+	test("a confident category with no domain still needs one", () => {
+		expect(
+			needsGroundedLookup({ categoryName: "Groceries", domain: null }),
+		).toBe(true);
+	});
+
+	test("a missing category needs one", () => {
+		expect(
+			needsGroundedLookup({ categoryName: null, domain: "gama.com" }),
+		).toBe(true);
+	});
+
+	test("both missing needs one", () => {
+		expect(needsGroundedLookup({ categoryName: null, domain: null })).toBe(
+			true,
+		);
+	});
+
+	test("a complete answer needs none", () => {
+		expect(
+			needsGroundedLookup({ categoryName: "Groceries", domain: "gama.com" }),
+		).toBe(false);
 	});
 });
 

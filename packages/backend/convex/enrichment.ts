@@ -384,6 +384,18 @@ export type GroundedScheduleCtx = Pick<
 >;
 
 /**
+ * A missing domain is as much a miss as a missing category. The model can
+ * infer "Supermercados X" is groceries from the name alone, but it cannot
+ * invent a regional chain's domain — so the answer that most needs a grounded
+ * search is the one that already has a category and no url.
+ */
+export function needsGroundedLookup(
+	result: Pick<Suggestion, "categoryName" | "domain">,
+): boolean {
+	return result.categoryName === null || result.domain === null;
+}
+
+/**
  * ADR-11's order: `groundedPerUser` here, `groundedPerKey` and
  * `groundedBudgetMicros` inside `groundedLookup.run` itself. Returns whether a
  * lookup was actually scheduled, so `suggest` knows whether to report
@@ -514,11 +526,9 @@ export const suggest = action({
 				`[enrichment] xAI out for "${trimmedName}":`,
 				JSON.stringify(result),
 			);
-			// On a genuine Tier-2 miss only: scheduling (never awaited) fills Tier
-			// 1.5 for the NEXT lookup of this merchant, never this transaction. When
-			// consent/rate-limit refuses, `result` — Tier 2's own sanitised output,
-			// unchanged from today — is returned instead of a manufactured miss.
-			if (result.categoryName === null) {
+			// Scheduling is never awaited: it fills Tier 1.5 for the NEXT lookup
+			// of this merchant, never this transaction.
+			if (needsGroundedLookup(result)) {
 				const scheduled = await maybeScheduleGrounded(
 					ctx,
 					identity.tokenIdentifier,
@@ -530,10 +540,13 @@ export const suggest = action({
 					},
 				);
 				console.log(
-					`[enrichment] tier-2 miss; grounded lookup scheduled = ${scheduled}`,
+					`[enrichment] miss (category=${result.categoryName === null ? "null" : "ok"}, domain=${result.domain === null ? "null" : "ok"}); grounded lookup scheduled = ${scheduled}`,
 				);
+				// Whatever the model did answer is kept — blanking it would throw
+				// away a good category to report a missing logo. `grounding: true`
+				// is what stops the client caching this as final.
 				if (scheduled) {
-					return { ...EMPTY, grounding: true };
+					return { ...result, grounding: true };
 				}
 			}
 			console.log("[enrichment] out:", JSON.stringify(result));
