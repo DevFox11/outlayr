@@ -245,8 +245,87 @@ describe("importFlowReducer — invalidation cascade", () => {
 });
 
 describe("IMPORT_STEPS", () => {
-	it("orders the three steps this slice's sheet serves, source first", () => {
-		expect(IMPORT_STEPS).toStrictEqual(["source", "file", "resolve"]);
+	it("orders all four steps the sheet serves, review last", () => {
+		expect(IMPORT_STEPS).toStrictEqual(["source", "file", "resolve", "review"]);
+	});
+});
+
+describe("duplicatesFlagged", () => {
+	it("flags the given indices and excludes them by default", () => {
+		const state = withResolution();
+		const flagged = dispatch(state, {
+			type: "duplicatesFlagged",
+			indices: new Set([0, 2]),
+		});
+		expect(flagged.duplicates).toStrictEqual(new Set([0, 2]));
+		expect(flagged.excluded).toStrictEqual(new Set([0, 2]));
+	});
+
+	it("overwrites any prior manual exclusions with the flagged set", () => {
+		const toggled = dispatch(withResolution(), {
+			type: "rowToggled",
+			index: 5,
+		});
+		const flagged = dispatch(toggled, {
+			type: "duplicatesFlagged",
+			indices: new Set([1]),
+		});
+		expect(flagged.excluded).toStrictEqual(new Set([1]));
+	});
+
+	it("is a no-op with no settled resolution yet", () => {
+		const state = withFile();
+		const flagged = dispatch(state, {
+			type: "duplicatesFlagged",
+			indices: new Set([0]),
+		});
+		expect(flagged).toBe(state);
+	});
+});
+
+describe("duplicates reset on invalidation", () => {
+	it("clears duplicates alongside exclusions on a new file", () => {
+		const flagged = dispatch(withResolution(), {
+			type: "duplicatesFlagged",
+			indices: new Set([0]),
+		});
+		const reparsed = dispatch(flagged, {
+			type: "fileParsed",
+			file: { name: "other.csv", chars: 50 },
+			parsed: PARSED,
+			draft: DRAFT,
+			resolved: RESOLVED,
+			gaps: [],
+		});
+		expect(reparsed.duplicates.size).toBe(0);
+	});
+
+	it("clears duplicates alongside exclusions when a resolution re-settles", () => {
+		const flagged = dispatch(withResolution(), {
+			type: "duplicatesFlagged",
+			indices: new Set([0]),
+		});
+		const resettled = dispatch(flagged, {
+			type: "resolutionSettled",
+			outcome: "unavailable",
+			reason: "timeout",
+			links: new Map(),
+			fromModel: new Set(),
+		});
+		expect(resettled.duplicates.size).toBe(0);
+	});
+
+	it("preserves duplicates when a commit fails", () => {
+		const flagged = dispatch(withResolution(), {
+			type: "duplicatesFlagged",
+			indices: new Set([0]),
+		});
+		const writing = dispatch(flagged, { type: "commitStarted" });
+		const failed = dispatch(writing, {
+			type: "commitFailed",
+			detail: "write error",
+		});
+		expect(failed.duplicates).toBe(flagged.duplicates);
 	});
 });
 
