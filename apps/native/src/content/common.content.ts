@@ -203,10 +203,6 @@ const common = {
 			en: "Haptics",
 			es: "Hápticos",
 		}),
-		"nav.settings.import": t({
-			en: "Import Data",
-			es: "Importar datos",
-		}),
 		"nav.settings.language": t({
 			en: "Language",
 			es: "Idioma",
