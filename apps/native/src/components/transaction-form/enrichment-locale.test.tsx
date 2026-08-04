@@ -10,6 +10,7 @@ import type { EnrichmentSuggestion } from "@/hooks/use-transaction-enrichment";
 import { TransactionForm } from "./index";
 
 const SENTINEL_LOCALE = "es-VE";
+const SENTINEL_REGION = "VE";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
@@ -117,6 +118,10 @@ jest.mock("@/hooks/use-locale-tag", () => ({
 	useLocaleTag: () => SENTINEL_LOCALE,
 }));
 
+jest.mock("@/hooks/use-region-code", () => ({
+	useRegionCode: () => SENTINEL_REGION,
+}));
+
 const mockFetchMerchantImage = jest.fn((..._args: unknown[]) =>
 	Promise.resolve({ kind: "none" as const }),
 );
@@ -181,6 +186,21 @@ describe("TransactionForm enrichment locale wiring", () => {
 
 		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
 			expect.objectContaining({ locale: SENTINEL_LOCALE }),
+		);
+	});
+});
+
+describe("TransactionForm regionCode wiring", () => {
+	it("passes the device region from useRegionCode into useTransactionEnrichment", async () => {
+		const db = dbHolder.current as Database;
+		await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
+			expect.objectContaining({ regionCode: SENTINEL_REGION }),
 		);
 	});
 });

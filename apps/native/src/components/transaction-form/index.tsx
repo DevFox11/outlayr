@@ -89,6 +89,7 @@ import {
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
+import { useRegionCode } from "@/hooks/use-region-code";
 import {
 	type EnrichmentSuggestion,
 	type PendingCategory,
@@ -706,6 +707,7 @@ export function TransactionForm({
 	);
 
 	const locale = useLocaleTag();
+	const regionCode = useRegionCode();
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
 		enabled: mode === "create",
 		income,
@@ -714,6 +716,7 @@ export function TransactionForm({
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
 		locale,
+		regionCode,
 		groundedLookup,
 	});
 	// A field the user has already edited is theirs — it never dims, because

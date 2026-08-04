@@ -258,7 +258,34 @@ describe("tier 2: remote fallback", () => {
 			"income",
 			"locale",
 			"name",
+			"regionCode",
 		]);
+	});
+
+	it("threads regionCode into both the fast and grounded-follow-up calls", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn, regionCode: "VE" })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(calls[0].args.regionCode).toBe("VE");
+		expect(calls[1].args.regionCode).toBe("VE");
 	});
 
 	it("the fast 600ms pass always sends groundedLookup false", async () => {

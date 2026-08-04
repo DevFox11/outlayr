@@ -49,6 +49,11 @@ export interface UseTransactionEnrichmentArgs {
 	remoteEnabled?: boolean;
 	locale?: string;
 	/**
+	 * The device's own region — a signal `locale` cannot substitute for, since a
+	 * user may run an English UI on a device set to a different region.
+	 */
+	regionCode?: string;
+	/**
 	 * The `groundedLookup` setting; gates the idle follow-up call only — the
 	 * fast tier never requests grounding (see `runGroundedFollowUp`). The
 	 * server re-checks it too (ADR-6).
@@ -168,6 +173,7 @@ export function useTransactionEnrichment(
 		onSuggest,
 		remoteEnabled = true,
 		locale,
+		regionCode,
 		groundedLookup = true,
 		transport,
 	} = args;
@@ -198,6 +204,8 @@ export function useTransactionEnrichment(
 	remoteEnabledRef.current = remoteEnabled;
 	const localeRef = useRef(locale);
 	localeRef.current = locale;
+	const regionCodeRef = useRef(regionCode);
+	regionCodeRef.current = regionCode;
 	const groundedLookupRef = useRef(groundedLookup);
 	groundedLookupRef.current = groundedLookup;
 	const transportRef = useRef<EnrichmentFn | null | undefined>(transport);
@@ -244,6 +252,7 @@ export function useTransactionEnrichment(
 						name: nameRef.current.trim(),
 						income: incomeRef.current,
 						locale: localeRef.current,
+						regionCode: regionCodeRef.current,
 						categoryTree: treeRef.current.map((branch) => ({
 							name: branch.name,
 							children: [...branch.children],
@@ -305,6 +314,7 @@ export function useTransactionEnrichment(
 			name: nameRef.current.trim(),
 			income: incomeRef.current,
 			locale: localeRef.current,
+			regionCode: regionCodeRef.current,
 			categoryTree: treeRef.current.map((branch) => ({
 				name: branch.name,
 				children: [...branch.children],
