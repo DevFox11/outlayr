@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Text } from "@/components/text";
-import { useImportFlow } from "@/contexts/import-flow-context";
 import {
 	guessMapping,
 	type ParsedImportFile,
@@ -21,14 +20,12 @@ import {
 } from "@/domain/transaction-csv";
 import { type TranslationKey, useTranslation } from "@/i18n";
 import { pickCsvFile, TransferError } from "@/lib/data-transfer";
+import {
+	type FileStepError,
+	importDraftStore,
+	useImportDraft,
+} from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
-
-type FileStepError =
-	| { cause: "io"; key: TranslationKey }
-	| { cause: "tooLarge" }
-	| { cause: "empty" }
-	| { cause: "noDataRows" }
-	| { cause: "tooFewColumns" };
 
 const ERROR_TITLE: Record<FileStepError["cause"], TranslationKey> = {
 	io: "import.errorIoTitle",
@@ -55,9 +52,9 @@ export function FileStep() {
 	const t = useTranslation();
 	const colors = useColors();
 	const router = useRouter();
-	const { state, dispatch } = useImportFlow();
+	const { flow: state, ui } = useImportDraft();
 	const [status, setStatus] = useState<"idle" | "loading">("idle");
-	const [error, setError] = useState<FileStepError | null>(null);
+	const error = ui.fileError;
 
 	const formatNote = useMemo(() => {
 		if (state.parsed == null || state.resolved == null) {
@@ -83,7 +80,7 @@ export function FileStep() {
 
 	const handleChoose = async () => {
 		setStatus("loading");
-		setError(null);
+		importDraftStore.setFileError(null);
 		try {
 			const picked = await pickCsvFile();
 			if (picked == null) {
@@ -92,13 +89,15 @@ export function FileStep() {
 			}
 			if (picked.text.length > HARD_PARSE_REJECT_CHARS) {
 				setStatus("idle");
-				setError({ cause: "tooLarge" });
+				importDraftStore.setFileError({ cause: "tooLarge" });
 				return;
 			}
 			const parsed: ParsedImportFile | null = parseImportFile(picked.text);
 			if (parsed == null) {
 				setStatus("idle");
-				setError({ cause: classifyParseFailure(picked.text) });
+				importDraftStore.setFileError({
+					cause: classifyParseFailure(picked.text),
+				});
 				return;
 			}
 			const draft =
@@ -113,7 +112,7 @@ export function FileStep() {
 						}
 					: guessMapping(parsed.header);
 			const resolution = resolveImportMapping(draft);
-			dispatch({
+			importDraftStore.dispatch({
 				type: "fileParsed",
 				file: { name: picked.name, chars: picked.text.length },
 				parsed,
@@ -124,7 +123,7 @@ export function FileStep() {
 			setStatus("idle");
 		} catch (thrown) {
 			setStatus("idle");
-			setError(
+			importDraftStore.setFileError(
 				thrown instanceof TransferError
 					? { cause: "io", key: thrown.key }
 					: { cause: "io", key: "alerts.transfer.unreadableFile" },

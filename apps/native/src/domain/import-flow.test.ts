@@ -1,11 +1,11 @@
 import type { ParsedImportFile } from "@/data/transfer-core";
 import {
 	canAdvance,
+	IMPORT_STEPS,
 	type ImportFlowEvent,
 	type ImportFlowState,
 	INITIAL_IMPORT_FLOW_STATE,
 	importFlowReducer,
-	stepFor,
 } from "./import-flow";
 import type { ResolvedMapping } from "./import-mapping";
 import type { ImportSourceId } from "./import-sources";
@@ -244,25 +244,9 @@ describe("importFlowReducer — invalidation cascade", () => {
 	});
 });
 
-describe("stepFor", () => {
-	it("maps the source route", () => {
-		expect(stepFor("/import")).toBe("source");
-	});
-
-	it("maps the file route", () => {
-		expect(stepFor("/import/file")).toBe("file");
-	});
-
-	it("maps the resolve route", () => {
-		expect(stepFor("/import/resolve")).toBe("resolve");
-	});
-
-	it("maps the review route", () => {
-		expect(stepFor("/import/review")).toBe("review");
-	});
-
-	it("falls back to the source step for an unrecognised path", () => {
-		expect(stepFor("/import/mystery")).toBe("source");
+describe("IMPORT_STEPS", () => {
+	it("orders the three steps this slice's sheet serves, source first", () => {
+		expect(IMPORT_STEPS).toStrictEqual(["source", "file", "resolve"]);
 	});
 });
 

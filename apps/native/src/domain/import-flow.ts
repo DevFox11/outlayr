@@ -153,18 +153,8 @@ export function importFlowReducer(
 	}
 }
 
-export function stepFor(pathname: string): ImportStep {
-	if (pathname.endsWith("/file")) {
-		return "file";
-	}
-	if (pathname.endsWith("/resolve")) {
-		return "resolve";
-	}
-	if (pathname.endsWith("/review")) {
-		return "review";
-	}
-	return "source";
-}
+/** The steps this slice's sheet serves; "review" lands with the commit slice. */
+export const IMPORT_STEPS = ["source", "file", "resolve"] as const;
 
 export function canAdvance(state: ImportFlowState, step: ImportStep): boolean {
 	switch (step) {

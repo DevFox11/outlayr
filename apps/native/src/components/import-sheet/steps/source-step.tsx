@@ -5,16 +5,18 @@ import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
-import { useImportFlow } from "@/contexts/import-flow-context";
+import { useWizard } from "@/components/wizard";
+import type { ImportStep } from "@/domain/import-flow";
 import { IMPORT_SOURCES } from "@/domain/import-sources";
 import { useTranslation } from "@/i18n";
+import { importDraftStore } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
 
 export function SourceStep() {
 	const t = useTranslation();
 	const colors = useColors();
 	const router = useRouter();
-	const { dispatch } = useImportFlow();
+	const { goTo } = useWizard<ImportStep>();
 
 	return (
 		<View className="gap-4 pt-4">
@@ -33,8 +35,11 @@ export function SourceStep() {
 							)}
 							disabled={!source.available}
 							onPress={() => {
-								dispatch({ type: "sourceSelected", sourceId: source.id });
-								router.push(source.entryRoute);
+								importDraftStore.dispatch({
+									type: "sourceSelected",
+									sourceId: source.id,
+								});
+								goTo("file");
 							}}
 						>
 							<View className="size-7 items-center justify-center rounded-lg">
