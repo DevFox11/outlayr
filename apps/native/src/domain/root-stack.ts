@@ -20,7 +20,6 @@ export const SETTINGS_SCREENS: readonly {
 	{ name: "settings/export", titleKey: "nav.settings.export" },
 	{ name: "settings/feature-lab", titleKey: "nav.settings.featureLab" },
 	{ name: "settings/haptics", titleKey: "nav.settings.haptics" },
-	{ name: "settings/import", titleKey: "nav.settings.import" },
 	{ name: "settings/language", titleKey: "nav.settings.language" },
 	{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
 	{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },

@@ -28,9 +28,9 @@ describe("settings screen: data section rows", () => {
 		);
 	});
 
-	it("leaves the CSV import row pointed at its existing screen, untouched by this slice", () => {
+	it("points the CSV import row at the import sheet, not the deleted legacy screen", () => {
 		expect(linkRowBlock("FileImport")).toMatch(
-			/onPress=\{\(\) => router\.push\("\/settings\/import"\)\}/,
+			/onPress=\{\(\) => router\.push\("\/import"\)\}/,
 		);
 	});
 });
