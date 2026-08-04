@@ -315,6 +315,10 @@ const settings = {
 			en: "Export Data",
 			es: "Exportar datos",
 		}),
+		"settings.row.restore": t({
+			en: "Restore Data",
+			es: "Restaurar datos",
+		}),
 		"settings.row.erase": t({
 			en: "Erase Data",
 			es: "Borrar datos",
@@ -631,6 +635,50 @@ const settings = {
 			en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand — the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
 			es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría debe vincularse a mano — el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
 		}),
+		"settings.restore.eyebrow": t({
+			en: "Restore everything",
+			es: "Restaurar todo",
+		}),
+		"settings.restore.intro": t({
+			en: "A full archive replaces this ledger with the one in the file. Use it to move to a new phone, not to add entries.",
+			es: "Un archivo completo reemplaza este registro por el del archivo. Sirve para pasar a un teléfono nuevo, no para agregar registros.",
+		}),
+		"settings.restore.action": t({
+			en: "Restore from an archive",
+			es: "Restaurar desde un archivo",
+		}),
+		"settings.restore.footer": t({
+			en: "This replaces every transaction, category and budget on this device. It cannot be undone.",
+			es: "Esto reemplaza cada transacción, categoría y presupuesto de este dispositivo. No se puede deshacer.",
+		}),
+		"settings.restore.badArchiveTitle": t({
+			en: "That is not an Outlayr archive",
+			es: "Ese no es un archivo de Outlayr",
+		}),
+		"settings.restore.badArchiveBody": t({
+			en: "The file could not be read, or it was written by a newer version of the app.",
+			es: "No se pudo leer el archivo, o lo escribió una versión más reciente de la app.",
+		}),
+		"settings.restore.confirmTitle": t({
+			en: "Replace this ledger?",
+			es: "¿Reemplazar este registro?",
+		}),
+		"settings.restore.confirmBody": t({
+			en: "Everything on this device is replaced by the {count} rows in the archive. This cannot be undone.",
+			es: "Todo lo de este dispositivo se reemplaza por las {count} filas del archivo. Esto no se puede deshacer.",
+		}),
+		"settings.restore.confirmAction": t({
+			en: "Replace",
+			es: "Reemplazar",
+		}),
+		"settings.restore.failedTitle": t({
+			en: "Restore failed",
+			es: "Error al restaurar",
+		}),
+		"settings.restore.failedBody": t({
+			en: "That file couldn't be opened.",
+			es: "No se pudo abrir ese archivo.",
+		}),
 		"settings.featureLab.addingSection": t({
 			en: "Adding a transaction",
 			es: "Al agregar una transacción",
@@ -894,38 +942,6 @@ const settings = {
 		"settings.import.intro": t({
 			en: "Pick a CSV and you will be asked which column holds what, how its dates are written, and which Outlayr category each of its category values means. Nothing is written until you have seen exactly what will land.",
 			es: "Elige un CSV y se te preguntará qué contiene cada columna, cómo están escritas sus fechas y a qué categoría de Outlayr corresponde cada uno de sus valores de categoría. No se escribe nada hasta que hayas visto exactamente qué va a entrar.",
-		}),
-		"settings.import.restoreEyebrow": t({
-			en: "Or restore everything",
-			es: "O restaurar todo",
-		}),
-		"settings.import.restoreIntro": t({
-			en: "A full archive replaces this ledger with the one in the file. Use it to move to a new phone, not to add entries.",
-			es: "Un archivo completo reemplaza este registro por el del archivo. Sirve para pasar a un teléfono nuevo, no para agregar registros.",
-		}),
-		"settings.import.restoreAction": t({
-			en: "Restore from an archive",
-			es: "Restaurar desde un archivo",
-		}),
-		"settings.import.badArchiveTitle": t({
-			en: "That is not an Outlayr archive",
-			es: "Ese no es un archivo de Outlayr",
-		}),
-		"settings.import.badArchiveBody": t({
-			en: "The file could not be read, or it was written by a newer version of the app.",
-			es: "No se pudo leer el archivo, o lo escribió una versión más reciente de la app.",
-		}),
-		"settings.import.restoreConfirmTitle": t({
-			en: "Replace this ledger?",
-			es: "¿Reemplazar este registro?",
-		}),
-		"settings.import.restoreConfirmBody": t({
-			en: "Everything on this device is replaced by the {count} rows in the archive. This cannot be undone.",
-			es: "Todo lo de este dispositivo se reemplaza por las {count} filas del archivo. Esto no se puede deshacer.",
-		}),
-		"settings.import.restoreConfirm": t({
-			en: "Replace",
-			es: "Reemplazar",
 		}),
 		"settings.import.chooseAFile": t({
 			en: "Choose a file",

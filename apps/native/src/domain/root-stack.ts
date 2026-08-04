@@ -24,6 +24,7 @@ export const SETTINGS_SCREENS: readonly {
 	{ name: "settings/language", titleKey: "nav.settings.language" },
 	{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
 	{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },
+	{ name: "settings/restore", titleKey: "nav.settings.restore" },
 	{ name: "settings/sync", titleKey: "settings.sync.navTitle" },
 	{ name: "settings/theme", titleKey: "nav.settings.theme" },
 	{ name: "settings/time", titleKey: "nav.settings.time" },

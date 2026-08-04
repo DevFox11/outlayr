@@ -228,6 +228,11 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.export")}
 				/>
 				<LinkRow
+					icon="ArchiveRestore"
+					onPress={() => router.push("/settings/restore")}
+					title={t("settings.row.restore")}
+				/>
+				<LinkRow
 					destructive
 					icon="Delete02"
 					onPress={() => router.push("/settings/erase")}
