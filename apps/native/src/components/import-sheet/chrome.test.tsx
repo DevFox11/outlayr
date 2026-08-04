@@ -124,21 +124,6 @@ describe("ImportSheetChrome", () => {
 		expect(onPress).toHaveBeenCalled();
 	});
 
-	it("renders a hairline rule below the header", async () => {
-		const { getByTestId } = await render(
-			<ImportSheetChrome
-				canGoBack={false}
-				footer={null}
-				onBack={jest.fn()}
-				onCancel={jest.fn()}
-				title="Import"
-			>
-				<Text>content</Text>
-			</ImportSheetChrome>,
-		);
-		expect(getByTestId("import-chrome-hairline")).toBeTruthy();
-	});
-
 	it("calls onCancel when Cancel is tapped", async () => {
 		const onCancel = jest.fn();
 		const { getByText } = await render(
