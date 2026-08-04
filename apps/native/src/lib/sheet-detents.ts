@@ -1,3 +1,5 @@
+import type { ImportStep } from "@/domain/import-flow";
+
 /**
  * How tall the category sheets open, as react-native-screens detent fractions.
  *
@@ -40,3 +42,23 @@ export function identityPickerDetent(windowHeight: number): number {
  * re-declare which detents exist at all.
  */
 export const LARGE_ONLY = [1];
+
+const IMPORT_STEP_HEIGHT: Record<ImportStep, number | "full"> = {
+	source: 360,
+	file: 420,
+	resolve: 460,
+	review: "full",
+};
+
+export function importStepDetents(
+	step: ImportStep,
+	windowHeight: number,
+): number[] {
+	const target = IMPORT_STEP_HEIGHT[step];
+	if (target === "full") {
+		return [1];
+	}
+	const maxDetent = Math.max(1, windowHeight - LARGE_SHEET_TOP_INSET);
+	const detent = Math.min(1, target / maxDetent);
+	return detent >= 1 ? [1] : [detent, 1];
+}
