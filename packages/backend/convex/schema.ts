@@ -208,4 +208,23 @@ export default defineSchema({
 	})
 		.index("by_user", ["userId"])
 		.index("by_key", ["key"]),
+
+	/**
+	 * Globally shared, no `userId` by construction — same shape as
+	 * `exchangeRates` and `photoObjects` above. Exactly one index and exactly
+	 * one exact-key reader (`merchantKnowledge.lookup`, internal-only): a
+	 * prefix or range index here would be an enumeration surface over a
+	 * shared table (see the merchantKnowledge module's own doc comment).
+	 */
+	merchantKnowledge: defineTable({
+		key: v.string(),
+		domain: v.string(),
+		categoryName: v.string(),
+		parentCategoryName: v.union(v.string(), v.null()),
+		emoji: v.union(v.string(), v.null()),
+		tags: v.array(v.string()),
+		logoKey: v.union(v.string(), v.null()),
+		resolvedAt: v.number(),
+		modelId: v.string(),
+	}).index("by_key", ["key"]),
 });
