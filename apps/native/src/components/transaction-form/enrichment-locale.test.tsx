@@ -166,3 +166,18 @@ describe("TransactionForm enrichment locale wiring", () => {
 		);
 	});
 });
+
+describe("TransactionForm groundedLookup wiring", () => {
+	it("passes the groundedLookup setting into useTransactionEnrichment", async () => {
+		const db = dbHolder.current as Database;
+		await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
+			expect.objectContaining({ groundedLookup: true }),
+		);
+	});
+});

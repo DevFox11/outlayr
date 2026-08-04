@@ -249,10 +249,41 @@ describe("tier 2: remote fallback", () => {
 
 		expect(Object.keys(calls[0].args).sort()).toStrictEqual([
 			"categoryTree",
+			"groundedLookup",
 			"income",
 			"locale",
 			"name",
 		]);
+	});
+
+	it("sends groundedLookup true by default", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(calls[0].args.groundedLookup).toBe(true);
+	});
+
+	it("sends groundedLookup sourced from the setting when it is off", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(
+				baseArgs({ transport: fn, groundedLookup: false }),
+			),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(calls[0].args.groundedLookup).toBe(false);
 	});
 
 	it("reuses a cached negative result rather than calling again", async () => {
@@ -345,6 +376,38 @@ describe("tier 2: remote fallback", () => {
 
 		expect(onSuggest).not.toHaveBeenCalled();
 		expect(result.current.pending).toBe(false);
+	});
+
+	it("does not cache a grounding-pending result, so a repeat lookup tries again", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+
+		expect(getCachedEnrichment(merchantKey(UNKNOWN))).toStrictEqual({
+			hit: false,
+		});
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(2);
 	});
 
 	it("gives up at the abort budget and caches the miss", async () => {

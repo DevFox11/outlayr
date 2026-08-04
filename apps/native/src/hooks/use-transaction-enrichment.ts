@@ -46,6 +46,8 @@ export interface UseTransactionEnrichmentArgs {
 	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
 	remoteEnabled?: boolean;
 	locale?: string;
+	/** The `groundedLookup` setting; the server re-checks it too (ADR-6). */
+	groundedLookup?: boolean;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
 }
@@ -149,6 +151,7 @@ export function useTransactionEnrichment(
 		onSuggest,
 		remoteEnabled = true,
 		locale,
+		groundedLookup = true,
 		transport,
 	} = args;
 
@@ -173,6 +176,8 @@ export function useTransactionEnrichment(
 	remoteEnabledRef.current = remoteEnabled;
 	const localeRef = useRef(locale);
 	localeRef.current = locale;
+	const groundedLookupRef = useRef(groundedLookup);
+	groundedLookupRef.current = groundedLookup;
 	const transportRef = useRef<EnrichmentFn | null | undefined>(transport);
 	transportRef.current = transport;
 
@@ -219,6 +224,7 @@ export function useTransactionEnrichment(
 							name: branch.name,
 							children: [...branch.children],
 						})),
+						groundedLookup: groundedLookupRef.current,
 					}),
 					new Promise<null>((resolve) => {
 						setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
@@ -232,7 +238,9 @@ export function useTransactionEnrichment(
 				return;
 			}
 			setPending(false);
-			setCachedEnrichment(key, result);
+			if (result?.grounding !== true) {
+				setCachedEnrichment(key, result);
+			}
 			if (result == null) {
 				emitNothing();
 				return;

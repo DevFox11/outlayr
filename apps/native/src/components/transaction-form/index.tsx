@@ -452,6 +452,7 @@ export function TransactionForm({
 	const [showToast, setShowToast] = useState(false);
 	const celebrate = useAppSettings().state.bool("confetti");
 	const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
+	const groundedLookup = useAppSettings().state.bool("groundedLookup");
 	const [burstSeed, setBurstSeed] = useState(0);
 	// Shared values, not state: the fly-up is the only reader and it reads them from
 	// the UI thread, so measuring the form must not cost the SwiftUI tree a render.
@@ -700,6 +701,7 @@ export function TransactionForm({
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
 		locale,
+		groundedLookup,
 	});
 	// A field the user has already edited is theirs — it never dims, because
 	// nothing arriving can change it.
