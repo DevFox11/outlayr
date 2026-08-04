@@ -227,4 +227,20 @@ export default defineSchema({
 		resolvedAt: v.number(),
 		modelId: v.string(),
 	}).index("by_key", ["key"]),
+
+	/**
+	 * The grounded-lookup invoice. No key, no user, no merchant name — only what
+	 * was spent and whether it published, so `groundedSpend.monthlyTotal` (the
+	 * only reader, internal-only) can tighten the env-configured unit prices
+	 * from observed data without ever exposing a per-merchant spend trail.
+	 */
+	groundedSpend: defineTable({
+		at: v.number(),
+		chargedMicros: v.number(),
+		actualMicros: v.number(),
+		searchCalls: v.number(),
+		inputTokens: v.number(),
+		outputTokens: v.number(),
+		published: v.boolean(),
+	}).index("by_at", ["at"]),
 });

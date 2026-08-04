@@ -16,6 +16,7 @@ import type * as csvImport from "../csvImport.js";
 import type * as enrichment from "../enrichment.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as frankfurter from "../frankfurter.js";
+import type * as groundedSpend from "../groundedSpend.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   enrichment: typeof enrichment;
   exchangeRates: typeof exchangeRates;
   frankfurter: typeof frankfurter;
+  groundedSpend: typeof groundedSpend;
   healthCheck: typeof healthCheck;
   http: typeof http;
   "lib/auth": typeof lib_auth;
