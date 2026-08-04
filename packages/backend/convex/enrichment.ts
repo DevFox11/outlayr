@@ -448,7 +448,7 @@ export const suggest = action({
 			return {
 				...applyToTree(args.categoryTree, cached),
 				logoKey: cached.logoKey,
-				logoUrl: null,
+				logoUrl: cached.logoUrl,
 				grounding: false,
 			};
 		}
