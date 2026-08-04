@@ -1,6 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { File01Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Text } from "@/components/text";
@@ -51,7 +50,6 @@ const MAPPING_GAP_COPY: Record<string, TranslationKey> = {
 export function FileStep() {
 	const t = useTranslation();
 	const colors = useColors();
-	const router = useRouter();
 	const { flow: state, ui } = useImportDraft();
 	const [status, setStatus] = useState<"idle" | "loading">("idle");
 	const error = ui.fileError;
@@ -143,17 +141,17 @@ export function FileStep() {
 							{t(MAPPING_GAP_COPY[gap])}
 						</Text>
 					))}
+					<Text className="text-footnote text-muted">
+						{t("import.mappingGapGuidance")}
+					</Text>
 				</View>
 				<Pressable
 					accessibilityRole="button"
 					className="items-center active:opacity-60"
-					onPress={() => {
-						router.push("/settings/import");
-						router.dismissAll();
-					}}
+					onPress={handleChoose}
 				>
 					<Text className="font-sans-medium text-body text-foreground underline">
-						{t("import.mapManually")}
+						{t("import.chooseDifferentFile")}
 					</Text>
 				</Pressable>
 			</View>

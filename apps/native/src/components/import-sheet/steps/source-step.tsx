@@ -1,6 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ArrowRight01Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { useRouter } from "expo-router";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
@@ -15,7 +14,6 @@ import { useColors } from "@/theme/use-colors";
 export function SourceStep() {
 	const t = useTranslation();
 	const colors = useColors();
-	const router = useRouter();
 	const { goTo } = useWizard<ImportStep>();
 
 	return (
@@ -72,18 +70,6 @@ export function SourceStep() {
 					</Fragment>
 				))}
 			</View>
-			<Pressable
-				accessibilityRole="button"
-				className="items-start active:opacity-60"
-				onPress={() => {
-					router.push("/settings/import");
-					router.dismissAll();
-				}}
-			>
-				<Text className="font-sans-medium text-body text-foreground underline">
-					{t("import.mapManually")}
-				</Text>
-			</Pressable>
 		</View>
 	);
 }

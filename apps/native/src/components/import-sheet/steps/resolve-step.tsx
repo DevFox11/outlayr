@@ -80,26 +80,13 @@ export function ResolveStep() {
 						{t(REASON_COPY[reason])}
 					</Text>
 				</View>
-				<View className="flex-row gap-5">
-					{NO_RETRY_REASONS.has(reason) ? null : (
-						<Pressable accessibilityRole="button" onPress={run}>
-							<Text className="font-sans-medium text-body text-tint">
-								{t("import.tryAgain")}
-							</Text>
-						</Pressable>
-					)}
-					<Pressable
-						accessibilityRole="button"
-						onPress={() => {
-							router.push("/settings/import");
-							router.dismissAll();
-						}}
-					>
-						<Text className="font-sans-medium text-body text-foreground underline">
-							{t("import.mapManually")}
+				{NO_RETRY_REASONS.has(reason) ? null : (
+					<Pressable accessibilityRole="button" onPress={run}>
+						<Text className="font-sans-medium text-body text-tint">
+							{t("import.tryAgain")}
 						</Text>
 					</Pressable>
-				</View>
+				)}
 			</View>
 		);
 	}

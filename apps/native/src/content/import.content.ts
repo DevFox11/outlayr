@@ -19,10 +19,6 @@ const importSheet = {
 			en: "Coming soon",
 			es: "Próximamente",
 		}),
-		"import.mapManually": t({
-			en: "Map columns manually",
-			es: "Asignar columnas manualmente",
-		}),
 		"import.fileEmptyCaption": t({
 			en: "No file chosen",
 			es: "Ningún archivo elegido",
@@ -114,6 +110,10 @@ const importSheet = {
 		"import.mappingGapNoAmount": t({
 			en: "No amount column",
 			es: "No hay columna de monto",
+		}),
+		"import.mappingGapGuidance": t({
+			en: "Add a header row that names the missing column, or choose a file that already has one.",
+			es: "Agrega una fila de encabezado que nombre la columna faltante, o elige un archivo que ya la tenga.",
 		}),
 		"import.titleResolve": t({
 			en: "Categorise",
