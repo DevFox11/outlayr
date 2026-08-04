@@ -4,8 +4,9 @@ import { generateText, type LanguageModel, Output } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
+import { merchantKey } from "./lib/merchantKey";
 
 /**
  * `grok-4-fast-non-reasoning` and `grok-3-mini` — the original design's pick
@@ -55,6 +56,11 @@ const suggestion = v.object({
 	emoji: v.union(v.string(), v.null()),
 	tags: v.array(v.string()),
 	domain: v.union(v.string(), v.null()),
+	/** Stable shared-cache object key; `logoUrl` mints a fresh signed url from it. */
+	logoKey: v.union(v.string(), v.null()),
+	logoUrl: v.union(v.string(), v.null()),
+	/** A grounded lookup was scheduled — the client must not cache this as a final null result. */
+	grounding: v.boolean(),
 });
 
 export interface CategoryBranch {
@@ -69,6 +75,9 @@ export interface Suggestion {
 	emoji: string | null;
 	tags: string[];
 	domain: string | null;
+	logoKey: string | null;
+	logoUrl: string | null;
+	grounding: boolean;
 }
 
 export const EMPTY: Suggestion = {
@@ -78,6 +87,9 @@ export const EMPTY: Suggestion = {
 	emoji: null,
 	tags: [],
 	domain: null,
+	logoKey: null,
+	logoUrl: null,
+	grounding: false,
 };
 
 /** The model's own output is untrusted input — this is only the JSON shape. */
@@ -211,6 +223,56 @@ function sanitizeEmoji(emoji: string | null): string | null {
 	return /\p{Extended_Pictographic}/u.test(trimmed) ? trimmed : null;
 }
 
+export interface TreeCandidate {
+	categoryName: string | null;
+	parentCategoryName: string | null;
+	emoji: string | null;
+	tags: readonly string[];
+	domain: string | null;
+}
+
+/**
+ * Resolves a candidate's `isNewCategory`/`parentCategoryName` against one
+ * user's own category tree. Shared by `runSuggest` (Tier 2, tree-relative
+ * from the start) and `suggest`'s Tier 1.5 cache hit (a globally-shared
+ * candidate applied to whichever user is asking this time) — the same
+ * merchant can be "new" for one user and already-known for another.
+ */
+export function applyToTree(
+	tree: readonly CategoryBranch[],
+	candidate: TreeCandidate,
+): Omit<Suggestion, "logoKey" | "logoUrl" | "grounding"> {
+	const cappedTree = tree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
+	const everyName = cappedTree.flatMap((branch) => [
+		branch.name,
+		...branch.children,
+	]);
+
+	const { categoryName } = candidate;
+	const isNewCategory =
+		categoryName !== null && !everyName.includes(categoryName);
+	// A parent is only ever one of the top-level names actually sent, and only
+	// for a category being created. Anything else is dropped rather than
+	// trusted — neither the model nor a globally-shared cache row can know
+	// this particular user's ledger shape.
+	const parentCategoryName =
+		isNewCategory &&
+		candidate.parentCategoryName !== null &&
+		candidate.parentCategoryName !== categoryName &&
+		cappedTree.some((branch) => branch.name === candidate.parentCategoryName)
+			? candidate.parentCategoryName
+			: null;
+
+	return {
+		categoryName,
+		isNewCategory,
+		parentCategoryName,
+		emoji: candidate.emoji,
+		tags: [...candidate.tags],
+		domain: candidate.domain,
+	};
+}
+
 /**
  * Model call + sanitisation only — no auth, no env check, no rate limit.
  * Exported so tests can inject a fake model directly; the guard ladder above
@@ -221,7 +283,6 @@ export async function runSuggest(
 	args: RunSuggestArgs,
 ): Promise<Suggestion> {
 	const tree = args.categoryTree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
-	const everyName = tree.flatMap((branch) => [branch.name, ...branch.children]);
 
 	const { output } = await generateText({
 		model,
@@ -233,32 +294,21 @@ export async function runSuggest(
 		maxRetries: 0,
 	});
 
-	const categoryName = sanitizeCategoryName(output.categoryName);
-	const isNewCategory =
-		categoryName !== null && !everyName.includes(categoryName);
-	// A parent is only ever one of the top-level names actually sent, and only
-	// for a category being created. Anything else the model names is dropped
-	// rather than trusted — it cannot know this ledger's shape.
-	const proposedParent = sanitizeCategoryName(
-		output.parentCategoryName ?? null,
-	);
-	const parentCategoryName =
-		isNewCategory &&
-		proposedParent !== null &&
-		proposedParent !== categoryName &&
-		tree.some((branch) => branch.name === proposedParent)
-			? proposedParent
-			: null;
-
 	return {
-		categoryName,
-		// The model's own `isNewCategory` claim is discarded — it has no reason
-		// to be authoritative about the user's own local data.
-		isNewCategory,
-		parentCategoryName,
-		emoji: sanitizeEmoji(output.emoji ?? null),
-		tags: sanitizeTags(output.tags),
-		domain: sanitizeDomain(output.domain),
+		// The model's own `isNewCategory` claim is discarded by `applyToTree` —
+		// it has no reason to be authoritative about the user's own local data.
+		...applyToTree(args.categoryTree, {
+			categoryName: sanitizeCategoryName(output.categoryName),
+			parentCategoryName: sanitizeCategoryName(
+				output.parentCategoryName ?? null,
+			),
+			emoji: sanitizeEmoji(output.emoji ?? null),
+			tags: sanitizeTags(output.tags),
+			domain: sanitizeDomain(output.domain),
+		}),
+		logoKey: null,
+		logoUrl: null,
+		grounding: false,
 	};
 }
 
@@ -276,16 +326,31 @@ export const suggest = action({
 			return EMPTY;
 		}
 
-		const apiKey = process.env.XAI_API_KEY;
-		if (!apiKey) {
-			return EMPTY;
-		}
-
 		const trimmedName = args.name.trim();
 		if (
 			trimmedName.length < MIN_NAME_LENGTH ||
 			trimmedName.length > MAX_NAME_LENGTH
 		) {
+			return EMPTY;
+		}
+
+		// Tier 1.5: an indexed read that costs nothing and consumes neither rate
+		// limit bucket below — checked before `XAI_API_KEY` so a hit still works
+		// even when that key is unset (design's degradation matrix).
+		const cached = await ctx.runQuery(internal.merchantKnowledge.lookup, {
+			key: merchantKey(trimmedName),
+		});
+		if (cached !== null) {
+			return {
+				...applyToTree(args.categoryTree, cached),
+				logoKey: cached.logoKey,
+				logoUrl: null,
+				grounding: false,
+			};
+		}
+
+		const apiKey = process.env.XAI_API_KEY;
+		if (!apiKey) {
 			return EMPTY;
 		}
 

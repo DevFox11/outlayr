@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
 import { EMPTY, rateLimiter, runSuggest, suggestArgs } from "./enrichment";
+import { merchantKey } from "./lib/merchantKey";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 
@@ -14,6 +15,10 @@ const modules = import.meta.glob("./**/*.ts");
 
 afterEach(() => {
 	vi.unstubAllEnvs();
+	// Without this, `rateLimiter.limit`'s `mockImplementation` from the
+	// "global window exhausted" test below stayed wrapped onto the shared
+	// module-level `rateLimiter` singleton for every later test in this file.
+	vi.restoreAllMocks();
 });
 
 /**
@@ -166,6 +171,71 @@ describe("suggest guard ladder", () => {
 	});
 });
 
+describe("merchantKnowledge cache (Tier 1.5)", () => {
+	async function seedKnowledge(t: ReturnType<typeof convexTest>, name: string) {
+		await t.run((ctx) =>
+			ctx.db.insert("merchantKnowledge", {
+				key: merchantKey(name),
+				domain: "farmatodo.com",
+				categoryName: "Healthcare",
+				parentCategoryName: null,
+				emoji: "💊",
+				tags: ["pharmacy"],
+				logoKey: null,
+				resolvedAt: Date.now(),
+				modelId: "test-model",
+			}),
+		);
+	}
+
+	test("a cache hit serves category, tags and domain without consuming either rate-limit bucket", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+		await seedKnowledge(t, "Farmatodo");
+		const limitSpy = vi.spyOn(rateLimiter, "limit");
+
+		const result = await authenticatedAs(t, identity).action(
+			api.enrichment.suggest,
+			{ ...BASE_ARGS, name: "Farmatodo" },
+		);
+
+		expect(result).toMatchObject({
+			categoryName: "Healthcare",
+			domain: "farmatodo.com",
+			tags: ["pharmacy"],
+			emoji: "💊",
+			grounding: false,
+		});
+		expect(limitSpy).not.toHaveBeenCalled();
+	});
+
+	test("case, diacritic and whitespace variants collide to the same cached key", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+		await seedKnowledge(t, "Farmatodo");
+		const asUser = authenticatedAs(t, identity);
+
+		await expect(
+			asUser.action(api.enrichment.suggest, {
+				...BASE_ARGS,
+				name: " FARMÁTODO ",
+			}),
+		).resolves.toMatchObject({ categoryName: "Healthcare" });
+	});
+
+	test("a cache miss falls through to the existing guard ladder unchanged", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+
+		await expect(
+			authenticatedAs(t, identity).action(api.enrichment.suggest, {
+				...BASE_ARGS,
+				name: "totally unknown merchant xyz",
+			}),
+		).resolves.toEqual(EMPTY);
+	});
+});
+
 describe("runSuggest sanitisation", () => {
 	test("trims category name, tags and domain from well-formed model output", async () => {
 		const model = mockModel({
@@ -184,6 +254,9 @@ describe("runSuggest sanitisation", () => {
 			emoji: null,
 			tags: ["Music", "Streaming"],
 			domain: "netflix.com",
+			logoKey: null,
+			logoUrl: null,
+			grounding: false,
 		});
 	});
 
