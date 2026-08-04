@@ -14,7 +14,7 @@
 	},
 	"devDependencies": {
 		"@outlayr/config": "workspace:*",
-		"@types/node": "^26.1.1",
+		"@types/node": "^26.1.2",
 		"typescript": "catalog:"
 	}
 }

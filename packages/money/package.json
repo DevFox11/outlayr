@@ -15,7 +15,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"dinero.js": "catalog:"
+		"dinero.js": "^2.0.2"
 	},
 	"devDependencies": {
 		"@outlayr/config": "workspace:*",
