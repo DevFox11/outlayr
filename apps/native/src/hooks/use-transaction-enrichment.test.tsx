@@ -14,6 +14,7 @@ import {
 } from "./use-transaction-enrichment";
 
 const DEBOUNCE_MS = 600;
+const GROUNDED_IDLE_MS = 1800;
 const UNKNOWN = "zzq unresolvable merchant alpha";
 const OTHER_UNKNOWN = "zzq unresolvable merchant beta";
 
@@ -73,6 +74,12 @@ afterEach(() => {
 	jest.useRealTimers();
 });
 
+describe("latency contract", () => {
+	test("REMOTE_TIMEOUT_MS is unchanged at 4000ms", () => {
+		expect(REMOTE_TIMEOUT_MS).toBe(4000);
+	});
+});
+
 describe("debouncing", () => {
 	it("collapses 20 rapid keystrokes into exactly one suggestion at 600ms", async () => {
 		const onSuggest = jest.fn();
@@ -127,6 +134,8 @@ describe("tier 1: curated match", () => {
 			emoji: null,
 			parentName: null,
 		});
+		expect(suggestion.logoUrl).toBeNull();
+		expect(suggestion.logoKey).toBeNull();
 		expect(result.current.pending).toBe(false);
 	});
 
@@ -152,6 +161,8 @@ describe("tier 1: curated match", () => {
 			tagIds: [],
 			pendingTagNames: [],
 			domain: null,
+			logoUrl: null,
+			logoKey: null,
 			source: "curated",
 		});
 	});
@@ -243,10 +254,150 @@ describe("tier 2: remote fallback", () => {
 
 		expect(Object.keys(calls[0].args).sort()).toStrictEqual([
 			"categoryTree",
+			"groundedLookup",
 			"income",
 			"locale",
 			"name",
+			"regionCode",
 		]);
+	});
+
+	it("threads regionCode into both the fast and grounded-follow-up calls", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn, regionCode: "VE" })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(calls[0].args.regionCode).toBe("VE");
+		expect(calls[1].args.regionCode).toBe("VE");
+	});
+
+	it("the fast 600ms pass always sends groundedLookup false", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(calls[0].args.groundedLookup).toBe(false);
+	});
+
+	it("typing then settling issues exactly one grounded-enabled follow-up call", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(2);
+		expect(calls[0].args.groundedLookup).toBe(false);
+		expect(calls[1].args.groundedLookup).toBe(true);
+	});
+
+	it("typing a prefix then continuing issues no grounded call for the abandoned prefix", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange("Rio");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(1000);
+		});
+		result.current.onNameChange("Rio supermercado");
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS);
+		});
+
+		expect(calls.every((call) => call.args.groundedLookup === false)).toBe(
+			true,
+		);
+	});
+
+	it("a fast result with a domain issues no follow-up", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle(REMOTE_RESULT);
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(1);
+	});
+
+	it("never issues a grounded-enabled follow-up when the setting is off", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(
+				baseArgs({ transport: fn, groundedLookup: false }),
+			),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		expect(calls[0].args.groundedLookup).toBe(false);
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(1);
 	});
 
 	it("reuses a cached negative result rather than calling again", async () => {
@@ -341,6 +492,65 @@ describe("tier 2: remote fallback", () => {
 		expect(result.current.pending).toBe(false);
 	});
 
+	it("maps a remote result's logoUrl and logoKey onto the suggestion", async () => {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				...REMOTE_RESULT,
+				logoUrl: "https://r2.example/merchant/zzq",
+				logoKey: "merchant/zzq",
+			});
+		});
+
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				logoUrl: "https://r2.example/merchant/zzq",
+				logoKey: "merchant/zzq",
+			}),
+		);
+	});
+
+	it("does not cache a grounding-pending result, so a repeat lookup tries again", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+
+		expect(getCachedEnrichment(merchantKey(UNKNOWN))).toStrictEqual({
+			hit: false,
+		});
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(2);
+	});
+
 	it("gives up at the abort budget and caches the miss", async () => {
 		const { fn } = deferredTransport();
 		const { result } = await renderHook(() =>
@@ -377,6 +587,19 @@ describe("unmount and disable", () => {
 		jest.advanceTimersByTime(DEBOUNCE_MS);
 
 		expect(onSuggest).not.toHaveBeenCalled();
+	});
+
+	it("unmount cancels both the fast and grounded-follow-up timers", async () => {
+		const { fn } = deferredTransport();
+		const { result, unmount } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await unmount();
+		jest.advanceTimersByTime(GROUNDED_IDLE_MS + 1);
+
+		expect(fn).not.toHaveBeenCalled();
 	});
 
 	it("is fully inert when disabled: no timer, no suggestion, constant pending flags", async () => {

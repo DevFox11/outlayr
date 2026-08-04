@@ -96,8 +96,15 @@ export interface EnrichmentRequest {
 	name: string;
 	income: boolean;
 	locale?: string;
+	/**
+	 * The device's own region — a signal `locale` cannot substitute for, since a
+	 * user may run an English UI on a device set to a different region.
+	 */
+	regionCode?: string;
 	/** Names only — the shape of the ledger, never its figures. */
 	categoryTree: CategoryBranch[];
+	/** The synced `groundedLookup` setting; the server re-checks it too. */
+	groundedLookup: boolean;
 }
 
 export type EnrichmentFn = (

@@ -88,6 +88,8 @@ import {
 	leadLabel,
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
+import { useLocaleTag } from "@/hooks/use-locale-tag";
+import { useRegionCode } from "@/hooks/use-region-code";
 import {
 	type EnrichmentSuggestion,
 	type PendingCategory,
@@ -451,6 +453,7 @@ export function TransactionForm({
 	const [showToast, setShowToast] = useState(false);
 	const celebrate = useAppSettings().state.bool("confetti");
 	const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
+	const groundedLookup = useAppSettings().state.bool("groundedLookup");
 	const [burstSeed, setBurstSeed] = useState(0);
 	// Shared values, not state: the fly-up is the only reader and it reads them from
 	// the UI thread, so measuring the form must not cost the SwiftUI tree a render.
@@ -587,7 +590,11 @@ export function TransactionForm({
 	 * after a newer one started is dropped rather than painted over it.
 	 */
 	const attachLogo = useCallback(
-		async (domain: string | null) => {
+		async (
+			domain: string | null,
+			logoUrl: string | null,
+			logoKey: string | null,
+		) => {
 			const blocked = () =>
 				identitySourceRef.current === "user" ||
 				pickerOpenRef.current ||
@@ -600,7 +607,12 @@ export function TransactionForm({
 			const ticket = ++logoRequestRef.current;
 			const stale = () => ticket !== logoRequestRef.current || blocked();
 
-			const outcome = await fetchMerchantImage({ name: name.value, domain });
+			const outcome = await fetchMerchantImage({
+				name: name.value,
+				domain,
+				logoUrl,
+				logoKey,
+			});
 			if (stale()) {
 				return;
 			}
@@ -685,11 +697,17 @@ export function TransactionForm({
 					setTagsSource("initial");
 				}
 			}
-			void attachLogo(suggestion.domain);
+			void attachLogo(
+				suggestion.domain,
+				suggestion.logoUrl,
+				suggestion.logoKey,
+			);
 		},
 		[categorySource, tagsSource, db, form.setFieldValue, attachLogo],
 	);
 
+	const locale = useLocaleTag();
+	const regionCode = useRegionCode();
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
 		enabled: mode === "create",
 		income,
@@ -697,6 +715,9 @@ export function TransactionForm({
 		onSuggest: applySuggestion,
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
+		locale,
+		regionCode,
+		groundedLookup,
 	});
 	// A field the user has already edited is theirs — it never dims, because
 	// nothing arriving can change it.

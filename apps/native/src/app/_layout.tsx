@@ -206,6 +206,7 @@ function RootStack() {
 				    stock theme card differs from the flow's `--fr-ground` — an opaque
 				    bar would band the top. */}
 				<Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
+				<Stack.Screen name="onboarding/grounding" options={FIRST_RUN_STEP} />
 				<Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
 			</Stack.Protected>
 

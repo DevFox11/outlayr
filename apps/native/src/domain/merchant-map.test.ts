@@ -3,7 +3,7 @@ import {
 	SUGGESTED_CATEGORY_PRESETS,
 } from "@/data/categories-core";
 import { MERCHANT_INDEX, MERCHANTS } from "./merchant-map";
-import { merchantKey } from "./merchant-resolver";
+import { merchantKey, resolveMerchant } from "./merchant-resolver";
 import { normalizeTagName, TAG_NAME_LIMIT } from "./tags";
 
 const VALID_CATEGORY_NAMES = new Set(
@@ -45,8 +45,8 @@ describe("seeding the curated merchant map", () => {
 	});
 
 	it("keeps the seed inside the curated size budget", () => {
-		expect(MERCHANTS.length).toBeGreaterThanOrEqual(100);
-		expect(MERCHANTS.length).toBeLessThanOrEqual(130);
+		expect(MERCHANTS.length).toBeGreaterThanOrEqual(140);
+		expect(MERCHANTS.length).toBeLessThanOrEqual(160);
 	});
 
 	it("includes the required named merchants verbatim", () => {
@@ -94,6 +94,41 @@ describe("seeding the curated merchant map", () => {
 			tags: ["Music", "Streaming", "Subscription"],
 			domain: "music.youtube.com",
 		});
+	});
+});
+
+describe("regional merchant coverage", () => {
+	it("resolves every reported LATAM merchant name", () => {
+		const reported = [
+			"Gama supermercados",
+			"Forum SuperMayorista",
+			"Central Madeirense",
+			"Farmatodo",
+			"Automercados Plaza's",
+		];
+		for (const name of reported) {
+			expect(resolveMerchant(name)?.categoryName ?? null).not.toBeNull();
+		}
+	});
+});
+
+describe("logo.dev domain backfill", () => {
+	it("resolves a verified logo.dev domain for each backfilled merchant", () => {
+		const verified: Record<string, string> = {
+			"central madeirense": "centralmadeirense.com",
+			locatel: "locatel.com.ve",
+			farmahorro: "farmahorro.com",
+			traki: "traki.com",
+			digitel: "digitel.com.ve",
+		};
+		for (const [name, domain] of Object.entries(verified)) {
+			expect(resolveMerchant(name)?.domain).toBe(domain);
+		}
+	});
+
+	it("leaves the two merchants logo.dev cannot serve without a domain", () => {
+		expect(resolveMerchant("automercados plazas")?.domain).toBeNull();
+		expect(resolveMerchant("cantv")?.domain).toBeNull();
 	});
 });
 

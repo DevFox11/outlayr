@@ -208,4 +208,39 @@ export default defineSchema({
 	})
 		.index("by_user", ["userId"])
 		.index("by_key", ["key"]),
+
+	/**
+	 * Globally shared, no `userId` by construction — same shape as
+	 * `exchangeRates` and `photoObjects` above. Exactly one index and exactly
+	 * one exact-key reader (`merchantKnowledge.lookup`, internal-only): a
+	 * prefix or range index here would be an enumeration surface over a
+	 * shared table (see the merchantKnowledge module's own doc comment).
+	 */
+	merchantKnowledge: defineTable({
+		key: v.string(),
+		domain: v.string(),
+		categoryName: v.string(),
+		parentCategoryName: v.union(v.string(), v.null()),
+		emoji: v.union(v.string(), v.null()),
+		tags: v.array(v.string()),
+		logoKey: v.union(v.string(), v.null()),
+		resolvedAt: v.number(),
+		modelId: v.string(),
+	}).index("by_key", ["key"]),
+
+	/**
+	 * The grounded-lookup invoice. No key, no user, no merchant name — only what
+	 * was spent and whether it published, so `groundedSpend.monthlyTotal` (the
+	 * only reader, internal-only) can tighten the env-configured unit prices
+	 * from observed data without ever exposing a per-merchant spend trail.
+	 */
+	groundedSpend: defineTable({
+		at: v.number(),
+		chargedMicros: v.number(),
+		actualMicros: v.number(),
+		searchCalls: v.number(),
+		inputTokens: v.number(),
+		outputTokens: v.number(),
+		published: v.boolean(),
+	}).index("by_at", ["at"]),
 });

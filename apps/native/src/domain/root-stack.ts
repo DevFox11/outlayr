@@ -60,7 +60,12 @@ export const CATEGORY_SHEETS: readonly {
 export const ROOT_STACK_SCREEN_NAMES: Readonly<
 	Record<RootStackGroup, readonly string[]>
 > = {
-	onboarding: ["onboarding/index", "onboarding/currency", "onboarding/rhythm"],
+	onboarding: [
+		"onboarding/index",
+		"onboarding/currency",
+		"onboarding/grounding",
+		"onboarding/rhythm",
+	],
 	"sign-in": ["auth/sign-in"],
 	adopt: ["auth/adopt"],
 	ledger: [
