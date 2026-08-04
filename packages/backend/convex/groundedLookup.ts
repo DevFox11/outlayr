@@ -1,4 +1,5 @@
 import { createXai } from "@ai-sdk/xai";
+import { R2 } from "@convex-dev/r2";
 import {
 	generateText,
 	isStepCount,
@@ -9,7 +10,7 @@ import {
 import { v } from "convex/values";
 import { z } from "zod";
 
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { type ActionCtx, internalAction } from "./_generated/server";
 import {
 	ENRICHMENT_MODEL_ID,
@@ -19,6 +20,7 @@ import {
 	sanitizeEmoji,
 	sanitizeTags,
 } from "./enrichment";
+import { isRealLogo } from "./lib/logoAcceptance";
 import {
 	CANONICAL_CATEGORY_NAMES,
 	type KnowledgeCandidate,
@@ -29,6 +31,86 @@ import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
 /** Same worst-case budget as Tier 2 — off the typing path, so no client race depends on it. */
 const GROUNDED_REQUEST_TIMEOUT_MS = 3500;
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
+
+const r2 = new R2(components.r2);
+
+function usingR2(): boolean {
+	return (
+		!!process.env.R2_BUCKET &&
+		!!process.env.R2_ENDPOINT &&
+		!!process.env.R2_ACCESS_KEY_ID &&
+		!!process.env.R2_SECRET_ACCESS_KEY
+	);
+}
+
+const OWN_ORIGIN_LOGO_TIMEOUT_MS = 3000;
+const OWN_ORIGIN_LOGO_PATHS = ["/apple-touch-icon.png", "/favicon.ico"];
+
+/**
+ * ADR-8, permanent and non-negotiable (owner declined logo.dev's Pro plan,
+ * the only tier licensing self-hosted caching — see decision/logo-dev-no-paid-tier):
+ * only bytes fetched from the merchant's own origin may ever enter the shared
+ * cache. logo.dev and Apple App Store artwork are checked here by denylist,
+ * not merely by relying on them never corroborating a domain (T10).
+ */
+const FORBIDDEN_LOGO_ORIGINS = [
+	/(^|\.)logo\.dev$/i,
+	/(^|\.)itunes\.apple\.com$/i,
+	/(^|\.)mzstatic\.com$/i,
+];
+
+function isForbiddenLogoOrigin(domain: string): boolean {
+	return FORBIDDEN_LOGO_ORIGINS.some((pattern) => pattern.test(domain));
+}
+
+export interface OwnOriginLogo {
+	bytes: Uint8Array;
+	contentType: string | null;
+}
+
+async function fetchOwnOriginCandidate(
+	domain: string,
+	path: string,
+	fetchImpl: typeof fetch,
+): Promise<OwnOriginLogo | null> {
+	try {
+		const response = await fetchImpl(`https://${domain}${path}`, {
+			signal: AbortSignal.timeout(OWN_ORIGIN_LOGO_TIMEOUT_MS),
+		});
+		// A redirect to another host must store nothing, however the bytes
+		// verify — the own-origin promise is about where they came from.
+		if (new URL(response.url).host !== domain) {
+			return null;
+		}
+		const bytes = new Uint8Array(await response.arrayBuffer());
+		const contentType = response.headers.get("content-type");
+		return isRealLogo(response.status, contentType, bytes).ok
+			? { bytes, contentType }
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * `apple-touch-icon.png` first, `/favicon.ico` second. Never logo.dev, never
+ * an App Store CDN — see the denylist above.
+ */
+export async function fetchOwnOriginLogo(
+	domain: string,
+	fetchImpl: typeof fetch = fetch,
+): Promise<OwnOriginLogo | null> {
+	if (isForbiddenLogoOrigin(domain)) {
+		return null;
+	}
+	for (const path of OWN_ORIGIN_LOGO_PATHS) {
+		const found = await fetchOwnOriginCandidate(domain, path, fetchImpl);
+		if (found !== null) {
+			return found;
+		}
+	}
+	return null;
+}
 
 export interface GroundedRunArgs {
 	key: string;
@@ -146,8 +228,13 @@ export async function runGroundedPasses(
 /**
  * The least ctx capability this needs — see `enrichment.ts`'s
  * `GroundedScheduleCtx` for why `Pick` rather than the full `ActionCtx`.
+ * `runAction` is required by `r2.store`, not by anything in this file
+ * directly.
  */
-export type GroundedLookupCtx = Pick<ActionCtx, "runQuery" | "runMutation">;
+export type GroundedLookupCtx = Pick<
+	ActionCtx,
+	"runQuery" | "runMutation" | "runAction"
+>;
 
 /**
  * ADR-11's order continued: `groundedPerKey` then `groundedBudgetMicros`
@@ -160,6 +247,7 @@ export async function runGroundedLookup(
 	ctx: GroundedLookupCtx,
 	args: GroundedRunArgs,
 	overrideDeps?: GroundedPassesDeps,
+	fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
 	const perKey = await rateLimiter.limit(ctx, "groundedPerKey", {
 		key: args.key,
@@ -205,6 +293,14 @@ export async function runGroundedLookup(
 		outcome.candidate.domain !== null &&
 		outcome.candidate.categoryName !== null
 	) {
+		let logoKey: string | null = null;
+		const logo = await fetchOwnOriginLogo(outcome.candidate.domain, fetchImpl);
+		if (logo !== null && usingR2()) {
+			logoKey = await r2.store(ctx, logo.bytes, {
+				key: `merchant/${outcome.candidate.key}`,
+				type: logo.contentType ?? undefined,
+			});
+		}
 		await ctx.runMutation(internal.merchantKnowledge.record, {
 			key: outcome.candidate.key,
 			domain: outcome.candidate.domain,
@@ -212,7 +308,7 @@ export async function runGroundedLookup(
 			parentCategoryName: null,
 			emoji: outcome.candidate.emoji,
 			tags: [...outcome.candidate.tags],
-			logoKey: null,
+			logoKey,
 			resolvedAt: Date.now(),
 			modelId,
 		});
