@@ -88,6 +88,7 @@ import {
 	leadLabel,
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
+import { useLocaleTag } from "@/hooks/use-locale-tag";
 import {
 	type EnrichmentSuggestion,
 	type PendingCategory,
@@ -690,6 +691,7 @@ export function TransactionForm({
 		[categorySource, tagsSource, db, form.setFieldValue, attachLogo],
 	);
 
+	const locale = useLocaleTag();
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
 		enabled: mode === "create",
 		income,
@@ -697,6 +699,7 @@ export function TransactionForm({
 		onSuggest: applySuggestion,
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
+		locale,
 	});
 	// A field the user has already edited is theirs — it never dims, because
 	// nothing arriving can change it.
