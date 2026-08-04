@@ -14,6 +14,7 @@ import {
 	rateLimiter,
 	runSuggest,
 	sanitizeDomain,
+	sanitizeRegionCode,
 	suggestArgs,
 } from "./enrichment";
 import { merchantKey } from "./lib/merchantKey";
@@ -69,12 +70,22 @@ const BASE_ARGS = {
 };
 
 describe("suggestArgs", () => {
-	test("carries exactly the five privacy-boundary fields", () => {
+	test("carries exactly the six privacy-boundary fields", () => {
 		// Amounts, dates, accounts, balances, and identity must never leave the
 		// device — this is a threat-matrix assertion, not a shape convenience.
-		// `groundedLookup` is the one new field this slice adds.
+		// `regionCode` is the one new field this slice adds: a deliberate
+		// widening (a country code is new data leaving the device) so the model
+		// can prefer a same-named merchant that actually operates where the
+		// user is.
 		expect(Object.keys(suggestArgs).sort()).toEqual(
-			["categoryTree", "groundedLookup", "income", "locale", "name"].sort(),
+			[
+				"categoryTree",
+				"groundedLookup",
+				"income",
+				"locale",
+				"name",
+				"regionCode",
+			].sort(),
 		);
 	});
 });
@@ -399,6 +410,25 @@ describe("maybeScheduleGrounded", () => {
 			locale: "es-VE",
 		});
 	});
+
+	test("the scheduled args thread a region code through to groundedLookup.run", async () => {
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const identity = await seedAuthUser(t);
+
+		await asIdentity(t, identity).run((ctx) =>
+			maybeScheduleGrounded(ctx, "token-e", {
+				groundedLookup: true,
+				name: "Farmatodo",
+				income: false,
+				regionCode: "VE",
+			}),
+		);
+
+		const [row] = await scheduledGroundedRuns(t);
+		const scheduledArgs = row.args[0] as Record<string, unknown>;
+		expect(scheduledArgs.regionCode).toBe("VE");
+	});
 });
 
 describe("runSuggest sanitisation", () => {
@@ -637,6 +667,40 @@ describe("runSuggest sanitisation", () => {
 	});
 });
 
+describe("runSuggest regionCode", () => {
+	test("threads a region code into the model prompt", async () => {
+		const model = mockModel({
+			categoryName: null,
+			isNewCategory: false,
+			tags: [],
+			domain: null,
+		});
+
+		await runSuggest(model, {
+			...BASE_ARGS,
+			regionCode: "VE",
+			categoryTree: [],
+		});
+
+		const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+		expect(sent).toContain("VE");
+	});
+
+	test("omits any region line from the prompt when regionCode is absent", async () => {
+		const model = mockModel({
+			categoryName: null,
+			isNewCategory: false,
+			tags: [],
+			domain: null,
+		});
+
+		await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });
+
+		const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+		expect(sent).not.toContain("located in region");
+	});
+});
+
 describe("sanitizeDomain", () => {
 	test("strips a leading www. so logo.dev's apex-only lookup still matches", () => {
 		expect(sanitizeDomain("www.unicasa.com.ve")).toBe("unicasa.com.ve");
@@ -656,5 +720,35 @@ describe("sanitizeDomain", () => {
 
 	test("case-folds before stripping, so WWW.NETFLIX.COM also loses its prefix", () => {
 		expect(sanitizeDomain("WWW.NETFLIX.COM")).toBe("netflix.com");
+	});
+});
+
+describe("sanitizeRegionCode", () => {
+	test("uppercases a valid lowercase code", () => {
+		expect(sanitizeRegionCode("ve")).toBe("VE");
+	});
+
+	test("leaves an already-uppercase code unchanged", () => {
+		expect(sanitizeRegionCode("VE")).toBe("VE");
+	});
+
+	test("rejects a three-letter code", () => {
+		expect(sanitizeRegionCode("VEN")).toBeUndefined();
+	});
+
+	test("rejects a code containing a digit", () => {
+		expect(sanitizeRegionCode("1E")).toBeUndefined();
+	});
+
+	test("rejects an empty string", () => {
+		expect(sanitizeRegionCode("")).toBeUndefined();
+	});
+
+	test("rejects a 400-character string", () => {
+		expect(sanitizeRegionCode("a".repeat(400))).toBeUndefined();
+	});
+
+	test("passes undefined through unchanged", () => {
+		expect(sanitizeRegionCode(undefined)).toBeUndefined();
 	});
 });

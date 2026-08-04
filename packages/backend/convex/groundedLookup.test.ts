@@ -244,6 +244,20 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 		expect(outcome.outputTokens).toBe(85);
 	});
 
+	test("threads a region code into the prompt", async () => {
+		const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
+			sourceUrl: "https://farmatodo.com/about",
+		});
+
+		await runGroundedLookupCall(
+			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
+			{ ...BASE_ARGS, regionCode: "VE" },
+		);
+
+		const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
+		expect(sent).toContain("VE");
+	});
+
 	test("drops a non-url source rather than widening the candidate's source shape", async () => {
 		const grounding = new MockLanguageModelV3({
 			doGenerate: async () => ({

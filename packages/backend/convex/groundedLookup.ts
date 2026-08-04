@@ -116,6 +116,7 @@ export interface GroundedRunArgs {
 	name: string;
 	income: boolean;
 	locale?: string;
+	regionCode?: string;
 }
 
 export interface GroundedCallDeps {
@@ -140,11 +141,23 @@ const UNPARSEABLE_GROUNDED_OUTPUT: z.infer<typeof groundedOutputSchema> = {
 const JSON_SHAPE =
 	'{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
 
+/**
+ * `regionCode` beats a same-named business elsewhere without licensing a
+ * guess: the model is told to prefer a merchant operating there, never to
+ * invent one when nothing actually matches.
+ */
+function regionLine(regionCode: string | undefined): string {
+	return regionCode
+		? `The user is in region ${regionCode}. If this name matches businesses in more than one country, prefer one operating in ${regionCode} over a same-named business elsewhere. Do not guess a match if none fits confidently.`
+		: "";
+}
+
 /** No `categoryTree` parameter anywhere in this file — ADR-7, structurally. */
 function buildGroundedPrompt(
 	name: string,
 	income: boolean,
 	locale: string | undefined,
+	regionCode: string | undefined,
 ): string {
 	const kind = income ? "income" : "expense";
 	return [
@@ -155,6 +168,7 @@ function buildGroundedPrompt(
 		"Set emoji to a single emoji that suits the category, or null.",
 		"Suggest at most 3 short tags, and its primary web domain only if a search result confirms it, else null.",
 		locale ? `The user's locale is ${locale}.` : "",
+		regionLine(regionCode),
 	]
 		.filter((line) => line.length > 0)
 		.join(" ");
@@ -226,7 +240,12 @@ export async function runGroundedLookupCall(
 		model: deps.grounding,
 		tools: deps.groundingTools,
 		stopWhen: isStepCount(4),
-		prompt: buildGroundedPrompt(args.name, args.income, args.locale),
+		prompt: buildGroundedPrompt(
+			args.name,
+			args.income,
+			args.locale,
+			args.regionCode,
+		),
 		abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
 		maxRetries: 0,
 	});
@@ -373,6 +392,7 @@ export const run = internalAction({
 		name: v.string(),
 		income: v.boolean(),
 		locale: v.optional(v.string()),
+		regionCode: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {

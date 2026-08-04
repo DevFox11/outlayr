@@ -55,6 +55,13 @@ export const suggestArgs = {
 	 * agree — but a `false` always blocks, from either side.
 	 */
 	groundedLookup: v.boolean(),
+	/**
+	 * The device's own region — a signal `locale` cannot substitute for, since a
+	 * user may run an English UI on a device set to a different region.
+	 * Sanitized before use (`sanitizeRegionCode`); it never carries anything but
+	 * a bare ISO 3166-1 alpha-2 code.
+	 */
+	regionCode: v.optional(v.string()),
 };
 
 const suggestion = v.object({
@@ -201,6 +208,23 @@ export function sanitizeCategoryName(name: string | null): string | null {
 	return trimmed;
 }
 
+const REGION_CODE_PATTERN = /^[A-Z]{2}$/;
+
+/**
+ * ISO 3166-1 alpha-2 only. This is client-submitted input, not model output —
+ * a modified client could send anything here, so it is validated the same way
+ * `trimmedName`'s length bounds are, before it ever reaches a prompt.
+ */
+export function sanitizeRegionCode(
+	region: string | undefined,
+): string | undefined {
+	if (region === undefined) {
+		return undefined;
+	}
+	const trimmed = region.trim().toUpperCase();
+	return REGION_CODE_PATTERN.test(trimmed) ? trimmed : undefined;
+}
+
 function describeTree(tree: readonly CategoryBranch[]): string {
 	if (tree.length === 0) {
 		return "none";
@@ -214,10 +238,22 @@ function describeTree(tree: readonly CategoryBranch[]): string {
 		.join("; ");
 }
 
+/**
+ * `regionCode` beats a same-named business elsewhere without licensing a
+ * guess: the model is told to prefer a merchant operating there, never to
+ * invent one when nothing actually matches.
+ */
+function regionLine(regionCode: string | undefined): string {
+	return regionCode
+		? `The user is in region ${regionCode}. If this name matches businesses in more than one country, prefer one operating in ${regionCode} over a same-named business elsewhere. Do not guess a match if none fits confidently.`
+		: "";
+}
+
 function buildPrompt(
 	name: string,
 	income: boolean,
 	locale: string | undefined,
+	regionCode: string | undefined,
 	tree: readonly CategoryBranch[],
 ): string {
 	const kind = income ? "income" : "expense";
@@ -229,6 +265,7 @@ function buildPrompt(
 		"Set emoji to a single emoji that suits the category, or null.",
 		"Suggest at most 3 short tags, and the merchant's primary web domain only if you are confident of it (otherwise null).",
 		locale ? `The user's locale is ${locale}.` : "",
+		regionLine(regionCode),
 	]
 		.filter((line) => line.length > 0)
 		.join(" ");
@@ -238,6 +275,7 @@ export interface RunSuggestArgs {
 	name: string;
 	income: boolean;
 	locale?: string;
+	regionCode?: string;
 	categoryTree: readonly CategoryBranch[];
 }
 
@@ -321,7 +359,13 @@ export async function runSuggest(
 	const { output } = await generateText({
 		model,
 		output: Output.object({ schema: modelOutputSchema }),
-		prompt: buildPrompt(args.name, args.income, args.locale, tree),
+		prompt: buildPrompt(
+			args.name,
+			args.income,
+			args.locale,
+			args.regionCode,
+			tree,
+		),
 		abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 		// The SDK default is 2 retries, which alone would triple worst-case
 		// latency past the client's own 4s `Promise.race` abort.
@@ -376,6 +420,7 @@ export interface GroundedScheduleArgs {
 	name: string;
 	income: boolean;
 	locale?: string;
+	regionCode?: string;
 }
 
 /**
@@ -431,6 +476,7 @@ export async function maybeScheduleGrounded(
 		name: args.name,
 		income: args.income,
 		locale: args.locale,
+		regionCode: args.regionCode,
 	});
 	return true;
 }
@@ -456,6 +502,8 @@ export const suggest = action({
 		) {
 			return EMPTY;
 		}
+
+		const regionCode = sanitizeRegionCode(args.regionCode);
 
 		// Tier 1.5: an indexed read that costs nothing and consumes neither rate
 		// limit bucket below — checked before `XAI_API_KEY` so a hit still works
@@ -496,6 +544,7 @@ export const suggest = action({
 				name: trimmedName,
 				income: args.income,
 				locale: args.locale,
+				regionCode,
 				categoryTree: args.categoryTree,
 			});
 
@@ -514,6 +563,7 @@ export const suggest = action({
 						name: trimmedName,
 						income: args.income,
 						locale: args.locale,
+						regionCode,
 					},
 				);
 				// Whatever the model did answer is kept — blanking it would throw
