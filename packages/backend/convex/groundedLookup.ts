@@ -4,7 +4,6 @@ import {
 	generateText,
 	isStepCount,
 	type LanguageModel,
-	Output,
 	type ToolSet,
 } from "ai";
 import { v } from "convex/values";
@@ -119,11 +118,27 @@ export interface GroundedRunArgs {
 	locale?: string;
 }
 
-export interface GroundedPassesDeps {
+export interface GroundedCallDeps {
 	grounding: LanguageModel;
-	structuring: LanguageModel;
 	groundingTools: ToolSet;
 }
+
+const groundedOutputSchema = z.object({
+	categoryName: z.string().nullable(),
+	emoji: z.string().nullish(),
+	tags: z.array(z.string()),
+	domain: z.string().nullable(),
+});
+
+const UNPARSEABLE_GROUNDED_OUTPUT: z.infer<typeof groundedOutputSchema> = {
+	categoryName: null,
+	emoji: null,
+	tags: [],
+	domain: null,
+};
+
+const JSON_SHAPE =
+	'{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
 
 /** No `categoryTree` parameter anywhere in this file — ADR-7, structurally. */
 function buildGroundedPrompt(
@@ -135,31 +150,56 @@ function buildGroundedPrompt(
 	return [
 		`Identify this real-world ${kind} merchant or business: "${name}".`,
 		"Use web search to confirm its primary website domain before answering.",
-		`State which of these categories it best fits, if any: ${CANONICAL_NAMES_LIST}.`,
-		"Also state a single emoji that suits the category, at most 3 short tags, and its primary web domain only if a search result confirms it.",
+		`Respond with ONLY one JSON object, no markdown fence, no other text, shaped exactly as: ${JSON_SHAPE}.`,
+		`Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
+		"Set emoji to a single emoji that suits the category, or null.",
+		"Suggest at most 3 short tags, and its primary web domain only if a search result confirms it, else null.",
 		locale ? `The user's locale is ${locale}.` : "",
 	]
 		.filter((line) => line.length > 0)
 		.join(" ");
 }
 
-function buildStructuringPrompt(name: string, findings: string): string {
-	return [
-		`Extract structured data for the merchant "${name}" from these research findings: ${findings}`,
-		`Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
-		"Set emoji to a single emoji that suits the category, or null.",
-		"Suggest at most 3 short tags, and the confirmed web domain, or null.",
-	].join(" ");
+/**
+ * The model may answer with clean JSON, a fenced ```json block, or JSON
+ * wrapped in prose — this never throws, matching the measured live call
+ * (a single `generateText` with `web_search` returned JSON text directly).
+ */
+function extractJsonCandidate(text: string): string | null {
+	const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+	if (fenced?.[1]) {
+		return fenced[1].trim();
+	}
+	const start = text.indexOf("{");
+	const end = text.lastIndexOf("}");
+	if (start === -1 || end === -1 || end < start) {
+		return null;
+	}
+	return text.slice(start, end + 1);
 }
 
-const groundedOutputSchema = z.object({
-	categoryName: z.string().nullable(),
-	emoji: z.string().nullish(),
-	tags: z.array(z.string()),
-	domain: z.string().nullable(),
-});
+/**
+ * An unparseable answer degrades to all-null fields rather than throwing —
+ * exactly like a confident "I don't know" from the model would.
+ */
+function parseGroundedOutput(
+	text: string,
+): z.infer<typeof groundedOutputSchema> {
+	const jsonText = extractJsonCandidate(text);
+	if (jsonText === null) {
+		return UNPARSEABLE_GROUNDED_OUTPUT;
+	}
+	let raw: unknown;
+	try {
+		raw = JSON.parse(jsonText);
+	} catch {
+		return UNPARSEABLE_GROUNDED_OUTPUT;
+	}
+	const parsed = groundedOutputSchema.safeParse(raw);
+	return parsed.success ? parsed.data : UNPARSEABLE_GROUNDED_OUTPUT;
+}
 
-export interface GroundedPassOutcome {
+export interface GroundedCallOutcome {
 	candidate: KnowledgeCandidate;
 	sources: readonly { url: string }[];
 	inputTokens: number;
@@ -168,16 +208,21 @@ export interface GroundedPassOutcome {
 }
 
 /**
- * ADR-1's two-pass core. No ctx, no rate limiting, no writes — testable by
- * injecting both models (and pass A's tool set) directly. Pass B carries no
- * `tools` key at all: `Output.object` alone means the default `isStepCount(1)`
- * is exactly correct and `NoOutputGeneratedError` cannot arise.
+ * Collapsed from ADR-1's original two-pass design: a live measured call
+ * against `grok-4.20-non-reasoning` with `web_search` returned clean JSON
+ * text while searching (3 search steps, 3.75s), disproving the "structured
+ * output can't compose with a provider tool" assumption that motivated the
+ * split — the JSON shape is instructed in the prompt and parsed defensively
+ * instead of relying on an `Output.object` response format. No ctx, no rate
+ * limiting, no writes — testable by injecting the model and tool set
+ * directly. `stopWhen: isStepCount(4)` still allows multiple search rounds;
+ * `maxRetries: 0` matches the inline tier.
  */
-export async function runGroundedPasses(
-	deps: GroundedPassesDeps,
+export async function runGroundedLookupCall(
+	deps: GroundedCallDeps,
 	args: GroundedRunArgs,
-): Promise<GroundedPassOutcome> {
-	const passA = await generateText({
+): Promise<GroundedCallOutcome> {
+	const result = await generateText({
 		model: deps.grounding,
 		tools: deps.groundingTools,
 		stopWhen: isStepCount(4),
@@ -186,42 +231,35 @@ export async function runGroundedPasses(
 		maxRetries: 0,
 	});
 
-	const passB = await generateText({
-		model: deps.structuring,
-		output: Output.object({ schema: groundedOutputSchema }),
-		prompt: buildStructuringPrompt(args.name, passA.text),
-		abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
-		maxRetries: 0,
-	});
+	const output = parseGroundedOutput(result.text);
 
 	const candidate: KnowledgeCandidate = {
 		key: args.key,
-		domain: sanitizeDomain(passB.output.domain),
+		domain: sanitizeDomain(output.domain),
 		// No user tree exists for a globally-shared record (ADR-7) — the model
 		// is asked to pick from the closed canonical set instead.
-		categoryName: sanitizeCategoryName(passB.output.categoryName),
+		categoryName: sanitizeCategoryName(output.categoryName),
 		parentCategoryName: null,
-		emoji: sanitizeEmoji(passB.output.emoji ?? null),
-		tags: sanitizeTags(passB.output.tags),
+		emoji: sanitizeEmoji(output.emoji ?? null),
+		tags: sanitizeTags(output.tags),
 	};
 
 	// `corroborates` only ever needs a url; document-type sources (no `.url`)
 	// can never corroborate a domain, so they are dropped here rather than
 	// widening `KnowledgeCandidate`'s source shape to accommodate them.
-	const urlSources = passA.sources
+	const urlSources = result.sources
 		.filter((source) => source.sourceType === "url")
 		.map((source) => ({ url: source.url }));
 
 	return {
 		candidate,
 		sources: urlSources,
-		inputTokens:
-			(passA.usage.inputTokens ?? 0) + (passB.usage.inputTokens ?? 0),
-		outputTokens:
-			(passA.usage.outputTokens ?? 0) + (passB.usage.outputTokens ?? 0),
+		inputTokens: result.usage.inputTokens ?? 0,
+		outputTokens: result.usage.outputTokens ?? 0,
 		// `web_search` is the only registered tool, so every recorded call is a
-		// search round.
-		searchCalls: passA.toolCalls.length,
+		// search round. One answer measured at 3 search calls — bills ~3x a
+		// naive per-lookup estimate ($0.022 measured vs $0.005 assumed).
+		searchCalls: result.toolCalls.length,
 	};
 }
 
@@ -246,7 +284,7 @@ export type GroundedLookupCtx = Pick<
 export async function runGroundedLookup(
 	ctx: GroundedLookupCtx,
 	args: GroundedRunArgs,
-	overrideDeps?: GroundedPassesDeps,
+	overrideDeps?: GroundedCallDeps,
 	fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
 	const perKey = await rateLimiter.limit(ctx, "groundedPerKey", {
@@ -280,12 +318,11 @@ export async function runGroundedLookup(
 		const model = xaiProvider(modelId);
 		deps = {
 			grounding: model,
-			structuring: model,
 			groundingTools: { web_search: xaiProvider.tools.webSearch() },
 		};
 	}
 
-	const outcome = await runGroundedPasses(deps, args);
+	const outcome = await runGroundedLookupCall(deps, args);
 	const published = shouldPublish(outcome.candidate, outcome.sources);
 
 	if (
