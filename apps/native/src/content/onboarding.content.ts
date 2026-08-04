@@ -59,6 +59,22 @@ const onboarding = {
 			en: "I already have an account",
 			es: "Ya tengo una cuenta",
 		}),
+		"onboarding.grounding.eyebrow": t({
+			en: "Coverage",
+			es: "Cobertura",
+		}),
+		"onboarding.grounding.title": t({
+			en: "Teach it the merchants it doesn't know",
+			es: "Enséñale los comercios que no conoce",
+		}),
+		"onboarding.grounding.body": t({
+			en: "For a name Outlayr has never seen, it may search the public web once to learn its category — only the merchant name leaves your device, never an amount, date or account. On by default; change it any time in Settings.",
+			es: "Para un nombre que Outlayr nunca ha visto, puede buscar una vez en la web pública para conocer su categoría — solo el nombre del comercio sale de tu dispositivo, nunca un importe, fecha o cuenta. Activado por defecto; cámbialo cuando quieras en Ajustes.",
+		}),
+		"onboarding.grounding.toggle": t({
+			en: "Look up unfamiliar merchants",
+			es: "Buscar comercios desconocidos",
+		}),
 		"onboarding.rhythm.eyebrow": t({
 			en: "Rhythm",
 			es: "Ritmo",

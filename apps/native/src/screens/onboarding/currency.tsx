@@ -104,9 +104,9 @@ function OnboardingCurrency({ db }: { db: Database }) {
 			try {
 				await setCurrency(db, code);
 				if (meta === "continue") {
-					// The root guard does not swap on this write alone — rhythm is
+					// The root guard does not swap on this write alone — grounding is
 					// next, so this screen has to push there itself.
-					router.push("/onboarding/rhythm");
+					router.push("/onboarding/grounding");
 				} else {
 					// Nothing navigates on success here: `finishOnboarding` settles the
 					// root guard, which swaps this stack for sign-in. Pushing as well
