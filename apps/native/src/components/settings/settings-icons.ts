@@ -1,6 +1,7 @@
 import type { IconSvgElement } from "@hugeicons/react-native";
 import {
 	Analytics01Icon,
+	ArchiveRestoreIcon,
 	BadgeCentIcon,
 	BiometricAccessIcon,
 	Bug01Icon,
@@ -45,6 +46,7 @@ import {
  */
 const REGISTRY = {
 	Analytics01: Analytics01Icon,
+	ArchiveRestore: ArchiveRestoreIcon,
 	BiometricAccess: BiometricAccessIcon,
 	Bug01: Bug01Icon,
 	Calendar01: Calendar01Icon,

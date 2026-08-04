@@ -17,7 +17,6 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
-import { restoreArchive } from "@/data/archive-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import {
 	applyImport,
@@ -31,7 +30,6 @@ import {
 	uniqueCategoryValues,
 } from "@/data/transfer-core";
 import type { Database } from "@/db/client";
-import { archiveRowCount, parseArchive } from "@/domain/archive";
 import {
 	type DecimalSeparator,
 	deduceDateFormat,
@@ -44,11 +42,7 @@ import {
 	translateNow,
 	useTranslation,
 } from "@/i18n";
-import {
-	pickArchiveFile,
-	pickCsvFile,
-	TransferError,
-} from "@/lib/data-transfer";
+import { pickCsvFile, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
 
 type Step = "pick" | "map" | "format" | "link" | "review" | "running" | "done";
@@ -209,57 +203,6 @@ function ImportData({ db }: { db: Database }) {
 		links.has(categoryKey(value)),
 	).length;
 
-	// A restore replaces the ledger rather than adding to it, so it is confirmed
-	// against a count the user can recognise — a file that turns out to hold two
-	// rows is the one you want to catch before it lands, not after.
-	const restore = () => {
-		pickArchiveFile()
-			.then((picked) => {
-				if (picked == null) {
-					return;
-				}
-				const document = parseArchive(picked.text);
-				if (document == null) {
-					Alert.alert(
-						t("settings.import.badArchiveTitle"),
-						t("settings.import.badArchiveBody"),
-					);
-					return;
-				}
-				Alert.alert(
-					t("settings.import.restoreConfirmTitle"),
-					t("settings.import.restoreConfirmBody", {
-						count: String(archiveRowCount(document)),
-					}),
-					[
-						{ style: "cancel", text: t("common.cancel") },
-						{
-							style: "destructive",
-							text: t("settings.import.restoreConfirm"),
-							onPress: () => {
-								restoreArchive(db, document)
-									.then(() => router.back())
-									.catch(() => {
-										Alert.alert(
-											t("settings.import.failedTitle"),
-											t("settings.import.failedBody"),
-										);
-									});
-							},
-						},
-					],
-				);
-			})
-			.catch((error: unknown) => {
-				Alert.alert(
-					t("settings.import.failedTitle"),
-					error instanceof TransferError
-						? t(error.key)
-						: t("settings.import.failedBody"),
-				);
-			});
-	};
-
 	const choose = () => {
 		pickCsvFile()
 			.then((picked) => {
@@ -366,9 +309,7 @@ function ImportData({ db }: { db: Database }) {
 				contentContainerClassName="px-5 pb-safe-offset-10"
 				contentInsetAdjustmentBehavior="automatic"
 			>
-				{step === "pick" ? (
-					<PickStep onPick={choose} onRestore={restore} />
-				) : null}
+				{step === "pick" ? <PickStep onPick={choose} /> : null}
 
 				{step === "map" && file != null ? (
 					<View className="gap-1 pt-6">
@@ -571,13 +512,7 @@ function ImportData({ db }: { db: Database }) {
 	);
 }
 
-function PickStep({
-	onPick,
-	onRestore,
-}: {
-	onPick: () => void;
-	onRestore: () => void;
-}) {
+function PickStep({ onPick }: { onPick: () => void }) {
 	const t = useTranslation();
 	return (
 		<View className="gap-1 pt-6">
@@ -594,22 +529,6 @@ function PickStep({
 					{t("settings.import.chooseAFile")}
 				</Text>
 			</Pressable>
-
-			<View className="gap-1 pt-8">
-				<MonoLabel>{t("settings.import.restoreEyebrow")}</MonoLabel>
-				<Text className="pb-4 text-muted text-subtitle leading-snug">
-					{t("settings.import.restoreIntro")}
-				</Text>
-				<Pressable
-					accessibilityRole="button"
-					className="items-start active:opacity-60"
-					onPress={onRestore}
-				>
-					<Text className="font-sans-medium text-body text-danger underline">
-						{t("settings.import.restoreAction")}
-					</Text>
-				</Pressable>
-			</View>
 		</View>
 	);
 }

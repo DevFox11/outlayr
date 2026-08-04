@@ -219,6 +219,10 @@ const common = {
 			en: "Number Entry",
 			es: "Ingreso de números",
 		}),
+		"nav.settings.restore": t({
+			en: "Restore Data",
+			es: "Restaurar datos",
+		}),
 		"nav.settings.theme": t({
 			en: "Theme",
 			es: "Tema",
