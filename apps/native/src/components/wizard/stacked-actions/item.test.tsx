@@ -1,5 +1,6 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { AccessibilityInfo } from "react-native";
+import { getAnimatedStyle } from "react-native-reanimated";
 import { StackedActions } from "./container";
 import { StackedActionsItem } from "./item";
 
@@ -48,6 +49,27 @@ describe("StackedActionsItem — pointerEvents and accessibility gating", () => 
 
 		const confirm = getByTestId("strip-confirm");
 		expect(confirm.props.pointerEvents).toBe("auto");
+	});
+
+	it("dims a disabled item so it does not read as tappable", async () => {
+		const { getByTestId } = await render(
+			<StackedActions>
+				<StackedActionsItem
+					disabled
+					label="Import 0"
+					onPress={jest.fn()}
+					testID="strip-disabled"
+				/>
+			</StackedActions>,
+		);
+		const item = getByTestId("strip-disabled", { includeHiddenElements: true });
+		expect(item.props.pointerEvents).toBe("none");
+		expect(getAnimatedStyle(item).opacity).toBe(0.4);
+	});
+
+	it("leaves an enabled item at full opacity", async () => {
+		const { getByTestId } = await renderStrip();
+		expect(getAnimatedStyle(getByTestId("strip-back")).opacity).toBe(1);
 	});
 
 	it("a faded item's press does not fire onPress (corroboration only — U6 unverified)", async () => {

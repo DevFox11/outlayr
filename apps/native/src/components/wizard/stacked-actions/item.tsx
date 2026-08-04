@@ -20,6 +20,13 @@ import { isInteractive, itemFrame } from "./geometry";
  */
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+/**
+ * Opacity has two independent sources: the strip's own expand/collapse fade and
+ * this. They multiply rather than override, so a disabled item still fades out
+ * with its siblings instead of reappearing at 0.4 when another item expands.
+ */
+const DISABLED_OPACITY = 0.4;
+
 export interface StackedActionsItemProps {
 	label: string;
 	/** Presence enables the two-tap confirm machine (design §3.5). */
@@ -82,7 +89,7 @@ export function StackedActionsItem({
 		return {
 			transform: [{ translateX: frame.translateX }],
 			width: frame.width,
-			opacity: frame.opacity,
+			opacity: frame.opacity * (disabled ? DISABLED_OPACITY : 1),
 		};
 	});
 
