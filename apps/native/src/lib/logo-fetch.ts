@@ -11,8 +11,7 @@ const NONE: LogoOutcome = { kind: "none" };
 
 /**
  * Brand logos by domain — covers a utility, a supermarket, or any merchant
- * without a shared cached image. The token is publishable and belongs in the
- * bundle.
+ * with a known domain. The token is publishable and belongs in the bundle.
  *
  * `fallback=404` is load-bearing, not tidiness: the default is `monogram`,
  * which answers 200 with a generic letter tile for a domain it has never heard
@@ -55,10 +54,6 @@ export interface MerchantImageRequest {
 	name: string;
 	/** The resolved domain, used by the logo and favicon tiers. */
 	domain: string | null;
-	/** A signed url from a `merchantKnowledge` cache hit, if any. */
-	logoUrl?: string | null;
-	/** The shared-cache object key backing `logoUrl`, folded into the on-device cache key. */
-	logoKey?: string | null;
 }
 
 /**
@@ -79,9 +74,7 @@ export async function fetchMerchantImage(
 	} catch {
 		cache = null;
 	}
-	const key =
-		cache?.logoCacheKey(request.name.trim(), request.domain, request.logoKey) ??
-		"";
+	const key = cache?.logoCacheKey(request.name.trim(), request.domain) ?? "";
 	const cached = (await cache?.readCachedLogo(key)) ?? {
 		kind: "unknown" as const,
 	};
@@ -109,13 +102,6 @@ async function resolveMerchantImage(
 	request: MerchantImageRequest,
 	fetchImpl: typeof fetch,
 ): Promise<LogoOutcome> {
-	if (request.logoUrl) {
-		const shared = await fetchAccepted(request.logoUrl, fetchImpl);
-		if (shared.kind === "logo") {
-			return shared;
-		}
-	}
-
 	const domain = request.domain;
 	if (domain == null || domain.length === 0) {
 		return NONE;

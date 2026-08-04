@@ -6,9 +6,6 @@ export interface RemoteEnrichmentResult {
 	readonly emoji?: string | null;
 	readonly tags: readonly string[];
 	readonly domain: string | null;
-	/** Shared-cache object key. */
-	readonly logoKey?: string | null;
-	readonly logoUrl?: string | null;
 	/** A grounded lookup was scheduled server-side; do not cache this as final. */
 	readonly grounding?: boolean;
 }

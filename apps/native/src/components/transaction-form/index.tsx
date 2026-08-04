@@ -590,11 +590,7 @@ export function TransactionForm({
 	 * after a newer one started is dropped rather than painted over it.
 	 */
 	const attachLogo = useCallback(
-		async (
-			domain: string | null,
-			logoUrl: string | null,
-			logoKey: string | null,
-		) => {
+		async (domain: string | null) => {
 			const blocked = () =>
 				identitySourceRef.current === "user" ||
 				pickerOpenRef.current ||
@@ -610,8 +606,6 @@ export function TransactionForm({
 			const outcome = await fetchMerchantImage({
 				name: name.value,
 				domain,
-				logoUrl,
-				logoKey,
 			});
 			if (stale()) {
 				return;
@@ -697,11 +691,7 @@ export function TransactionForm({
 					setTagsSource("initial");
 				}
 			}
-			void attachLogo(
-				suggestion.domain,
-				suggestion.logoUrl,
-				suggestion.logoKey,
-			);
+			void attachLogo(suggestion.domain);
 		},
 		[categorySource, tagsSource, db, form.setFieldValue, attachLogo],
 	);

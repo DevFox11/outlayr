@@ -1,21 +1,21 @@
 import { logoCacheKey } from "./logo-cache";
 
 describe("logoCacheKey", () => {
-	it("is stable for the same name, domain and logoKey", () => {
-		expect(logoCacheKey("Netflix", "netflix.com", "merchant/netflix")).toBe(
-			logoCacheKey("Netflix", "netflix.com", "merchant/netflix"),
+	it("is stable for the same name and domain", () => {
+		expect(logoCacheKey("Netflix", "netflix.com")).toBe(
+			logoCacheKey("Netflix", "netflix.com"),
 		);
 	});
 
-	it("differs when the shared logoKey differs, even for the same name and domain", () => {
-		expect(
-			logoCacheKey("Netflix", "netflix.com", "merchant/netflix-v1"),
-		).not.toBe(logoCacheKey("Netflix", "netflix.com", "merchant/netflix-v2"));
+	it("folds case, diacritics and punctuation to the same key", () => {
+		expect(logoCacheKey("NETFLIX", "netflix.com")).toBe(
+			logoCacheKey("netflix", "netflix.com"),
+		);
 	});
 
-	it("stays backward compatible when no logoKey is given", () => {
-		expect(logoCacheKey("Netflix", "netflix.com")).toBe(
-			logoCacheKey("Netflix", "netflix.com", null),
+	it("differs for a different domain", () => {
+		expect(logoCacheKey("Rio", "riosupermercado.com")).not.toBe(
+			logoCacheKey("Rio", "rio.com"),
 		);
 	});
 });

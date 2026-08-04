@@ -70,9 +70,6 @@ const suggestion = v.object({
 	emoji: v.union(v.string(), v.null()),
 	tags: v.array(v.string()),
 	domain: v.union(v.string(), v.null()),
-	/** `logoUrl` mints a fresh signed url from this key. */
-	logoKey: v.union(v.string(), v.null()),
-	logoUrl: v.union(v.string(), v.null()),
 	/** A grounded lookup was scheduled — the client must not cache this as a final null result. */
 	grounding: v.boolean(),
 });
@@ -89,8 +86,6 @@ export interface Suggestion {
 	emoji: string | null;
 	tags: string[];
 	domain: string | null;
-	logoKey: string | null;
-	logoUrl: string | null;
 	grounding: boolean;
 }
 
@@ -101,8 +96,6 @@ export const EMPTY: Suggestion = {
 	emoji: null,
 	tags: [],
 	domain: null,
-	logoKey: null,
-	logoUrl: null,
 	grounding: false,
 };
 
@@ -311,7 +304,7 @@ export interface TreeCandidate {
 export function applyToTree(
 	tree: readonly CategoryBranch[],
 	candidate: TreeCandidate,
-): Omit<Suggestion, "logoKey" | "logoUrl" | "grounding"> {
+): Omit<Suggestion, "grounding"> {
 	const cappedTree = tree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
 	const everyName = cappedTree.flatMap((branch) => [
 		branch.name,
@@ -382,8 +375,6 @@ export async function runSuggest(
 			tags: sanitizeTags(output.tags),
 			domain: sanitizeDomain(output.domain),
 		}),
-		logoKey: null,
-		logoUrl: null,
 		grounding: false,
 	};
 }
@@ -512,8 +503,6 @@ export const suggest = action({
 		if (cached !== null) {
 			return {
 				...applyToTree(args.categoryTree, cached),
-				logoKey: cached.logoKey,
-				logoUrl: cached.logoUrl,
 				grounding: false,
 			};
 		}

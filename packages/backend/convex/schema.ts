@@ -223,7 +223,6 @@ export default defineSchema({
 		parentCategoryName: v.union(v.string(), v.null()),
 		emoji: v.union(v.string(), v.null()),
 		tags: v.array(v.string()),
-		logoKey: v.union(v.string(), v.null()),
 		resolvedAt: v.number(),
 		modelId: v.string(),
 	}).index("by_key", ["key"]),

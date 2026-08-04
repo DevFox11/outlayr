@@ -1,7 +1,5 @@
-import { R2 } from "@convex-dev/r2";
 import { v } from "convex/values";
 
-import { components } from "./_generated/api";
 import { internalMutation, internalQuery } from "./_generated/server";
 
 /**
@@ -12,18 +10,12 @@ import { internalMutation, internalQuery } from "./_generated/server";
  * over `by_key`, or takes a prefix/range.
  */
 
-const r2 = new R2(components.r2);
-/** Long enough to outlive one enrichment round trip; short enough that a
- * leaked link is not a standing liability. */
-const LOGO_URL_TTL_SECONDS = 600;
-
 const knowledgeFields = {
 	domain: v.string(),
 	categoryName: v.string(),
 	parentCategoryName: v.union(v.string(), v.null()),
 	emoji: v.union(v.string(), v.null()),
 	tags: v.array(v.string()),
-	logoKey: v.union(v.string(), v.null()),
 	modelId: v.string(),
 };
 
@@ -33,25 +25,9 @@ const knowledgeRecord = v.object({
 	...knowledgeFields,
 });
 
-const knowledgeLookupResult = knowledgeRecord.extend({
-	logoUrl: v.union(v.string(), v.null()),
-});
-
-/** A broken signed url is equivalent to no image — never lets minting fail the whole lookup. */
-async function mintLogoUrl(logoKey: string | null): Promise<string | null> {
-	if (logoKey === null) {
-		return null;
-	}
-	try {
-		return await r2.getUrl(logoKey, { expiresIn: LOGO_URL_TTL_SECONDS });
-	} catch {
-		return null;
-	}
-}
-
 export const lookup = internalQuery({
 	args: { key: v.string() },
-	returns: v.union(knowledgeLookupResult, v.null()),
+	returns: v.union(knowledgeRecord, v.null()),
 	handler: async (ctx, args) => {
 		const row = await ctx.db
 			.query("merchantKnowledge")
@@ -68,8 +44,6 @@ export const lookup = internalQuery({
 			parentCategoryName: row.parentCategoryName,
 			emoji: row.emoji,
 			tags: row.tags,
-			logoKey: row.logoKey,
-			logoUrl: await mintLogoUrl(row.logoKey),
 			modelId: row.modelId,
 		};
 	},
