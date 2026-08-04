@@ -4,15 +4,12 @@ import type { TranslationKey } from "@/i18n/catalog";
 
 export type ImportSourceId = "csv";
 
-export type ImportEntryRoute = "/import/file";
-
 export interface ImportSource {
 	readonly id: ImportSourceId;
 	readonly titleKey: TranslationKey;
 	readonly subtitleKey: TranslationKey;
 	readonly icon: IconSvgElement;
 	readonly available: boolean;
-	readonly entryRoute: ImportEntryRoute;
 }
 
 export const IMPORT_SOURCES: readonly ImportSource[] = [
@@ -22,6 +19,5 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
 		subtitleKey: "settings.import.sourceCsvSubtitle",
 		icon: File01Icon,
 		available: true,
-		entryRoute: "/import/file",
 	},
 ];

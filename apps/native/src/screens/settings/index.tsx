@@ -219,13 +219,18 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 				<LinkRow
 					icon="FileImport"
-					onPress={() => router.push("/settings/import")}
+					onPress={() => router.push("/import")}
 					title={t("settings.row.import")}
 				/>
 				<LinkRow
 					icon="FileExport"
 					onPress={() => router.push("/settings/export")}
 					title={t("settings.row.export")}
+				/>
+				<LinkRow
+					icon="ArchiveRestore"
+					onPress={() => router.push("/settings/restore")}
+					title={t("settings.row.restore")}
 				/>
 				<LinkRow
 					destructive

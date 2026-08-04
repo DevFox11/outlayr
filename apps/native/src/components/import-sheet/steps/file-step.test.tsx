@@ -1,13 +1,9 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
-import {
-	type ImportFlowState,
-	INITIAL_IMPORT_FLOW_STATE,
-} from "@/domain/import-flow";
+import type { ResolvedMapping } from "@/domain/import-mapping";
 import { TransferError } from "@/lib/data-transfer";
+import { importDraftStore } from "@/lib/import-draft-store";
 import { FileStep } from "./file-step";
 
-const mockDispatch = jest.fn();
-let mockState: ImportFlowState = INITIAL_IMPORT_FLOW_STATE;
 const mockPickCsvFile = jest.fn();
 
 jest.mock("@/i18n", () => ({
@@ -22,9 +18,6 @@ jest.mock("@/theme/use-colors", () => ({
 		danger: "#B5482F",
 	}),
 }));
-jest.mock("@/contexts/import-flow-context", () => ({
-	useImportFlow: () => ({ state: mockState, dispatch: mockDispatch }),
-}));
 jest.mock("@/lib/data-transfer", () => {
 	const actual = jest.requireActual("@/lib/data-transfer");
 	return {
@@ -33,16 +26,8 @@ jest.mock("@/lib/data-transfer", () => {
 	};
 });
 
-const RESOLVED_MAPPING_STATE: ImportFlowState = {
-	...INITIAL_IMPORT_FLOW_STATE,
-	sourceId: "csv",
-	file: { name: "bank.csv", chars: 42 },
-	parsed: {
-		header: ["date", "description", "amount"],
-		rows: [["01/08/2026", "Coffee", "3,50"]],
-		width: 3,
-	},
-	draft: {
+const RESOLVED_MAPPING: ResolvedMapping = {
+	mapping: {
 		category: 1,
 		note: 1,
 		date: 0,
@@ -50,25 +35,13 @@ const RESOLVED_MAPPING_STATE: ImportFlowState = {
 		currency: null,
 		type: null,
 	},
-	resolved: {
-		mapping: {
-			category: 1,
-			note: 1,
-			date: 0,
-			amount: 2,
-			currency: null,
-			type: null,
-		},
-		labelSource: "descriptionColumn",
-	},
-	mappingGaps: [],
+	labelSource: "descriptionColumn",
 };
 
 describe("FileStep", () => {
 	beforeEach(() => {
-		mockDispatch.mockClear();
 		mockPickCsvFile.mockReset();
-		mockState = INITIAL_IMPORT_FLOW_STATE;
+		importDraftStore.clear();
 	});
 
 	it("renders the empty state with no file chosen", async () => {
@@ -101,58 +74,64 @@ describe("FileStep", () => {
 		mockPickCsvFile.mockResolvedValue(null);
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(mockDispatch).not.toHaveBeenCalled();
+		await waitFor(() => {
+			expect(importDraftStore.getSnapshot().ui.fileError).toBeNull();
+		});
+		expect(importDraftStore.getSnapshot().flow.parsed).toBeNull();
 		expect(getByText("import.fileEmptyCaption")).toBeTruthy();
 	});
 
-	it("dispatches fileParsed with the resolved mapping on a successful pick", async () => {
+	it("dispatches fileParsed with the resolved mapping on a successful pick, clearing any prior error first", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.setFileError({ cause: "empty" });
 		mockPickCsvFile.mockResolvedValue({
 			name: "bank.csv",
 			text: "date,description,amount\n01/08/2026,Coffee,3,50\n",
 		});
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(mockDispatch).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: "fileParsed",
-				gaps: [],
-				resolved: expect.objectContaining({ labelSource: "descriptionColumn" }),
-			}),
+		await waitFor(() => {
+			expect(importDraftStore.getSnapshot().flow.parsed).not.toBeNull();
+		});
+		expect(importDraftStore.getSnapshot().flow.mappingGaps).toStrictEqual([]);
+		expect(importDraftStore.getSnapshot().flow.resolved?.labelSource).toBe(
+			"descriptionColumn",
 		);
+		expect(importDraftStore.getSnapshot().ui.fileError).toBeNull();
 	});
 
-	it("shows the I/O error inline with the translated error key as its body, and allows retry", async () => {
+	it("shows the I/O error inline via store.ui.fileError, with the translated error key as its body, and allows retry", async () => {
 		mockPickCsvFile.mockRejectedValue(
 			new TransferError("alerts.transfer.unreadableFile"),
 		);
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(getByText("import.errorIoTitle")).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText("import.errorIoTitle")).toBeTruthy();
+		});
 		expect(getByText("alerts.transfer.unreadableFile")).toBeTruthy();
 		expect(getByText("import.chooseCsv")).toBeTruthy();
+		expect(importDraftStore.getSnapshot().ui.fileError).toStrictEqual({
+			cause: "io",
+			key: "alerts.transfer.unreadableFile",
+		});
 	});
 
 	it("classifies an empty file", async () => {
 		mockPickCsvFile.mockResolvedValue({ name: "empty.csv", text: "" });
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(getByText("import.errorEmptyTitle")).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText("import.errorEmptyTitle")).toBeTruthy();
+		});
 	});
 
 	it("classifies a header-only file with no data rows", async () => {
@@ -162,11 +141,11 @@ describe("FileStep", () => {
 		});
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(getByText("import.errorNoDataTitle")).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText("import.errorNoDataTitle")).toBeTruthy();
+		});
 	});
 
 	it("classifies a file with fewer than 3 columns", async () => {
@@ -176,11 +155,11 @@ describe("FileStep", () => {
 		});
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(getByText("import.errorTooFewColumnsTitle")).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText("import.errorTooFewColumnsTitle")).toBeTruthy();
+		});
 	});
 
 	it("rejects a file over the hard parse cap before parsing", async () => {
@@ -190,17 +169,17 @@ describe("FileStep", () => {
 		});
 		const { getByText } = await render(<FileStep />);
 
-		await act(async () => {
-			fireEvent.press(getByText("import.chooseCsv"));
-		});
+		fireEvent.press(getByText("import.chooseCsv"));
 
-		expect(getByText("import.errorTooLargeTitle")).toBeTruthy();
+		await waitFor(() => {
+			expect(getByText("import.errorTooLargeTitle")).toBeTruthy();
+		});
 	});
 
-	it("shows the mapping-gap card before any AI consideration, naming each gap", async () => {
-		mockState = {
-			...INITIAL_IMPORT_FLOW_STATE,
-			sourceId: "csv",
+	it("shows the mapping-gap card before any AI consideration, naming each gap and giving actionable guidance instead of a dead end", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
 			file: { name: "bank.csv", chars: 10 },
 			parsed: {
 				header: ["date", "amount", "balance"],
@@ -216,31 +195,101 @@ describe("FileStep", () => {
 				type: null,
 			},
 			resolved: null,
-			mappingGaps: ["noLabelColumn"],
-		};
-		const { getByText } = await render(<FileStep />);
+			gaps: ["noLabelColumn"],
+		});
+
+		const { getByText, queryByText } = await render(<FileStep />);
 
 		expect(getByText("import.mappingGapTitle")).toBeTruthy();
 		expect(getByText("import.mappingGapNoLabel")).toBeTruthy();
-		expect(getByText("import.mapManually")).toBeTruthy();
+		expect(getByText("import.mappingGapGuidance")).toBeTruthy();
+		expect(queryByText("import.mapManually")).toBeNull();
+		expect(getByText("import.chooseDifferentFile")).toBeTruthy();
+	});
+
+	it("re-invokes the picker from the mapping-gap state's Choose a different file, replacing the gap with a resolved file", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 10 },
+			parsed: {
+				header: ["date", "amount", "balance"],
+				rows: [["01/08/2026", "3,50", "100"]],
+				width: 3,
+			},
+			draft: {
+				category: null,
+				note: null,
+				date: 0,
+				amount: 1,
+				currency: null,
+				type: null,
+			},
+			resolved: null,
+			gaps: ["noLabelColumn"],
+		});
+		mockPickCsvFile.mockResolvedValue({
+			name: "fixed.csv",
+			text: "date,description,amount\n01/08/2026,Coffee,3,50\n",
+		});
+
+		const { getByText } = await render(<FileStep />);
+		fireEvent.press(getByText("import.chooseDifferentFile"));
+
+		await waitFor(() => {
+			expect(importDraftStore.getSnapshot().flow.mappingGaps).toStrictEqual([]);
+		});
+		expect(importDraftStore.getSnapshot().flow.file?.name).toBe("fixed.csv");
 	});
 
 	it("shows the 4th line only when the label source is the description column", async () => {
-		mockState = RESOLVED_MAPPING_STATE;
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 42 },
+			parsed: {
+				header: ["date", "description", "amount"],
+				rows: [["01/08/2026", "Coffee", "3,50"]],
+				width: 3,
+			},
+			draft: {
+				category: 1,
+				note: 1,
+				date: 0,
+				amount: 2,
+				currency: null,
+				type: null,
+			},
+			resolved: RESOLVED_MAPPING,
+			gaps: [],
+		});
+
 		const { getByText } = await render(<FileStep />);
 		expect(getByText("import.fileNoCategoryColumn")).toBeTruthy();
 	});
 
 	it("hides the 4th line when the category column supplied the label", async () => {
-		mockState = {
-			...RESOLVED_MAPPING_STATE,
-			resolved: {
-				mapping: RESOLVED_MAPPING_STATE.resolved?.mapping as NonNullable<
-					ImportFlowState["resolved"]
-				>["mapping"],
-				labelSource: "categoryColumn",
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 42 },
+			parsed: {
+				header: ["date", "category", "description", "amount"],
+				rows: [["01/08/2026", "Food", "Coffee", "3,50"]],
+				width: 4,
 			},
-		};
+			draft: {
+				category: 1,
+				note: 2,
+				date: 0,
+				amount: 3,
+				currency: null,
+				type: null,
+			},
+			resolved: { ...RESOLVED_MAPPING, labelSource: "categoryColumn" },
+			gaps: [],
+		});
+
 		const { queryByText } = await render(<FileStep />);
 		expect(queryByText("import.fileNoCategoryColumn")).toBeNull();
 	});

@@ -10,7 +10,7 @@ import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
 	Pressable,
 	useColorScheme,
@@ -49,6 +49,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { convex } from "@/lib/convex";
+import { importDraftStore } from "@/lib/import-draft-store";
 import {
 	LedgerAdoptionProvider,
 	useLedgerAdoption,
@@ -177,6 +178,10 @@ function RootStack() {
 	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
+	const resumeStep = useSyncExternalStore(
+		importDraftStore.subscribeResume,
+		importDraftStore.getResumeStep,
+	);
 	useSubscriptionReminderSync(db);
 	useSeededClockPreference(db);
 
@@ -317,8 +322,9 @@ function RootStack() {
 						presentation: "formSheet",
 						headerShown: false,
 						sheetGrabberVisible: true,
-						sheetAllowedDetents: importStepDetents("source", windowHeight),
+						sheetAllowedDetents: importStepDetents(resumeStep, windowHeight),
 						sheetCornerRadius: 40,
+						contentStyle: { backgroundColor: "transparent" },
 					}}
 				/>
 			</Stack.Protected>

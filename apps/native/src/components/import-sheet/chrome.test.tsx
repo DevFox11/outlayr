@@ -75,11 +75,10 @@ describe("ImportSheetChrome", () => {
 		expect(getByTestId("import-chrome-title").props.pointerEvents).toBe("none");
 	});
 
-	it("renders no footer when footer is null", async () => {
-		const { queryByText } = await render(
+	it("renders no footer slot when footer is omitted", async () => {
+		const { queryByTestId } = await render(
 			<ImportSheetChrome
 				canGoBack={false}
-				footer={null}
 				onBack={jest.fn()}
 				onCancel={jest.fn()}
 				title="Import"
@@ -87,15 +86,14 @@ describe("ImportSheetChrome", () => {
 				<Text>content</Text>
 			</ImportSheetChrome>,
 		);
-		expect(queryByText("Continue")).toBeNull();
+		expect(queryByTestId("import-chrome-footer")).toBeNull();
 	});
 
-	it("disables the footer CTA per prop and does not call onPress while disabled", async () => {
-		const onPress = jest.fn();
-		const { getByText } = await render(
+	it("renders the footer slot content when a footer node is provided", async () => {
+		const { getByTestId, getByText } = await render(
 			<ImportSheetChrome
 				canGoBack={false}
-				footer={{ label: "Continue", onPress, disabled: true }}
+				footer={<Text>Continue</Text>}
 				onBack={jest.fn()}
 				onCancel={jest.fn()}
 				title="Choose a file"
@@ -103,25 +101,8 @@ describe("ImportSheetChrome", () => {
 				<Text>content</Text>
 			</ImportSheetChrome>,
 		);
-		fireEvent.press(getByText("Continue"));
-		expect(onPress).not.toHaveBeenCalled();
-	});
-
-	it("enables the footer CTA per prop and calls onPress when tapped", async () => {
-		const onPress = jest.fn();
-		const { getByText } = await render(
-			<ImportSheetChrome
-				canGoBack={false}
-				footer={{ label: "Continue", onPress, disabled: false }}
-				onBack={jest.fn()}
-				onCancel={jest.fn()}
-				title="Choose a file"
-			>
-				<Text>content</Text>
-			</ImportSheetChrome>,
-		);
-		fireEvent.press(getByText("Continue"));
-		expect(onPress).toHaveBeenCalled();
+		expect(getByTestId("import-chrome-footer")).toBeTruthy();
+		expect(getByText("Continue")).toBeTruthy();
 	});
 
 	it("calls onCancel when Cancel is tapped", async () => {

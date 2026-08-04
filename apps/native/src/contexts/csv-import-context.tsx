@@ -9,7 +9,7 @@ import {
 } from "@/data/transfer-core";
 import type { MappingDraft } from "@/domain/import-mapping";
 import { type UseCsvImportResult, useCsvImport } from "@/hooks/use-csv-import";
-import { useImportFlow } from "./import-flow-context";
+import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
 
 const EMPTY_PARSED: ParsedImportFile = { header: null, rows: [], width: 0 };
 const EMPTY_DRAFT: MappingDraft = {
@@ -55,7 +55,7 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 	const db = useDatabase();
 	const meta = useCategoryMeta(db);
 	const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
-	const { state, dispatch } = useImportFlow();
+	const { flow: state } = useImportDraft();
 
 	const categoryTree = useMemo(() => buildCategoryTree(meta), [meta]);
 	const categoryIdByKey = useMemo(() => buildCategoryIdByKey(meta), [meta]);
@@ -86,14 +86,14 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 		if (result.outcome == null) {
 			return;
 		}
-		dispatch({
+		importDraftStore.dispatch({
 			type: "resolutionSettled",
 			outcome: result.outcome,
 			reason: result.reason,
 			links: result.links,
 			fromModel: result.fromModel,
 		});
-	}, [result.outcome, result.reason, result.links, result.fromModel, dispatch]);
+	}, [result.outcome, result.reason, result.links, result.fromModel]);
 
 	return (
 		<CsvImportContext.Provider value={result}>

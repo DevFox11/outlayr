@@ -3,7 +3,6 @@ import type { UseCsvImportResult } from "@/hooks/use-csv-import";
 import { ResolveStep } from "./resolve-step";
 
 const mockPush = jest.fn();
-const mockDismissAll = jest.fn();
 const mockRun = jest.fn();
 
 let mockContext: UseCsvImportResult;
@@ -26,7 +25,7 @@ function baseContext(
 }
 
 jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: mockPush, dismissAll: mockDismissAll }),
+	useRouter: () => ({ push: mockPush }),
 }));
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
@@ -49,7 +48,6 @@ jest.mock("@/contexts/csv-import-context", () => ({
 describe("ResolveStep", () => {
 	beforeEach(() => {
 		mockPush.mockClear();
-		mockDismissAll.mockClear();
 		mockRun.mockClear();
 		mockContext = baseContext();
 	});
@@ -105,26 +103,26 @@ describe("ResolveStep", () => {
 		["invalidResponse", "import.unavailableInvalidResponse"],
 		["unauthenticated", "import.unavailableUnauthenticated"],
 	] as const)(
-		"renders the %s reason with Try again and Map columns manually",
+		"renders the %s reason with Try again and no escape hatch",
 		async (reason, copyKey) => {
 			mockContext = baseContext({ outcome: "unavailable", reason });
-			const { getByText } = await render(<ResolveStep />);
+			const { getByText, queryByText } = await render(<ResolveStep />);
 
 			expect(getByText("import.unavailableTitle")).toBeTruthy();
 			expect(getByText(copyKey)).toBeTruthy();
 			expect(getByText("import.tryAgain")).toBeTruthy();
-			expect(getByText("import.mapManually")).toBeTruthy();
+			expect(queryByText("import.mapManually")).toBeNull();
 		},
 	);
 
 	it.each(["overCap", "notConfigured"] as const)(
-		"omits Try again for the %s reason, since retrying changes nothing",
+		"omits Try again and the escape hatch for the %s reason, since retrying changes nothing",
 		async (reason) => {
 			mockContext = baseContext({ outcome: "unavailable", reason });
-			const { queryByText, getByText } = await render(<ResolveStep />);
+			const { queryByText } = await render(<ResolveStep />);
 
 			expect(queryByText("import.tryAgain")).toBeNull();
-			expect(getByText("import.mapManually")).toBeTruthy();
+			expect(queryByText("import.mapManually")).toBeNull();
 		},
 	);
 
@@ -134,15 +132,6 @@ describe("ResolveStep", () => {
 
 		fireEvent.press(getByText("import.tryAgain"));
 		expect(mockRun).toHaveBeenCalledTimes(1);
-	});
-
-	it("pushes /settings/import and dismisses the sheet from Map columns manually", async () => {
-		mockContext = baseContext({ outcome: "unavailable", reason: "offline" });
-		const { getByText } = await render(<ResolveStep />);
-
-		fireEvent.press(getByText("import.mapManually"));
-		expect(mockPush).toHaveBeenCalledWith("/settings/import");
-		expect(mockDismissAll).toHaveBeenCalled();
 	});
 
 	it("renders the declined banner with only Open Feature Lab, never Try again", async () => {

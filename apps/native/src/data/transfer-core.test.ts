@@ -15,6 +15,7 @@ import {
 	exportTransactionsCsv,
 	guessMapping,
 	parseImportFile,
+	splitHeaderAndRows,
 	uniqueCategoryValues,
 } from "./transfer-core";
 
@@ -230,6 +231,41 @@ describe("parseImportFile", () => {
 
 	it("rejects a file that is nothing but a header", () => {
 		expect(parseImportFile("Date,Note,Amount\n")).toBe(null);
+	});
+});
+
+describe("splitHeaderAndRows", () => {
+	it("splits off a digit-free first line as the header", () => {
+		expect(
+			splitHeaderAndRows([
+				["Date", "Note", "Amount"],
+				["2026-07-28", "Bakery", "12.50"],
+			]),
+		).toStrictEqual({
+			header: ["Date", "Note", "Amount"],
+			rows: [["2026-07-28", "Bakery", "12.50"]],
+		});
+	});
+
+	it("keeps a first line that already carries data", () => {
+		expect(
+			splitHeaderAndRows([["2026-07-28", "Bakery", "12.50"]]),
+		).toStrictEqual({
+			header: null,
+			rows: [["2026-07-28", "Bakery", "12.50"]],
+		});
+	});
+
+	it("preserves ragged rows unchanged", () => {
+		expect(
+			splitHeaderAndRows([
+				["a", "b", "c"],
+				["1", "2", "3", "4"],
+			]),
+		).toStrictEqual({
+			header: ["a", "b", "c"],
+			rows: [["1", "2", "3", "4"]],
+		});
 	});
 });
 
