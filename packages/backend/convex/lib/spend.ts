@@ -10,7 +10,7 @@ const DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN = 2.5;
 /** The user's fixed $25/month ceiling, in micro-dollars. */
 export const DEFAULT_BUDGET_CEILING_MICROS = 25_000_000;
 const BUDGET_PERIOD_MS = 30 * DAY;
-/** ADR-4/ADR-5's cost-model worst case: up to 3 search rounds per lookup. */
+/** Cost-model worst case: up to 3 search rounds per lookup. */
 const WORST_CASE_SEARCH_CALLS = 3;
 /** Rough two-pass token estimate backing the pessimistic pre-charge. */
 const ESTIMATED_INPUT_TOKENS = 5_600;
@@ -62,7 +62,6 @@ export function budgetConfig(): RateLimitConfig {
 	};
 }
 
-/** ADR-5: pre-charge the pessimistic worst case before any model call. */
 export function estimateMicros(): number {
 	return (
 		WORST_CASE_SEARCH_CALLS * searchPriceMicros() +
@@ -76,7 +75,7 @@ export interface UsageLike {
 	outputTokens?: number | null;
 }
 
-/** ADR-5: the measured actual, recorded unconditionally regardless of outcome. */
+/** The measured actual, recorded unconditionally regardless of outcome. */
 export function measureMicros(usage: UsageLike, searchCalls: number): number {
 	return (
 		searchCalls * searchPriceMicros() +

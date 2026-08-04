@@ -17,8 +17,7 @@ import { merchantKey } from "./lib/merchantKey";
  * settled in 841ms with correct structured output; `grok-4.5` took 2.69s.
  * `grok-4.5` is kept here only as the documented too-slow fallback — it is
  * never selected automatically. `XAI_MODEL_ID` overrides the primary id
- * without a deploy. Exported so `groundedLookup.ts` shares the same default
- * (ADR-12).
+ * without a deploy. Exported so `groundedLookup.ts` shares the same default.
  */
 export const ENRICHMENT_MODEL_ID = "grok-4.20-non-reasoning";
 export const ENRICHMENT_FALLBACK_MODEL_ID = "grok-4.5";
@@ -45,12 +44,11 @@ export const suggestArgs = {
 	name: v.string(),
 	income: v.boolean(),
 	locale: v.optional(v.string()),
-	/** The user's own categories, each with the names nested under it. */
 	categoryTree: v.array(
 		v.object({ name: v.string(), children: v.array(v.string()) }),
 	),
 	/**
-	 * One side of ADR-6's dual-authority consent gate. A forged `true` alone
+	 * One side of the dual-authority consent gate. A forged `true` alone
 	 * cannot enable a grounded lookup — the synced `appMeta` row must also
 	 * agree — but a `false` always blocks, from either side.
 	 */
@@ -72,7 +70,7 @@ const suggestion = v.object({
 	emoji: v.union(v.string(), v.null()),
 	tags: v.array(v.string()),
 	domain: v.union(v.string(), v.null()),
-	/** Stable shared-cache object key; `logoUrl` mints a fresh signed url from it. */
+	/** `logoUrl` mints a fresh signed url from this key. */
 	logoKey: v.union(v.string(), v.null()),
 	logoUrl: v.union(v.string(), v.null()),
 	/** A grounded lookup was scheduled — the client must not cache this as a final null result. */
@@ -145,7 +143,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 		period: HOUR,
 		shards: 10,
 	},
-	// ADR-11: checked in `suggest` itself, before the internal action is ever
+	// Checked in `suggest` itself, before the internal action is ever
 	// scheduled. This gate is anti-abuse, NOT cost control — `groundedBudgetMicros`
 	// is the real backstop, and `groundedPerKey` already stops the same merchant
 	// being looked up twice in a day. At 5/day it fired during ordinary use: a
@@ -158,9 +156,9 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 		period: DAY,
 		capacity: 20,
 	},
-	// ADR-10: kills both a user retyping the same unknown name and a
+	// Kills both a user retyping the same unknown name and a
 	// thundering herd across many users hitting one new merchant at once.
-	// Checked inside `groundedLookup.run`, never here — see ADR-11's order.
+	// Checked inside `groundedLookup.run`, never here.
 	groundedPerKey: {
 		kind: "token bucket",
 		rate: 1,
@@ -180,7 +178,7 @@ export function sanitizeTags(tags: readonly string[]): string[] {
 /**
  * Rejects anything that is not a bare `host.tld`-shaped string — this is what
  * stops a hallucinated `https://…` url or a bare `netflix` from ever reaching
- * the logo fetcher (PR 6). Case-folded before the match so `NETFLIX.COM`
+ * the logo fetcher. Case-folded before the match so `NETFLIX.COM`
  * survives; the pattern itself only accepts lowercase.
  */
 export function sanitizeDomain(domain: string | null): string | null {
@@ -393,11 +391,11 @@ export async function runSuggest(
 const GROUNDED_LOOKUP_META_KEY = "groundedLookup";
 
 /**
- * ADR-6's server-side half of the dual-authority gate: the synced `appMeta`
+ * The server-side half of the dual-authority gate: the synced `appMeta`
  * row, keyed the same way `sync.ts` writes it (`requireUserId`, NOT
  * `identity.tokenIdentifier` — those are different id spaces in this app).
  * An absent row defaults to consented, matching `SETTING_DEFAULTS.groundedLookup`
- * on the client (slice 4) — a device that has never synced this key has never
+ * on the client — a device that has never synced this key has never
  * turned it off.
  */
 export const groundedConsent = internalQuery({
@@ -447,10 +445,10 @@ export function needsGroundedLookup(
 }
 
 /**
- * ADR-11's order: `groundedPerUser` here, `groundedPerKey` and
+ * Rate limiting order: `groundedPerUser` here, `groundedPerKey` and
  * `groundedBudgetMicros` inside `groundedLookup.run` itself. Returns whether a
  * lookup was actually scheduled, so `suggest` knows whether to report
- * `grounding: true`. `categoryTree` is deliberately not a parameter — ADR-7,
+ * `grounding: true`. `categoryTree` is deliberately not a parameter —
  * the scheduled args below can never carry it.
  */
 export async function maybeScheduleGrounded(

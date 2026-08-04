@@ -46,7 +46,7 @@ const OWN_ORIGIN_LOGO_TIMEOUT_MS = 3000;
 const OWN_ORIGIN_LOGO_PATHS = ["/apple-touch-icon.png", "/favicon.ico"];
 
 /**
- * ADR-8, permanent and non-negotiable (owner declined logo.dev's Pro plan,
+ * Permanent and non-negotiable (owner declined logo.dev's Pro plan,
  * the only tier licensing self-hosted caching — see decision/logo-dev-no-paid-tier):
  * only bytes fetched from the merchant's own origin may ever enter the shared
  * cache. logo.dev and Apple App Store artwork are checked here by denylist,
@@ -152,7 +152,7 @@ function regionLine(regionCode: string | undefined): string {
 		: "";
 }
 
-/** No `categoryTree` parameter anywhere in this file — ADR-7, structurally. */
+/** No `categoryTree` parameter anywhere in this file — structurally, not by convention. */
 function buildGroundedPrompt(
 	name: string,
 	income: boolean,
@@ -222,7 +222,7 @@ export interface GroundedCallOutcome {
 }
 
 /**
- * Collapsed from ADR-1's original two-pass design: a live measured call
+ * Collapsed from the original two-pass design: a live measured call
  * against `grok-4.20-non-reasoning` with `web_search` returned clean JSON
  * text while searching (3 search steps, 3.75s), disproving the "structured
  * output can't compose with a provider tool" assumption that motivated the
@@ -255,7 +255,7 @@ export async function runGroundedLookupCall(
 	const candidate: KnowledgeCandidate = {
 		key: args.key,
 		domain: sanitizeDomain(output.domain),
-		// No user tree exists for a globally-shared record (ADR-7) — the model
+		// No user tree exists for a globally-shared record — the model
 		// is asked to pick from the closed canonical set instead.
 		categoryName: sanitizeCategoryName(output.categoryName),
 		parentCategoryName: null,
@@ -294,11 +294,12 @@ export type GroundedLookupCtx = Pick<
 >;
 
 /**
- * ADR-11's order continued: `groundedPerKey` then `groundedBudgetMicros`
- * (both live here, never in `suggest`). `overrideDeps` is a test-only seam —
- * production never passes it, so the real xAI provider is always constructed
- * fresh per call (`XAI_GROUNDED_MODEL_ID`/`XAI_API_KEY` read live, matching
- * `enrichment.ts`'s own rollback-lever pattern).
+ * Continues the same rate-limit ordering: `groundedPerKey` then
+ * `groundedBudgetMicros` (both live here, never in `suggest`).
+ * `overrideDeps` is a test-only seam — production never passes it, so the
+ * real xAI provider is always constructed fresh per call
+ * (`XAI_GROUNDED_MODEL_ID`/`XAI_API_KEY` read live, matching `enrichment.ts`'s
+ * own rollback-lever pattern).
  */
 export async function runGroundedLookup(
 	ctx: GroundedLookupCtx,
@@ -370,8 +371,8 @@ export async function runGroundedLookup(
 		});
 	}
 
-	// Recorded unconditionally — a spent budget is a spent budget whether or
-	// not the result cleared `shouldPublish`.
+	// Spend is recorded unconditionally, even when the result never cleared
+	// `shouldPublish`.
 	await ctx.runMutation(internal.groundedSpend.record, {
 		at: Date.now(),
 		chargedMicros: estimated,
