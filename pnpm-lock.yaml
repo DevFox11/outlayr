@@ -15,9 +15,15 @@ catalogs:
     better-auth:
       specifier: ~1.6.15
       version: 1.6.15
+    dotenv:
+      specifier: ^17.4.2
+      version: 17.4.2
     typescript:
       specifier: ~6.0.3
       version: 6.0.3
+    zod:
+      specifier: ^4.4.3
+      version: 4.4.3
 
 packageExtensionsChecksum: sha256-UQH1NXtiOBP2Z+NEvJWuC1FtjBzSysuxnZXCXiCJiGs=
 
@@ -279,6 +285,9 @@ importers:
       '@types/react':
         specifier: ~19.2.17
         version: 19.2.17
+      babel-plugin-inline-import:
+        specifier: ^3.0.0
+        version: 3.0.0
       better-sqlite3:
         specifier: ^13.0.2
         version: 13.0.2
@@ -3417,6 +3426,9 @@ packages:
     peerDependencies:
       '@babel/core': ^7.8.0
 
+  babel-plugin-inline-import@3.0.0:
+    resolution: {integrity: sha512-thnykl4FMb8QjMjVCuZoUmAM7r2mnTn5qJwrryCvDv6rugbJlTHZMctdjDtEgD0WBAXJOLJSGXN3loooEwx7UQ==}
+
   babel-plugin-istanbul@6.1.1:
     resolution: {integrity: sha512-Y1IQok9821cC9onCx5otgFfRm7Lm+I+wwxOx738M/WLPZ9Q42m4IG5W0FNX8WLL2gYMZo3JkuXIH2DOpWM+qwA==}
     engines: {node: '>=8'}
@@ -5884,6 +5896,9 @@ packages:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
     engines: {node: '>=8'}
 
+  path-extra@1.0.3:
+    resolution: {integrity: sha512-vYm3+GCkjUlT1rDvZnDVhNLXIRvwFPaN8ebHAFcuMJM/H0RBOPD7JrcldiNLd9AS3dhAyUHLa4Hny5wp1A+Ffw==}
+
   path-is-absolute@1.0.1:
     resolution: {integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==}
     engines: {node: '>=0.10.0'}
@@ -6263,6 +6278,9 @@ packages:
   require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
+
+  require-resolve@0.0.2:
+    resolution: {integrity: sha512-eafQVaxdQsWUB8HybwognkdcIdKdQdQBwTxH48FuE6WI0owZGKp63QYr1MRp73PoX0AcyB7MDapZThYUY8FD0A==}
 
   requires-port@1.0.0:
     resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
@@ -7052,6 +7070,9 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  x-path@0.0.2:
+    resolution: {integrity: sha512-zQ4WFI0XfJN1uEkkrB19Y4TuXOlHqKSxUJo0Yt+axPjRm8tCG6SJ6+Wo3/+Kjg4c2c8IvBXuJ0uYoshxNn4qMw==}
 
   xcode@3.0.1:
     resolution: {integrity: sha512-kCz5k7J7XbJtjABOvkc5lJmkiDh8VhjVCGNiqdKCscmVpdVUpEAyXv1xmCLkQJ5dsHqx3IPO4XW+NTDhU/fatA==}
@@ -10384,6 +10405,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  babel-plugin-inline-import@3.0.0:
+    dependencies:
+      require-resolve: 0.0.2
+
   babel-plugin-istanbul@6.1.1(supports-color@8.1.1):
     dependencies:
       '@babel/helper-plugin-utils': 7.29.7
@@ -13164,6 +13189,8 @@ snapshots:
 
   path-exists@4.0.0: {}
 
+  path-extra@1.0.3: {}
+
   path-is-absolute@1.0.1: {}
 
   path-key@3.1.1: {}
@@ -13617,6 +13644,10 @@ snapshots:
   require-directory@2.1.1: {}
 
   require-from-string@2.0.2: {}
+
+  require-resolve@0.0.2:
+    dependencies:
+      x-path: 0.0.2
 
   requires-port@1.0.0: {}
 
@@ -14338,6 +14369,10 @@ snapshots:
   ws@8.21.0: {}
 
   ws@8.21.1: {}
+
+  x-path@0.0.2:
+    dependencies:
+      path-extra: 1.0.3
 
   xcode@3.0.1:
     dependencies:
