@@ -115,9 +115,8 @@ describe("regional merchant coverage", () => {
 describe("logo.dev domain backfill", () => {
 	it("resolves a verified logo.dev domain for each backfilled merchant", () => {
 		const verified: Record<string, string> = {
-			"central madeirense": "centralmadeirense.com",
+			"central madeirense": "tucentralonline.com",
 			locatel: "locatel.com.ve",
-			farmahorro: "farmahorro.com",
 			traki: "traki.com",
 			digitel: "digitel.com.ve",
 		};
@@ -126,9 +125,10 @@ describe("logo.dev domain backfill", () => {
 		}
 	});
 
-	it("leaves the two merchants logo.dev cannot serve without a domain", () => {
+	it("leaves the merchants logo.dev cannot serve without a domain", () => {
 		expect(resolveMerchant("automercados plazas")?.domain).toBeNull();
 		expect(resolveMerchant("cantv")?.domain).toBeNull();
+		expect(resolveMerchant("farmahorro")?.domain).toBeNull();
 	});
 });
 

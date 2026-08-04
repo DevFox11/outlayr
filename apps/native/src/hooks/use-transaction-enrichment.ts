@@ -178,6 +178,15 @@ export function useTransactionEnrichment(
 		key: string;
 		hasDomain: boolean;
 	} | null>(null);
+	/**
+	 * A domain-less curated hit keeps its category and tags authoritative while
+	 * the remote tier is only ever consulted for the domain — the model must
+	 * never overwrite the map's judgement.
+	 */
+	const curatedFallbackRef = useRef<{
+		key: string;
+		suggestion: EnrichmentSuggestion;
+	} | null>(null);
 
 	const enabledRef = useRef(enabled);
 	enabledRef.current = enabled;
@@ -264,6 +273,13 @@ export function useTransactionEnrichment(
 			if (result?.grounding !== true) {
 				setCachedEnrichment(key, result);
 			}
+			const fallback = curatedFallbackRef.current;
+			if (fallback != null && fallback.key === key) {
+				if (result?.domain != null) {
+					emit({ ...fallback.suggestion, domain: result.domain });
+				}
+				return;
+			}
 			if (result == null) {
 				emitNothing();
 				return;
@@ -310,16 +326,31 @@ export function useTransactionEnrichment(
 			return;
 		}
 		const match = resolveMerchant(key);
+		let curatedFallback = false;
 		if (match != null) {
-			emit(toCuratedSuggestion(match));
-			return;
+			const curatedSuggestion = toCuratedSuggestion(match);
+			emit(curatedSuggestion);
+			if (match.domain != null) {
+				return;
+			}
+			curatedFallback = true;
+			curatedFallbackRef.current = { key, suggestion: curatedSuggestion };
 		}
 		if (!remoteEnabledRef.current) {
-			emitNothing();
+			if (!curatedFallback) {
+				emitNothing();
+			}
 			return;
 		}
 		const cached = getCachedEnrichment(key);
 		if (cached.hit) {
+			const fallback = curatedFallbackRef.current;
+			if (fallback != null && fallback.key === key) {
+				if (cached.value?.domain != null) {
+					emit({ ...fallback.suggestion, domain: cached.value.domain });
+				}
+				return;
+			}
 			if (cached.value == null) {
 				emitNothing();
 				return;

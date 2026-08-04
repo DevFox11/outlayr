@@ -852,7 +852,7 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		patterns: ["central madeirense"],
 		categoryName: "Groceries",
 		tags: ["Groceries"],
-		domain: "centralmadeirense.com",
+		domain: "tucentralonline.com",
 	},
 	{
 		id: "automercados-plazas",
@@ -880,7 +880,7 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		patterns: ["farmahorro"],
 		categoryName: "Healthcare",
 		tags: ["Pharmacy"],
-		domain: "farmahorro.com",
+		domain: null,
 	},
 	{
 		id: "traki",
