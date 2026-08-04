@@ -151,9 +151,9 @@ const importSheet = {
 			en: "Categorise {count} merchants",
 			es: "Categorizar {count} comercios",
 		}),
-		"import.resolveReviewCtaPending": t({
-			en: "Review transactions",
-			es: "Revisar transacciones",
+		"import.resolveReviewCta": t({
+			en: "Review {count} transactions",
+			es: "Revisar {count} transacciones",
 		}),
 		"import.resolveRunningReadFile": t({
 			en: "Read the file",
@@ -214,6 +214,54 @@ const importSheet = {
 		"import.openFeatureLab": t({
 			en: "Open Feature Lab",
 			es: "Abrir Laboratorio de funciones",
+		}),
+		"import.reviewCommitCta": t({
+			en: "Import {count} transactions",
+			es: "Importar {count} transacciones",
+		}),
+		"import.reviewCommitConfirmCta": t({
+			en: "Import {count} transactions?",
+			es: "¿Importar {count} transacciones?",
+		}),
+		"import.reviewCommitSuccessTitle": t({
+			en: "Import complete",
+			es: "Importación completa",
+		}),
+		"import.reviewCommitSuccessBody": t({
+			en: "{count} transactions added",
+			es: "{count} transacciones agregadas",
+		}),
+		"import.reviewCommitFailedTitle": t({
+			en: "Nothing was imported",
+			es: "No se importó nada",
+		}),
+		"import.reviewCommitFailedBody": t({
+			en: "The write failed, so your ledger is unchanged. Your selections are still here.",
+			es: "La escritura falló, así que tu balance no cambió. Tus selecciones siguen aquí.",
+		}),
+		"import.reviewDuplicateCaption": t({
+			en: "Looks already imported.",
+			es: "Parece que ya se importó.",
+		}),
+		"import.reviewSkippedHeader": t({
+			en: "{count} skipped",
+			es: "{count} omitidas",
+		}),
+		"import.reviewEmptyTitle": t({
+			en: "Nothing to import",
+			es: "Nada para importar",
+		}),
+		"import.skipReasonCategory": t({
+			en: "No matching category",
+			es: "Sin categoría coincidente",
+		}),
+		"import.skipReasonDate": t({
+			en: "Unreadable date",
+			es: "Fecha ilegible",
+		}),
+		"import.skipReasonAmount": t({
+			en: "Unreadable amount",
+			es: "Monto ilegible",
 		}),
 	},
 } satisfies Dictionary;

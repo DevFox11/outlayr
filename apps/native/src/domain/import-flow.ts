@@ -39,6 +39,7 @@ export interface ImportFlowState {
 	mappingGaps: readonly MappingGap[];
 	resolution: ImportResolution | null;
 	excluded: ReadonlySet<number>;
+	duplicates: ReadonlySet<number>;
 	commit: ImportCommitState;
 }
 
@@ -51,6 +52,7 @@ export const INITIAL_IMPORT_FLOW_STATE: ImportFlowState = {
 	mappingGaps: [],
 	resolution: null,
 	excluded: new Set(),
+	duplicates: new Set(),
 	commit: { phase: "idle" },
 };
 
@@ -72,6 +74,7 @@ export type ImportFlowEvent =
 			fromModel: ReadonlySet<string>;
 	  }
 	| { type: "rowToggled"; index: number }
+	| { type: "duplicatesFlagged"; indices: ReadonlySet<number> }
 	| { type: "commitStarted" }
 	| { type: "commitFailed"; detail: string | null };
 
@@ -100,6 +103,7 @@ export function importFlowReducer(
 				mappingGaps: event.gaps,
 				resolution: null,
 				excluded: new Set(),
+				duplicates: new Set(),
 				commit: { phase: "idle" },
 			};
 		}
@@ -117,6 +121,7 @@ export function importFlowReducer(
 					fromModel: event.fromModel,
 				},
 				excluded: new Set(),
+				duplicates: new Set(),
 				commit: { phase: "idle" },
 			};
 		}
@@ -132,6 +137,17 @@ export function importFlowReducer(
 				excluded.add(event.index);
 			}
 			return { ...state, excluded };
+		}
+
+		case "duplicatesFlagged": {
+			if (state.resolution == null) {
+				return state;
+			}
+			return {
+				...state,
+				duplicates: event.indices,
+				excluded: new Set(event.indices),
+			};
 		}
 
 		case "commitStarted": {
@@ -153,8 +169,7 @@ export function importFlowReducer(
 	}
 }
 
-/** The steps this slice's sheet serves; "review" lands with the commit slice. */
-export const IMPORT_STEPS = ["source", "file", "resolve"] as const;
+export const IMPORT_STEPS = ["source", "file", "resolve", "review"] as const;
 
 export function canAdvance(state: ImportFlowState, step: ImportStep): boolean {
 	switch (step) {
