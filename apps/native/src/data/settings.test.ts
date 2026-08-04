@@ -60,6 +60,12 @@ describe("settings defaults", () => {
 		await setBoolSetting(db, "budgetViewStyle", false);
 		expect(await readBoolSetting(db, "budgetViewStyle")).toBe(false);
 	});
+
+	it("defaults grounded-lookup consent on for a device that never wrote it", async () => {
+		expect(await readBoolSetting(db, "groundedLookup")).toBe(true);
+		await setBoolSetting(db, "groundedLookup", false);
+		expect(await readBoolSetting(db, "groundedLookup")).toBe(false);
+	});
 });
 
 describe("the 12/24-hour clock", () => {

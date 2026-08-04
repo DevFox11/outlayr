@@ -27,6 +27,7 @@ export type BoolSettingKey =
 	| "subscriptionReminders"
 	| "categorySuggestions"
 	| "aiEnrichment"
+	| "groundedLookup"
 	// Swaps a Log row's time label for its category. No Settings row writes it
 	// yet, so it always resolves to the default.
 	| "swapTimeLabel"
@@ -82,6 +83,7 @@ export const SETTING_DEFAULTS = {
 	subscriptionReminders: false,
 	categorySuggestions: true,
 	aiEnrichment: true,
+	groundedLookup: true,
 	swapTimeLabel: false,
 	confetti: false,
 	budgetViewStyle: true,
