@@ -15,7 +15,8 @@ export type UnavailableReason =
 	| "providerError"
 	| "notConfigured"
 	| "invalidResponse"
-	| "overCap";
+	| "overCap"
+	| "unauthenticated";
 
 export interface ImportResolution {
 	outcome: ResolutionOutcome;

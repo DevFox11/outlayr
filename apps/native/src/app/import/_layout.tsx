@@ -6,6 +6,10 @@ import {
 	type ImportSheetFooter,
 } from "@/components/import-sheet/chrome";
 import {
+	CsvImportProvider,
+	useCsvImportContext,
+} from "@/contexts/csv-import-context";
+import {
 	ImportFlowProvider,
 	useImportFlow,
 } from "@/contexts/import-flow-context";
@@ -16,15 +20,16 @@ import { importStepDetents } from "@/lib/sheet-detents";
 const STEP_TITLE: Record<ImportStep, TranslationKey> = {
 	source: "import.titleSource",
 	file: "import.titleFile",
-	// Unreachable in this slice — Slices 4/5 add the routes these steps name.
-	resolve: "import.titleFile",
-	review: "import.titleFile",
+	resolve: "import.titleResolve",
+	review: "import.titleReview",
 };
 
 export default function ImportLayout() {
 	return (
 		<ImportFlowProvider>
-			<ImportLayoutChrome />
+			<CsvImportProvider>
+				<ImportLayoutChrome />
+			</CsvImportProvider>
 		</ImportFlowProvider>
 	);
 }
@@ -36,6 +41,7 @@ function ImportLayoutChrome() {
 	const pathname = usePathname();
 	const { height } = useWindowDimensions();
 	const { state } = useImportFlow();
+	const csvImport = useCsvImportContext();
 	const step = stepFor(pathname);
 
 	useEffect(() => {
@@ -44,14 +50,32 @@ function ImportLayoutChrome() {
 		});
 	}, [navigation, step, height]);
 
-	const footer: ImportSheetFooter | null =
-		step === "file"
-			? {
-					label: t("common.continue"),
+	const footer: ImportSheetFooter | null = (() => {
+		if (step === "file") {
+			return {
+				label: t("common.continue"),
+				onPress: () => router.push("/import/resolve"),
+				disabled: !canAdvance(state, "file"),
+			};
+		}
+		if (step === "resolve") {
+			if (csvImport.outcome != null) {
+				return {
+					label: t("import.resolveReviewCtaPending"),
 					onPress: () => undefined,
-					disabled: !canAdvance(state, "file"),
-				}
-			: null;
+					disabled: true,
+				};
+			}
+			return {
+				label: t("import.resolveCategoriseCta", {
+					count: csvImport.totalLabels,
+				}),
+				onPress: csvImport.run,
+				disabled: csvImport.running,
+			};
+		}
+		return null;
+	})();
 
 	return (
 		<ImportSheetChrome

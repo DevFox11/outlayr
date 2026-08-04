@@ -115,6 +115,98 @@ const importSheet = {
 			en: "No amount column",
 			es: "No hay columna de monto",
 		}),
+		"import.titleResolve": t({
+			en: "Categorise",
+			es: "Categorizar",
+		}),
+		"import.titleReview": t({
+			en: "Review",
+			es: "Revisar",
+		}),
+		"import.resolveConsentHeading": t({
+			en: "What leaves your device",
+			es: "Qué sale de tu dispositivo",
+		}),
+		"import.resolveConsentBulletLabels": t({
+			en: "Merchant names we couldn't match on device — up to 200.",
+			es: "Nombres de comercios que no pudimos identificar en el dispositivo — hasta 200.",
+		}),
+		"import.resolveConsentBulletCategories": t({
+			en: "Your own category names, so suggestions land in categories you already have.",
+			es: "Tus propias categorías, para que las sugerencias usen categorías que ya tienes.",
+		}),
+		"import.resolveConsentBulletNever": t({
+			en: "Never: your amounts, your dates, or the file itself.",
+			es: "Nunca: tus montos, tus fechas, ni el archivo en sí.",
+		}),
+		"import.resolveCategoriseCta": t({
+			en: "Categorise {count} merchants",
+			es: "Categorizar {count} comercios",
+		}),
+		"import.resolveReviewCtaPending": t({
+			en: "Review transactions",
+			es: "Revisar transacciones",
+		}),
+		"import.resolveRunningReadFile": t({
+			en: "Read the file",
+			es: "Leímos el archivo",
+		}),
+		"import.resolveRunningMatched": t({
+			en: "Matched on device",
+			es: "Coincidencias en el dispositivo",
+		}),
+		"import.resolveRunningAsked": t({
+			en: "Asked the model",
+			es: "Consultamos al modelo",
+		}),
+		"import.unavailableTitle": t({
+			en: "Suggestions are unavailable",
+			es: "Las sugerencias no están disponibles",
+		}),
+		"import.unavailableOffline": t({
+			en: "You're offline.",
+			es: "Estás sin conexión.",
+		}),
+		"import.unavailableTimeout": t({
+			en: "It took too long.",
+			es: "Tardó demasiado.",
+		}),
+		"import.unavailableRateLimited": t({
+			en: "Too many imports this hour.",
+			es: "Demasiadas importaciones esta hora.",
+		}),
+		"import.unavailableProviderError": t({
+			en: "The service didn't answer.",
+			es: "El servicio no respondió.",
+		}),
+		"import.unavailableUnauthenticated": t({
+			en: "Sign in to get AI suggestions.",
+			es: "Inicia sesión para obtener sugerencias de IA.",
+		}),
+		"import.unavailableNotConfigured": t({
+			en: "Not configured yet.",
+			es: "Aún no está configurado.",
+		}),
+		"import.unavailableInvalidResponse": t({
+			en: "We didn't understand the answer, so we ignored all of it.",
+			es: "No entendimos la respuesta, así que la ignoramos por completo.",
+		}),
+		"import.unavailableOverCap": t({
+			en: "This file is too large to send, so it was read on your device only.",
+			es: "Este archivo es demasiado grande para enviar, así que se leyó solo en tu dispositivo.",
+		}),
+		"import.tryAgain": t({
+			en: "Try again",
+			es: "Intentar de nuevo",
+		}),
+		"import.declinedBody": t({
+			en: "AI suggestions are off in Settings → Feature Lab.",
+			es: "Las sugerencias de IA están desactivadas en Ajustes → Laboratorio de funciones.",
+		}),
+		"import.openFeatureLab": t({
+			en: "Open Feature Lab",
+			es: "Abrir Laboratorio de funciones",
+		}),
 	},
 } satisfies Dictionary;
 
