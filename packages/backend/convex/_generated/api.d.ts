@@ -12,6 +12,7 @@ import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as cotizave from "../cotizave.js";
 import type * as crons from "../crons.js";
+import type * as csvImport from "../csvImport.js";
 import type * as enrichment from "../enrichment.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as frankfurter from "../frankfurter.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   cotizave: typeof cotizave;
   crons: typeof crons;
+  csvImport: typeof csvImport;
   enrichment: typeof enrichment;
   exchangeRates: typeof exchangeRates;
   frankfurter: typeof frankfurter;
