@@ -112,6 +112,26 @@ describe("regional merchant coverage", () => {
 	});
 });
 
+describe("logo.dev domain backfill", () => {
+	it("resolves a verified logo.dev domain for each backfilled merchant", () => {
+		const verified: Record<string, string> = {
+			"central madeirense": "centralmadeirense.com",
+			locatel: "locatel.com.ve",
+			farmahorro: "farmahorro.com",
+			traki: "traki.com",
+			digitel: "digitel.com.ve",
+		};
+		for (const [name, domain] of Object.entries(verified)) {
+			expect(resolveMerchant(name)?.domain).toBe(domain);
+		}
+	});
+
+	it("leaves the two merchants logo.dev cannot serve without a domain", () => {
+		expect(resolveMerchant("automercados plazas")?.domain).toBeNull();
+		expect(resolveMerchant("cantv")?.domain).toBeNull();
+	});
+});
+
 describe("the module-load merchant index", () => {
 	it("holds every pattern as a key", () => {
 		for (const entry of MERCHANTS) {
