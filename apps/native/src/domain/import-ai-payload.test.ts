@@ -40,6 +40,24 @@ describe("scrubLabel", () => {
 	test("collapses the whitespace a stripped run leaves behind", () => {
 		expect(scrubLabel("Store 987654 Branch")).toBe("Store Branch");
 	});
+
+	test("keeps a run of exactly 3 digits", () => {
+		expect(scrubLabel("Aisle 123 Store")).toBe("Aisle 123 Store");
+	});
+
+	test("strips a run of 4+ fullwidth digits", () => {
+		expect(scrubLabel("Card ending ４５６７ purchase")).toBe(
+			"Card ending purchase",
+		);
+	});
+
+	test("strips a run of 4+ Arabic-Indic digits", () => {
+		expect(scrubLabel("Store ٠١٢٣ Branch")).toBe("Store Branch");
+	});
+
+	test("strips a mixed run of ASCII and fullwidth digits", () => {
+		expect(scrubLabel("Ref 12３４ here")).toBe("Ref here");
+	});
 });
 
 describe("buildClassificationPayload", () => {

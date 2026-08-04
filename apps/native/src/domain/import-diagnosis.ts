@@ -2,6 +2,9 @@ import { parseCsv } from "@/domain/csv";
 
 export type ParseFailureReason = "empty" | "noDataRows" | "tooFewColumns";
 
+/** Guards the parse allocation (`parseCsv`'s array-of-arrays), not the file read, which already happened. */
+export const HARD_PARSE_REJECT_CHARS = 20_000_000;
+
 // Duplicates parseImportFile's header heuristic (data/transfer-core.ts); the two must stay in sync.
 export function classifyParseFailure(text: string): ParseFailureReason {
 	const lines = parseCsv(text);

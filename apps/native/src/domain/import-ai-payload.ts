@@ -3,7 +3,7 @@ import type { CategoryBranch } from "@/lib/convex";
 
 export const MAX_LABELS = 200;
 
-const LONG_DIGIT_RUN = /\d{4,}/g;
+const LONG_DIGIT_RUN = /\p{Nd}{4,}/gu;
 
 export function scrubLabel(raw: string): string {
 	return raw.replace(LONG_DIGIT_RUN, "").replace(/\s+/g, " ").trim();

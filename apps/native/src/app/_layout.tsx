@@ -53,7 +53,7 @@ import {
 	LedgerAdoptionProvider,
 	useLedgerAdoption,
 } from "@/lib/ledger-adoption";
-import { identityPickerDetent } from "@/lib/sheet-detents";
+import { identityPickerDetent, importStepDetents } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
@@ -306,6 +306,17 @@ function RootStack() {
 						sheetGrabberVisible: true,
 						sheetAllowedDetents: [pickerDetent, 1],
 						sheetLargestUndimmedDetentIndex: 0,
+						sheetCornerRadius: 40,
+						contentStyle: { backgroundColor: "transparent" },
+					}}
+				/>
+				<Stack.Screen
+					name="import"
+					options={{
+						presentation: "formSheet",
+						headerShown: false,
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: importStepDetents("source", windowHeight),
 						sheetCornerRadius: 40,
 						contentStyle: { backgroundColor: "transparent" },
 					}}
