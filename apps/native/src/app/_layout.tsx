@@ -318,7 +318,6 @@ function RootStack() {
 						sheetGrabberVisible: true,
 						sheetAllowedDetents: importStepDetents("source", windowHeight),
 						sheetCornerRadius: 40,
-						contentStyle: { backgroundColor: "transparent" },
 					}}
 				/>
 			</Stack.Protected>

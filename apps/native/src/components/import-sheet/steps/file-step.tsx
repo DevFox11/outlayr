@@ -190,7 +190,7 @@ export function FileStep() {
 	if (state.parsed != null && state.resolved != null) {
 		return (
 			<View className="gap-3 pt-6">
-				<View className="gap-3 rounded-xl bg-surface p-4">
+				<View className="gap-3 rounded-xl p-4">
 					<Text className="text-body text-foreground" numberOfLines={1}>
 						{state.file?.name}
 					</Text>

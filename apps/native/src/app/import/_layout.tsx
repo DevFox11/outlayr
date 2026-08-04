@@ -89,7 +89,10 @@ function ImportLayoutChrome() {
 			    react-native-screens declines the pop gesture while the host screen
 			    is presented as a sheet, so the chevron is the only way back. */}
 			<Stack
-				screenOptions={{ animation: "slide_from_right", headerShown: false }}
+				screenOptions={{
+					animation: "slide_from_right",
+					headerShown: false,
+				}}
 			/>
 		</ImportSheetChrome>
 	);

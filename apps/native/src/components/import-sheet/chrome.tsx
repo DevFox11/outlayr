@@ -1,10 +1,9 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ArrowLeft01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n";
-import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 export interface ImportSheetFooter {
@@ -34,7 +33,7 @@ export function ImportSheetChrome({
 	const colors = useColors();
 
 	return (
-		<View className="flex-1 bg-background">
+		<View className="flex-1">
 			<View className="h-11 justify-center px-4">
 				{canGoBack ? (
 					<Pressable
@@ -52,10 +51,6 @@ export function ImportSheetChrome({
 						/>
 					</Pressable>
 				) : null}
-				{/* The title box spans the full row and paints over the absolutely
-				    positioned back chevron, which sits earlier in the tree. React
-				    Native hit-tests the topmost view and walks up from there, never
-				    to a sibling underneath, so without this the chevron is dead. */}
 				<Text
 					accessibilityRole="header"
 					className="text-center font-sans-semibold text-callout text-foreground"
@@ -75,16 +70,9 @@ export function ImportSheetChrome({
 					</Text>
 				</Pressable>
 			</View>
-			<View
-				style={{
-					height: StyleSheet.hairlineWidth,
-					backgroundColor: withAlpha(colors.foreground, 0.07),
-				}}
-				testID="import-chrome-hairline"
-			/>
 			<View className="flex-1 px-5">{children}</View>
 			{footer ? (
-				<View className="border-border border-t bg-background px-5 pt-3 pb-safe-offset-3">
+				<View className="border-border border-t px-5 pt-3 pb-safe-offset-3">
 					<Pressable
 						accessibilityRole="button"
 						className="h-14 items-center justify-center rounded-[28px] bg-foreground active:opacity-70"

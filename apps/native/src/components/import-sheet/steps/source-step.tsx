@@ -2,13 +2,12 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ArrowRight01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { useRouter } from "expo-router";
 import { Fragment } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useImportFlow } from "@/contexts/import-flow-context";
 import { IMPORT_SOURCES } from "@/domain/import-sources";
 import { useTranslation } from "@/i18n";
-import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 export function SourceStep() {
@@ -22,18 +21,9 @@ export function SourceStep() {
 			<Text className="text-muted text-subtitle leading-snug">
 				{t("import.sourceLede")}
 			</Text>
-			<View className="overflow-hidden rounded-xl bg-surface">
-				{IMPORT_SOURCES.map((source, index) => (
+			<View className="overflow-hidden rounded-xl">
+				{IMPORT_SOURCES.map((source) => (
 					<Fragment key={source.id}>
-						{index > 0 ? (
-							<View
-								className="ml-[58px]"
-								style={{
-									height: StyleSheet.hairlineWidth,
-									backgroundColor: withAlpha(colors.foreground, 0.07),
-								}}
-							/>
-						) : null}
 						<Pressable
 							accessibilityRole="button"
 							accessibilityState={{ disabled: !source.available }}
@@ -47,7 +37,7 @@ export function SourceStep() {
 								router.push(source.entryRoute);
 							}}
 						>
-							<View className="size-7 items-center justify-center rounded-lg bg-background">
+							<View className="size-7 items-center justify-center rounded-lg">
 								<HugeiconsIcon
 									color={colors.foreground}
 									icon={source.icon}

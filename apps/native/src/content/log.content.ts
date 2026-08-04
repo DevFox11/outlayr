@@ -11,6 +11,10 @@ const log = {
 			en: "Create transaction",
 			es: "Crear transacción",
 		}),
+		"log.add.import": t({
+			en: "Import transactions",
+			es: "Importar transacciones",
+		}),
 		"log.chip.earlier": t({
 			en: "Earlier",
 			es: "Anterior",

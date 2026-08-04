@@ -71,7 +71,7 @@ export function ResolveStep() {
 
 	if (outcome === "unavailable" && reason != null) {
 		return (
-			<View className="gap-4 pt-6">
+			<View className="gap-4">
 				<View className="gap-2 rounded-xl border border-border p-4">
 					<Text className="font-sans-medium text-callout text-foreground">
 						{t("import.unavailableTitle")}
@@ -146,8 +146,8 @@ export function ResolveStep() {
 	}
 
 	return (
-		<View className="gap-4 pt-6">
-			<View className="gap-2 rounded-xl bg-surface p-4">
+		<View className="gap-4">
+			<View className="gap-2 rounded-xl p-4">
 				<Text className="font-sans-medium text-callout text-foreground">
 					{t("import.resolveConsentHeading")}
 				</Text>
