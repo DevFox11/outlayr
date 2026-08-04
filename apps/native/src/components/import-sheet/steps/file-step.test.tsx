@@ -18,9 +18,6 @@ jest.mock("@/theme/use-colors", () => ({
 		danger: "#B5482F",
 	}),
 }));
-jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: jest.fn(), dismissAll: jest.fn() }),
-}));
 jest.mock("@/lib/data-transfer", () => {
 	const actual = jest.requireActual("@/lib/data-transfer");
 	return {
@@ -179,7 +176,7 @@ describe("FileStep", () => {
 		});
 	});
 
-	it("shows the mapping-gap card before any AI consideration, naming each gap", async () => {
+	it("shows the mapping-gap card before any AI consideration, naming each gap and giving actionable guidance instead of a dead end", async () => {
 		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
 		importDraftStore.dispatch({
 			type: "fileParsed",
@@ -201,11 +198,48 @@ describe("FileStep", () => {
 			gaps: ["noLabelColumn"],
 		});
 
-		const { getByText } = await render(<FileStep />);
+		const { getByText, queryByText } = await render(<FileStep />);
 
 		expect(getByText("import.mappingGapTitle")).toBeTruthy();
 		expect(getByText("import.mappingGapNoLabel")).toBeTruthy();
-		expect(getByText("import.mapManually")).toBeTruthy();
+		expect(getByText("import.mappingGapGuidance")).toBeTruthy();
+		expect(queryByText("import.mapManually")).toBeNull();
+		expect(getByText("import.chooseDifferentFile")).toBeTruthy();
+	});
+
+	it("re-invokes the picker from the mapping-gap state's Choose a different file, replacing the gap with a resolved file", async () => {
+		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({
+			type: "fileParsed",
+			file: { name: "bank.csv", chars: 10 },
+			parsed: {
+				header: ["date", "amount", "balance"],
+				rows: [["01/08/2026", "3,50", "100"]],
+				width: 3,
+			},
+			draft: {
+				category: null,
+				note: null,
+				date: 0,
+				amount: 1,
+				currency: null,
+				type: null,
+			},
+			resolved: null,
+			gaps: ["noLabelColumn"],
+		});
+		mockPickCsvFile.mockResolvedValue({
+			name: "fixed.csv",
+			text: "date,description,amount\n01/08/2026,Coffee,3,50\n",
+		});
+
+		const { getByText } = await render(<FileStep />);
+		fireEvent.press(getByText("import.chooseDifferentFile"));
+
+		await waitFor(() => {
+			expect(importDraftStore.getSnapshot().flow.mappingGaps).toStrictEqual([]);
+		});
+		expect(importDraftStore.getSnapshot().flow.file?.name).toBe("fixed.csv");
 	});
 
 	it("shows the 4th line only when the label source is the description column", async () => {

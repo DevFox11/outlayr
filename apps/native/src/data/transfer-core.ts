@@ -140,12 +140,23 @@ export interface ParsedImportFile {
 const MINIMUM_COLUMNS = 3;
 
 /**
- * Null means the file cannot be used at all, which the caller reports once
- * rather than letting the user assign columns to something unusable.
- *
  * The header test is Swift's (`ImportDataView+Logic.swift:126`): a first line
  * with no digit in it is a header, because a data row always carries at least a
  * date or an amount.
+ */
+export function splitHeaderAndRows(lines: string[][]): {
+	header: string[] | null;
+	rows: string[][];
+} {
+	const first = lines[0] ?? [];
+	const looksLikeHeader = !/\d/.test(first.join(""));
+	const rows = looksLikeHeader ? lines.slice(1) : lines;
+	return { header: looksLikeHeader ? first : null, rows };
+}
+
+/**
+ * Null means the file cannot be used at all, which the caller reports once
+ * rather than letting the user assign columns to something unusable.
  */
 export function parseImportFile(text: string): ParsedImportFile | null {
 	const lines = parseCsv(text);
@@ -153,9 +164,7 @@ export function parseImportFile(text: string): ParsedImportFile | null {
 		return null;
 	}
 
-	const first = lines[0] ?? [];
-	const looksLikeHeader = !/\d/.test(first.join(""));
-	const rows = looksLikeHeader ? lines.slice(1) : lines;
+	const { header, rows } = splitHeaderAndRows(lines);
 	if (rows.length === 0) {
 		return null;
 	}
@@ -165,7 +174,7 @@ export function parseImportFile(text: string): ParsedImportFile | null {
 		return null;
 	}
 
-	return { header: looksLikeHeader ? first : null, rows, width };
+	return { header, rows, width };
 }
 
 /** First-appearance spelling of every distinct value in the category column. */
