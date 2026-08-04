@@ -38,8 +38,21 @@ export function ownsPhotoKey(userId: string, key: string): boolean {
 	return name !== null && photoKeyFor(userId, name) === key;
 }
 
+/**
+ * T8: a `merchant/…` object (the shared, unowned logo cache written by
+ * `groundedLookup.ts`) must never be mistaken for an owned
+ * `transaction-photos/…` one. The segment-count check below already refuses
+ * it incidentally (two segments, not three), but the explicit check makes
+ * that guarantee survive either prefix constant changing independently of
+ * the other.
+ */
+const MERCHANT_CACHE_KEY_PREFIX = "merchant/";
+
 /** The device-side file name a key was minted from, or null if it is malformed. */
 export function photoNameFromKey(key: string): string | null {
+	if (key.startsWith(MERCHANT_CACHE_KEY_PREFIX)) {
+		return null;
+	}
 	const segments = key.split("/");
 	if (segments.length !== 3 || segments[0] !== PHOTO_KEY_PREFIX) {
 		return null;

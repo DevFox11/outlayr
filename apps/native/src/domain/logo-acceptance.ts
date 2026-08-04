@@ -15,7 +15,14 @@ export type LogoVerdict = { ok: true } | { ok: false; reason: LogoRejection };
  * brand mark. Do not raise it.
  */
 const MIN_BYTES = 512;
-const MAX_BYTES = 262_144;
+/**
+ * Raised from 256KB after farmatodo.com's favicon measured 262,206 bytes — a
+ * real merchant icon missing the old cap by 62. Multi-resolution `.ico` files
+ * bundle every size in one payload and legitimately reach a few hundred KB.
+ * The bound exists to stop a hostile host streaming megabytes, which this
+ * still does; it is not a bandwidth budget.
+ */
+const MAX_BYTES = 524_288;
 
 const PNG = [0x89, 0x50, 0x4e, 0x47];
 const JPEG = [0xff, 0xd8, 0xff];

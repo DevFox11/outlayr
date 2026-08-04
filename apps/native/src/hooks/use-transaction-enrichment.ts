@@ -24,7 +24,6 @@ export interface PendingCategory {
 	icon: string;
 	color: string;
 	emoji: string | null;
-	/** An existing top-level category this one will be nested under. */
 	parentName: string | null;
 }
 
@@ -34,6 +33,8 @@ export interface EnrichmentSuggestion {
 	tagIds: readonly string[];
 	pendingTagNames: readonly string[];
 	domain: string | null;
+	logoUrl: string | null;
+	logoKey: string | null;
 	source: "curated" | "remote";
 }
 
@@ -46,6 +47,13 @@ export interface UseTransactionEnrichmentArgs {
 	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
 	remoteEnabled?: boolean;
 	locale?: string;
+	/**
+	 * The device's own region — a signal `locale` cannot substitute for, since a
+	 * user may run an English UI on a device set to a different region.
+	 */
+	regionCode?: string;
+	/** The server re-checks the `groundedLookup` setting independently. */
+	groundedLookup?: boolean;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
 }
@@ -60,6 +68,13 @@ export interface UseTransactionEnrichmentResult {
 }
 
 const DEBOUNCE_MS = 600;
+/**
+ * A grounded search costs ~3x more than assumed (measured: one answer bills 3
+ * search calls). Waiting this much longer than `DEBOUNCE_MS` before allowing
+ * it means a mid-name pause (e.g. "Rio" before "rio supermercado" finishes)
+ * never spends a grounded lookup on a fragment.
+ */
+const GROUNDED_IDLE_MS = 1800;
 const MIN_KEY_LENGTH = 3;
 export const REMOTE_TIMEOUT_MS = 4000;
 
@@ -110,6 +125,8 @@ function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 		tagIds: [],
 		pendingTagNames: match.tags,
 		domain: match.domain,
+		logoUrl: null,
+		logoKey: null,
 		source: "curated",
 	};
 }
@@ -134,6 +151,8 @@ function toRemoteSuggestion(
 		tagIds: [],
 		pendingTagNames: result.tags,
 		domain: result.domain,
+		logoUrl: result.logoUrl ?? null,
+		logoKey: result.logoKey ?? null,
 		source: "remote",
 	};
 }
@@ -149,6 +168,8 @@ export function useTransactionEnrichment(
 		onSuggest,
 		remoteEnabled = true,
 		locale,
+		regionCode,
+		groundedLookup = true,
 		transport,
 	} = args;
 
@@ -156,8 +177,13 @@ export function useTransactionEnrichment(
 
 	const nameRef = useRef("");
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const requestIdRef = useRef(0);
 	const inFlightRef = useRef<Set<string>>(new Set());
+	const lastRemoteOutcomeRef = useRef<{
+		key: string;
+		hasDomain: boolean;
+	} | null>(null);
 
 	const enabledRef = useRef(enabled);
 	enabledRef.current = enabled;
@@ -173,6 +199,10 @@ export function useTransactionEnrichment(
 	remoteEnabledRef.current = remoteEnabled;
 	const localeRef = useRef(locale);
 	localeRef.current = locale;
+	const regionCodeRef = useRef(regionCode);
+	regionCodeRef.current = regionCode;
+	const groundedLookupRef = useRef(groundedLookup);
+	groundedLookupRef.current = groundedLookup;
 	const transportRef = useRef<EnrichmentFn | null | undefined>(transport);
 	transportRef.current = transport;
 
@@ -192,6 +222,8 @@ export function useTransactionEnrichment(
 			tagIds: [],
 			pendingTagNames: [],
 			domain: null,
+			logoUrl: null,
+			logoKey: null,
 			source: "curated",
 		});
 	}, []);
@@ -215,10 +247,14 @@ export function useTransactionEnrichment(
 						name: nameRef.current.trim(),
 						income: incomeRef.current,
 						locale: localeRef.current,
+						regionCode: regionCodeRef.current,
 						categoryTree: treeRef.current.map((branch) => ({
 							name: branch.name,
 							children: [...branch.children],
 						})),
+						// The fast tier never requests grounding — see
+						// `runGroundedFollowUp` for the idle-gated retry.
+						groundedLookup: false,
 					}),
 					new Promise<null>((resolve) => {
 						setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
@@ -228,11 +264,14 @@ export function useTransactionEnrichment(
 				result = null;
 			}
 			inFlightRef.current.delete(key);
+			lastRemoteOutcomeRef.current = { key, hasDomain: result?.domain != null };
 			if (id !== requestIdRef.current) {
 				return;
 			}
 			setPending(false);
-			setCachedEnrichment(key, result);
+			if (result?.grounding !== true) {
+				setCachedEnrichment(key, result);
+			}
 			if (result == null) {
 				emitNothing();
 				return;
@@ -241,6 +280,36 @@ export function useTransactionEnrichment(
 		},
 		[emit, emitNothing],
 	);
+
+	/** A fast result that already carried a domain suppresses this follow-up entirely. */
+	const runGroundedFollowUp = useCallback(() => {
+		if (!groundedLookupRef.current) {
+			return;
+		}
+		const key = merchantKey(nameRef.current);
+		const outcome = lastRemoteOutcomeRef.current;
+		if (outcome == null || outcome.key !== key || outcome.hasDomain) {
+			return;
+		}
+		const call =
+			transportRef.current === undefined
+				? enrichmentTransport()
+				: transportRef.current;
+		if (call == null) {
+			return;
+		}
+		void call({
+			name: nameRef.current.trim(),
+			income: incomeRef.current,
+			locale: localeRef.current,
+			regionCode: regionCodeRef.current,
+			categoryTree: treeRef.current.map((branch) => ({
+				name: branch.name,
+				children: [...branch.children],
+			})),
+			groundedLookup: true,
+		});
+	}, []);
 
 	const run = useCallback(() => {
 		const key = merchantKey(nameRef.current);
@@ -281,15 +350,26 @@ export function useTransactionEnrichment(
 			if (timerRef.current != null) {
 				clearTimeout(timerRef.current);
 			}
+			if (groundedTimerRef.current != null) {
+				clearTimeout(groundedTimerRef.current);
+			}
 			timerRef.current = setTimeout(run, DEBOUNCE_MS);
+			groundedTimerRef.current = setTimeout(
+				runGroundedFollowUp,
+				GROUNDED_IDLE_MS,
+			);
 		},
-		[run],
+		[run, runGroundedFollowUp],
 	);
 
 	const teardown = useCallback(() => {
 		if (timerRef.current != null) {
 			clearTimeout(timerRef.current);
 			timerRef.current = null;
+		}
+		if (groundedTimerRef.current != null) {
+			clearTimeout(groundedTimerRef.current);
+			groundedTimerRef.current = null;
 		}
 		requestIdRef.current += 1;
 		inFlightRef.current.clear();

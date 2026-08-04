@@ -703,6 +703,14 @@ const settings = {
 			en: "Well-known services are recognised on this device, with nothing sent anywhere. For anything else, only the name you typed and your own category names leave the device — never amounts, dates or accounts.",
 			es: "Los servicios conocidos se reconocen en este dispositivo, sin enviar nada. En los demás casos solo salen del dispositivo el nombre que escribiste y los nombres de tus categorías, nunca importes, fechas ni cuentas.",
 		}),
+		"settings.featureLab.groundedLookup": t({
+			en: "Look Up New Merchants",
+			es: "Buscar comercios nuevos",
+		}),
+		"settings.featureLab.groundedLookupNote": t({
+			en: "For a merchant nobody has seen before, the name alone may be searched on the web to learn its category — never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
+			es: "Para un comercio que nadie ha visto antes, solo el nombre puede buscarse en la web para conocer su categoría — nunca en la transacción que estás ingresando, y nunca con ningún importe, fecha o cuenta. Desactivado mantiene cada búsqueda en este dispositivo y en los comercios ya conocidos.",
+		}),
 		"settings.featureLab.experimental": t({
 			en: "Experimental — these can change or disappear.",
 			es: "Experimental — esto puede cambiar o desaparecer.",
