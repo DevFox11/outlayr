@@ -201,6 +201,132 @@ describe("tier 1: curated match", () => {
 	});
 });
 
+describe("tier 1.5: domain-less curated fallthrough", () => {
+	it("emits the curated category and tags at once for a domain-less curated hit", async () => {
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: null })),
+		);
+
+		result.current.onNameChange("cantv");
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+		const suggestion = onSuggest.mock.calls[0][0] as EnrichmentSuggestion;
+		expect(suggestion.source).toBe("curated");
+		expect(suggestion.domain).toBeNull();
+		expect(suggestion.pendingTagNames).toStrictEqual(["Phone", "Internet"]);
+	});
+
+	it("issues exactly one transport call and merges only the remote domain onto the curated result", async () => {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
+		);
+
+		result.current.onNameChange("cantv");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		expect(fn).toHaveBeenCalledTimes(1);
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Something Else",
+				isNewCategory: false,
+				tags: ["Wrong"],
+				domain: "cantv.com.ve",
+			});
+		});
+
+		expect(onSuggest).toHaveBeenCalledTimes(2);
+		const merged = onSuggest.mock.calls[1][0] as EnrichmentSuggestion;
+		expect(merged.domain).toBe("cantv.com.ve");
+		expect(merged.pendingCategory?.name).toBe("Phone & Internet");
+		expect(merged.pendingTagNames).toStrictEqual(["Phone", "Internet"]);
+	});
+
+	it("leaves the curated category and tags intact when the remote result is stale or fails", async () => {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
+		);
+
+		result.current.onNameChange("cantv");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			jest.advanceTimersByTime(REMOTE_TIMEOUT_MS + 1);
+		});
+		calls[0].settle(null);
+
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+		const suggestion = onSuggest.mock.calls[0][0] as EnrichmentSuggestion;
+		expect(suggestion.pendingCategory?.name).toBe("Phone & Internet");
+		expect(suggestion.pendingTagNames).toStrictEqual(["Phone", "Internet"]);
+		expect(suggestion.domain).toBeNull();
+	});
+
+	it("makes no call and keeps no domain when remote is disabled", async () => {
+		const { fn } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(
+				baseArgs({ onSuggest, transport: fn, remoteEnabled: false }),
+			),
+		);
+
+		result.current.onNameChange("cantv");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(fn).not.toHaveBeenCalled();
+		expect(onSuggest).toHaveBeenCalledTimes(1);
+		const suggestion = onSuggest.mock.calls[0][0] as EnrichmentSuggestion;
+		expect(suggestion.domain).toBeNull();
+		expect(suggestion.pendingCategory?.name).toBe("Phone & Internet");
+	});
+
+	it("reuses a cached remote domain to merge onto the curated result, with no new call", async () => {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
+		);
+
+		result.current.onNameChange("cantv");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: "cantv.com.ve",
+			});
+		});
+		expect(fn).toHaveBeenCalledTimes(1);
+
+		result.current.onNameChange("cantv");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+
+		expect(fn).toHaveBeenCalledTimes(1);
+		const last = onSuggest.mock.calls.at(-1)?.[0] as EnrichmentSuggestion;
+		expect(last.domain).toBe("cantv.com.ve");
+		expect(last.pendingCategory?.name).toBe("Phone & Internet");
+	});
+});
+
 describe("tier 2: remote fallback", () => {
 	it("never calls the transport when tier 1 already answered", async () => {
 		const { fn } = deferredTransport();
