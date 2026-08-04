@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render } from "@testing-library/react-native";
+import { act, render } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import type { Database } from "@/db/client";
+import type { EnrichmentSuggestion } from "@/hooks/use-transaction-enrichment";
 import { TransactionForm } from "./index";
 
 const SENTINEL_LOCALE = "es-VE";
@@ -116,6 +117,14 @@ jest.mock("@/hooks/use-locale-tag", () => ({
 	useLocaleTag: () => SENTINEL_LOCALE,
 }));
 
+const mockFetchMerchantImage = jest.fn((..._args: unknown[]) =>
+	Promise.resolve({ kind: "none" as const }),
+);
+
+jest.mock("@/lib/logo-fetch", () => ({
+	fetchMerchantImage: (...args: unknown[]) => mockFetchMerchantImage(...args),
+}));
+
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string) => key,
 	useLanguage: () => ({ preference: "en" }),
@@ -150,7 +159,16 @@ function Providers({ children }: { children: React.ReactNode }) {
 beforeEach(() => {
 	dbHolder.current = migratedDb();
 	mockUseTransactionEnrichment.mockClear();
+	mockFetchMerchantImage.mockClear();
 });
+
+function latestOnSuggest(): (suggestion: EnrichmentSuggestion) => void {
+	const calls = mockUseTransactionEnrichment.mock.calls;
+	const args = calls[calls.length - 1][0] as {
+		onSuggest: (suggestion: EnrichmentSuggestion) => void;
+	};
+	return args.onSuggest;
+}
 
 describe("TransactionForm enrichment locale wiring", () => {
 	it("passes the device locale from useLocaleTag, not useLanguage, into useTransactionEnrichment", async () => {
@@ -178,6 +196,64 @@ describe("TransactionForm groundedLookup wiring", () => {
 
 		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
 			expect.objectContaining({ groundedLookup: true }),
+		);
+	});
+});
+
+describe("TransactionForm shared-cache logo wiring", () => {
+	it("passes a remote suggestion's logoUrl and logoKey into fetchMerchantImage", async () => {
+		const db = dbHolder.current as Database;
+		await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		await act(async () => {
+			latestOnSuggest()({
+				categoryId: null,
+				pendingCategory: null,
+				tagIds: [],
+				pendingTagNames: [],
+				domain: "example.com",
+				logoUrl: "https://r2.example/merchant/example",
+				logoKey: "merchant/example",
+				source: "remote",
+			});
+		});
+
+		expect(mockFetchMerchantImage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				domain: "example.com",
+				logoUrl: "https://r2.example/merchant/example",
+				logoKey: "merchant/example",
+			}),
+		);
+	});
+
+	it("passes null logoUrl and logoKey for a curated suggestion", async () => {
+		const db = dbHolder.current as Database;
+		await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		await act(async () => {
+			latestOnSuggest()({
+				categoryId: null,
+				pendingCategory: null,
+				tagIds: [],
+				pendingTagNames: [],
+				domain: "netflix.com",
+				logoUrl: null,
+				logoKey: null,
+				source: "curated",
+			});
+		});
+
+		expect(mockFetchMerchantImage).toHaveBeenCalledWith(
+			expect.objectContaining({ logoUrl: null, logoKey: null }),
 		);
 	});
 });

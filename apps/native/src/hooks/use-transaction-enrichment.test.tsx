@@ -133,6 +133,8 @@ describe("tier 1: curated match", () => {
 			emoji: null,
 			parentName: null,
 		});
+		expect(suggestion.logoUrl).toBeNull();
+		expect(suggestion.logoKey).toBeNull();
 		expect(result.current.pending).toBe(false);
 	});
 
@@ -158,6 +160,8 @@ describe("tier 1: curated match", () => {
 			tagIds: [],
 			pendingTagNames: [],
 			domain: null,
+			logoUrl: null,
+			logoKey: null,
 			source: "curated",
 		});
 	});
@@ -376,6 +380,33 @@ describe("tier 2: remote fallback", () => {
 
 		expect(onSuggest).not.toHaveBeenCalled();
 		expect(result.current.pending).toBe(false);
+	});
+
+	it("maps a remote result's logoUrl and logoKey onto the suggestion", async () => {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				...REMOTE_RESULT,
+				logoUrl: "https://r2.example/merchant/zzq",
+				logoKey: "merchant/zzq",
+			});
+		});
+
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				logoUrl: "https://r2.example/merchant/zzq",
+				logoKey: "merchant/zzq",
+			}),
+		);
 	});
 
 	it("does not cache a grounding-pending result, so a repeat lookup tries again", async () => {

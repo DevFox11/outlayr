@@ -171,6 +171,44 @@ describe("fetchMerchantImage", () => {
 		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
 	});
 
+	it("skips the App Store tier and still serves a present logoUrl when there is no name to search with", async () => {
+		const shared = png(700);
+		const fetchImpl = jest.fn(async (url: string) =>
+			String(url) === "https://r2.example/merchant/zzq"
+				? imageResponse(200, shared)
+				: notFound,
+		);
+
+		const result = await fetchMerchantImage(
+			{
+				name: "",
+				domain: "zzqq-nothing.example",
+				logoUrl: "https://r2.example/merchant/zzq",
+			},
+			fetchImpl as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "logo", bytes: shared });
+		expect(
+			(fetchImpl.mock.calls as [string][]).some(([url]) =>
+				url.includes("itunes"),
+			),
+		).toBe(false);
+	});
+
+	it("falls all the way through to no image when a rejected shared logo and every domain tier refuse", async () => {
+		const result = await fetchMerchantImage(
+			{
+				name: "",
+				domain: "zzqq-nothing.example",
+				logoUrl: "https://r2.example/merchant/zzq",
+			},
+			(async () => notFound) as unknown as typeof fetch,
+		);
+
+		expect(result).toStrictEqual({ kind: "none" });
+	});
+
 	it("skips the shared cached logo tier entirely when no logoUrl is given", async () => {
 		const fetchImpl = jest.fn(async (url: string) =>
 			String(url).includes("itunes")
