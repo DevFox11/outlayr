@@ -12,8 +12,12 @@ import {
 	mainBudgetFields,
 	SYNCED_TABLES,
 	type SyncedTable,
+	tagFields,
 	templateTransactionFields,
 	transactionFields,
+	transactionPhotoFields,
+	transactionSplitFields,
+	transactionTagFields,
 } from "./lib/syncTables";
 
 /**
@@ -34,8 +38,8 @@ const tombstone = {
 };
 
 /**
- * A pushed row names its own table, so one batch can carry edits from all six
- * without the client having to shard by table — the outbox is ordered by when
+ * A pushed row names its own table, so one batch can carry edits from every
+ * synced table without the client having to shard by table — the outbox is ordered by when
  * the edit happened, not by which table it landed in, and re-ordering it would
  * be re-ordering causality.
  */
@@ -69,6 +73,30 @@ const pushRow = v.union(
 		localId: v.string(),
 		...tombstone,
 		fields: v.object(templateTransactionFields),
+	}),
+	v.object({
+		table: v.literal("tags"),
+		localId: v.string(),
+		...tombstone,
+		fields: v.object(tagFields),
+	}),
+	v.object({
+		table: v.literal("transactionTags"),
+		localId: v.string(),
+		...tombstone,
+		fields: v.object(transactionTagFields),
+	}),
+	v.object({
+		table: v.literal("transactionPhotos"),
+		localId: v.string(),
+		...tombstone,
+		fields: v.object(transactionPhotoFields),
+	}),
+	v.object({
+		table: v.literal("transactionSplits"),
+		localId: v.string(),
+		...tombstone,
+		fields: v.object(transactionSplitFields),
 	}),
 	v.object({
 		table: v.literal("appMeta"),

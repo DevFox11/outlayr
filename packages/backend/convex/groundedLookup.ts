@@ -25,8 +25,7 @@ import {
 } from "./lib/merchantTrust";
 import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
 
-/** Same worst-case budget as Tier 2 — off the typing path, so no client race depends on it. */
-const GROUNDED_REQUEST_TIMEOUT_MS = 3500;
+export const GROUNDED_REQUEST_TIMEOUT_MS = 25_000;
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
 
 /**
@@ -277,7 +276,27 @@ export async function runGroundedLookup(
 		};
 	}
 
-	const outcome = await runGroundedLookupCall(deps, args);
+	let outcome: GroundedCallOutcome;
+	try {
+		outcome = await runGroundedLookupCall(deps, args);
+	} catch (error) {
+		console.warn(
+			`[groundedLookup] call threw for "${args.key}":`,
+			error instanceof Error
+				? `${error.name}: ${error.message}`
+				: String(error),
+		);
+		await ctx.runMutation(internal.groundedSpend.record, {
+			at: Date.now(),
+			chargedMicros: estimated,
+			actualMicros: 0,
+			searchCalls: 0,
+			inputTokens: 0,
+			outputTokens: 0,
+			published: false,
+		});
+		return;
+	}
 	const published = shouldPublish(outcome.candidate, outcome.sources);
 
 	if (

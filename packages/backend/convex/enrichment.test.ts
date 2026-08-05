@@ -70,18 +70,15 @@ const BASE_ARGS = {
 };
 
 describe("suggestArgs", () => {
-	test("carries exactly the six privacy-boundary fields", () => {
+	test("carries exactly the seven privacy-boundary fields", () => {
 		// Amounts, dates, accounts, balances, and identity must never leave the
 		// device — this is a threat-matrix assertion, not a shape convenience.
-		// `regionCode` is the one new field this slice adds: a deliberate
-		// widening (a country code is new data leaving the device) so the model
-		// can prefer a same-named merchant that actually operates where the
-		// user is.
 		expect(Object.keys(suggestArgs).sort()).toEqual(
 			[
 				"categoryTree",
 				"groundedLookup",
 				"income",
+				"knowledgeOnly",
 				"locale",
 				"name",
 				"regionCode",
@@ -242,6 +239,40 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 				name: " FARMÁTODO ",
 			}),
 		).resolves.toMatchObject({ categoryName: "Healthcare" });
+	});
+
+	test("a knowledgeOnly hit serves the cached row exactly like an ordinary hit", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+		await seedKnowledge(t, "Farmatodo");
+
+		await expect(
+			authenticatedAs(t, identity).action(api.enrichment.suggest, {
+				...BASE_ARGS,
+				name: "Farmatodo",
+				knowledgeOnly: true,
+			}),
+		).resolves.toMatchObject({
+			categoryName: "Healthcare",
+			domain: "farmatodo.com",
+			grounding: false,
+		});
+	});
+
+	test("a knowledgeOnly miss returns EMPTY without consuming a rate limit or the model", async () => {
+		vi.stubEnv("XAI_API_KEY", "test-xai-key");
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+		const limitSpy = vi.spyOn(rateLimiter, "limit");
+
+		await expect(
+			authenticatedAs(t, identity).action(api.enrichment.suggest, {
+				...BASE_ARGS,
+				name: "totally unknown merchant xyz",
+				knowledgeOnly: true,
+			}),
+		).resolves.toEqual(EMPTY);
+		expect(limitSpy).not.toHaveBeenCalled();
 	});
 
 	test("a cache miss falls through to the existing guard ladder unchanged", async () => {

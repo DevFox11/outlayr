@@ -160,6 +160,95 @@ describe("push authorization", () => {
 	});
 });
 
+describe("push table coverage", () => {
+	test("accepts and round-trips a row from every table the outbox drains", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const rows: PushRows = [
+			{
+				table: "tags",
+				localId: "tag-1",
+				updatedAt: 1,
+				deletedAt: null,
+				fields: { name: "festival", color: null, sortOrder: 0 },
+			},
+			{
+				table: "transactionTags",
+				localId: "tt-1",
+				updatedAt: 2,
+				deletedAt: null,
+				fields: { transactionId: "tx-1", tagId: "tag-1" },
+			},
+			{
+				table: "transactionPhotos",
+				localId: "tp-1",
+				updatedAt: 3,
+				deletedAt: null,
+				fields: {
+					transactionId: "tx-1",
+					imageKey: null,
+					imageColor: null,
+					sortOrder: 0,
+				},
+			},
+			{
+				table: "transactionSplits",
+				localId: "ts-1",
+				updatedAt: 4,
+				deletedAt: null,
+				fields: {
+					transactionId: "tx-1",
+					categoryId: null,
+					amount: 5,
+					sortOrder: 0,
+				},
+			},
+		];
+
+		await pushAs(t, owner, DEVICE_A, rows);
+
+		const page = await pullAs(t, owner, 0);
+		expect(page.rows.map((row) => row.table).sort()).toEqual([
+			"tags",
+			"transactionPhotos",
+			"transactionSplits",
+			"transactionTags",
+		]);
+		const tag = page.rows.find((row) => row.table === "tags");
+		expect(tag?.fields).toMatchObject({ name: "festival", sortOrder: 0 });
+	});
+
+	test("a tags tombstone beats a live edit like any other table", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const live: PushRows = [
+			{
+				table: "tags",
+				localId: "tag-1",
+				updatedAt: 100,
+				deletedAt: null,
+				fields: { name: "festival", color: null, sortOrder: 0 },
+			},
+		];
+		const tombstone: PushRows = [
+			{
+				table: "tags",
+				localId: "tag-1",
+				updatedAt: 50,
+				deletedAt: 50,
+				fields: { name: "festival", color: null, sortOrder: 0 },
+			},
+		];
+
+		await pushAs(t, owner, DEVICE_A, live);
+		await pushAs(t, owner, DEVICE_B, tombstone);
+
+		const page = await pullAs(t, owner, 0);
+		const tag = page.rows.find((row) => row.table === "tags");
+		expect(tag?.deletedAt).toBe(50);
+	});
+});
+
 describe("push sequencing", () => {
 	test("stamps each accepted row with the next seq and bumps the counter once", async () => {
 		const t = convexTest(schema, modules);

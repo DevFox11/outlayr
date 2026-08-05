@@ -60,6 +60,7 @@ export const suggestArgs = {
 	 * a bare ISO 3166-1 alpha-2 code.
 	 */
 	regionCode: v.optional(v.string()),
+	knowledgeOnly: v.optional(v.boolean()),
 };
 
 const suggestion = v.object({
@@ -505,6 +506,10 @@ export const suggest = action({
 				...applyToTree(args.categoryTree, cached),
 				grounding: false,
 			};
+		}
+
+		if (args.knowledgeOnly === true) {
+			return EMPTY;
 		}
 
 		const apiKey = process.env.XAI_API_KEY;
