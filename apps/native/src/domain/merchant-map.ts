@@ -880,7 +880,7 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		patterns: ["farmahorro"],
 		categoryName: "Healthcare",
 		tags: ["Pharmacy"],
-		domain: null,
+		domain: "farmahorro.com.ve",
 	},
 	{
 		id: "traki",
@@ -902,6 +902,13 @@ export const MERCHANTS: readonly MerchantEntry[] = [
 		categoryName: "Dining Out",
 		tags: ["Delivery", "Food"],
 		domain: "rappi.com",
+	},
+	{
+		id: "mcdonalds",
+		patterns: ["mcdonalds", "mc donalds", "mcdonald s"],
+		categoryName: "Dining Out",
+		tags: ["Fast Food"],
+		domain: "mcdonalds.com",
 	},
 	{
 		id: "cabify",

@@ -8,7 +8,11 @@ import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
 import { rateLimiter } from "./enrichment";
-import { runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
+import {
+	GROUNDED_REQUEST_TIMEOUT_MS,
+	runGroundedLookup,
+	runGroundedLookupCall,
+} from "./groundedLookup";
 import { budgetConfig } from "./lib/spend";
 import schema from "./schema";
 
@@ -357,6 +361,45 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 		expect(spend[0]).toMatchObject({ published: true });
 	});
 
+	test("a thrown model call records spend as unpublished instead of dying uncaught", async () => {
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const aborting = new MockLanguageModelV3({
+			doGenerate: async () => {
+				const abort = new Error("The operation was aborted");
+				abort.name = "AbortError";
+				throw abort;
+			},
+		});
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		await expect(
+			t.action(async (ctx) =>
+				runGroundedLookup(ctx, BASE_ARGS, {
+					grounding: aborting,
+					groundingTools: { web_search: fakeWebSearchTool },
+				}),
+			),
+		).resolves.not.toThrow();
+
+		const knowledge = await t.run((ctx) =>
+			ctx.db
+				.query("merchantKnowledge")
+				.withIndex("by_key", (q) => q.eq("key", "farmatodo"))
+				.unique(),
+		);
+		expect(knowledge).toBeNull();
+
+		const spend = await t.run((ctx) => ctx.db.query("groundedSpend").collect());
+		expect(spend).toHaveLength(1);
+		expect(spend[0]).toMatchObject({
+			published: false,
+			actualMicros: 0,
+			searchCalls: 0,
+		});
+		warnSpy.mockRestore();
+	});
+
 	test("an uncorroborated result records spend but writes nothing to merchantKnowledge", async () => {
 		const t = convexTest(schema, modules);
 		rateLimiterTest.register(t);
@@ -417,6 +460,12 @@ describe("runGroundedLookupCall domain guard (model-hallucinated denylisted doma
 		);
 
 		expect(outcome.candidate.domain).toBe("farmatodo.com");
+	});
+});
+
+describe("grounded abort budget", () => {
+	test("stays generous: a live grounded search measures ~3.75s+, and the old 3.5s budget aborted nearly every scheduled run", () => {
+		expect(GROUNDED_REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
 	});
 });
 

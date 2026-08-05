@@ -73,6 +73,8 @@ const DEBOUNCE_MS = 600;
  * never spends a grounded lookup on a fragment.
  */
 const GROUNDED_IDLE_MS = 1800;
+const GROUNDED_RECHECK_MS = 8000;
+const GROUNDED_RECHECK_RETRY_MS = 12_000;
 const MIN_KEY_LENGTH = 3;
 export const REMOTE_TIMEOUT_MS = 4000;
 
@@ -172,6 +174,7 @@ export function useTransactionEnrichment(
 	const nameRef = useRef("");
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const recheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const requestIdRef = useRef(0);
 	const inFlightRef = useRef<Set<string>>(new Set());
 	const lastRemoteOutcomeRef = useRef<{
@@ -229,12 +232,51 @@ export function useTransactionEnrichment(
 		});
 	}, []);
 
+	const resolveTransport = useCallback(
+		() =>
+			transportRef.current === undefined
+				? enrichmentTransport()
+				: transportRef.current,
+		[],
+	);
+
+	const buildRequest = useCallback(
+		(groundedLookup: boolean) => ({
+			name: nameRef.current.trim(),
+			income: incomeRef.current,
+			locale: localeRef.current,
+			regionCode: regionCodeRef.current,
+			categoryTree: treeRef.current.map((branch) => ({
+				name: branch.name,
+				children: [...branch.children],
+			})),
+			groundedLookup,
+		}),
+		[],
+	);
+
+	const emitDomainResult = useCallback(
+		(key: string, result: RemoteEnrichmentResult | null): boolean => {
+			if (result?.domain == null || merchantKey(nameRef.current) !== key) {
+				return false;
+			}
+			if (result.grounding !== true) {
+				setCachedEnrichment(key, result);
+			}
+			const fallback = curatedFallbackRef.current;
+			if (fallback != null && fallback.key === key) {
+				emit({ ...fallback.suggestion, domain: result.domain });
+			} else {
+				emit(toRemoteSuggestion(result));
+			}
+			return true;
+		},
+		[emit],
+	);
+
 	const runRemote = useCallback(
 		async (key: string) => {
-			const call =
-				transportRef.current === undefined
-					? enrichmentTransport()
-					: transportRef.current;
+			const call = resolveTransport();
 			if (call == null) {
 				return;
 			}
@@ -244,19 +286,9 @@ export function useTransactionEnrichment(
 			let result: RemoteEnrichmentResult | null = null;
 			try {
 				result = await Promise.race([
-					call({
-						name: nameRef.current.trim(),
-						income: incomeRef.current,
-						locale: localeRef.current,
-						regionCode: regionCodeRef.current,
-						categoryTree: treeRef.current.map((branch) => ({
-							name: branch.name,
-							children: [...branch.children],
-						})),
-						// The fast tier never requests grounding — see
-						// `runGroundedFollowUp` for the idle-gated retry.
-						groundedLookup: false,
-					}),
+					// The fast tier never requests grounding — see
+					// `runGroundedFollowUp` for the idle-gated retry.
+					call(buildRequest(false)),
 					new Promise<null>((resolve) => {
 						setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
 					}),
@@ -286,7 +318,7 @@ export function useTransactionEnrichment(
 			}
 			emit(toRemoteSuggestion(result));
 		},
-		[emit, emitNothing],
+		[emit, emitNothing, resolveTransport, buildRequest],
 	);
 
 	/** A fast result that already carried a domain suppresses this follow-up entirely. */
@@ -299,25 +331,50 @@ export function useTransactionEnrichment(
 		if (outcome == null || outcome.key !== key || outcome.hasDomain) {
 			return;
 		}
-		const call =
-			transportRef.current === undefined
-				? enrichmentTransport()
-				: transportRef.current;
+		const call = resolveTransport();
 		if (call == null) {
 			return;
 		}
-		void call({
-			name: nameRef.current.trim(),
-			income: incomeRef.current,
-			locale: localeRef.current,
-			regionCode: regionCodeRef.current,
-			categoryTree: treeRef.current.map((branch) => ({
-				name: branch.name,
-				children: [...branch.children],
-			})),
-			groundedLookup: true,
-		});
-	}, []);
+		const ticket = requestIdRef.current;
+		const stale = () =>
+			ticket !== requestIdRef.current || merchantKey(nameRef.current) !== key;
+		void (async () => {
+			let result: RemoteEnrichmentResult | null = null;
+			try {
+				result = await call(buildRequest(true));
+			} catch {
+				result = null;
+			}
+			if (stale()) {
+				return;
+			}
+			if (emitDomainResult(key, result) || result?.grounding !== true) {
+				return;
+			}
+			const scheduleRecheck = (delay: number, retriesLeft: number) => {
+				recheckTimerRef.current = setTimeout(() => {
+					void (async () => {
+						let rechecked: RemoteEnrichmentResult | null = null;
+						try {
+							rechecked = await call({
+								...buildRequest(false),
+								knowledgeOnly: true,
+							});
+						} catch {
+							rechecked = null;
+						}
+						if (stale() || emitDomainResult(key, rechecked)) {
+							return;
+						}
+						if (retriesLeft > 0) {
+							scheduleRecheck(GROUNDED_RECHECK_RETRY_MS, retriesLeft - 1);
+						}
+					})();
+				}, delay);
+			};
+			scheduleRecheck(GROUNDED_RECHECK_MS, 1);
+		})();
+	}, [resolveTransport, buildRequest, emitDomainResult]);
 
 	const run = useCallback(() => {
 		const key = merchantKey(nameRef.current);
@@ -376,6 +433,10 @@ export function useTransactionEnrichment(
 			if (groundedTimerRef.current != null) {
 				clearTimeout(groundedTimerRef.current);
 			}
+			if (recheckTimerRef.current != null) {
+				clearTimeout(recheckTimerRef.current);
+				recheckTimerRef.current = null;
+			}
 			timerRef.current = setTimeout(run, DEBOUNCE_MS);
 			groundedTimerRef.current = setTimeout(
 				runGroundedFollowUp,
@@ -393,6 +454,10 @@ export function useTransactionEnrichment(
 		if (groundedTimerRef.current != null) {
 			clearTimeout(groundedTimerRef.current);
 			groundedTimerRef.current = null;
+		}
+		if (recheckTimerRef.current != null) {
+			clearTimeout(recheckTimerRef.current);
+			recheckTimerRef.current = null;
 		}
 		requestIdRef.current += 1;
 		inFlightRef.current.clear();

@@ -670,6 +670,242 @@ describe("tier 2: remote fallback", () => {
 	});
 });
 
+describe("grounded re-check: the open form receives the domain", () => {
+	const GROUNDED_RECHECK_MS = 8000;
+	const GROUNDED_RECHECK_RETRY_MS = 12_000;
+
+	async function reachFollowUp(
+		overrides: Partial<UseTransactionEnrichmentArgs>,
+	) {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result, unmount } = await renderHook(() =>
+			useTransactionEnrichment(
+				baseArgs({ onSuggest, transport: fn, ...overrides }),
+			),
+		);
+
+		result.current.onNameChange(UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+		return { fn, calls, onSuggest, result, unmount };
+	}
+
+	it("merges a domain the follow-up itself answers with, without any re-check", async () => {
+		const { fn, calls, onSuggest } = await reachFollowUp({});
+
+		await act(async () => {
+			calls[1].settle(REMOTE_RESULT);
+		});
+
+		const last = onSuggest.mock.calls.at(-1)?.[0] as EnrichmentSuggestion;
+		expect(last.domain).toBe("example.com");
+
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
+		});
+		expect(fn).toHaveBeenCalledTimes(2);
+	});
+
+	it("schedules one re-check after a grounding-pending follow-up and emits the re-checked domain", async () => {
+		const { fn, calls, onSuggest } = await reachFollowUp({});
+
+		await act(async () => {
+			calls[1].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+		expect(fn).toHaveBeenCalledTimes(2);
+
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
+		});
+		expect(fn).toHaveBeenCalledTimes(3);
+		expect(calls[2].args.groundedLookup).toBe(false);
+		expect(calls[2].args.knowledgeOnly).toBe(true);
+
+		await act(async () => {
+			calls[2].settle(REMOTE_RESULT);
+		});
+		const last = onSuggest.mock.calls.at(-1)?.[0] as EnrichmentSuggestion;
+		expect(last.domain).toBe("example.com");
+	});
+
+	it("a re-check without a domain stays silent rather than wiping the shown category", async () => {
+		const { calls, onSuggest } = await reachFollowUp({});
+
+		await act(async () => {
+			calls[1].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
+		});
+		const emitted = onSuggest.mock.calls.length;
+
+		await act(async () => {
+			calls[2].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		expect(onSuggest.mock.calls.length).toBe(emitted);
+	});
+
+	it("retries the re-check once for a slow grounded search, then gives up for good", async () => {
+		const { fn, calls, onSuggest } = await reachFollowUp({});
+
+		await act(async () => {
+			calls[1].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
+		});
+		await act(async () => {
+			calls[2].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_RETRY_MS);
+		});
+		expect(fn).toHaveBeenCalledTimes(4);
+		await act(async () => {
+			calls[3].settle(REMOTE_RESULT);
+		});
+		const last = onSuggest.mock.calls.at(-1)?.[0] as EnrichmentSuggestion;
+		expect(last.domain).toBe("example.com");
+
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_RETRY_MS * 4);
+		});
+		expect(fn).toHaveBeenCalledTimes(4);
+	});
+
+	it("merges the re-checked domain onto a domain-less curated hit, keeping curated category and tags", async () => {
+		const { fn, calls } = deferredTransport();
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() =>
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
+		);
+
+		result.current.onNameChange("cantv");
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[0].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+		});
+		await act(async () => {
+			calls[1].settle({
+				categoryName: null,
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
+		});
+		await act(async () => {
+			calls[2].settle({
+				categoryName: "Something Else",
+				isNewCategory: false,
+				tags: ["Wrong"],
+				domain: "cantv.com.ve",
+			});
+		});
+
+		const last = onSuggest.mock.calls.at(-1)?.[0] as EnrichmentSuggestion;
+		expect(last.domain).toBe("cantv.com.ve");
+		expect(last.pendingCategory?.name).toBe("Phone & Internet");
+		expect(last.pendingTagNames).toStrictEqual(["Phone", "Internet"]);
+	});
+
+	it("a follow-up that settles after unmount emits nothing", async () => {
+		const { fn, calls, onSuggest, result, unmount } = await reachFollowUp({});
+		void result;
+		const emitted = onSuggest.mock.calls.length;
+
+		await unmount();
+		await act(async () => {
+			calls[1].settle(REMOTE_RESULT);
+		});
+
+		expect(onSuggest.mock.calls.length).toBe(emitted);
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS + GROUNDED_RECHECK_RETRY_MS);
+		});
+		expect(fn).toHaveBeenCalledTimes(2);
+	});
+
+	it("typing a different name cancels the pending re-check", async () => {
+		const { fn, calls, result } = await reachFollowUp({});
+
+		await act(async () => {
+			calls[1].settle({
+				categoryName: "Entertainment",
+				isNewCategory: false,
+				tags: [],
+				domain: null,
+				grounding: true,
+			});
+		});
+		result.current.onNameChange(OTHER_UNKNOWN);
+		await act(async () => {
+			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
+		});
+
+		expect(
+			fn.mock.calls.filter(
+				(call: [EnrichmentRequest]) => call[0].name === UNKNOWN,
+			),
+		).toHaveLength(2);
+	});
+});
+
 describe("unmount and disable", () => {
 	it("clears the pending timer on unmount so a settling debounce never fires", async () => {
 		const onSuggest = jest.fn();

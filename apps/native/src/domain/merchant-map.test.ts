@@ -119,6 +119,8 @@ describe("logo.dev domain backfill", () => {
 			locatel: "locatel.com.ve",
 			traki: "traki.com",
 			digitel: "digitel.com.ve",
+			farmahorro: "farmahorro.com.ve",
+			mcdonalds: "mcdonalds.com",
 		};
 		for (const [name, domain] of Object.entries(verified)) {
 			expect(resolveMerchant(name)?.domain).toBe(domain);
@@ -128,7 +130,13 @@ describe("logo.dev domain backfill", () => {
 	it("leaves the merchants logo.dev cannot serve without a domain", () => {
 		expect(resolveMerchant("automercados plazas")?.domain).toBeNull();
 		expect(resolveMerchant("cantv")?.domain).toBeNull();
-		expect(resolveMerchant("farmahorro")?.domain).toBeNull();
+	});
+
+	it("resolves every spelling of mcdonalds to the same entry", () => {
+		for (const name of ["McDonald's", "mc donalds", "mcdonalds", "McDonalds"]) {
+			expect(resolveMerchant(name)?.domain).toBe("mcdonalds.com");
+			expect(resolveMerchant(name)?.categoryName).toBe("Dining Out");
+		}
 	});
 });
 

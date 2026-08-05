@@ -105,6 +105,7 @@ export interface EnrichmentRequest {
 	categoryTree: CategoryBranch[];
 	/** The synced `groundedLookup` setting; the server re-checks it too. */
 	groundedLookup: boolean;
+	knowledgeOnly?: boolean;
 }
 
 export type EnrichmentFn = (
