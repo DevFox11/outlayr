@@ -9,6 +9,7 @@ import {
 	Hairline,
 	Slot,
 } from "@/components/empty-state-parts";
+import { Arrive } from "@/components/mark-motion";
 import { useTranslation } from "@/i18n";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 
@@ -52,13 +53,15 @@ function LedgerWaiting() {
 				}}
 				width={PANEL - INSET * 2}
 			>
-				<View className="flex-row items-center">
-					<GhostAvatar size={24} />
-					<View style={{ marginLeft: 9, gap: 4 }}>
-						<Bar height={7} width={78} />
-						<Bar height={5} width={42} />
+				<Arrive>
+					<View className="flex-row items-center">
+						<GhostAvatar size={24} />
+						<View style={{ marginLeft: 9, gap: 4 }}>
+							<Bar height={7} width={78} />
+							<Bar height={5} width={42} />
+						</View>
 					</View>
-				</View>
+				</Arrive>
 			</Slot>
 			<Hairline opacity={0.6} />
 			<GhostRow

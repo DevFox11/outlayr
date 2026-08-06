@@ -94,6 +94,7 @@ export function Tile({
 				width: size,
 				height: size,
 				borderRadius: radius ?? size * 0.24,
+				borderCurve: "continuous",
 				backgroundColor: ink.fill,
 				opacity,
 				alignItems: "center",
@@ -138,6 +139,7 @@ export function GhostPanel({
 					borderWidth: 1.5,
 					borderColor: ink.edge,
 					borderRadius: 20,
+					borderCurve: "continuous",
 				},
 				style,
 			]}

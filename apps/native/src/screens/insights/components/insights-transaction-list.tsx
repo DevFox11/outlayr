@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { EmptyState } from "@/components/empty-state";
 import { Hairline } from "@/components/empty-state-parts";
+import { Fade } from "@/components/mark-motion";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDatabase } from "@/contexts/local-data-context";
 import type { TransactionWithCategory } from "@/data/transactions";
@@ -12,6 +13,7 @@ import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
+import { MARK_MOTION, recedeDelay } from "@/theme/mark-motion";
 
 interface InsightsTransactionListProps {
 	transactions: TransactionWithCategory[];
@@ -98,8 +100,15 @@ function RulesEmptied() {
 	const RULES = [1, 0.62, 0.34, 0.15];
 	return (
 		<View style={{ width: MARK_CEILING.inFlow, gap: 13 }}>
-			{RULES.map((opacity) => (
-				<Hairline key={opacity} opacity={opacity} />
+			{RULES.map((opacity, index) => (
+				<Fade
+					delay={recedeDelay(index)}
+					duration={MARK_MOTION.recede.duration}
+					key={opacity}
+					to={opacity}
+				>
+					<Hairline />
+				</Fade>
 			))}
 		</View>
 	);

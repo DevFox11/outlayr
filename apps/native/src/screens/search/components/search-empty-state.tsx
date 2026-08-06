@@ -2,7 +2,9 @@ import { View } from "react-native";
 
 import { EmptyState, useMark } from "@/components/empty-state";
 import { Hairline } from "@/components/empty-state-parts";
+import { Fade, Settle } from "@/components/mark-motion";
 import { useTranslation } from "@/i18n";
+import { MARK_MOTION, recedeDelay } from "@/theme/mark-motion";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -103,7 +105,9 @@ function LedgerUnderLens() {
 				pointerEvents="none"
 				style={{ position: "absolute", top: LENS_TOP, left: 0, right: 0 }}
 			>
-				<Lens />
+				<Settle style={{ width: "100%", alignItems: "center" }}>
+					<Lens />
+				</Settle>
 			</View>
 		</View>
 	);
@@ -161,6 +165,7 @@ function Lens() {
 				borderWidth: 2,
 				borderColor: colors.foreground,
 				borderRadius: 16,
+				borderCurve: "continuous",
 				backgroundColor: colors.background,
 				paddingHorizontal: 13,
 				paddingVertical: 11,
@@ -215,8 +220,15 @@ function LedgerEmptied() {
 	const RULES = [1, 0.72, 0.52, 0.36, 0.24, 0.14, 0.08];
 	return (
 		<View className="w-full" style={{ gap: 32 }}>
-			{RULES.map((opacity) => (
-				<Hairline key={opacity} opacity={opacity} />
+			{RULES.map((opacity, index) => (
+				<Fade
+					delay={recedeDelay(index)}
+					duration={MARK_MOTION.recede.duration}
+					key={opacity}
+					to={opacity}
+				>
+					<Hairline />
+				</Fade>
 			))}
 		</View>
 	);

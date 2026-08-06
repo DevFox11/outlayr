@@ -48,6 +48,7 @@ import {
 } from "@/components/category-list-chrome";
 import { MarkInk } from "@/components/empty-state";
 import { Slot, Tile } from "@/components/empty-state-parts";
+import { Fade, Settle } from "@/components/mark-motion";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -65,6 +66,7 @@ import { setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
+import { staggerDelay } from "@/theme/mark-motion";
 import { type ThemeColors, useColors } from "@/theme/use-colors";
 
 /**
@@ -379,22 +381,30 @@ function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
 				className="flex-row items-center"
 				style={{ width: EMPTY_MARK_WIDTH, gap: EMPTY_MARK_GAP }}
 			>
-				<Tile opacity={1} size={EMPTY_MARK_TILE} />
-				<Tile opacity={0.6} size={EMPTY_MARK_TILE} />
+				<Fade delay={staggerDelay(0)} from={0} to={1}>
+					<Tile opacity={1} size={EMPTY_MARK_TILE} />
+				</Fade>
+				<Fade delay={staggerDelay(1)} from={0} to={1}>
+					<Tile opacity={0.6} size={EMPTY_MARK_TILE} />
+				</Fade>
 				<Slot
 					height={EMPTY_MARK_TILE}
 					radius={EMPTY_MARK_TILE * 0.24}
 					style={{ alignItems: "center", justifyContent: "center" }}
 					width={EMPTY_MARK_TILE}
 				>
-					<HugeiconsIcon
-						color={colors.foreground}
-						icon={PlusSignIcon}
-						size={15}
-						strokeWidth={2.4}
-					/>
+					<Settle delay={staggerDelay(3)}>
+						<HugeiconsIcon
+							color={colors.foreground}
+							icon={PlusSignIcon}
+							size={15}
+							strokeWidth={2.4}
+						/>
+					</Settle>
 				</Slot>
-				<Tile opacity={0.28} size={EMPTY_MARK_TILE} />
+				<Fade delay={staggerDelay(2)} from={0} to={1}>
+					<Tile opacity={0.28} size={EMPTY_MARK_TILE} />
+				</Fade>
 			</View>
 		</MarkInk>
 	);
