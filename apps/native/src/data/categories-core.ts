@@ -5,6 +5,7 @@ import { budgets, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { RECURRING_TYPE } from "@/domain/recurrence";
+import { uuidV5 } from "@/domain/uuid5";
 
 export type Category = typeof categories.$inferSelect;
 
@@ -58,6 +59,29 @@ export const SEEDED_CATEGORY_NAMES = {
 } as const satisfies Record<"expense" | "income", readonly string[]>;
 
 /**
+ * Minted once for this derivation and never changed: a different namespace
+ * would make every device that upgraded compute different ids for the same
+ * seeded categories, which is the duplication this exists to prevent.
+ */
+const SEEDED_CATEGORY_NAMESPACE = "04ed4302-1c98-46af-999e-930ae1b19e0e";
+
+/**
+ * The id of a seeded category, derived rather than minted.
+ *
+ * With `newId()` every install stamps its own set, so signing a freshly seeded
+ * device into an account that already holds one leaves the pull applier — which
+ * resolves per `localId` — with two unrelated "Groceries" rows and no way to
+ * tell they are the same category (#326). Derived from the pair that identifies
+ * it, both installs compute one id and the second upserts.
+ */
+export function seededCategoryId(name: string, income: boolean): string {
+	return uuidV5(
+		`${income ? "income" : "expense"}:${name}`,
+		SEEDED_CATEGORY_NAMESPACE,
+	);
+}
+
+/**
  * Idempotent by inspecting the table rather than trusting the caller's
  * `firstLaunch` marker: `bootstrap.ts` writes that marker *after* this returns,
  * so a crash in between would otherwise seed a second full set on the next
@@ -83,7 +107,7 @@ export async function seedCategories(db: Database): Promise<void> {
 				);
 			}
 			return {
-				id: newId(),
+				id: seededCategoryId(preset.name, namespace === "income"),
 				name: preset.name,
 				icon: preset.icon,
 				emoji: null,

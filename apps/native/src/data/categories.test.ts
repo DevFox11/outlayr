@@ -11,6 +11,7 @@ import {
 	SEEDED_CATEGORY_NAMES,
 	SUGGESTED_CATEGORY_PRESETS,
 	seedCategories,
+	seededCategoryId,
 	suggestedCategoriesNotAdded,
 	validateCategoryCreate,
 	validateCategoryEdit,
@@ -949,5 +950,35 @@ describe("seedCategories idempotency", () => {
 		const rows = await db.select().from(categories);
 		expect(rows.length).toBe(1);
 		expect(rows[0]?.id).toBe(id);
+	});
+
+	it("mints the same ids on two independent installs", async () => {
+		const other = makeDb();
+		await seedCategories(db);
+		await seedCategories(other);
+
+		const identify = async (target: Database) => {
+			const rows = await target.select().from(categories);
+			return rows
+				.map(
+					(row) => `${row.income ? "income" : "expense"} ${row.name} ${row.id}`,
+				)
+				.sort();
+		};
+
+		expect(await identify(db)).toStrictEqual(await identify(other));
+	});
+
+	it("gives each seeded category a distinct id", async () => {
+		await seedCategories(db);
+
+		const rows = await db.select().from(categories);
+		expect(new Set(rows.map((row) => row.id)).size).toBe(rows.length);
+	});
+
+	it("derives a different id for the same name in each namespace", () => {
+		expect(seededCategoryId("Gifts", true)).not.toBe(
+			seededCategoryId("Gifts", false),
+		);
 	});
 });
