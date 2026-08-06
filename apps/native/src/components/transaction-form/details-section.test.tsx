@@ -54,6 +54,7 @@ describe("TransactionFormDetailsSection", () => {
 			<TransactionFormDetailsSection
 				card={[]}
 				foregroundColor="#123456"
+				mutedColor="#A4A4A9"
 				notes={FAKE_NOTES}
 				notesLabel="Notes"
 				notesPlaceholder="Add a note"
@@ -67,6 +68,7 @@ describe("TransactionFormDetailsSection", () => {
 			<TransactionFormDetailsSection
 				card={[]}
 				foregroundColor="#123456"
+				mutedColor="#A4A4A9"
 				notes={FAKE_NOTES}
 				notesLabel="Notes"
 				notesPlaceholder="Add a note"
@@ -82,6 +84,7 @@ describe("TransactionFormDetailsSection", () => {
 			<TransactionFormDetailsSection
 				card={[]}
 				foregroundColor="#ABCDEF"
+				mutedColor="#A4A4A9"
 				notes={FAKE_NOTES}
 				notesLabel="Notes"
 				notesPlaceholder="Add a note"
@@ -97,6 +100,7 @@ describe("TransactionFormDetailsSection", () => {
 			<TransactionFormDetailsSection
 				card={[background("#FF00FF", CARD_SHAPE)]}
 				foregroundColor="#123456"
+				mutedColor="#A4A4A9"
 				notes={FAKE_NOTES}
 				notesLabel="Notes"
 				notesPlaceholder="Add a note"

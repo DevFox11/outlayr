@@ -27,6 +27,12 @@ import {
 	strokeBorder,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
+import {
+	RepeatIcon,
+	Tag01Icon,
+	TagsIcon,
+	TextIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { useStore } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -120,6 +126,7 @@ import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
 import { TransactionFormIdentitySection } from "./identity-section";
+import { TransactionFormRowIcon } from "./row-icon";
 import { TransactionFormScheduleSection } from "./schedule-section";
 import {
 	BODY,
@@ -981,7 +988,11 @@ export function TransactionForm({
 						/>
 
 						<VStack spacing={0}>
-							<HStack modifiers={ROW}>
+							<HStack modifiers={ROW} spacing={12}>
+								<TransactionFormRowIcon
+									color={colors.muted}
+									icon={RepeatIcon}
+								/>
 								<SwiftText modifiers={[BODY, rowLabel]}>
 									{t("transaction.kind.subscription")}
 								</SwiftText>
@@ -997,7 +1008,8 @@ export function TransactionForm({
 
 							<Divider modifiers={hairline} />
 
-							<HStack modifiers={ROW}>
+							<HStack modifiers={ROW} spacing={12}>
+								<TransactionFormRowIcon color={colors.muted} icon={TextIcon} />
 								<SwiftText modifiers={[BODY, rowLabel]}>
 									{t("transaction.field.name")}
 								</SwiftText>
@@ -1036,6 +1048,10 @@ export function TransactionForm({
 							>
 								<VStack spacing={0}>
 									<HStack modifiers={TAP_ROW} spacing={12}>
+										<TransactionFormRowIcon
+											color={categoryError ? colors.danger : colors.muted}
+											icon={Tag01Icon}
+										/>
 										<SwiftText
 											modifiers={[
 												BODY,
@@ -1113,6 +1129,10 @@ export function TransactionForm({
 								}}
 							>
 								<HStack modifiers={TAP_ROW} spacing={12}>
+									<TransactionFormRowIcon
+										color={colors.muted}
+										icon={TagsIcon}
+									/>
 									<SwiftText modifiers={[BODY, rowLabel]}>
 										{t("transaction.field.tags")}
 									</SwiftText>
@@ -1187,6 +1207,7 @@ export function TransactionForm({
 							<TransactionFormDetailsSection
 								card={[]}
 								foregroundColor={colors.foreground}
+								mutedColor={colors.muted}
 								notes={notes}
 								notesLabel={t("transaction.field.notes")}
 								notesPlaceholder={t("transaction.field.notesPlaceholder")}
