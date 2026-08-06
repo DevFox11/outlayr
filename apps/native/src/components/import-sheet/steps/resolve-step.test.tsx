@@ -126,6 +126,15 @@ function classNames(node: JsonNode | JsonNode[] | null): string[] {
 	];
 }
 
+function isPureFlexFill(className: string): boolean {
+	return className
+		.trim()
+		.split(/\s+/)
+		.every((token) =>
+			/^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token),
+		);
+}
+
 describe("ResolveStep", () => {
 	beforeEach(() => {
 		mockRun.mockClear();
@@ -239,7 +248,7 @@ describe("ResolveStep", () => {
 			/>,
 		);
 		const classes = classNames(toJSON() as unknown as JsonNode);
-		expect(classes).not.toContain("flex-1");
+		expect(classes.some(isPureFlexFill)).toBe(false);
 		expect(classes.some((c) => /\bmt-6\b/.test(c))).toBe(true);
 	});
 

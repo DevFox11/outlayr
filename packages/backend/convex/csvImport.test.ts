@@ -381,6 +381,7 @@ describe("merchantKnowledge tier", () => {
 			}),
 		).resolves.toEqual({
 			status: "ok",
+			degraded: true,
 			suggestions: [
 				{
 					label: "FARMACIA SAAS",

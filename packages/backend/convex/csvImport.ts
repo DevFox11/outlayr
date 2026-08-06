@@ -61,6 +61,7 @@ const csvImportStatus = v.union(
 const csvImportResult = v.object({
 	status: csvImportStatus,
 	suggestions: v.union(v.array(labelSuggestion), v.null()),
+	degraded: v.optional(v.boolean()),
 });
 
 export interface CategoryBranch {
@@ -86,6 +87,7 @@ export type CsvImportStatus =
 export interface CsvImportResult {
 	status: CsvImportStatus;
 	suggestions: LabelSuggestion[] | null;
+	degraded?: boolean;
 }
 
 function failure(status: Exclude<CsvImportStatus, "ok">): CsvImportResult {
@@ -340,7 +342,7 @@ export const csvImport = action({
 		});
 		if (classified.status !== "ok" || classified.suggestions === null) {
 			if (known.length > 0) {
-				return { status: "ok", suggestions: known };
+				return { status: "ok", suggestions: known, degraded: true };
 			}
 			return classified;
 		}

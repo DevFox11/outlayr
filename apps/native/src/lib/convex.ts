@@ -152,6 +152,7 @@ export type CsvImportStatus =
 export interface CsvImportResult {
 	status: CsvImportStatus;
 	suggestions: LabelSuggestion[] | null;
+	degraded?: boolean;
 }
 
 export interface CsvImportRequest {
