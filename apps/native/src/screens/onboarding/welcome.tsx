@@ -4,7 +4,7 @@ import { OutlayrMark } from "@/components/outlayr-mark";
 import { flyleafDate } from "@/domain/flyleaf";
 import { useLanguage, useTranslation } from "@/i18n";
 
-export default function OnboardingWelcomeScreen() {
+export function OnboardingWelcome() {
 	const router = useRouter();
 	const t = useTranslation();
 	const { language } = useLanguage();

@@ -9,7 +9,7 @@ import { setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
 
-export default function FeatureLabScreen() {
+export function FeatureLab() {
 	const db = useDatabase();
 	return <FeatureLabContent db={db} />;
 }

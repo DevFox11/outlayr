@@ -84,12 +84,12 @@ function CurrencyGlyph({ symbol }: { symbol: string }) {
 	);
 }
 
-export default function OnboardingCurrencyScreen() {
+export function OnboardingCurrency() {
 	const db = useDatabase();
-	return <OnboardingCurrency db={db} />;
+	return <OnboardingCurrencyContent db={db} />;
 }
 
-function OnboardingCurrency({ db }: { db: Database }) {
+function OnboardingCurrencyContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const stored = useGlobalCurrency(db);
 	const sheet = useRef<BottomSheetModal>(null);

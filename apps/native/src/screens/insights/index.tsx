@@ -74,7 +74,7 @@ const PERIOD_LABEL_KEY: Record<InsightsPeriod, TranslationKey> = {
 	year: "insights.period.year",
 };
 
-export default function InsightsScreen() {
+export function Insights() {
 	const db = useDatabase();
 	return <InsightsContent db={db} />;
 }

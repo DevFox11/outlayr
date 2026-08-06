@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react-native";
-import SignInScreen from "./sign-in";
+import { SignIn } from "./sign-in";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
@@ -48,7 +48,7 @@ jest.mock("@/data/onboarding", () => ({
 
 describe("sign-in screen", () => {
 	it("routes a rejected sign-in into FirstRun's error slot, not the button component", async () => {
-		const { getByRole, getByText } = await render(<SignInScreen />);
+		const { getByRole, getByText } = await render(<SignIn />);
 		const alert = getByRole("alert");
 		expect(alert.props.children).toBe("settings.account.genericFailure");
 		expect(getByText("settings.account.genericFailure")).toBeTruthy();

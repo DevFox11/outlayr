@@ -1,1 +1,5 @@
-export { default } from "@/screens/settings/account";
+import { Account } from "@/screens/settings/account";
+
+export default function AccountScreen() {
+	return <Account />;
+}

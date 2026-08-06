@@ -5,9 +5,9 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { useToolbarIcon } from "@/components/toolbar-icons";
 import { useTranslation } from "@/i18n";
-import CategoriesScreen from "@/screens/categories/components/categories-screen";
+import { Categories } from "@/screens/categories";
 
-export default function CategoriesRoute() {
+export default function CategoriesScreen() {
 	const router = useRouter();
 	const t = useTranslation();
 	const [income, setIncome] = useState(false);
@@ -49,7 +49,7 @@ export default function CategoriesRoute() {
 					onPress={goToNew}
 				/>
 			</Stack.Toolbar>
-			<CategoriesScreen income={income} />
+			<Categories income={income} />
 		</>
 	);
 }

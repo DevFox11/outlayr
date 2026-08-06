@@ -26,7 +26,7 @@ import { BudgetCard } from "./components/budget-card";
 import { BudgetEmptyState } from "./components/budget-empty-state";
 import { BudgetRow } from "./components/budget-row";
 
-export default function BudgetScreen() {
+export function Budgets() {
 	const db = useDatabase();
 	return <BudgetContent db={db} />;
 }

@@ -1,1 +1,5 @@
-export { default } from "@/screens/onboarding/grounding";
+import { OnboardingGrounding } from "@/screens/onboarding/grounding";
+
+export default function OnboardingGroundingScreen() {
+	return <OnboardingGrounding />;
+}

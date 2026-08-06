@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react-native";
-import AccountRoute from "./account";
+import { Account } from "./account";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
@@ -38,10 +38,10 @@ const routerSpy = jest.requireMock("expo-router").router as Record<
 	jest.Mock
 >;
 
-describe("AccountRoute — unconfigured build", () => {
+describe("Account — unconfigured build", () => {
 	it("renders AccountUnavailable with no pressable elements", async () => {
 		const { getByText, queryAllByRole, queryByTestId } = await render(
-			<AccountRoute />,
+			<Account />,
 		);
 		expect(getByText("settings.account.unavailable")).toBeTruthy();
 		expect(getByText("settings.account.unavailableDetail")).toBeTruthy();

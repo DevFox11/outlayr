@@ -53,7 +53,7 @@ function applyMove<T>(
 	return [...rest.slice(0, insertAt), ...moving, ...rest.slice(insertAt)];
 }
 
-export default function CategoryReorder({ income }: { income: boolean }) {
+export function CategoryReorder({ income }: { income: boolean }) {
 	const db = useDatabase();
 	return <CategoryReorderReady db={db} income={income} />;
 }

@@ -15,16 +15,16 @@ import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = NonNullable<typeof authClient>;
 
-export default function AccountRoute() {
+export function Account() {
 	const db = useDatabase();
 	return authClient ? (
-		<Account client={authClient} db={db} />
+		<AccountContent client={authClient} db={db} />
 	) : (
 		<AccountUnavailable />
 	);
 }
 
-function Account({ client, db }: { client: AuthClient; db: Database }) {
+function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 	const t = useTranslation();
 	const { data: session, isPending: restoring } = client.useSession();
 	const [busy, setBusy] = useState(false);

@@ -8,12 +8,12 @@ import { setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n";
 
-export default function OnboardingGroundingScreen() {
+export function OnboardingGrounding() {
 	const db = useDatabase();
-	return <OnboardingGrounding db={db} />;
+	return <OnboardingGroundingContent db={db} />;
 }
 
-function OnboardingGrounding({ db }: { db: Database }) {
+function OnboardingGroundingContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const { state: settings } = useAppSettings();

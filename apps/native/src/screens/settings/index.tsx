@@ -72,7 +72,7 @@ async function toggleAppLock(db: Database, next: boolean): Promise<void> {
 	}
 }
 
-export default function SettingsScreenRoute() {
+export function Settings() {
 	const db = useDatabase();
 	return <SettingsContent db={db} />;
 }

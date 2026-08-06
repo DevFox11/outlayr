@@ -32,7 +32,7 @@ const COPY: Record<
 	},
 };
 
-export default function LedgerAdoptionScreen() {
+export function LedgerAdoption() {
 	const { status, failed, choose } = useLedgerAdoption();
 	const [confirming, setConfirming] = useState<AdoptionChoice | null>(null);
 	const t = useTranslation();

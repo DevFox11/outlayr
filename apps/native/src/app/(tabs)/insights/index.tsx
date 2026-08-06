@@ -1,10 +1,10 @@
 import { FreezeOnBlur } from "@/components/freeze-on-blur";
-import InsightsScreen from "@/screens/insights";
+import { Insights } from "@/screens/insights";
 
-export default function Insights() {
+export default function InsightsScreen() {
 	return (
 		<FreezeOnBlur>
-			<InsightsScreen />
+			<Insights />
 		</FreezeOnBlur>
 	);
 }

@@ -1,1 +1,5 @@
-export { default } from "@/screens/auth/sign-in";
+import { SignIn } from "@/screens/auth/sign-in";
+
+export default function SignInScreen() {
+	return <SignIn />;
+}

@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import GroundingScreen from "./grounding";
+import { OnboardingGrounding } from "./grounding";
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -33,7 +33,7 @@ beforeEach(() => {
 
 describe("onboarding grounding screen", () => {
 	it("leaves the default true when onboarding is left untouched", async () => {
-		const { getByText } = await render(<GroundingScreen />);
+		const { getByText } = await render(<OnboardingGrounding />);
 
 		fireEvent.press(getByText("common.continue"));
 
@@ -49,7 +49,7 @@ describe("onboarding grounding screen", () => {
 	});
 
 	it("persists false with no further prompt after turning it off then continuing", async () => {
-		const { getByLabelText, getByText } = await render(<GroundingScreen />);
+		const { getByLabelText, getByText } = await render(<OnboardingGrounding />);
 
 		await fireEvent(
 			getByLabelText("onboarding.grounding.toggle"),

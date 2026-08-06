@@ -19,12 +19,12 @@ import { transactions } from "@/db/schema";
 import { formatDayHeader } from "@/domain/dates";
 import { useTranslation } from "@/i18n";
 
-export default function RecentlyDeletedRoute() {
+export function RecentlyDeleted() {
 	const db = useDatabase();
-	return <RecentlyDeleted db={db} />;
+	return <RecentlyDeletedContent db={db} />;
 }
 
-function RecentlyDeleted({ db }: { db: Database }) {
+function RecentlyDeletedContent({ db }: { db: Database }) {
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const rows = useLiveQuery(transactions, () => deletedTransactionsQuery(db));

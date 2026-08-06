@@ -1,1 +1,5 @@
-export { default } from "@/screens/onboarding/rhythm";
+import { OnboardingRhythm } from "@/screens/onboarding/rhythm";
+
+export default function OnboardingRhythmScreen() {
+	return <OnboardingRhythm />;
+}

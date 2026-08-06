@@ -1,10 +1,10 @@
 import { FreezeOnBlur } from "@/components/freeze-on-blur";
-import BudgetsScreen from "@/screens/budgets";
+import { Budgets } from "@/screens/budgets";
 
-export default function Budgets() {
+export default function BudgetsScreen() {
 	return (
 		<FreezeOnBlur>
-			<BudgetsScreen />
+			<Budgets />
 		</FreezeOnBlur>
 	);
 }

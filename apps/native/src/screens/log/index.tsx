@@ -63,7 +63,7 @@ import { SwipeableTransactionRow } from "./components/swipeable-transaction-row"
 import { UndoToast } from "./components/undo-toast";
 import { filterScopeLabel } from "./labels";
 
-export default function LogScreen() {
+export function Log() {
 	const db = useDatabase();
 	return <LogContent db={db} />;
 }

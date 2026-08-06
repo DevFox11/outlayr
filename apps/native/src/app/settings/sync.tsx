@@ -1,1 +1,5 @@
-export { default } from "@/screens/settings/sync";
+import { Sync } from "@/screens/settings/sync";
+
+export default function SyncScreen() {
+	return <Sync />;
+}

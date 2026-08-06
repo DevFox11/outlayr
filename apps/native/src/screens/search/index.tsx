@@ -25,7 +25,7 @@ import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { SearchEmptyState } from "./components/search-empty-state";
 
-export default function SearchScreen() {
+export function Search() {
 	const db = useDatabase();
 	return <SearchContent db={db} />;
 }

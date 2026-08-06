@@ -39,7 +39,7 @@ const RESUME: AdoptionActions = {
 	wipeAccount: false,
 };
 
-export default function SyncRoute() {
+export function Sync() {
 	const db = useDatabase();
 	return <SyncSettings db={db} />;
 }

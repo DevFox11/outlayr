@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import AccountRoute from "./account";
+import { Account } from "./account";
 
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string) => key,
@@ -77,11 +77,11 @@ beforeEach(() => {
 	});
 });
 
-describe("AccountRoute — restoring", () => {
+describe("Account — restoring", () => {
 	it("shows only the checking title, no detail, no button", async () => {
 		mockUseSession.mockReturnValue({ data: undefined, isPending: true });
 		const { getByText, queryAllByRole, queryByTestId, queryByText } =
-			await render(<AccountRoute />);
+			await render(<Account />);
 		expect(getByText("settings.account.checking")).toBeTruthy();
 		expect(queryByText("settings.account.signedOutDetail")).toBeNull();
 		expect(queryAllByRole("button")).toHaveLength(0);
@@ -90,13 +90,13 @@ describe("AccountRoute — restoring", () => {
 	});
 });
 
-describe("AccountRoute — signed-out", () => {
+describe("Account — signed-out", () => {
 	beforeEach(() => {
 		mockUseSession.mockReturnValue({ data: undefined, isPending: false });
 	});
 
 	it("shows notSignedIn, signedOutDetail and the sign-in controls", async () => {
-		const { getByText, getByTestId } = await render(<AccountRoute />);
+		const { getByText, getByTestId } = await render(<Account />);
 		expect(getByText("settings.account.notSignedIn")).toBeTruthy();
 		expect(getByText("settings.account.signedOutDetail")).toBeTruthy();
 		expect(getByText("settings.account.signInSection")).toBeTruthy();
@@ -111,7 +111,7 @@ describe("AccountRoute — signed-out", () => {
 			error: "settings.account.genericFailure",
 			start: jest.fn(),
 		});
-		const { getByText } = await render(<AccountRoute />);
+		const { getByText } = await render(<Account />);
 		expect(getByText("settings.account.genericFailure")).toBeTruthy();
 		expectRouterNeverCalled();
 	});
@@ -119,21 +119,21 @@ describe("AccountRoute — signed-out", () => {
 	it("wires the stub's press through to useProviderSignIn's start", async () => {
 		const start = jest.fn();
 		mockUseProviderSignIn.mockReturnValue({ busy: null, error: null, start });
-		const { getByTestId } = await render(<AccountRoute />);
+		const { getByTestId } = await render(<Account />);
 		fireEvent.press(getByTestId("provider-sign-in-buttons-stub"));
 		expect(start).toHaveBeenCalledWith("apple", expect.any(Function));
 		expectRouterNeverCalled();
 	});
 });
 
-describe("AccountRoute — signed-in", () => {
+describe("Account — signed-in", () => {
 	it("shows the label plus sign-out and delete rows, no sign-in controls", async () => {
 		mockUseSession.mockReturnValue({
 			data: { user: { email: "jane@example.com", name: "Jane" } },
 			isPending: false,
 		});
 		const { getByText, getByRole, queryByTestId, queryAllByRole } =
-			await render(<AccountRoute />);
+			await render(<Account />);
 		expect(getByText("settings.account.signedInAs")).toBeTruthy();
 		expect(getByText("Jane")).toBeTruthy();
 		expect(

@@ -140,7 +140,7 @@ const EMPTY_TEXT = font({
 	design: "rounded",
 	weight: "medium",
 });
-export default function CategoriesScreen({ income }: { income: boolean }) {
+export function Categories({ income }: { income: boolean }) {
 	const db = useDatabase();
 	return <CategoriesReady db={db} income={income} />;
 }

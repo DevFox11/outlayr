@@ -1,1 +1,5 @@
-export { default } from "@/screens/auth/adopt";
+import { LedgerAdoption } from "@/screens/auth/adopt";
+
+export default function AdoptScreen() {
+	return <LedgerAdoption />;
+}

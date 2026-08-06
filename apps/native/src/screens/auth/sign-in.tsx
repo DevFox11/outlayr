@@ -19,8 +19,8 @@ import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = NonNullable<typeof authClient>;
 
-export default function SignInScreen() {
-	return authClient ? <SignIn client={authClient} /> : <Unconfigured />;
+export function SignIn() {
+	return authClient ? <SignInContent client={authClient} /> : <Unconfigured />;
 }
 
 /**
@@ -106,7 +106,7 @@ function FlyleafCard() {
 	);
 }
 
-function SignIn({ client }: { client: AuthClient }) {
+function SignInContent({ client }: { client: AuthClient }) {
 	const db = useDatabase();
 	const t = useTranslation();
 	const { busy, error, start } = useProviderSignIn(client);

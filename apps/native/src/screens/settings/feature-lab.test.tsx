@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import FeatureLabScreen from "./feature-lab";
+import { FeatureLab } from "./feature-lab";
 
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string) => key,
@@ -26,11 +26,11 @@ beforeEach(() => {
 	mockBool.mockReturnValue(false);
 });
 
-describe("FeatureLabScreen — grounded lookup row", () => {
+describe("FeatureLab — grounded lookup row", () => {
 	it("reflects the setting's current true value", async () => {
 		mockBool.mockImplementation((key: string) => key === "groundedLookup");
 
-		const { getByLabelText } = await render(<FeatureLabScreen />);
+		const { getByLabelText } = await render(<FeatureLab />);
 
 		expect(
 			getByLabelText("settings.featureLab.groundedLookup").props.value,
@@ -38,7 +38,7 @@ describe("FeatureLabScreen — grounded lookup row", () => {
 	});
 
 	it("writes the toggled value through setBoolSetting", async () => {
-		const { getByLabelText } = await render(<FeatureLabScreen />);
+		const { getByLabelText } = await render(<FeatureLab />);
 
 		fireEvent(
 			getByLabelText("settings.featureLab.groundedLookup"),

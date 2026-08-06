@@ -40,12 +40,12 @@ function MockNotification({ body, back }: { body: string; back?: boolean }) {
 	);
 }
 
-export default function OnboardingRhythmScreen() {
+export function OnboardingRhythm() {
 	const db = useDatabase();
-	return <OnboardingRhythm db={db} />;
+	return <OnboardingRhythmContent db={db} />;
 }
 
-function OnboardingRhythm({ db }: { db: Database }) {
+function OnboardingRhythmContent({ db }: { db: Database }) {
 	const t = useTranslation();
 
 	// The flow's terminal step either way: `finishOnboarding` settles the root
