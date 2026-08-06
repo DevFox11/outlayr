@@ -59,6 +59,8 @@ interface AmountNumpadProps {
 	code: string;
 	toneClass?: string;
 	onChange: (next: string) => void;
+	/** Off where the caller already shows the figure above the keys. */
+	showDisplay?: boolean;
 }
 
 export function AmountNumpad({
@@ -67,6 +69,7 @@ export function AmountNumpad({
 	code,
 	toneClass,
 	onChange,
+	showDisplay = true,
 }: AmountNumpadProps) {
 	const colors = useColors();
 	const haptics = useHaptics();
@@ -89,28 +92,32 @@ export function AmountNumpad({
 		// with whatever sits under them — the sheet's Done button at `px-4`, the
 		// first-run CTA at `px-6`.
 		<View>
-			<View className="items-center pt-2">
-				<Text className="font-sans text-body text-muted">
-					{t("transaction.field.amount")}
-				</Text>
-			</View>
-			<View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
-				<NumberFlow
-					value={numpadToNumber(value)}
-					prefix={`${symbol} `}
-					locales="en-US"
-					format={{
-						minimumFractionDigits: minorUnits,
-						maximumFractionDigits: minorUnits,
-						useGrouping: true,
-					}}
-					style={{
-						fontFamily: "SFProRounded-Medium",
-						fontSize: 40,
-						color: amountColor,
-					}}
-				/>
-			</View>
+			{showDisplay ? (
+				<>
+					<View className="items-center pt-2">
+						<Text className="font-sans text-body text-muted">
+							{t("transaction.field.amount")}
+						</Text>
+					</View>
+					<View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
+						<NumberFlow
+							value={numpadToNumber(value)}
+							prefix={`${symbol} `}
+							locales="en-US"
+							format={{
+								minimumFractionDigits: minorUnits,
+								maximumFractionDigits: minorUnits,
+								useGrouping: true,
+							}}
+							style={{
+								fontFamily: "SFProRounded-Medium",
+								fontSize: 40,
+								color: amountColor,
+							}}
+						/>
+					</View>
+				</>
+			) : null}
 			<View className="gap-[9px]">
 				{ROWS.map((row) => (
 					<View key={row.join()} className="flex-row gap-[9px]">

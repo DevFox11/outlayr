@@ -41,7 +41,6 @@ import Animated, {
 import { Confetti } from "@/components/confetti";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { useAppForm } from "@/components/form/create-app-form";
-import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import {
@@ -104,9 +103,9 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
-import { AmountEntrySheet } from "../amount-entry-sheet";
 import { CategoryIcon } from "../category-icon";
 import { CategoryPickerSheet } from "../category-picker-sheet";
+import { CurrencyPickerSheet } from "../currency-picker-sheet";
 import {
 	CustomScheduleSheet,
 	type CustomScheduleSheetRef,
@@ -117,6 +116,7 @@ import { IdentityFlyUpLayer } from "../identity-fly-up";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
 import { TransactionFormAmountHero } from "./amount-hero";
+import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
 import { TransactionFormIdentitySection } from "./identity-section";
@@ -481,14 +481,11 @@ export function TransactionForm({
 	const isDark = scheme === "dark";
 	const router = useRouter();
 
-	const amountField = useNumpadAmountField({
-		code: currency,
-		minorUnits,
-		onChange: (next) => form.setFieldValue("amount", next),
-		onCurrencyChange: (next) => form.setFieldValue("txCurrency", next),
-		toneClass: income ? "text-income" : "text-foreground",
-		value: amount,
-	});
+	// Open on arrival for a new entry: the amount is the first thing a create is
+	// for. An edit already has one, so it starts closed and the rest is visible.
+	const [padOpen, setPadOpen] = useState(mode === "create");
+	const [padHeight, setPadHeight] = useState(0);
+	const currencySheetRef = useRef<BottomSheetModal>(null);
 	const categoryField = useCategoryPickerField((picked) => {
 		form.setFieldValue("category", picked);
 		form.setFieldValue("pendingCategory", null);
@@ -755,7 +752,7 @@ export function TransactionForm({
 		copyOf?.customColor,
 	]);
 
-	const amountNumber = amountField.amount;
+	const amountNumber = numpadToNumber(amount);
 	const canSave = amountNumber > 0 && !isSubmitting;
 
 	const handleKindChange = (next: "once" | "subscription") => {
@@ -935,7 +932,12 @@ export function TransactionForm({
 					]}
 				>
 					<VStack
-						modifiers={[padding({ horizontal: 20, bottom: 40 })]}
+						modifiers={[
+							padding({
+								horizontal: 20,
+								bottom: padOpen ? padHeight + 24 : 40,
+							}),
+						]}
 						spacing={18}
 					>
 						<TransactionFormIdentitySection
@@ -946,7 +948,10 @@ export function TransactionForm({
 							heroWinY={heroWinY}
 							icon={identity.icon}
 							income={income}
-							onPress={openPicker}
+							onPress={() => {
+								setPadOpen(false);
+								openPicker();
+							}}
 							onReset={() => {
 								setIdentitySource("user");
 								setIdentity({
@@ -969,8 +974,8 @@ export function TransactionForm({
 							income={income}
 							incomeLabel={t("common.income")}
 							mutedColor={colors.muted}
-							onCurrencyPress={amountField.present}
-							onPress={amountField.present}
+							onCurrencyPress={() => currencySheetRef.current?.present()}
+							onPress={() => setPadOpen(true)}
 							onTypeChange={handleTypeChange}
 							symbol={amountSymbol}
 						/>
@@ -999,6 +1004,7 @@ export function TransactionForm({
 								<TextField
 									maxLength={50}
 									modifiers={[BODY, multilineTextAlignment("trailing")]}
+									onFocusChange={(focused) => focused && setPadOpen(false)}
 									onTextChange={onNameChange}
 									placeholder={t("transaction.field.namePlaceholder")}
 									text={name}
@@ -1023,7 +1029,10 @@ export function TransactionForm({
 									offset({ x: categoryShake ? -5 : 0 }),
 									animation(SHAKE, categoryShake),
 								]}
-								onPress={categoryField.present}
+								onPress={() => {
+									setPadOpen(false);
+									categoryField.present();
+								}}
 							>
 								<VStack spacing={0}>
 									<HStack modifiers={TAP_ROW} spacing={12}>
@@ -1098,7 +1107,10 @@ export function TransactionForm({
 
 							<Button
 								modifiers={[buttonStyle("plain")]}
-								onPress={() => tagSheetRef.current?.present()}
+								onPress={() => {
+									setPadOpen(false);
+									tagSheetRef.current?.present();
+								}}
 							>
 								<HStack modifiers={TAP_ROW} spacing={12}>
 									<SwiftText modifiers={[BODY, rowLabel]}>
@@ -1238,7 +1250,26 @@ export function TransactionForm({
 				<Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
 			) : null}
 
-			<AmountEntrySheet {...amountField.sheetProps} />
+			{padOpen ? (
+				<TransactionFormAmountPad
+					code={currency}
+					income={income}
+					minorUnits={minorUnits}
+					onChange={(next) => form.setFieldValue("amount", next)}
+					onDismiss={() => setPadOpen(false)}
+					onHeight={setPadHeight}
+					value={amount}
+				/>
+			) : null}
+
+			<CurrencyPickerSheet
+				onSelect={(next) => {
+					form.setFieldValue("txCurrency", next);
+					currencySheetRef.current?.dismiss();
+				}}
+				ref={currencySheetRef}
+				selected={currency}
+			/>
 			<TagPickerSheet
 				onCreate={async (name) => {
 					const id = await tagsRepo.ensureTag(db, name);

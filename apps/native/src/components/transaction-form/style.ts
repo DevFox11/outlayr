@@ -42,7 +42,7 @@ export const CAPTION = font({ textStyle: "caption", design: "rounded" });
  * the scroll content, so an identical 24 leaves the icon reading 6pt low.
  */
 export const HERO_TOP_PADDING = 18;
-export const HERO_BOTTOM_PADDING = 28;
+export const HERO_BOTTOM_PADDING = 6;
 
 export const rowLabel = foregroundStyle({
 	type: "hierarchical",

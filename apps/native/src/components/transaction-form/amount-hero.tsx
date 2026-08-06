@@ -1,6 +1,7 @@
 import {
 	Button,
 	HStack,
+	Image,
 	Spacer,
 	Text as SwiftText,
 	VStack,
@@ -20,7 +21,8 @@ import {
 
 const SYMBOL = font({ size: 30, weight: "medium", design: "rounded" });
 const DIGITS = font({ size: 62, weight: "semibold", design: "rounded" });
-const CHIP = font({ size: 12, weight: "medium", design: "rounded" });
+const CHIP = font({ size: 15, weight: "semibold", design: "rounded" });
+const CURRENCY = font({ size: 14, weight: "medium", design: "rounded" });
 const CAPSULE = shapes.capsule();
 
 interface TransactionFormAmountHeroProps {
@@ -57,13 +59,13 @@ export function TransactionFormAmountHero({
 			? [
 					CHIP,
 					foregroundStyle(amountColor),
-					padding({ horizontal: 14, vertical: 6 }),
+					padding({ horizontal: 18, vertical: 9 }),
 					background(chipColor, CAPSULE),
 				]
 			: [
 					CHIP,
 					foregroundStyle(mutedColor),
-					padding({ horizontal: 14, vertical: 6 }),
+					padding({ horizontal: 18, vertical: 9 }),
 				];
 
 	return (
@@ -112,16 +114,22 @@ export function TransactionFormAmountHero({
 			<HStack>
 				<Spacer />
 				<Button modifiers={[buttonStyle("plain")]} onPress={onCurrencyPress}>
-					<SwiftText
+					<HStack
 						modifiers={[
-							CHIP,
-							foregroundStyle(mutedColor),
-							padding({ horizontal: 10, vertical: 4 }),
+							padding({ horizontal: 14, vertical: 7 }),
 							background(chipColor, CAPSULE),
 						]}
+						spacing={5}
 					>
-						{currency}
-					</SwiftText>
+						<SwiftText modifiers={[CURRENCY, foregroundStyle(amountColor)]}>
+							{currency}
+						</SwiftText>
+						<Image
+							color={mutedColor}
+							size={11}
+							systemName="chevron.up.chevron.down"
+						/>
+					</HStack>
 				</Button>
 				<Spacer />
 			</HStack>
