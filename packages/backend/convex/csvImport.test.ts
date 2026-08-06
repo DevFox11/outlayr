@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import { HOUR } from "@convex-dev/rate-limiter";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV3 } from "ai/test";
 import { convexTest } from "convex-test";
@@ -10,6 +11,7 @@ import {
 	classify,
 	csvImportArgs,
 	GROUNDED_IMPORT_MAX,
+	perUserLimitConfig,
 	rateLimiter,
 	scheduleImportGrounded,
 } from "./csvImport";
@@ -134,6 +136,7 @@ describe("csvImport guard ladder", () => {
 			rateLimiter.limit(ctx, "csvImportPerUser", {
 				key: tokenIdentifier,
 				count: 2,
+				config: perUserLimitConfig(),
 			}),
 		);
 
@@ -159,6 +162,62 @@ describe("csvImport guard ladder", () => {
 			authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS),
 		).resolves.toEqual({ status: "rateLimited", suggestions: null });
 		expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "csvImportGlobal");
+	});
+});
+
+describe("perUserLimitConfig", () => {
+	test("defaults to a two-import burst when CSV_IMPORT_CAPACITY is unset", () => {
+		vi.stubEnv("CSV_IMPORT_CAPACITY", undefined);
+
+		expect(perUserLimitConfig().capacity).toBe(2);
+	});
+
+	test("honours a positive integer CSV_IMPORT_CAPACITY", () => {
+		vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
+
+		expect(perUserLimitConfig().capacity).toBe(25);
+	});
+
+	test.each(["", "nonsense", "0", "-3", "2.5", "Infinity"])(
+		"falls back to the default burst for the unusable value %j",
+		(value) => {
+			vi.stubEnv("CSV_IMPORT_CAPACITY", value);
+
+			expect(perUserLimitConfig().capacity).toBe(2);
+		},
+	);
+
+	test("leaves the refill rate alone, so only the burst is tunable", () => {
+		vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
+
+		expect(perUserLimitConfig()).toEqual({
+			kind: "token bucket",
+			rate: 6,
+			period: HOUR,
+			capacity: 25,
+		});
+	});
+
+	test("reaches the per-user limit on every call, not once at module load", async () => {
+		vi.stubEnv("XAI_API_KEY", "test-xai-key");
+		vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+		const limitSpy = vi
+			.spyOn(rateLimiter, "limit")
+			.mockResolvedValue({ ok: false, retryAfter: 1000 });
+
+		await expect(
+			authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS),
+		).resolves.toEqual({ status: "rateLimited", suggestions: null });
+
+		expect(limitSpy).toHaveBeenCalledWith(
+			expect.anything(),
+			"csvImportPerUser",
+			expect.objectContaining({
+				config: expect.objectContaining({ capacity: 25 }),
+			}),
+		);
 	});
 });
 

@@ -131,21 +131,38 @@ function buildPrompt(args: RunClassifyArgs): string {
 	].join(" ");
 }
 
+const DEFAULT_PER_USER_CAPACITY = 2;
+
 /**
  * Keyed by `identity.tokenIdentifier`, per the repo's Convex guidelines
  * (preferred over `subject`), never a client argument. An import is far
- * heavier than one merchant name, so both buckets are smaller than
- * `enrichment.ts`'s. `shards: 10` is copied from `enrichment.ts:118` and is
- * load-bearing — an unsharded global counter is one hot document and throws
- * OCC write conflicts under concurrency.
+ * heavier than one merchant name, so this bucket is smaller than
+ * `enrichment.ts`'s.
+ *
+ * Declared inline rather than in the `RateLimiter` below so the capacity is
+ * read per call: Convex does not reevaluate module scope when an environment
+ * variable changes, so an in-constructor capacity would need a redeploy to pick
+ * up `npx convex env set CSV_IMPORT_CAPACITY`.
  */
-export const rateLimiter = new RateLimiter(components.rateLimiter, {
-	csvImportPerUser: {
+export function perUserLimitConfig() {
+	const override = Number(process.env.CSV_IMPORT_CAPACITY);
+	return {
 		kind: "token bucket",
 		rate: 6,
 		period: HOUR,
-		capacity: 2,
-	},
+		capacity:
+			Number.isInteger(override) && override > 0
+				? override
+				: DEFAULT_PER_USER_CAPACITY,
+	} as const;
+}
+
+/**
+ * `shards: 10` is copied from `enrichment.ts:118` and is load-bearing — an
+ * unsharded global counter is one hot document and throws OCC write conflicts
+ * under concurrency.
+ */
+export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	csvImportGlobal: {
 		kind: "fixed window",
 		rate: 200,
@@ -292,6 +309,7 @@ export const csvImport = action({
 
 		const perUser = await rateLimiter.limit(ctx, "csvImportPerUser", {
 			key: identity.tokenIdentifier,
+			config: perUserLimitConfig(),
 		});
 		if (!perUser.ok) {
 			return failure("rateLimited");
