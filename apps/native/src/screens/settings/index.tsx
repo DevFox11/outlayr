@@ -209,6 +209,11 @@ function SettingsContent({ db }: { db: Database }) {
 			<SettingsSection title={t("settings.section.data")}>
 				<AccountRow />
 				<LinkRow
+					icon="Bank"
+					onPress={() => router.push("/settings/accounts")}
+					title={t("settings.row.accounts")}
+				/>
+				<LinkRow
 					icon="DashboardSquare01"
 					onPress={() => router.push("/settings/categories")}
 					title={t("settings.row.categories")}

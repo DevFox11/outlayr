@@ -1,0 +1,61 @@
+import { Pressable, View } from "react-native";
+import { MonoLabel } from "@/components/mono-label";
+import { Text } from "@/components/text";
+import type { AccountsOverview } from "@/domain/account-display";
+import { formatSignedAmount } from "@/domain/account-display";
+import { useTranslation } from "@/i18n";
+
+const TABULAR = { fontVariant: ["tabular-nums" as const] };
+
+interface AccountsOverviewCardProps {
+	/** Null hides the card entirely — no accounts, no ghost row. */
+	overview: AccountsOverview | null;
+	/** The display currency the total is valued in. */
+	currency: string;
+	showCents: boolean;
+	onPress: () => void;
+}
+
+export function AccountsOverviewCard({
+	overview,
+	currency,
+	showCents,
+	onPress,
+}: AccountsOverviewCardProps) {
+	const t = useTranslation();
+	if (overview == null) {
+		return null;
+	}
+	return (
+		<Pressable
+			accessibilityRole="button"
+			className="pb-4.5 active:opacity-70"
+			onPress={onPress}
+			testID="accounts-overview-card"
+		>
+			<View className="gap-1.25 pt-2.5">
+				<View className="flex-row items-baseline justify-between gap-2">
+					<MonoLabel>
+						{`${t("accounts.overview.heading")} · ${overview.count}`}
+					</MonoLabel>
+					<View className="flex-row items-baseline gap-1.5">
+						{overview.exact ? null : (
+							<MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>
+						)}
+						<Text
+							className="font-sans-semibold text-body text-muted"
+							numberOfLines={1}
+							style={TABULAR}
+						>
+							{formatSignedAmount(overview.total, currency, showCents)}
+						</Text>
+					</View>
+				</View>
+				<View
+					className="bg-border"
+					style={{ height: 1.3, borderRadius: 0.65 }}
+				/>
+			</View>
+		</Pressable>
+	);
+}

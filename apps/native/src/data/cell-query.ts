@@ -1,4 +1,14 @@
-import { and, count, eq, gte, isNull, lte, sql, sum } from "drizzle-orm";
+import {
+	and,
+	count,
+	eq,
+	gte,
+	isNotNull,
+	isNull,
+	lte,
+	sql,
+	sum,
+} from "drizzle-orm";
 import type { SpendDb } from "@/data/budget-spent";
 import { transactions } from "@/db/schema";
 import type { CurrencyCell } from "@/domain/currency-totals";
@@ -95,6 +105,26 @@ export function accountCellQuery(db: SpendDb, accountId: string) {
 			),
 		)
 		.groupBy(transactions.currency, transactions.income, UTC_DAY);
+}
+
+/**
+ * Every attached transaction as cells split by account, unbounded by date —
+ * {@link accountCellQuery} for the whole ledger at once, so the accounts
+ * overview costs one grouped read rather than one per account.
+ */
+export function accountsCellQuery(db: SpendDb) {
+	return db
+		.select({ accountId: transactions.accountId, ...CELL_COLUMNS })
+		.from(transactions)
+		.where(
+			and(isNull(transactions.deletedAt), isNotNull(transactions.accountId)),
+		)
+		.groupBy(
+			transactions.accountId,
+			transactions.currency,
+			transactions.income,
+			UTC_DAY,
+		);
 }
 
 /**

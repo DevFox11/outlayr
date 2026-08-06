@@ -10,6 +10,8 @@ import type { ImportStep } from "@/domain/import-flow";
  */
 export const CATEGORY_DETENT = 0.65;
 export const SUBCATEGORY_DETENT = 0.55;
+/** The account editor carries a currency and balance row the category sheet lacks. */
+export const ACCOUNT_DETENT = 0.72;
 
 /** Swift `IdentityHero.pickerHeight`: both identity pickers are a fixed 430pt sheet. */
 const PICKER_HEIGHT = 430;

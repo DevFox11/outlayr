@@ -171,6 +171,10 @@ const settings = {
 			en: "Animated Charts",
 			es: "Gráficos animados",
 		}),
+		"settings.row.accounts": t({
+			en: "Accounts",
+			es: "Cuentas",
+		}),
 		"settings.row.categories": t({
 			en: "Categories",
 			es: "Categorías",
