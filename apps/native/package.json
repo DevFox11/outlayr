@@ -16,6 +16,7 @@
 		"ios": "expo run:ios",
 		"lint": "biome check .",
 		"prebuild": "expo prebuild",
+		"sim": "serve-sim",
 		"start": "intlayer build && expo start",
 		"test": "intlayer build && jest",
 		"test:e2e": "maestro test .maestro",
@@ -107,6 +108,7 @@
 		"drizzle-kit": "^0.31.10",
 		"jest": "~29.7.0",
 		"jest-expo": "~57.0.3",
+		"serve-sim": "^0.1.45",
 		"tsx": "^4.23.1",
 		"typescript": "catalog:"
 	}

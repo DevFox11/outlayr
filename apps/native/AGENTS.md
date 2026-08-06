@@ -23,3 +23,12 @@ If you cannot name the concrete mistake the comment prevents, delete it.
 Prefer making the code self-explanatory over explaining it. A named constant
 beats a comment on a magic number; a named function beats a comment above a
 block.
+
+# The simulator is a URL
+
+`pnpm dev` serves the running simulator at `http://localhost:8081/.sim` — live
+video plus touch, keyboard, and hardware buttons. Verify a visible change there
+rather than describing what it should look like.
+
+Never run `serve-sim --kill` while the dev server is up; it kills Metro. That
+trap and the rest of the limits are in `docs/simulator-preview.md`.
