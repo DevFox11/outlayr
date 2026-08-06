@@ -49,10 +49,7 @@ export function TransactionFormAmountPad({
 			ref={ref}
 		>
 			<BottomSheetView>
-				<View
-					className="px-4 pt-2 pb-safe-offset-3"
-					style={{ backgroundColor: colors.background }}
-				>
+				<View className="px-4 pt-2 pb-safe-offset-3">
 					<View className="flex-row justify-end pb-2">
 						<GlassButton
 							accessibilityLabel={t("common.done")}

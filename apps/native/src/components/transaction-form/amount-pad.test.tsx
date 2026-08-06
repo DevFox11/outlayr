@@ -6,7 +6,6 @@ jest.mock("@/i18n", () => ({
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
-		background: "#0B0B0B",
 		foreground: "#FFFFFF",
 		muted: "#A4A4A9",
 	}),
@@ -144,12 +143,5 @@ describe("TransactionFormAmountPad", () => {
 		const dismiss = sheet?.props.onDismiss as () => void;
 		dismiss();
 		expect(onOpenChange).toHaveBeenCalledWith(false);
-	});
-
-	// The owner asked for the keypad to sit on the page background rather than
-	// the sheet's default translucent chrome.
-	it("draws the keypad surface on the background colour", async () => {
-		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
-		expect(JSON.stringify(toJSON())).toContain("#0B0B0B");
 	});
 });
