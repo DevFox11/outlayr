@@ -5,8 +5,27 @@ jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({
-	useColors: () => ({ foreground: "#FFFFFF", muted: "#A4A4A9" }),
+	useColors: () => ({
+		background: "#0B0B0B",
+		foreground: "#FFFFFF",
+		muted: "#A4A4A9",
+	}),
 }));
+jest.mock("@expo/ui/community/bottom-sheet", () => {
+	const react = require("react") as typeof import("react");
+	return {
+		BottomSheetModal: ({ children, ref, ...rest }: Record<string, never>) => {
+			react.useImperativeHandle(
+				ref,
+				() => ({ present: () => {}, dismiss: () => {} }),
+				[],
+			);
+			return react.createElement("BottomSheetModal", rest, children);
+		},
+		BottomSheetView: ({ children }: Record<string, unknown>) =>
+			react.createElement("BottomSheetView", null, children as never),
+	};
+});
 jest.mock("../amount-numpad", () => {
 	const react = require("react") as typeof import("react");
 	return {
@@ -20,7 +39,8 @@ const BASE = {
 	income: false,
 	minorUnits: 2,
 	onChange: () => {},
-	onDismiss: () => {},
+	onOpenChange: () => {},
+	open: true,
 	value: "4500",
 };
 
@@ -103,23 +123,33 @@ describe("TransactionFormAmountPad", () => {
 		expect(pad?.props.toneClass).not.toContain("income");
 	});
 
-	it("dismisses from its own control", async () => {
-		const onDismiss = jest.fn();
+	it("closes from its own control", async () => {
+		const onOpenChange = jest.fn();
 		const { getByLabelText } = await render(
-			<TransactionFormAmountPad {...BASE} onDismiss={onDismiss} />,
+			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
 		);
 		fireEvent.press(getByLabelText("common.done"));
-		expect(onDismiss).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 
-	it("reports its measured height so the form can inset behind it", async () => {
-		const onHeight = jest.fn();
-		const { getByTestId } = await render(
-			<TransactionFormAmountPad {...BASE} onHeight={onHeight} />,
+	// A swipe-down closes the sheet without going through the button, and the
+	// form's `padOpen` has to follow or the sheet can never be reopened.
+	it("reports a swipe-down dismissal back to the form", async () => {
+		const onOpenChange = jest.fn();
+		const { toJSON } = await render(
+			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
 		);
-		fireEvent(getByTestId("amount-pad"), "layout", {
-			nativeEvent: { layout: { height: 320 } },
-		});
-		expect(onHeight).toHaveBeenCalledWith(320);
+		const sheet = findByType(toJSON() as JsonNode, "BottomSheetModal");
+		expect(sheet).not.toBeNull();
+		const dismiss = sheet?.props.onDismiss as () => void;
+		dismiss();
+		expect(onOpenChange).toHaveBeenCalledWith(false);
+	});
+
+	// The owner asked for the keypad to sit on the page background rather than
+	// the sheet's default translucent chrome.
+	it("draws the keypad surface on the background colour", async () => {
+		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
+		expect(JSON.stringify(toJSON())).toContain("#0B0B0B");
 	});
 });

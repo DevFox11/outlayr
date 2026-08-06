@@ -53,6 +53,13 @@ jest.mock("@/theme/use-colors", () => ({
 	},
 }));
 jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
+jest.mock("number-flow-react-native", () => {
+	const react = require("react") as typeof import("react");
+	return {
+		NumberFlow: (props: Record<string, unknown>) =>
+			react.createElement("NumberFlow", props),
+	};
+});
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -439,8 +446,8 @@ describe("TransactionForm", () => {
 			</Providers>,
 		);
 		const tree = toJSON() as JsonNode;
-		expect(findByProp(tree, "text", "$")).not.toBeNull();
-		expect(findByProp(tree, "text", "42.00")).not.toBeNull();
+		expect(JSON.stringify(tree)).toContain("$");
+		expect(findByProp(tree, "value", 42)).not.toBeNull();
 	});
 
 	it("holds hook order across the real once -> subscription -> once toggle", async () => {

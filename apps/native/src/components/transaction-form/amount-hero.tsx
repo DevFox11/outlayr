@@ -2,6 +2,7 @@ import {
 	Button,
 	HStack,
 	Image,
+	RNHostView,
 	Spacer,
 	Text as SwiftText,
 	VStack,
@@ -12,22 +13,23 @@ import {
 	contentShape,
 	font,
 	foregroundStyle,
-	lineLimit,
-	minimumScaleFactor,
-	monospacedDigit,
 	padding,
 	shapes,
 } from "@expo/ui/swift-ui/modifiers";
+import { NumberFlow } from "number-flow-react-native";
+import { Text, View } from "react-native";
 
-const SYMBOL = font({ size: 30, weight: "medium", design: "rounded" });
-const DIGITS = font({ size: 62, weight: "semibold", design: "rounded" });
+const SYMBOL_SIZE = 30;
+const DIGITS_SIZE = 62;
 const CHIP = font({ size: 15, weight: "semibold", design: "rounded" });
 const CURRENCY = font({ size: 14, weight: "medium", design: "rounded" });
 const CAPSULE = shapes.capsule();
 
 interface TransactionFormAmountHeroProps {
 	symbol: string;
-	digits: string;
+	amount: number;
+	contentWidth: number;
+	minorUnits: number;
 	currency: string;
 	amountColor: string;
 	mutedColor: string;
@@ -42,7 +44,9 @@ interface TransactionFormAmountHeroProps {
 
 export function TransactionFormAmountHero({
 	symbol,
-	digits,
+	amount,
+	contentWidth,
+	minorUnits,
 	currency,
 	amountColor,
 	mutedColor,
@@ -91,24 +95,42 @@ export function TransactionFormAmountHero({
 				modifiers={[buttonStyle("plain"), contentShape(shapes.rectangle())]}
 				onPress={onPress}
 			>
-				<HStack alignment="lastTextBaseline" spacing={3}>
-					<Spacer />
-					<SwiftText modifiers={[SYMBOL, foregroundStyle(mutedColor)]}>
-						{symbol}
-					</SwiftText>
-					<SwiftText
-						modifiers={[
-							DIGITS,
-							monospacedDigit(),
-							foregroundStyle(amountColor),
-							lineLimit({ min: 1, max: 1 }),
-							minimumScaleFactor(0.5),
-						]}
+				<RNHostView matchContents>
+					<View
+						style={{
+							width: contentWidth,
+							height: DIGITS_SIZE * 1.25,
+							flexDirection: "row",
+							alignItems: "flex-end",
+							justifyContent: "center",
+						}}
 					>
-						{digits}
-					</SwiftText>
-					<Spacer />
-				</HStack>
+						<Text
+							style={{
+								fontFamily: "SFProRounded-Medium",
+								fontSize: SYMBOL_SIZE,
+								color: mutedColor,
+								marginBottom: DIGITS_SIZE * 0.16,
+							}}
+						>
+							{symbol}
+						</Text>
+						<NumberFlow
+							format={{
+								minimumFractionDigits: minorUnits,
+								maximumFractionDigits: minorUnits,
+								useGrouping: true,
+							}}
+							locales="en-US"
+							style={{
+								fontFamily: "SFProRounded-Semibold",
+								fontSize: DIGITS_SIZE,
+								color: amountColor,
+							}}
+							value={amount}
+						/>
+					</View>
+				</RNHostView>
 			</Button>
 
 			<HStack>

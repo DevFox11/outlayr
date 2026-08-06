@@ -491,7 +491,6 @@ export function TransactionForm({
 	// Open on arrival for a new entry: the amount is the first thing a create is
 	// for. An edit already has one, so it starts closed and the rest is visible.
 	const [padOpen, setPadOpen] = useState(mode === "create");
-	const [padHeight, setPadHeight] = useState(0);
 	const currencySheetRef = useRef<BottomSheetModal>(null);
 	const categoryField = useCategoryPickerField((picked) => {
 		form.setFieldValue("category", picked);
@@ -871,11 +870,7 @@ export function TransactionForm({
 				: colors.foreground
 			: colors.muted;
 
-	const parts = amountParts(amountNumber, currency);
-	const amountSymbol = parts.symbol;
-	const amountDigits = parts.fraction
-		? `${parts.integer}.${parts.fraction}`
-		: parts.integer;
+	const amountSymbol = amountParts(amountNumber, currency).symbol;
 
 	const curtainHues = computeCurtainHues(
 		{
@@ -939,12 +934,7 @@ export function TransactionForm({
 					]}
 				>
 					<VStack
-						modifiers={[
-							padding({
-								horizontal: 20,
-								bottom: padOpen ? padHeight + 24 : 40,
-							}),
-						]}
+						modifiers={[padding({ horizontal: 20, bottom: 40 })]}
 						spacing={18}
 					>
 						<TransactionFormIdentitySection
@@ -975,8 +965,10 @@ export function TransactionForm({
 						<TransactionFormAmountHero
 							amountColor={amountColor}
 							chipColor={withAlpha(colors.foreground, 0.08)}
+							contentWidth={contentWidth}
 							currency={currency}
-							digits={amountDigits}
+							amount={amountNumber}
+							minorUnits={minorUnits}
 							expenseLabel={t("common.expense")}
 							income={income}
 							incomeLabel={t("common.income")}
@@ -1271,17 +1263,15 @@ export function TransactionForm({
 				<Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
 			) : null}
 
-			{padOpen ? (
-				<TransactionFormAmountPad
-					code={currency}
-					income={income}
-					minorUnits={minorUnits}
-					onChange={(next) => form.setFieldValue("amount", next)}
-					onDismiss={() => setPadOpen(false)}
-					onHeight={setPadHeight}
-					value={amount}
-				/>
-			) : null}
+			<TransactionFormAmountPad
+				code={currency}
+				income={income}
+				minorUnits={minorUnits}
+				onChange={(next) => form.setFieldValue("amount", next)}
+				onOpenChange={setPadOpen}
+				open={padOpen}
+				value={amount}
+			/>
 
 			<CurrencyPickerSheet
 				onSelect={(next) => {

@@ -1,6 +1,14 @@
 import { render } from "@testing-library/react-native";
 import { TransactionFormAmountHero } from "./amount-hero";
 
+jest.mock("number-flow-react-native", () => {
+	const react = require("react") as typeof import("react");
+	return {
+		NumberFlow: (props: Record<string, unknown>) =>
+			react.createElement("NumberFlow", props),
+	};
+});
+
 interface JsonNode {
 	type: string;
 	props: Record<string, unknown>;
@@ -42,8 +50,10 @@ function findByProp(
 const BASE = {
 	amountColor: "#FFFFFF",
 	chipColor: "#2C2C2E",
+	amount: 4503,
+	contentWidth: 353,
 	currency: "USD",
-	digits: "4,503.00",
+	minorUnits: 2,
 	expenseLabel: "Expense",
 	income: false,
 	incomeLabel: "Income",
@@ -60,8 +70,8 @@ describe("TransactionFormAmountHero", () => {
 			<TransactionFormAmountHero {...BASE} currency="EUR" symbol="€" />,
 		);
 		const tree = toJSON() as JsonNode;
-		expect(findByProp(tree, "text", "€")).not.toBeNull();
-		expect(findByProp(tree, "text", "4,503.00")).not.toBeNull();
+		expect(JSON.stringify(tree)).toContain("€");
+		expect(findByProp(tree, "value", 4503)).not.toBeNull();
 		expect(findByProp(tree, "text", "EUR")).not.toBeNull();
 	});
 
@@ -81,24 +91,29 @@ describe("TransactionFormAmountHero", () => {
 			/>,
 		);
 		const tree = toJSON() as JsonNode;
-		const digits = findByProp(tree, "text", "4,503.00");
-		const symbol = findByProp(tree, "text", "$");
-		expect(JSON.stringify(digits?.props.modifiers)).toContain(
-			'"$type":"foregroundStyle","styleType":"color","color":"#0FFFA9"',
-		);
-		expect(JSON.stringify(symbol?.props.modifiers)).toContain(
-			'"$type":"foregroundStyle","styleType":"color","color":"#ABCDEF"',
-		);
+		const digits = findByProp(tree, "value", 4503);
+		expect(JSON.stringify(digits?.props.style)).toContain("#0FFFA9");
+		// The symbol is a plain RN Text beside the rolling figure, so its tint
+		// lands in `style`, not a SwiftUI modifier.
+		expect(JSON.stringify(tree)).toContain("#ABCDEF");
 	});
 
-	// The digits are re-rendered on every keypress; without fixed-width figures
-	// the whole number shifts sideways as each digit lands.
-	it("renders the digits with fixed-width figures", async () => {
+	// The keypad drives this on every press, so the figure has to roll rather
+	// than swap — that is the whole reason it is a NumberFlow and not a Text.
+	it("renders the figure through a rolling number", async () => {
 		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} />);
-		const digits = findByProp(toJSON() as JsonNode, "text", "4,503.00");
-		expect(JSON.stringify(digits?.props.modifiers)).toContain(
-			'"$type":"monospacedDigit"',
+		expect(findByProp(toJSON() as JsonNode, "value", 4503)).not.toBeNull();
+	});
+
+	it("formats the figure to the currency's minor units", async () => {
+		const { toJSON } = await render(
+			<TransactionFormAmountHero {...BASE} minorUnits={0} />,
 		);
+		const digits = findByProp(toJSON() as JsonNode, "value", 4503);
+		expect(digits?.props.format).toMatchObject({
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0,
+		});
 	});
 
 	it("tints the selected type chip and leaves the other muted", async () => {
