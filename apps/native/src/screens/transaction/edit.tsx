@@ -6,12 +6,10 @@ import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById, transactionsRepo } from "@/data/transactions";
 import { useTranslation } from "@/i18n";
-import { useColors } from "@/theme/use-colors";
 
 export function EditTransaction({ id }: { id: string }) {
 	const router = useRouter();
 	const db = useDatabase();
-	const colors = useColors();
 	const t = useTranslation();
 	// Read once, synchronously, while mounting: the database is already open (the
 	// splash gate guarantees it) and the driver runs on the JS thread, so the row
@@ -61,19 +59,11 @@ export function EditTransaction({ id }: { id: string }) {
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
-			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Button
-					{...toolbarIcon("delete")}
-					accessibilityLabel={t("common.delete")}
-					tintColor={colors.danger}
-					onPress={confirmDelete}
-				/>
-			</Stack.Toolbar>
-
 			<TransactionForm
 				db={db}
 				mode="edit"
 				initial={initial}
+				onDelete={confirmDelete}
 				onDone={() => router.back()}
 			/>
 		</>

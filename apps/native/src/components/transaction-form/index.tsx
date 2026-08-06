@@ -114,7 +114,6 @@ import {
 } from "../custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
 import { IdentityFlyUpLayer } from "../identity-fly-up";
-import { LinearGradient } from "../styled";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
 import { TransactionFormAmountHero } from "./amount-hero";
@@ -181,6 +180,9 @@ interface TransactionFormProps {
 	 */
 	copyOf?: LogAgainDraft;
 	onDone: () => void;
+	/** Adds a destructive item beside Save. Edit routes only — there is nothing
+	 * to delete before the row exists. */
+	onDelete?: () => void;
 }
 
 /**
@@ -197,6 +199,7 @@ export function TransactionForm({
 	seed,
 	copyOf,
 	onDone,
+	onDelete,
 }: TransactionFormProps) {
 	const colors = useColors();
 	const haptics = useHaptics();
@@ -932,7 +935,7 @@ export function TransactionForm({
 					]}
 				>
 					<VStack
-						modifiers={[padding({ horizontal: 20, bottom: 120 })]}
+						modifiers={[padding({ horizontal: 20, bottom: 40 })]}
 						spacing={18}
 					>
 						<TransactionFormIdentitySection
@@ -1181,35 +1184,18 @@ export function TransactionForm({
 				</ScrollView>
 			</Host>
 
-			<View
-				className="absolute right-0 bottom-0 left-0"
-				pointerEvents="box-none"
-			>
-				<LinearGradient
-					className="absolute inset-0"
-					colors={
-						[
-							withAlpha(colors.groupedBackground, 0),
-							colors.groupedBackground,
-						] as const
+			<TransactionFormCta
+				canSave={canSave}
+				deleteLabel={t("common.delete")}
+				deleteTint={colors.danger}
+				onDelete={onDelete}
+				onPress={() => {
+					if (precheckSave()) {
+						pressSubmit(form);
 					}
-					locations={[0, 0.45] as const}
-					pointerEvents="none"
-				/>
-				<View className="px-5 pt-9 pb-safe-offset-3">
-					<TransactionFormCta
-						canSave={canSave}
-						labelColor={colors.background}
-						label={ctaLabel}
-						onPress={() => {
-							if (precheckSave()) {
-								pressSubmit(form);
-							}
-						}}
-						tintColor={colors.foreground}
-					/>
-				</View>
-			</View>
+				}}
+				saveLabel={ctaLabel}
+			/>
 
 			{showToast ? (
 				<Animated.View

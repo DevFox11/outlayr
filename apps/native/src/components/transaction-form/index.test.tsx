@@ -52,10 +52,7 @@ jest.mock("@/theme/use-colors", () => ({
 		separator: "#DAD6C9",
 	},
 }));
-jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
-	useNavigation: () => ({ setOptions: jest.fn() }),
-}));
+jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -264,9 +261,11 @@ function findButtonWithText(
 		}
 		return null;
 	}
+	// A toolbar item carries its label as `accessibilityLabel` rather than a
+	// SwiftText child, so both spellings of "the button labelled X" match here.
 	if (
 		typeof node.props?.onButtonPress === "function" &&
-		hasSwiftText(node, text)
+		(hasSwiftText(node, text) || node.props?.accessibilityLabel === text)
 	) {
 		return node as JsonNode & { props: { onButtonPress: () => void } };
 	}
@@ -666,9 +665,11 @@ describe("TransactionForm submit re-entrancy", () => {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		});
 
-		expect(JSON.stringify(toJSON())).toContain(
-			'"$type":"disabled","disabled":true',
-		);
+		const stillDisabled = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.addSubscription",
+		) as (JsonNode & { props: { disabled?: boolean } }) | null;
+		expect(stillDisabled?.props.disabled).toBe(true);
 	});
 });
 

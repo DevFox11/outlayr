@@ -46,10 +46,7 @@ jest.mock("@/theme/use-colors", () => ({
 		separator: "#DAD6C9",
 	},
 }));
-jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
-	useNavigation: () => ({ setOptions: jest.fn() }),
-}));
+jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
