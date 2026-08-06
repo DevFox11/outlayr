@@ -32,7 +32,7 @@ export function TransactionFormDetailsSection({
 	return (
 		<VStack
 			alignment="leading"
-			modifiers={[padding({ all: 16 }), ...card]}
+			modifiers={[padding({ vertical: 14 }), ...card]}
 			spacing={8}
 		>
 			<HStack>

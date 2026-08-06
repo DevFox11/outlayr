@@ -4,11 +4,10 @@ import {
 	font,
 	foregroundStyle,
 	frame,
-	padding,
 	shapes,
 } from "@expo/ui/swift-ui/modifiers";
 
-export const ROW = [padding({ horizontal: 16 }), frame({ minHeight: 50 })];
+export const ROW = [frame({ minHeight: 54 })];
 /**
  * For the rows that ARE buttons: a `.plain` Button hit-tests only its drawn
  * glyphs, so without a content shape the `Spacer` gap mid-row is dead and a tap
