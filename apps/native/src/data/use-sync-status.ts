@@ -14,12 +14,9 @@ export interface SyncStatus {
 /**
  * What the Settings row reads.
  *
- * Deliberately carries no error state. §8.7 of `docs/convex-sync-design.md`
- * settles the failure UX as silent-and-retrying: the app is local-first, a
- * failed sync is not a failed save, and surfacing a transient network blip here
- * trains the user to distrust a ledger that is fine. A stalled queue shows as a
- * pending count that stops falling, which says what is true without claiming to
- * know why.
+ * Deliberately carries no error state: §8.7 of `docs/convex-sync-design.md`
+ * settles the failure UX as silent-and-retrying. A stalled queue shows as a
+ * pending count that stops falling.
  */
 export function useSyncStatus(db: Database): SyncStatus {
 	const pendingRows = useLiveQuery(outbox, () =>

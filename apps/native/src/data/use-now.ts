@@ -94,16 +94,10 @@ function read(): number {
 }
 
 /**
- * The one reading of "now" every date-bounded read in the app shares.
- *
- * Each screen used to freeze its own `Date.now()` at mount, which left the
- * ledger's upper bound (`lte(date, now)`) behind rows written after that mount: a
- * transaction's date is `new Date()` at *form* mount, so a row the user had just
- * saved failed the Log's bound and passed `gt(date, now)` in
- * `useUpcomingTransactions` — filed under Upcoming instead of on the ledger, and
- * absent from the day subtotal, from Insights and from every budget's spend.
- * One reading also keeps the tab badge, the list and Insights answering as of the
- * same instant rather than as of whenever each of them last mounted.
+ * The one reading of "now" every date-bounded read in the app shares. A screen
+ * that freezes its own `Date.now()` at mount puts a row saved after that mount
+ * past the ledger's `lte(date, now)` bound and under `useUpcomingTransactions`,
+ * since a transaction's date is `new Date()` at *form* mount.
  *
  * It moves on a write to `transactions` (the only thing the bound is measured
  * against), on returning to the foreground, and at local midnight. Store state

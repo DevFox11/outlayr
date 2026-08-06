@@ -42,8 +42,7 @@ const CLOCK_REGRESSION_TOLERANCE_MS = 60_000;
  * leaves the bound stranded wherever a wrong clock put it. That matters because
  * the bound is what separates spent from scheduled: a reading stuck in the future
  * reports every charge the ledger has not reached yet as money already gone, and
- * it stays stuck for the life of the process. A row that flickers is a worse
- * screen; a figure that counts money the owner has not spent is a wrong one.
+ * it stays stuck for the life of the process.
  */
 export function clockAdvances(currentMs: number, candidateMs: number): boolean {
 	if (candidateMs > currentMs) {

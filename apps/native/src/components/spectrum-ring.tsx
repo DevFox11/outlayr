@@ -32,11 +32,6 @@ interface SpectrumRingProps {
  * the *same* rounded-rect path wearing a dash pattern that exposes only its own
  * run of the perimeter. One geometry, 36 strokes, no trigonometry at the
  * corners where a hand-rolled arc would drift out of the radius.
- *
- * It does not spin. The circle it replaced could rotate and read as still,
- * because a circle is congruent to itself at every angle; a rounded square
- * turned even slightly reads as a tumbling corner, which is worse than a
- * static outline.
  */
 export function SpectrumRing({ size, radius }: SpectrumRingProps) {
 	const inset = STROKE / 2;

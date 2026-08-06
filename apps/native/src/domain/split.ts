@@ -1,9 +1,6 @@
 /**
- * How one entry's amount is attributed across categories.
- *
- * The contract every aggregate has to agree on, written before any schema so
- * the answer is settled in one place rather than re-derived in each of the
- * twenty-odd readers that touch `categoryId`.
+ * How one entry's amount is attributed across categories — the contract every
+ * reader that touches `categoryId` has to agree on.
  *
  * THE RULE: an entry is always attributed by its allocations. An entry with no
  * explicit allocations has exactly one implicit allocation — its whole amount to

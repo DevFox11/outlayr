@@ -87,10 +87,6 @@ interface CurrencyPickerListProps {
  * stall on every keystroke, and a second stall on clearing the search, when the
  * list grows back from a few matches to the whole catalogue.
  *
- * What it gave in exchange — `allowsFullSwipe`, a context menu, inset separators
- * — the row provides itself, so the trade was one-sided once the cost was
- * measured properly.
- *
  * Favouriting moves a row between the two sections. Legend List positions its
  * recycled containers absolutely and offers no item layout animation, so a
  * `layout` prop on the row has nothing to animate — the container moves and the

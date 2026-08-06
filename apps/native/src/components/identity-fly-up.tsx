@@ -233,37 +233,27 @@ function listen(
 }
 
 /**
- * Wraps a picker `formSheet` route's content and owns the two halves of the fly-up
- * only the route itself can see.
+ * The sheet's height is republished on every layout: react-native-screens pushes
+ * the sheet view's fresh bounds into the shadow tree from `viewDidLayoutSubviews`,
+ * which fires during a detent drag too.
  *
- * The sheet's real height: republished on every layout, because react-native-screens
- * pushes the sheet view's fresh bounds into the shadow tree from
- * `viewDidLayoutSubviews`. That fires while UIKit animates a detent drag too, so
- * the hero re-centres as the user resizes the sheet rather than only after.
- *
- * That measurement rests on two conditions this app happens to satisfy — record
- * them, because breaking either makes the height silently stop arriving and the
- * fly-up quietly mis-centre rather than fail:
+ * Two preconditions, because breaking either makes the height silently stop
+ * arriving and the fly-up mis-centre rather than fail:
  *   - the route's `sheetAllowedDetents` is fractional, not `fitToContents`;
- *   - react-native-screens' `synchronousScreenUpdatesEnabled` flag is on (its
- *     default at 4.26.2).
- * The measured view must also stay a plain `View`. `RNSScreenContentWrapper.mm`
+ *   - react-native-screens' `synchronousScreenUpdatesEnabled` is on (its default
+ *     at 4.26.2).
+ * The measured view must also stay a plain `View` — `RNSScreenContentWrapper.mm`
  * resizes a descendant ScrollView natively, bypassing the shadow tree, so hanging
  * this off the picker's own ScrollView or `Host` would report nothing.
  *
- * When the dismissal *starts*: the unmount cleanup alone runs after the whole
- * dismissal animation has finished, leaving the enlarged hero frozen mid-screen
- * long after the sheet is gone. `transitionStart`/`beforeRemove` fire at the front
- * of that animation instead — but expo-router runs a forked native-stack and
- * neither name is contractual here, so an unsupported one must neither throw nor
- * strand the screen, and the unmount cleanup stays as the guaranteed backstop.
- * `setPickerOpen` is idempotent, so whichever fires first wins and the rest are
- * no-ops.
- *
- * `transitionStart` is read in BOTH directions on purpose. Returning the hero as
- * soon as a dismissal begins means a drag the user cancels — UIKit starts the
- * transition, then puts the sheet back — would otherwise leave the tile parked on
- * the form under a sheet that never left.
+ * The unmount cleanup alone runs after the dismissal animation finishes, leaving
+ * the enlarged hero frozen mid-screen. `transitionStart`/`beforeRemove` fire at
+ * the front of it instead, but expo-router runs a forked native-stack and neither
+ * name is contractual, so an unsupported one must neither throw nor strand the
+ * screen; `setPickerOpen` is idempotent and the unmount cleanup is the backstop.
+ * `transitionStart` is read in BOTH directions: a drag the user cancels starts the
+ * transition and puts the sheet back, which would otherwise park the tile on the
+ * form under a sheet that never left.
  */
 export function IdentityFlyUpSheetHost({ children }: { children: ReactNode }) {
 	const navigation = useNavigation<DismissalNavigation>();

@@ -38,9 +38,8 @@ const REPLICATED = new Set<string>(SYNCED_TABLES);
  * device-local and only the sign-in flow opens it, so a signed-out install runs
  * this hook and does nothing at all.
  *
- * Failures are swallowed to a warning by design. The app is local-first: a
- * failed sync is not a failed save, and surfacing it as an error trains the
- * user to distrust a ledger that is fine.
+ * Failures are swallowed to a warning: the app is local-first, so a failed sync
+ * is not a failed save.
  */
 export function useSyncEngine(db: Database | null): void {
 	useEffect(() => {

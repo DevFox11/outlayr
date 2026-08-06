@@ -52,12 +52,9 @@ export function monthlyEquivalent(
 }
 
 /**
- * What a set of schedules costs per month, per currency.
- *
- * The normalization is the entire point: every schedule contributes one charge
- * to the list whatever its cadence, so a daily coffee and a yearly domain
- * renewal look comparable at face value when one of them is two orders of
- * magnitude bigger. Only the cadence says which.
+ * What a set of schedules costs per month, per currency. Every schedule is
+ * normalized to one monthly charge whatever its cadence, so face values are not
+ * comparable across entries without it.
  *
  * A retired schedule is dropped rather than added as a zero: counting it would
  * pad the count and, worse, open a bucket for a currency nothing recurs in. One

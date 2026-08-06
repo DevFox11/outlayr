@@ -47,10 +47,8 @@ function closeSections(rows: CurrencyPickerRow[]): CurrencyPickerRow[] {
  *
  * A favourite appears in the cluster and NOWHERE else. The catalogue pins its
  * two suggested codes above its own alphabet, so a cluster that repeated its
- * codes drew them immediately above themselves — two identical rows, no
- * separator between the sections, which reads as a duplication bug rather than
- * as a shortcut. Lifting them out costs the alphabet two holes and buys back a
- * list where every code is written once.
+ * codes drew them immediately above themselves — two identical rows with no
+ * separator between the sections.
  *
  * A search returns flat: clustering on top of it would push the match the user
  * typed below the fold.

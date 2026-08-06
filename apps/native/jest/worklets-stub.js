@@ -2,45 +2,22 @@
  * Test double for `react-native-worklets`, substituted via `moduleNameMapper`
  * in `jest.config.js` so nothing from the real package is ever resolved.
  *
- * WHY THIS EXISTS: under jest-expo, React Native's Jest resolver prefers
- * `*.native.ts` files over the platform-agnostic `*.ts` ones — the same rule
- * that lets e.g. `Text.ios.js` load in an iOS-flavoured test run. For most of
- * `react-native-worklets@0.10.1` that is harmless, but
- * `WorkletsModule/NativeWorklets.native.ts` unconditionally constructs the
- * real native Turbo Module at import time, with no jest/IS_JEST guard. There
- * is no native module registered under jest, so that constructor throws
- * (`Cannot read properties of undefined (reading 'loadUnpackers')`) before
- * `react-native-reanimated` — which DOES check `IS_JEST` internally via its
- * own `SHOULD_BE_USE_WEB` flag — ever gets a chance to route around it.
- * `moduleNameMapper` intercepts the import itself, so the broken file is
- * never reached.
+ * Under jest-expo, React Native's Jest resolver prefers `*.native.ts` over the
+ * platform-agnostic `*.ts`, and `WorkletsModule/NativeWorklets.native.ts` in
+ * `react-native-worklets@0.10.1` constructs the real Turbo Module at import time
+ * with no IS_JEST guard — throwing `Cannot read properties of undefined (reading
+ * 'loadUnpackers')` before `react-native-reanimated` can route around it via its
+ * own `SHOULD_BE_USE_WEB` flag. `moduleNameMapper` intercepts the import, so the
+ * broken file is never reached.
  *
- * WHAT THIS IS: a hand-written double covering the subset of the worklets
- * public API that `react-native-reanimated` touches at import time or during
- * its `SHOULD_BE_USE_WEB` (jest/web) code paths. The pure, platform-agnostic
- * pieces (`isWorkletFunction`, `createSerializable`, `serializableMappingCache`,
- * `RuntimeKind`, the `threads.ts` scheduling functions) are copied verbatim
- * from `react-native-worklets`'s own non-native source — that source is real,
- * shipped, platform-agnostic code, just not the file jest's haste resolver
- * would pick for a bare `require("react-native-worklets")` on its own.
+ * The platform-agnostic pieces are copied verbatim from the package's own
+ * non-native source, not reimplemented: `createSerializable` and `makeShareable`
+ * are identity functions there too, not a simplification made here.
  *
- * WHAT THIS DOES NOT SIMULATE:
- *  - No real UI-thread / worklet-runtime split. Everything scheduled onto
- *    "UI" runs on the single JS thread jest gives us (via a `setTimeout`
- *    macrotask, matching worklets' own jest rAF shim).
- *  - No true value serialization/sharing across runtimes — `createSerializable`
- *    and `makeShareable` are identity functions (this matches the REAL
- *    implementation shipped by react-native-worklets, which is `(v) => v`
- *    unconditionally, not a simplification made for this stub).
- *  - `createShareable`, `createSynchronizable`, `createWorkletRuntime`, and
- *    the `runOnRuntime*`/`scheduleOnRuntime*` family are native-only in the
- *    real package too (reanimated's `SHOULD_BE_USE_WEB` paths never call
- *    them). They throw descriptively here rather than silently no-op, so a
- *    component that starts relying on real multi-runtime behaviour fails
- *    loudly under jest instead of passing on fake data.
- *  - `runOnUISync` / `executeOnUIRuntimeSync` throw, exactly like worklets'
- *    own web build ("not supported on web") — reanimated only calls these
- *    behind `!SHOULD_BE_USE_WEB` guards, so under jest they are unreachable.
+ * The native-only API (`createShareable`, `createSynchronizable`,
+ * `createWorkletRuntime`, `runOnRuntime*`, `runOnUISync`, `executeOnUIRuntimeSync`)
+ * throws rather than no-ops, so a component that starts relying on a real
+ * multi-runtime split fails loudly instead of passing on fake data.
  */
 
 const IS_JEST = !!process.env.JEST_WORKER_ID;

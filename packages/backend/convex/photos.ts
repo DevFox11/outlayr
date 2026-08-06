@@ -96,10 +96,10 @@ export const PHOTO_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
  * Refused before a url is minted, which is the only refusal a client cannot
  * route around: once it holds a signed PUT the bytes are already R2's problem.
  *
- * The total is summed from `photoSizes` rather than from the bucket. An earlier
- * note here proposed `r2.listMetadata` over the account's prefix — that API
- * takes only a limit and a cursor, so there is no prefix to scope it by and it
- * would page through every object of every account to answer one upload.
+ * The total is summed from `photoSizes` rather than from the bucket:
+ * `r2.listMetadata` takes only a limit and a cursor, so there is no prefix to
+ * scope it by and it would page through every object of every account to answer
+ * one upload.
  *
  * The check is `>=`, so an account exactly at the ceiling cannot start another
  * upload. It bounds what is *already stored*, not what this upload will add:

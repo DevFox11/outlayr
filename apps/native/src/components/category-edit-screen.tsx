@@ -11,11 +11,6 @@ import { useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
-/**
- * A component rather than a route so the two routes that reach it — a top-level
- * category and one nested under its parent — differ only in which id they pull
- * out of the path.
- */
 export function CategoryEditScreen({ id }: { id: string }) {
 	const router = useRouter();
 	const db = useDatabase();

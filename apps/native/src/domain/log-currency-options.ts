@@ -24,15 +24,12 @@ export interface LogCurrencyOptionsInput {
  * to show even on a single-currency ledger, and so a caller can read "the first
  * option" as "no override".
  *
- * Favourites follow, whether or not the period used any: they are the
- * currencies the user said they think in, and converting into one of them is
- * the point of the chip.
+ * Favourites follow, whether or not the period used any.
  *
- * What the period produced is appended last, because a currency already on
- * screen has to be selectable — otherwise the one figure the user can see is
- * the one they cannot read the rest of the screen in. Nothing here is checked
- * against the currency catalogue: a period can produce a code the catalogue has
- * since retired, and dropping it would strand those entries.
+ * What the period produced is appended last, so a currency already on screen is
+ * always selectable. Nothing here is checked against the currency catalogue: a
+ * period can produce a code the catalogue has since retired, and dropping it
+ * would strand those entries.
  */
 export function logCurrencyOptions({
 	global,
