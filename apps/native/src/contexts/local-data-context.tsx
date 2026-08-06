@@ -63,6 +63,7 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 	const [error, setError] = useState<Error | null>(null);
 	const [attempt, setAttempt] = useState(0);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the intentional re-run trigger — bumping it is what re-runs open → migrate → seed after a failure; the effect body never reads it.
 	useEffect(() => {
 		let cancelled = false;
 
@@ -104,8 +105,6 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 		return () => {
 			cancelled = true;
 		};
-		// `attempt` is the whole point of this dependency: bumping it is what re-runs
-		// open → migrate → seed after a failure. Nothing else may re-trigger it.
 	}, [attempt]);
 
 	// Re-arming from the callback rather than relying on the reminder sync's own
