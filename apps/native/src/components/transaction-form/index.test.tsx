@@ -454,20 +454,20 @@ describe("TransactionForm", () => {
 			</Providers>,
 		);
 
-		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
-			| (JsonNode & { props: { onSelectionChange: (next: string) => void } })
+		// In once mode the repeat switch is the only toggle on screen; End Date's
+		// appears alongside it only after this one is on.
+		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
+			| (JsonNode & {
+					props: { onIsOnChange: (event: unknown) => void };
+			  })
 			| null;
-		expect(kindPicker).not.toBeNull();
+		expect(repeats).not.toBeNull();
 
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "subscription" },
-			} as never);
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } } as never);
 		});
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "once" },
-			} as never);
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: false } } as never);
 		});
 
 		const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
@@ -491,14 +491,12 @@ describe("TransactionForm", () => {
 			false,
 		);
 
-		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
-			| (JsonNode & { props: { onSelectionChange: (next: string) => void } })
+		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
+			| (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
 			| null;
 
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "subscription" },
-			} as never);
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } } as never);
 		});
 
 		await act(async () => {
@@ -641,14 +639,12 @@ describe("TransactionForm submit re-entrancy", () => {
 			</Providers>,
 		);
 
-		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
-			| (JsonNode & { props: { onSelectionChange: (next: unknown) => void } })
+		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
+			| (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
 			| null;
-		expect(kindPicker).not.toBeNull();
+		expect(repeats).not.toBeNull();
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "subscription" },
-			});
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } });
 		});
 
 		const saveButton = findButtonWithText(

@@ -5,12 +5,12 @@ import {
 	Host,
 	HStack,
 	Image,
-	Picker,
 	RNHostView,
 	ScrollView,
 	Spacer,
 	Text as SwiftText,
 	TextField,
+	Toggle,
 	useNativeState,
 	VStack,
 } from "@expo/ui/swift-ui";
@@ -19,13 +19,13 @@ import {
 	blur,
 	buttonStyle,
 	foregroundStyle,
+	labelsHidden,
 	multilineTextAlignment,
 	offset,
 	overlay,
 	padding,
-	pickerStyle,
 	strokeBorder,
-	tag,
+	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useStore } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
@@ -972,23 +972,23 @@ export function TransactionForm({
 							symbol={amountSymbol}
 						/>
 
-						<Picker
-							label=""
-							modifiers={[pickerStyle("segmented")]}
-							onSelectionChange={(next) =>
-								handleKindChange(next as "once" | "subscription")
-							}
-							selection={isSubscription ? "subscription" : "once"}
-						>
-							<SwiftText modifiers={[tag("once")]}>
-								{t("transaction.kind.once")}
-							</SwiftText>
-							<SwiftText modifiers={[tag("subscription")]}>
-								{t("transaction.kind.subscription")}
-							</SwiftText>
-						</Picker>
-
 						<VStack spacing={0}>
+							<HStack modifiers={ROW}>
+								<SwiftText modifiers={[BODY, rowLabel]}>
+									{t("transaction.kind.subscription")}
+								</SwiftText>
+								<Spacer />
+								<Toggle
+									isOn={isSubscription}
+									modifiers={[tint(colors.income), labelsHidden()]}
+									onIsOnChange={(next) =>
+										handleKindChange(next ? "subscription" : "once")
+									}
+								/>
+							</HStack>
+
+							<Divider modifiers={hairline} />
+
 							<HStack modifiers={ROW}>
 								<SwiftText modifiers={[BODY, rowLabel]}>
 									{t("transaction.field.name")}
