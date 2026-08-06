@@ -163,6 +163,48 @@ describe("csvImport guard ladder", () => {
 		).resolves.toEqual({ status: "rateLimited", suggestions: null });
 		expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "csvImportGlobal");
 	});
+
+	test("a revoked session skips the grounded tier and never rejects the action", async () => {
+		vi.stubEnv("XAI_API_KEY", "test-xai-key");
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const identity = await seedAuthUser(t);
+		await t.run((ctx) =>
+			ctx.db.insert("merchantKnowledge", {
+				key: "farmacia saas",
+				domain: "farmaciasaas.com",
+				categoryName: "Healthcare",
+				parentCategoryName: null,
+				emoji: null,
+				tags: ["Pharmacy"],
+				resolvedAt: Date.now(),
+				modelId: "test-model",
+			}),
+		);
+
+		const stale = t.withIdentity({
+			subject: identity.subject,
+			sessionId: "session-that-was-revoked",
+		});
+
+		await expect(
+			stale.action(api.csvImport.csvImport, {
+				labels: ["FARMACIA SAAS"],
+				categoryTree: [{ name: "Healthcare", children: [] }],
+				groundedLookup: true,
+			}),
+		).resolves.toEqual({
+			status: "ok",
+			suggestions: [
+				{
+					label: "FARMACIA SAAS",
+					categoryName: "Healthcare",
+					domain: "farmaciasaas.com",
+				},
+			],
+		});
+		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+	});
 });
 
 describe("perUserLimitConfig", () => {
@@ -332,6 +374,27 @@ describe("scheduleImportGrounded", () => {
 		);
 
 		expect(scheduled).toBe(0);
+		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+	});
+
+	test("returns 0 instead of throwing when the session no longer resolves to a user", async () => {
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const identity = await seedAuthUser(t);
+
+		const stale = t.withIdentity({
+			subject: identity.subject,
+			sessionId: "session-that-was-revoked",
+		});
+
+		await expect(
+			stale.run((ctx) =>
+				scheduleImportGrounded(ctx, "token-import-e", {
+					labels: ["Corpoelec"],
+					groundedLookup: true,
+				}),
+			),
+		).resolves.toBe(0);
 		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
 	});
 });

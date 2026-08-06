@@ -441,6 +441,28 @@ describe("maybeScheduleGrounded", () => {
 		});
 	});
 
+	test("returns false instead of throwing when the session no longer resolves to a user", async () => {
+		const t = convexTest(schema, modules);
+		rateLimiterTest.register(t);
+		const identity = await seedAuthUser(t);
+
+		const stale = t.withIdentity({
+			subject: identity.subject,
+			sessionId: "session-that-was-revoked",
+		});
+
+		await expect(
+			stale.run((ctx) =>
+				maybeScheduleGrounded(ctx, "token-f", {
+					groundedLookup: true,
+					name: "Farmatodo",
+					income: false,
+				}),
+			),
+		).resolves.toBe(false);
+		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+	});
+
 	test("the scheduled args thread a region code through to groundedLookup.run", async () => {
 		const t = convexTest(schema, modules);
 		rateLimiterTest.register(t);

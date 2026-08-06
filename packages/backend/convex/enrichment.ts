@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
 import { type ActionCtx, action, internalQuery } from "./_generated/server";
-import { requireUserId } from "./lib/auth";
+import { optionalUserId } from "./lib/auth";
 import { merchantKey } from "./lib/merchantKey";
 
 /**
@@ -384,17 +384,24 @@ const GROUNDED_LOOKUP_META_KEY = "groundedLookup";
 
 /**
  * The server-side half of the dual-authority gate: the synced `appMeta`
- * row, keyed the same way `sync.ts` writes it (`requireUserId`, NOT
+ * row, keyed the same way `sync.ts` writes it (the Better Auth user id, NOT
  * `identity.tokenIdentifier` — those are different id spaces in this app).
  * An absent row defaults to consented, matching `SETTING_DEFAULTS.groundedLookup`
  * on the client — a device that has never synced this key has never
  * turned it off.
+ *
+ * A caller whose session no longer resolves answers false rather than throwing:
+ * `csvImport.ts` schedules grounded lookups mid-action, and `use-csv-import.tsx`
+ * reports any rejection from that action as "You're offline".
  */
 export const groundedConsent = internalQuery({
 	args: {},
 	returns: v.boolean(),
 	handler: async (ctx) => {
-		const userId = await requireUserId(ctx);
+		const userId = await optionalUserId(ctx);
+		if (userId === null) {
+			return false;
+		}
 		const row = await ctx.db
 			.query("appMeta")
 			.withIndex("by_user_and_key", (q) =>

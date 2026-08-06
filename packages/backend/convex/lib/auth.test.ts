@@ -6,7 +6,7 @@ import { describe, expect, test } from "vitest";
 
 import schema from "../schema";
 import { authenticatedAs, seedAuthUser } from "../test.helpers";
-import { requireUserId } from "./auth";
+import { optionalUserId, requireUserId } from "./auth";
 
 const modules = import.meta.glob("../**/*.ts");
 
@@ -57,5 +57,36 @@ describe("requireUserId", () => {
 		);
 
 		expect(firstId).not.toBe(secondId);
+	});
+});
+
+describe("optionalUserId", () => {
+	test("returns the Better Auth user id for an authenticated caller", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+
+		const resolved = await authenticatedAs(t, identity).run((ctx) =>
+			optionalUserId(ctx),
+		);
+
+		expect(resolved).toBe(identity.userId);
+	});
+
+	test("returns null when there is no identity", async () => {
+		const t = convexTest(schema, modules);
+
+		await expect(t.run((ctx) => optionalUserId(ctx))).resolves.toBeNull();
+	});
+
+	test("returns null when the identity names a session that does not exist", async () => {
+		const t = convexTest(schema, modules);
+		const identity = await seedAuthUser(t);
+
+		const stale = t.withIdentity({
+			sessionId: "session-that-was-revoked",
+			subject: identity.subject,
+		});
+
+		await expect(stale.run((ctx) => optionalUserId(ctx))).resolves.toBeNull();
 	});
 });
