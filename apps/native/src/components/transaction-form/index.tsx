@@ -1,11 +1,9 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import {
 	Button,
-	Divider,
 	Host,
 	HStack,
 	Image,
-	Menu,
 	Picker,
 	RNHostView,
 	ScrollView,
@@ -45,7 +43,6 @@ import { useCategoryPickerField } from "@/components/form/category-picker-field"
 import { useAppForm } from "@/components/form/create-app-form";
 import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
-import { menuTint } from "@/components/native/styles";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	useIdentityDraft,
@@ -67,7 +64,7 @@ import {
 import type { Database } from "@/db/client";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
-import { formatAmount, minorUnitsFor } from "@/domain/money";
+import { amountParts, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import {
 	ensureRecurringType,
@@ -120,7 +117,7 @@ import { IdentityFlyUpLayer } from "../identity-fly-up";
 import { LinearGradient } from "../styled";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
-import { TransactionFormAmountSection } from "./amount-section";
+import { TransactionFormAmountHero } from "./amount-hero";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
 import { TransactionFormIdentitySection } from "./identity-section";
@@ -868,6 +865,12 @@ export function TransactionForm({
 				: colors.foreground
 			: colors.muted;
 
+	const parts = amountParts(amountNumber, currency);
+	const amountSymbol = parts.symbol;
+	const amountDigits = parts.fraction
+		? `${parts.integer}.${parts.fraction}`
+		: parts.integer;
+
 	const curtainHues = computeCurtainHues(
 		{
 			categoryColor: category?.color,
@@ -959,6 +962,21 @@ export function TransactionForm({
 							photoUri={identity.photoUri}
 						/>
 
+						<TransactionFormAmountHero
+							amountColor={amountColor}
+							chipColor={withAlpha(colors.foreground, 0.08)}
+							currency={currency}
+							digits={amountDigits}
+							expenseLabel={t("common.expense")}
+							income={income}
+							incomeLabel={t("common.income")}
+							mutedColor={colors.muted}
+							onCurrencyPress={amountField.present}
+							onPress={amountField.present}
+							onTypeChange={handleTypeChange}
+							symbol={amountSymbol}
+						/>
+
 						<Picker
 							label=""
 							modifiers={[pickerStyle("segmented")]}
@@ -988,59 +1006,6 @@ export function TransactionForm({
 									text={name}
 								/>
 							</HStack>
-
-							<Divider modifiers={hairline} />
-
-							{/* The label sits OUTSIDE the Menu so it stays a plain secondary
-							    Text like every other row label — a label inside the menu
-							    inherits the control's accent tint. */}
-							<HStack modifiers={ROW}>
-								<SwiftText modifiers={[BODY, rowLabel]}>
-									{t("transaction.field.type")}
-								</SwiftText>
-								<Spacer />
-								<Menu
-									label={
-										<HStack spacing={4}>
-											<SwiftText
-												modifiers={[BODY, foregroundStyle(colors.foreground)]}
-											>
-												{t(income ? "common.income" : "common.expense")}
-											</SwiftText>
-											<Image
-												color={colors.muted}
-												size={12}
-												systemName="chevron.up.chevron.down"
-											/>
-										</HStack>
-									}
-									modifiers={[menuTint]}
-								>
-									<Picker
-										label={t("transaction.field.type")}
-										onSelectionChange={(next) =>
-											handleTypeChange(next as "expense" | "income")
-										}
-										selection={income ? "income" : "expense"}
-									>
-										<SwiftText modifiers={[tag("expense")]}>
-											{t("common.expense")}
-										</SwiftText>
-										<SwiftText modifiers={[tag("income")]}>
-											{t("common.income")}
-										</SwiftText>
-									</Picker>
-								</Menu>
-							</HStack>
-
-							<TransactionFormAmountSection
-								currency={currency}
-								hairline={hairline}
-								label={t("transaction.field.amount")}
-								onPress={amountField.present}
-								value={formatAmount(amountNumber, currency)}
-								valueColor={amountColor}
-							/>
 						</VStack>
 
 						<Button

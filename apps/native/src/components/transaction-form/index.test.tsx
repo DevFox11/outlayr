@@ -405,7 +405,7 @@ describe("TransactionForm", () => {
 		expect(containsText(toJSON() as JsonNode, "🎸")).toBe(true);
 	});
 
-	it("plumbs the seeded amount into the amount section", async () => {
+	it("plumbs the seeded amount into the amount hero", async () => {
 		const db = dbHolder.current as Database;
 		const categoryId = await seedCategory(db);
 		const initial: Partial<Transaction> = {
@@ -439,7 +439,9 @@ describe("TransactionForm", () => {
 				/>
 			</Providers>,
 		);
-		expect(findByProp(toJSON() as JsonNode, "text", "$42.00")).not.toBeNull();
+		const tree = toJSON() as JsonNode;
+		expect(findByProp(tree, "text", "$")).not.toBeNull();
+		expect(findByProp(tree, "text", "42.00")).not.toBeNull();
 	});
 
 	it("holds hook order across the real once -> subscription -> once toggle", async () => {
