@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Line } from "react-native-svg";
 import { scheduleOnRN } from "react-native-worklets";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import {
 	bucketDateLabel,
 	type InsightsBucket,
@@ -81,8 +81,7 @@ export function InsightsBarChart({
 }: InsightsBarChartProps) {
 	const colors = useColors();
 	const reduceMotion = useReducedMotion();
-	const animated =
-		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
+	const animated = useSettingBool("animatedCharts") && !reduceMotion;
 
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);

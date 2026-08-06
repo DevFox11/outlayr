@@ -13,10 +13,10 @@ export interface SyncQuery<TRow> {
 	all(): TRow[];
 }
 
-interface Snapshot<TRow> {
+interface Snapshot<TValue> {
 	deps: readonly unknown[];
 	revision: number;
-	rows: TRow[];
+	value: TValue;
 }
 
 function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
@@ -52,9 +52,39 @@ export function useLiveQuery<TRow>(
 	build: () => SyncQuery<TRow>,
 	deps: readonly unknown[] = [],
 ): TRow[] {
+	return useLiveRead(table, () => build().all(), deps);
+}
+
+/**
+ * {@link useLiveQuery} narrowed to what the caller actually reads.
+ *
+ * `select` runs on the rows inside the snapshot, so the value React compares is
+ * the derived one. A consumer watching a single setting therefore sits still
+ * through every `appMeta` write that leaves its own key alone, where
+ * `useLiveQuery` would hand back a fresh array and re-render it — the whole
+ * table is one invalidation channel (see the note above), so an unrelated write
+ * is the common case, not the rare one.
+ *
+ * `select` must be pure and must derive something comparable by `Object.is` —
+ * a primitive, or a value it returns identically for identical rows.
+ */
+export function useLiveValue<TRow, TValue>(
+	table: SQLiteTable,
+	build: () => SyncQuery<TRow>,
+	select: (rows: TRow[]) => TValue,
+	deps: readonly unknown[] = [],
+): TValue {
+	return useLiveRead(table, () => select(build().all()), deps);
+}
+
+function useLiveRead<TValue>(
+	table: SQLiteTable,
+	read: () => TValue,
+	deps: readonly unknown[],
+): TValue {
 	const tableName = getTableName(table);
 	const revision = useRef(0);
-	const snapshot = useRef<Snapshot<TRow> | null>(null);
+	const snapshot = useRef<Snapshot<TValue> | null>(null);
 
 	const subscribe = useCallback(
 		(onStoreChange: () => void) => {
@@ -83,20 +113,20 @@ export function useLiveQuery<TRow>(
 	);
 
 	// React calls this on every render to detect a change, so it must return the
-	// identical array until something actually invalidates it — re-querying (or
+	// identical value until something actually invalidates it — re-reading (or
 	// even re-wrapping the rows) here would loop forever.
-	const getSnapshot = (): TRow[] => {
+	const getSnapshot = (): TValue => {
 		const cached = snapshot.current;
 		if (
 			cached !== null &&
 			cached.revision === revision.current &&
 			sameDeps(cached.deps, deps)
 		) {
-			return cached.rows;
+			return cached.value;
 		}
-		const rows = build().all();
-		snapshot.current = { deps, revision: revision.current, rows };
-		return rows;
+		const value = read();
+		snapshot.current = { deps, revision: revision.current, value };
+		return value;
 	};
 
 	return useSyncExternalStore(subscribe, getSnapshot);

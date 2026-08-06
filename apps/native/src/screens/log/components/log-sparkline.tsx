@@ -11,7 +11,7 @@ import Svg, {
 } from "react-native-svg";
 
 import { Text } from "@/components/text";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
@@ -48,8 +48,7 @@ export function LogSparkline({
 	// itself. The OS flag is ANDed in by hand because the draw below is a
 	// `setTimeout` rather than a Reanimated animation, so there is nothing for the
 	// library's own `ReduceMotion.System` handling to collapse.
-	const animatedCharts =
-		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
+	const animatedCharts = useSettingBool("animatedCharts") && !reduceMotion;
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 	const [drawn, setDrawn] = useState(!animatedCharts);

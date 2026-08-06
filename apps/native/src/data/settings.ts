@@ -3,7 +3,7 @@ import { useCalendars } from "expo-localization";
 import { useEffect, useMemo } from "react";
 import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
-import { useLiveQuery } from "./live-query";
+import { type SyncQuery, useLiveQuery, useLiveValue } from "./live-query";
 import {
 	type BoolSettingKey,
 	type NumberSettingKey,
@@ -21,11 +21,12 @@ export interface SettingsSnapshot {
 }
 
 /**
- * Every setting from one subscription. `useBoolSetting`/`useNumberSetting` each
- * register their own `addDatabaseChangeListener`, and that listener fires on ANY
- * `appMeta` write — not just the watched key — so a screen reading nine settings
- * runs nine queries and nine re-renders for one toggle tap. Prefer this on any
- * screen reading more than one or two.
+ * Every setting from one subscription, as a snapshot whose identity moves on any
+ * `appMeta` write. That makes it the wrong read for anything expensive:
+ * published through a context it re-renders every consumer for a toggle none of
+ * them read. `useBoolSetting`/`useNumberSetting` each run their own query but
+ * hand React the parsed value, so an unrelated write costs a keyed lookup and no
+ * render — prefer them wherever the render is worth more than the lookup.
  */
 export function useAllSettings(db: Database | null): SettingsSnapshot {
 	// Nullable because `AppSettingsProvider` mounts above the root splash gate and
@@ -51,13 +52,16 @@ export function useAllSettings(db: Database | null): SettingsSnapshot {
 	}, [rows]);
 }
 
-export function useBoolSetting(db: Database, key: BoolSettingKey): boolean {
-	const rows = useLiveQuery(
+export function useBoolSetting(
+	db: Database | null,
+	key: BoolSettingKey,
+): boolean {
+	return useLiveValue(
 		appMeta,
-		() => db.select().from(appMeta).where(eq(appMeta.key, key)),
-		[key],
+		() => selectSetting(db, key),
+		(rows) => parseBoolSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]),
+		[db, key],
 	);
-	return parseBoolSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]);
 }
 
 /**
@@ -81,11 +85,29 @@ export function useSeededClockPreference(db: Database): void {
 	}, [db, deviceUses24Hour]);
 }
 
-export function useNumberSetting(db: Database, key: NumberSettingKey): number {
-	const rows = useLiveQuery(
+export function useNumberSetting(
+	db: Database | null,
+	key: NumberSettingKey,
+): number {
+	return useLiveValue(
 		appMeta,
-		() => db.select().from(appMeta).where(eq(appMeta.key, key)),
-		[key],
+		() => selectSetting(db, key),
+		(rows) => parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]),
+		[db, key],
 	);
-	return parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]);
+}
+
+// Nullable for the same reason `useAllSettings` is: these run above the root
+// splash gate while the database is still opening.
+function selectSetting(
+	db: Database | null,
+	key: BoolSettingKey | NumberSettingKey,
+): SyncQuery<{ value: string | null }> {
+	if (db == null) {
+		return { all: () => [] };
+	}
+	return db
+		.select({ value: appMeta.value })
+		.from(appMeta)
+		.where(eq(appMeta.key, key));
 }

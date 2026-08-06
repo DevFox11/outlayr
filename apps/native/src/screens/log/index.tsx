@@ -5,8 +5,9 @@ import { useMemo, useState } from "react";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import {
-	useAppSettings,
 	useDisplaySettings,
+	useSettingBool,
+	useSettingNumber,
 } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -124,15 +125,14 @@ function LogContent({ db }: { db: Database }) {
 		displayOverride ?? globalCurrency,
 	);
 	const valued = useValuedCurrencies(db);
-	// Every preference off one subscription: a per-key hook would register a
-	// separate `appMeta` listener each, and each fires on any write to the table.
-	const { state: settings } = useAppSettings();
 	const { showCents, showSign, swapTimeLabel, use24Hour } =
 		useDisplaySettings().state;
-	const showUpcoming = settings.bool("showUpcoming");
-	const firstWeekday = settings.number("firstWeekday");
-	const period = logPeriodFromStored(settings.number("logInsightsTimeFrame"));
-	const measure = logMeasureFromStored(settings.number("logInsightsType"));
+	const showUpcoming = useSettingBool("showUpcoming");
+	const showUpcomingSoon = useSettingBool("showUpcomingSoon");
+	const logViewLineGraph = useSettingBool("logViewLineGraph");
+	const firstWeekday = useSettingNumber("firstWeekday");
+	const period = logPeriodFromStored(useSettingNumber("logInsightsTimeFrame"));
+	const measure = logMeasureFromStored(useSettingNumber("logInsightsType"));
 	const nowMs = useNow();
 
 	const [filter, setFilter] = useState<LogFilter>("all");
@@ -174,11 +174,7 @@ function LogContent({ db }: { db: Database }) {
 		income,
 		firstWeekday,
 	});
-	const upcoming = useUpcomingTransactions(
-		db,
-		nowMs,
-		settings.bool("showUpcomingSoon"),
-	);
+	const upcoming = useUpcomingTransactions(db, nowMs, showUpcomingSoon);
 	const insights = useLogInsights(db, nowMs, period, currency, rates);
 	const currencyOptions = useMemo(
 		() =>
@@ -200,7 +196,7 @@ function LogContent({ db }: { db: Database }) {
 	const sparkline = useSparkline(
 		db,
 		nowMs,
-		settings.bool("logViewLineGraph"),
+		logViewLineGraph,
 		measure,
 		period,
 		firstWeekday,

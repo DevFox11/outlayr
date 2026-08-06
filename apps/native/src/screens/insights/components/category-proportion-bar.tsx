@@ -6,7 +6,7 @@ import Animated, {
 	useSharedValue,
 	withTiming,
 } from "react-native-reanimated";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import type { CategoryBreakdownEntry } from "@/data/insights";
 import { useTranslation } from "@/i18n";
 import { CHART_BAR } from "@/theme/chart";
@@ -33,8 +33,7 @@ export function CategoryProportionBar({
 	const reduceMotion = useReducedMotion();
 	// Read here, not threaded from the screen: every chart answers to this setting
 	// itself.
-	const animated =
-		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
+	const animated = useSettingBool("animatedCharts") && !reduceMotion;
 	const [width, setWidth] = useState(0);
 	const progress = useSharedValue(animated ? 0 : 1);
 

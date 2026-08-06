@@ -10,6 +10,8 @@ import {
 	setBoolSetting,
 	setNumberSetting,
 	useAllSettings,
+	useBoolSetting,
+	useNumberSetting,
 } from "@/data/settings";
 import { useLocalData } from "./local-data-context";
 
@@ -93,4 +95,21 @@ export function useAppSettings(): AppSettingsValue {
 		throw new Error(OUTSIDE_PROVIDER);
 	}
 	return value;
+}
+
+/**
+ * One setting, without the context. `useAppSettings` republishes on every
+ * `appMeta` write, so reading a single key through it re-renders the caller for
+ * every unrelated toggle in the app — which is how a background tab's chart ends
+ * up redrawing when the ledger's measure is switched. These subscribe to the key
+ * itself and fall back to the default until the database is open.
+ */
+export function useSettingBool(key: BoolSettingKey): boolean {
+	const { db } = useLocalData();
+	return useBoolSetting(db, key);
+}
+
+export function useSettingNumber(key: NumberSettingKey): number {
+	const { db } = useLocalData();
+	return useNumberSetting(db, key);
 }

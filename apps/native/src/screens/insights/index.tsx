@@ -10,8 +10,9 @@ import { MonoLabel } from "@/components/mono-label";
 import { ScopeChip } from "@/components/scope-chip";
 import { Text } from "@/components/text";
 import {
-	useAppSettings,
 	useDisplaySettings,
+	useSettingBool,
+	useSettingNumber,
 } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -83,25 +84,23 @@ function InsightsContent({ db }: { db: Database }) {
 	const t = useTranslation();
 	const router = useRouter();
 	const currency = useGlobalCurrency(db);
-	const { state: settings } = useAppSettings();
 	const { showCents } = useDisplaySettings().state;
 	const nowMs = useNow();
 
-	const incomeTracking = settings.bool("incomeTracking");
+	const incomeTracking = useSettingBool("incomeTracking");
 	const period =
-		PERIOD_BY_VALUE[settings.number("insightsTimeFrame")] ?? "week";
+		PERIOD_BY_VALUE[useSettingNumber("insightsTimeFrame")] ?? "week";
 
 	// With income tracking off there is only one direction, so the measure is not
 	// a choice.
-	const stored = insightsMeasureFromStored(settings.number("insightsMeasure"));
+	const stored = insightsMeasureFromStored(useSettingNumber("insightsMeasure"));
 	const measure = incomeTracking ? stored : "spent";
 
+	const firstWeekday = useSettingNumber("firstWeekday");
+	const firstDayOfMonth = useSettingNumber("firstDayOfMonth");
 	const calendar: InsightsCalendar = useMemo(
-		() => ({
-			firstWeekday: settings.number("firstWeekday"),
-			firstDayOfMonth: settings.number("firstDayOfMonth"),
-		}),
-		[settings],
+		() => ({ firstWeekday, firstDayOfMonth }),
+		[firstWeekday, firstDayOfMonth],
 	);
 
 	const [offset, setOffset] = useState(0);

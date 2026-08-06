@@ -15,7 +15,7 @@ import {
 	withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import {
 	bucketDateLabel,
 	type InsightsBucket,
@@ -59,8 +59,7 @@ export function InsightsNetChart({
 	const colors = useColors();
 	const t = useTranslation();
 	const reduceMotion = useReducedMotion();
-	const animated =
-		useAppSettings().state.bool("animatedCharts") && !reduceMotion;
+	const animated = useSettingBool("animatedCharts") && !reduceMotion;
 
 	const [width, setWidth] = useState(0);
 	const [scrubIndex, setScrubIndex] = useState<number | null>(null);
