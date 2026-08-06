@@ -1,54 +1,67 @@
-import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
-import type { UseCsvImportResult } from "@/hooks/use-csv-import";
+import { act, fireEvent, render } from "@testing-library/react-native";
+import { createRef, type ReactNode } from "react";
 import { importDraftStore } from "@/lib/import-draft-store";
-import { ImportSheet } from "./import-sheet";
+import {
+	ImportSheet,
+	type ImportSheetHandle,
+	resolveLegalStep,
+} from "./import-sheet";
 
-const mockBack = jest.fn();
 const mockPush = jest.fn();
-const mockDismissAll = jest.fn();
+const mockDismiss = jest.fn();
+const mockSnapToIndex = jest.fn();
+const mockSheetProps: Record<string, unknown>[] = [];
+const mockDismissHolder: { current?: () => void } = {};
 
-jest.mock("expo-router", () => ({
-	useRouter: () => ({
-		back: mockBack,
-		push: mockPush,
-		dismissAll: mockDismissAll,
-	}),
-	Stack: { Screen: () => null },
-}));
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));
+jest.mock("uniwind", () => ({
+	...jest.requireActual("uniwind"),
+	useCSSVariable: () => "#F2F0EA",
+}));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
 		foreground: "#17150F",
+		background: "#F2F0EA",
 		muted: "#8A8578",
-		subtle: "#B4AFA0",
 	}),
 }));
-function baseCsvImportContext(
-	overrides: Partial<UseCsvImportResult> = {},
-): UseCsvImportResult {
-	return {
-		running: false,
-		outcome: null,
-		reason: null,
-		links: new Map(),
-		fromModel: new Set(),
-		totalLabels: 0,
-		tier1Matched: 0,
-		tier2Sent: 0,
-		run: jest.fn(),
-		...overrides,
-	};
-}
-let mockCsvImportContext: UseCsvImportResult = baseCsvImportContext();
-
-jest.mock("@/contexts/csv-import-context", () => ({
-	CsvImportProvider: ({ children }: { children: React.ReactNode }) => children,
-	useCsvImportContext: () => mockCsvImportContext,
+jest.mock("expo-router", () => ({
+	router: { push: (...args: unknown[]) => mockPush(...args) },
 }));
-const mockOnCommit = jest.fn();
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 59, bottom: 34, left: 0, right: 0 }),
+}));
+jest.mock("@expo/ui/community/bottom-sheet", () => {
+	const { View: RNView } = require("react-native");
+	const { useImperativeHandle } = require("react");
+	return {
+		BottomSheetModal: ({
+			children,
+			ref,
+			onDismiss,
+			...rest
+		}: {
+			children: ReactNode;
+			ref?: React.Ref<unknown>;
+			onDismiss?: () => void;
+		}) => {
+			mockSheetProps.push(rest as Record<string, unknown>);
+			mockDismissHolder.current = onDismiss;
+			useImperativeHandle(ref, () => ({
+				present: jest.fn(),
+				dismiss: mockDismiss,
+				snapToIndex: mockSnapToIndex,
+			}));
+			return <RNView testID="bottom-sheet-modal">{children}</RNView>;
+		},
+	};
+});
+jest.mock("@/contexts/csv-import-context", () => ({
+	CsvImportProvider: ({ children }: { children: ReactNode }) => children,
+}));
 jest.mock("@/hooks/use-import-review", () => ({
 	useImportReview: () => ({
 		plan: { entries: [], skipped: [], earliest: null, latest: null },
@@ -56,340 +69,195 @@ jest.mock("@/hooks/use-import-review", () => ({
 		excluded: new Set(),
 		selectedCount: 0,
 		categoryName: new Map(),
+		categoryTile: new Map(),
+		currency: "USD",
 		commit: { phase: "idle" },
 		onToggle: jest.fn(),
-		onCommit: mockOnCommit,
+		onCommit: jest.fn(),
 	}),
 }));
+jest.mock("./use-choose-import-file", () => ({
+	useChooseImportFile: () => ({ status: "idle", choose: jest.fn() }),
+}));
+jest.mock("./steps/source-step", () => {
+	const { Text: RNText } = require("react-native");
+	return { SourceStep: () => <RNText>step:source</RNText> };
+});
+jest.mock("./steps/file-step", () => {
+	const { Text: RNText } = require("react-native");
+	return { FileStep: () => <RNText>step:file</RNText> };
+});
+jest.mock("./steps/resolve-step", () => {
+	const { Text: RNText } = require("react-native");
+	return { ResolveStep: () => <RNText>step:resolve</RNText> };
+});
+jest.mock("./steps/review-step", () => {
+	const { Text: RNText } = require("react-native");
+	return { ReviewStep: () => <RNText>step:review</RNText> };
+});
+jest.mock("./steps/done-step", () => {
+	const { Text: RNText } = require("react-native");
+	return { DoneStep: () => <RNText>step:done</RNText> };
+});
+
+function loadFile() {
+	importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	importDraftStore.dispatch({
+		type: "fileParsed",
+		file: { name: "bank.csv", chars: 42 },
+		parsed: { header: null, rows: [["a", "b", "c"]], width: 3 },
+		draft: {
+			category: 0,
+			note: 1,
+			date: 0,
+			amount: 2,
+			currency: null,
+			type: null,
+		},
+		resolved: {
+			mapping: {
+				category: 0,
+				note: 1,
+				date: 0,
+				amount: 2,
+				currency: null,
+				type: null,
+			},
+			labelSource: "categoryColumn",
+		},
+		gaps: [],
+	});
+}
+
+async function presentSheet() {
+	const ref = createRef<ImportSheetHandle>();
+	const screen = await render(<ImportSheet ref={ref} />);
+	await act(async () => {
+		ref.current?.present();
+	});
+	return { ref, ...screen };
+}
+
+describe("resolveLegalStep", () => {
+	it("falls back to the earliest legal step when guards fail", () => {
+		const empty = importDraftStore.getSnapshot().flow;
+		expect(resolveLegalStep(empty, "review")).toBe("source");
+		expect(resolveLegalStep(empty, "done")).toBe("source");
+		expect(resolveLegalStep(empty, "source")).toBe("source");
+	});
+
+	it("lets a legal step through", () => {
+		importDraftStore.clear();
+		loadFile();
+		const flow = importDraftStore.getSnapshot().flow;
+		expect(resolveLegalStep(flow, "file")).toBe("file");
+		expect(resolveLegalStep(flow, "resolve")).toBe("resolve");
+		expect(resolveLegalStep(flow, "review")).toBe("resolve");
+		importDraftStore.clear();
+	});
+});
 
 describe("ImportSheet", () => {
 	beforeEach(() => {
-		mockBack.mockClear();
-		mockPush.mockClear();
-		mockDismissAll.mockClear();
-		mockCsvImportContext = baseCsvImportContext();
 		importDraftStore.clear();
+		mockSheetProps.length = 0;
+		mockPush.mockClear();
+		mockDismiss.mockClear();
+		mockSnapToIndex.mockClear();
 	});
 
-	it("calls store.commitDismissal() exactly once when the sheet root unmounts", async () => {
-		const spy = jest.spyOn(importDraftStore, "commitDismissal");
-		const { unmount } = await render(<ImportSheet />);
-
-		await unmount();
-
-		expect(spy).toHaveBeenCalledTimes(1);
-		spy.mockRestore();
-	});
-
-	it("shows no footer on the source step", async () => {
-		const { queryByTestId } = await render(<ImportSheet />);
-		expect(queryByTestId("import-chrome-footer")).toBeNull();
-	});
-
-	it("advances from source to file by moving the wizard cursor, never navigating the router", async () => {
-		const { getByText, getByTestId } = await render(<ImportSheet />);
-		expect(getByTestId("import-chrome-title")).toHaveTextContent(
-			"import.titleSource",
-		);
-
-		fireEvent.press(getByText("settings.import.sourceCsvTitle"));
-
-		await waitFor(() => {
-			expect(getByTestId("import-chrome-title")).toHaveTextContent(
-				"import.titleFile",
-			);
-		});
-		expect(mockPush).not.toHaveBeenCalled();
-	});
-
-	it("shows an enabled Continue footer once the file step is reached with a resolved mapping", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
-		importDraftStore.setStep("file");
-		importDraftStore.dispatch({
-			type: "fileParsed",
-			file: { name: "bank.csv", chars: 42 },
-			parsed: {
-				header: ["date", "description", "amount"],
-				rows: [["01/08/2026", "Coffee", "3,50"]],
-				width: 3,
-			},
-			draft: {
-				category: 1,
-				note: 1,
-				date: 0,
-				amount: 2,
-				currency: null,
-				type: null,
-			},
-			resolved: {
-				mapping: {
-					category: 1,
-					note: 1,
-					date: 0,
-					amount: 2,
-					currency: null,
-					type: null,
-				},
-				labelSource: "descriptionColumn",
-			},
-			gaps: [],
-		});
-
-		const { getByTestId, getByText } = await render(<ImportSheet />);
-		expect(getByTestId("import-chrome-footer")).toBeTruthy();
-		const continueButton = getByText("common.continue");
-		expect(continueButton).toBeTruthy();
-
-		fireEvent.press(continueButton);
-		await waitFor(() => {
-			expect(getByTestId("import-chrome-title")).toHaveTextContent(
-				"import.titleResolve",
-			);
+	it("configures the modal: dynamic sizing, pan-down close, near-opaque paper background", async () => {
+		await presentSheet();
+		const props = mockSheetProps.at(-1) as Record<string, unknown>;
+		expect(props.snapPoints).toBeUndefined();
+		expect(props.enableDynamicSizing).toBe(true);
+		expect(props.enablePanDownToClose).toBe(true);
+		expect(props.backgroundStyle).toStrictEqual({
+			backgroundColor: "#F2F0EAFA",
 		});
 	});
 
-	it("shows the resume notice on the resumed step, and the first setStep clears it", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
-		importDraftStore.dispatch({
-			type: "fileParsed",
-			file: { name: "bank.csv", chars: 42 },
-			parsed: {
-				header: ["date", "description", "amount"],
-				rows: [["01/08/2026", "Coffee", "3,50"]],
-				width: 3,
-			},
-			draft: {
-				category: 1,
-				note: 1,
-				date: 0,
-				amount: 2,
-				currency: null,
-				type: null,
-			},
-			resolved: {
-				mapping: {
-					category: 1,
-					note: 1,
-					date: 0,
-					amount: 2,
-					currency: null,
-					type: null,
-				},
-				labelSource: "descriptionColumn",
-			},
-			gaps: [],
-		});
-		importDraftStore.dispatch({
-			type: "resolutionSettled",
-			outcome: "applied",
-			reason: null,
-			links: new Map(),
-			fromModel: new Set(),
-		});
-		importDraftStore.setStep("resolve");
-		importDraftStore.commitDismissal();
-		expect(importDraftStore.getSnapshot().ui.resumed).toBe(true);
-		mockCsvImportContext = baseCsvImportContext({ outcome: "applied" });
-
-		const { getByTestId, getByText, queryByTestId } = await render(
-			<ImportSheet />,
-		);
-
-		expect(getByTestId("import-chrome-title")).toHaveTextContent(
-			"import.titleResolve",
-		);
-		expect(getByTestId("import-resume-notice")).toBeTruthy();
-		expect(getByText('import.resolveReviewCta:{"count":0}')).toBeTruthy();
-
-		fireEvent.press(getByTestId("import-chrome-back"));
-
-		await waitFor(() => {
-			expect(getByTestId("import-chrome-title")).toHaveTextContent(
-				"import.titleFile",
-			);
-		});
-		expect(queryByTestId("import-resume-notice")).toBeNull();
-		expect(importDraftStore.getSnapshot().ui.resumed).toBe(false);
+	it("mounts no step content before it is presented", async () => {
+		const ref = createRef<ImportSheetHandle>();
+		const { queryByText } = await render(<ImportSheet ref={ref} />);
+		expect(queryByText("step:source")).toBeNull();
 	});
 
-	it("Start over resets the resumed draft to the source step", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
-		importDraftStore.dispatch({
-			type: "fileParsed",
-			file: { name: "bank.csv", chars: 42 },
-			parsed: {
-				header: ["date", "description", "amount"],
-				rows: [["01/08/2026", "Coffee", "3,50"]],
-				width: 3,
-			},
-			draft: {
-				category: 1,
-				note: 1,
-				date: 0,
-				amount: 2,
-				currency: null,
-				type: null,
-			},
-			resolved: {
-				mapping: {
-					category: 1,
-					note: 1,
-					date: 0,
-					amount: 2,
-					currency: null,
-					type: null,
-				},
-				labelSource: "descriptionColumn",
-			},
-			gaps: [],
-		});
-		importDraftStore.setStep("resolve");
-		importDraftStore.commitDismissal();
-
-		const { getByTestId } = await render(<ImportSheet />);
-		fireEvent.press(getByTestId("import-resume-start-over"));
-
-		await waitFor(() => {
-			expect(getByTestId("import-chrome-title")).toHaveTextContent(
-				"import.titleSource",
-			);
-		});
-		expect(importDraftStore.getSnapshot().flow.sourceId).toBeNull();
+	it("presents the source step with its title and no back chevron", async () => {
+		const { findByText, queryByTestId } = await presentSheet();
+		expect(await findByText("step:source")).toBeTruthy();
+		expect(await findByText("import.titleSource")).toBeTruthy();
+		expect(queryByTestId("import-sheet-back")).toBeNull();
 	});
 
-	it("shows an enabled Review footer once resolution settles, and pressing it advances to review", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
-		importDraftStore.dispatch({
-			type: "fileParsed",
-			file: { name: "bank.csv", chars: 42 },
-			parsed: {
-				header: ["date", "description", "amount"],
-				rows: [["01/08/2026", "Coffee", "3,50"]],
-				width: 3,
-			},
-			draft: {
-				category: 1,
-				note: 1,
-				date: 0,
-				amount: 2,
-				currency: null,
-				type: null,
-			},
-			resolved: {
-				mapping: {
-					category: 1,
-					note: 1,
-					date: 0,
-					amount: 2,
-					currency: null,
-					type: null,
-				},
-				labelSource: "descriptionColumn",
-			},
-			gaps: [],
-		});
-		importDraftStore.dispatch({
-			type: "resolutionSettled",
-			outcome: "applied",
-			reason: null,
-			links: new Map(),
-			fromModel: new Set(),
-		});
-		importDraftStore.setStep("resolve");
-		mockCsvImportContext = baseCsvImportContext({ outcome: "applied" });
-
-		const { getByTestId, getByText } = await render(<ImportSheet />);
-		const cta = getByText('import.resolveReviewCta:{"count":0}');
-		expect(cta).toBeTruthy();
-
-		fireEvent.press(cta);
-		await waitFor(() => {
-			expect(getByTestId("import-chrome-title")).toHaveTextContent(
-				"import.titleReview",
-			);
-		});
-	});
-
-	it("degraded resolution (unavailable) still enables Review and reaches the review step", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
-		importDraftStore.dispatch({
-			type: "fileParsed",
-			file: { name: "bank.csv", chars: 42 },
-			parsed: {
-				header: ["date", "description", "amount"],
-				rows: [["01/08/2026", "Coffee", "3,50"]],
-				width: 3,
-			},
-			draft: {
-				category: 1,
-				note: 1,
-				date: 0,
-				amount: 2,
-				currency: null,
-				type: null,
-			},
-			resolved: {
-				mapping: {
-					category: 1,
-					note: 1,
-					date: 0,
-					amount: 2,
-					currency: null,
-					type: null,
-				},
-				labelSource: "descriptionColumn",
-			},
-			gaps: [],
-		});
-		importDraftStore.dispatch({
-			type: "resolutionSettled",
-			outcome: "unavailable",
-			reason: "offline",
-			links: new Map(),
-			fromModel: new Set(),
-		});
-		importDraftStore.setStep("resolve");
-		mockCsvImportContext = baseCsvImportContext({
-			outcome: "unavailable",
-			reason: "offline",
-		});
-
-		const { getByTestId, getByText } = await render(<ImportSheet />);
-		fireEvent.press(getByText('import.resolveReviewCta:{"count":0}'));
-
-		await waitFor(() => {
-			expect(getByTestId("import-chrome-title")).toHaveTextContent(
-				"import.titleReview",
-			);
-		});
-	});
-
-	it("shows a disabled Import footer on the review step, and pressing it invokes onCommit", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	it("guards an illegal stored step back to the earliest legal one", async () => {
 		importDraftStore.setStep("review");
-
-		const { getByText, getByTestId } = await render(<ImportSheet />);
-
-		expect(getByTestId("import-chrome-title")).toHaveTextContent(
-			"import.titleReview",
-		);
-		const cta = getByText('import.reviewCommitCta:{"count":0}', {
-			includeHiddenElements: true,
-		});
-		fireEvent.press(cta);
-		expect(mockOnCommit).not.toHaveBeenCalled();
+		const { findByText } = await presentSheet();
+		expect(await findByText("step:source")).toBeTruthy();
 	});
 
-	it("calls router.back on Cancel, and unmount discards a non-resumable draft (no file parsed yet)", async () => {
-		const { getByText, unmount } = await render(<ImportSheet />);
+	it("renders the file step with a back chevron that steps back through the store", async () => {
+		loadFile();
+		importDraftStore.setStep("file");
+		const { findByText, getByTestId } = await presentSheet();
+		expect(await findByText("step:file")).toBeTruthy();
+
+		fireEvent.press(getByTestId("import-sheet-back"));
+		expect(importDraftStore.getSnapshot().ui.step).toBe("source");
+	});
+
+	it("dismisses through the close button", async () => {
+		const { getByTestId } = await presentSheet();
+		fireEvent.press(getByTestId("import-sheet-close"));
+		expect(mockDismiss).toHaveBeenCalled();
+	});
+
+	it("records a resume on dismissal mid-flow", async () => {
+		loadFile();
+		importDraftStore.setStep("file");
+		await presentSheet();
 		await act(async () => {
-			importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+			mockDismissHolder.current?.();
 		});
+		expect(importDraftStore.getResumeStep()).toBe("file");
+		expect(importDraftStore.getSnapshot().ui.resumed).toBe(true);
+	});
 
-		fireEvent.press(getByText("common.cancel"));
-		expect(mockBack).toHaveBeenCalledTimes(1);
+	it("clears instead of recording a resume when dismissed after a success", async () => {
+		loadFile();
+		importDraftStore.dispatch({
+			type: "resolutionSettled",
+			outcome: "applied",
+			reason: null,
+			links: new Map(),
+			fromModel: new Set(),
+		});
+		importDraftStore.dispatch({ type: "commitStarted" });
+		importDraftStore.dispatch({
+			type: "commitSucceeded",
+			count: 1,
+			outAmount: 3.5,
+			duplicatesSkipped: 0,
+		});
+		importDraftStore.setStep("done");
+		const { findByText } = await presentSheet();
+		expect(await findByText("step:done")).toBeTruthy();
 
-		await unmount();
-		expect(importDraftStore.getSnapshot().flow.sourceId).toBeNull();
+		await act(async () => {
+			mockDismissHolder.current?.();
+		});
+		expect(importDraftStore.getSnapshot().flow.parsed).toBeNull();
+		expect(importDraftStore.getResumeStep()).toBe("source");
+	});
+
+	it("shows the resume notice on a resumed reopen and Start over clears", async () => {
+		loadFile();
+		importDraftStore.setStep("file");
+		importDraftStore.commitDismissal();
+		const { findByTestId, getByTestId } = await presentSheet();
+		expect(await findByTestId("import-resume-notice")).toBeTruthy();
+
+		fireEvent.press(getByTestId("import-resume-start-over"));
+		expect(importDraftStore.getSnapshot().flow.parsed).toBeNull();
 	});
 });

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "uniwind";
+@import "panelui-native/theme.css";
+
+@source 'node_modules/panelui-native/src';
 
 /* Tailwind auto-detects content sources, which sweeps in `docs/` — and a class
    quoted in prose there is indistinguishable from one in a component. A
@@ -9,59 +12,59 @@
 @source not "./docs/**";
 
 @layer theme {
-	:root {
-		@variant light {
-			--background: #ffffff;
-			--foreground: #010101;
-			--muted: #6d6d6d;
-			--subtle: #6c6c78;
+  :root {
+    @variant light {
+      --background: #ffffff;
+      --foreground: #010101;
+      --muted: #6d6d6d;
+      --subtle: #6c6c78;
 
-			--surface: #f6f6f6;
-			--surface-foreground: #010101;
-			--surface-secondary: #f0f0f0;
-			--surface-secondary-foreground: #010101;
+      --surface: #f6f6f6;
+      --surface-foreground: #010101;
+      --surface-secondary: #f0f0f0;
+      --surface-secondary-foreground: #010101;
 
-			--border: #d2d6db;
-			--separator: #d2d6db;
+      --border: #d2d6db;
+      --separator: #d2d6db;
 
-			/* Hex mirror of iOS `systemGroupedBackground`. The OS owns the real
+      /* Hex mirror of iOS `systemGroupedBackground`. The OS owns the real
 			   value, but `PlatformColor` returns an opaque object that cannot be
 			   interpolated, so gradient stops and `withAlpha` need a parseable hex.
 			   Solid fills should prefer `SYSTEM_COLORS.groupedBackground`. */
-			--grouped-background: #f2f2f7;
+      --grouped-background: #f2f2f7;
 
-			--accent: #010101;
-			--accent-foreground: #ffffff;
-			--tint: #0069de;
+      --accent: #010101;
+      --accent-foreground: #ffffff;
+      --tint: #0069de;
 
-			--income: #027d51;
-			--expense: #010101;
-			--future: #6d6d6d;
+      --income: #027d51;
+      --expense: #010101;
+      --future: #6d6d6d;
 
-			/* The favourite swipe pill, which writes literal white over it. Same value
+      /* The favourite swipe pill, which writes literal white over it. Same value
 			   in both themes for the reason `--danger-fill` is: white is the text in
 			   both, and #8a6a14 at 5.06:1 is about as bright as gold gets before white
 			   stops clearing 4.5:1. */
-			--gold-fill: #8a6a14;
+      --gold-fill: #8a6a14;
 
-			--danger: #da0f01;
-			--over-budget: #d61d1f;
+      --danger: #da0f01;
+      --over-budget: #d61d1f;
 
-			/* The destructive swipe pill, which writes literal white over it. It
+      /* The destructive swipe pill, which writes literal white over it. It
 			   cannot be `--danger`: in dark that token has to stay light enough to
 			   read as `text-danger` on a near-black ground, and white text over it
 			   needs the opposite — no single red clears 4.5:1 on both sides. Same
 			   value in both themes because white is the text in both. */
-			--danger-fill: #da0f01;
+      --danger-fill: #da0f01;
 
-			/* Reads like a contrast miss and is not: 1.51:1 on paper. It is a rail
+      /* Reads like a contrast miss and is not: 1.51:1 on paper. It is a rail
 			   and chart fill only — src/theme/token-contrast.test.ts fails the
 			   moment a `text-warning` appears and makes that untrue. */
-			--warning: #fdcc41;
+      --warning: #fdcc41;
 
-			--chip: #1c1c1e;
+      --chip: #1c1c1e;
 
-			/* The budget rail's washes. Declared outright rather than written as
+      /* The budget rail's washes. Declared outright rather than written as
 			   `bg-over-budget/22`: Tailwind compiles that modifier to
 			   `color-mix(in srgb, unset 22%, transparent)`, and uniwind's function
 			   processor rejects it at runtime with "Invalid calc, you can't mix %
@@ -69,149 +72,217 @@
 			   `--over-budget`/`--muted`, which the AA fix split per theme: the rail
 			   still reads the same in both, and re-hueing it to follow the darker
 			   text colours is a visual decision this has not taken. */
-			--rail-over: rgba(241, 120, 121, 0.22);
-			--rail-track: rgba(118, 118, 118, 0.18);
+      --rail-over: rgba(241, 120, 121, 0.22);
+      --rail-track: rgba(118, 118, 118, 0.18);
 
-			/* First-run only: the app icon's light face, verbatim from
+      --color-card: #ffffff;
+      --color-card-foreground: #010101;
+      --color-popover: #ffffff;
+      --color-popover-foreground: #010101;
+      --color-overlay: #ffffff;
+      --color-overlay-foreground: #010101;
+      --color-primary: #010101;
+      --color-primary-foreground: #ffffff;
+      --color-muted-foreground: #6d6d6d;
+      --color-destructive: #da0f01;
+      --color-destructive-foreground: #da0f01;
+      --color-info: #0069de;
+      --color-info-foreground: #0069de;
+      --color-success: #027d51;
+      --color-success-foreground: #027d51;
+      --color-warning-foreground: #8a6a14;
+      --color-input: #d2d6db;
+      --color-ring: #0069de;
+      --color-surface-tertiary: #eaeaea;
+      --color-skeleton: rgba(0, 0, 0, 0.1);
+      --color-info-soft: rgba(0, 105, 222, 0.1);
+      --color-info-subtle: rgba(0, 105, 222, 0.08);
+      --color-success-soft: rgba(2, 125, 81, 0.1);
+      --color-success-subtle: rgba(2, 125, 81, 0.08);
+      --color-warning-soft: rgba(253, 204, 65, 0.1);
+      --color-warning-subtle: rgba(253, 204, 65, 0.08);
+      --color-destructive-soft: rgba(218, 15, 1, 0.1);
+      --color-destructive-subtle: rgba(218, 15, 1, 0.08);
+      --color-chart-1: #010101;
+      --color-chart-2: #0069de;
+      --color-chart-3: #027d51;
+      --color-chart-4: #fdcc41;
+      --color-chart-5: #da0f01;
+
+      /* First-run only: the app icon's light face, verbatim from
 			   Outlayr.icon/icon.json — paper #F2F0EA ground with ink #17150F.
 			   Measured on this ground: ink 16.02:1, muted 5.08:1, vermilion
 			   4.78:1. The vermilion speaks only in the eyebrow and never
 			   carries a value. */
-			--fr-ground: #f2f0ea;
-			--fr-ink: #17150f;
-			--fr-muted: #6b6557;
-			--fr-rule: #dcd8cc;
-			--fr-vermilion: #c2371b;
-			--fr-card: #faf8f3;
-		}
+      --fr-ground: #f2f0ea;
+      --fr-ink: #17150f;
+      --fr-muted: #6b6557;
+      --fr-rule: #dcd8cc;
+      --fr-vermilion: #c2371b;
+      --fr-card: #faf8f3;
+    }
 
-		@variant dark {
-			--background: #060a07;
-			--foreground: #ffffff;
-			--muted: #a4a4a9;
-			--subtle: #8e8e93;
+    @variant dark {
+      --background: #060a07;
+      --foreground: #ffffff;
+      --muted: #a4a4a9;
+      --subtle: #8e8e93;
 
-			--surface: #3a3a3c;
-			--surface-foreground: #ffffff;
-			--surface-secondary: #1c1c1e;
-			--surface-secondary-foreground: #ffffff;
+      --surface: #3a3a3c;
+      --surface-foreground: #ffffff;
+      --surface-secondary: #1c1c1e;
+      --surface-secondary-foreground: #ffffff;
 
-			--border: #2e2e2e;
-			--separator: #2e2e2e;
+      --border: #2e2e2e;
+      --separator: #2e2e2e;
 
-			/* See the light-mode note. */
-			--grouped-background: #000000;
+      /* See the light-mode note. */
+      --grouped-background: #000000;
 
-			--accent: #ffffff;
-			--accent-foreground: #060a07;
-			--tint: #0a84ff;
+      --accent: #ffffff;
+      --accent-foreground: #060a07;
+      --tint: #0a84ff;
 
-			--income: #0fffa9;
-			--expense: #ffffff;
-			--future: #a4a4a9;
+      --income: #0fffa9;
+      --expense: #ffffff;
+      --future: #a4a4a9;
 
-			--gold-fill: #8a6a14;
+      --gold-fill: #8a6a14;
 
-			--danger: #fe473a;
-			--over-budget: #f17879;
+      --danger: #fe473a;
+      --over-budget: #f17879;
 
-			/* See the light-mode note. */
-			--danger-fill: #da0f01;
+      /* See the light-mode note. */
+      --danger-fill: #da0f01;
 
-			--warning: #fdcc41;
+      --warning: #fdcc41;
 
-			--chip: #2c2c2e;
+      --chip: #2c2c2e;
 
-			/* See the light-mode note. */
-			--rail-over: rgba(241, 120, 121, 0.22);
-			--rail-track: rgba(118, 118, 118, 0.18);
+      /* See the light-mode note. */
+      --rail-over: rgba(241, 120, 121, 0.22);
+      --rail-track: rgba(118, 118, 118, 0.18);
 
-			/* First-run only: the icon's dark face — a warmer ground than the
+      --color-card: #1c1c1e;
+      --color-card-foreground: #ffffff;
+      --color-popover: #2c2c2e;
+      --color-popover-foreground: #ffffff;
+      --color-overlay: #3a3a3c;
+      --color-overlay-foreground: #ffffff;
+      --color-primary: #ffffff;
+      --color-primary-foreground: #060a07;
+      --color-muted-foreground: #a4a4a9;
+      --color-destructive: #fe473a;
+      --color-destructive-foreground: #fe473a;
+      --color-info: #0a84ff;
+      --color-info-foreground: #0a84ff;
+      --color-success: #0fffa9;
+      --color-success-foreground: #0fffa9;
+      --color-warning-foreground: #fdcc41;
+      --color-input: #2e2e2e;
+      --color-ring: #0a84ff;
+      --color-surface-tertiary: #2c2c2e;
+      --color-skeleton: rgba(255, 255, 255, 0.13);
+      --color-info-soft: rgba(10, 132, 255, 0.06);
+      --color-info-subtle: rgba(10, 132, 255, 0.16);
+      --color-success-soft: rgba(15, 255, 169, 0.06);
+      --color-success-subtle: rgba(15, 255, 169, 0.16);
+      --color-warning-soft: rgba(253, 204, 65, 0.06);
+      --color-warning-subtle: rgba(253, 204, 65, 0.16);
+      --color-destructive-soft: rgba(254, 71, 58, 0.06);
+      --color-destructive-subtle: rgba(254, 71, 58, 0.16);
+      --color-chart-1: #ffffff;
+      --color-chart-2: #0a84ff;
+      --color-chart-3: #0fffa9;
+      --color-chart-4: #fdcc41;
+      --color-chart-5: #fe473a;
+
+      /* First-run only: the icon's dark face — a warmer ground than the
 			   app's `--background`, designed rather than inverted. Measured on
 			   #17150F: ink 15.89:1, muted 7.05:1, vermilion 4.79:1 (mirroring
 			   the light face's 4.78:1 by construction). */
-			--fr-ground: #17150f;
-			--fr-ink: #f2efe8;
-			--fr-muted: #a8a093;
-			--fr-rule: #353026;
-			--fr-vermilion: #e0552f;
-			--fr-card: #201d15;
-		}
-	}
+      --fr-ground: #17150f;
+      --fr-ink: #f2efe8;
+      --fr-muted: #a8a093;
+      --fr-rule: #353026;
+      --fr-vermilion: #e0552f;
+      --fr-card: #201d15;
+    }
+  }
 }
 
 @theme inline {
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--color-muted: var(--muted);
-	--color-subtle: var(--subtle);
-	--color-surface: var(--surface);
-	--color-surface-foreground: var(--surface-foreground);
-	--color-surface-secondary: var(--surface-secondary);
-	--color-surface-secondary-foreground: var(--surface-secondary-foreground);
-	--color-border: var(--border);
-	--color-separator: var(--separator);
-	--color-grouped-background: var(--grouped-background);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-tint: var(--tint);
-	--color-income: var(--income);
-	--color-expense: var(--expense);
-	--color-future: var(--future);
-	--color-gold-fill: var(--gold-fill);
-	--color-danger: var(--danger);
-	--color-danger-fill: var(--danger-fill);
-	--color-over-budget: var(--over-budget);
-	--color-warning: var(--warning);
-	--color-chip: var(--chip);
-	--color-rail-over: var(--rail-over);
-	--color-rail-track: var(--rail-track);
-	--color-fr-ground: var(--fr-ground);
-	--color-fr-ink: var(--fr-ink);
-	--color-fr-muted: var(--fr-muted);
-	--color-fr-rule: var(--fr-rule);
-	--color-fr-vermilion: var(--fr-vermilion);
-	--color-fr-card: var(--fr-card);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-secondary-foreground: var(--surface-secondary-foreground);
+  --color-border: var(--border);
+  --color-separator: var(--separator);
+  --color-grouped-background: var(--grouped-background);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-tint: var(--tint);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-future: var(--future);
+  --color-gold-fill: var(--gold-fill);
+  --color-danger: var(--danger);
+  --color-danger-fill: var(--danger-fill);
+  --color-over-budget: var(--over-budget);
+  --color-warning: var(--warning);
+  --color-chip: var(--chip);
+  --color-rail-over: var(--rail-over);
+  --color-rail-track: var(--rail-track);
+  --color-fr-ground: var(--fr-ground);
+  --color-fr-ink: var(--fr-ink);
+  --color-fr-muted: var(--fr-muted);
+  --color-fr-rule: var(--fr-rule);
+  --color-fr-vermilion: var(--fr-vermilion);
+  --color-fr-card: var(--fr-card);
 }
 
 @theme {
-	--font-sans: "SFProRounded-Regular";
-	--font-sans-medium: "SFProRounded-Medium";
-	--font-sans-semibold: "SFProRounded-Semibold";
-	--font-sans-bold: "SFProRounded-Bold";
+  --font-sans: "SFProRounded-Regular";
+  --font-sans-medium: "SFProRounded-Medium";
+  --font-sans-semibold: "SFProRounded-Semibold";
+  --font-sans-bold: "SFProRounded-Bold";
 
-	--font-mono: "GeistMono_400Regular";
-	--font-mono-medium: "GeistMono_500Medium";
+  --font-mono: "GeistMono_400Regular";
+  --font-mono-medium: "GeistMono_500Medium";
 
-	/* Sizes the app actually uses, counted across src. Anything appearing once is
+  /* Sizes the app actually uses, counted across src. Anything appearing once is
 	   deliberately left to an arbitrary value (text-[34px]) rather than minted a
 	   token it would not earn. */
-	--text-micro: 10px;
-	--text-eyebrow: 11px;
-	--text-label: 12px;
-	--text-footnote: 13px;
-	--text-caption: 14px;
-	--text-subtitle: 15px;
-	--text-body: 16px;
-	--text-callout: 17px;
-	--text-headline: 18px;
-	--text-title: 20px;
-	--text-hero: 40px;
+  --text-micro: 10px;
+  --text-eyebrow: 11px;
+  --text-label: 12px;
+  --text-footnote: 13px;
+  --text-caption: 14px;
+  --text-subtitle: 15px;
+  --text-body: 16px;
+  --text-callout: 17px;
+  --text-headline: 18px;
+  --text-title: 20px;
+  --text-hero: 40px;
 
-	--text-micro--line-height: 14px;
-	--text-eyebrow--line-height: 15px;
-	--text-label--line-height: 16px;
-	--text-footnote--line-height: 18px;
-	--text-caption--line-height: 19px;
-	--text-subtitle--line-height: 21px;
-	--text-body--line-height: 22px;
-	--text-callout--line-height: 23px;
-	--text-headline--line-height: 24px;
-	--text-title--line-height: 26px;
-	--text-hero--line-height: 44px;
+  --text-micro--line-height: 14px;
+  --text-eyebrow--line-height: 15px;
+  --text-label--line-height: 16px;
+  --text-footnote--line-height: 18px;
+  --text-caption--line-height: 19px;
+  --text-subtitle--line-height: 21px;
+  --text-body--line-height: 22px;
+  --text-callout--line-height: 23px;
+  --text-headline--line-height: 24px;
+  --text-title--line-height: 26px;
+  --text-hero--line-height: 44px;
 
-	--tracking-eyebrow: 1.2px;
-	--tracking-label: 0.3px;
-	--tracking-tight: -0.3px;
-	--tracking-hero: -1px;
+  --tracking-eyebrow: 1.2px;
+  --tracking-label: 0.3px;
+  --tracking-tight: -0.3px;
+  --tracking-hero: -1px;
 }

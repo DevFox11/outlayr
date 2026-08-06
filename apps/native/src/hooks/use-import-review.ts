@@ -1,8 +1,7 @@
 import { and, eq, gte, isNull, lte } from "drizzle-orm";
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
-import { Alert } from "react-native";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useGlobalCurrency } from "@/data/app-meta";
 import { useLiveQuery } from "@/data/live-query";
 import {
 	applyImport,
@@ -18,8 +17,9 @@ import {
 	deduceDateFormat,
 	detectDecimalSeparator,
 } from "@/domain/transaction-csv";
-import { useTranslation } from "@/i18n";
+import { FALLBACK_IDENTITY_COLOR } from "@/domain/transaction-identity";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
+import { attachImportLogos } from "@/lib/import-logo-attach";
 import { useHaptics } from "@/lib/use-haptics";
 
 export type ReviewRow =
@@ -81,23 +81,32 @@ const EMPTY_PLAN: ImportPlan = {
 	latest: null,
 };
 
+export interface ReviewCategoryTile {
+	color: string;
+	icon: string | null;
+	emoji: string | null;
+}
+
 export interface ImportReviewResult {
 	plan: ImportPlan;
 	rows: ReviewRow[];
 	excluded: ReadonlySet<number>;
 	selectedCount: number;
 	categoryName: ReadonlyMap<string, string>;
+	categoryTile: ReadonlyMap<string, ReviewCategoryTile>;
+	/** The ledger's display currency, for entries whose row stated none. */
+	currency: string;
 	commit: ImportCommitState;
 	onToggle: (index: number) => void;
 	onCommit: () => void;
 }
 
 export function useImportReview(): ImportReviewResult {
-	const t = useTranslation();
-	const router = useRouter();
 	const haptics = useHaptics();
 	const db = useDatabase();
 	const { flow } = useImportDraft();
+
+	const currency = useGlobalCurrency(db);
 
 	const categoryRows = useLiveQuery(categories, () =>
 		db
@@ -105,20 +114,29 @@ export function useImportReview(): ImportReviewResult {
 				id: categories.id,
 				name: categories.name,
 				income: categories.income,
+				color: categories.color,
+				icon: categories.icon,
+				emoji: categories.emoji,
 			})
 			.from(categories)
 			.where(isNull(categories.deletedAt)),
 	);
-	const { categoryIncome, categoryName } = useMemo(() => {
+	const { categoryIncome, categoryName, categoryTile } = useMemo(() => {
 		const income = new Map<string, boolean>();
 		const name = new Map<string, string>();
+		const tile = new Map<string, ReviewCategoryTile>();
 		for (const row of categoryRows) {
 			income.set(row.id, row.income);
 			if (row.name != null) {
 				name.set(row.id, row.name);
 			}
+			tile.set(row.id, {
+				color: row.color ?? FALLBACK_IDENTITY_COLOR,
+				icon: row.icon ?? null,
+				emoji: row.emoji ?? null,
+			});
 		}
-		return { categoryIncome: income, categoryName: name };
+		return { categoryIncome: income, categoryName: name, categoryTile: tile };
 	}, [categoryRows]);
 
 	const plan = useMemo(() => {
@@ -170,15 +188,19 @@ export function useImportReview(): ImportReviewResult {
 		[plan.entries, existingRows],
 	);
 
+	const settled =
+		flow.commit.phase === "writing" || flow.commit.phase === "success";
 	useEffect(() => {
-		if (sameMembers(duplicates, flow.duplicates)) {
+		// After the write, every committed row exists on the ledger and would
+		// re-flag as its own duplicate; the flagged set is frozen from here.
+		if (settled || sameMembers(duplicates, flow.duplicates)) {
 			return;
 		}
 		importDraftStore.dispatch({
 			type: "duplicatesFlagged",
 			indices: duplicates,
 		});
-	}, [duplicates, flow.duplicates]);
+	}, [duplicates, flow.duplicates, settled]);
 
 	const rows = useMemo(
 		() => buildReviewRows(plan, flow.duplicates),
@@ -201,15 +223,27 @@ export function useImportReview(): ImportReviewResult {
 		const entries = plan.entries.filter(
 			(_, index) => !flow.excluded.has(index),
 		);
-		applyImport(db, { ...plan, entries })
+		const outAmount = entries.reduce(
+			(sum, entry) => (entry.income ? sum : sum + entry.amount),
+			0,
+		);
+		const duplicatesSkipped = [...flow.duplicates].filter((index) =>
+			flow.excluded.has(index),
+		).length;
+		attachImportLogos(entries)
+			.catch(() => entries)
+			.then((decorated) => applyImport(db, { ...plan, entries: decorated }))
 			.then((count) => {
 				haptics("success");
-				importDraftStore.clear();
-				router.back();
-				Alert.alert(
-					t("import.reviewCommitSuccessTitle"),
-					t("import.reviewCommitSuccessBody", { count }),
-				);
+				// The draft is NOT cleared here: the done step still reads the
+				// committed counts. Dismissing the sheet after a success clears.
+				importDraftStore.dispatch({
+					type: "commitSucceeded",
+					count,
+					outAmount,
+					duplicatesSkipped,
+				});
+				importDraftStore.setStep("done");
 			})
 			.catch((error: unknown) => {
 				importDraftStore.dispatch({
@@ -217,7 +251,7 @@ export function useImportReview(): ImportReviewResult {
 					detail: error instanceof Error ? error.message : null,
 				});
 			});
-	}, [db, plan, flow.excluded, flow.commit.phase, haptics, router, t]);
+	}, [db, plan, flow.excluded, flow.duplicates, flow.commit.phase, haptics]);
 
 	return {
 		plan,
@@ -225,6 +259,8 @@ export function useImportReview(): ImportReviewResult {
 		excluded: flow.excluded,
 		selectedCount,
 		categoryName,
+		categoryTile,
+		currency,
 		commit: flow.commit,
 		onToggle,
 		onCommit,

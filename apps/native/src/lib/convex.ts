@@ -136,6 +136,8 @@ export function enrichmentTransport(): EnrichmentFn | null {
 export interface LabelSuggestion {
 	label: string;
 	categoryName: string;
+	/** Absent from a backend deployed before the merchantKnowledge tier. */
+	domain?: string | null;
 }
 
 export type CsvImportStatus =
@@ -155,15 +157,18 @@ export interface CsvImportResult {
 export interface CsvImportRequest {
 	labels: string[];
 	categoryTree: CategoryBranch[];
+	/** The synced `groundedLookup` setting; the server re-checks it too. */
+	groundedLookup?: boolean;
+	regionCode?: string;
 }
 
 export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
 
 /**
- * Args are exactly `{labels, categoryTree}` — the same privacy boundary the
- * action's own validator asserts in `packages/backend/convex/csvImport.ts`.
- * Authentication rides on `convex` itself, exactly as it does for
- * `enrichmentTransport`.
+ * Args are `{labels, categoryTree}` plus the grounded consent flag and device
+ * region — the same privacy boundary the action's own validator asserts in
+ * `packages/backend/convex/csvImport.ts`. Authentication rides on `convex`
+ * itself, exactly as it does for `enrichmentTransport`.
  */
 export function csvImportTransport(): CsvImportFn | null {
 	if (!convex) {

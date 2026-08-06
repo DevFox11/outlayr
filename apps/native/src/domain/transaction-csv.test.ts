@@ -125,6 +125,22 @@ describe("deduceDateFormat", () => {
 	it("ignores blank values when deducing", () => {
 		expect(deduceDateFormat(["", "2026-07-29"])).toBe("yyyy-MM-dd");
 	});
+
+	it("survives a malformed value instead of failing the whole column", () => {
+		expect(deduceDateFormat(["29/07/2026", "99/99/2026", "01/02/2026"])).toBe(
+			"dd/MM/yyyy",
+		);
+	});
+
+	it("still answers null when malformed values are the majority story", () => {
+		expect(deduceDateFormat(["99/99/2026", "not a date"])).toBe(null);
+	});
+
+	it("settles ambiguity from the parseable values only", () => {
+		expect(deduceDateFormat(["07/29/2026", "99/99/2026", "01/02/2026"])).toBe(
+			"MM/dd/yyyy",
+		);
+	});
 });
 
 describe("parseCsvDate", () => {

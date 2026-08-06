@@ -11,6 +11,10 @@ const common = {
 			en: "All",
 			es: "Todo",
 		}),
+		"common.back": t({
+			en: "Back",
+			es: "Atrás",
+		}),
 		"common.cancel": t({
 			en: "Cancel",
 			es: "Cancelar",

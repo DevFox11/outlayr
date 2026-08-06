@@ -237,7 +237,7 @@ function describeTree(tree: readonly CategoryBranch[]): string {
  */
 function regionLine(regionCode: string | undefined): string {
 	return regionCode
-		? `The user is in region ${regionCode}. If this name matches businesses in more than one country, prefer one operating in ${regionCode} over a same-named business elsewhere. Do not guess a match if none fits confidently.`
+		? `The user is in region ${regionCode}. If this name matches businesses in more than one country, prefer one operating in ${regionCode} over a same-named business elsewhere. If no business operating in ${regionCode} matches, fall back to the best globally known match for this name. Do not guess a match if none fits confidently.`
 		: "";
 }
 

@@ -102,6 +102,9 @@ export interface ImportEntry {
 	/** Null adopts the ledger's code at write time. */
 	currency: string | null;
 	date: Date;
+	/** Attached at commit time from the merchant's cached logo, if any. */
+	imageUri?: string | null;
+	imageColor?: string | null;
 }
 
 export type SkipReason = "category" | "date" | "amount";
@@ -291,6 +294,8 @@ export async function applyImport(
 				details: null,
 				date: entry.date,
 				currency: entry.currency,
+				imageUri: entry.imageUri ?? null,
+				imageColor: entry.imageColor ?? null,
 			});
 		}
 	});

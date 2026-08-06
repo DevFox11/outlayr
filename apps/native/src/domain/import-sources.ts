@@ -1,8 +1,12 @@
 import type { IconSvgElement } from "@hugeicons/react-native";
-import { File01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import {
+	ClipboardPasteIcon,
+	File01Icon,
+	Image01Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import type { TranslationKey } from "@/i18n/catalog";
 
-export type ImportSourceId = "csv";
+export type ImportSourceId = "csv" | "clipboard" | "screenshot";
 
 export interface ImportSource {
 	readonly id: ImportSourceId;
@@ -19,5 +23,19 @@ export const IMPORT_SOURCES: readonly ImportSource[] = [
 		subtitleKey: "settings.import.sourceCsvSubtitle",
 		icon: File01Icon,
 		available: true,
+	},
+	{
+		id: "clipboard",
+		titleKey: "settings.import.sourceClipboardTitle",
+		subtitleKey: "settings.import.sourceClipboardSubtitle",
+		icon: ClipboardPasteIcon,
+		available: false,
+	},
+	{
+		id: "screenshot",
+		titleKey: "settings.import.sourceScreenshotTitle",
+		subtitleKey: "settings.import.sourceScreenshotSubtitle",
+		icon: Image01Icon,
+		available: false,
 	},
 ];

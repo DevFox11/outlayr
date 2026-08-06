@@ -276,20 +276,31 @@ export function deduceDateFormat(values: readonly string[]): string | null {
 		return null;
 	}
 
-	const viable = DATE_FORMATS.filter((format) =>
-		sample.every((value) => parseCsvDate(value, format) != null),
+	// A format is judged by how many values it parses, not by parsing them
+	// all: one stray malformed row must not turn every other date unreadable.
+	const parseCount = new Map(
+		DATE_FORMATS.map((format) => [
+			format,
+			sample.filter((value) => parseCsvDate(value, format) != null).length,
+		]),
 	);
-	if (viable.length === 0) {
+	const best = Math.max(...parseCount.values());
+	if (best === 0 || best * 2 < sample.length) {
 		return null;
 	}
+	const viable = DATE_FORMATS.filter(
+		(format) => parseCount.get(format) === best,
+	);
 
 	const dayFirst = viable.find((format) => format.startsWith("dd"));
 	const monthFirst = viable.find((format) => format.startsWith("MM"));
 	if (dayFirst != null && monthFirst != null) {
-		const leadsAboveTwelve = sample.some((value) => {
-			const first = Number.parseInt(value.slice(0, 2), 10);
-			return Number.isFinite(first) && first > 12;
-		});
+		const leadsAboveTwelve = sample.some(
+			(value) =>
+				(parseCsvDate(value, dayFirst) != null ||
+					parseCsvDate(value, monthFirst) != null) &&
+				Number.parseInt(value.slice(0, 2), 10) > 12,
+		);
 		return leadsAboveTwelve ? dayFirst : monthFirst;
 	}
 

@@ -1,6 +1,11 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
+import { useRef } from "react";
 import { Alert, Linking, Platform, Share } from "react-native";
+import {
+	ImportSheet,
+	type ImportSheetHandle,
+} from "@/components/import-sheet/import-sheet";
 import { AccountRow } from "@/components/settings/account-row";
 import {
 	LinkRow,
@@ -37,6 +42,7 @@ import {
 } from "@/i18n";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
+import { importDraftStore } from "@/lib/import-draft-store";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { themeLabel } from "@/theme/theme-preference";
@@ -74,6 +80,7 @@ export default function SettingsScreenRoute() {
 function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
+	const importSheetRef = useRef<ImportSheetHandle>(null);
 	const { themePreference } = useAppTheme();
 	const { preference } = useLanguage();
 	useReminderSync(db);
@@ -219,7 +226,10 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 				<LinkRow
 					icon="FileImport"
-					onPress={() => router.push("/import")}
+					onPress={() => {
+						importDraftStore.setStep(importDraftStore.getResumeStep());
+						importSheetRef.current?.present();
+					}}
 					title={t("settings.row.import")}
 				/>
 				<LinkRow
@@ -325,6 +335,7 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.about")}
 				/>
 			</SettingsSection>
+			<ImportSheet ref={importSheetRef} />
 		</SettingsScreen>
 	);
 }

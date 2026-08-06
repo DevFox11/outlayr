@@ -6,7 +6,7 @@ import type {
 } from "./import-mapping";
 import type { ImportSourceId } from "./import-sources";
 
-export type ImportStep = "source" | "file" | "resolve" | "review";
+export type ImportStep = "source" | "file" | "resolve" | "review" | "done";
 export type ResolutionOutcome = "applied" | "unavailable" | "declined";
 export type UnavailableReason =
 	| "offline"
@@ -28,7 +28,13 @@ export interface ImportResolution {
 export type ImportCommitState =
 	| { phase: "idle" }
 	| { phase: "writing" }
-	| { phase: "failed"; detail: string | null };
+	| { phase: "failed"; detail: string | null }
+	| {
+			phase: "success";
+			count: number;
+			outAmount: number;
+			duplicatesSkipped: number;
+	  };
 
 export interface ImportFlowState {
 	sourceId: ImportSourceId | null;
@@ -76,7 +82,13 @@ export type ImportFlowEvent =
 	| { type: "rowToggled"; index: number }
 	| { type: "duplicatesFlagged"; indices: ReadonlySet<number> }
 	| { type: "commitStarted" }
-	| { type: "commitFailed"; detail: string | null };
+	| { type: "commitFailed"; detail: string | null }
+	| {
+			type: "commitSucceeded";
+			count: number;
+			outAmount: number;
+			duplicatesSkipped: number;
+	  };
 
 export function importFlowReducer(
 	state: ImportFlowState,
@@ -164,12 +176,33 @@ export function importFlowReducer(
 			return { ...state, commit: { phase: "failed", detail: event.detail } };
 		}
 
+		case "commitSucceeded": {
+			if (state.resolution == null) {
+				return state;
+			}
+			return {
+				...state,
+				commit: {
+					phase: "success",
+					count: event.count,
+					outAmount: event.outAmount,
+					duplicatesSkipped: event.duplicatesSkipped,
+				},
+			};
+		}
+
 		default:
 			return state;
 	}
 }
 
-export const IMPORT_STEPS = ["source", "file", "resolve", "review"] as const;
+export const IMPORT_STEPS = [
+	"source",
+	"file",
+	"resolve",
+	"review",
+	"done",
+] as const;
 
 export function canAdvance(state: ImportFlowState, step: ImportStep): boolean {
 	switch (step) {
@@ -180,7 +213,7 @@ export function canAdvance(state: ImportFlowState, step: ImportStep): boolean {
 		case "resolve":
 			return state.resolution != null;
 		case "review":
-			return true;
+			return state.commit.phase === "success";
 		default:
 			return false;
 	}

@@ -32,11 +32,10 @@ export interface ImportDraftStore {
 	subscribe(listener: () => void): () => void;
 	/** Committed only by `commitDismissal`/`clear`, so this rarely changes. */
 	getResumeStep(): ImportStep;
-	subscribeResume(listener: () => void): () => void;
 	dispatch(event: ImportFlowEvent): void;
 	setStep(step: ImportStep): void;
 	setFileError(error: FileStepError | null): void;
-	/** Called from the sheet root's unmount cleanup. */
+	/** Called from the sheet modal's onDismiss. */
 	commitDismissal(): void;
 	clear(): void;
 }
@@ -59,7 +58,6 @@ export function createImportDraftStore(): ImportDraftStore {
 	let snapshot: ImportDraftSnapshot = INITIAL_SNAPSHOT;
 	let resumeStep: ImportStep = "source";
 	const listeners = new Set<() => void>();
-	const resumeListeners = new Set<() => void>();
 
 	function commit(next: ImportDraftSnapshot) {
 		snapshot = next;
@@ -69,13 +67,7 @@ export function createImportDraftStore(): ImportDraftStore {
 	}
 
 	function commitResumeStep(next: ImportStep) {
-		if (next === resumeStep) {
-			return;
-		}
 		resumeStep = next;
-		for (const listener of resumeListeners) {
-			listener();
-		}
 	}
 
 	function clear() {
@@ -103,10 +95,6 @@ export function createImportDraftStore(): ImportDraftStore {
 		getResumeStep() {
 			return resumeStep;
 		},
-		subscribeResume(listener) {
-			resumeListeners.add(listener);
-			return () => resumeListeners.delete(listener);
-		},
 		dispatch(event) {
 			const flow = importFlowReducer(snapshot.flow, event);
 			if (flow !== snapshot.flow || snapshot.ui.resumed) {
@@ -114,7 +102,7 @@ export function createImportDraftStore(): ImportDraftStore {
 			}
 		},
 		setStep(step) {
-			if (step === snapshot.ui.step && !snapshot.ui.resumed) {
+			if (step === snapshot.ui.step) {
 				return;
 			}
 			commit({ ...snapshot, ui: { ...snapshot.ui, step, resumed: false } });

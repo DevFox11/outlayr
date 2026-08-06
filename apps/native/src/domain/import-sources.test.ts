@@ -12,9 +12,26 @@ describe("IMPORT_SOURCES", () => {
 		}
 	});
 
+	it("lists csv first, then clipboard, then screenshot", () => {
+		expect(IMPORT_SOURCES.map((source) => source.id)).toStrictEqual([
+			"csv",
+			"clipboard",
+			"screenshot",
+		]);
+	});
+
 	it("has exactly one available entry, and it is CSV", () => {
 		const available = IMPORT_SOURCES.filter((source) => source.available);
 		expect(available).toHaveLength(1);
 		expect(available[0]?.id).toBe("csv");
+	});
+
+	it("gives every source its own icon and title", () => {
+		for (const source of IMPORT_SOURCES) {
+			expect(source.icon).toBeDefined();
+		}
+		expect(new Set(IMPORT_SOURCES.map((source) => source.titleKey)).size).toBe(
+			IMPORT_SOURCES.length,
+		);
 	});
 });

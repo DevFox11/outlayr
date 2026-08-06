@@ -2,7 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(__dirname);
-const BACKGROUND_CLASS = /\bbg-(background|surface|card)\b/;
+const SHEET_ROOT_FILE = "import-sheet.tsx";
+/** Washes and cards: the Grid grammar rules ink onto the sheet's own paper. */
+const WASH_CLASS = /\bbg-(surface|card|foreground\/\d+)\b/;
+const SOLID_BACKGROUND_CLASS = /\bbg-background\b/;
 
 function collectSourceFiles(dir: string): string[] {
 	const files: string[] = [];
@@ -19,12 +22,23 @@ function collectSourceFiles(dir: string): string[] {
 	return files;
 }
 
-describe("import-sheet: no view paints its own background", () => {
-	it("no source file under components/import-sheet/ uses bg-background, bg-surface, or bg-card", () => {
-		const offenders = collectSourceFiles(ROOT)
-			.filter((file) => BACKGROUND_CLASS.test(readFileSync(file, "utf8")))
-			.map((file) => file.slice(ROOT.length + 1));
+describe("import-sheet backgrounds: one solid sheet, ruled step content", () => {
+	it("the sheet root paints its own background through the modal's backgroundStyle", () => {
+		const source = readFileSync(join(ROOT, SHEET_ROOT_FILE), "utf8");
+		expect(source).toMatch(/backgroundStyle=\{\{/);
+	});
 
+	it("no sheet content re-paints the sheet background", () => {
+		const offenders = collectSourceFiles(ROOT)
+			.filter((file) => SOLID_BACKGROUND_CLASS.test(readFileSync(file, "utf8")))
+			.map((file) => file.slice(ROOT.length + 1));
+		expect(offenders).toStrictEqual([]);
+	});
+
+	it("no file under components/import-sheet/ draws a card wash", () => {
+		const offenders = collectSourceFiles(ROOT)
+			.filter((file) => WASH_CLASS.test(readFileSync(file, "utf8")))
+			.map((file) => file.slice(ROOT.length + 1));
 		expect(offenders).toStrictEqual([]);
 	});
 });

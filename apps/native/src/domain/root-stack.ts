@@ -79,6 +79,5 @@ export const ROOT_STACK_SCREEN_NAMES: Readonly<
 		"transaction/new",
 		"transaction/[id]",
 		"transaction/identity",
-		"import",
 	],
 };

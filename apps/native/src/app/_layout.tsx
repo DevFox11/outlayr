@@ -10,7 +10,8 @@ import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { PanelUIProvider } from "panelui-native";
+import { useEffect, useState } from "react";
 import {
 	Pressable,
 	useColorScheme,
@@ -23,7 +24,7 @@ import {
 	SafeAreaListener,
 	SafeAreaProvider,
 } from "react-native-safe-area-context";
-import { Uniwind } from "uniwind";
+import { Uniwind, useCSSVariable } from "uniwind";
 import { AppLockGate } from "@/components/app-lock-gate";
 import { AuthCover } from "@/components/auth-cover";
 import { LocalDataError } from "@/components/local-data-error";
@@ -49,12 +50,11 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { convex } from "@/lib/convex";
-import { importDraftStore } from "@/lib/import-draft-store";
 import {
 	LedgerAdoptionProvider,
 	useLedgerAdoption,
 } from "@/lib/ledger-adoption";
-import { identityPickerDetent, importStepDetents } from "@/lib/sheet-detents";
+import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
@@ -100,6 +100,12 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const languageReady = useLanguageReady();
 	const colorScheme = useColorScheme();
 	const [splashHidden, setSplashHidden] = useState(false);
+	const [background, card, text, border] = useCSSVariable([
+		"--color-background",
+		"--color-card",
+		"--color-foreground",
+		"--color-border",
+	]) as string[];
 
 	// The app's one readiness gate: every screen below it can call `useDatabase()`
 	// and read straight away, with no per-screen loading branch, and the first
@@ -118,6 +124,8 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 		}
 	}, [isReady]);
 
+	const base = isDark ? DarkTheme : DefaultTheme;
+
 	// Latched on the splash, because `retry()` walks the status back through
 	// opening → migrating → seeding: returning null on those once the splash is
 	// gone would blank the screen for the length of the attempt, and permanently
@@ -134,19 +142,23 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 		<>
 			<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-			{/* expo-router derives every header's native
-			    `UINavigationBar.overrideUserInterfaceStyle` from this theme's `dark`
-			    flag, never from the device. Without it the bar is pinned light and
-			    renders light-mode Liquid Glass over dark content. */}
-			<ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-				<LedgerAdoptionProvider>
-					<AuthCover>
-						<AppLockGate>
-							<RootStack />
-						</AppLockGate>
-					</AuthCover>
-				</LedgerAdoptionProvider>
-			</ThemeProvider>
+			<PanelUIProvider>
+				<ThemeProvider
+					value={{
+						...base,
+						dark: isDark,
+						colors: { ...base.colors, background, card, text, border },
+					}}
+				>
+					<LedgerAdoptionProvider>
+						<AuthCover>
+							<AppLockGate>
+								<RootStack />
+							</AppLockGate>
+						</AuthCover>
+					</LedgerAdoptionProvider>
+				</ThemeProvider>
+			</PanelUIProvider>
 		</>
 	);
 }
@@ -178,10 +190,6 @@ function RootStack() {
 	const { status: adoption } = useLedgerAdoption();
 	const { height: windowHeight } = useWindowDimensions();
 	const pickerDetent = identityPickerDetent(windowHeight);
-	const resumeStep = useSyncExternalStore(
-		importDraftStore.subscribeResume,
-		importDraftStore.getResumeStep,
-	);
 	useSubscriptionReminderSync(db);
 	useSeededClockPreference(db);
 
@@ -282,9 +290,7 @@ function RootStack() {
 						headerShown: false,
 						sheetGrabberVisible: true,
 						sheetAllowedDetents: [pickerDetent, 1],
-						sheetLargestUndimmedDetentIndex: 0,
 						sheetCornerRadius: 40,
-						contentStyle: { backgroundColor: "transparent" },
 					}}
 				/>
 
@@ -313,18 +319,6 @@ function RootStack() {
 						sheetAllowedDetents: [pickerDetent, 1],
 						sheetLargestUndimmedDetentIndex: 0,
 						sheetCornerRadius: 40,
-						contentStyle: { backgroundColor: "transparent" },
-					}}
-				/>
-				<Stack.Screen
-					name="import"
-					options={{
-						presentation: "formSheet",
-						headerShown: false,
-						sheetGrabberVisible: true,
-						sheetAllowedDetents: importStepDetents(resumeStep, windowHeight),
-						sheetCornerRadius: 40,
-						contentStyle: { backgroundColor: "transparent" },
 					}}
 				/>
 			</Stack.Protected>

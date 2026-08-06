@@ -56,6 +56,27 @@ export async function readCachedLogo(key: string): Promise<CachedLogo> {
 	return { kind: "unknown" };
 }
 
+/**
+ * The cached file's uri, readable synchronously so a list row can point an
+ * `Image` straight at it. Cached-only by design: a missing entry answers null
+ * rather than triggering a fetch.
+ */
+export function cachedLogoUri(key: string): string | null {
+	if (key.length === 0) {
+		return null;
+	}
+	try {
+		const dir = directory();
+		if (new File(dir, `${key}${MISS_MARKER}`).exists) {
+			return null;
+		}
+		const hit = new File(dir, key);
+		return hit.exists ? hit.uri : null;
+	} catch {
+		return null;
+	}
+}
+
 export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
 	if (key.length === 0) {
 		return;

@@ -9,6 +9,7 @@ import {
 } from "@/data/transfer-core";
 import type { MappingDraft } from "@/domain/import-mapping";
 import { type UseCsvImportResult, useCsvImport } from "@/hooks/use-csv-import";
+import { useRegionCode } from "@/hooks/use-region-code";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
 
 const EMPTY_PARSED: ParsedImportFile = { header: null, rows: [], width: 0 };
@@ -54,7 +55,10 @@ const CsvImportContext = createContext<UseCsvImportResult | null>(null);
 export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 	const db = useDatabase();
 	const meta = useCategoryMeta(db);
-	const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
+	const settings = useAppSettings().state;
+	const aiEnrichment = settings.bool("aiEnrichment");
+	const groundedLookup = settings.bool("groundedLookup");
+	const regionCode = useRegionCode();
 	const { flow: state } = useImportDraft();
 
 	const categoryTree = useMemo(() => buildCategoryTree(meta), [meta]);
@@ -78,6 +82,8 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 		categoryTree,
 		categoryIdByKey,
 		aiEnrichment,
+		groundedLookup,
+		regionCode,
 		fileKey:
 			state.file == null ? null : `${state.file.name}:${state.file.chars}`,
 	});

@@ -1,7 +1,11 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import type { ReactNode } from "react";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
-import { EntryRow, ReviewStep, renderReviewRow } from "./review-step";
+import { EntryRow, ReviewStep } from "./review-step";
 
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 59, bottom: 34, left: 0, right: 0 }),
+}));
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
@@ -9,12 +13,66 @@ jest.mock("@/i18n", () => ({
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
 		foreground: "#17150F",
+		background: "#F2F0EA",
 		muted: "#8A8578",
 		subtle: "#B4AFA0",
 		income: "#2E7D32",
 		danger: "#B5482F",
 	}),
 }));
+jest.mock("@/contexts/app-theme-context", () => ({
+	useAppTheme: () => ({ isDark: false }),
+}));
+jest.mock("@/contexts/display-settings-context", () => ({
+	useDisplaySettings: () => ({
+		state: { showCents: true, showSign: true },
+	}),
+}));
+jest.mock("@/hooks/use-review-enrichment", () => ({
+	useReviewEnrichment: (entries: readonly { note: string }[]) =>
+		new Map(
+			entries.map((entry, index) => [
+				index,
+				{ displayName: `clean:${entry.note}`, logoUri: null },
+			]),
+		),
+}));
+jest.mock("@legendapp/list/section-list", () => {
+	const { View: RNView } = require("react-native");
+	interface MockSection {
+		key: string;
+		data: unknown[];
+	}
+	return {
+		SectionList: ({
+			sections,
+			renderItem,
+			renderSectionHeader,
+			keyExtractor,
+			ListFooterComponent,
+		}: {
+			sections: MockSection[];
+			renderItem: (info: { item: unknown; index: number }) => ReactNode;
+			renderSectionHeader: (info: { section: MockSection }) => ReactNode;
+			keyExtractor: (item: unknown, index: number) => string;
+			ListFooterComponent?: ReactNode;
+		}) => (
+			<RNView testID="legend-list">
+				{sections.map((section) => (
+					<RNView key={section.key}>
+						{renderSectionHeader({ section })}
+						{section.data.map((item, index) => (
+							<RNView key={keyExtractor(item, index)}>
+								{renderItem({ item, index })}
+							</RNView>
+						))}
+					</RNView>
+				))}
+				{ListFooterComponent}
+			</RNView>
+		),
+	};
+});
 
 const ENTRY = {
 	note: "Bakery",
@@ -25,130 +83,113 @@ const ENTRY = {
 	date: new Date(2026, 6, 28),
 };
 
-describe("EntryRow", () => {
-	it("renders the note, category, signed amount and duplicate caption", async () => {
-		const { getByText, queryByText } = await render(
-			<EntryRow
-				categoryName="Groceries"
-				checked={true}
-				duplicate={true}
-				entry={ENTRY}
-				index={0}
-				onToggle={jest.fn()}
-			/>,
-		);
+const OTHER_DAY_ENTRY = {
+	...ENTRY,
+	note: "Salary",
+	categoryId: "cat-pay",
+	income: true,
+	amount: 2400,
+	date: new Date(2026, 6, 27),
+};
 
-		expect(getByText("Bakery")).toBeTruthy();
+const TILE = { color: "#3D8A4E", icon: "basket", emoji: null };
+
+function entryRowProps(
+	overrides: Partial<Parameters<typeof EntryRow>[0]> = {},
+) {
+	return {
+		index: 0,
+		entry: ENTRY,
+		duplicate: false,
+		checked: true,
+		categoryName: "Groceries",
+		tile: TILE,
+		displayName: "Bakery Corner",
+		logoUri: null,
+		currency: "USD",
+		onToggle: jest.fn(),
+		...overrides,
+	};
+}
+
+interface JsonNode {
+	type?: string;
+	props?: Record<string, unknown>;
+	children?: (JsonNode | string)[] | null;
+}
+
+function classNames(node: JsonNode | JsonNode[] | null): string[] {
+	if (node == null) {
+		return [];
+	}
+	if (Array.isArray(node)) {
+		return node.flatMap(classNames);
+	}
+	const own = node.props?.className;
+	return [
+		...(typeof own === "string" ? [own] : []),
+		...(node.children ?? []).flatMap((child) =>
+			typeof child === "string" ? [] : classNames(child),
+		),
+	];
+}
+
+describe("EntryRow", () => {
+	it("renders the enriched name, category subline, date and ledger-formatted amount", async () => {
+		const { getByText } = await render(<EntryRow {...entryRowProps()} />);
+
+		expect(getByText("Bakery Corner")).toBeTruthy();
 		expect(getByText("Groceries")).toBeTruthy();
-		expect(getByText("12.50")).toBeTruthy();
-		expect(getByText("import.reviewDuplicateCaption")).toBeTruthy();
-		expect(queryByText("+12.50")).toBeNull();
+		expect(
+			getByText(
+				ENTRY.date.toLocaleDateString(undefined, {
+					day: "numeric",
+					month: "short",
+				}),
+			),
+		).toBeTruthy();
+		expect(getByText("-$12.50")).toBeTruthy();
 	});
 
-	it("signs an income entry's amount", async () => {
+	it("marks income green-signed the way the ledger does", async () => {
 		const { getByText } = await render(
 			<EntryRow
-				categoryName="Paycheck"
-				checked
-				duplicate={false}
-				entry={{ ...ENTRY, income: true, amount: 2400 }}
-				index={1}
-				onToggle={jest.fn()}
+				{...entryRowProps({ entry: { ...ENTRY, income: true, amount: 2400 } })}
 			/>,
 		);
-		expect(getByText("+2400.00")).toBeTruthy();
+		expect(getByText("+$2,400.00")).toBeTruthy();
 	});
 
-	it("presses call onToggle with its own index", async () => {
+	it("shows the duplicate warning subline instead of the category line", async () => {
+		const { getByText, queryByText } = await render(
+			<EntryRow {...entryRowProps({ duplicate: true, checked: false })} />,
+		);
+		expect(getByText("import.reviewDuplicateCaption")).toBeTruthy();
+		expect(queryByText("Groceries")).toBeNull();
+	});
+
+	it("toggles from a plain row tap, keeping the rowToggled event", async () => {
 		const onToggle = jest.fn();
 		const { getByTestId } = await render(
-			<EntryRow
-				categoryName="Groceries"
-				checked
-				duplicate={false}
-				entry={ENTRY}
-				index={3}
-				onToggle={onToggle}
-			/>,
+			<EntryRow {...entryRowProps({ index: 3, onToggle })} />,
 		);
 		fireEvent.press(getByTestId("review-row-3"));
 		expect(onToggle).toHaveBeenCalledWith(3);
-		expect(onToggle).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not re-render when rerendered with referentially identical props", async () => {
-		const onRender = jest.fn();
-		const onToggle = jest.fn();
-		const props = {
-			categoryName: "Groceries",
-			duplicate: false,
-			entry: ENTRY,
-			index: 0,
-			onRender,
-			onToggle,
-		};
-		const { rerender } = await render(<EntryRow {...props} checked={true} />);
-		expect(onRender).toHaveBeenCalledTimes(1);
-
-		await rerender(<EntryRow {...props} checked={true} />);
-		expect(onRender).toHaveBeenCalledTimes(1);
-
-		await rerender(<EntryRow {...props} checked={false} />);
-		expect(onRender).toHaveBeenCalledTimes(2);
-	});
-});
-
-describe("renderReviewRow", () => {
-	function baseReview(
-		overrides: Partial<ImportReviewResult> = {},
-	): ImportReviewResult {
-		return {
-			plan: { entries: [], skipped: [], earliest: null, latest: null },
-			rows: [],
-			excluded: new Set([1]),
-			selectedCount: 1,
-			categoryName: new Map([["cat-food", "Groceries"]]),
-			commit: { phase: "idle" },
-			onToggle: jest.fn(),
-			onCommit: jest.fn(),
-			...overrides,
-		};
-	}
-
-	it("renders an entry row, unchecked when its index is excluded", async () => {
-		const review = baseReview();
-		const element = renderReviewRow(
-			{
-				kind: "entry",
-				key: "entry-1",
-				index: 1,
-				entry: ENTRY,
-				duplicate: false,
-			},
-			review,
+	it("dims and strikes the excluded state", async () => {
+		const screen = await render(
+			<EntryRow {...entryRowProps({ checked: false })} />,
 		);
-		const { getByTestId } = await render(element);
-		expect(getByTestId("review-row-checkbox-1")).toBeTruthy();
+		const names = classNames(screen.toJSON() as unknown as JsonNode);
+		expect(names.some((name) => /\bopacity-40\b/.test(name))).toBe(true);
+		expect(names.some((name) => /\bline-through\b/.test(name))).toBe(true);
 	});
 
-	it("renders the skipped header with its count and no checkbox", async () => {
-		const element = renderReviewRow(
-			{ kind: "header", key: "skipped-header", count: 4 },
-			baseReview(),
-		);
-		const { getByText } = await render(element);
-		expect(getByText('import.reviewSkippedHeader:{"count":4}')).toBeTruthy();
-	});
-
-	it("renders a skipped row with its reason and no checkbox", async () => {
-		const element = renderReviewRow(
-			{ kind: "skipped", key: "skipped-3", row: 3, reason: "amount" },
-			baseReview(),
-		);
-		const { getByText, queryByTestId } = await render(element);
-		expect(getByText("3")).toBeTruthy();
-		expect(getByText("import.skipReasonAmount")).toBeTruthy();
-		expect(queryByTestId("review-row-checkbox-skipped-3")).toBeNull();
+	it("keeps the included state unstruck", async () => {
+		const screen = await render(<EntryRow {...entryRowProps()} />);
+		const names = classNames(screen.toJSON() as unknown as JsonNode);
+		expect(names.some((name) => /\bline-through\b/.test(name))).toBe(false);
 	});
 });
 
@@ -157,7 +198,12 @@ describe("ReviewStep", () => {
 		overrides: Partial<ImportReviewResult> = {},
 	): ImportReviewResult {
 		return {
-			plan: { entries: [], skipped: [], earliest: null, latest: null },
+			plan: {
+				entries: [ENTRY],
+				skipped: [],
+				earliest: null,
+				latest: null,
+			},
 			rows: [
 				{
 					kind: "entry",
@@ -167,41 +213,204 @@ describe("ReviewStep", () => {
 					duplicate: false,
 				},
 			],
-			excluded: new Set(),
+			excluded: new Set<number>(),
 			selectedCount: 1,
-			categoryName: new Map(),
+			categoryName: new Map([["cat-food", "Groceries"]]),
+			categoryTile: new Map([["cat-food", TILE]]),
+			currency: "USD",
 			commit: { phase: "idle" },
 			onToggle: jest.fn(),
 			onCommit: jest.fn(),
 			...overrides,
-		};
+		} as ImportReviewResult;
 	}
 
-	it("renders the list, keyed by testID, once rows are plannable", async () => {
-		const { getByTestId } = await render(<ReviewStep review={baseReview()} />);
-		expect(getByTestId("review-list")).toBeTruthy();
+	it("pins the measure strip with the live selection count and out total", async () => {
+		const { getAllByText, getByText } = await render(
+			<ReviewStep review={baseReview()} />,
+		);
+		expect(getByText("import.reviewToImportLabel")).toBeTruthy();
+		expect(
+			getByText('import.reviewToImportValue:{"count":1,"total":1}'),
+		).toBeTruthy();
+		expect(getByText("log.measure.out")).toBeTruthy();
+		expect(getAllByText("-$12.50").length).toBeGreaterThanOrEqual(2);
 	});
 
-	it("shows the failure banner above the list when the commit failed", async () => {
-		const { getByText } = await render(
-			<ReviewStep
-				review={baseReview({
-					commit: { phase: "failed", detail: "disk full" },
-				})}
-			/>,
-		);
-
-		expect(getByText("import.reviewCommitFailedTitle")).toBeTruthy();
-		expect(getByText("import.reviewCommitFailedBody")).toBeTruthy();
-		expect(getByText("disk full")).toBeTruthy();
+	it("excludes toggled-off rows from the out total", async () => {
+		const review = baseReview({ excluded: new Set([0]), selectedCount: 0 });
+		const { getByText } = await render(<ReviewStep review={review} />);
+		expect(getByText("-$0.00")).toBeTruthy();
 	});
 
-	it("shows an empty message and no list when nothing is plannable", async () => {
-		const { getByText, queryByTestId } = await render(
-			<ReviewStep review={baseReview({ rows: [] })} />,
+	it("orders day sections newest-first regardless of file order", async () => {
+		const older = { ...ENTRY, note: "Older", date: new Date(2026, 6, 20) };
+		const newer = { ...ENTRY, note: "Newer", date: new Date(2026, 6, 29) };
+		const review = baseReview({
+			plan: {
+				entries: [older, newer],
+				skipped: [],
+				earliest: null,
+				latest: null,
+			},
+			rows: [
+				{
+					kind: "entry",
+					key: "entry-0",
+					index: 0,
+					entry: older,
+					duplicate: false,
+				},
+				{
+					kind: "entry",
+					key: "entry-1",
+					index: 1,
+					entry: newer,
+					duplicate: false,
+				},
+			],
+			selectedCount: 2,
+		});
+		const screen = await render(<ReviewStep review={review} />);
+		const serialized = JSON.stringify(screen.toJSON());
+		expect(serialized.indexOf("clean:Newer")).toBeLessThan(
+			serialized.indexOf("clean:Older"),
+		);
+	});
+
+	it("groups entries under day headers with live included totals", async () => {
+		const review = baseReview({
+			plan: {
+				entries: [ENTRY, OTHER_DAY_ENTRY],
+				skipped: [],
+				earliest: null,
+				latest: null,
+			},
+			rows: [
+				{
+					kind: "entry",
+					key: "entry-0",
+					index: 0,
+					entry: ENTRY,
+					duplicate: false,
+				},
+				{
+					kind: "entry",
+					key: "entry-1",
+					index: 1,
+					entry: OTHER_DAY_ENTRY,
+					duplicate: false,
+				},
+			],
+			selectedCount: 2,
+		});
+		const screen = await render(<ReviewStep review={review} />);
+		const serialized = JSON.stringify(screen.toJSON());
+		expect(serialized).toContain("-$12.50");
+		expect(serialized).toContain("+$2,400.00");
+		const dayRules = classNames(screen.toJSON() as unknown as JsonNode).filter(
+			(name) => name === "bg-border",
+		);
+		expect(dayRules.length).toBeGreaterThanOrEqual(2);
+	});
+
+	it("collapses skipped rows behind the footnote toggle", async () => {
+		const review = baseReview({
+			plan: {
+				entries: [ENTRY],
+				skipped: [{ row: 3, reason: "amount" }],
+				earliest: null,
+				latest: null,
+			},
+			rows: [
+				{
+					kind: "entry",
+					key: "entry-0",
+					index: 0,
+					entry: ENTRY,
+					duplicate: false,
+				},
+				{ kind: "header", key: "skipped-header", count: 1 },
+				{ kind: "skipped", key: "skipped-3", row: 3, reason: "amount" },
+			],
+		});
+		const { findByText, getByTestId, getByText, queryByText } = await render(
+			<ReviewStep review={review} />,
 		);
 
+		expect(getByText('import.reviewSkippedShow:{"count":1}')).toBeTruthy();
+		expect(queryByText("import.skipReasonAmount")).toBeNull();
+
+		fireEvent.press(getByTestId("review-skipped-toggle"));
+		expect(await findByText("import.skipReasonAmount")).toBeTruthy();
+		expect(
+			await findByText('import.reviewSkippedHide:{"count":1}'),
+		).toBeTruthy();
+	});
+
+	it("starts a duplicate unchecked, driven by the excluded set", async () => {
+		const review = baseReview({
+			rows: [
+				{
+					kind: "entry",
+					key: "entry-0",
+					index: 0,
+					entry: ENTRY,
+					duplicate: true,
+				},
+			],
+			excluded: new Set([0]),
+			selectedCount: 0,
+		});
+		const { getByTestId } = await render(<ReviewStep review={review} />);
+		expect(getByTestId("review-row-0").props.accessibilityState.checked).toBe(
+			false,
+		);
+	});
+
+	it("renders the empty state when there is nothing to import", async () => {
+		const review = baseReview({ rows: [], selectedCount: 0 });
+		const { getByText } = await render(<ReviewStep review={review} />);
 		expect(getByText("import.reviewEmptyTitle")).toBeTruthy();
-		expect(queryByTestId("review-list")).toBeNull();
+	});
+
+	it("keeps the inline two-tap commit CTA", async () => {
+		const onCommit = jest.fn();
+		const review = baseReview({ onCommit });
+		const { findByText, getByTestId } = await render(
+			<ReviewStep review={review} />,
+		);
+
+		fireEvent.press(getByTestId("review-commit-cta"));
+		expect(onCommit).not.toHaveBeenCalled();
+		expect(
+			await findByText('import.reviewCommitConfirmCta:{"count":1}'),
+		).toBeTruthy();
+
+		fireEvent.press(getByTestId("review-commit-cta"));
+		expect(onCommit).toHaveBeenCalledTimes(1);
+	});
+
+	it("renders the commit-failed banner ruled, with Try again as the CTA label", async () => {
+		const review = baseReview({
+			commit: { phase: "failed", detail: "disk full" },
+		});
+		const { getByTestId, getByText } = await render(
+			<ReviewStep review={review} />,
+		);
+		expect(getByTestId("review-commit-failed")).toBeTruthy();
+		expect(getByText("import.reviewCommitFailedTitle")).toBeTruthy();
+		expect(getByText("disk full")).toBeTruthy();
+		expect(getByText("import.tryAgain")).toBeTruthy();
+	});
+
+	it("draws no card washes anywhere", async () => {
+		const screen = await render(<ReviewStep review={baseReview()} />);
+		const washed = classNames(screen.toJSON() as unknown as JsonNode).filter(
+			(name) =>
+				/\bbg-(background|surface|card|foreground\/\d+)\b/.test(name) ||
+				/\brounded-(xl|2xl)\b/.test(name),
+		);
+		expect(washed).toStrictEqual([]);
 	});
 });

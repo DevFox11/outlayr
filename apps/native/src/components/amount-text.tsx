@@ -66,11 +66,14 @@ const rowAmount = tv({
 	variants: {
 		income: { true: "text-income" },
 		isFuture: { true: "text-future" },
+		struck: { true: "line-through" },
 	},
 });
 
 interface RowAmountProps extends RowAmountLabelInput {
 	isFuture: boolean;
+	/** The import review's excluded state: still legible, visibly not counted. */
+	struck?: boolean;
 }
 
 export function RowAmount({
@@ -80,6 +83,7 @@ export function RowAmount({
 	code,
 	showCents = true,
 	showSign = true,
+	struck = false,
 }: RowAmountProps) {
 	const t = useTranslation();
 	const parts = amountParts(amount, code, showCents);
@@ -92,7 +96,7 @@ export function RowAmount({
 				{ amount, income, code, showCents, showSign },
 				t,
 			)}
-			className={rowAmount({ income, isFuture })}
+			className={rowAmount({ income, isFuture, struck })}
 			style={TABULAR}
 			numberOfLines={1}
 		>

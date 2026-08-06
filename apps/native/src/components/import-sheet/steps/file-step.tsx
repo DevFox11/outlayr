@@ -1,30 +1,20 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { File01Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { File02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import { Button } from "panelui-native";
+import { useMemo } from "react";
+import { View } from "react-native";
+
 import { Text } from "@/components/text";
-import {
-	guessMapping,
-	type ParsedImportFile,
-	parseImportFile,
-} from "@/data/transfer-core";
-import {
-	classifyParseFailure,
-	HARD_PARSE_REJECT_CHARS,
-} from "@/domain/import-diagnosis";
-import { resolveImportMapping } from "@/domain/import-mapping";
-import {
-	deduceDateFormat,
-	detectDecimalSeparator,
-} from "@/domain/transaction-csv";
+import { deduceDateFormat } from "@/domain/transaction-csv";
 import { type TranslationKey, useTranslation } from "@/i18n";
-import { pickCsvFile, TransferError } from "@/lib/data-transfer";
 import {
 	type FileStepError,
 	importDraftStore,
 	useImportDraft,
 } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
+import { MeasureStrip } from "../measure-strip";
+import { StepCta } from "../step-cta";
 
 const ERROR_TITLE: Record<FileStepError["cause"], TranslationKey> = {
 	io: "import.errorIoTitle",
@@ -47,92 +37,47 @@ const MAPPING_GAP_COPY: Record<string, TranslationKey> = {
 	noAmount: "import.mappingGapNoAmount",
 };
 
-export function FileStep() {
+const DOC_TILE_SIZE = 30;
+
+interface FileStepProps {
+	onChoose: () => void;
+	busy?: boolean;
+}
+
+function ChooseDifferentFile({ onChoose }: { onChoose: () => void }) {
+	const t = useTranslation();
+	return (
+		<Button
+			onPress={onChoose}
+			variant="secondary"
+			fullWidth
+			className="rounded-full"
+		>
+			{t("import.chooseDifferentFile")}
+		</Button>
+	);
+}
+
+export function FileStep({ onChoose, busy = false }: FileStepProps) {
 	const t = useTranslation();
 	const colors = useColors();
 	const { flow: state, ui } = useImportDraft();
-	const [status, setStatus] = useState<"idle" | "loading">("idle");
 	const error = ui.fileError;
 
-	const formatNote = useMemo(() => {
+	const dateFormat = useMemo(() => {
 		if (state.parsed == null || state.resolved == null) {
 			return null;
 		}
 		const { mapping } = state.resolved;
-		const dateColumn = state.parsed.rows.map((row) => row[mapping.date] ?? "");
-		const amountColumn = state.parsed.rows.map(
-			(row) => row[mapping.amount] ?? "",
+		return deduceDateFormat(
+			state.parsed.rows.map((row) => row[mapping.date] ?? ""),
 		);
-		const format = deduceDateFormat(dateColumn);
-		if (format == null) {
-			return null;
-		}
-		const decimal = detectDecimalSeparator(amountColumn);
-		return t("import.fileFormatNote", {
-			format,
-			decimal: t(
-				decimal === "," ? "import.decimalComma" : "import.decimalPoint",
-			),
-		});
-	}, [state.parsed, state.resolved, t]);
-
-	const handleChoose = async () => {
-		setStatus("loading");
-		importDraftStore.setFileError(null);
-		try {
-			const picked = await pickCsvFile();
-			if (picked == null) {
-				setStatus("idle");
-				return;
-			}
-			if (picked.text.length > HARD_PARSE_REJECT_CHARS) {
-				setStatus("idle");
-				importDraftStore.setFileError({ cause: "tooLarge" });
-				return;
-			}
-			const parsed: ParsedImportFile | null = parseImportFile(picked.text);
-			if (parsed == null) {
-				setStatus("idle");
-				importDraftStore.setFileError({
-					cause: classifyParseFailure(picked.text),
-				});
-				return;
-			}
-			const draft =
-				parsed.header == null
-					? {
-							category: null,
-							note: null,
-							date: null,
-							amount: null,
-							currency: null,
-							type: null,
-						}
-					: guessMapping(parsed.header);
-			const resolution = resolveImportMapping(draft);
-			importDraftStore.dispatch({
-				type: "fileParsed",
-				file: { name: picked.name, chars: picked.text.length },
-				parsed,
-				draft,
-				resolved: resolution.ok ? resolution.value : null,
-				gaps: resolution.ok ? [] : resolution.gaps,
-			});
-			setStatus("idle");
-		} catch (thrown) {
-			setStatus("idle");
-			importDraftStore.setFileError(
-				thrown instanceof TransferError
-					? { cause: "io", key: thrown.key }
-					: { cause: "io", key: "alerts.transfer.unreadableFile" },
-			);
-		}
-	};
+	}, [state.parsed, state.resolved]);
 
 	if (error == null && state.parsed != null && state.mappingGaps.length > 0) {
 		return (
-			<View className="items-center gap-4 pt-6">
-				<View className="w-full gap-2 rounded-xl border border-border p-4">
+			<View className="flex-1 gap-4 px-5 pt-4">
+				<View className="gap-2 border-border border-y py-3">
 					<Text className="font-sans-medium text-body text-danger">
 						{t("import.mappingGapTitle")}
 					</Text>
@@ -145,23 +90,15 @@ export function FileStep() {
 						{t("import.mappingGapGuidance")}
 					</Text>
 				</View>
-				<Pressable
-					accessibilityRole="button"
-					className="items-center active:opacity-60"
-					onPress={handleChoose}
-				>
-					<Text className="font-sans-medium text-body text-foreground underline">
-						{t("import.chooseDifferentFile")}
-					</Text>
-				</Pressable>
+				<ChooseDifferentFile onChoose={onChoose} />
 			</View>
 		);
 	}
 
 	if (error != null) {
 		return (
-			<View className="items-center gap-4 pt-6">
-				<View className="w-full gap-2 rounded-xl border border-border p-4">
+			<View className="flex-1 gap-4 px-5 pt-4">
+				<View className="gap-2 border-border border-y py-3">
 					<Text className="font-sans-medium text-body text-danger">
 						{t(ERROR_TITLE[error.cause])}
 					</Text>
@@ -171,90 +108,116 @@ export function FileStep() {
 							: t(ERROR_BODY[error.cause] as TranslationKey)}
 					</Text>
 				</View>
-				<Pressable
-					accessibilityRole="button"
-					className="h-12 items-center justify-center rounded-3xl border border-border px-6 active:opacity-60"
-					onPress={handleChoose}
-				>
-					<Text className="font-sans-medium text-callout text-foreground">
-						{t("import.chooseCsv")}
-					</Text>
-				</Pressable>
+				<StepCta
+					busy={busy}
+					className="mt-6"
+					label={t("import.chooseCsv")}
+					onPress={onChoose}
+				/>
 			</View>
 		);
 	}
 
 	if (state.parsed != null && state.resolved != null) {
 		return (
-			<View className="gap-3 pt-6">
-				<View className="gap-3 rounded-xl p-4">
-					<Text className="text-body text-foreground" numberOfLines={1}>
-						{state.file?.name}
-					</Text>
-					<View className="flex-row gap-6">
-						<View>
-							<Text className="text-footnote text-muted">
-								{t("import.fileRowsLabel")}
-							</Text>
-							<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
-								{state.parsed.rows.length}
-							</Text>
-						</View>
-						<View>
-							<Text className="text-footnote text-muted">
-								{t("import.fileColumnsLabel")}
-							</Text>
-							<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
-								{state.parsed.width}
-							</Text>
-						</View>
+			<View className="flex-1 gap-4 px-5">
+				<View className="flex-row items-center gap-3 py-3">
+					<View className="size-7.5 items-center justify-center">
+						<HugeiconsIcon
+							color={colors.foreground}
+							icon={File02Icon}
+							size={20}
+							strokeWidth={1.9}
+						/>
 					</View>
-					{formatNote == null ? null : (
-						<Text className="text-footnote text-muted">{formatNote}</Text>
-					)}
-					{state.resolved.labelSource === "descriptionColumn" ? (
-						<Text className="text-footnote text-muted">
-							{t("import.fileNoCategoryColumn")}
+					<View className="flex-1 gap-0.5">
+						<Text
+							className="font-sans-medium text-body text-foreground"
+							numberOfLines={1}
+						>
+							{state.file?.name}
 						</Text>
-					) : null}
+						<Text className="text-muted text-subtitle" numberOfLines={1}>
+							{t("import.fileReadOnDevice")}
+						</Text>
+					</View>
 				</View>
-				<Pressable
-					accessibilityRole="button"
-					className="items-start active:opacity-60"
-					onPress={handleChoose}
-				>
-					<Text className="font-sans-medium text-body text-foreground underline">
-						{t("import.chooseDifferentFile")}
+
+				<MeasureStrip
+					cells={[
+						{
+							key: "rows",
+							label: t("import.fileRowsLabel"),
+							value: String(state.parsed.rows.length),
+						},
+						{
+							key: "columns",
+							label: t("import.fileColumnsLabel"),
+							value: String(state.parsed.width),
+						},
+						{
+							key: "dates",
+							label: t("import.fileDatesLabel"),
+							value: dateFormat ?? "—",
+						},
+					]}
+				/>
+
+				{state.resolved.labelSource === "descriptionColumn" ? (
+					<Text className="text-footnote text-muted leading-snug">
+						{t("import.fileNoCategoryColumn")}
 					</Text>
-				</Pressable>
+				) : null}
+
+				<View className="gap-2">
+					<ChooseDifferentFile onChoose={onChoose} />
+					<StepCta
+						busy={busy}
+						label={t("common.continue")}
+						onPress={() => importDraftStore.setStep("resolve")}
+						testID="import-file-continue"
+					/>
+				</View>
 			</View>
 		);
 	}
 
 	return (
-		<View className="items-center gap-3 pt-10">
-			<View className="h-[140px] w-full items-center justify-center rounded-2xl border border-border border-dashed">
-				<HugeiconsIcon color={colors.subtle} icon={File01Icon} size={32} />
-				<Text className="pt-2 text-muted text-subtitle">
-					{t("import.fileEmptyCaption")}
-				</Text>
-				<Pressable
-					accessibilityRole="button"
-					className="mt-4 h-12 min-w-[140px] items-center justify-center rounded-3xl border border-border px-6 active:opacity-60"
-					onPress={handleChoose}
+		<View className="flex-1 gap-4 px-5" testID="import-file-empty">
+			<View className="flex-row items-center gap-3 py-3">
+				<View
+					className="items-center justify-center"
+					style={{ width: DOC_TILE_SIZE, height: DOC_TILE_SIZE }}
 				>
-					{status === "loading" ? (
-						<ActivityIndicator color={colors.foreground} />
-					) : (
-						<Text className="font-sans-medium text-callout text-foreground">
-							{t("import.chooseCsv")}
-						</Text>
-					)}
-				</Pressable>
+					<HugeiconsIcon
+						color={colors.subtle}
+						icon={File02Icon}
+						size={20}
+						strokeWidth={1.9}
+					/>
+				</View>
+				<View className="flex-1 gap-0.5">
+					<Text
+						className="font-sans-medium text-body text-muted"
+						numberOfLines={1}
+					>
+						{t("import.fileEmptyCaption")}
+					</Text>
+					<Text className="text-muted text-subtitle" numberOfLines={1}>
+						{t("import.fileOnDeviceNote")}
+					</Text>
+				</View>
 			</View>
-			<Text className="text-footnote text-subtle">
-				{t("import.fileOnDeviceNote")}
-			</Text>
+
+			<MeasureStrip
+				cells={[
+					{ key: "rows", label: t("import.fileRowsLabel"), value: "—" },
+					{ key: "columns", label: t("import.fileColumnsLabel"), value: "—" },
+					{ key: "dates", label: t("import.fileDatesLabel"), value: "—" },
+				]}
+			/>
+
+			<StepCta busy={busy} label={t("import.chooseCsv")} onPress={onChoose} />
 		</View>
 	);
 }

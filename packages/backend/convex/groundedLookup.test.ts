@@ -258,6 +258,20 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 		expect(sent).toContain("VE");
 	});
 
+	test("licenses a global fallback when no business operates in the region", async () => {
+		const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
+			sourceUrl: "https://farmatodo.com/about",
+		});
+
+		await runGroundedLookupCall(
+			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
+			{ ...BASE_ARGS, regionCode: "VE" },
+		);
+
+		const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
+		expect(sent).toContain("fall back to the best globally known match");
+	});
+
 	test("drops a non-url source rather than widening the candidate's source shape", async () => {
 		const grounding = new MockLanguageModelV3({
 			doGenerate: async () => ({

@@ -18,7 +18,7 @@ const PICKER_HEIGHT = 430;
  * actually measured against. Measured on an iPhone 17 Pro: a 0.5 fraction gave a
  * 423pt sheet on an 874pt window, so the maximum is ~836.
  */
-const LARGE_SHEET_TOP_INSET = 38;
+export const LARGE_SHEET_TOP_INSET = 38;
 
 /**
  * Swift pins the identity picker to a HEIGHT; react-native-screens only takes
@@ -43,22 +43,17 @@ export function identityPickerDetent(windowHeight: number): number {
  */
 export const LARGE_ONLY = [1];
 
-const IMPORT_STEP_HEIGHT: Record<ImportStep, number | "full"> = {
-	source: 360,
-	file: 420,
-	resolve: 460,
-	review: "full",
+/**
+ * The height each import step opens at, as the import sheet's first snap
+ * point (fraction of the window). The sheet cannot size to its content
+ * (`enableDynamicSizing` is off so children survive the zero-measure frames
+ * while it presents), so each step declares the height it wants and the
+ * sheet re-snaps when the step changes.
+ */
+export const IMPORT_STEP_SNAP_FRACTION: Record<ImportStep, number> = {
+	source: 0.5,
+	file: 0.65,
+	resolve: 0.7,
+	review: 0.85,
+	done: 0.55,
 };
-
-export function importStepDetents(
-	step: ImportStep,
-	windowHeight: number,
-): number[] {
-	const target = IMPORT_STEP_HEIGHT[step];
-	if (target === "full") {
-		return [1];
-	}
-	const maxDetent = Math.max(1, windowHeight - LARGE_SHEET_TOP_INSET);
-	const detent = Math.min(1, target / maxDetent);
-	return detent >= 1 ? [1] : [detent, 1];
-}

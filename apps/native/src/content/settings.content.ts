@@ -951,6 +951,22 @@ const settings = {
 			en: "Comma-separated values from your bank.",
 			es: "Valores separados por comas de tu banco.",
 		}),
+		"settings.import.sourceClipboardTitle": t({
+			en: "Paste from clipboard",
+			es: "Pegar del portapapeles",
+		}),
+		"settings.import.sourceClipboardSubtitle": t({
+			en: "Transactions copied from another app.",
+			es: "Transacciones copiadas de otra app.",
+		}),
+		"settings.import.sourceScreenshotTitle": t({
+			en: "Import from a screenshot",
+			es: "Importar desde una captura",
+		}),
+		"settings.import.sourceScreenshotSubtitle": t({
+			en: "A screenshot of a statement or receipt.",
+			es: "Una captura de un estado de cuenta o recibo.",
+		}),
 	},
 } satisfies Dictionary;
 

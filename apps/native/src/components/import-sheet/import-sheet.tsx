@@ -1,156 +1,199 @@
-import { Stack, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { useWindowDimensions } from "react-native";
-import { useWizard, Wizard } from "@/components/wizard";
+import { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
+import { router } from "expo-router";
 import {
-	CsvImportProvider,
-	useCsvImportContext,
-} from "@/contexts/csv-import-context";
+	type Ref,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
+import { Platform, View } from "react-native";
+import Animated, {
+	FadeInLeft,
+	FadeInRight,
+	ReduceMotion,
+} from "react-native-reanimated";
+import { useCSSVariable } from "uniwind";
+import { CsvImportProvider } from "@/contexts/csv-import-context";
 import {
 	canAdvance,
 	IMPORT_STEPS,
+	type ImportFlowState,
 	type ImportStep,
 } from "@/domain/import-flow";
 import { useImportReview } from "@/hooks/use-import-review";
 import { type TranslationKey, useTranslation } from "@/i18n";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
-import { ImportSheetChrome } from "./chrome";
 import { ResumeNotice } from "./resume-notice";
+import { SheetHeader } from "./sheet-header";
+import { DoneStep } from "./steps/done-step";
 import { FileStep } from "./steps/file-step";
 import { ResolveStep } from "./steps/resolve-step";
 import { ReviewStep } from "./steps/review-step";
 import { SourceStep } from "./steps/source-step";
-import { useImportSheetOptions } from "./use-sheet-options";
+import { useChooseImportFile } from "./use-choose-import-file";
+
+const STEP_TRANSITION_MS = 200;
 
 const STEP_TITLE: Record<ImportStep, TranslationKey> = {
 	source: "import.titleSource",
 	file: "import.titleFile",
 	resolve: "import.titleResolve",
 	review: "import.titleReview",
+	done: "import.titleDone",
 };
 
-export function ImportSheet() {
-	const router = useRouter();
-	const draft = useImportDraft();
+const STEP_BACK: Record<ImportStep, ImportStep | null> = {
+	source: null,
+	file: "source",
+	resolve: "file",
+	review: "file",
+	done: null,
+};
 
-	useEffect(() => {
-		return () => {
-			importDraftStore.commitDismissal();
-		};
-	}, []);
-
-	return (
-		<CsvImportProvider>
-			<Wizard<ImportStep>
-				canLeave={(step) => canAdvance(draft.flow, step)}
-				onExit={() => router.back()}
-				onStepChange={(step) => importDraftStore.setStep(step)}
-				step={draft.ui.step}
-				steps={IMPORT_STEPS}
-			>
-				<ImportSheetShell />
-			</Wizard>
-		</CsvImportProvider>
-	);
+export function resolveLegalStep(
+	flow: ImportFlowState,
+	step: ImportStep,
+): ImportStep {
+	let index = IMPORT_STEPS.indexOf(step);
+	while (index > 0 && !canAdvance(flow, IMPORT_STEPS[index - 1])) {
+		index -= 1;
+	}
+	return IMPORT_STEPS[index];
 }
 
-function ImportSheetShell() {
-	const t = useTranslation();
-	const { height } = useWindowDimensions();
-	const { step, canGoBack, back, exit, next } = useWizard<ImportStep>();
-	const draft = useImportDraft();
-	const csvImport = useCsvImportContext();
-	const review = useImportReview();
-	const sheetOptions = useImportSheetOptions(step, height);
+export interface ImportSheetHandle {
+	present(): void;
+	dismiss(): void;
+}
 
-	const footer = (() => {
-		if (step === "file") {
+interface StepBodyProps {
+	step: ImportStep;
+	onOpenFeatureLab: () => void;
+	onDone: () => void;
+}
+
+function StepBody({ step, onOpenFeatureLab, onDone }: StepBodyProps) {
+	const review = useImportReview();
+	const { status, choose } = useChooseImportFile();
+
+	switch (step) {
+		case "source":
+			return <SourceStep />;
+		case "file":
+			return <FileStep busy={status === "loading"} onChoose={choose} />;
+		case "resolve":
 			return (
-				<Wizard.Actions>
-					<Wizard.Actions.Item
-						disabled={!canAdvance(draft.flow, "file")}
-						label={t("common.continue")}
-						onPress={next}
-					/>
-				</Wizard.Actions>
+				<ResolveStep onOpenFeatureLab={onOpenFeatureLab} review={review} />
 			);
+		case "review":
+			return <ReviewStep review={review} />;
+		case "done":
+			return <DoneStep onDone={onDone} review={review} />;
+		default:
+			return null;
+	}
+}
+
+interface ImportSheetProps {
+	ref?: Ref<ImportSheetHandle>;
+}
+
+export function ImportSheet({ ref }: ImportSheetProps) {
+	const t = useTranslation();
+	const sheetRef = useRef<BottomSheetModal>(null);
+	const [presented, setPresented] = useState(false);
+	const backgroundColor = useCSSVariable("--color-background") as string;
+
+	const dismiss = useCallback(() => {
+		sheetRef.current?.dismiss();
+	}, []);
+
+	useImperativeHandle(
+		ref,
+		() => ({
+			present() {
+				setPresented(true);
+				sheetRef.current?.present();
+			},
+			dismiss,
+		}),
+		[dismiss],
+	);
+
+	const draft = useImportDraft();
+	const step = resolveLegalStep(draft.flow, draft.ui.step);
+
+	useEffect(() => {
+		if (presented) {
+			sheetRef.current?.snapToIndex(0);
 		}
-		if (step === "resolve") {
-			const settled = csvImport.outcome != null;
-			return (
-				<Wizard.Actions>
-					<Wizard.Actions.Item
-						disabled={csvImport.running}
-						label={
-							settled
-								? t("import.resolveReviewCta", {
-										count: review.plan.entries.length,
-									})
-								: t("import.resolveCategoriseCta", {
-										count: csvImport.totalLabels,
-									})
-						}
-						onPress={settled ? next : csvImport.run}
-					/>
-				</Wizard.Actions>
-			);
+	}, [presented]);
+
+	const previousStepRef = useRef(step);
+	const forward =
+		IMPORT_STEPS.indexOf(step) >= IMPORT_STEPS.indexOf(previousStepRef.current);
+	previousStepRef.current = step;
+
+	const onDismiss = useCallback(() => {
+		setPresented(false);
+		if (importDraftStore.getSnapshot().flow.commit.phase === "success") {
+			importDraftStore.clear();
+			return;
 		}
-		if (step === "review") {
-			const writing = review.commit.phase === "writing";
-			const failed = review.commit.phase === "failed";
-			return (
-				<Wizard.Actions>
-					<Wizard.Actions.Item
-						busy={writing}
-						confirmLabel={
-							failed
-								? undefined
-								: t("import.reviewCommitConfirmCta", {
-										count: review.selectedCount,
-									})
-						}
-						disabled={review.selectedCount === 0 || writing}
-						label={
-							failed
-								? t("import.tryAgain")
-								: t("import.reviewCommitCta", { count: review.selectedCount })
-						}
-						onPress={review.onCommit}
-					/>
-				</Wizard.Actions>
-			);
-		}
-		return undefined;
-	})();
+		importDraftStore.commitDismissal();
+	}, []);
+
+	const onOpenFeatureLab = useCallback(() => {
+		dismiss();
+		router.push("/settings/feature-lab");
+	}, [dismiss]);
+
+	const back = STEP_BACK[step];
+	const onBack =
+		back == null ? undefined : () => importDraftStore.setStep(back);
+
+	const entering = (forward ? FadeInRight : FadeInLeft)
+		.duration(STEP_TRANSITION_MS)
+		.reduceMotion(ReduceMotion.System);
 
 	return (
-		<>
-			<Stack.Screen options={sheetOptions} />
-			<ImportSheetChrome
-				canGoBack={canGoBack}
-				footer={footer}
-				onBack={back}
-				onCancel={exit}
-				title={t(STEP_TITLE[step])}
-			>
-				{draft.ui.resumed ? (
-					<ResumeNotice onStartOver={() => importDraftStore.clear()} />
+		<BottomSheetModal
+			ref={sheetRef}
+			enableDynamicSizing
+			enablePanDownToClose
+			backgroundStyle={{
+				backgroundColor:
+					Platform.OS === "ios" ? `${backgroundColor}FA` : backgroundColor,
+			}}
+			onDismiss={onDismiss}
+		>
+			<View className="flex-1" testID="import-sheet-root">
+				{presented ? (
+					<CsvImportProvider>
+						<View className="gap-4">
+							<SheetHeader
+								forward={forward}
+								onBack={onBack}
+								onClose={dismiss}
+								title={t(STEP_TITLE[step])}
+							/>
+
+							{draft.ui.resumed ? (
+								<ResumeNotice onStartOver={() => importDraftStore.clear()} />
+							) : null}
+							<Animated.View className="flex-1" entering={entering} key={step}>
+								<StepBody
+									onDone={dismiss}
+									onOpenFeatureLab={onOpenFeatureLab}
+									step={step}
+								/>
+							</Animated.View>
+						</View>
+					</CsvImportProvider>
 				) : null}
-				<Wizard.Content>
-					<Wizard.Step name="source">
-						<SourceStep />
-					</Wizard.Step>
-					<Wizard.Step name="file">
-						<FileStep />
-					</Wizard.Step>
-					<Wizard.Step name="resolve">
-						<ResolveStep />
-					</Wizard.Step>
-					<Wizard.Step name="review">
-						<ReviewStep review={review} />
-					</Wizard.Step>
-				</Wizard.Content>
-			</ImportSheetChrome>
-		</>
+			</View>
+		</BottomSheetModal>
 	);
 }

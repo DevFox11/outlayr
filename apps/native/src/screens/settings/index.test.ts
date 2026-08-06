@@ -28,9 +28,12 @@ describe("settings screen: data section rows", () => {
 		);
 	});
 
-	it("points the CSV import row at the import sheet, not the deleted legacy screen", () => {
-		expect(linkRowBlock("FileImport")).toMatch(
-			/onPress=\{\(\) => router\.push\("\/import"\)\}/,
+	it("presents the import bottom sheet from the CSV import row, seeding the resume step", () => {
+		const block = linkRowBlock("FileImport");
+		expect(block).toMatch(
+			/importDraftStore\.setStep\(importDraftStore\.getResumeStep\(\)\)/,
 		);
+		expect(block).toMatch(/importSheetRef\.current\?\.present\(\)/);
+		expect(block).not.toMatch(/router\.push\("\/import"\)/);
 	});
 });

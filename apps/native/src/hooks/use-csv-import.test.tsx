@@ -3,6 +3,7 @@ import { categoryKey, type ParsedImportFile } from "@/data/transfer-core";
 import * as enrichmentCache from "@/domain/enrichment-cache";
 import type { UnavailableReason } from "@/domain/import-flow";
 import type { MappingDraft } from "@/domain/import-mapping";
+import { reviewEntryIdentity } from "@/domain/import-review-identity";
 import * as merchantResolver from "@/domain/merchant-resolver";
 import type {
 	CsvImportFn,
@@ -44,6 +45,8 @@ function baseArgs(overrides: Partial<UseCsvImportArgs> = {}): UseCsvImportArgs {
 		categoryTree: [],
 		categoryIdByKey: new Map(),
 		aiEnrichment: true,
+		groundedLookup: true,
+		regionCode: undefined,
 		transport: null,
 		fileKey: "test-file",
 		...overrides,
@@ -134,6 +137,180 @@ describe("tier 2: exactly one call per import", () => {
 		});
 
 		expect(fn).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("server-side learning for merchants the map cannot fully answer", () => {
+	it("forwards the grounded consent flag and region code to the transport", async () => {
+		const { fn } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: [UNKNOWN],
+					groundedLookup: true,
+					regionCode: "VE",
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(fn).toHaveBeenCalledWith(
+			expect.objectContaining({ groundedLookup: true, regionCode: "VE" }),
+		);
+	});
+
+	it("sends a map match that has no domain to the transport so its domain can be learned", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: ["cantv"],
+					categoryIdByKey: new Map([
+						[categoryKey("Phone & Internet"), "cat-phone"],
+					]),
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(fn).toHaveBeenCalledWith(
+			expect.objectContaining({ labels: ["cantv"] }),
+		);
+
+		await act(async () => {
+			calls[0].settle({
+				status: "ok",
+				suggestions: [
+					{
+						label: "cantv",
+						categoryName: "Phone & Internet",
+						domain: "cantv.com.ve",
+					},
+				],
+			});
+		});
+
+		expect(result.current.links.get(categoryKey("cantv"))).toBe("cat-phone");
+		expect(reviewEntryIdentity("cantv").domain).toBe("cantv.com.ve");
+	});
+
+	it("sends the reported regional spellings to the transport for server-side resolution", async () => {
+		const { fn } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: ["Corpoelec", "Automercado Plaza's"],
+					categoryIdByKey: new Map([[categoryKey("Groceries"), "cat-groc"]]),
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(fn).toHaveBeenCalledWith(
+			expect.objectContaining({
+				labels: expect.arrayContaining(["Corpoelec", "Automercado Plaza's"]),
+			}),
+		);
+	});
+
+	it("keeps a fully-resolved map match with a domain out of the transport labels", async () => {
+		const { fn } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: ["netflix"],
+					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(fn).not.toHaveBeenCalled();
+		expect(result.current.outcome).toBe("applied");
+	});
+});
+
+describe("suggestion domains seed the enrichment cache", () => {
+	it("a suggestion carrying a domain makes review identity resolve that domain", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: ["FARMACIA SAAS 00012345"],
+					categoryIdByKey: new Map([[categoryKey("Healthcare"), "cat-health"]]),
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+		await act(async () => {
+			calls[0].settle({
+				status: "ok",
+				suggestions: [
+					{
+						label: "FARMACIA SAAS",
+						categoryName: "Healthcare",
+						domain: "farmaciasaas.com",
+					},
+				],
+			});
+		});
+
+		expect(
+			result.current.links.get(categoryKey("FARMACIA SAAS 00012345")),
+		).toBe("cat-health");
+		expect(reviewEntryIdentity("FARMACIA SAAS 00012345").domain).toBe(
+			"farmaciasaas.com",
+		);
+	});
+
+	it("seeds the domain even when the suggested category is not in the tree", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({ labels: ["FARMACIA SAAS 00012345"], transport: fn }),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+		await act(async () => {
+			calls[0].settle({
+				status: "ok",
+				suggestions: [
+					{
+						label: "FARMACIA SAAS",
+						categoryName: "Healthcare",
+						domain: "farmaciasaas.com",
+					},
+				],
+			});
+		});
+
+		expect(result.current.links.size).toBe(0);
+		expect(reviewEntryIdentity("FARMACIA SAAS 00012345").domain).toBe(
+			"farmaciasaas.com",
+		);
 	});
 });
 
@@ -338,6 +515,34 @@ describe("enrichment-cache boundary (A10)", () => {
 		expect(fn).not.toHaveBeenCalled();
 		expect(result.current.outcome).toBe("applied");
 		expect(result.current.links.get(UNKNOWN)).toBe("cat-food");
+	});
+
+	it("reuses a cache entry keyed by the clean name for a label carrying a store number", async () => {
+		enrichmentCache.setCachedEnrichment(merchantResolver.merchantKey(UNKNOWN), {
+			categoryName: "Food",
+			isNewCategory: false,
+			tags: [],
+			domain: null,
+		});
+		const raw = `${UNKNOWN} 1234567`;
+		const { fn } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: [raw],
+					categoryIdByKey: new Map([["food", "cat-food"]]),
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(fn).not.toHaveBeenCalled();
+		expect(result.current.outcome).toBe("applied");
+		expect(result.current.links.get(categoryKey(raw))).toBe("cat-food");
 	});
 });
 

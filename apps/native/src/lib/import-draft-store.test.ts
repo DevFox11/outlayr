@@ -1,5 +1,3 @@
-import { act, renderHook } from "@testing-library/react-native";
-import { useSyncExternalStore } from "react";
 import type { ParsedImportFile } from "@/data/transfer-core";
 import {
 	type ImportFlowEvent,
@@ -142,7 +140,7 @@ describe("clearing ui.resumed", () => {
 		expect(store.getSnapshot().ui.resumed).toBe(false);
 	});
 
-	it("setStep clears ui.resumed, even when called with the already-current step", () => {
+	it("setStep clears ui.resumed when called with a genuinely different step", () => {
 		const store = createImportDraftStore();
 		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
 		dispatchFileParsed(store);
@@ -150,36 +148,23 @@ describe("clearing ui.resumed", () => {
 		store.commitDismissal();
 		expect(store.getSnapshot().ui.resumed).toBe(true);
 
-		store.setStep("resolve");
+		store.setStep("review");
 
 		expect(store.getSnapshot().ui.resumed).toBe(false);
 	});
-});
 
-describe("resume subscription minimizes root re-renders", () => {
-	it("does not notify subscribeResume for dispatch/setStep, only for a resumeStep change from commitDismissal", async () => {
+	it("setStep is idempotent on the step value alone: the resumed seed's own recorder must not clear the notice", () => {
 		const store = createImportDraftStore();
-		let renders = 0;
-		const { result } = await renderHook(() => {
-			renders += 1;
-			return useSyncExternalStore(store.subscribeResume, store.getResumeStep);
-		});
-		const rendersAfterMount = renders;
-
-		await act(async () => {
-			store.dispatch({ type: "sourceSelected", sourceId: "csv" });
-			store.setStep("file");
-		});
-		expect(renders).toBe(rendersAfterMount);
-
+		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
 		dispatchFileParsed(store);
 		store.setStep("resolve");
+		store.commitDismissal();
+		expect(store.getSnapshot().ui.resumed).toBe(true);
+		const before = store.getSnapshot();
 
-		await act(async () => {
-			store.commitDismissal();
-		});
+		store.setStep("resolve");
 
-		expect(result.current).toBe("resolve");
-		expect(renders).toBe(rendersAfterMount + 1);
+		expect(store.getSnapshot().ui.resumed).toBe(true);
+		expect(store.getSnapshot()).toBe(before);
 	});
 });

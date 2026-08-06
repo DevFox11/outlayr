@@ -714,6 +714,24 @@ describe("runSuggest regionCode", () => {
 		expect(sent).toContain("VE");
 	});
 
+	test("licenses a global fallback when no business operates in the region", async () => {
+		const model = mockModel({
+			categoryName: null,
+			isNewCategory: false,
+			tags: [],
+			domain: null,
+		});
+
+		await runSuggest(model, {
+			...BASE_ARGS,
+			regionCode: "VE",
+			categoryTree: [],
+		});
+
+		const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+		expect(sent).toContain("fall back to the best globally known match");
+	});
+
 	test("omits any region line from the prompt when regionCode is absent", async () => {
 		const model = mockModel({
 			categoryName: null,

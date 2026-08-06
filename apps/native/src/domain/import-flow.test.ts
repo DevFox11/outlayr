@@ -245,8 +245,14 @@ describe("importFlowReducer — invalidation cascade", () => {
 });
 
 describe("IMPORT_STEPS", () => {
-	it("orders all four steps the sheet serves, review last", () => {
-		expect(IMPORT_STEPS).toStrictEqual(["source", "file", "resolve", "review"]);
+	it("orders all five steps the sheet serves, done last", () => {
+		expect(IMPORT_STEPS).toStrictEqual([
+			"source",
+			"file",
+			"resolve",
+			"review",
+			"done",
+		]);
 	});
 });
 
@@ -329,6 +335,35 @@ describe("duplicates reset on invalidation", () => {
 	});
 });
 
+describe("commitSucceeded", () => {
+	it("captures the written count and out amount for the done step", () => {
+		const writing = dispatch(withResolution(), { type: "commitStarted" });
+		const done = dispatch(writing, {
+			type: "commitSucceeded",
+			count: 12,
+			outAmount: 348.4,
+			duplicatesSkipped: 0,
+		});
+		expect(done.commit).toStrictEqual({
+			phase: "success",
+			count: 12,
+			outAmount: 348.4,
+			duplicatesSkipped: 0,
+		});
+	});
+
+	it("is a no-op with no settled resolution yet", () => {
+		const state = withFile();
+		const done = dispatch(state, {
+			type: "commitSucceeded",
+			count: 1,
+			outAmount: 1,
+			duplicatesSkipped: 0,
+		});
+		expect(done).toBe(state);
+	});
+});
+
 describe("canAdvance", () => {
 	it("cannot advance past source with no source selected", () => {
 		expect(canAdvance(INITIAL_IMPORT_FLOW_STATE, "source")).toBe(false);
@@ -354,7 +389,23 @@ describe("canAdvance", () => {
 		expect(canAdvance(withResolution(), "resolve")).toBe(true);
 	});
 
-	it("can always advance past review", () => {
-		expect(canAdvance(INITIAL_IMPORT_FLOW_STATE, "review")).toBe(true);
+	it("cannot advance past review before a commit succeeds", () => {
+		expect(canAdvance(INITIAL_IMPORT_FLOW_STATE, "review")).toBe(false);
+		expect(canAdvance(withResolution(), "review")).toBe(false);
+	});
+
+	it("can advance past review once a commit succeeded", () => {
+		const writing = dispatch(withResolution(), { type: "commitStarted" });
+		const done = dispatch(writing, {
+			type: "commitSucceeded",
+			count: 2,
+			outAmount: 10,
+			duplicatesSkipped: 0,
+		});
+		expect(canAdvance(done, "review")).toBe(true);
+	});
+
+	it("never advances past done", () => {
+		expect(canAdvance(withResolution(), "done")).toBe(false);
 	});
 });

@@ -15,6 +15,14 @@ const importSheet = {
 			en: "Bring transactions in from a file. Everything is read on your device.",
 			es: "Trae transacciones desde un archivo. Todo se lee en tu dispositivo.",
 		}),
+		"import.sourceEyebrow": t({
+			en: "Bring data in",
+			es: "Trae tus datos",
+		}),
+		"import.sourceCount": t({
+			en: "{count} of {total}",
+			es: "{count} de {total}",
+		}),
 		"import.sourceComingSoon": t({
 			en: "Coming soon",
 			es: "Próximamente",
@@ -39,17 +47,13 @@ const importSheet = {
 			en: "Columns",
 			es: "Columnas",
 		}),
-		"import.fileFormatNote": t({
-			en: "Dates look like {format} · decimal {decimal}",
-			es: "Las fechas se ven como {format} · decimal {decimal}",
+		"import.fileReadOnDevice": t({
+			en: "Read on this device",
+			es: "Leído en este dispositivo",
 		}),
-		"import.decimalComma": t({
-			en: "comma",
-			es: "coma",
-		}),
-		"import.decimalPoint": t({
-			en: "point",
-			es: "punto",
+		"import.fileDatesLabel": t({
+			en: "Dates",
+			es: "Fechas",
 		}),
 		"import.fileNoCategoryColumn": t({
 			en: "No category column — we'll read the Description column instead.",
@@ -116,16 +120,28 @@ const importSheet = {
 			es: "Agrega una fila de encabezado que nombre la columna faltante, o elige un archivo que ya la tenga.",
 		}),
 		"import.titleResolve": t({
-			en: "Categorise",
-			es: "Categorizar",
+			en: "Preparing",
+			es: "Preparando",
+		}),
+		"import.resolveEyebrowRows": t({
+			en: "{count} rows",
+			es: "{count} filas",
+		}),
+		"import.resolveFootnote": t({
+			en: "Only unmatched merchant names and your category names are sent — never your amounts, dates, or the file itself.",
+			es: "Solo se envían los nombres de comercios sin coincidencia y tus categorías — nunca tus montos, fechas ni el archivo.",
 		}),
 		"import.titleReview": t({
 			en: "Review",
 			es: "Revisar",
 		}),
 		"import.resumeNotice": t({
-			en: "Picking up where you left off.",
-			es: "Continuamos donde lo dejaste.",
+			en: "Picking up where you left off",
+			es: "Continuamos donde lo dejaste",
+		}),
+		"import.resumeBody": t({
+			en: "Your file and progress were kept.",
+			es: "Tu archivo y tu progreso quedaron guardados.",
 		}),
 		"import.startOver": t({
 			en: "Start over",
@@ -223,13 +239,25 @@ const importSheet = {
 			en: "Import {count} transactions?",
 			es: "¿Importar {count} transacciones?",
 		}),
-		"import.reviewCommitSuccessTitle": t({
-			en: "Import complete",
-			es: "Importación completa",
+		"import.titleDone": t({
+			en: "Imported",
+			es: "Importado",
 		}),
-		"import.reviewCommitSuccessBody": t({
-			en: "{count} transactions added",
-			es: "{count} transacciones agregadas",
+		"import.doneStamp": t({
+			en: "Imported · {count} rows",
+			es: "Importado · {count} filas",
+		}),
+		"import.doneSubline": t({
+			en: "{count} duplicates skipped · {month} is on the Log",
+			es: "{count} duplicados omitidos · {month} ya está en el registro",
+		}),
+		"import.doneSublineNoDuplicates": t({
+			en: "{month} is on the Log",
+			es: "{month} ya está en el registro",
+		}),
+		"import.doneAddedLabel": t({
+			en: "Added",
+			es: "Agregadas",
 		}),
 		"import.reviewCommitFailedTitle": t({
 			en: "Nothing was imported",
@@ -243,9 +271,21 @@ const importSheet = {
 			en: "Looks already imported.",
 			es: "Parece que ya se importó.",
 		}),
-		"import.reviewSkippedHeader": t({
-			en: "{count} skipped",
-			es: "{count} omitidas",
+		"import.reviewToImportLabel": t({
+			en: "To import",
+			es: "Para importar",
+		}),
+		"import.reviewToImportValue": t({
+			en: "{count} of {total}",
+			es: "{count} de {total}",
+		}),
+		"import.reviewSkippedShow": t({
+			en: "{count} rows skipped · Show",
+			es: "{count} filas omitidas · Mostrar",
+		}),
+		"import.reviewSkippedHide": t({
+			en: "{count} rows skipped · Hide",
+			es: "{count} filas omitidas · Ocultar",
 		}),
 		"import.reviewEmptyTitle": t({
 			en: "Nothing to import",

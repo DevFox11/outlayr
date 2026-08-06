@@ -1,9 +1,12 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import type { ImportEntry } from "@/data/transfer-core";
 import type { UseCsvImportResult } from "@/hooks/use-csv-import";
+import type { ImportReviewResult } from "@/hooks/use-import-review";
+import { importDraftStore } from "@/lib/import-draft-store";
 import { ResolveStep } from "./resolve-step";
 
-const mockPush = jest.fn();
 const mockRun = jest.fn();
+const mockOpenFeatureLab = jest.fn();
 
 let mockContext: UseCsvImportResult;
 
@@ -24,9 +27,6 @@ function baseContext(
 	};
 }
 
-jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: mockPush }),
-}));
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
@@ -45,111 +45,216 @@ jest.mock("@/contexts/csv-import-context", () => ({
 	useCsvImportContext: () => mockContext,
 }));
 
+const ENTRY: ImportEntry = {
+	note: "Bakery",
+	categoryId: "cat-food",
+	income: false,
+	amount: 12.5,
+	currency: null,
+	date: new Date(2026, 6, 28),
+} as ImportEntry;
+
+function reviewWith(entries: ImportEntry[]): ImportReviewResult {
+	return {
+		plan: { entries, skipped: [], earliest: null, latest: null },
+		rows: [],
+		excluded: new Set(),
+		selectedCount: entries.length,
+		categoryName: new Map(),
+		categoryTile: new Map(),
+		currency: "USD",
+		commit: { phase: "idle" },
+		onToggle: jest.fn(),
+		onCommit: jest.fn(),
+	};
+}
+
+function loadFile() {
+	importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	importDraftStore.dispatch({
+		type: "fileParsed",
+		file: { name: "bank.csv", chars: 42 },
+		parsed: {
+			header: ["date", "note", "amount"],
+			rows: [
+				["13/08/2026", "Coffee", "3.50"],
+				["14/08/2026", "Bakery", "5.00"],
+			],
+			width: 3,
+		},
+		draft: {
+			category: 1,
+			note: 1,
+			date: 0,
+			amount: 2,
+			currency: null,
+			type: null,
+		},
+		resolved: {
+			mapping: {
+				category: 1,
+				note: 1,
+				date: 0,
+				amount: 2,
+				currency: null,
+				type: null,
+			},
+			labelSource: "descriptionColumn",
+		},
+		gaps: [],
+	});
+}
+
+interface JsonNode {
+	props?: Record<string, unknown>;
+	children?: (JsonNode | string)[] | null;
+}
+
+function classNames(node: JsonNode | JsonNode[] | null): string[] {
+	if (node == null) {
+		return [];
+	}
+	if (Array.isArray(node)) {
+		return node.flatMap(classNames);
+	}
+	const own = node.props?.className;
+	return [
+		...(typeof own === "string" ? [own] : []),
+		...(node.children ?? []).flatMap((child) =>
+			typeof child === "string" ? [] : classNames(child),
+		),
+	];
+}
+
 describe("ResolveStep", () => {
 	beforeEach(() => {
-		mockPush.mockClear();
 		mockRun.mockClear();
+		mockOpenFeatureLab.mockClear();
+		importDraftStore.clear();
 		mockContext = baseContext();
 	});
 
-	it("renders the consent card with exactly three bullets before the call", async () => {
-		const { getAllByTestId, getByText, queryByText } = await render(
-			<ResolveStep />,
+	it("shows the eyebrow with filename and row count, the checklist, and the privacy footnote", async () => {
+		loadFile();
+		const { getByText } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
 		);
 
-		expect(getByText("import.resolveConsentHeading")).toBeTruthy();
-		expect(getByText("import.resolveConsentBulletLabels")).toBeTruthy();
-		expect(getByText("import.resolveConsentBulletCategories")).toBeTruthy();
-		expect(getByText("import.resolveConsentBulletNever")).toBeTruthy();
-		expect(getAllByTestId("import-resolve-consent-bullet")).toHaveLength(3);
-		expect(queryByText("import.resolveRunningReadFile")).toBeNull();
-	});
-
-	it("renders the running ledger rows while a resolution is in flight", async () => {
-		mockContext = baseContext({
-			running: true,
-			tier1Matched: 18,
-			totalLabels: 24,
-			tier2Sent: 6,
-		});
-		const { getByText, queryByText } = await render(<ResolveStep />);
-
+		expect(getByText("bank.csv")).toBeTruthy();
+		expect(getByText('import.resolveEyebrowRows:{"count":2}')).toBeTruthy();
 		expect(getByText("import.resolveRunningReadFile")).toBeTruthy();
 		expect(getByText("import.resolveRunningMatched")).toBeTruthy();
-		expect(getByText("18 of 24")).toBeTruthy();
 		expect(getByText("import.resolveRunningAsked")).toBeTruthy();
-		expect(getByText("6 of 6")).toBeTruthy();
-		expect(queryByText("import.resolveConsentHeading")).toBeNull();
+		expect(getByText("import.resolveFootnote")).toBeTruthy();
 	});
 
-	it("keeps the ledger rows visible, fully settled, on the applied outcome", async () => {
-		mockContext = baseContext({
-			outcome: "applied",
-			tier1Matched: 18,
-			totalLabels: 24,
-			tier2Sent: 6,
-		});
-		const { getByText } = await render(<ResolveStep />);
-
-		expect(getByText("import.resolveRunningReadFile")).toBeTruthy();
-		expect(getByText("6 of 6")).toBeTruthy();
-	});
-
-	it.each([
-		["offline", "import.unavailableOffline"],
-		["timeout", "import.unavailableTimeout"],
-		["rateLimited", "import.unavailableRateLimited"],
-		["providerError", "import.unavailableProviderError"],
-		["invalidResponse", "import.unavailableInvalidResponse"],
-		["unauthenticated", "import.unavailableUnauthenticated"],
-	] as const)(
-		"renders the %s reason with Try again and no escape hatch",
-		async (reason, copyKey) => {
-			mockContext = baseContext({ outcome: "unavailable", reason });
-			const { getByText, queryByText } = await render(<ResolveStep />);
-
-			expect(getByText("import.unavailableTitle")).toBeTruthy();
-			expect(getByText(copyKey)).toBeTruthy();
-			expect(getByText("import.tryAgain")).toBeTruthy();
-			expect(queryByText("import.mapManually")).toBeNull();
-		},
-	);
-
-	it.each(["overCap", "notConfigured"] as const)(
-		"omits Try again and the escape hatch for the %s reason, since retrying changes nothing",
-		async (reason) => {
-			mockContext = baseContext({ outcome: "unavailable", reason });
-			const { queryByText } = await render(<ResolveStep />);
-
-			expect(queryByText("import.tryAgain")).toBeNull();
-			expect(queryByText("import.mapManually")).toBeNull();
-		},
-	);
-
-	it("re-invokes run() when Try again is pressed", async () => {
-		mockContext = baseContext({ outcome: "unavailable", reason: "offline" });
-		const { getByText } = await render(<ResolveStep />);
-
-		fireEvent.press(getByText("import.tryAgain"));
+	it("auto-runs the resolution when idle", async () => {
+		loadFile();
+		await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
 		expect(mockRun).toHaveBeenCalledTimes(1);
 	});
 
-	it("renders the declined banner with only Open Feature Lab, never Try again", async () => {
-		mockContext = baseContext({ outcome: "declined" });
-		const { getByText, queryByText } = await render(<ResolveStep />);
-
-		expect(getByText("import.unavailableTitle")).toBeTruthy();
-		expect(getByText("import.declinedBody")).toBeTruthy();
-		expect(getByText("import.openFeatureLab")).toBeTruthy();
-		expect(queryByText("import.tryAgain")).toBeNull();
-		expect(queryByText("import.mapManually")).toBeNull();
+	it("does not re-run once an outcome settled", async () => {
+		loadFile();
+		mockContext = baseContext({ outcome: "applied" });
+		await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+		expect(mockRun).not.toHaveBeenCalled();
 	});
 
-	it("pushes /settings/feature-lab from Open Feature Lab", async () => {
-		mockContext = baseContext({ outcome: "declined" });
-		const { getByText } = await render(<ResolveStep />);
+	it("advances to review through the store once applied with entries", async () => {
+		loadFile();
+		importDraftStore.setStep("resolve");
+		mockContext = baseContext({ outcome: "applied" });
+		await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([ENTRY])}
+			/>,
+		);
+		expect(importDraftStore.getSnapshot().ui.step).toBe("review");
+	});
 
+	it("stays on resolve when applied lands zero entries", async () => {
+		loadFile();
+		importDraftStore.setStep("resolve");
+		mockContext = baseContext({ outcome: "applied" });
+		await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+		expect(importDraftStore.getSnapshot().ui.step).toBe("resolve");
+	});
+
+	it("shows the unavailable reason with a retry", async () => {
+		loadFile();
+		mockContext = baseContext({ outcome: "unavailable", reason: "timeout" });
+		const { getByText } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+
+		expect(getByText("import.unavailableTitle")).toBeTruthy();
+		expect(getByText("import.unavailableTimeout")).toBeTruthy();
+		fireEvent.press(getByText("import.tryAgain"));
+		expect(mockRun).toHaveBeenCalled();
+	});
+
+	it("offers no retry for a no-retry reason", async () => {
+		loadFile();
+		mockContext = baseContext({ outcome: "unavailable", reason: "overCap" });
+		const { queryByText } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+		expect(queryByText("import.tryAgain")).toBeNull();
+	});
+
+	it("spaces the review CTA with a fixed margin, not an inert flex spacer", async () => {
+		loadFile();
+		importDraftStore.setStep("resolve");
+		mockContext = baseContext({ outcome: "applied" });
+		const { toJSON } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([ENTRY])}
+			/>,
+		);
+		const classes = classNames(toJSON() as unknown as JsonNode);
+		expect(classes).not.toContain("flex-1");
+		expect(classes.some((c) => /\bmt-6\b/.test(c))).toBe(true);
+	});
+
+	it("routes the declined branch through onOpenFeatureLab", async () => {
+		loadFile();
+		mockContext = baseContext({ outcome: "declined" });
+		const { getByText } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+
+		expect(getByText("import.declinedBody")).toBeTruthy();
 		fireEvent.press(getByText("import.openFeatureLab"));
-		expect(mockPush).toHaveBeenCalledWith("/settings/feature-lab");
+		expect(mockOpenFeatureLab).toHaveBeenCalledTimes(1);
 	});
 });

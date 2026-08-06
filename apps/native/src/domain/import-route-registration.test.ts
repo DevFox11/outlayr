@@ -1,69 +1,99 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// A test file living under app/ becomes a real, undeclared route
-// (root-stack.test.ts's total-partition invariant) — these structural checks
-// read app/ from the outside instead.
+// The import flow is one BottomSheetModal presented over the Log — never an
+// expo-router route. These structural checks pin that architecture: a stray
+// app/import route would re-grow the nested-navigator sheet this replaced.
 const APP_DIR = join(__dirname, "..", "app");
 const LAYOUT_SOURCE = readFileSync(join(APP_DIR, "_layout.tsx"), "utf8");
-const TRANSPARENT_CONTENT_STYLE =
-	/contentStyle:\s*{\s*backgroundColor:\s*"transparent"\s*}/;
+const IMPORT_SHEET_DIR = join(__dirname, "..", "components", "import-sheet");
+const IMPORT_SHEET_SOURCE = readFileSync(
+	join(IMPORT_SHEET_DIR, "import-sheet.tsx"),
+	"utf8",
+);
 
-function screenBlock(name: string): string {
-	const marker = `name="${name}"`;
-	const start = LAYOUT_SOURCE.indexOf(marker);
-	if (start === -1) {
-		throw new Error(`no Stack.Screen named "${name}" found in _layout.tsx`);
+function collectSourceFiles(dir: string): string[] {
+	const files: string[] = [];
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		const full = join(dir, entry.name);
+		if (entry.isDirectory()) {
+			files.push(...collectSourceFiles(full));
+			continue;
+		}
+		if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+			files.push(full);
+		}
 	}
-	const closeTag = LAYOUT_SOURCE.indexOf("/>", start);
-	const openingChild = LAYOUT_SOURCE.indexOf(">", start);
-	const end = closeTag === -1 ? openingChild : Math.min(closeTag, openingChild);
-	return LAYOUT_SOURCE.slice(start, end === -1 ? undefined : end);
+	return files;
 }
 
-describe("_layout.tsx: import sheet registration", () => {
-	it("declares a transparent content style on iOS", () => {
-		expect(screenBlock("import")).toMatch(TRANSPARENT_CONTENT_STYLE);
+describe("import is a sheet, not a route", () => {
+	it("no app/import directory or leaf route exists", () => {
+		expect(existsSync(join(APP_DIR, "import"))).toBe(false);
+		expect(existsSync(join(APP_DIR, "import.tsx"))).toBe(false);
 	});
 
-	it("matches the transparent contentStyle its sibling formSheets already declare", () => {
-		expect(screenBlock("transaction/identity")).toMatch(
-			TRANSPARENT_CONTENT_STYLE,
-		);
-		expect(screenBlock("settings/category-symbol")).toMatch(
-			TRANSPARENT_CONTENT_STYLE,
-		);
-	});
-});
-
-describe("_layout.tsx: import sheet resume-aware initial detent", () => {
-	it('derives the initial sheetAllowedDetents from the resume step, not a hardcoded "source"', () => {
-		expect(screenBlock("import")).toMatch(
-			/sheetAllowedDetents:\s*importStepDetents\(resumeStep,\s*windowHeight\)/,
-		);
+	it("the root layout registers no import screen and owns no sheet background constant", () => {
+		expect(LAYOUT_SOURCE).not.toMatch(/name="import"/);
+		expect(LAYOUT_SOURCE).not.toMatch(/SHEET_BACKGROUND_COLOR/);
 	});
 
-	it("subscribes to the draft store's resume primitive via useSyncExternalStore", () => {
-		expect(LAYOUT_SOURCE).toMatch(
-			/useSyncExternalStore\(\s*importDraftStore\.subscribeResume,\s*importDraftStore\.getResumeStep,?\s*\)/,
-		);
+	it("the route-href indirection is gone", () => {
+		expect(existsSync(join(__dirname, "import-routes.ts"))).toBe(false);
+	});
+
+	it("only the sheet root touches expo-router — steps navigate through the draft store", () => {
+		const offenders = collectSourceFiles(IMPORT_SHEET_DIR)
+			.filter((file) => !file.endsWith("import-sheet.tsx"))
+			.filter((file) => /from "expo-router"/.test(readFileSync(file, "utf8")))
+			.map((file) => file.slice(IMPORT_SHEET_DIR.length + 1));
+		expect(offenders).toStrictEqual([]);
 	});
 });
 
-describe("import route: single leaf file", () => {
-	it("no per-step import route exists under app/import/", () => {
-		for (const file of [
-			"_layout.tsx",
-			"index.tsx",
-			"file.tsx",
-			"resolve.tsx",
-			"review.tsx",
-		]) {
-			expect(existsSync(join(APP_DIR, "import", file))).toBe(false);
-		}
+describe("the sheet is one BottomSheetModal in the currency-picker pattern", () => {
+	it("uses BottomSheetModal from @expo/ui with dynamic sizing", () => {
+		expect(IMPORT_SHEET_SOURCE).toMatch(
+			/from "@expo\/ui\/community\/bottom-sheet"/,
+		);
+		expect(IMPORT_SHEET_SOURCE).toMatch(/<BottomSheetModal/);
+		expect(IMPORT_SHEET_SOURCE).toMatch(/enableDynamicSizing\b(?!=\{false\})/);
+		expect(IMPORT_SHEET_SOURCE).toMatch(/enablePanDownToClose/);
+		expect(IMPORT_SHEET_SOURCE).not.toMatch(/snapPoints=/);
+	});
+});
+
+describe("no navigator chrome under the import sheet", () => {
+	it("zero headerRight/headerLeft occurrences under components/import-sheet/**", () => {
+		const offenders = collectSourceFiles(IMPORT_SHEET_DIR).filter((file) =>
+			/headerRight|headerLeft/.test(readFileSync(file, "utf8")),
+		);
+		expect(offenders).toStrictEqual([]);
 	});
 
-	it("the import sheet is a single leaf route file", () => {
-		expect(existsSync(join(APP_DIR, "import.tsx"))).toBe(true);
+	it("zero common.cancel occurrences under components/import-sheet/**", () => {
+		const offenders = collectSourceFiles(IMPORT_SHEET_DIR).filter((file) =>
+			/common\.cancel/.test(readFileSync(file, "utf8")),
+		);
+		expect(offenders).toStrictEqual([]);
+	});
+
+	it("zero ActionStrip / wizard / footer-slot references under components/import-sheet/**", () => {
+		const offenders = collectSourceFiles(IMPORT_SHEET_DIR).filter((file) =>
+			/ActionStrip|components\/wizard|import-chrome-footer/.test(
+				readFileSync(file, "utf8"),
+			),
+		);
+		expect(offenders).toStrictEqual([]);
+	});
+
+	it("the wizard/ActionStrip component tree no longer exists", () => {
+		expect(existsSync(join(__dirname, "..", "components", "wizard"))).toBe(
+			false,
+		);
+	});
+
+	it("the navigator-era StepFrame no longer exists", () => {
+		expect(existsSync(join(IMPORT_SHEET_DIR, "step-frame.tsx"))).toBe(false);
 	});
 });

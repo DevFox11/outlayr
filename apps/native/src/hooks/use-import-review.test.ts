@@ -12,12 +12,17 @@ import { INITIAL_IMPORT_FLOW_STATE } from "@/domain/import-flow";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { buildReviewRows, useImportReview } from "./use-import-review";
 
-const mockBack = jest.fn();
+const mockGoBack = jest.fn();
+const mockUseNavigation = jest.fn((_parent?: string) => ({
+	goBack: mockGoBack,
+}));
 
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: mockBack }) }));
+jest.mock("expo-router", () => ({
+	useNavigation: (parent?: string) => mockUseNavigation(parent),
+}));
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
@@ -51,8 +56,22 @@ const NOW = new Date(2026, 6, 29, 12);
 
 async function seedCategories(db: Database) {
 	await db.insert(categories).values([
-		{ id: "cat-food", name: "Groceries", income: false, updatedAt: NOW },
-		{ id: "cat-pay", name: "Paycheck", income: true, updatedAt: NOW },
+		{
+			id: "cat-food",
+			name: "Groceries",
+			income: false,
+			color: "#3D8A4E",
+			icon: "basket",
+			updatedAt: NOW,
+		},
+		{
+			id: "cat-pay",
+			name: "Paycheck",
+			income: true,
+			color: "#2E5AAC",
+			emoji: "💰",
+			updatedAt: NOW,
+		},
 	]);
 }
 
@@ -96,7 +115,8 @@ function withReview() {
 beforeEach(() => {
 	dbHolder.current = migratedDb();
 	importDraftStore.clear();
-	mockBack.mockClear();
+	mockGoBack.mockClear();
+	mockUseNavigation.mockClear();
 });
 
 describe("buildReviewRows", () => {
@@ -223,6 +243,34 @@ describe("useImportReview", () => {
 		expect(second.result.current.excluded.has(0)).toBe(false);
 	});
 
+	it("exposes the ledger currency for rows whose entry states none", async () => {
+		await seedCategories(dbHolder.current as Database);
+		withReview();
+
+		const { result } = await renderHook(() => useImportReview());
+		await waitFor(() => expect(result.current.plan.entries.length).toBe(2));
+		expect(result.current.currency).toBe("USD");
+	});
+
+	it("exposes each category's tile identity for the row fallback tile", async () => {
+		await seedCategories(dbHolder.current as Database);
+		withReview();
+
+		const { result } = await renderHook(() => useImportReview());
+		await waitFor(() => expect(result.current.plan.entries.length).toBe(2));
+
+		expect(result.current.categoryTile.get("cat-food")).toStrictEqual({
+			color: "#3D8A4E",
+			icon: "basket",
+			emoji: null,
+		});
+		expect(result.current.categoryTile.get("cat-pay")).toStrictEqual({
+			color: "#2E5AAC",
+			icon: null,
+			emoji: "💰",
+		});
+	});
+
 	it("onToggle keeps a stable identity across renders", async () => {
 		await seedCategories(dbHolder.current as Database);
 		withReview();
@@ -246,7 +294,7 @@ describe("useImportReview", () => {
 		expect((await db.select().from(transactions)).length).toBe(0);
 	});
 
-	it("onCommit writes every non-excluded entry, clears the draft, navigates back and reports success", async () => {
+	it("onCommit writes every non-excluded entry, records the success and advances to the done step without clearing the draft", async () => {
 		const db = dbHolder.current as Database;
 		await seedCategories(db);
 		withReview();
@@ -262,14 +310,16 @@ describe("useImportReview", () => {
 		});
 
 		expect((await db.select().from(transactions)).length).toBe(2);
-		expect(importDraftStore.getSnapshot().flow).toStrictEqual(
-			INITIAL_IMPORT_FLOW_STATE,
-		);
-		expect(mockBack).toHaveBeenCalledTimes(1);
-		expect(alertSpy).toHaveBeenCalledWith(
-			"import.reviewCommitSuccessTitle",
-			'import.reviewCommitSuccessBody:{"count":2}',
-		);
+		const snapshot = importDraftStore.getSnapshot();
+		expect(snapshot.flow.commit).toStrictEqual({
+			phase: "success",
+			count: 2,
+			outAmount: 12.5,
+			duplicatesSkipped: 0,
+		});
+		expect(snapshot.flow).not.toStrictEqual(INITIAL_IMPORT_FLOW_STATE);
+		expect(snapshot.ui.step).toBe("done");
+		expect(alertSpy).not.toHaveBeenCalled();
 		alertSpy.mockRestore();
 	});
 
@@ -297,7 +347,7 @@ describe("useImportReview", () => {
 			}),
 		);
 		expect(importDraftStore.getSnapshot().flow.excluded).toBe(excludedBefore);
-		expect(mockBack).not.toHaveBeenCalled();
+		expect(mockGoBack).not.toHaveBeenCalled();
 		applySpy.mockRestore();
 	});
 });

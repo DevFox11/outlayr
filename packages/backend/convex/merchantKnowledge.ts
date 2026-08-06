@@ -6,7 +6,8 @@ import { internalMutation, internalQuery } from "./_generated/server";
  * `lookup`/`record`/`purge` are all `internal*` and stay that way — a public
  * exact-key oracle over a shared, non-user-scoped table is a
  * dictionary-enumeration surface (threat T5). `lookup` is reachable only from
- * `enrichment.ts:suggest`; no function here collects or paginates a listing
+ * `enrichment.ts:suggest` and `csvImport.ts:csvImport`, both rate-limited; no
+ * function here collects or paginates a listing
  * over `by_key`, or takes a prefix/range.
  */
 

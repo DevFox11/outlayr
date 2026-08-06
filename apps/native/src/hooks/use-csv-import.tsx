@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { categoryKey, type ParsedImportFile } from "@/data/transfer-core";
-import { getCachedEnrichment } from "@/domain/enrichment-cache";
+import { setCachedEnrichment } from "@/domain/enrichment-cache";
 import {
 	buildClassificationPayload,
 	scrubLabel,
@@ -10,6 +10,7 @@ import type {
 	UnavailableReason,
 } from "@/domain/import-flow";
 import type { MappingDraft } from "@/domain/import-mapping";
+import { cachedLabelEnrichment } from "@/domain/import-review-identity";
 import { merchantKey, resolveMerchant } from "@/domain/merchant-resolver";
 import {
 	type CategoryBranch,
@@ -31,6 +32,9 @@ export interface UseCsvImportArgs {
 	categoryTree: readonly CategoryBranch[];
 	categoryIdByKey: ReadonlyMap<string, string>;
 	aiEnrichment: boolean;
+	/** The synced grounded-lookup consent; the server re-checks it too. */
+	groundedLookup: boolean;
+	regionCode: string | undefined;
 	transport?: CsvImportFn | null;
 	/**
 	 * Identifies the selected file. Must be a primitive value — `parsed` itself
@@ -130,6 +134,10 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 	categoryIdByKeyRef.current = args.categoryIdByKey;
 	const aiEnrichmentRef = useRef(args.aiEnrichment);
 	aiEnrichmentRef.current = args.aiEnrichment;
+	const groundedLookupRef = useRef(args.groundedLookup);
+	groundedLookupRef.current = args.groundedLookup;
+	const regionCodeRef = useRef(args.regionCode);
+	regionCodeRef.current = args.regionCode;
 	const transportRef = useRef(args.transport);
 	transportRef.current = args.transport;
 
@@ -140,6 +148,10 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		partialRef.current = { links: resolvedLinks, fromModel: fromModelSet };
 		const unresolved: string[] = [];
 
+		// A map match without a domain keeps its tier-1 category link but still
+		// travels to the server, so `merchantKnowledge` can supply — or a grounded
+		// lookup can learn — the domain the curated map does not carry.
+		const domainless: string[] = [];
 		for (const label of allLabels) {
 			const match = resolveMerchant(label);
 			const categoryId =
@@ -148,6 +160,9 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 					: categoryIdByKeyRef.current.get(categoryKey(match.categoryName));
 			if (categoryId != null) {
 				resolvedLinks.set(categoryKey(label), categoryId);
+				if (match?.domain == null) {
+					domainless.push(label);
+				}
 			} else {
 				unresolved.push(label);
 			}
@@ -156,7 +171,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 
 		const stillUnresolved: string[] = [];
 		for (const label of unresolved) {
-			const cached = getCachedEnrichment(merchantKey(label));
+			const cached = cachedLabelEnrichment(label);
 			const categoryName = cached.hit
 				? (cached.value?.categoryName ?? null)
 				: null;
@@ -183,10 +198,15 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			}
 		}
 
+		const domainUnknown = domainless.filter((label) => {
+			const cached = cachedLabelEnrichment(label);
+			return !(cached.hit && cached.value?.domain != null);
+		});
+
 		const payload = buildClassificationPayload({
 			parsed: parsedRef.current,
 			draft: draftRef.current,
-			unresolvedLabels: stillUnresolved,
+			unresolvedLabels: [...stillUnresolved, ...domainUnknown],
 			categoryTree: categoryTreeRef.current,
 		});
 
@@ -222,7 +242,11 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		let settled: Settled;
 		try {
 			const raced = await Promise.race([
-				call(payload),
+				call({
+					...payload,
+					groundedLookup: groundedLookupRef.current,
+					regionCode: regionCodeRef.current,
+				}),
 				new Promise<typeof TIMED_OUT>((resolve) => {
 					setTimeout(() => resolve(TIMED_OUT), CLIENT_TIMEOUT_MS);
 				}),
@@ -254,6 +278,14 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		}
 
 		for (const suggestion of settled.result.suggestions ?? []) {
+			if (suggestion.domain != null) {
+				setCachedEnrichment(merchantKey(suggestion.label), {
+					categoryName: suggestion.categoryName,
+					isNewCategory: false,
+					tags: [],
+					domain: suggestion.domain,
+				});
+			}
 			const categoryId = categoryIdByKeyRef.current.get(
 				categoryKey(suggestion.categoryName),
 			);

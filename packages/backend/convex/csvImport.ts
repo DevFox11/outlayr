@@ -10,8 +10,14 @@ import {
 import { v } from "convex/values";
 import { z } from "zod";
 
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
+import {
+	type GroundedScheduleCtx,
+	maybeScheduleGrounded,
+	sanitizeRegionCode,
+} from "./enrichment";
+import { merchantKey } from "./lib/merchantKey";
 
 /** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
 const CSV_IMPORT_MODEL_ID = "grok-4.20-0309-non-reasoning";
@@ -22,20 +28,24 @@ const REQUEST_TIMEOUT_MS = 12_000;
 
 /**
  * The action's only arguments — a privacy boundary asserted by test, not just
- * a shape. This is exactly `import-ai-payload.ts`'s `ClassificationPayload`:
- * no raw file, no full row set, no amount or date value, and no per-row data
- * of any kind may reach here.
+ * a shape. `import-ai-payload.ts`'s `ClassificationPayload` plus the grounded
+ * consent flag and device region: no raw file, no full row set, no amount or
+ * date value, and no per-row data of any kind may reach here.
  */
 export const csvImportArgs = {
 	labels: v.array(v.string()),
 	categoryTree: v.array(
 		v.object({ name: v.string(), children: v.array(v.string()) }),
 	),
+	/** One side of the dual-authority consent gate — see `enrichment.ts:suggestArgs`. */
+	groundedLookup: v.optional(v.boolean()),
+	regionCode: v.optional(v.string()),
 };
 
 const labelSuggestion = v.object({
 	label: v.string(),
 	categoryName: v.string(),
+	domain: v.union(v.string(), v.null()),
 });
 
 const csvImportStatus = v.union(
@@ -61,6 +71,7 @@ export interface CategoryBranch {
 export interface LabelSuggestion {
 	label: string;
 	categoryName: string;
+	domain: string | null;
 }
 
 export type CsvImportStatus =
@@ -175,7 +186,7 @@ export async function classify(
 			if (!categoryName || !known.has(categoryName)) {
 				continue;
 			}
-			suggestions.push({ label: item.label, categoryName });
+			suggestions.push({ label: item.label, categoryName, domain: null });
 		}
 
 		return { status: "ok", suggestions };
@@ -191,6 +202,68 @@ export async function classify(
 		}
 		return failure("providerError");
 	}
+}
+
+/**
+ * One import may burn at most this many grounded-lookup attempts. The
+ * `groundedPerUser` bucket bursts at 20, so a single big import of unknowns
+ * spends at most half of it; the remainder of the batch degrades to
+ * classify-with-null-domain and is picked up by a later import once the
+ * scheduled lookups have filled `merchantKnowledge`.
+ */
+export const GROUNDED_IMPORT_MAX = 10;
+
+export interface ImportGroundedArgs {
+	labels: readonly string[];
+	groundedLookup: boolean;
+	regionCode?: string;
+}
+
+/**
+ * Fire-and-forget learning: each scheduled `groundedLookup.run` fills
+ * `merchantKnowledge` for the NEXT import of that merchant, never this one —
+ * the same contract as `enrichment.ts:suggest`. Consent is pre-checked once
+ * here so a declined user costs one query, not one per label;
+ * `maybeScheduleGrounded` re-checks it per label, which is just an indexed
+ * read. `income: false` because the batch payload deliberately carries no
+ * per-row data to derive it from.
+ */
+export async function scheduleImportGrounded(
+	ctx: GroundedScheduleCtx,
+	tokenIdentifier: string,
+	args: ImportGroundedArgs,
+): Promise<number> {
+	if (!args.groundedLookup) {
+		return 0;
+	}
+	const consented = await ctx.runQuery(internal.enrichment.groundedConsent, {});
+	if (!consented) {
+		return 0;
+	}
+	const seen = new Set<string>();
+	let attempts = 0;
+	let scheduled = 0;
+	for (const label of args.labels) {
+		if (attempts >= GROUNDED_IMPORT_MAX) {
+			break;
+		}
+		const key = merchantKey(label);
+		if (key.length === 0 || seen.has(key)) {
+			continue;
+		}
+		seen.add(key);
+		attempts += 1;
+		const ok = await maybeScheduleGrounded(ctx, tokenIdentifier, {
+			groundedLookup: true,
+			name: label,
+			income: false,
+			regionCode: args.regionCode,
+		});
+		if (ok) {
+			scheduled += 1;
+		}
+	}
+	return scheduled;
 }
 
 /**
@@ -227,11 +300,50 @@ export const csvImport = action({
 			return failure("rateLimited");
 		}
 
+		// Tier 1.5, after the rate limits so the shared table cannot be probed
+		// faster than the model could be. A knowledge row answers with the same
+		// category and domain `enrichment.ts:suggest` would return, so its label
+		// never reaches the model.
+		const known: LabelSuggestion[] = [];
+		const remaining: string[] = [];
+		for (const label of args.labels) {
+			const row = await ctx.runQuery(internal.merchantKnowledge.lookup, {
+				key: merchantKey(label),
+			});
+			if (row === null) {
+				remaining.push(label);
+			} else {
+				known.push({
+					label,
+					categoryName: row.categoryName,
+					domain: row.domain,
+				});
+			}
+		}
+		// Scheduled before the model call so a provider failure still learns the
+		// batch's unknown merchants for next time.
+		await scheduleImportGrounded(ctx, identity.tokenIdentifier, {
+			labels: remaining,
+			groundedLookup: args.groundedLookup === true,
+			regionCode: sanitizeRegionCode(args.regionCode),
+		});
+
+		if (remaining.length === 0) {
+			return { status: "ok", suggestions: known };
+		}
+
 		const xaiProvider = createXai({ apiKey });
 		const modelId = process.env.XAI_MODEL_ID || CSV_IMPORT_MODEL_ID;
-		return await classify(xaiProvider(modelId), {
-			labels: args.labels,
+		const classified = await classify(xaiProvider(modelId), {
+			labels: remaining,
 			categoryTree: args.categoryTree,
 		});
+		if (classified.status !== "ok" || classified.suggestions === null) {
+			if (known.length > 0) {
+				return { status: "ok", suggestions: known };
+			}
+			return classified;
+		}
+		return { status: "ok", suggestions: [...known, ...classified.suggestions] };
 	},
 });
