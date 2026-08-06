@@ -1,7 +1,7 @@
+import { useTheme } from "panelui-native";
 import { Pressable, View } from "react-native";
 import { CategoryIcon } from "@/components/category-icon";
 import { Text } from "@/components/text";
-import { useAppTheme } from "@/contexts/app-theme-context";
 import { useTranslation } from "@/i18n";
 import { glyphShade, withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -62,7 +62,8 @@ export function SymbolIconCell({
 	onPress,
 }: SymbolCellProps & { iconKey: string }) {
 	const colors = useColors();
-	const { isDark } = useAppTheme();
+	const { theme } = useTheme();
+	const isDark = theme === "dark";
 	return (
 		<Pressable
 			accessibilityLabel={iconKey}

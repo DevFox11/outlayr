@@ -1,6 +1,6 @@
+import { useTheme } from "panelui-native";
 import { type ReactNode, useState } from "react";
 import { Image, Text, View } from "react-native";
-import { useAppTheme } from "@/contexts/app-theme-context";
 import { glyphShade, TILE_WASH_OPACITY, withAlpha } from "@/theme/shade";
 import { CategoryIcon, type CategoryIconType } from "./category-icon";
 
@@ -49,7 +49,8 @@ export function CategoryIconTile({
 	imageUri = null,
 	glyph,
 }: CategoryIconTileProps) {
-	const { isDark } = useAppTheme();
+	const { theme } = useTheme();
+	const isDark = theme === "dark";
 	// Keyed by uri rather than reset in an effect, so pointing the tile at a
 	// different photo re-arms it on the same render.
 	const [unreadable, setUnreadable] = useState<string | null>(null);

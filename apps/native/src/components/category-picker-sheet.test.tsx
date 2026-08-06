@@ -4,7 +4,6 @@ import { act, render } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { createRef } from "react";
-import { AppThemeProvider } from "@/contexts/app-theme-context";
 import type { Database } from "@/db/client";
 import {
 	CategoryPickerSheet,
@@ -44,22 +43,20 @@ describe("CategoryPickerSheet", () => {
 		const db = migratedDb();
 		const ref = createRef<CategoryPickerSheetRef>();
 		const { toJSON } = await render(
-			<AppThemeProvider>
-				<CategoryPickerSheet
-					db={db}
-					income={false}
-					onSelect={() => {}}
-					pendingCategory={{
-						name: "Entertainment",
-						icon: "FilmRoll01",
-						color: "#AF52DE",
-						emoji: null,
-						parentName: null,
-					}}
-					ref={ref}
-					selectedId={null}
-				/>
-			</AppThemeProvider>,
+			<CategoryPickerSheet
+				db={db}
+				income={false}
+				onSelect={() => {}}
+				pendingCategory={{
+					name: "Entertainment",
+					icon: "FilmRoll01",
+					color: "#AF52DE",
+					emoji: null,
+					parentName: null,
+				}}
+				ref={ref}
+				selectedId={null}
+			/>,
 		);
 		await act(async () => {
 			ref.current?.present();
@@ -74,15 +71,13 @@ describe("CategoryPickerSheet", () => {
 		const db = migratedDb();
 		const ref = createRef<CategoryPickerSheetRef>();
 		const { toJSON } = await render(
-			<AppThemeProvider>
-				<CategoryPickerSheet
-					db={db}
-					income={false}
-					onSelect={() => {}}
-					ref={ref}
-					selectedId={null}
-				/>
-			</AppThemeProvider>,
+			<CategoryPickerSheet
+				db={db}
+				income={false}
+				onSelect={() => {}}
+				ref={ref}
+				selectedId={null}
+			/>,
 		);
 		await act(async () => {
 			ref.current?.present();

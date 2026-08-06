@@ -3,8 +3,8 @@ import {
 	AppleAuthenticationButtonStyle,
 	AppleAuthenticationButtonType,
 } from "expo-apple-authentication";
+import { useTheme } from "panelui-native";
 import { ActivityIndicator, View } from "react-native";
-import { useAppTheme } from "@/contexts/app-theme-context";
 import { useColors } from "@/theme/use-colors";
 
 export const SIGN_IN_BUTTON_HEIGHT = 52;
@@ -23,7 +23,8 @@ export function AppleSignInButton({
 	disabled: boolean;
 	onPress: () => void;
 }) {
-	const { isDark } = useAppTheme();
+	const { theme } = useTheme();
+	const isDark = theme === "dark";
 	const colors = useColors();
 
 	if (pending) {

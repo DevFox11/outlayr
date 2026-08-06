@@ -20,9 +20,6 @@ jest.mock("@/theme/use-colors", () => ({
 		danger: "#B5482F",
 	}),
 }));
-jest.mock("@/contexts/app-theme-context", () => ({
-	useAppTheme: () => ({ isDark: false }),
-}));
 jest.mock("@/contexts/display-settings-context", () => ({
 	useDisplaySettings: () => ({
 		state: { showCents: true, showSign: true },

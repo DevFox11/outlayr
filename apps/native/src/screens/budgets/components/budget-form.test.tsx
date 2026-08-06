@@ -4,7 +4,6 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
-import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { budgetsRepo } from "@/data/budgets";
 import { type Category, getCategoryById } from "@/data/categories";
@@ -165,11 +164,7 @@ async function seedCategory(db: Database, id = "c1", name = "Groceries") {
 }
 
 function Providers({ children }: { children: React.ReactNode }) {
-	return (
-		<AppThemeProvider>
-			<AppSettingsProvider>{children}</AppSettingsProvider>
-		</AppThemeProvider>
-	);
+	return <AppSettingsProvider>{children}</AppSettingsProvider>;
 }
 
 beforeEach(() => {

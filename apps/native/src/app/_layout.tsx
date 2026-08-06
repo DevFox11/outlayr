@@ -10,7 +10,7 @@ import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { PanelUIProvider } from "panelui-native";
+import { PanelUIProvider, useTheme } from "panelui-native";
 import { useEffect, useState } from "react";
 import {
 	Pressable,
@@ -18,8 +18,6 @@ import {
 	useWindowDimensions,
 	View,
 } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
 	SafeAreaListener,
 	SafeAreaProvider,
@@ -29,7 +27,6 @@ import { AppLockGate } from "@/components/app-lock-gate";
 import { AuthCover } from "@/components/auth-cover";
 import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
-import { AppThemeProvider, useAppTheme } from "@/contexts/app-theme-context";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import {
@@ -96,7 +93,8 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { status } = useLocalData();
-	const { isDark, isHydrated: themeReady } = useAppTheme();
+	const { theme } = useTheme();
+	const isDark = theme === "dark";
 	const languageReady = useLanguageReady();
 	const colorScheme = useColorScheme();
 	const [splashHidden, setSplashHidden] = useState(false);
@@ -109,13 +107,10 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 
 	// The app's one readiness gate: every screen below it can call `useDatabase()`
 	// and read straight away, with no per-screen loading branch, and the first
-	// frame is already in the user's chosen theme and language. "error" drops the
-	// splash too — an error surface beats an indefinite splash.
+	// frame is already in the user's language. "error" drops the splash too — an
+	// error surface beats an indefinite splash.
 	const isReady =
-		fontsLoaded &&
-		themeReady &&
-		languageReady &&
-		(status === "ready" || status === "error");
+		fontsLoaded && languageReady && (status === "ready" || status === "error");
 
 	useEffect(() => {
 		if (isReady) {
@@ -142,23 +137,21 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 		<>
 			<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-			<PanelUIProvider>
-				<ThemeProvider
-					value={{
-						...base,
-						dark: isDark,
-						colors: { ...base.colors, background, card, text, border },
-					}}
-				>
-					<LedgerAdoptionProvider>
-						<AuthCover>
-							<AppLockGate>
-								<RootStack />
-							</AppLockGate>
-						</AuthCover>
-					</LedgerAdoptionProvider>
-				</ThemeProvider>
-			</PanelUIProvider>
+			<ThemeProvider
+				value={{
+					...base,
+					dark: isDark,
+					colors: { ...base.colors, background, card, text, border },
+				}}
+			>
+				<LedgerAdoptionProvider>
+					<AuthCover>
+						<AppLockGate>
+							<RootStack />
+						</AppLockGate>
+					</AuthCover>
+				</LedgerAdoptionProvider>
+			</ThemeProvider>
 		</>
 	);
 }
@@ -353,34 +346,33 @@ export default function RootLayout() {
 	});
 
 	return (
-		<GestureHandlerRootView style={{ flex: 1 }}>
-			<KeyboardProvider statusBarTranslucent>
-				<SafeAreaProvider>
-					{/* Feeds the live insets to uniwind — without it every `*-safe`
-					    utility resolves to nothing. */}
-					<SafeAreaListener
-						onChange={({ insets }) => {
-							Uniwind.updateInsets(insets);
-						}}
-					>
-						<AppThemeProvider>
-							<LanguageProvider>
-								<ConvexShell>
-									<AuthSessionProvider>
-										<LocalDataProvider>
-											<AppSettingsProvider>
-												<IdentityDraftProvider>
-													<RootNavigator fontsLoaded={fontsLoaded} />
-												</IdentityDraftProvider>
-											</AppSettingsProvider>
-										</LocalDataProvider>
-									</AuthSessionProvider>
-								</ConvexShell>
-							</LanguageProvider>
-						</AppThemeProvider>
-					</SafeAreaListener>
-				</SafeAreaProvider>
-			</KeyboardProvider>
-		</GestureHandlerRootView>
+		<SafeAreaProvider>
+			{/* Feeds the live insets to uniwind — without it every `*-safe`
+			    utility resolves to nothing. */}
+			<SafeAreaListener
+				onChange={({ insets }) => {
+					Uniwind.updateInsets(insets);
+				}}
+			>
+				{/* Below SafeAreaProvider because its ToastViewport reads
+				    `useSafeAreaInsets`; it brings the gesture root and the
+				    keyboard provider with it. */}
+				<PanelUIProvider>
+					<LanguageProvider>
+						<ConvexShell>
+							<AuthSessionProvider>
+								<LocalDataProvider>
+									<AppSettingsProvider>
+										<IdentityDraftProvider>
+											<RootNavigator fontsLoaded={fontsLoaded} />
+										</IdentityDraftProvider>
+									</AppSettingsProvider>
+								</LocalDataProvider>
+							</AuthSessionProvider>
+						</ConvexShell>
+					</LanguageProvider>
+				</PanelUIProvider>
+			</SafeAreaListener>
+		</SafeAreaProvider>
 	);
 }

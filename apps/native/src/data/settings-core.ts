@@ -6,7 +6,7 @@ import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 /**
  * Values persist as strings: "true"/"false" for booleans, decimal for integers.
  * Currency lives under `META_KEYS.currency`; theme is not a setting here at all
- * (AsyncStorage, via `app-theme-context`).
+ * (held in memory by Uniwind, via PanelUI's `useTheme`).
  */
 export type BoolSettingKey =
 	| "showCents"

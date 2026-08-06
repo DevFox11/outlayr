@@ -12,10 +12,6 @@ jest.mock("@/lib/google-sign-in", () => ({
 	googleIdToken: jest.fn(),
 }));
 
-jest.mock("@/contexts/app-theme-context", () => ({
-	useAppTheme: () => ({ isDark: false }),
-}));
-
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({ background: "#F2F0EA" }),
 }));

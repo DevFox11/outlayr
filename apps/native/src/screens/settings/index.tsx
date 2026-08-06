@@ -13,7 +13,6 @@ import {
 	ToggleRow,
 } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
-import { useAppTheme } from "@/contexts/app-theme-context";
 import {
 	useAppSettings,
 	useDisplaySettings,
@@ -46,6 +45,7 @@ import { importDraftStore } from "@/lib/import-draft-store";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { themeLabel } from "@/theme/theme-preference";
+import { useThemePreference } from "@/theme/use-theme-preference";
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
 const WEBSITE = "https://tryoutlayr.com";
@@ -81,7 +81,7 @@ function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
-	const { themePreference } = useAppTheme();
+	const { preference: themePreference } = useThemePreference();
 	const { preference } = useLanguage();
 	useReminderSync(db);
 

@@ -1,8 +1,8 @@
+import { useTheme } from "panelui-native";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { SIGN_IN_BUTTON_HEIGHT } from "@/components/account/apple-sign-in-button";
 import { Text } from "@/components/text";
-import { useAppTheme } from "@/contexts/app-theme-context";
 
 /**
  * Fixed by Google's identity guidelines, which is why they are literals rather
@@ -47,8 +47,8 @@ export function GoogleSignInButton({
 	disabled: boolean;
 	onPress: () => void;
 }) {
-	const { isDark } = useAppTheme();
-	const brand = isDark ? BRAND.dark : BRAND.light;
+	const { theme } = useTheme();
+	const brand = theme === "dark" ? BRAND.dark : BRAND.light;
 
 	return (
 		<Pressable
