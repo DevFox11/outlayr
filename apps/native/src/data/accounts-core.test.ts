@@ -4,12 +4,22 @@ import type { Database } from "@/db/client";
 import { accounts, exchangeRates, transactions } from "@/db/schema";
 import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
-import { accountsRepo, getAccountById } from "./accounts-core";
+import {
+	accountsRepo,
+	getAccountById,
+	getLastUsedAccount,
+	rememberLastUsedAccount,
+} from "./accounts-core";
 import { accountCellQuery, toCurrencyCells } from "./cell-query";
+import { transactionsRepo } from "./transactions-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	sqlite.exec(`
+		CREATE TABLE appMeta (
+			key text PRIMARY KEY NOT NULL,
+			value text
+		);
 		CREATE TABLE accounts (
 			id text PRIMARY KEY NOT NULL,
 			name text NOT NULL,
@@ -344,6 +354,136 @@ describe("accountCellQuery", () => {
 		);
 
 		expect(balance.total).toBe(82);
+		expect(balance.exact).toBe(true);
+	});
+});
+
+describe("the last-used account", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	it("answers null before any save has attached", () => {
+		expect(getLastUsedAccount(db)).toBe(null);
+	});
+
+	it("hands back the remembered account", async () => {
+		const id = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+		});
+
+		await rememberLastUsedAccount(db, id);
+
+		expect(getLastUsedAccount(db)?.id).toBe(id);
+	});
+
+	it("moves with the newest attachment", async () => {
+		const first = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+		});
+		const second = await accountsRepo.create(db, {
+			name: "Savings",
+			currency: "USD",
+		});
+
+		await rememberLastUsedAccount(db, first);
+		await rememberLastUsedAccount(db, second);
+
+		expect(getLastUsedAccount(db)?.id).toBe(second);
+	});
+
+	it("answers null once the remembered account is deleted", async () => {
+		const id = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+		});
+		await rememberLastUsedAccount(db, id);
+
+		await accountsRepo.softDelete(db, id);
+
+		expect(getLastUsedAccount(db)).toBe(null);
+	});
+});
+
+describe("an attached entry moving the balance", () => {
+	let db: Database;
+	beforeEach(() => {
+		db = makeDb();
+	});
+
+	async function balanceOf(accountId: string, rates = buildRateTable([])) {
+		const account = getAccountById(db, accountId);
+		if (account == null) {
+			throw new Error("Account not found.");
+		}
+		return accountBalance(
+			account,
+			toCurrencyCells(await accountCellQuery(db, accountId)),
+			rates,
+		);
+	}
+
+	it("shifts the balance in the account's own currency", async () => {
+		const accountId = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+			initialBalance: 100,
+		});
+		expect((await balanceOf(accountId)).total).toBe(100);
+
+		await transactionsRepo.create(db, {
+			amount: 25,
+			income: false,
+			categoryId: "cat-1",
+			note: "Coffee",
+			details: null,
+			date: JAN_5,
+			currency: "USD",
+			accountId,
+		});
+		expect((await balanceOf(accountId)).total).toBe(75);
+
+		await transactionsRepo.create(db, {
+			amount: 40,
+			income: true,
+			categoryId: "cat-1",
+			note: "Refund",
+			details: null,
+			date: JAN_5,
+			currency: "USD",
+			accountId,
+		});
+		expect((await balanceOf(accountId)).total).toBe(115);
+	});
+
+	it("values a foreign-currency entry through its frozen USD amount", async () => {
+		await addRate(db, "EUR", "2026-01-01", 0.8);
+		const accountId = await accountsRepo.create(db, {
+			name: "Girokonto",
+			currency: "EUR",
+			initialBalance: 100,
+			initialBalanceDate: JAN_5,
+		});
+
+		await transactionsRepo.create(db, {
+			amount: 10,
+			income: false,
+			categoryId: "cat-1",
+			note: "Snack",
+			details: null,
+			date: JAN_5,
+			currency: "USD",
+			accountId,
+		});
+
+		const rates = buildRateTable([
+			{ quote: "EUR", date: "2026-01-01", rate: 0.8 },
+		]);
+		const balance = await balanceOf(accountId, rates);
+		expect(balance.total).toBe(92);
 		expect(balance.exact).toBe(true);
 	});
 });

@@ -71,6 +71,26 @@ const transaction = {
 			en: "Tags",
 			es: "Etiquetas",
 		}),
+		"transaction.field.account": t({
+			en: "Account",
+			es: "Cuenta",
+		}),
+		"transaction.account.title": t({
+			en: "Account",
+			es: "Cuenta",
+		}),
+		"transaction.account.none": t({
+			en: "None",
+			es: "Ninguna",
+		}),
+		"transaction.account.empty": t({
+			en: "No accounts yet. Create one to keep this entry's balance somewhere.",
+			es: "Aún no hay cuentas. Crea una para llevar el saldo de esta entrada en algún lugar.",
+		}),
+		"transaction.account.create": t({
+			en: "Create Account",
+			es: "Crear cuenta",
+		}),
 		"transaction.tags.title": t({
 			en: "Tags",
 			es: "Etiquetas",

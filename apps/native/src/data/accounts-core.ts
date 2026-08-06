@@ -4,6 +4,7 @@ import { accounts } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
+import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
 
 export type Account = typeof accounts.$inferSelect;
@@ -30,6 +31,23 @@ export function getAccountById(db: Database, id: string): Account | null {
 		.limit(1)
 		.all();
 	return rows[0] ?? null;
+}
+
+/**
+ * A tombstoned account resolves to null here through {@link getAccountById},
+ * so the default quietly falls back to none rather than reviving a deleted
+ * account on the next entry.
+ */
+export function getLastUsedAccount(db: Database): Account | null {
+	const id = getMetaSync(db, META_KEYS.lastTransactionAccount);
+	return id == null ? null : getAccountById(db, id);
+}
+
+export async function rememberLastUsedAccount(
+	db: Database,
+	id: string,
+): Promise<void> {
+	await setMeta(db, META_KEYS.lastTransactionAccount, id);
 }
 
 async function nextSortOrder(db: Database): Promise<number> {

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { isNull } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { accounts, transactions } from "@/db/schema";
@@ -17,7 +17,7 @@ import {
 } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import type { TransactionWithCategory } from "./transactions";
-import { LOG_COLUMNS } from "./transactions-core";
+import { accountTransactionsQuery } from "./transactions-core";
 import { useValuation, useValuationIn } from "./use-valuation";
 import type { Valuation } from "./valuation-source";
 
@@ -101,17 +101,7 @@ export function useAccountTransactions(
 ): TransactionWithCategory[] {
 	const data = useLiveQuery(
 		transactions,
-		() =>
-			db
-				.select(LOG_COLUMNS)
-				.from(transactions)
-				.where(
-					and(
-						isNull(transactions.deletedAt),
-						eq(transactions.accountId, accountId),
-					),
-				)
-				.orderBy(desc(transactions.date)),
+		() => accountTransactionsQuery(db, accountId),
 		[accountId],
 	);
 	const categoryMeta = useCategoryMeta(db);

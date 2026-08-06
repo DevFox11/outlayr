@@ -51,6 +51,11 @@ import {
 	useIdentityDraft,
 	useIdentityFlyUp,
 } from "@/contexts/identity-draft-context";
+import {
+	getAccountById,
+	getLastUsedAccount,
+	rememberLastUsedAccount,
+} from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
 	ensureCategoryByName,
@@ -107,8 +112,10 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
+import { AccountPickerSheet } from "../account-picker-sheet";
 import { AmountEntrySheet } from "../amount-entry-sheet";
 import { CategoryIcon } from "../category-icon";
+import { CategoryIconTile } from "../category-icon-tile";
 import { CategoryPickerSheet } from "../category-picker-sheet";
 import {
 	CustomScheduleSheet,
@@ -265,6 +272,11 @@ export function TransactionForm({
 			leadDays: normalizeLead(initial?.reminderLeadDays ?? null),
 			tagIds: [] as string[],
 			pendingTagNames: [] as readonly string[],
+			account: initial
+				? initial.accountId
+					? getAccountById(db, initial.accountId)
+					: null
+				: getLastUsedAccount(db),
 		};
 	});
 
@@ -329,6 +341,7 @@ export function TransactionForm({
 				hasEndDate: value.hasEndDate,
 				endDate: value.endDate,
 				leadDays: value.leadDays,
+				accountId: value.account?.id ?? null,
 			});
 			let id: string;
 			try {
@@ -354,6 +367,11 @@ export function TransactionForm({
 			// CTA: a second tap runs `create` again, which mints a fresh id rather than
 			// rewriting this row, and the ledger ends up with two subscriptions — each
 			// walked forward into its own chain of charges by the next sweep.
+			if (value.account != null) {
+				rememberLastUsedAccount(db, value.account.id).catch((error) => {
+					console.error("Failed to remember the account", error);
+				});
+			}
 			if (tagsSource !== "initial") {
 				// After the row exists, because the link points at it. A failure here
 				// costs the tags, not the entry, so it is reported rather than thrown.
@@ -436,6 +454,7 @@ export function TransactionForm({
 		leadDays,
 		tagIds,
 		pendingTagNames,
+		account,
 	} = useStore(form.store, (s) => s.values);
 	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
@@ -497,6 +516,7 @@ export function TransactionForm({
 		setCategoryError(false);
 	});
 	const tagSheetRef = useRef<BottomSheetModal>(null);
+	const accountSheetRef = useRef<BottomSheetModal>(null);
 	const allTags = useTags(db);
 	const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
 	const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
@@ -1207,11 +1227,37 @@ export function TransactionForm({
 						/>
 
 						<TransactionFormDetailsSection
+							accountLabel={t("transaction.field.account")}
+							accountName={account?.name ?? null}
+							accountNoneLabel={t("transaction.account.none")}
+							accountTile={
+								account ? (
+									<RNHostView matchContents>
+										<View style={{ width: 18, height: 18 }}>
+											<CategoryIconTile
+												color={
+													account.imageColor ??
+													account.customColor ??
+													colors.foreground
+												}
+												emoji={account.emoji}
+												icon={account.icon}
+												imageUri={account.imageUri}
+												size={18}
+												type="solid"
+											/>
+										</View>
+									</RNHostView>
+								) : undefined
+							}
 							card={card}
 							foregroundColor={colors.foreground}
+							hairline={hairline}
+							mutedColor={colors.muted}
 							notes={notes}
 							notesLabel={t("transaction.field.notes")}
 							notesPlaceholder={t("transaction.field.notesPlaceholder")}
+							onAccountPress={() => accountSheetRef.current?.present()}
 						/>
 					</VStack>
 				</ScrollView>
@@ -1316,6 +1362,17 @@ export function TransactionForm({
 				ref={tagSheetRef}
 				selected={effectiveTagIds}
 				tags={allTags}
+			/>
+
+			<AccountPickerSheet
+				db={db}
+				onCreate={() => {
+					accountSheetRef.current?.dismiss();
+					router.push("/settings/accounts/create");
+				}}
+				onSelect={(picked) => form.setFieldValue("account", picked)}
+				ref={accountSheetRef}
+				selectedId={account?.id ?? null}
 			/>
 
 			<CategoryPickerSheet

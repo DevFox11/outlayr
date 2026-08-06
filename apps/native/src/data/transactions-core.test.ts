@@ -5,9 +5,11 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { exchangeRates, outbox, transactions } from "@/db/schema";
+import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { setSyncEnabled } from "./sync-outbox-core";
 import {
+	accountTransactionsQuery,
 	deletedTransactionsQuery,
 	ledgerSizeQuery,
 	logWindowDaysQuery,
@@ -532,6 +534,122 @@ describe("switching sync off over a ledger already logged", () => {
 		expect(
 			(await deletedTransactionsQuery(db)).map((row) => row.id),
 		).toStrictEqual([tombstoned]);
+	});
+});
+
+describe("the account an entry is attached to", () => {
+	async function attachedTo(db: Database, id: string) {
+		const [row] = await db
+			.select({ accountId: transactions.accountId })
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		return row?.accountId;
+	}
+
+	it("stamps the account on create", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			accountId: "acc-1",
+		});
+
+		expect(await attachedTo(db, id)).toBe("acc-1");
+	});
+
+	it("leaves the row detached when the input names no account", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, DRAFT);
+
+		expect(await attachedTo(db, id)).toBe(null);
+	});
+
+	it("moves the attachment when an edit names another account", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			accountId: "acc-1",
+		});
+
+		await transactionsRepo.update(db, id, { ...DRAFT, accountId: "acc-2" });
+
+		expect(await attachedTo(db, id)).toBe("acc-2");
+	});
+
+	it("detaches on an explicit null", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			accountId: "acc-1",
+		});
+
+		await transactionsRepo.update(db, id, { ...DRAFT, accountId: null });
+
+		expect(await attachedTo(db, id)).toBe(null);
+	});
+
+	// The CSV import and the App Intent queue build their inputs without the
+	// field, and neither of those saves is the user taking an entry off an
+	// account.
+	it("keeps the attachment through an edit that never mentions it", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			accountId: "acc-1",
+		});
+
+		await transactionsRepo.update(db, id, { ...DRAFT, note: "Renamed" });
+
+		expect(await attachedTo(db, id)).toBe("acc-1");
+	});
+});
+
+describe("accountTransactionsQuery", () => {
+	const JUNE_1 = new Date(Date.UTC(2026, 5, 1, 12));
+	const JUNE_2 = new Date(Date.UTC(2026, 5, 2, 12));
+
+	async function seed(
+		db: Database,
+		id: string,
+		overrides: Partial<typeof transactions.$inferInsert>,
+	) {
+		await db.insert(transactions).values({
+			id,
+			amount: 10,
+			income: false,
+			currency: "USD",
+			note: id,
+			date: JUNE_1,
+			day: JUNE_1,
+			month: JUNE_1,
+			updatedAt: JUNE_1,
+			...overrides,
+		});
+	}
+
+	it("returns only the account's live rows, newest first", async () => {
+		const db = makeDb();
+		await seed(db, "older", { accountId: "acc-1", date: JUNE_1, day: JUNE_1 });
+		await seed(db, "newer", { accountId: "acc-1", date: JUNE_2, day: JUNE_2 });
+		await seed(db, "detached", { accountId: null });
+		await seed(db, "other", { accountId: "acc-2" });
+		await seed(db, "gone", { accountId: "acc-1", deletedAt: JUNE_2 });
+
+		const rows = await accountTransactionsQuery(db, "acc-1");
+
+		expect(rows.map((row) => row.id)).toStrictEqual(["newer", "older"]);
+	});
+
+	it("hands groupByDay rows that section by day", async () => {
+		const db = makeDb();
+		await seed(db, "a", { accountId: "acc-1", date: JUNE_2, day: JUNE_2 });
+		await seed(db, "b", { accountId: "acc-1", date: JUNE_1, day: JUNE_1 });
+		await seed(db, "c", { accountId: "acc-1", date: JUNE_1, day: JUNE_1 });
+
+		const sections = groupByDay(await accountTransactionsQuery(db, "acc-1"));
+
+		expect(sections).toHaveLength(2);
+		expect(sections[0].data.map((row) => row.id)).toStrictEqual(["a"]);
+		expect(sections[1].data.map((row) => row.id)).toStrictEqual(["b", "c"]);
 	});
 });
 
