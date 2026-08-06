@@ -45,6 +45,7 @@ function makeDb(): Database {
 			recurringEndDate integer,
 			reminderLeadDays integer,
 			categoryId text,
+			accountId text,
 			amountUsd real,
 			exchangeRate real,
 			exchangeRateType text,

@@ -69,6 +69,16 @@ function addTransaction(sqlite: BetterSqlite3.Database, id: string): void {
 		.run(id);
 }
 
+function addAccount(sqlite: BetterSqlite3.Database, id: string): void {
+	sqlite
+		.prepare(
+			"INSERT INTO accounts (id, name, currency, initialBalance, " +
+				"initialBalanceDate, sortOrder, dateCreated, updatedAt) " +
+				"VALUES (?, ?, 'USD', 0, 1, 0, 1, 1)",
+		)
+		.run(id, id);
+}
+
 describe("outbox triggers", () => {
 	let sqlite: BetterSqlite3.Database;
 
@@ -105,6 +115,7 @@ describe("outbox triggers", () => {
 					"recurringType, recurringCoefficient, updatedAt) VALUES ('p1', 1, 0, 0, 0, 1, 1)",
 			)
 			.run();
+		addAccount(sqlite, "a1");
 
 		expect(
 			outbox(sqlite).map((row) => [row.tableName, row.localId]),
@@ -114,7 +125,21 @@ describe("outbox triggers", () => {
 			["budgets", "b1"],
 			["mainBudget", "m1"],
 			["templateTransactions", "p1"],
+			["accounts", "a1"],
 		]);
+	});
+
+	it("fires the accounts triggers on insert, update, and hard delete", () => {
+		addAccount(sqlite, "a1");
+		enableSync(sqlite);
+
+		sqlite.prepare("UPDATE accounts SET deletedAt = 5, updatedAt = 5").run();
+		expect(
+			outbox(sqlite).map((row) => [row.tableName, row.localId]),
+		).toStrictEqual([["accounts", "a1"]]);
+
+		sqlite.prepare("DELETE FROM accounts WHERE id = 'a1'").run();
+		expect(outbox(sqlite)).toStrictEqual([]);
 	});
 
 	it("enqueues an update, including a tombstone", () => {

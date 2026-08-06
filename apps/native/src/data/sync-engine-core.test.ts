@@ -5,6 +5,7 @@ import { eq, getTableColumns } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import {
+	accounts,
 	budgets,
 	categories,
 	mainBudget,
@@ -210,6 +211,7 @@ describe("the replicated column set", () => {
 		// The path embeds a container uuid that changes on every app update, so it
 		// is meaningless on another handset and stale on this one after one.
 		"transactionPhotos.imageUri",
+		"accounts.imageUri",
 	]);
 
 	for (const table of SYNCED_TABLES) {
@@ -929,6 +931,40 @@ describe("two devices against one account", () => {
 
 		const [row] = await beta.select().from(transactions);
 		expect(row.note).toBe("coffee");
+		expect(await outboxPendingCount(beta)).toBe(0);
+	});
+
+	it("replicates an account, dates as epochs and the local path withheld", async () => {
+		const alpha = makeDb();
+		const beta = makeDb();
+		const server = makeServer();
+		await setSyncEnabled(alpha, true);
+		await setSyncEnabled(beta, true);
+
+		await alpha.insert(accounts).values({
+			id: "acct-1",
+			name: "Checking",
+			currency: "EUR",
+			initialBalance: 250,
+			initialBalanceUsd: 270,
+			initialBalanceDate: AT(4000),
+			imageUri: "file:///alpha/container/photo.jpg",
+			sortOrder: 2,
+			dateCreated: AT(3000),
+			updatedAt: AT(3000),
+		});
+		await runSync(alpha, server.transport);
+		await runSync(beta, server.transport);
+
+		const [row] = await beta.select().from(accounts);
+		expect(row.name).toBe("Checking");
+		expect(row.currency).toBe("EUR");
+		expect(row.initialBalance).toBe(250);
+		expect(row.initialBalanceUsd).toBe(270);
+		expect(row.initialBalanceDate.getTime()).toBe(4000);
+		expect(row.dateCreated.getTime()).toBe(3000);
+		expect(row.sortOrder).toBe(2);
+		expect(row.imageUri).toBe(null);
 		expect(await outboxPendingCount(beta)).toBe(0);
 	});
 

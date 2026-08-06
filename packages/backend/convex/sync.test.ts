@@ -48,9 +48,28 @@ const transactionFields = (
 	recurringCoefficient: 1,
 	recurringEndDate: null,
 	categoryId: null,
+	accountId: null,
 	amountUsd: 12.5,
 	exchangeRate: 1,
 	exchangeRateType: "official",
+	...overrides,
+});
+
+const accountFields = (
+	overrides: Partial<Arm<"accounts">["fields"]> = {},
+): Arm<"accounts">["fields"] => ({
+	name: "Checking",
+	currency: "USD",
+	initialBalance: 250,
+	initialBalanceUsd: 250,
+	initialBalanceDate: 1_700_000_000_000,
+	icon: null,
+	emoji: null,
+	customColor: null,
+	imageColor: null,
+	imageKey: null,
+	sortOrder: 0,
+	dateCreated: 1_700_000_000_000,
 	...overrides,
 });
 
@@ -216,6 +235,85 @@ describe("push table coverage", () => {
 		]);
 		const tag = page.rows.find((row) => row.table === "tags");
 		expect(tag?.fields).toMatchObject({ name: "festival", sortOrder: 0 });
+	});
+
+	test("round-trips an account and a transaction that names it", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+
+		await pushAs(t, owner, DEVICE_A, [
+			{
+				table: "accounts",
+				localId: "acct-1",
+				updatedAt: 1,
+				deletedAt: null,
+				fields: accountFields({ currency: "EUR", initialBalanceUsd: null }),
+			},
+			transactionRow("t1", 2, { fields: { accountId: "acct-1" } }),
+		]);
+
+		const page = await pullAs(t, owner, 0);
+		const account = page.rows.find((row) => row.table === "accounts");
+		expect(account?.localId).toBe("acct-1");
+		expect(account?.fields).toMatchObject({
+			name: "Checking",
+			currency: "EUR",
+			initialBalance: 250,
+			initialBalanceUsd: null,
+			sortOrder: 0,
+		});
+		const transaction = page.rows.find((row) => row.table === "transactions");
+		expect(transaction?.fields.accountId).toBe("acct-1");
+	});
+
+	test("serves a stored transaction that predates accountId as null", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+
+		const { accountId: _absent, ...legacy } = transactionFields();
+		await t.run(async (ctx) => {
+			await ctx.db.insert("transactions", {
+				userId: owner.userId,
+				localId: "t-legacy",
+				seq: 1,
+				deviceId: DEVICE_A,
+				updatedAt: 100,
+				deletedAt: null,
+				...legacy,
+			});
+			await ctx.db.insert("syncState", { userId: owner.userId, nextSeq: 2 });
+		});
+
+		const page = await pullAs(t, owner, 0);
+		expect(page.rows[0].fields.accountId).toBeNull();
+	});
+
+	test("an accounts tombstone beats a live edit like any other table", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+
+		await pushAs(t, owner, DEVICE_A, [
+			{
+				table: "accounts",
+				localId: "acct-1",
+				updatedAt: 100,
+				deletedAt: null,
+				fields: accountFields(),
+			},
+		]);
+		await pushAs(t, owner, DEVICE_B, [
+			{
+				table: "accounts",
+				localId: "acct-1",
+				updatedAt: 50,
+				deletedAt: 50,
+				fields: accountFields(),
+			},
+		]);
+
+		const page = await pullAs(t, owner, 0);
+		const account = page.rows.find((row) => row.table === "accounts");
+		expect(account?.deletedAt).toBe(50);
 	});
 
 	test("a tags tombstone beats a live edit like any other table", async () => {

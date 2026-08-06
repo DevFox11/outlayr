@@ -50,6 +50,7 @@ function makeDb(): Database {
 			recurringEndDate integer,
 			reminderLeadDays integer,
 			categoryId text,
+			accountId text,
 			amountUsd real,
 			exchangeRate real,
 			exchangeRateType text,
@@ -134,6 +135,7 @@ async function seed(db: Database): Promise<void> {
 		recurringEndDate: AUTHORED,
 		reminderLeadDays: 3,
 		categoryId: "cat-1",
+		accountId: "acct-1",
 		amountUsd: 46.2,
 		exchangeRate: 1.087,
 		exchangeRateType: "official",
@@ -259,6 +261,7 @@ describe("eraseLedger", () => {
 		expect(row.recurringEndDate).toBe(null);
 		expect(row.reminderLeadDays).toBe(null);
 		expect(row.categoryId).toBe(null);
+		expect(row.accountId).toBe(null);
 		expect(row.amountUsd).toBe(null);
 		expect(row.exchangeRate).toBe(null);
 		expect(row.exchangeRateType).toBe(null);

@@ -43,6 +43,7 @@ function makeDb(): SpendDb {
 			recurringEndDate integer,
 			reminderLeadDays integer,
 			categoryId text,
+			accountId text,
 			amountUsd real,
 			exchangeRate real,
 			exchangeRateType text,

@@ -39,6 +39,37 @@ export const categories = sqliteTable(
 	],
 );
 
+export const accounts = sqliteTable(
+	"accounts",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		currency: text("currency").notNull(),
+		initialBalance: real("initialBalance").notNull().default(0),
+		/**
+		 * `initialBalance` canonicalized to USD at the rate of `initialBalanceDate`,
+		 * frozen at write — the same contract `transactions.amountUsd` keeps. Null
+		 * when no rate was available then.
+		 */
+		initialBalanceUsd: real("initialBalanceUsd"),
+		initialBalanceDate: integer("initialBalanceDate", {
+			mode: "timestamp_ms",
+		}).notNull(),
+		icon: text("icon"),
+		emoji: text("emoji"),
+		customColor: text("customColor"),
+		imageColor: text("imageColor"),
+		/** Device-local, like `transactions.imageUri`: never replicated. */
+		imageUri: text("imageUri"),
+		imageKey: text("imageKey"),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+	},
+	(table) => [index("accounts_deletedAt_idx").on(table.deletedAt)],
+);
+
 export const transactions = sqliteTable(
 	"transactions",
 	{
@@ -93,6 +124,9 @@ export const transactions = sqliteTable(
 		categoryId: text("categoryId").references(() => categories.id, {
 			onDelete: "cascade",
 		}),
+		accountId: text("accountId").references(() => accounts.id, {
+			onDelete: "set null",
+		}),
 		/**
 		 * `amount` canonicalized to USD at the rate of the day it happened, frozen
 		 * at write. Read only to add figures in different currencies together — a
@@ -114,6 +148,7 @@ export const transactions = sqliteTable(
 		index("transactions_day_idx").on(table.day),
 		index("transactions_month_idx").on(table.month),
 		index("transactions_categoryId_idx").on(table.categoryId),
+		index("transactions_accountId_idx").on(table.accountId),
 		index("transactions_deletedAt_idx").on(table.deletedAt),
 		// `date` carries almost every range predicate in the app (the log window,
 		// budget periods, insight buckets). The composite serves the log's exact

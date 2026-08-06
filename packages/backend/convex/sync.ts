@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import {
+	accountFields,
 	appMetaFields,
 	budgetFields,
 	categoryFields,
@@ -97,6 +98,12 @@ const pushRow = v.union(
 		localId: v.string(),
 		...tombstone,
 		fields: v.object(transactionSplitFields),
+	}),
+	v.object({
+		table: v.literal("accounts"),
+		localId: v.string(),
+		...tombstone,
+		fields: v.object(accountFields),
 	}),
 	v.object({
 		table: v.literal("appMeta"),
@@ -270,6 +277,15 @@ async function upsert(
 				);
 			} else {
 				await ctx.db.insert("transactionSplits", doc);
+			}
+			return;
+		}
+		case "accounts": {
+			const doc = { ...envelope, ...(row.fields as Doc<"accounts">) };
+			if (existing) {
+				await ctx.db.patch("accounts", existing._id as Id<"accounts">, doc);
+			} else {
+				await ctx.db.insert("accounts", doc);
 			}
 			return;
 		}

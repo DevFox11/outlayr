@@ -1,4 +1,4 @@
-import { and, count, gte, isNull, lte, sql, sum } from "drizzle-orm";
+import { and, count, eq, gte, isNull, lte, sql, sum } from "drizzle-orm";
 import type { SpendDb } from "@/data/budget-spent";
 import { transactions } from "@/db/schema";
 import type { CurrencyCell } from "@/domain/currency-totals";
@@ -75,6 +75,23 @@ export function logCellQuery(db: SpendDb, start: Date | null, now: Date) {
 				isNull(transactions.deletedAt),
 				start ? gte(transactions.date, start) : undefined,
 				lte(transactions.date, now),
+			),
+		)
+		.groupBy(transactions.currency, transactions.income, UTC_DAY);
+}
+
+/**
+ * One account's ledger as cells, unbounded by date: a balance is the sum of
+ * everything the account ever saw, future-dated entries included.
+ */
+export function accountCellQuery(db: SpendDb, accountId: string) {
+	return db
+		.select(CELL_COLUMNS)
+		.from(transactions)
+		.where(
+			and(
+				isNull(transactions.deletedAt),
+				eq(transactions.accountId, accountId),
 			),
 		)
 		.groupBy(transactions.currency, transactions.income, UTC_DAY);

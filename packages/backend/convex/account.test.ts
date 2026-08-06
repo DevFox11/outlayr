@@ -41,6 +41,7 @@ function transactionRow(localId: string): PushRows[number] {
 			recurringCoefficient: 1,
 			recurringEndDate: null,
 			categoryId: null,
+			accountId: null,
 			amountUsd: 12.5,
 			exchangeRate: 1,
 			exchangeRateType: "official",

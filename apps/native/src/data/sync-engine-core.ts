@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Database } from "@/db/client";
 import {
+	accounts,
 	appMeta,
 	budgets,
 	categories,
@@ -115,6 +116,7 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"recurringCoefficient",
 			"recurringEndDate",
 			"categoryId",
+			"accountId",
 			"amountUsd",
 			"exchangeRate",
 			"exchangeRateType",
@@ -179,6 +181,26 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 		id: transactionSplits.id,
 		fields: ["transactionId", "categoryId", "amount", "sortOrder"],
 		dates: [],
+	},
+	accounts: {
+		table: accounts,
+		id: accounts.id,
+		// `imageUri` is absent for the same reason it is on `transactions`.
+		fields: [
+			"name",
+			"currency",
+			"initialBalance",
+			"initialBalanceUsd",
+			"initialBalanceDate",
+			"icon",
+			"emoji",
+			"customColor",
+			"imageColor",
+			"imageKey",
+			"sortOrder",
+			"dateCreated",
+		],
+		dates: ["initialBalanceDate", "dateCreated"],
 	},
 	templateTransactions: {
 		table: templateTransactions,

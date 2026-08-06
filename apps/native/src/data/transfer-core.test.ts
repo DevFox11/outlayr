@@ -65,7 +65,7 @@ function makeDb(options?: { withRealTransactions?: boolean }): Database {
 			icon text, emoji text, customColor text, imageColor text, imageUri text, imageKey text,
 			onceRecurring integer NOT NULL DEFAULT 0, recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1, recurringEndDate integer, reminderLeadDays integer,
-			categoryId text, amountUsd real, exchangeRate real, exchangeRateType text,
+			categoryId text, accountId text, amountUsd real, exchangeRate real, exchangeRateType text,
 			updatedAt integer NOT NULL, deletedAt integer
 		);
 	`);

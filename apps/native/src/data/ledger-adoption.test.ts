@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import {
+	accounts,
 	budgets,
 	categories,
 	mainBudget,
@@ -100,6 +101,19 @@ describe("local ledger state", () => {
 		await db
 			.insert(mainBudget)
 			.values({ id: "m1", amount: 100, type: 0, updatedAt: new Date() });
+		expect(await localLedgerState(db)).toBe("populated");
+	});
+
+	it("reads an account as populated", async () => {
+		const now = new Date();
+		await db.insert(accounts).values({
+			id: "a1",
+			name: "Checking",
+			currency: "USD",
+			initialBalanceDate: now,
+			dateCreated: now,
+			updatedAt: now,
+		});
 		expect(await localLedgerState(db)).toBe("populated");
 	});
 

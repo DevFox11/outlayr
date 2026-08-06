@@ -17,6 +17,7 @@ function emptyDocument(): ArchiveDocument {
 		exportedAt: 1_700_000_000_000,
 		tables: {
 			categories: [],
+			accounts: [],
 			transactions: [],
 			budgets: [],
 			mainBudget: [],

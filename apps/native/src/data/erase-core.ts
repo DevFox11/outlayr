@@ -56,6 +56,7 @@ export const ERASED_TRANSACTION = {
 	recurringEndDate: null,
 	reminderLeadDays: null,
 	categoryId: null,
+	accountId: null,
 	amountUsd: null,
 	exchangeRate: null,
 	exchangeRateType: null,
