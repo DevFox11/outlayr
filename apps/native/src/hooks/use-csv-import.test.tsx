@@ -140,6 +140,93 @@ describe("tier 2: exactly one call per import", () => {
 	});
 });
 
+describe("stage: the progress the resolve step can actually show", () => {
+	it("starts idle before anything runs", async () => {
+		const { fn } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
+		);
+
+		expect(result.current.stage).toBe("idle");
+	});
+
+	it("reports asking only while the model call is in flight, then settles", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+		expect(result.current.stage).toBe("asking");
+
+		await act(async () => {
+			calls[0].settle({ status: "ok", suggestions: [] });
+		});
+		expect(result.current.stage).toBe("settled");
+	});
+
+	it("settles without ever asking when every label matches on device", async () => {
+		const { fn } = deferredTransport();
+		const { result } = await renderHook(() =>
+			useCsvImport(
+				baseArgs({
+					labels: ["netflix"],
+					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+					transport: fn,
+				}),
+			),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(fn).not.toHaveBeenCalled();
+		expect(result.current.stage).toBe("settled");
+		expect(result.current.tier2Sent).toBe(0);
+	});
+
+	it("settles when the call fails, so the list never hangs mid-stage", async () => {
+		const fn: CsvImportFn = jest.fn(() => Promise.reject(new Error("offline")));
+		const { result } = await renderHook(() =>
+			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+
+		expect(result.current.outcome).toBe("unavailable");
+		expect(result.current.stage).toBe("settled");
+	});
+
+	it("returns to idle when a different file is selected", async () => {
+		const { fn, calls } = deferredTransport();
+		const { result, rerender } = await renderHook(
+			(args: UseCsvImportArgs) => useCsvImport(args),
+			{ initialProps: baseArgs({ labels: [UNKNOWN], transport: fn }) },
+		);
+
+		await act(async () => {
+			result.current.run();
+		});
+		await act(async () => {
+			calls[0].settle({ status: "ok", suggestions: [] });
+		});
+		expect(result.current.stage).toBe("settled");
+
+		await act(async () => {
+			rerender(
+				baseArgs({ labels: [UNKNOWN], transport: fn, fileKey: "other.csv:99" }),
+			);
+		});
+
+		expect(result.current.stage).toBe("idle");
+	});
+});
+
 describe("server-side learning for merchants the map cannot fully answer", () => {
 	it("forwards the grounded consent flag and region code to the transport", async () => {
 		const { fn } = deferredTransport();

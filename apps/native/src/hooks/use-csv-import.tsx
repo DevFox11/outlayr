@@ -44,8 +44,11 @@ export interface UseCsvImportArgs {
 	fileKey: string | null;
 }
 
+export type CsvImportStage = "idle" | "matching" | "asking" | "settled";
+
 export interface UseCsvImportResult {
 	running: boolean;
+	stage: CsvImportStage;
 	outcome: ResolutionOutcome | null;
 	reason: UnavailableReason | null;
 	links: ReadonlyMap<string, string>;
@@ -93,6 +96,7 @@ const TIMED_OUT = Symbol("csv-import-timeout");
 
 export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 	const [running, setRunning] = useState(false);
+	const [stage, setStage] = useState<CsvImportStage>("idle");
 	const [outcome, setOutcome] = useState<ResolutionOutcome | null>(null);
 	const [reason, setReason] = useState<UnavailableReason | null>(null);
 	const [links, setLinks] = useState<ReadonlyMap<string, string>>(new Map());
@@ -112,6 +116,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		generationRef.current += 1;
 		runningRef.current = false;
 		setRunning(false);
+		setStage("idle");
 		setOutcome(null);
 		setReason(null);
 		setLinks(new Map());
@@ -239,6 +244,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		}
 
 		setTier2Sent(payload.labels.length);
+		setStage("asking");
 		let settled: Settled;
 		try {
 			const raced = await Promise.race([
@@ -304,6 +310,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 	const execute = useCallback(async () => {
 		const generation = generationRef.current;
 		setRunning(true);
+		setStage("matching");
 		setOutcome(null);
 		setReason(null);
 		setTier2Sent(0);
@@ -329,6 +336,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			setFromModel(settlement.fromModel);
 			setOutcome(settlement.outcome);
 			setReason(settlement.reason);
+			setStage("settled");
 			setRunning(false);
 		}
 	}, [resolveImport]);
@@ -348,6 +356,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 
 	return {
 		running,
+		stage,
 		outcome,
 		reason,
 		links,

@@ -123,10 +123,6 @@ const importSheet = {
 			en: "Preparing",
 			es: "Preparando",
 		}),
-		"import.resolveEyebrowRows": t({
-			en: "{count} rows",
-			es: "{count} filas",
-		}),
 		"import.resolveFootnote": t({
 			en: "Only unmatched merchant names and your category names are sent — never your amounts, dates, or the file itself.",
 			es: "Solo se envían los nombres de comercios sin coincidencia y tus categorías — nunca tus montos, fechas ni el archivo.",
@@ -182,6 +178,22 @@ const importSheet = {
 		"import.resolveRunningAsked": t({
 			en: "Asked the model",
 			es: "Consultamos al modelo",
+		}),
+		"import.resolveDetailRows": t({
+			en: "{count} rows read",
+			es: "{count} filas leídas",
+		}),
+		"import.resolveDetailMatched": t({
+			en: "{matched} of {total} merchants",
+			es: "{matched} de {total} comercios",
+		}),
+		"import.resolveDetailSent": t({
+			en: "{count} merchant names sent",
+			es: "{count} nombres de comercios enviados",
+		}),
+		"import.resolveDetailNothingSent": t({
+			en: "Nothing left your device",
+			es: "Nada salió de tu dispositivo",
 		}),
 		"import.unavailableTitle": t({
 			en: "Suggestions are unavailable",

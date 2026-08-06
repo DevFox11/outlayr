@@ -1,15 +1,14 @@
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import { Task, type TaskStatus } from "panelui-native";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { useCsvImportContext } from "@/contexts/csv-import-context";
 import type { UnavailableReason } from "@/domain/import-flow";
+import type { CsvImportStage } from "@/hooks/use-csv-import";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
 import { type TranslationKey, useTranslation } from "@/i18n";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
-import { EyebrowRow } from "../eyebrow-row";
 import { StepCta } from "../step-cta";
 
 const REASON_COPY: Record<UnavailableReason, TranslationKey> = {
@@ -28,35 +27,57 @@ const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set([
 	"notConfigured",
 ]);
 
-function ResolveRow({
-	done,
+function StageTask({
+	children,
 	label,
-	trailing,
+	status,
 }: {
-	done: boolean;
+	children: React.ReactNode;
 	label: string;
-	trailing?: string;
+	status: TaskStatus;
 }) {
 	const colors = useColors();
 	return (
-		<View className="flex-row items-center gap-3 border-border border-b py-2.5">
-			{done ? (
-				<HugeiconsIcon
-					color={colors.income}
-					icon={Tick02Icon}
-					size={18}
-					strokeWidth={2}
-				/>
-			) : (
-				<ActivityIndicator color={colors.foreground} size="small" />
-			)}
-			<Text className="flex-1 text-body text-foreground">{label}</Text>
-			{trailing == null ? null : (
-				<Text className="font-mono text-footnote text-muted tabular-nums">
-					{trailing}
-				</Text>
-			)}
-		</View>
+		<Task className="gap-1.5 border-border border-b py-2.5" status={status}>
+			<Task.Trigger
+				icon={
+					status === "running" ? (
+						<ActivityIndicator color={colors.foreground} size="small" />
+					) : undefined
+				}
+				title={label}
+			/>
+			<Task.Content>{children}</Task.Content>
+		</Task>
+	);
+}
+
+export function matchedStatus(stage: CsvImportStage): TaskStatus {
+	return stage === "idle" || stage === "matching" ? "running" : "complete";
+}
+
+/**
+ * Stays `pending` after a settled run that sent nothing: the model was never
+ * asked, so a tick would claim work that did not happen.
+ */
+export function askedStatus(
+	stage: CsvImportStage,
+	tier2Sent: number,
+): TaskStatus {
+	if (stage === "asking") {
+		return "running";
+	}
+	if (stage === "settled") {
+		return tier2Sent > 0 ? "complete" : "pending";
+	}
+	return "pending";
+}
+
+function StageDetail({ children }: { children: React.ReactNode }) {
+	return (
+		<Text className="font-mono text-footnote text-muted tabular-nums">
+			{children}
+		</Text>
 	);
 }
 
@@ -70,6 +91,7 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 	const { flow } = useImportDraft();
 	const {
 		running,
+		stage,
 		outcome,
 		reason,
 		totalLabels,
@@ -135,30 +157,48 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 		);
 	}
 
-	const started = running || outcome === "applied";
 	const rowCount = flow.parsed?.rows.length ?? 0;
 	const showCta = outcome === "applied" && entryCount > 0;
+	const settledStage: CsvImportStage = outcome == null ? stage : "settled";
 
 	return (
 		<View className="flex-1 gap-4 px-5 pt-2">
-			{flow.file == null ? null : (
-				<EyebrowRow
-					label={flow.file.name}
-					value={t("import.resolveEyebrowRows", { count: rowCount })}
-				/>
-			)}
 			<View>
-				<ResolveRow done={started} label={t("import.resolveRunningReadFile")} />
-				<ResolveRow
-					done={started}
+				<StageTask label={t("import.resolveRunningReadFile")} status="complete">
+					<Task.Item>
+						{flow.file == null ? null : (
+							<Task.File className="bg-transparent">{flow.file.name}</Task.File>
+						)}
+						<StageDetail>
+							{t("import.resolveDetailRows", { count: rowCount })}
+						</StageDetail>
+					</Task.Item>
+				</StageTask>
+				<StageTask
 					label={t("import.resolveRunningMatched")}
-					trailing={started ? `${tier1Matched} / ${totalLabels}` : undefined}
-				/>
-				<ResolveRow
-					done={outcome === "applied"}
+					status={matchedStatus(settledStage)}
+				>
+					<Task.Item>
+						<StageDetail>
+							{t("import.resolveDetailMatched", {
+								matched: tier1Matched,
+								total: totalLabels,
+							})}
+						</StageDetail>
+					</Task.Item>
+				</StageTask>
+				<StageTask
 					label={t("import.resolveRunningAsked")}
-					trailing={tier2Sent > 0 ? `${tier2Sent} / ${tier2Sent}` : undefined}
-				/>
+					status={askedStatus(settledStage, tier2Sent)}
+				>
+					<Task.Item>
+						<StageDetail>
+							{tier2Sent > 0
+								? t("import.resolveDetailSent", { count: tier2Sent })
+								: t("import.resolveDetailNothingSent")}
+						</StageDetail>
+					</Task.Item>
+				</StageTask>
 			</View>
 			<Text className="text-footnote text-muted leading-snug">
 				{t("import.resolveFootnote")}

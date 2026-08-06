@@ -3,7 +3,7 @@ import type { ImportEntry } from "@/data/transfer-core";
 import type { UseCsvImportResult } from "@/hooks/use-csv-import";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
 import { importDraftStore } from "@/lib/import-draft-store";
-import { ResolveStep } from "./resolve-step";
+import { askedStatus, matchedStatus, ResolveStep } from "./resolve-step";
 
 const mockRun = jest.fn();
 const mockOpenFeatureLab = jest.fn();
@@ -15,6 +15,7 @@ function baseContext(
 ): UseCsvImportResult {
 	return {
 		running: false,
+		stage: "idle",
 		outcome: null,
 		reason: null,
 		links: new Map(),
@@ -135,6 +136,26 @@ function isPureFlexFill(className: string): boolean {
 		);
 }
 
+describe("stage → task status", () => {
+	it("keeps the on-device step running until the pipeline moves past it", () => {
+		expect(matchedStatus("idle")).toBe("running");
+		expect(matchedStatus("matching")).toBe("running");
+		expect(matchedStatus("asking")).toBe("complete");
+		expect(matchedStatus("settled")).toBe("complete");
+	});
+
+	it("holds the model step pending until it is genuinely in flight", () => {
+		expect(askedStatus("idle", 0)).toBe("pending");
+		expect(askedStatus("matching", 0)).toBe("pending");
+		expect(askedStatus("asking", 12)).toBe("running");
+	});
+
+	it("ticks the model step only when names actually went out", () => {
+		expect(askedStatus("settled", 12)).toBe("complete");
+		expect(askedStatus("settled", 0)).toBe("pending");
+	});
+});
+
 describe("ResolveStep", () => {
 	beforeEach(() => {
 		mockRun.mockClear();
@@ -143,17 +164,17 @@ describe("ResolveStep", () => {
 		mockContext = baseContext();
 	});
 
-	it("shows the eyebrow with filename and row count, the checklist, and the privacy footnote", async () => {
+	it("names the file once, on the step that read it, with the checklist and the privacy footnote", async () => {
 		loadFile();
-		const { getByText } = await render(
+		const { getAllByText, getByText } = await render(
 			<ResolveStep
 				onOpenFeatureLab={mockOpenFeatureLab}
 				review={reviewWith([])}
 			/>,
 		);
 
-		expect(getByText("bank.csv")).toBeTruthy();
-		expect(getByText('import.resolveEyebrowRows:{"count":2}')).toBeTruthy();
+		expect(getAllByText("bank.csv")).toHaveLength(1);
+		expect(getByText('import.resolveDetailRows:{"count":2}')).toBeTruthy();
 		expect(getByText("import.resolveRunningReadFile")).toBeTruthy();
 		expect(getByText("import.resolveRunningMatched")).toBeTruthy();
 		expect(getByText("import.resolveRunningAsked")).toBeTruthy();
@@ -250,6 +271,56 @@ describe("ResolveStep", () => {
 		const classes = classNames(toJSON() as unknown as JsonNode);
 		expect(classes.some(isPureFlexFill)).toBe(false);
 		expect(classes.some((c) => /\bmt-6\b/.test(c))).toBe(true);
+	});
+
+	it("reports how many merchant names were sent once a run settles", async () => {
+		loadFile();
+		mockContext = baseContext({
+			outcome: "applied",
+			stage: "settled",
+			tier2Sent: 7,
+		});
+		const { getByText } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+
+		expect(getByText('import.resolveDetailSent:{"count":7}')).toBeTruthy();
+	});
+
+	it("says nothing left the device when the model was never asked", async () => {
+		loadFile();
+		mockContext = baseContext({
+			outcome: "applied",
+			stage: "settled",
+			tier2Sent: 0,
+		});
+		const { getByText } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+
+		expect(getByText("import.resolveDetailNothingSent")).toBeTruthy();
+	});
+
+	it("never fills the filename chip with the muted text colour", async () => {
+		loadFile();
+		mockContext = baseContext({ outcome: "applied", stage: "settled" });
+		const { toJSON } = await render(
+			<ResolveStep
+				onOpenFeatureLab={mockOpenFeatureLab}
+				review={reviewWith([])}
+			/>,
+		);
+		const chip = classNames(toJSON() as unknown as JsonNode).find((c) =>
+			/\bbg-transparent\b/.test(c),
+		);
+		expect(chip).toBeDefined();
+		expect(chip).not.toMatch(/\bbg-muted\b/);
 	});
 
 	it("routes the declined branch through onOpenFeatureLab", async () => {
