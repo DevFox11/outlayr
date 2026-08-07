@@ -108,11 +108,7 @@ function SettingsContent({ db }: { db: Database }) {
 	const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
 	const diagnostics = supportDiagnostics(version, build);
 
-	const hapticsDetail = choiceDetail(HAPTICS_OPTIONS, haptics);
 	const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
-	const themeDetail = THEME_OPTIONS.find(
-		(option) => option.value === themePreference,
-	)?.detail;
 
 	const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt);
 	const syncValue =
@@ -184,7 +180,6 @@ function SettingsContent({ db }: { db: Database }) {
 
 			<SettingsSection title={t("settings.section.appearance")}>
 				<PickerRow
-					detail={themeDetail ? t(themeDetail) : undefined}
 					icon="DarkMode"
 					onChange={setThemePreference}
 					options={THEME_OPTIONS.map((option) => ({
@@ -259,7 +254,6 @@ function SettingsContent({ db }: { db: Database }) {
 					value={biometricLock}
 				/>
 				<PickerRow
-					detail={hapticsDetail ? t(hapticsDetail) : undefined}
 					icon="Tap01"
 					onChange={(next) => {
 						setNumberSetting(db, "haptics", next);

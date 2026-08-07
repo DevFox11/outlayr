@@ -1,4 +1,6 @@
+import MenuView from "@expo/ui/community/menu";
 import { HugeiconsIcon } from "@hugeicons/react-native";
+import { ArrowUpDownIcon } from "@hugeicons-pro/core-solid-rounded";
 import {
 	ArrowRight01Icon,
 	Tick02Icon,
@@ -6,7 +8,6 @@ import {
 import type { ReactNode } from "react";
 import { Pressable, Switch, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
-import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useColors } from "@/theme/use-colors";
@@ -134,12 +135,6 @@ export function LinkRow({
 	);
 }
 
-/**
- * Aligns the control and its detail with the row title rather than the row edge:
- * `GLYPH` plus the shell's `gap-3`.
- */
-const TEXT_INSET = "pl-8";
-
 export function PickerRow<T extends string | number | boolean>({
 	icon,
 	title,
@@ -156,27 +151,56 @@ export function PickerRow<T extends string | number | boolean>({
 	onChange: (value: T) => void;
 }) {
 	const colors = useColors();
+	const selected = options.find((option) => option.value === value);
 	return (
-		<View className="border-border border-b py-3.5">
-			<View className="flex-row items-center gap-3">
-				<HugeiconsIcon
-					color={colors.foreground}
-					icon={settingsIcon(icon)}
-					size={GLYPH}
-					strokeWidth={1.9}
-				/>
-				<Text className="flex-1 text-body text-foreground" numberOfLines={1}>
-					{title}
-				</Text>
-			</View>
-			<View className={cn("gap-2 pt-2.5", TEXT_INSET)}>
-				<SegmentedControl onChange={onChange} options={options} value={value} />
+		<View className="flex-row items-center gap-3 border-border border-b py-3.5">
+			<HugeiconsIcon
+				color={colors.foreground}
+				icon={settingsIcon(icon)}
+				size={GLYPH}
+				strokeWidth={1.9}
+			/>
+			<View className="flex-1 gap-0.5">
+				<Text className="text-body text-foreground">{title}</Text>
 				{detail ? (
 					<Text className="text-muted text-subtitle leading-snug">
 						{detail}
 					</Text>
 				) : null}
 			</View>
+			<MenuView
+				actions={options.map((option) => ({
+					id: String(option.value),
+					title: option.label,
+					state: option.value === value ? "on" : "off",
+				}))}
+				onPressAction={({ nativeEvent }) => {
+					const picked = options.find(
+						(option) => String(option.value) === nativeEvent.event,
+					);
+					if (picked) {
+						onChange(picked.value);
+					}
+				}}
+				shouldOpenOnLongPress={false}
+				title={title}
+			>
+				<View
+					accessibilityRole="button"
+					accessibilityValue={{ text: selected?.label }}
+					className="flex-row items-center gap-1.5 py-1"
+					hitSlop={12}
+				>
+					<Text className="text-body text-muted" numberOfLines={1}>
+						{selected?.label}
+					</Text>
+					<HugeiconsIcon
+						color={colors.subtle}
+						icon={ArrowUpDownIcon}
+						size={13}
+					/>
+				</View>
+			</MenuView>
 		</View>
 	);
 }
@@ -211,10 +235,7 @@ export function ToggleRow({
 	);
 }
 
-/**
- * One option on a choice screen. Settings picks with these rather than an inline
- * `MenuView`, whose intrinsic width lands a frame late on iOS — see `ScopeChip`.
- */
+/** One option on a choice screen — a list too long or too visual for `PickerRow`. */
 export function ChoiceRow({
 	label,
 	detail,
