@@ -76,6 +76,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 	}, []);
 
 	const language = resolveLanguage(preference, deviceTag);
+	// Deliberately during render, not in an effect: `runtimeLanguage()` is the
+	// default argument of the date, budget and insights formatters, so children
+	// read it while rendering and an effect would hand them the previous
+	// language for a frame. Removing the global is the real fix — see
+	// `use-insights.ts`, which already threads the language explicitly instead.
 	setRuntimeLanguage(language);
 
 	const t = useCallback<TranslateFn>(

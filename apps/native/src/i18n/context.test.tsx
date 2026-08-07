@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react-native";
+import type { ReactNode } from "react";
 import { AppState, type AppStateStatus, Text } from "react-native";
 
 jest.mock("./language-storage", () => ({
@@ -9,7 +10,8 @@ jest.mock("./language-storage", () => ({
 
 import { LanguageProvider, useLanguage } from "./context";
 import { deviceLanguageTag, readLanguagePreference } from "./language-storage";
-import type { LanguagePreference } from "./languages";
+import { DEFAULT_LANGUAGE, type LanguagePreference } from "./languages";
+import { runtimeLanguage, setRuntimeLanguage } from "./runtime";
 
 const mockDeviceLanguageTag = deviceLanguageTag as jest.Mock;
 const mockReadLanguagePreference = readLanguagePreference as jest.Mock;
@@ -42,15 +44,19 @@ function CurrentLanguage() {
 	return <Text testID="language">{language}</Text>;
 }
 
-async function renderProvider(preference: LanguagePreference) {
+function RuntimeLanguage() {
+	useLanguage();
+	return <Text testID="runtime">{runtimeLanguage()}</Text>;
+}
+
+async function renderProvider(
+	preference: LanguagePreference,
+	children: ReactNode = <CurrentLanguage />,
+) {
 	mockReadLanguagePreference.mockResolvedValue(preference);
 	const appState = watchAppState();
 	await act(async () => {
-		render(
-			<LanguageProvider>
-				<CurrentLanguage />
-			</LanguageProvider>,
-		);
+		render(<LanguageProvider>{children}</LanguageProvider>);
 	});
 	return appState;
 }
@@ -59,6 +65,7 @@ afterEach(() => {
 	AppState.addEventListener = realAddEventListener;
 	mockDeviceLanguageTag.mockReset();
 	mockReadLanguagePreference.mockReset();
+	setRuntimeLanguage(DEFAULT_LANGUAGE);
 });
 
 describe("LanguageProvider", () => {
@@ -79,6 +86,17 @@ describe("LanguageProvider", () => {
 		await appState.emit("active");
 
 		expect(screen.getByTestId("language")).toHaveTextContent("es");
+	});
+
+	it("has the runtime language in place before its children render", async () => {
+		mockDeviceLanguageTag.mockReturnValue("en-US");
+		const appState = await renderProvider("system", <RuntimeLanguage />);
+		expect(screen.getByTestId("runtime")).toHaveTextContent("en");
+
+		mockDeviceLanguageTag.mockReturnValue("es-MX");
+		await appState.emit("active");
+
+		expect(screen.getByTestId("runtime")).toHaveTextContent("es");
 	});
 
 	it("keeps an explicit preference when the device language changes", async () => {
