@@ -10,7 +10,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { PanelUIProvider, useTheme } from "panelui-native";
-import { useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
 	Pressable,
 	useColorScheme,
@@ -38,6 +38,7 @@ import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { rootStackGroup } from "@/domain/auth-gate";
 import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
+import { localShellReady, routeSettled } from "@/domain/splash-gate";
 import {
 	LanguageProvider,
 	translateNow,
@@ -105,55 +106,91 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 		"--color-border",
 	]) as string[];
 
-	// The app's one readiness gate: every screen below it can call `useDatabase()`
-	// and read straight away, with no per-screen loading branch, and the first
-	// frame is already in the user's language. "error" drops the splash too — an
-	// error surface beats an indefinite splash.
-	const isReady =
-		fontsLoaded && languageReady && (status === "ready" || status === "error");
+	const hideSplash = useCallback(() => {
+		hideAsync();
+		setSplashHidden(true);
+	}, []);
+
+	// An error surface beats an indefinite splash, but it is written in the
+	// owner's language, so it still waits on the catalog.
+	const failed = fontsLoaded && languageReady && status === "error";
 
 	useEffect(() => {
-		if (isReady) {
-			hideAsync();
-			setSplashHidden(true);
+		if (failed) {
+			hideSplash();
 		}
-	}, [isReady]);
+	}, [failed, hideSplash]);
 
 	const base = isDark ? DarkTheme : DefaultTheme;
 
+	if (localShellReady({ fontsLoaded, languageReady, data: status })) {
+		return (
+			<LedgerAdoptionProvider>
+				<RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
+					<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+
+					<ThemeProvider
+						value={{
+							...base,
+							dark: isDark,
+							colors: { ...base.colors, background, card, text, border },
+						}}
+					>
+						<AuthCover>
+							<AppLockGate>
+								<RootStack />
+							</AppLockGate>
+						</AuthCover>
+					</ThemeProvider>
+				</RouteGate>
+			</LedgerAdoptionProvider>
+		);
+	}
+
 	// Latched on the splash, because `retry()` walks the status back through
-	// opening → migrating → seeding: returning null on those once the splash is
-	// gone would blank the screen for the length of the attempt, and permanently
-	// if the migration never answers on a locked or corrupt file.
-	if (!isReady && !splashHidden) {
+	// opening → migrating → seeding: blanking on those once the splash is gone
+	// would empty the screen for the length of the attempt, and permanently if
+	// the migration never answers on a locked or corrupt file.
+	if (!splashHidden) {
 		return null;
 	}
 
-	if (status !== "ready") {
-		return <LocalDataError />;
+	return <LocalDataError />;
+}
+
+/**
+ * Holds the splash until `rootStackGroup` can name a destination, so the first
+ * frame is the screen the owner is going to rather than a cover on the way to
+ * it. Both waits are bounded — `AUTH_RESTORE_BUDGET_MS` and an adoption run
+ * that settles even when it throws.
+ *
+ * Latched like the gate above, and `AuthCover` stays: a sign-in re-enters
+ * `resolving` long after launch, where a splash is not the right cover.
+ */
+function RouteGate({
+	children,
+	hideSplash,
+	splashHidden,
+}: {
+	children: ReactNode;
+	hideSplash: () => void;
+	splashHidden: boolean;
+}) {
+	const { gate } = useAuthSession();
+	const { status } = useLedgerAdoption();
+	const settled = routeSettled({ gate, adoption: status });
+
+	useEffect(() => {
+		if (settled) {
+			hideSplash();
+		}
+	}, [settled, hideSplash]);
+
+	if (!settled && !splashHidden) {
+		return null;
 	}
 
-	return (
-		<>
-			<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-
-			<ThemeProvider
-				value={{
-					...base,
-					dark: isDark,
-					colors: { ...base.colors, background, card, text, border },
-				}}
-			>
-				<LedgerAdoptionProvider>
-					<AuthCover>
-						<AppLockGate>
-							<RootStack />
-						</AppLockGate>
-					</AuthCover>
-				</LedgerAdoptionProvider>
-			</ThemeProvider>
-		</>
-	);
+	return children;
 }
 
 /**
