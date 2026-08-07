@@ -5,7 +5,6 @@ import {
 	GeistMono_500Medium,
 	useFonts,
 } from "@expo-google-fonts/geist-mono";
-import { ConvexProvider } from "convex/react";
 import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
@@ -23,6 +22,7 @@ import {
 	SafeAreaProvider,
 } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
+
 import { AppLockGate } from "@/components/app-lock-gate";
 import { AuthCover } from "@/components/auth-cover";
 import { LocalDataError } from "@/components/local-data-error";
@@ -319,26 +319,6 @@ function RootStack() {
 	);
 }
 
-/**
- * A local-first ledger must not fail to start over a missing rates URL, nor over
- * an unconfigured account: each provider is only mounted once its own
- * prerequisite is present, so the fallback all the way down is a working app
- * with no backend rather than a crash.
- */
-function ConvexShell({ children }: { children: React.ReactNode }) {
-	if (!convex) {
-		return children;
-	}
-	if (!authClient) {
-		return <ConvexProvider client={convex}>{children}</ConvexProvider>;
-	}
-	return (
-		<ConvexBetterAuthProvider authClient={authClient} client={convex}>
-			{children}
-		</ConvexBetterAuthProvider>
-	);
-}
-
 export default function RootLayout() {
 	const [fontsLoaded] = useFonts({
 		GeistMono_400Regular,
@@ -347,19 +327,14 @@ export default function RootLayout() {
 
 	return (
 		<SafeAreaProvider>
-			{/* Feeds the live insets to uniwind — without it every `*-safe`
-			    utility resolves to nothing. */}
 			<SafeAreaListener
 				onChange={({ insets }) => {
 					Uniwind.updateInsets(insets);
 				}}
 			>
-				{/* Below SafeAreaProvider because its ToastViewport reads
-				    `useSafeAreaInsets`; it brings the gesture root and the
-				    keyboard provider with it. */}
 				<PanelUIProvider>
 					<LanguageProvider>
-						<ConvexShell>
+						<ConvexBetterAuthProvider authClient={authClient} client={convex}>
 							<AuthSessionProvider>
 								<LocalDataProvider>
 									<AppSettingsProvider>
@@ -369,7 +344,7 @@ export default function RootLayout() {
 									</AppSettingsProvider>
 								</LocalDataProvider>
 							</AuthSessionProvider>
-						</ConvexShell>
+						</ConvexBetterAuthProvider>
 					</LanguageProvider>
 				</PanelUIProvider>
 			</SafeAreaListener>

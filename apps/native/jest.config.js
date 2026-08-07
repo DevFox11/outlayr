@@ -14,6 +14,7 @@ module.exports = {
 	setupFiles: [
 		"react-native-gesture-handler/jestSetup.js",
 		"<rootDir>/jest/expo-observe-stub.js",
+		"<rootDir>/jest/env-stub.js",
 	],
 	moduleNameMapper: {
 		// tsconfig maps `@/assets/*` outside `src/`, but jest-expo only picks up

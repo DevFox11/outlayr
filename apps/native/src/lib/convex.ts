@@ -1,5 +1,6 @@
 import { env } from "@outlayr/env/native";
 import { ConvexReactClient } from "convex/react";
+
 import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
@@ -10,11 +11,10 @@ import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
  * only reads exchange rates from Convex, so the URL is optional — see
  * `@outlayr/env/native`.
  */
-export const convex = env.EXPO_PUBLIC_CONVEX_URL
-	? new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
-			unsavedChangesWarning: false,
-		})
-	: null;
+export const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
+	expectAuth: true,
+	unsavedChangesWarning: false,
+});
 
 /**
  * The rate snapshot fetcher, or null when there is no backend — returning null
