@@ -1,13 +1,6 @@
-import { useMemo } from "react";
-import { deviceLanguageTag } from "@/i18n/language-storage";
+import { useDeviceLanguageTag } from "@/i18n/device-language";
 
 export function useLocaleTag(): string | undefined {
-	return useMemo(() => {
-		try {
-			const tag = deviceLanguageTag()?.trim();
-			return tag ? tag : undefined;
-		} catch {
-			return undefined;
-		}
-	}, []);
+	const tag = useDeviceLanguageTag()?.trim();
+	return tag ? tag : undefined;
 }

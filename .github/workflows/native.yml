@@ -71,6 +71,12 @@ jobs:
       - name: Typecheck
         run: pnpm turbo run check-types --filter=@outlayr/native
 
+      # `intlayer build` compiles a half-translated key without complaining and
+      # the app then falls back to English at runtime. This is the only step
+      # that fails on one.
+      - name: i18n coverage
+        run: pnpm turbo run i18n:test --filter=@outlayr/native
+
       - name: Tests
         run: pnpm turbo run test --filter=@outlayr/native
 

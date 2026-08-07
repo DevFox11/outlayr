@@ -10,8 +10,8 @@ import {
 import { IntlayerProvider } from "react-native-intlayer";
 
 import { CATALOGS, EN, type TranslatableKey } from "./catalog";
+import { useDeviceLanguageTag } from "./device-language";
 import {
-	deviceLanguageTag,
 	persistLanguagePreference,
 	readLanguagePreference,
 } from "./language-storage";
@@ -52,7 +52,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 	const [preference, setPreferenceState] =
 		useState<LanguagePreference>("system");
 	const [isHydrated, setIsHydrated] = useState(false);
-	const [deviceTag] = useState(deviceLanguageTag);
+	const deviceTag = useDeviceLanguageTag();
 
 	// The root layout holds the splash on `isHydrated`, so a Spanish user never
 	// sees a frame of English. `readLanguagePreference` swallows its own
@@ -76,6 +76,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 	}, []);
 
 	const language = resolveLanguage(preference, deviceTag);
+	// Deliberately during render, not in an effect: `runtimeLanguage()` is the
+	// default argument of the date, budget and insights formatters, so children
+	// read it while rendering and an effect would hand them the previous
+	// language for a frame. Removing the global is the real fix — see
+	// `use-insights.ts`, which already threads the language explicitly instead.
 	setRuntimeLanguage(language);
 
 	const t = useCallback<TranslateFn>(
