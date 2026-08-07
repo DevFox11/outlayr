@@ -129,7 +129,7 @@ describe("TransactionFormAmountPad", () => {
 		const { getByLabelText } = await render(
 			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
 		);
-		fireEvent.press(getByLabelText("common.done"));
+		fireEvent.press(getByLabelText("common.close"));
 		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 

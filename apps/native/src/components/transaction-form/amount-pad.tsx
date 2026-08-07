@@ -55,16 +55,16 @@ export function TransactionFormAmountPad({
 				<Group modifiers={SHEET}>
 					<RNHostView matchContents>
 						<View className="px-4 pt-4 pb-safe-offset-3" style={{ width }}>
-							<View className="flex-row justify-end pb-2">
+							<View className="flex-row justify-end pb-6">
 								<GlassButton
-									accessibilityLabel={t("common.done")}
+									accessibilityLabel={t("common.close")}
 									className="size-11 rounded-[22px]"
 									onPress={() => onOpenChange(false)}
 								>
 									<SymbolView
-										name="chevron.down"
-										size={16}
-										tintColor={colors.muted}
+										name="xmark"
+										size={17}
+										tintColor={colors.foreground}
 										type="monochrome"
 										weight="semibold"
 									/>
