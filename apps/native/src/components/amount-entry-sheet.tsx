@@ -2,19 +2,16 @@ import {
 	BottomSheetModal,
 	BottomSheetView,
 } from "@expo/ui/community/bottom-sheet";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { type Ref, useRef } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { currencySymbol } from "@/domain/money";
 import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 import { AmountNumpad } from "./amount-numpad";
 import { CurrencyPickerSheet } from "./currency-picker-sheet";
+import { GlassButton } from "./glass-button";
 import { Text } from "./text";
-import { cn } from "./tw";
-
-const GLASS = isLiquidGlassAvailable();
 
 interface AmountEntrySheetProps {
 	value: string;
@@ -110,44 +107,5 @@ export function AmountEntrySheet({
 				}}
 			/>
 		</BottomSheetModal>
-	);
-}
-
-function GlassButton({
-	onPress,
-	accessibilityLabel,
-	className,
-	children,
-}: {
-	onPress: () => void;
-	accessibilityLabel: string;
-	className: string;
-	children: React.ReactNode;
-}) {
-	return (
-		<Pressable
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityLabel={accessibilityLabel}
-			className="active:opacity-70"
-		>
-			<View
-				className={cn(
-					"flex-row items-center justify-center gap-1.5 overflow-hidden",
-					className,
-				)}
-			>
-				{GLASS ? (
-					<GlassView
-						glassEffectStyle="regular"
-						isInteractive
-						style={StyleSheet.absoluteFill}
-					/>
-				) : (
-					<View className="absolute inset-0 bg-surface" />
-				)}
-				{children}
-			</View>
-		</Pressable>
 	);
 }

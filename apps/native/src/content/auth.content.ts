@@ -39,18 +39,6 @@ const auth = {
 			en: "Opening your ledger",
 			es: "Abriendo tu registro",
 		}),
-		"auth.unconfigured.eyebrow": t({
-			en: "Unavailable",
-			es: "No disponible",
-		}),
-		"auth.unconfigured.title": t({
-			en: "This build cannot sign in",
-			es: "Esta compilación no puede iniciar sesión",
-		}),
-		"auth.unconfigured.body": t({
-			en: "It was built without the account service configured, so there is no way to sign in from here. A build with it configured will open normally.",
-			es: "Se compiló sin el servicio de cuentas configurado, así que no hay forma de iniciar sesión desde aquí. Una compilación con él configurado abrirá con normalidad.",
-		}),
 		"auth.adopt.eyebrow": t({
 			en: "Two ledgers",
 			es: "Dos registros",

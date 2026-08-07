@@ -53,10 +53,14 @@ jest.mock("@/theme/use-colors", () => ({
 		separator: "#DAD6C9",
 	},
 }));
-jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
-	useNavigation: () => ({ setOptions: jest.fn() }),
-}));
+jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
+jest.mock("number-flow-react-native", () => {
+	const react = require("react") as typeof import("react");
+	return {
+		NumberFlow: (props: Record<string, unknown>) =>
+			react.createElement("NumberFlow", props),
+	};
+});
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -265,9 +269,11 @@ function findButtonWithText(
 		}
 		return null;
 	}
+	// A toolbar item carries its label as `accessibilityLabel` rather than a
+	// SwiftText child, so both spellings of "the button labelled X" match here.
 	if (
 		typeof node.props?.onButtonPress === "function" &&
-		hasSwiftText(node, text)
+		(hasSwiftText(node, text) || node.props?.accessibilityLabel === text)
 	) {
 		return node as JsonNode & { props: { onButtonPress: () => void } };
 	}
@@ -406,7 +412,7 @@ describe("TransactionForm", () => {
 		expect(containsText(toJSON() as JsonNode, "🎸")).toBe(true);
 	});
 
-	it("plumbs the seeded amount into the amount section", async () => {
+	it("plumbs the seeded amount into the amount hero", async () => {
 		const db = dbHolder.current as Database;
 		const categoryId = await seedCategory(db);
 		const initial: Partial<Transaction> = {
@@ -440,7 +446,9 @@ describe("TransactionForm", () => {
 				/>
 			</Providers>,
 		);
-		expect(findByProp(toJSON() as JsonNode, "text", "$42.00")).not.toBeNull();
+		const tree = toJSON() as JsonNode;
+		expect(JSON.stringify(tree)).toContain("$");
+		expect(findByProp(tree, "value", 42)).not.toBeNull();
 	});
 
 	it("holds hook order across the real once -> subscription -> once toggle", async () => {
@@ -453,20 +461,20 @@ describe("TransactionForm", () => {
 			</Providers>,
 		);
 
-		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
-			| (JsonNode & { props: { onSelectionChange: (next: string) => void } })
+		// In once mode the repeat switch is the only toggle on screen; End Date's
+		// appears alongside it only after this one is on.
+		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
+			| (JsonNode & {
+					props: { onIsOnChange: (event: unknown) => void };
+			  })
 			| null;
-		expect(kindPicker).not.toBeNull();
+		expect(repeats).not.toBeNull();
 
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "subscription" },
-			} as never);
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } } as never);
 		});
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "once" },
-			} as never);
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: false } } as never);
 		});
 
 		const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
@@ -490,14 +498,12 @@ describe("TransactionForm", () => {
 			false,
 		);
 
-		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
-			| (JsonNode & { props: { onSelectionChange: (next: string) => void } })
+		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
+			| (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
 			| null;
 
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "subscription" },
-			} as never);
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } } as never);
 		});
 
 		await act(async () => {
@@ -640,14 +646,12 @@ describe("TransactionForm submit re-entrancy", () => {
 			</Providers>,
 		);
 
-		const kindPicker = findByProp(toJSON() as JsonNode, "selection", "once") as
-			| (JsonNode & { props: { onSelectionChange: (next: unknown) => void } })
+		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
+			| (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
 			| null;
-		expect(kindPicker).not.toBeNull();
+		expect(repeats).not.toBeNull();
 		await act(async () => {
-			kindPicker?.props.onSelectionChange({
-				nativeEvent: { selection: "subscription" },
-			});
+			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } });
 		});
 
 		const saveButton = findButtonWithText(
@@ -669,9 +673,11 @@ describe("TransactionForm submit re-entrancy", () => {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		});
 
-		expect(JSON.stringify(toJSON())).toContain(
-			'"$type":"disabled","disabled":true',
-		);
+		const stillDisabled = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.addSubscription",
+		) as (JsonNode & { props: { disabled?: boolean } }) | null;
+		expect(stillDisabled?.props.disabled).toBe(true);
 	});
 });
 

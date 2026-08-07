@@ -132,7 +132,7 @@ function BudgetContent({ db }: { db: Database }) {
 				<BudgetEmptyState
 					burndown={monthToDate}
 					currency={currency}
-					onAddTransaction={() => router.push("/transaction/new")}
+					onAddTransaction={() => router.push("/transactions/create")}
 					onCommit={createMainBudget}
 					sampleSize={monthExpenseCount}
 					windowStart={monthWindow.start}

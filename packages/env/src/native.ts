@@ -7,12 +7,10 @@ const convexUrlSchema = (exampleHost: string) =>
 	});
 
 /**
- * Every variable is OPTIONAL here, where the react-native app requires them.
- * That app cannot start without Convex — its auth and sync live there. This one
- * is local-first: SQLite is the source of truth, the backend serves exchange
- * rates, and signing in is an opt-in that only unlocks sync. A build without any
- * of these still runs; it simply cannot convert currencies or offer an account.
- * Making them required would fail the whole app shut over enhancements.
+ * Convex is REQUIRED: auth and sync live there, and both are mounted
+ * unconditionally, so a build without a deployment cannot start. Validation
+ * happens at import time, which means a missing URL fails loudly at boot rather
+ * than at the first query. Everything below it stays optional and degrades.
  *
  * `EXPO_PUBLIC_CONVEX_SITE_URL` is the deployment's `.convex.site` HTTP origin,
  * not the `.convex.cloud` websocket one in `EXPO_PUBLIC_CONVEX_URL`: Better Auth
@@ -21,10 +19,8 @@ const convexUrlSchema = (exampleHost: string) =>
 export const env = createEnv({
 	clientPrefix: "EXPO_PUBLIC_",
 	client: {
-		EXPO_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud").optional(),
-		EXPO_PUBLIC_CONVEX_SITE_URL: convexUrlSchema(
-			"example.convex.site",
-		).optional(),
+		EXPO_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud"),
+		EXPO_PUBLIC_CONVEX_SITE_URL: convexUrlSchema("example.convex.site"),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: z.string().optional(),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: z.string().optional(),
 		// logo.dev publishable token (`pk_…`), meant to ship in the client. Absent

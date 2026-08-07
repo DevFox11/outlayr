@@ -1,55 +1,73 @@
-import {
-	Button,
-	Host,
-	HStack,
-	Spacer,
-	Text as SwiftText,
-} from "@expo/ui/swift-ui";
-import {
-	buttonStyle,
-	controlSize,
-	disabled,
-	foregroundStyle,
-	tint,
-} from "@expo/ui/swift-ui/modifiers";
-import { BODY_SEMIBOLD } from "./style";
+import { Stack, type StackHeaderItemSharedProps } from "expo-router";
+import { type ToolbarIconName, toolbarIcon } from "@/components/toolbar-icons";
 
-interface TransactionFormCtaProps {
-	label: string;
+export interface TransactionFormCtaProps {
+	saveLabel: string;
 	canSave: boolean;
-	tintColor: string;
-	labelColor: string;
 	onPress: () => void;
+	deleteLabel?: string;
+	deleteTint?: string;
+	onDelete?: () => void;
 }
 
-export function TransactionFormCta({
-	label,
+export interface TransactionFormCtaAction {
+	key: "delete" | "save";
+	icon: ToolbarIconName;
+	accessibilityLabel: string;
+	disabled: boolean;
+	onPress: () => void;
+	separateBackground?: boolean;
+	tintColor?: string;
+	variant?: StackHeaderItemSharedProps["variant"];
+}
+
+export function transactionFormCtaActions({
+	saveLabel,
 	canSave,
-	tintColor,
-	labelColor,
 	onPress,
-}: TransactionFormCtaProps) {
+	deleteLabel,
+	deleteTint,
+	onDelete,
+}: TransactionFormCtaProps): TransactionFormCtaAction[] {
+	const actions: TransactionFormCtaAction[] = [];
+	// Destructive first, so the outermost item under the thumb is Save.
+	if (onDelete) {
+		actions.push({
+			key: "delete",
+			icon: "delete",
+			accessibilityLabel: deleteLabel ?? "",
+			disabled: false,
+			tintColor: deleteTint,
+			onPress: onDelete,
+		});
+	}
+
+	actions.push({
+		key: "save",
+		icon: "done",
+		accessibilityLabel: saveLabel,
+		disabled: !canSave,
+		onPress,
+		variant: "done",
+	});
+	return actions;
+}
+
+export function TransactionFormCta(props: TransactionFormCtaProps) {
 	return (
-		// No `matchContents` — the Host must take the full available width so the
-		// button's Spacer-flanked label can stretch across it, standing in for
-		// Swift's `.frame(maxWidth: .infinity)`.
-		<Host style={{ height: 50 }}>
-			<Button
-				modifiers={[
-					buttonStyle("borderedProminent"),
-					controlSize("large"),
-					tint(tintColor),
-					foregroundStyle(labelColor),
-					disabled(!canSave),
-				]}
-				onPress={onPress}
-			>
-				<HStack>
-					<Spacer />
-					<SwiftText modifiers={[BODY_SEMIBOLD]}>{label}</SwiftText>
-					<Spacer />
-				</HStack>
-			</Button>
-		</Host>
+		<Stack.Toolbar placement="right">
+			{transactionFormCtaActions(props).map((action) => (
+				<Stack.Toolbar.Button
+					{...toolbarIcon(action.icon)}
+					accessibilityLabel={action.accessibilityLabel}
+					disabled={action.disabled}
+					key={action.key}
+					onPress={action.onPress}
+					tintColor={action.tintColor}
+					variant={action.variant}
+					separateBackground={action.separateBackground}
+				/>
+			))}
+		</Stack.Toolbar>
 	);
 }

@@ -51,10 +51,6 @@ describe("settings row value", () => {
 	it("shows nothing while the session is still restoring", () => {
 		expect(accountRowValue({ kind: "pending" }, t)).toBe("");
 	});
-
-	it("admits when the build has no backend", () => {
-		expect(accountRowValue({ kind: "unavailable" }, t)).toBe("Unavailable");
-	});
 });
 
 describe("sign-in cancellation", () => {

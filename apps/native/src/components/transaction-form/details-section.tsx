@@ -16,7 +16,9 @@ import {
 	lineLimit,
 	padding,
 } from "@expo/ui/swift-ui/modifiers";
+import { Note01Icon, Wallet01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import type { ReactNode } from "react";
+import { TransactionFormRowIcon } from "./row-icon";
 import { BODY, rowLabel, TAP_ROW } from "./style";
 
 interface TransactionFormDetailsSectionProps {
@@ -52,6 +54,7 @@ export function TransactionFormDetailsSection({
 		<VStack modifiers={card} spacing={0}>
 			<Button modifiers={[buttonStyle("plain")]} onPress={onAccountPress}>
 				<HStack modifiers={TAP_ROW} spacing={12}>
+					<TransactionFormRowIcon color={mutedColor} icon={Wallet01Icon} />
 					<SwiftText modifiers={[BODY, rowLabel]}>{accountLabel}</SwiftText>
 					<Spacer />
 					<HStack spacing={5}>
@@ -75,10 +78,11 @@ export function TransactionFormDetailsSection({
 			<Divider modifiers={hairline} />
 			<VStack
 				alignment="leading"
-				modifiers={[padding({ all: 16 })]}
+				modifiers={[padding({ vertical: 14 })]}
 				spacing={8}
 			>
-				<HStack>
+				<HStack spacing={12}>
+					<TransactionFormRowIcon color={mutedColor} icon={Note01Icon} />
 					<SwiftText modifiers={[BODY, rowLabel]}>{notesLabel}</SwiftText>
 					<Spacer />
 				</HStack>

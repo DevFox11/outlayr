@@ -81,8 +81,8 @@ export const ROOT_STACK_SCREEN_NAMES: Readonly<
 		"settings/categories/reorder",
 		...CATEGORY_SHEETS.map((sheet) => sheet.name),
 		"settings/category-symbol",
-		"transaction/new",
-		"transaction/[id]",
-		"transaction/identity",
+		"transactions/create",
+		"transactions/[id]",
+		"transactions/identity",
 	],
 };

@@ -4,11 +4,10 @@ import {
 	font,
 	foregroundStyle,
 	frame,
-	padding,
 	shapes,
 } from "@expo/ui/swift-ui/modifiers";
 
-export const ROW = [padding({ horizontal: 16 }), frame({ minHeight: 50 })];
+export const ROW = [frame({ minHeight: 54 })];
 /**
  * For the rows that ARE buttons: a `.plain` Button hit-tests only its drawn
  * glyphs, so without a content shape the `Spacer` gap mid-row is dead and a tap
@@ -43,7 +42,7 @@ export const CAPTION = font({ textStyle: "caption", design: "rounded" });
  * the scroll content, so an identical 24 leaves the icon reading 6pt low.
  */
 export const HERO_TOP_PADDING = 18;
-export const HERO_BOTTOM_PADDING = 28;
+export const HERO_BOTTOM_PADDING = 6;
 
 export const rowLabel = foregroundStyle({
 	type: "hierarchical",

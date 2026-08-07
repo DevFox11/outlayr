@@ -17,10 +17,10 @@ import { useLanguage, useTranslation } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
-type AuthClient = NonNullable<typeof authClient>;
+type AuthClient = typeof authClient;
 
 export function SignIn() {
-	return authClient ? <SignInContent client={authClient} /> : <Unconfigured />;
+	return <SignInContent client={authClient} />;
 }
 
 /**
@@ -133,22 +133,6 @@ function SignInContent({ client }: { client: AuthClient }) {
 				fallbackClassName="text-fr-muted text-subtitle leading-snug"
 				start={start}
 			/>
-		</FirstRun>
-	);
-}
-
-function Unconfigured() {
-	const t = useTranslation();
-	return (
-		<FirstRun
-			eyebrow={t("auth.unconfigured.eyebrow")}
-			title={t("auth.unconfigured.title")}
-		>
-			<View className="border-fr-rule border-y py-5">
-				<Text className="text-fr-muted text-subtitle leading-snug">
-					{t("auth.unconfigured.body")}
-				</Text>
-			</View>
 		</FirstRun>
 	);
 }

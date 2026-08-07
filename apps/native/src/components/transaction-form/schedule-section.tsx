@@ -20,7 +20,15 @@ import {
 	tag,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
+import {
+	Calendar03Icon,
+	CalendarRemove01Icon,
+	Clock01Icon,
+	Notification03Icon,
+	RepeatIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import { menuTint } from "@/components/native/styles";
+import { TransactionFormRowIcon } from "./row-icon";
 import { BODY, MORPH, ROW, rowLabel } from "./style";
 
 interface CadenceOption {
@@ -110,7 +118,8 @@ export function TransactionFormScheduleSection({
 		<VStack modifiers={[...card, animation(MORPH, isSubscription)]} spacing={0}>
 			{isSubscription ? (
 				<>
-					<HStack modifiers={ROW}>
+					<HStack modifiers={ROW} spacing={12}>
+						<TransactionFormRowIcon color={mutedColor} icon={RepeatIcon} />
 						<SwiftText modifiers={[BODY, rowLabel]}>{scheduleLabel}</SwiftText>
 						<Spacer />
 						<Menu
@@ -150,7 +159,8 @@ export function TransactionFormScheduleSection({
 
 					<Divider modifiers={hairline} />
 
-					<HStack modifiers={ROW}>
+					<HStack modifiers={ROW} spacing={12}>
+						<TransactionFormRowIcon color={mutedColor} icon={Calendar03Icon} />
 						<SwiftText modifiers={[BODY, rowLabel]}>
 							{firstPaymentLabel}
 						</SwiftText>
@@ -165,7 +175,11 @@ export function TransactionFormScheduleSection({
 
 					<Divider modifiers={hairline} />
 
-					<HStack modifiers={ROW}>
+					<HStack modifiers={ROW} spacing={12}>
+						<TransactionFormRowIcon
+							color={mutedColor}
+							icon={CalendarRemove01Icon}
+						/>
 						<SwiftText modifiers={[BODY, rowLabel]}>{endDateLabel}</SwiftText>
 						<Spacer />
 						<Toggle
@@ -178,7 +192,11 @@ export function TransactionFormScheduleSection({
 					{hasEndDate ? (
 						<>
 							<Divider modifiers={hairline} />
-							<HStack modifiers={ROW}>
+							<HStack modifiers={ROW} spacing={12}>
+								<TransactionFormRowIcon
+									color={mutedColor}
+									icon={CalendarRemove01Icon}
+								/>
 								<SwiftText modifiers={[BODY, rowLabel]}>{endsLabel}</SwiftText>
 								<Spacer />
 								<DatePicker
@@ -194,7 +212,11 @@ export function TransactionFormScheduleSection({
 					<Divider modifiers={hairline} />
 
 					{/* Label outside the Menu, as on the Schedule row above. */}
-					<HStack modifiers={ROW}>
+					<HStack modifiers={ROW} spacing={12}>
+						<TransactionFormRowIcon
+							color={mutedColor}
+							icon={Notification03Icon}
+						/>
 						<SwiftText modifiers={[BODY, rowLabel]}>{remindLabel}</SwiftText>
 						<Spacer />
 						<Menu
@@ -233,7 +255,8 @@ export function TransactionFormScheduleSection({
 				</>
 			) : (
 				<>
-					<HStack modifiers={ROW}>
+					<HStack modifiers={ROW} spacing={12}>
+						<TransactionFormRowIcon color={mutedColor} icon={Calendar03Icon} />
 						<SwiftText modifiers={[BODY, rowLabel]}>{dateLabel}</SwiftText>
 						<Spacer />
 						<DatePicker
@@ -246,7 +269,8 @@ export function TransactionFormScheduleSection({
 
 					<Divider modifiers={hairline} />
 
-					<HStack modifiers={ROW}>
+					<HStack modifiers={ROW} spacing={12}>
+						<TransactionFormRowIcon color={mutedColor} icon={Clock01Icon} />
 						<SwiftText modifiers={[BODY, rowLabel]}>{timeLabel}</SwiftText>
 						<Spacer />
 						<DatePicker

@@ -29,19 +29,7 @@ export function useAuthSession(): AuthSession {
 	return use(AuthSessionContext);
 }
 
-/**
- * Two components because `useSession` cannot be called when there is no client
- * to call it on, and `authClient` is a module constant — so this branch is fixed
- * for the process and never changes a hook's call order.
- */
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
-	if (!authClient) {
-		return (
-			<AuthSessionContext.Provider value={UNCONFIGURED}>
-				{children}
-			</AuthSessionContext.Provider>
-		);
-	}
 	return <LiveSession client={authClient}>{children}</LiveSession>;
 }
 

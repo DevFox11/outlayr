@@ -41,7 +41,7 @@ export function FloatingAddButton() {
 					>
 						<Button
 							label={t("log.add.transaction")}
-							onPress={() => router.push("/transaction/new")}
+							onPress={() => router.push("/transactions/create")}
 						/>
 						<Button
 							label={t("log.add.import")}

@@ -30,7 +30,7 @@ export default function TabLayout() {
 
 	return (
 		<NativeTabs labelStyle={LABEL_STYLE} tintColor={accent}>
-			<NativeTabs.Trigger name="(log)">
+			<NativeTabs.Trigger name="(transactions)">
 				<NativeTabs.Trigger.Icon
 					renderingMode="template"
 					src={{ default: logIcon, selected: logSelectedIcon }}

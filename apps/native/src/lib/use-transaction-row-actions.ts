@@ -68,8 +68,8 @@ export function useTransactionRowActions(
 				onStopRecurring: () => {
 					void stopRecurring(db, id);
 				},
-				onLogAgain: () => router.push(`/transaction/new?from=${id}`),
-				onEdit: () => router.push(`/transaction/${id}`),
+				onLogAgain: () => router.push(`/transactions/create?from=${id}`),
+				onEdit: () => router.push(`/transactions/${id}`),
 				onDelete: () => onDelete(id),
 			});
 		},

@@ -34,9 +34,6 @@ export function usePhotoSync(db: Database | null): void {
 			return;
 		}
 		const transport = photoTransport();
-		if (transport == null) {
-			return;
-		}
 
 		let running = false;
 

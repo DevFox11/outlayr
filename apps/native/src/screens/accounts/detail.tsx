@@ -173,7 +173,7 @@ const AccountTransactionRow = memo(function AccountTransactionRow({
 	return (
 		<TransactionRow
 			currency={currency}
-			onPress={(pressedId) => router.push(`/transaction/${pressedId}`)}
+			onPress={(pressedId) => router.push(`/transactions/${pressedId}`)}
 			rates={rates}
 			transaction={transaction}
 		/>

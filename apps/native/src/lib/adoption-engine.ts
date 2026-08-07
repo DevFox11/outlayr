@@ -15,7 +15,7 @@ import { syncTransport } from "@/lib/convex";
  */
 export function adoptionEngine(db: Database | null): AdoptionEngine | null {
 	const transport = syncTransport();
-	if (db == null || transport == null) {
+	if (db == null) {
 		return null;
 	}
 	return {

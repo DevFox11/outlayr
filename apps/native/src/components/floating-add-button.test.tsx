@@ -67,10 +67,10 @@ describe("FloatingAddButton", () => {
 		expect(toJSON()).toBeTruthy();
 	});
 
-	it("pushes /transaction/new when the transaction row is pressed", async () => {
+	it("pushes /transactions/create when the transaction row is pressed", async () => {
 		const { getByText } = await render(<FloatingAddButton />);
 		fireEvent.press(getByText("log.add.transaction"));
-		expect(mockPush).toHaveBeenCalledWith("/transaction/new");
+		expect(mockPush).toHaveBeenCalledWith("/transactions/create");
 	});
 
 	it("seeds the resume step and presents the sheet when the import row is pressed", async () => {

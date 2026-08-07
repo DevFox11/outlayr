@@ -114,7 +114,7 @@ function UpcomingContent({ db }: { db: Database }) {
 						nowMs={nowMs}
 						rates={rates}
 						onLongPress={(id) => openRowActions(id, true)}
-						onPress={(id) => router.push(`/transaction/${id}`)}
+						onPress={(id) => router.push(`/transactions/${id}`)}
 						schedules={upcoming}
 						transactions={upcoming}
 					/>

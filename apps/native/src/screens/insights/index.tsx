@@ -364,7 +364,7 @@ function InsightsContent({ db }: { db: Database }) {
 	if (!result.hasHistory) {
 		return (
 			<InsightsSample
-				onAddTransaction={() => router.push("/transaction/new")}
+				onAddTransaction={() => router.push("/transactions/create")}
 			/>
 		);
 	}
@@ -561,7 +561,7 @@ function InsightsContent({ db }: { db: Database }) {
 						<InsightsTransactionList
 							currency={currency}
 							grouped={listGrouped}
-							onPress={(id) => router.push(`/transaction/${id}`)}
+							onPress={(id) => router.push(`/transactions/${id}`)}
 							onRequestDelete={requestDelete}
 							pendingDeleteId={pendingId}
 							transactions={listTransactions}

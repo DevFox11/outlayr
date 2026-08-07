@@ -286,7 +286,7 @@ function AccountEditorReady(
 		// whatever the user is about to choose.
 		setIdentitySource("user");
 		setPickerOpen(true);
-		router.push("/transaction/identity");
+		router.push("/transactions/identity");
 	};
 
 	const openCurrencyPicker = () => {

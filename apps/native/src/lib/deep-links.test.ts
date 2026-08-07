@@ -13,26 +13,30 @@ describe("resolveDeepLink", () => {
 		expect(resolveDeepLink(DEEP_LINKS.budgets)).toBe("/budgets");
 		expect(resolveDeepLink(DEEP_LINKS.overallBudget)).toBe("/budgets/overall");
 		expect(resolveDeepLink(DEEP_LINKS.search)).toBe("/search");
-		expect(resolveDeepLink(DEEP_LINKS.newExpense)).toBe("/transaction/new");
+		expect(resolveDeepLink(DEEP_LINKS.newExpense)).toBe("/transactions/create");
 		expect(resolveDeepLink(DEEP_LINKS.newIncome)).toBe(
-			"/transaction/new?income=1",
+			"/transactions/create?income=1",
 		);
 	});
 
 	it("accepts the bare path form expo-router hands it while running", () => {
 		expect(resolveDeepLink("/budgets/overall")).toBe("/budgets/overall");
-		expect(resolveDeepLink("new?income=1")).toBe("/transaction/new?income=1");
+		expect(resolveDeepLink("new?income=1")).toBe(
+			"/transactions/create?income=1",
+		);
 	});
 
 	it("routes a single transaction, which is what Spotlight opens", () => {
 		expect(resolveDeepLink(transactionLink("abc123"))).toBe(
-			"/transaction/abc123",
+			"/transactions/abc123",
 		);
 		expect(resolveDeepLink(budgetLink("b7"))).toBe("/budgets/b7");
 	});
 
 	it("degrades a host with no id to its section rather than to not-found", () => {
-		expect(resolveDeepLink("outlayr://transaction")).toBe("/transaction");
+		// The transactions list is the Log tab at `/`; `/transactions` is only a
+		// parent for `[id]` and would land on `+not-found`.
+		expect(resolveDeepLink("outlayr://transaction")).toBe("/");
 	});
 
 	it("routes a single budget by id", () => {
@@ -40,7 +44,9 @@ describe("resolveDeepLink", () => {
 	});
 
 	it("still answers the retired Swift hosts", () => {
-		expect(resolveDeepLink("outlayr://newExpense")).toBe("/transaction/new");
+		expect(resolveDeepLink("outlayr://newExpense")).toBe(
+			"/transactions/create",
+		);
 		expect(resolveDeepLink("outlayr://budget")).toBe("/budgets");
 		expect(resolveDeepLink("outlayr://transactions")).toBe("/");
 	});
@@ -71,7 +77,7 @@ describe("redirectLaunchPath", () => {
 		const [drain, calls] = drainSpy();
 		expect(
 			redirectLaunchPath({ path: DEEP_LINKS.newExpense, initial: true }, drain),
-		).toBe("/transaction/new");
+		).toBe("/transactions/create");
 		expect(calls.count).toBe(1);
 	});
 
