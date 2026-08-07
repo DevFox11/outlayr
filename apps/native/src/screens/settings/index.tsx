@@ -9,6 +9,7 @@ import {
 import { AccountRow } from "@/components/settings/account-row";
 import {
 	LinkRow,
+	PickerRow,
 	SettingsSection,
 	ToggleRow,
 } from "@/components/settings/settings-row";
@@ -20,10 +21,12 @@ import {
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
-	hapticsLabel,
-	numberEntryLabel,
+	choiceDetail,
+	HAPTICS_OPTIONS,
+	NUMBER_ENTRY_OPTIONS,
 	onOffLabel,
 	setBoolSetting,
+	setNumberSetting,
 	shownHiddenLabel,
 } from "@/data/settings";
 import { useSyncStatus } from "@/data/use-sync-status";
@@ -34,6 +37,7 @@ import { lockFailureMessage } from "@/domain/app-lock";
 import { syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
 import {
+	LANGUAGE_OPTIONS,
 	languageLabel,
 	translateNow,
 	useLanguage,
@@ -44,7 +48,7 @@ import { requestUnlock } from "@/lib/app-lock";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
-import { themeLabel } from "@/theme/theme-preference";
+import { THEME_OPTIONS } from "@/theme/theme-preference";
 import { useThemePreference } from "@/theme/use-theme-preference";
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
@@ -81,8 +85,10 @@ function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
-	const { preference: themePreference } = useThemePreference();
-	const { preference } = useLanguage();
+	const { preference: themePreference, setPreference: setThemePreference } =
+		useThemePreference();
+	const { preference: languagePreference, setPreference: setLanguage } =
+		useLanguage();
 	useReminderSync(db);
 
 	const currency = useGlobalCurrency(db);
@@ -95,7 +101,6 @@ function SettingsContent({ db }: { db: Database }) {
 	const incomeTracking = settings.bool("incomeTracking");
 	const showUpcoming = settings.bool("showUpcoming");
 	const animatedCharts = settings.bool("animatedCharts");
-	const logTrendLine = settings.bool("logViewLineGraph");
 	const numberEntryType = settings.number("numberEntryType");
 	const haptics = settings.number("haptics");
 
@@ -103,7 +108,11 @@ function SettingsContent({ db }: { db: Database }) {
 	const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
 	const diagnostics = supportDiagnostics(version, build);
 
-	const hapticsValue = hapticsLabel(haptics);
+	const hapticsDetail = choiceDetail(HAPTICS_OPTIONS, haptics);
+	const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
+	const themeDetail = THEME_OPTIONS.find(
+		(option) => option.value === themePreference,
+	)?.detail;
 
 	const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt);
 	const syncValue =
@@ -113,8 +122,18 @@ function SettingsContent({ db }: { db: Database }) {
 
 	return (
 		<SettingsScreen footer={`Outlayr ${version} (${build})`}>
+			<SettingsSection title={t("settings.section.account")}>
+				<AccountRow />
+				<LinkRow
+					icon="Cloud"
+					onPress={() => router.push("/settings/sync")}
+					title={t("settings.row.sync")}
+					value={syncValue}
+				/>
+			</SettingsSection>
+
 			<SettingsSection
-				title={t("settings.section.logging")}
+				title={t("settings.section.money")}
 				footer={coverageNote(coverage, t) ?? undefined}
 			>
 				<LinkRow
@@ -123,16 +142,18 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.currency")}
 					value={currency}
 				/>
-				<LinkRow
+				<PickerRow
+					detail={numberEntryDetail ? t(numberEntryDetail) : undefined}
 					icon="Calculator01"
-					onPress={() => router.push("/settings/number-entry")}
+					onChange={(next) => {
+						setNumberSetting(db, "numberEntryType", next);
+					}}
+					options={NUMBER_ENTRY_OPTIONS.map((option) => ({
+						label: t(option.label),
+						value: option.value,
+					}))}
 					title={t("settings.row.numberEntry")}
-					value={t(numberEntryLabel(numberEntryType))}
-				/>
-				<LinkRow
-					icon="Calendar01"
-					onPress={() => router.push("/settings/time")}
-					title={t("settings.row.timeFrames")}
+					value={numberEntryType}
 				/>
 				<ToggleRow
 					icon="MoneyAdd01"
@@ -141,26 +162,6 @@ function SettingsContent({ db }: { db: Database }) {
 					}}
 					title={t("settings.row.incomeTracking")}
 					value={incomeTracking}
-				/>
-			</SettingsSection>
-
-			<SettingsSection title={t("settings.section.appearance")}>
-				<LinkRow
-					icon="DarkMode"
-					onPress={() => router.push("/settings/theme")}
-					title={t("settings.row.theme")}
-					value={t(themeLabel(themePreference))}
-				/>
-				{alternateIconsSupported ? <AppIconRow /> : null}
-				<LinkRow
-					icon="LanguageSkill"
-					onPress={() => router.push("/settings/language")}
-					title={t("nav.settings.language")}
-					value={
-						preference === "system"
-							? t("language.system")
-							: languageLabel(preference)
-					}
 				/>
 				<ToggleRow
 					icon="BadgeCent"
@@ -181,20 +182,32 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection title={t("settings.section.log")}>
-				<LinkRow
-					icon="Sunrise"
-					onPress={() => router.push("/settings/upcoming")}
-					title={t("settings.row.upcoming")}
-					value={t(shownHiddenLabel(showUpcoming))}
+			<SettingsSection title={t("settings.section.appearance")}>
+				<PickerRow
+					detail={themeDetail ? t(themeDetail) : undefined}
+					icon="DarkMode"
+					onChange={setThemePreference}
+					options={THEME_OPTIONS.map((option) => ({
+						label: t(option.label),
+						value: option.value,
+					}))}
+					title={t("settings.row.theme")}
+					value={themePreference}
 				/>
-				<ToggleRow
-					icon="ChartLineData01"
-					onValueChange={(next) => {
-						setBoolSetting(db, "logViewLineGraph", next);
-					}}
-					title={t("settings.row.logTrendLine")}
-					value={logTrendLine}
+				{alternateIconsSupported ? <AppIconRow /> : null}
+				<PickerRow
+					detail={t("language.footer")}
+					icon="LanguageSkill"
+					onChange={setLanguage}
+					options={LANGUAGE_OPTIONS.map((option) => ({
+						label:
+							option.value === "system"
+								? t("language.system")
+								: languageLabel(option.value),
+						value: option.value,
+					}))}
+					title={t("settings.row.language")}
+					value={languagePreference}
 				/>
 				<ToggleRow
 					icon="Analytics01"
@@ -206,8 +219,7 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection title={t("settings.section.data")}>
-				<AccountRow />
+			<SettingsSection title={t("settings.section.ledger")}>
 				<LinkRow
 					icon="Bank"
 					onPress={() => router.push("/settings/accounts")}
@@ -219,16 +231,49 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.categories")}
 				/>
 				<LinkRow
-					icon="Cloud"
-					onPress={() => router.push("/settings/sync")}
-					title={t("settings.row.sync")}
-					value={syncValue}
+					icon="Sunrise"
+					onPress={() => router.push("/settings/upcoming")}
+					title={t("settings.row.upcoming")}
+					value={t(shownHiddenLabel(showUpcoming))}
 				/>
 				<LinkRow
-					icon="Delete02"
-					onPress={() => router.push("/settings/deleted")}
-					title={t("settings.row.deleted")}
+					icon="Calendar01"
+					onPress={() => router.push("/settings/time")}
+					title={t("settings.row.timeFrames")}
 				/>
+			</SettingsSection>
+
+			<SettingsSection title={t("settings.section.device")}>
+				<LinkRow
+					icon="Notification03"
+					onPress={() => router.push("/settings/notifications")}
+					title={t("settings.row.notifications")}
+					value={t(onOffLabel(showNotifications))}
+				/>
+				<ToggleRow
+					icon="BiometricAccess"
+					onValueChange={(next) => {
+						void toggleAppLock(db, next);
+					}}
+					title={t("settings.row.authentication")}
+					value={biometricLock}
+				/>
+				<PickerRow
+					detail={hapticsDetail ? t(hapticsDetail) : undefined}
+					icon="Tap01"
+					onChange={(next) => {
+						setNumberSetting(db, "haptics", next);
+					}}
+					options={HAPTICS_OPTIONS.map((option) => ({
+						label: t(option.label),
+						value: option.value,
+					}))}
+					title={t("settings.row.haptics")}
+					value={haptics}
+				/>
+			</SettingsSection>
+
+			<SettingsSection title={t("settings.section.data")}>
 				<LinkRow
 					icon="FileImport"
 					onPress={() => {
@@ -248,6 +293,11 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.restore")}
 				/>
 				<LinkRow
+					icon="Delete02"
+					onPress={() => router.push("/settings/deleted")}
+					title={t("settings.row.deleted")}
+				/>
+				<LinkRow
 					destructive
 					icon="Delete02"
 					onPress={() => router.push("/settings/erase")}
@@ -255,35 +305,12 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection title={t("settings.section.device")}>
-				<LinkRow
-					icon="Notification03"
-					onPress={() => router.push("/settings/notifications")}
-					title={t("settings.row.notifications")}
-					value={t(onOffLabel(showNotifications))}
-				/>
-				<ToggleRow
-					icon="BiometricAccess"
-					onValueChange={(next) => {
-						void toggleAppLock(db, next);
-					}}
-					title={t("settings.row.authentication")}
-					value={biometricLock}
-				/>
-				<LinkRow
-					icon="Tap01"
-					onPress={() => router.push("/settings/haptics")}
-					title={t("settings.row.haptics")}
-					value={hapticsValue == null ? undefined : t(hapticsValue)}
-				/>
+			<SettingsSection title={t("settings.section.about")}>
 				<LinkRow
 					icon="TestTube"
 					onPress={() => router.push("/settings/feature-lab")}
 					title={t("settings.row.featureLab")}
 				/>
-			</SettingsSection>
-
-			<SettingsSection title="Outlayr">
 				<LinkRow
 					icon="Bug01"
 					onPress={() => {

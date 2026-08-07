@@ -6,6 +6,7 @@ import {
 import type { ReactNode } from "react";
 import { Pressable, Switch, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
+import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useColors } from "@/theme/use-colors";
@@ -130,6 +131,53 @@ export function LinkRow({
 		>
 			{body}
 		</Pressable>
+	);
+}
+
+/**
+ * Aligns the control and its detail with the row title rather than the row edge:
+ * `GLYPH` plus the shell's `gap-3`.
+ */
+const TEXT_INSET = "pl-8";
+
+export function PickerRow<T extends string | number | boolean>({
+	icon,
+	title,
+	detail,
+	options,
+	value,
+	onChange,
+}: {
+	icon: SettingsIconName;
+	title: string;
+	detail?: string;
+	options: readonly { label: string; value: T }[];
+	value: T;
+	onChange: (value: T) => void;
+}) {
+	const colors = useColors();
+	return (
+		<View className="border-border border-b py-3.5">
+			<View className="flex-row items-center gap-3">
+				<HugeiconsIcon
+					color={colors.foreground}
+					icon={settingsIcon(icon)}
+					size={GLYPH}
+					strokeWidth={1.9}
+				/>
+				<Text className="flex-1 text-body text-foreground" numberOfLines={1}>
+					{title}
+				</Text>
+			</View>
+			<View className={cn("gap-2 pt-2.5", TEXT_INSET)}>
+				<SegmentedControl onChange={onChange} options={options} value={value} />
+				{detail ? (
+					<Text className="text-muted text-subtitle leading-snug">
+						{detail}
+					</Text>
+				) : null}
+			</View>
+		</View>
 	);
 }
 

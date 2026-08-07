@@ -203,29 +203,13 @@ const common = {
 			en: "Feature Lab",
 			es: "Laboratorio de funciones",
 		}),
-		"nav.settings.haptics": t({
-			en: "Haptics",
-			es: "Hápticos",
-		}),
-		"nav.settings.language": t({
-			en: "Language",
-			es: "Idioma",
-		}),
 		"nav.settings.notifications": t({
 			en: "Notifications",
 			es: "Notificaciones",
 		}),
-		"nav.settings.numberEntry": t({
-			en: "Number Entry",
-			es: "Ingreso de números",
-		}),
 		"nav.settings.restore": t({
 			en: "Restore Data",
 			es: "Restaurar datos",
-		}),
-		"nav.settings.theme": t({
-			en: "Theme",
-			es: "Tema",
 		}),
 		"nav.settings.time": t({
 			en: "Time Frames",

@@ -1,7 +1,9 @@
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { MonoLabel } from "@/components/mono-label";
+import {
+	ChoiceRow,
+	PickerRow,
+	SettingsSection,
+} from "@/components/settings/settings-row";
+import { SettingsScreen } from "@/components/settings/settings-screen";
 import {
 	useAppSettings,
 	useDisplaySettings,
@@ -10,7 +12,6 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { ordinalDay, setBoolSetting, setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
 import { type TranslationKey, useLanguage, useTranslation } from "@/i18n";
-import { useColors } from "@/theme/use-colors";
 
 const WEEKDAY_OPTIONS: readonly { label: TranslationKey; value: number }[] = [
 	{ label: "settings.time.sunday", value: 1 },
@@ -41,95 +42,54 @@ function TimeFramesContent({ db }: { db: Database }) {
 	const { use24Hour: use24HourClock } = useDisplaySettings().state;
 
 	return (
-		<ScrollView
-			className="flex-1 bg-background"
-			contentContainerClassName="px-5 pt-3 pb-safe-offset-10"
-		>
-			<View className="pb-1">
-				<MonoLabel>{t("clock.section")}</MonoLabel>
-			</View>
-			<View className="border-border border-t">
-				{CLOCK_OPTIONS.map((option) => (
-					<ChoiceRow
-						key={String(option.value)}
-						label={t(option.label)}
-						selected={use24HourClock === option.value}
-						onPress={() => {
-							setBoolSetting(db, "use24HourClock", option.value);
-						}}
-					/>
-				))}
-			</View>
-			<Text className="pt-2 text-footnote text-muted">
-				{t("clock.deviceNote")}
-			</Text>
+		<SettingsScreen>
+			<SettingsSection
+				footer={t("clock.deviceNote")}
+				title={t("settings.time.startsSection")}
+			>
+				<PickerRow
+					icon="CalendarClock"
+					onChange={(next) => {
+						setBoolSetting(db, "use24HourClock", next);
+					}}
+					options={CLOCK_OPTIONS.map((option) => ({
+						label: t(option.label),
+						value: option.value,
+					}))}
+					title={t("clock.section")}
+					value={use24HourClock}
+				/>
+				<PickerRow
+					icon="Calendar01"
+					onChange={(next) => {
+						setNumberSetting(db, "firstWeekday", next);
+					}}
+					options={WEEKDAY_OPTIONS.map((option) => ({
+						label: t(option.label),
+						value: option.value,
+					}))}
+					title={t("settings.time.weekSection")}
+					value={firstWeekday}
+				/>
+			</SettingsSection>
 
-			<View className="pt-7 pb-1">
-				<MonoLabel>{t("settings.time.weekSection")}</MonoLabel>
-			</View>
-			<View className="border-border border-t">
-				{WEEKDAY_OPTIONS.map((option) => (
-					<ChoiceRow
-						key={option.value}
-						label={t(option.label)}
-						selected={firstWeekday === option.value}
-						onPress={() => {
-							setNumberSetting(db, "firstWeekday", option.value);
-						}}
-					/>
-				))}
-			</View>
-
-			<View className="pt-7 pb-1">
-				<MonoLabel>{t("settings.time.monthSection")}</MonoLabel>
-			</View>
-			<View className="border-border border-t">
+			<SettingsSection
+				footer={t("settings.time.reopenNote")}
+				title={t("settings.time.monthSection")}
+			>
 				{MONTH_DAYS.map((day) => (
 					<ChoiceRow
 						key={day}
 						label={t("settings.time.dayOfMonth", {
 							day: ordinalDay(day, language),
 						})}
-						selected={firstDayOfMonth === day}
 						onPress={() => {
 							setNumberSetting(db, "firstDayOfMonth", day);
 						}}
+						selected={firstDayOfMonth === day}
 					/>
 				))}
-			</View>
-			<Text className="pt-2 text-footnote text-muted">
-				{t("settings.time.reopenNote")}
-			</Text>
-		</ScrollView>
-	);
-}
-
-function ChoiceRow({
-	label,
-	selected,
-	onPress,
-}: {
-	label: string;
-	selected: boolean;
-	onPress: () => void;
-}) {
-	const colors = useColors();
-	return (
-		<Pressable
-			onPress={onPress}
-			accessibilityRole="button"
-			accessibilityState={{ selected }}
-			className="flex-row items-center border-border border-b py-3.5 active:opacity-60"
-		>
-			<Text className="flex-1 text-body text-foreground">{label}</Text>
-			{selected ? (
-				<HugeiconsIcon
-					icon={Tick02Icon}
-					size={20}
-					color={colors.tint}
-					strokeWidth={2.4}
-				/>
-			) : null}
-		</Pressable>
+			</SettingsSection>
+		</SettingsScreen>
 	);
 }

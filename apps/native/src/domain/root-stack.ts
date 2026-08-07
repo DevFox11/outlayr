@@ -19,13 +19,9 @@ export const SETTINGS_SCREENS: readonly {
 	{ name: "settings/erase", titleKey: "nav.settings.erase" },
 	{ name: "settings/export", titleKey: "nav.settings.export" },
 	{ name: "settings/feature-lab", titleKey: "nav.settings.featureLab" },
-	{ name: "settings/haptics", titleKey: "nav.settings.haptics" },
-	{ name: "settings/language", titleKey: "nav.settings.language" },
 	{ name: "settings/notifications", titleKey: "nav.settings.notifications" },
-	{ name: "settings/number-entry", titleKey: "nav.settings.numberEntry" },
 	{ name: "settings/restore", titleKey: "nav.settings.restore" },
 	{ name: "settings/sync", titleKey: "settings.sync.navTitle" },
-	{ name: "settings/theme", titleKey: "nav.settings.theme" },
 	{ name: "settings/time", titleKey: "nav.settings.time" },
 	{ name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
 ];

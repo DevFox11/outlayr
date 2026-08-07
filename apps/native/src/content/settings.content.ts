@@ -99,25 +99,33 @@ const settings = {
 			en: "Settings",
 			es: "Configuración",
 		}),
-		"settings.section.logging": t({
-			en: "Logging",
-			es: "Registro",
+		"settings.section.account": t({
+			en: "Account",
+			es: "Cuenta",
+		}),
+		"settings.section.money": t({
+			en: "Money",
+			es: "Dinero",
 		}),
 		"settings.section.appearance": t({
 			en: "Appearance",
 			es: "Apariencia",
 		}),
-		"settings.section.log": t({
-			en: "The Log",
-			es: "El registro",
+		"settings.section.ledger": t({
+			en: "Your ledger",
+			es: "Tu registro",
+		}),
+		"settings.section.device": t({
+			en: "This device",
+			es: "Este dispositivo",
 		}),
 		"settings.section.data": t({
 			en: "Your data",
 			es: "Tus datos",
 		}),
-		"settings.section.device": t({
-			en: "This device",
-			es: "Este dispositivo",
+		"settings.section.about": t({
+			en: "About Outlayr",
+			es: "Acerca de Outlayr",
 		}),
 		"settings.row.currency": t({
 			en: "Currency",
@@ -143,6 +151,10 @@ const settings = {
 			en: "App Icon",
 			es: "Ícono de la app",
 		}),
+		"settings.row.language": t({
+			en: "Language",
+			es: "Idioma",
+		}),
 		"settings.row.displayCents": t({
 			en: "Display Cents",
 			es: "Mostrar centavos",
@@ -154,10 +166,6 @@ const settings = {
 		"settings.row.upcoming": t({
 			en: "Upcoming Logs",
 			es: "Próximos registros",
-		}),
-		"settings.row.logTrendLine": t({
-			en: "Log Trend Line",
-			es: "Línea de tendencia",
 		}),
 		"settings.row.animatedCharts": t({
 			en: "Animated Charts",
@@ -711,6 +719,10 @@ const settings = {
 			en: "Experimental — these can change or disappear.",
 			es: "Experimental — esto puede cambiar o desaparecer.",
 		}),
+		"settings.featureLab.logSection": t({
+			en: "The Log",
+			es: "El registro",
+		}),
 		"settings.featureLab.lineGraph": t({
 			en: "Show Line Graph",
 			es: "Mostrar gráfico de líneas",
@@ -738,10 +750,6 @@ const settings = {
 		"settings.featureLab.swapTime": t({
 			en: "Replace Time Label",
 			es: "Reemplazar etiqueta de hora",
-		}),
-		"settings.haptics.section": t({
-			en: "Feedback",
-			es: "Respuesta",
 		}),
 		"settings.haptics.none": t({
 			en: "None",
@@ -839,17 +847,9 @@ const settings = {
 			en: "Each subscription decides how far ahead it warns you, on its own screen. Off silences all of them without changing what any one of them says.",
 			es: "Cada suscripción decide con cuánta antelación te avisa, en su propia pantalla. Desactivarlo las silencia todas sin cambiar lo que cada una indica.",
 		}),
-		"settings.numberEntry.section": t({
-			en: "Amount keypad",
-			es: "Teclado de montos",
-		}),
 		"settings.numberEntry.type1": t({
 			en: "Type 1",
 			es: "Tipo 1",
-		}),
-		"settings.numberEntry.type1Title": t({
-			en: "Type 1 · Pre-dotted",
-			es: "Tipo 1 · Con decimales",
 		}),
 		"settings.numberEntry.type1Detail": t({
 			en: "The last two digits are cents. Type 1234 to get 12.34.",
@@ -858,10 +858,6 @@ const settings = {
 		"settings.numberEntry.type2": t({
 			en: "Type 2",
 			es: "Tipo 2",
-		}),
-		"settings.numberEntry.type2Title": t({
-			en: "Type 2 · Cent-less",
-			es: "Tipo 2 · Sin centavos",
 		}),
 		"settings.numberEntry.type2Detail": t({
 			en: "Whole amounts only. Type 12 to get 12.",
@@ -891,13 +887,17 @@ const settings = {
 			en: "Always dark, whatever the device does.",
 			es: "Siempre oscuro, haga lo que haga el dispositivo.",
 		}),
+		"settings.time.startsSection": t({
+			en: "Starts on",
+			es: "Empieza en",
+		}),
 		"settings.time.weekSection": t({
-			en: "START OF WEEK",
-			es: "INICIO DE LA SEMANA",
+			en: "Start of Week",
+			es: "Inicio de la semana",
 		}),
 		"settings.time.monthSection": t({
-			en: "START OF MONTH",
-			es: "INICIO DEL MES",
+			en: "Start of Month",
+			es: "Inicio del mes",
 		}),
 		"settings.time.sunday": t({
 			en: "Sunday",
