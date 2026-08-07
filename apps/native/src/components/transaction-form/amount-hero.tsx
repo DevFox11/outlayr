@@ -18,9 +18,8 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { NumberFlow } from "number-flow-react-native";
 import { Text, View } from "react-native";
+import { amountHeroFontSize } from "@/domain/amount-hero-size";
 
-const SYMBOL_SIZE = 30;
-const DIGITS_SIZE = 62;
 const CHIP = font({ size: 15, weight: "semibold", design: "rounded" });
 const CURRENCY = font({ size: 14, weight: "medium", design: "rounded" });
 const CAPSULE = shapes.capsule();
@@ -58,6 +57,9 @@ export function TransactionFormAmountHero({
 	onPress,
 	onCurrencyPress,
 }: TransactionFormAmountHeroProps) {
+	const digitsSize = amountHeroFontSize(amount, minorUnits, contentWidth);
+	const symbolSize = digitsSize * 0.48;
+
 	const chip = (selected: boolean) =>
 		selected
 			? [
@@ -99,7 +101,7 @@ export function TransactionFormAmountHero({
 					<View
 						style={{
 							width: contentWidth,
-							height: DIGITS_SIZE * 1.25,
+							height: digitsSize * 1.25,
 							flexDirection: "row",
 							alignItems: "flex-end",
 							justifyContent: "center",
@@ -108,9 +110,9 @@ export function TransactionFormAmountHero({
 						<Text
 							style={{
 								fontFamily: "SFProRounded-Medium",
-								fontSize: SYMBOL_SIZE,
+								fontSize: symbolSize,
 								color: mutedColor,
-								marginBottom: DIGITS_SIZE * 0.16,
+								marginBottom: digitsSize * 0.16,
 							}}
 						>
 							{symbol}
@@ -124,7 +126,7 @@ export function TransactionFormAmountHero({
 							locales="en-US"
 							style={{
 								fontFamily: "SFProRounded-Semibold",
-								fontSize: DIGITS_SIZE,
+								fontSize: digitsSize,
 								color: amountColor,
 							}}
 							value={amount}

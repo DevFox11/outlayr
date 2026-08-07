@@ -1,15 +1,6 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { render } from "@testing-library/react-native";
 import { TransactionFormAmountPad } from "./amount-pad";
 
-jest.mock("@/i18n", () => ({
-	useTranslation: () => (key: string) => key,
-}));
-jest.mock("@/theme/use-colors", () => ({
-	useColors: () => ({
-		foreground: "#FFFFFF",
-		muted: "#A4A4A9",
-	}),
-}));
 jest.mock("panelui-native", () => {
 	const react = require("react") as typeof import("react");
 	const Content = ({ children, ...rest }: Record<string, unknown>) =>
@@ -115,15 +106,6 @@ describe("TransactionFormAmountPad", () => {
 		expect(pad?.props.toneClass).not.toContain("income");
 	});
 
-	it("closes from its own control", async () => {
-		const onOpenChange = jest.fn();
-		const { getByLabelText } = await render(
-			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
-		);
-		fireEvent.press(getByLabelText("common.close"));
-		expect(onOpenChange).toHaveBeenCalledWith(false);
-	});
-
 	// A swipe-down closes the sheet without going through the button, and the
 	// form's `padOpen` has to follow or the sheet can never be reopened.
 	it("reports a swipe-down dismissal back to the form", async () => {
@@ -138,11 +120,11 @@ describe("TransactionFormAmountPad", () => {
 		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 
-	// PanelUI's own close is `bg-muted`, which is a TEXT colour in this theme and
-	// paints a grey slab — the glass button stands in for it.
-	it("suppresses the sheet's built-in close button", async () => {
+	// The platform sheet brings its own drag indicator and swipe-to-dismiss, so
+	// there is no in-content close button to render or suppress.
+	it("presents the platform's own sheet", async () => {
 		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
-		const content = findByType(toJSON() as JsonNode, "SheetContent");
-		expect(content?.props.showClose).toBe(false);
+		const sheet = findByType(toJSON() as JsonNode, "Sheet");
+		expect(sheet?.props.native).toBe(true);
 	});
 });
