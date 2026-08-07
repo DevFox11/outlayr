@@ -24,10 +24,3 @@ export const THEME_OPTIONS: readonly {
 		value: "dark",
 	},
 ];
-
-export function themeLabel(preference: ThemePreference): TranslationKey {
-	return (
-		THEME_OPTIONS.find((option) => option.value === preference)?.label ??
-		"settings.theme.system"
-	);
-}

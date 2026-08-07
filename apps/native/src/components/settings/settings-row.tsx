@@ -1,3 +1,5 @@
+import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
+import { pickerStyle, tag, tint } from "@expo/ui/swift-ui/modifiers";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
 	ArrowRight01Icon,
@@ -13,6 +15,9 @@ import type { SettingsIconName } from "./settings-icons";
 import { settingsIcon } from "./settings-icons";
 
 const GLYPH = 20;
+
+/** Hangs a second line under the title rather than the icon: `GLYPH` plus `gap-3`. */
+const TITLE_INSET = "pl-8";
 
 export function SettingsSection({
 	title,
@@ -133,6 +138,69 @@ export function LinkRow({
 	);
 }
 
+export function PickerRow<T extends string | number | boolean>({
+	icon,
+	title,
+	detail,
+	options,
+	value,
+	onChange,
+}: {
+	icon: SettingsIconName;
+	title: string;
+	detail?: string;
+	options: readonly { label: string; value: T }[];
+	value: T;
+	onChange: (value: T) => void;
+}) {
+	const colors = useColors();
+	return (
+		<View className="border-border border-b py-3.5">
+			<View className="flex-row items-center gap-3">
+				<HugeiconsIcon
+					color={colors.foreground}
+					icon={settingsIcon(icon)}
+					size={GLYPH}
+					strokeWidth={1.9}
+				/>
+				<Text className="flex-1 text-body text-foreground" numberOfLines={1}>
+					{title}
+				</Text>
+				<Host matchContents>
+					<Picker
+						modifiers={[pickerStyle("menu"), tint(colors.muted)]}
+						onSelectionChange={(next) => {
+							const picked = options.find(
+								(option) => String(option.value) === next,
+							);
+							if (picked) {
+								onChange(picked.value);
+							}
+						}}
+						selection={String(value)}
+					>
+						{options.map((option) => (
+							<NativeText
+								key={String(option.value)}
+								modifiers={[tag(String(option.value))]}
+							>
+								{option.label}
+							</NativeText>
+						))}
+					</Picker>
+				</Host>
+			</View>
+			{detail ? (
+				<Text
+					className={cn(TITLE_INSET, "text-muted text-subtitle leading-snug")}
+				>
+					{detail}
+				</Text>
+			) : null}
+		</View>
+	);
+}
+
 export function ToggleRow({
 	icon,
 	title,
@@ -163,10 +231,7 @@ export function ToggleRow({
 	);
 }
 
-/**
- * One option on a choice screen. Settings picks with these rather than an inline
- * `MenuView`, whose intrinsic width lands a frame late on iOS — see `ScopeChip`.
- */
+/** One option on a choice screen — a list too long or too visual for `PickerRow`. */
 export function ChoiceRow({
 	label,
 	detail,

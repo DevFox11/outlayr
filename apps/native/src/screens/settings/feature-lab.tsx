@@ -64,7 +64,7 @@ function FeatureLabContent({ db }: { db: Database }) {
 
 			<SettingsSection
 				footer={t("settings.featureLab.experimental")}
-				title={t("settings.section.log")}
+				title={t("settings.featureLab.logSection")}
 			>
 				<ToggleRow
 					icon="ChartLineData01"

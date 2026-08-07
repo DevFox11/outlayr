@@ -104,23 +104,49 @@ export const SETTING_DEFAULTS = {
 	boolean | number
 >;
 
-export const HAPTICS_OPTIONS = [
-	{ label: "settings.haptics.none", value: 0 },
-	{ label: "settings.haptics.subtle", value: 1 },
-	{ label: "settings.haptics.excessive", value: 2 },
-] as const satisfies readonly { label: TranslationKey; value: number }[];
+type ChoiceOption = {
+	label: TranslationKey;
+	detail: TranslationKey;
+	value: number;
+};
 
-export function numberEntryLabel(type: number): TranslationKey {
-	return type === 1
-		? "settings.numberEntry.type1"
-		: "settings.numberEntry.type2";
-}
+export const HAPTICS_OPTIONS: readonly ChoiceOption[] = [
+	{
+		label: "settings.haptics.none",
+		detail: "settings.haptics.noneDetail",
+		value: 0,
+	},
+	{
+		label: "settings.haptics.subtle",
+		detail: "settings.haptics.subtleDetail",
+		value: 1,
+	},
+	{
+		label: "settings.haptics.excessive",
+		detail: "settings.haptics.excessiveDetail",
+		value: 2,
+	},
+];
+
+export const NUMBER_ENTRY_OPTIONS: readonly ChoiceOption[] = [
+	{
+		label: "settings.numberEntry.type1",
+		detail: "settings.numberEntry.type1Detail",
+		value: 1,
+	},
+	{
+		label: "settings.numberEntry.type2",
+		detail: "settings.numberEntry.type2Detail",
+		value: 2,
+	},
+];
 
 /** Null where no option owns the value, as the empty label used to signal. */
-export function hapticsLabel(value: number): TranslationKey | null {
-	return (
-		HAPTICS_OPTIONS.find((option) => option.value === value)?.label ?? null
-	);
+export function choiceDetail(
+	options: readonly ChoiceOption[],
+	value: number,
+): TranslationKey | null {
+	return options.find((option) => option.value === value)?.detail ?? null;
 }
 
 export function onOffLabel(value: boolean): TranslationKey {

@@ -2,19 +2,21 @@ import NativeSegmentedControl, {
 	type NativeSegmentedControlChangeEvent,
 } from "@expo/ui/community/segmented-control";
 
-interface SegmentedOption<T extends string> {
+type SegmentedValue = string | number | boolean;
+
+interface SegmentedOption<T extends SegmentedValue> {
 	label: string;
 	value: T;
 }
 
-interface SegmentedControlProps<T extends string> {
+interface SegmentedControlProps<T extends SegmentedValue> {
 	options: readonly SegmentedOption<T>[];
 	value: T;
 	onChange: (value: T) => void;
 }
 
 /** The native control speaks in segment indices; callers get typed values back. */
-export function SegmentedControl<T extends string>({
+export function SegmentedControl<T extends SegmentedValue>({
 	options,
 	value,
 	onChange,
