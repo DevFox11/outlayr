@@ -36,8 +36,15 @@ describe("applyNumpadKey digits", () => {
 		expect(type("100")).toBe("100");
 	});
 
-	it("caps the integer part at nine digits", () => {
-		expect(type("1234567890")).toBe("123456789");
+	it("caps the integer part at thirteen digits", () => {
+		expect(type("12345678901234")).toBe("1234567890123");
+	});
+
+	// The ceiling has to stay inside float64's exact-cent range, or a saved
+	// amount reads back as a different one.
+	it("keeps the largest entry exactly representable in cents", () => {
+		const largest = numpadToNumber(type("1234567890123"));
+		expect(Number.isSafeInteger(Math.round(largest * 100))).toBe(true);
 	});
 });
 
@@ -138,8 +145,8 @@ describe("applyNumpadKey pre-dotted", () => {
 		expect(applyNumpadKey("12.34", "5", 2, "preDotted")).toBe("123.45");
 	});
 
-	it("caps the integer part at nine digits", () => {
-		expect(preDotted("123456789012")).toBe("123456789.01");
+	it("caps the integer part at thirteen digits", () => {
+		expect(preDotted("1234567890123456")).toBe("1234567890123.45");
 	});
 
 	it("reads back as the amount it displays", () => {

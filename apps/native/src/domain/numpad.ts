@@ -1,4 +1,10 @@
-const MAX_INTEGER_DIGITS = 9; // integer cap 100_000_000 → at most 9 digits.
+/**
+ * Cents stay exact while `amount * 100` is inside float64's safe integer range
+ * (2^53 ≈ 9.0e15), and `amount` is a SQLite `real`. Thirteen digits keeps the
+ * largest entry two orders of magnitude clear of that boundary, and is also
+ * about where the hero's own type stops shrinking — see `amount-hero-size.ts`.
+ */
+const MAX_INTEGER_DIGITS = 13;
 
 export type NumpadKey =
 	| "0"
