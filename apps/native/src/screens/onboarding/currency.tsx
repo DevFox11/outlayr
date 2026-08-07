@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { currencyDisplayFor } from "@outlayr/money";
-import { useStore } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -14,7 +14,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { FirstRun } from "@/components/first-run";
-import { useAppForm } from "@/components/form/create-app-form";
 import {
 	holdSubmitting,
 	pressSubmitWith,
@@ -96,7 +95,7 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
 	const t = useTranslation();
 
 	const [initialValues] = useState(() => ({ picked: null as string | null }));
-	const form = useAppForm({
+	const form = useForm({
 		defaultValues: initialValues,
 		onSubmitMeta: "continue" as CommitKind,
 		onSubmit: async ({ value, meta }) => {
@@ -122,8 +121,8 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
 			}
 		},
 	});
-	const { picked } = useStore(form.store, (s) => s.values);
-	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+	const { picked } = useSelector(form.store, (s) => s.values);
+	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const code = picked ?? stored;
 	const display = currencyDisplayFor(code);

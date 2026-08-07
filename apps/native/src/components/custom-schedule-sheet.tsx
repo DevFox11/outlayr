@@ -17,7 +17,7 @@ import {
 	scrollDisabled,
 	tag,
 } from "@expo/ui/swift-ui/modifiers";
-import { useStore } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { type Ref, useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import {
@@ -26,7 +26,6 @@ import {
 } from "@/domain/recurrence";
 import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
-import { useAppForm } from "./form/create-app-form";
 import { pressSubmit } from "./form/submit-guard";
 import { Text } from "./text";
 
@@ -118,14 +117,14 @@ export function CustomScheduleSheet({
 	const [initialValues] = useState(() =>
 		normalizeSchedule(recurringType, recurringCoefficient),
 	);
-	const form = useAppForm({
+	const form = useForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			onDone(value.type, value.coefficient);
 			sheetRef.current?.dismiss();
 		},
 	});
-	const { type: localType, coefficient: localCoefficient } = useStore(
+	const { type: localType, coefficient: localCoefficient } = useSelector(
 		form.store,
 		(s) => s.values,
 	);

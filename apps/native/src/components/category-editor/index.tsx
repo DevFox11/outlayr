@@ -7,7 +7,7 @@ import {
 	opacity,
 	scrollContentBackground,
 } from "@expo/ui/swift-ui/modifiers";
-import { useStore } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,7 +19,6 @@ import Animated, {
 	useSharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppForm } from "@/components/form/create-app-form";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
@@ -122,7 +121,7 @@ function CategoryEditorReady(
 		name: loaded?.name ?? "",
 		income: parent?.income ?? initialIncome,
 	}));
-	const form = useAppForm({
+	const form = useForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			try {
@@ -195,8 +194,8 @@ function CategoryEditorReady(
 			}
 		},
 	});
-	const { name, income: formIncome } = useStore(form.store, (s) => s.values);
-	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+	const { name, income: formIncome } = useSelector(form.store, (s) => s.values);
+	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const [colorTouched, setColorTouched] = useState(false);
 	const [showToast, setShowToast] = useState(false);

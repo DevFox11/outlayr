@@ -4,7 +4,7 @@ import {
 	labelsHidden,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
-import { useStore } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { useMemo, useState } from "react";
 import { Pressable, TextInput, Vibration, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -19,7 +19,6 @@ import { HeroNumber } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
-import { useAppForm } from "@/components/form/create-app-form";
 import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
 import {
 	holdSubmitting,
@@ -113,7 +112,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 		rollover: initial?.rollover ?? false,
 	}));
 
-	const form = useAppForm({
+	const form = useForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			const amountNumber = numpadToNumber(value.amount);
@@ -171,8 +170,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	});
 
 	const { kind, category, amount, name, period, startDate, rollover } =
-		useStore(form.store, (s) => s.values);
-	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+		useSelector(form.store, (s) => s.values);
+	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const amountField = useNumpadAmountField({
 		code: currency,
