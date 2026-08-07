@@ -16,6 +16,9 @@ import { settingsIcon } from "./settings-icons";
 
 const GLYPH = 20;
 
+/** Hangs a second line under the title rather than the icon: `GLYPH` plus `gap-3`. */
+const TITLE_INSET = "pl-8";
+
 export function SettingsSection({
 	title,
 	footer,
@@ -152,44 +155,48 @@ export function PickerRow<T extends string | number | boolean>({
 }) {
 	const colors = useColors();
 	return (
-		<View className="flex-row items-center gap-3 border-border border-b py-3.5">
-			<HugeiconsIcon
-				color={colors.foreground}
-				icon={settingsIcon(icon)}
-				size={GLYPH}
-				strokeWidth={1.9}
-			/>
-			<View className="flex-1 gap-0.5">
-				<Text className="text-body text-foreground">{title}</Text>
-				{detail ? (
-					<Text className="text-muted text-subtitle leading-snug">
-						{detail}
-					</Text>
-				) : null}
+		<View className="border-border border-b py-3.5">
+			<View className="flex-row items-center gap-3">
+				<HugeiconsIcon
+					color={colors.foreground}
+					icon={settingsIcon(icon)}
+					size={GLYPH}
+					strokeWidth={1.9}
+				/>
+				<Text className="flex-1 text-body text-foreground" numberOfLines={1}>
+					{title}
+				</Text>
+				<Host matchContents>
+					<Picker
+						modifiers={[pickerStyle("menu"), tint(colors.muted)]}
+						onSelectionChange={(next) => {
+							const picked = options.find(
+								(option) => String(option.value) === next,
+							);
+							if (picked) {
+								onChange(picked.value);
+							}
+						}}
+						selection={String(value)}
+					>
+						{options.map((option) => (
+							<NativeText
+								key={String(option.value)}
+								modifiers={[tag(String(option.value))]}
+							>
+								{option.label}
+							</NativeText>
+						))}
+					</Picker>
+				</Host>
 			</View>
-			<Host matchContents>
-				<Picker
-					modifiers={[pickerStyle("menu"), tint(colors.muted)]}
-					onSelectionChange={(next) => {
-						const picked = options.find(
-							(option) => String(option.value) === next,
-						);
-						if (picked) {
-							onChange(picked.value);
-						}
-					}}
-					selection={String(value)}
+			{detail ? (
+				<Text
+					className={cn(TITLE_INSET, "text-muted text-subtitle leading-snug")}
 				>
-					{options.map((option) => (
-						<NativeText
-							key={String(option.value)}
-							modifiers={[tag(String(option.value))]}
-						>
-							{option.label}
-						</NativeText>
-					))}
-				</Picker>
-			</Host>
+					{detail}
+				</Text>
+			) : null}
 		</View>
 	);
 }
