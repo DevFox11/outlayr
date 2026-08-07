@@ -1,6 +1,6 @@
-import MenuView from "@expo/ui/community/menu";
+import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
+import { pickerStyle, tag, tint } from "@expo/ui/swift-ui/modifiers";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { ArrowUpDownIcon } from "@hugeicons-pro/core-solid-rounded";
 import {
 	ArrowRight01Icon,
 	Tick02Icon,
@@ -151,7 +151,6 @@ export function PickerRow<T extends string | number | boolean>({
 	onChange: (value: T) => void;
 }) {
 	const colors = useColors();
-	const selected = options.find((option) => option.value === value);
 	return (
 		<View className="flex-row items-center gap-3 border-border border-b py-3.5">
 			<HugeiconsIcon
@@ -168,39 +167,29 @@ export function PickerRow<T extends string | number | boolean>({
 					</Text>
 				) : null}
 			</View>
-			<MenuView
-				actions={options.map((option) => ({
-					id: String(option.value),
-					title: option.label,
-					state: option.value === value ? "on" : "off",
-				}))}
-				onPressAction={({ nativeEvent }) => {
-					const picked = options.find(
-						(option) => String(option.value) === nativeEvent.event,
-					);
-					if (picked) {
-						onChange(picked.value);
-					}
-				}}
-				shouldOpenOnLongPress={false}
-				title={title}
-			>
-				<View
-					accessibilityRole="button"
-					accessibilityValue={{ text: selected?.label }}
-					className="flex-row items-center gap-1.5 py-1"
-					hitSlop={12}
+			<Host matchContents>
+				<Picker
+					modifiers={[pickerStyle("menu"), tint(colors.muted)]}
+					onSelectionChange={(next) => {
+						const picked = options.find(
+							(option) => String(option.value) === next,
+						);
+						if (picked) {
+							onChange(picked.value);
+						}
+					}}
+					selection={String(value)}
 				>
-					<Text className="text-body text-muted" numberOfLines={1}>
-						{selected?.label}
-					</Text>
-					<HugeiconsIcon
-						color={colors.subtle}
-						icon={ArrowUpDownIcon}
-						size={13}
-					/>
-				</View>
-			</MenuView>
+					{options.map((option) => (
+						<NativeText
+							key={String(option.value)}
+							modifiers={[tag(String(option.value))]}
+						>
+							{option.label}
+						</NativeText>
+					))}
+				</Picker>
+			</Host>
 		</View>
 	);
 }
