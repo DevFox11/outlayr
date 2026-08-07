@@ -288,7 +288,7 @@ function RootStack() {
 				/>
 
 				<Stack.Screen
-					name="transaction/new"
+					name="transactions/create"
 					options={{ presentation: "modal" }}
 				>
 					<Stack.Header transparent />
@@ -296,7 +296,7 @@ function RootStack() {
 					<Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
 				</Stack.Screen>
 				<Stack.Screen
-					name="transaction/[id]"
+					name="transactions/[id]"
 					options={{ presentation: "modal" }}
 				>
 					<Stack.Header transparent />
@@ -304,7 +304,7 @@ function RootStack() {
 					<Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
 				</Stack.Screen>
 				<Stack.Screen
-					name="transaction/identity"
+					name="transactions/identity"
 					options={{
 						presentation: "formSheet",
 						headerShown: false,

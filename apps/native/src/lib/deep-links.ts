@@ -39,8 +39,8 @@ export function budgetLink(id: string): string {
  * still fires them, and answering with `+not-found` would be a regression.
  */
 const LEGACY_HOSTS: Readonly<Record<string, string>> = {
-	newexpense: "/transaction/new",
-	newincome: "/transaction/new?income=1",
+	newexpense: "/transactions/create",
+	newincome: "/transactions/create?income=1",
 	budget: "/budgets",
 	transactions: "/",
 };
@@ -50,8 +50,8 @@ const HOSTS: Readonly<Record<string, string>> = {
 	insights: "/insights",
 	budgets: "/budgets",
 	search: "/search",
-	new: "/transaction/new",
-	transaction: "/transaction",
+	new: "/transactions/create",
+	transaction: "/transactions",
 };
 
 /**
@@ -60,6 +60,16 @@ const HOSTS: Readonly<Record<string, string>> = {
  * link degrades to its section rather than to `+not-found`.
  */
 const ID_HOSTS = new Set(["budgets", "transaction"]);
+
+/**
+ * Where an id host degrades when the link carries no id. Only needed where the
+ * id route's parent is not itself a screen: `/budgets` is a real list, but
+ * `/transactions/[id]` has no index, so a bare `outlayr://transaction` would
+ * reach `+not-found` without this.
+ */
+const ID_HOST_SECTION: Readonly<Record<string, string>> = {
+	transaction: "/",
+};
 
 /**
  * Both `outlayr://budgets/overall?x=1` and the bare `/budgets/overall` form have
@@ -103,7 +113,7 @@ export function resolveDeepLink(raw: string): string | null {
 		return `${base}/${rest.join("/")}${query}`;
 	}
 
-	return `${base}${query}`;
+	return `${ID_HOST_SECTION[key] ?? base}${query}`;
 }
 
 /**

@@ -45,6 +45,7 @@ import Animated, {
 	useDerivedValue,
 	useSharedValue,
 } from "react-native-reanimated";
+
 import { Confetti } from "@/components/confetti";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { useAppForm } from "@/components/form/create-app-form";
@@ -859,7 +860,7 @@ export function TransactionForm({
 	const openPicker = () => {
 		setIdentitySource("user");
 		setPickerOpen(true);
-		router.push("/transaction/identity");
+		router.push("/transactions/identity");
 	};
 
 	const ctaLabel = t(ctaKey(mode, isSubscription));
@@ -906,17 +907,19 @@ export function TransactionForm({
 	}));
 
 	return (
-		/* Its own PortalProvider, not the app's: PanelUI hosts portalled content at
+		/**
+		 * Its own PortalProvider, not the app's: PanelUI hosts portalled content at
 		 * `PanelUIProvider`, which sits ABOVE `LocalDataProvider` in the root layout —
 		 * so a sheet mounted there loses the database and `useLocalData` throws out of
 		 * the keypad. A host inside this screen keeps the sheet under every provider
-		 * the form itself has. */
+		 * the form itself has.
+		 */
 		<PortalProvider>
 			<View
 				onLayout={(e) => {
 					containerHeight.value = e.nativeEvent.layout.height;
 				}}
-				style={{ flex: 1 }}
+				className="flex-1"
 			>
 				{/* The curtain is the Host's own BACKGROUND, not a sibling: a view stacked
 			    before the Host would hide the scroll content from the header's
@@ -924,7 +927,7 @@ export function TransactionForm({
 				<Host
 					style={{
 						flex: 1,
-						backgroundColor: colors.groupedBackground,
+						backgroundColor: colors.background,
 						experimental_backgroundImage: curtainGradient(curtainHues, isDark),
 						// Confine every gradient layer to the top CURTAIN_HEIGHT and don't
 						// tile it, so below that band there is only the grouped grey.
@@ -942,7 +945,7 @@ export function TransactionForm({
 					>
 						<VStack
 							modifiers={[padding({ horizontal: 20, bottom: 40 })]}
-							spacing={18}
+							spacing={16}
 						>
 							<TransactionFormIdentitySection
 								color={identity.color}

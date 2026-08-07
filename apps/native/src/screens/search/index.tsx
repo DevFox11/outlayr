@@ -105,7 +105,7 @@ function SearchContent({ db }: { db: Database }) {
 							transaction={item}
 							currency={currency}
 							rates={rates}
-							onPress={(id) => router.push(`/transaction/${id}`)}
+							onPress={(id) => router.push(`/transactions/${id}`)}
 							onLongPress={(id) => openRowActions(id, false)}
 						/>
 					)}

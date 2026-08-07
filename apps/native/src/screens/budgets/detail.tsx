@@ -87,7 +87,7 @@ export function BudgetDetail({
 				overBudget={budget.overBudget}
 				currency={currency}
 				transactions={transactions}
-				onPressTransaction={(txId) => router.push(`/transaction/${txId}`)}
+				onPressTransaction={(txId) => router.push(`/transactions/${txId}`)}
 				paceRemaining={showMarker ? pace.remaining : null}
 				paceBehind={!closed && behind}
 				leftPerDayAmount={perDay}
