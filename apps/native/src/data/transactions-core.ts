@@ -175,6 +175,8 @@ export interface TransactionInput {
 	recurringEndDate?: Date | null;
 	/** Days of notice for the due-date reminder; null is off, 0 is the day itself. */
 	reminderLeadDays?: number | null;
+	/** The account this entry moves money in or out of; null is unattached. */
+	accountId?: string | null;
 }
 
 /**
@@ -210,6 +212,7 @@ async function toRow(
 		day: startOfDay(input.date),
 		month: firstOfMonth(input.date),
 		categoryId: input.categoryId,
+		accountId: input.accountId ?? null,
 		icon: input.icon ?? null,
 		emoji: input.emoji ?? null,
 		customColor: input.customColor ?? null,
@@ -310,6 +313,37 @@ function keptLead(
 		: (next.reminderLeadDays ?? null);
 }
 
+/**
+ * Same contract as {@link keptLead}: the CSV import and the App Intent queue
+ * build inputs without the field, and neither save is a detach. Only an
+ * explicit `null` takes the entry off its account.
+ */
+function keptAccount(
+	previous: Transaction | null,
+	input: TransactionInput,
+): string | null {
+	return input.accountId === undefined
+		? (previous?.accountId ?? null)
+		: input.accountId;
+}
+
+/**
+ * The account's attached rows, newest first and unbounded — a balance counts
+ * everything the account ever saw, so its history shows the same set.
+ */
+export function accountTransactionsQuery(db: SpendDb, accountId: string) {
+	return db
+		.select(LOG_COLUMNS)
+		.from(transactions)
+		.where(
+			and(
+				isNull(transactions.deletedAt),
+				eq(transactions.accountId, accountId),
+			),
+		)
+		.orderBy(desc(transactions.date));
+}
+
 export const transactionsRepo = {
 	async create(db: Database, input: TransactionInput): Promise<string> {
 		const id = newId();
@@ -332,6 +366,7 @@ export const transactionsRepo = {
 			.set({
 				...rest,
 				...(kept ?? {}),
+				accountId: keptAccount(previous, input),
 				reminderLeadDays: keptLead(row, previous, input),
 				...(removesPhoto(previous, row) ? { imageKey: null } : {}),
 			})

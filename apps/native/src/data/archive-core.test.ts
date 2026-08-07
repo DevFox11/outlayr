@@ -3,7 +3,7 @@ import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { parseArchive, serializeArchive } from "@/domain/archive";
 import { buildArchive, restoreArchive } from "./archive-core";
 
@@ -75,6 +75,37 @@ describe("archiving a ledger", () => {
 		expect(rows.length).toBe(1);
 		expect(rows[0].note).toBe("coffee");
 		expect(rows[0].amount).toBe(12.5);
+	});
+
+	it("round-trips an account and the entry that names it", async () => {
+		await db.insert(categories).values(CATEGORY);
+		await db.insert(accounts).values({
+			id: "a1",
+			name: "Checking",
+			currency: "EUR",
+			initialBalance: 250,
+			initialBalanceUsd: 270,
+			initialBalanceDate: new Date(1_700_000_000_000),
+			dateCreated: new Date(1_700_000_000_000),
+			updatedAt: new Date(1_700_000_000_000),
+		});
+		await db
+			.insert(transactions)
+			.values(transactionRow("t1", { accountId: "a1" }));
+
+		const parsed = parseArchive(
+			serializeArchive(await buildArchive(db, new Date())),
+		);
+		if (!parsed) throw new Error("expected the archive to parse");
+		const fresh = migratedDb();
+		await restoreArchive(fresh, parsed);
+
+		const [account] = await fresh.select().from(accounts);
+		expect(account.name).toBe("Checking");
+		expect(account.initialBalance).toBe(250);
+		expect(account.initialBalanceDate.getTime()).toBe(1_700_000_000_000);
+		const [row] = await fresh.select().from(transactions);
+		expect(row.accountId).toBe("a1");
 	});
 
 	it("restores an instant as the same moment, not as text", async () => {

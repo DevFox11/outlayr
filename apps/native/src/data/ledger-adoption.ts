@@ -1,6 +1,7 @@
 import { count, gt, isNotNull, isNull, or } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import {
+	accounts,
 	budgets,
 	categories,
 	mainBudget,
@@ -47,7 +48,13 @@ export interface AdoptionEngine {
  * question, and being wrong the other way destroys a ledger.
  */
 export async function localLedgerState(db: Database): Promise<LocalLedger> {
-	const moneyTables = [transactions, budgets, mainBudget, templateTransactions];
+	const moneyTables = [
+		transactions,
+		budgets,
+		mainBudget,
+		templateTransactions,
+		accounts,
+	];
 	for (const table of moneyTables) {
 		const rows = await db.select({ total: count() }).from(table);
 		if ((rows[0]?.total ?? 0) > 0) {

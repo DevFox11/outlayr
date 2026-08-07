@@ -7,11 +7,12 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
+import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories";
 import { tagsRepo } from "@/data/tags";
 import { backfillRecurring, type Transaction } from "@/data/transactions";
 import type { Database } from "@/db/client";
-import { categories, tags, transactions } from "@/db/schema";
+import { accounts, categories, tags, transactions } from "@/db/schema";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { TransactionForm } from "./index";
 
@@ -1003,5 +1004,135 @@ describe("TransactionForm pending category and tag materialization", () => {
 		expect(JSON.stringify(toJSON())).toContain('"$type":"strokeBorder"');
 
 		createSpy.mockRestore();
+	});
+});
+
+describe("TransactionForm account attachment", () => {
+	async function seedAccount(db: Database, id = "acc-1", name = "Checking") {
+		await db.insert(accounts).values({
+			id,
+			name,
+			currency: "USD",
+			initialBalance: 0,
+			initialBalanceUsd: 0,
+			initialBalanceDate: new Date(),
+			sortOrder: 0,
+			dateCreated: new Date(),
+			updatedAt: new Date(),
+		});
+		return id;
+	}
+
+	it("shows None while nothing was ever attached", async () => {
+		const db = dbHolder.current as Database;
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "transaction.field.account")).toBe(true);
+		expect(hasSwiftText(tree, "transaction.account.none")).toBe(true);
+	});
+
+	it("seeds a create with the last-used account", async () => {
+		const db = dbHolder.current as Database;
+		const accountId = await seedAccount(db);
+		await setMeta(db, META_KEYS.lastTransactionAccount, accountId);
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={db} mode="create" onDone={() => {}} />
+			</Providers>,
+		);
+
+		expect(hasSwiftText(toJSON() as JsonNode, "Checking")).toBe(true);
+	});
+
+	it("seeds an edit from the row's own attachment, not the sticky default", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		await seedAccount(db, "acc-1", "Checking");
+		await seedAccount(db, "acc-2", "Savings");
+		await setMeta(db, META_KEYS.lastTransactionAccount, "acc-1");
+		const initial: Partial<Transaction> = {
+			id: "t1",
+			amount: 12.5,
+			income: false,
+			categoryId,
+			accountId: "acc-2",
+			note: "Groceries run",
+			details: null,
+			date: new Date(),
+			icon: null,
+			emoji: null,
+			recurringType: 0,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			reminderLeadDays: null,
+			currency: null,
+			customColor: null,
+			imageColor: null,
+			imageUri: null,
+			onceRecurring: false,
+		};
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					db={db}
+					mode="edit"
+					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
+					initial={initial as any}
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const tree = toJSON() as JsonNode;
+		expect(hasSwiftText(tree, "Savings")).toBe(true);
+		expect(hasSwiftText(tree, "Checking")).toBe(false);
+	});
+
+	it("carries the attachment onto the saved row and remembers it", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const accountId = await seedAccount(db);
+		await setMeta(db, META_KEYS.lastTransactionAccount, accountId);
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			income: false,
+			categoryId,
+			note: "",
+			details: null,
+			currency: null,
+			icon: null,
+			emoji: null,
+			customColor: null,
+		};
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={copyOf}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>,
+		);
+
+		const saveButton = findButtonWithText(
+			toJSON() as JsonNode,
+			"transaction.cta.add",
+		);
+		await act(async () => {
+			saveButton?.props.onButtonPress();
+		});
+
+		const savedTx = await db.select().from(transactions);
+		expect(savedTx).toHaveLength(1);
+		expect(savedTx[0].accountId).toBe(accountId);
+		expect(await getMeta(db, META_KEYS.lastTransactionAccount)).toBe(accountId);
 	});
 });

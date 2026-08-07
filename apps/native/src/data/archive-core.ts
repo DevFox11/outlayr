@@ -1,6 +1,7 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Database } from "@/db/client";
 import {
+	accounts,
 	appMeta,
 	budgets,
 	categories,
@@ -21,6 +22,7 @@ import {
 
 const TABLES: Record<ArchiveTable, SQLiteTable> = {
 	categories,
+	accounts,
 	transactions,
 	budgets,
 	mainBudget,

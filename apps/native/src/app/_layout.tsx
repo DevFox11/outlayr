@@ -51,7 +51,7 @@ import {
 	LedgerAdoptionProvider,
 	useLedgerAdoption,
 } from "@/lib/ledger-adoption";
-import { identityPickerDetent } from "@/lib/sheet-detents";
+import { ACCOUNT_DETENT, identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
@@ -254,6 +254,39 @@ function RootStack() {
 						<Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
 					</Stack.Screen>
 				))}
+				<Stack.Screen name="settings/accounts/index">
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("accounts.title")}</Stack.Screen.Title>
+				</Stack.Screen>
+				<Stack.Screen name="settings/accounts/reorder" />
+				<Stack.Screen name="settings/accounts/[accountId]/index" />
+				<Stack.Screen
+					name="settings/accounts/create"
+					options={{
+						presentation: "formSheet",
+						title: t("accounts.nav.new"),
+						sheetAllowedDetents: [ACCOUNT_DETENT, 1],
+						sheetGrabberVisible: true,
+					}}
+				>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("accounts.nav.new")}</Stack.Screen.Title>
+				</Stack.Screen>
+				<Stack.Screen
+					name="settings/accounts/[accountId]/edit"
+					options={{
+						presentation: "formSheet",
+						title: t("accounts.nav.edit"),
+						sheetAllowedDetents: [ACCOUNT_DETENT, 1],
+						sheetGrabberVisible: true,
+					}}
+				>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("accounts.nav.edit")}</Stack.Screen.Title>
+				</Stack.Screen>
 				<Stack.Screen name="settings/categories/index">
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />

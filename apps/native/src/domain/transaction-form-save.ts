@@ -20,6 +20,7 @@ export interface TransactionSaveDraft {
 	hasEndDate: boolean;
 	endDate: Date;
 	leadDays: number | null;
+	accountId: string | null;
 }
 
 /**
@@ -54,5 +55,6 @@ export function buildTransactionInput(
 		recurringEndDate:
 			draft.isSubscription && draft.hasEndDate ? draft.endDate : null,
 		reminderLeadDays: draft.isSubscription ? draft.leadDays : null,
+		accountId: draft.accountId,
 	};
 }

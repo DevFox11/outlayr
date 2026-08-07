@@ -9,6 +9,7 @@ import type { Catalog } from "./translate";
  * `.intlayer/`. A value import of these files resolves under tsx and tsc and
  * then fails to bundle, which is how it reached a device build.
  */
+type Accounts = typeof import("@/content/accounts.content").default;
 type Alerts = typeof import("@/content/alerts.content").default;
 type Auth = typeof import("@/content/auth.content").default;
 type Budgets = typeof import("@/content/budgets.content").default;
@@ -30,6 +31,7 @@ type Transaction = typeof import("@/content/transaction.content").default;
  * here.
  */
 export const DICTIONARY_KEYS = [
+	"accounts",
 	"alerts",
 	"auth",
 	"budgets",
@@ -47,6 +49,7 @@ export const DICTIONARY_KEYS = [
 ] as const;
 
 type Content =
+	| Accounts["content"]
 	| Alerts["content"]
 	| Auth["content"]
 	| Budgets["content"]

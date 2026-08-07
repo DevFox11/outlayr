@@ -23,6 +23,7 @@ const BASE: TransactionSaveDraft = {
 	hasEndDate: true,
 	endDate: new Date(2026, 5, 10),
 	leadDays: 2,
+	accountId: "acc-1",
 };
 
 describe("buildTransactionInput", () => {
@@ -78,6 +79,13 @@ describe("buildTransactionInput", () => {
 			buildTransactionInput({ ...BASE, isSubscription: true, coefficient: -5 })
 				.recurringCoefficient,
 		).toBe(1);
+	});
+
+	it("carries the account attachment through, an explicit detach included", () => {
+		expect(buildTransactionInput(BASE).accountId).toBe("acc-1");
+		expect(buildTransactionInput({ ...BASE, accountId: null }).accountId).toBe(
+			null,
+		);
 	});
 
 	it("passes a null lead through for a subscription with reminders off", () => {

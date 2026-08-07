@@ -3,6 +3,7 @@ import {
 	Analytics01Icon,
 	ArchiveRestoreIcon,
 	BadgeCentIcon,
+	BankIcon,
 	BiometricAccessIcon,
 	Bug01Icon,
 	Calculator01Icon,
@@ -47,6 +48,7 @@ import {
 const REGISTRY = {
 	Analytics01: Analytics01Icon,
 	ArchiveRestore: ArchiveRestoreIcon,
+	Bank: BankIcon,
 	BiometricAccess: BiometricAccessIcon,
 	Bug01: Bug01Icon,
 	Calendar01: Calendar01Icon,

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import {
 	enqueueAllForSync,
@@ -159,11 +159,19 @@ describe("enqueueAllForSync", () => {
 			deletedAt: new Date(2),
 		});
 		await db.insert(categories).values({ id: "c1", updatedAt: new Date(1) });
+		await db.insert(accounts).values({
+			id: "a1",
+			name: "Checking",
+			currency: "USD",
+			initialBalanceDate: new Date(1),
+			dateCreated: new Date(1),
+			updatedAt: new Date(1),
+		});
 
 		await setSyncEnabled(db, true);
 		await enqueueAllForSync(db);
 
-		expect(await outboxPendingCount(db)).toBe(3);
+		expect(await outboxPendingCount(db)).toBe(4);
 	});
 
 	it("queues only account-scoped meta keys", async () => {

@@ -19,6 +19,7 @@ export const ARCHIVE_FORMAT = "outlayr.archive";
  */
 export const ARCHIVE_TABLES = [
 	"categories",
+	"accounts",
 	"transactions",
 	"budgets",
 	"mainBudget",
@@ -38,6 +39,7 @@ export type ArchiveTable = (typeof ARCHIVE_TABLES)[number];
  */
 export const ARCHIVE_DATE_COLUMNS: Record<ArchiveTable, readonly string[]> = {
 	categories: ["dateCreated", "updatedAt", "deletedAt"],
+	accounts: ["initialBalanceDate", "dateCreated", "updatedAt", "deletedAt"],
 	transactions: [
 		"date",
 		"day",

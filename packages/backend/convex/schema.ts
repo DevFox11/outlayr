@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { marketRateType, rateSource } from "./lib/currencies";
 import {
+	accountFields,
 	appMetaFields,
 	budgetFields,
 	categoryFields,
@@ -145,6 +146,14 @@ export default defineSchema({
 
 	/** A photo attached to an entry. The bytes travel out of band, as ever. */
 	transactionPhotos: defineTable({ ...replicated, ...transactionPhotoFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * `transactions.accountId` holds an account's `localId`, staying in local-id
+	 * space like every other foreign key the envelope carries.
+	 */
+	accounts: defineTable({ ...replicated, ...accountFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 

@@ -10,6 +10,7 @@ import {
 	useSettingNumber,
 } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useAccountsOverviewIn } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoryMeta } from "@/data/categories";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
@@ -52,6 +53,7 @@ import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
+import { AccountsOverviewCard } from "./components/accounts-overview-card";
 import { LogEmptyState } from "./components/log-empty-state";
 import { LogFilterChip } from "./components/log-filter-chip";
 import type { SparklineData } from "./components/log-insights";
@@ -120,10 +122,9 @@ function LogContent({ db }: { db: Database }) {
 	const [displayOverride, setDisplayOverride] = useState<string | null>(null);
 	const globalCurrency = useGlobalCurrency(db);
 	const favouriteCurrencies = useFavouriteCurrencies(db);
-	const { displayCurrency: currency, rates } = useValuationIn(
-		db,
-		displayOverride ?? globalCurrency,
-	);
+	const valuation = useValuationIn(db, displayOverride ?? globalCurrency);
+	const { displayCurrency: currency, rates } = valuation;
+	const accountsOverview = useAccountsOverviewIn(db, valuation);
 	const valued = useValuedCurrencies(db);
 	const { showCents, showSign, swapTimeLabel, use24Hour } =
 		useDisplaySettings().state;
@@ -346,6 +347,14 @@ function LogContent({ db }: { db: Database }) {
 								displayCurrency={currency}
 							/>
 						)}
+						{filter === "all" ? (
+							<AccountsOverviewCard
+								currency={currency}
+								onPress={() => router.push("/settings/accounts")}
+								overview={accountsOverview}
+								showCents={showCents}
+							/>
+						) : null}
 						{showUpcomingSection ? (
 							<LogUpcoming
 								transactions={upcomingRows}

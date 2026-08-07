@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 
@@ -89,7 +90,27 @@ export const META_KEYS = {
 	 * permission prompt both read it. Device-local.
 	 */
 	reminderChosen: "reminderChosen",
+	/**
+	 * The account the last saved transaction attached to; seeds the next
+	 * create's Account row. Device-local, like every key left out of
+	 * `SYNCED_META_KEYS`.
+	 */
+	lastTransactionAccount: "lastTransactionAccount",
 } as const;
+
+/**
+ * Synchronous like `getTransactionById`, so a screen can seed its state during
+ * its first render instead of flashing a placeholder for one frame.
+ */
+export function getMetaSync(db: Database, key: string): string | null {
+	const rows = db
+		.select()
+		.from(appMeta)
+		.where(eq(appMeta.key, key))
+		.limit(1)
+		.all();
+	return rows[0]?.value ?? null;
+}
 
 export async function getMeta(
 	db: SpendDb,

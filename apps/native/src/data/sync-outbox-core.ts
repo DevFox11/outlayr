@@ -1,6 +1,7 @@
 import { count, inArray } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import {
+	accounts,
 	appMeta,
 	budgets,
 	categories,
@@ -28,6 +29,7 @@ export const SYNCED_TABLES = [
 	"transactionTags",
 	"transactionPhotos",
 	"transactionSplits",
+	"accounts",
 	"appMeta",
 ] as const;
 
@@ -193,6 +195,7 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 		"transactionSplits",
 		await db.select({ localId: transactionSplits.id }).from(transactionSplits),
 	);
+	collect("accounts", await db.select({ localId: accounts.id }).from(accounts));
 	collect(
 		"appMeta",
 		await db

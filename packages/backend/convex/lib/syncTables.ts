@@ -52,9 +52,26 @@ export const transactionFields = {
 	recurringCoefficient: v.number(),
 	recurringEndDate: v.union(v.number(), v.null()),
 	categoryId: v.union(v.string(), v.null()),
+	accountId: v.union(v.string(), v.null()),
 	amountUsd: v.union(v.number(), v.null()),
 	exchangeRate: v.union(v.number(), v.null()),
 	exchangeRateType: v.union(v.string(), v.null()),
+};
+
+/** `imageUri` is absent: it is a path into one device's container. */
+export const accountFields = {
+	name: v.string(),
+	currency: v.string(),
+	initialBalance: v.number(),
+	initialBalanceUsd: v.union(v.number(), v.null()),
+	initialBalanceDate: v.number(),
+	icon: v.union(v.string(), v.null()),
+	emoji: v.union(v.string(), v.null()),
+	customColor: v.union(v.string(), v.null()),
+	imageColor: v.union(v.string(), v.null()),
+	imageKey: v.union(v.string(), v.null()),
+	sortOrder: v.number(),
+	dateCreated: v.number(),
 };
 
 /**
@@ -72,6 +89,10 @@ export const transactionFields = {
 export const transactionColumns = {
 	...transactionFields,
 	imageUri: v.optional(v.union(v.string(), v.null())),
+	// Optional in storage only: documents written before accounts existed have no
+	// such field, and a required column would fail the schema push over them. The
+	// wire keeps it required; `toWire` serves the absent field as null.
+	accountId: v.optional(v.union(v.string(), v.null())),
 };
 
 export const budgetFields = {
@@ -153,6 +174,7 @@ export const TOMBSTONED_TABLES = [
 	"transactionTags",
 	"transactionPhotos",
 	"transactionSplits",
+	"accounts",
 ] as const;
 
 /**
@@ -173,6 +195,7 @@ export const FIELDS_BY_TABLE = {
 	transactionTags: transactionTagFields,
 	transactionPhotos: transactionPhotoFields,
 	transactionSplits: transactionSplitFields,
+	accounts: accountFields,
 	appMeta: appMetaFields,
 } as const;
 
