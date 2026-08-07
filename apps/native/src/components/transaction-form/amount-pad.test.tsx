@@ -10,22 +10,13 @@ jest.mock("@/theme/use-colors", () => ({
 		muted: "#A4A4A9",
 	}),
 }));
-jest.mock("@expo/ui/swift-ui", () => {
+jest.mock("panelui-native", () => {
 	const react = require("react") as typeof import("react");
-	const passthrough =
-		(name: string) =>
-		({ children, ...rest }: Record<string, unknown>) =>
-			react.createElement(name, rest, children as never);
-	return {
-		BottomSheet: passthrough("BottomSheet"),
-		Group: passthrough("Group"),
-		// `pointerEvents` is dropped: the real Host is an empty absolute anchor and
-		// the sheet is presented natively above it, so the prop never reaches this
-		// content on device — but RNTL walks the RN tree and would block the press.
-		Host: ({ children }: Record<string, unknown>) =>
-			react.createElement("Host", null, children as never),
-		RNHostView: passthrough("RNHostView"),
-	};
+	const Content = ({ children, ...rest }: Record<string, unknown>) =>
+		react.createElement("SheetContent", rest, children as never);
+	const Root = ({ children, ...rest }: Record<string, unknown>) =>
+		react.createElement("Sheet", rest, children as never);
+	return { BottomSheet: Object.assign(Root, { Content }) };
 });
 jest.mock("../amount-numpad", () => {
 	const react = require("react") as typeof import("react");
@@ -140,20 +131,18 @@ describe("TransactionFormAmountPad", () => {
 		const { toJSON } = await render(
 			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
 		);
-		const sheet = findByType(toJSON() as JsonNode, "BottomSheet");
-		expect(sheet?.props.isPresented).toBe(true);
-		const change = sheet?.props.onIsPresentedChange as (next: boolean) => void;
+		const sheet = findByType(toJSON() as JsonNode, "Sheet");
+		expect(sheet?.props.open).toBe(true);
+		const change = sheet?.props.onOpenChange as (next: boolean) => void;
 		change(false);
 		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 
-	// The system backdrop is what dims and blocks the form behind the keypad;
-	// without this the "tap another row to close" wiring is unreachable.
-	it("drops the sheet's dimming backdrop", async () => {
+	// PanelUI's own close is `bg-muted`, which is a TEXT colour in this theme and
+	// paints a grey slab — the glass button stands in for it.
+	it("suppresses the sheet's built-in close button", async () => {
 		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
-		const group = findByType(toJSON() as JsonNode, "Group");
-		expect(JSON.stringify(group?.props.modifiers)).toContain(
-			'"$type":"presentationBackgroundInteraction","interactionType":"enabled"',
-		);
+		const content = findByType(toJSON() as JsonNode, "SheetContent");
+		expect(content?.props.showClose).toBe(false);
 	});
 });

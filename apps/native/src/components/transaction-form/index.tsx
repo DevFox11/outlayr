@@ -36,6 +36,7 @@ import {
 import { useStore } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import { PortalHost, PortalProvider } from "panelui-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
 import Animated, {
@@ -905,187 +906,256 @@ export function TransactionForm({
 	}));
 
 	return (
-		<View
-			onLayout={(e) => {
-				containerHeight.value = e.nativeEvent.layout.height;
-			}}
-			style={{ flex: 1 }}
-		>
-			{/* The curtain is the Host's own BACKGROUND, not a sibling: a view stacked
+		/* Its own PortalProvider, not the app's: PanelUI hosts portalled content at
+		 * `PanelUIProvider`, which sits ABOVE `LocalDataProvider` in the root layout —
+		 * so a sheet mounted there loses the database and `useLocalData` throws out of
+		 * the keypad. A host inside this screen keeps the sheet under every provider
+		 * the form itself has. */
+		<PortalProvider>
+			<View
+				onLayout={(e) => {
+					containerHeight.value = e.nativeEvent.layout.height;
+				}}
+				style={{ flex: 1 }}
+			>
+				{/* The curtain is the Host's own BACKGROUND, not a sibling: a view stacked
 			    before the Host would hide the scroll content from the header's
 			    scroll-edge lookup. */}
-			<Host
-				style={{
-					flex: 1,
-					backgroundColor: colors.groupedBackground,
-					experimental_backgroundImage: curtainGradient(curtainHues, isDark),
-					// Confine every gradient layer to the top CURTAIN_HEIGHT and don't
-					// tile it, so below that band there is only the grouped grey.
-					experimental_backgroundSize: CURTAIN_LAYER_SIZE,
-					experimental_backgroundRepeat: "no-repeat",
-				}}
-			>
-				{/* The blur goes on the SCROLL VIEW: blurring the `Host` would take the
-				    curtain, which is its background, with it. */}
-				<ScrollView
-					modifiers={[
-						blur(pickerOpen ? FORM_BLUR_RADIUS : 0),
-						animation(pickerOpen ? FLY_UP : FLY_BACK, pickerOpen),
-					]}
+				<Host
+					style={{
+						flex: 1,
+						backgroundColor: colors.groupedBackground,
+						experimental_backgroundImage: curtainGradient(curtainHues, isDark),
+						// Confine every gradient layer to the top CURTAIN_HEIGHT and don't
+						// tile it, so below that band there is only the grouped grey.
+						experimental_backgroundSize: CURTAIN_LAYER_SIZE,
+						experimental_backgroundRepeat: "no-repeat",
+					}}
 				>
-					<VStack
-						modifiers={[padding({ horizontal: 20, bottom: 40 })]}
-						spacing={18}
+					{/* The blur goes on the SCROLL VIEW: blurring the `Host` would take the
+				    curtain, which is its background, with it. */}
+					<ScrollView
+						modifiers={[
+							blur(pickerOpen ? FORM_BLUR_RADIUS : 0),
+							animation(pickerOpen ? FLY_UP : FLY_BACK, pickerOpen),
+						]}
 					>
-						<TransactionFormIdentitySection
-							color={identity.color}
-							contentWidth={contentWidth}
-							emoji={identity.emoji}
-							floatProgress={floatProgress}
-							heroWinY={heroWinY}
-							icon={identity.icon}
-							income={income}
-							onPress={() => {
-								setPadOpen(false);
-								openPicker();
-							}}
-							onReset={() => {
-								setIdentitySource("user");
-								setIdentity({
-									emoji: null,
-									icon: null,
-									photoUri: null,
-									photoColor: null,
-									color: null,
-								});
-							}}
-							photoUri={identity.photoUri}
-						/>
-
-						<TransactionFormAmountHero
-							amountColor={amountColor}
-							chipColor={withAlpha(colors.foreground, 0.08)}
-							contentWidth={contentWidth}
-							currency={currency}
-							amount={amountNumber}
-							minorUnits={minorUnits}
-							expenseLabel={t("common.expense")}
-							income={income}
-							incomeLabel={t("common.income")}
-							mutedColor={colors.muted}
-							onCurrencyPress={() => currencySheetRef.current?.present()}
-							onPress={() => setPadOpen(true)}
-							onTypeChange={handleTypeChange}
-							symbol={amountSymbol}
-						/>
-
-						<VStack spacing={0}>
-							<HStack modifiers={ROW} spacing={12}>
-								<TransactionFormRowIcon
-									color={colors.muted}
-									icon={RepeatIcon}
-								/>
-								<SwiftText modifiers={[BODY, rowLabel]}>
-									{t("transaction.kind.subscription")}
-								</SwiftText>
-								<Spacer />
-								<Toggle
-									isOn={isSubscription}
-									modifiers={[tint(colors.income), labelsHidden()]}
-									onIsOnChange={(next) =>
-										handleKindChange(next ? "subscription" : "once")
-									}
-								/>
-							</HStack>
-
-							<Divider modifiers={hairline} />
-
-							<HStack modifiers={ROW} spacing={12}>
-								<TransactionFormRowIcon color={colors.muted} icon={TextIcon} />
-								<SwiftText modifiers={[BODY, rowLabel]}>
-									{t("transaction.field.name")}
-								</SwiftText>
-								<TextField
-									maxLength={50}
-									modifiers={[BODY, multilineTextAlignment("trailing")]}
-									onFocusChange={(focused) => focused && setPadOpen(false)}
-									onTextChange={onNameChange}
-									placeholder={t("transaction.field.namePlaceholder")}
-									text={name}
-								/>
-							</HStack>
-
-							<Divider modifiers={hairline} />
-
-							<Button
-								modifiers={[
-									buttonStyle("plain"),
-									...(categoryError
-										? [
-												strokeBorder({
-													color: colors.danger,
-													style: { lineWidth: 1.5 },
-													shape: "roundedRectangle",
-													cornerRadius: 12,
-												}),
-											]
-										: []),
-									offset({ x: categoryShake ? -5 : 0 }),
-									animation(SHAKE, categoryShake),
-								]}
+						<VStack
+							modifiers={[padding({ horizontal: 20, bottom: 40 })]}
+							spacing={18}
+						>
+							<TransactionFormIdentitySection
+								color={identity.color}
+								contentWidth={contentWidth}
+								emoji={identity.emoji}
+								floatProgress={floatProgress}
+								heroWinY={heroWinY}
+								icon={identity.icon}
+								income={income}
 								onPress={() => {
 									setPadOpen(false);
-									categoryField.present();
+									openPicker();
 								}}
-							>
-								<VStack spacing={0}>
+								onReset={() => {
+									setIdentitySource("user");
+									setIdentity({
+										emoji: null,
+										icon: null,
+										photoUri: null,
+										photoColor: null,
+										color: null,
+									});
+								}}
+								photoUri={identity.photoUri}
+							/>
+
+							<TransactionFormAmountHero
+								amountColor={amountColor}
+								chipColor={withAlpha(colors.foreground, 0.08)}
+								contentWidth={contentWidth}
+								currency={currency}
+								amount={amountNumber}
+								minorUnits={minorUnits}
+								expenseLabel={t("common.expense")}
+								income={income}
+								incomeLabel={t("common.income")}
+								mutedColor={colors.muted}
+								onCurrencyPress={() => currencySheetRef.current?.present()}
+								onPress={() => setPadOpen(true)}
+								onTypeChange={handleTypeChange}
+								symbol={amountSymbol}
+							/>
+
+							<VStack spacing={0}>
+								<HStack modifiers={ROW} spacing={12}>
+									<TransactionFormRowIcon
+										color={colors.muted}
+										icon={RepeatIcon}
+									/>
+									<SwiftText modifiers={[BODY, rowLabel]}>
+										{t("transaction.kind.subscription")}
+									</SwiftText>
+									<Spacer />
+									<Toggle
+										isOn={isSubscription}
+										modifiers={[tint(colors.income), labelsHidden()]}
+										onIsOnChange={(next) =>
+											handleKindChange(next ? "subscription" : "once")
+										}
+									/>
+								</HStack>
+
+								<Divider modifiers={hairline} />
+
+								<HStack modifiers={ROW} spacing={12}>
+									<TransactionFormRowIcon
+										color={colors.muted}
+										icon={TextIcon}
+									/>
+									<SwiftText modifiers={[BODY, rowLabel]}>
+										{t("transaction.field.name")}
+									</SwiftText>
+									<TextField
+										maxLength={50}
+										modifiers={[BODY, multilineTextAlignment("trailing")]}
+										onFocusChange={(focused) => focused && setPadOpen(false)}
+										onTextChange={onNameChange}
+										placeholder={t("transaction.field.namePlaceholder")}
+										text={name}
+									/>
+								</HStack>
+
+								<Divider modifiers={hairline} />
+
+								<Button
+									modifiers={[
+										buttonStyle("plain"),
+										...(categoryError
+											? [
+													strokeBorder({
+														color: colors.danger,
+														style: { lineWidth: 1.5 },
+														shape: "roundedRectangle",
+														cornerRadius: 12,
+													}),
+												]
+											: []),
+										offset({ x: categoryShake ? -5 : 0 }),
+										animation(SHAKE, categoryShake),
+									]}
+									onPress={() => {
+										setPadOpen(false);
+										categoryField.present();
+									}}
+								>
+									<VStack spacing={0}>
+										<HStack modifiers={TAP_ROW} spacing={12}>
+											<TransactionFormRowIcon
+												color={categoryError ? colors.danger : colors.muted}
+												icon={Tag01Icon}
+											/>
+											<SwiftText
+												modifiers={[
+													BODY,
+													categoryError
+														? foregroundStyle(colors.danger)
+														: rowLabel,
+												]}
+											>
+												{t("transaction.field.category")}
+											</SwiftText>
+											<Spacer />
+											<HStack spacing={5}>
+												{category || pendingCategory ? (
+													<RNHostView matchContents>
+														<View style={{ width: 18, height: 18 }}>
+															<CategoryIcon
+																color={categoryGlyphTint}
+																name={
+																	category
+																		? category.icon
+																		: pendingCategory?.icon
+																}
+																size={18}
+															/>
+														</View>
+													</RNHostView>
+												) : null}
+												<SwiftText
+													modifiers={[
+														BODY,
+														foregroundStyle(
+															categoryEnriching
+																? withAlpha(colors.muted, 0.45)
+																: category || pendingCategory
+																	? colors.foreground
+																	: colors.muted,
+														),
+														animation(ENRICHING, categoryEnriching),
+													]}
+												>
+													{category
+														? category.name
+														: (pendingCategory?.name ??
+															t("transaction.category.choose"))}
+												</SwiftText>
+												<Image
+													color={colors.muted}
+													size={12}
+													systemName="chevron.up.chevron.down"
+												/>
+											</HStack>
+										</HStack>
+										{pendingCategory ? (
+											<HStack modifiers={[padding({ bottom: 10 })]} spacing={0}>
+												<Spacer />
+												<SwiftText
+													modifiers={[CAPTION, foregroundStyle(colors.muted)]}
+												>
+													{pendingCategory?.parentName
+														? t("transaction.category.willBeCreatedUnder", {
+																parent: pendingCategory.parentName,
+															})
+														: t("transaction.category.willBeCreated")}
+												</SwiftText>
+											</HStack>
+										) : null}
+									</VStack>
+								</Button>
+
+								<Divider modifiers={hairline} />
+
+								<Button
+									modifiers={[buttonStyle("plain")]}
+									onPress={() => {
+										setPadOpen(false);
+										tagSheetRef.current?.present();
+									}}
+								>
 									<HStack modifiers={TAP_ROW} spacing={12}>
 										<TransactionFormRowIcon
-											color={categoryError ? colors.danger : colors.muted}
-											icon={Tag01Icon}
+											color={colors.muted}
+											icon={TagsIcon}
 										/>
-										<SwiftText
-											modifiers={[
-												BODY,
-												categoryError
-													? foregroundStyle(colors.danger)
-													: rowLabel,
-											]}
-										>
-											{t("transaction.field.category")}
+										<SwiftText modifiers={[BODY, rowLabel]}>
+											{t("transaction.field.tags")}
 										</SwiftText>
 										<Spacer />
 										<HStack spacing={5}>
-											{category || pendingCategory ? (
-												<RNHostView matchContents>
-													<View style={{ width: 18, height: 18 }}>
-														<CategoryIcon
-															color={categoryGlyphTint}
-															name={
-																category ? category.icon : pendingCategory?.icon
-															}
-															size={18}
-														/>
-													</View>
-												</RNHostView>
-											) : null}
 											<SwiftText
 												modifiers={[
 													BODY,
 													foregroundStyle(
-														categoryEnriching
+														tagsEnriching
 															? withAlpha(colors.muted, 0.45)
-															: category || pendingCategory
+															: selectedTagNames
 																? colors.foreground
 																: colors.muted,
 													),
-													animation(ENRICHING, categoryEnriching),
+													animation(ENRICHING, tagsEnriching),
 												]}
 											>
-												{category
-													? category.name
-													: (pendingCategory?.name ??
-														t("transaction.category.choose"))}
+												{selectedTagNames ?? t("transaction.tags.none")}
 											</SwiftText>
 											<Image
 												color={colors.muted}
@@ -1094,252 +1164,205 @@ export function TransactionForm({
 											/>
 										</HStack>
 									</HStack>
-									{pendingCategory ? (
-										<HStack modifiers={[padding({ bottom: 10 })]} spacing={0}>
-											<Spacer />
-											<SwiftText
-												modifiers={[CAPTION, foregroundStyle(colors.muted)]}
-											>
-												{pendingCategory?.parentName
-													? t("transaction.category.willBeCreatedUnder", {
-															parent: pendingCategory.parentName,
-														})
-													: t("transaction.category.willBeCreated")}
-											</SwiftText>
-										</HStack>
-									) : null}
-								</VStack>
-							</Button>
+								</Button>
 
-							<Divider modifiers={hairline} />
+								<Divider modifiers={hairline} />
 
-							<Button
-								modifiers={[buttonStyle("plain")]}
-								onPress={() => {
-									setPadOpen(false);
-									tagSheetRef.current?.present();
-								}}
-							>
-								<HStack modifiers={TAP_ROW} spacing={12}>
-									<TransactionFormRowIcon
-										color={colors.muted}
-										icon={TagsIcon}
-									/>
-									<SwiftText modifiers={[BODY, rowLabel]}>
-										{t("transaction.field.tags")}
-									</SwiftText>
-									<Spacer />
-									<HStack spacing={5}>
-										<SwiftText
-											modifiers={[
-												BODY,
-												foregroundStyle(
-													tagsEnriching
-														? withAlpha(colors.muted, 0.45)
-														: selectedTagNames
-															? colors.foreground
-															: colors.muted,
-												),
-												animation(ENRICHING, tagsEnriching),
-											]}
-										>
-											{selectedTagNames ?? t("transaction.tags.none")}
-										</SwiftText>
-										<Image
-											color={colors.muted}
-											size={12}
-											systemName="chevron.up.chevron.down"
-										/>
-									</HStack>
-								</HStack>
-							</Button>
+								<TransactionFormScheduleSection
+									cadenceOptions={cadenceOptions}
+									card={[]}
+									customScheduleLabel={t("transaction.schedule.customOption")}
+									date={date}
+									dateLabel={t("transaction.field.date")}
+									endDate={endDate}
+									endDateLabel={t("transaction.field.endDate")}
+									endsLabel={t("transaction.field.ends")}
+									firstPaymentLabel={t("transaction.field.firstPayment")}
+									foregroundColor={colors.foreground}
+									hairline={hairline}
+									hasEndDate={hasEndDate}
+									incomeColor={colors.income}
+									isSubscription={isSubscription}
+									leadDays={leadDays}
+									leadOffLabel={t("transaction.remind.off")}
+									leadOffTag={LEAD_OFF_TAG}
+									leadOptions={leadOptions}
+									mutedColor={colors.muted}
+									onDateChange={(next) => form.setFieldValue("date", next)}
+									onEndDateChange={(next) =>
+										form.setFieldValue("endDate", next)
+									}
+									onHasEndDateChange={(next) =>
+										form.setFieldValue("hasEndDate", next)
+									}
+									onLeadChange={handleLeadChange}
+									onOpenCustomSchedule={() =>
+										scheduleSheetRef.current?.present()
+									}
+									onScheduleChange={handleScheduleChange}
+									recurringType={recurringType}
+									remindLabel={t("transaction.field.remind")}
+									remindMenuLabel={leadLabel(t, leadDays)}
+									scheduleLabel={t("transaction.field.schedule")}
+									scheduleMenuLabel={t("transaction.schedule.every", {
+										interval: intervalPhrase(t, recurringType, coefficient),
+									})}
+									timeLabel={t("transaction.field.time")}
+								/>
 
-							<Divider modifiers={hairline} />
+								<Divider modifiers={hairline} />
 
-							<TransactionFormScheduleSection
-								cadenceOptions={cadenceOptions}
-								card={[]}
-								customScheduleLabel={t("transaction.schedule.customOption")}
-								date={date}
-								dateLabel={t("transaction.field.date")}
-								endDate={endDate}
-								endDateLabel={t("transaction.field.endDate")}
-								endsLabel={t("transaction.field.ends")}
-								firstPaymentLabel={t("transaction.field.firstPayment")}
-								foregroundColor={colors.foreground}
-								hairline={hairline}
-								hasEndDate={hasEndDate}
-								incomeColor={colors.income}
-								isSubscription={isSubscription}
-								leadDays={leadDays}
-								leadOffLabel={t("transaction.remind.off")}
-								leadOffTag={LEAD_OFF_TAG}
-								leadOptions={leadOptions}
-								mutedColor={colors.muted}
-								onDateChange={(next) => form.setFieldValue("date", next)}
-								onEndDateChange={(next) => form.setFieldValue("endDate", next)}
-								onHasEndDateChange={(next) =>
-									form.setFieldValue("hasEndDate", next)
-								}
-								onLeadChange={handleLeadChange}
-								onOpenCustomSchedule={() => scheduleSheetRef.current?.present()}
-								onScheduleChange={handleScheduleChange}
-								recurringType={recurringType}
-								remindLabel={t("transaction.field.remind")}
-								remindMenuLabel={leadLabel(t, leadDays)}
-								scheduleLabel={t("transaction.field.schedule")}
-								scheduleMenuLabel={t("transaction.schedule.every", {
-									interval: intervalPhrase(t, recurringType, coefficient),
-								})}
-								timeLabel={t("transaction.field.time")}
-							/>
-
-							<Divider modifiers={hairline} />
-
-							<TransactionFormDetailsSection
-								card={[]}
-								foregroundColor={colors.foreground}
-								mutedColor={colors.muted}
-								notes={notes}
-								notesLabel={t("transaction.field.notes")}
-								notesPlaceholder={t("transaction.field.notesPlaceholder")}
-							/>
+								<TransactionFormDetailsSection
+									card={[]}
+									foregroundColor={colors.foreground}
+									mutedColor={colors.muted}
+									notes={notes}
+									notesLabel={t("transaction.field.notes")}
+									notesPlaceholder={t("transaction.field.notesPlaceholder")}
+								/>
+							</VStack>
 						</VStack>
-					</VStack>
-				</ScrollView>
-			</Host>
+					</ScrollView>
+				</Host>
 
-			<TransactionFormCta
-				canSave={canSave}
-				deleteLabel={t("common.delete")}
-				deleteTint={colors.danger}
-				onDelete={onDelete}
-				onPress={() => {
-					if (precheckSave()) {
-						pressSubmit(form);
-					}
-				}}
-				saveLabel={ctaLabel}
-			/>
-
-			{showToast ? (
-				<Animated.View
-					entering={FadeInDown.springify()}
-					exiting={FadeOutDown}
-					pointerEvents="none"
-					style={{
-						position: "absolute",
-						left: 0,
-						right: 0,
-						bottom: 90,
-						alignItems: "center",
+				<TransactionFormCta
+					canSave={canSave}
+					deleteLabel={t("common.delete")}
+					deleteTint={colors.danger}
+					onDelete={onDelete}
+					onPress={() => {
+						if (precheckSave()) {
+							pressSubmit(form);
+						}
 					}}
-				>
-					<View
-						className="flex-row items-center gap-2 rounded-full"
+					saveLabel={ctaLabel}
+				/>
+
+				{showToast ? (
+					<Animated.View
+						entering={FadeInDown.springify()}
+						exiting={FadeOutDown}
+						pointerEvents="none"
 						style={{
-							paddingHorizontal: 18,
-							paddingVertical: 10,
-							backgroundColor: colors.surface,
-							borderWidth: 1,
-							borderColor: withAlpha(colors.foreground, 0.12),
+							position: "absolute",
+							left: 0,
+							right: 0,
+							bottom: 90,
+							alignItems: "center",
 						}}
 					>
-						<SymbolView
-							name="checkmark"
-							size={15}
-							tintColor={colors.income}
-							type="monochrome"
-							weight="semibold"
-						/>
-						<Text className="font-sans-semibold text-income text-subtitle">
-							{toastLabel}
-						</Text>
-					</View>
-				</Animated.View>
-			) : null}
+						<View
+							className="flex-row items-center gap-2 rounded-full"
+							style={{
+								paddingHorizontal: 18,
+								paddingVertical: 10,
+								backgroundColor: colors.surface,
+								borderWidth: 1,
+								borderColor: withAlpha(colors.foreground, 0.12),
+							}}
+						>
+							<SymbolView
+								name="checkmark"
+								size={15}
+								tintColor={colors.income}
+								type="monochrome"
+								weight="semibold"
+							/>
+							<Text className="font-sans-semibold text-income text-subtitle">
+								{toastLabel}
+							</Text>
+						</View>
+					</Animated.View>
+				) : null}
 
-			{celebrate && burstSeed !== 0 ? (
-				<Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
-			) : null}
+				{celebrate && burstSeed !== 0 ? (
+					<Confetti
+						height={windowHeight}
+						seed={burstSeed}
+						width={windowWidth}
+					/>
+				) : null}
 
-			<TransactionFormAmountPad
-				code={currency}
-				income={income}
-				minorUnits={minorUnits}
-				onChange={(next) => form.setFieldValue("amount", next)}
-				onOpenChange={setPadOpen}
-				open={padOpen}
-				value={amount}
-			/>
+				<TransactionFormAmountPad
+					code={currency}
+					income={income}
+					minorUnits={minorUnits}
+					onChange={(next) => form.setFieldValue("amount", next)}
+					onOpenChange={setPadOpen}
+					open={padOpen}
+					value={amount}
+				/>
 
-			<CurrencyPickerSheet
-				onSelect={(next) => {
-					form.setFieldValue("txCurrency", next);
-					currencySheetRef.current?.dismiss();
-				}}
-				ref={currencySheetRef}
-				selected={currency}
-			/>
-			<TagPickerSheet
-				onCreate={async (name) => {
-					const id = await tagsRepo.ensureTag(db, name);
-					if (id) {
+				<CurrencyPickerSheet
+					onSelect={(next) => {
+						form.setFieldValue("txCurrency", next);
+						currencySheetRef.current?.dismiss();
+					}}
+					ref={currencySheetRef}
+					selected={currency}
+				/>
+				<TagPickerSheet
+					onCreate={async (name) => {
+						const id = await tagsRepo.ensureTag(db, name);
+						if (id) {
+							setTagsSource("user");
+							form.setFieldValue("tagIds", [...effectiveTagIds, id]);
+							form.setFieldValue("pendingTagNames", (current) =>
+								current.filter(
+									(pendingName) => normalizeTagName(pendingName) !== name,
+								),
+							);
+						}
+						return id;
+					}}
+					onToggle={(tagId) => {
 						setTagsSource("user");
-						form.setFieldValue("tagIds", [...effectiveTagIds, id]);
-						form.setFieldValue("pendingTagNames", (current) =>
-							current.filter(
-								(pendingName) => normalizeTagName(pendingName) !== name,
-							),
+						form.setFieldValue(
+							"tagIds",
+							effectiveTagIds.includes(tagId)
+								? effectiveTagIds.filter((id) => id !== tagId)
+								: [...effectiveTagIds, tagId],
 						);
-					}
-					return id;
-				}}
-				onToggle={(tagId) => {
-					setTagsSource("user");
-					form.setFieldValue(
-						"tagIds",
-						effectiveTagIds.includes(tagId)
-							? effectiveTagIds.filter((id) => id !== tagId)
-							: [...effectiveTagIds, tagId],
-					);
-				}}
-				pendingTagNames={pendingTagNames}
-				ref={tagSheetRef}
-				selected={effectiveTagIds}
-				tags={allTags}
-			/>
+					}}
+					pendingTagNames={pendingTagNames}
+					ref={tagSheetRef}
+					selected={effectiveTagIds}
+					tags={allTags}
+				/>
 
-			<CategoryPickerSheet
-				db={db}
-				income={income}
-				onSelect={categoryField.select}
-				pendingCategory={pendingCategory}
-				ref={categoryField.ref}
-				selectedId={category?.id ?? null}
-			/>
-			<CustomScheduleSheet
-				onDone={(type, every) => {
-					form.setFieldValue("recurringType", type);
-					form.setFieldValue("coefficient", every);
-				}}
-				recurringCoefficient={coefficient}
-				recurringType={recurringType}
-				ref={scheduleSheetRef}
-			/>
+				<CategoryPickerSheet
+					db={db}
+					income={income}
+					onSelect={categoryField.select}
+					pendingCategory={pendingCategory}
+					ref={categoryField.ref}
+					selectedId={category?.id ?? null}
+				/>
+				<CustomScheduleSheet
+					onDone={(type, every) => {
+						form.setFieldValue("recurringType", type);
+						form.setFieldValue("coefficient", every);
+					}}
+					recurringCoefficient={coefficient}
+					recurringType={recurringType}
+					ref={scheduleSheetRef}
+				/>
 
-			<IdentityFlyUpLayer
-				color={identity.color}
-				containerHeight={containerHeight}
-				emoji={identity.emoji}
-				icon={identity.icon}
-				income={income}
-				onDismiss={router.back}
-				photoUri={identity.photoUri}
-				restTop={heroRestTop}
-				variant="transaction"
-			/>
-		</View>
+				<IdentityFlyUpLayer
+					color={identity.color}
+					containerHeight={containerHeight}
+					emoji={identity.emoji}
+					icon={identity.icon}
+					income={income}
+					onDismiss={router.back}
+					photoUri={identity.photoUri}
+					restTop={heroRestTop}
+					variant="transaction"
+				/>
+
+				<PortalHost />
+			</View>
+		</PortalProvider>
 	);
 }
 
