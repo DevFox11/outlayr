@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useReducer, useRef } from "react";
 import { categoryKey, type ParsedImportFile } from "@/data/transfer-core";
 import { setCachedEnrichment } from "@/domain/enrichment-cache";
 import {
@@ -94,16 +94,66 @@ interface PartialResolution {
 
 const TIMED_OUT = Symbol("csv-import-timeout");
 
+const NO_LINKS: ReadonlyMap<string, string> = new Map();
+const NO_FROM_MODEL: ReadonlySet<string> = new Set();
+
+interface CsvImportState {
+	fileKey: string | null;
+	stage: CsvImportStage;
+	outcome: ResolutionOutcome | null;
+	reason: UnavailableReason | null;
+	links: ReadonlyMap<string, string>;
+	fromModel: ReadonlySet<string>;
+	tier1Matched: number;
+	tier2Sent: number;
+}
+
+type CsvImportAction =
+	| { type: "fileChanged"; fileKey: string | null }
+	| { type: "started" }
+	| { type: "matched"; tier1Matched: number }
+	| { type: "asking"; tier2Sent: number }
+	| { type: "settled"; settlement: Settlement };
+
+function idleState(fileKey: string | null): CsvImportState {
+	return {
+		fileKey,
+		stage: "idle",
+		outcome: null,
+		reason: null,
+		links: NO_LINKS,
+		fromModel: NO_FROM_MODEL,
+		tier1Matched: 0,
+		tier2Sent: 0,
+	};
+}
+
+function reduce(
+	state: CsvImportState,
+	action: CsvImportAction,
+): CsvImportState {
+	switch (action.type) {
+		case "fileChanged":
+			return idleState(action.fileKey);
+		case "started":
+			return {
+				...state,
+				stage: "matching",
+				outcome: null,
+				reason: null,
+				tier2Sent: 0,
+			};
+		case "matched":
+			return { ...state, tier1Matched: action.tier1Matched };
+		case "asking":
+			return { ...state, stage: "asking", tier2Sent: action.tier2Sent };
+		case "settled":
+			return { ...state, stage: "settled", ...action.settlement };
+	}
+}
+
 export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
-	const [running, setRunning] = useState(false);
-	const [stage, setStage] = useState<CsvImportStage>("idle");
-	const [outcome, setOutcome] = useState<ResolutionOutcome | null>(null);
-	const [reason, setReason] = useState<UnavailableReason | null>(null);
-	const [links, setLinks] = useState<ReadonlyMap<string, string>>(new Map());
-	const [fromModel, setFromModel] = useState<ReadonlySet<string>>(new Set());
-	const [tier1Matched, setTier1Matched] = useState(0);
-	const [tier2Sent, setTier2Sent] = useState(0);
-	const [trackedFileKey, setTrackedFileKey] = useState(args.fileKey);
+	const [state, dispatch] = useReducer(reduce, args.fileKey, idleState);
 
 	const runningRef = useRef(false);
 	// Bumped on every file change so a stale in-flight execute() for the
@@ -111,43 +161,17 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 	const generationRef = useRef(0);
 	const partialRef = useRef<PartialResolution | null>(null);
 
-	if (trackedFileKey !== args.fileKey) {
-		setTrackedFileKey(args.fileKey);
+	if (state.fileKey !== args.fileKey) {
 		generationRef.current += 1;
 		runningRef.current = false;
-		setRunning(false);
-		setStage("idle");
-		setOutcome(null);
-		setReason(null);
-		setLinks(new Map());
-		setFromModel(new Set());
-		setTier1Matched(0);
-		setTier2Sent(0);
+		dispatch({ type: "fileChanged", fileKey: args.fileKey });
 	}
 
-	const parsedRef = useRef(args.parsed);
-	parsedRef.current = args.parsed;
-	const draftRef = useRef(args.draft);
-	draftRef.current = args.draft;
-	const labelsRef = useRef(args.labels);
-	labelsRef.current = args.labels;
-	const charsRef = useRef(args.chars);
-	charsRef.current = args.chars;
-	const categoryTreeRef = useRef(args.categoryTree);
-	categoryTreeRef.current = args.categoryTree;
-	const categoryIdByKeyRef = useRef(args.categoryIdByKey);
-	categoryIdByKeyRef.current = args.categoryIdByKey;
-	const aiEnrichmentRef = useRef(args.aiEnrichment);
-	aiEnrichmentRef.current = args.aiEnrichment;
-	const groundedLookupRef = useRef(args.groundedLookup);
-	groundedLookupRef.current = args.groundedLookup;
-	const regionCodeRef = useRef(args.regionCode);
-	regionCodeRef.current = args.regionCode;
-	const transportRef = useRef(args.transport);
-	transportRef.current = args.transport;
+	const argsRef = useRef(args);
+	argsRef.current = args;
 
 	const resolveImport = useCallback(async (): Promise<Settlement> => {
-		const allLabels = labelsRef.current;
+		const allLabels = argsRef.current.labels;
 		const resolvedLinks = new Map<string, string>();
 		const fromModelSet = new Set<string>();
 		partialRef.current = { links: resolvedLinks, fromModel: fromModelSet };
@@ -162,7 +186,9 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			const categoryId =
 				match == null
 					? undefined
-					: categoryIdByKeyRef.current.get(categoryKey(match.categoryName));
+					: argsRef.current.categoryIdByKey.get(
+							categoryKey(match.categoryName),
+						);
 			if (categoryId != null) {
 				resolvedLinks.set(categoryKey(label), categoryId);
 				if (match?.domain == null) {
@@ -172,7 +198,10 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 				unresolved.push(label);
 			}
 		}
-		setTier1Matched(allLabels.length - unresolved.length);
+		dispatch({
+			type: "matched",
+			tier1Matched: allLabels.length - unresolved.length,
+		});
 
 		const stillUnresolved: string[] = [];
 		for (const label of unresolved) {
@@ -183,7 +212,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			const categoryId =
 				categoryName == null
 					? undefined
-					: categoryIdByKeyRef.current.get(categoryKey(categoryName));
+					: argsRef.current.categoryIdByKey.get(categoryKey(categoryName));
 			if (cached.hit && categoryId != null) {
 				resolvedLinks.set(categoryKey(label), categoryId);
 				fromModelSet.add(categoryKey(label));
@@ -209,31 +238,31 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		});
 
 		const payload = buildClassificationPayload({
-			parsed: parsedRef.current,
-			draft: draftRef.current,
+			parsed: argsRef.current.parsed,
+			draft: argsRef.current.draft,
 			unresolvedLabels: [...stillUnresolved, ...domainUnknown],
-			categoryTree: categoryTreeRef.current,
+			categoryTree: argsRef.current.categoryTree,
 		});
 
 		if (payload == null) {
 			return settleWith(resolvedLinks, fromModelSet, "applied", null);
 		}
 
-		if (!aiEnrichmentRef.current) {
+		if (!argsRef.current.aiEnrichment) {
 			return settleWith(resolvedLinks, fromModelSet, "declined", null);
 		}
 
 		if (
-			charsRef.current > AI_TIER_MAX_CHARS ||
-			parsedRef.current.rows.length > AI_TIER_MAX_ROWS
+			argsRef.current.chars > AI_TIER_MAX_CHARS ||
+			argsRef.current.parsed.rows.length > AI_TIER_MAX_ROWS
 		) {
 			return settleWith(resolvedLinks, fromModelSet, "unavailable", "overCap");
 		}
 
 		const call =
-			transportRef.current === undefined
+			argsRef.current.transport === undefined
 				? csvImportTransport()
-				: transportRef.current;
+				: argsRef.current.transport;
 		if (call == null) {
 			return settleWith(
 				resolvedLinks,
@@ -243,15 +272,14 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			);
 		}
 
-		setTier2Sent(payload.labels.length);
-		setStage("asking");
+		dispatch({ type: "asking", tier2Sent: payload.labels.length });
 		let settled: Settled;
 		try {
 			const raced = await Promise.race([
 				call({
 					...payload,
-					groundedLookup: groundedLookupRef.current,
-					regionCode: regionCodeRef.current,
+					groundedLookup: argsRef.current.groundedLookup,
+					regionCode: argsRef.current.regionCode,
 				}),
 				new Promise<typeof TIMED_OUT>((resolve) => {
 					setTimeout(() => resolve(TIMED_OUT), CLIENT_TIMEOUT_MS);
@@ -292,7 +320,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 					domain: suggestion.domain,
 				});
 			}
-			const categoryId = categoryIdByKeyRef.current.get(
+			const categoryId = argsRef.current.categoryIdByKey.get(
 				categoryKey(suggestion.categoryName),
 			);
 			if (categoryId == null) {
@@ -309,11 +337,7 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 
 	const execute = useCallback(async () => {
 		const generation = generationRef.current;
-		setRunning(true);
-		setStage("matching");
-		setOutcome(null);
-		setReason(null);
-		setTier2Sent(0);
+		dispatch({ type: "started" });
 		partialRef.current = null;
 
 		let settlement: Settlement;
@@ -324,20 +348,15 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			// `resolveImport` reassigning it before throwing — assert the real type.
 			const partial = partialRef.current as PartialResolution | null;
 			settlement = settleWith(
-				partial?.links ?? new Map(),
-				partial?.fromModel ?? new Set(),
+				partial?.links ?? NO_LINKS,
+				partial?.fromModel ?? NO_FROM_MODEL,
 				"unavailable",
 				"providerError",
 			);
 		}
 
 		if (generationRef.current === generation) {
-			setLinks(settlement.links);
-			setFromModel(settlement.fromModel);
-			setOutcome(settlement.outcome);
-			setReason(settlement.reason);
-			setStage("settled");
-			setRunning(false);
+			dispatch({ type: "settled", settlement });
 		}
 	}, [resolveImport]);
 
@@ -355,15 +374,15 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 	}, [execute]);
 
 	return {
-		running,
-		stage,
-		outcome,
-		reason,
-		links,
-		fromModel,
+		running: state.stage === "matching" || state.stage === "asking",
+		stage: state.stage,
+		outcome: state.outcome,
+		reason: state.reason,
+		links: state.links,
+		fromModel: state.fromModel,
 		totalLabels: args.labels.length,
-		tier1Matched,
-		tier2Sent,
+		tier1Matched: state.tier1Matched,
+		tier2Sent: state.tier2Sent,
 		run,
 	};
 }
