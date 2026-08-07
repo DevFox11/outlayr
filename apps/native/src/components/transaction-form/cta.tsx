@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, type StackHeaderItemSharedProps } from "expo-router";
 import { type ToolbarIconName, toolbarIcon } from "@/components/toolbar-icons";
 
 export interface TransactionFormCtaProps {
@@ -15,8 +15,10 @@ export interface TransactionFormCtaAction {
 	icon: ToolbarIconName;
 	accessibilityLabel: string;
 	disabled: boolean;
-	tintColor?: string;
 	onPress: () => void;
+	separateBackground?: boolean;
+	tintColor?: string;
+	variant?: StackHeaderItemSharedProps["variant"];
 }
 
 export function transactionFormCtaActions({
@@ -39,12 +41,14 @@ export function transactionFormCtaActions({
 			onPress: onDelete,
 		});
 	}
+
 	actions.push({
 		key: "save",
 		icon: "done",
 		accessibilityLabel: saveLabel,
 		disabled: !canSave,
 		onPress,
+		variant: "done",
 	});
 	return actions;
 }
@@ -60,6 +64,8 @@ export function TransactionFormCta(props: TransactionFormCtaProps) {
 					key={action.key}
 					onPress={action.onPress}
 					tintColor={action.tintColor}
+					variant={action.variant}
+					separateBackground={action.separateBackground}
 				/>
 			))}
 		</Stack.Toolbar>
