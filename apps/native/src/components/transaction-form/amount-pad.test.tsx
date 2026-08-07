@@ -10,19 +10,21 @@ jest.mock("@/theme/use-colors", () => ({
 		muted: "#A4A4A9",
 	}),
 }));
-jest.mock("@expo/ui/community/bottom-sheet", () => {
+jest.mock("@expo/ui/swift-ui", () => {
 	const react = require("react") as typeof import("react");
+	const passthrough =
+		(name: string) =>
+		({ children, ...rest }: Record<string, unknown>) =>
+			react.createElement(name, rest, children as never);
 	return {
-		BottomSheetModal: ({ children, ref, ...rest }: Record<string, never>) => {
-			react.useImperativeHandle(
-				ref,
-				() => ({ present: () => {}, dismiss: () => {} }),
-				[],
-			);
-			return react.createElement("BottomSheetModal", rest, children);
-		},
-		BottomSheetView: ({ children }: Record<string, unknown>) =>
-			react.createElement("BottomSheetView", null, children as never),
+		BottomSheet: passthrough("BottomSheet"),
+		Group: passthrough("Group"),
+		// `pointerEvents` is dropped: the real Host is an empty absolute anchor and
+		// the sheet is presented natively above it, so the prop never reaches this
+		// content on device — but RNTL walks the RN tree and would block the press.
+		Host: ({ children }: Record<string, unknown>) =>
+			react.createElement("Host", null, children as never),
+		RNHostView: passthrough("RNHostView"),
 	};
 });
 jest.mock("../amount-numpad", () => {
@@ -138,10 +140,20 @@ describe("TransactionFormAmountPad", () => {
 		const { toJSON } = await render(
 			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
 		);
-		const sheet = findByType(toJSON() as JsonNode, "BottomSheetModal");
-		expect(sheet).not.toBeNull();
-		const dismiss = sheet?.props.onDismiss as () => void;
-		dismiss();
+		const sheet = findByType(toJSON() as JsonNode, "BottomSheet");
+		expect(sheet?.props.isPresented).toBe(true);
+		const change = sheet?.props.onIsPresentedChange as (next: boolean) => void;
+		change(false);
 		expect(onOpenChange).toHaveBeenCalledWith(false);
+	});
+
+	// The system backdrop is what dims and blocks the form behind the keypad;
+	// without this the "tap another row to close" wiring is unreachable.
+	it("drops the sheet's dimming backdrop", async () => {
+		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
+		const group = findByType(toJSON() as JsonNode, "Group");
+		expect(JSON.stringify(group?.props.modifiers)).toContain(
+			'"$type":"presentationBackgroundInteraction","interactionType":"enabled"',
+		);
 	});
 });
