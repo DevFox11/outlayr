@@ -33,7 +33,7 @@ import {
 	TagsIcon,
 	TextIcon,
 } from "@hugeicons-pro/core-stroke-rounded";
-import { useStore } from "@tanstack/react-form";
+import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
@@ -48,8 +48,9 @@ import Animated, {
 
 import { Confetti } from "@/components/confetti";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
-import { useAppForm } from "@/components/form/create-app-form";
+import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
+import { SubscribeFields } from "@/components/form/subscribe-fields";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import {
 	useIdentityDraft,
@@ -97,6 +98,10 @@ import {
 	leadLabel,
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
+import {
+	isMissingCategory,
+	transactionFormErrors,
+} from "@/domain/transaction-form-validate";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useRegionCode } from "@/hooks/use-region-code";
 import {
@@ -288,8 +293,28 @@ export function TransactionForm({
 		};
 	});
 
-	const form = useAppForm({
+	const form = useForm({
 		defaultValues: initialValues,
+		validators: { onChange: ({ value }) => transactionFormErrors(value) },
+		// The CTA stays lit on amount alone, so a tap with no category lands here
+		// rather than on a dimmed button that explains nothing.
+		onSubmitInvalid: ({ value }) => {
+			if (isMissingCategory(value)) {
+				flagMissingCategory();
+			}
+		},
+		// Clearing the category belongs to the income change itself, not to the
+		// segmented control that happens to be the only caller today.
+		listeners: {
+			onChange: ({ formApi, fieldApi }) => {
+				if (fieldApi.name !== "income") {
+					return;
+				}
+				formApi.setFieldValue("category", null);
+				formApi.setFieldValue("pendingCategory", null);
+				setCategorySource("initial");
+			},
+		},
 		onSubmit: async ({ value }) => {
 			haptics("success");
 
@@ -325,8 +350,8 @@ export function TransactionForm({
 					return;
 				}
 			} else {
-				// `precheckSave` already guarantees this branch is unreachable.
-				flagMissingCategory();
+				// `validators.onChange` gates submission on the same rule, so this is
+				// unreachable — kept only to narrow `categoryId` for the compiler.
 				return;
 			}
 
@@ -384,7 +409,9 @@ export function TransactionForm({
 				// After the row exists, because the link points at it. A failure here
 				// costs the tags, not the entry, so it is reported rather than thrown.
 				try {
-					const materializedTagIds = [...effectiveTagIds];
+					// Guarded by `tagsSource !== "initial"`, where the effective ids
+					// are the field's own — `savedTagIds` only stands in before that.
+					const materializedTagIds = [...value.tagIds];
 					for (const tagName of value.pendingTagNames) {
 						const tagId = await tagsRepo.ensureTag(db, tagName);
 						if (tagId != null && !materializedTagIds.includes(tagId)) {
@@ -447,24 +474,32 @@ export function TransactionForm({
 			return await holdSubmitting();
 		},
 	});
+	// Names the fields rather than taking `values` wholesale: that object gets a
+	// fresh identity on every write, so selecting it re-renders this whole screen
+	// on each amount keystroke however few fields are read out of it.
 	const {
 		txCurrency,
 		isSubscription,
 		category,
 		pendingCategory,
 		income,
-		amount,
-		date,
 		recurringType,
 		coefficient,
-		hasEndDate,
-		endDate,
-		leadDays,
-		tagIds,
-		pendingTagNames,
 		account,
-	} = useStore(form.store, (s) => s.values);
-	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+	} = useSelector(
+		form.store,
+		(s) => ({
+			txCurrency: s.values.txCurrency,
+			isSubscription: s.values.isSubscription,
+			category: s.values.category,
+			pendingCategory: s.values.pendingCategory,
+			income: s.values.income,
+			recurringType: s.values.recurringType,
+			coefficient: s.values.coefficient,
+			account: s.values.account,
+		}),
+		{ compare: shallowEqual },
+	);
 
 	const currency = txCurrency ?? globalCurrency;
 	const minorUnits = minorUnitsFor(currency);
@@ -474,6 +509,11 @@ export function TransactionForm({
 	const [categorySource, setCategorySource] = useState<FieldSource>(() =>
 		initialValues.category !== null ? "user" : "initial",
 	);
+
+	// Registers a FieldApi under `income` purely so the form's `listeners` reach
+	// it: `setFieldValue` dispatches them through the mounted field instance, so
+	// without this the cascade above is a silent no-op.
+	useField({ form, name: "income" });
 
 	const [categoryError, setCategoryError] = useState(false);
 	const [categoryShake, setCategoryShake] = useState(false);
@@ -524,15 +564,22 @@ export function TransactionForm({
 	const allTags = useTags(db);
 	const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
 	const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
-	const effectiveTagIds = tagsSource === "initial" ? savedTagIds : tagIds;
-	const selectedTagLabels = [
-		...allTags
-			.filter((tag) => effectiveTagIds.includes(tag.id))
-			.map((tag) => tag.name),
-		...pendingTagNames,
-	];
-	const selectedTagNames =
-		selectedTagLabels.length > 0 ? selectedTagLabels.join(", ") : null;
+	/** Until the user or a suggestion touches them, the row's tags are the saved
+	 * ones — the form field is still the empty array it mounted with. */
+	const effectiveTagIdsOf = (tagIds: readonly string[]) =>
+		tagsSource === "initial" ? savedTagIds : tagIds;
+	const tagLabelsOf = (
+		tagIds: readonly string[],
+		pendingTagNames: readonly string[],
+	) => {
+		const labels = [
+			...allTags
+				.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id))
+				.map((tag) => tag.name),
+			...pendingTagNames,
+		];
+		return labels.length > 0 ? labels.join(", ") : null;
+	};
 	const scheduleSheetRef = useRef<CustomScheduleSheetRef>(null);
 	const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -780,9 +827,6 @@ export function TransactionForm({
 		copyOf?.customColor,
 	]);
 
-	const amountNumber = numpadToNumber(amount);
-	const canSave = amountNumber > 0 && !isSubmitting;
-
 	const handleKindChange = (next: "once" | "subscription") => {
 		const sub = next === "subscription";
 		form.setFieldValue("isSubscription", sub);
@@ -795,9 +839,6 @@ export function TransactionForm({
 		const nextIncome = next === "income";
 		if (nextIncome !== income) {
 			form.setFieldValue("income", nextIncome);
-			form.setFieldValue("category", null);
-			form.setFieldValue("pendingCategory", null);
-			setCategorySource("initial");
 		}
 	};
 
@@ -863,17 +904,6 @@ export function TransactionForm({
 		shakeTimer.current = setTimeout(() => setCategoryShake(false), 500);
 	};
 
-	const precheckSave = () => {
-		if (amountNumber <= 0) {
-			return false;
-		}
-		if (!category && !pendingCategory) {
-			flagMissingCategory();
-			return false;
-		}
-		return true;
-	};
-
 	// The spring starts here, not from the picker route's mount effect, so the
 	// hero launches on the tap frame instead of waiting for navigation to commit
 	// the new screen.
@@ -885,14 +915,12 @@ export function TransactionForm({
 
 	const ctaLabel = t(ctaKey(mode, isSubscription));
 
-	const amountColor =
+	const amountColorFor = (amountNumber: number) =>
 		amountNumber > 0
 			? income
 				? colors.income
 				: colors.foreground
 			: colors.muted;
-
-	const amountSymbol = amountParts(amountNumber, currency).symbol;
 
 	const curtainHues = computeCurtainHues(
 		{
@@ -992,22 +1020,31 @@ export function TransactionForm({
 								photoUri={identity.photoUri}
 							/>
 
-							<TransactionFormAmountHero
-								amountColor={amountColor}
-								chipColor={withAlpha(colors.foreground, 0.08)}
-								contentWidth={contentWidth}
-								currency={currency}
-								amount={amountNumber}
-								minorUnits={minorUnits}
-								expenseLabel={t("common.expense")}
-								income={income}
-								incomeLabel={t("common.income")}
-								mutedColor={colors.muted}
-								onCurrencyPress={() => currencySheetRef.current?.present()}
-								onPress={() => setPadOpen(true)}
-								onTypeChange={handleTypeChange}
-								symbol={amountSymbol}
-							/>
+							<form.Subscribe selector={(s) => s.values.amount}>
+								{(amount) => {
+									const amountNumber = numpadToNumber(amount);
+									return (
+										<TransactionFormAmountHero
+											amountColor={amountColorFor(amountNumber)}
+											chipColor={withAlpha(colors.foreground, 0.08)}
+											contentWidth={contentWidth}
+											currency={currency}
+											amount={amountNumber}
+											minorUnits={minorUnits}
+											expenseLabel={t("common.expense")}
+											income={income}
+											incomeLabel={t("common.income")}
+											mutedColor={colors.muted}
+											onCurrencyPress={() =>
+												currencySheetRef.current?.present()
+											}
+											onPress={() => setPadOpen(true)}
+											onTypeChange={handleTypeChange}
+											symbol={amountParts(amountNumber, currency).symbol}
+										/>
+									);
+								}}
+							</form.Subscribe>
 
 							<VStack spacing={0}>
 								<HStack modifiers={ROW} spacing={12}>
@@ -1165,21 +1202,37 @@ export function TransactionForm({
 										</SwiftText>
 										<Spacer />
 										<HStack spacing={5}>
-											<SwiftText
-												modifiers={[
-													BODY,
-													foregroundStyle(
-														tagsEnriching
-															? withAlpha(colors.muted, 0.45)
-															: selectedTagNames
-																? colors.foreground
-																: colors.muted,
-													),
-													animation(ENRICHING, tagsEnriching),
-												]}
+											<SubscribeFields
+												store={form.store}
+												selector={(s) => ({
+													tagIds: s.values.tagIds,
+													pendingTagNames: s.values.pendingTagNames,
+												})}
 											>
-												{selectedTagNames ?? t("transaction.tags.none")}
-											</SwiftText>
+												{({ tagIds, pendingTagNames }) => {
+													const selectedTagNames = tagLabelsOf(
+														tagIds,
+														pendingTagNames,
+													);
+													return (
+														<SwiftText
+															modifiers={[
+																BODY,
+																foregroundStyle(
+																	tagsEnriching
+																		? withAlpha(colors.muted, 0.45)
+																		: selectedTagNames
+																			? colors.foreground
+																			: colors.muted,
+																),
+																animation(ENRICHING, tagsEnriching),
+															]}
+														>
+															{selectedTagNames ?? t("transaction.tags.none")}
+														</SwiftText>
+													);
+												}}
+											</SubscribeFields>
 											<Image
 												color={colors.muted}
 												size={12}
@@ -1191,47 +1244,61 @@ export function TransactionForm({
 
 								<Divider modifiers={hairline} />
 
-								<TransactionFormScheduleSection
-									cadenceOptions={cadenceOptions}
-									card={[]}
-									customScheduleLabel={t("transaction.schedule.customOption")}
-									date={date}
-									dateLabel={t("transaction.field.date")}
-									endDate={endDate}
-									endDateLabel={t("transaction.field.endDate")}
-									endsLabel={t("transaction.field.ends")}
-									firstPaymentLabel={t("transaction.field.firstPayment")}
-									foregroundColor={colors.foreground}
-									hairline={hairline}
-									hasEndDate={hasEndDate}
-									incomeColor={colors.income}
-									isSubscription={isSubscription}
-									leadDays={leadDays}
-									leadOffLabel={t("transaction.remind.off")}
-									leadOffTag={LEAD_OFF_TAG}
-									leadOptions={leadOptions}
-									mutedColor={colors.muted}
-									onDateChange={(next) => form.setFieldValue("date", next)}
-									onEndDateChange={(next) =>
-										form.setFieldValue("endDate", next)
-									}
-									onHasEndDateChange={(next) =>
-										form.setFieldValue("hasEndDate", next)
-									}
-									onLeadChange={handleLeadChange}
-									onOpenCustomSchedule={() =>
-										scheduleSheetRef.current?.present()
-									}
-									onScheduleChange={handleScheduleChange}
-									recurringType={recurringType}
-									remindLabel={t("transaction.field.remind")}
-									remindMenuLabel={leadLabel(t, leadDays)}
-									scheduleLabel={t("transaction.field.schedule")}
-									scheduleMenuLabel={t("transaction.schedule.every", {
-										interval: intervalPhrase(t, recurringType, coefficient),
+								<SubscribeFields
+									store={form.store}
+									selector={(s) => ({
+										date: s.values.date,
+										endDate: s.values.endDate,
+										hasEndDate: s.values.hasEndDate,
+										leadDays: s.values.leadDays,
 									})}
-									timeLabel={t("transaction.field.time")}
-								/>
+								>
+									{({ date, endDate, hasEndDate, leadDays }) => (
+										<TransactionFormScheduleSection
+											cadenceOptions={cadenceOptions}
+											card={[]}
+											customScheduleLabel={t(
+												"transaction.schedule.customOption",
+											)}
+											date={date}
+											dateLabel={t("transaction.field.date")}
+											endDate={endDate}
+											endDateLabel={t("transaction.field.endDate")}
+											endsLabel={t("transaction.field.ends")}
+											firstPaymentLabel={t("transaction.field.firstPayment")}
+											foregroundColor={colors.foreground}
+											hairline={hairline}
+											hasEndDate={hasEndDate}
+											incomeColor={colors.income}
+											isSubscription={isSubscription}
+											leadDays={leadDays}
+											leadOffLabel={t("transaction.remind.off")}
+											leadOffTag={LEAD_OFF_TAG}
+											leadOptions={leadOptions}
+											mutedColor={colors.muted}
+											onDateChange={(next) => form.setFieldValue("date", next)}
+											onEndDateChange={(next) =>
+												form.setFieldValue("endDate", next)
+											}
+											onHasEndDateChange={(next) =>
+												form.setFieldValue("hasEndDate", next)
+											}
+											onLeadChange={handleLeadChange}
+											onOpenCustomSchedule={() =>
+												scheduleSheetRef.current?.present()
+											}
+											onScheduleChange={handleScheduleChange}
+											recurringType={recurringType}
+											remindLabel={t("transaction.field.remind")}
+											remindMenuLabel={leadLabel(t, leadDays)}
+											scheduleLabel={t("transaction.field.schedule")}
+											scheduleMenuLabel={t("transaction.schedule.every", {
+												interval: intervalPhrase(t, recurringType, coefficient),
+											})}
+											timeLabel={t("transaction.field.time")}
+										/>
+									)}
+								</SubscribeFields>
 
 								<Divider modifiers={hairline} />
 
@@ -1273,18 +1340,22 @@ export function TransactionForm({
 					</ScrollView>
 				</Host>
 
-				<TransactionFormCta
-					canSave={canSave}
-					deleteLabel={t("common.delete")}
-					deleteTint={colors.danger}
-					onDelete={onDelete}
-					onPress={() => {
-						if (precheckSave()) {
-							pressSubmit(form);
-						}
-					}}
-					saveLabel={ctaLabel}
-				/>
+				<form.Subscribe
+					selector={(s) =>
+						numpadToNumber(s.values.amount) > 0 && !s.isSubmitting
+					}
+				>
+					{(canSave) => (
+						<TransactionFormCta
+							canSave={canSave}
+							deleteLabel={t("common.delete")}
+							deleteTint={colors.danger}
+							onDelete={onDelete}
+							onPress={() => pressSubmit(form)}
+							saveLabel={ctaLabel}
+						/>
+					)}
+				</form.Subscribe>
 
 				{showToast ? (
 					<Animated.View
@@ -1331,15 +1402,19 @@ export function TransactionForm({
 					/>
 				) : null}
 
-				<TransactionFormAmountPad
-					code={currency}
-					income={income}
-					minorUnits={minorUnits}
-					onChange={(next) => form.setFieldValue("amount", next)}
-					onOpenChange={setPadOpen}
-					open={padOpen}
-					value={amount}
-				/>
+				<form.Subscribe selector={(s) => s.values.amount}>
+					{(amount) => (
+						<TransactionFormAmountPad
+							code={currency}
+							income={income}
+							minorUnits={minorUnits}
+							onChange={(next) => form.setFieldValue("amount", next)}
+							onOpenChange={setPadOpen}
+							open={padOpen}
+							value={amount}
+						/>
+					)}
+				</form.Subscribe>
 
 				<CurrencyPickerSheet
 					onSelect={(next) => {
@@ -1349,34 +1424,48 @@ export function TransactionForm({
 					ref={currencySheetRef}
 					selected={currency}
 				/>
-				<TagPickerSheet
-					onCreate={async (name) => {
-						const id = await tagsRepo.ensureTag(db, name);
-						if (id) {
-							setTagsSource("user");
-							form.setFieldValue("tagIds", [...effectiveTagIds, id]);
-							form.setFieldValue("pendingTagNames", (current) =>
-								current.filter(
-									(pendingName) => normalizeTagName(pendingName) !== name,
-								),
-							);
-						}
-						return id;
-					}}
-					onToggle={(tagId) => {
-						setTagsSource("user");
-						form.setFieldValue(
-							"tagIds",
-							effectiveTagIds.includes(tagId)
-								? effectiveTagIds.filter((id) => id !== tagId)
-								: [...effectiveTagIds, tagId],
-						);
-					}}
-					pendingTagNames={pendingTagNames}
-					ref={tagSheetRef}
-					selected={effectiveTagIds}
-					tags={allTags}
-				/>
+				<SubscribeFields
+					store={form.store}
+					selector={(s) => ({
+						tagIds: s.values.tagIds,
+						pendingTagNames: s.values.pendingTagNames,
+					})}
+				>
+					{({ tagIds, pendingTagNames }) => (
+						<TagPickerSheet
+							onCreate={async (name) => {
+								const id = await tagsRepo.ensureTag(db, name);
+								if (id) {
+									setTagsSource("user");
+									form.setFieldValue("tagIds", [
+										...effectiveTagIdsOf(form.state.values.tagIds),
+										id,
+									]);
+									form.setFieldValue("pendingTagNames", (current) =>
+										current.filter(
+											(pendingName) => normalizeTagName(pendingName) !== name,
+										),
+									);
+								}
+								return id;
+							}}
+							onToggle={(tagId) => {
+								setTagsSource("user");
+								const current = effectiveTagIdsOf(form.state.values.tagIds);
+								form.setFieldValue(
+									"tagIds",
+									current.includes(tagId)
+										? current.filter((id) => id !== tagId)
+										: [...current, tagId],
+								);
+							}}
+							pendingTagNames={pendingTagNames}
+							ref={tagSheetRef}
+							selected={effectiveTagIdsOf(tagIds)}
+							tags={allTags}
+						/>
+					)}
+				</SubscribeFields>
 
 				<AccountPickerSheet
 					db={db}

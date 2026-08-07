@@ -8,14 +8,13 @@ import {
 	opacity,
 	scrollContentBackground,
 } from "@expo/ui/swift-ui/modifiers";
-import { useStore } from "@tanstack/react-form";
+import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
-import { useAppForm } from "@/components/form/create-app-form";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
@@ -107,7 +106,7 @@ function AccountEditorReady(
 		balanceText: balanceEditText(loaded?.initialBalance ?? 0),
 		negative: (loaded?.initialBalance ?? 0) < 0,
 	}));
-	const form = useAppForm({
+	const form = useForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			const magnitude = Math.abs(parseSignedAmount(value.balanceText) ?? 0);
@@ -155,11 +154,11 @@ function AccountEditorReady(
 			}
 		},
 	});
-	const { name, currency, balanceText, negative } = useStore(
+	const { name, currency, balanceText, negative } = useSelector(
 		form.store,
 		(s) => s.values,
 	);
-	const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const containerHeight = useSharedValue(0);
 	const heroRestTop = useDerivedValue(() => HEADER_HEIGHT + HERO_TOP_PADDING);
