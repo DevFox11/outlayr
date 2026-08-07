@@ -134,9 +134,6 @@ async function drainQueue(db: Database): Promise<number> {
  */
 async function refreshRates(db: Database): Promise<boolean> {
 	const pull = ratesPuller();
-	if (!pull) {
-		return false;
-	}
 	let changed = false;
 	try {
 		changed = await pullRatesIfDue(db, pull);

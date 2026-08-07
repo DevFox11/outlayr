@@ -31,10 +31,6 @@ const settings = {
 			en: "Checking\u2026",
 			es: "Comprobando\u2026",
 		}),
-		"settings.account.unavailable": t({
-			en: "Unavailable",
-			es: "No disponible",
-		}),
 		"settings.account.signOut": t({
 			en: "Sign Out",
 			es: "Cerrar sesi\u00f3n",
@@ -86,10 +82,6 @@ const settings = {
 		"settings.account.signInFooter": t({
 			en: "Signing in doesn't change your ledger today \u2014 it only makes this account ready to sync from another device later.",
 			es: "Iniciar sesi\u00f3n no cambia tu registro por ahora \u2014 solo deja la cuenta lista para sincronizar desde otro dispositivo m\u00e1s adelante.",
-		}),
-		"settings.account.unavailableDetail": t({
-			en: "This build ships without a backend, so there is no account to sign in to. Nothing else is affected \u2014 your ledger lives on this device.",
-			es: "Esta versi\u00f3n no incluye backend, as\u00ed que no hay cuenta con la que iniciar sesi\u00f3n. Nada m\u00e1s se ve afectado \u2014 tu registro vive en este dispositivo.",
 		}),
 		"settings.account.noProvider": t({
 			en: "No sign-in provider is configured for this platform.",

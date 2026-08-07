@@ -6,8 +6,6 @@ export interface AccountUser {
 }
 
 export type AccountState =
-	/** No backend configured in this build — see `src/lib/auth-client.ts`. */
-	| { kind: "unavailable" }
 	| { kind: "pending" }
 	| { kind: "signed-out" }
 	| { kind: "signed-in"; user: AccountUser | undefined };
@@ -28,8 +26,6 @@ export function accountLabel(
 
 export function accountRowValue(state: AccountState, t: TranslateFn): string {
 	switch (state.kind) {
-		case "unavailable":
-			return t("settings.account.unavailable");
 		case "pending":
 			return "";
 		case "signed-out":

@@ -13,15 +13,11 @@ import { useTranslation } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
-type AuthClient = NonNullable<typeof authClient>;
+type AuthClient = typeof authClient;
 
 export function Account() {
 	const db = useDatabase();
-	return authClient ? (
-		<AccountContent client={authClient} db={db} />
-	) : (
-		<AccountUnavailable />
-	);
+	return <AccountContent client={authClient} db={db} />;
 }
 
 function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
@@ -150,19 +146,6 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 			</SettingsSection>
 
 			{error ? <Failure message={error} /> : null}
-		</SettingsScreen>
-	);
-}
-
-function AccountUnavailable() {
-	const t = useTranslation();
-	return (
-		<SettingsScreen>
-			<Header
-				detail={t("settings.account.unavailableDetail")}
-				eyebrow={t("settings.account.eyebrow")}
-				title={t("settings.account.unavailable")}
-			/>
 		</SettingsScreen>
 	);
 }

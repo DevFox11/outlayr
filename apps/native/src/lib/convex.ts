@@ -6,25 +6,13 @@ import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 
-/**
- * The Convex client, or null when this build has no backend configured: this app
- * only reads exchange rates from Convex, so the URL is optional — see
- * `@outlayr/env/native`.
- */
+/** The Convex client. Its URL is required, so this is never absent. */
 export const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
 	expectAuth: true,
 	unsavedChangesWarning: false,
 });
 
-/**
- * The rate snapshot fetcher, or null when there is no backend — returning null
- * rather than throwing lets the caller skip cleanly, so a missing backend
- * degrades to "no fresh rates" rather than to a crash.
- */
-export function ratesPuller(): PullRatesFn | null {
-	if (!convex) {
-		return null;
-	}
+export function ratesPuller(): PullRatesFn {
 	return async (args) =>
 		// Addressed by path rather than through the generated API:
 		// `packages/backend` is not a build dependency of the app, and the wire
@@ -33,7 +21,7 @@ export function ratesPuller(): PullRatesFn | null {
 }
 
 /**
- * The replication transport, or null when there is no backend.
+ * The replication transport.
  *
  * Authentication rides on the client rather than on these calls:
  * `ConvexBetterAuthProvider` sets the token on `convex` itself, so a signed-out
@@ -41,10 +29,7 @@ export function ratesPuller(): PullRatesFn | null {
  * the caller is, which is the point — the server never accepts a user id as an
  * argument.
  */
-export function syncTransport(): { push: PushFn; pull: PullFn } | null {
-	if (!convex) {
-		return null;
-	}
+export function syncTransport(): { push: PushFn; pull: PullFn } {
 	return {
 		push: async (args) => convex.mutation("sync:push" as never, args as never),
 		pull: async (args) =>
@@ -53,8 +38,8 @@ export function syncTransport(): { push: PushFn; pull: PullFn } | null {
 }
 
 /**
- * A live subscription to the account's replication watermark, or null when there
- * is no backend. Returns the unsubscribe.
+ * A live subscription to the account's replication watermark. Returns the
+ * unsubscribe.
  *
  * This is the one call in this file that is not request/response, and it is what
  * makes replication realtime: any device's push moves the watermark, which
@@ -69,10 +54,7 @@ export function syncTransport(): { push: PushFn; pull: PullFn } | null {
  */
 export function watchSyncWatermark(
 	onWatermark: (watermark: number) => void,
-): (() => void) | null {
-	if (!convex) {
-		return null;
-	}
+): () => void {
 	const watch = convex.watchQuery("sync:currentSeq" as never, {} as never);
 	return watch.onUpdate(() => {
 		let watermark: unknown;
@@ -113,8 +95,6 @@ export type EnrichmentFn = (
 ) => Promise<RemoteEnrichmentResult>;
 
 /**
- * The enrichment call, or null when there is no backend.
- *
  * Only the merchant name and the user's own category names are sent — the
  * action's argument validator is asserted against that exact field set in
  * `packages/backend/convex/enrichment.test.ts`, so amounts, dates, accounts
@@ -125,10 +105,7 @@ export type EnrichmentFn = (
  * to keep in step: authentication rides on `convex` itself, exactly as it does
  * for `syncTransport`.
  */
-export function enrichmentTransport(): EnrichmentFn | null {
-	if (!convex) {
-		return null;
-	}
+export function enrichmentTransport(): EnrichmentFn {
 	return async (args) =>
 		convex.action("enrichment:suggest" as never, args as never);
 }
@@ -171,27 +148,19 @@ export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
  * `packages/backend/convex/csvImport.ts`. Authentication rides on `convex`
  * itself, exactly as it does for `enrichmentTransport`.
  */
-export function csvImportTransport(): CsvImportFn | null {
-	if (!convex) {
-		return null;
-	}
+export function csvImportTransport(): CsvImportFn {
 	return async (args) =>
 		convex.action("csvImport:csvImport" as never, args as never);
 }
 
 /**
- * The photo transport, or null when there is no backend.
- *
  * The bytes never touch Convex: the signed urls address R2 directly, so a
  * multi-megabyte PUT is not a mutation argument and does not count against any
  * function limit. Only the three small calls that mint and account for those
  * urls go through the client, and they authenticate exactly as `syncTransport`
  * does — on the client, never on an argument.
  */
-export function photoTransport(): PhotoTransport | null {
-	if (!convex) {
-		return null;
-	}
+export function photoTransport(): PhotoTransport {
 	return {
 		requestUpload: async (name) =>
 			convex.mutation("photos:requestUpload" as never, { name } as never),

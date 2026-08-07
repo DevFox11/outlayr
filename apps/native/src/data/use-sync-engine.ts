@@ -47,9 +47,6 @@ export function useSyncEngine(db: Database | null): void {
 			return;
 		}
 		const transport = syncTransport();
-		if (transport == null) {
-			return;
-		}
 
 		let running = false;
 		let queued = false;
