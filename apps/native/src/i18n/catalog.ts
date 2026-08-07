@@ -1,4 +1,5 @@
 import { getIntlayer } from "intlayer";
+import { intlayerPolyfill } from "react-native-intlayer";
 import type { Language } from "./languages";
 import type { Catalog } from "./translate";
 
@@ -92,6 +93,14 @@ type PluralStem<K extends string> = K extends `${infer Stem}_other`
 export type TranslatableKey =
 	| TranslationKey
 	| PluralStem<TranslationKey & string>;
+
+/**
+ * `@intlayer/core` reads `document.cookie` and `localStorage`, which React
+ * Native leaves undefined; `react-native-intlayer` stubs them, but only as a
+ * side effect of being imported. `@/i18n` re-exports this module before
+ * `./context`, so the provider's own import lands too late for the reads below.
+ */
+intlayerPolyfill();
 
 /** Flattens Intlayer's per-dictionary resolution into one lookup. */
 export function catalogFor(locale: Language): Catalog {

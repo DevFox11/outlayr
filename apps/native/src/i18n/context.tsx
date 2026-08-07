@@ -10,8 +10,8 @@ import {
 import { IntlayerProvider } from "react-native-intlayer";
 
 import { CATALOGS, EN, type TranslatableKey } from "./catalog";
+import { useDeviceLanguageTag } from "./device-language";
 import {
-	deviceLanguageTag,
 	persistLanguagePreference,
 	readLanguagePreference,
 } from "./language-storage";
@@ -52,7 +52,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 	const [preference, setPreferenceState] =
 		useState<LanguagePreference>("system");
 	const [isHydrated, setIsHydrated] = useState(false);
-	const [deviceTag] = useState(deviceLanguageTag);
+	const deviceTag = useDeviceLanguageTag();
 
 	// The root layout holds the splash on `isHydrated`, so a Spanish user never
 	// sees a frame of English. `readLanguagePreference` swallows its own

@@ -8,11 +8,14 @@ import { type IntlayerConfig, Locales } from "intlayer";
 const config: IntlayerConfig = {
 	internationalization: {
 		locales: [Locales.ENGLISH, Locales.SPANISH],
+		requiredLocales: [Locales.ENGLISH, Locales.SPANISH],
 		defaultLocale: Locales.ENGLISH,
+		// `t` must carry every locale rather than warning and falling back, so a
+		// half-translated key fails the build instead of reaching a device in
+		// English.
+		strictMode: "strict",
 	},
 	content: {
-		// `src/app` is the expo-router routes directory — a `.content.ts` file
-		// under it would be crawled as a route.
 		contentDir: ["src/content"],
 	},
 };
