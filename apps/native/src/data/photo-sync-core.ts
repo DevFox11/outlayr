@@ -1,8 +1,9 @@
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
-import { transactions } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 import {
+	PHOTO_TABLES,
 	type PhotoFiles,
+	type PhotoTable,
 	photoFileName,
 	photoUriFor,
 } from "./photo-store-core";
@@ -12,9 +13,9 @@ import {
  *
  * `sync-engine-core.ts` moves small records through one merge-sorted stream; a
  * JPEG cannot travel that way, so a photo splits in two. The *key* replicates as
- * an ordinary `transactions` column and converges by the same last-write-wins
- * rule as everything else. The *bytes* go device→R2→device over signed urls
- * that this module mints, uses and discards.
+ * an ordinary column on the row that names it — see {@link PHOTO_TABLES} — and
+ * converges by the same last-write-wins rule as everything else. The *bytes* go
+ * device→R2→device over signed urls that this module mints, uses and discards.
  *
  * The two halves are not transactional with each other and cannot be, so every
  * order here is chosen for which half is safe to be missing:
@@ -88,19 +89,23 @@ interface PhotoRow {
 	imageKey: string | null;
 }
 
-async function photoRows(db: SpendDb, live: "uploadable" | "downloadable") {
-	return await db
+async function photoRows(
+	db: SpendDb,
+	photoTable: PhotoTable,
+	live: "uploadable" | "downloadable",
+): Promise<PhotoRow[]> {
+	return (await db
 		.select({
-			id: transactions.id,
-			imageUri: transactions.imageUri,
-			imageKey: transactions.imageKey,
+			id: photoTable.id,
+			imageUri: photoTable.imageUri,
+			imageKey: photoTable.imageKey,
 		})
-		.from(transactions)
+		.from(photoTable.table)
 		.where(
 			live === "uploadable"
-				? isNotNull(transactions.imageUri)
-				: and(isNotNull(transactions.imageKey), isNull(transactions.imageUri)),
-		);
+				? isNotNull(photoTable.imageUri)
+				: and(isNotNull(photoTable.imageKey), isNull(photoTable.imageUri)),
+		)) as PhotoRow[];
 }
 
 /**
@@ -123,46 +128,47 @@ export async function uploadPhotos(
 	transport: PhotoTransport,
 	now: Date,
 ): Promise<{ uploaded: number; released: number }> {
-	const rows = (await photoRows(db, "uploadable")) as PhotoRow[];
 	let uploaded = 0;
 	let released = 0;
 
-	for (const row of rows) {
-		if (uploaded >= PHOTO_SYNC_BATCH) {
-			break;
-		}
-		const uri = row.imageUri;
-		if (uri === null || keyMatchesPhoto(row.imageKey, uri)) {
-			continue;
-		}
+	for (const photoTable of PHOTO_TABLES) {
+		for (const row of await photoRows(db, photoTable, "uploadable")) {
+			if (uploaded >= PHOTO_SYNC_BATCH) {
+				return { uploaded, released };
+			}
+			const uri = row.imageUri;
+			if (uri === null || keyMatchesPhoto(row.imageKey, uri)) {
+				continue;
+			}
 
-		const name = photoFileName(uri);
-		const bytes = files.read(name);
-		if (name === "" || bytes === null) {
-			// The launch reconciliation owns "the file is not where the row says";
-			// re-pointing it here would duplicate that logic against a stale read.
-			continue;
-		}
+			const name = photoFileName(uri);
+			const bytes = files.read(name);
+			if (name === "" || bytes === null) {
+				// The launch reconciliation owns "the file is not where the row says";
+				// re-pointing it here would duplicate that logic against a stale read.
+				continue;
+			}
 
-		const superseded = row.imageKey;
-		const { key, url } = await transport.requestUpload(name);
-		const storageId = await transport.put(url, bytes);
-		await transport.confirmUpload(key, storageId);
+			const superseded = row.imageKey;
+			const { key, url } = await transport.requestUpload(name);
+			const storageId = await transport.put(url, bytes);
+			await transport.confirmUpload(key, storageId);
 
-		await db
-			.update(transactions)
-			.set({ imageKey: key, updatedAt: now })
-			// A photo replaced while the bytes were in flight must not be labelled
-			// with the key of the one that just went up.
-			.where(and(eq(transactions.id, row.id), eq(transactions.imageUri, uri)));
-		uploaded += 1;
+			await db
+				.update(photoTable.table)
+				.set({ imageKey: key, updatedAt: now })
+				// A photo replaced while the bytes were in flight must not be labelled
+				// with the key of the one that just went up.
+				.where(and(eq(photoTable.id, row.id), eq(photoTable.imageUri, uri)));
+			uploaded += 1;
 
-		if (superseded !== null && superseded !== key) {
-			try {
-				await transport.release(superseded);
-				released += 1;
-			} catch {
-				// Leaked, not lost. A later server-side sweep reclaims it.
+			if (superseded !== null && superseded !== key) {
+				try {
+					await transport.release(superseded);
+					released += 1;
+				} catch {
+					// Leaked, not lost. A later server-side sweep reclaims it.
+				}
 			}
 		}
 	}
@@ -188,36 +194,40 @@ export async function downloadPhotos(
 	files: PhotoFiles,
 	transport: PhotoTransport,
 ): Promise<number> {
-	const rows = (await photoRows(db, "downloadable")) as PhotoRow[];
-	const wanted = new Map<string, { id: string; name: string }[]>();
+	const wanted = new Map<
+		string,
+		{ photoTable: PhotoTable; id: string; name: string }[]
+	>();
 	const onDisk = new Set(files.list().map((photo) => photo.name));
 	let downloaded = 0;
 
-	const repoint = async (id: string, name: string) => {
+	const repoint = async (photoTable: PhotoTable, id: string, name: string) => {
 		await db
-			.update(transactions)
+			.update(photoTable.table)
 			// No `updatedAt` bump: the path is this handset's business and does not
 			// replicate, so presenting it as an edit would burn a sequence number on
 			// every other device for nothing.
 			.set({ imageUri: photoUriFor(files.directoryUri, name) })
-			.where(eq(transactions.id, id));
+			.where(eq(photoTable.id, id));
 	};
 
-	for (const row of rows) {
-		const key = row.imageKey;
-		const name = key === null ? null : photoNameFromKey(key);
-		if (key === null || name === null) {
-			continue;
+	for (const photoTable of PHOTO_TABLES) {
+		for (const row of await photoRows(db, photoTable, "downloadable")) {
+			const key = row.imageKey;
+			const name = key === null ? null : photoNameFromKey(key);
+			if (key === null || name === null) {
+				continue;
+			}
+			if (onDisk.has(name)) {
+				// Already here — the file survived while the path did not, or a sibling
+				// row shares the photo. Nothing to fetch.
+				await repoint(photoTable, row.id, name);
+				continue;
+			}
+			const bucket = wanted.get(key) ?? [];
+			bucket.push({ photoTable, id: row.id, name });
+			wanted.set(key, bucket);
 		}
-		if (onDisk.has(name)) {
-			// Already here — the file survived while the path did not, or a sibling
-			// row shares the photo. Nothing to fetch.
-			await repoint(row.id, name);
-			continue;
-		}
-		const bucket = wanted.get(key) ?? [];
-		bucket.push({ id: row.id, name });
-		wanted.set(key, bucket);
 	}
 
 	const keys = [...wanted.keys()].slice(0, PHOTO_SYNC_BATCH);
@@ -230,9 +240,9 @@ export async function downloadPhotos(
 		if (bytes === null) {
 			continue;
 		}
-		for (const { id, name } of wanted.get(key) ?? []) {
+		for (const { photoTable, id, name } of wanted.get(key) ?? []) {
 			files.write(name, bytes);
-			await repoint(id, name);
+			await repoint(photoTable, id, name);
 			downloaded += 1;
 		}
 	}

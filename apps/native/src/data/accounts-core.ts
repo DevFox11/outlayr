@@ -135,10 +135,19 @@ export const accountsRepo = {
 			currency !== existing.currency ||
 			initialBalanceDate.getTime() !== existing.initialBalanceDate.getTime();
 
+		// The twin of `removesPhoto` in transactions-core.ts: an account whose bytes
+		// this device has not fetched also has a null path, so only a removal read
+		// against the PREVIOUS path may clear the key.
+		const removesLogo =
+			existing.imageUri != null &&
+			"imageUri" in patch &&
+			patch.imageUri == null;
+
 		await db
 			.update(accounts)
 			.set({
 				...patch,
+				...(removesLogo ? { imageKey: null } : {}),
 				initialBalance,
 				currency,
 				initialBalanceDate,

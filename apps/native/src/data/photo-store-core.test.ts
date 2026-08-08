@@ -1,6 +1,6 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { transactions } from "@/db/schema";
+import { accounts, transactions } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 import {
 	PHOTO_PURGE_GRACE_MS,
@@ -49,6 +49,24 @@ function makeDb(): SpendDb {
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);
+		CREATE TABLE accounts (
+			id text PRIMARY KEY NOT NULL,
+			name text NOT NULL,
+			currency text NOT NULL,
+			initialBalance real NOT NULL DEFAULT 0,
+			initialBalanceUsd real,
+			initialBalanceDate integer NOT NULL,
+			icon text,
+			emoji text,
+			customColor text,
+			imageColor text,
+			imageUri text,
+			imageKey text,
+			sortOrder integer NOT NULL DEFAULT 0,
+			dateCreated integer NOT NULL,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
 	`);
 	return drizzle(sqlite) as unknown as SpendDb;
 }
@@ -78,6 +96,31 @@ async function storedUri(db: SpendDb, id: string): Promise<string | null> {
 	const rows = await db
 		.select({ id: transactions.id, imageUri: transactions.imageUri })
 		.from(transactions);
+	return rows.find((row) => row.id === id)?.imageUri ?? null;
+}
+
+async function insertAccount(db: SpendDb, id: string, imageUri: string | null) {
+	const date = new Date(NOW);
+	await db.insert(accounts).values({
+		id,
+		name: id,
+		currency: "USD",
+		initialBalance: 0,
+		initialBalanceDate: date,
+		imageUri,
+		dateCreated: date,
+		updatedAt: date,
+		deletedAt: null,
+	});
+}
+
+async function storedAccountUri(
+	db: SpendDb,
+	id: string,
+): Promise<string | null> {
+	const rows = await db
+		.select({ id: accounts.id, imageUri: accounts.imageUri })
+		.from(accounts);
 	return rows.find((row) => row.id === id)?.imageUri ?? null;
 }
 
@@ -244,6 +287,42 @@ describe("reconcilePhotos", () => {
 		expect(files.removed).toStrictEqual([]);
 		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
 		expect(result.purged).toBe(0);
+	});
+
+	it("keeps a logo only an account references", async () => {
+		await insertAccount(db, "a1", `${DIRECTORY}/logo.jpg`);
+		const files = new FakeFiles([["logo.jpg", SETTLED]]);
+
+		const result = await reconcilePhotos(db, files, NOW);
+
+		expect(files.removed).toStrictEqual([]);
+		expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/logo.jpg`);
+		expect(result.purged).toBe(0);
+	});
+
+	it("re-points an account at the current container path", async () => {
+		await insertAccount(
+			db,
+			"a1",
+			"file:///old-container/Documents/photos/l.jpg",
+		);
+		const files = new FakeFiles([["l.jpg", SETTLED]]);
+
+		const result = await reconcilePhotos(db, files, NOW);
+
+		expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/l.jpg`);
+		expect(result.repointed).toBe(1);
+		expect(result.purged).toBe(0);
+	});
+
+	it("clears an account whose logo is gone", async () => {
+		await insertAccount(db, "a1", "file:///tmp/ImagePicker/reclaimed.jpg");
+		const files = new FakeFiles();
+
+		const result = await reconcilePhotos(db, files, NOW);
+
+		expect(await storedAccountUri(db, "a1")).toBe(null);
+		expect(result.cleared).toBe(1);
 	});
 
 	it("is idempotent", async () => {

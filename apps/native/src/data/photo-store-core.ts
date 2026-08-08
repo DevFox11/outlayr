@@ -1,9 +1,40 @@
 import { eq, isNotNull } from "drizzle-orm";
-import { transactions } from "@/db/schema";
+import type { AnySQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
+import { accounts, transactions } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 
 /** Subfolder of the app's document directory that owns transaction photos. */
 export const PHOTO_DIRECTORY = "transaction-photos";
+
+export interface PhotoTable {
+	readonly table: SQLiteTable;
+	readonly id: AnySQLiteColumn;
+	readonly imageUri: AnySQLiteColumn;
+	readonly imageKey: AnySQLiteColumn;
+}
+
+/**
+ * Every table that names a photo.
+ *
+ * One directory holds all of them — an account logo is persisted by the same
+ * `persistPickedPhoto` a receipt is — so a walk that misses a table reads its
+ * files as orphans and purges them. `transactionPhotos` joins the list when
+ * something starts writing it.
+ */
+export const PHOTO_TABLES: readonly PhotoTable[] = [
+	{
+		table: transactions,
+		id: transactions.id,
+		imageUri: transactions.imageUri,
+		imageKey: transactions.imageKey,
+	},
+	{
+		table: accounts,
+		id: accounts.id,
+		imageUri: accounts.imageUri,
+		imageKey: accounts.imageKey,
+	},
+];
 
 /**
  * How long a file is spared from the orphan purge. A photo is written the moment
@@ -96,10 +127,6 @@ export async function reconcilePhotos(
 	const stored = new Map(
 		files.list().map((photo) => [photo.name, photo.modifiedAt]),
 	);
-	const rows = await db
-		.select({ id: transactions.id, imageUri: transactions.imageUri })
-		.from(transactions)
-		.where(isNotNull(transactions.imageUri));
 
 	const result: PhotoReconciliation = {
 		repointed: 0,
@@ -109,43 +136,50 @@ export async function reconcilePhotos(
 	};
 	const referenced = new Set<string>();
 
-	for (const row of rows) {
-		const uri = row.imageUri;
-		if (uri == null) {
-			continue;
-		}
+	for (const photoTable of PHOTO_TABLES) {
+		const rows = (await db
+			.select({ id: photoTable.id, imageUri: photoTable.imageUri })
+			.from(photoTable.table)
+			.where(isNotNull(photoTable.imageUri))) as {
+			id: string;
+			imageUri: string | null;
+		}[];
 
-		const name = photoFileName(uri);
-		if (name !== "" && stored.has(name)) {
-			referenced.add(name);
-			const current = photoUriFor(directoryUri, name);
-			if (uri !== current) {
-				await db
-					.update(transactions)
-					.set({ imageUri: current })
-					.where(eq(transactions.id, row.id));
-				result.repointed += 1;
-			}
-			continue;
-		}
-
-		const adopted = `${row.id}${photoExtension(name)}`;
-		if (files.adopt(uri, adopted)) {
-			stored.set(adopted, nowMs);
-			referenced.add(adopted);
+		const repoint = async (id: string, uri: string | null) =>
 			await db
-				.update(transactions)
-				.set({ imageUri: photoUriFor(directoryUri, adopted) })
-				.where(eq(transactions.id, row.id));
-			result.rescued += 1;
-			continue;
-		}
+				.update(photoTable.table)
+				.set({ imageUri: uri })
+				.where(eq(photoTable.id, id));
 
-		await db
-			.update(transactions)
-			.set({ imageUri: null })
-			.where(eq(transactions.id, row.id));
-		result.cleared += 1;
+		for (const row of rows) {
+			const uri = row.imageUri;
+			if (uri == null) {
+				continue;
+			}
+
+			const name = photoFileName(uri);
+			if (name !== "" && stored.has(name)) {
+				referenced.add(name);
+				const current = photoUriFor(directoryUri, name);
+				if (uri !== current) {
+					await repoint(row.id, current);
+					result.repointed += 1;
+				}
+				continue;
+			}
+
+			const adopted = `${row.id}${photoExtension(name)}`;
+			if (files.adopt(uri, adopted)) {
+				stored.set(adopted, nowMs);
+				referenced.add(adopted);
+				await repoint(row.id, photoUriFor(directoryUri, adopted));
+				result.rescued += 1;
+				continue;
+			}
+
+			await repoint(row.id, null);
+			result.cleared += 1;
+		}
 	}
 
 	for (const [name, modifiedAt] of stored) {

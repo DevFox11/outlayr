@@ -1,3 +1,4 @@
+import { getTableName } from "drizzle-orm";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
@@ -5,9 +6,14 @@ import type { Database } from "@/db/client";
 import { photoTransport } from "@/lib/convex";
 import { photoFiles } from "@/lib/photo-storage";
 import { debounce } from "@/lib/sync-cadence";
+import { PHOTO_TABLES } from "./photo-store-core";
 import { runPhotoSync } from "./photo-sync-core";
 import { isSyncEnabled } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
+
+const PHOTO_TABLE_NAMES = PHOTO_TABLES.map((photoTable) =>
+	getTableName(photoTable.table),
+);
 
 /**
  * Longer than `useSyncEngine`'s: a photo pass moves whole files, and a burst of
@@ -50,7 +56,7 @@ export function usePhotoSync(db: Database | null): void {
 				if (downloaded > 0) {
 					// Only a download changes what a screen can draw; an upload records
 					// a key nothing renders.
-					invalidateAll(["transactions"]);
+					invalidateAll(PHOTO_TABLE_NAMES);
 				}
 			} catch (error) {
 				console.warn("[outlayr] photo sync failed", error);
@@ -66,7 +72,7 @@ export function usePhotoSync(db: Database | null): void {
 		void cycle();
 
 		const listener = addDatabaseChangeListener((event) => {
-			if (event.tableName === "transactions") {
+			if (PHOTO_TABLE_NAMES.includes(event.tableName)) {
 				schedule.schedule();
 			}
 		});

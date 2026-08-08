@@ -323,6 +323,11 @@ export const readUrls = query({
 /**
  * Whether any row in the account still names `key`.
  *
+ * Every table carrying an `imageKey` has to be asked. The device mints one key
+ * shape for all of them — `apps/native/src/data/photo-store-core.ts` lists them
+ * — so a table left out here reads as unreferenced and its bytes are freed
+ * while a row still points at them.
+ *
  * Tombstoned rows count. A tombstone is what the undo window restores from and
  * what a device that has not pulled yet is still rendering, so treating one as
  * unreferenced would delete bytes two live readers can name.
@@ -332,11 +337,18 @@ async function isReferenced(
 	userId: string,
 	key: string,
 ): Promise<boolean> {
-	const rows = await ctx.db
+	const transactionRows = await ctx.db
 		.query("transactions")
 		.withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
 		.collect();
-	return rows.some((row) => row.imageKey === key);
+	if (transactionRows.some((row) => row.imageKey === key)) {
+		return true;
+	}
+	const accountRows = await ctx.db
+		.query("accounts")
+		.withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+		.collect();
+	return accountRows.some((row) => row.imageKey === key);
 }
 
 /**

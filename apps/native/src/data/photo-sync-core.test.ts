@@ -1,7 +1,7 @@
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { transactions } from "@/db/schema";
+import { accounts, transactions } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 import type { PhotoFiles } from "./photo-store-core";
 import {
@@ -51,6 +51,24 @@ function makeDb(): SpendDb {
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);
+		CREATE TABLE accounts (
+			id text PRIMARY KEY NOT NULL,
+			name text NOT NULL,
+			currency text NOT NULL,
+			initialBalance real NOT NULL DEFAULT 0,
+			initialBalanceUsd real,
+			initialBalanceDate integer NOT NULL,
+			icon text,
+			emoji text,
+			customColor text,
+			imageColor text,
+			imageUri text,
+			imageKey text,
+			sortOrder integer NOT NULL DEFAULT 0,
+			dateCreated integer NOT NULL,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
 	`);
 	return drizzle(sqlite) as unknown as SpendDb;
 }
@@ -86,6 +104,37 @@ async function readRow(db: SpendDb, id: string) {
 		})
 		.from(transactions)
 		.where(eq(transactions.id, id));
+	return rows[0];
+}
+
+async function insertAccount(
+	db: SpendDb,
+	id: string,
+	values: { imageUri?: string | null; imageKey?: string | null } = {},
+) {
+	await db.insert(accounts).values({
+		id,
+		name: id,
+		currency: "USD",
+		initialBalance: 0,
+		initialBalanceDate: NOW,
+		imageUri: values.imageUri ?? null,
+		imageKey: values.imageKey ?? null,
+		dateCreated: NOW,
+		updatedAt: EARLIER,
+		deletedAt: null,
+	});
+}
+
+async function readAccount(db: SpendDb, id: string) {
+	const rows = await db
+		.select({
+			imageUri: accounts.imageUri,
+			imageKey: accounts.imageKey,
+			updatedAt: accounts.updatedAt,
+		})
+		.from(accounts)
+		.where(eq(accounts.id, id));
 	return rows[0];
 }
 
@@ -333,6 +382,43 @@ describe("uploadPhotos", () => {
 			PHOTO_SYNC_BATCH,
 		);
 	});
+
+	it("sends an account logo and records its key", async () => {
+		const db = makeDb();
+		const files = new FakeFiles(DIRECTORY, [["logo.jpg", "LOGO"]]);
+		const { bucket, transport } = fakeTransport();
+		await insertAccount(db, "a1", { imageUri: `${DIRECTORY}/logo.jpg` });
+
+		const result = await uploadPhotos(db, files, transport, NOW);
+
+		expect(result.uploaded).toBe(1);
+		const row = await readAccount(db, "a1");
+		expect(row.imageKey).toBe(`transaction-photos/${USER}/logo.jpg`);
+		expect(row.updatedAt.getTime()).toBe(NOW.getTime());
+		expect(
+			bucket.objects.get(`transaction-photos/${USER}/logo.jpg`),
+		).toStrictEqual(new TextEncoder().encode("LOGO"));
+	});
+
+	it("spends one batch across every table rather than one each", async () => {
+		const db = makeDb();
+		const seeded: [string, string][] = [["logo.jpg", "LOGO"]];
+		for (let i = 0; i < PHOTO_SYNC_BATCH; i += 1) {
+			seeded.push([`p${i}.jpg`, `BODY${i}`]);
+		}
+		const files = new FakeFiles(DIRECTORY, seeded);
+		const { transport } = fakeTransport();
+		for (let i = 0; i < PHOTO_SYNC_BATCH; i += 1) {
+			await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
+		}
+		await insertAccount(db, "a1", { imageUri: `${DIRECTORY}/logo.jpg` });
+
+		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(
+			PHOTO_SYNC_BATCH,
+		);
+		// Left for the next pass, not silently skipped.
+		expect((await readAccount(db, "a1")).imageKey).toBe(null);
+	});
 });
 
 describe("downloadPhotos", () => {
@@ -425,6 +511,29 @@ describe("downloadPhotos", () => {
 		expect(await downloadPhotos(db, peer, transport)).toBe(2);
 		expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
 		expect((await readRow(db, "t2")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
+	});
+
+	it("fetches an account logo whose row arrived first", async () => {
+		const db = makeDb();
+		const peer = new FakeFiles(PEER_DIRECTORY);
+		const { bucket, transport } = fakeTransport();
+		bucket.objects.set(
+			`transaction-photos/${USER}/logo.jpg`,
+			new TextEncoder().encode("LOGO"),
+		);
+		await insertAccount(db, "a1", {
+			imageKey: `transaction-photos/${USER}/logo.jpg`,
+		});
+
+		expect(await downloadPhotos(db, peer, transport)).toBe(1);
+		expect(peer.read("logo.jpg")).toStrictEqual(
+			new TextEncoder().encode("LOGO"),
+		);
+		const row = await readAccount(db, "a1");
+		expect(row.imageUri).toBe(`${PEER_DIRECTORY}/logo.jpg`);
+		// The path is this handset's business; presenting it as an edit would burn
+		// a sequence number on every other device.
+		expect(row.updatedAt.getTime()).toBe(EARLIER.getTime());
 	});
 });
 

@@ -232,6 +232,33 @@ describe("accountsRepo.update", () => {
 		expect(getAccountById(db, id)?.initialBalanceUsd).toBe(100);
 	});
 
+	it("clears the key when the logo is taken off", async () => {
+		const id = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+			imageUri: "file:///photos/logo.jpg",
+			imageKey: "transaction-photos/user/logo.jpg",
+		});
+
+		await accountsRepo.update(db, id, { imageUri: null });
+
+		expect(getAccountById(db, id)?.imageKey).toBe(null);
+	});
+
+	it("keeps the key of a logo this device has yet to fetch", async () => {
+		const id = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+			imageKey: "transaction-photos/user/logo.jpg",
+		});
+
+		await accountsRepo.update(db, id, { name: "Renamed", imageUri: null });
+
+		expect(getAccountById(db, id)?.imageKey).toBe(
+			"transaction-photos/user/logo.jpg",
+		);
+	});
+
 	it("stamps updatedAt", async () => {
 		const id = await accountsRepo.create(db, {
 			name: "Checking",

@@ -59,6 +59,32 @@ function transactionRow(
 	};
 }
 
+function accountRow(
+	localId: string,
+	options: { imageKey?: string | null } = {},
+): PushRows[number] {
+	return {
+		table: "accounts",
+		localId,
+		updatedAt: 100,
+		deletedAt: null,
+		fields: {
+			name: "Checking",
+			currency: "USD",
+			initialBalance: 0,
+			initialBalanceUsd: 0,
+			initialBalanceDate: 1_700_000_000_000,
+			icon: null,
+			emoji: null,
+			customColor: null,
+			imageColor: null,
+			imageKey: options.imageKey ?? null,
+			sortOrder: 0,
+			dateCreated: 1_700_000_000_000,
+		},
+	};
+}
+
 function push(t: TestClient, who: SeededIdentity, rows: PushRows) {
 	return authenticatedAs(t, who).mutation(api.sync.push, {
 		deviceId: DEVICE,
@@ -270,6 +296,19 @@ describe("releaseUnreferenced", () => {
 
 		// The undo window restores from a tombstone, and a device that has not
 		// pulled the delete is still rendering the photo.
+		await expect(
+			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
+				key,
+			}),
+		).resolves.toEqual({ released: false });
+	});
+
+	test("keeps an object only an account logo names", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		const key = photoKeyFor(owner.userId, PHOTO);
+		await push(t, owner, [accountRow("a1", { imageKey: key })]);
+
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
 				key,
