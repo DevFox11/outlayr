@@ -171,6 +171,38 @@ const transaction = {
 			en: "Will be created under {parent}",
 			es: "Se creará dentro de {parent}",
 		}),
+		"transaction.category.search": t({
+			en: "Search categories",
+			es: "Buscar categorías",
+		}),
+		"transaction.category.recent": t({
+			en: "Recent",
+			es: "Recientes",
+		}),
+		"transaction.category.all": t({
+			en: "All categories",
+			es: "Todas las categorías",
+		}),
+		"transaction.category.suggested": t({
+			en: "Suggested",
+			es: "Sugerida",
+		}),
+		"transaction.category.noMatches": t({
+			en: "No category matches “{query}”",
+			es: "Ninguna categoría coincide con «{query}»",
+		}),
+		"transaction.category.createNamed": t({
+			en: "Create “{query}”",
+			es: "Crear «{query}»",
+		}),
+		"transaction.category.a11yExpand": t({
+			en: "Show subcategories of {name}",
+			es: "Mostrar subcategorías de {name}",
+		}),
+		"transaction.category.a11yCollapse": t({
+			en: "Hide subcategories of {name}",
+			es: "Ocultar subcategorías de {name}",
+		}),
 		"transaction.cta.save": t({
 			en: "Save Changes",
 			es: "Guardar cambios",

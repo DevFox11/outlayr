@@ -75,6 +75,12 @@ import {
 	transactionsRepo,
 } from "@/data/transactions";
 import type { Database } from "@/db/client";
+import { firstAvailableColor } from "@/domain/category-color";
+import {
+	FALLBACK_EXPENSE_ICON,
+	FALLBACK_INCOME_ICON,
+	iconKeysMatching,
+} from "@/domain/category-icon-catalog";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
 import { amountParts, minorUnitsFor } from "@/domain/money";
@@ -555,6 +561,35 @@ export function TransactionForm({
 		setCategorySource("user");
 		setCategoryError(false);
 	});
+	const createCategoryNamed = useCallback(
+		async (name: string) => {
+			const siblings = categoriesRef.current;
+			const used = new Set(
+				siblings
+					.map((sibling) => sibling.color)
+					.filter((color): color is string => color != null),
+			);
+			const fallbackIcon = income
+				? FALLBACK_INCOME_ICON
+				: FALLBACK_EXPENSE_ICON;
+			try {
+				const id = await ensureCategoryByName(
+					db,
+					name,
+					income,
+					iconKeysMatching(name)[0] ?? fallbackIcon,
+					firstAvailableColor(used),
+				);
+				const created = getCategoryById(db, id);
+				if (created != null) {
+					categoryField.select(created);
+				}
+			} catch (error) {
+				console.error("Failed to create the category", error);
+			}
+		},
+		[db, income, categoryField.select],
+	);
 	const tagSheetRef = useRef<BottomSheetModal>(null);
 	const accountSheetRef = useRef<BottomSheetModal>(null);
 	const allTags = useTags(db);
@@ -1475,6 +1510,7 @@ export function TransactionForm({
 				<CategoryPickerSheet
 					db={db}
 					income={income}
+					onCreate={createCategoryNamed}
 					onSelect={categoryField.select}
 					pendingCategory={pendingCategory}
 					ref={categoryField.ref}

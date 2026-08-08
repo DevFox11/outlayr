@@ -103,17 +103,22 @@ export function useCategoriesByNamespace(
 				.orderBy(asc(categories.sortOrder)),
 		[income],
 	) as Category[];
-	const parents = rows.filter((row) => row.parentId == null);
-	const childrenByParent = new Map<string, Category[]>();
-	for (const row of rows) {
-		if (row.parentId != null) {
-			const bucket = childrenByParent.get(row.parentId) ?? [];
-			bucket.push(row);
-			childrenByParent.set(row.parentId, bucket);
+	// Memoized so the nested objects keep their identity between renders: the
+	// picker's rows are `memo`'d, and a freshly spread parent on every render
+	// would re-render the whole list on each keystroke.
+	return useMemo(() => {
+		const parents = rows.filter((row) => row.parentId == null);
+		const childrenByParent = new Map<string, Category[]>();
+		for (const row of rows) {
+			if (row.parentId != null) {
+				const bucket = childrenByParent.get(row.parentId) ?? [];
+				bucket.push(row);
+				childrenByParent.set(row.parentId, bucket);
+			}
 		}
-	}
-	return parents.map((parent) => ({
-		...parent,
-		children: childrenByParent.get(parent.id) ?? [],
-	}));
+		return parents.map((parent) => ({
+			...parent,
+			children: childrenByParent.get(parent.id) ?? [],
+		}));
+	}, [rows]);
 }
