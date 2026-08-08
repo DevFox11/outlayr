@@ -15,7 +15,6 @@ import {
 	contentShape,
 	font,
 	foregroundStyle,
-	keyboardType,
 	listSectionMargins,
 	multilineTextAlignment,
 	onSubmit,
@@ -43,14 +42,16 @@ interface AccountEditorDetailsSectionProps {
 	currencyLabel: string;
 	balanceLabel: string;
 	balanceSignA11y: string;
-	balanceState: ReturnType<typeof useNativeState<string>>;
+	balanceEditA11y: string;
+	/** Already formatted for the active language and currency. */
+	balanceValue: string;
 	mutedColor: string;
 	nameFieldRef: RefObject<TextFieldRef | null>;
 	nameLabel: string;
 	namePlaceholder: string;
 	nameState: ReturnType<typeof useNativeState<string>>;
 	negative: boolean;
-	onBalanceChange: (text: string) => void;
+	onBalancePress: () => void;
 	onCurrencyPress: () => void;
 	onNameChange: (name: string) => void;
 	onSubmitName: () => void;
@@ -64,14 +65,15 @@ export function AccountEditorDetailsSection({
 	currencyLabel,
 	balanceLabel,
 	balanceSignA11y,
-	balanceState,
+	balanceEditA11y,
+	balanceValue,
 	mutedColor,
 	nameFieldRef,
 	nameLabel,
 	namePlaceholder,
 	nameState,
 	negative,
-	onBalanceChange,
+	onBalancePress,
 	onCurrencyPress,
 	onNameChange,
 	onSubmitName,
@@ -145,15 +147,17 @@ export function AccountEditorDetailsSection({
 						{negative ? "−" : "+"}
 					</SwiftText>
 				</Button>
-				<TextField
+				<Button
 					modifiers={[
-						multilineTextAlignment("trailing"),
-						keyboardType("decimal-pad"),
+						buttonStyle("plain"),
+						accessibilityLabel(balanceEditA11y),
 					]}
-					onTextChange={onBalanceChange}
-					placeholder="0"
-					text={balanceState}
-				/>
+					onPress={onBalancePress}
+				>
+					<SwiftText modifiers={[foregroundStyle(tintColor)]}>
+						{balanceValue}
+					</SwiftText>
+				</Button>
 			</HStack>
 		</Section>
 	);

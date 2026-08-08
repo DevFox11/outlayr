@@ -24,6 +24,11 @@ jest.mock("expo-sqlite", () => ({
 }));
 jest.mock("@/i18n", () => ({
 	useTranslation: () => (key: string) => key,
+	useLanguage: () => ({
+		language: "en",
+		preference: "system",
+		setPreference: () => {},
+	}),
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({

@@ -849,15 +849,15 @@ const settings = {
 		}),
 		"settings.numberEntry.type1Detail": t({
 			en: "The last two digits are cents. Type 1234 to get 12.34.",
-			es: "Los dos últimos dígitos son centavos. Escribe 1234 para obtener 12.34.",
+			es: "Los dos últimos dígitos son centavos. Escribe 1234 para obtener 12,34.",
 		}),
 		"settings.numberEntry.type2": t({
 			en: "Type 2",
 			es: "Tipo 2",
 		}),
 		"settings.numberEntry.type2Detail": t({
-			en: "Whole amounts only. Type 12 to get 12.",
-			es: "Solo montos enteros. Escribe 12 para obtener 12.",
+			en: "Type the decimal point yourself. 12.34 stays 12.34.",
+			es: "Escribe tú la coma decimal. 12,34 se queda en 12,34.",
 		}),
 		"settings.theme.system": t({
 			en: "System",

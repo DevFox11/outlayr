@@ -1,4 +1,6 @@
 import { utcDateString } from "@outlayr/money";
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
 import {
 	type AccountCompositionEntry,
 	accountBalance,
@@ -12,33 +14,10 @@ export function formatSignedAmount(
 	amount: number,
 	code: string,
 	showCents = true,
+	language: Language = runtimeLanguage(),
 ): string {
-	const magnitude = formatAmount(Math.abs(amount), code, showCents);
+	const magnitude = formatAmount(Math.abs(amount), code, showCents, language);
 	return amount < 0 ? `-${magnitude}` : magnitude;
-}
-
-/**
- * What the initial-balance field typed. Null for empty or unparseable text —
- * the caller decides whether empty means zero.
- */
-export function parseSignedAmount(text: string): number | null {
-	const cleaned = text.trim().replace(/,/g, "");
-	if (cleaned === "" || cleaned === "-" || cleaned === ".") {
-		return null;
-	}
-	if (!/^-?\d*\.?\d*$/.test(cleaned)) {
-		return null;
-	}
-	const value = Number(cleaned);
-	return Number.isFinite(value) ? value : null;
-}
-
-/** Seeds the edit field: plain unsigned digits, no grouping the pad cannot retype. */
-export function balanceEditText(amount: number): string {
-	if (amount === 0) {
-		return "";
-	}
-	return String(Math.abs(amount));
 }
 
 export function isMultiCurrency(

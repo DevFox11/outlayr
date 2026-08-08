@@ -21,7 +21,7 @@ import {
 	measureMagnitude,
 } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
-import { amountParts } from "@/domain/money";
+import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
 import { useTranslation } from "@/i18n";
 import { MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
@@ -181,9 +181,8 @@ function AlsoPill({
 		figures.currencyCode,
 		showCents,
 	);
-	const amount = `${measureIsPositive(measure, figures) ? "+" : "-"}${
-		parts.symbol
-	}${parts.integer}${parts.fraction ? `.${parts.fraction}` : ""}`;
+	const sign = measureIsPositive(measure, figures) ? "+" : "-";
+	const amount = `${sign}${withCurrencySymbol(parts, amountDigits(parts))}`;
 
 	return (
 		<View

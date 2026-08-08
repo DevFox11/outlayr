@@ -1,7 +1,7 @@
 import { View } from "react-native";
 
 import { Text } from "@/components/text";
-import { amountParts } from "@/domain/money";
+import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
 
 const TABULAR = { fontVariant: ["tabular-nums" as const] };
 
@@ -27,28 +27,32 @@ export function LogHeroNumber({
 	showCents = true,
 }: LogHeroNumberProps) {
 	const parts = amountParts(magnitude, code, showCents);
-	const digits = parts.fraction
-		? `${parts.integer}.${parts.fraction}`
-		: parts.integer;
+	const digits = amountDigits(parts);
+	const sign = positive ? "+" : "-";
+	// The row's own `gap-1` spaces the symbol, so the locale's glue would double it.
+	const trailing = parts.locale.placement === "suffix";
 	// Sized down as the symbol lengthens: a one-character "$" can sit close to the
 	// figure, but a four-character "Bs.D" at the same weight reads as part of it.
 	const symbolSize = FONT_SIZE * (parts.symbol.length > 1 ? 0.44 : 0.6);
+	const symbol = (
+		<Text
+			className="font-sans text-muted"
+			style={{ fontSize: symbolSize }}
+			numberOfLines={1}
+		>
+			{trailing ? null : sign}
+			{parts.symbol}
+		</Text>
+	);
 
 	return (
 		<View
 			className="flex-row items-baseline gap-1"
 			// Symbol and digits are one figure, not two things to swipe between.
 			accessible
-			accessibilityLabel={`${positive ? "+" : "-"}${parts.symbol}${digits}`}
+			accessibilityLabel={`${sign}${withCurrencySymbol(parts, digits)}`}
 		>
-			<Text
-				className="font-sans text-muted"
-				style={{ fontSize: symbolSize }}
-				numberOfLines={1}
-			>
-				{positive ? "+" : "-"}
-				{parts.symbol}
-			</Text>
+			{trailing ? null : symbol}
 			<Text
 				className="shrink font-sans text-foreground"
 				style={[TABULAR, { fontSize: FONT_SIZE }]}
@@ -56,8 +60,10 @@ export function LogHeroNumber({
 				adjustsFontSizeToFit
 				minimumFontScale={0.5}
 			>
+				{trailing ? sign : null}
 				{digits}
 			</Text>
+			{trailing ? symbol : null}
 		</View>
 	);
 }

@@ -5,7 +5,12 @@ import {
 	rowAmountLabel,
 } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
-import { amountParts } from "@/domain/money";
+import {
+	amountDigits,
+	amountParts,
+	splitSymbol,
+	withCurrencySymbol,
+} from "@/domain/money";
 import { useTranslation } from "@/i18n";
 import { Text } from "./text";
 import { cn, tv } from "./tw";
@@ -36,6 +41,7 @@ export function HeroNumber({
 	const parts = amountParts(amount, code, showCents);
 	const resolvedSign = sign ?? (amount < 0 ? "-" : "+");
 	const small = Math.round(size * 0.5);
+	const { prefixSymbol, suffixSymbol } = splitSymbol(parts);
 	return (
 		<Text
 			className={cn("font-sans tracking-hero", toneClass)}
@@ -45,12 +51,18 @@ export function HeroNumber({
 		>
 			<Text className="font-sans text-muted" style={{ fontSize: small }}>
 				{resolvedSign}
-				{parts.symbol}
+				{prefixSymbol}
 			</Text>
 			{parts.integer}
 			{parts.fraction ? (
 				<Text className="font-sans text-muted" style={{ fontSize: small }}>
-					.{parts.fraction}
+					{parts.locale.decimal}
+					{parts.fraction}
+				</Text>
+			) : null}
+			{suffixSymbol ? (
+				<Text className="font-sans text-muted" style={{ fontSize: small }}>
+					{suffixSymbol}
 				</Text>
 			) : null}
 		</Text>
@@ -100,9 +112,7 @@ export function RowAmount({
 			numberOfLines={1}
 		>
 			{sign}
-			{parts.symbol}
-			{parts.integer}
-			{parts.fraction ? `.${parts.fraction}` : ""}
+			{withCurrencySymbol(parts, amountDigits(parts))}
 		</Text>
 	);
 }
@@ -136,9 +146,7 @@ export function MeasureCellAmount({
 			numberOfLines={1}
 		>
 			{sign}
-			{parts.symbol}
-			{parts.integer}
-			{parts.fraction ? `.${parts.fraction}` : ""}
+			{withCurrencySymbol(parts, amountDigits(parts))}
 		</Text>
 	);
 }
@@ -158,9 +166,8 @@ function signedAmount(
 	showCents: boolean,
 ): string {
 	const parts = amountParts(amount, code, showCents);
-	return `${amount < 0 ? "-" : "+"}${parts.symbol}${parts.integer}${
-		parts.fraction ? `.${parts.fraction}` : ""
-	}`;
+	const sign = amount < 0 ? "-" : "+";
+	return `${sign}${withCurrencySymbol(parts, amountDigits(parts))}`;
 }
 
 /**

@@ -1,7 +1,7 @@
 import type { CurrencyBucket } from "./currency-totals";
 import { formatDayHeader, formatTime } from "./dates";
 import type { DayCardInput } from "./day-card";
-import { amountParts } from "./money";
+import { amountDigits, amountParts, withCurrencySymbol } from "./money";
 
 export interface CardableTransaction {
 	note: string;
@@ -29,9 +29,7 @@ export interface DayCardOptions {
 
 function figure(amount: number, code: string, showCents: boolean): string {
 	const parts = amountParts(amount, code, showCents);
-	return `${parts.symbol}${parts.integer}${
-		parts.fraction ? `.${parts.fraction}` : ""
-	}`;
+	return withCurrencySymbol(parts, amountDigits(parts));
 }
 
 function signed(amount: number, code: string, showCents: boolean): string {

@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
@@ -26,7 +27,8 @@ import {
 import { useDatabase } from "@/contexts/local-data-context";
 import { type Account, accountsRepo, getAccountById } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { balanceEditText, parseSignedAmount } from "@/domain/account-display";
+import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
+import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useAccountIdentity } from "@/hooks/use-account-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useRegionCode } from "@/hooks/use-region-code";
@@ -94,22 +96,31 @@ function AccountEditorReady(
 	);
 
 	const nameState = useNativeState(loaded?.name ?? "");
-	const balanceState = useNativeState(
-		balanceEditText(loaded?.initialBalance ?? 0),
-	);
 	const nameRef = useRef<TextFieldRef>(null);
 	const currencySheetRef = useRef<BottomSheetModal>(null);
+	const balanceSheetRef = useRef<BottomSheetModal>(null);
 
-	const [initialValues] = useState(() => ({
-		name: loaded?.name ?? "",
-		currency: loaded?.currency ?? globalCurrency,
-		balanceText: balanceEditText(loaded?.initialBalance ?? 0),
-		negative: (loaded?.initialBalance ?? 0) < 0,
-	}));
+	const [initialValues] = useState(() => {
+		const startingCurrency = loaded?.currency ?? globalCurrency;
+		return {
+			name: loaded?.name ?? "",
+			currency: startingCurrency,
+			balanceText: numberToNumpad(
+				Math.abs(loaded?.initialBalance ?? 0),
+				minorUnitsFor(startingCurrency),
+			),
+			negative: (loaded?.initialBalance ?? 0) < 0,
+		};
+	});
 	const form = useForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
-			const magnitude = Math.abs(parseSignedAmount(value.balanceText) ?? 0);
+			// A currency swapped after typing can leave more precision in the pad
+			// than the new code has minor units — JPY cannot hold "12.34".
+			const magnitude = roundToMinorUnits(
+				numpadToNumber(value.balanceText),
+				value.currency,
+			);
 			const initialBalance = value.negative ? -magnitude : magnitude;
 			try {
 				if (mode === "create") {
@@ -257,11 +268,7 @@ function AccountEditorReady(
 		identity.onNameChange(next);
 	};
 
-	const parsedBalance = parseSignedAmount(balanceText);
-	const canSave =
-		name.trim() !== "" &&
-		(balanceText.trim() === "" || parsedBalance !== null) &&
-		!isSubmitting;
+	const canSave = name.trim() !== "" && !isSubmitting;
 
 	const tint = draft.photoColor ?? draft.color ?? colors.foreground;
 	const symbolEmpty = !draft.icon && !draft.emoji && !draft.photoUri;
@@ -293,6 +300,11 @@ function AccountEditorReady(
 		currencySheetRef.current?.present();
 	};
 
+	const openBalancePad = () => {
+		Keyboard.dismiss();
+		balanceSheetRef.current?.present();
+	};
+
 	return (
 		<View
 			onLayout={(e) => {
@@ -318,9 +330,10 @@ function AccountEditorReady(
 						]}
 					>
 						<AccountEditorDetailsSection
+							balanceEditA11y={t("accounts.a11y.editBalance")}
 							balanceLabel={t("accounts.field.initialBalance")}
 							balanceSignA11y={t("accounts.a11y.balanceSign")}
-							balanceState={balanceState}
+							balanceValue={formatAmount(numpadToNumber(balanceText), currency)}
 							caption={mode === "edit" ? t("accounts.rebaseNote") : null}
 							currencyCode={currency}
 							currencyLabel={t("accounts.field.currency")}
@@ -330,9 +343,7 @@ function AccountEditorReady(
 							namePlaceholder={t("accounts.namePlaceholder")}
 							nameState={nameState}
 							negative={negative}
-							onBalanceChange={(next) =>
-								form.setFieldValue("balanceText", next)
-							}
+							onBalancePress={openBalancePad}
 							onCurrencyPress={openCurrencyPicker}
 							onNameChange={onNameChange}
 							onSubmitName={() => pressSubmit(form)}
@@ -383,6 +394,15 @@ function AccountEditorReady(
 				onSelect={(code) => form.setFieldValue("currency", code)}
 				ref={currencySheetRef}
 				selected={currency}
+			/>
+
+			<AmountEntrySheet
+				code={currency}
+				minorUnits={minorUnitsFor(currency)}
+				onChange={(next) => form.setFieldValue("balanceText", next)}
+				onDone={() => balanceSheetRef.current?.dismiss()}
+				ref={balanceSheetRef}
+				value={balanceText}
 			/>
 
 			<IdentityFlyUpLayer

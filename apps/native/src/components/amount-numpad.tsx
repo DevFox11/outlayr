@@ -7,7 +7,7 @@ import { useLocalData } from "@/contexts/local-data-context";
 import { useLiveQuery } from "@/data/live-query";
 import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings";
 import { appMeta } from "@/db/schema";
-import { currencySymbol } from "@/domain/money";
+import { currencySymbol, numberLocale } from "@/domain/money";
 import {
 	applyNumpadKey,
 	type NumpadKey,
@@ -16,7 +16,7 @@ import {
 	numpadMode,
 	numpadToNumber,
 } from "@/domain/numpad";
-import { useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
@@ -74,7 +74,9 @@ export function AmountNumpad({
 	const colors = useColors();
 	const haptics = useHaptics();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const mode = useNumpadMode();
+	const locale = numberLocale(language);
 	const symbol = currencySymbol(code);
 	const amountColor = toneClass?.includes("income")
 		? colors.income
@@ -102,8 +104,9 @@ export function AmountNumpad({
 					<View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
 						<NumberFlow
 							value={numpadToNumber(value)}
-							prefix={`${symbol} `}
-							locales="en-US"
+							prefix={locale.placement === "prefix" ? `${symbol} ` : undefined}
+							suffix={locale.placement === "suffix" ? ` ${symbol}` : undefined}
+							locales={locale.tag}
 							format={{
 								minimumFractionDigits: minorUnits,
 								maximumFractionDigits: minorUnits,
@@ -125,6 +128,7 @@ export function AmountNumpad({
 							<NumpadKeyTile
 								key={key}
 								label={key}
+								glyph={key === "." ? locale.decimal : key}
 								hidden={
 									key === "." && (minorUnits === 0 || mode === "preDotted")
 								}
@@ -142,12 +146,15 @@ export function AmountNumpad({
 
 function NumpadKeyTile({
 	label,
+	glyph,
 	hidden,
 	fg,
 	onPress,
 	onLongPress,
 }: {
 	label: NumpadTileKey;
+	/** The separator key draws the active language's mark, not the canonical ".". */
+	glyph: string;
 	hidden: boolean;
 	fg: string;
 	onPress: () => void;
@@ -164,7 +171,7 @@ function NumpadKeyTile({
 			onLongPress={onLongPress}
 			accessibilityRole="button"
 			accessibilityLabel={
-				label === "back" ? t("transaction.numpad.delete") : label
+				label === "back" ? t("transaction.numpad.delete") : glyph
 			}
 		>
 			{GLASS ? (
@@ -182,7 +189,7 @@ function NumpadKeyTile({
 				/>
 			) : (
 				<Text className="font-sans-medium text-[30px] text-foreground">
-					{label}
+					{glyph}
 				</Text>
 			)}
 		</Pressable>

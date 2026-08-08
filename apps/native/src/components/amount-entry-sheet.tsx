@@ -19,6 +19,7 @@ interface AmountEntrySheetProps {
 	code: string;
 	toneClass?: string;
 	onChange: (next: string) => void;
+	/** Omitted where the caller already owns a currency control of its own. */
 	onCurrencyChange?: (code: string) => void;
 	onDone: () => void;
 	ref?: Ref<BottomSheetModal>;
@@ -43,22 +44,28 @@ export function AmountEntrySheet({
 		<BottomSheetModal ref={ref} enableDynamicSizing enablePanDownToClose>
 			<BottomSheetView style={{ paddingBottom: 8 }}>
 				<View className="flex-row items-center justify-between px-4 pt-2 pb-1">
-					<GlassButton
-						onPress={() => currencySheetRef.current?.present()}
-						accessibilityLabel={t("transaction.amount.changeCurrency")}
-						className="h-11 rounded-[22px] px-[15px]"
-					>
-						<Text className="font-sans-semibold text-body text-foreground">
+					{onCurrencyChange ? (
+						<GlassButton
+							onPress={() => currencySheetRef.current?.present()}
+							accessibilityLabel={t("transaction.amount.changeCurrency")}
+							className="h-11 rounded-[22px] px-[15px]"
+						>
+							<Text className="font-sans-semibold text-body text-foreground">
+								{`${code} (${symbol})`}
+							</Text>
+							<SymbolView
+								name="chevron.down"
+								size={12}
+								weight="semibold"
+								tintColor={colors.muted}
+								type="monochrome"
+							/>
+						</GlassButton>
+					) : (
+						<Text className="px-[15px] font-sans-semibold text-body text-muted">
 							{`${code} (${symbol})`}
 						</Text>
-						<SymbolView
-							name="chevron.down"
-							size={12}
-							weight="semibold"
-							tintColor={colors.muted}
-							type="monochrome"
-						/>
-					</GlassButton>
+					)}
 
 					<GlassButton
 						onPress={onDone}
@@ -98,14 +105,16 @@ export function AmountEntrySheet({
 				</View>
 			</BottomSheetView>
 
-			<CurrencyPickerSheet
-				ref={currencySheetRef}
-				selected={code}
-				onSelect={(next) => {
-					onCurrencyChange?.(next);
-					currencySheetRef.current?.dismiss();
-				}}
-			/>
+			{onCurrencyChange ? (
+				<CurrencyPickerSheet
+					ref={currencySheetRef}
+					selected={code}
+					onSelect={(next) => {
+						onCurrencyChange(next);
+						currencySheetRef.current?.dismiss();
+					}}
+				/>
+			) : null}
 		</BottomSheetModal>
 	);
 }

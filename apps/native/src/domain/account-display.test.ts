@@ -1,11 +1,9 @@
 import {
 	type AccountCellRow,
 	accountsOverview,
-	balanceEditText,
 	formatSignedAmount,
 	isMultiCurrency,
 	type OverviewAccount,
-	parseSignedAmount,
 } from "./account-display";
 import type { CurrencyCell } from "./currency-totals";
 import { buildRateTable } from "./valuation";
@@ -42,30 +40,11 @@ describe("formatSignedAmount", () => {
 		expect(formatSignedAmount(1240.5, "USD")).toBe("$1,240.50");
 		expect(formatSignedAmount(0, "USD")).toBe("$0.00");
 	});
-});
 
-describe("parseSignedAmount", () => {
-	it("parses plain and signed decimals", () => {
-		expect(parseSignedAmount("1250.50")).toBe(1250.5);
-		expect(parseSignedAmount("-1250.50")).toBe(-1250.5);
-		expect(parseSignedAmount("1,250.50")).toBe(1250.5);
-		expect(parseSignedAmount(" 42 ")).toBe(42);
-	});
-
-	it("answers null for empty or unparseable text", () => {
-		expect(parseSignedAmount("")).toBeNull();
-		expect(parseSignedAmount("-")).toBeNull();
-		expect(parseSignedAmount(".")).toBeNull();
-		expect(parseSignedAmount("1.2.3")).toBeNull();
-		expect(parseSignedAmount("abc")).toBeNull();
-	});
-});
-
-describe("balanceEditText", () => {
-	it("seeds unsigned digits and leaves zero blank", () => {
-		expect(balanceEditText(-1250.5)).toBe("1250.5");
-		expect(balanceEditText(1250.5)).toBe("1250.5");
-		expect(balanceEditText(0)).toBe("");
+	it("keeps the sign ahead of a language that trails its symbol", () => {
+		expect(formatSignedAmount(-1240.5, "EUR", true, "es")).toBe(
+			"-1.240,50\u00a0\u20ac",
+		);
 	});
 });
 

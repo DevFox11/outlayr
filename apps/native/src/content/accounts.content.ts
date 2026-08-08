@@ -67,6 +67,10 @@ const accounts = {
 			en: "Toggle balance sign",
 			es: "Cambiar el signo del saldo",
 		}),
+		"accounts.a11y.editBalance": t({
+			en: "Edit initial balance",
+			es: "Editar el saldo inicial",
+		}),
 		"accounts.rebaseNote": t({
 			en: "Changing the initial balance or currency re-bases this account's balance.",
 			es: "Cambiar el saldo inicial o la moneda recalcula la base del saldo de esta cuenta.",
