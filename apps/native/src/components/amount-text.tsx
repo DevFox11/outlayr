@@ -82,18 +82,17 @@ export function RowAmount({
 	isFuture,
 	code,
 	showCents = true,
-	showSign = true,
 	struck = false,
 }: RowAmountProps) {
 	const t = useTranslation();
 	const parts = amountParts(amount, code, showCents);
-	const sign = showSign ? (income ? "+" : "-") : "";
+	const sign = income ? "+" : "-";
 	return (
 		<Text
-			// Spelled out because the glyph above is optional and the colour is not a
-			// cue a screen reader can read; `rowAmountLabel` owns the wording.
+			// Spelled out because neither the glyph nor the colour is a cue a screen
+			// reader can read; `rowAmountLabel` owns the wording.
 			accessibilityLabel={rowAmountLabel(
-				{ amount, income, code, showCents, showSign },
+				{ amount, income, code, showCents },
 				t,
 			)}
 			className={rowAmount({ income, isFuture, struck })}

@@ -89,7 +89,7 @@ function DeletedRow({
 	currency: string;
 	onRestore: () => void;
 }) {
-	const { showCents, showSign } = useDisplaySettings().state;
+	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 	// The query selects tombstones only, so the fallback satisfies the column's
 	// nullability rather than describing a row this list can hold.
@@ -111,7 +111,6 @@ function DeletedRow({
 				income={row.income}
 				isFuture={false}
 				showCents={showCents}
-				showSign={showSign}
 			/>
 			<Pressable
 				// Every row's button says "Restore", so the entry it belongs to has to

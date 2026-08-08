@@ -95,7 +95,7 @@ function SettingsContent({ db }: { db: Database }) {
 	const coverage = useValuationCoverage(db);
 	const sync = useSyncStatus(db);
 	const { state: settings } = useAppSettings();
-	const { showCents, showSign } = useDisplaySettings().state;
+	const { showCents } = useDisplaySettings().state;
 	const showNotifications = settings.bool("showNotifications");
 	const biometricLock = settings.bool("biometricLock");
 	const incomeTracking = settings.bool("incomeTracking");
@@ -167,14 +167,6 @@ function SettingsContent({ db }: { db: Database }) {
 					testID="toggle-display-cents"
 					title={t("settings.row.displayCents")}
 					value={showCents}
-				/>
-				<ToggleRow
-					icon="PlusMinus01"
-					onValueChange={(next) => {
-						setBoolSetting(db, "showExpenseOrIncomeSign", next);
-					}}
-					title={t("settings.row.displaySign")}
-					value={showSign}
 				/>
 			</SettingsSection>
 

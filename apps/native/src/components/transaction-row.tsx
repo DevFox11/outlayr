@@ -62,8 +62,7 @@ export function TransactionRow({
 	future: forcedFuture,
 	landsOn,
 }: TransactionRowProps) {
-	const { showCents, showSign, swapTimeLabel, use24Hour } =
-		useDisplaySettings().state;
+	const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
 	const colors = useColors();
 	const t = useTranslation();
 	const date = new Date(transaction.date);
@@ -200,7 +199,6 @@ export function TransactionRow({
 				isFuture={future}
 				code={code}
 				showCents={showCents}
-				showSign={showSign}
 			/>
 		</Pressable>
 	);

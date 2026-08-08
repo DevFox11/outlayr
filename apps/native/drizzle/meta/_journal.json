@@ -120,6 +120,13 @@
       "when": 1786083668375,
       "tag": "0016_recurring_anchor_day",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1786227210155,
+      "tag": "0017_drop_display_sign",
+      "breakpoints": true
     }
   ]
 }

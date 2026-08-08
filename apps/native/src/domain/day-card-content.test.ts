@@ -30,7 +30,6 @@ const SECTION = {
 const OPTIONS = {
 	currency: "USD",
 	showCents: true,
-	showSign: true,
 	swapTimeLabel: false,
 	use24Hour: false,
 };
@@ -68,11 +67,6 @@ describe("dayCardContent", () => {
 		const card = dayCardContent(SECTION, OPTIONS, DAY);
 		expect(card.rows[0]?.amount).toBe("-€12.50");
 		expect(card.rows[1]?.amount).toBe("+$30.00");
-	});
-
-	it("drops the sign when the setting is off", () => {
-		const card = dayCardContent(SECTION, { ...OPTIONS, showSign: false }, DAY);
-		expect(card.rows[0]?.amount).toBe("€12.50");
 	});
 
 	it("drops the cents when the setting is off", () => {

@@ -13,14 +13,12 @@ describe("selectDisplaySettings", () => {
 		const result = selectDisplaySettings(
 			snapshot({
 				showCents: true,
-				showExpenseOrIncomeSign: false,
 				use24HourClock: true,
 				swapTimeLabel: false,
 			}),
 		);
 		expect(result).toStrictEqual({
 			showCents: true,
-			showSign: false,
 			use24Hour: true,
 			swapTimeLabel: false,
 		});
@@ -30,7 +28,6 @@ describe("selectDisplaySettings", () => {
 		const result = selectDisplaySettings(snapshot({}));
 		expect(result).toStrictEqual({
 			showCents: false,
-			showSign: false,
 			use24Hour: false,
 			swapTimeLabel: false,
 		});

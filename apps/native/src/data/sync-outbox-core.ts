@@ -47,7 +47,6 @@ export const SYNCED_META_KEYS = [
 	// second device should open reading the way the first one does rather than at
 	// stock defaults.
 	"showCents",
-	"showExpenseOrIncomeSign",
 	"incomeTracking",
 	"showUpcoming",
 	"showUpcomingSoon",

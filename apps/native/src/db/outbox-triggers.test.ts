@@ -10,12 +10,17 @@ const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
  * The shipped migrations, applied in order — the triggers under test only exist
  * in the migration SQL, so re-declaring them here would test a copy.
  */
-function migrated(): BetterSqlite3.Database {
-	const sqlite = new BetterSqlite3(":memory:");
+function applyMigrations(
+	sqlite: BetterSqlite3.Database,
+	include: (name: string) => boolean,
+): void {
 	const files = readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort();
 	for (const file of files) {
+		if (!include(file)) {
+			continue;
+		}
 		const sql = readFileSync(join(MIGRATIONS, file), "utf8");
 		for (const statement of sql.split("--> statement-breakpoint")) {
 			if (statement.trim()) {
@@ -23,6 +28,11 @@ function migrated(): BetterSqlite3.Database {
 			}
 		}
 	}
+}
+
+function migrated(): BetterSqlite3.Database {
+	const sqlite = new BetterSqlite3(":memory:");
+	applyMigrations(sqlite, () => true);
 	return sqlite;
 }
 
@@ -208,6 +218,30 @@ describe("outbox triggers", () => {
 		expect(outbox(sqlite).map((row) => row.localId)).toStrictEqual([
 			...SYNCED_META_KEYS,
 		]);
+	});
+
+	it("clears a stored display-sign value once its migration runs", () => {
+		const upgrading = new BetterSqlite3(":memory:");
+		applyMigrations(upgrading, (name) => name < "0017_");
+		setMeta(upgrading, "showExpenseOrIncomeSign", "false");
+
+		applyMigrations(upgrading, (name) => name >= "0017_");
+
+		expect(
+			upgrading
+				.prepare(
+					"SELECT key FROM appMeta WHERE key = 'showExpenseOrIncomeSign'",
+				)
+				.all(),
+		).toStrictEqual([]);
+	});
+
+	it("never enqueues the retired display-sign key", () => {
+		enableSync(sqlite);
+
+		setMeta(sqlite, "showExpenseOrIncomeSign", "true");
+
+		expect(outbox(sqlite)).toStrictEqual([]);
 	});
 
 	it("covers every table the sync layer claims to replicate", () => {

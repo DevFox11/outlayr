@@ -36,7 +36,6 @@ describe("settings defaults", () => {
 
 	it("returns the faithful defaults on a fresh store", async () => {
 		expect(await readBoolSetting(db, "showCents")).toBe(true);
-		expect(await readBoolSetting(db, "showExpenseOrIncomeSign")).toBe(true);
 		expect(await readNumberSetting(db, "firstWeekday")).toBe(1);
 		expect(await readNumberSetting(db, "firstDayOfMonth")).toBe(1);
 	});

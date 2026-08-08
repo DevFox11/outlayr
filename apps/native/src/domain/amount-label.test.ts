@@ -12,38 +12,22 @@ const es: TranslateFn = (key, params) =>
 const USD = { code: "USD", amount: 1240.5 };
 
 /**
- * The defect this guards: "Display +/- Symbol" is one tap away in Settings, and
- * with it off the printed sign is gone — hue is then the only thing separating an
- * income row from an expense row on Log, Search, Insights and Budget detail. The
- * setting is allowed to govern the glyph; it must never reach the accessible name.
+ * A row separates money in from money out with a `+`/`-` glyph and a hue, and a
+ * screen reader conveys neither. The direction has to be a word in the name.
  */
-describe("rowAmountLabel states direction whatever the sign setting says", () => {
-	for (const showSign of [true, false]) {
-		it(`names income in words with showSign=${showSign}`, () => {
-			const label = rowAmountLabel({ ...USD, income: true, showSign }, en);
+describe("rowAmountLabel states the direction in words", () => {
+	it("names income", () => {
+		expect(rowAmountLabel({ ...USD, income: true }, en)).toMatch(/Income/);
+	});
 
-			expect(label).toMatch(/Income/);
-		});
-
-		it(`names an expense in words with showSign=${showSign}`, () => {
-			const label = rowAmountLabel({ ...USD, income: false, showSign }, en);
-
-			expect(label).toMatch(/Expense/);
-		});
-	}
-
-	it("returns the same name whether the sign is printed or not", () => {
-		for (const income of [true, false]) {
-			expect(rowAmountLabel({ ...USD, income, showSign: true }, en)).toBe(
-				rowAmountLabel({ ...USD, income, showSign: false }, en),
-			);
-		}
+	it("names an expense", () => {
+		expect(rowAmountLabel({ ...USD, income: false }, en)).toMatch(/Expense/);
 	});
 
 	it("distinguishes the two directions, so hue is never the only cue", () => {
-		expect(
-			rowAmountLabel({ ...USD, income: true, showSign: false }, en),
-		).not.toBe(rowAmountLabel({ ...USD, income: false, showSign: false }, en));
+		expect(rowAmountLabel({ ...USD, income: true }, en)).not.toBe(
+			rowAmountLabel({ ...USD, income: false }, en),
+		);
 	});
 
 	it("keeps the direction in Spanish too", () => {

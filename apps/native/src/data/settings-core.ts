@@ -10,7 +10,6 @@ import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
  */
 export type BoolSettingKey =
 	| "showCents"
-	| "showExpenseOrIncomeSign"
 	| "incomeTracking"
 	| "animatedCharts"
 	| "showUpcoming"
@@ -72,7 +71,6 @@ export type NumberSettingKey =
  */
 export const SETTING_DEFAULTS = {
 	showCents: true,
-	showExpenseOrIncomeSign: true,
 	incomeTracking: true,
 	animatedCharts: true,
 	showUpcoming: true,

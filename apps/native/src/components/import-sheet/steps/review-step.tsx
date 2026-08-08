@@ -88,7 +88,7 @@ export const EntryRow = memo(function EntryRow({
 }: EntryRowProps) {
 	const t = useTranslation();
 	const colors = useColors();
-	const { showCents, showSign } = useDisplaySettings().state;
+	const { showCents } = useDisplaySettings().state;
 	const onPress = useCallback(() => onToggle(index), [onToggle, index]);
 
 	return (
@@ -149,7 +149,6 @@ export const EntryRow = memo(function EntryRow({
 					income={entry.income}
 					isFuture={false}
 					showCents={showCents}
-					showSign={showSign}
 					struck={!checked}
 				/>
 				<Text className="text-footnote text-subtle" numberOfLines={1}>

@@ -22,7 +22,6 @@ export interface DayCardOptions {
 	/** Global display code, used by a row that recorded none. */
 	currency: string;
 	showCents: boolean;
-	showSign: boolean;
 	swapTimeLabel: boolean;
 	/** The row's meta line prints its time on a 24-hour clock. */
 	use24Hour: boolean;
@@ -66,9 +65,7 @@ export function dayCardContent(
 				meta: options.swapTimeLabel
 					? (row.categoryName ?? "")
 					: formatTime(row.date, options.use24Hour),
-				amount: options.showSign
-					? `${row.income ? "+" : "-"}${magnitude}`
-					: magnitude,
+				amount: `${row.income ? "+" : "-"}${magnitude}`,
 			};
 		}),
 	};

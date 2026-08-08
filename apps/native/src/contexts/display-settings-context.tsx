@@ -35,7 +35,7 @@ const AppSettingsContext = createContext<AppSettingsValue | null>(null);
 
 /**
  * One `useAllSettings` subscription for the whole tree, split into two
- * contexts: `DisplaySettingsContext`'s memo is keyed on the four primitive
+ * contexts: `DisplaySettingsContext`'s memo is keyed on the three primitive
  * booleans, so its published value stays referentially stable across an
  * unrelated `appMeta` write — `AppSettingsContext`'s is keyed on the whole
  * snapshot and re-renders on every write, same as today.
@@ -43,12 +43,12 @@ const AppSettingsContext = createContext<AppSettingsValue | null>(null);
 export function AppSettingsProvider({ children }: { children: ReactNode }) {
 	const { db } = useLocalData();
 	const settings = useAllSettings(db);
-	const { showCents, showSign, use24Hour, swapTimeLabel } =
+	const { showCents, use24Hour, swapTimeLabel } =
 		selectDisplaySettings(settings);
 
 	const displayValue = useMemo<DisplaySettingsValue>(
-		() => ({ state: { showCents, showSign, use24Hour, swapTimeLabel } }),
-		[showCents, showSign, use24Hour, swapTimeLabel],
+		() => ({ state: { showCents, use24Hour, swapTimeLabel } }),
+		[showCents, use24Hour, swapTimeLabel],
 	);
 
 	const appValue = useMemo<AppSettingsValue>(

@@ -159,10 +159,6 @@ const settings = {
 			en: "Display Cents",
 			es: "Mostrar centavos",
 		}),
-		"settings.row.displaySign": t({
-			en: "Display +/− Symbol",
-			es: "Mostrar símbolo +/−",
-		}),
 		"settings.row.upcoming": t({
 			en: "Upcoming Logs",
 			es: "Próximos registros",

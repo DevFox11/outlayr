@@ -7,13 +7,6 @@ export interface RowAmountLabelInput {
 	code: string;
 	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
 	showCents?: boolean;
-	/**
-	 * Mirrors "Display +/- Symbol", and deliberately unread here. With the setting
-	 * off the printed row loses its sign, leaving hue as the only difference
-	 * between money in and money out — so the accessible name has to keep naming
-	 * the direction in words whichever way the toggle sits.
-	 */
-	showSign?: boolean;
 }
 
 /**

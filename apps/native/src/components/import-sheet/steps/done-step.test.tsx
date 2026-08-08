@@ -15,7 +15,7 @@ jest.mock("@/theme/use-colors", () => ({
 }));
 jest.mock("@/contexts/display-settings-context", () => ({
 	useDisplaySettings: () => ({
-		state: { showCents: true, showSign: true },
+		state: { showCents: true },
 	}),
 }));
 

@@ -126,8 +126,7 @@ function LogContent({ db }: { db: Database }) {
 	const { displayCurrency: currency, rates } = valuation;
 	const accountsOverview = useAccountsOverviewIn(db, valuation);
 	const valued = useValuedCurrencies(db);
-	const { showCents, showSign, swapTimeLabel, use24Hour } =
-		useDisplaySettings().state;
+	const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
 	const showUpcoming = useSettingBool("showUpcoming");
 	const showUpcomingSoon = useSettingBool("showUpcomingSoon");
 	const logViewLineGraph = useSettingBool("logViewLineGraph");
@@ -229,8 +228,8 @@ function LogContent({ db }: { db: Database }) {
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 	const cardOptions = useMemo(
-		() => ({ currency, showCents, showSign, swapTimeLabel, use24Hour }),
-		[currency, showCents, showSign, swapTimeLabel, use24Hour],
+		() => ({ currency, showCents, swapTimeLabel, use24Hour }),
+		[currency, showCents, swapTimeLabel, use24Hour],
 	);
 	const shareDay = useDayCardShare(cardOptions);
 
