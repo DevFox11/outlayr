@@ -54,6 +54,7 @@ export const ERASED_TRANSACTION = {
 	recurringType: RECURRING_TYPE.none,
 	recurringCoefficient: 1,
 	recurringEndDate: null,
+	recurringAnchorDay: null,
 	reminderLeadDays: null,
 	categoryId: null,
 	accountId: null,

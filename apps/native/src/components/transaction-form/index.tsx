@@ -126,11 +126,7 @@ import { CategoryIcon } from "../category-icon";
 import { CategoryIconTile } from "../category-icon-tile";
 import { CategoryPickerSheet } from "../category-picker-sheet";
 import { CurrencyPickerSheet } from "../currency-picker-sheet";
-import {
-	CustomScheduleSheet,
-	type CustomScheduleSheetRef,
-	intervalPhrase,
-} from "../custom-schedule-sheet";
+import { CustomScheduleSheet, intervalPhrase } from "../custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
 import { IdentityFlyUpLayer } from "../identity-fly-up";
 import { TagPickerSheet } from "../tag-picker-sheet";
@@ -580,7 +576,7 @@ export function TransactionForm({
 		];
 		return labels.length > 0 ? labels.join(", ") : null;
 	};
-	const scheduleSheetRef = useRef<CustomScheduleSheetRef>(null);
+	const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false);
 	const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1284,9 +1280,7 @@ export function TransactionForm({
 												form.setFieldValue("hasEndDate", next)
 											}
 											onLeadChange={handleLeadChange}
-											onOpenCustomSchedule={() =>
-												scheduleSheetRef.current?.present()
-											}
+											onOpenCustomSchedule={() => setScheduleSheetOpen(true)}
 											onScheduleChange={handleScheduleChange}
 											recurringType={recurringType}
 											remindLabel={t("transaction.field.remind")}
@@ -1486,15 +1480,24 @@ export function TransactionForm({
 					ref={categoryField.ref}
 					selectedId={category?.id ?? null}
 				/>
-				<CustomScheduleSheet
-					onDone={(type, every) => {
-						form.setFieldValue("recurringType", type);
-						form.setFieldValue("coefficient", every);
-					}}
-					recurringCoefficient={coefficient}
-					recurringType={recurringType}
-					ref={scheduleSheetRef}
-				/>
+				<SubscribeFields
+					selector={(s) => ({ date: s.values.date })}
+					store={form.store}
+				>
+					{({ date }) => (
+						<CustomScheduleSheet
+							firstPayment={date}
+							onDone={(type, every) => {
+								form.setFieldValue("recurringType", type);
+								form.setFieldValue("coefficient", every);
+							}}
+							onOpenChange={setScheduleSheetOpen}
+							open={scheduleSheetOpen}
+							recurringCoefficient={coefficient}
+							recurringType={recurringType}
+						/>
+					)}
+				</SubscribeFields>
 
 				<IdentityFlyUpLayer
 					color={identity.color}

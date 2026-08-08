@@ -33,6 +33,7 @@ function makeDb(): TestDb {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			recurringAnchorDay integer,
 			reminderLeadDays integer,
 			categoryId text,
 			accountId text,

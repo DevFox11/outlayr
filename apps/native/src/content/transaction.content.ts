@@ -275,6 +275,43 @@ const transaction = {
 			en: "Every",
 			es: "Cada",
 		}),
+		// Bare nouns, unlike `transaction.interval.*`, which embed the count. The
+		// sentence renders "Every"/count/unit as three pieces so the count can be
+		// styled on its own without either language having to be split on a number.
+		"transaction.unit.day": t({ en: "day", es: "día" }),
+		"transaction.unit.days": t({ en: "days", es: "días" }),
+		"transaction.unit.week": t({ en: "week", es: "semana" }),
+		"transaction.unit.weeks": t({ en: "weeks", es: "semanas" }),
+		"transaction.unit.month": t({ en: "month", es: "mes" }),
+		"transaction.unit.months": t({ en: "months", es: "meses" }),
+		"transaction.unit.year": t({ en: "year", es: "año" }),
+		"transaction.unit.years": t({ en: "years", es: "años" }),
+		"transaction.schedule.fewer": t({
+			en: "Fewer",
+			es: "Menos",
+		}),
+		"transaction.schedule.more": t({
+			en: "More",
+			es: "Más",
+		}),
+		"transaction.schedule.nextCharges": t({
+			en: "Next charges",
+			es: "Próximos cargos",
+		}),
+		"transaction.schedule.firstPaymentTag": t({
+			en: "First payment",
+			es: "Primer pago",
+		}),
+		"transaction.schedule.shortMonthTag": t({
+			en: "short month",
+			es: "mes corto",
+		}),
+		// Says what the schedule does now, not what it used to: the charge moves
+		// for that one month and the anchor day comes back after it.
+		"transaction.schedule.shortMonthNote": t({
+			en: "A month too short for that day charges on its last day instead.",
+			es: "Un mes demasiado corto para ese día cobra su último día.",
+		}),
 		"transaction.schedule.unit": t({
 			en: "Unit",
 			es: "Unidad",

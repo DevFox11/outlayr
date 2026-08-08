@@ -115,6 +115,7 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"recurringType",
 			"recurringCoefficient",
 			"recurringEndDate",
+			"recurringAnchorDay",
 			"categoryId",
 			"accountId",
 			"amountUsd",

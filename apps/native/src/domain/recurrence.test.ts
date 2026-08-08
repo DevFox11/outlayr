@@ -4,6 +4,7 @@ import {
 	nextDate,
 	nextLanding,
 	RECURRING_TYPE,
+	schedulePreview,
 } from "./recurrence";
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
@@ -49,6 +50,48 @@ describe("advancing one occurrence", () => {
 		expect(
 			ymd(nextDate(at(2024, 2, 29), RECURRING_TYPE.yearly, 1)),
 		).toStrictEqual([2025, 2, 28]);
+	});
+
+	it("re-anchors to the schedule's own day rather than the day it last clamped to", () => {
+		expect(
+			ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.monthly, 1, 31)),
+		).toStrictEqual([2026, 3, 31]);
+		expect(
+			ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.monthly, 1, 30)),
+		).toStrictEqual([2026, 3, 30]);
+	});
+
+	it("clamps the anchor again when the target month is still too short", () => {
+		expect(
+			ymd(nextDate(at(2026, 1, 31), RECURRING_TYPE.monthly, 1, 31)),
+		).toStrictEqual([2026, 2, 28]);
+		expect(
+			ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.monthly, 2, 31)),
+		).toStrictEqual([2026, 4, 30]);
+	});
+
+	it("takes the day it starts from when no anchor is given", () => {
+		expect(
+			ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.monthly, 1)),
+		).toStrictEqual([2026, 3, 28]);
+	});
+
+	it("ignores the anchor for cadences that step in whole days", () => {
+		expect(
+			ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.daily, 1, 31)),
+		).toStrictEqual([2026, 3, 1]);
+		expect(
+			ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.weekly, 1, 31)),
+		).toStrictEqual([2026, 3, 7]);
+	});
+
+	it("re-anchors a yearly cadence back onto the leap day", () => {
+		expect(
+			ymd(nextDate(at(2025, 2, 28), RECURRING_TYPE.yearly, 1, 29)),
+		).toStrictEqual([2026, 2, 28]);
+		expect(
+			ymd(nextDate(at(2027, 2, 28), RECURRING_TYPE.yearly, 1, 29)),
+		).toStrictEqual([2028, 2, 29]);
 	});
 
 	it("keeps the charge's time of day", () => {
@@ -106,12 +149,25 @@ describe("the next landing after today", () => {
 		).toStrictEqual([2026, 4, 20]);
 	});
 
-	// Clamping is lossy on the way through: once February pulls the 31st back to
-	// the 28th, every later step walks from the 28th. The back-fill writes the
-	// same days, which is the reason the landing is walked and not projected.
-	it("keeps the day the walk actually clamped to", () => {
+	it("restores the anchor day after a short month instead of keeping the clamp", () => {
 		expect(
 			ymd(nextLanding(at(2026, 1, 31), RECURRING_TYPE.monthly, 1, null, now)),
+		).toStrictEqual([2026, 3, 31]);
+	});
+
+	// The carrier's own day is already the clamped one, so only the stored anchor
+	// can say the schedule was ever the 31st.
+	it("takes an explicit anchor when the carrier's own day already clamped", () => {
+		expect(
+			ymd(
+				nextLanding(at(2026, 2, 28), RECURRING_TYPE.monthly, 1, null, now, 31),
+			),
+		).toStrictEqual([2026, 3, 31]);
+	});
+
+	it("leaves a schedule that genuinely falls on the 28th alone", () => {
+		expect(
+			ymd(nextLanding(at(2026, 1, 28), RECURRING_TYPE.monthly, 1, null, now)),
 		).toStrictEqual([2026, 3, 28]);
 	});
 
@@ -227,5 +283,49 @@ describe("ensureRecurringType", () => {
 		expect(ensureRecurringType(RECURRING_TYPE.yearly)).toBe(
 			RECURRING_TYPE.yearly,
 		);
+	});
+});
+
+describe("the charges a schedule is about to make", () => {
+	const shown = (charges: ReturnType<typeof schedulePreview>) =>
+		charges.map((charge) => [...(ymd(charge.date) ?? []), charge.clamped]);
+
+	it("walks the first payment forward, excluding the payment itself", () => {
+		expect(
+			shown(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.monthly, 3, 3)),
+		).toStrictEqual([
+			[2026, 11, 7, false],
+			[2027, 2, 7, false],
+			[2027, 5, 7, false],
+		]);
+	});
+
+	it("marks only the charges a short month pulled off the anchor", () => {
+		expect(
+			shown(schedulePreview(at(2027, 1, 31), RECURRING_TYPE.monthly, 1, 3)),
+		).toStrictEqual([
+			[2027, 2, 28, true],
+			[2027, 3, 31, false],
+			[2027, 4, 30, true],
+		]);
+	});
+
+	it("never marks a cadence that steps in whole days", () => {
+		expect(
+			shown(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.daily, 18, 3)),
+		).toStrictEqual([
+			[2026, 8, 25, false],
+			[2026, 9, 12, false],
+			[2026, 9, 30, false],
+		]);
+	});
+
+	it("has nothing to show without a cadence", () => {
+		expect(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.none, 1, 3)).toEqual(
+			[],
+		);
+		expect(
+			schedulePreview(at(2026, 8, 7), RECURRING_TYPE.monthly, 1, 0),
+		).toEqual([]);
 	});
 });

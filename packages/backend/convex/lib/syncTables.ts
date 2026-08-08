@@ -51,6 +51,12 @@ export const transactionFields = {
 	recurringType: v.number(),
 	recurringCoefficient: v.number(),
 	recurringEndDate: v.union(v.number(), v.null()),
+	/**
+	 * Optional, not just nullable: a handset still on the previous build pushes
+	 * rows without the key at all, and a required field would reject the whole
+	 * batch rather than the one column it cannot fill.
+	 */
+	recurringAnchorDay: v.optional(v.union(v.number(), v.null())),
 	categoryId: v.union(v.string(), v.null()),
 	accountId: v.union(v.string(), v.null()),
 	amountUsd: v.union(v.number(), v.null()),

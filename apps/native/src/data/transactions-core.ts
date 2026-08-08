@@ -224,6 +224,10 @@ async function toRow(
 			? Math.max(1, input.recurringCoefficient ?? 1)
 			: 1,
 		recurringEndDate: recurring ? (input.recurringEndDate ?? null) : null,
+		// Derived, never chosen: the schedule is anchored to the day the first
+		// payment falls on, and re-deriving it on every write is what keeps an
+		// edited first payment from leaving the chain anchored to the old day.
+		recurringAnchorDay: recurring ? input.date.getDate() : null,
 		reminderLeadDays: recurring
 			? normalizeLead(input.reminderLeadDays ?? null)
 			: null,

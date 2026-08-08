@@ -50,6 +50,14 @@ export function occurrenceId(parentLocalId: string, holding: Date): string {
 	);
 }
 
+/**
+ * The day the chain is anchored to. Falling back to the row's own day is what
+ * keeps a chain written before the column existed walking exactly as it did.
+ */
+function anchorDayOf(source: TransactionRow): number {
+	return source.recurringAnchorDay ?? source.date.getDate();
+}
+
 function occurrenceRow(
 	source: TransactionRow,
 	holding: Date,
@@ -76,6 +84,7 @@ function occurrenceRow(
 		recurringType: carriesSchedule ? source.recurringType : RECURRING_TYPE.none,
 		recurringCoefficient: carriesSchedule ? source.recurringCoefficient : 1,
 		recurringEndDate: carriesSchedule ? source.recurringEndDate : null,
+		recurringAnchorDay: carriesSchedule ? anchorDayOf(source) : null,
 		reminderLeadDays: carriesSchedule ? source.reminderLeadDays : null,
 		categoryId: source.categoryId,
 		updatedAt: now,
@@ -112,6 +121,7 @@ export async function backfillRecurring(
 
 	const type = source.recurringType;
 	const coefficient = source.recurringCoefficient;
+	const anchorDay = anchorDayOf(source);
 	const today = startOfDay(now);
 	const endLimit =
 		source.recurringEndDate == null
@@ -125,7 +135,8 @@ export async function backfillRecurring(
 		carriesSchedule: boolean,
 	): TransactionInsert => occurrenceRow(source, holding, carriesSchedule, now);
 
-	const next = nextDate(source.date, type, coefficient) ?? source.date;
+	const next =
+		nextDate(source.date, type, coefficient, anchorDay) ?? source.date;
 	const pending: TransactionInsert[] = [];
 
 	// A row may only inherit the schedule when its own next charge is strictly
@@ -143,7 +154,7 @@ export async function backfillRecurring(
 			startOfDay(holding).getTime() <= today.getTime() &&
 			withinEndLimit(holding)
 		) {
-			const advanced = nextDate(holding, type, coefficient);
+			const advanced = nextDate(holding, type, coefficient, anchorDay);
 			pending.push(occurrenceAt(holding, carriesFrom(holding, advanced)));
 			if (advanced == null) {
 				break;
@@ -155,7 +166,7 @@ export async function backfillRecurring(
 		}
 	} else if (startOfDay(next).getTime() === today.getTime()) {
 		if (withinEndLimit(next)) {
-			const advanced = nextDate(next, type, coefficient);
+			const advanced = nextDate(next, type, coefficient, anchorDay);
 			pending.push(occurrenceAt(next, carriesFrom(next, advanced)));
 		}
 	} else {
@@ -280,6 +291,7 @@ export async function scheduleSuccessor(
 		carrier.recurringCoefficient,
 		carrier.recurringEndDate,
 		now,
+		anchorDayOf(carrier),
 	);
 	if (landing == null) {
 		return null;

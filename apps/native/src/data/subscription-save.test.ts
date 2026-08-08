@@ -78,6 +78,7 @@ function makeDb(): Harness {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			recurringAnchorDay integer,
 			reminderLeadDays integer,
 			categoryId text,
 			accountId text,
@@ -179,5 +180,39 @@ describe("a subscription whose back-fill fails after the row is committed", () =
 
 		expect(first).not.toBe(second);
 		expect((await carriers(db)).length).toBe(2);
+	});
+});
+
+describe("the day a saved schedule is anchored to", () => {
+	let harness: Harness;
+	beforeEach(() => {
+		harness = makeDb();
+	});
+
+	it("stamps a subscription with its first payment's day of the month", async () => {
+		const { db } = harness;
+
+		const id = await transactionsRepo.create(db, {
+			...SUBSCRIPTION,
+			date: new Date(2025, 0, 31),
+		});
+
+		const [row] = await liveRows(db);
+		expect(row?.id).toBe(id);
+		expect(row?.recurringAnchorDay).toBe(31);
+	});
+
+	it("leaves a one-off unanchored — it has no schedule to hold onto", async () => {
+		const { db } = harness;
+
+		await transactionsRepo.create(db, {
+			...SUBSCRIPTION,
+			date: new Date(2025, 0, 31),
+			onceRecurring: false,
+			recurringType: RECURRING_TYPE.none,
+		});
+
+		const [row] = await liveRows(db);
+		expect(row?.recurringAnchorDay).toBe(null);
 	});
 });

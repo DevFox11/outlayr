@@ -156,6 +156,24 @@ export function formatDayHeader(
 		: base;
 }
 
+/**
+ * A charge the schedule has not made yet, e.g. "Sat, 7 Nov" — and "Sun, 7 Feb
+ * 2027" once it leaves the current year, which a yearly cadence does on its
+ * first step. Title case rather than `formatDayHeader`'s shout: this reads as a
+ * list of dates, not as a section the ledger is divided into.
+ */
+export function formatChargeDate(
+	date: Date,
+	now: Date = new Date(),
+	language: Language = runtimeLanguage(),
+): string {
+	const weekday = dateName(`dates.weekday.${date.getDay()}`, language);
+	const base = `${weekday}, ${date.getDate()} ${monthAbbrevTitle(date, language)}`;
+	return date.getFullYear() === now.getFullYear()
+		? base
+		: `${base} ${date.getFullYear()}`;
+}
+
 /** "24 JUL", per Swift's `dateFormatter`. */
 export function formatUpcomingDate(
 	date: Date,

@@ -1,41 +1,104 @@
-import { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
+import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
-	Form,
-	Host,
-	HStack,
-	Picker,
-	Section,
-	Spacer,
-	Stepper,
-	Text as SwiftText,
-} from "@expo/ui/swift-ui";
+	Cancel01Icon,
+	CheckIcon,
+	MinusSignIcon,
+	PlusSignIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
+import { NumberFlow } from "number-flow-react-native";
+import { BottomSheet, Button, cn, Tabs } from "panelui-native";
 import {
-	font,
-	foregroundStyle,
-	labelsHidden,
-	pickerStyle,
-	scrollDisabled,
-	tag,
-} from "@expo/ui/swift-ui/modifiers";
-import { useForm, useSelector } from "@tanstack/react-form";
-import { type Ref, useCallback, useEffect, useRef, useState } from "react";
+	type RefObject,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Pressable, View } from "react-native";
+import Animated, {
+	Easing,
+	FadeIn,
+	FadeOut,
+	useAnimatedStyle,
+	withTiming,
+} from "react-native-reanimated";
+import { formatChargeDate } from "@/domain/dates";
 import {
+	MAX_INTERVAL,
 	RECURRING_TYPE,
+	type ScheduledCharge,
 	SELECTABLE_RECURRING_TYPES,
+	schedulePreview,
 } from "@/domain/recurrence";
 import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
-import { pressSubmit } from "./form/submit-guard";
+import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
 
-const SNAP_POINTS = ["50%"];
+const PREVIEW_COUNT = 3;
+
+/** One row's half of the swap: out, then the new date, then back in. */
+const SWAP = {
+	duration: 80,
+	easing: Easing.bezier(0.2, 0.9, 0.25, 1),
+} as const;
+/**
+ * Exactly one row's full out-and-back, so the next row does not start until the
+ * last has landed. Anything shorter overlaps their dim windows: measured on
+ * device, 55ms emptied all three rows at once and 90ms still emptied two.
+ */
+const RIPPLE_STAGGER_MS = SWAP.duration * 2;
+
+const SENTENCE = "font-sans-medium text-[30px] text-foreground leading-9";
+const SENTENCE_SIZE = 30;
+/** Half the count's roll: two things moving at one speed read as one thing. */
+const UNIT_FADE_MS = 170;
+
+/**
+ * NumberFlow gives each digit an `overflow: hidden` slot sized to the advance
+ * width it measures from a one-glyph line, and SF Pro Rounded's round digits
+ * carry ink past that advance — so 2, 3 and 6 rendered with a flat slice down
+ * their right side while 1, which has slack, looked correct. Tracking widens
+ * the measured advance, and the slot is cut from it.
+ *
+ * 5 at 30px, from pixel-measuring the "6": its ink was 45px wide with the right
+ * edge landing on one x for 34 of its 64 rows — a cut — and comes out 50px wide
+ * with that edge spread across four x values, which is a curve. 2 was not enough.
+ *
+ * Changing it alone looks like it does nothing: the library caches metrics under
+ * `fontFamily:fontSize:variant:weight`, which letterSpacing is not part of, so
+ * Fast Refresh keeps serving the stale width. Reload the app fully.
+ */
+const COUNT_TRACKING = 5;
 
 const UNIT_TITLE_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.daily]: "transaction.cadence.days",
 	[RECURRING_TYPE.weekly]: "transaction.cadence.weeks",
 	[RECURRING_TYPE.monthly]: "transaction.cadence.months",
 	[RECURRING_TYPE.yearly]: "transaction.cadence.years",
+};
+
+const UNIT_NOUN_KEY: Record<
+	number,
+	{ readonly one: TranslationKey; readonly many: TranslationKey }
+> = {
+	[RECURRING_TYPE.daily]: {
+		one: "transaction.unit.day",
+		many: "transaction.unit.days",
+	},
+	[RECURRING_TYPE.weekly]: {
+		one: "transaction.unit.week",
+		many: "transaction.unit.weeks",
+	},
+	[RECURRING_TYPE.monthly]: {
+		one: "transaction.unit.month",
+		many: "transaction.unit.months",
+	},
+	[RECURRING_TYPE.yearly]: {
+		one: "transaction.unit.year",
+		many: "transaction.unit.years",
+	},
 };
 
 const INTERVAL_KEY: Record<
@@ -76,162 +139,492 @@ export function intervalPhrase(
 	return n <= 1 ? t(keys.one) : t(keys.many, { count: n });
 }
 
-const BODY = font({ textStyle: "body", design: "rounded" });
-const BODY_SEMIBOLD = font({
-	textStyle: "body",
-	design: "rounded",
-	weight: "semibold",
-});
-const FOOTNOTE = font({ textStyle: "footnote", design: "rounded" });
-
-interface CustomScheduleSheetProps {
-	recurringType: number;
-	recurringCoefficient: number;
-	onDone: (recurringType: number, recurringCoefficient: number) => void;
-	ref?: Ref<BottomSheetModal>;
+function unitNoun(t: TranslateFn, type: number, coefficient: number): string {
+	const keys = UNIT_NOUN_KEY[type] ?? UNIT_NOUN_KEY[RECURRING_TYPE.monthly];
+	return coefficient <= 1 ? t(keys.one) : t(keys.many);
 }
-
-export type CustomScheduleSheetRef = BottomSheetModal;
 
 function normalizeSchedule(type: number, coefficient: number) {
 	return {
 		type: type === RECURRING_TYPE.none ? RECURRING_TYPE.monthly : type,
-		coefficient: Math.max(1, coefficient),
+		coefficient: Math.min(MAX_INTERVAL, Math.max(1, Math.round(coefficient))),
 	};
+}
+
+function chargeKey(charges: readonly ScheduledCharge[]): string {
+	return charges.map((c) => `${c.date.getTime()}:${c.clamped}`).join("|");
+}
+
+/**
+ * Holds the charges on screen while they hand over one row at a time.
+ *
+ * The rows are staggered rather than swapped together so the eye reads the
+ * schedule re-walking forward from the first payment, and each row's new date
+ * lands at the midpoint of its own fade — no frame ever shows a date the sheet
+ * is not about to keep.
+ */
+function useRippledCharges(
+	charges: readonly ScheduledCharge[],
+	ready: RefObject<boolean>,
+) {
+	const [shown, setShown] = useState<readonly ScheduledCharge[]>(charges);
+	const [swapping, setSwapping] = useState<readonly boolean[]>([]);
+	/*
+	 * Committed only once every row has landed. Deriving it from `shown` mid-swap
+	 * reads a half-updated schedule, and an intermediate set with no clamped row
+	 * hides the note, shrinks the sheet, then grows it again a beat later — the
+	 * one height change here, played twice, in the middle of the motion.
+	 */
+	const [noteVisible, setNoteVisible] = useState(() =>
+		charges.some((charge) => charge.clamped),
+	);
+	const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+	const next = chargeKey(charges);
+	const current = chargeKey(shown);
+
+	useEffect(() => {
+		if (next === current) {
+			return;
+		}
+		for (const timer of timers.current) {
+			clearTimeout(timer);
+		}
+		timers.current = [];
+
+		const clamped = charges.some((charge) => charge.clamped);
+		if (!ready.current) {
+			setShown(charges);
+			setSwapping([]);
+			setNoteVisible(clamped);
+			return;
+		}
+
+		charges.forEach((_, index) => {
+			timers.current.push(
+				setTimeout(() => {
+					setSwapping((prev) => withAt(prev, index, true));
+					timers.current.push(
+						setTimeout(() => {
+							setShown((prev) => withAt(prev, index, charges[index]));
+							setSwapping((prev) => withAt(prev, index, false));
+						}, SWAP.duration),
+					);
+				}, index * RIPPLE_STAGGER_MS),
+			);
+		});
+		timers.current.push(
+			setTimeout(
+				() => setNoteVisible(clamped),
+				(charges.length - 1) * RIPPLE_STAGGER_MS + SWAP.duration * 2,
+			),
+		);
+	}, [next, current, charges, ready]);
+
+	useEffect(
+		() => () => {
+			for (const timer of timers.current) {
+				clearTimeout(timer);
+			}
+		},
+		[],
+	);
+
+	return { shown, swapping, noteVisible };
+}
+
+function withAt<T>(list: readonly T[], index: number, value: T): T[] {
+	const copy = [...list];
+	copy[index] = value;
+	return copy;
+}
+
+interface CustomScheduleSheetProps {
+	open: boolean;
+	recurringType: number;
+	recurringCoefficient: number;
+	firstPayment: Date;
+	onOpenChange: (open: boolean) => void;
+	onDone: (recurringType: number, recurringCoefficient: number) => void;
 }
 
 /**
  * Edits are LOCAL until Done, so Cancel leaves the form's schedule untouched.
- * Present via the forwarded ref: `ref.current?.present()`.
  */
 export function CustomScheduleSheet({
+	open,
 	recurringType,
 	recurringCoefficient,
+	firstPayment,
+	onOpenChange,
 	onDone,
-	ref,
 }: CustomScheduleSheetProps) {
-	const colors = useColors();
 	const t = useTranslation();
-	const sheetRef = useRef<BottomSheetModal>(null);
+	const colors = useColors();
+	const seeded = normalizeSchedule(recurringType, recurringCoefficient);
+	const [type, setType] = useState(seeded.type);
+	const [coefficient, setCoefficient] = useState(seeded.coefficient);
+	const [wasOpen, setWasOpen] = useState(open);
+	/*
+	 * The dates re-seed on the open edge, and rippling them there would play our
+	 * motion underneath the platform's own presentation. Armed a tick after the
+	 * sheet is up, so the first ripple the user sees is one they asked for.
+	 */
+	const rippleReady = useRef(false);
 
-	const [initialValues] = useState(() =>
-		normalizeSchedule(recurringType, recurringCoefficient),
-	);
-	const form = useForm({
-		defaultValues: initialValues,
-		onSubmit: async ({ value }) => {
-			onDone(value.type, value.coefficient);
-			sheetRef.current?.dismiss();
-		},
-	});
-	const { type: localType, coefficient: localCoefficient } = useSelector(
-		form.store,
-		(s) => s.values,
-	);
+	/*
+	 * Re-seeded during render on the closed→open edge, not in an effect: the sheet
+	 * stays mounted across opens, so a form edit made while it was closed has to
+	 * land — and landing it a frame later would draw the previous schedule first.
+	 * Re-seeding on every prop change instead would fight the user mid-edit, since
+	 * Done is what pushes these values back up to the form.
+	 */
+	if (open !== wasOpen) {
+		setWasOpen(open);
+		rippleReady.current = false;
+		if (open) {
+			const next = normalizeSchedule(recurringType, recurringCoefficient);
+			setType(next.type);
+			setCoefficient(next.coefficient);
+		}
+	}
 
-	const setRefs = useCallback(
-		(node: BottomSheetModal | null) => {
-			sheetRef.current = node;
-			if (typeof ref === "function") {
-				ref(node);
-			} else if (ref) {
-				ref.current = node;
-			}
-		},
-		[ref],
+	const unitWord = unitNoun(t, type, coefficient);
+
+	const charges = useMemo(
+		() => schedulePreview(firstPayment, type, coefficient, PREVIEW_COUNT),
+		[firstPayment, type, coefficient],
+	);
+	const { shown, swapping, noteVisible } = useRippledCharges(
+		charges,
+		rippleReady,
 	);
 
 	useEffect(() => {
-		form.reset(normalizeSchedule(recurringType, recurringCoefficient));
-	}, [recurringType, recurringCoefficient, form.reset]);
+		if (!open) {
+			return;
+		}
+		const armed = setTimeout(() => {
+			rippleReady.current = true;
+		}, 0);
+		return () => clearTimeout(armed);
+	}, [open]);
+
+	const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+
+	const done = useCallback(() => {
+		onDone(type, coefficient);
+		onOpenChange(false);
+	}, [onDone, onOpenChange, type, coefficient]);
+
+	const pickType = useCallback((next: string) => setType(Number(next)), []);
+	const stepUp = useCallback(
+		() => setCoefficient((c) => Math.min(MAX_INTERVAL, c + 1)),
+		[],
+	);
+	const stepDown = useCallback(
+		() => setCoefficient((c) => Math.max(1, c - 1)),
+		[],
+	);
 
 	return (
-		<BottomSheetModal
-			backgroundStyle={{ backgroundColor: colors.groupedBackground }}
-			enableDynamicSizing={false}
-			enablePanDownToClose
-			ref={setRefs}
-			snapPoints={SNAP_POINTS}
-		>
-			<View className="h-11 justify-center px-4">
-				<Text
-					accessibilityRole="header"
-					className="text-center font-sans-semibold text-callout text-foreground"
-				>
-					{t("transaction.schedule.customTitle")}
-				</Text>
-				<Pressable
-					accessibilityRole="button"
-					className="absolute top-0 bottom-0 left-4 justify-center active:opacity-60"
-					hitSlop={8}
-					onPress={() => sheetRef.current?.dismiss()}
-				>
-					<Text className="text-callout text-tint">{t("common.cancel")}</Text>
-				</Pressable>
-				<Pressable
-					accessibilityRole="button"
-					className="absolute top-0 right-4 bottom-0 justify-center active:opacity-60"
-					hitSlop={8}
-					onPress={() => pressSubmit(form)}
-				>
-					<Text className="font-sans-semibold text-callout text-tint">
-						{t("common.done")}
-					</Text>
-				</Pressable>
-			</View>
-
-			{/* NOT `matchContents`: a Form fills its container rather than reporting
-			    an intrinsic height, so sizing the Host to its content collapses it to
-			    zero and the sheet renders empty below the header. */}
-			<Host style={{ flex: 1 }}>
-				{/* The sheet already scrolls, so the Form must not add a second axis. */}
-				<Form modifiers={[scrollDisabled(true)]}>
-					<Section
-						footer={
-							<SwiftText modifiers={[FOOTNOTE]}>
-								{t("transaction.schedule.repeats", {
-									interval: intervalPhrase(t, localType, localCoefficient),
-								})}
-							</SwiftText>
-						}
+		<BottomSheet native onOpenChange={onOpenChange} open={open}>
+			<BottomSheet.Content className="pt-0" size="auto">
+				<View className="flex-row items-center justify-between py-1">
+					<Button
+						variant="secondary"
+						className="rounded-full"
+						onPress={close}
+						accessibilityLabel={t("common.cancel")}
+						size="icon"
 					>
-						<HStack>
-							<SwiftText modifiers={[BODY]}>
-								{t("transaction.schedule.everyLabel")}
-							</SwiftText>
-							<Spacer />
-							<SwiftText
-								modifiers={[BODY_SEMIBOLD, foregroundStyle(colors.muted)]}
-							>
-								{String(localCoefficient)}
-							</SwiftText>
-							<Stepper
-								label=""
-								max={30}
-								min={1}
-								modifiers={[labelsHidden()]}
-								onValueChange={(next) =>
-									form.setFieldValue("coefficient", Math.round(next))
-								}
-								step={1}
-								value={localCoefficient}
-							/>
-						</HStack>
-						<Picker
-							label={t("transaction.schedule.unit")}
-							modifiers={[pickerStyle("segmented")]}
-							onSelectionChange={(next) => form.setFieldValue("type", next)}
-							selection={localType}
+						<HugeiconsIcon
+							size={22}
+							icon={Cancel01Icon}
+							color={colors.foreground}
+						/>
+					</Button>
+
+					<Text
+						accessibilityRole="header"
+						className="font-medium text-foreground text-lg"
+					>
+						{t("transaction.schedule.customTitle")}
+					</Text>
+
+					<Button
+						size="icon"
+						className="rounded-full"
+						onPress={done}
+						accessibilityLabel={t("common.done")}
+					>
+						<HugeiconsIcon
+							size={22}
+							icon={CheckIcon}
+							color={colors.accentForeground}
+						/>
+					</Button>
+				</View>
+
+				{/*
+				 * A row rather than one Text with nested spans: NumberFlow is a view and
+				 * cannot live inside a Text, and the unit needs its own node to cross-fade.
+				 * `items-baseline` is what keeps the three pieces sitting on one line.
+				 */}
+				<View
+					className="h-9 flex-row items-center gap-2"
+					style={{ marginBottom: 16, marginTop: 12 }}
+					testID="schedule-sentence"
+				>
+					<Text className={SENTENCE}>
+						{t("transaction.schedule.everyLabel")}
+					</Text>
+					<StepButton
+						accessibilityLabel={t("transaction.schedule.fewer")}
+						disabled={coefficient <= 1}
+						icon={MinusSignIcon}
+						onStep={stepDown}
+					/>
+					<NumberFlow
+						style={{
+							color: colors.foreground,
+							fontFamily: "SFProRounded-Bold",
+							fontSize: SENTENCE_SIZE,
+							// The family name alone left the count rendering at the same
+							// weight as the words either side of it; only this selects bold.
+							fontWeight: "700",
+							letterSpacing: COUNT_TRACKING,
+						}}
+						// Shortest path per digit. Left to auto-detect, a drop from 12 to 3
+						// spins the units column down through 9, 8, 7 — so the sentence
+						// visibly reads "every 9 months", a schedule nobody chose.
+						trend={0}
+						value={coefficient}
+					/>
+					<StepButton
+						accessibilityLabel={t("transaction.schedule.more")}
+						disabled={coefficient >= MAX_INTERVAL}
+						icon={PlusSignIcon}
+						onStep={stepUp}
+					/>
+					{/*
+					 * Pinned to the line's height with the words stacked absolutely inside
+					 * it. Reanimated keeps an exiting view mounted, and two words in normal
+					 * flow would double this box for the length of the cross-fade — which
+					 * re-measures RNHostView and makes the whole platform sheet re-settle.
+					 */}
+					<View className="h-9 flex-1">
+						<Animated.View
+							className="absolute top-0 left-0"
+							entering={FadeIn.duration(UNIT_FADE_MS)}
+							exiting={FadeOut.duration(UNIT_FADE_MS)}
+							key={unitWord}
 						>
-							{SELECTABLE_RECURRING_TYPES.map((type) => (
-								<SwiftText key={type} modifiers={[tag(type)]}>
-									{t(UNIT_TITLE_KEY[type] ?? "transaction.cadence.months")}
-								</SwiftText>
-							))}
-						</Picker>
-					</Section>
-				</Form>
-			</Host>
-		</BottomSheetModal>
+							<Text className={SENTENCE}>{unitWord}</Text>
+						</Animated.View>
+					</View>
+				</View>
+
+				{/*
+				 * `pill`, never `segmented`: PanelUI's segmented track paints its list
+				 * `bg-muted`, which is a surface wash in their theme and the secondary
+				 * TEXT colour in ours — it comes out a dark slab.
+				 */}
+				<Tabs
+					defaultValue={String(RECURRING_TYPE.monthly)}
+					onValueChange={pickType}
+					value={String(type)}
+					variant="pill"
+				>
+					<Tabs.List>
+						{SELECTABLE_RECURRING_TYPES.map((option) => (
+							<Tabs.Trigger key={option} value={String(option)}>
+								{t(UNIT_TITLE_KEY[option] ?? "transaction.cadence.months")}
+							</Tabs.Trigger>
+						))}
+					</Tabs.List>
+				</Tabs>
+
+				<View className="mt-5 rounded-2xl bg-background p-4">
+					<MonoLabel className="pb-2">
+						{t("transaction.schedule.nextCharges")}
+					</MonoLabel>
+					<ChargeRow
+						date={firstPayment}
+						first
+						tag={t("transaction.schedule.firstPaymentTag")}
+					/>
+					{shown.map((charge, index) => (
+						<ChargeRow
+							date={charge.date}
+							// biome-ignore lint/suspicious/noArrayIndexKey: three fixed slots the dates hand over inside; keying by date would remount the row and lose its swap
+							key={index}
+							last={index === shown.length - 1}
+							swapping={swapping[index] === true}
+							tag={
+								charge.clamped
+									? t("transaction.schedule.shortMonthTag")
+									: undefined
+							}
+							tinted={charge.clamped}
+						/>
+					))}
+					{noteVisible ? (
+						<Text className="mt-2 border-separator border-t pt-3 text-footnote text-muted">
+							{t("transaction.schedule.shortMonthNote")}
+						</Text>
+					) : null}
+				</View>
+			</BottomSheet.Content>
+		</BottomSheet>
+	);
+}
+
+const STEP_ICON_SIZE = 18;
+
+/** Held down, a step waits this long before it starts repeating. */
+const HOLD_DELAY_MS = 350;
+/** And then repeats this often — 1 to 30 in about two seconds. */
+const HOLD_REPEAT_MS = 70;
+
+interface StepButtonProps {
+	icon: typeof PlusSignIcon;
+	onStep: () => void;
+	disabled: boolean;
+	accessibilityLabel: string;
+}
+
+/**
+ * Nudges the count inside the sentence.
+ *
+ * It repeats while held, which is what lets one pair of buttons cover the whole
+ * range: without it, reaching 30 is 29 taps, and that is the gap the row of
+ * preset chips used to fill.
+ */
+function StepButton({
+	icon,
+	onStep,
+	disabled,
+	accessibilityLabel,
+}: StepButtonProps) {
+	const colors = useColors();
+	const held = useRef<{
+		delay?: ReturnType<typeof setTimeout>;
+		repeat?: ReturnType<typeof setInterval>;
+	}>({});
+
+	const release = useCallback(() => {
+		if (held.current.delay) {
+			clearTimeout(held.current.delay);
+		}
+		if (held.current.repeat) {
+			clearInterval(held.current.repeat);
+		}
+		held.current = {};
+	}, []);
+
+	useEffect(() => release, [release]);
+
+	return (
+		<Pressable
+			accessibilityLabel={accessibilityLabel}
+			accessibilityRole="button"
+			accessibilityState={{ disabled }}
+			// `bg-background`, not `bg-surface-secondary`: the sheet's own surface is
+			// within a couple of values of it, so a secondary fill left these as bare
+			// glyphs floating in the sentence with nothing to aim at.
+			className={
+				disabled
+					? "h-9 w-9 items-center justify-center rounded-full bg-background opacity-40"
+					: "h-9 w-9 items-center justify-center rounded-full bg-background active:opacity-60"
+			}
+			disabled={disabled}
+			hitSlop={6}
+			// On press-in, not on press: a stepper that waits for the finger to lift
+			// feels a beat behind, and the hold has to start from the same moment.
+			onPressIn={() => {
+				onStep();
+				held.current.delay = setTimeout(() => {
+					held.current.repeat = setInterval(onStep, HOLD_REPEAT_MS);
+				}, HOLD_DELAY_MS);
+			}}
+			onPressOut={release}
+		>
+			<HugeiconsIcon
+				color={colors.foreground}
+				icon={icon}
+				size={STEP_ICON_SIZE}
+				strokeWidth={2.4}
+			/>
+		</Pressable>
+	);
+}
+
+interface ChargeRowProps {
+	date: Date;
+	tag?: string;
+	first?: boolean;
+	last?: boolean;
+	tinted?: boolean;
+	/** This row's date is mid-handover and is not currently true. */
+	swapping?: boolean;
+}
+
+function ChargeRow({
+	date,
+	tag,
+	first = false,
+	last = false,
+	tinted = false,
+	swapping = false,
+}: ChargeRowProps) {
+	// Transform and opacity only: neither reaches layout, so the row never
+	// re-measures and the platform sheet never re-settles under the motion.
+	const dateStyle = useAnimatedStyle(() => ({
+		opacity: withTiming(swapping ? 0 : 1, SWAP),
+		transform: [{ translateY: withTiming(swapping ? 5 : 0, SWAP) }],
+	}));
+	const dotStyle = useAnimatedStyle(() => ({
+		opacity: withTiming(swapping ? 0.35 : 1, SWAP),
+	}));
+
+	return (
+		<View className="min-h-9.5 flex-row items-center gap-3">
+			{/* The rule is drawn before the dot so the dot covers it; an unfilled
+			    dot is a ring, and a line crossing its middle reads as a strikethrough. */}
+			<View className="w-5.5 items-center justify-center self-stretch">
+				{last ? null : (
+					<View className="absolute top-1/2 bottom-0 w-[1.5px] bg-separator" />
+				)}
+				{first ? null : (
+					<View className="absolute top-0 bottom-1/2 w-[1.5px] bg-separator" />
+				)}
+				<Animated.View
+					className={cn(
+						"size-2.25 rounded-full",
+						first
+							? "bg-foreground"
+							: "border-[1.5px] border-muted bg-background",
+					)}
+					style={first ? undefined : dotStyle}
+				/>
+			</View>
+			<Animated.View
+				className="flex-1 flex-row items-center gap-3"
+				style={first ? undefined : dateStyle}
+			>
+				<Text
+					className={
+						tinted
+							? "font-sans-semibold text-foreground text-subtitle"
+							: "text-foreground text-subtitle"
+					}
+				>
+					{formatChargeDate(date)}
+				</Text>
+				{tag == null ? null : (
+					<Text className="text-label text-muted">{tag}</Text>
+				)}
+			</Animated.View>
+		</View>
 	);
 }

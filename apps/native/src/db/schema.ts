@@ -105,6 +105,22 @@ export const transactions = sqliteTable(
 		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
 		recurringEndDate: integer("recurringEndDate", { mode: "timestamp_ms" }),
 		/**
+		 * The day of the month the schedule was written for, which a short month
+		 * can pull an individual occurrence off. Without it the clamp is lossy:
+		 * February drags a 31st schedule to the 28th and the carrier's own `date`
+		 * is then the only anchor left, so March lands on the 28th too and the
+		 * 31st never comes back.
+		 *
+		 * Replicated, unlike `reminderLeadDays` — two devices sweeping the same
+		 * chain must derive the same occurrence days, or `occurrenceId` differs
+		 * and the ledger doubles the subscription.
+		 *
+		 * Null on a row from before this column existed, and on every retired row.
+		 * Readers fall back to the row's own day-of-month, which is what the walk
+		 * did before.
+		 */
+		recurringAnchorDay: integer("recurringAnchorDay"),
+		/**
 		 * Days of notice for the next charge's reminder. Null is "no reminder" and
 		 * has to stay distinct from 0, which is "on the day itself".
 		 *

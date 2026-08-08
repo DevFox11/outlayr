@@ -64,7 +64,8 @@ function makeDb(options?: { withRealTransactions?: boolean }): Database {
 			date integer NOT NULL, day integer NOT NULL, month integer NOT NULL,
 			icon text, emoji text, customColor text, imageColor text, imageUri text, imageKey text,
 			onceRecurring integer NOT NULL DEFAULT 0, recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1, recurringEndDate integer, reminderLeadDays integer,
+			recurringCoefficient integer NOT NULL DEFAULT 1, recurringEndDate integer,
+			recurringAnchorDay integer, reminderLeadDays integer,
 			categoryId text, accountId text, amountUsd real, exchangeRate real, exchangeRateType text,
 			updatedAt integer NOT NULL, deletedAt integer
 		);

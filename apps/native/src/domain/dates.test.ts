@@ -1,6 +1,7 @@
 import { runtimeLanguage, setRuntimeLanguage } from "@/i18n/runtime";
 import * as dates from "./dates";
 import {
+	formatChargeDate,
 	formatDayHeader,
 	formatMonthLabel,
 	formatTime,
@@ -178,5 +179,22 @@ describe("the module surface", () => {
 		for (const value of Object.values(dates)) {
 			expect(Array.isArray(value)).toBe(false);
 		}
+	});
+});
+
+describe("formatChargeDate", () => {
+	it("writes the weekday and day in the language's own case", () => {
+		expect(formatChargeDate(new Date(2026, 10, 7), NOW, "en")).toBe(
+			"Sat, 7 Nov",
+		);
+		expect(formatChargeDate(new Date(2026, 10, 7), NOW, "es")).toBe(
+			"sáb, 7 nov",
+		);
+	});
+
+	it("adds the year only once the charge leaves the current one", () => {
+		expect(formatChargeDate(new Date(2027, 1, 7), NOW, "en")).toBe(
+			"Sun, 7 Feb 2027",
+		);
 	});
 });

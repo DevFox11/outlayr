@@ -54,6 +54,7 @@ function makeDb(): Database {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			recurringEndDate integer,
+			recurringAnchorDay integer,
 			reminderLeadDays integer,
 			categoryId text,
 			accountId text,
@@ -73,6 +74,7 @@ interface SourceOverrides {
 	recurringType?: number;
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
+	recurringAnchorDay?: number | null;
 	reminderLeadDays?: number | null;
 	onceRecurring?: boolean;
 	deletedAt?: Date | null;
@@ -102,6 +104,7 @@ async function seedSource(
 		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
 		recurringCoefficient: overrides.recurringCoefficient ?? 1,
 		recurringEndDate: overrides.recurringEndDate ?? null,
+		recurringAnchorDay: overrides.recurringAnchorDay ?? null,
 		reminderLeadDays: overrides.reminderLeadDays ?? null,
 		categoryId: "bills",
 		updatedAt: NOW,
@@ -144,6 +147,38 @@ describe("backfillRecurring", () => {
 	let db: Database;
 	beforeEach(() => {
 		db = makeDb();
+	});
+
+	it("keeps a month-end schedule on its own day across the whole walk", async () => {
+		const id = await seedSource(db, { date: at(2025, 1, 31) });
+
+		await backfillRecurring(db, id, NOW);
+
+		const rows = await generatedRows(db, id);
+		expect(rows.map((row) => row.date.getDate())).toStrictEqual([
+			28, 31, 30, 31,
+		]);
+	});
+
+	it("walks from the stored anchor when the carrier's own day already clamped", async () => {
+		const id = await seedSource(db, {
+			date: at(2025, 2, 28),
+			recurringAnchorDay: 31,
+		});
+
+		await backfillRecurring(db, id, NOW);
+
+		const rows = await generatedRows(db, id);
+		expect(rows.map((row) => row.date.getDate())).toStrictEqual([31, 30, 31]);
+	});
+
+	it("hands the anchor to the row that inherits the schedule", async () => {
+		const id = await seedSource(db, { date: at(2025, 1, 31) });
+
+		await backfillRecurring(db, id, NOW);
+
+		const carrier = await liveCarrier(db);
+		expect(carrier?.recurringAnchorDay).toBe(31);
 	});
 
 	it("materializes every past occurrence and retires the source (Case A)", async () => {
