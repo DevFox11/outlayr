@@ -180,10 +180,15 @@ export default function TransferEditor() {
 		ref.current?.present();
 	};
 
+	// Resolved on the destination side whatever the current one is: the gap is a
+	// destination-currency figure, so it lands there exactly. Carrying it to the
+	// source means dividing by the rate and rounding to source cents, which
+	// leaves a residual gap the user cannot clear. The side stays switchable.
 	const resolveAsFee = () => {
-		const solved = solveTransfer(values, "fee", feeDecimals);
+		const solved = solveTransfer({ ...values, feeSide: "destination" }, "fee", toDecimals);
 		if (solved !== null && solved > 0) {
-			setFeeText(numberToNumpad(solved, feeDecimals));
+			setFeeSide("destination");
+			setFeeText(numberToNumpad(solved, toDecimals));
 		}
 	};
 
@@ -196,7 +201,7 @@ export default function TransferEditor() {
 		}
 	};
 
-	const gapFee = solveTransfer(values, "fee", feeDecimals);
+	const gapFee = solveTransfer({ ...values, feeSide: "destination" }, "fee", toDecimals);
 	const gapRate = solveTransfer(values, "rate", RATE_DISPLAY_DECIMALS);
 	const gap =
 		gapAmount === 0 || gapFee === null || gapRate === null

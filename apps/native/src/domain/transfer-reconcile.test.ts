@@ -173,3 +173,28 @@ describe("transferGap surfaces the unexplained difference", () => {
 		expect(transferGap(values, VES_DECIMALS)).toBe(-50);
 	});
 });
+
+describe("resolving a gap as a fee", () => {
+	// The gap is a destination-currency figure. Carrying it to the source side
+	// means dividing by the rate and rounding to source cents, which cannot
+	// always be exact — and the leftover shows up as a gap the user cannot clear.
+	const gapped: TransferValues = { arrived: 5400, fee: 0, feeSide: "source", rate: 55.5, sent: 100 };
+
+	it("clears the gap completely when the fee lands on the destination side", () => {
+		const fee = solveTransfer({ ...gapped, feeSide: "destination" }, "fee", VES_DECIMALS);
+		expect(fee).toBe(150);
+		expect(transferGap({ ...gapped, fee: fee as number, feeSide: "destination" }, VES_DECIMALS)).toBe(0);
+	});
+
+	it("leaves a residual when the same gap is forced onto the source side", () => {
+		const fee = solveTransfer(gapped, "fee", USD_DECIMALS);
+		expect(fee).toBe(2.7);
+		expect(transferGap({ ...gapped, fee: fee as number }, VES_DECIMALS)).not.toBe(0);
+	});
+
+	it("keeps the rate the user pinned rather than rewriting it", () => {
+		const fee = solveTransfer({ ...gapped, feeSide: "destination" }, "fee", VES_DECIMALS) as number;
+		const legs = transferLegs({ ...gapped, fee, feeSide: "destination" }, USD_DECIMALS, VES_DECIMALS);
+		expect(legs?.exchangeRate).toBeCloseTo(55.5, 9);
+	});
+});
