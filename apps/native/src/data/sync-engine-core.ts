@@ -14,6 +14,7 @@ import {
 	transactionSplits,
 	transactions,
 	transactionTags,
+	transfers,
 } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import {
@@ -186,6 +187,7 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"amountUsd",
 			"exchangeRate",
 			"exchangeRateType",
+			"transferId",
 		],
 		id: transactions.id,
 		table: transactions,
@@ -195,6 +197,28 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 		fields: ["transactionId", "tagId"],
 		id: transactionTags.id,
 		table: transactionTags,
+	},
+	transfers: {
+		dates: ["date", "day", "month", "dateCreated"],
+		fields: [
+			"fromAccountId",
+			"toAccountId",
+			"fromAmount",
+			"fromCurrency",
+			"fromAmountUsd",
+			"toAmount",
+			"toCurrency",
+			"toAmountUsd",
+			"exchangeRate",
+			"exchangeRateType",
+			"date",
+			"day",
+			"month",
+			"note",
+			"dateCreated",
+		],
+		id: transfers.id,
+		table: transfers,
 	},
 };
 

@@ -62,6 +62,35 @@ export const transactionFields = {
 	recurringCoefficient: v.number(),
 	recurringEndDate: v.union(v.number(), v.null()),
 	recurringType: v.number(),
+	/**
+	 * Optional for the same reason as `recurringAnchorDay`: a handset on the
+	 * previous build pushes rows without the key at all.
+	 */
+	transferId: v.optional(v.union(v.string(), v.null())),
+};
+
+/**
+ * `fromAmount` and `toAmount` are the legs — money that moved — and are always
+ * a pure conversion of each other at `exchangeRate`. A fee is a `transactions`
+ * row carrying `transferId`, never a column here, so nothing on this table has
+ * to be reconciled against it.
+ */
+export const transferFields = {
+	date: v.number(),
+	dateCreated: v.number(),
+	day: v.number(),
+	exchangeRate: v.union(v.number(), v.null()),
+	exchangeRateType: v.union(v.string(), v.null()),
+	fromAccountId: v.string(),
+	fromAmount: v.number(),
+	fromAmountUsd: v.union(v.number(), v.null()),
+	fromCurrency: v.string(),
+	month: v.number(),
+	note: v.string(),
+	toAccountId: v.string(),
+	toAmount: v.number(),
+	toAmountUsd: v.union(v.number(), v.null()),
+	toCurrency: v.string(),
 };
 
 /** `imageUri` is absent: it is a path into one device's container. */
@@ -181,6 +210,8 @@ export const TOMBSTONED_TABLES = [
 	"transactionPhotos",
 	"transactionSplits",
 	"accounts",
+	// After `accounts`: a transfer's two legs are account localIds.
+	"transfers",
 ] as const;
 
 /**
@@ -203,6 +234,7 @@ export const FIELDS_BY_TABLE = {
 	transactionSplits: transactionSplitFields,
 	transactions: transactionFields,
 	transactionTags: transactionTagFields,
+	transfers: transferFields,
 } as const;
 
 interface Versioned {

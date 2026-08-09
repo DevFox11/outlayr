@@ -71,6 +71,7 @@ function makeDb(): TestDb {
 			amountUsd real,
 			exchangeRate real,
 			exchangeRateType text,
+			transferId text,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);

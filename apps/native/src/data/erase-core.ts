@@ -1,7 +1,7 @@
 import { isNull } from "drizzle-orm";
 import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
-import { budgets, mainBudget, templateTransactions, transactions } from "@/db/schema";
+import { budgets, mainBudget, templateTransactions, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
@@ -56,6 +56,7 @@ export const ERASED_TRANSACTION = {
 	recurringEndDate: null,
 	recurringType: RECURRING_TYPE.none,
 	reminderLeadDays: null,
+	transferId: null,
 } as const;
 
 const ERASED_TEMPLATE = {
@@ -66,6 +67,31 @@ const ERASED_TEMPLATE = {
 	recurringCoefficient: 1,
 	recurringType: RECURRING_TYPE.none,
 	sortOrder: 0,
+} as const;
+
+/**
+ * The two account ids stay: they are `notNull`, and blanking them would point
+ * the row at an account that does not exist the moment foreign keys are on.
+ * Everything that says how much moved is stripped, which is what the erase is
+ * for.
+ *
+ * Exported for the same reason as {@link ERASED_TRANSACTION}: a column added to
+ * `transfers` and not to this constant survives on the tombstone.
+ */
+export const ERASED_TRANSFER = {
+	date: ERASED_DATE,
+	dateCreated: ERASED_DATE,
+	day: ERASED_DATE,
+	exchangeRate: null,
+	exchangeRateType: null,
+	fromAmount: 0,
+	fromAmountUsd: null,
+	fromCurrency: "",
+	month: ERASED_DATE,
+	note: "",
+	toAmount: 0,
+	toAmountUsd: null,
+	toCurrency: "",
 } as const;
 
 /**
@@ -89,6 +115,10 @@ export async function eraseLedger(db: Database, scope: EraseScope): Promise<void
 			.update(templateTransactions)
 			.set({ ...ERASED_TEMPLATE, deletedAt: now, updatedAt: now })
 			.where(isNull(templateTransactions.deletedAt));
+		await db
+			.update(transfers)
+			.set({ ...ERASED_TRANSFER, deletedAt: now, updatedAt: now })
+			.where(isNull(transfers.deletedAt));
 
 		if (scope !== "everything") {
 			return;

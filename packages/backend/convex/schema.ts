@@ -15,6 +15,7 @@ import {
 	transactionPhotoFields,
 	transactionSplitFields,
 	transactionTagFields,
+	transferFields,
 } from "./lib/syncTables";
 
 /**
@@ -248,6 +249,14 @@ export default defineSchema({
 		.index("by_user_and_localId", ["userId", "localId"]),
 
 	transactionTags: defineTable({ ...replicated, ...transactionTagFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * `fromAccountId` and `toAccountId` hold account `localId`s, staying in
+	 * local-id space like every other foreign key the envelope carries.
+	 */
+	transfers: defineTable({ ...replicated, ...transferFields })
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 });

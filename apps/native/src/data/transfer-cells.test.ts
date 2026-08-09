@@ -1,0 +1,258 @@
+import BetterSqlite3 from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { transactions, transfers } from "@/db/schema";
+import { accountBalance } from "@/domain/account-balance";
+import { buildRateTable } from "@/domain/valuation";
+import type { SpendDb } from "./budget-spent";
+import { accountCellQuery, toCurrencyCells } from "./cell-query";
+import { allTransferCells, transferCells } from "./transfer-cells";
+
+const DAY = new Date(Date.UTC(2026, 7, 9));
+const NO_RATES = buildRateTable([]);
+
+function makeDb() {
+	const sqlite = new BetterSqlite3(":memory:");
+	sqlite.exec(`
+		CREATE TABLE transactions (
+			id text PRIMARY KEY NOT NULL,
+			amount real NOT NULL,
+			income integer NOT NULL,
+			currency text,
+			note text NOT NULL DEFAULT '',
+			details text,
+			icon text,
+			emoji text,
+			customColor text,
+			imageColor text,
+			imageUri text,
+			imageKey text,
+			onceRecurring integer NOT NULL DEFAULT 0,
+			recurringType integer NOT NULL DEFAULT 0,
+			recurringCoefficient integer NOT NULL DEFAULT 1,
+			recurringEndDate integer,
+			recurringAnchorDay integer,
+			reminderLeadDays integer,
+			date integer NOT NULL,
+			day integer NOT NULL,
+			month integer NOT NULL,
+			categoryId text,
+			accountId text,
+			amountUsd real,
+			exchangeRate real,
+			exchangeRateType text,
+			transferId text,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
+		CREATE TABLE transfers (
+			id text PRIMARY KEY NOT NULL,
+			fromAccountId text NOT NULL,
+			toAccountId text NOT NULL,
+			fromAmount real NOT NULL,
+			fromCurrency text NOT NULL,
+			fromAmountUsd real,
+			toAmount real NOT NULL,
+			toCurrency text NOT NULL,
+			toAmountUsd real,
+			exchangeRate real,
+			exchangeRateType text,
+			date integer NOT NULL,
+			day integer NOT NULL,
+			month integer NOT NULL,
+			note text DEFAULT '' NOT NULL,
+			dateCreated integer NOT NULL,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
+	`);
+	return drizzle(sqlite) as unknown as SpendDb;
+}
+
+async function addTransfer(
+	db: SpendDb,
+	row: Partial<typeof transfers.$inferInsert> & { id: string; fromAccountId: string; toAccountId: string }
+) {
+	await db.insert(transfers).values({
+		date: DAY,
+		dateCreated: DAY,
+		day: DAY,
+		exchangeRate: 1,
+		exchangeRateType: "official",
+		fromAmount: 100,
+		fromAmountUsd: 100,
+		fromCurrency: "USD",
+		month: DAY,
+		note: "",
+		toAmount: 100,
+		toAmountUsd: 100,
+		toCurrency: "USD",
+		updatedAt: DAY,
+		...row,
+	});
+}
+
+describe("transferCells projects each leg into the shape the balance engine already sums", () => {
+	it("gives the source an outbound cell that subtracts", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		const cells = await transferCells(db, "a");
+
+		expect(cells).toHaveLength(1);
+		expect(cells[0]).toMatchObject({ amount: 100, currencyCode: "USD", income: false });
+	});
+
+	it("gives the destination an inbound cell that adds", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		const cells = await transferCells(db, "b");
+
+		expect(cells).toHaveLength(1);
+		expect(cells[0]).toMatchObject({ amount: 100, currencyCode: "USD", income: true });
+	});
+
+	it("carries each leg's own currency and frozen USD value across a conversion", async () => {
+		const db = makeDb();
+		await addTransfer(db, {
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+			fromAccountId: "usd",
+			fromAmount: 100,
+			fromAmountUsd: 100,
+			id: "t1",
+			toAccountId: "ves",
+			toAmount: 5550,
+			toAmountUsd: 100,
+			toCurrency: "VES",
+		});
+
+		const [out] = await transferCells(db, "usd");
+		const [into] = await transferCells(db, "ves");
+
+		expect(out).toMatchObject({ amount: 100, amountUsd: 100, currencyCode: "USD", income: false });
+		expect(into).toMatchObject({ amount: 5550, amountUsd: 100, currencyCode: "VES", income: true });
+	});
+
+	it("ignores a transfer that does not touch the account", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		expect(await transferCells(db, "c")).toEqual([]);
+	});
+
+	it("ignores a tombstoned transfer", async () => {
+		const db = makeDb();
+		await addTransfer(db, { deletedAt: DAY, fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		expect(await transferCells(db, "a")).toEqual([]);
+	});
+
+	it("sums several transfers on the same day and currency into one cell", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+		await addTransfer(db, { fromAccountId: "a", fromAmount: 40, id: "t2", toAccountId: "b" });
+
+		const cells = await transferCells(db, "a");
+
+		expect(cells).toHaveLength(1);
+		expect(cells[0]).toMatchObject({ amount: 140, count: 2, income: false });
+	});
+
+	it("keeps both directions when an account sends and receives", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+		await addTransfer(db, { fromAccountId: "b", fromAmount: 30, id: "t2", toAccountId: "a", toAmount: 30 });
+
+		const cells = await transferCells(db, "a");
+
+		expect(cells.find((cell) => cell.income === false)?.amount).toBe(100);
+		expect(cells.find((cell) => cell.income === true)?.amount).toBe(30);
+	});
+
+	it("marks a leg with no frozen USD value as unconverted", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", fromAmountUsd: null, id: "t1", toAccountId: "b" });
+
+		const [cell] = await transferCells(db, "a");
+
+		expect(cell).toMatchObject({ unconvertedAmount: 100, unconvertedCount: 1 });
+	});
+});
+
+describe("transfer legs and account balances", () => {
+	it("moves money out of the source and into the destination", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		const source = accountBalance({ currency: "USD", initialBalance: 500 }, await transferCells(db, "a"), NO_RATES);
+		const destination = accountBalance({ currency: "USD", initialBalance: 0 }, await transferCells(db, "b"), NO_RATES);
+
+		expect(source.total).toBe(400);
+		expect(destination.total).toBe(100);
+	});
+
+	it("nets to zero across both accounts in the same currency", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		const source = accountBalance({ currency: "USD", initialBalance: 500 }, await transferCells(db, "a"), NO_RATES);
+		const destination = accountBalance(
+			{ currency: "USD", initialBalance: 500 },
+			await transferCells(db, "b"),
+			NO_RATES
+		);
+
+		expect(source.total + destination.total).toBe(1000);
+	});
+
+	it("debits the source exactly once when a fee rides along", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", fromAmount: 97.3, id: "t1", toAccountId: "b" });
+		await db.insert(transactions).values({
+			accountId: "a",
+			amount: 2.7,
+			amountUsd: 2.7,
+			currency: "USD",
+			date: DAY,
+			day: DAY,
+			id: "fee-1",
+			income: false,
+			month: DAY,
+			transferId: "t1",
+			updatedAt: DAY,
+		});
+
+		const cells = [...toCurrencyCells(await accountCellQuery(db, "a")), ...(await transferCells(db, "a"))];
+		const source = accountBalance({ currency: "USD", initialBalance: 500 }, cells, NO_RATES);
+
+		expect(source.total).toBe(400);
+	});
+});
+
+describe("allTransferCells splits the whole ledger by account in one read", () => {
+	it("labels every leg with the account it belongs to", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+
+		const cells = await allTransferCells(db);
+
+		expect(cells.find((cell) => cell.accountId === "a")).toMatchObject({ amount: 100, income: false });
+		expect(cells.find((cell) => cell.accountId === "b")).toMatchObject({ amount: 100, income: true });
+	});
+
+	it("agrees with the per-account query", async () => {
+		const db = makeDb();
+		await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
+		await addTransfer(db, { fromAccountId: "b", fromAmount: 30, id: "t2", toAccountId: "c" });
+
+		const all = await allTransferCells(db);
+		for (const accountId of ["a", "b", "c"]) {
+			const scoped = await transferCells(db, accountId);
+			const fromAll = all.filter((cell) => cell.accountId === accountId).map(({ accountId: _drop, ...cell }) => cell);
+			expect(fromAll.sort((l, r) => Number(l.income) - Number(r.income))).toEqual(
+				scoped.sort((l, r) => Number(l.income) - Number(r.income))
+			);
+		}
+	});
+});

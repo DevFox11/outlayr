@@ -67,6 +67,51 @@ export const accounts = sqliteTable(
 	(table) => [index("accounts_deletedAt_idx").on(table.deletedAt)]
 );
 
+export const transfers = sqliteTable(
+	"transfers",
+	{
+		date: integer("date", { mode: "timestamp_ms" }).notNull(),
+		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+		day: integer("day", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+		/**
+		 * Always exactly `toAmount / fromAmount`: a fee is a separate transaction
+		 * and never a term in the legs, so nothing contaminates the stored rate.
+		 */
+		exchangeRate: real("exchangeRate"),
+		/** `EntryRateType` from `@outlayr/money/rates`: official | eur_reference | custom. */
+		exchangeRateType: text("exchangeRateType"),
+		fromAccountId: text("fromAccountId")
+			.notNull()
+			.references(() => accounts.id, { onDelete: "cascade" }),
+		/**
+		 * The outbound leg — money that moved. A source-side fee is charged by its
+		 * own transaction and is NOT included here, or the source account would be
+		 * debited twice.
+		 */
+		fromAmount: real("fromAmount").notNull(),
+		fromAmountUsd: real("fromAmountUsd"),
+		fromCurrency: text("fromCurrency").notNull(),
+		id: text("id").primaryKey(),
+		month: integer("month", { mode: "timestamp_ms" }).notNull(),
+		note: text("note").notNull().default(""),
+		toAccountId: text("toAccountId")
+			.notNull()
+			.references(() => accounts.id, { onDelete: "cascade" }),
+		toAmount: real("toAmount").notNull(),
+		toAmountUsd: real("toAmountUsd"),
+		toCurrency: text("toCurrency").notNull(),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("transfers_day_idx").on(table.day),
+		index("transfers_fromAccountId_idx").on(table.fromAccountId),
+		index("transfers_toAccountId_idx").on(table.toAccountId),
+		index("transfers_deletedAt_idx").on(table.deletedAt),
+		index("transfers_day_date_idx").on(table.day, table.date),
+	]
+);
+
 export const transactions = sqliteTable(
 	"transactions",
 	{
@@ -153,9 +198,18 @@ export const transactions = sqliteTable(
 		 * successor arrives here with the column unset.
 		 */
 		reminderLeadDays: integer("reminderLeadDays"),
+		/**
+		 * Set only on a transfer's fee. A lifecycle link, never an exclusion flag:
+		 * a fee is ordinary spending and every aggregate must keep counting it, so
+		 * nothing filters on this column.
+		 */
+		transferId: text("transferId").references(() => transfers.id, {
+			onDelete: "cascade",
+		}),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 	},
 	(table) => [
+		index("transactions_transferId_idx").on(table.transferId),
 		index("transactions_day_idx").on(table.day),
 		index("transactions_month_idx").on(table.month),
 		index("transactions_categoryId_idx").on(table.categoryId),

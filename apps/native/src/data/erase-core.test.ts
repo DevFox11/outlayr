@@ -49,6 +49,7 @@ function makeDb(): Database {
 			amountUsd real,
 			exchangeRate real,
 			exchangeRateType text,
+			transferId text,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);
@@ -90,6 +91,26 @@ function makeDb(): Database {
 			recurringType integer NOT NULL DEFAULT 0,
 			recurringCoefficient integer NOT NULL DEFAULT 1,
 			categoryId text,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
+		CREATE TABLE transfers (
+			id text PRIMARY KEY NOT NULL,
+			fromAccountId text NOT NULL,
+			toAccountId text NOT NULL,
+			fromAmount real NOT NULL,
+			fromCurrency text NOT NULL,
+			fromAmountUsd real,
+			toAmount real NOT NULL,
+			toCurrency text NOT NULL,
+			toAmountUsd real,
+			exchangeRate real,
+			exchangeRateType text,
+			date integer NOT NULL,
+			day integer NOT NULL,
+			month integer NOT NULL,
+			note text DEFAULT '' NOT NULL,
+			dateCreated integer NOT NULL,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);

@@ -6,6 +6,7 @@ import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
+import { transfersRepo } from "./transfers-core";
 
 export type Account = typeof accounts.$inferSelect;
 
@@ -124,6 +125,7 @@ export const accountsRepo = {
 	 * or every entry keeps pointing at a row only the `deletedAt` filters hide.
 	 */
 	async softDelete(db: Database, id: string, now: Date = new Date()): Promise<void> {
+		await transfersRepo.softDeleteForAccount(db, id, now);
 		await withTransaction(db, async () => {
 			await db
 				.update(accounts)
