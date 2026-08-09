@@ -1,4 +1,4 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 import { type AccountCompositionEntry, accountBalance } from "./account-balance";

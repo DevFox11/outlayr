@@ -1,4 +1,4 @@
-import { currencyDisplayFor } from "@outlayr/money";
+import { currencyDisplayFor } from "@outlayr/money/currency";
 import { View } from "react-native";
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
 import { FirstRun } from "@/components/first-run";

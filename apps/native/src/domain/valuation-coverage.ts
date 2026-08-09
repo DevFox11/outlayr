@@ -1,4 +1,4 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import type { TranslateFn } from "@/i18n/context";
 import { type DatedValuable, type RateTable, valueExactIn } from "./valuation";
 

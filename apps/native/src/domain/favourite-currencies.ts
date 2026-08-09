@@ -1,4 +1,4 @@
-import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 
 const CATALOGUE: ReadonlySet<string> = new Set(PICKABLE_CURRENCY_CODES);
 

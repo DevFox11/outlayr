@@ -1,4 +1,6 @@
-import { CURRENCY_DECIMALS, currencyDisplayFor, roundMoney } from "@outlayr/money";
+import { CURRENCY_DECIMALS } from "@outlayr/money/catalog";
+import { currencyDisplayFor } from "@outlayr/money/currency";
+import { roundMoney } from "@outlayr/money/round";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 

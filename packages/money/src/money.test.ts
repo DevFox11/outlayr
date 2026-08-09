@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { makeRateLookup } from "./fixtures";
 import {
 	assertFiniteNumber,
 	assertOptionalFiniteNumber,
 	assertOptionalValidEpochMs,
 	assertValidEpochMs,
-	isPickableCurrency,
-	MoneyValidationError,
-	resolveEntryRate,
-	utcDateString,
-} from "./index";
+} from "./assert";
+import { isPickableCurrency } from "./currency";
+import { utcDateString } from "./dates";
+import { MoneyValidationError } from "./errors";
+import { makeRateLookup } from "./fixtures";
+import { resolveEntryRate } from "./rates";
 
 const FINITE_PATTERN = /amountUSD must be a finite number/;
 const EPOCH_PATTERN = /epoch-milliseconds/;

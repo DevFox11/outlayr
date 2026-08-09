@@ -1,4 +1,4 @@
-import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 import { currencyPickerRows } from "./currency-picker-rows";
 
 const codes = (rows: ReturnType<typeof currencyPickerRows>) =>

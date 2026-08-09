@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { CURRENCY_DECIMALS, PICKABLE_CURRENCY_CODES } from "./catalog.generated";
+import { currencyDisplayFor, isPickableCurrency } from "./currency";
+import { MoneyValidationError } from "./errors";
 import {
 	COMPUTE_USD_THROW_VECTORS,
 	COMPUTE_USD_VECTORS,
@@ -7,16 +10,8 @@ import {
 	REFERENCE_DATE_MS,
 	ROUND_MONEY_VECTORS,
 } from "./fixtures";
-import {
-	CURRENCY_DECIMALS,
-	computeAmountUSD,
-	convertFromUsd,
-	currencyDisplayFor,
-	isPickableCurrency,
-	MoneyValidationError,
-	PICKABLE_CURRENCY_CODES,
-	roundMoney,
-} from "./index";
+import { computeAmountUSD } from "./rates";
+import { convertFromUsd, roundMoney } from "./round";
 
 const WINDOW_MS = RATES_WINDOW_DAYS * 86_400_000;
 

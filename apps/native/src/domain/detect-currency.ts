@@ -1,4 +1,4 @@
-import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 
 /** Symbol → the currencies that use it. */
 const BY_SYMBOL = new Map<string, string[]>();

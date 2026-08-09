@@ -1,4 +1,4 @@
-import { roundMoney } from "@outlayr/money";
+import { roundMoney } from "@outlayr/money/round";
 import { currencyTotals } from "./currency-totals";
 import { buildRateTable, isExact, limitIn, sumValuedIn, valueIn, valueRowsIn } from "./valuation";
 

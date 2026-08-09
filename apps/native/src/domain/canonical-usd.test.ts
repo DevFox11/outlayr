@@ -1,4 +1,4 @@
-import type { RateLookup } from "@outlayr/money";
+import type { RateLookup } from "@outlayr/money/rates";
 import { canonicalUsd } from "./canonical-usd";
 
 /** A lookup over a fixed table, mirroring what the local replica serves. */

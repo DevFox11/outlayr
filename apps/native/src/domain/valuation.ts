@@ -1,4 +1,5 @@
-import { convertFromUsd, roundMoney, utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
+import { convertFromUsd, roundMoney } from "@outlayr/money/round";
 
 export interface Valuable {
 	amount: number;

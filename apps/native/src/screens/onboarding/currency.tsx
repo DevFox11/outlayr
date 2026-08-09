@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { currencyDisplayFor } from "@outlayr/money";
+import { currencyDisplayFor } from "@outlayr/money/currency";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";

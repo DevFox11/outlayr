@@ -1,4 +1,4 @@
-import type { RateLookup } from "@outlayr/money";
+import type { RateLookup } from "@outlayr/money/rates";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { getMeta, setMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";

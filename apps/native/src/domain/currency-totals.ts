@@ -1,4 +1,4 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import { convertUsdSum, type RateTable } from "./valuation";
 
 export interface CurrencyBucket {

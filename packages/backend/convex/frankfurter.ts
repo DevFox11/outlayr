@@ -1,4 +1,4 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";

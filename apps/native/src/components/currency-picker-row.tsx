@@ -2,7 +2,7 @@ import { type MenuAction, MenuView, type NativeActionEvent } from "@expo/ui/comm
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react-native";
 import { StarIcon as StarSolidIcon } from "@hugeicons-pro/core-solid-rounded";
 import { StarIcon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { CURRENCY_META } from "@outlayr/money";
+import { CURRENCY_META } from "@outlayr/money/catalog";
 import { useRef } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";

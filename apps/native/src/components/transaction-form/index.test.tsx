@@ -350,13 +350,7 @@ describe("TransactionForm", () => {
 		};
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
-					initial={initial as any}
-					mode="edit"
-					onDone={() => {}}
-				/>
+				<TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
 			</Providers>
 		);
 		expect(toJSON()).toBeTruthy();
@@ -387,13 +381,7 @@ describe("TransactionForm", () => {
 		};
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
-					initial={initial as any}
-					mode="edit"
-					onDone={() => {}}
-				/>
+				<TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
 			</Providers>
 		);
 		expect(containsText(toJSON() as JsonNode, "🎸")).toBe(true);
@@ -424,13 +412,7 @@ describe("TransactionForm", () => {
 		};
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
-					initial={initial as any}
-					mode="edit"
-					onDone={() => {}}
-				/>
+				<TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
 			</Providers>
 		);
 		const tree = toJSON() as JsonNode;
@@ -532,13 +514,7 @@ describe("TransactionForm", () => {
 		await act(async () => {
 			rerender(
 				<Providers>
-					<TransactionForm
-						db={db}
-						// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
-						initial={initial as any}
-						mode="edit"
-						onDone={() => {}}
-					/>
+					<TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
 				</Providers>
 			);
 		});
@@ -770,13 +746,7 @@ describe("TransactionForm enrichment", () => {
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
-					initial={initial as any}
-					mode="edit"
-					onDone={() => {}}
-				/>
+				<TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
 			</Providers>
 		);
 
@@ -1002,13 +972,7 @@ describe("TransactionForm account attachment", () => {
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
-					initial={initial as any}
-					mode="edit"
-					onDone={() => {}}
-				/>
+				<TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
 			</Providers>
 		);
 

@@ -4,8 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./fixtures": "./src/fixtures.ts"
+    "./assert": "./src/assert.ts",
+    "./catalog": "./src/catalog.generated.ts",
+    "./currency": "./src/currency.ts",
+    "./dates": "./src/dates.ts",
+    "./errors": "./src/errors.ts",
+    "./fixtures": "./src/fixtures.ts",
+    "./rates": "./src/rates.ts",
+    "./round": "./src/round.ts"
   },
   "scripts": {
     "check:types": "tsc --noEmit",

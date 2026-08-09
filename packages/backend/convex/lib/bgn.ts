@@ -1,4 +1,4 @@
-import { roundMoney } from "@outlayr/money";
+import { roundMoney } from "@outlayr/money/round";
 
 /**
  * Bulgaria's currency-board peg: the lev is irrevocably fixed at 1.95583 BGN per

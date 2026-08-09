@@ -1,4 +1,4 @@
-import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 import { isFavourite } from "./favourite-currencies";
 
 export type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];

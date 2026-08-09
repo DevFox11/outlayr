@@ -1,4 +1,4 @@
-import type { EntryRateType, MarketRateType, RateLookup } from "./index";
+import type { EntryRateType, MarketRateType, RateLookup } from "./rates";
 
 /**
  * Golden vectors shared by the `@outlayr/money` vitest suite AND the

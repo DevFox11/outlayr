@@ -1,6 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { RefreshIcon } from "@hugeicons-pro/core-stroke-rounded";
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import { type AccessibilityActionEvent, Pressable, View } from "react-native";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { TransactionWithCategory } from "@/data/transactions";
