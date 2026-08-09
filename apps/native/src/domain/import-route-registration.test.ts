@@ -4,13 +4,10 @@ import { join } from "node:path";
 // The import flow is one BottomSheetModal presented over the Log — never an
 // expo-router route. These structural checks pin that architecture: a stray
 // app/import route would re-grow the nested-navigator sheet this replaced.
-const APP_DIR = join(__dirname, "..", "app");
+const APP_DIR = join(import.meta.dirname, "..", "app");
 const LAYOUT_SOURCE = readFileSync(join(APP_DIR, "_layout.tsx"), "utf8");
-const IMPORT_SHEET_DIR = join(__dirname, "..", "components", "import-sheet");
-const IMPORT_SHEET_SOURCE = readFileSync(
-	join(IMPORT_SHEET_DIR, "import-sheet.tsx"),
-	"utf8",
-);
+const IMPORT_SHEET_DIR = join(import.meta.dirname, "..", "components", "import-sheet");
+const IMPORT_SHEET_SOURCE = readFileSync(join(IMPORT_SHEET_DIR, "import-sheet.tsx"), "utf8");
 
 function collectSourceFiles(dir: string): string[] {
 	const files: string[] = [];
@@ -39,7 +36,7 @@ describe("import is a sheet, not a route", () => {
 	});
 
 	it("the route-href indirection is gone", () => {
-		expect(existsSync(join(__dirname, "import-routes.ts"))).toBe(false);
+		expect(existsSync(join(import.meta.dirname, "import-routes.ts"))).toBe(false);
 	});
 
 	it("only the sheet root touches expo-router — steps navigate through the draft store", () => {
@@ -53,9 +50,7 @@ describe("import is a sheet, not a route", () => {
 
 describe("the sheet is one BottomSheetModal in the currency-picker pattern", () => {
 	it("uses BottomSheetModal from @expo/ui with dynamic sizing", () => {
-		expect(IMPORT_SHEET_SOURCE).toMatch(
-			/from "@expo\/ui\/community\/bottom-sheet"/,
-		);
+		expect(IMPORT_SHEET_SOURCE).toMatch(/from "@expo\/ui\/community\/bottom-sheet"/);
 		expect(IMPORT_SHEET_SOURCE).toMatch(/<BottomSheetModal/);
 		expect(IMPORT_SHEET_SOURCE).toMatch(/enableDynamicSizing\b(?!=\{false\})/);
 		expect(IMPORT_SHEET_SOURCE).toMatch(/enablePanDownToClose/);
@@ -66,31 +61,27 @@ describe("the sheet is one BottomSheetModal in the currency-picker pattern", () 
 describe("no navigator chrome under the import sheet", () => {
 	it("zero headerRight/headerLeft occurrences under components/import-sheet/**", () => {
 		const offenders = collectSourceFiles(IMPORT_SHEET_DIR).filter((file) =>
-			/headerRight|headerLeft/.test(readFileSync(file, "utf8")),
+			/headerRight|headerLeft/.test(readFileSync(file, "utf8"))
 		);
 		expect(offenders).toStrictEqual([]);
 	});
 
 	it("zero common.cancel occurrences under components/import-sheet/**", () => {
 		const offenders = collectSourceFiles(IMPORT_SHEET_DIR).filter((file) =>
-			/common\.cancel/.test(readFileSync(file, "utf8")),
+			/common\.cancel/.test(readFileSync(file, "utf8"))
 		);
 		expect(offenders).toStrictEqual([]);
 	});
 
 	it("zero ActionStrip / wizard / footer-slot references under components/import-sheet/**", () => {
 		const offenders = collectSourceFiles(IMPORT_SHEET_DIR).filter((file) =>
-			/ActionStrip|components\/wizard|import-chrome-footer/.test(
-				readFileSync(file, "utf8"),
-			),
+			/ActionStrip|components\/wizard|import-chrome-footer/.test(readFileSync(file, "utf8"))
 		);
 		expect(offenders).toStrictEqual([]);
 	});
 
 	it("the wizard/ActionStrip component tree no longer exists", () => {
-		expect(existsSync(join(__dirname, "..", "components", "wizard"))).toBe(
-			false,
-		);
+		expect(existsSync(join(import.meta.dirname, "..", "components", "wizard"))).toBe(false);
 	});
 
 	it("the navigator-era StepFrame no longer exists", () => {

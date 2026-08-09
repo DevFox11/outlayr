@@ -20,10 +20,7 @@ export interface EurBaseLeg {
  * peg leaves their ratio (`baseAmount / exchangeRate`, the canonical USD)
  * invariant, so stored USD canonicals stay correct without being recomputed.
  */
-export function bgnBaseLegToEur(
-	baseAmount: number,
-	exchangeRate: number,
-): EurBaseLeg {
+export function bgnBaseLegToEur(baseAmount: number, exchangeRate: number): EurBaseLeg {
 	return {
 		baseAmount: roundMoney(baseAmount / BGN_PER_EUR, EUR_EXPONENT),
 		baseCurrency: "EUR",

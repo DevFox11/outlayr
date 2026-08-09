@@ -1,16 +1,6 @@
-import {
-	FilterMode,
-	ImageFormat,
-	MipmapMode,
-	Skia,
-} from "@shopify/react-native-skia";
+import { FilterMode, ImageFormat, MipmapMode, Skia } from "@shopify/react-native-skia";
 import { Directory, File, Paths } from "expo-file-system";
-import {
-	PHOTO_DIRECTORY,
-	type PhotoFiles,
-	photoExtension,
-	photoFileName,
-} from "@/data/photo-store-core";
+import { PHOTO_DIRECTORY, type PhotoFiles, photoExtension, photoFileName } from "@/data/photo-store-core";
 import { newId } from "@/domain/ids";
 
 /**
@@ -23,29 +13,11 @@ const JPEG_QUALITY = 80;
 
 function photoDirectory(): Directory {
 	const directory = new Directory(Paths.document, PHOTO_DIRECTORY);
-	directory.create({ intermediates: true, idempotent: true });
+	directory.create({ idempotent: true, intermediates: true });
 	return directory;
 }
 
 export const photoFiles: PhotoFiles = {
-	get directoryUri() {
-		return photoDirectory().uri;
-	},
-
-	list() {
-		return photoDirectory()
-			.list()
-			.filter((entry): entry is File => entry instanceof File)
-			.map((file) => ({ name: file.name, modifiedAt: file.lastModified ?? 0 }));
-	},
-
-	remove(name) {
-		const file = new File(photoDirectory(), name);
-		if (file.exists) {
-			file.delete();
-		}
-	},
-
 	adopt(sourceUri, name) {
 		const source = new File(sourceUri);
 		if (!source.exists) {
@@ -54,10 +26,27 @@ export const photoFiles: PhotoFiles = {
 		source.copySync(new File(photoDirectory(), name), { overwrite: true });
 		return true;
 	},
+	get directoryUri() {
+		return photoDirectory().uri;
+	},
+
+	list() {
+		return photoDirectory()
+			.list()
+			.filter((entry): entry is File => entry instanceof File)
+			.map((file) => ({ modifiedAt: file.lastModified ?? 0, name: file.name }));
+	},
 
 	read(name) {
 		const file = new File(photoDirectory(), name);
 		return file.exists ? file.bytesSync() : null;
+	},
+
+	remove(name) {
+		const file = new File(photoDirectory(), name);
+		if (file.exists) {
+			file.delete();
+		}
 	},
 
 	write(name, bytes) {
@@ -97,12 +86,10 @@ async function downscaleToJpeg(sourceUri: string): Promise<Uint8Array | null> {
 				Skia.XYWHRect(0, 0, width, height),
 				Skia.XYWHRect(0, 0, targetWidth, targetHeight),
 				FilterMode.Linear,
-				MipmapMode.Linear,
+				MipmapMode.Linear
 			);
 		surface.flush();
-		const encoded = surface
-			.makeImageSnapshot()
-			.encodeToBytes(ImageFormat.JPEG, JPEG_QUALITY);
+		const encoded = surface.makeImageSnapshot().encodeToBytes(ImageFormat.JPEG, JPEG_QUALITY);
 		return encoded.length > 0 ? encoded : null;
 	} catch {
 		return null;
@@ -126,10 +113,7 @@ export async function persistPickedPhoto(sourceUri: string): Promise<string> {
 		return target.uri;
 	}
 
-	const target = new File(
-		directory,
-		`${newId()}${photoExtension(photoFileName(sourceUri))}`,
-	);
+	const target = new File(directory, `${newId()}${photoExtension(photoFileName(sourceUri))}`);
 	new File(sourceUri).copySync(target, { overwrite: true });
 	return target.uri;
 }

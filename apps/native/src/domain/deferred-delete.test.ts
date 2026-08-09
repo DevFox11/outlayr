@@ -1,7 +1,4 @@
-import {
-	createDeferredDelete,
-	type DeferredDeleteSnapshot,
-} from "./deferred-delete";
+import { createDeferredDelete, type DeferredDeleteSnapshot } from "./deferred-delete";
 
 const WINDOW_MS = 4000;
 
@@ -12,17 +9,6 @@ function fakeClock() {
 	const scheduled = new Map<number, { run: () => void; at: number }>();
 
 	return {
-		timers: {
-			set: (run: () => void, ms: number) => {
-				const handle = nextHandle;
-				nextHandle += 1;
-				scheduled.set(handle, { run, at: nowMs + ms });
-				return handle;
-			},
-			clear: (handle: number) => {
-				scheduled.delete(handle);
-			},
-		},
 		elapse(ms: number) {
 			nowMs += ms;
 			for (const [handle, item] of [...scheduled]) {
@@ -31,6 +17,17 @@ function fakeClock() {
 					item.run();
 				}
 			}
+		},
+		timers: {
+			clear: (handle: number) => {
+				scheduled.delete(handle);
+			},
+			set: (run: () => void, ms: number) => {
+				const handle = nextHandle;
+				nextHandle += 1;
+				scheduled.set(handle, { at: nowMs + ms, run });
+				return handle;
+			},
 		},
 	};
 }
@@ -43,11 +40,11 @@ function harness(commit: (id: string) => Promise<unknown>) {
 	const seen: DeferredDeleteSnapshot[] = [];
 	const controller = createDeferredDelete({
 		commit,
-		windowMs: WINDOW_MS,
-		timers: clock.timers,
 		onChange: (snapshot) => {
 			seen.push(snapshot);
 		},
+		timers: clock.timers,
+		windowMs: WINDOW_MS,
 	});
 	return { clock, controller, seen };
 }
@@ -55,11 +52,11 @@ function harness(commit: (id: string) => Promise<unknown>) {
 function recorder() {
 	const committed: string[] = [];
 	return {
-		committed,
 		commit: (id: string) => {
 			committed.push(id);
 			return Promise.resolve();
 		},
+		committed,
 	};
 }
 

@@ -8,12 +8,12 @@ jest.mock("@/i18n", () => ({
 }));
 
 jest.mock("@/theme/use-colors", () => ({
-	useColors: () => ({ foreground: "#17150F", background: "#F2F0EA" }),
+	useColors: () => ({ background: "#F2F0EA", foreground: "#17150F" }),
 }));
 
 interface TreeNode {
-	props?: { style?: unknown };
 	children?: (TreeNode | string)[] | null;
+	props?: { style?: unknown };
 }
 
 function strokedRects(node: TreeNode | string | null): ViewStyle[] {
@@ -22,9 +22,7 @@ function strokedRects(node: TreeNode | string | null): ViewStyle[] {
 	}
 	const style = StyleSheet.flatten(node.props?.style) as ViewStyle | undefined;
 	const nested = (node.children ?? []).flatMap(strokedRects);
-	return style?.borderWidth && style?.borderRadius
-		? [style, ...nested]
-		: nested;
+	return style?.borderWidth && style?.borderRadius ? [style, ...nested] : nested;
 }
 
 describe("search mark corners", () => {

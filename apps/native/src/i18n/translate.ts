@@ -1,8 +1,6 @@
 export type Catalog = Readonly<Record<string, string>>;
 
-export type TranslationParams = Readonly<
-	Record<string, string | number | null | undefined>
->;
+export type TranslationParams = Readonly<Record<string, string | number | null | undefined>>;
 
 interface TranslateOptions {
 	catalog: Catalog;
@@ -12,10 +10,7 @@ interface TranslateOptions {
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 
-export function interpolate(
-	template: string,
-	params: TranslationParams | undefined,
-): string {
+export function interpolate(template: string, params: TranslationParams | undefined): string {
 	if (!params) {
 		return template;
 	}
@@ -44,10 +39,7 @@ function lookup(key: string, catalog: Catalog, fallback: Catalog) {
 	return catalog[key] ?? fallback[key];
 }
 
-export function translate(
-	key: string,
-	{ catalog, fallback, params }: TranslateOptions,
-): string {
+export function translate(key: string, { catalog, fallback, params }: TranslateOptions): string {
 	const count = params?.count;
 	if (typeof count === "number") {
 		const pluralised = `${key}${pluralSuffix(count)}`;

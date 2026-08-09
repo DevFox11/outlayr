@@ -11,16 +11,9 @@ export interface ReviewEnrichment {
 
 const FETCH_BATCH = 4;
 
-export function useReviewEnrichment(
-	entries: readonly ImportEntry[],
-): ReadonlyMap<number, ReviewEnrichment> {
-	const identities = useMemo(
-		() => entries.map((entry) => reviewEntryIdentity(entry.note)),
-		[entries],
-	);
-	const [fetched, setFetched] = useState<ReadonlyMap<string, string | null>>(
-		new Map(),
-	);
+export function useReviewEnrichment(entries: readonly ImportEntry[]): ReadonlyMap<number, ReviewEnrichment> {
+	const identities = useMemo(() => entries.map((entry) => reviewEntryIdentity(entry.note)), [entries]);
+	const [fetched, setFetched] = useState<ReadonlyMap<string, string | null>>(new Map());
 
 	useEffect(() => {
 		const pending = new Map<string, { name: string; domain: string }>();
@@ -34,7 +27,7 @@ export function useReviewEnrichment(
 			if (pending.has(key) || cachedLogoUri(key) != null) {
 				continue;
 			}
-			pending.set(key, { name: identity.domain, domain: identity.domain });
+			pending.set(key, { domain: identity.domain, name: identity.domain });
 		}
 		if (pending.size === 0) {
 			return;
@@ -76,12 +69,8 @@ export function useReviewEnrichment(
 	return useMemo(() => {
 		const map = new Map<number, ReviewEnrichment>();
 		identities.forEach((identity, index) => {
-			const key =
-				identity.domain == null
-					? null
-					: logoCacheKey(identity.domain, identity.domain);
-			const logoUri =
-				key == null ? null : (cachedLogoUri(key) ?? fetched.get(key) ?? null);
+			const key = identity.domain == null ? null : logoCacheKey(identity.domain, identity.domain);
+			const logoUri = key == null ? null : (cachedLogoUri(key) ?? fetched.get(key) ?? null);
 			map.set(index, { displayName: identity.displayName, logoUri });
 		});
 		return map;

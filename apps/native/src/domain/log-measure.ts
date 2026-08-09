@@ -11,7 +11,7 @@ export type LogMeasure = "net" | "in" | "out";
  */
 export const LOG_MEASURE_ORDER: readonly LogMeasure[] = ["net", "in", "out"];
 
-const STORED: Record<LogMeasure, number> = { net: 1, in: 2, out: 3 };
+const STORED: Record<LogMeasure, number> = { in: 2, net: 1, out: 3 };
 
 export function logMeasureFromStored(value: number): LogMeasure {
 	return LOG_MEASURE_ORDER.find((m) => STORED[m] === value) ?? "net";
@@ -23,22 +23,22 @@ export function storedLogMeasure(measure: LogMeasure): number {
 
 /** One short word, so all three fit across the narrowest phone. */
 export const LOG_MEASURE_WORD: Record<LogMeasure, string> = {
-	net: "Net",
 	in: "In",
+	net: "Net",
 	out: "Out",
 };
 
 export interface LogFigures {
-	currencyCode: string;
-	income: number;
-	expense: number;
 	count: number;
+	currencyCode: string;
+	expense: number;
+	income: number;
 }
 
 export const ZERO_FIGURES: Omit<LogFigures, "currencyCode"> = {
-	income: 0,
-	expense: 0,
 	count: 0,
+	expense: 0,
+	income: 0,
 };
 
 export function netTotal(figures: LogFigures): number {
@@ -46,10 +46,7 @@ export function netTotal(figures: LogFigures): number {
 }
 
 /** Unsigned — the sign comes from {@link measureIsPositive}. */
-export function measureMagnitude(
-	measure: LogMeasure,
-	figures: LogFigures,
-): number {
+export function measureMagnitude(measure: LogMeasure, figures: LogFigures): number {
 	switch (measure) {
 		case "net":
 			return Math.abs(netTotal(figures));
@@ -60,10 +57,7 @@ export function measureMagnitude(
 	}
 }
 
-export function measureIsPositive(
-	measure: LogMeasure,
-	figures: LogFigures,
-): boolean {
+export function measureIsPositive(measure: LogMeasure, figures: LogFigures): boolean {
 	switch (measure) {
 		case "net":
 			return netTotal(figures) >= 0;

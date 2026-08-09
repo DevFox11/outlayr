@@ -1,8 +1,4 @@
-import {
-	type ConfigPlugin,
-	withAppDelegate,
-	withInfoPlist,
-} from "expo/config-plugins";
+import { type ConfigPlugin, withAppDelegate, withInfoPlist } from "expo/config-plugins";
 
 const MARKER = "// @generated with-ui-scene";
 
@@ -157,20 +153,15 @@ const withSceneDelegate: ConfigPlugin = (config) =>
 		const { contents, language } = appDelegateConfig.modResults;
 		if (language !== "swift") {
 			throw new Error(
-				`withUIScene: expected a Swift AppDelegate, got "${language}". The Expo template may have changed; update this plugin.`,
+				`withUIScene: expected a Swift AppDelegate, got "${language}". The Expo template may have changed; update this plugin.`
 			);
 		}
 		if (contents.includes(MARKER)) {
 			return appDelegateConfig;
 		}
-		if (
-			!(
-				contents.includes(WINDOW_BLOCK_ANCHOR) &&
-				contents.includes(WINDOW_PROPERTY_ANCHOR)
-			)
-		) {
+		if (!(contents.includes(WINDOW_BLOCK_ANCHOR) && contents.includes(WINDOW_PROPERTY_ANCHOR))) {
 			throw new Error(
-				"withUIScene: could not find the window creation block in AppDelegate.swift. The Expo template may have changed; update this plugin.",
+				"withUIScene: could not find the window creation block in AppDelegate.swift. The Expo template may have changed; update this plugin."
 			);
 		}
 		// `handleSpotlight` needs the CoreSpotlight constants. `expo-core-spotlight`
@@ -183,14 +174,10 @@ const withSceneDelegate: ConfigPlugin = (config) =>
 
 		appDelegateConfig.modResults.contents = `${withImport
 			.replace(WINDOW_BLOCK_ANCHOR, WINDOW_BLOCK_REPLACEMENT)
-			.replace(
-				WINDOW_PROPERTY_ANCHOR,
-				WINDOW_PROPERTY_REPLACEMENT,
-			)}${SCENE_DELEGATE}`;
+			.replace(WINDOW_PROPERTY_ANCHOR, WINDOW_PROPERTY_REPLACEMENT)}${SCENE_DELEGATE}`;
 		return appDelegateConfig;
 	});
 
-const withUIScene: ConfigPlugin = (config) =>
-	withSceneDelegate(withSceneManifest(config));
+const withUIScene: ConfigPlugin = (config) => withSceneDelegate(withSceneManifest(config));
 
 export default withUIScene;

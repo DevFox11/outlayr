@@ -7,7 +7,7 @@ import { accounts, categories, transactions } from "@/db/schema";
 import { parseArchive, serializeArchive } from "@/domain/archive";
 import { buildArchive, restoreArchive } from "./archive-core";
 
-const MIGRATIONS = join(__dirname, "../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
 
 /**
  * The real migrations rather than a hand-written schema: an archive claims to
@@ -31,23 +31,23 @@ function migratedDb(): Database {
 
 const CATEGORY = {
 	id: "c1",
-	name: "Food",
 	income: false,
+	name: "Food",
 	sortOrder: 0,
 	updatedAt: new Date(1_700_000_000_000),
 };
 
 function transactionRow(id: string, overrides: Record<string, unknown> = {}) {
 	return {
-		id,
 		amount: 12.5,
-		income: false,
+		categoryId: "c1",
 		currency: "USD",
-		note: "coffee",
 		date: new Date(1_700_000_000_000),
 		day: new Date(1_700_000_000_000),
+		id,
+		income: false,
 		month: new Date(1_700_000_000_000),
-		categoryId: "c1",
+		note: "coffee",
 		updatedAt: new Date(1_700_000_000_000),
 		...overrides,
 	};
@@ -66,7 +66,9 @@ describe("archiving a ledger", () => {
 
 		const text = serializeArchive(await buildArchive(db, new Date()));
 		const parsed = parseArchive(text);
-		if (!parsed) throw new Error("expected the archive to parse");
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
@@ -80,23 +82,21 @@ describe("archiving a ledger", () => {
 	it("round-trips an account and the entry that names it", async () => {
 		await db.insert(categories).values(CATEGORY);
 		await db.insert(accounts).values({
-			id: "a1",
-			name: "Checking",
 			currency: "EUR",
-			initialBalance: 250,
-			initialBalanceUsd: 270,
-			initialBalanceDate: new Date(1_700_000_000_000),
 			dateCreated: new Date(1_700_000_000_000),
+			id: "a1",
+			initialBalance: 250,
+			initialBalanceDate: new Date(1_700_000_000_000),
+			initialBalanceUsd: 270,
+			name: "Checking",
 			updatedAt: new Date(1_700_000_000_000),
 		});
-		await db
-			.insert(transactions)
-			.values(transactionRow("t1", { accountId: "a1" }));
+		await db.insert(transactions).values(transactionRow("t1", { accountId: "a1" }));
 
-		const parsed = parseArchive(
-			serializeArchive(await buildArchive(db, new Date())),
-		);
-		if (!parsed) throw new Error("expected the archive to parse");
+		const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
 
@@ -117,7 +117,9 @@ describe("archiving a ledger", () => {
 		await db.insert(transactions).values(transactionRow("t1", { date: when }));
 
 		const parsed = parseArchive(serializeArchive(await buildArchive(db, when)));
-		if (!parsed) throw new Error("expected the archive to parse");
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
 
@@ -130,14 +132,12 @@ describe("archiving a ledger", () => {
 		// A deletion the archive dropped comes back as a live row the moment a peer
 		// that never saw it pushes again.
 		await db.insert(categories).values(CATEGORY);
-		await db
-			.insert(transactions)
-			.values(transactionRow("t1", { deletedAt: new Date(1_700_000_000_000) }));
+		await db.insert(transactions).values(transactionRow("t1", { deletedAt: new Date(1_700_000_000_000) }));
 
-		const parsed = parseArchive(
-			serializeArchive(await buildArchive(db, new Date())),
-		);
-		if (!parsed) throw new Error("expected the archive to parse");
+		const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);
 
@@ -148,10 +148,10 @@ describe("archiving a ledger", () => {
 	it("replaces the ledger rather than merging into it", async () => {
 		await db.insert(categories).values(CATEGORY);
 		await db.insert(transactions).values(transactionRow("t1"));
-		const parsed = parseArchive(
-			serializeArchive(await buildArchive(db, new Date())),
-		);
-		if (!parsed) throw new Error("expected the archive to parse");
+		const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 
 		const target = migratedDb();
 		await target.insert(categories).values(CATEGORY);
@@ -168,10 +168,10 @@ describe("archiving a ledger", () => {
 			await db.insert(transactions).values(transactionRow(`t${i}`));
 		}
 
-		const parsed = parseArchive(
-			serializeArchive(await buildArchive(db, new Date())),
-		);
-		if (!parsed) throw new Error("expected the archive to parse");
+		const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 		const fresh = migratedDb();
 		const written = await restoreArchive(fresh, parsed);
 
@@ -183,10 +183,10 @@ describe("archiving a ledger", () => {
 		// Reversing the order fails the foreign key, which better-sqlite3 enforces.
 		await db.insert(categories).values(CATEGORY);
 		await db.insert(transactions).values(transactionRow("t1"));
-		const parsed = parseArchive(
-			serializeArchive(await buildArchive(db, new Date())),
-		);
-		if (!parsed) throw new Error("expected the archive to parse");
+		const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
+		if (!parsed) {
+			throw new Error("expected the archive to parse");
+		}
 
 		const fresh = migratedDb();
 		await restoreArchive(fresh, parsed);

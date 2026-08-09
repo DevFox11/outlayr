@@ -39,19 +39,19 @@ afterEach(() => {
 function mockModel(payload: unknown) {
 	return new MockLanguageModelV3({
 		doGenerate: async () => ({
-			content: [{ type: "text", text: JSON.stringify(payload) }],
-			finishReason: { unified: "stop", raw: undefined },
+			content: [{ text: JSON.stringify(payload), type: "text" }],
+			finishReason: { raw: undefined, unified: "stop" },
 			usage: {
 				inputTokens: {
-					total: undefined,
-					noCache: undefined,
 					cacheRead: undefined,
 					cacheWrite: undefined,
+					noCache: undefined,
+					total: undefined,
 				},
 				outputTokens: {
-					total: undefined,
-					text: undefined,
 					reasoning: undefined,
+					text: undefined,
+					total: undefined,
 				},
 			},
 			warnings: [],
@@ -60,13 +60,13 @@ function mockModel(payload: unknown) {
 }
 
 const BASE_ARGS = {
-	name: "netflix",
-	income: false,
-	groundedLookup: false,
 	categoryTree: [
-		{ name: "Entertainment", children: [] },
-		{ name: "Groceries", children: ["Supermarket"] },
+		{ children: [], name: "Entertainment" },
+		{ children: ["Supermarket"], name: "Groceries" },
 	],
+	groundedLookup: false,
+	income: false,
+	name: "netflix",
 };
 
 describe("suggestArgs", () => {
@@ -74,15 +74,7 @@ describe("suggestArgs", () => {
 		// Amounts, dates, accounts, balances, and identity must never leave the
 		// device — this is a threat-matrix assertion, not a shape convenience.
 		expect(Object.keys(suggestArgs).sort()).toEqual(
-			[
-				"categoryTree",
-				"groundedLookup",
-				"income",
-				"knowledgeOnly",
-				"locale",
-				"name",
-				"regionCode",
-			].sort(),
+			["categoryTree", "groundedLookup", "income", "knowledgeOnly", "locale", "name", "regionCode"].sort()
 		);
 	});
 });
@@ -91,9 +83,7 @@ describe("suggest guard ladder", () => {
 	test("returns EMPTY for a signed-out caller", async () => {
 		const t = convexTest(schema, modules);
 
-		await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(
-			EMPTY,
-		);
+		await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
 	});
 
 	test("returns EMPTY when XAI_API_KEY is unset", async () => {
@@ -101,9 +91,7 @@ describe("suggest guard ladder", () => {
 		const t = convexTest(schema, modules);
 		const identity = await seedAuthUser(t);
 
-		await expect(
-			authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS),
-		).resolves.toEqual(EMPTY);
+		await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
 	});
 
 	test("returns EMPTY for a name shorter than 3 trimmed characters", async () => {
@@ -115,7 +103,7 @@ describe("suggest guard ladder", () => {
 			authenticatedAs(t, identity).action(api.enrichment.suggest, {
 				...BASE_ARGS,
 				name: " hi ",
-			}),
+			})
 		).resolves.toEqual(EMPTY);
 	});
 
@@ -128,7 +116,7 @@ describe("suggest guard ladder", () => {
 			authenticatedAs(t, identity).action(api.enrichment.suggest, {
 				...BASE_ARGS,
 				name: "a".repeat(65),
-			}),
+			})
 		).resolves.toEqual(EMPTY);
 	});
 
@@ -138,9 +126,7 @@ describe("suggest guard ladder", () => {
 		rateLimiterTest.register(t);
 		const identity = await seedAuthUser(t);
 		const asUser = authenticatedAs(t, identity);
-		const tokenIdentifier = await asUser.run(
-			async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier,
-		);
+		const tokenIdentifier = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);
 		if (!tokenIdentifier) {
 			throw new Error("Expected an authenticated identity");
 		}
@@ -151,14 +137,12 @@ describe("suggest guard ladder", () => {
 		// its single-shard fast path with no random sampling.
 		await t.run(async (ctx) =>
 			rateLimiter.limit(ctx, "enrichmentPerUser", {
-				key: tokenIdentifier,
 				count: 8,
-			}),
+				key: tokenIdentifier,
+			})
 		);
 
-		await expect(
-			asUser.action(api.enrichment.suggest, BASE_ARGS),
-		).resolves.toEqual(EMPTY);
+		await expect(asUser.action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
 	});
 
 	test("returns EMPTY and never throws once the global window is exhausted", async () => {
@@ -175,18 +159,11 @@ describe("suggest guard ladder", () => {
 		const limitSpy = vi
 			.spyOn(rateLimiter, "limit")
 			.mockImplementation(async (_ctx, name) =>
-				name === "enrichmentGlobal"
-					? { ok: false, retryAfter: 1000 }
-					: { ok: true, retryAfter: undefined },
+				name === "enrichmentGlobal" ? { ok: false, retryAfter: 1000 } : { ok: true, retryAfter: undefined }
 			);
 
-		await expect(
-			authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS),
-		).resolves.toEqual(EMPTY);
-		expect(limitSpy).toHaveBeenCalledWith(
-			expect.anything(),
-			"enrichmentGlobal",
-		);
+		await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
+		expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "enrichmentGlobal");
 	});
 });
 
@@ -194,15 +171,15 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 	async function seedKnowledge(t: ReturnType<typeof convexTest>, name: string) {
 		await t.run((ctx) =>
 			ctx.db.insert("merchantKnowledge", {
-				key: merchantKey(name),
-				domain: "farmatodo.com",
 				categoryName: "Healthcare",
-				parentCategoryName: null,
+				domain: "farmatodo.com",
 				emoji: "💊",
-				tags: ["pharmacy"],
-				resolvedAt: Date.now(),
+				key: merchantKey(name),
 				modelId: "test-model",
-			}),
+				parentCategoryName: null,
+				resolvedAt: Date.now(),
+				tags: ["pharmacy"],
+			})
 		);
 	}
 
@@ -212,17 +189,17 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 		await seedKnowledge(t, "Farmatodo");
 		const limitSpy = vi.spyOn(rateLimiter, "limit");
 
-		const result = await authenticatedAs(t, identity).action(
-			api.enrichment.suggest,
-			{ ...BASE_ARGS, name: "Farmatodo" },
-		);
+		const result = await authenticatedAs(t, identity).action(api.enrichment.suggest, {
+			...BASE_ARGS,
+			name: "Farmatodo",
+		});
 
 		expect(result).toMatchObject({
 			categoryName: "Healthcare",
 			domain: "farmatodo.com",
-			tags: ["pharmacy"],
 			emoji: "💊",
 			grounding: false,
+			tags: ["pharmacy"],
 		});
 		expect(limitSpy).not.toHaveBeenCalled();
 	});
@@ -237,7 +214,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 			asUser.action(api.enrichment.suggest, {
 				...BASE_ARGS,
 				name: " FARMÁTODO ",
-			}),
+			})
 		).resolves.toMatchObject({ categoryName: "Healthcare" });
 	});
 
@@ -249,9 +226,9 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 		await expect(
 			authenticatedAs(t, identity).action(api.enrichment.suggest, {
 				...BASE_ARGS,
-				name: "Farmatodo",
 				knowledgeOnly: true,
-			}),
+				name: "Farmatodo",
+			})
 		).resolves.toMatchObject({
 			categoryName: "Healthcare",
 			domain: "farmatodo.com",
@@ -268,9 +245,9 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 		await expect(
 			authenticatedAs(t, identity).action(api.enrichment.suggest, {
 				...BASE_ARGS,
-				name: "totally unknown merchant xyz",
 				knowledgeOnly: true,
-			}),
+				name: "totally unknown merchant xyz",
+			})
 		).resolves.toEqual(EMPTY);
 		expect(limitSpy).not.toHaveBeenCalled();
 	});
@@ -283,7 +260,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 			authenticatedAs(t, identity).action(api.enrichment.suggest, {
 				...BASE_ARGS,
 				name: "totally unknown merchant xyz",
-			}),
+			})
 		).resolves.toEqual(EMPTY);
 	});
 });
@@ -309,35 +286,25 @@ describe("latency/retry regression guard (task 3.13)", () => {
 
 describe("needsGroundedLookup", () => {
 	test("a confident category with no domain still needs one", () => {
-		expect(
-			needsGroundedLookup({ categoryName: "Groceries", domain: null }),
-		).toBe(true);
+		expect(needsGroundedLookup({ categoryName: "Groceries", domain: null })).toBe(true);
 	});
 
 	test("a missing category needs one", () => {
-		expect(
-			needsGroundedLookup({ categoryName: null, domain: "gama.com" }),
-		).toBe(true);
+		expect(needsGroundedLookup({ categoryName: null, domain: "gama.com" })).toBe(true);
 	});
 
 	test("both missing needs one", () => {
-		expect(needsGroundedLookup({ categoryName: null, domain: null })).toBe(
-			true,
-		);
+		expect(needsGroundedLookup({ categoryName: null, domain: null })).toBe(true);
 	});
 
 	test("a complete answer needs none", () => {
-		expect(
-			needsGroundedLookup({ categoryName: "Groceries", domain: "gama.com" }),
-		).toBe(false);
+		expect(needsGroundedLookup({ categoryName: "Groceries", domain: "gama.com" })).toBe(false);
 	});
 });
 
 describe("maybeScheduleGrounded", () => {
 	async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
-		const rows = await t.run((ctx) =>
-			ctx.db.system.query("_scheduled_functions").collect(),
-		);
+		const rows = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 		return rows.filter((row) => row.name.includes("groundedLookup"));
 	}
 
@@ -349,13 +316,10 @@ describe("maybeScheduleGrounded", () => {
 	 * the concretely-typed `t` keeps the same runtime identity without that
 	 * widening.
 	 */
-	function asIdentity(
-		t: ReturnType<typeof convexTest>,
-		identity: Awaited<ReturnType<typeof seedAuthUser>>,
-	) {
+	function asIdentity(t: ReturnType<typeof convexTest>, identity: Awaited<ReturnType<typeof seedAuthUser>>) {
 		return t.withIdentity({
-			subject: identity.subject,
 			sessionId: identity.sessionId,
+			subject: identity.subject,
 		});
 	}
 
@@ -366,9 +330,9 @@ describe("maybeScheduleGrounded", () => {
 		await asIdentity(t, identity).run((ctx) =>
 			maybeScheduleGrounded(ctx, "token-a", {
 				groundedLookup: false,
-				name: "Farmatodo",
 				income: false,
-			}),
+				name: "Farmatodo",
+			})
 		);
 
 		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
@@ -379,21 +343,21 @@ describe("maybeScheduleGrounded", () => {
 		const identity = await seedAuthUser(t);
 		await t.run((ctx) =>
 			ctx.db.insert("appMeta", {
-				userId: identity.userId,
+				deviceId: "test-device",
 				key: "groundedLookup",
 				seq: 1,
-				deviceId: "test-device",
 				updatedAt: Date.now(),
+				userId: identity.userId,
 				value: "false",
-			}),
+			})
 		);
 
 		await asIdentity(t, identity).run((ctx) =>
 			maybeScheduleGrounded(ctx, "token-b", {
 				groundedLookup: true,
-				name: "Farmatodo",
 				income: false,
-			}),
+				name: "Farmatodo",
+			})
 		);
 
 		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
@@ -407,9 +371,9 @@ describe("maybeScheduleGrounded", () => {
 		const scheduled = await asIdentity(t, identity).run((ctx) =>
 			maybeScheduleGrounded(ctx, "token-c", {
 				groundedLookup: true,
-				name: "Farmatodo",
 				income: false,
-			}),
+				name: "Farmatodo",
+			})
 		);
 
 		expect(scheduled).toBe(true);
@@ -424,20 +388,20 @@ describe("maybeScheduleGrounded", () => {
 		await asIdentity(t, identity).run((ctx) =>
 			maybeScheduleGrounded(ctx, "token-d", {
 				groundedLookup: true,
-				name: "Farmatodo",
 				income: false,
 				locale: "es-VE",
-			}),
+				name: "Farmatodo",
+			})
 		);
 
 		const [row] = await scheduledGroundedRuns(t);
 		const scheduledArgs = row.args[0] as Record<string, unknown>;
 		expect(scheduledArgs).not.toHaveProperty("categoryTree");
 		expect(scheduledArgs).toEqual({
-			key: merchantKey("Farmatodo"),
-			name: "Farmatodo",
 			income: false,
+			key: merchantKey("Farmatodo"),
 			locale: "es-VE",
+			name: "Farmatodo",
 		});
 	});
 
@@ -447,18 +411,18 @@ describe("maybeScheduleGrounded", () => {
 		const identity = await seedAuthUser(t);
 
 		const stale = t.withIdentity({
-			subject: identity.subject,
 			sessionId: "session-that-was-revoked",
+			subject: identity.subject,
 		});
 
 		await expect(
 			stale.run((ctx) =>
 				maybeScheduleGrounded(ctx, "token-f", {
 					groundedLookup: true,
-					name: "Farmatodo",
 					income: false,
-				}),
-			),
+					name: "Farmatodo",
+				})
+			)
 		).resolves.toBe(false);
 		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
 	});
@@ -471,10 +435,10 @@ describe("maybeScheduleGrounded", () => {
 		await asIdentity(t, identity).run((ctx) =>
 			maybeScheduleGrounded(ctx, "token-e", {
 				groundedLookup: true,
-				name: "Farmatodo",
 				income: false,
+				name: "Farmatodo",
 				regionCode: "VE",
-			}),
+			})
 		);
 
 		const [row] = await scheduledGroundedRuns(t);
@@ -487,30 +451,28 @@ describe("runSuggest sanitisation", () => {
 	test("trims category name, tags and domain from well-formed model output", async () => {
 		const model = mockModel({
 			categoryName: "  Streaming  ",
+			domain: "  netflix.com  ",
 			isNewCategory: true,
 			tags: ["  Music  ", "Streaming"],
-			domain: "  netflix.com  ",
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
-		).resolves.toEqual({
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toEqual({
 			categoryName: "Streaming",
+			domain: "netflix.com",
+			emoji: null,
+			grounding: false,
 			isNewCategory: true,
 			parentCategoryName: null,
-			emoji: null,
 			tags: ["Music", "Streaming"],
-			domain: "netflix.com",
-			grounding: false,
 		});
 	});
 
 	test("drops empty tags and caps the rest at 3 entries of 24 characters", async () => {
 		const model = mockModel({
 			categoryName: null,
+			domain: null,
 			isNewCategory: false,
 			tags: ["", "  ", "a".repeat(30), "second", "third", "fourth"],
-			domain: null,
 		});
 
 		const result = await runSuggest(model, {
@@ -524,27 +486,25 @@ describe("runSuggest sanitisation", () => {
 	test("rejects a domain that is not a bare host.tld shape", async () => {
 		const model = mockModel({
 			categoryName: null,
+			domain: "https://netflix.com/watch",
 			isNewCategory: false,
 			tags: [],
-			domain: "https://netflix.com/watch",
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
-		).resolves.toMatchObject({ domain: null });
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ domain: null });
 	});
 
 	test("case-folds an otherwise valid domain instead of rejecting it", async () => {
 		const model = mockModel({
 			categoryName: null,
+			domain: "NETFLIX.COM",
 			isNewCategory: false,
 			tags: [],
-			domain: "NETFLIX.COM",
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
-		).resolves.toMatchObject({ domain: "netflix.com" });
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
+			domain: "netflix.com",
+		});
 	});
 
 	test("rejects a domain longer than 253 characters", async () => {
@@ -552,77 +512,71 @@ describe("runSuggest sanitisation", () => {
 		expect(longDomain.length).toBeGreaterThan(253);
 		const model = mockModel({
 			categoryName: null,
+			domain: longDomain,
 			isNewCategory: false,
 			tags: [],
-			domain: longDomain,
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
-		).resolves.toMatchObject({ domain: null });
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ domain: null });
 	});
 
 	test("nulls out an empty category name", async () => {
 		const model = mockModel({
 			categoryName: "   ",
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
-		).resolves.toMatchObject({ categoryName: null });
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ categoryName: null });
 	});
 
 	test("nulls out a category name longer than 40 characters", async () => {
 		const model = mockModel({
 			categoryName: "a".repeat(41),
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree: [] }),
-		).resolves.toMatchObject({ categoryName: null });
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ categoryName: null });
 	});
 
 	test("recomputes isNewCategory as true when the model discards it but the name is unknown", async () => {
 		const model = mockModel({
 			categoryName: "Pets",
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 
 		await expect(
 			runSuggest(model, {
 				...BASE_ARGS,
 				categoryTree: [
-					{ name: "Entertainment", children: [] },
-					{ name: "Groceries", children: [] },
+					{ children: [], name: "Entertainment" },
+					{ children: [], name: "Groceries" },
 				],
-			}),
+			})
 		).resolves.toMatchObject({ categoryName: "Pets", isNewCategory: true });
 	});
 
 	test("recomputes isNewCategory as false when the model claims new but the name is already known", async () => {
 		const model = mockModel({
 			categoryName: "Entertainment",
+			domain: null,
 			isNewCategory: true,
 			tags: [],
-			domain: null,
 		});
 
 		await expect(
 			runSuggest(model, {
 				...BASE_ARGS,
 				categoryTree: [
-					{ name: "Entertainment", children: [] },
-					{ name: "Groceries", children: [] },
+					{ children: [], name: "Entertainment" },
+					{ children: [], name: "Groceries" },
 				],
-			}),
+			})
 		).resolves.toMatchObject({
 			categoryName: "Entertainment",
 			isNewCategory: false,
@@ -631,40 +585,41 @@ describe("runSuggest sanitisation", () => {
 
 	test("caps the category tree at 60 branches for the isNewCategory check", async () => {
 		const categoryTree = Array.from({ length: 61 }, (_, i) => ({
-			name: `Cat${i}`,
 			children: [],
+			name: `Cat${i}`,
 		}));
 		// The 61st branch is pushed out of the server-side cap, so it must read as
 		// "new" even though the caller technically listed it as known.
 		const model = mockModel({
 			categoryName: "Cat60",
+			domain: null,
+			emoji: null,
 			isNewCategory: false,
 			parentCategoryName: null,
-			emoji: null,
 			tags: [],
-			domain: null,
 		});
 
-		await expect(
-			runSuggest(model, { ...BASE_ARGS, categoryTree }),
-		).resolves.toMatchObject({ categoryName: "Cat60", isNewCategory: true });
+		await expect(runSuggest(model, { ...BASE_ARGS, categoryTree })).resolves.toMatchObject({
+			categoryName: "Cat60",
+			isNewCategory: true,
+		});
 	});
 
 	test("keeps a parent the user actually has, for a category being created", async () => {
 		const model = mockModel({
 			categoryName: "Streaming",
+			domain: null,
+			emoji: "📺",
 			isNewCategory: true,
 			parentCategoryName: "Entertainment",
-			emoji: "📺",
 			tags: [],
-			domain: null,
 		});
 
 		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
 			categoryName: "Streaming",
+			emoji: "📺",
 			isNewCategory: true,
 			parentCategoryName: "Entertainment",
-			emoji: "📺",
 		});
 	});
 
@@ -673,11 +628,11 @@ describe("runSuggest sanitisation", () => {
 		// taken on trust.
 		const model = mockModel({
 			categoryName: "Streaming",
+			domain: null,
+			emoji: null,
 			isNewCategory: true,
 			parentCategoryName: "Invented Parent",
-			emoji: null,
 			tags: [],
-			domain: null,
 		});
 
 		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
@@ -688,11 +643,11 @@ describe("runSuggest sanitisation", () => {
 	test("drops a parent when the category already exists", async () => {
 		const model = mockModel({
 			categoryName: "Entertainment",
+			domain: null,
+			emoji: null,
 			isNewCategory: true,
 			parentCategoryName: "Groceries",
-			emoji: null,
 			tags: [],
-			domain: null,
 		});
 
 		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
@@ -704,11 +659,11 @@ describe("runSuggest sanitisation", () => {
 	test("rejects an emoji field that is really a sentence", async () => {
 		const model = mockModel({
 			categoryName: "Streaming",
+			domain: null,
+			emoji: "a television set",
 			isNewCategory: true,
 			parentCategoryName: null,
-			emoji: "a television set",
 			tags: [],
-			domain: null,
 		});
 
 		await expect(runSuggest(model, BASE_ARGS)).resolves.toMatchObject({
@@ -721,15 +676,15 @@ describe("runSuggest regionCode", () => {
 	test("threads a region code into the model prompt", async () => {
 		const model = mockModel({
 			categoryName: null,
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 
 		await runSuggest(model, {
 			...BASE_ARGS,
-			regionCode: "VE",
 			categoryTree: [],
+			regionCode: "VE",
 		});
 
 		const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
@@ -739,15 +694,15 @@ describe("runSuggest regionCode", () => {
 	test("licenses a global fallback when no business operates in the region", async () => {
 		const model = mockModel({
 			categoryName: null,
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 
 		await runSuggest(model, {
 			...BASE_ARGS,
-			regionCode: "VE",
 			categoryTree: [],
+			regionCode: "VE",
 		});
 
 		const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
@@ -757,9 +712,9 @@ describe("runSuggest regionCode", () => {
 	test("omits any region line from the prompt when regionCode is absent", async () => {
 		const model = mockModel({
 			categoryName: null,
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 
 		await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });

@@ -15,9 +15,9 @@ const VES_QUOTE = "VES";
  * USD conversion for eur_reference entries must account for that denomination.
  */
 const MARKET_RATE_TYPES: Record<string, MarketRateType | undefined> = {
-	reference: "official",
-	eur_reference: "eur_reference",
 	binance: "binance",
+	eur_reference: "eur_reference",
+	reference: "official",
 };
 
 interface CotizaveMarket {
@@ -33,12 +33,7 @@ function isValidMarket(value: unknown): value is CotizaveMarket {
 		return false;
 	}
 	const { market, mid } = value;
-	return (
-		typeof market === "string" &&
-		typeof mid === "number" &&
-		Number.isFinite(mid) &&
-		mid > 0
-	);
+	return typeof market === "string" && typeof mid === "number" && Number.isFinite(mid) && mid > 0;
 }
 
 /**
@@ -57,19 +52,14 @@ function hasExpectedContract(payload: unknown): boolean {
 }
 
 function extractRates(payload: unknown) {
-	if (
-		typeof payload !== "object" ||
-		payload === null ||
-		!("rates" in payload)
-	) {
+	if (typeof payload !== "object" || payload === null || !("rates" in payload)) {
 		return null;
 	}
 	const { rates } = payload;
 	if (!Array.isArray(rates)) {
 		return null;
 	}
-	const parsed: { quote: string; rateType: MarketRateType; rate: number }[] =
-		[];
+	const parsed: { quote: string; rateType: MarketRateType; rate: number }[] = [];
 	for (const record of rates) {
 		if (!isValidMarket(record)) {
 			continue;
@@ -78,20 +68,17 @@ function extractRates(payload: unknown) {
 		if (rateType === undefined) {
 			continue;
 		}
-		parsed.push({ quote: VES_QUOTE, rateType, rate: record.mid });
+		parsed.push({ quote: VES_QUOTE, rate: record.mid, rateType });
 	}
 	return parsed;
 }
 
 export const fetchRates = internalAction({
 	args: {},
-	returns: v.null(),
 	handler: async (ctx) => {
 		const apiKey = process.env.COTIZAVE_API_KEY;
 		if (!apiKey) {
-			throw new Error(
-				"COTIZAVE_API_KEY is not set; cannot fetch cotizave VES rates",
-			);
+			throw new Error("COTIZAVE_API_KEY is not set; cannot fetch cotizave VES rates");
 		}
 
 		let payload: unknown;
@@ -110,9 +97,7 @@ export const fetchRates = internalAction({
 		}
 
 		if (!hasExpectedContract(payload)) {
-			console.error(
-				"Cotizave response did not match the expected USD-based VES contract",
-			);
+			console.error("Cotizave response did not match the expected USD-based VES contract");
 			return null;
 		}
 
@@ -128,11 +113,12 @@ export const fetchRates = internalAction({
 
 		const fetchedAt = Date.now();
 		await ctx.runMutation(internal.exchangeRates.upsertRates, {
-			source: "cotizave",
 			date: utcDateString(fetchedAt),
 			fetchedAt,
 			rates,
+			source: "cotizave",
 		});
 		return null;
 	},
+	returns: v.null(),
 });

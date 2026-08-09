@@ -6,12 +6,7 @@ import { isBehindWatermark } from "@/domain/sync-wakeup";
 import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 import { runSync } from "./sync-engine-core";
-import {
-	getSyncCursor,
-	isSyncEnabled,
-	SYNCED_TABLES,
-	setSyncedAt,
-} from "./sync-outbox-core";
+import { getSyncCursor, isSyncEnabled, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
 /**

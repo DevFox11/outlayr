@@ -86,22 +86,22 @@ export const PAIRS_PER_PAGE = 12;
 
 function toRateWire(doc: Doc<"exchangeRates">) {
 	return {
-		quote: doc.quote,
-		rateType: doc.rateType,
-		source: doc.source,
-		rate: doc.rate,
 		date: doc.date,
 		fetchedAt: doc.fetchedAt,
+		quote: doc.quote,
+		rate: doc.rate,
+		rateType: doc.rateType,
+		source: doc.source,
 	};
 }
 
 const rateResult = v.union(
 	v.object({
-		rate: v.number(),
 		date: v.string(),
 		fetchedAt: v.number(),
+		rate: v.number(),
 	}),
-	v.null(),
+	v.null()
 );
 
 /**
@@ -116,9 +116,8 @@ const rateResult = v.union(
  */
 export const officialQuotesByDate = internalQuery({
 	args: { dates: v.array(v.string()) },
-	returns: v.array(v.object({ date: v.string(), quotes: v.array(v.string()) })),
-	handler: async (ctx, args) => {
-		return await Promise.all(
+	handler: async (ctx, args) =>
+		await Promise.all(
 			args.dates.map(async (date) => {
 				const rows = await ctx.db
 					.query("exchangeRates")
@@ -126,29 +125,26 @@ export const officialQuotesByDate = internalQuery({
 					.collect();
 				return {
 					date,
-					quotes: rows
-						.filter((row) => row.rateType === "official")
-						.map((row) => row.quote),
+					quotes: rows.filter((row) => row.rateType === "official").map((row) => row.quote),
 				};
-			}),
-		);
-	},
+			})
+		),
+	returns: v.array(v.object({ date: v.string(), quotes: v.array(v.string()) })),
 });
 
 export const upsertRates = internalMutation({
 	args: {
-		source: rateSource,
 		date: v.string(),
 		fetchedAt: v.number(),
 		rates: v.array(
 			v.object({
 				quote: v.string(),
-				rateType: marketRateType,
 				rate: v.number(),
-			}),
+				rateType: marketRateType,
+			})
 		),
+		source: rateSource,
 	},
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		for (const entry of args.rates) {
 			if (!Number.isFinite(entry.rate) || entry.rate <= 0) {
@@ -158,10 +154,7 @@ export const upsertRates = internalMutation({
 			const existing = await ctx.db
 				.query("exchangeRates")
 				.withIndex("by_quote_and_rateType_and_date", (q) =>
-					q
-						.eq("quote", entry.quote)
-						.eq("rateType", entry.rateType)
-						.eq("date", args.date),
+					q.eq("quote", entry.quote).eq("rateType", entry.rateType).eq("date", args.date)
 				)
 				.unique();
 
@@ -172,23 +165,24 @@ export const upsertRates = internalMutation({
 					continue;
 				}
 				await ctx.db.patch("exchangeRates", existing._id, {
-					rate: entry.rate,
 					fetchedAt: args.fetchedAt,
+					rate: entry.rate,
 					source: args.source,
 				});
 			} else {
 				await ctx.db.insert("exchangeRates", {
-					quote: entry.quote,
-					rateType: entry.rateType,
-					source: args.source,
-					rate: entry.rate,
 					date: args.date,
 					fetchedAt: args.fetchedAt,
+					quote: entry.quote,
+					rate: entry.rate,
+					rateType: entry.rateType,
+					source: args.source,
 				});
 			}
 		}
 		return null;
 	},
+	returns: v.null(),
 });
 
 /**
@@ -201,10 +195,9 @@ export const upsertRates = internalMutation({
  */
 export const pruneStale = internalMutation({
 	args: {
-		windowStart: v.optional(v.string()),
 		cursor: v.optional(v.union(v.string(), v.null())),
+		windowStart: v.optional(v.string()),
 	},
-	returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
 	handler: async (ctx, args) => {
 		const windowStart = args.windowStart ?? ratesWindowStart();
 
@@ -227,13 +220,8 @@ export const pruneStale = internalMutation({
 			const newer = await ctx.db
 				.query("exchangeRates")
 				.withIndex("by_quote_and_rateType_and_date", (q) => {
-					const from = q
-						.eq("quote", row.quote)
-						.eq("rateType", row.rateType)
-						.gt("date", row.date);
-					return monthEnd < windowStart
-						? from.lte("date", monthEnd)
-						: from.lt("date", windowStart);
+					const from = q.eq("quote", row.quote).eq("rateType", row.rateType).gt("date", row.date);
+					return monthEnd < windowStart ? from.lte("date", monthEnd) : from.lt("date", windowStart);
 				})
 				.take(1);
 			if (newer.length > 0) {
@@ -244,12 +232,13 @@ export const pruneStale = internalMutation({
 
 		if (!page.isDone) {
 			await ctx.scheduler.runAfter(0, internal.exchangeRates.pruneStale, {
-				windowStart,
 				cursor: page.continueCursor,
+				windowStart,
 			});
 		}
 		return { deleted, isDone: page.isDone };
 	},
+	returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
 });
 
 export const getLatestRate = query({
@@ -257,42 +246,35 @@ export const getLatestRate = query({
 		quote: v.string(),
 		rateType: marketRateType,
 	},
-	returns: rateResult,
 	handler: async (ctx, args) => {
 		const rows = await ctx.db
 			.query("exchangeRates")
-			.withIndex("by_quote_and_rateType_and_date", (q) =>
-				q.eq("quote", args.quote).eq("rateType", args.rateType),
-			)
+			.withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", args.quote).eq("rateType", args.rateType))
 			.order("desc")
 			.take(1);
 		const row = rows[0];
 		if (!row) {
 			return null;
 		}
-		return { rate: row.rate, date: row.date, fetchedAt: row.fetchedAt };
+		return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
 	},
+	returns: rateResult,
 });
 
 export const getRateOnDate = query({
 	args: {
+		date: v.string(),
 		quote: v.string(),
 		rateType: marketRateType,
-		date: v.string(),
 	},
-	returns: rateResult,
 	handler: async (ctx, args) => {
-		const row = await resolveRateOnDate(
-			ctx.db,
-			args.quote,
-			args.rateType,
-			args.date,
-		);
+		const row = await resolveRateOnDate(ctx.db, args.quote, args.rateType, args.date);
 		if (!row) {
 			return null;
 		}
-		return { rate: row.rate, date: row.date, fetchedAt: row.fetchedAt };
+		return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
 	},
+	returns: rateResult,
 });
 
 /**
@@ -316,10 +298,7 @@ export const pullRates = query({
 				ctx.db
 					.query("exchangeRates")
 					.withIndex("by_quote_and_rateType_and_date", (q) =>
-						q
-							.eq("quote", quote)
-							.eq("rateType", rateType)
-							.gte("date", windowStart),
+						q.eq("quote", quote).eq("rateType", rateType).gte("date", windowStart)
 					)
 					.collect(),
 				// Every surviving pre-window row, not just the newest. Pruning leaves
@@ -329,20 +308,16 @@ export const pullRates = query({
 				ctx.db
 					.query("exchangeRates")
 					.withIndex("by_quote_and_rateType_and_date", (q) =>
-						q
-							.eq("quote", quote)
-							.eq("rateType", rateType)
-							.lt("date", windowStart),
+						q.eq("quote", quote).eq("rateType", rateType).lt("date", windowStart)
 					)
 					.order("desc")
 					.take(MONTHLY_ANCHOR_LIMIT),
-			]),
+			])
 		);
 
 		const rows = pairPages.flat().map(toRateWire);
 		const nextIndex = start + PAIRS_PER_PAGE;
-		const nextCursor =
-			nextIndex < ANCHOR_PAIR_CATALOG.length ? nextIndex : null;
-		return { rows, windowStart, nextCursor };
+		const nextCursor = nextIndex < ANCHOR_PAIR_CATALOG.length ? nextIndex : null;
+		return { nextCursor, rows, windowStart };
 	},
 });

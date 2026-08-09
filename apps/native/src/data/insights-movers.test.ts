@@ -9,28 +9,24 @@ import {
 	withCategoryDeltas,
 } from "./insights";
 
-function entry(
-	id: string,
-	amount: number,
-	fraction = 0,
-): CategoryBreakdownEntry {
+function entry(id: string, amount: number, fraction = 0): CategoryBreakdownEntry {
 	return {
+		amount,
+		color: "#000000",
+		delta: null,
+		emoji: null,
+		fraction,
+		icon: null,
 		id,
 		name: id,
-		color: "#000000",
-		icon: null,
-		emoji: null,
-		amount,
-		fraction,
-		delta: null,
 	};
 }
 
 describe("runningTotals", () => {
 	const bucket = (value: number, day: number): InsightsBucket => ({
-		start: new Date(2025, 6, day),
 		end: new Date(2025, 6, day + 1),
 		label: String(day),
+		start: new Date(2025, 6, day),
 		value,
 	});
 
@@ -49,7 +45,7 @@ describe("runningTotals", () => {
 	it("stays well-scaled where per-slot net collapses", () => {
 		// A salaried month: two paydays, twenty-nine ordinary spending days.
 		const series = Array.from({ length: 31 }, (_, index) =>
-			bucket(index === 11 || index === 25 ? 248_200 : -2500, index + 1),
+			bucket(index === 11 || index === 25 ? 248_200 : -2500, index + 1)
 		);
 		const perSlot = series.map((b) => b.value);
 		const slotSpan = Math.max(...perSlot) - Math.min(...perSlot);
@@ -101,38 +97,26 @@ describe("categoryMovers", () => {
 		// It cannot be found by walking the current window, which no longer has it.
 		const movers = categoryMovers([entry("a", 1000)], [entry("b", 900)], 1000);
 		const stopped = movers.find((mover) => mover.id === "b");
-		if (!stopped) throw new Error("expected a mover for the stopped category");
+		if (!stopped) {
+			throw new Error("expected a mover for the stopped category");
+		}
 		expect(stopped.delta).toBe(-900);
 		expect(stopped.fraction).toBe(-1);
 	});
 
 	it("leaves a brand-new category's fraction null rather than +100%", () => {
-		const movers = categoryMovers(
-			[entry("new", 800)],
-			[entry("old", 800)],
-			800,
-		);
+		const movers = categoryMovers([entry("new", 800)], [entry("old", 800)], 800);
 		const fresh = movers.find((mover) => mover.id === "new");
-		if (!fresh) throw new Error("expected a mover for the new category");
+		if (!fresh) {
+			throw new Error("expected a mover for the new category");
+		}
 		expect(fresh.delta).toBe(800);
 		expect(fresh.fraction).toBe(null);
 	});
 
 	it("caps at three so the strip cannot crowd out the chart", () => {
-		const current = [
-			entry("a", 500),
-			entry("b", 400),
-			entry("c", 300),
-			entry("d", 200),
-			entry("e", 100),
-		];
-		const prior = [
-			entry("a", 1),
-			entry("b", 1),
-			entry("c", 1),
-			entry("d", 1),
-			entry("e", 1),
-		];
+		const current = [entry("a", 500), entry("b", 400), entry("c", 300), entry("d", 200), entry("e", 100)];
+		const prior = [entry("a", 1), entry("b", 1), entry("c", 1), entry("d", 1), entry("e", 1)];
 		expect(categoryMovers(current, prior, 1500).length).toBe(3);
 	});
 
@@ -184,39 +168,35 @@ describe("categoryBreakdownWithin", () => {
 		[
 			"food",
 			{
-				id: "food",
-				name: "Food",
 				color: "#AA0000",
-				icon: null,
 				emoji: null,
+				icon: null,
+				id: "food",
 				income: false,
+				name: "Food",
 				parentId: null,
 			},
 		],
 		[
 			"taxi",
 			{
-				id: "taxi",
-				name: "Taxi",
 				color: "#0000AA",
-				icon: null,
 				emoji: null,
+				icon: null,
+				id: "taxi",
 				income: false,
+				name: "Taxi",
 				parentId: null,
 			},
 		],
 	]);
 
-	const row = (
-		categoryId: string,
-		amount: number,
-		date: Date,
-	): InsightsContribution => ({
+	const row = (categoryId: string, amount: number, date: Date): InsightsContribution => ({
 		amount,
-		income: false,
 		categoryId,
-		parentId: null,
 		date,
+		income: false,
+		parentId: null,
 	});
 
 	const now = new Date(2025, 6, 31, 12, 0, 0, 0);
@@ -229,8 +209,8 @@ describe("categoryBreakdownWithin", () => {
 	it("counts only what falls inside the given bounds", () => {
 		// Just the 10th — the bucket a user would have tapped.
 		const bounds = {
-			start: new Date(2025, 6, 10).getTime(),
 			end: new Date(2025, 6, 11).getTime(),
+			start: new Date(2025, 6, 10).getTime(),
 		};
 		const breakdown = categoryBreakdownWithin(rows, meta, "spent", bounds, now);
 		const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
@@ -239,12 +219,14 @@ describe("categoryBreakdownWithin", () => {
 
 	it("recomputes shares against the narrowed total, not the window's", () => {
 		const bounds = {
-			start: new Date(2025, 6, 10).getTime(),
 			end: new Date(2025, 6, 11).getTime(),
+			start: new Date(2025, 6, 10).getTime(),
 		};
 		const breakdown = categoryBreakdownWithin(rows, meta, "spent", bounds, now);
 		const food = breakdown.find((e) => e.id === "food");
-		if (!food) throw new Error("expected a breakdown entry for food");
+		if (!food) {
+			throw new Error("expected a breakdown entry for food");
+		}
 		// 100 of 140 within the bucket, not 1000 of 1040 across the window.
 		expect(Math.abs(food.fraction - 100 / 140) < 1e-9).toBeTruthy();
 	});
@@ -252,36 +234,28 @@ describe("categoryBreakdownWithin", () => {
 	it("never counts a future-dated row", () => {
 		const future = [row("food", 500, new Date(2025, 7, 15))];
 		const bounds = {
-			start: new Date(2025, 6, 1).getTime(),
 			end: new Date(2025, 8, 1).getTime(),
+			start: new Date(2025, 6, 1).getTime(),
 		};
-		expect(
-			categoryBreakdownWithin(future, meta, "spent", bounds, now),
-		).toStrictEqual([]);
+		expect(categoryBreakdownWithin(future, meta, "spent", bounds, now)).toStrictEqual([]);
 	});
 
 	it("reads inflows for the income measure and ignores outflows", () => {
 		const mixed: InsightsContribution[] = [
 			{
 				amount: 700,
-				income: true,
 				categoryId: "food",
-				parentId: null,
 				date: new Date(2025, 6, 10),
+				income: true,
+				parentId: null,
 			},
 			row("taxi", 40, new Date(2025, 6, 10)),
 		];
 		const bounds = {
-			start: new Date(2025, 6, 1).getTime(),
 			end: new Date(2025, 7, 1).getTime(),
+			start: new Date(2025, 6, 1).getTime(),
 		};
-		const breakdown = categoryBreakdownWithin(
-			mixed,
-			meta,
-			"income",
-			bounds,
-			now,
-		);
+		const breakdown = categoryBreakdownWithin(mixed, meta, "income", bounds, now);
 		expect(breakdown.length).toBe(1);
 		expect(breakdown[0].amount).toBe(700);
 	});

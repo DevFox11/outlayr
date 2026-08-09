@@ -49,10 +49,7 @@ function RuntimeLanguage() {
 	return <Text testID="runtime">{runtimeLanguage()}</Text>;
 }
 
-async function renderProvider(
-	preference: LanguagePreference,
-	children: ReactNode = <CurrentLanguage />,
-) {
+async function renderProvider(preference: LanguagePreference, children: ReactNode = <CurrentLanguage />) {
 	mockReadLanguagePreference.mockResolvedValue(preference);
 	const appState = watchAppState();
 	await act(async () => {

@@ -30,34 +30,29 @@ export class TransferError extends Error {
  * or Files write because it needs no permission and already offers every
  * destination the user has.
  */
-export async function shareText(
-	text: string,
-	fileName: string,
-	mimeType: string,
-	dialogTitle: string,
-): Promise<void> {
+export async function shareText(text: string, fileName: string, mimeType: string, dialogTitle: string): Promise<void> {
 	if (!(await Sharing.isAvailableAsync())) {
 		throw new TransferError("alerts.transfer.sharingUnavailable");
 	}
 	const file = new File(Paths.cache, fileName);
-	file.create({ overwrite: true, intermediates: true });
+	file.create({ intermediates: true, overwrite: true });
 	file.write(text);
-	await Sharing.shareAsync(file.uri, { mimeType, dialogTitle });
+	await Sharing.shareAsync(file.uri, { dialogTitle, mimeType });
 }
 
 export async function shareBytes(
 	bytes: Uint8Array,
 	fileName: string,
 	mimeType: string,
-	dialogTitle: string,
+	dialogTitle: string
 ): Promise<void> {
 	if (!(await Sharing.isAvailableAsync())) {
 		throw new TransferError("alerts.transfer.sharingUnavailable");
 	}
 	const file = new File(Paths.cache, fileName);
-	file.create({ overwrite: true, intermediates: true });
+	file.create({ intermediates: true, overwrite: true });
 	file.write(bytes);
-	await Sharing.shareAsync(file.uri, { mimeType, dialogTitle });
+	await Sharing.shareAsync(file.uri, { dialogTitle, mimeType });
 }
 
 export interface PickedFile {
@@ -82,9 +77,9 @@ export async function pickArchiveFile(): Promise<PickedFile | null> {
 
 async function pickTextFile(type: string[]): Promise<PickedFile | null> {
 	const result = await DocumentPicker.getDocumentAsync({
-		type,
 		copyToCacheDirectory: true,
 		multiple: false,
+		type,
 	});
 	const asset = result.canceled ? null : result.assets[0];
 	if (asset == null) {

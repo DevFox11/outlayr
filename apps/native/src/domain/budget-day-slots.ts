@@ -4,11 +4,11 @@ import type { BudgetWindow } from "./budget-math";
 import { median } from "./stats";
 
 export interface DayBlock {
-	/** Spend accumulated before this purchase — the block's left edge, in currency. */
-	start: number;
 	amount: number;
 	/** True once this purchase is the one that carries the day past the limit. */
 	over: boolean;
+	/** Spend accumulated before this purchase — the block's left edge, in currency. */
+	start: number;
 }
 
 export type DayVerdict = "room" | "tight" | "over" | null;
@@ -16,39 +16,36 @@ export type DayVerdict = "room" | "tight" | "over" | null;
 export interface DaySlots {
 	/** Today's purchases in order, left to right. */
 	blocks: DayBlock[];
-	/** Median purchase in this category across all history, or null with none. */
-	median: number | null;
 	/** The dashed slot's amount, or null when one more wouldn't fit. */
 	ghost: number | null;
-	spent: number;
 	limit: number;
+	/** Median purchase in this category across all history, or null with none. */
+	median: number | null;
+	/** Purchases that landed past the limit. */
+	overflow: number;
 	/** `limit - spent`; negative once blown. */
 	remaining: number;
 	/** How many median-sized purchases still fit under the limit. */
 	roomFor: number;
-	/** Purchases that landed past the limit. */
-	overflow: number;
 	/** Currency the bar spans end to end, so the rule and any overflow both fit. */
 	scale: number;
+	spent: number;
 	verdict: DayVerdict;
 }
 
 export interface DaySlotsOptions {
-	limit: number;
-	window: BudgetWindow;
-	now: Date;
 	/** Scope to one category and its subcategories; omit for the overall budget. */
 	categoryId?: string | null;
+	limit: number;
+	now: Date;
+	window: BudgetWindow;
 }
 
 /**
  * Taken over everything the expense list holds, not just the window. Null means
  * no history, and the caller must not guess a slot.
  */
-export function categoryMedian(
-	rows: readonly ExpenseContribution[],
-	categoryId: string | null = null,
-): number | null {
+export function categoryMedian(rows: readonly ExpenseContribution[], categoryId: string | null = null): number | null {
 	const amounts: number[] = [];
 	for (const row of rows) {
 		if (row.amount > 0 && contributesTo(row, categoryId)) {
@@ -63,10 +60,7 @@ export function categoryMedian(
  * transaction sized by its amount, a dashed slot for the next typical one if it
  * fits, and the limit as a rule the blocks can run past.
  */
-export function buildDaySlots(
-	rows: readonly ExpenseContribution[],
-	options: DaySlotsOptions,
-): DaySlots {
+export function buildDaySlots(rows: readonly ExpenseContribution[], options: DaySlotsOptions): DaySlots {
 	const { limit, window, now, categoryId = null } = options;
 	const startMs = window.start.getTime();
 	const endMs = window.end.getTime();
@@ -92,15 +86,12 @@ export function buildDaySlots(
 		if (over) {
 			overflow += 1;
 		}
-		blocks.push({ start, amount: row.amount, over });
+		blocks.push({ amount: row.amount, over, start });
 	}
 
 	const median = categoryMedian(rows, categoryId);
 	const remaining = limit - spent;
-	const roomFor =
-		median != null && median > 0 && remaining > 0
-			? Math.floor(remaining / median)
-			: 0;
+	const roomFor = median != null && median > 0 && remaining > 0 ? Math.floor(remaining / median) : 0;
 	const ghost = roomFor >= 1 ? median : null;
 
 	let verdict: DayVerdict = null;
@@ -114,14 +105,14 @@ export function buildDaySlots(
 
 	return {
 		blocks,
-		median,
 		ghost,
-		spent,
 		limit,
+		median,
+		overflow,
 		remaining,
 		roomFor,
-		overflow,
 		scale: Math.max(limit, spent + (ghost ?? 0)),
+		spent,
 		verdict,
 	};
 }
@@ -130,11 +121,7 @@ export function buildDaySlots(
  * `noun` is what the overflow counts — the category on a per-category budget,
  * "purchase" for the overall one.
  */
-export function dayVerdictSentence(
-	slots: DaySlots,
-	noun: string,
-	t: TranslateFn,
-): string | null {
+export function dayVerdictSentence(slots: DaySlots, noun: string, t: TranslateFn): string | null {
 	switch (slots.verdict) {
 		case "room":
 			return t("daySlots.room");

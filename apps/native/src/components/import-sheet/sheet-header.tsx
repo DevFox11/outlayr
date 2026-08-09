@@ -1,16 +1,8 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import {
-	ArrowLeft01Icon,
-	Cancel01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { ArrowLeft01Icon, Cancel01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { Button } from "panelui-native";
 import { View } from "react-native";
-import Animated, {
-	FadeInLeft,
-	FadeInRight,
-	Keyframe,
-	ReduceMotion,
-} from "react-native-reanimated";
+import Animated, { FadeInLeft, FadeInRight, Keyframe, ReduceMotion } from "react-native-reanimated";
 
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n";
@@ -25,24 +17,17 @@ export const HEADER_BUTTON_ENTERING = new Keyframe({
 	.reduceMotion(ReduceMotion.System);
 
 export function titleEntering(forward: boolean) {
-	return (forward ? FadeInRight : FadeInLeft)
-		.duration(TRANSITION_MS)
-		.reduceMotion(ReduceMotion.System);
+	return (forward ? FadeInRight : FadeInLeft).duration(TRANSITION_MS).reduceMotion(ReduceMotion.System);
 }
 
 interface SheetHeaderProps {
-	title: string;
 	forward?: boolean;
 	onBack?: () => void;
 	onClose: () => void;
+	title: string;
 }
 
-export function SheetHeader({
-	title,
-	forward = true,
-	onBack,
-	onClose,
-}: SheetHeaderProps) {
+export function SheetHeader({ title, forward = true, onBack, onClose }: SheetHeaderProps) {
 	const t = useTranslation();
 
 	return (
@@ -52,15 +37,8 @@ export function SheetHeader({
 				pointerEvents="none"
 				testID="import-sheet-title"
 			>
-				<Animated.View
-					entering={titleEntering(forward)}
-					key={title}
-					testID="import-sheet-title-motion"
-				>
-					<Text
-						className="font-medium text-foreground text-headline"
-						numberOfLines={1}
-					>
+				<Animated.View entering={titleEntering(forward)} key={title} testID="import-sheet-title-motion">
+					<Text className="font-medium text-foreground text-headline" numberOfLines={1}>
 						{title}
 					</Text>
 				</Animated.View>

@@ -10,19 +10,14 @@ import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
 
 interface InsightsMoversProps {
-	movers: readonly CategoryMover[];
+	code: string;
 	measure: InsightsMeasure;
+	movers: readonly CategoryMover[];
 	/** What the window is being compared against, e.g. "2025". */
 	priorLabel: string;
-	code: string;
 }
 
-export function InsightsMovers({
-	movers,
-	measure,
-	priorLabel,
-	code,
-}: InsightsMoversProps) {
+export function InsightsMovers({ movers, measure, priorLabel, code }: InsightsMoversProps) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
 
@@ -34,18 +29,10 @@ export function InsightsMovers({
 		<View>
 			<View className="flex-row items-baseline justify-between pb-1">
 				<MonoLabel>{t("insights.movers.title")}</MonoLabel>
-				<MonoLabel>
-					{t("insights.movers.versus", { label: priorLabel })}
-				</MonoLabel>
+				<MonoLabel>{t("insights.movers.versus", { label: priorLabel })}</MonoLabel>
 			</View>
 			{movers.map((mover) => (
-				<MoverRow
-					code={code}
-					key={mover.id}
-					measure={measure}
-					mover={mover}
-					showCents={showCents}
-				/>
+				<MoverRow code={code} key={mover.id} measure={measure} mover={mover} showCents={showCents} />
 			))}
 		</View>
 	);
@@ -70,16 +57,8 @@ function MoverRow({
 
 	return (
 		<View className="flex-row items-center gap-2.5 py-1.5">
-			<CategoryIconTile
-				color={mover.color}
-				emoji={mover.emoji}
-				icon={mover.icon}
-				size={26}
-			/>
-			<Text
-				className="flex-1 font-sans-medium text-caption text-foreground"
-				numberOfLines={1}
-			>
+			<CategoryIconTile color={mover.color} emoji={mover.emoji} icon={mover.icon} size={26} />
+			<Text className="flex-1 font-sans-medium text-caption text-foreground" numberOfLines={1}>
 				{mover.name}
 			</Text>
 			<Text

@@ -12,9 +12,7 @@ const require = createRequire(import.meta.url);
 const ALLOWED_DECIMALS = new Set([0, 2, 3]);
 
 function readJson(relativePath) {
-	return JSON.parse(
-		readFileSync(new URL(relativePath, import.meta.url), "utf8"),
-	);
+	return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8"));
 }
 
 /**
@@ -31,10 +29,8 @@ function readJson(relativePath) {
 export function buildCatalog() {
 	const codes = readJson("../provider-codes.json");
 	const overrides = readJson("../overrides.json");
-	const cldrCurrencies = require("cldr-numbers-modern/main/en/currencies.json")
-		.main.en.numbers.currencies;
-	const cldrFractions = require("cldr-core/supplemental/currencyData.json")
-		.supplemental.currencyData.fractions;
+	const cldrCurrencies = require("cldr-numbers-modern/main/en/currencies.json").main.en.numbers.currencies;
+	const cldrFractions = require("cldr-core/supplemental/currencyData.json").supplemental.currencyData.fractions;
 	const defaultDigits = Number(cldrFractions.DEFAULT._digits);
 
 	const decimals = {};
@@ -45,14 +41,13 @@ export function buildCatalog() {
 		const digits = Number(cldrFractions[code]?._digits ?? defaultDigits);
 		if (!ALLOWED_DECIMALS.has(digits)) {
 			throw new Error(
-				`Currency ${code} carries ${digits} fraction digits; only 0, 2, or 3 are supported. Handle the new exponent before regenerating the catalog.`,
+				`Currency ${code} carries ${digits} fraction digits; only 0, 2, or 3 are supported. Handle the new exponent before regenerating the catalog.`
 			);
 		}
 		decimals[code] = digits;
 		meta[code] = {
 			name: override.name ?? cldr.displayName ?? code,
-			symbol:
-				override.symbol ?? cldr.symbol ?? cldr["symbol-alt-narrow"] ?? code,
+			symbol: override.symbol ?? cldr.symbol ?? cldr["symbol-alt-narrow"] ?? code,
 		};
 	}
 	return { codes, decimals, meta };

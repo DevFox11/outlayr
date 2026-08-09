@@ -11,11 +11,7 @@ import { transactions } from "@/db/schema";
  * `rows | Promise<rows>`, which is what lets `useLiveQuery` read in render; a
  * builder widened to `"sync" | "async"` is barred from it.
  */
-export type SpendDb = BaseSQLiteDatabase<
-	"sync",
-	unknown,
-	Record<string, unknown>
->;
+export type SpendDb = BaseSQLiteDatabase<"sync", unknown, Record<string, unknown>>;
 
 /**
  * The one query every budget figure is built from. There is no per-budget SQL:
@@ -28,29 +24,20 @@ export function expenseContributionQuery(db: SpendDb, now: Date) {
 	return db
 		.select({
 			amount: transactions.amount,
-			categoryId: transactions.categoryId,
-			date: transactions.date,
-			currency: transactions.currency,
 			amountUsd: transactions.amountUsd,
+			categoryId: transactions.categoryId,
+			currency: transactions.currency,
+			date: transactions.date,
 		})
 		.from(transactions)
-		.where(
-			and(
-				eq(transactions.income, false),
-				isNull(transactions.deletedAt),
-				lte(transactions.date, now),
-			),
-		);
+		.where(and(eq(transactions.income, false), isNull(transactions.deletedAt), lte(transactions.date, now)));
 }
 
 /**
  * A subcategory counts toward its parent's budget. A null `categoryId` is the
  * overall budget, which every expense feeds.
  */
-export function contributesTo(
-	row: ExpenseContribution,
-	categoryId: string | null | undefined,
-): boolean {
+export function contributesTo(row: ExpenseContribution, categoryId: string | null | undefined): boolean {
 	if (categoryId == null) {
 		return true;
 	}
@@ -64,8 +51,8 @@ export function contributesTo(
 export interface ExpenseContribution {
 	amount: number;
 	categoryId: string | null;
-	parentId: string | null;
 	date: Date;
+	parentId: string | null;
 }
 
 /**
@@ -76,7 +63,7 @@ export function spentForCategory(
 	rows: readonly ExpenseContribution[],
 	categoryId: string,
 	start: Date,
-	now: Date,
+	now: Date
 ): number {
 	const startMs = start.getTime();
 	const nowMs = now.getTime();
@@ -97,11 +84,7 @@ export function spentForCategory(
  * Every expense over `[start, now]`, whatever its category. Ports
  * `BudgetRepository.fetchRequestForMainBudgetTransactions`.
  */
-export function spentForMain(
-	rows: readonly ExpenseContribution[],
-	start: Date,
-	now: Date,
-): number {
+export function spentForMain(rows: readonly ExpenseContribution[], start: Date, now: Date): number {
 	const startMs = start.getTime();
 	const nowMs = now.getTime();
 	let total = 0;

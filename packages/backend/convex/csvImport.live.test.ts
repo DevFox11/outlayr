@@ -35,28 +35,22 @@ const enabled = process.env.RUN_LIVE_MODEL_TESTS === "1" && apiKey !== "";
 const MODEL_ID = process.env.XAI_MODEL_ID ?? "grok-4.20-0309-non-reasoning";
 
 /** Merchants absent from the on-device map, so the model is the only tier left. */
-const LABELS = [
-	"Panaderia La Espiga SC",
-	"Ferreteria Don Pepe",
-	"Cafe Tostado Rincon",
-];
+const LABELS = ["Panaderia La Espiga SC", "Ferreteria Don Pepe", "Cafe Tostado Rincon"];
 
 const CATEGORY_TREE = [
-	{ name: "Food", children: ["Groceries", "Restaurants"] },
-	{ name: "Home", children: ["Maintenance"] },
+	{ children: ["Groceries", "Restaurants"], name: "Food" },
+	{ children: ["Maintenance"], name: "Home" },
 ];
 
-const OFFERED = new Set(
-	CATEGORY_TREE.flatMap((branch) => [branch.name, ...branch.children]),
-);
+const OFFERED = new Set(CATEGORY_TREE.flatMap((branch) => [branch.name, ...branch.children]));
 
 describe.skipIf(!enabled)("csvImport against the live model", () => {
 	test("classify maps unfamiliar merchants into categories the caller offered", async () => {
 		const xai = createXai({ apiKey });
 
 		const result = await classify(xai(MODEL_ID), {
-			labels: LABELS,
 			categoryTree: CATEGORY_TREE,
+			labels: LABELS,
 		});
 
 		expect(result.status).toBe("ok");
@@ -76,10 +70,11 @@ describe.skipIf(!enabled)("csvImport against the live model", () => {
 		rateLimiterTest.register(t);
 		const identity = await seedAuthUser(t);
 
-		const result = await authenticatedAs(t, identity).action(
-			api.csvImport.csvImport,
-			{ labels: LABELS, categoryTree: CATEGORY_TREE, groundedLookup: false },
-		);
+		const result = await authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+			categoryTree: CATEGORY_TREE,
+			groundedLookup: false,
+			labels: LABELS,
+		});
 
 		expect(result.status).toBe("ok");
 		expect(result.suggestions?.length).toBeGreaterThan(0);

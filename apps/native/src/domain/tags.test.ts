@@ -57,11 +57,7 @@ describe("ordering a tag list", () => {
 			{ id: "2", name: "Admin" },
 			{ id: "3", name: "work" },
 		]);
-		expect(sorted.map((tag) => tag.name)).toStrictEqual([
-			"Admin",
-			"travel",
-			"work",
-		]);
+		expect(sorted.map((tag) => tag.name)).toStrictEqual(["Admin", "travel", "work"]);
 	});
 
 	it("does not mutate the list it was given", () => {

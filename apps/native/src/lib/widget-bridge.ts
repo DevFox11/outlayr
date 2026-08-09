@@ -116,22 +116,11 @@ function queueDirectory(): Directory | null {
 		return null;
 	}
 	const directory = new Directory(container, QUEUE_DIRECTORY);
-	directory.create({ intermediates: true, idempotent: true });
+	directory.create({ idempotent: true, intermediates: true });
 	return directory;
 }
 
 const queueFiles: QueueFiles = {
-	list() {
-		const directory = queueDirectory();
-		if (!directory) {
-			return [];
-		}
-		return directory
-			.list()
-			.filter((entry): entry is File => entry instanceof File)
-			.map((file) => file.name);
-	},
-
 	claim(name) {
 		const directory = queueDirectory();
 		if (!directory) {
@@ -143,6 +132,27 @@ const queueFiles: QueueFiles = {
 		}
 		live.moveSync(new File(directory, name));
 		return true;
+	},
+
+	discard(name) {
+		const directory = queueDirectory();
+		if (!directory) {
+			return;
+		}
+		const file = new File(directory, name);
+		if (file.exists) {
+			file.delete();
+		}
+	},
+	list() {
+		const directory = queueDirectory();
+		if (!directory) {
+			return [];
+		}
+		return directory
+			.list()
+			.filter((entry): entry is File => entry instanceof File)
+			.map((file) => file.name);
 	},
 
 	read(name) {
@@ -162,17 +172,6 @@ const queueFiles: QueueFiles = {
 		const file = new File(directory, name);
 		file.create({ overwrite: true });
 		file.write(text);
-	},
-
-	discard(name) {
-		const directory = queueDirectory();
-		if (!directory) {
-			return;
-		}
-		const file = new File(directory, name);
-		if (file.exists) {
-			file.delete();
-		}
 	},
 };
 

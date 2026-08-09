@@ -1,22 +1,9 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import {
-	readBoolSetting,
-	readNumberSetting,
-	setBoolSetting,
-} from "@/data/settings";
+import { readBoolSetting, readNumberSetting, setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
-import {
-	clampTimeOfDay,
-	reminderReconcile,
-	reminderTime,
-	type TimeOfDay,
-} from "@/domain/reminder";
-import {
-	cancelReminder,
-	reminderPermission,
-	scheduleReminder,
-} from "./reminders";
+import { clampTimeOfDay, reminderReconcile, reminderTime, type TimeOfDay } from "@/domain/reminder";
+import { cancelReminder, reminderPermission, scheduleReminder } from "./reminders";
 
 export async function readReminderTime(db: Database): Promise<TimeOfDay> {
 	const [option, hour, minute] = await Promise.all([
@@ -32,10 +19,7 @@ export async function armReminder(db: Database): Promise<void> {
 }
 
 async function syncReminder(db: Database): Promise<void> {
-	const [enabled, permission] = await Promise.all([
-		readBoolSetting(db, "showNotifications"),
-		reminderPermission(),
-	]);
+	const [enabled, permission] = await Promise.all([readBoolSetting(db, "showNotifications"), reminderPermission()]);
 	switch (reminderReconcile(enabled, permission)) {
 		case "schedule":
 			await armReminder(db);

@@ -31,7 +31,7 @@ export function openDatabase() {
 	} else {
 		console.warn(
 			`[db] ${orphans.length} orphaned row(s) found — leaving foreign_keys off. ` +
-				"The declared cascades stay inert until these are cleaned up.",
+				"The declared cascades stay inert until these are cleaned up."
 		);
 	}
 

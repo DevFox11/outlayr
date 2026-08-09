@@ -17,16 +17,16 @@ const convexUrlSchema = (exampleHost: string) =>
  * routes are served by `http.ts`, which only exists on the site domain.
  */
 export const env = createEnv({
-	clientPrefix: "EXPO_PUBLIC_",
 	client: {
-		EXPO_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud"),
 		EXPO_PUBLIC_CONVEX_SITE_URL: convexUrlSchema("example.convex.site"),
+		EXPO_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud"),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: z.string().optional(),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: z.string().optional(),
 		// logo.dev publishable token (`pk_…`), meant to ship in the client. Absent
 		// simply drops that tier: App Store icons and favicons still resolve.
 		EXPO_PUBLIC_LOGO_DEV_TOKEN: z.string().optional(),
 	},
-	runtimeEnv: process.env,
+	clientPrefix: "EXPO_PUBLIC_",
 	emptyStringAsUndefined: true,
+	runtimeEnv: process.env,
 });

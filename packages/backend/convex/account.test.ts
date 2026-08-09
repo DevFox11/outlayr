@@ -18,34 +18,34 @@ const DEVICE = "device-aaaa";
 
 function transactionRow(localId: string): PushRows[number] {
 	return {
-		table: "transactions",
-		localId,
-		updatedAt: 100,
 		deletedAt: null,
 		fields: {
+			accountId: null,
 			amount: 12.5,
-			income: false,
+			amountUsd: 12.5,
+			categoryId: null,
 			currency: "USD",
-			note: "coffee",
-			details: null,
+			customColor: null,
 			date: 1_700_000_000_000,
 			day: 1_700_000_000_000,
-			month: 1_700_000_000_000,
-			icon: null,
+			details: null,
 			emoji: null,
-			customColor: null,
-			imageColor: null,
-			imageKey: null,
-			onceRecurring: false,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			categoryId: null,
-			accountId: null,
-			amountUsd: 12.5,
 			exchangeRate: 1,
 			exchangeRateType: "official",
+			icon: null,
+			imageColor: null,
+			imageKey: null,
+			income: false,
+			month: 1_700_000_000_000,
+			note: "coffee",
+			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
 		},
+		localId,
+		table: "transactions",
+		updatedAt: 100,
 	};
 }
 
@@ -126,7 +126,7 @@ describe("purging an account", () => {
 			ctx.db
 				.query("syncState")
 				.withIndex("by_user", (q) => q.eq("userId", owner.userId))
-				.unique(),
+				.unique()
 		);
 		expect(stateAfterFirst).not.toBeNull();
 
@@ -135,7 +135,7 @@ describe("purging an account", () => {
 			ctx.db
 				.query("syncState")
 				.withIndex("by_user", (q) => q.eq("userId", owner.userId))
-				.unique(),
+				.unique()
 		);
 		expect(stateAtEnd).toBeNull();
 	});
@@ -148,9 +148,7 @@ describe("purging an account", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 		const key = photoKeyFor(owner.userId, "a.jpg");
-		const storageId = await t.run(
-			async (ctx) => await ctx.storage.store(new Blob(["bytes"])),
-		);
+		const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
 		await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
 			key,
 			storageId,
@@ -159,8 +157,8 @@ describe("purging an account", () => {
 		await purgeAll(t, owner.userId);
 
 		const leftovers = await t.run(async (ctx) => ({
-			sizes: await ctx.db.query("photoSizes").collect(),
 			objects: await ctx.db.query("photoObjects").collect(),
+			sizes: await ctx.db.query("photoSizes").collect(),
 		}));
 		expect(leftovers.sizes).toEqual([]);
 		expect(leftovers.objects).toEqual([]);

@@ -1,45 +1,26 @@
 import type { ReactNode } from "react";
-import {
-	createContext,
-	use,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import { IntlayerProvider } from "react-native-intlayer";
 
 import { CATALOGS, EN, type TranslatableKey } from "./catalog";
 import { useDeviceLanguageTag } from "./device-language";
-import {
-	persistLanguagePreference,
-	readLanguagePreference,
-} from "./language-storage";
-import {
-	type Language,
-	type LanguagePreference,
-	resolveLanguage,
-} from "./languages";
+import { persistLanguagePreference, readLanguagePreference } from "./language-storage";
+import { type Language, type LanguagePreference, resolveLanguage } from "./languages";
 import { setRuntimeLanguage } from "./runtime";
 import { type TranslationParams, translate } from "./translate";
 
-export type TranslateFn = (
-	key: TranslatableKey,
-	params?: TranslationParams,
-) => string;
+export type TranslateFn = (key: TranslatableKey, params?: TranslationParams) => string;
 
 interface LanguageContextValue {
-	language: Language;
-	preference: LanguagePreference;
 	/** False until the persisted preference has been read and applied. */
 	isHydrated: boolean;
+	language: Language;
+	preference: LanguagePreference;
 	setPreference: (preference: LanguagePreference) => void;
 	t: TranslateFn;
 }
 
-const LanguageContext = createContext<LanguageContextValue | undefined>(
-	undefined,
-);
+const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 /**
  * Owns the preference because Intlayer's React Native locale storage is an
@@ -49,8 +30,7 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(
  */
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-	const [preference, setPreferenceState] =
-		useState<LanguagePreference>("system");
+	const [preference, setPreferenceState] = useState<LanguagePreference>("system");
 	const [isHydrated, setIsHydrated] = useState(false);
 	const deviceTag = useDeviceLanguageTag();
 
@@ -90,12 +70,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 				fallback: EN,
 				params,
 			}),
-		[language],
+		[language]
 	);
 
 	const value = useMemo(
-		() => ({ language, preference, isHydrated, setPreference, t }),
-		[language, preference, isHydrated, setPreference, t],
+		() => ({ isHydrated, language, preference, setPreference, t }),
+		[language, preference, isHydrated, setPreference, t]
 	);
 
 	return (

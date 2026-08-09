@@ -23,9 +23,9 @@ async function main() {
 
 	const rows = await Promise.all(
 		names.map(async (name) => ({
-			name,
 			elements: await loadIcon("stroke", name),
-		})),
+			name,
+		}))
 	);
 
 	const height = rows.length * ROW + GAP;
@@ -44,13 +44,9 @@ async function main() {
 
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none"><rect width="${width}" height="${height}" fill="#fff"/>${parts.join("")}</svg>`;
 
-	execFileSync(
-		"rsvg-convert",
-		["-w", String(width * 2), "-o", "/tmp/contact-sheet.png"],
-		{
-			input: svg,
-		},
-	);
+	execFileSync("rsvg-convert", ["-w", String(width * 2), "-o", "/tmp/contact-sheet.png"], {
+		input: svg,
+	});
 	console.log(`wrote /tmp/contact-sheet.png — ${rows.length} candidates`);
 }
 

@@ -1,13 +1,7 @@
 import { Host } from "@expo/ui";
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { Form, type TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
-import {
-	animation,
-	blur,
-	listStyle,
-	opacity,
-	scrollContentBackground,
-} from "@expo/ui/swift-ui/modifiers";
+import { animation, blur, listStyle, opacity, scrollContentBackground } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -20,10 +14,7 @@ import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
 import { useAppSettings } from "@/contexts/display-settings-context";
-import {
-	useIdentityDraft,
-	useIdentityFlyUp,
-} from "@/contexts/identity-draft-context";
+import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { type Account, accountsRepo, getAccountById } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -51,9 +42,7 @@ import {
 	HERO_TOP_PADDING,
 } from "./style";
 
-export type AccountEditorProps =
-	| { mode: "create" }
-	| { mode: "edit"; id: string };
+export type AccountEditorProps = { mode: "create" } | { mode: "edit"; id: string };
 
 type IdentitySource = "initial" | "suggested" | "user";
 
@@ -68,9 +57,7 @@ export default function AccountEditor(props: AccountEditorProps) {
  * are RN views around the `Host`, because the `Form` inside it has to be its
  * only child.
  */
-function AccountEditorReady(
-	props: AccountEditorProps & { db: import("@/db/client").Database },
-) {
+function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/client").Database }) {
 	const { db } = props;
 	const mode = props.mode;
 	const editId = props.mode === "edit" ? props.id : null;
@@ -92,7 +79,7 @@ function AccountEditorReady(
 	// Lazy `useState`, not `useMemo`: stable for the component's life — a
 	// re-read would re-fire the draft effects below and clobber a picked logo.
 	const [loaded] = useState<Account | null>(() =>
-		mode === "edit" && editId != null ? getAccountById(db, editId) : null,
+		mode === "edit" && editId != null ? getAccountById(db, editId) : null
 	);
 
 	const nameState = useNativeState(loaded?.name ?? "");
@@ -103,12 +90,9 @@ function AccountEditorReady(
 	const [initialValues] = useState(() => {
 		const startingCurrency = loaded?.currency ?? globalCurrency;
 		return {
-			name: loaded?.name ?? "",
+			balanceText: numberToNumpad(Math.abs(loaded?.initialBalance ?? 0), minorUnitsFor(startingCurrency)),
 			currency: startingCurrency,
-			balanceText: numberToNumpad(
-				Math.abs(loaded?.initialBalance ?? 0),
-				minorUnitsFor(startingCurrency),
-			),
+			name: loaded?.name ?? "",
 			negative: (loaded?.initialBalance ?? 0) < 0,
 		};
 	});
@@ -117,36 +101,33 @@ function AccountEditorReady(
 		onSubmit: async ({ value }) => {
 			// A currency swapped after typing can leave more precision in the pad
 			// than the new code has minor units — JPY cannot hold "12.34".
-			const magnitude = roundToMinorUnits(
-				numpadToNumber(value.balanceText),
-				value.currency,
-			);
+			const magnitude = roundToMinorUnits(numpadToNumber(value.balanceText), value.currency);
 			const initialBalance = value.negative ? -magnitude : magnitude;
 			try {
 				if (mode === "create") {
 					await accountsRepo.create(db, {
-						name: value.name.trim(),
 						currency: value.currency,
-						initialBalance,
-						icon: draft.icon ?? null,
-						emoji: draft.emoji ?? null,
 						customColor: draft.color ?? null,
+						emoji: draft.emoji ?? null,
+						icon: draft.icon ?? null,
 						imageColor: draft.photoColor ?? null,
 						imageUri: draft.photoUri ?? null,
+						initialBalance,
+						name: value.name.trim(),
 					});
 				} else {
 					if (loaded == null) {
 						return;
 					}
 					await accountsRepo.update(db, loaded.id, {
-						name: value.name.trim(),
 						currency: value.currency,
-						initialBalance,
-						icon: draft.icon ?? null,
-						emoji: draft.emoji ?? null,
 						customColor: draft.color ?? null,
+						emoji: draft.emoji ?? null,
+						icon: draft.icon ?? null,
 						imageColor: draft.photoColor ?? null,
 						imageUri: draft.photoUri ?? null,
+						initialBalance,
+						name: value.name.trim(),
 					});
 				}
 				haptics("success");
@@ -155,30 +136,20 @@ function AccountEditorReady(
 			} catch {
 				haptics("error");
 				Alert.alert(
-					t(
-						mode === "create"
-							? "accounts.error.addTitle"
-							: "accounts.error.saveTitle",
-					),
-					t("accounts.error.generic"),
+					t(mode === "create" ? "accounts.error.addTitle" : "accounts.error.saveTitle"),
+					t("accounts.error.generic")
 				);
 			}
 		},
 	});
-	const { name, currency, balanceText, negative } = useSelector(
-		form.store,
-		(s) => s.values,
-	);
+	const { name, currency, balanceText, negative } = useSelector(form.store, (s) => s.values);
 	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const containerHeight = useSharedValue(0);
 	const heroRestTop = useDerivedValue(() => HEADER_HEIGHT + HERO_TOP_PADDING);
-	const [heroBand, setHeroBand] = useState(
-		HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING,
-	);
+	const [heroBand, setHeroBand] = useState(HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING);
 
-	const [identitySource, setIdentitySource] =
-		useState<IdentitySource>("initial");
+	const [identitySource, setIdentitySource] = useState<IdentitySource>("initial");
 	const identitySourceRef = useRef(identitySource);
 	identitySourceRef.current = identitySource;
 	const hasIdentityRef = useRef(false);
@@ -193,11 +164,11 @@ function AccountEditorReady(
 			return;
 		}
 		setDraft({
+			color: null,
 			emoji: null,
 			icon: null,
-			photoUri: null,
 			photoColor: null,
-			color: null,
+			photoUri: null,
 		});
 	}, [mode, setDraft]);
 
@@ -208,19 +179,19 @@ function AccountEditorReady(
 		setDraft(
 			loaded
 				? {
+						color: loaded.customColor ?? null,
 						emoji: loaded.emoji ?? null,
 						icon: loaded.icon ?? null,
-						photoUri: loaded.imageUri ?? null,
 						photoColor: loaded.imageColor ?? null,
-						color: loaded.customColor ?? null,
+						photoUri: loaded.imageUri ?? null,
 					}
 				: {
+						color: null,
 						emoji: null,
 						icon: null,
-						photoUri: null,
 						photoColor: null,
-						color: null,
-					},
+						photoUri: null,
+					}
 		);
 	}, [mode, loaded, setDraft]);
 
@@ -231,25 +202,15 @@ function AccountEditorReady(
 	}, [navigation, pickerOpen]);
 
 	const identity = useAccountIdentity({
-		enabled: mode === "create",
-		remoteEnabled: aiEnrichment,
-		groundedLookup,
-		locale,
-		regionCode,
 		canAttach: () =>
 			identitySourceRef.current !== "user" &&
 			!pickerOpenRef.current &&
 			// An identity carried in from the stored row is a choice already made;
 			// only an empty well or an earlier suggestion moves.
 			!(identitySourceRef.current === "initial" && hasIdentityRef.current),
-		onLogo: (logo) => {
-			setIdentitySource("suggested");
-			setDraft((previous) => ({
-				...previous,
-				photoUri: logo.imageUri,
-				photoColor: logo.imageColor,
-			}));
-		},
+		enabled: mode === "create",
+		groundedLookup,
+		locale,
 		onClear: () => {
 			if (identitySourceRef.current !== "suggested") {
 				return;
@@ -257,10 +218,20 @@ function AccountEditorReady(
 			setIdentitySource("initial");
 			setDraft((previous) => ({
 				...previous,
-				photoUri: null,
 				photoColor: null,
+				photoUri: null,
 			}));
 		},
+		onLogo: (logo) => {
+			setIdentitySource("suggested");
+			setDraft((previous) => ({
+				...previous,
+				photoColor: logo.imageColor,
+				photoUri: logo.imageUri,
+			}));
+		},
+		regionCode,
+		remoteEnabled: aiEnrichment,
 	});
 
 	const onNameChange = (next: string) => {
@@ -271,7 +242,7 @@ function AccountEditorReady(
 	const canSave = name.trim() !== "" && !isSubmitting;
 
 	const tint = draft.photoColor ?? draft.color ?? colors.foreground;
-	const symbolEmpty = !draft.icon && !draft.emoji && !draft.photoUri;
+	const symbolEmpty = !(draft.icon || draft.emoji || draft.photoUri);
 	const curtainHues = symbolEmpty
 		? null
 		: draft.photoUri
@@ -310,25 +281,19 @@ function AccountEditorReady(
 			onLayout={(e) => {
 				containerHeight.value = e.nativeEvent.layout.height;
 			}}
-			style={{ flex: 1, backgroundColor: SYSTEM_COLORS.groupedBackground }}
+			style={{ backgroundColor: SYSTEM_COLORS.groupedBackground, flex: 1 }}
 		>
 			<IdentityCurtain hues={curtainHues} />
 
 			<View
 				style={{
 					flex: 1,
-					paddingTop: heroBand,
 					paddingBottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom,
+					paddingTop: heroBand,
 				}}
 			>
 				<Host style={{ flex: 1 }}>
-					<Form
-						modifiers={[
-							listStyle("insetGrouped"),
-							scrollContentBackground("hidden"),
-							...underPicker,
-						]}
-					>
+					<Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden"), ...underPicker]}>
 						<AccountEditorDetailsSection
 							balanceEditA11y={t("accounts.a11y.editBalance")}
 							balanceLabel={t("accounts.field.initialBalance")}
@@ -365,25 +330,20 @@ function AccountEditorReady(
 				onReset={() => {
 					setIdentitySource("user");
 					setDraft({
+						color: draft.color,
 						emoji: null,
 						icon: null,
-						photoUri: null,
 						photoColor: null,
-						color: draft.color,
+						photoUri: null,
 					});
 				}}
 				photoUri={draft.photoUri}
 			/>
 
-			<View
-				pointerEvents="box-none"
-				className="absolute right-0 bottom-safe-offset-2 left-0 px-5"
-			>
+			<View className="absolute right-0 bottom-safe-offset-2 left-0 px-5" pointerEvents="box-none">
 				<AccountEditorCta
 					canSave={canSave}
-					label={t(
-						mode === "create" ? "accounts.addAccount" : "accounts.saveAccount",
-					)}
+					label={t(mode === "create" ? "accounts.addAccount" : "accounts.saveAccount")}
 					onPress={() => pressSubmit(form)}
 					tintColor={colors.foreground}
 					underPicker={underPicker}
@@ -425,25 +385,21 @@ export function confirmAccountDelete(
 	db: import("@/db/client").Database,
 	id: string,
 	t: ReturnType<typeof useTranslation>,
-	onDeleted: () => void,
+	onDeleted: () => void
 ): void {
 	const account = getAccountById(db, id);
 	if (account == null) {
 		return;
 	}
-	Alert.alert(
-		t("accounts.delete.title", { name: account.name }),
-		t("accounts.delete.message"),
-		[
-			{ text: t("common.cancel"), style: "cancel" },
-			{
-				text: t("common.delete"),
-				style: "destructive",
-				onPress: async () => {
-					await accountsRepo.softDelete(db, id);
-					onDeleted();
-				},
+	Alert.alert(t("accounts.delete.title", { name: account.name }), t("accounts.delete.message"), [
+		{ style: "cancel", text: t("common.cancel") },
+		{
+			onPress: async () => {
+				await accountsRepo.softDelete(db, id);
+				onDeleted();
 			},
-		],
-	);
+			style: "destructive",
+			text: t("common.delete"),
+		},
+	]);
 }

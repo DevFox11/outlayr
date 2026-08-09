@@ -6,16 +6,16 @@ import { IdentityHero } from "../identity-hero";
 import { HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "./style";
 
 interface TransactionFormIdentitySectionProps {
-	contentWidth: number;
 	color: string | null;
+	contentWidth: number;
 	emoji: string | null;
-	icon: string | null;
-	photoUri: string | null;
-	income: boolean;
 	floatProgress: SharedValue<number>;
 	heroWinY: SharedValue<number>;
+	icon: string | null;
+	income: boolean;
 	onPress: () => void;
 	onReset: () => void;
+	photoUri: string | null;
 }
 
 /**
@@ -58,7 +58,7 @@ export function TransactionFormIdentitySection({
 				    SwiftUI — the VStack then overflows its own horizontal
 				    padding and drags every sibling card out to the screen
 				    edge with it. */}
-				<View style={{ width: contentWidth, alignItems: "center" }}>
+				<View style={{ alignItems: "center", width: contentWidth }}>
 					<IdentityHero
 						color={color}
 						emoji={emoji}

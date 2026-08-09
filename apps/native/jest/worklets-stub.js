@@ -33,8 +33,7 @@ if (globalThis.__RUNTIME_KIND === undefined) {
 }
 globalThis._WORKLET = false;
 globalThis._log = globalThis._log ?? console.log;
-globalThis._getAnimationTimestamp =
-	globalThis._getAnimationTimestamp ?? (() => performance.now());
+globalThis._getAnimationTimestamp = globalThis._getAnimationTimestamp ?? (() => performance.now());
 
 function mockedRequestAnimationFrame(callback) {
 	return setTimeout(() => callback(performance.now()), 0);
@@ -65,19 +64,17 @@ function makeShareableCloneOnUIRecursive(value) {
 function registerCustomSerializable() {}
 
 const serializableMappingCache = {
-	set() {},
 	get() {
 		return null;
 	},
+	set() {},
 };
 
 function isShareable(value) {
 	return typeof value === "object" && value !== null && !!value.__shareableRef;
 }
 function isSynchronizable(value) {
-	return (
-		typeof value === "object" && value !== null && !!value.__synchronizableRef
-	);
+	return typeof value === "object" && value !== null && !!value.__synchronizableRef;
 }
 
 function getStaticFeatureFlag() {
@@ -139,12 +136,12 @@ function runOnUI(worklet) {
 }
 function runOnUISync() {
 	throw new Error(
-		"[worklets-stub] `runOnUISync` is not supported under jest, matching react-native-worklets' own web build. reanimated only calls it behind a `!SHOULD_BE_USE_WEB` guard.",
+		"[worklets-stub] `runOnUISync` is not supported under jest, matching react-native-worklets' own web build. reanimated only calls it behind a `!SHOULD_BE_USE_WEB` guard."
 	);
 }
 function executeOnUIRuntimeSync() {
 	throw new Error(
-		"[worklets-stub] `executeOnUIRuntimeSync` is not supported under jest, matching react-native-worklets' own web build.",
+		"[worklets-stub] `executeOnUIRuntimeSync` is not supported under jest, matching react-native-worklets' own web build."
 	);
 }
 function scheduleOnRN(fn, ...args) {
@@ -162,7 +159,7 @@ function runOnUIAsync(worklet, ...args) {
 function notSimulated(name) {
 	return () => {
 		throw new Error(
-			`[worklets-stub] \`${name}\` is native-only and not simulated. react-native-reanimated never calls it on its SHOULD_BE_USE_WEB (jest) path — if a test reaches this, it is exercising real multi-runtime worklet behaviour that this jest stub cannot provide.`,
+			`[worklets-stub] \`${name}\` is native-only and not simulated. react-native-reanimated never calls it on its SHOULD_BE_USE_WEB (jest) path — if a test reaches this, it is exercising real multi-runtime worklet behaviour that this jest stub cannot provide.`
 		);
 	};
 }
@@ -187,16 +184,13 @@ function toggleSlowAnimationsOnUIRuntime() {
 }
 
 const WorkletsModule = {
-	loadUnpackers: notSimulated("WorkletsModule.loadUnpackers"),
 	getUIRuntimeHolder: notSimulated("WorkletsModule.getUIRuntimeHolder"),
 	getUISchedulerHolder: notSimulated("WorkletsModule.getUISchedulerHolder"),
+	loadUnpackers: notSimulated("WorkletsModule.loadUnpackers"),
 	toggleSlowAnimationsOnUIRuntime: () => false,
 };
 
 module.exports = {
-	RuntimeKind,
-	UIRuntimeId,
-	WorkletsModule,
 	callMicrotasks,
 	createSerializable,
 	createShareable,
@@ -220,6 +214,7 @@ module.exports = {
 	makeShareable,
 	makeShareableCloneOnUIRecursive,
 	makeShareableCloneRecursive: createSerializable,
+	RuntimeKind,
 	registerCustomSerializable,
 	runOnJS,
 	runOnRuntime,
@@ -238,4 +233,6 @@ module.exports = {
 	setDynamicFeatureFlag,
 	shareableMappingCache: serializableMappingCache,
 	toggleSlowAnimationsOnUIRuntime,
+	UIRuntimeId,
+	WorkletsModule,
 };

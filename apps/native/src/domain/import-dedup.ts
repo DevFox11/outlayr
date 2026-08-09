@@ -3,8 +3,8 @@ import { startOfDay } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 
 export interface ExistingRow {
-	date: Date;
 	amount: number;
+	date: Date;
 	income: boolean;
 	note: string;
 }
@@ -13,16 +13,11 @@ export function dedupFingerprint(row: ExistingRow): string {
 	return `${startOfDay(row.date).getTime()}|${row.amount.toFixed(2)}|${row.income ? 1 : 0}|${merchantKey(row.note)}`;
 }
 
-export function fingerprintsOf(
-	rows: readonly ExistingRow[],
-): ReadonlySet<string> {
+export function fingerprintsOf(rows: readonly ExistingRow[]): ReadonlySet<string> {
 	return new Set(rows.map(dedupFingerprint));
 }
 
-export function flagDuplicates(
-	entries: readonly ImportEntry[],
-	existing: ReadonlySet<string>,
-): ReadonlySet<number> {
+export function flagDuplicates(entries: readonly ImportEntry[], existing: ReadonlySet<string>): ReadonlySet<number> {
 	const flagged = new Set<number>();
 	for (const [index, entry] of entries.entries()) {
 		if (existing.has(dedupFingerprint(entry))) {

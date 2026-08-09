@@ -13,11 +13,7 @@ import { translate } from "@/i18n/translate";
  * not been migrated to pass one still renders in the user's language, which is
  * the failure mode that let six English tables accumulate in the first place.
  */
-function dateName(
-	key: string,
-	language: Language,
-	params?: Readonly<Record<string, string | number>>,
-): string {
+function dateName(key: string, language: Language, params?: Readonly<Record<string, string | number>>): string {
 	return translate(key, {
 		catalog: CATALOGS[language] ?? EN,
 		fallback: EN,
@@ -27,14 +23,14 @@ function dateName(
 
 /** `firstWeekday` is 1 = Sunday, 2 = Monday; `firstDayOfMonth` is 1–28. */
 export interface CalendarSettings {
-	firstWeekday: number;
 	firstDayOfMonth: number;
+	firstWeekday: number;
 }
 
 /** Matches `SETTING_DEFAULTS`. */
 export const DEFAULT_CALENDAR: CalendarSettings = {
-	firstWeekday: 1,
 	firstDayOfMonth: 1,
+	firstWeekday: 1,
 };
 
 /** Local-calendar midnight of the given instant. */
@@ -100,26 +96,17 @@ export function addMonths(date: Date, n: number): Date {
 }
 
 /** Short month as the language writes it, e.g. "Jul" / "jul". */
-export function monthAbbrevTitle(
-	date: Date,
-	language: Language = runtimeLanguage(),
-): string {
+export function monthAbbrevTitle(date: Date, language: Language = runtimeLanguage()): string {
 	return dateName(`dates.month.${date.getMonth()}`, language);
 }
 
 /** The shouted short month the Log and Insights headers use, e.g. "JUL". */
-export function monthAbbrev(
-	date: Date,
-	language: Language = runtimeLanguage(),
-): string {
+export function monthAbbrev(date: Date, language: Language = runtimeLanguage()): string {
 	return monthAbbrevTitle(date, language).toUpperCase();
 }
 
 /** Single-letter weekday for the week chart's axis, e.g. "M". */
-export function weekdayInitial(
-	date: Date,
-	language: Language = runtimeLanguage(),
-): string {
+export function weekdayInitial(date: Date, language: Language = runtimeLanguage()): string {
 	return dateName(`dates.weekdayInitial.${date.getDay()}`, language);
 }
 
@@ -132,11 +119,7 @@ export function isFuture(date: Date, now: Date = new Date()): boolean {
  * "FRI, 24 JUL" — and "FRI, 24 JUL '25" once the day falls before the current
  * year.
  */
-export function formatDayHeader(
-	day: Date,
-	now: Date = new Date(),
-	language: Language = runtimeLanguage(),
-): string {
+export function formatDayHeader(day: Date, now: Date = new Date(), language: Language = runtimeLanguage()): string {
 	const today = startOfDay(now).getTime();
 	const target = startOfDay(day).getTime();
 	const oneDay = 86_400_000;
@@ -146,14 +129,9 @@ export function formatDayHeader(
 	if (target === today - oneDay) {
 		return dateName("common.yesterday", language).toUpperCase();
 	}
-	const weekday = dateName(
-		`dates.weekday.${day.getDay()}`,
-		language,
-	).toUpperCase();
+	const weekday = dateName(`dates.weekday.${day.getDay()}`, language).toUpperCase();
 	const base = `${weekday}, ${day.getDate()} ${monthAbbrev(day, language)}`;
-	return day.getFullYear() < now.getFullYear()
-		? `${base} '${String(day.getFullYear()).slice(-2)}`
-		: base;
+	return day.getFullYear() < now.getFullYear() ? `${base} '${String(day.getFullYear()).slice(-2)}` : base;
 }
 
 /**
@@ -162,23 +140,14 @@ export function formatDayHeader(
  * first step. Title case rather than `formatDayHeader`'s shout: this reads as a
  * list of dates, not as a section the ledger is divided into.
  */
-export function formatChargeDate(
-	date: Date,
-	now: Date = new Date(),
-	language: Language = runtimeLanguage(),
-): string {
+export function formatChargeDate(date: Date, now: Date = new Date(), language: Language = runtimeLanguage()): string {
 	const weekday = dateName(`dates.weekday.${date.getDay()}`, language);
 	const base = `${weekday}, ${date.getDate()} ${monthAbbrevTitle(date, language)}`;
-	return date.getFullYear() === now.getFullYear()
-		? base
-		: `${base} ${date.getFullYear()}`;
+	return date.getFullYear() === now.getFullYear() ? base : `${base} ${date.getFullYear()}`;
 }
 
 /** "24 JUL", per Swift's `dateFormatter`. */
-export function formatUpcomingDate(
-	date: Date,
-	language: Language = runtimeLanguage(),
-): string {
+export function formatUpcomingDate(date: Date, language: Language = runtimeLanguage()): string {
 	return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
@@ -187,29 +156,19 @@ export function formatUpcomingDate(
  * the hour because that is how every locale that uses it writes the small hours;
  * the 12-hour form must not, or "9:04 PM" becomes "09:04 PM".
  */
-export function formatTime(
-	date: Date,
-	use24Hour = false,
-	language: Language = runtimeLanguage(),
-): string {
+export function formatTime(date: Date, use24Hour = false, language: Language = runtimeLanguage()): string {
 	const hours = date.getHours();
 	const minutes = date.getMinutes();
 	const mm = minutes < 10 ? `0${minutes}` : String(minutes);
 	if (use24Hour) {
 		return `${hours < 10 ? `0${hours}` : hours}:${mm}`;
 	}
-	const meridiem = dateName(
-		hours >= 12 ? "dates.meridiem.pm" : "dates.meridiem.am",
-		language,
-	);
+	const meridiem = dateName(hours >= 12 ? "dates.meridiem.pm" : "dates.meridiem.am", language);
 	const hour12 = hours % 12 === 0 ? 12 : hours % 12;
 	return `${hour12}:${mm} ${meridiem}`;
 }
 
 /** The shouted full month a budget's limit picker names, e.g. "JULY". */
-export function formatMonthLabel(
-	date: Date,
-	language: Language = runtimeLanguage(),
-): string {
+export function formatMonthLabel(date: Date, language: Language = runtimeLanguage()): string {
 	return dateName(`dates.monthLong.${date.getMonth()}`, language).toUpperCase();
 }

@@ -58,18 +58,10 @@ export function CategoryEditorDetailsSection({
 	return (
 		<Section
 			footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
-			modifiers={[
-				listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN }),
-			]}
+			modifiers={[listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN })]}
 		>
 			<HStack>
-				<SwiftText
-					modifiers={[
-						foregroundStyle({ type: "hierarchical", style: "secondary" }),
-					]}
-				>
-					{nameLabel}
-				</SwiftText>
+				<SwiftText modifiers={[foregroundStyle({ style: "secondary", type: "hierarchical" })]}>{nameLabel}</SwiftText>
 				<Spacer />
 				<TextField
 					modifiers={[
@@ -87,13 +79,7 @@ export function CategoryEditorDetailsSection({
 
 			{typePickerVisible ? (
 				<HStack>
-					<SwiftText
-						modifiers={[
-							foregroundStyle({ type: "hierarchical", style: "secondary" }),
-						]}
-					>
-						{typeLabel}
-					</SwiftText>
+					<SwiftText modifiers={[foregroundStyle({ style: "secondary", type: "hierarchical" })]}>{typeLabel}</SwiftText>
 					<Spacer />
 					<Picker
 						label=""

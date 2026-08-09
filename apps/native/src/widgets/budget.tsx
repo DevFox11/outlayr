@@ -1,12 +1,4 @@
-import {
-	Gauge,
-	HStack,
-	ProgressView,
-	Rectangle,
-	Spacer,
-	Text,
-	VStack,
-} from "@expo/ui/swift-ui";
+import { Gauge, HStack, ProgressView, Rectangle, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
 	containerBackground,
 	font,
@@ -38,10 +30,7 @@ import type { BudgetConfiguration, BudgetWidgetProps } from "./props";
  * small tile's width on whitespace. `environment.widgetContentMargins` reports
  * the system inset if a layout ever needs the number.
  */
-const BudgetWidget = (
-	props: BudgetWidgetProps,
-	environment: WidgetEnvironment<BudgetConfiguration>,
-) => {
+const BudgetWidget = (props: BudgetWidgetProps, environment: WidgetEnvironment<BudgetConfiguration>) => {
 	"widget";
 
 	const scheme = environment.colorScheme === "dark" ? "dark" : "light";
@@ -49,17 +38,13 @@ const BudgetWidget = (
 	const family = environment.widgetFamily;
 	// A configuration stored by an older build can name a view this one no longer
 	// publishes, and an undefined view renders as a blank tile with no error.
-	const view =
-		props.views[environment.configuration?.budget ?? "auto"] ??
-		props.views.auto;
+	const view = props.views[environment.configuration?.budget ?? "auto"] ?? props.views.auto;
 	const accent = view.over ? palette.over : palette.ink;
 
 	// Lock Screen families render vibrant — the system flattens everything to a
 	// single tint, so colour carries no meaning there and the copy has to.
 	const isAccessory =
-		family === "accessoryCircular" ||
-		family === "accessoryRectangular" ||
-		family === "accessoryInline";
+		family === "accessoryCircular" || family === "accessoryRectangular" || family === "accessoryInline";
 
 	const eyebrow = (value: string) => (
 		<Text
@@ -98,20 +83,9 @@ const BudgetWidget = (
 
 	if (!view.present) {
 		return (
-			<VStack
-				modifiers={[
-					widgetURL(view.url),
-					containerBackground(palette.background, "widget"),
-				]}
-				spacing={4}
-			>
+			<VStack modifiers={[widgetURL(view.url), containerBackground(palette.background, "widget")]} spacing={4}>
 				{eyebrow("BUDGET")}
-				<Text
-					modifiers={[
-						font({ design: "rounded", size: 15, weight: "medium" }),
-						foregroundStyle(palette.muted),
-					]}
-				>
+				<Text modifiers={[font({ design: "rounded", size: 15, weight: "medium" }), foregroundStyle(palette.muted)]}>
 					Set a budget to see it here.
 				</Text>
 			</VStack>
@@ -144,20 +118,13 @@ const BudgetWidget = (
 		</HStack>
 	);
 
-	const rail = (
-		<ProgressView
-			modifiers={[progressViewStyle("linear"), tint(accent)]}
-			value={view.spentFraction}
-		/>
-	);
+	const rail = <ProgressView modifiers={[progressViewStyle("linear"), tint(accent)]} value={view.spentFraction} />;
 
 	if (family === "accessoryRectangular") {
 		return (
 			<VStack alignment="leading" modifiers={[widgetURL(view.url)]} spacing={2}>
 				{eyebrow(
-					view.isOverall
-						? `${view.periodLabel} · ${view.percent}`
-						: `${view.name.toUpperCase()} · ${view.percent}`,
+					view.isOverall ? `${view.periodLabel} · ${view.percent}` : `${view.name.toUpperCase()} · ${view.percent}`
 				)}
 				{hero(20)}
 				{rail}
@@ -168,15 +135,11 @@ const BudgetWidget = (
 	/** The app's `LedgerHead` shape: cells under a hairline, split by rules. */
 	const cell = (label: string, value: string, leading: boolean) => (
 		<HStack spacing={0}>
-			{leading ? null : (
-				<Rectangle
-					modifiers={[frame({ width: 1 }), foregroundStyle(palette.border)]}
-				/>
-			)}
+			{leading ? null : <Rectangle modifiers={[frame({ width: 1 }), foregroundStyle(palette.border)]} />}
 			<VStack
 				alignment="leading"
 				modifiers={[
-					frame({ maxWidth: Number.POSITIVE_INFINITY, alignment: "leading" }),
+					frame({ alignment: "leading", maxWidth: Number.POSITIVE_INFINITY }),
 					padding({ leading: leading ? 0 : 10 }),
 				]}
 				spacing={2}
@@ -199,10 +162,7 @@ const BudgetWidget = (
 	return (
 		<VStack
 			alignment="leading"
-			modifiers={[
-				widgetURL(view.url),
-				containerBackground(palette.background, "widget"),
-			]}
+			modifiers={[widgetURL(view.url), containerBackground(palette.background, "widget")]}
 			spacing={0}
 		>
 			{/* A per-category budget leads with its own name, or the tile is
@@ -212,33 +172,22 @@ const BudgetWidget = (
 					? family === "systemSmall"
 						? view.periodLabel
 						: `${view.periodLabel} · ${view.rangeLabel}`
-					: `${view.name.toUpperCase()} · ${view.periodLabel}`,
+					: `${view.name.toUpperCase()} · ${view.periodLabel}`
 			)}
 			<Spacer modifiers={[frame({ height: 6 })]} />
 			{hero(family === "systemSmall" ? 26 : 32)}
 			<Spacer modifiers={[frame({ height: 10 })]} />
 			{rail}
 			<Spacer />
-			<Rectangle
-				modifiers={[frame({ height: 1 }), foregroundStyle(palette.border)]}
-			/>
+			<Rectangle modifiers={[frame({ height: 1 }), foregroundStyle(palette.border)]} />
 			<Spacer modifiers={[frame({ height: 8 })]} />
 			<HStack spacing={0}>
 				{cell("SPENT", view.spent, true)}
 				{cell("LIMIT", view.limit, false)}
-				{family === "systemSmall"
-					? null
-					: cell(
-							"ELAPSED",
-							`${Math.round(view.elapsedFraction * 100)}%`,
-							false,
-						)}
+				{family === "systemSmall" ? null : cell("ELAPSED", `${Math.round(view.elapsedFraction * 100)}%`, false)}
 			</HStack>
 		</VStack>
 	);
 };
 
-export default createWidget<BudgetWidgetProps, BudgetConfiguration>(
-	"Budget",
-	BudgetWidget,
-);
+export default createWidget<BudgetWidgetProps, BudgetConfiguration>("Budget", BudgetWidget);

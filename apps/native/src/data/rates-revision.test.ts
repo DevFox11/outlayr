@@ -1,8 +1,4 @@
-import {
-	bumpRatesRevision,
-	ratesRevision,
-	subscribeRatesRevision,
-} from "./rates-revision";
+import { bumpRatesRevision, ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
 describe("rates revision", () => {
 	it("advances on every bump", () => {

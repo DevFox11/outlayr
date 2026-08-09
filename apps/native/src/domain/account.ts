@@ -1,8 +1,8 @@
 import type { TranslateFn } from "@/i18n/context";
 
 export interface AccountUser {
-	name?: string | null;
 	email?: string | null;
+	name?: string | null;
 }
 
 export type AccountState =
@@ -14,14 +14,8 @@ export type AccountState =
  * Apple lets a user withhold both the name and the email, and Better Auth stores
  * whatever it was given, so neither field can be assumed present.
  */
-export function accountLabel(
-	user: AccountUser | undefined,
-	t: TranslateFn,
-): string {
-	return (
-		firstNonBlank(user?.name, user?.email) ??
-		t("settings.account.signedInFallback")
-	);
+export function accountLabel(user: AccountUser | undefined, t: TranslateFn): string {
+	return firstNonBlank(user?.name, user?.email) ?? t("settings.account.signedInFallback");
 }
 
 export function accountRowValue(state: AccountState, t: TranslateFn): string {
@@ -84,9 +78,7 @@ function errorField(error: unknown, field: string): string | null {
 	return typeof value === "string" ? value : null;
 }
 
-function firstNonBlank(
-	...values: (string | null | undefined)[]
-): string | null {
+function firstNonBlank(...values: (string | null | undefined)[]): string | null {
 	for (const value of values) {
 		const trimmed = value?.trim();
 		if (trimmed) {

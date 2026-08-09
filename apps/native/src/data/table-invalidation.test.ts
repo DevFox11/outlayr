@@ -1,8 +1,4 @@
-import {
-	invalidate,
-	invalidateAll,
-	subscribeToTable,
-} from "./table-invalidation";
+import { invalidate, invalidateAll, subscribeToTable } from "./table-invalidation";
 
 describe("table invalidation", () => {
 	it("notifies every subscriber of the named table", () => {

@@ -1,43 +1,26 @@
 import { eq } from "drizzle-orm";
-import {
-	createContext,
-	type ReactNode,
-	use,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useState } from "react";
 import { useDatabase } from "@/contexts/local-data-context";
 import { META_KEYS } from "@/data/app-meta-core";
-import {
-	localLedgerState,
-	markAdopted,
-	runAdoption,
-} from "@/data/ledger-adoption";
+import { localLedgerState, markAdopted, runAdoption } from "@/data/ledger-adoption";
 import { useLiveQuery } from "@/data/live-query";
 import { appMeta } from "@/db/schema";
-import {
-	type AdoptionChoice,
-	adoptionActions,
-	adoptionPlan,
-	choiceActions,
-} from "@/domain/ledger-adoption";
+import { type AdoptionChoice, adoptionActions, adoptionPlan, choiceActions } from "@/domain/ledger-adoption";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
 
 export type AdoptionStatus = "resolving" | "settled" | "ask" | "working";
 
 export interface LedgerAdoption {
-	status: AdoptionStatus;
-	failed: boolean;
 	choose: (choice: AdoptionChoice) => void;
+	failed: boolean;
+	status: AdoptionStatus;
 }
 
 const SETTLED: LedgerAdoption = {
-	status: "settled",
-	failed: false,
 	choose: () => {},
+	failed: false,
+	status: "settled",
 };
 
 const LedgerAdoptionContext = createContext<LedgerAdoption>(SETTLED);
@@ -60,16 +43,12 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 	const { accountId } = useAuthSession();
 	// Read during render rather than awaited, so a device that has already
 	// reconciled never shows a frame of the cover on its way to the ledger.
-	const rows = useLiveQuery(appMeta, () =>
-		db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.ledgerAdoption)),
-	);
+	const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.ledgerAdoption)));
 	const settled = accountId != null && (rows[0]?.value ?? null) === accountId;
 
 	// Lazily, so the frame before the effect below runs is not a cover over an
 	// app that had nothing to reconcile in the first place.
-	const [status, setStatus] = useState<AdoptionStatus>(() =>
-		accountId == null || settled ? "settled" : "resolving",
-	);
+	const [status, setStatus] = useState<AdoptionStatus>(() => (accountId == null || settled ? "settled" : "resolving"));
 	const [failed, setFailed] = useState(false);
 
 	useEffect(() => {
@@ -133,17 +112,10 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 				}
 			})();
 		},
-		[db, accountId],
+		[db, accountId]
 	);
 
-	const value = useMemo(
-		() => ({ status, failed, choose }),
-		[status, failed, choose],
-	);
+	const value = useMemo(() => ({ choose, failed, status }), [status, failed, choose]);
 
-	return (
-		<LedgerAdoptionContext.Provider value={value}>
-			{children}
-		</LedgerAdoptionContext.Provider>
-	);
+	return <LedgerAdoptionContext.Provider value={value}>{children}</LedgerAdoptionContext.Provider>;
 }

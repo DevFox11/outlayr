@@ -46,13 +46,13 @@ function makeDb(): TestDb {
 
 async function save(db: TestDb, id: string, date: Date): Promise<void> {
 	await db.insert(transactions).values({
-		id,
 		amount: 12.5,
-		income: false,
-		note: id,
 		date,
 		day: startOfDay(date),
+		id,
+		income: false,
 		month: new Date(date.getFullYear(), date.getMonth(), 1),
+		note: id,
 		updatedAt: date,
 	});
 }

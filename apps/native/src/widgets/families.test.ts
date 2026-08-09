@@ -13,10 +13,7 @@ type Declaration = {
  * read as source and the `WIDGETS` literal is parsed out of it.
  */
 function declarations(): Declaration[] {
-	const source = readFileSync(
-		join(__dirname, "..", "..", "app.config.ts"),
-		"utf8",
-	);
+	const source = readFileSync(join(import.meta.dirname, "..", "..", "app.config.ts"), "utf8");
 	const start = source.indexOf("const WIDGETS = [");
 	const end = source.indexOf("\n];", start);
 	expect(start !== -1 && end !== -1).toBeTruthy();
@@ -30,19 +27,19 @@ function declarations(): Declaration[] {
 		.map((chunk) => {
 			const name = chunk.match(/^\t\tname: "(\w+)",$/m);
 			const families = chunk.match(/supportedFamilies: \[([^\]]*)\]/);
-			if (!name || !families) {
+			if (!(name && families)) {
 				throw new Error(`unparsable widget entry:\n${chunk}`);
 			}
 			return {
-				name: name[1],
-				families: [...families[1].matchAll(/"(\w+)"/g)].map((m) => m[1]),
 				configured: chunk.includes("configuration: {"),
+				families: [...families[1].matchAll(/"(\w+)"/g)].map((m) => m[1]),
+				name: name[1],
 			};
 		});
 }
 
 function layout(name: string): string {
-	return readFileSync(join(__dirname, `${name.toLowerCase()}.tsx`), "utf8");
+	return readFileSync(join(import.meta.dirname, `${name.toLowerCase()}.tsx`), "utf8");
 }
 
 describe("widget declarations", () => {
@@ -50,7 +47,7 @@ describe("widget declarations", () => {
 		expect(
 			declarations()
 				.map((widget) => widget.name)
-				.sort(),
+				.sort()
 		).toStrictEqual(["Budget", "Insights", "Ledger", "Log"]);
 	});
 
@@ -86,15 +83,9 @@ describe("widget declarations", () => {
 	 */
 	it("reads the configuration it asks the user for", () => {
 		const configured = declarations().filter((widget) => widget.configured);
-		expect(configured.map((widget) => widget.name).sort()).toStrictEqual([
-			"Budget",
-			"Insights",
-			"Ledger",
-		]);
+		expect(configured.map((widget) => widget.name).sort()).toStrictEqual(["Budget", "Insights", "Ledger"]);
 		for (const widget of configured) {
-			expect(
-				layout(widget.name).includes("environment.configuration"),
-			).toBeTruthy();
+			expect(layout(widget.name).includes("environment.configuration")).toBeTruthy();
 		}
 	});
 });

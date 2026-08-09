@@ -24,21 +24,15 @@ describe("golden vectors — computeAmountUSD", () => {
 	for (const vector of COMPUTE_USD_VECTORS) {
 		it(vector.name, async () => {
 			const lookup = makeRateLookup(vector.rateTable);
-			await expect(computeAmountUSD(lookup, vector.input)).resolves.toBe(
-				vector.expectedUSD,
-			);
+			await expect(computeAmountUSD(lookup, vector.input)).resolves.toBe(vector.expectedUSD);
 		});
 	}
 
 	for (const vector of COMPUTE_USD_THROW_VECTORS) {
 		it(`rejects: ${vector.name}`, async () => {
 			const lookup = makeRateLookup(vector.rateTable);
-			await expect(computeAmountUSD(lookup, vector.input)).rejects.toThrow(
-				MoneyValidationError,
-			);
-			await expect(computeAmountUSD(lookup, vector.input)).rejects.toThrow(
-				vector.messagePattern,
-			);
+			await expect(computeAmountUSD(lookup, vector.input)).rejects.toThrow(MoneyValidationError);
+			await expect(computeAmountUSD(lookup, vector.input)).rejects.toThrow(vector.messagePattern);
 		});
 	}
 });
@@ -53,9 +47,7 @@ describe("golden vectors — roundMoney half-even", () => {
 
 describe("golden vectors — determinism guards", () => {
 	it("keeps every rate-table date inside the snapshot window", () => {
-		const dates = COMPUTE_USD_VECTORS.flatMap((vector) =>
-			vector.rateTable.map((row) => Date.parse(row.date)),
-		);
+		const dates = COMPUTE_USD_VECTORS.flatMap((vector) => vector.rateTable.map((row) => Date.parse(row.date)));
 		expect(dates.length).toBeGreaterThan(0);
 		for (const date of dates) {
 			expect(REFERENCE_DATE_MS - date).toBeGreaterThanOrEqual(0);
@@ -74,82 +66,76 @@ interface ConvertVector {
 
 const CONVERT_FROM_USD_VECTORS: ConvertVector[] = [
 	{
-		name: "EUR two-decimal half-even (100 @ 0.87428 -> 87.43)",
 		amountUsd: 100,
-		rate: 0.874_28,
 		code: "EUR",
 		expected: 87.43,
+		name: "EUR two-decimal half-even (100 @ 0.87428 -> 87.43)",
+		rate: 0.874_28,
 	},
 	{
-		name: "JPY zero-decimal (100 @ 148.52 -> 14852)",
 		amountUsd: 100,
-		rate: 148.52,
 		code: "JPY",
 		expected: 14_852,
+		name: "JPY zero-decimal (100 @ 148.52 -> 14852)",
+		rate: 148.52,
 	},
 	{
-		name: "KWD three-decimal dinar (100 @ 0.30749 -> 30.749)",
 		amountUsd: 100,
-		rate: 0.307_49,
 		code: "KWD",
 		expected: 30.749,
+		name: "KWD three-decimal dinar (100 @ 0.30749 -> 30.749)",
+		rate: 0.307_49,
 	},
 	{
-		name: "USD identity keeps sub-cent precision exactly (rate 1)",
 		amountUsd: 87.428,
-		rate: 1,
 		code: "USD",
 		expected: 87.428,
+		name: "USD identity keeps sub-cent precision exactly (rate 1)",
+		rate: 1,
 	},
 	{
-		name: "USD identity on a whole balance (rate 1)",
 		amountUsd: 12_480,
-		rate: 1,
 		code: "USD",
 		expected: 12_480,
+		name: "USD identity on a whole balance (rate 1)",
+		rate: 1,
 	},
 	{
-		name: "half-even tie rounds down to even (0.125 -> 0.12)",
 		amountUsd: 1,
-		rate: 0.125,
 		code: "EUR",
 		expected: 0.12,
+		name: "half-even tie rounds down to even (0.125 -> 0.12)",
+		rate: 0.125,
 	},
 	{
-		name: "half-even tie rounds up to even (0.375 -> 0.38)",
 		amountUsd: 3,
-		rate: 0.125,
 		code: "EUR",
 		expected: 0.38,
+		name: "half-even tie rounds up to even (0.375 -> 0.38)",
+		rate: 0.125,
 	},
 	{
-		name: "negative amount keeps its sign through half-even rounding",
 		amountUsd: -100,
-		rate: 0.874_28,
 		code: "EUR",
 		expected: -87.43,
+		name: "negative amount keeps its sign through half-even rounding",
+		rate: 0.874_28,
 	},
 ];
 
 describe("golden vectors — convertFromUsd", () => {
 	for (const vector of CONVERT_FROM_USD_VECTORS) {
 		it(vector.name, () => {
-			expect(convertFromUsd(vector.amountUsd, vector.rate, vector.code)).toBe(
-				vector.expected,
-			);
+			expect(convertFromUsd(vector.amountUsd, vector.rate, vector.code)).toBe(vector.expected);
 		});
 	}
 
 	it("rejects a non-finite amount before applying the identity shortcut", () => {
-		expect(() => convertFromUsd(Number.POSITIVE_INFINITY, 1, "USD")).toThrow(
-			MoneyValidationError,
-		);
+		expect(() => convertFromUsd(Number.POSITIVE_INFINITY, 1, "USD")).toThrow(MoneyValidationError);
 	});
 
 	it("rejects a non-finite rate", () => {
-		expect(() => convertFromUsd(100, Number.NaN, "EUR")).toThrow(
-			MoneyValidationError,
-		);
+		expect(() => convertFromUsd(100, Number.NaN, "EUR")).toThrow(MoneyValidationError);
 	});
 });
 
@@ -174,9 +160,7 @@ describe("CURRENCY_DECIMALS", () => {
 		for (const code of PICKABLE_CURRENCY_CODES) {
 			expect(CURRENCY_DECIMALS[code]).toBeDefined();
 		}
-		expect(Object.keys(CURRENCY_DECIMALS)).toHaveLength(
-			PICKABLE_CURRENCY_CODES.length,
-		);
+		expect(Object.keys(CURRENCY_DECIMALS)).toHaveLength(PICKABLE_CURRENCY_CODES.length);
 	});
 });
 

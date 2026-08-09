@@ -54,9 +54,7 @@ function isValidRecord(value: unknown): value is FrankfurterRecord {
 	if (typeof value !== "object" || value === null) {
 		return false;
 	}
-	if (
-		!("base" in value && "quote" in value && "rate" in value && "date" in value)
-	) {
+	if (!("base" in value && "quote" in value && "rate" in value && "date" in value)) {
 		return false;
 	}
 	const { base, quote, rate, date } = value;
@@ -74,7 +72,6 @@ function isValidRecord(value: unknown): value is FrankfurterRecord {
 
 export const fetchRates = internalAction({
 	args: {},
-	returns: v.null(),
 	handler: async (ctx) => {
 		let payload: unknown;
 		try {
@@ -94,16 +91,13 @@ export const fetchRates = internalAction({
 			return null;
 		}
 
-		const ratesByDate = new Map<
-			string,
-			{ quote: string; rateType: "official"; rate: number }[]
-		>();
+		const ratesByDate = new Map<string, { quote: string; rateType: "official"; rate: number }[]>();
 		const records = payload.filter(isValidRecord);
 		for (const record of records) {
 			const entry = {
 				quote: record.quote,
-				rateType: "official" as const,
 				rate: record.rate,
+				rateType: "official" as const,
 			};
 			const group = ratesByDate.get(record.date);
 			if (group) {
@@ -126,10 +120,9 @@ export const fetchRates = internalAction({
 		const aged = [...ratesByDate.keys()].filter((date) => date < refreshFrom);
 		const heldByDate = new Map<string, Set<string>>();
 		for (let start = 0; start < aged.length; start += COVERAGE_BATCH_DATES) {
-			const batch = await ctx.runQuery(
-				internal.exchangeRates.officialQuotesByDate,
-				{ dates: aged.slice(start, start + COVERAGE_BATCH_DATES) },
-			);
+			const batch = await ctx.runQuery(internal.exchangeRates.officialQuotesByDate, {
+				dates: aged.slice(start, start + COVERAGE_BATCH_DATES),
+			});
 			for (const entry of batch) {
 				heldByDate.set(entry.date, new Set(entry.quotes));
 			}
@@ -145,16 +138,17 @@ export const fetchRates = internalAction({
 				continue;
 			}
 			await ctx.runMutation(internal.exchangeRates.upsertRates, {
-				source: "frankfurter",
 				date,
 				fetchedAt,
 				rates,
+				source: "frankfurter",
 			});
 			written += 1;
 		}
 		console.log(
-			`Frankfurter: ${written} of ${ratesByDate.size} dates written, ${ratesByDate.size - written} already complete`,
+			`Frankfurter: ${written} of ${ratesByDate.size} dates written, ${ratesByDate.size - written} already complete`
 		);
 		return null;
 	},
+	returns: v.null(),
 });

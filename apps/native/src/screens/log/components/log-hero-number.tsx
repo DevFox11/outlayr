@@ -12,20 +12,15 @@ const TABULAR = { fontVariant: ["tabular-nums" as const] };
 const FONT_SIZE = 40;
 
 interface LogHeroNumberProps {
-	/** Unsigned magnitude; the sign is passed separately. */
-	magnitude: number;
 	/** The currency the figure is denominated in — not always the global one. */
 	code: string;
+	/** Unsigned magnitude; the sign is passed separately. */
+	magnitude: number;
 	positive: boolean;
 	showCents?: boolean;
 }
 
-export function LogHeroNumber({
-	magnitude,
-	code,
-	positive,
-	showCents = true,
-}: LogHeroNumberProps) {
+export function LogHeroNumber({ magnitude, code, positive, showCents = true }: LogHeroNumberProps) {
 	const parts = amountParts(magnitude, code, showCents);
 	const digits = amountDigits(parts);
 	const sign = positive ? "+" : "-";
@@ -35,11 +30,7 @@ export function LogHeroNumber({
 	// figure, but a four-character "Bs.D" at the same weight reads as part of it.
 	const symbolSize = FONT_SIZE * (parts.symbol.length > 1 ? 0.44 : 0.6);
 	const symbol = (
-		<Text
-			className="font-sans text-muted"
-			style={{ fontSize: symbolSize }}
-			numberOfLines={1}
-		>
+		<Text className="font-sans text-muted" numberOfLines={1} style={{ fontSize: symbolSize }}>
 			{trailing ? null : sign}
 			{parts.symbol}
 		</Text>
@@ -47,18 +38,18 @@ export function LogHeroNumber({
 
 	return (
 		<View
-			className="flex-row items-baseline gap-1"
+			accessibilityLabel={`${sign}${withCurrencySymbol(parts, digits)}`}
 			// Symbol and digits are one figure, not two things to swipe between.
 			accessible
-			accessibilityLabel={`${sign}${withCurrencySymbol(parts, digits)}`}
+			className="flex-row items-baseline gap-1"
 		>
 			{trailing ? null : symbol}
 			<Text
-				className="shrink font-sans text-foreground"
-				style={[TABULAR, { fontSize: FONT_SIZE }]}
-				numberOfLines={1}
 				adjustsFontSizeToFit
+				className="shrink font-sans text-foreground"
 				minimumFontScale={0.5}
+				numberOfLines={1}
+				style={[TABULAR, { fontSize: FONT_SIZE }]}
 			>
 				{trailing ? sign : null}
 				{digits}

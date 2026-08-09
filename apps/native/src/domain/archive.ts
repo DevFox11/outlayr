@@ -38,30 +38,23 @@ export type ArchiveTable = (typeof ARCHIVE_TABLES)[number];
  * compares differently. Naming them is what makes the round trip exact.
  */
 export const ARCHIVE_DATE_COLUMNS: Record<ArchiveTable, readonly string[]> = {
-	categories: ["dateCreated", "updatedAt", "deletedAt"],
 	accounts: ["initialBalanceDate", "dateCreated", "updatedAt", "deletedAt"],
-	transactions: [
-		"date",
-		"day",
-		"month",
-		"recurringEndDate",
-		"updatedAt",
-		"deletedAt",
-	],
+	appMeta: [],
 	budgets: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
+	categories: ["dateCreated", "updatedAt", "deletedAt"],
 	mainBudget: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
 	templateTransactions: ["updatedAt", "deletedAt"],
-	appMeta: [],
+	transactions: ["date", "day", "month", "recurringEndDate", "updatedAt", "deletedAt"],
 };
 
 export type ArchiveRow = Record<string, unknown>;
 
 export interface ArchiveDocument {
-	format: typeof ARCHIVE_FORMAT;
-	version: number;
 	/** Epoch ms, for the same reason every other instant here is. */
 	exportedAt: number;
+	format: typeof ARCHIVE_FORMAT;
 	tables: Record<ArchiveTable, ArchiveRow[]>;
+	version: number;
 }
 
 export function archiveFileName(now: Date): string {
@@ -70,17 +63,11 @@ export function archiveFileName(now: Date): string {
 }
 
 /** Instants out to epoch ms, so nothing depends on how JSON renders a Date. */
-export function encodeArchiveRow(
-	table: ArchiveTable,
-	row: ArchiveRow,
-): ArchiveRow {
+export function encodeArchiveRow(table: ArchiveTable, row: ArchiveRow): ArchiveRow {
 	const dateColumns = ARCHIVE_DATE_COLUMNS[table];
 	const encoded: ArchiveRow = {};
 	for (const [column, value] of Object.entries(row)) {
-		encoded[column] =
-			dateColumns.includes(column) && value instanceof Date
-				? value.getTime()
-				: value;
+		encoded[column] = dateColumns.includes(column) && value instanceof Date ? value.getTime() : value;
 	}
 	return encoded;
 }
@@ -90,10 +77,7 @@ export function encodeArchiveRow(
  * decodes to null rather than to `new Date(NaN)`, which would restore a row
  * whose date throws the moment anything formats it.
  */
-export function decodeArchiveRow(
-	table: ArchiveTable,
-	row: ArchiveRow,
-): ArchiveRow {
+export function decodeArchiveRow(table: ArchiveTable, row: ArchiveRow): ArchiveRow {
 	const dateColumns = ARCHIVE_DATE_COLUMNS[table];
 	const decoded: ArchiveRow = {};
 	for (const [column, value] of Object.entries(row)) {
@@ -101,10 +85,7 @@ export function decodeArchiveRow(
 			decoded[column] = value;
 			continue;
 		}
-		decoded[column] =
-			typeof value === "number" && Number.isFinite(value)
-				? new Date(value)
-				: null;
+		decoded[column] = typeof value === "number" && Number.isFinite(value) ? new Date(value) : null;
 	}
 	return decoded;
 }
@@ -137,11 +118,7 @@ export function parseArchive(text: string): ArchiveDocument | null {
 	if (candidate.format !== ARCHIVE_FORMAT) {
 		return null;
 	}
-	if (
-		typeof candidate.version !== "number" ||
-		candidate.version < 1 ||
-		candidate.version > ARCHIVE_VERSION
-	) {
+	if (typeof candidate.version !== "number" || candidate.version < 1 || candidate.version > ARCHIVE_VERSION) {
 		return null;
 	}
 	const tables = candidate.tables;
@@ -164,11 +141,10 @@ export function parseArchive(text: string): ArchiveDocument | null {
 		collected[table] = rows as ArchiveRow[];
 	}
 	return {
+		exportedAt: typeof candidate.exportedAt === "number" ? candidate.exportedAt : 0,
 		format: ARCHIVE_FORMAT,
-		version: candidate.version,
-		exportedAt:
-			typeof candidate.exportedAt === "number" ? candidate.exportedAt : 0,
 		tables: collected,
+		version: candidate.version,
 	};
 }
 
@@ -178,8 +154,5 @@ function isPlainRow(value: unknown): boolean {
 
 /** How many rows a file would restore, for the confirmation that precedes it. */
 export function archiveRowCount(document: ArchiveDocument): number {
-	return ARCHIVE_TABLES.reduce(
-		(total, table) => total + document.tables[table].length,
-		0,
-	);
+	return ARCHIVE_TABLES.reduce((total, table) => total + document.tables[table].length, 0);
 }

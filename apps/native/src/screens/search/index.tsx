@@ -14,11 +14,7 @@ import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
-import {
-	type CurrencyFigures,
-	cellFigures,
-	toCells,
-} from "@/domain/currency-totals";
+import { type CurrencyFigures, cellFigures, toCells } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
@@ -45,18 +41,9 @@ function SearchContent({ db }: { db: Database }) {
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 
 	const found = useSearchedTransactions(db, query, nowMs);
-	const rows = useMemo(
-		() => found.filter((row) => row.id !== pendingId),
-		[found, pendingId],
-	);
-	const sections = useMemo(
-		() => groupByDay(rows, currency, rates),
-		[rows, currency, rates],
-	);
-	const figures = useMemo(
-		() => cellFigures(toCells(rows), currency, rates),
-		[rows, currency, rates],
-	);
+	const rows = useMemo(() => found.filter((row) => row.id !== pendingId), [found, pendingId]);
+	const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
+	const figures = useMemo(() => cellFigures(toCells(rows), currency, rates), [rows, currency, rates]);
 
 	const empty =
 		query.trim() === "" ? (
@@ -87,19 +74,11 @@ function SearchContent({ db }: { db: Database }) {
 					recycleItems
 					keyboardDismissMode="on-drag"
 					contentContainerStyle={{
-						paddingHorizontal: 20,
 						paddingBottom: 40,
+						paddingHorizontal: 20,
 					}}
-					ListHeaderComponent={
-						<SearchResultsTotal
-							count={rows.length}
-							figures={figures}
-							showCents={showCents}
-						/>
-					}
-					renderSectionHeader={({ section }) => (
-						<DaySectionHeader section={section} />
-					)}
+					ListHeaderComponent={<SearchResultsTotal count={rows.length} figures={figures} showCents={showCents} />}
+					renderSectionHeader={({ section }) => <DaySectionHeader section={section} />}
 					renderItem={({ item }) => (
 						<TransactionRow
 							transaction={item}
@@ -117,10 +96,10 @@ function SearchContent({ db }: { db: Database }) {
 }
 
 interface SearchResultsTotalProps {
-	/** One block per currency the results ended up expressed in, dominant first. */
-	figures: readonly CurrencyFigures[];
 	/** Rows matched, across every currency. */
 	count: number;
+	/** One block per currency the results ended up expressed in, dominant first. */
+	figures: readonly CurrencyFigures[];
 	showCents: boolean;
 }
 
@@ -130,11 +109,7 @@ interface SearchResultsTotalProps {
  * mixed-currency result gets a block each: nothing here holds a rate across them,
  * and one combined figure would be an invention.
  */
-function SearchResultsTotal({
-	figures,
-	count,
-	showCents,
-}: SearchResultsTotalProps) {
+function SearchResultsTotal({ figures, count, showCents }: SearchResultsTotalProps) {
 	const t = useTranslation();
 	const named = figures.length > 1;
 
@@ -145,27 +120,27 @@ function SearchResultsTotal({
 				const net = entry.income - entry.expense;
 				const cells = [
 					{
+						// Only money actually coming in earns the income colour; a positive
+						// net is still just a net.
+						income: true,
 						key: "in",
 						label: t("search.results.in"),
 						magnitude: entry.income,
 						positive: true,
-						// Only money actually coming in earns the income colour; a positive
-						// net is still just a net.
-						income: true,
 					},
 					{
+						income: false,
 						key: "out",
 						label: t("search.results.out"),
 						magnitude: entry.expense,
 						positive: false,
-						income: false,
 					},
 					{
+						income: false,
 						key: "net",
 						label: t("search.results.net"),
 						magnitude: Math.abs(net),
 						positive: net >= 0,
-						income: false,
 					},
 				];
 

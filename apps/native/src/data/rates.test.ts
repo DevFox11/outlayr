@@ -95,12 +95,12 @@ const NOW = 1_700_000_000_000;
 
 function wireRow(quote: string, date: string): RateWireRow {
 	return {
-		quote,
-		rateType: "official",
 		date,
-		rate: 0.9,
-		source: "frankfurter",
 		fetchedAt: NOW,
+		quote,
+		rate: 0.9,
+		rateType: "official",
+		source: "frankfurter",
 	};
 }
 
@@ -116,19 +116,17 @@ function pagedPuller(pages: RateWireRow[][]): {
 			const index = args?.cursor ?? 0;
 			calls.push(args?.cursor);
 			return {
+				nextCursor: index + 1 < pages.length ? index + 1 : null,
 				rows: pages[index] ?? [],
 				windowStart: "2026-01-01",
-				nextCursor: index + 1 < pages.length ? index + 1 : null,
 			};
 		},
 	};
 }
 
-async function storedRates(
-	db: Database,
-): Promise<{ quote: string; date: string }[]> {
+async function storedRates(db: Database): Promise<{ quote: string; date: string }[]> {
 	return await db
-		.select({ quote: exchangeRates.quote, date: exchangeRates.date })
+		.select({ date: exchangeRates.date, quote: exchangeRates.quote })
 		.from(exchangeRates)
 		.orderBy(exchangeRates.quote);
 }
@@ -141,17 +139,15 @@ async function lastPullAt(db: Database): Promise<string | null> {
 describe("pullRatesIfDue", () => {
 	it("holds inside the throttle window without asking the backend", async () => {
 		const db = makeDb();
-		await db
-			.insert(appMeta)
-			.values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
+		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
 		let asked = 0;
 		const landed = await pullRatesIfDue(
 			db,
 			async () => {
 				asked += 1;
-				return { rows: [], windowStart: "2026-01-01", nextCursor: null };
+				return { nextCursor: null, rows: [], windowStart: "2026-01-01" };
 			},
-			{ now: NOW },
+			{ now: NOW }
 		);
 
 		expect(landed).toBe(false);
@@ -167,21 +163,15 @@ describe("pullRatesIfDue", () => {
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
 		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
-		expect(await storedRates(db)).toStrictEqual([
-			{ quote: "EUR", date: "2026-07-28" },
-		]);
+		expect(await storedRates(db)).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
 	});
 
 	it("force ignores a stamp that has not aged out", async () => {
 		const db = makeDb();
-		await db
-			.insert(appMeta)
-			.values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
+		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		expect(await pullRatesIfDue(db, pull, { now: NOW, force: true })).toBe(
-			true,
-		);
+		expect(await pullRatesIfDue(db, pull, { force: true, now: NOW })).toBe(true);
 		expect((await storedRates(db)).length).toBe(1);
 	});
 
@@ -195,11 +185,7 @@ describe("pullRatesIfDue", () => {
 
 		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
 		expect(calls).toStrictEqual([undefined, 1, 2]);
-		expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual([
-			"EUR",
-			"GBP",
-			"JPY",
-		]);
+		expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual(["EUR", "GBP", "JPY"]);
 	});
 
 	it("replaces the whole cache rather than merging into it", async () => {
@@ -209,9 +195,7 @@ describe("pullRatesIfDue", () => {
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
 		await pullRatesIfDue(db, pull, { now: NOW });
-		expect(await storedRates(db)).toStrictEqual([
-			{ quote: "EUR", date: "2026-07-28" },
-		]);
+		expect(await storedRates(db)).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
 	});
 
 	it("stamps the pull time it was given", async () => {
@@ -224,12 +208,10 @@ describe("pullRatesIfDue", () => {
 
 	it("re-stamps over a previous pull rather than conflicting", async () => {
 		const db = makeDb();
-		await db
-			.insert(appMeta)
-			.values({ key: "lastRatesPullAt", value: String(NOW - 1) });
+		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1) });
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		await pullRatesIfDue(db, pull, { now: NOW, force: true });
+		await pullRatesIfDue(db, pull, { force: true, now: NOW });
 		expect(await lastPullAt(db)).toBe(String(NOW));
 	});
 
@@ -254,9 +236,7 @@ describe("pullRatesIfDue", () => {
 
 	it("leaves the revision alone when throttled", async () => {
 		const db = makeDb();
-		await db
-			.insert(appMeta)
-			.values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
+		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
 		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 		const before = ratesRevision();
 
@@ -291,9 +271,7 @@ describe("pullRatesIfDue", () => {
 		await expect(pullRatesIfDue(db, pull, { now: NOW })).rejects.toMatchObject({
 			message: expect.any(String),
 		});
-		expect(await storedRates(db)).toStrictEqual([
-			{ quote: "VES", date: "2020-01-01" },
-		]);
+		expect(await storedRates(db)).toStrictEqual([{ date: "2020-01-01", quote: "VES" }]);
 		// Unstamped, so the next foreground retries rather than waiting out the
 		// throttle on a pull that never landed.
 		expect(await lastPullAt(db)).toBe(null);
@@ -309,7 +287,7 @@ describe("pullRatesIfDue", () => {
 		let atBump: { quote: string; date: string }[] = [];
 		const unsubscribe = subscribeRatesRevision(() => {
 			atBump = db
-				.select({ quote: exchangeRates.quote, date: exchangeRates.date })
+				.select({ date: exchangeRates.date, quote: exchangeRates.quote })
 				.from(exchangeRates)
 				.orderBy(exchangeRates.quote)
 				.all();
@@ -317,6 +295,6 @@ describe("pullRatesIfDue", () => {
 
 		await pullRatesIfDue(db, pull, { now: NOW });
 		unsubscribe();
-		expect(atBump).toStrictEqual([{ quote: "EUR", date: "2026-07-28" }]);
+		expect(atBump).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
 	});
 });

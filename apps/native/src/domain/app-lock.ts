@@ -22,11 +22,7 @@ export function relocksOnPhase(phase: AppStateStatus): boolean {
  * (`AppLockViewModel.swift:97-102`), which strands the owner outside their own
  * local ledger with no way back in.
  */
-export function lockGate(
-	enabled: boolean,
-	unlocked: boolean,
-	enforceable: boolean | null,
-): LockGate {
+export function lockGate(enabled: boolean, unlocked: boolean, enforceable: boolean | null): LockGate {
 	if (!enabled || enforceable === false) {
 		return "open";
 	}
@@ -39,17 +35,11 @@ export function lockGate(
  * retry can still get in.
  */
 export function lockIsUnenforceable(error: LocalAuthenticationError): boolean {
-	return (
-		error === "not_enrolled" ||
-		error === "not_available" ||
-		error === "passcode_not_set"
-	);
+	return error === "not_enrolled" || error === "not_available" || error === "passcode_not_set";
 }
 
 /** `null` where the user dismissed the prompt themselves — nothing went wrong. */
-export function lockFailureMessage(
-	error: LocalAuthenticationError,
-): TranslationKey | null {
+export function lockFailureMessage(error: LocalAuthenticationError): TranslationKey | null {
 	switch (error) {
 		case "user_cancel":
 		case "app_cancel":

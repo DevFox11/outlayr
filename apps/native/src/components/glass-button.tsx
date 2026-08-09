@@ -23,18 +23,9 @@ export function GlassButton({
 			className="active:opacity-70"
 			onPress={onPress}
 		>
-			<View
-				className={cn(
-					"flex-row items-center justify-center gap-1.5 overflow-hidden",
-					className,
-				)}
-			>
+			<View className={cn("flex-row items-center justify-center gap-1.5 overflow-hidden", className)}>
 				{GLASS ? (
-					<GlassView
-						glassEffectStyle="regular"
-						isInteractive
-						style={StyleSheet.absoluteFill}
-					/>
+					<GlassView glassEffectStyle="regular" isInteractive style={StyleSheet.absoluteFill} />
 				) : (
 					<View className="absolute inset-0 bg-surface" />
 				)}

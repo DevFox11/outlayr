@@ -9,18 +9,18 @@ export const THEME_OPTIONS: readonly {
 	value: ThemePreference;
 }[] = [
 	{
-		label: "settings.theme.system",
 		detail: "settings.theme.systemDetail",
+		label: "settings.theme.system",
 		value: "system",
 	},
 	{
-		label: "settings.theme.light",
 		detail: "settings.theme.lightDetail",
+		label: "settings.theme.light",
 		value: "light",
 	},
 	{
-		label: "settings.theme.dark",
 		detail: "settings.theme.darkDetail",
+		label: "settings.theme.dark",
 		value: "dark",
 	},
 ];

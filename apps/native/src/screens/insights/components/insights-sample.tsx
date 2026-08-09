@@ -5,11 +5,7 @@ import { type LedgerCell, LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { LinearGradient } from "@/components/styled";
 import { Text } from "@/components/text";
-import type {
-	CategoryBreakdownEntry,
-	CategoryMover,
-	InsightsBucket,
-} from "@/data/insights";
+import type { CategoryBreakdownEntry, CategoryMover, InsightsBucket } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
 import { type TranslateFn, useTranslation } from "@/i18n";
 import { withAlpha } from "@/theme/shade";
@@ -29,23 +25,22 @@ const FIXTURE_NOW = new Date(2026, 2, 31, 12, 0, 0, 0).getTime();
 
 /** Daily spend for March 2026, in declaration order. Sums to 1840.50. */
 const DAILY_SPEND = [
-	62.4, 0, 50.9, 121.75, 44.9, 0, 88.3, 27.6, 135.2, 51.4, 0, 73.85, 182.6,
-	34.1, 96.45, 0, 58.9, 112.35, 41.2, 0, 67.75, 129.4, 23.85, 0, 84.6, 178.9,
-	36.25, 0, 92.15, 45.7, 0,
+	62.4, 0, 50.9, 121.75, 44.9, 0, 88.3, 27.6, 135.2, 51.4, 0, 73.85, 182.6, 34.1, 96.45, 0, 58.9, 112.35, 41.2, 0,
+	67.75, 129.4, 23.85, 0, 84.6, 178.9, 36.25, 0, 92.15, 45.7, 0,
 ];
 
 function marchBuckets(values: number[]): InsightsBucket[] {
 	return values.map((value, index) => ({
-		start: new Date(2026, 2, index + 1),
 		end: new Date(2026, 2, index + 2),
 		label: String(index + 1),
+		start: new Date(2026, 2, index + 1),
 		value,
 	}));
 }
 
 /** Lifted from the presets a fresh install actually seeds. */
-const DINING = { icon: "Restaurant01", color: "#FF8A00" } as const;
-const GROCERIES = { icon: "ShoppingCart01", color: "#34C759" } as const;
+const DINING = { color: "#FF8A00", icon: "Restaurant01" } as const;
+const GROCERIES = { color: "#34C759", icon: "ShoppingCart01" } as const;
 
 /*
  * The fixtures below are typed against the real `@/data/insights` shapes on
@@ -56,64 +51,64 @@ const SAMPLE_BUCKETS: InsightsBucket[] = marchBuckets(DAILY_SPEND);
 
 const sampleCells = (t: TranslateFn): LedgerCell[] => [
 	{
+		income: true,
 		key: "income",
 		label: t("insights.measure.income"),
 		magnitude: 3200,
-		positive: true,
-		income: true,
 		onPress: noop,
+		positive: true,
 	},
 	{
+		income: false,
 		key: "net",
 		label: t("insights.measure.net"),
 		magnitude: 1359.5,
-		positive: true,
-		income: false,
 		onPress: noop,
+		positive: true,
 	},
 ];
 
 const sampleMovers = (t: TranslateFn): CategoryMover[] => [
 	{
+		color: DINING.color,
+		delta: 180,
+		emoji: null,
+		fraction: 0.34,
+		icon: DINING.icon,
 		id: "dining",
 		name: t("insights.sample.dining"),
-		color: DINING.color,
-		icon: DINING.icon,
-		emoji: null,
-		delta: 180,
-		fraction: 0.34,
 	},
 	{
+		color: GROCERIES.color,
+		delta: -95.4,
+		emoji: null,
+		fraction: -0.12,
+		icon: GROCERIES.icon,
 		id: "groceries",
 		name: t("insights.sample.groceries"),
-		color: GROCERIES.color,
-		icon: GROCERIES.icon,
-		emoji: null,
-		delta: -95.4,
-		fraction: -0.12,
 	},
 ];
 
 const sampleBreakdown = (t: TranslateFn): CategoryBreakdownEntry[] => [
 	{
+		amount: 699.4,
+		color: DINING.color,
+		delta: null,
+		emoji: null,
+		fraction: 0.38,
+		icon: DINING.icon,
 		id: "dining",
 		name: t("insights.sample.dining"),
-		color: DINING.color,
-		icon: DINING.icon,
-		emoji: null,
-		amount: 699.4,
-		fraction: 0.38,
-		delta: null,
 	},
 	{
+		amount: 478.5,
+		color: GROCERIES.color,
+		delta: null,
+		emoji: null,
+		fraction: 0.26,
+		icon: GROCERIES.icon,
 		id: "groceries",
 		name: t("insights.sample.groceries"),
-		color: GROCERIES.color,
-		icon: GROCERIES.icon,
-		emoji: null,
-		amount: 478.5,
-		fraction: 0.26,
-		delta: null,
 	},
 ];
 
@@ -141,8 +136,8 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 		<>
 			{/* A ScrollView that does not scroll: it exists for the large-title inset. */}
 			<ScrollView
-				className="bg-background"
 				accessibilityElementsHidden
+				className="bg-background"
 				contentInsetAdjustmentBehavior="automatic"
 				importantForAccessibility="no-hide-descendants"
 				pointerEvents="none"
@@ -159,36 +154,26 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 					    income green rather than danger red. */}
 						<View
 							style={{
+								backgroundColor: withAlpha(colors.income, 0.2),
 								borderRadius: 6,
 								paddingHorizontal: 5,
 								paddingVertical: 2,
-								backgroundColor: withAlpha(colors.income, 0.2),
 							}}
 						>
-							<Text
-								className="font-sans-semibold text-footnote"
-								style={{ color: colors.income }}
-							>
+							<Text className="font-sans-semibold text-footnote" style={{ color: colors.income }}>
 								-12%
 							</Text>
 						</View>
 					</View>
 
 					<View className="pt-0.5">
-						<HeroNumber
-							amount={1840.5}
-							code="USD"
-							showCents
-							sign="-"
-							size={40}
-							toneClass="text-foreground"
-						/>
+						<HeroNumber amount={1840.5} code="USD" showCents sign="-" size={40} toneClass="text-foreground" />
 					</View>
 
 					<Text className="pt-0.5 text-footnote text-muted">
 						{t("insights.sample.verdict", {
-							delta: formatAmount(251, "USD", true),
 							category: t("insights.sample.groceries"),
+							delta: formatAmount(251, "USD", true),
 							moved: formatAmount(95.4, "USD", true),
 						})}
 					</Text>
@@ -225,21 +210,11 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 							<MonoLabel>{t("insights.categories")}</MonoLabel>
 						</View>
 						<View className="pb-1">
-							<CategoryProportionBar
-								entries={breakdown}
-								onSelect={noop}
-								selectedId={null}
-							/>
+							<CategoryProportionBar entries={breakdown} onSelect={noop} selectedId={null} />
 						</View>
 						<View className="pt-2">
 							{breakdown.map((entry) => (
-								<CategoryBreakdownRow
-									code="USD"
-									entry={entry}
-									key={entry.id}
-									measure="spent"
-									showCents
-								/>
+								<CategoryBreakdownRow code="USD" entry={entry} key={entry.id} measure="spent" showCents />
 							))}
 						</View>
 					</View>
@@ -265,17 +240,13 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 				<Text className="pb-1 text-center font-sans-semibold text-body text-foreground">
 					{t("insights.sample.headline")}
 				</Text>
-				<Text className="pb-5 text-center text-footnote text-muted">
-					{t("insights.sample.body")}
-				</Text>
+				<Text className="pb-5 text-center text-footnote text-muted">{t("insights.sample.body")}</Text>
 				<Pressable
 					accessibilityRole="button"
 					className="rounded-full bg-accent px-7 py-3.5 active:opacity-80"
 					onPress={onAddTransaction}
 				>
-					<Text className="font-sans-semibold text-accent-foreground text-body">
-						{t("insights.sample.cta")}
-					</Text>
+					<Text className="font-sans-semibold text-accent-foreground text-body">{t("insights.sample.cta")}</Text>
 				</Pressable>
 			</View>
 		</>

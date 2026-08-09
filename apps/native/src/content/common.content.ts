@@ -1,7 +1,6 @@
 import { type Dictionary, t } from "intlayer";
 
 const common = {
-	key: "common" as const,
 	content: {
 		"common.add": t({
 			en: "Add",
@@ -119,61 +118,41 @@ const common = {
 			en: "Yesterday",
 			es: "Ayer",
 		}),
-		"error.boundary.title": t({
-			en: "Something Went Wrong",
-			es: "Algo salió mal",
-		}),
 		"error.boundary.body": t({
 			en: "Outlayr hit an unexpected error. Your data is untouched — try again.",
 			es: "Outlayr encontró un error inesperado. Tus datos están intactos — inténtalo de nuevo.",
 		}),
-		"nav.tab.log": t({
-			en: "Log",
-			es: "Registro",
-		}),
-		"nav.tab.insights": t({
-			en: "Insights",
-			es: "Estadísticas",
-		}),
-		"nav.tab.budgets": t({
-			en: "Budgets",
-			es: "Presupuestos",
-		}),
-		"nav.tab.settings": t({
-			en: "Settings",
-			es: "Configuración",
-		}),
-		"nav.search": t({
-			en: "Search",
-			es: "Buscar",
-		}),
-		"nav.newTransaction": t({
-			en: "New Transaction",
-			es: "Nueva transacción",
-		}),
-		"nav.editTransaction": t({
-			en: "Edit Transaction",
-			es: "Editar transacción",
+		"error.boundary.title": t({
+			en: "Something Went Wrong",
+			es: "Algo salió mal",
 		}),
 		"nav.categories": t({
 			en: "Categories",
 			es: "Categorías",
 		}),
-		"nav.newCategory": t({
-			en: "New Category",
-			es: "Nueva categoría",
-		}),
 		"nav.editCategory": t({
 			en: "Edit Category",
 			es: "Editar categoría",
+		}),
+		"nav.editTransaction": t({
+			en: "Edit Transaction",
+			es: "Editar transacción",
+		}),
+		"nav.newCategory": t({
+			en: "New Category",
+			es: "Nueva categoría",
 		}),
 		"nav.newSubcategory": t({
 			en: "New Subcategory",
 			es: "Nueva subcategoría",
 		}),
-		"nav.subcategory": t({
-			en: "Subcategory",
-			es: "Subcategoría",
+		"nav.newTransaction": t({
+			en: "New Transaction",
+			es: "Nueva transacción",
+		}),
+		"nav.search": t({
+			en: "Search",
+			es: "Buscar",
 		}),
 		"nav.settings.about": t({
 			en: "About & Credits",
@@ -219,6 +198,34 @@ const common = {
 			en: "Upcoming Logs",
 			es: "Próximos registros",
 		}),
+		"nav.subcategory": t({
+			en: "Subcategory",
+			es: "Subcategoría",
+		}),
+		"nav.tab.budgets": t({
+			en: "Budgets",
+			es: "Presupuestos",
+		}),
+		"nav.tab.insights": t({
+			en: "Insights",
+			es: "Estadísticas",
+		}),
+		"nav.tab.log": t({
+			en: "Log",
+			es: "Registro",
+		}),
+		"nav.tab.settings": t({
+			en: "Settings",
+			es: "Configuración",
+		}),
+		"notFound.action": t({
+			en: "Back to the Log",
+			es: "Volver al registro",
+		}),
+		"notFound.body": t({
+			en: "That link does not point anywhere in Outlayr. Your ledger is where you left it.",
+			es: "Ese enlace no lleva a ninguna parte en Outlayr. Tu registro sigue donde lo dejaste.",
+		}),
 		"notFound.navTitle": t({
 			en: "Not Found",
 			es: "No encontrado",
@@ -227,22 +234,6 @@ const common = {
 			en: "Nothing Here",
 			es: "Aquí no hay nada",
 		}),
-		"notFound.body": t({
-			en: "That link does not point anywhere in Outlayr. Your ledger is where you left it.",
-			es: "Ese enlace no lleva a ninguna parte en Outlayr. Tu registro sigue donde lo dejaste.",
-		}),
-		"notFound.action": t({
-			en: "Back to the Log",
-			es: "Volver al registro",
-		}),
-		"spotlight.entry": t({
-			en: "Entry",
-			es: "Registro",
-		}),
-		"spotlight.budget.title": t({
-			en: "{name} budget",
-			es: "Presupuesto de {name}",
-		}),
 		// A per-category budget whose category is gone has nothing left to name it.
 		// Deliberately not the overall budget's label: this row deep-links to one
 		// category's cap, and calling it "Overall Budget" would claim otherwise.
@@ -250,17 +241,26 @@ const common = {
 			en: "Budget",
 			es: "Presupuesto",
 		}),
-		"spotlight.budget.limit": t({
-			en: "Limit {amount}",
-			es: "Límite {amount}",
-		}),
 		// Lowercase on purpose: a Spotlight keyword is a term someone types, not a
 		// label the app renders.
 		"spotlight.budget.keyword": t({
 			en: "budget",
 			es: "presupuesto",
 		}),
+		"spotlight.budget.limit": t({
+			en: "Limit {amount}",
+			es: "Límite {amount}",
+		}),
+		"spotlight.budget.title": t({
+			en: "{name} budget",
+			es: "Presupuesto de {name}",
+		}),
+		"spotlight.entry": t({
+			en: "Entry",
+			es: "Registro",
+		}),
 	},
+	key: "common" as const,
 } satisfies Dictionary;
 
 export default common;

@@ -25,23 +25,23 @@ import { useColors } from "@/theme/use-colors";
 import { BudgetProgressBar } from "./budget-progress-bar";
 
 interface BudgetDetailViewProps {
+	amount: number;
+	/** The window has ended: nothing about it is still in play. */
+	closed?: boolean;
+	currency: string;
+	leftover: number;
+	leftPerDayAmount?: number | null;
+	onPressTransaction: (id: string) => void;
+	overBudget: boolean;
+	/** True when spending has outrun the clock. */
+	paceBehind?: boolean;
+	/** Fraction of period time remaining, or null to hide the pace marker. */
+	paceRemaining?: number | null;
 	/** Lowercase period phrase, e.g. "this month", or a closed window's dates. */
 	period: string;
 	spent: number;
-	amount: number;
-	leftover: number;
-	overBudget: boolean;
-	currency: string;
-	transactions: TransactionWithCategory[];
-	onPressTransaction: (id: string) => void;
-	/** Fraction of period time remaining, or null to hide the pace marker. */
-	paceRemaining?: number | null;
-	/** True when spending has outrun the clock. */
-	paceBehind?: boolean;
-	leftPerDayAmount?: number | null;
-	/** The window has ended: nothing about it is still in play. */
-	closed?: boolean;
 	stepper?: ReactNode;
+	transactions: TransactionWithCategory[];
 }
 
 /** Matches the list hero's bleed, so both rails read as the same instrument. */
@@ -72,20 +72,14 @@ export function BudgetDetailView({
 	// Only the list drops the row being deleted. The summary above it is computed
 	// by the caller from the same window and catches up when the write lands, the
 	// same way the Log's header trails its own list.
-	const rows = useMemo(
-		() => transactions.filter((row) => row.id !== pendingId),
-		[transactions, pendingId],
-	);
-	const sections = useMemo(
-		() => groupByDay(rows, currency, rates),
-		[rows, currency, rates],
-	);
+	const rows = useMemo(() => transactions.filter((row) => row.id !== pendingId), [transactions, pendingId]);
+	const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
 	// Scoped to the window on screen, not the ledger: a closed period is exactly
 	// where rows the rate history can no longer reach turn up, and a total that
 	// silently mixes them with converted ones reads as more solid than it is.
 	const note = useMemo(
 		() => coverageNote(coverageOf(transactions, displayCurrency, rates), t),
-		[transactions, displayCurrency, rates, t],
+		[transactions, displayCurrency, rates, t]
 	);
 
 	return (
@@ -116,18 +110,12 @@ export function BudgetDetailView({
 				}
 				ListEmptyComponent={
 					<EmptyState
-						body={
-							closed
-								? t("budgets.detail.emptyClosed")
-								: t("budgets.detail.emptyOpen")
-						}
+						body={closed ? t("budgets.detail.emptyClosed") : t("budgets.detail.emptyOpen")}
 						mark={<PeriodFloor closed={closed} />}
 						tier="inFlow"
 					/>
 				}
-				renderSectionHeader={({ section }) => (
-					<DaySectionHeader section={section} first={sections[0] === section} />
-				)}
+				renderSectionHeader={({ section }) => <DaySectionHeader section={section} first={sections[0] === section} />}
 				renderItem={({ item }) => (
 					<TransactionRow
 						transaction={item}
@@ -177,22 +165,16 @@ function BudgetSummary({
 	const figureTone = overBudget ? "text-over-budget" : "text-foreground";
 	let label: string;
 	if (closed) {
-		label = overBudget
-			? t("budgets.detail.overBudget")
-			: t("budgets.detail.unspent");
+		label = overBudget ? t("budgets.detail.overBudget") : t("budgets.detail.unspent");
 	} else {
-		label = overBudget
-			? t("budgets.detail.overPeriod", { period })
-			: t("budgets.detail.leftPeriod", { period });
+		label = overBudget ? t("budgets.detail.overPeriod", { period }) : t("budgets.detail.leftPeriod", { period });
 	}
 
 	return (
 		<View>
 			<View className="flex-row items-baseline justify-between">
 				<MonoLabel>{period}</MonoLabel>
-				<MonoLabel>
-					{t("budgets.detail.percentSpent", { percent: spentPct })}
-				</MonoLabel>
+				<MonoLabel>{t("budgets.detail.percentSpent", { percent: spentPct })}</MonoLabel>
 			</View>
 
 			<View className="pt-2">
@@ -206,16 +188,13 @@ function BudgetSummary({
 				/>
 			</View>
 			<Text className="pt-0.5 text-footnote text-muted">{label}</Text>
-			{leftPerDayAmount != null ? (
-				<Text
-					className="pt-0.5 text-footnote text-muted"
-					style={{ fontVariant: ["tabular-nums"] }}
-				>
+			{leftPerDayAmount == null ? null : (
+				<Text className="pt-0.5 text-footnote text-muted" style={{ fontVariant: ["tabular-nums"] }}>
 					{t("budgets.detail.leftEachDay", {
 						amount: formatAmount(leftPerDayAmount, currency, showCents),
 					})}
 				</Text>
-			) : null}
+			)}
 
 			<View className="pt-5" style={{ marginHorizontal: -RAIL_BLEED }}>
 				<BudgetProgressBar
@@ -240,13 +219,9 @@ function BudgetSummary({
 				</MonoLabel>
 			</View>
 
-			{note ? (
-				<Text className="pt-3 text-footnote text-muted">{note}</Text>
-			) : null}
+			{note ? <Text className="pt-3 text-footnote text-muted">{note}</Text> : null}
 
-			{stepper ? (
-				<View className="mt-6 border-border border-t pt-3">{stepper}</View>
-			) : null}
+			{stepper ? <View className="mt-6 border-border border-t pt-3">{stepper}</View> : null}
 
 			<View className="pt-7">
 				<MonoLabel>{t("budgets.detail.transactions")}</MonoLabel>
@@ -267,18 +242,8 @@ function PeriodFloor({ closed }: { closed: boolean }) {
 
 	return (
 		<Svg height={FLOOR_H} viewBox={`0 0 ${FLOOR_W} ${FLOOR_H}`} width={FLOOR_W}>
-			<Path
-				d={`M4 4 V${floor} H${right}`}
-				fill="none"
-				stroke={ink.rule}
-				strokeWidth={1}
-			/>
-			<Path
-				d={`M4 12 H${right}`}
-				stroke={ink.rule}
-				strokeDasharray="2 5"
-				strokeWidth={1}
-			/>
+			<Path d={`M4 4 V${floor} H${right}`} fill="none" stroke={ink.rule} strokeWidth={1} />
+			<Path d={`M4 12 H${right}`} stroke={ink.rule} strokeDasharray="2 5" strokeWidth={1} />
 			<Path
 				d={`M4 ${floor} H${closed ? right : today}`}
 				stroke={colors.foreground}
@@ -293,12 +258,7 @@ function PeriodFloor({ closed }: { closed: boolean }) {
 				/>
 			) : (
 				<>
-					<Path
-						d={`M${today} ${floor} H${right}`}
-						stroke={ink.edge}
-						strokeDasharray="4 4"
-						strokeWidth={1.5}
-					/>
+					<Path d={`M${today} ${floor} H${right}`} stroke={ink.edge} strokeDasharray="4 4" strokeWidth={1.5} />
 					<Path
 						d={`M${today} ${floor - 7} V${floor + 7}`}
 						stroke={colors.foreground}

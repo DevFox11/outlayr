@@ -6,20 +6,20 @@ import { MonoLabel } from "./mono-label";
 import { cn } from "./tw";
 
 export interface LedgerCell {
-	key: string;
-	/** One short word, so every cell fits across the narrowest phone. */
-	label: string;
-	/** Unsigned — the sign comes from `positive`, so 40 out and 40 in match. */
-	magnitude: number;
-	positive: boolean;
+	/** Overrides the spoken hint, which otherwise says the figure is promotable. */
+	accessibilityHint?: string;
 	/**
 	 * Whether the figure earns the income colour. Only money actually coming in
 	 * does; a positive net is still just a net.
 	 */
 	income: boolean;
+	key: string;
+	/** One short word, so every cell fits across the narrowest phone. */
+	label: string;
+	/** Unsigned — the sign comes from `positive`, so 40 out and 40 in match. */
+	magnitude: number;
 	onPress: () => void;
-	/** Overrides the spoken hint, which otherwise says the figure is promotable. */
-	accessibilityHint?: string;
+	positive: boolean;
 }
 
 interface LedgerHeadProps {
@@ -43,13 +43,9 @@ export function LedgerHead({ cells, code }: LedgerHeadProps) {
 					<View className={cn("flex-1", index > 0 && "pl-3.5")} key={cell.key}>
 						{/* Absolute so the rule spans the taller of the two columns
 						    rather than only its own content. */}
-						{index > 0 ? (
-							<View className="absolute inset-y-0 left-0 w-px bg-border" />
-						) : null}
+						{index > 0 ? <View className="absolute inset-y-0 left-0 w-px bg-border" /> : null}
 						<Pressable
-							accessibilityHint={
-								cell.accessibilityHint ?? t("log.ledger.showFigure")
-							}
+							accessibilityHint={cell.accessibilityHint ?? t("log.ledger.showFigure")}
 							accessibilityRole="button"
 							className="gap-0.75 py-2.5 active:opacity-70"
 							onPress={cell.onPress}

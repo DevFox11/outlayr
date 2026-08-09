@@ -9,17 +9,14 @@ import {
 	releasePendingWrites,
 } from "./pending-writes-core";
 
-function write(
-	id: string,
-	overrides: Partial<PendingWrite> = {},
-): PendingWrite {
+function write(id: string, overrides: Partial<PendingWrite> = {}): PendingWrite {
 	return {
-		id,
 		amount: 12.4,
-		income: false,
-		note: "Bakery",
 		category: null,
 		date: 1_700_000_000_000,
+		id,
+		income: false,
+		note: "Bakery",
 		...overrides,
 	};
 }
@@ -28,7 +25,6 @@ function write(
 function makeFiles(initial: Record<string, string> = {}) {
 	const disk = new Map(Object.entries(initial));
 	const files: QueueFiles = {
-		list: () => [...disk.keys()],
 		claim(name) {
 			const live = disk.get(QUEUE_FILE);
 			if (live == null || live === "") {
@@ -38,12 +34,13 @@ function makeFiles(initial: Record<string, string> = {}) {
 			disk.delete(QUEUE_FILE);
 			return true;
 		},
+		discard: (name) => {
+			disk.delete(name);
+		},
+		list: () => [...disk.keys()],
 		read: (name) => disk.get(name) ?? "",
 		write: (name, text) => {
 			disk.set(name, text);
-		},
-		discard: (name) => {
-			disk.delete(name);
 		},
 	};
 	return { disk, files };
@@ -68,11 +65,7 @@ describe("parseQueue", () => {
 	it("keeps the order the lines were appended in", () => {
 		const text = lines(write("a"), write("b"), write("c"));
 
-		expect(parseQueue(text).map((job) => job.id)).toStrictEqual([
-			"a",
-			"b",
-			"c",
-		]);
+		expect(parseQueue(text).map((job) => job.id)).toStrictEqual(["a", "b", "c"]);
 	});
 });
 
@@ -101,23 +94,20 @@ describe("claimPendingWrites", () => {
 
 	it("orders leftovers oldest first past a single digit", () => {
 		const { files } = makeFiles({
-			"claimed-10.jsonl": lines(write("j")),
 			"claimed-2.jsonl": lines(write("b")),
+			"claimed-10.jsonl": lines(write("j")),
 		});
 
 		const claimed = claimPendingWrites(files);
 
 		expect(claimed.jobs.map((job) => job.id)).toStrictEqual(["b", "j"]);
-		expect(claimed.names).toStrictEqual([
-			"claimed-2.jsonl",
-			"claimed-10.jsonl",
-		]);
+		expect(claimed.names).toStrictEqual(["claimed-2.jsonl", "claimed-10.jsonl"]);
 	});
 
 	it("claims nothing when the queue is empty", () => {
 		const { files } = makeFiles();
 
-		expect(claimPendingWrites(files)).toStrictEqual({ names: [], jobs: [] });
+		expect(claimPendingWrites(files)).toStrictEqual({ jobs: [], names: [] });
 	});
 
 	it("leaves the claim in place until it is released", () => {

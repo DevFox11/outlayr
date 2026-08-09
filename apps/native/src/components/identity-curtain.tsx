@@ -1,12 +1,7 @@
 import { MeshGradientView } from "expo-mesh-gradient";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
-import Animated, {
-	Easing,
-	useAnimatedStyle,
-	useSharedValue,
-	withTiming,
-} from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { curtainShade, withAlpha } from "@/theme/shade";
 
 /** Mesh wash height; exported so the form can bleed it up under the nav bar. */
@@ -61,15 +56,15 @@ export function curtainGradient(hues: string[] | null, isDark: boolean) {
 	const [c0, c1, c2] = meshHues(hues.map((hue) => curtainShade(hue, isDark)));
 	const bloom = (color: string, left: string) =>
 		({
-			type: "radial-gradient",
-			shape: "ellipse",
-			size: { x: "70%", y: CURTAIN_HEIGHT },
-			position: { top: 0, left },
 			colorStops: [
 				{ color, positions: ["0%"] },
 				{ color: withAlpha(color, MID_ALPHA[1]), positions: ["45%"] },
 				{ color: withAlpha(color, 0), positions: ["100%"] },
 			],
+			position: { left, top: 0 },
+			shape: "ellipse",
+			size: { x: "70%", y: CURTAIN_HEIGHT },
+			type: "radial-gradient",
 		}) as const;
 	return [bloom(c0, "12%"), bloom(c1, "50%"), bloom(c2, "88%")];
 }
@@ -120,19 +115,9 @@ export function IdentityCurtain({ hues }: IdentityCurtainProps) {
 	return (
 		<Animated.View
 			pointerEvents="none"
-			style={[
-				{ position: "absolute", top: 0, left: 0, right: 0, height: HEIGHT },
-				animatedStyle,
-			]}
+			style={[{ height: HEIGHT, left: 0, position: "absolute", right: 0, top: 0 }, animatedStyle]}
 		>
-			<MeshGradientView
-				style={{ flex: 1 }}
-				columns={3}
-				rows={3}
-				points={POINTS}
-				colors={colors}
-				ignoresSafeArea
-			/>
+			<MeshGradientView colors={colors} columns={3} ignoresSafeArea points={POINTS} rows={3} style={{ flex: 1 }} />
 		</Animated.View>
 	);
 }

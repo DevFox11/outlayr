@@ -41,18 +41,17 @@ const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
  * directly rather than re-deriving it from the wrapped action.
  */
 export const suggestArgs = {
-	name: v.string(),
-	income: v.boolean(),
-	locale: v.optional(v.string()),
-	categoryTree: v.array(
-		v.object({ name: v.string(), children: v.array(v.string()) }),
-	),
+	categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
 	/**
 	 * One side of the dual-authority consent gate. A forged `true` alone
 	 * cannot enable a grounded lookup — the synced `appMeta` row must also
 	 * agree — but a `false` always blocks, from either side.
 	 */
 	groundedLookup: v.boolean(),
+	income: v.boolean(),
+	knowledgeOnly: v.optional(v.boolean()),
+	locale: v.optional(v.string()),
+	name: v.string(),
 	/**
 	 * The device's own region — a signal `locale` cannot substitute for, since a
 	 * user may run an English UI on a device set to a different region.
@@ -60,57 +59,56 @@ export const suggestArgs = {
 	 * a bare ISO 3166-1 alpha-2 code.
 	 */
 	regionCode: v.optional(v.string()),
-	knowledgeOnly: v.optional(v.boolean()),
 };
 
 const suggestion = v.object({
 	categoryName: v.union(v.string(), v.null()),
+	domain: v.union(v.string(), v.null()),
+	emoji: v.union(v.string(), v.null()),
+	/** A grounded lookup was scheduled — the client must not cache this as a final null result. */
+	grounding: v.boolean(),
 	isNewCategory: v.boolean(),
 	/** Set only when the suggestion belongs under an existing category. */
 	parentCategoryName: v.union(v.string(), v.null()),
-	emoji: v.union(v.string(), v.null()),
 	tags: v.array(v.string()),
-	domain: v.union(v.string(), v.null()),
-	/** A grounded lookup was scheduled — the client must not cache this as a final null result. */
-	grounding: v.boolean(),
 });
 
 export interface CategoryBranch {
-	name: string;
 	children: string[];
+	name: string;
 }
 
 export interface Suggestion {
 	categoryName: string | null;
+	domain: string | null;
+	emoji: string | null;
+	grounding: boolean;
 	isNewCategory: boolean;
 	parentCategoryName: string | null;
-	emoji: string | null;
 	tags: string[];
-	domain: string | null;
-	grounding: boolean;
 }
 
 export const EMPTY: Suggestion = {
 	categoryName: null,
+	domain: null,
+	emoji: null,
+	grounding: false,
 	isNewCategory: false,
 	parentCategoryName: null,
-	emoji: null,
 	tags: [],
-	domain: null,
-	grounding: false,
 };
 
 /** The model's own output is untrusted input — this is only the JSON shape. */
 const modelOutputSchema = z.object({
 	categoryName: z.string().nullable(),
+	domain: z.string().nullable(),
+	emoji: z.string().nullish(),
 	isNewCategory: z.boolean(),
 	// Nullish rather than nullable: a model that simply omits one of these has
 	// still answered the question that matters, and failing the whole call over
 	// a missing optional field would cost the category and tags too.
 	parentCategoryName: z.string().nullish(),
-	emoji: z.string().nullish(),
 	tags: z.array(z.string()),
-	domain: z.string().nullable(),
 });
 
 /**
@@ -123,19 +121,28 @@ const modelOutputSchema = z.object({
  * than racing the component's random shard sampling through the action.
  */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
-	enrichmentPerUser: {
-		kind: "token bucket",
-		rate: 30,
-		period: HOUR,
-		capacity: 8,
-	},
 	// An unsharded global counter is one hot document and throws OCC write
 	// conflicts under concurrency — `shards: 10` is load-bearing, not tuning.
 	enrichmentGlobal: {
 		kind: "fixed window",
-		rate: 2000,
 		period: HOUR,
+		rate: 2000,
 		shards: 10,
+	},
+	enrichmentPerUser: {
+		capacity: 8,
+		kind: "token bucket",
+		period: HOUR,
+		rate: 30,
+	},
+	// Kills both a user retyping the same unknown name and a
+	// thundering herd across many users hitting one new merchant at once.
+	// Checked inside `groundedLookup.run`, never here.
+	groundedPerKey: {
+		capacity: 1,
+		kind: "token bucket",
+		period: DAY,
+		rate: 1,
 	},
 	// Checked in `suggest` itself, before the internal action is ever
 	// scheduled. This gate is anti-abuse, NOT cost control — `groundedBudgetMicros`
@@ -145,19 +152,10 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	// is then locked out for hours, which is exactly the person this feature is
 	// for.
 	groundedPerUser: {
-		kind: "token bucket",
-		rate: 100,
-		period: DAY,
 		capacity: 20,
-	},
-	// Kills both a user retyping the same unknown name and a
-	// thundering herd across many users hitting one new merchant at once.
-	// Checked inside `groundedLookup.run`, never here.
-	groundedPerKey: {
 		kind: "token bucket",
-		rate: 1,
 		period: DAY,
-		capacity: 1,
+		rate: 100,
 	},
 });
 
@@ -207,11 +205,9 @@ const REGION_CODE_PATTERN = /^[A-Z]{2}$/;
  * a modified client could send anything here, so it is validated the same way
  * `trimmedName`'s length bounds are, before it ever reaches a prompt.
  */
-export function sanitizeRegionCode(
-	region: string | undefined,
-): string | undefined {
+export function sanitizeRegionCode(region: string | undefined): string | undefined {
 	if (region === undefined) {
-		return undefined;
+		return;
 	}
 	const trimmed = region.trim().toUpperCase();
 	return REGION_CODE_PATTERN.test(trimmed) ? trimmed : undefined;
@@ -223,9 +219,7 @@ function describeTree(tree: readonly CategoryBranch[]): string {
 	}
 	return tree
 		.map((branch) =>
-			branch.children.length > 0
-				? `${branch.name} (containing ${branch.children.join(", ")})`
-				: branch.name,
+			branch.children.length > 0 ? `${branch.name} (containing ${branch.children.join(", ")})` : branch.name
 		)
 		.join("; ");
 }
@@ -246,7 +240,7 @@ function buildPrompt(
 	income: boolean,
 	locale: string | undefined,
 	regionCode: string | undefined,
-	tree: readonly CategoryBranch[],
+	tree: readonly CategoryBranch[]
 ): string {
 	const kind = income ? "income" : "expense";
 	return [
@@ -264,11 +258,11 @@ function buildPrompt(
 }
 
 export interface RunSuggestArgs {
-	name: string;
+	categoryTree: readonly CategoryBranch[];
 	income: boolean;
 	locale?: string;
+	name: string;
 	regionCode?: string;
-	categoryTree: readonly CategoryBranch[];
 }
 
 /**
@@ -289,10 +283,10 @@ export function sanitizeEmoji(emoji: string | null): string | null {
 
 export interface TreeCandidate {
 	categoryName: string | null;
-	parentCategoryName: string | null;
-	emoji: string | null;
-	tags: readonly string[];
 	domain: string | null;
+	emoji: string | null;
+	parentCategoryName: string | null;
+	tags: readonly string[];
 }
 
 /**
@@ -302,19 +296,12 @@ export interface TreeCandidate {
  * candidate applied to whichever user is asking this time) — the same
  * merchant can be "new" for one user and already-known for another.
  */
-export function applyToTree(
-	tree: readonly CategoryBranch[],
-	candidate: TreeCandidate,
-): Omit<Suggestion, "grounding"> {
+export function applyToTree(tree: readonly CategoryBranch[], candidate: TreeCandidate): Omit<Suggestion, "grounding"> {
 	const cappedTree = tree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
-	const everyName = cappedTree.flatMap((branch) => [
-		branch.name,
-		...branch.children,
-	]);
+	const everyName = cappedTree.flatMap((branch) => [branch.name, ...branch.children]);
 
 	const { categoryName } = candidate;
-	const isNewCategory =
-		categoryName !== null && !everyName.includes(categoryName);
+	const isNewCategory = categoryName !== null && !everyName.includes(categoryName);
 	// A parent is only ever one of the top-level names actually sent, and only
 	// for a category being created. Anything else is dropped rather than
 	// trusted — neither the model nor a globally-shared cache row can know
@@ -329,11 +316,11 @@ export function applyToTree(
 
 	return {
 		categoryName,
+		domain: candidate.domain,
+		emoji: candidate.emoji,
 		isNewCategory,
 		parentCategoryName,
-		emoji: candidate.emoji,
 		tags: [...candidate.tags],
-		domain: candidate.domain,
 	};
 }
 
@@ -342,26 +329,17 @@ export function applyToTree(
  * Exported so tests can inject a fake model directly; the guard ladder above
  * it is exercised through the `suggest` action instead.
  */
-export async function runSuggest(
-	model: LanguageModel,
-	args: RunSuggestArgs,
-): Promise<Suggestion> {
+export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Promise<Suggestion> {
 	const tree = args.categoryTree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
 
 	const { output } = await generateText({
-		model,
-		output: Output.object({ schema: modelOutputSchema }),
-		prompt: buildPrompt(
-			args.name,
-			args.income,
-			args.locale,
-			args.regionCode,
-			tree,
-		),
 		abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 		// The SDK default is 2 retries, which alone would triple worst-case
 		// latency past the client's own 4s `Promise.race` abort.
 		maxRetries: 0,
+		model,
+		output: Output.object({ schema: modelOutputSchema }),
+		prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, tree),
 	});
 
 	return {
@@ -369,12 +347,10 @@ export async function runSuggest(
 		// it has no reason to be authoritative about the user's own local data.
 		...applyToTree(args.categoryTree, {
 			categoryName: sanitizeCategoryName(output.categoryName),
-			parentCategoryName: sanitizeCategoryName(
-				output.parentCategoryName ?? null,
-			),
-			emoji: sanitizeEmoji(output.emoji ?? null),
-			tags: sanitizeTags(output.tags),
 			domain: sanitizeDomain(output.domain),
+			emoji: sanitizeEmoji(output.emoji ?? null),
+			parentCategoryName: sanitizeCategoryName(output.parentCategoryName ?? null),
+			tags: sanitizeTags(output.tags),
 		}),
 		grounding: false,
 	};
@@ -396,7 +372,6 @@ const GROUNDED_LOOKUP_META_KEY = "groundedLookup";
  */
 export const groundedConsent = internalQuery({
 	args: {},
-	returns: v.boolean(),
 	handler: async (ctx) => {
 		const userId = await optionalUserId(ctx);
 		if (userId === null) {
@@ -404,19 +379,18 @@ export const groundedConsent = internalQuery({
 		}
 		const row = await ctx.db
 			.query("appMeta")
-			.withIndex("by_user_and_key", (q) =>
-				q.eq("userId", userId).eq("key", GROUNDED_LOOKUP_META_KEY),
-			)
+			.withIndex("by_user_and_key", (q) => q.eq("userId", userId).eq("key", GROUNDED_LOOKUP_META_KEY))
 			.unique();
 		return row === null || row.value !== "false";
 	},
+	returns: v.boolean(),
 });
 
 export interface GroundedScheduleArgs {
 	groundedLookup: boolean;
-	name: string;
 	income: boolean;
 	locale?: string;
+	name: string;
 	regionCode?: string;
 }
 
@@ -426,10 +400,7 @@ export interface GroundedScheduleArgs {
  * the same `runQuery`/`runMutation`/`scheduler` signatures) can exercise this
  * function directly in tests, concretely typed, with no widening cast.
  */
-export type GroundedScheduleCtx = Pick<
-	ActionCtx,
-	"runQuery" | "runMutation" | "scheduler"
->;
+export type GroundedScheduleCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
 
 /**
  * A missing domain is as much a miss as a missing category. The model can
@@ -437,9 +408,7 @@ export type GroundedScheduleCtx = Pick<
  * invent a regional chain's domain — so the answer that most needs a grounded
  * search is the one that already has a category and no url.
  */
-export function needsGroundedLookup(
-	result: Pick<Suggestion, "categoryName" | "domain">,
-): boolean {
+export function needsGroundedLookup(result: Pick<Suggestion, "categoryName" | "domain">): boolean {
 	return result.categoryName === null || result.domain === null;
 }
 
@@ -453,7 +422,7 @@ export function needsGroundedLookup(
 export async function maybeScheduleGrounded(
 	ctx: GroundedScheduleCtx,
 	tokenIdentifier: string,
-	args: GroundedScheduleArgs,
+	args: GroundedScheduleArgs
 ): Promise<boolean> {
 	if (!args.groundedLookup) {
 		return false;
@@ -469,10 +438,10 @@ export async function maybeScheduleGrounded(
 		return false;
 	}
 	await ctx.scheduler.runAfter(0, internal.groundedLookup.run, {
-		key: merchantKey(args.name),
-		name: args.name,
 		income: args.income,
+		key: merchantKey(args.name),
 		locale: args.locale,
+		name: args.name,
 		regionCode: args.regionCode,
 	});
 	return true;
@@ -485,7 +454,6 @@ export async function maybeScheduleGrounded(
  */
 export const suggest = action({
 	args: suggestArgs,
-	returns: suggestion,
 	handler: async (ctx, args): Promise<Suggestion> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (identity === null) {
@@ -493,10 +461,7 @@ export const suggest = action({
 		}
 
 		const trimmedName = args.name.trim();
-		if (
-			trimmedName.length < MIN_NAME_LENGTH ||
-			trimmedName.length > MAX_NAME_LENGTH
-		) {
+		if (trimmedName.length < MIN_NAME_LENGTH || trimmedName.length > MAX_NAME_LENGTH) {
 			return EMPTY;
 		}
 
@@ -540,11 +505,11 @@ export const suggest = action({
 			const xaiProvider = createXai({ apiKey });
 			const modelId = process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID;
 			const result = await runSuggest(xaiProvider(modelId), {
-				name: trimmedName,
+				categoryTree: args.categoryTree,
 				income: args.income,
 				locale: args.locale,
+				name: trimmedName,
 				regionCode,
-				categoryTree: args.categoryTree,
 			});
 
 			// A missing domain counts as a miss, not just a missing category. The
@@ -554,17 +519,13 @@ export const suggest = action({
 			// Scheduling is never awaited: it fills Tier 1.5 for the NEXT lookup
 			// of this merchant, never this transaction.
 			if (result.categoryName === null || result.domain === null) {
-				const scheduled = await maybeScheduleGrounded(
-					ctx,
-					identity.tokenIdentifier,
-					{
-						groundedLookup: args.groundedLookup,
-						name: trimmedName,
-						income: args.income,
-						locale: args.locale,
-						regionCode,
-					},
-				);
+				const scheduled = await maybeScheduleGrounded(ctx, identity.tokenIdentifier, {
+					groundedLookup: args.groundedLookup,
+					income: args.income,
+					locale: args.locale,
+					name: trimmedName,
+					regionCode,
+				});
 				// Whatever the model did answer is kept — blanking it would throw
 				// away a good category to report a missing logo. `grounding: true`
 				// is what stops the client caching this as final.
@@ -576,9 +537,7 @@ export const suggest = action({
 		} catch (error) {
 			console.warn(
 				`[enrichment] xAI call threw for "${trimmedName}":`,
-				error instanceof Error
-					? `${error.name}: ${error.message}`
-					: String(error),
+				error instanceof Error ? `${error.name}: ${error.message}` : String(error)
 			);
 			// A rejected xAI call surfaces here as a normal degradation, not a
 			// thrown ConvexError — throwing would fill function logs with stack
@@ -586,4 +545,5 @@ export const suggest = action({
 			return EMPTY;
 		}
 	},
+	returns: suggestion,
 });

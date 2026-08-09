@@ -12,12 +12,12 @@ import { internalMutation, internalQuery } from "./_generated/server";
  */
 
 const knowledgeFields = {
-	domain: v.string(),
 	categoryName: v.string(),
-	parentCategoryName: v.union(v.string(), v.null()),
+	domain: v.string(),
 	emoji: v.union(v.string(), v.null()),
-	tags: v.array(v.string()),
 	modelId: v.string(),
+	parentCategoryName: v.union(v.string(), v.null()),
+	tags: v.array(v.string()),
 };
 
 const knowledgeRecord = v.object({
@@ -28,7 +28,6 @@ const knowledgeRecord = v.object({
 
 export const lookup = internalQuery({
 	args: { key: v.string() },
-	returns: v.union(knowledgeRecord, v.null()),
 	handler: async (ctx, args) => {
 		const row = await ctx.db
 			.query("merchantKnowledge")
@@ -38,16 +37,17 @@ export const lookup = internalQuery({
 			return null;
 		}
 		return {
-			key: row.key,
-			resolvedAt: row.resolvedAt,
-			domain: row.domain,
 			categoryName: row.categoryName,
-			parentCategoryName: row.parentCategoryName,
+			domain: row.domain,
 			emoji: row.emoji,
-			tags: row.tags,
+			key: row.key,
 			modelId: row.modelId,
+			parentCategoryName: row.parentCategoryName,
+			resolvedAt: row.resolvedAt,
+			tags: row.tags,
 		};
 	},
+	returns: v.union(knowledgeRecord, v.null()),
 });
 
 export const record = internalMutation({
@@ -56,7 +56,6 @@ export const record = internalMutation({
 		resolvedAt: v.number(),
 		...knowledgeFields,
 	},
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query("merchantKnowledge")
@@ -69,11 +68,11 @@ export const record = internalMutation({
 		}
 		return null;
 	},
+	returns: v.null(),
 });
 
 export const purge = internalMutation({
 	args: { key: v.string() },
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query("merchantKnowledge")
@@ -84,4 +83,5 @@ export const purge = internalMutation({
 		}
 		return null;
 	},
+	returns: v.null(),
 });

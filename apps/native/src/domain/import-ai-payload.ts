@@ -10,8 +10,8 @@ export function scrubLabel(raw: string): string {
 }
 
 export interface ClassificationPayload {
-	labels: string[];
 	categoryTree: CategoryBranch[];
+	labels: string[];
 }
 
 function dedupeLabels(raw: readonly string[]): string[] {
@@ -40,10 +40,10 @@ export function buildClassificationPayload(args: {
 	}
 
 	return {
-		labels,
 		categoryTree: args.categoryTree.map((branch) => ({
-			name: branch.name,
 			children: [...branch.children],
+			name: branch.name,
 		})),
+		labels,
 	};
 }

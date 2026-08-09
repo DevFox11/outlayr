@@ -1,11 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { createRef, type ReactNode } from "react";
 import { importDraftStore } from "@/lib/import-draft-store";
-import {
-	ImportSheet,
-	type ImportSheetHandle,
-	resolveLegalStep,
-} from "./import-sheet";
+import { ImportSheet, type ImportSheetHandle, resolveLegalStep } from "./import-sheet";
 
 const mockPush = jest.fn();
 const mockDismiss = jest.fn();
@@ -23,8 +19,8 @@ jest.mock("uniwind", () => ({
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
-		foreground: "#17150F",
 		background: "#F2F0EA",
+		foreground: "#17150F",
 		muted: "#8A8578",
 	}),
 }));
@@ -32,7 +28,7 @@ jest.mock("expo-router", () => ({
 	router: { push: (...args: unknown[]) => mockPush(...args) },
 }));
 jest.mock("react-native-safe-area-context", () => ({
-	useSafeAreaInsets: () => ({ top: 59, bottom: 34, left: 0, right: 0 }),
+	useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
 }));
 jest.mock("@expo/ui/community/bottom-sheet", () => {
 	const { View: RNView } = require("react-native");
@@ -51,8 +47,8 @@ jest.mock("@expo/ui/community/bottom-sheet", () => {
 			mockSheetProps.push(rest as Record<string, unknown>);
 			mockDismissHolder.current = onDismiss;
 			useImperativeHandle(ref, () => ({
-				present: jest.fn(),
 				dismiss: mockDismiss,
+				present: jest.fn(),
 				snapToIndex: mockSnapToIndex,
 			}));
 			return <RNView testID="bottom-sheet-modal">{children}</RNView>;
@@ -64,20 +60,20 @@ jest.mock("@/contexts/csv-import-context", () => ({
 }));
 jest.mock("@/hooks/use-import-review", () => ({
 	useImportReview: () => ({
-		plan: { entries: [], skipped: [], earliest: null, latest: null },
-		rows: [],
-		excluded: new Set(),
-		selectedCount: 0,
 		categoryName: new Map(),
 		categoryTile: new Map(),
-		currency: "USD",
 		commit: { phase: "idle" },
-		onToggle: jest.fn(),
+		currency: "USD",
+		excluded: new Set(),
 		onCommit: jest.fn(),
+		onToggle: jest.fn(),
+		plan: { earliest: null, entries: [], latest: null, skipped: [] },
+		rows: [],
+		selectedCount: 0,
 	}),
 }));
 jest.mock("./use-choose-import-file", () => ({
-	useChooseImportFile: () => ({ status: "idle", choose: jest.fn() }),
+	useChooseImportFile: () => ({ choose: jest.fn(), status: "idle" }),
 }));
 jest.mock("./steps/source-step", () => {
 	const { Text: RNText } = require("react-native");
@@ -101,31 +97,31 @@ jest.mock("./steps/done-step", () => {
 });
 
 function loadFile() {
-	importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	importDraftStore.dispatch({ sourceId: "csv", type: "sourceSelected" });
 	importDraftStore.dispatch({
-		type: "fileParsed",
-		file: { name: "bank.csv", chars: 42 },
-		parsed: { header: null, rows: [["a", "b", "c"]], width: 3 },
 		draft: {
-			category: 0,
-			note: 1,
-			date: 0,
 			amount: 2,
+			category: 0,
 			currency: null,
+			date: 0,
+			note: 1,
 			type: null,
 		},
+		file: { chars: 42, name: "bank.csv" },
+		gaps: [],
+		parsed: { header: null, rows: [["a", "b", "c"]], width: 3 },
 		resolved: {
+			labelSource: "categoryColumn",
 			mapping: {
-				category: 0,
-				note: 1,
-				date: 0,
 				amount: 2,
+				category: 0,
 				currency: null,
+				date: 0,
+				note: 1,
 				type: null,
 			},
-			labelSource: "categoryColumn",
 		},
-		gaps: [],
+		type: "fileParsed",
 	});
 }
 
@@ -226,18 +222,18 @@ describe("ImportSheet", () => {
 	it("clears instead of recording a resume when dismissed after a success", async () => {
 		loadFile();
 		importDraftStore.dispatch({
-			type: "resolutionSettled",
+			fromModel: new Set(),
+			links: new Map(),
 			outcome: "applied",
 			reason: null,
-			links: new Map(),
-			fromModel: new Set(),
+			type: "resolutionSettled",
 		});
 		importDraftStore.dispatch({ type: "commitStarted" });
 		importDraftStore.dispatch({
-			type: "commitSucceeded",
 			count: 1,
-			outAmount: 3.5,
 			duplicatesSkipped: 0,
+			outAmount: 3.5,
+			type: "commitSucceeded",
 		});
 		importDraftStore.setStep("done");
 		const { findByText } = await presentSheet();

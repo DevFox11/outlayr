@@ -34,10 +34,7 @@ function RestoreDataContent({ db }: { db: Database }) {
 				}
 				const document = parseArchive(picked.text);
 				if (document == null) {
-					Alert.alert(
-						t("settings.restore.badArchiveTitle"),
-						t("settings.restore.badArchiveBody"),
-					);
+					Alert.alert(t("settings.restore.badArchiveTitle"), t("settings.restore.badArchiveBody"));
 					return;
 				}
 				Alert.alert(
@@ -48,30 +45,25 @@ function RestoreDataContent({ db }: { db: Database }) {
 					[
 						{ style: "cancel", text: t("common.cancel") },
 						{
-							style: "destructive",
-							text: t("settings.restore.confirmAction"),
 							onPress: () => {
 								setBusy(true);
 								restoreArchive(db, document)
 									.then(() => router.back())
 									.catch(() => {
-										Alert.alert(
-											t("settings.restore.failedTitle"),
-											t("settings.restore.failedBody"),
-										);
+										Alert.alert(t("settings.restore.failedTitle"), t("settings.restore.failedBody"));
 									})
 									.finally(() => setBusy(false));
 							},
+							style: "destructive",
+							text: t("settings.restore.confirmAction"),
 						},
-					],
+					]
 				);
 			})
 			.catch((error: unknown) => {
 				Alert.alert(
 					t("settings.restore.failedTitle"),
-					error instanceof TransferError
-						? t(error.key)
-						: t("settings.restore.failedBody"),
+					error instanceof TransferError ? t(error.key) : t("settings.restore.failedBody")
 				);
 			});
 	};
@@ -80,9 +72,7 @@ function RestoreDataContent({ db }: { db: Database }) {
 		<SettingsScreen footer={t("settings.restore.footer")}>
 			<View className="gap-1 pt-6">
 				<MonoLabel>{t("settings.restore.eyebrow")}</MonoLabel>
-				<Text className="pb-4 text-muted text-subtitle leading-snug">
-					{t("settings.restore.intro")}
-				</Text>
+				<Text className="pb-4 text-muted text-subtitle leading-snug">{t("settings.restore.intro")}</Text>
 			</View>
 
 			<View className="pt-2">
@@ -96,9 +86,7 @@ function RestoreDataContent({ db }: { db: Database }) {
 					{busy ? (
 						<ActivityIndicator color={colors.background} />
 					) : (
-						<Text className="font-sans-semibold text-background text-callout">
-							{t("settings.restore.action")}
-						</Text>
+						<Text className="font-sans-semibold text-background text-callout">{t("settings.restore.action")}</Text>
 					)}
 				</Pressable>
 			</View>

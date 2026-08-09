@@ -11,14 +11,14 @@ import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 interface CategoryBreakdownRowProps {
+	code: string;
+	dimmed?: boolean;
 	entry: CategoryBreakdownEntry;
 	measure: InsightsMeasure;
-	code: string;
-	showCents?: boolean;
+	onClear?: () => void;
 	onPress?: () => void;
 	selected?: boolean;
-	dimmed?: boolean;
-	onClear?: () => void;
+	showCents?: boolean;
 }
 
 export function CategoryBreakdownRow({
@@ -41,26 +41,12 @@ export function CategoryBreakdownRow({
 
 	const body = (
 		<View
-			className={cn(
-				"gap-2.5",
-				dimmed && "opacity-40",
-				selected ? "rounded-xl bg-surface-secondary p-2.5" : "py-3",
-			)}
-			style={
-				selected ? { borderWidth: 1.3, borderColor: colors.border } : undefined
-			}
+			className={cn("gap-2.5", dimmed && "opacity-40", selected ? "rounded-xl bg-surface-secondary p-2.5" : "py-3")}
+			style={selected ? { borderColor: colors.border, borderWidth: 1.3 } : undefined}
 		>
 			<View className="flex-row items-center gap-3">
-				<CategoryIconTile
-					color={entry.color}
-					emoji={entry.emoji}
-					icon={entry.icon}
-					size={34}
-				/>
-				<Text
-					className="flex-1 font-sans-semibold text-body text-foreground"
-					numberOfLines={1}
-				>
+				<CategoryIconTile color={entry.color} emoji={entry.emoji} icon={entry.icon} size={34} />
+				<Text className="flex-1 font-sans-semibold text-body text-foreground" numberOfLines={1}>
 					{entry.name}
 				</Text>
 				<Text
@@ -71,9 +57,7 @@ export function CategoryBreakdownRow({
 					{sign}
 					{formatAmount(entry.amount, code, showCents)}
 				</Text>
-				<Text className="min-w-[34px] text-right font-mono text-label text-muted">
-					{pct}%
-				</Text>
+				<Text className="min-w-[34px] text-right font-mono text-label text-muted">{pct}%</Text>
 				{selected && onClear ? (
 					<Pressable
 						accessibilityLabel={t("insights.category.clearFilter")}
@@ -82,12 +66,7 @@ export function CategoryBreakdownRow({
 						hitSlop={8}
 						onPress={onClear}
 					>
-						<HugeiconsIcon
-							color={colors.muted}
-							icon={Cancel01Icon}
-							size={13}
-							strokeWidth={2.5}
-						/>
+						<HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={13} strokeWidth={2.5} />
 					</Pressable>
 				) : (
 					<DeltaCell delta={entry.delta} measure={measure} />
@@ -109,11 +88,7 @@ export function CategoryBreakdownRow({
 	}
 
 	return (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityState={{ selected }}
-			onPress={onPress}
-		>
+		<Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress}>
 			{body}
 		</Pressable>
 	);
@@ -123,13 +98,7 @@ export function CategoryBreakdownRow({
  * Holds its width even when there is nothing to report, so a column of rows keeps
  * its right edge whether or not every category has history behind it.
  */
-function DeltaCell({
-	delta,
-	measure,
-}: {
-	delta: number | null;
-	measure: InsightsMeasure;
-}) {
+function DeltaCell({ delta, measure }: { delta: number | null; measure: InsightsMeasure }) {
 	if (delta == null) {
 		return <View className="min-w-[46px]" />;
 	}
@@ -137,12 +106,7 @@ function DeltaCell({
 	// Shared with `InsightsMovers` so the two cannot disagree.
 	const favourable = breakdownRiseIsFavourable(measure) === rose;
 	return (
-		<Text
-			className={cn(
-				"min-w-[46px] text-right font-mono text-label",
-				favourable ? "text-income" : "text-danger",
-			)}
-		>
+		<Text className={cn("min-w-[46px] text-right font-mono text-label", favourable ? "text-income" : "text-danger")}>
 			{rose ? "+" : ""}
 			{Math.round(delta * 100)}%
 		</Text>

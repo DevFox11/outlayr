@@ -1,7 +1,5 @@
 import { Stack, useRouter } from "expo-router";
-import AccountEditor, {
-	confirmAccountDelete,
-} from "@/components/account-editor";
+import AccountEditor, { confirmAccountDelete } from "@/components/account-editor";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useTranslation } from "@/i18n";

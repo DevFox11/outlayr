@@ -1,24 +1,12 @@
 import { count, gt, isNotNull, isNull, or } from "drizzle-orm";
 import type { Database } from "@/db/client";
-import {
-	accounts,
-	budgets,
-	categories,
-	mainBudget,
-	templateTransactions,
-	transactions,
-} from "@/db/schema";
-import type {
-	AdoptionActions,
-	LocalLedger,
-	RemoteLedger,
-} from "@/domain/ledger-adoption";
+import { accounts, budgets, categories, mainBudget, templateTransactions, transactions } from "@/db/schema";
+import type { AdoptionActions, LocalLedger, RemoteLedger } from "@/domain/ledger-adoption";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { SEEDED_CATEGORY_NAMES } from "./categories-core";
 import { enqueueAllForSync, setSyncEnabled } from "./sync-outbox-core";
 
-const SEEDED_CATEGORY_COUNT =
-	SEEDED_CATEGORY_NAMES.expense.length + SEEDED_CATEGORY_NAMES.income.length;
+const SEEDED_CATEGORY_COUNT = SEEDED_CATEGORY_NAMES.expense.length + SEEDED_CATEGORY_NAMES.income.length;
 
 /**
  * What the sync engine has to answer before an adoption can run. #164 and #165
@@ -28,10 +16,10 @@ const SEEDED_CATEGORY_COUNT =
 export interface AdoptionEngine {
 	/** Whether the signed-in account already holds replicated rows. */
 	accountLedger(): Promise<RemoteLedger>;
-	/** Discard the local replica and refill it from the account's log at seq 0. */
-	replaceFromAccount(): Promise<void>;
 	/** Tombstone the account's rows so this device's ledger is the survivor. */
 	discardAccountLedger(): Promise<void>;
+	/** Discard the local replica and refill it from the account's log at seq 0. */
+	replaceFromAccount(): Promise<void>;
 }
 
 /**
@@ -48,13 +36,7 @@ export interface AdoptionEngine {
  * question, and being wrong the other way destroys a ledger.
  */
 export async function localLedgerState(db: Database): Promise<LocalLedger> {
-	const moneyTables = [
-		transactions,
-		budgets,
-		mainBudget,
-		templateTransactions,
-		accounts,
-	];
+	const moneyTables = [transactions, budgets, mainBudget, templateTransactions, accounts];
 	for (const table of moneyTables) {
 		const rows = await db.select({ total: count() }).from(table);
 		if ((rows[0]?.total ?? 0) > 0) {
@@ -73,8 +55,8 @@ export async function localLedgerState(db: Database): Promise<LocalLedger> {
 			or(
 				isNotNull(categories.deletedAt),
 				isNull(categories.dateCreated),
-				gt(categories.updatedAt, categories.dateCreated),
-			),
+				gt(categories.updatedAt, categories.dateCreated)
+			)
 		);
 	return (touched?.total ?? 0) > 0 ? "populated" : "empty";
 }
@@ -84,10 +66,7 @@ export async function adoptedAccount(db: Database): Promise<string | null> {
 	return await getMeta(db, META_KEYS.ledgerAdoption);
 }
 
-export async function markAdopted(
-	db: Database,
-	accountId: string,
-): Promise<void> {
+export async function markAdopted(db: Database, accountId: string): Promise<void> {
 	await setMeta(db, META_KEYS.ledgerAdoption, accountId);
 }
 
@@ -108,7 +87,7 @@ export async function markAdopted(
 export async function runAdoption(
 	db: Database,
 	engine: AdoptionEngine | null,
-	actions: AdoptionActions,
+	actions: AdoptionActions
 ): Promise<void> {
 	if (actions.wipeLocal || actions.wipeAccount) {
 		if (!engine) {

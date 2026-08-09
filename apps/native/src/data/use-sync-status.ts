@@ -19,9 +19,7 @@ export interface SyncStatus {
  * pending count that stops falling.
  */
 export function useSyncStatus(db: Database): SyncStatus {
-	const pendingRows = useLiveQuery(outbox, () =>
-		db.select({ total: count() }).from(outbox),
-	);
+	const pendingRows = useLiveQuery(outbox, () => db.select({ total: count() }).from(outbox));
 	const metaRows = useLiveQuery(appMeta, () => db.select().from(appMeta));
 
 	const raw = metaRows.find((row) => row.key === META_KEYS.syncedAt)?.value;

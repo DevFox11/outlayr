@@ -9,8 +9,7 @@ jest.mock("@/i18n", () => ({
 jest.mock("number-flow-react-native", () => {
 	const react = require("react") as typeof import("react");
 	return {
-		NumberFlow: (props: Record<string, unknown>) =>
-			react.createElement("NumberFlow", props),
+		NumberFlow: (props: Record<string, unknown>) => react.createElement("NumberFlow", props),
 	};
 });
 
@@ -18,9 +17,7 @@ jest.mock("number-flow-react-native", () => {
 // nothing here. Tabs is the real component, so the cadence row is under test.
 jest.mock("panelui-native", () => {
 	const react = require("react") as typeof import("react");
-	const actual = jest.requireActual(
-		"panelui-native",
-	) as typeof import("panelui-native");
+	const actual = jest.requireActual("panelui-native") as typeof import("panelui-native");
 	const Content = ({ children, ...rest }: Record<string, unknown>) =>
 		react.createElement("SheetContent", rest, children as never);
 	const Root = ({ children, ...rest }: Record<string, unknown>) =>
@@ -46,15 +43,12 @@ const BASE = {
 };
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByType(
-	node: JsonNode | JsonNode[] | null,
-	type: string,
-): JsonNode | null {
+function findByType(node: JsonNode | JsonNode[] | null, type: string): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -105,26 +99,16 @@ async function press(element: Parameters<typeof fireEvent.press>[0]) {
 
 describe("CustomScheduleSheet", () => {
 	it("bounds the stepper at both ends of what the walk can take", async () => {
-		const { getByLabelText } = await render(
-			<CustomScheduleSheet {...BASE} recurringCoefficient={1} />,
-		);
-		expect(
-			getByLabelText("transaction.schedule.fewer").props.accessibilityState
-				.disabled,
-		).toBe(true);
-		expect(
-			getByLabelText("transaction.schedule.more").props.accessibilityState
-				.disabled,
-		).toBe(false);
+		const { getByLabelText } = await render(<CustomScheduleSheet {...BASE} recurringCoefficient={1} />);
+		expect(getByLabelText("transaction.schedule.fewer").props.accessibilityState.disabled).toBe(true);
+		expect(getByLabelText("transaction.schedule.more").props.accessibilityState.disabled).toBe(false);
 	});
 
 	// Presets used to reset the count when the new unit had no room for it. The
 	// control accepts every interval for every unit, so nothing needs resetting.
 	it("keeps the interval when the unit changes", async () => {
 		const onDone = jest.fn();
-		const { getByRole } = await render(
-			<CustomScheduleSheet {...BASE} onDone={onDone} />,
-		);
+		const { getByRole } = await render(<CustomScheduleSheet {...BASE} onDone={onDone} />);
 
 		await press(getByRole("tab", { name: "transaction.cadence.weeks" }));
 		await press(getByRole("button", { name: "common.done" }));
@@ -140,9 +124,7 @@ describe("CustomScheduleSheet", () => {
 	// The count is a NumberFlow rather than part of the sentence's text so it can
 	// roll between values; the words either side stay plain Text.
 	it("states the schedule as a sentence with the count on its own", async () => {
-		const { getByTestId, toJSON } = await render(
-			<CustomScheduleSheet {...BASE} />,
-		);
+		const { getByTestId, toJSON } = await render(<CustomScheduleSheet {...BASE} />);
 		const sentence = within(getByTestId("schedule-sentence"));
 		expect(sentence.getByText("transaction.schedule.everyLabel")).toBeTruthy();
 		expect(sentence.getByText("transaction.unit.months")).toBeTruthy();
@@ -150,14 +132,8 @@ describe("CustomScheduleSheet", () => {
 	});
 
 	it("names the unit in the singular for an interval of one", async () => {
-		const { getByTestId, toJSON } = await render(
-			<CustomScheduleSheet {...BASE} recurringCoefficient={1} />,
-		);
-		expect(
-			within(getByTestId("schedule-sentence")).getByText(
-				"transaction.unit.month",
-			),
-		).toBeTruthy();
+		const { getByTestId, toJSON } = await render(<CustomScheduleSheet {...BASE} recurringCoefficient={1} />);
+		expect(within(getByTestId("schedule-sentence")).getByText("transaction.unit.month")).toBeTruthy();
 		expect(findByType(toJSON() as JsonNode, "NumberFlow")?.props.value).toBe(1);
 	});
 
@@ -173,11 +149,7 @@ describe("CustomScheduleSheet", () => {
 	// to be invisible until the charge landed, a month later.
 	it("flags the charges a short month moves, and says why", async () => {
 		const { getAllByText, getByText } = await render(
-			<CustomScheduleSheet
-				{...BASE}
-				firstPayment={JANUARY_31}
-				recurringCoefficient={1}
-			/>,
+			<CustomScheduleSheet {...BASE} firstPayment={JANUARY_31} recurringCoefficient={1} />
 		);
 		expect(getByText(/28 Feb/)).toBeTruthy();
 		expect(getByText(/31 Mar/)).toBeTruthy();
@@ -195,11 +167,7 @@ describe("CustomScheduleSheet", () => {
 		const onDone = jest.fn();
 		const onOpenChange = jest.fn();
 		const { getByLabelText, getByRole } = await render(
-			<CustomScheduleSheet
-				{...BASE}
-				onDone={onDone}
-				onOpenChange={onOpenChange}
-			/>,
+			<CustomScheduleSheet {...BASE} onDone={onDone} onOpenChange={onOpenChange} />
 		);
 
 		await step(getByLabelText("transaction.schedule.more"), 3);
@@ -213,11 +181,7 @@ describe("CustomScheduleSheet", () => {
 		const onDone = jest.fn();
 		const onOpenChange = jest.fn();
 		const { getByLabelText, getByRole } = await render(
-			<CustomScheduleSheet
-				{...BASE}
-				onDone={onDone}
-				onOpenChange={onOpenChange}
-			/>,
+			<CustomScheduleSheet {...BASE} onDone={onDone} onOpenChange={onOpenChange} />
 		);
 
 		await step(getByLabelText("transaction.schedule.more"), 1);
@@ -233,7 +197,7 @@ describe("CustomScheduleSheet", () => {
 		jest.useFakeTimers();
 		try {
 			const { getByLabelText, getByText, queryByText } = await render(
-				<CustomScheduleSheet {...BASE} recurringCoefficient={1} />,
+				<CustomScheduleSheet {...BASE} recurringCoefficient={1} />
 			);
 			// The sheet disarms the ripple on its open edge; arm it.
 			await act(async () => {
@@ -275,11 +239,7 @@ describe("CustomScheduleSheet", () => {
 			// between (31 Oct, 31 Jan, 31 Oct) clamps nowhere, which is what used to
 			// blink it off.
 			const { getByLabelText, getByText, queryByText } = await render(
-				<CustomScheduleSheet
-					{...BASE}
-					firstPayment={new Date(2026, 6, 31)}
-					recurringCoefficient={1}
-				/>,
+				<CustomScheduleSheet {...BASE} firstPayment={new Date(2026, 6, 31)} recurringCoefficient={1} />
 			);
 			await act(async () => {
 				jest.advanceTimersByTime(1);
@@ -299,9 +259,7 @@ describe("CustomScheduleSheet", () => {
 	});
 
 	it("re-seeds from the form each time it opens", async () => {
-		const { rerender, toJSON } = await render(
-			<CustomScheduleSheet {...BASE} open={false} />,
-		);
+		const { rerender, toJSON } = await render(<CustomScheduleSheet {...BASE} open={false} />);
 
 		await act(async () => {
 			rerender(<CustomScheduleSheet {...BASE} open recurringCoefficient={4} />);

@@ -1,11 +1,7 @@
 import { EN } from "@/i18n/catalog";
 import { interpolate } from "@/i18n/translate";
 import { RECURRING_TYPE } from "./recurrence";
-import {
-	logAgainDraft,
-	stopRecurringPrompt,
-	transactionRowActions,
-} from "./transaction-actions";
+import { logAgainDraft, stopRecurringPrompt, transactionRowActions } from "./transaction-actions";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
@@ -13,10 +9,10 @@ const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 describe("transactionRowActions", () => {
 	it("offers Delete and Log again on a plain settled row", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.none,
 			date: at(2025, 5, 1),
 			future: false,
 			now: NOW,
+			recurringType: RECURRING_TYPE.none,
 		});
 
 		expect(actions.canStopRecurring).toBe(false);
@@ -26,10 +22,10 @@ describe("transactionRowActions", () => {
 
 	it("offers Stop Recurring on a live carrier", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.monthly,
 			date: at(2025, 5, 15),
 			future: false,
 			now: NOW,
+			recurringType: RECURRING_TYPE.monthly,
 		});
 
 		expect(actions.canStopRecurring).toBe(true);
@@ -38,10 +34,10 @@ describe("transactionRowActions", () => {
 
 	it("offers Log again on a settled carrier, whose charge did happen", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.monthly,
 			date: at(2025, 5, 15),
 			future: false,
 			now: NOW,
+			recurringType: RECURRING_TYPE.monthly,
 		});
 
 		expect(actions.canLogAgain).toBe(true);
@@ -49,10 +45,10 @@ describe("transactionRowActions", () => {
 
 	it("withholds Delete from a carrier Upcoming is projecting forward", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.monthly,
 			date: at(2025, 5, 15),
 			future: true,
 			now: NOW,
+			recurringType: RECURRING_TYPE.monthly,
 		});
 
 		expect(actions.canStopRecurring).toBe(true);
@@ -62,10 +58,10 @@ describe("transactionRowActions", () => {
 
 	it("keeps Delete on the pending charge itself", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.monthly,
 			date: at(2025, 7, 15),
 			future: true,
 			now: NOW,
+			recurringType: RECURRING_TYPE.monthly,
 		});
 
 		expect(actions.canStopRecurring).toBe(true);
@@ -74,10 +70,10 @@ describe("transactionRowActions", () => {
 
 	it("withholds Log again from a charge that has not landed yet", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.monthly,
 			date: at(2025, 7, 15),
 			future: true,
 			now: NOW,
+			recurringType: RECURRING_TYPE.monthly,
 		});
 
 		expect(actions.canLogAgain).toBe(false);
@@ -85,10 +81,10 @@ describe("transactionRowActions", () => {
 
 	it("keeps Delete on an inert row shown under Upcoming", () => {
 		const actions = transactionRowActions({
-			recurringType: RECURRING_TYPE.none,
 			date: at(2025, 7, 15),
 			future: true,
 			now: NOW,
+			recurringType: RECURRING_TYPE.none,
 		});
 
 		expect(actions.canStopRecurring).toBe(false);
@@ -101,37 +97,37 @@ describe("logAgainDraft", () => {
 	// Shaped like the row `getTransactionById` returns, schedule and photo
 	// included, so the projection is exercised against what it really receives.
 	const row = {
-		id: "tx-1",
 		amount: 4.75,
-		income: false,
 		categoryId: "cat-coffee",
-		note: "Flat white",
-		details: "the one by the office",
 		currency: "EUR",
-		date: at(2025, 5, 1),
-		icon: null,
-		emoji: "☕️",
 		customColor: "#8A5A2B",
-		imageUri: "file:///var/photos/cup.jpg",
+		date: at(2025, 5, 1),
+		details: "the one by the office",
+		emoji: "☕️",
+		icon: null,
+		id: "tx-1",
 		imageColor: "#111111",
+		imageUri: "file:///var/photos/cup.jpg",
+		income: false,
+		note: "Flat white",
 		onceRecurring: true,
-		recurringType: RECURRING_TYPE.monthly,
 		recurringCoefficient: 2,
 		recurringEndDate: at(2026, 5, 1),
+		recurringType: RECURRING_TYPE.monthly,
 		reminderLeadDays: 3,
 	};
 
 	it("carries the charge over field for field", () => {
 		expect(logAgainDraft(row)).toStrictEqual({
 			amount: 4.75,
-			income: false,
 			categoryId: "cat-coffee",
-			note: "Flat white",
-			details: "the one by the office",
 			currency: "EUR",
-			icon: null,
-			emoji: "☕️",
 			customColor: "#8A5A2B",
+			details: "the one by the office",
+			emoji: "☕️",
+			icon: null,
+			income: false,
+			note: "Flat white",
 		});
 	});
 
@@ -183,24 +179,24 @@ describe("logAgainDraft", () => {
 	it("carries an absent note, category and detail through as they are", () => {
 		const bare = {
 			...row,
-			note: "",
-			details: null,
 			categoryId: null,
 			currency: null,
-			emoji: null,
 			customColor: null,
+			details: null,
+			emoji: null,
+			note: "",
 		};
 
 		expect(logAgainDraft(bare)).toStrictEqual({
 			amount: 4.75,
-			income: false,
 			categoryId: null,
-			note: "",
-			details: null,
 			currency: null,
-			icon: null,
-			emoji: null,
 			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "",
 		});
 	});
 });
@@ -209,8 +205,8 @@ describe("stopRecurringPrompt", () => {
 	const render = (note: string, pending: boolean) => {
 		const copy = stopRecurringPrompt(note, pending);
 		return {
-			title: interpolate(EN[copy.titleKey], { note: copy.note ?? undefined }),
 			message: EN[copy.messageKey],
+			title: interpolate(EN[copy.titleKey], { note: copy.note ?? undefined }),
 		};
 	};
 

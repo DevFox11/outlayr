@@ -19,19 +19,9 @@ export function useTags(db: Database): TagRow[] {
  * The tag ids a transaction carries. Keyed on the id so a form opened on a
  * different entry re-reads rather than showing the last one's tags.
  */
-export function useTagIdsFor(
-	db: Database,
-	transactionId: string | null,
-): string[] {
-	const rows = useLiveQuery(
-		transactionTags,
-		() => tagIdsForQuery(db, transactionId ?? ""),
-		[transactionId],
-	);
-	return useMemo(
-		() => (transactionId ? rows.map((row) => row.tagId) : []),
-		[rows, transactionId],
-	);
+export function useTagIdsFor(db: Database, transactionId: string | null): string[] {
+	const rows = useLiveQuery(transactionTags, () => tagIdsForQuery(db, transactionId ?? ""), [transactionId]);
+	return useMemo(() => (transactionId ? rows.map((row) => row.tagId) : []), [rows, transactionId]);
 }
 
 /**
@@ -45,13 +35,13 @@ export function useTagIdsByTransaction(db: Database): Map<string, string[]> {
 	const rows = useLiveQuery(transactionTags, () =>
 		db
 			.select({
-				transactionId: transactionTags.transactionId,
 				tagId: transactionTags.tagId,
+				transactionId: transactionTags.transactionId,
 			})
 			.from(transactionTags)
 			// Tombstones stay in the table so the deletion replicates; painting one
 			// would show a tag the owner removed.
-			.where(isNull(transactionTags.deletedAt)),
+			.where(isNull(transactionTags.deletedAt))
 	);
 	return useMemo(() => {
 		const byTransaction = new Map<string, string[]>();

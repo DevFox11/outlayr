@@ -4,12 +4,7 @@ import type { Database } from "@/db/client";
 import { accounts, exchangeRates, transactions } from "@/db/schema";
 import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
-import {
-	accountsRepo,
-	getAccountById,
-	getLastUsedAccount,
-	rememberLastUsedAccount,
-} from "./accounts-core";
+import { accountsRepo, getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "./accounts-core";
 import { accountCellQuery, toCurrencyCells } from "./cell-query";
 import { transactionsRepo } from "./transactions-core";
 
@@ -81,19 +76,14 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-async function addRate(
-	db: Database,
-	quote: string,
-	date: string,
-	rate: number,
-): Promise<void> {
+async function addRate(db: Database, quote: string, date: string, rate: number): Promise<void> {
 	await db.insert(exchangeRates).values({
-		quote,
-		rateType: "official",
 		date,
-		rate,
-		source: "frankfurter",
 		fetchedAt: 1,
+		quote,
+		rate,
+		rateType: "official",
+		source: "frankfurter",
 	});
 }
 
@@ -108,12 +98,12 @@ describe("accountsRepo.create", () => {
 	it("stamps identity, dates, and an appended sortOrder", async () => {
 		const before = Date.now();
 		const first = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
+			name: "Checking",
 		});
 		const second = await accountsRepo.create(db, {
-			name: "Savings",
 			currency: "USD",
+			name: "Savings",
 		});
 
 		const row = getAccountById(db, first);
@@ -130,9 +120,9 @@ describe("accountsRepo.create", () => {
 
 	it("freezes a USD opening balance at rate 1", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
 			initialBalance: 250,
+			name: "Checking",
 		});
 
 		expect(getAccountById(db, id)?.initialBalanceUsd).toBe(250);
@@ -142,10 +132,10 @@ describe("accountsRepo.create", () => {
 		await addRate(db, "EUR", "2026-01-01", 0.8);
 
 		const id = await accountsRepo.create(db, {
-			name: "Girokonto",
 			currency: "EUR",
 			initialBalance: 100,
 			initialBalanceDate: JAN_5,
+			name: "Girokonto",
 		});
 
 		const row = getAccountById(db, id);
@@ -157,10 +147,10 @@ describe("accountsRepo.create", () => {
 		await addRate(db, "EUR", "2026-01-01", 0.8);
 
 		const id = await accountsRepo.create(db, {
-			name: "Overdrawn",
 			currency: "EUR",
 			initialBalance: -40,
 			initialBalanceDate: JAN_5,
+			name: "Overdrawn",
 		});
 
 		const row = getAccountById(db, id);
@@ -170,10 +160,10 @@ describe("accountsRepo.create", () => {
 
 	it("leaves the freeze null when no rate reaches the day", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Cash",
 			currency: "EUR",
 			initialBalance: 100,
 			initialBalanceDate: JAN_5,
+			name: "Cash",
 		});
 
 		expect(getAccountById(db, id)?.initialBalanceUsd).toBe(null);
@@ -189,14 +179,14 @@ describe("accountsRepo.update", () => {
 	it("keeps the frozen USD value when the money fields do not move", async () => {
 		await addRate(db, "EUR", "2026-01-01", 0.8);
 		const id = await accountsRepo.create(db, {
-			name: "Girokonto",
 			currency: "EUR",
 			initialBalance: 100,
 			initialBalanceDate: JAN_5,
+			name: "Girokonto",
 		});
 		await db.delete(exchangeRates);
 
-		await accountsRepo.update(db, id, { name: "Konto", icon: "Bank" });
+		await accountsRepo.update(db, id, { icon: "Bank", name: "Konto" });
 
 		const row = getAccountById(db, id);
 		expect(row?.name).toBe("Konto");
@@ -207,10 +197,10 @@ describe("accountsRepo.update", () => {
 	it("re-freezes when the opening balance moves", async () => {
 		await addRate(db, "EUR", "2026-01-01", 0.8);
 		const id = await accountsRepo.create(db, {
-			name: "Girokonto",
 			currency: "EUR",
 			initialBalance: 100,
 			initialBalanceDate: JAN_5,
+			name: "Girokonto",
 		});
 
 		await accountsRepo.update(db, id, { initialBalance: 200 });
@@ -221,10 +211,10 @@ describe("accountsRepo.update", () => {
 	it("re-freezes when the currency moves", async () => {
 		await addRate(db, "EUR", "2026-01-01", 0.8);
 		const id = await accountsRepo.create(db, {
-			name: "Konto",
 			currency: "EUR",
 			initialBalance: 100,
 			initialBalanceDate: JAN_5,
+			name: "Konto",
 		});
 
 		await accountsRepo.update(db, id, { currency: "USD" });
@@ -234,10 +224,10 @@ describe("accountsRepo.update", () => {
 
 	it("clears the key when the logo is taken off", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
-			imageUri: "file:///photos/logo.jpg",
 			imageKey: "transaction-photos/user/logo.jpg",
+			imageUri: "file:///photos/logo.jpg",
+			name: "Checking",
 		});
 
 		await accountsRepo.update(db, id, { imageUri: null });
@@ -247,31 +237,27 @@ describe("accountsRepo.update", () => {
 
 	it("keeps the key of a logo this device has yet to fetch", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
 			imageKey: "transaction-photos/user/logo.jpg",
+			name: "Checking",
 		});
 
-		await accountsRepo.update(db, id, { name: "Renamed", imageUri: null });
+		await accountsRepo.update(db, id, { imageUri: null, name: "Renamed" });
 
-		expect(getAccountById(db, id)?.imageKey).toBe(
-			"transaction-photos/user/logo.jpg",
-		);
+		expect(getAccountById(db, id)?.imageKey).toBe("transaction-photos/user/logo.jpg");
 	});
 
 	it("stamps updatedAt", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
+			name: "Checking",
 		});
 		const created = getAccountById(db, id)?.updatedAt.getTime() ?? 0;
 		await new Promise((resolve) => setTimeout(resolve, 2));
 
 		await accountsRepo.update(db, id, { name: "Renamed" });
 
-		expect(getAccountById(db, id)?.updatedAt.getTime()).toBeGreaterThan(
-			created,
-		);
+		expect(getAccountById(db, id)?.updatedAt.getTime()).toBeGreaterThan(created);
 	});
 });
 
@@ -283,30 +269,28 @@ describe("accountsRepo lifecycle", () => {
 
 	it("softDelete tombstones and drops the row from listActive", async () => {
 		const first = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
+			name: "Checking",
 		});
 		const second = await accountsRepo.create(db, {
-			name: "Savings",
 			currency: "USD",
+			name: "Savings",
 		});
 
 		await accountsRepo.softDelete(db, first);
 
 		const rows = await accountsRepo.listActive(db);
 		expect(rows.map((row) => row.id)).toStrictEqual([second]);
-		const gone = (await db.select().from(accounts)).find(
-			(row) => row.id === first,
-		);
+		const gone = (await db.select().from(accounts)).find((row) => row.id === first);
 		expect(gone?.deletedAt).not.toBe(null);
 		expect(gone?.updatedAt.getTime()).toBe(gone?.deletedAt?.getTime());
 		expect(getAccountById(db, first)).toBe(null);
 	});
 
 	it("reorder assigns each id its array index and stamps updatedAt", async () => {
-		const a = await accountsRepo.create(db, { name: "A", currency: "USD" });
-		const b = await accountsRepo.create(db, { name: "B", currency: "USD" });
-		const c = await accountsRepo.create(db, { name: "C", currency: "USD" });
+		const a = await accountsRepo.create(db, { currency: "USD", name: "A" });
+		const b = await accountsRepo.create(db, { currency: "USD", name: "B" });
+		const c = await accountsRepo.create(db, { currency: "USD", name: "C" });
 
 		await accountsRepo.reorder(db, [c, a, b]);
 
@@ -322,20 +306,17 @@ describe("accountCellQuery", () => {
 		db = makeDb();
 	});
 
-	async function addEntry(
-		id: string,
-		overrides: Partial<typeof transactions.$inferInsert>,
-	): Promise<void> {
+	async function addEntry(id: string, overrides: Partial<typeof transactions.$inferInsert>): Promise<void> {
 		await db.insert(transactions).values({
-			id,
 			amount: 10,
-			income: false,
+			amountUsd: 10,
 			currency: "USD",
-			note: id,
 			date: JAN_5,
 			day: JAN_5,
+			id,
+			income: false,
 			month: JAN_5,
-			amountUsd: 10,
+			note: id,
 			updatedAt: JAN_5,
 			...overrides,
 		});
@@ -375,11 +356,7 @@ describe("accountCellQuery", () => {
 		});
 
 		const cells = toCurrencyCells(await accountCellQuery(db, "a1"));
-		const balance = accountBalance(
-			{ currency: "USD", initialBalance: 100 },
-			cells,
-			buildRateTable([]),
-		);
+		const balance = accountBalance({ currency: "USD", initialBalance: 100 }, cells, buildRateTable([]));
 
 		expect(balance.total).toBe(82);
 		expect(balance.exact).toBe(true);
@@ -398,8 +375,8 @@ describe("the last-used account", () => {
 
 	it("hands back the remembered account", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
+			name: "Checking",
 		});
 
 		await rememberLastUsedAccount(db, id);
@@ -409,12 +386,12 @@ describe("the last-used account", () => {
 
 	it("moves with the newest attachment", async () => {
 		const first = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
+			name: "Checking",
 		});
 		const second = await accountsRepo.create(db, {
-			name: "Savings",
 			currency: "USD",
+			name: "Savings",
 		});
 
 		await rememberLastUsedAccount(db, first);
@@ -425,8 +402,8 @@ describe("the last-used account", () => {
 
 	it("answers null once the remembered account is deleted", async () => {
 		const id = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
+			name: "Checking",
 		});
 		await rememberLastUsedAccount(db, id);
 
@@ -447,42 +424,38 @@ describe("an attached entry moving the balance", () => {
 		if (account == null) {
 			throw new Error("Account not found.");
 		}
-		return accountBalance(
-			account,
-			toCurrencyCells(await accountCellQuery(db, accountId)),
-			rates,
-		);
+		return accountBalance(account, toCurrencyCells(await accountCellQuery(db, accountId)), rates);
 	}
 
 	it("shifts the balance in the account's own currency", async () => {
 		const accountId = await accountsRepo.create(db, {
-			name: "Checking",
 			currency: "USD",
 			initialBalance: 100,
+			name: "Checking",
 		});
 		expect((await balanceOf(accountId)).total).toBe(100);
 
 		await transactionsRepo.create(db, {
-			amount: 25,
-			income: false,
-			categoryId: "cat-1",
-			note: "Coffee",
-			details: null,
-			date: JAN_5,
-			currency: "USD",
 			accountId,
+			amount: 25,
+			categoryId: "cat-1",
+			currency: "USD",
+			date: JAN_5,
+			details: null,
+			income: false,
+			note: "Coffee",
 		});
 		expect((await balanceOf(accountId)).total).toBe(75);
 
 		await transactionsRepo.create(db, {
-			amount: 40,
-			income: true,
-			categoryId: "cat-1",
-			note: "Refund",
-			details: null,
-			date: JAN_5,
-			currency: "USD",
 			accountId,
+			amount: 40,
+			categoryId: "cat-1",
+			currency: "USD",
+			date: JAN_5,
+			details: null,
+			income: true,
+			note: "Refund",
 		});
 		expect((await balanceOf(accountId)).total).toBe(115);
 	});
@@ -490,26 +463,24 @@ describe("an attached entry moving the balance", () => {
 	it("values a foreign-currency entry through its frozen USD amount", async () => {
 		await addRate(db, "EUR", "2026-01-01", 0.8);
 		const accountId = await accountsRepo.create(db, {
-			name: "Girokonto",
 			currency: "EUR",
 			initialBalance: 100,
 			initialBalanceDate: JAN_5,
+			name: "Girokonto",
 		});
 
 		await transactionsRepo.create(db, {
-			amount: 10,
-			income: false,
-			categoryId: "cat-1",
-			note: "Snack",
-			details: null,
-			date: JAN_5,
-			currency: "USD",
 			accountId,
+			amount: 10,
+			categoryId: "cat-1",
+			currency: "USD",
+			date: JAN_5,
+			details: null,
+			income: false,
+			note: "Snack",
 		});
 
-		const rates = buildRateTable([
-			{ quote: "EUR", date: "2026-01-01", rate: 0.8 },
-		]);
+		const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 0.8 }]);
 		const balance = await balanceOf(accountId, rates);
 		expect(balance.total).toBe(92);
 		expect(balance.exact).toBe(true);

@@ -11,7 +11,7 @@ describe("MeasureStrip", () => {
 					{ key: "columns", label: "Columns", value: "4" },
 					{ key: "dates", label: "Dates", value: "dd-MM-yyyy" },
 				]}
-			/>,
+			/>
 		);
 		expect(getByText("Rows")).toBeTruthy();
 		expect(getByText("17")).toBeTruthy();
@@ -22,9 +22,7 @@ describe("MeasureStrip", () => {
 
 	it("renders a node value as-is", async () => {
 		const { getByText } = await render(
-			<MeasureStrip
-				cells={[{ key: "out", label: "Out", value: <Text>-$348.40</Text> }]}
-			/>,
+			<MeasureStrip cells={[{ key: "out", label: "Out", value: <Text>-$348.40</Text> }]} />
 		);
 		expect(getByText("-$348.40")).toBeTruthy();
 	});

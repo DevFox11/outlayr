@@ -47,11 +47,11 @@ export const CANONICAL_CATEGORY_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 export interface KnowledgeCandidate {
-	key: string;
-	domain: string | null;
 	categoryName: string | null;
-	parentCategoryName: string | null;
+	domain: string | null;
 	emoji: string | null;
+	key: string;
+	parentCategoryName: string | null;
 	tags: readonly string[];
 }
 
@@ -80,10 +80,7 @@ function tagsAreSanitized(tags: readonly string[]): boolean {
 	if (tags.length > MAX_TAGS) {
 		return false;
 	}
-	return tags.every(
-		(tag) =>
-			tag.length > 0 && tag === tag.trim() && tag.length <= MAX_TAG_LENGTH,
-	);
+	return tags.every((tag) => tag.length > 0 && tag === tag.trim() && tag.length <= MAX_TAG_LENGTH);
 }
 
 function emojiIsSanitized(emoji: string | null): boolean {
@@ -104,10 +101,7 @@ function emojiIsSanitized(emoji: string | null): boolean {
  * persisted: no public source exists for it, and a null domain fails rule 1
  * first regardless.
  */
-export function shouldPublish(
-	candidate: KnowledgeCandidate,
-	sources: readonly { url: string }[],
-): boolean {
+export function shouldPublish(candidate: KnowledgeCandidate, sources: readonly { url: string }[]): boolean {
 	if (candidate.domain === null || !isSanitizedDomain(candidate.domain)) {
 		return false;
 	}
@@ -115,10 +109,7 @@ export function shouldPublish(
 	if (!sources.some((source) => corroborates(domain, source.url))) {
 		return false;
 	}
-	if (
-		candidate.categoryName === null ||
-		!CANONICAL_CATEGORY_NAMES.has(candidate.categoryName)
-	) {
+	if (candidate.categoryName === null || !CANONICAL_CATEGORY_NAMES.has(candidate.categoryName)) {
 		return false;
 	}
 	if (!KEY_PATTERN.test(candidate.key)) {

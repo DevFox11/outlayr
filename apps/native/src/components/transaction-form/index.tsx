@@ -27,24 +27,14 @@ import {
 	strokeBorder,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
-import {
-	RepeatIcon,
-	Tag01Icon,
-	TagsIcon,
-	TextIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { RepeatIcon, Tag01Icon, TagsIcon, TextIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
-import Animated, {
-	FadeInDown,
-	FadeOutDown,
-	useDerivedValue,
-	useSharedValue,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 import { Confetti } from "@/components/confetti";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
@@ -52,62 +42,28 @@ import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
 import { useAppSettings } from "@/contexts/display-settings-context";
-import {
-	useIdentityDraft,
-	useIdentityFlyUp,
-} from "@/contexts/identity-draft-context";
-import {
-	getAccountById,
-	getLastUsedAccount,
-	rememberLastUsedAccount,
-} from "@/data/accounts";
+import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
-import {
-	ensureCategoryByName,
-	getCategoryById,
-	useCategoriesByNamespace,
-} from "@/data/categories";
+import { ensureCategoryByName, getCategoryById, useCategoriesByNamespace } from "@/data/categories";
 import { setBoolSetting } from "@/data/settings";
 import { tagsRepo, useTagIdsFor, useTags } from "@/data/tags";
-import {
-	backfillRecurring,
-	type Transaction,
-	transactionsRepo,
-} from "@/data/transactions";
+import { backfillRecurring, type Transaction, transactionsRepo } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import { firstAvailableColor } from "@/domain/category-color";
-import {
-	FALLBACK_EXPENSE_ICON,
-	FALLBACK_INCOME_ICON,
-	iconKeysMatching,
-} from "@/domain/category-icon-catalog";
+import { FALLBACK_EXPENSE_ICON, FALLBACK_INCOME_ICON, iconKeysMatching } from "@/domain/category-icon-catalog";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
 import { amountParts, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import {
-	ensureRecurringType,
-	RECURRING_TYPE,
-	SELECTABLE_RECURRING_TYPES,
-} from "@/domain/recurrence";
+import { ensureRecurringType, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
-import {
-	normalizeLead,
-	REMINDER_LEAD_OPTIONS,
-	resolveLeadSelection,
-} from "@/domain/subscription-reminder";
+import { normalizeLead, REMINDER_LEAD_OPTIONS, resolveLeadSelection } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import {
-	cadenceLabel,
-	ctaKey,
-	leadLabel,
-} from "@/domain/transaction-form-labels";
+import { cadenceLabel, ctaKey, leadLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
-import {
-	isMissingCategory,
-	transactionFormErrors,
-} from "@/domain/transaction-form-validate";
+import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-form-validate";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useRegionCode } from "@/hooks/use-region-code";
 import {
@@ -117,11 +73,7 @@ import {
 } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
-import {
-	openNotificationSettings,
-	reminderPermission,
-	requestReminderPermission,
-} from "@/lib/reminders";
+import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
@@ -144,18 +96,7 @@ import { TransactionFormDetailsSection } from "./details-section";
 import { TransactionFormIdentitySection } from "./identity-section";
 import { TransactionFormRowIcon } from "./row-icon";
 import { TransactionFormScheduleSection } from "./schedule-section";
-import {
-	BODY,
-	CAPTION,
-	ENRICHING,
-	FLY_BACK,
-	FLY_UP,
-	FORM_BLUR_RADIUS,
-	ROW,
-	rowLabel,
-	SHAKE,
-	TAP_ROW,
-} from "./style";
+import { BODY, CAPTION, ENRICHING, FLY_BACK, FLY_UP, FORM_BLUR_RADIUS, ROW, rowLabel, SHAKE, TAP_ROW } from "./style";
 
 /**
  * Only reached if `onGeometryChange` never fires; a real measurement always
@@ -183,17 +124,12 @@ type FieldSource = "initial" | "suggested" | "user";
  * identity, recurrence or category.
  */
 export interface TransactionSeed {
-	income?: boolean;
 	amount?: number;
+	income?: boolean;
 	note?: string;
 }
 
 interface TransactionFormProps {
-	db: Database;
-	mode: "create" | "edit";
-	initial?: Transaction;
-	/** Ignored when `initial` is present — an edit is never seeded. */
-	seed?: TransactionSeed;
 	/**
 	 * The charge this create is repeating, from a row's own `Log again`. It may
 	 * carry category and identity where {@link TransactionSeed} may not: these
@@ -202,10 +138,15 @@ interface TransactionFormProps {
 	 * no date and no schedule, so the copy lands today and stays a one-off.
 	 */
 	copyOf?: LogAgainDraft;
-	onDone: () => void;
+	db: Database;
+	initial?: Transaction;
+	mode: "create" | "edit";
 	/** Adds a destructive item beside Save. Edit routes only — there is nothing
 	 * to delete before the row exists. */
 	onDelete?: () => void;
+	onDone: () => void;
+	/** Ignored when `initial` is present — an edit is never seeded. */
+	seed?: TransactionSeed;
 }
 
 /**
@@ -215,15 +156,7 @@ interface TransactionFormProps {
  * SwiftUI's `List` imposes its own section spacing, corner radius and row
  * insets, none of which are settable.
  */
-export function TransactionForm({
-	db,
-	mode,
-	initial,
-	seed,
-	copyOf,
-	onDone,
-	onDelete,
-}: TransactionFormProps) {
+export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDelete }: TransactionFormProps) {
 	const colors = useColors();
 	const haptics = useHaptics();
 	const t = useTranslation();
@@ -232,9 +165,7 @@ export function TransactionForm({
 	const contentWidth = windowWidth - 40;
 	const globalCurrency = useGlobalCurrency(db);
 
-	const name = useNativeState(
-		initial?.note ?? copyOf?.note ?? seed?.note ?? "",
-	);
+	const name = useNativeState(initial?.note ?? copyOf?.note ?? seed?.note ?? "");
 	const notes = useNativeState(initial?.details ?? copyOf?.details ?? "");
 
 	const { draft: identity, setDraft: setIdentity } = useIdentityDraft();
@@ -250,61 +181,35 @@ export function TransactionForm({
 		const currencySeed = initial?.currency ?? copyOf?.currency ?? null;
 		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
 		return {
-			txCurrency: currencySeed,
+			account: initial ? (initial.accountId ? getAccountById(db, initial.accountId) : null) : getLastUsedAccount(db),
+			amount: amountSeed == null ? "" : numberToNumpad(amountSeed, minorUnitsFor(currencySeed ?? globalCurrency)),
+			category: seedCategory,
+			coefficient: initial?.recurringCoefficient ?? 1,
+			date: initial ? new Date(initial.date) : new Date(),
+			endDate: initial?.recurringEndDate ? new Date(initial.recurringEndDate) : oneYearFrom(new Date()),
+			hasEndDate: initial?.recurringEndDate != null,
+			income: seedCategory?.income ?? initial?.income ?? copyOf?.income ?? seed?.income ?? false,
 			// Seeded from the live schedule, not `onceRecurring`: that flag stays
 			// true on every occurrence the back-fill materialized, so reading it
 			// here opens a settled charge as an active subscription and
 			// re-projects the whole schedule on save. Exactly one row in a chain
 			// carries `recurringType > 0` — the one that is genuinely still
 			// charging.
-			isSubscription:
-				(initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
-			category: seedCategory,
+			isSubscription: (initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
+			leadDays: normalizeLead(initial?.reminderLeadDays ?? null),
 			pendingCategory: null as PendingCategory | null,
-			income:
-				seedCategory?.income ??
-				initial?.income ??
-				copyOf?.income ??
-				seed?.income ??
-				false,
-			amount:
-				amountSeed == null
-					? ""
-					: numberToNumpad(
-							amountSeed,
-							minorUnitsFor(currencySeed ?? globalCurrency),
-						),
-			date: initial ? new Date(initial.date) : new Date(),
+			pendingTagNames: [] as readonly string[],
 			recurringType:
 				initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
 					? initial.recurringType
 					: RECURRING_TYPE.monthly,
-			coefficient: initial?.recurringCoefficient ?? 1,
-			hasEndDate: initial?.recurringEndDate != null,
-			endDate: initial?.recurringEndDate
-				? new Date(initial.recurringEndDate)
-				: oneYearFrom(new Date()),
-			leadDays: normalizeLead(initial?.reminderLeadDays ?? null),
 			tagIds: [] as string[],
-			pendingTagNames: [] as readonly string[],
-			account: initial
-				? initial.accountId
-					? getAccountById(db, initial.accountId)
-					: null
-				: getLastUsedAccount(db),
+			txCurrency: currencySeed,
 		};
 	});
 
 	const form = useForm({
 		defaultValues: initialValues,
-		validators: { onChange: ({ value }) => transactionFormErrors(value) },
-		// The CTA stays lit on amount alone, so a tap with no category lands here
-		// rather than on a dimmed button that explains nothing.
-		onSubmitInvalid: ({ value }) => {
-			if (isMissingCategory(value)) {
-				flagMissingCategory();
-			}
-		},
 		// Clearing the category belongs to the income change itself, not to the
 		// segmented control that happens to be the only caller today.
 		listeners: {
@@ -326,26 +231,17 @@ export function TransactionForm({
 			} else if (value.pendingCategory) {
 				const pending = value.pendingCategory;
 				try {
-					categoryId = await ensureCategoryByName(
-						db,
-						pending.name,
-						value.income,
-						pending.icon,
-						pending.color,
-						{
-							emoji: pending.emoji,
-							// Resolved here rather than carried as an id: the suggestion
-							// names a parent, and only this ledger knows which row that is.
-							parentId:
-								pending.parentName == null
-									? null
-									: (categoriesRef.current.find(
-											(candidate) =>
-												candidate.parentId == null &&
-												candidate.name === pending.parentName,
-										)?.id ?? null),
-						},
-					);
+					categoryId = await ensureCategoryByName(db, pending.name, value.income, pending.icon, pending.color, {
+						emoji: pending.emoji,
+						// Resolved here rather than carried as an id: the suggestion
+						// names a parent, and only this ledger knows which row that is.
+						parentId:
+							pending.parentName == null
+								? null
+								: (categoriesRef.current.find(
+										(candidate) => candidate.parentId == null && candidate.name === pending.parentName
+									)?.id ?? null),
+					});
 				} catch (error) {
 					console.error("Failed to create the pending category", error);
 					flagMissingCategory();
@@ -358,25 +254,25 @@ export function TransactionForm({
 			}
 
 			const input = buildTransactionInput({
-				amount: numpadToNumber(value.amount),
-				income: value.income,
-				categoryId,
-				note: name.value,
-				details: notes.value,
-				date: value.date,
-				currency: value.txCurrency,
-				icon: identity.icon,
-				emoji: identity.emoji,
-				customColor: identity.color,
-				imageUri: identity.photoUri,
-				imageColor: identity.photoColor,
-				isSubscription: value.isSubscription,
-				recurringType: value.recurringType,
-				coefficient: value.coefficient,
-				hasEndDate: value.hasEndDate,
-				endDate: value.endDate,
-				leadDays: value.leadDays,
 				accountId: value.account?.id ?? null,
+				amount: numpadToNumber(value.amount),
+				categoryId,
+				coefficient: value.coefficient,
+				currency: value.txCurrency,
+				customColor: identity.color,
+				date: value.date,
+				details: notes.value,
+				emoji: identity.emoji,
+				endDate: value.endDate,
+				hasEndDate: value.hasEndDate,
+				icon: identity.icon,
+				imageColor: identity.photoColor,
+				imageUri: identity.photoUri,
+				income: value.income,
+				isSubscription: value.isSubscription,
+				leadDays: value.leadDays,
+				note: name.value,
+				recurringType: value.recurringType,
 			});
 			let id: string;
 			try {
@@ -392,10 +288,7 @@ export function TransactionForm({
 				// first: un-dimming the CTA in silence is indistinguishable from having
 				// missed the button.
 				haptics("error");
-				Alert.alert(
-					t("transaction.save.failedTitle"),
-					t("transaction.save.failedBody"),
-				);
+				Alert.alert(t("transaction.save.failedTitle"), t("transaction.save.failedBody"));
 				return;
 			}
 			// The row is COMMITTED from here down, so no failure below may re-enable the
@@ -423,10 +316,7 @@ export function TransactionForm({
 					await tagsRepo.setTagsFor(db, id, materializedTagIds);
 				} catch (error) {
 					console.error("Failed to save tags", error);
-					Alert.alert(
-						t("transaction.tags.failedTitle"),
-						t("transaction.tags.failedBody"),
-					);
+					Alert.alert(t("transaction.tags.failedTitle"), t("transaction.tags.failedBody"));
 				}
 			}
 			let scheduleFailed = false;
@@ -450,11 +340,9 @@ export function TransactionForm({
 				// Dismissed from the alert's own button rather than alongside it: an
 				// alert raised as the modal route is being torn down has no presenter
 				// left and never appears, which is the silence this replaces.
-				Alert.alert(
-					t("transaction.save.scheduleFailedTitle"),
-					t("transaction.save.scheduleFailedBody"),
-					[{ text: t("common.done"), onPress: onDone }],
-				);
+				Alert.alert(t("transaction.save.scheduleFailedTitle"), t("transaction.save.scheduleFailedBody"), [
+					{ onPress: onDone, text: t("common.done") },
+				]);
 				return await holdSubmitting();
 			}
 			if (mode === "edit") {
@@ -469,39 +357,36 @@ export function TransactionForm({
 			if (celebrate) {
 				setBurstSeed(Date.now());
 			}
-			doneTimer.current = setTimeout(
-				onDone,
-				celebrate ? CONFETTI_FLIGHT_MS : 600,
-			);
+			doneTimer.current = setTimeout(onDone, celebrate ? CONFETTI_FLIGHT_MS : 600);
 			return await holdSubmitting();
 		},
+		// The CTA stays lit on amount alone, so a tap with no category lands here
+		// rather than on a dimmed button that explains nothing.
+		onSubmitInvalid: ({ value }) => {
+			if (isMissingCategory(value)) {
+				flagMissingCategory();
+			}
+		},
+		validators: { onChange: ({ value }) => transactionFormErrors(value) },
 	});
 	// Names the fields rather than taking `values` wholesale: that object gets a
 	// fresh identity on every write, so selecting it re-renders this whole screen
 	// on each amount keystroke however few fields are read out of it.
-	const {
-		txCurrency,
-		isSubscription,
-		category,
-		pendingCategory,
-		income,
-		recurringType,
-		coefficient,
-		account,
-	} = useSelector(
-		form.store,
-		(s) => ({
-			txCurrency: s.values.txCurrency,
-			isSubscription: s.values.isSubscription,
-			category: s.values.category,
-			pendingCategory: s.values.pendingCategory,
-			income: s.values.income,
-			recurringType: s.values.recurringType,
-			coefficient: s.values.coefficient,
-			account: s.values.account,
-		}),
-		{ compare: shallowEqual },
-	);
+	const { txCurrency, isSubscription, category, pendingCategory, income, recurringType, coefficient, account } =
+		useSelector(
+			form.store,
+			(s) => ({
+				account: s.values.account,
+				category: s.values.category,
+				coefficient: s.values.coefficient,
+				income: s.values.income,
+				isSubscription: s.values.isSubscription,
+				pendingCategory: s.values.pendingCategory,
+				recurringType: s.values.recurringType,
+				txCurrency: s.values.txCurrency,
+			}),
+			{ compare: shallowEqual }
+		);
 
 	const currency = txCurrency ?? globalCurrency;
 	const minorUnits = minorUnitsFor(currency);
@@ -509,7 +394,7 @@ export function TransactionForm({
 	// A category carried in from `copyOf` is a deliberate choice, not a blank
 	// slot an enrichment suggestion is free to fill.
 	const [categorySource, setCategorySource] = useState<FieldSource>(() =>
-		initialValues.category !== null ? "user" : "initial",
+		initialValues.category === null ? "initial" : "user"
 	);
 
 	// Registers a FieldApi under `income` purely so the form's `listeners` reach
@@ -545,7 +430,7 @@ export function TransactionForm({
 	const heroRestTop = useDerivedValue(() =>
 		Number.isNaN(heroWinY.value) || containerHeight.value <= 0
 			? HERO_REST_TOP_FALLBACK
-			: heroWinY.value - (windowHeight - containerHeight.value),
+			: heroWinY.value - (windowHeight - containerHeight.value)
 	);
 	const scheme = useColorScheme();
 	const isDark = scheme === "dark";
@@ -564,21 +449,15 @@ export function TransactionForm({
 	const createCategoryNamed = useCallback(
 		async (name: string) => {
 			const siblings = categoriesRef.current;
-			const used = new Set(
-				siblings
-					.map((sibling) => sibling.color)
-					.filter((color): color is string => color != null),
-			);
-			const fallbackIcon = income
-				? FALLBACK_INCOME_ICON
-				: FALLBACK_EXPENSE_ICON;
+			const used = new Set(siblings.map((sibling) => sibling.color).filter((color): color is string => color != null));
+			const fallbackIcon = income ? FALLBACK_INCOME_ICON : FALLBACK_EXPENSE_ICON;
 			try {
 				const id = await ensureCategoryByName(
 					db,
 					name,
 					income,
 					iconKeysMatching(name)[0] ?? fallbackIcon,
-					firstAvailableColor(used),
+					firstAvailableColor(used)
 				);
 				const created = getCategoryById(db, id);
 				if (created != null) {
@@ -588,7 +467,7 @@ export function TransactionForm({
 				console.error("Failed to create the category", error);
 			}
 		},
-		[db, income, categoryField.select],
+		[db, income, categoryField.select]
 	);
 	const tagSheetRef = useRef<BottomSheetModal>(null);
 	const accountSheetRef = useRef<BottomSheetModal>(null);
@@ -597,16 +476,10 @@ export function TransactionForm({
 	const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
 	/** Until the user or a suggestion touches them, the row's tags are the saved
 	 * ones — the form field is still the empty array it mounted with. */
-	const effectiveTagIdsOf = (tagIds: readonly string[]) =>
-		tagsSource === "initial" ? savedTagIds : tagIds;
-	const tagLabelsOf = (
-		tagIds: readonly string[],
-		pendingTagNames: readonly string[],
-	) => {
+	const effectiveTagIdsOf = (tagIds: readonly string[]) => (tagsSource === "initial" ? savedTagIds : tagIds);
+	const tagLabelsOf = (tagIds: readonly string[], pendingTagNames: readonly string[]) => {
 		const labels = [
-			...allTags
-				.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id))
-				.map((tag) => tag.name),
+			...allTags.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id)).map((tag) => tag.name),
 			...pendingTagNames,
 		];
 		return labels.length > 0 ? labels.join(", ") : null;
@@ -618,16 +491,12 @@ export function TransactionForm({
 	const categoriesForNamespace = useCategoriesByNamespace(db, income);
 	// Shape only — the names, and what sits under what. No figures leave here.
 	const categoryTree = useMemo(() => {
-		const named = categoriesForNamespace.filter(
-			(candidate) => candidate.name != null,
-		);
+		const named = categoriesForNamespace.filter((candidate) => candidate.name != null);
 		return named
 			.filter((candidate) => candidate.parentId == null)
 			.map((parent) => ({
+				children: named.filter((child) => child.parentId === parent.id).map((child) => child.name as string),
 				name: parent.name as string,
-				children: named
-					.filter((child) => child.parentId === parent.id)
-					.map((child) => child.name as string),
 			}));
 	}, [categoriesForNamespace]);
 	const categoriesRef = useRef(categoriesForNamespace);
@@ -639,48 +508,41 @@ export function TransactionForm({
 		tagsRef.current = allTags;
 	}, [allTags]);
 
-	const resolveLocal = useCallback(
-		(suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
-			let categoryId = suggestion.categoryId;
-			let pendingCategory = suggestion.pendingCategory;
-			if (categoryId == null && pendingCategory != null) {
-				const matchedCategory = categoriesRef.current.find(
-					(candidate) => candidate.name === pendingCategory?.name,
-				);
-				if (matchedCategory != null) {
-					categoryId = matchedCategory.id;
-					pendingCategory = null;
-				}
+	const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
+		let categoryId = suggestion.categoryId;
+		let pendingCategory = suggestion.pendingCategory;
+		if (categoryId == null && pendingCategory != null) {
+			const matchedCategory = categoriesRef.current.find((candidate) => candidate.name === pendingCategory?.name);
+			if (matchedCategory != null) {
+				categoryId = matchedCategory.id;
+				pendingCategory = null;
 			}
-			const resolvedTagIds: string[] = [...suggestion.tagIds];
-			const pendingTagNames: string[] = [];
-			for (const tagName of suggestion.pendingTagNames) {
-				const matchedTag = findTagByName(tagsRef.current, tagName);
-				if (matchedTag != null) {
-					resolvedTagIds.push(matchedTag.id);
-				} else {
-					pendingTagNames.push(tagName);
-				}
+		}
+		const resolvedTagIds: string[] = [...suggestion.tagIds];
+		const pendingTagNames: string[] = [];
+		for (const tagName of suggestion.pendingTagNames) {
+			const matchedTag = findTagByName(tagsRef.current, tagName);
+			if (matchedTag == null) {
+				pendingTagNames.push(tagName);
+			} else {
+				resolvedTagIds.push(matchedTag.id);
 			}
-			return {
-				...suggestion,
-				categoryId,
-				pendingCategory,
-				tagIds: resolvedTagIds,
-				pendingTagNames,
-			};
-		},
-		[],
-	);
+		}
+		return {
+			...suggestion,
+			categoryId,
+			pendingCategory,
+			pendingTagNames,
+			tagIds: resolvedTagIds,
+		};
+	}, []);
 
 	const identitySourceRef = useRef(identitySource);
 	identitySourceRef.current = identitySource;
 	// Whether the well is already showing something, read at write time rather
 	// than closed over — the seeding effect can fill it while a request is out.
 	const hasIdentityRef = useRef(false);
-	hasIdentityRef.current = Boolean(
-		identity.emoji || identity.icon || identity.photoUri,
-	);
+	hasIdentityRef.current = Boolean(identity.emoji || identity.icon || identity.photoUri);
 	const logoRequestRef = useRef(0);
 	const pickerOpenRef = useRef(pickerOpen);
 	pickerOpenRef.current = pickerOpen;
@@ -706,8 +568,8 @@ export function TransactionForm({
 			const stale = () => ticket !== logoRequestRef.current || blocked();
 
 			const outcome = await fetchMerchantImage({
-				name: name.value,
 				domain,
+				name: name.value,
 			});
 			if (stale()) {
 				return;
@@ -720,8 +582,8 @@ export function TransactionForm({
 					setIdentitySource("initial");
 					setIdentity((previous) => ({
 						...previous,
-						photoUri: null,
 						photoColor: null,
+						photoUri: null,
 					}));
 				}
 				return;
@@ -730,8 +592,7 @@ export function TransactionForm({
 			try {
 				// Required lazily so rendering this form does not pull Skia's downscaler
 				// into the module graph, matching `domain/ids.ts`.
-				const photoStorage =
-					require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+				const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
 				photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
 			} catch {
 				return;
@@ -746,11 +607,11 @@ export function TransactionForm({
 			setIdentitySource("suggested");
 			setIdentity((previous) => ({
 				...previous,
-				photoUri,
 				photoColor: hues[0] ?? null,
+				photoUri,
 			}));
 		},
-		[name, setIdentity],
+		[name, setIdentity]
 	);
 
 	const applySuggestion = useCallback(
@@ -778,14 +639,9 @@ export function TransactionForm({
 				}
 			}
 			if (tagsSource !== "user") {
-				if (
-					suggestion.tagIds.length > 0 ||
-					suggestion.pendingTagNames.length > 0
-				) {
+				if (suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0) {
 					form.setFieldValue("tagIds", [...suggestion.tagIds]);
-					form.setFieldValue("pendingTagNames", [
-						...suggestion.pendingTagNames,
-					]);
+					form.setFieldValue("pendingTagNames", [...suggestion.pendingTagNames]);
 					setTagsSource("suggested");
 				} else if (tagsSource === "suggested") {
 					form.setFieldValue("tagIds", []);
@@ -795,21 +651,21 @@ export function TransactionForm({
 			}
 			void attachLogo(suggestion.domain);
 		},
-		[categorySource, tagsSource, db, form.setFieldValue, attachLogo],
+		[categorySource, tagsSource, db, form.setFieldValue, attachLogo]
 	);
 
 	const locale = useLocaleTag();
 	const regionCode = useRegionCode();
 	const { onNameChange, pending: enriching } = useTransactionEnrichment({
-		enabled: mode === "create",
-		income,
 		categoryTree,
+		enabled: mode === "create",
+		groundedLookup,
+		income,
+		locale,
 		onSuggest: applySuggestion,
+		regionCode,
 		remoteEnabled: aiEnrichment,
 		resolveLocal,
-		locale,
-		regionCode,
-		groundedLookup,
 	});
 	// A field the user has already edited is theirs — it never dims, because
 	// nothing arriving can change it.
@@ -825,7 +681,7 @@ export function TransactionForm({
 				clearTimeout(doneTimer.current);
 			}
 		},
-		[],
+		[]
 	);
 
 	// The draft is shared context, read by the fly-up hero and the picker route.
@@ -839,11 +695,11 @@ export function TransactionForm({
 			return;
 		}
 		setIdentity({
+			color: initial?.customColor ?? copyOf?.customColor ?? null,
 			emoji: initial?.emoji ?? copyOf?.emoji ?? null,
 			icon: initial?.icon ?? copyOf?.icon ?? null,
-			photoUri: initial?.imageUri ?? null,
 			photoColor: initial?.imageColor ?? null,
-			color: initial?.customColor ?? copyOf?.customColor ?? null,
+			photoUri: initial?.imageUri ?? null,
 		});
 	}, [
 		identitySource,
@@ -893,17 +749,13 @@ export function TransactionForm({
 	const confirmRemindersAllowed = async () => {
 		const existing = await reminderPermission();
 		if (enableReminderStep(existing) === "open-settings") {
-			Alert.alert(
-				t("settings.notifications.deniedTitle"),
-				t("settings.notifications.deniedBody"),
-				[
-					{ style: "cancel", text: t("settings.notifications.notNow") },
-					{
-						onPress: openNotificationSettings,
-						text: t("settings.notifications.openSettings"),
-					},
-				],
-			);
+			Alert.alert(t("settings.notifications.deniedTitle"), t("settings.notifications.deniedBody"), [
+				{ style: "cancel", text: t("settings.notifications.notNow") },
+				{
+					onPress: openNotificationSettings,
+					text: t("settings.notifications.openSettings"),
+				},
+			]);
 			form.setFieldValue("leadDays", null);
 			return;
 		}
@@ -947,11 +799,7 @@ export function TransactionForm({
 	const ctaLabel = t(ctaKey(mode, isSubscription));
 
 	const amountColorFor = (amountNumber: number) =>
-		amountNumber > 0
-			? income
-				? colors.income
-				: colors.foreground
-			: colors.muted;
+		amountNumber > 0 ? (income ? colors.income : colors.foreground) : colors.muted;
 
 	const curtainHues = computeCurtainHues(
 		{
@@ -961,13 +809,9 @@ export function TransactionForm({
 			income,
 			incomeColor: colors.income,
 		},
-		glowFromEmoji,
+		glowFromEmoji
 	);
-	const toastLabel = t(
-		isSubscription
-			? "transaction.toast.subscriptionAdded"
-			: "transaction.toast.added",
-	);
+	const toastLabel = t(isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added");
 
 	const hairline = [overlay({ color: withAlpha(colors.foreground, 0.08) })];
 	const categoryGlyphTint = category
@@ -977,12 +821,12 @@ export function TransactionForm({
 		: (pendingCategory?.color ?? colors.muted);
 
 	const cadenceOptions = SELECTABLE_RECURRING_TYPES.map((type) => ({
-		type,
 		label: cadenceLabel(t, type),
+		type,
 	}));
 	const leadOptions = REMINDER_LEAD_OPTIONS.map((lead) => ({
-		lead,
 		label: leadLabel(t, lead),
+		lead,
 	}));
 
 	return (
@@ -995,37 +839,31 @@ export function TransactionForm({
 		 */
 		<PortalProvider>
 			<View
+				className="flex-1"
 				onLayout={(e) => {
 					containerHeight.value = e.nativeEvent.layout.height;
 				}}
-				className="flex-1"
 			>
 				{/* The curtain is the Host's own BACKGROUND, not a sibling: a view stacked
 			    before the Host would hide the scroll content from the header's
 			    scroll-edge lookup. */}
 				<Host
 					style={{
-						flex: 1,
 						backgroundColor: colors.background,
 						experimental_backgroundImage: curtainGradient(curtainHues, isDark),
+						experimental_backgroundRepeat: "no-repeat",
 						// Confine every gradient layer to the top CURTAIN_HEIGHT and don't
 						// tile it, so below that band there is only the grouped grey.
 						experimental_backgroundSize: CURTAIN_LAYER_SIZE,
-						experimental_backgroundRepeat: "no-repeat",
+						flex: 1,
 					}}
 				>
 					{/* The blur goes on the SCROLL VIEW: blurring the `Host` would take the
 				    curtain, which is its background, with it. */}
 					<ScrollView
-						modifiers={[
-							blur(pickerOpen ? FORM_BLUR_RADIUS : 0),
-							animation(pickerOpen ? FLY_UP : FLY_BACK, pickerOpen),
-						]}
+						modifiers={[blur(pickerOpen ? FORM_BLUR_RADIUS : 0), animation(pickerOpen ? FLY_UP : FLY_BACK, pickerOpen)]}
 					>
-						<VStack
-							modifiers={[padding({ horizontal: 20, bottom: 40 })]}
-							spacing={16}
-						>
+						<VStack modifiers={[padding({ bottom: 40, horizontal: 20 })]} spacing={16}>
 							<TransactionFormIdentitySection
 								color={identity.color}
 								contentWidth={contentWidth}
@@ -1041,11 +879,11 @@ export function TransactionForm({
 								onReset={() => {
 									setIdentitySource("user");
 									setIdentity({
+										color: null,
 										emoji: null,
 										icon: null,
-										photoUri: null,
 										photoColor: null,
-										color: null,
+										photoUri: null,
 									});
 								}}
 								photoUri={identity.photoUri}
@@ -1056,19 +894,17 @@ export function TransactionForm({
 									const amountNumber = numpadToNumber(amount);
 									return (
 										<TransactionFormAmountHero
+											amount={amountNumber}
 											amountColor={amountColorFor(amountNumber)}
 											chipColor={withAlpha(colors.foreground, 0.08)}
 											contentWidth={contentWidth}
 											currency={currency}
-											amount={amountNumber}
-											minorUnits={minorUnits}
 											expenseLabel={t("common.expense")}
 											income={income}
 											incomeLabel={t("common.income")}
+											minorUnits={minorUnits}
 											mutedColor={colors.muted}
-											onCurrencyPress={() =>
-												currencySheetRef.current?.present()
-											}
+											onCurrencyPress={() => currencySheetRef.current?.present()}
 											onPress={() => setPadOpen(true)}
 											onTypeChange={handleTypeChange}
 											symbol={amountParts(amountNumber, currency).symbol}
@@ -1079,33 +915,21 @@ export function TransactionForm({
 
 							<VStack spacing={0}>
 								<HStack modifiers={ROW} spacing={12}>
-									<TransactionFormRowIcon
-										color={colors.muted}
-										icon={RepeatIcon}
-									/>
-									<SwiftText modifiers={[BODY, rowLabel]}>
-										{t("transaction.kind.subscription")}
-									</SwiftText>
+									<TransactionFormRowIcon color={colors.muted} icon={RepeatIcon} />
+									<SwiftText modifiers={[BODY, rowLabel]}>{t("transaction.kind.subscription")}</SwiftText>
 									<Spacer />
 									<Toggle
 										isOn={isSubscription}
 										modifiers={[tint(colors.income), labelsHidden()]}
-										onIsOnChange={(next) =>
-											handleKindChange(next ? "subscription" : "once")
-										}
+										onIsOnChange={(next) => handleKindChange(next ? "subscription" : "once")}
 									/>
 								</HStack>
 
 								<Divider modifiers={hairline} />
 
 								<HStack modifiers={ROW} spacing={12}>
-									<TransactionFormRowIcon
-										color={colors.muted}
-										icon={TextIcon}
-									/>
-									<SwiftText modifiers={[BODY, rowLabel]}>
-										{t("transaction.field.name")}
-									</SwiftText>
+									<TransactionFormRowIcon color={colors.muted} icon={TextIcon} />
+									<SwiftText modifiers={[BODY, rowLabel]}>{t("transaction.field.name")}</SwiftText>
 									<TextField
 										maxLength={50}
 										modifiers={[BODY, multilineTextAlignment("trailing")]}
@@ -1125,9 +949,9 @@ export function TransactionForm({
 											? [
 													strokeBorder({
 														color: colors.danger,
-														style: { lineWidth: 1.5 },
-														shape: "roundedRectangle",
 														cornerRadius: 12,
+														shape: "roundedRectangle",
+														style: { lineWidth: 1.5 },
 													}),
 												]
 											: []),
@@ -1141,32 +965,18 @@ export function TransactionForm({
 								>
 									<VStack spacing={0}>
 										<HStack modifiers={TAP_ROW} spacing={12}>
-											<TransactionFormRowIcon
-												color={categoryError ? colors.danger : colors.muted}
-												icon={Tag01Icon}
-											/>
-											<SwiftText
-												modifiers={[
-													BODY,
-													categoryError
-														? foregroundStyle(colors.danger)
-														: rowLabel,
-												]}
-											>
+											<TransactionFormRowIcon color={categoryError ? colors.danger : colors.muted} icon={Tag01Icon} />
+											<SwiftText modifiers={[BODY, categoryError ? foregroundStyle(colors.danger) : rowLabel]}>
 												{t("transaction.field.category")}
 											</SwiftText>
 											<Spacer />
 											<HStack spacing={5}>
 												{category || pendingCategory ? (
 													<RNHostView matchContents>
-														<View style={{ width: 18, height: 18 }}>
+														<View style={{ height: 18, width: 18 }}>
 															<CategoryIcon
 																color={categoryGlyphTint}
-																name={
-																	category
-																		? category.icon
-																		: pendingCategory?.icon
-																}
+																name={category ? category.icon : pendingCategory?.icon}
 																size={18}
 															/>
 														</View>
@@ -1180,29 +990,20 @@ export function TransactionForm({
 																? withAlpha(colors.muted, 0.45)
 																: category || pendingCategory
 																	? colors.foreground
-																	: colors.muted,
+																	: colors.muted
 														),
 														animation(ENRICHING, categoryEnriching),
 													]}
 												>
-													{category
-														? category.name
-														: (pendingCategory?.name ??
-															t("transaction.category.choose"))}
+													{category ? category.name : (pendingCategory?.name ?? t("transaction.category.choose"))}
 												</SwiftText>
-												<Image
-													color={colors.muted}
-													size={12}
-													systemName="chevron.up.chevron.down"
-												/>
+												<Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
 											</HStack>
 										</HStack>
 										{pendingCategory ? (
 											<HStack modifiers={[padding({ bottom: 10 })]} spacing={0}>
 												<Spacer />
-												<SwiftText
-													modifiers={[CAPTION, foregroundStyle(colors.muted)]}
-												>
+												<SwiftText modifiers={[CAPTION, foregroundStyle(colors.muted)]}>
 													{pendingCategory?.parentName
 														? t("transaction.category.willBeCreatedUnder", {
 																parent: pendingCategory.parentName,
@@ -1224,27 +1025,19 @@ export function TransactionForm({
 									}}
 								>
 									<HStack modifiers={TAP_ROW} spacing={12}>
-										<TransactionFormRowIcon
-											color={colors.muted}
-											icon={TagsIcon}
-										/>
-										<SwiftText modifiers={[BODY, rowLabel]}>
-											{t("transaction.field.tags")}
-										</SwiftText>
+										<TransactionFormRowIcon color={colors.muted} icon={TagsIcon} />
+										<SwiftText modifiers={[BODY, rowLabel]}>{t("transaction.field.tags")}</SwiftText>
 										<Spacer />
 										<HStack spacing={5}>
 											<SubscribeFields
-												store={form.store}
 												selector={(s) => ({
-													tagIds: s.values.tagIds,
 													pendingTagNames: s.values.pendingTagNames,
+													tagIds: s.values.tagIds,
 												})}
+												store={form.store}
 											>
 												{({ tagIds, pendingTagNames }) => {
-													const selectedTagNames = tagLabelsOf(
-														tagIds,
-														pendingTagNames,
-													);
+													const selectedTagNames = tagLabelsOf(tagIds, pendingTagNames);
 													return (
 														<SwiftText
 															modifiers={[
@@ -1254,7 +1047,7 @@ export function TransactionForm({
 																		? withAlpha(colors.muted, 0.45)
 																		: selectedTagNames
 																			? colors.foreground
-																			: colors.muted,
+																			: colors.muted
 																),
 																animation(ENRICHING, tagsEnriching),
 															]}
@@ -1264,11 +1057,7 @@ export function TransactionForm({
 													);
 												}}
 											</SubscribeFields>
-											<Image
-												color={colors.muted}
-												size={12}
-												systemName="chevron.up.chevron.down"
-											/>
+											<Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
 										</HStack>
 									</HStack>
 								</Button>
@@ -1276,21 +1065,19 @@ export function TransactionForm({
 								<Divider modifiers={hairline} />
 
 								<SubscribeFields
-									store={form.store}
 									selector={(s) => ({
 										date: s.values.date,
 										endDate: s.values.endDate,
 										hasEndDate: s.values.hasEndDate,
 										leadDays: s.values.leadDays,
 									})}
+									store={form.store}
 								>
 									{({ date, endDate, hasEndDate, leadDays }) => (
 										<TransactionFormScheduleSection
 											cadenceOptions={cadenceOptions}
 											card={[]}
-											customScheduleLabel={t(
-												"transaction.schedule.customOption",
-											)}
+											customScheduleLabel={t("transaction.schedule.customOption")}
 											date={date}
 											dateLabel={t("transaction.field.date")}
 											endDate={endDate}
@@ -1308,12 +1095,8 @@ export function TransactionForm({
 											leadOptions={leadOptions}
 											mutedColor={colors.muted}
 											onDateChange={(next) => form.setFieldValue("date", next)}
-											onEndDateChange={(next) =>
-												form.setFieldValue("endDate", next)
-											}
-											onHasEndDateChange={(next) =>
-												form.setFieldValue("hasEndDate", next)
-											}
+											onEndDateChange={(next) => form.setFieldValue("endDate", next)}
+											onHasEndDateChange={(next) => form.setFieldValue("hasEndDate", next)}
 											onLeadChange={handleLeadChange}
 											onOpenCustomSchedule={() => setScheduleSheetOpen(true)}
 											onScheduleChange={handleScheduleChange}
@@ -1338,13 +1121,9 @@ export function TransactionForm({
 									accountTile={
 										account ? (
 											<RNHostView matchContents>
-												<View style={{ width: 18, height: 18 }}>
+												<View style={{ height: 18, width: 18 }}>
 													<CategoryIconTile
-														color={
-															account.imageColor ??
-															account.customColor ??
-															colors.foreground
-														}
+														color={account.imageColor ?? account.customColor ?? colors.foreground}
 														emoji={account.emoji}
 														icon={account.icon}
 														imageUri={account.imageUri}
@@ -1359,21 +1138,17 @@ export function TransactionForm({
 									foregroundColor={colors.foreground}
 									hairline={hairline}
 									mutedColor={colors.muted}
-									onAccountPress={() => accountSheetRef.current?.present()}
 									notes={notes}
 									notesLabel={t("transaction.field.notes")}
 									notesPlaceholder={t("transaction.field.notesPlaceholder")}
+									onAccountPress={() => accountSheetRef.current?.present()}
 								/>
 							</VStack>
 						</VStack>
 					</ScrollView>
 				</Host>
 
-				<form.Subscribe
-					selector={(s) =>
-						numpadToNumber(s.values.amount) > 0 && !s.isSubmitting
-					}
-				>
+				<form.Subscribe selector={(s) => numpadToNumber(s.values.amount) > 0 && !s.isSubmitting}>
 					{(canSave) => (
 						<TransactionFormCta
 							canSave={canSave}
@@ -1392,44 +1167,30 @@ export function TransactionForm({
 						exiting={FadeOutDown}
 						pointerEvents="none"
 						style={{
-							position: "absolute",
-							left: 0,
-							right: 0,
-							bottom: 90,
 							alignItems: "center",
+							bottom: 90,
+							left: 0,
+							position: "absolute",
+							right: 0,
 						}}
 					>
 						<View
 							className="flex-row items-center gap-2 rounded-full"
 							style={{
+								backgroundColor: colors.surface,
+								borderColor: withAlpha(colors.foreground, 0.12),
+								borderWidth: 1,
 								paddingHorizontal: 18,
 								paddingVertical: 10,
-								backgroundColor: colors.surface,
-								borderWidth: 1,
-								borderColor: withAlpha(colors.foreground, 0.12),
 							}}
 						>
-							<SymbolView
-								name="checkmark"
-								size={15}
-								tintColor={colors.income}
-								type="monochrome"
-								weight="semibold"
-							/>
-							<Text className="font-sans-semibold text-income text-subtitle">
-								{toastLabel}
-							</Text>
+							<SymbolView name="checkmark" size={15} tintColor={colors.income} type="monochrome" weight="semibold" />
+							<Text className="font-sans-semibold text-income text-subtitle">{toastLabel}</Text>
 						</View>
 					</Animated.View>
 				) : null}
 
-				{celebrate && burstSeed !== 0 ? (
-					<Confetti
-						height={windowHeight}
-						seed={burstSeed}
-						width={windowWidth}
-					/>
-				) : null}
+				{celebrate && burstSeed !== 0 ? <Confetti height={windowHeight} seed={burstSeed} width={windowWidth} /> : null}
 
 				<form.Subscribe selector={(s) => s.values.amount}>
 					{(amount) => (
@@ -1454,11 +1215,11 @@ export function TransactionForm({
 					selected={currency}
 				/>
 				<SubscribeFields
-					store={form.store}
 					selector={(s) => ({
-						tagIds: s.values.tagIds,
 						pendingTagNames: s.values.pendingTagNames,
+						tagIds: s.values.tagIds,
 					})}
+					store={form.store}
 				>
 					{({ tagIds, pendingTagNames }) => (
 						<TagPickerSheet
@@ -1466,14 +1227,9 @@ export function TransactionForm({
 								const id = await tagsRepo.ensureTag(db, name);
 								if (id) {
 									setTagsSource("user");
-									form.setFieldValue("tagIds", [
-										...effectiveTagIdsOf(form.state.values.tagIds),
-										id,
-									]);
+									form.setFieldValue("tagIds", [...effectiveTagIdsOf(form.state.values.tagIds), id]);
 									form.setFieldValue("pendingTagNames", (current) =>
-										current.filter(
-											(pendingName) => normalizeTagName(pendingName) !== name,
-										),
+										current.filter((pendingName) => normalizeTagName(pendingName) !== name)
 									);
 								}
 								return id;
@@ -1483,9 +1239,7 @@ export function TransactionForm({
 								const current = effectiveTagIdsOf(form.state.values.tagIds);
 								form.setFieldValue(
 									"tagIds",
-									current.includes(tagId)
-										? current.filter((id) => id !== tagId)
-										: [...current, tagId],
+									current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId]
 								);
 							}}
 							pendingTagNames={pendingTagNames}
@@ -1516,10 +1270,7 @@ export function TransactionForm({
 					ref={categoryField.ref}
 					selectedId={category?.id ?? null}
 				/>
-				<SubscribeFields
-					selector={(s) => ({ date: s.values.date })}
-					store={form.store}
-				>
+				<SubscribeFields selector={(s) => ({ date: s.values.date })} store={form.store}>
 					{({ date }) => (
 						<CustomScheduleSheet
 							firstPayment={date}

@@ -41,11 +41,7 @@ export function AppleSignInButton({
 	return (
 		<View pointerEvents={disabled ? "none" : "auto"}>
 			<AppleAuthenticationButton
-				buttonStyle={
-					isDark
-						? AppleAuthenticationButtonStyle.WHITE
-						: AppleAuthenticationButtonStyle.BLACK
-				}
+				buttonStyle={isDark ? AppleAuthenticationButtonStyle.WHITE : AppleAuthenticationButtonStyle.BLACK}
 				buttonType={AppleAuthenticationButtonType.CONTINUE}
 				cornerRadius={SIGN_IN_BUTTON_HEIGHT / 2}
 				onPress={onPress}

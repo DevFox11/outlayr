@@ -71,56 +71,44 @@ function makeDb(): SpendDb {
 	return drizzle(sqlite) as unknown as SpendDb;
 }
 
-async function insert(
-	db: SpendDb,
-	id: string,
-	imageUri: string | null,
-	deletedAt: Date | null = null,
-) {
+async function insert(db: SpendDb, id: string, imageUri: string | null, deletedAt: Date | null = null) {
 	const date = new Date(NOW);
 	await db.insert(transactions).values({
-		id,
 		amount: 10,
-		income: false,
-		note: id,
 		date,
 		day: date,
-		month: date,
-		imageUri,
-		updatedAt: date,
 		deletedAt,
+		id,
+		imageUri,
+		income: false,
+		month: date,
+		note: id,
+		updatedAt: date,
 	});
 }
 
 async function storedUri(db: SpendDb, id: string): Promise<string | null> {
-	const rows = await db
-		.select({ id: transactions.id, imageUri: transactions.imageUri })
-		.from(transactions);
+	const rows = await db.select({ id: transactions.id, imageUri: transactions.imageUri }).from(transactions);
 	return rows.find((row) => row.id === id)?.imageUri ?? null;
 }
 
 async function insertAccount(db: SpendDb, id: string, imageUri: string | null) {
 	const date = new Date(NOW);
 	await db.insert(accounts).values({
-		id,
-		name: id,
 		currency: "USD",
+		dateCreated: date,
+		deletedAt: null,
+		id,
+		imageUri,
 		initialBalance: 0,
 		initialBalanceDate: date,
-		imageUri,
-		dateCreated: date,
+		name: id,
 		updatedAt: date,
-		deletedAt: null,
 	});
 }
 
-async function storedAccountUri(
-	db: SpendDb,
-	id: string,
-): Promise<string | null> {
-	const rows = await db
-		.select({ id: accounts.id, imageUri: accounts.imageUri })
-		.from(accounts);
+async function storedAccountUri(db: SpendDb, id: string): Promise<string | null> {
+	const rows = await db.select({ id: accounts.id, imageUri: accounts.imageUri }).from(accounts);
 	return rows.find((row) => row.id === id)?.imageUri ?? null;
 }
 
@@ -137,7 +125,7 @@ class FakeFiles implements PhotoFiles {
 	}
 
 	list() {
-		return [...this.files].map(([name, modifiedAt]) => ({ name, modifiedAt }));
+		return [...this.files].map(([name, modifiedAt]) => ({ modifiedAt, name }));
 	}
 
 	remove(name: string) {
@@ -216,10 +204,10 @@ describe("reconcilePhotos", () => {
 
 		expect(await storedUri(db, "t1")).toBe(uri);
 		expect(result).toStrictEqual({
-			repointed: 0,
-			rescued: 0,
 			cleared: 0,
 			purged: 0,
+			repointed: 0,
+			rescued: 0,
 		});
 	});
 
@@ -270,7 +258,7 @@ describe("reconcilePhotos", () => {
 	});
 
 	it("spares a file written inside the grace window", async () => {
-		const files = new FakeFiles([["just-picked.jpg", NOW - 1_000]]);
+		const files = new FakeFiles([["just-picked.jpg", NOW - 1000]]);
 
 		const result = await reconcilePhotos(db, files, NOW);
 
@@ -301,11 +289,7 @@ describe("reconcilePhotos", () => {
 	});
 
 	it("re-points an account at the current container path", async () => {
-		await insertAccount(
-			db,
-			"a1",
-			"file:///old-container/Documents/photos/l.jpg",
-		);
+		await insertAccount(db, "a1", "file:///old-container/Documents/photos/l.jpg");
 		const files = new FakeFiles([["l.jpg", SETTLED]]);
 
 		const result = await reconcilePhotos(db, files, NOW);
@@ -335,10 +319,10 @@ describe("reconcilePhotos", () => {
 		const second = await reconcilePhotos(db, files, NOW);
 
 		expect(second).toStrictEqual({
-			repointed: 0,
-			rescued: 0,
 			cleared: 0,
 			purged: 0,
+			repointed: 0,
+			rescued: 0,
 		});
 		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
 		expect(await storedUri(db, "t2")).toBe(null);

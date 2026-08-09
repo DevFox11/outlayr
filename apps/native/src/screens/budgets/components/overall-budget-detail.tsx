@@ -29,23 +29,11 @@ import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-
  * Lives under `/budgets/[id]` with the reserved id `overall` rather than its own
  * route: a static sibling of a dynamic segment never resolved here.
  */
-export function OverallBudgetDetail({
-	db,
-	onDone,
-}: {
-	db: Database;
-	onDone: () => void;
-}) {
+export function OverallBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) {
 	return <MainBudgetDetail db={db} onDone={onDone} />;
 }
 
-function MainBudgetDetail({
-	db,
-	onDone,
-}: {
-	db: Database;
-	onDone: () => void;
-}) {
+function MainBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
@@ -57,7 +45,7 @@ function MainBudgetDetail({
 		db,
 		null,
 		budget?.window.start ?? null,
-		budget ? windowEndMs(budget.window, nowMs) : nowMs,
+		budget ? windowEndMs(budget.window, nowMs) : nowMs
 	);
 
 	useEffect(() => {
@@ -80,34 +68,24 @@ function MainBudgetDetail({
 	const now = new Date(nowMs);
 	const closed = periodOffset < 0;
 	const pace = budgetPace(budget.window, now);
-	const showMarker =
-		!closed &&
-		shouldShowPaceMarker(budget.type, pace.remaining, budget.overBudget);
+	const showMarker = !closed && shouldShowPaceMarker(budget.type, pace.remaining, budget.overBudget);
 	const behind = isBehindPace(pace.remaining, budget.amount, budget.leftover);
-	const perDay =
-		closed || budget.overBudget
-			? null
-			: leftPerDay(budget.leftover, budget.window, now);
+	const perDay = closed || budget.overBudget ? null : leftPerDay(budget.leftover, budget.window, now);
 
 	return (
 		<>
 			<BudgetDetailView
-				period={
-					closed
-						? budgetWindowLabel(budget.window, budget.type)
-						: t(budgetPeriodPhrase(budget.type))
-				}
-				spent={budget.spent}
 				amount={budget.amount}
-				leftover={budget.leftover}
-				overBudget={budget.overBudget}
-				currency={currency}
-				transactions={transactions}
-				onPressTransaction={(txId) => router.push(`/transactions/${txId}`)}
-				paceRemaining={showMarker ? pace.remaining : null}
-				paceBehind={!closed && behind}
-				leftPerDayAmount={perDay}
 				closed={closed}
+				currency={currency}
+				leftover={budget.leftover}
+				leftPerDayAmount={perDay}
+				onPressTransaction={(txId) => router.push(`/transactions/${txId}`)}
+				overBudget={budget.overBudget}
+				paceBehind={!closed && behind}
+				paceRemaining={showMarker ? pace.remaining : null}
+				period={closed ? budgetWindowLabel(budget.window, budget.type) : t(budgetPeriodPhrase(budget.type))}
+				spent={budget.spent}
 				stepper={
 					budget.periodsBack > 0 ? (
 						<BudgetPeriodStepper
@@ -119,6 +97,7 @@ function MainBudgetDetail({
 						/>
 					) : null
 				}
+				transactions={transactions}
 			/>
 			<Stack.Screen.Title>{t("budgets.overall.title")}</Stack.Screen.Title>
 			<Stack.Toolbar placement="right">

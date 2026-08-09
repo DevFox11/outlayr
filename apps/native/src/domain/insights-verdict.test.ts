@@ -3,18 +3,17 @@ import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 import { insightsVerdict, type VerdictInput } from "./insights-verdict";
 
-const t: TranslateFn = (key, params) =>
-	translate(key, { catalog: EN, fallback: EN, params });
+const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
 const base: VerdictInput = {
-	measure: "spent",
+	code: "USD",
 	current: 1200,
+	measure: "spent",
 	prior: 1000,
 	priorLabel: "2025",
-	topMover: null,
-	code: "USD",
 	showCents: false,
 	t,
+	topMover: null,
 };
 
 describe("insightsVerdict", () => {
@@ -47,16 +46,14 @@ describe("insightsVerdict", () => {
 
 	it("treats a rising net as favourable and a falling one as not", () => {
 		expect(insightsVerdict({ ...base, measure: "net" }).favourable).toBe(true);
-		expect(
-			insightsVerdict({ ...base, measure: "net", current: 800 }).favourable,
-		).toBe(false);
+		expect(insightsVerdict({ ...base, current: 800, measure: "net" }).favourable).toBe(false);
 	});
 
 	it("handles a net that crossed from positive to negative", () => {
 		const verdict = insightsVerdict({
 			...base,
-			measure: "net",
 			current: -300,
+			measure: "net",
 			prior: 500,
 		});
 		expect(verdict.favourable).toBe(false);
@@ -72,7 +69,7 @@ describe("insightsVerdict", () => {
 	it("names the loudest mover when there is one", () => {
 		const verdict = insightsVerdict({
 			...base,
-			topMover: { name: "Dinner", delta: 150 },
+			topMover: { delta: 150, name: "Dinner" },
 		});
 		expect(verdict.sentence ?? "").toMatch(/Dinner alone added/);
 	});
@@ -81,7 +78,7 @@ describe("insightsVerdict", () => {
 		const verdict = insightsVerdict({
 			...base,
 			current: 800,
-			topMover: { name: "Transport", delta: -220 },
+			topMover: { delta: -220, name: "Transport" },
 		});
 		expect(verdict.sentence ?? "").toMatch(/Transport alone gave back/);
 	});
@@ -89,11 +86,9 @@ describe("insightsVerdict", () => {
 	it("keeps the sentence to two clauses", () => {
 		const verdict = insightsVerdict({
 			...base,
-			topMover: { name: "Dinner", delta: 150 },
+			topMover: { delta: 150, name: "Dinner" },
 		});
-		const sentences = (verdict.sentence ?? "")
-			.split(".")
-			.filter((part) => part.trim().length > 0);
+		const sentences = (verdict.sentence ?? "").split(".").filter((part) => part.trim().length > 0);
 		expect(sentences.length).toBe(2);
 	});
 

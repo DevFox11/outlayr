@@ -11,9 +11,9 @@ function wallTime(ms: number): [number, number, number, number] {
 }
 
 interface DstProbeResult {
+	arrival: [number, number, number, number];
 	offset: number;
 	tick: number;
-	arrival: [number, number, number, number];
 }
 
 /**
@@ -28,19 +28,13 @@ interface DstProbeResult {
  * because the calling process's own zone would otherwise resolve "local
  * midnight" to the wrong instant.
  */
-function ticksInNewYork(
-	dateArgs: [number, number, number, number][],
-): DstProbeResult[] {
-	const probe = join(__dirname, "clock-dst-probe.ts");
-	const out = execFileSync(
-		process.execPath,
-		["--import", "tsx", probe, JSON.stringify(dateArgs)],
-		{
-			env: { ...process.env, TZ: "America/New_York" },
-			encoding: "utf8",
-			maxBuffer: 8 * 1024 * 1024,
-		},
-	);
+function ticksInNewYork(dateArgs: [number, number, number, number][]): DstProbeResult[] {
+	const probe = join(import.meta.dirname, "clock-dst-probe.ts");
+	const out = execFileSync(process.execPath, ["--import", "tsx", probe, JSON.stringify(dateArgs)], {
+		encoding: "utf8",
+		env: { ...process.env, TZ: "America/New_York" },
+		maxBuffer: 8 * 1024 * 1024,
+	});
 	return JSON.parse(out);
 }
 
@@ -98,15 +92,15 @@ describe("next clock tick", () => {
 
 describe("clock advance rule", () => {
 	it("takes a reading later than the standing one", () => {
-		expect(clockAdvances(1_000, 1_500)).toBe(true);
+		expect(clockAdvances(1000, 1500)).toBe(true);
 	});
 
 	it("refuses a repeat, so a burst of triggers restates the reading once", () => {
-		expect(clockAdvances(1_000, 1_000)).toBe(false);
+		expect(clockAdvances(1000, 1000)).toBe(false);
 	});
 
 	it("refuses a small step backwards, which would flicker listed rows", () => {
-		expect(clockAdvances(1_000, 999)).toBe(false);
+		expect(clockAdvances(1000, 999)).toBe(false);
 	});
 
 	it("refuses a regression right up to the tolerance", () => {

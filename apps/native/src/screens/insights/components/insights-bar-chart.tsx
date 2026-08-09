@@ -11,21 +11,9 @@ import Animated, {
 import Svg, { Line } from "react-native-svg";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
-import {
-	bucketDateLabel,
-	type InsightsBucket,
-	type InsightsMeasure,
-	type InsightsPeriod,
-} from "@/data/insights";
+import { bucketDateLabel, type InsightsBucket, type InsightsMeasure, type InsightsPeriod } from "@/data/insights";
 import { currencySymbol, formatAmount } from "@/domain/money";
-import {
-	CHART_BAR,
-	CHART_DASH,
-	CHART_DRAW,
-	CHART_SCRUB,
-	compactMagnitude,
-	dashArray,
-} from "@/theme/chart";
+import { CHART_BAR, CHART_DASH, CHART_DRAW, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
 const BAR_AREA = 150;
@@ -34,21 +22,21 @@ const LABEL_W = 32;
 const HEADROOM = 0.1;
 
 interface InsightsBarChartProps {
+	average: number;
 	buckets: InsightsBucket[];
-	period: InsightsPeriod;
+	code: string;
 	/** Flows only — `net` is drawn by `InsightsNetChart` as a running balance. */
 	measure: Exclude<InsightsMeasure, "net">;
-	code: string;
-	average: number;
-	selectedIndex: number | null;
-	/** Fires continuously while a finger is down, with the bucket under it. */
-	onScrub: (index: number | null) => void;
+	nowMs: number;
 	/**
 	 * Fires once when the finger lifts, with the bucket to lock — or null to
 	 * clear, which is what releasing on the already-locked bucket means.
 	 */
 	onCommit: (index: number | null) => void;
-	nowMs: number;
+	/** Fires continuously while a finger is down, with the bucket under it. */
+	onScrub: (index: number | null) => void;
+	period: InsightsPeriod;
+	selectedIndex: number | null;
 }
 
 interface Plot {
@@ -121,8 +109,7 @@ export function InsightsBarChart({
 	// The columns are `flex: 1` inside a gapped row, so the pitch is the bar plus
 	// one gap — not `width / count`, which drifts by a whole bar by the right edge
 	// of a 31-day month.
-	const barWidth =
-		count > 0 ? Math.max(0, (width - gap * (count - 1)) / count) : 0;
+	const barWidth = count > 0 ? Math.max(0, (width - gap * (count - 1)) / count) : 0;
 	const pitch = barWidth + gap;
 
 	const pan = useMemo(() => {
@@ -174,8 +161,7 @@ export function InsightsBarChart({
 
 	const activeCount = values.filter((value) => value !== 0).length;
 	const avgY = ((plot.top - average) / plot.span) * BAR_AREA;
-	const showAverage =
-		activeCount > 1 && avgY > BAR_AREA * 0.1 && avgY < BAR_AREA * 0.9;
+	const showAverage = activeCount > 1 && avgY > BAR_AREA * 0.1 && avgY < BAR_AREA * 0.9;
 
 	const onLayout = (event: LayoutChangeEvent) => {
 		setWidth(event.nativeEvent.layout.width);
@@ -185,7 +171,7 @@ export function InsightsBarChart({
 		<View>
 			<GestureDetector gesture={pan}>
 				<View onLayout={onLayout}>
-					<View style={{ flexDirection: "row", height: BAR_AREA, gap }}>
+					<View style={{ flexDirection: "row", gap, height: BAR_AREA }}>
 						{buckets.map((bucket, index) => (
 							<Bar
 								color={barColor(measure, colors)}
@@ -195,14 +181,8 @@ export function InsightsBarChart({
 								key={bucket.start.getTime()}
 								// The pan is a pointer gesture and reaches no one driving
 								// VoiceOver, so each bar carries its own label and activation.
-								label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(
-									Math.abs(bucket.value),
-									code,
-									false,
-								)}`}
-								onActivate={() =>
-									onCommit(selectedIndex === index ? null : index)
-								}
+								label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(Math.abs(bucket.value), code, false)}`}
+								onActivate={() => onCommit(selectedIndex === index ? null : index)}
 								plot={plot}
 								selected={selectedIndex === index}
 								trackColor={colors.railTrack}
@@ -215,12 +195,12 @@ export function InsightsBarChart({
 						<View
 							pointerEvents="none"
 							style={{
+								backgroundColor: colors.foreground,
+								height: BAR_AREA + CHART_SCRUB.ruleOvershoot * 2,
+								left: pitch * scrubIndex + barWidth / 2,
 								position: "absolute",
 								top: -CHART_SCRUB.ruleOvershoot,
-								height: BAR_AREA + CHART_SCRUB.ruleOvershoot * 2,
 								width: CHART_SCRUB.ruleWidth,
-								backgroundColor: colors.foreground,
-								left: pitch * scrubIndex + barWidth / 2,
 							}}
 						/>
 					) : null}
@@ -229,26 +209,24 @@ export function InsightsBarChart({
 						<View
 							pointerEvents="none"
 							style={{
-								position: "absolute",
-								top: avgY - 7,
-								left: 0,
-								right: 0,
-								flexDirection: "row",
 								alignItems: "center",
+								flexDirection: "row",
 								gap: 3,
+								left: 0,
+								position: "absolute",
+								right: 0,
+								top: avgY - 7,
 							}}
 						>
 							<View
 								style={{
+									backgroundColor: colors.background,
 									borderRadius: 5,
 									paddingHorizontal: 4,
 									paddingVertical: 1,
-									backgroundColor: colors.background,
 								}}
 							>
-								<AxisLabel color={colors.muted}>
-									{`${symbol}${compactMagnitude(average)}`}
-								</AxisLabel>
+								<AxisLabel color={colors.muted}>{`${symbol}${compactMagnitude(average)}`}</AxisLabel>
 							</View>
 							<DashedRule color={colors.muted} />
 						</View>
@@ -256,9 +234,7 @@ export function InsightsBarChart({
 				</View>
 			</GestureDetector>
 
-			<View
-				style={{ flexDirection: "row", height: LABEL_H, gap, marginTop: 4 }}
-			>
+			<View style={{ flexDirection: "row", gap, height: LABEL_H, marginTop: 4 }}>
 				{buckets.map((bucket, index) => (
 					<View key={bucket.start.getTime()} style={{ flex: 1 }}>
 						{/* A month column is a couple of points wide, so the label has to
@@ -266,11 +242,11 @@ export function InsightsBarChart({
 						{showXLabel(period, index, bucket.label) ? (
 							<View
 								style={{
-									position: "absolute",
-									left: "50%",
-									width: LABEL_W,
-									marginLeft: -LABEL_W / 2,
 									alignItems: "center",
+									left: "50%",
+									marginLeft: -LABEL_W / 2,
+									position: "absolute",
+									width: LABEL_W,
 								}}
 							>
 								<AxisLabel color={colors.muted}>{bucket.label}</AxisLabel>
@@ -283,20 +259,14 @@ export function InsightsBarChart({
 	);
 }
 
-function barColor(
-	measure: Exclude<InsightsMeasure, "net">,
-	colors: ReturnType<typeof useColors>,
-): string {
+function barColor(measure: Exclude<InsightsMeasure, "net">, colors: ReturnType<typeof useColors>): string {
 	return measure === "income" ? colors.income : colors.foreground;
 }
 
 function DashedRule({ color }: { color: string }) {
 	const [width, setWidth] = useState(0);
 	return (
-		<View
-			onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-			style={{ flex: 1, height: 2 }}
-		>
+		<View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ flex: 1, height: 2 }}>
 			{width > 0 ? (
 				<Svg height={2} width={width}>
 					<Line
@@ -316,34 +286,20 @@ function DashedRule({ color }: { color: string }) {
 }
 
 interface BarProps {
-	value: number;
-	plot: Plot;
 	color: string;
-	trackColor: string;
-	grow: ReturnType<typeof useSharedValue<number>>;
 	dimmed: boolean;
 	future: boolean;
+	grow: ReturnType<typeof useSharedValue<number>>;
 	label: string;
-	selected: boolean;
 	onActivate: () => void;
+	plot: Plot;
+	selected: boolean;
+	trackColor: string;
+	value: number;
 }
 
-function Bar({
-	value,
-	plot,
-	color,
-	trackColor,
-	grow,
-	dimmed,
-	future,
-	label,
-	selected,
-	onActivate,
-}: BarProps) {
-	const target =
-		value > 0
-			? Math.max(CHART_BAR.minHeight, (value / plot.span) * BAR_AREA)
-			: 0;
+function Bar({ value, plot, color, trackColor, grow, dimmed, future, label, selected, onActivate }: BarProps) {
+	const target = value > 0 ? Math.max(CHART_BAR.minHeight, (value / plot.span) * BAR_AREA) : 0;
 
 	const fillStyle = useAnimatedStyle(() => ({
 		height: target * grow.value,
@@ -357,22 +313,22 @@ function Bar({
 			accessible
 			onAccessibilityTap={future ? undefined : onActivate}
 			style={{
+				backgroundColor: trackColor,
+				borderRadius: CHART_BAR.radius,
 				flex: 1,
 				height: BAR_AREA,
-				borderRadius: CHART_BAR.radius,
-				backgroundColor: trackColor,
 				opacity: future ? 0.3 : dimmed ? 0.4 : 1,
 			}}
 		>
 			<Animated.View
 				style={[
 					{
-						position: "absolute",
-						left: 0,
-						right: 0,
-						bottom: 0,
-						borderRadius: CHART_BAR.radius,
 						backgroundColor: color,
+						borderRadius: CHART_BAR.radius,
+						bottom: 0,
+						left: 0,
+						position: "absolute",
+						right: 0,
 					},
 					fillStyle,
 				]}
@@ -383,21 +339,13 @@ function Bar({
 
 function AxisLabel({ children, color }: { children: string; color: string }) {
 	return (
-		<RNText
-			className="font-mono text-micro"
-			numberOfLines={1}
-			style={{ color }}
-		>
+		<RNText className="font-mono text-micro" numberOfLines={1} style={{ color }}>
 			{children}
 		</RNText>
 	);
 }
 
-function showXLabel(
-	period: InsightsPeriod,
-	index: number,
-	label: string,
-): boolean {
+function showXLabel(period: InsightsPeriod, index: number, label: string): boolean {
 	if (period === "week") {
 		return true;
 	}

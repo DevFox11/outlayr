@@ -16,30 +16,30 @@ const NOW = new Date(2025, 5, 15, 10, 30);
  */
 const SUBSCRIPTION: TransactionInput = {
 	amount: 9.99,
-	income: false,
 	categoryId: "bills",
-	note: "Netflix",
-	details: null,
-	date: new Date(2025, 2, 15),
 	// Foreign on purpose: a USD amount is canonical by definition and never
 	// consults the rate replica, so nothing would read the table these tests pull
 	// out from under the back-fill.
 	currency: "EUR",
+	date: new Date(2025, 2, 15),
+	details: null,
+	income: false,
+	note: "Netflix",
 	onceRecurring: true,
-	recurringType: RECURRING_TYPE.monthly,
 	recurringCoefficient: 1,
 	recurringEndDate: null,
+	recurringType: RECURRING_TYPE.monthly,
 	reminderLeadDays: null,
 };
 
 interface Harness {
-	db: Database;
 	/**
 	 * Drops the rate replica, so the back-fill's per-occurrence rate lookups fail
 	 * — the real failure site, reached after the source row is already committed
 	 * and before the write transaction that would retire it.
 	 */
 	breakRateReplica: () => void;
+	db: Database;
 }
 
 function makeDb(): Harness {
@@ -90,17 +90,13 @@ function makeDb(): Harness {
 		);
 	`);
 	return {
-		db: drizzle(sqlite) as unknown as Database,
 		breakRateReplica: () => sqlite.exec("DROP TABLE exchangeRates;"),
+		db: drizzle(sqlite) as unknown as Database,
 	};
 }
 
 function liveRows(db: Database) {
-	return db
-		.select()
-		.from(transactions)
-		.where(isNull(transactions.deletedAt))
-		.orderBy(asc(transactions.date));
+	return db.select().from(transactions).where(isNull(transactions.deletedAt)).orderBy(asc(transactions.date));
 }
 
 async function carriers(db: Database) {

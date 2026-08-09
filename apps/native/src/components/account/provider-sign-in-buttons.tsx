@@ -5,10 +5,7 @@ import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n";
 import { appleIdToken } from "@/lib/apple-sign-in";
 import { googleIdToken, isGoogleSignInAvailable } from "@/lib/google-sign-in";
-import type {
-	ProviderSignIn,
-	SignInProvider,
-} from "@/lib/use-provider-sign-in";
+import type { ProviderSignIn, SignInProvider } from "@/lib/use-provider-sign-in";
 
 export function ProviderSignInButtons({
 	busy,
@@ -39,11 +36,7 @@ export function ProviderSignInButtons({
 					pending={busy === "google"}
 				/>
 			) : null}
-			{apple || google ? null : (
-				<Text className={fallbackClassName}>
-					{t("settings.account.noProvider")}
-				</Text>
-			)}
+			{apple || google ? null : <Text className={fallbackClassName}>{t("settings.account.noProvider")}</Text>}
 		</View>
 	);
 }

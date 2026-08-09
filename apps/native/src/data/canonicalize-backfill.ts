@@ -64,17 +64,11 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
 	// Budgets carry the same contract as entries: a target stored as a bare
 	// number would follow the setting rather than survive it.
 	for (const table of [transactions, budgets, mainBudget] as const) {
-		const pending = await db
-			.select({ id: table.id })
-			.from(table)
-			.where(isNull(table.currency));
+		const pending = await db.select({ id: table.id }).from(table).where(isNull(table.currency));
 		if (pending.length === 0) {
 			continue;
 		}
-		await db
-			.update(table)
-			.set({ currency: display })
-			.where(isNull(table.currency));
+		await db.update(table).set({ currency: display }).where(isNull(table.currency));
 		stamped += pending.length;
 	}
 
@@ -99,11 +93,7 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
  * counting it as one reports a backlog that never drains.
  */
 function uncanonicalized() {
-	return and(
-		isNull(transactions.amountUsd),
-		isNotNull(transactions.currency),
-		isNull(transactions.deletedAt),
-	);
+	return and(isNull(transactions.amountUsd), isNotNull(transactions.currency), isNull(transactions.deletedAt));
 }
 
 export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
@@ -116,10 +106,10 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 	for (;;) {
 		const pending = await db
 			.select({
-				id: transactions.id,
 				amount: transactions.amount,
 				currency: transactions.currency,
 				date: transactions.date,
+				id: transactions.id,
 			})
 			.from(transactions)
 			.where(uncanonicalized())
@@ -136,17 +126,14 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 			const canonical = await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency,
-				displayCurrency: row.currency ?? DEFAULT_CURRENCY,
 				date: row.date,
+				displayCurrency: row.currency ?? DEFAULT_CURRENCY,
 			});
 			if (canonical.amountUsd === null) {
 				// Still no rate for that day; left alone so the next pass retries it.
 				continue;
 			}
-			await db
-				.update(transactions)
-				.set(canonical)
-				.where(eq(transactions.id, row.id));
+			await db.update(transactions).set(canonical).where(eq(transactions.id, row.id));
 			landed += 1;
 		}
 
@@ -171,10 +158,10 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 	for (const table of [budgets, mainBudget] as const) {
 		const pending = await db
 			.select({
-				id: table.id,
 				amount: table.amount,
 				currency: table.currency,
 				dateCreated: table.dateCreated,
+				id: table.id,
 				startDate: table.startDate,
 			})
 			.from(table)
@@ -189,8 +176,8 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 			const { amountUsd } = await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency,
-				displayCurrency: row.currency,
 				date: row.dateCreated ?? row.startDate ?? new Date(),
+				displayCurrency: row.currency,
 			});
 			if (amountUsd === null) {
 				continue;
@@ -204,11 +191,7 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 }
 
 export async function hasUncanonicalized(db: SpendDb): Promise<boolean> {
-	const rows = await db
-		.select({ id: transactions.id })
-		.from(transactions)
-		.where(uncanonicalized())
-		.limit(1);
+	const rows = await db.select({ id: transactions.id }).from(transactions).where(uncanonicalized()).limit(1);
 	return rows.length > 0;
 }
 
@@ -216,9 +199,7 @@ export async function canonicalizedCount(db: SpendDb): Promise<number> {
 	const rows = await db
 		.select({ total: count() })
 		.from(transactions)
-		.where(
-			and(isNotNull(transactions.amountUsd), isNull(transactions.deletedAt)),
-		);
+		.where(and(isNotNull(transactions.amountUsd), isNull(transactions.deletedAt)));
 	return rows[0]?.total ?? 0;
 }
 
@@ -230,17 +211,15 @@ export async function canonicalizedCount(db: SpendDb): Promise<number> {
  * A currency with no rows at all is left in `pending`: rates for it may still
  * arrive, and "never" is not something to claim without evidence.
  */
-export async function valuationCoverage(
-	db: SpendDb,
-): Promise<ValuationCoverage> {
+export async function valuationCoverage(db: SpendDb): Promise<ValuationCoverage> {
 	const converted = await canonicalizedCount(db);
 	if (!(await hasUncanonicalized(db))) {
-		return { converted, pending: 0, beyondRateHistory: 0 };
+		return { beyondRateHistory: 0, converted, pending: 0 };
 	}
 
 	const floors = new Map<string, string>();
 	const earliest = await db
-		.select({ quote: exchangeRates.quote, date: min(exchangeRates.date) })
+		.select({ date: min(exchangeRates.date), quote: exchangeRates.quote })
 		.from(exchangeRates)
 		.groupBy(exchangeRates.quote);
 	for (const row of earliest) {
@@ -257,18 +236,15 @@ export async function valuationCoverage(
 	let beyondRateHistory = 0;
 	for (const row of pending) {
 		// A USD row freezes at rate 1 without any rate being consulted.
-		const floor =
-			row.currency === null || row.currency === "USD"
-				? undefined
-				: floors.get(row.currency);
+		const floor = row.currency === null || row.currency === "USD" ? undefined : floors.get(row.currency);
 		if (floor !== undefined && utcDateString(row.date.getTime()) < floor) {
 			beyondRateHistory += 1;
 		}
 	}
 
 	return {
+		beyondRateHistory,
 		converted,
 		pending: pending.length - beyondRateHistory,
-		beyondRateHistory,
 	};
 }

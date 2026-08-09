@@ -43,6 +43,4 @@ const body = [
 ].join("\n\n");
 
 writeFileSync(OUTPUT, `${body}\n`);
-process.stdout.write(
-	`Wrote ${codes.length} currencies to src/catalog.generated.ts\n`,
-);
+process.stdout.write(`Wrote ${codes.length} currencies to src/catalog.generated.ts\n`);

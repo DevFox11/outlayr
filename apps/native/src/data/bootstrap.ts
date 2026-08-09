@@ -1,10 +1,7 @@
 import { getLocales } from "expo-localization";
 import type { Database } from "@/db/client";
 import { withTransaction } from "@/db/transaction";
-import {
-	seedFavourites,
-	serialiseFavourites,
-} from "@/domain/favourite-currencies";
+import { seedFavourites, serialiseFavourites } from "@/domain/favourite-currencies";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { getMeta, META_KEYS, setMeta } from "./app-meta";
 import { seedCategories } from "./categories";
@@ -34,11 +31,7 @@ export async function bootstrapLocalData(db: Database): Promise<void> {
 	// two defences are independent.
 	await withTransaction(db, async () => {
 		await setMeta(db, META_KEYS.currency, DEFAULT_CURRENCY);
-		await setMeta(
-			db,
-			META_KEYS.favouriteCurrencies,
-			serialiseFavourites(favourites),
-		);
+		await setMeta(db, META_KEYS.favouriteCurrencies, serialiseFavourites(favourites));
 		await seedCategories(db);
 		await setMeta(db, META_KEYS.firstLaunch, "true");
 	});

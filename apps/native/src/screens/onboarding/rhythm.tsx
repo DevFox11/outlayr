@@ -7,11 +7,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { finishOnboarding, markReminderChosen } from "@/data/onboarding-core";
 import { setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
-import {
-	formatTimeOfDay,
-	REMINDER_EVENING,
-	reminderTime,
-} from "@/domain/reminder";
+import { formatTimeOfDay, REMINDER_EVENING, reminderTime } from "@/domain/reminder";
 import { useTranslation } from "@/i18n";
 
 const EVENING = reminderTime(REMINDER_EVENING, { hour: 20, minute: 0 });
@@ -26,14 +22,12 @@ function MockNotification({ body, back }: { body: string; back?: boolean }) {
 		<View
 			className={cn(
 				"w-64 flex-row items-start gap-2.5 rounded-2xl border border-fr-rule bg-fr-card px-3.5 py-3",
-				back && "-mb-10 -rotate-1 scale-90 opacity-55",
+				back && "-mb-10 -rotate-1 scale-90 opacity-55"
 			)}
 		>
 			<OutlayrMark size={26} />
 			<View className="flex-1 gap-0.5">
-				<Text className="font-sans-semibold text-footnote text-fr-ink">
-					Outlayr
-				</Text>
+				<Text className="font-sans-semibold text-footnote text-fr-ink">Outlayr</Text>
 				<Text className="text-footnote text-fr-muted">{body}</Text>
 			</View>
 		</View>
@@ -57,10 +51,7 @@ function OnboardingRhythmContent({ db }: { db: Database }) {
 	};
 
 	const remind = () => {
-		Promise.all([
-			setNumberSetting(db, "notificationOption", REMINDER_EVENING),
-			markReminderChosen(db),
-		])
+		Promise.all([setNumberSetting(db, "notificationOption", REMINDER_EVENING), markReminderChosen(db)])
 			.then(finish)
 			.catch((error: unknown) => {
 				console.error("Saving the first-run reminder choice failed", error);

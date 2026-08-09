@@ -16,9 +16,7 @@ const UNDERWATER = { income: 300, spent: 900 };
 describe("stored round-trip", () => {
 	it("survives a round-trip for every measure", () => {
 		for (const measure of INSIGHTS_MEASURE_ORDER) {
-			expect(insightsMeasureFromStored(storedInsightsMeasure(measure))).toBe(
-				measure,
-			);
+			expect(insightsMeasureFromStored(storedInsightsMeasure(measure))).toBe(measure);
 		}
 	});
 
@@ -54,9 +52,7 @@ describe("insightsMeasureIsPositive", () => {
 	});
 
 	it("treats a break-even window as positive rather than negative", () => {
-		expect(insightsMeasureIsPositive("net", { income: 100, spent: 100 })).toBe(
-			true,
-		);
+		expect(insightsMeasureIsPositive("net", { income: 100, spent: 100 })).toBe(true);
 	});
 });
 
@@ -86,43 +82,26 @@ describe("favourable direction", () => {
 		// Under `net` the hero rising is good news while a category rising is not:
 		// `categoryBreakdown` reads outflow for net, so they are not measuring the
 		// same money.
-		expect(measureRiseIsFavourable("net")).not.toBe(
-			breakdownRiseIsFavourable("net"),
-		);
+		expect(measureRiseIsFavourable("net")).not.toBe(breakdownRiseIsFavourable("net"));
 	});
 
 	it("agrees on spent and income, where they do measure the same money", () => {
-		expect(measureRiseIsFavourable("income")).toBe(
-			breakdownRiseIsFavourable("income"),
-		);
-		expect(measureRiseIsFavourable("spent")).toBe(
-			breakdownRiseIsFavourable("spent"),
-		);
+		expect(measureRiseIsFavourable("income")).toBe(breakdownRiseIsFavourable("income"));
+		expect(measureRiseIsFavourable("spent")).toBe(breakdownRiseIsFavourable("spent"));
 	});
 });
 
 describe("insightsMeasureAlternatives", () => {
 	it("returns the two the hero is not showing", () => {
-		expect(insightsMeasureAlternatives("spent")).toStrictEqual([
-			"income",
-			"net",
-		]);
-		expect(insightsMeasureAlternatives("income")).toStrictEqual([
-			"spent",
-			"net",
-		]);
-		expect(insightsMeasureAlternatives("net")).toStrictEqual([
-			"spent",
-			"income",
-		]);
+		expect(insightsMeasureAlternatives("spent")).toStrictEqual(["income", "net"]);
+		expect(insightsMeasureAlternatives("income")).toStrictEqual(["spent", "net"]);
+		expect(insightsMeasureAlternatives("net")).toStrictEqual(["spent", "income"]);
 	});
 
 	it("keeps declaration order so the pair never reshuffles under a thumb", () => {
 		for (const measure of INSIGHTS_MEASURE_ORDER) {
 			const alternatives = insightsMeasureAlternatives(measure);
-			const positions = alternatives.map((m) =>
-				INSIGHTS_MEASURE_ORDER.indexOf(m),
-			);
+			const positions = alternatives.map((m) => INSIGHTS_MEASURE_ORDER.indexOf(m));
 			expect(positions).toStrictEqual([...positions].sort((a, b) => a - b));
 		}
 	});

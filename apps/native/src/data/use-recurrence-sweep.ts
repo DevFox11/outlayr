@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import type { Database } from "@/db/client";
-import {
-	backfillAllRecurring,
-	repairOrphanedRecurrence,
-} from "./recurrence-backfill";
+import { backfillAllRecurring, repairOrphanedRecurrence } from "./recurrence-backfill";
 
 const SWEEP_COOLDOWN_MS = 60_000;
 
@@ -25,10 +22,7 @@ const SWEEP_COOLDOWN_MS = 60_000;
  * next occurrence, so a reader that fires on the same foreground event races it
  * and sees a landing the sweep is about to invalidate.
  */
-export function useRecurrenceSweep(
-	db: Database | null,
-	onSwept?: (db: Database) => void,
-): void {
+export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database) => void): void {
 	const lastSweepAt = useRef(0);
 	// Read through a ref so a caller passing an inline closure does not re-arm the
 	// AppState listener on every render.

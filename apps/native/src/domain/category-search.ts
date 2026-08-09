@@ -2,11 +2,11 @@ import type { Category, CategoryWithChildren } from "@/data/categories-core";
 
 export interface CategoryMatch {
 	category: Category;
-	/** Null for a top-level match; the owning parent for a child, so the row can show a breadcrumb. */
-	parent: Category | null;
+	matchLength: number;
 	/** Offset of the match inside the untouched `category.name`. */
 	matchStart: number;
-	matchLength: number;
+	/** Null for a top-level match; the owning parent for a child, so the row can show a breadcrumb. */
+	parent: Category | null;
 }
 
 export function categorySearchKey(value: string): string {
@@ -38,11 +38,7 @@ function fold(value: string): { folded: string; origIndex: number[] } {
 	return { folded, origIndex };
 }
 
-function match(
-	category: Category,
-	query: string,
-	parent: Category | null,
-): CategoryMatch | null {
+function match(category: Category, query: string, parent: Category | null): CategoryMatch | null {
 	const name = category.name ?? "";
 	const { folded, origIndex } = fold(name);
 	const at = folded.indexOf(query);
@@ -51,7 +47,7 @@ function match(
 	}
 	const start = origIndex[at] ?? 0;
 	const end = origIndex[at + query.length] ?? name.length;
-	return { category, parent, matchStart: start, matchLength: end - start };
+	return { category, matchLength: end - start, matchStart: start, parent };
 }
 
 /**
@@ -59,10 +55,7 @@ function match(
  * rather than behind its parent's disclosure. Tree order is kept so results do
  * not reshuffle between keystrokes.
  */
-export function searchCategoryTree(
-	tree: CategoryWithChildren[],
-	query: string,
-): CategoryMatch[] {
+export function searchCategoryTree(tree: CategoryWithChildren[], query: string): CategoryMatch[] {
 	const needle = categorySearchKey(query);
 	if (needle.length === 0) {
 		return [];
@@ -87,10 +80,7 @@ export function searchCategoryTree(
  * Without this the sheet presents every parent collapsed, so a transaction whose
  * category is a subcategory shows no checkmark on any row and reads as unset.
  */
-export function expandedForSelectedCategory(
-	tree: CategoryWithChildren[],
-	selectedId: string | null,
-): Set<string> {
+export function expandedForSelectedCategory(tree: CategoryWithChildren[], selectedId: string | null): Set<string> {
 	if (selectedId == null) {
 		return new Set();
 	}

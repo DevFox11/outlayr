@@ -20,25 +20,23 @@ export const RATE_ROWS_PER_CHUNK = 2000;
 const LAST_PULL_KEY = "lastRatesPullAt";
 
 export interface RateWireRow {
-	quote: string;
-	rateType: string;
 	date: string;
-	rate: number;
-	source: string;
 	fetchedAt: number;
+	quote: string;
+	rate: number;
+	rateType: string;
+	source: string;
 }
 
 export interface PullRatesPage {
-	rows: RateWireRow[];
-	windowStart: string;
 	/** Absent or null ends the walk. */
 	nextCursor?: number | null;
+	rows: RateWireRow[];
+	windowStart: string;
 }
 
 /** Injected so the pull logic never imports the Convex client. */
-export type PullRatesFn = (args?: {
-	cursor?: number;
-}) => Promise<PullRatesPage>;
+export type PullRatesFn = (args?: { cursor?: number }) => Promise<PullRatesPage>;
 
 export function chunkRows<T>(rows: readonly T[], size: number): T[][] {
 	const chunks: T[][] = [];
@@ -90,7 +88,7 @@ async function fetchAllRates(pull: PullRatesFn): Promise<RateWireRow[]> {
 export async function pullRatesIfDue(
 	db: Database,
 	pull: PullRatesFn,
-	options: { force?: boolean; now?: number } = {},
+	options: { force?: boolean; now?: number } = {}
 ): Promise<boolean> {
 	const now = options.now ?? Date.now();
 	if (!options.force) {
@@ -107,12 +105,12 @@ export async function pullRatesIfDue(
 	}
 
 	const mapped = rows.map((row) => ({
-		quote: row.quote,
-		rateType: row.rateType,
 		date: row.date,
-		rate: row.rate,
-		source: row.source,
 		fetchedAt: row.fetchedAt,
+		quote: row.quote,
+		rate: row.rate,
+		rateType: row.rateType,
+		source: row.source,
 	}));
 
 	await withTransaction(db, async () => {
@@ -124,8 +122,8 @@ export async function pullRatesIfDue(
 			.insert(appMeta)
 			.values({ key: LAST_PULL_KEY, value: String(now) })
 			.onConflictDoUpdate({
-				target: appMeta.key,
 				set: { value: String(now) },
+				target: appMeta.key,
 			});
 	});
 
@@ -143,25 +141,16 @@ export async function pullRatesIfDue(
 export function localRateLookup(db: SpendDb): RateLookup {
 	return async (quote, rateType, date) => {
 		const rows = await db
-			.select({ rate: exchangeRates.rate, date: exchangeRates.date })
+			.select({ date: exchangeRates.date, rate: exchangeRates.rate })
 			.from(exchangeRates)
-			.where(
-				and(
-					eq(exchangeRates.quote, quote),
-					eq(exchangeRates.rateType, rateType),
-					lte(exchangeRates.date, date),
-				),
-			)
+			.where(and(eq(exchangeRates.quote, quote), eq(exchangeRates.rateType, rateType), lte(exchangeRates.date, date)))
 			.orderBy(desc(exchangeRates.date))
 			.limit(1);
 		const row = rows[0];
-		return row ? { rate: row.rate, date: row.date } : null;
+		return row ? { date: row.date, rate: row.rate } : null;
 	};
 }
 
-export async function setLastRatesPullAt(
-	db: SpendDb,
-	at: number,
-): Promise<void> {
+export async function setLastRatesPullAt(db: SpendDb, at: number): Promise<void> {
 	await setMeta(db, LAST_PULL_KEY, String(at));
 }

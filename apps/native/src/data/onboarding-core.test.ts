@@ -53,9 +53,7 @@ describe("finishOnboarding", () => {
 
 	it("settles the gate it writes", async () => {
 		await finishOnboarding(db);
-		expect(
-			isOnboardingSettled(await getMeta(db, META_KEYS.onboardingComplete)),
-		).toBe(true);
+		expect(isOnboardingSettled(await getMeta(db, META_KEYS.onboardingComplete))).toBe(true);
 	});
 
 	it("is idempotent when a caller runs it more than once", async () => {

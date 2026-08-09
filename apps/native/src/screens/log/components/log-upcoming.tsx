@@ -13,24 +13,24 @@ import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n";
 
 interface LogUpcomingProps {
-	transactions: TransactionWithCategory[];
-	/**
-	 * Every schedule, not only the ones `transactions` paints: the Log clips its
-	 * rows to the next two weeks, and a monthly cost taken over that clip is a
-	 * different number on the day a yearly renewal enters the window.
-	 */
-	schedules: TransactionWithCategory[];
 	currency: string;
+	/** Frozen "now", so a row's landing date does not drift mid-session. */
+	nowMs: number;
+	onLongPress: (id: string) => void;
+	onPress: (id: string) => void;
 	/**
 	 * Supplied rather than looked up, so the header converts against the same
 	 * currency the caller is displaying. A screen with its own currency would
 	 * otherwise get totals valued against the ledger-wide one.
 	 */
 	rates: RateTable;
-	onPress: (id: string) => void;
-	onLongPress: (id: string) => void;
-	/** Frozen "now", so a row's landing date does not drift mid-session. */
-	nowMs: number;
+	/**
+	 * Every schedule, not only the ones `transactions` paints: the Log clips its
+	 * rows to the next two weeks, and a monthly cost taken over that clip is a
+	 * different number on the day a yearly renewal enters the window.
+	 */
+	schedules: TransactionWithCategory[];
+	transactions: TransactionWithCategory[];
 }
 
 export function LogUpcoming({
@@ -45,17 +45,14 @@ export function LogUpcoming({
 	const { showCents } = useDisplaySettings().state;
 	const now = new Date(nowMs);
 	const t = useTranslation();
-	const totals = useMemo(
-		() => currencyTotals(transactions, currency, rates),
-		[transactions, currency, rates],
-	);
+	const totals = useMemo(() => currencyTotals(transactions, currency, rates), [transactions, currency, rates]);
 	// A second figure rather than a correction of the first: the heading total is
 	// genuinely what leaves the account next, but each schedule contributes one
 	// charge to it whatever its cadence, so alone it reads like a monthly cost
 	// while weighing a daily coffee the same as a yearly renewal.
 	const perMonth = useMemo(
 		() => monthlySubscriptionCost(schedules, currency, rates, new Date(nowMs)),
-		[schedules, currency, rates, nowMs],
+		[schedules, currency, rates, nowMs]
 	);
 	const showPerMonth = perMonth.some((bucket) => bucket.transactionCount > 0);
 
@@ -68,33 +65,26 @@ export function LogUpcoming({
 			<View className="gap-1.25 pt-2.5">
 				<View className="flex-row items-baseline justify-between gap-2">
 					<MonoLabel>{t("log.upcoming.heading")}</MonoLabel>
-					<DayTotal
-						totals={totals}
-						showCents={showCents}
-						sizeClass="text-body"
-					/>
+					<DayTotal showCents={showCents} sizeClass="text-body" totals={totals} />
 				</View>
-				<View
-					className="bg-border"
-					style={{ height: 1.3, borderRadius: 0.65 }}
-				/>
+				<View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
 				{showPerMonth ? (
 					<View className="flex-row items-baseline justify-between gap-2">
 						<MonoLabel>{t("log.upcoming.perMonth")}</MonoLabel>
-						<DayTotal totals={perMonth} showCents={showCents} />
+						<DayTotal showCents={showCents} totals={perMonth} />
 					</View>
 				) : null}
 			</View>
 			{transactions.map((transaction) => (
 				<TransactionRow
-					key={transaction.id}
-					transaction={transaction}
 					currency={currency}
-					rates={rates}
-					onPress={onPress}
-					onLongPress={onLongPress}
 					future
+					key={transaction.id}
 					landsOn={landingDate(transaction, now)}
+					onLongPress={onLongPress}
+					onPress={onPress}
+					rates={rates}
+					transaction={transaction}
 				/>
 			))}
 		</View>

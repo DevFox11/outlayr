@@ -30,10 +30,7 @@ export interface NamedTag {
 }
 
 /** The tag already answering to `name`, or null. */
-export function findTagByName<T extends NamedTag>(
-	tags: readonly T[],
-	name: string,
-): T | null {
+export function findTagByName<T extends NamedTag>(tags: readonly T[], name: string): T | null {
 	const key = tagKey(name);
 	return tags.find((tag) => tagKey(tag.name) === key) ?? null;
 }
@@ -60,7 +57,7 @@ export function sortTags<T extends NamedTag>(tags: readonly T[]): T[] {
  */
 export function tagLinkDiff(
 	current: readonly string[],
-	next: readonly string[],
+	next: readonly string[]
 ): { attach: string[]; detach: string[] } {
 	const before = new Set(current);
 	const after = new Set(next);

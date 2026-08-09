@@ -1,7 +1,7 @@
 export interface BudgetSeverity {
 	amount: number;
-	spent: number;
 	overBudget: boolean;
+	spent: number;
 }
 
 function overage(budget: BudgetSeverity): number {
@@ -20,10 +20,7 @@ function spentFraction(budget: BudgetSeverity): number {
  * Lives outside `budgets.ts` only so the node test runner can import it — that
  * module pulls in Drizzle's expo-sqlite driver, which needs a native runtime.
  */
-export function compareBudgetSeverity(
-	a: BudgetSeverity,
-	b: BudgetSeverity,
-): number {
+export function compareBudgetSeverity(a: BudgetSeverity, b: BudgetSeverity): number {
 	if (a.overBudget !== b.overBudget) {
 		return a.overBudget ? -1 : 1;
 	}

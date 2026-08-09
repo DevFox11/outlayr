@@ -25,8 +25,8 @@ export async function googleIdToken(): Promise<string | null> {
 	}
 
 	GoogleOneTapSignIn.configure({
-		webClientId,
 		iosClientId: env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS ?? null,
+		webClientId,
 	});
 
 	await GoogleOneTapSignIn.checkPlayServices();

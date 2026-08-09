@@ -10,37 +10,17 @@ export const RECENT_CATEGORY_LIMIT = 5;
  * fresh read of `categories`, because `useLiveQuery` listens to one table: a
  * name or colour joined on here would survive every edit to that category.
  */
-export function recentCategoryIdsQuery(
-	db: Database,
-	income: boolean,
-	limit: number = RECENT_CATEGORY_LIMIT,
-) {
+export function recentCategoryIdsQuery(db: Database, income: boolean, limit: number = RECENT_CATEGORY_LIMIT) {
 	return db
 		.select({ categoryId: transactions.categoryId })
 		.from(transactions)
-		.where(
-			and(
-				eq(transactions.income, income),
-				isNotNull(transactions.categoryId),
-				isNull(transactions.deletedAt),
-			),
-		)
+		.where(and(eq(transactions.income, income), isNotNull(transactions.categoryId), isNull(transactions.deletedAt)))
 		.groupBy(transactions.categoryId)
 		.orderBy(desc(max(transactions.date)))
 		.limit(limit);
 }
 
-export function useRecentCategoryIds(
-	db: Database,
-	income: boolean,
-	limit: number = RECENT_CATEGORY_LIMIT,
-): string[] {
-	const rows = useLiveQuery(
-		transactions,
-		() => recentCategoryIdsQuery(db, income, limit),
-		[income, limit],
-	);
-	return rows
-		.map((row) => row.categoryId)
-		.filter((id): id is string => id != null);
+export function useRecentCategoryIds(db: Database, income: boolean, limit: number = RECENT_CATEGORY_LIMIT): string[] {
+	const rows = useLiveQuery(transactions, () => recentCategoryIdsQuery(db, income, limit), [income, limit]);
+	return rows.map((row) => row.categoryId).filter((id): id is string => id != null);
 }

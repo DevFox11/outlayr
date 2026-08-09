@@ -1,10 +1,5 @@
 import { SUGGESTED_CATEGORY_PRESETS } from "@/data/categories-core";
-import {
-	curtainShade,
-	glyphShade,
-	TILE_WASH_OPACITY,
-	withAlpha,
-} from "./shade";
+import { curtainShade, glyphShade, TILE_WASH_OPACITY, withAlpha } from "./shade";
 
 /**
  * Independent reimplementation of the WCAG contrast maths, deliberately not
@@ -15,15 +10,10 @@ function contrast(aHex: string, bHex: string): number {
 	const toRgb = (hex: string): [number, number, number] => {
 		const v = hex.replace("#", "");
 		const int = Number.parseInt(v, 16);
-		return [
-			((int >> 16) & 255) / 255,
-			((int >> 8) & 255) / 255,
-			(int & 255) / 255,
-		];
+		return [((int >> 16) & 255) / 255, ((int >> 8) & 255) / 255, (int & 255) / 255];
 	};
 	const lum = (c: [number, number, number]) => {
-		const ch = (x: number) =>
-			x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+		const ch = (x: number) => (x <= 0.039_28 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4);
 		return 0.2126 * ch(c[0]) + 0.7152 * ch(c[1]) + 0.0722 * ch(c[2]);
 	};
 	const l1 = lum(toRgb(aHex));
@@ -42,17 +32,14 @@ function washOver(hex: string, isDark: boolean): string {
 		.map((c, i) =>
 			Math.round(c * (1 - t) + (sheet[i] ?? 0) * t)
 				.toString(16)
-				.padStart(2, "0"),
+				.padStart(2, "0")
 		)
 		.join("")}`;
 }
 
 const PALETTE = [
 	...new Set(
-		[
-			...SUGGESTED_CATEGORY_PRESETS.expense,
-			...SUGGESTED_CATEGORY_PRESETS.income,
-		].map((preset) => preset.color),
+		[...SUGGESTED_CATEGORY_PRESETS.expense, ...SUGGESTED_CATEGORY_PRESETS.income].map((preset) => preset.color)
 	),
 ];
 
@@ -119,10 +106,7 @@ describe("glyphShade", () => {
 		// A saturated yellow over a pale yellow wash is the case this exists for.
 		const shaded = glyphShade("#FFC400", false);
 		expect(shaded).not.toBe("#FFC400");
-		expect(
-			contrast(shaded, washOver("#FFC400", false)) >
-				contrast("#FFC400", washOver("#FFC400", false)),
-		).toBeTruthy();
+		expect(contrast(shaded, washOver("#FFC400", false)) > contrast("#FFC400", washOver("#FFC400", false))).toBeTruthy();
 	});
 
 	it("leaves a tint that already contrasts untouched", () => {

@@ -21,10 +21,7 @@ const LANGUAGE_NAMES: Record<Language, string> = {
 
 export const LANGUAGE_OPTIONS: readonly {
 	value: LanguagePreference;
-}[] = [
-	{ value: "system" },
-	...SUPPORTED_LANGUAGES.map((value) => ({ value }) as const),
-];
+}[] = [{ value: "system" }, ...SUPPORTED_LANGUAGES.map((value) => ({ value }) as const)];
 
 export function languageLabel(language: Language): string {
 	return LANGUAGE_NAMES[language];
@@ -34,9 +31,7 @@ function isLanguage(value: string): value is Language {
 	return (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
 }
 
-export function resolveLanguagePreference(
-	value: string | null | undefined,
-): LanguagePreference {
+export function resolveLanguagePreference(value: string | null | undefined): LanguagePreference {
 	if (value === "system") {
 		return value;
 	}
@@ -47,9 +42,7 @@ export function resolveLanguagePreference(
 }
 
 /** `es-419`, `es_419` and `es-MX` all resolve to the one Spanish catalog. */
-export function languageFromTag(
-	tag: string | null | undefined,
-): Language | null {
+export function languageFromTag(tag: string | null | undefined): Language | null {
 	if (!tag) {
 		return null;
 	}
@@ -57,10 +50,7 @@ export function languageFromTag(
 	return primary && isLanguage(primary) ? primary : null;
 }
 
-export function resolveLanguage(
-	preference: LanguagePreference,
-	deviceTag: string | null | undefined,
-): Language {
+export function resolveLanguage(preference: LanguagePreference, deviceTag: string | null | undefined): Language {
 	if (preference !== "system") {
 		return preference;
 	}

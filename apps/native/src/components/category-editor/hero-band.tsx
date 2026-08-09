@@ -38,13 +38,13 @@ export function CategoryEditorHeroBand({
 			onLayout={onLayout}
 			pointerEvents="box-none"
 			style={{
-				position: "absolute",
-				top: 0,
-				left: 0,
-				right: 0,
 				alignItems: "center",
-				paddingTop: HEADER_HEIGHT + HERO_TOP_PADDING,
+				left: 0,
 				paddingBottom: HERO_BOTTOM_PADDING + captionClearance,
+				paddingTop: HEADER_HEIGHT + HERO_TOP_PADDING,
+				position: "absolute",
+				right: 0,
+				top: 0,
 			}}
 		>
 			<IdentityHero

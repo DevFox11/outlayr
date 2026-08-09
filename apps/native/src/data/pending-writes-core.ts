@@ -28,12 +28,12 @@ const LEDGER_LIMIT = 100;
 const LEDGER_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface LedgerEntry {
+	at: number;
 	/** The enqueue this row came from. */
 	id: string;
 	/** The purchase it came from, when the intent could name one. */
 	key: string | null;
 	txId: string;
-	at: number;
 }
 
 function isLedgerEntry(value: unknown): value is LedgerEntry {
@@ -63,14 +63,8 @@ async function readLedger(db: Database): Promise<LedgerEntry[]> {
 	}
 }
 
-function remember(
-	ledger: LedgerEntry[],
-	entry: LedgerEntry,
-	at: number,
-): LedgerEntry[] {
-	return [...ledger, entry]
-		.filter((kept) => at - kept.at <= LEDGER_RETENTION_MS)
-		.slice(-LEDGER_LIMIT);
+function remember(ledger: LedgerEntry[], entry: LedgerEntry, at: number): LedgerEntry[] {
+	return [...ledger, entry].filter((kept) => at - kept.at <= LEDGER_RETENTION_MS).slice(-LEDGER_LIMIT);
 }
 
 /**
@@ -81,11 +75,7 @@ function remember(
  * drain. The purchase key is windowed because two runs naming one purchase are
  * two separate intents, and far enough apart they stop being one.
  */
-function alreadyApplied(
-	ledger: LedgerEntry[],
-	job: PendingWrite,
-	at: number,
-): LedgerEntry | null {
+function alreadyApplied(ledger: LedgerEntry[], job: PendingWrite, at: number): LedgerEntry | null {
 	const replayed = ledger.find((entry) => entry.id === job.id);
 	if (replayed) {
 		return replayed;
@@ -94,11 +84,7 @@ function alreadyApplied(
 	if (!key) {
 		return null;
 	}
-	return (
-		ledger.find(
-			(entry) => entry.key === key && at - entry.at <= WALLET_DEDUPE_WINDOW_MS,
-		) ?? null
-	);
+	return ledger.find((entry) => entry.key === key && at - entry.at <= WALLET_DEDUPE_WINDOW_MS) ?? null;
 }
 
 /**
@@ -124,11 +110,7 @@ async function stillOnLedger(db: Database, txId: string): Promise<boolean> {
  * SQLite transaction as the insert, which is what makes a replayed queue file
  * safe: the queue delivers at least once and this collapses it to exactly once.
  */
-export async function applyPendingWrites(
-	db: Database,
-	jobs: PendingWrite[],
-	now: Date = new Date(),
-): Promise<number> {
+export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now: Date = new Date()): Promise<number> {
 	if (jobs.length === 0) {
 		return 0;
 	}
@@ -150,20 +132,16 @@ export async function applyPendingWrites(
 		await withTransaction(db, async () => {
 			const txId = await transactionsRepo.create(db, {
 				amount: job.amount,
-				income: job.income,
 				categoryId,
-				note: job.note,
-				details: null,
-				date: new Date(job.date),
 				// Null means "the ledger's own currency", which is what
 				// `transactionsRepo.create` already resolves it to.
 				currency: resolveWriteCurrency(job),
+				date: new Date(job.date),
+				details: null,
+				income: job.income,
+				note: job.note,
 			});
-			ledger = remember(
-				ledger,
-				{ id: job.id, key: job.dedupeKey?.trim() || null, txId, at },
-				at,
-			);
+			ledger = remember(ledger, { at, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
 			await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
 		});
 		applied += 1;
@@ -196,21 +174,12 @@ function resolveWriteCurrency(job: PendingWrite): string | null {
  *    automation only ever knows a merchant string, never a category.
  * 3. Failing that, the first category on the right side of the ledger.
  */
-async function resolveCategory(
-	db: Database,
-	job: PendingWrite,
-): Promise<string | null> {
+async function resolveCategory(db: Database, job: PendingWrite): Promise<string | null> {
 	if (job.category) {
 		const named = await db
 			.select({ id: categories.id })
 			.from(categories)
-			.where(
-				and(
-					like(categories.name, job.category),
-					eq(categories.income, job.income),
-					isNull(categories.deletedAt),
-				),
-			)
+			.where(and(like(categories.name, job.category), eq(categories.income, job.income), isNull(categories.deletedAt)))
 			.limit(1);
 		if (named[0]) {
 			return named[0].id;
@@ -222,13 +191,7 @@ async function resolveCategory(
 		const seenBefore = await db
 			.select({ categoryId: transactions.categoryId })
 			.from(transactions)
-			.where(
-				and(
-					like(transactions.note, note),
-					eq(transactions.income, job.income),
-					isNull(transactions.deletedAt),
-				),
-			)
+			.where(and(like(transactions.note, note), eq(transactions.income, job.income), isNull(transactions.deletedAt)))
 			.orderBy(desc(transactions.date))
 			.limit(1);
 		const previous = seenBefore[0]?.categoryId;
@@ -240,13 +203,7 @@ async function resolveCategory(
 	const fallback = await db
 		.select({ id: categories.id })
 		.from(categories)
-		.where(
-			and(
-				eq(categories.income, job.income),
-				isNull(categories.parentId),
-				isNull(categories.deletedAt),
-			),
-		)
+		.where(and(eq(categories.income, job.income), isNull(categories.parentId), isNull(categories.deletedAt)))
 		.limit(1);
 	return fallback[0]?.id ?? null;
 }

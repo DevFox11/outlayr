@@ -11,14 +11,14 @@ import { FieldApi, FormApi } from "@tanstack/react-form";
 function makeForm(onSubmit: () => void, onSubmitInvalid: () => void) {
 	return new FormApi({
 		defaultValues: { amount: 0, category: null as string | null },
+		onSubmit,
+		onSubmitInvalid,
 		validators: {
 			onChange: ({ value }) =>
 				value.amount > 0 && value.category != null
 					? null
 					: { fields: { amount: value.amount > 0 ? undefined : "required" } },
 		},
-		onSubmit,
-		onSubmitInvalid,
 	});
 }
 
@@ -26,7 +26,7 @@ describe("form-level validators without a mounted field", () => {
 	it("blocks canSubmit once a write trips the validator", () => {
 		const form = makeForm(
 			() => {},
-			() => {},
+			() => {}
 		);
 		form.mount();
 
@@ -38,7 +38,7 @@ describe("form-level validators without a mounted field", () => {
 	it("clears canSubmit again once the values satisfy the validator", () => {
 		const form = makeForm(
 			() => {},
-			() => {},
+			() => {}
 		);
 		form.mount();
 

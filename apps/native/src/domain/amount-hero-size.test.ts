@@ -1,9 +1,4 @@
-import {
-	AMOUNT_HERO_MAX_SIZE,
-	AMOUNT_HERO_MIN_SIZE,
-	amountHeroFontSize,
-	amountHeroLength,
-} from "./amount-hero-size";
+import { AMOUNT_HERO_MAX_SIZE, AMOUNT_HERO_MIN_SIZE, amountHeroFontSize, amountHeroLength } from "./amount-hero-size";
 
 const IPHONE_CONTENT_WIDTH = 353;
 
@@ -28,21 +23,15 @@ describe("amountHeroLength", () => {
 
 describe("amountHeroFontSize", () => {
 	it("leaves a short figure at full size", () => {
-		expect(amountHeroFontSize(0, 2, IPHONE_CONTENT_WIDTH)).toBe(
-			AMOUNT_HERO_MAX_SIZE,
-		);
-		expect(amountHeroFontSize(450, 2, IPHONE_CONTENT_WIDTH)).toBe(
-			AMOUNT_HERO_MAX_SIZE,
-		);
+		expect(amountHeroFontSize(0, 2, IPHONE_CONTENT_WIDTH)).toBe(AMOUNT_HERO_MAX_SIZE);
+		expect(amountHeroFontSize(450, 2, IPHONE_CONTENT_WIDTH)).toBe(AMOUNT_HERO_MAX_SIZE);
 	});
 
 	// The reported bug: 453,333,333.00 ran off both edges at a fixed 62pt.
 	it("shrinks a figure that would overflow", () => {
 		const size = amountHeroFontSize(453_333_333, 2, IPHONE_CONTENT_WIDTH);
 		expect(size).toBeLessThan(AMOUNT_HERO_MAX_SIZE);
-		expect(size * amountHeroLength(453_333_333, 2) * 0.58).toBeLessThanOrEqual(
-			IPHONE_CONTENT_WIDTH,
-		);
+		expect(size * amountHeroLength(453_333_333, 2) * 0.58).toBeLessThanOrEqual(IPHONE_CONTENT_WIDTH);
 	});
 
 	it("keeps shrinking as the figure keeps growing", () => {
@@ -52,9 +41,7 @@ describe("amountHeroFontSize", () => {
 	});
 
 	it("never goes below the floor", () => {
-		expect(
-			amountHeroFontSize(Number.MAX_SAFE_INTEGER, 2, IPHONE_CONTENT_WIDTH),
-		).toBe(AMOUNT_HERO_MIN_SIZE);
+		expect(amountHeroFontSize(Number.MAX_SAFE_INTEGER, 2, IPHONE_CONTENT_WIDTH)).toBe(AMOUNT_HERO_MIN_SIZE);
 	});
 
 	it("shrinks sooner on a narrower screen", () => {

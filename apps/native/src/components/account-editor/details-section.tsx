@@ -27,24 +27,24 @@ import type { RefObject } from "react";
 import { FORM_TOP_MARGIN } from "./style";
 
 const ROW_LABEL = foregroundStyle({
-	type: "hierarchical",
 	style: "secondary",
+	type: "hierarchical",
 } as const);
 const SIGN_FONT = font({
-	textStyle: "body",
 	design: "rounded",
+	textStyle: "body",
 	weight: "medium",
 });
 
 interface AccountEditorDetailsSectionProps {
+	balanceEditA11y: string;
+	balanceLabel: string;
+	balanceSignA11y: string;
+	/** Already formatted for the active language and currency. */
+	balanceValue: string;
 	caption: string | null;
 	currencyCode: string;
 	currencyLabel: string;
-	balanceLabel: string;
-	balanceSignA11y: string;
-	balanceEditA11y: string;
-	/** Already formatted for the active language and currency. */
-	balanceValue: string;
 	mutedColor: string;
 	nameFieldRef: RefObject<TextFieldRef | null>;
 	nameLabel: string;
@@ -83,9 +83,7 @@ export function AccountEditorDetailsSection({
 	return (
 		<Section
 			footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
-			modifiers={[
-				listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN }),
-			]}
+			modifiers={[listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN })]}
 		>
 			<HStack>
 				<SwiftText modifiers={[ROW_LABEL]}>{nameLabel}</SwiftText>
@@ -104,23 +102,16 @@ export function AccountEditorDetailsSection({
 				/>
 			</HStack>
 
-			<HStack
-				modifiers={[
-					contentShape(shapes.rectangle()),
-					onTapGesture(onCurrencyPress),
-				]}
-			>
+			<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onCurrencyPress)]}>
 				<SwiftText modifiers={[ROW_LABEL]}>{currencyLabel}</SwiftText>
 				<Spacer />
-				<SwiftText modifiers={[foregroundStyle(tintColor)]}>
-					{currencyCode}
-				</SwiftText>
+				<SwiftText modifiers={[foregroundStyle(tintColor)]}>{currencyCode}</SwiftText>
 				<Image
 					color={mutedColor}
 					modifiers={[
 						font({
-							textStyle: "footnote",
 							design: "rounded",
+							textStyle: "footnote",
 							weight: "semibold",
 						}),
 					]}
@@ -131,32 +122,13 @@ export function AccountEditorDetailsSection({
 			<HStack>
 				<SwiftText modifiers={[ROW_LABEL]}>{balanceLabel}</SwiftText>
 				<Spacer />
-				<Button
-					modifiers={[
-						buttonStyle("plain"),
-						accessibilityLabel(balanceSignA11y),
-					]}
-					onPress={onToggleSign}
-				>
-					<SwiftText
-						modifiers={[
-							SIGN_FONT,
-							foregroundStyle(negative ? tintColor : mutedColor),
-						]}
-					>
+				<Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceSignA11y)]} onPress={onToggleSign}>
+					<SwiftText modifiers={[SIGN_FONT, foregroundStyle(negative ? tintColor : mutedColor)]}>
 						{negative ? "−" : "+"}
 					</SwiftText>
 				</Button>
-				<Button
-					modifiers={[
-						buttonStyle("plain"),
-						accessibilityLabel(balanceEditA11y),
-					]}
-					onPress={onBalancePress}
-				>
-					<SwiftText modifiers={[foregroundStyle(tintColor)]}>
-						{balanceValue}
-					</SwiftText>
+				<Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceEditA11y)]} onPress={onBalancePress}>
+					<SwiftText modifiers={[foregroundStyle(tintColor)]}>{balanceValue}</SwiftText>
 				</Button>
 			</HStack>
 		</Section>

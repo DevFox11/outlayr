@@ -27,16 +27,11 @@ export function amountHeroLength(amount: number, minorUnits: number): number {
  * replaced shrank itself through `minimumScaleFactor`; a NumberFlow has a fixed
  * size, so without this a nine-figure amount runs off both edges.
  */
-export function amountHeroFontSize(
-	amount: number,
-	minorUnits: number,
-	contentWidth: number,
-): number {
+export function amountHeroFontSize(amount: number, minorUnits: number, contentWidth: number): number {
 	const available = contentWidth - SYMBOL_ALLOWANCE;
 	if (available <= 0) {
 		return AMOUNT_HERO_MIN_SIZE;
 	}
-	const fits =
-		available / (amountHeroLength(amount, minorUnits) * ADVANCE_PER_CHAR);
+	const fits = available / (amountHeroLength(amount, minorUnits) * ADVANCE_PER_CHAR);
 	return Math.max(AMOUNT_HERO_MIN_SIZE, Math.min(AMOUNT_HERO_MAX_SIZE, fits));
 }

@@ -22,8 +22,7 @@ import {
 
 type TestDb = ReturnType<typeof drizzle>;
 
-const at = (y: number, m: number, d: number, h = 0, min = 0): Date =>
-	new Date(y, m - 1, d, h, min, 0, 0);
+const at = (y: number, m: number, d: number, h = 0, min = 0): Date => new Date(y, m - 1, d, h, min, 0, 0);
 
 // Tuesday, Jul 15 2025 at noon. Windows are calendar-anchored, so with the
 // default Sunday-first week: week = Jul 13–19; month = Jul 1–31; year = 2025.
@@ -83,39 +82,39 @@ async function seed(db: TestDb): Promise<void> {
 	const now = new Date();
 	await db.insert(categories).values([
 		{
-			id: "food",
-			name: "Food",
 			color: "#EC7A58",
 			icon: "Restaurant02",
+			id: "food",
 			income: false,
+			name: "Food",
 			sortOrder: 0,
 			updatedAt: now,
 		},
 		{
-			id: "groc",
-			name: "Groceries",
 			color: "#F3BF56",
 			icon: "ShoppingBasket03",
+			id: "groc",
 			income: false,
+			name: "Groceries",
 			parentId: "food",
 			sortOrder: 1,
 			updatedAt: now,
 		},
 		{
-			id: "rent",
-			name: "Rent",
 			color: "#279AF4",
 			emoji: "🏠",
+			id: "rent",
 			income: false,
+			name: "Rent",
 			sortOrder: 2,
 			updatedAt: now,
 		},
 		{
-			id: "sal",
-			name: "Salary",
 			color: "#03CD86",
 			icon: "Wallet03",
+			id: "sal",
 			income: true,
+			name: "Salary",
 			sortOrder: 0,
 			updatedAt: now,
 		},
@@ -126,21 +125,21 @@ async function seed(db: TestDb): Promise<void> {
 		amount: number,
 		income: boolean,
 		categoryId: string,
-		deletedAt: Date | null = null,
+		deletedAt: Date | null = null
 	) => ({
-		id,
 		amount,
-		income,
-		note: "",
+		categoryId,
 		date,
 		day: date,
-		month: date,
-		categoryId,
-		onceRecurring: false,
-		recurringType: 0,
-		recurringCoefficient: 1,
-		updatedAt: now,
 		deletedAt,
+		id,
+		income,
+		month: date,
+		note: "",
+		onceRecurring: false,
+		recurringCoefficient: 1,
+		recurringType: 0,
+		updatedAt: now,
 	});
 	await db.insert(transactions).values([
 		tx("e1", at(2025, 7, 1), 10, false, "food"),
@@ -172,23 +171,21 @@ beforeAll(async () => {
 		rows.map((c) => [
 			c.id,
 			{
-				id: c.id,
-				name: c.name,
 				color: c.color,
-				icon: c.icon,
 				emoji: c.emoji,
+				icon: c.icon,
+				id: c.id,
 				income: c.income,
+				name: c.name,
 				parentId: c.parentId,
 			},
-		]),
+		])
 	);
 });
 
 describe("loadContributions", () => {
 	it("excludes soft-deleted and future rows", () => {
-		const ids = new Set(
-			contributions.map((c) => `${c.amount}:${c.date.getTime()}`),
-		);
+		const ids = new Set(contributions.map((c) => `${c.amount}:${c.date.getTime()}`));
 		// 12 seeded − d1 (deleted) − f2 (future) = 10 contributions.
 		expect(contributions.length).toBe(10);
 		expect(!ids.has(`999:${at(2025, 7, 8).getTime()}`)).toBeTruthy();
@@ -214,8 +211,8 @@ describe("bucketRanges boundaries", () => {
 
 	it("week honours a Monday-first calendar", () => {
 		const ranges = bucketRanges("week", NOW, 0, {
-			firstWeekday: 2,
 			firstDayOfMonth: 1,
+			firstWeekday: 2,
 		});
 		expect(ranges[0].start).toStrictEqual(at(2025, 7, 14));
 		expect(ranges[6].start).toStrictEqual(at(2025, 7, 20));
@@ -230,8 +227,8 @@ describe("bucketRanges boundaries", () => {
 
 	it("month honours a mid-month anchor", () => {
 		const ranges = bucketRanges("month", NOW, 0, {
-			firstWeekday: 1,
 			firstDayOfMonth: 25,
+			firstWeekday: 1,
 		});
 		// Jul 15 has not reached the 25th, so the period is the one that opened
 		// on Jun 25 and runs to Jul 24.
@@ -254,12 +251,8 @@ describe("monthPeriodStart", () => {
 	});
 
 	it("rolls back when the anchor has not been reached", () => {
-		expect(monthPeriodStart(at(2025, 7, 24), 25)).toStrictEqual(
-			at(2025, 6, 25),
-		);
-		expect(monthPeriodStart(at(2025, 7, 25), 25)).toStrictEqual(
-			at(2025, 7, 25),
-		);
+		expect(monthPeriodStart(at(2025, 7, 24), 25)).toStrictEqual(at(2025, 6, 25));
+		expect(monthPeriodStart(at(2025, 7, 25), 25)).toStrictEqual(at(2025, 7, 25));
 	});
 });
 
@@ -325,13 +318,7 @@ describe("bucketSeries — income and net", () => {
 
 describe("categoryBreakdown", () => {
 	it("rolls subcategories into their parent and sorts desc", () => {
-		const rows = categoryBreakdown(
-			contributions,
-			categoriesById,
-			"month",
-			"spent",
-			NOW,
-		);
+		const rows = categoryBreakdown(contributions, categoriesById, "month", "spent", NOW);
 		expect(rows.length).toBe(2);
 		expect(rows[0].id).toBe("rent");
 		expect(rows[0].amount).toBe(130);
@@ -342,13 +329,7 @@ describe("categoryBreakdown", () => {
 	});
 
 	it("carries an emoji identity, not only an icon one", () => {
-		const rows = categoryBreakdown(
-			contributions,
-			categoriesById,
-			"month",
-			"spent",
-			NOW,
-		);
+		const rows = categoryBreakdown(contributions, categoriesById, "month", "spent", NOW);
 		const rent = rows.find((row) => row.id === "rent");
 		expect(rent?.emoji).toBe("🏠");
 		expect(rent?.icon).toBe(null);
@@ -358,13 +339,7 @@ describe("categoryBreakdown", () => {
 	});
 
 	it("income reads only inflow categories", () => {
-		const rows = categoryBreakdown(
-			contributions,
-			categoriesById,
-			"month",
-			"income",
-			NOW,
-		);
+		const rows = categoryBreakdown(contributions, categoriesById, "month", "income", NOW);
 		expect(rows.length).toBe(1);
 		expect(rows[0].id).toBe("sal");
 		expect(rows[0].amount).toBe(540);
@@ -372,33 +347,13 @@ describe("categoryBreakdown", () => {
 	});
 
 	it("net mirrors the outflow composition", () => {
-		const spent = categoryBreakdown(
-			contributions,
-			categoriesById,
-			"month",
-			"spent",
-			NOW,
-		);
-		const net = categoryBreakdown(
-			contributions,
-			categoriesById,
-			"month",
-			"net",
-			NOW,
-		);
-		expect(net.map((r) => [r.id, r.amount])).toStrictEqual(
-			spent.map((r) => [r.id, r.amount]),
-		);
+		const spent = categoryBreakdown(contributions, categoriesById, "month", "spent", NOW);
+		const net = categoryBreakdown(contributions, categoriesById, "month", "net", NOW);
+		expect(net.map((r) => [r.id, r.amount])).toStrictEqual(spent.map((r) => [r.id, r.amount]));
 	});
 
 	it("resolves top-level display fields from the category map", () => {
-		const rows = categoryBreakdown(
-			contributions,
-			categoriesById,
-			"year",
-			"spent",
-			NOW,
-		);
+		const rows = categoryBreakdown(contributions, categoriesById, "year", "spent", NOW);
 		const food = rows.find((r) => r.id === "food");
 		expect(food?.name).toBe("Food");
 		expect(food?.color).toBe("#EC7A58");
@@ -492,14 +447,7 @@ describe("offsetForDate", () => {
 
 describe("subcategoryBreakdown", () => {
 	it("splits a parent into Direct plus children, sorted desc", () => {
-		const subs = subcategoryBreakdown(
-			contributions,
-			categoriesById,
-			"food",
-			"month",
-			"spent",
-			NOW,
-		);
+		const subs = subcategoryBreakdown(contributions, categoriesById, "food", "month", "spent", NOW);
 		expect(subs.length).toBe(2);
 		expect(subs[0].id).toBe("groc");
 		expect(subs[0].amount).toBe(20);
@@ -509,14 +457,7 @@ describe("subcategoryBreakdown", () => {
 	});
 
 	it("returns a single Direct entry for a childless parent", () => {
-		const subs = subcategoryBreakdown(
-			contributions,
-			categoriesById,
-			"rent",
-			"month",
-			"spent",
-			NOW,
-		);
+		const subs = subcategoryBreakdown(contributions, categoriesById, "rent", "month", "spent", NOW);
 		expect(subs.length).toBe(1);
 		expect(subs[0].name).toBe("Direct");
 		expect(subs[0].amount).toBe(130);

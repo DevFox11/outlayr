@@ -23,18 +23,18 @@ jest.mock("@/lib/import-draft-store", () => ({
 jest.mock("@/domain/import-sources", () => ({
 	IMPORT_SOURCES: [
 		{
-			id: "csv",
-			titleKey: "settings.import.sourceCsvTitle",
-			subtitleKey: "settings.import.sourceCsvSubtitle",
-			icon: [],
 			available: true,
+			icon: [],
+			id: "csv",
+			subtitleKey: "settings.import.sourceCsvSubtitle",
+			titleKey: "settings.import.sourceCsvTitle",
 		},
 		{
-			id: "clipboard",
-			titleKey: "settings.import.sourceClipboardTitle",
-			subtitleKey: "settings.import.sourceClipboardSubtitle",
-			icon: [],
 			available: false,
+			icon: [],
+			id: "clipboard",
+			subtitleKey: "settings.import.sourceClipboardSubtitle",
+			titleKey: "settings.import.sourceClipboardTitle",
 		},
 	],
 }));
@@ -57,8 +57,8 @@ describe("SourceStep", () => {
 		fireEvent.press(getByTestId("import-source-csv"));
 
 		expect(mockDispatch).toHaveBeenCalledWith({
-			type: "sourceSelected",
 			sourceId: "csv",
+			type: "sourceSelected",
 		});
 		expect(mockSetStep).toHaveBeenCalledWith("file");
 	});

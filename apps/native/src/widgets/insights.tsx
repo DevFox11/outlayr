@@ -1,11 +1,4 @@
-import {
-	Circle,
-	HStack,
-	Rectangle,
-	Spacer,
-	Text,
-	VStack,
-} from "@expo/ui/swift-ui";
+import { Circle, HStack, Rectangle, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
 	containerBackground,
 	font,
@@ -28,10 +21,7 @@ import type { InsightsConfiguration, InsightsWidgetProps } from "./props";
  * 147pt spike and every ordinary day a clamped stub, the exact failure
  * `runningTotals` documents.
  */
-const InsightsWidget = (
-	props: InsightsWidgetProps,
-	environment: WidgetEnvironment<InsightsConfiguration>,
-) => {
+const InsightsWidget = (props: InsightsWidgetProps, environment: WidgetEnvironment<InsightsConfiguration>) => {
 	"widget";
 
 	const scheme = environment.colorScheme === "dark" ? "dark" : "light";
@@ -41,9 +31,7 @@ const InsightsWidget = (
 	// longer publishes, and an undefined window renders as a blank tile with no
 	// error.
 	const chosen = environment.configuration?.period ?? "app";
-	const view =
-		(chosen === "app" ? undefined : props.windows[chosen]) ??
-		props.windows[props.defaultPeriod];
+	const view = (chosen === "app" ? undefined : props.windows[chosen]) ?? props.windows[props.defaultPeriod];
 
 	const eyebrow = (value: string) => (
 		<Text
@@ -110,15 +98,11 @@ const InsightsWidget = (
 
 	const cell = (label: string, value: string, leading: boolean) => (
 		<HStack spacing={0}>
-			{leading ? null : (
-				<Rectangle
-					modifiers={[frame({ width: 1 }), foregroundStyle(palette.border)]}
-				/>
-			)}
+			{leading ? null : <Rectangle modifiers={[frame({ width: 1 }), foregroundStyle(palette.border)]} />}
 			<VStack
 				alignment="leading"
 				modifiers={[
-					frame({ maxWidth: Number.POSITIVE_INFINITY, alignment: "leading" }),
+					frame({ alignment: "leading", maxWidth: Number.POSITIVE_INFINITY }),
 					padding({ leading: leading ? 0 : 10 }),
 				]}
 				spacing={2}
@@ -167,10 +151,7 @@ const InsightsWidget = (
 		return (
 			<VStack
 				alignment="leading"
-				modifiers={[
-					widgetURL(view.url),
-					containerBackground(palette.background, "widget"),
-				]}
+				modifiers={[widgetURL(view.url), containerBackground(palette.background, "widget")]}
 				spacing={0}
 			>
 				{hero}
@@ -181,19 +162,11 @@ const InsightsWidget = (
 	}
 
 	return (
-		<HStack
-			modifiers={[
-				widgetURL(view.url),
-				containerBackground(palette.background, "widget"),
-			]}
-			spacing={14}
-		>
+		<HStack modifiers={[widgetURL(view.url), containerBackground(palette.background, "widget")]} spacing={14}>
 			<VStack alignment="leading" spacing={0}>
 				{hero}
 				<Spacer />
-				<Rectangle
-					modifiers={[frame({ height: 1 }), foregroundStyle(palette.border)]}
-				/>
+				<Rectangle modifiers={[frame({ height: 1 }), foregroundStyle(palette.border)]} />
 				<Spacer modifiers={[frame({ height: 8 })]} />
 				<HStack spacing={0}>
 					{cell("SPENT", view.spent, true)}
@@ -212,12 +185,7 @@ const InsightsWidget = (
 				<VStack alignment="leading" spacing={5}>
 					{view.slices.slice(0, 3).map((slice) => (
 						<HStack key={slice.name} spacing={6}>
-							<Circle
-								modifiers={[
-									frame({ width: 6, height: 6 }),
-									foregroundStyle(slice.color),
-								]}
-							/>
+							<Circle modifiers={[frame({ height: 6, width: 6 }), foregroundStyle(slice.color)]} />
 							<Text
 								modifiers={[
 									font({ design: "rounded", size: 11, weight: "medium" }),
@@ -237,7 +205,4 @@ const InsightsWidget = (
 	);
 };
 
-export default createWidget<InsightsWidgetProps, InsightsConfiguration>(
-	"Insights",
-	InsightsWidget,
-);
+export default createWidget<InsightsWidgetProps, InsightsConfiguration>("Insights", InsightsWidget);

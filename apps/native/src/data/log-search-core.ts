@@ -1,14 +1,4 @@
-import {
-	and,
-	desc,
-	eq,
-	inArray,
-	isNull,
-	lte,
-	or,
-	type SQL,
-	sql,
-} from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte, or, type SQL, sql } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { transactions } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
@@ -40,8 +30,6 @@ export const SEARCH_COLUMNS = {
 } as const;
 
 export interface SearchCriteria {
-	/** Already trimmed. An empty query matches nothing rather than everything. */
-	query: string;
 	/**
 	 * Categories whose name matched, resolved outside SQL: `useLiveQuery` listens
 	 * to one table, so a joined category name would survive every edit to it.
@@ -49,6 +37,8 @@ export interface SearchCriteria {
 	categoryIds: string[];
 	/** The shared clock reading — see `useNow`. */
 	nowMs: number;
+	/** Already trimmed. An empty query matches nothing rather than everything. */
+	query: string;
 }
 
 /**
@@ -69,18 +59,12 @@ export interface SearchCriteria {
  * with the Log, Insights and every budget. Rows dated ahead are still reachable —
  * Settings → Upcoming is the surface that owns them.
  */
-export function searchedTransactionsQuery(
-	db: SpendDb,
-	criteria: SearchCriteria,
-) {
+export function searchedTransactionsQuery(db: SpendDb, criteria: SearchCriteria) {
 	const { query, categoryIds, nowMs } = criteria;
 
 	if (query === "") {
 		// The screen shows its idle state, and a full-table read would be wasted.
-		return db
-			.select(SEARCH_COLUMNS)
-			.from(transactions)
-			.where(eq(transactions.id, ""));
+		return db.select(SEARCH_COLUMNS).from(transactions).where(eq(transactions.id, ""));
 	}
 
 	const amount = Number.parseFloat(query);
@@ -95,12 +79,10 @@ export function searchedTransactionsQuery(
 				or(
 					contains(transactions.note, query),
 					contains(transactions.details, query),
-					categoryIds.length > 0
-						? inArray(transactions.categoryId, categoryIds)
-						: undefined,
-					Number.isFinite(amount) ? eq(transactions.amount, amount) : undefined,
-				),
-			),
+					categoryIds.length > 0 ? inArray(transactions.categoryId, categoryIds) : undefined,
+					Number.isFinite(amount) ? eq(transactions.amount, amount) : undefined
+				)
+			)
 		)
 		.orderBy(desc(transactions.day), desc(transactions.date));
 }

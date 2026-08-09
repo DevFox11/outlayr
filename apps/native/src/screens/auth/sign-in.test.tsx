@@ -2,14 +2,14 @@ import { render } from "@testing-library/react-native";
 import { SignIn } from "./sign-in";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
 jest.mock("@/lib/auth-client", () => ({ authClient: {} }));
 
 jest.mock("@/lib/google-sign-in", () => ({
-	isGoogleSignInAvailable: false,
 	googleIdToken: jest.fn(),
+	isGoogleSignInAvailable: false,
 }));
 
 jest.mock("@/theme/use-colors", () => ({
@@ -25,8 +25,8 @@ jest.mock("@/lib/use-provider-sign-in", () => ({
 }));
 
 jest.mock("@/i18n", () => ({
-	useTranslation: () => (key: string) => key,
 	useLanguage: () => ({ language: "en" }),
+	useTranslation: () => (key: string) => key,
 }));
 
 jest.mock("@/contexts/local-data-context", () => ({

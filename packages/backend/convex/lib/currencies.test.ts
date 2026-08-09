@@ -22,17 +22,17 @@ const modules = import.meta.glob("../**/*.ts");
 
 function seedExchangeRate(
 	t: TestConvex<typeof schema>,
-	row: { quote: string; rateType: MarketRateType; rate: number; date: string },
+	row: { quote: string; rateType: MarketRateType; rate: number; date: string }
 ): Promise<unknown> {
 	return t.run((ctx) =>
 		ctx.db.insert("exchangeRates", {
-			quote: row.quote,
-			rateType: row.rateType,
-			rate: row.rate,
 			date: row.date,
-			source: "frankfurter",
 			fetchedAt: 1000,
-		}),
+			quote: row.quote,
+			rate: row.rate,
+			rateType: row.rateType,
+			source: "frankfurter",
+		})
 	);
 }
 
@@ -67,9 +67,7 @@ describe("roundMoney (banker's rounding, half-even)", () => {
 		const unrounded = [10.125, 20.125, 30.125];
 		const sum = unrounded.reduce((total, value) => total + value, 0);
 		expect(roundMoney(sum, 2)).toBe(60.38);
-		const roundEachFirst = unrounded
-			.map((value) => roundMoney(value, 2))
-			.reduce((total, value) => total + value, 0);
+		const roundEachFirst = unrounded.map((value) => roundMoney(value, 2)).reduce((total, value) => total + value, 0);
 		expect(roundMoney(roundEachFirst, 2)).toBe(60.36);
 	});
 });
@@ -122,76 +120,56 @@ describe("isPickableCurrency (default-currency allowlist)", () => {
 describe("resolveEntryRate", () => {
 	test("returns the customRate verbatim for a custom rate type", async () => {
 		const t = convexTest(schema, modules);
-		const rate = await t.run((ctx) =>
-			resolveEntryRate(ctx.db, "VES", "custom", 80, "2020-01-01"),
-		);
+		const rate = await t.run((ctx) => resolveEntryRate(ctx.db, "VES", "custom", 80, "2020-01-01"));
 		expect(rate).toBe(80);
 	});
 
 	test("throws when a custom rate type has no customRate", async () => {
 		const t = convexTest(schema, modules);
-		await expect(
-			t.run((ctx) =>
-				resolveEntryRate(ctx.db, "VES", "custom", undefined, "2020-01-01"),
-			),
-		).rejects.toThrow(ConvexError);
+		await expect(t.run((ctx) => resolveEntryRate(ctx.db, "VES", "custom", undefined, "2020-01-01"))).rejects.toThrow(
+			ConvexError
+		);
 	});
 
 	test("throws when customRate is not a positive number", async () => {
 		const t = convexTest(schema, modules);
-		await expect(
-			t.run((ctx) =>
-				resolveEntryRate(ctx.db, "VES", "custom", 0, "2020-01-01"),
-			),
-		).rejects.toThrow(ConvexError);
+		await expect(t.run((ctx) => resolveEntryRate(ctx.db, "VES", "custom", 0, "2020-01-01"))).rejects.toThrow(
+			ConvexError
+		);
 	});
 
 	test("rejects a customRate supplied with a market rate type", async () => {
 		const t = convexTest(schema, modules);
-		await expect(
-			t.run((ctx) =>
-				resolveEntryRate(ctx.db, "VES", "official", 50, "2020-01-01"),
-			),
-		).rejects.toThrow(ConvexError);
+		await expect(t.run((ctx) => resolveEntryRate(ctx.db, "VES", "official", 50, "2020-01-01"))).rejects.toThrow(
+			ConvexError
+		);
 	});
 
 	test("rejects eur_reference for a non-VES currency", async () => {
 		const t = convexTest(schema, modules);
 		await expect(
-			t.run((ctx) =>
-				resolveEntryRate(
-					ctx.db,
-					"EUR",
-					"eur_reference",
-					undefined,
-					"2020-01-01",
-				),
-			),
+			t.run((ctx) => resolveEntryRate(ctx.db, "EUR", "eur_reference", undefined, "2020-01-01"))
 		).rejects.toThrow(ConvexError);
 	});
 
 	test("resolves the market rate effective on the date", async () => {
 		const t = convexTest(schema, modules);
 		await seedExchangeRate(t, {
-			quote: "VES",
-			rateType: "official",
-			rate: 40,
 			date: "2020-01-01",
+			quote: "VES",
+			rate: 40,
+			rateType: "official",
 		});
 
-		const rate = await t.run((ctx) =>
-			resolveEntryRate(ctx.db, "VES", "official", undefined, "2020-06-01"),
-		);
+		const rate = await t.run((ctx) => resolveEntryRate(ctx.db, "VES", "official", undefined, "2020-06-01"));
 		expect(rate).toBe(40);
 	});
 
 	test("throws when no market rate is available on the date", async () => {
 		const t = convexTest(schema, modules);
-		await expect(
-			t.run((ctx) =>
-				resolveEntryRate(ctx.db, "VES", "official", undefined, "2020-01-01"),
-			),
-		).rejects.toThrow(ConvexError);
+		await expect(t.run((ctx) => resolveEntryRate(ctx.db, "VES", "official", undefined, "2020-01-01"))).rejects.toThrow(
+			ConvexError
+		);
 	});
 });
 
@@ -201,10 +179,10 @@ describe("computeAmountUSD", () => {
 		const usd = await t.run((ctx) =>
 			computeAmountUSD(ctx.db, {
 				baseAmount: 4000,
-				exchangeRateType: "official",
-				exchangeRate: 40,
 				date: "2020-01-01",
-			}),
+				exchangeRate: 40,
+				exchangeRateType: "official",
+			})
 		);
 		expect(usd).toBe(100);
 	});
@@ -214,10 +192,10 @@ describe("computeAmountUSD", () => {
 		const usd = await t.run((ctx) =>
 			computeAmountUSD(ctx.db, {
 				baseAmount: 5000,
-				exchangeRateType: "custom",
-				exchangeRate: 50,
 				date: "2020-01-01",
-			}),
+				exchangeRate: 50,
+				exchangeRateType: "custom",
+			})
 		);
 		expect(usd).toBe(100);
 	});
@@ -225,19 +203,19 @@ describe("computeAmountUSD", () => {
 	test("applies the two-leg EUR conversion for eur_reference (worked example)", async () => {
 		const t = convexTest(schema, modules);
 		await seedExchangeRate(t, {
-			quote: "EUR",
-			rateType: "official",
-			rate: 0.874_28,
 			date: "2020-01-01",
+			quote: "EUR",
+			rate: 0.874_28,
+			rateType: "official",
 		});
 
 		const usd = await t.run((ctx) =>
 			computeAmountUSD(ctx.db, {
 				baseAmount: 74_733,
-				exchangeRateType: "eur_reference",
-				exchangeRate: 747.33,
 				date: "2020-06-15",
-			}),
+				exchangeRate: 747.33,
+				exchangeRateType: "eur_reference",
+			})
 		);
 		expect(usd).toBe(114.379_833);
 	});
@@ -248,11 +226,11 @@ describe("computeAmountUSD", () => {
 			t.run((ctx) =>
 				computeAmountUSD(ctx.db, {
 					baseAmount: 74_733,
-					exchangeRateType: "eur_reference",
-					exchangeRate: 747.33,
 					date: "2020-01-01",
-				}),
-			),
+					exchangeRate: 747.33,
+					exchangeRateType: "eur_reference",
+				})
+			)
 		).rejects.toThrow(ConvexError);
 	});
 });

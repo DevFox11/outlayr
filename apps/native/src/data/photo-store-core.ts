@@ -7,10 +7,10 @@ import type { SpendDb } from "./budget-spent";
 export const PHOTO_DIRECTORY = "transaction-photos";
 
 export interface PhotoTable {
-	readonly table: SQLiteTable;
 	readonly id: AnySQLiteColumn;
-	readonly imageUri: AnySQLiteColumn;
 	readonly imageKey: AnySQLiteColumn;
+	readonly imageUri: AnySQLiteColumn;
+	readonly table: SQLiteTable;
 }
 
 /**
@@ -23,16 +23,16 @@ export interface PhotoTable {
  */
 export const PHOTO_TABLES: readonly PhotoTable[] = [
 	{
-		table: transactions,
 		id: transactions.id,
-		imageUri: transactions.imageUri,
 		imageKey: transactions.imageKey,
+		imageUri: transactions.imageUri,
+		table: transactions,
 	},
 	{
-		table: accounts,
 		id: accounts.id,
-		imageUri: accounts.imageUri,
 		imageKey: accounts.imageKey,
+		imageUri: accounts.imageUri,
+		table: accounts,
 	},
 ];
 
@@ -44,9 +44,9 @@ export const PHOTO_TABLES: readonly PhotoTable[] = [
 export const PHOTO_PURGE_GRACE_MS = 24 * 60 * 60 * 1000;
 
 export interface StoredPhoto {
-	name: string;
 	/** Milliseconds since the epoch. */
 	modifiedAt: number;
+	name: string;
 }
 
 /**
@@ -54,18 +54,18 @@ export interface StoredPhoto {
  * `expo-file-system`, which cannot load under the node test runner.
  */
 export interface PhotoFiles {
-	/** Absolute uri of the photo directory, which the implementation creates. */
-	readonly directoryUri: string;
-	list(): StoredPhoto[];
-	remove(name: string): void;
 	/**
 	 * Copies an outside file in under `name`, answering whether it could. False
 	 * means the source is already gone — the picker's cache is reclaimable at any
 	 * time, which is the whole reason photos are copied out of it.
 	 */
 	adopt(sourceUri: string, name: string): boolean;
+	/** Absolute uri of the photo directory, which the implementation creates. */
+	readonly directoryUri: string;
+	list(): StoredPhoto[];
 	/** Null when the file is gone, which is not an error — see {@link adopt}. */
 	read(name: string): Uint8Array | null;
+	remove(name: string): void;
 	write(name: string, bytes: Uint8Array): void;
 }
 
@@ -88,20 +88,18 @@ export function photoExtension(name: string): string {
 		return DEFAULT_EXTENSION;
 	}
 	const extension = name.slice(dot).toLowerCase();
-	return extension.length <= MAX_EXTENSION_LENGTH
-		? extension
-		: DEFAULT_EXTENSION;
+	return extension.length <= MAX_EXTENSION_LENGTH ? extension : DEFAULT_EXTENSION;
 }
 
 export interface PhotoReconciliation {
-	/** Rows whose photo was found under a stale absolute path. */
-	repointed: number;
-	/** Rows whose photo was still readable outside the store and was copied in. */
-	rescued: number;
 	/** Rows whose photo could not be found anywhere. */
 	cleared: number;
 	/** Files no row references any more. */
 	purged: number;
+	/** Rows whose photo was found under a stale absolute path. */
+	repointed: number;
+	/** Rows whose photo was still readable outside the store and was copied in. */
+	rescued: number;
 }
 
 /**
@@ -118,21 +116,15 @@ export interface PhotoReconciliation {
  *
  * Idempotent.
  */
-export async function reconcilePhotos(
-	db: SpendDb,
-	files: PhotoFiles,
-	nowMs: number,
-): Promise<PhotoReconciliation> {
+export async function reconcilePhotos(db: SpendDb, files: PhotoFiles, nowMs: number): Promise<PhotoReconciliation> {
 	const { directoryUri } = files;
-	const stored = new Map(
-		files.list().map((photo) => [photo.name, photo.modifiedAt]),
-	);
+	const stored = new Map(files.list().map((photo) => [photo.name, photo.modifiedAt]));
 
 	const result: PhotoReconciliation = {
-		repointed: 0,
-		rescued: 0,
 		cleared: 0,
 		purged: 0,
+		repointed: 0,
+		rescued: 0,
 	};
 	const referenced = new Set<string>();
 
@@ -146,10 +138,7 @@ export async function reconcilePhotos(
 		}[];
 
 		const repoint = async (id: string, uri: string | null) =>
-			await db
-				.update(photoTable.table)
-				.set({ imageUri: uri })
-				.where(eq(photoTable.id, id));
+			await db.update(photoTable.table).set({ imageUri: uri }).where(eq(photoTable.id, id));
 
 		for (const row of rows) {
 			const uri = row.imageUri;

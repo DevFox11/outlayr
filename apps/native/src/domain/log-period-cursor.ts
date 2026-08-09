@@ -1,13 +1,6 @@
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
-import {
-	addDays,
-	addMonths,
-	firstOfMonth,
-	monthAbbrevTitle,
-	startOfDay,
-	startOfWeek,
-} from "./dates";
+import { addDays, addMonths, firstOfMonth, monthAbbrevTitle, startOfDay, startOfWeek } from "./dates";
 
 export type CursorUnit = "day" | "week" | "month";
 
@@ -15,11 +8,7 @@ export type CursorUnit = "day" | "week" | "month";
  * The Log fetches a day on an exact `day` value and a week or month on its first
  * instant, so a cursor that isn't normalized quietly returns nothing at all.
  */
-export function cursorStart(
-	unit: CursorUnit,
-	date: Date,
-	firstWeekday = 1,
-): Date {
+export function cursorStart(unit: CursorUnit, date: Date, firstWeekday = 1): Date {
 	switch (unit) {
 		case "day":
 			return startOfDay(date);
@@ -31,11 +20,7 @@ export function cursorStart(
 }
 
 /** The first instant *after* the unit the cursor names. */
-export function cursorEnd(
-	unit: CursorUnit,
-	date: Date,
-	firstWeekday = 1,
-): Date {
+export function cursorEnd(unit: CursorUnit, date: Date, firstWeekday = 1): Date {
 	const start = cursorStart(unit, date, firstWeekday);
 	switch (unit) {
 		case "day":
@@ -47,27 +32,14 @@ export function cursorEnd(
 	}
 }
 
-export function stepCursor(
-	unit: CursorUnit,
-	date: Date,
-	count: number,
-	firstWeekday = 1,
-): Date {
+export function stepCursor(unit: CursorUnit, date: Date, count: number, firstWeekday = 1): Date {
 	const start = cursorStart(unit, date, firstWeekday);
-	const moved =
-		unit === "month"
-			? addMonths(start, count)
-			: addDays(start, count * (unit === "week" ? 7 : 1));
+	const moved = unit === "month" ? addMonths(start, count) : addDays(start, count * (unit === "week" ? 7 : 1));
 	return cursorStart(unit, moved, firstWeekday);
 }
 
 /** False once the next step would land in the future — nothing is logged there. */
-export function canStepForward(
-	unit: CursorUnit,
-	date: Date,
-	now: Date,
-	firstWeekday = 1,
-): boolean {
+export function canStepForward(unit: CursorUnit, date: Date, now: Date, firstWeekday = 1): boolean {
 	return stepCursor(unit, date, 1, firstWeekday).getTime() <= now.getTime();
 }
 
@@ -76,7 +48,7 @@ export function cursorLabel(
 	unit: CursorUnit,
 	date: Date,
 	firstWeekday = 1,
-	language: Language = runtimeLanguage(),
+	language: Language = runtimeLanguage()
 ): string {
 	const start = cursorStart(unit, date, firstWeekday);
 	const month = monthAbbrevTitle(start, language);
@@ -87,10 +59,7 @@ export function cursorLabel(
 			return `${month} ${start.getFullYear()}`;
 		case "week": {
 			const end = addDays(start, 6);
-			return `${start.getDate()} ${month} – ${end.getDate()} ${monthAbbrevTitle(
-				end,
-				language,
-			)}`;
+			return `${start.getDate()} ${month} – ${end.getDate()} ${monthAbbrevTitle(end, language)}`;
 		}
 	}
 }

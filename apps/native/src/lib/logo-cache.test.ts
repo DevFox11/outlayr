@@ -18,7 +18,7 @@ jest.mock("expo-file-system", () => {
 			return `file:///cache/merchant-logos/${this.name}`;
 		}
 	}
-	return { Directory, File, Paths: { cache: "/cache" }, __existing: existing };
+	return { __existing: existing, Directory, File, Paths: { cache: "/cache" } };
 });
 
 import { cachedLogoUri, logoCacheKey } from "./logo-cache";
@@ -29,21 +29,15 @@ const { __existing } = jest.requireMock("expo-file-system") as {
 
 describe("logoCacheKey", () => {
 	it("is stable for the same name and domain", () => {
-		expect(logoCacheKey("Netflix", "netflix.com")).toBe(
-			logoCacheKey("Netflix", "netflix.com"),
-		);
+		expect(logoCacheKey("Netflix", "netflix.com")).toBe(logoCacheKey("Netflix", "netflix.com"));
 	});
 
 	it("folds case, diacritics and punctuation to the same key", () => {
-		expect(logoCacheKey("NETFLIX", "netflix.com")).toBe(
-			logoCacheKey("netflix", "netflix.com"),
-		);
+		expect(logoCacheKey("NETFLIX", "netflix.com")).toBe(logoCacheKey("netflix", "netflix.com"));
 	});
 
 	it("differs for a different domain", () => {
-		expect(logoCacheKey("Rio", "riosupermercado.com")).not.toBe(
-			logoCacheKey("Rio", "rio.com"),
-		);
+		expect(logoCacheKey("Rio", "riosupermercado.com")).not.toBe(logoCacheKey("Rio", "rio.com"));
 	});
 });
 
@@ -62,9 +56,7 @@ describe("cachedLogoUri", () => {
 
 	it("returns the cached file's uri for a hit", () => {
 		__existing.add("netflix");
-		expect(cachedLogoUri("netflix")).toBe(
-			"file:///cache/merchant-logos/netflix",
-		);
+		expect(cachedLogoUri("netflix")).toBe("file:///cache/merchant-logos/netflix");
 	});
 
 	it("returns null for a remembered miss, even though the marker file exists", () => {

@@ -18,20 +18,20 @@ describe("groundedSpend", () => {
 		const now = Date.UTC(2026, 6, 15);
 
 		await t.mutation(internal.groundedSpend.record, {
+			actualMicros: 6500,
 			at: now,
 			chargedMicros: 20_000,
-			actualMicros: 6_500,
-			searchCalls: 1,
 			inputTokens: 1000,
 			outputTokens: 100,
 			published: true,
+			searchCalls: 1,
 		});
 
 		const result = await t.query(internal.groundedSpend.monthlyTotal, {
 			at: now,
 		});
 
-		expect(result.totalMicros).toBe(6_500);
+		expect(result.totalMicros).toBe(6500);
 	});
 
 	test("monthlyTotal sums only rows within the same calendar month", async () => {
@@ -41,29 +41,29 @@ describe("groundedSpend", () => {
 		const laterThisMonth = Date.UTC(2026, 6, 20);
 
 		await t.mutation(internal.groundedSpend.record, {
+			actualMicros: 999_999,
 			at: lastMonth,
 			chargedMicros: 20_000,
-			actualMicros: 999_999,
-			searchCalls: 1,
 			inputTokens: 1,
 			outputTokens: 1,
 			published: false,
+			searchCalls: 1,
 		});
 		await t.mutation(internal.groundedSpend.record, {
+			actualMicros: 4000,
 			at: thisMonth,
 			chargedMicros: 20_000,
-			actualMicros: 4_000,
-			searchCalls: 1,
 			inputTokens: 500,
 			outputTokens: 50,
 			published: true,
+			searchCalls: 1,
 		});
 
 		const result = await t.query(internal.groundedSpend.monthlyTotal, {
 			at: laterThisMonth,
 		});
 
-		expect(result.totalMicros).toBe(4_000);
+		expect(result.totalMicros).toBe(4000);
 	});
 
 	test("monthlyTotal reports the $25 ceiling constant by default", async () => {

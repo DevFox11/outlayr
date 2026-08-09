@@ -12,8 +12,7 @@ jest.mock("panelui-native", () => {
 jest.mock("../amount-numpad", () => {
 	const react = require("react") as typeof import("react");
 	return {
-		AmountNumpad: (props: Record<string, unknown>) =>
-			react.createElement("AmountNumpad", props),
+		AmountNumpad: (props: Record<string, unknown>) => react.createElement("AmountNumpad", props),
 	};
 });
 
@@ -28,15 +27,12 @@ const BASE = {
 };
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByType(
-	node: JsonNode | JsonNode[] | null,
-	type: string,
-): JsonNode | null {
+function findByType(node: JsonNode | JsonNode[] | null, type: string): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -75,13 +71,7 @@ describe("TransactionFormAmountPad", () => {
 	it("forwards the entry state to the keypad", async () => {
 		const onChange = jest.fn();
 		const { toJSON } = await render(
-			<TransactionFormAmountPad
-				{...BASE}
-				code="JPY"
-				minorUnits={0}
-				onChange={onChange}
-				value="1234"
-			/>,
+			<TransactionFormAmountPad {...BASE} code="JPY" minorUnits={0} onChange={onChange} value="1234" />
 		);
 		const pad = findByType(toJSON() as JsonNode, "AmountNumpad");
 		expect(pad?.props.value).toBe("1234");
@@ -91,17 +81,13 @@ describe("TransactionFormAmountPad", () => {
 	});
 
 	it("tints the keypad for income", async () => {
-		const { toJSON } = await render(
-			<TransactionFormAmountPad {...BASE} income />,
-		);
+		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} income />);
 		const pad = findByType(toJSON() as JsonNode, "AmountNumpad");
 		expect(pad?.props.toneClass).toContain("income");
 	});
 
 	it("leaves the keypad untinted for an expense", async () => {
-		const { toJSON } = await render(
-			<TransactionFormAmountPad {...BASE} income={false} />,
-		);
+		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} income={false} />);
 		const pad = findByType(toJSON() as JsonNode, "AmountNumpad");
 		expect(pad?.props.toneClass).not.toContain("income");
 	});
@@ -110,9 +96,7 @@ describe("TransactionFormAmountPad", () => {
 	// form's `padOpen` has to follow or the sheet can never be reopened.
 	it("reports a swipe-down dismissal back to the form", async () => {
 		const onOpenChange = jest.fn();
-		const { toJSON } = await render(
-			<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />,
-		);
+		const { toJSON } = await render(<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />);
 		const sheet = findByType(toJSON() as JsonNode, "Sheet");
 		expect(sheet?.props.open).toBe(true);
 		const change = sheet?.props.onOpenChange as (next: boolean) => void;

@@ -13,11 +13,7 @@ describe("IMPORT_SOURCES", () => {
 	});
 
 	it("lists csv first, then clipboard, then screenshot", () => {
-		expect(IMPORT_SOURCES.map((source) => source.id)).toStrictEqual([
-			"csv",
-			"clipboard",
-			"screenshot",
-		]);
+		expect(IMPORT_SOURCES.map((source) => source.id)).toStrictEqual(["csv", "clipboard", "screenshot"]);
 	});
 
 	it("has exactly one available entry, and it is CSV", () => {
@@ -30,8 +26,6 @@ describe("IMPORT_SOURCES", () => {
 		for (const source of IMPORT_SOURCES) {
 			expect(source.icon).toBeDefined();
 		}
-		expect(new Set(IMPORT_SOURCES.map((source) => source.titleKey)).size).toBe(
-			IMPORT_SOURCES.length,
-		);
+		expect(new Set(IMPORT_SOURCES.map((source) => source.titleKey)).size).toBe(IMPORT_SOURCES.length);
 	});
 });

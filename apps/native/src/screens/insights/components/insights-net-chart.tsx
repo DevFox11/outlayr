@@ -1,26 +1,11 @@
-import {
-	Canvas,
-	Circle as SkCircle,
-	Group as SkGroup,
-	Skia,
-	Path as SkPath,
-} from "@shopify/react-native-skia";
+import { Canvas, Circle as SkCircle, Group as SkGroup, Skia, Path as SkPath } from "@shopify/react-native-skia";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type LayoutChangeEvent, Text as RNText, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import {
-	Easing,
-	useReducedMotion,
-	useSharedValue,
-	withTiming,
-} from "react-native-reanimated";
+import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
-import {
-	bucketDateLabel,
-	type InsightsBucket,
-	type InsightsPeriod,
-} from "@/data/insights";
+import { bucketDateLabel, type InsightsBucket, type InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
 import { hatchPathD } from "@/lib/chart-paths";
@@ -31,19 +16,19 @@ import { useColors } from "@/theme/use-colors";
 const HEIGHT = 150;
 const LABEL_H = 18;
 const LABEL_W = 32;
-const PAD = { top: 12, bottom: 12 } as const;
+const PAD = { bottom: 12, top: 12 } as const;
 const HEADROOM = 0.1;
 
 interface InsightsNetChartProps {
 	buckets: InsightsBucket[];
+	code: string;
+	nowMs: number;
+	onCommit: (index: number | null) => void;
+	onScrub: (index: number | null) => void;
+	period: InsightsPeriod;
+	selectedIndex: number | null;
 	/** The running balance through the window — see `runningTotals`. */
 	totals: number[];
-	period: InsightsPeriod;
-	code: string;
-	selectedIndex: number | null;
-	onScrub: (index: number | null) => void;
-	onCommit: (index: number | null) => void;
-	nowMs: number;
 }
 
 export function InsightsNetChart({
@@ -105,7 +90,7 @@ export function InsightsNetChart({
 		// Scaled to the *whole* window, not to the live part, so the line lines up
 		// with the x-axis labels beneath it.
 		const step = buckets.length > 1 ? width / (buckets.length - 1) : 0;
-		return { y, zeroY: y(0), x: (index: number) => index * step, step };
+		return { step, x: (index: number) => index * step, y, zeroY: y(0) };
 	}, [live, width, buckets.length]);
 
 	const geometry = useMemo(() => {
@@ -123,12 +108,10 @@ export function InsightsNetChart({
 		const area = `${line} L ${lastX} ${plot.zeroY} L 0 ${plot.zeroY} Z`;
 
 		return {
+			axis: Skia.Path.MakeFromSVGString(`M 0 ${plot.zeroY} L ${width} ${plot.zeroY}`),
+			hatch: Skia.Path.MakeFromSVGString(hatchPathD(width, HEIGHT)),
 			line: Skia.Path.MakeFromSVGString(line),
 			surplus: Skia.Path.MakeFromSVGString(area),
-			hatch: Skia.Path.MakeFromSVGString(hatchPathD(width, HEIGHT)),
-			axis: Skia.Path.MakeFromSVGString(
-				`M 0 ${plot.zeroY} L ${width} ${plot.zeroY}`,
-			),
 		};
 	}, [live, plot, width]);
 
@@ -139,9 +122,7 @@ export function InsightsNetChart({
 		}
 		const x = plot.x(marker);
 		const over = CHART_SCRUB.ruleOvershoot;
-		return Skia.Path.MakeFromSVGString(
-			`M ${x} ${PAD.top - over} L ${x} ${HEIGHT - PAD.bottom + over}`,
-		);
+		return Skia.Path.MakeFromSVGString(`M ${x} ${PAD.top - over} L ${x} ${HEIGHT - PAD.bottom + over}`);
 	}, [marker, plot, width, live.length]);
 
 	const count = live.length;
@@ -192,37 +173,21 @@ export function InsightsNetChart({
 		setWidth(event.nativeEvent.layout.width);
 	};
 
-	const markerValue = marker != null ? live[marker] : undefined;
+	const markerValue = marker == null ? undefined : live[marker];
 
 	return (
 		<View>
 			<GestureDetector gesture={pan}>
-				<View
-					collapsable={false}
-					onLayout={onLayout}
-					style={{ height: HEIGHT }}
-				>
+				<View collapsable={false} onLayout={onLayout} style={{ height: HEIGHT }}>
 					{/* Skia's canvas is a native view and swallows touches, so the pan
 					    on the wrapper never sees them unless this opts out. */}
-					<Canvas pointerEvents="none" style={{ width, height: HEIGHT }}>
+					<Canvas pointerEvents="none" style={{ height: HEIGHT, width }}>
 						{geometry?.surplus ? (
-							<SkPath
-								color={withAlpha(colors.foreground, 0.07)}
-								opacity={draw}
-								path={geometry.surplus}
-							/>
+							<SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={geometry.surplus} />
 						) : null}
 
 						{geometry?.surplus && geometry.hatch ? (
-							<SkGroup
-								clip={Skia.XYWHRect(
-									0,
-									plot.zeroY,
-									width,
-									Math.max(0, HEIGHT - plot.zeroY),
-								)}
-								opacity={draw}
-							>
+							<SkGroup clip={Skia.XYWHRect(0, plot.zeroY, width, Math.max(0, HEIGHT - plot.zeroY))} opacity={draw}>
 								<SkGroup clip={geometry.surplus}>
 									<SkPath
 										color={withAlpha(colors.overBudget, 0.55)}
@@ -238,65 +203,31 @@ export function InsightsNetChart({
 						{geometry?.line ? (
 							<>
 								<SkGroup clip={Skia.XYWHRect(0, 0, width, plot.zeroY)}>
-									<SkPath
-										color={colors.income}
-										end={draw}
-										path={geometry.line}
-										strokeWidth={2.2}
-										style="stroke"
-									/>
+									<SkPath color={colors.income} end={draw} path={geometry.line} strokeWidth={2.2} style="stroke" />
 								</SkGroup>
-								<SkGroup
-									clip={Skia.XYWHRect(
-										0,
-										plot.zeroY,
-										width,
-										Math.max(0, HEIGHT - plot.zeroY),
-									)}
-								>
-									<SkPath
-										color={colors.overBudget}
-										end={draw}
-										path={geometry.line}
-										strokeWidth={2.2}
-										style="stroke"
-									/>
+								<SkGroup clip={Skia.XYWHRect(0, plot.zeroY, width, Math.max(0, HEIGHT - plot.zeroY))}>
+									<SkPath color={colors.overBudget} end={draw} path={geometry.line} strokeWidth={2.2} style="stroke" />
 								</SkGroup>
 							</>
 						) : null}
 
 						{geometry?.axis ? (
-							<SkPath
-								color={colors.foreground}
-								path={geometry.axis}
-								strokeWidth={1.6}
-								style="stroke"
-							/>
+							<SkPath color={colors.foreground} path={geometry.axis} strokeWidth={1.6} style="stroke" />
 						) : null}
 
 						{markerRule && marker != null && markerValue != null ? (
 							<SkGroup opacity={draw}>
 								<SkPath
-									color={
-										scrubIndex != null
-											? colors.foreground
-											: withAlpha(colors.foreground, 0.55)
-									}
+									color={scrubIndex == null ? withAlpha(colors.foreground, 0.55) : colors.foreground}
 									path={markerRule}
 									strokeWidth={CHART_SCRUB.ruleWidth}
 									style="stroke"
 								/>
 								<SkCircle
-									color={
-										markerValue < 0 ? colors.overBudget : colors.foreground
-									}
+									color={markerValue < 0 ? colors.overBudget : colors.foreground}
 									cx={plot.x(marker)}
 									cy={plot.y(markerValue)}
-									r={
-										scrubIndex != null
-											? CHART_SCRUB.activeDotRadius
-											: CHART_SCRUB.dotRadius
-									}
+									r={scrubIndex == null ? CHART_SCRUB.dotRadius : CHART_SCRUB.activeDotRadius}
 								/>
 							</SkGroup>
 						) : null}
@@ -305,28 +236,18 @@ export function InsightsNetChart({
 					{/* The line itself is one Skia path, so it cannot carry per-slot
 					    accessibility; these invisible siblings give VoiceOver the same
 					    per-slot readout the bar chart has. */}
-					<View
-						pointerEvents="none"
-						style={{ ...StyleSheetAbsoluteFill, flexDirection: "row" }}
-					>
+					<View pointerEvents="none" style={{ ...StyleSheetAbsoluteFill, flexDirection: "row" }}>
 						{live.map((value, index) => (
 							<View
-								accessibilityLabel={t(
-									value < 0
-										? "insights.net.slotBehind"
-										: "insights.net.slotAhead",
-									{
-										date: bucketDateLabel(period, buckets[index].start),
-										amount: formatAmount(Math.abs(value), code, false),
-									},
-								)}
+								accessibilityLabel={t(value < 0 ? "insights.net.slotBehind" : "insights.net.slotAhead", {
+									amount: formatAmount(Math.abs(value), code, false),
+									date: bucketDateLabel(period, buckets[index].start),
+								})}
 								accessibilityRole="button"
 								accessibilityState={{ selected: selectedIndex === index }}
 								accessible
 								key={buckets[index].start.getTime()}
-								onAccessibilityTap={() =>
-									onCommit(selectedIndex === index ? null : index)
-								}
+								onAccessibilityTap={() => onCommit(selectedIndex === index ? null : index)}
 								style={{ width: plot.step }}
 							/>
 						))}
@@ -340,18 +261,14 @@ export function InsightsNetChart({
 						{showXLabel(period, index, bucket.label) ? (
 							<View
 								style={{
-									position: "absolute",
-									left: "50%",
-									width: LABEL_W,
-									marginLeft: -LABEL_W / 2,
 									alignItems: "center",
+									left: "50%",
+									marginLeft: -LABEL_W / 2,
+									position: "absolute",
+									width: LABEL_W,
 								}}
 							>
-								<RNText
-									className="font-mono text-micro"
-									numberOfLines={1}
-									style={{ color: colors.muted }}
-								>
+								<RNText className="font-mono text-micro" numberOfLines={1} style={{ color: colors.muted }}>
 									{bucket.label}
 								</RNText>
 							</View>
@@ -364,18 +281,14 @@ export function InsightsNetChart({
 }
 
 const StyleSheetAbsoluteFill = {
-	position: "absolute" as const,
-	top: 0,
-	left: 0,
-	right: 0,
 	bottom: 0,
+	left: 0,
+	position: "absolute" as const,
+	right: 0,
+	top: 0,
 };
 
-function showXLabel(
-	period: InsightsPeriod,
-	index: number,
-	label: string,
-): boolean {
+function showXLabel(period: InsightsPeriod, index: number, label: string): boolean {
 	if (period === "week") {
 		return true;
 	}

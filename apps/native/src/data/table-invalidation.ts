@@ -15,10 +15,7 @@ const listeners = new Map<string, Set<Listener>>();
  * Deliberately free of `expo-sqlite` and React so `-core.ts` modules can reach
  * it under the node test runner.
  */
-export function subscribeToTable(
-	tableName: string,
-	listener: Listener,
-): () => void {
+export function subscribeToTable(tableName: string, listener: Listener): () => void {
 	const existing = listeners.get(tableName) ?? new Set<Listener>();
 	existing.add(listener);
 	listeners.set(tableName, existing);

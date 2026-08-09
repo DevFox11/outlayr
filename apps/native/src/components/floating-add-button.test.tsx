@@ -24,8 +24,8 @@ jest.mock("@/components/import-sheet/import-sheet", () => {
 	return {
 		ImportSheet: ({ ref }: { ref?: Ref<unknown> }) => {
 			useImperativeHandle(ref, () => ({
-				present: mockPresent,
 				dismiss: jest.fn(),
+				present: mockPresent,
 			}));
 			return null;
 		},
@@ -34,20 +34,20 @@ jest.mock("@/components/import-sheet/import-sheet", () => {
 jest.mock("@expo/ui", () => {
 	const { Pressable, Text } = require("react-native");
 	return {
-		Host: ({ children }: { children: ReactNode }) => children,
 		Button: ({ label, onPress }: { label: string; onPress?: () => void }) => (
 			<Pressable accessibilityRole="button" onPress={onPress}>
 				<Text>{label}</Text>
 			</Pressable>
 		),
+		Host: ({ children }: { children: ReactNode }) => children,
 	};
 });
 jest.mock("@expo/ui/swift-ui", () => ({
 	Menu: ({ children }: { children: ReactNode }) => children,
 }));
 jest.mock("@expo/ui/swift-ui/modifiers", () => ({
-	buttonStyle: () => ({}),
 	buttonBorderShape: () => ({}),
+	buttonStyle: () => ({}),
 	controlSize: () => ({}),
 	labelStyle: () => ({}),
 	tint: () => ({}),

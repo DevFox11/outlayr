@@ -1,13 +1,6 @@
-import {
-	ChoiceRow,
-	PickerRow,
-	SettingsSection,
-} from "@/components/settings/settings-row";
+import { ChoiceRow, PickerRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
-import {
-	useAppSettings,
-	useDisplaySettings,
-} from "@/contexts/display-settings-context";
+import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { ordinalDay, setBoolSetting, setNumberSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
@@ -43,10 +36,7 @@ function TimeFramesContent({ db }: { db: Database }) {
 
 	return (
 		<SettingsScreen>
-			<SettingsSection
-				footer={t("clock.deviceNote")}
-				title={t("settings.time.startsSection")}
-			>
+			<SettingsSection footer={t("clock.deviceNote")} title={t("settings.time.startsSection")}>
 				<PickerRow
 					icon="CalendarClock"
 					onChange={(next) => {
@@ -73,10 +63,7 @@ function TimeFramesContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection
-				footer={t("settings.time.reopenNote")}
-				title={t("settings.time.monthSection")}
-			>
+			<SettingsSection footer={t("settings.time.reopenNote")} title={t("settings.time.monthSection")}>
 				{MONTH_DAYS.map((day) => (
 					<ChoiceRow
 						key={day}

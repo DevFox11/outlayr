@@ -29,31 +29,12 @@ function TimelineStops() {
 	const today = TIMELINE_W * 0.5;
 
 	return (
-		<Svg
-			height={TIMELINE_H}
-			viewBox={`0 0 ${TIMELINE_W} ${TIMELINE_H}`}
-			width={TIMELINE_W}
-		>
-			<Path
-				d={`M1 ${mid} H${today}`}
-				stroke={colors.foreground}
-				strokeLinecap="round"
-				strokeWidth={1.5}
-			/>
+		<Svg height={TIMELINE_H} viewBox={`0 0 ${TIMELINE_W} ${TIMELINE_H}`} width={TIMELINE_W}>
+			<Path d={`M1 ${mid} H${today}`} stroke={colors.foreground} strokeLinecap="round" strokeWidth={1.5} />
 			<Circle cx={6} cy={mid} fill={ink.fill} r={2} />
 			<Circle cx={12} cy={mid} fill={ink.fill} r={2} />
-			<Path
-				d={`M${today} ${mid} H${TIMELINE_W - 1}`}
-				stroke={ink.edge}
-				strokeDasharray="3 3"
-				strokeWidth={1.5}
-			/>
-			<Path
-				d={`M${today} ${mid - 5} V${mid + 5}`}
-				stroke={colors.foreground}
-				strokeLinecap="round"
-				strokeWidth={1.5}
-			/>
+			<Path d={`M${today} ${mid} H${TIMELINE_W - 1}`} stroke={ink.edge} strokeDasharray="3 3" strokeWidth={1.5} />
+			<Path d={`M${today} ${mid - 5} V${mid + 5}`} stroke={colors.foreground} strokeLinecap="round" strokeWidth={1.5} />
 		</Svg>
 	);
 }
@@ -83,10 +64,7 @@ function UpcomingContent({ db }: { db: Database }) {
 	return (
 		<>
 			<SettingsScreen>
-				<SettingsSection
-					footer={t("settings.upcoming.footer")}
-					title={t("settings.upcoming.section")}
-				>
+				<SettingsSection footer={t("settings.upcoming.footer")} title={t("settings.upcoming.section")}>
 					<ToggleRow
 						icon="Sunrise"
 						onValueChange={(next) => {
@@ -112,18 +90,14 @@ function UpcomingContent({ db }: { db: Database }) {
 					<LogUpcoming
 						currency={currency}
 						nowMs={nowMs}
-						rates={rates}
 						onLongPress={(id) => openRowActions(id, true)}
 						onPress={(id) => router.push(`/transactions/${id}`)}
+						rates={rates}
 						schedules={upcoming}
 						transactions={upcoming}
 					/>
 					{upcoming.length === 0 ? (
-						<EmptyState
-							body={t("settings.upcoming.empty")}
-							mark={<TimelineStops />}
-							tier="insetRow"
-						/>
+						<EmptyState body={t("settings.upcoming.empty")} mark={<TimelineStops />} tier="insetRow" />
 					) : null}
 				</View>
 			</SettingsScreen>

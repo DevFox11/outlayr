@@ -17,11 +17,7 @@ export type AdoptionPlan =
 	| "defer";
 
 /** Ordered as the screen offers them: the non-destructive one first. */
-export const ADOPTION_CHOICES = [
-	"merge",
-	"keep-local",
-	"keep-account",
-] as const;
+export const ADOPTION_CHOICES = ["merge", "keep-local", "keep-account"] as const;
 
 export type AdoptionChoice = (typeof ADOPTION_CHOICES)[number];
 
@@ -33,10 +29,10 @@ export type AdoptionChoice = (typeof ADOPTION_CHOICES)[number];
 export interface AdoptionActions {
 	/** Queue every local row so the account receives it. */
 	pushLocal: boolean;
-	/** Discard the local replica before reading the account's log from seq 0. */
-	wipeLocal: boolean;
 	/** Tombstone the account's rows so this device's ledger is the survivor. */
 	wipeAccount: boolean;
+	/** Discard the local replica before reading the account's log from seq 0. */
+	wipeLocal: boolean;
 }
 
 /**
@@ -44,10 +40,7 @@ export interface AdoptionActions {
  * prompt: silently merging double-counts money and silently wiping destroys it,
  * while the other three have exactly one non-destructive answer each.
  */
-export function adoptionPlan(
-	local: LocalLedger,
-	remote: RemoteLedger,
-): AdoptionPlan {
+export function adoptionPlan(local: LocalLedger, remote: RemoteLedger): AdoptionPlan {
 	if (remote === "unknown") {
 		return "defer";
 	}
@@ -61,11 +54,11 @@ export function adoptionPlan(
 export function adoptionActions(plan: AdoptionPlan): AdoptionActions | null {
 	switch (plan) {
 		case "fresh":
-			return { pushLocal: false, wipeLocal: false, wipeAccount: false };
+			return { pushLocal: false, wipeAccount: false, wipeLocal: false };
 		case "adopt":
-			return { pushLocal: true, wipeLocal: false, wipeAccount: false };
+			return { pushLocal: true, wipeAccount: false, wipeLocal: false };
 		case "replace":
-			return { pushLocal: false, wipeLocal: true, wipeAccount: false };
+			return { pushLocal: false, wipeAccount: false, wipeLocal: true };
 		case "ask":
 		case "defer":
 			return null;
@@ -75,11 +68,11 @@ export function adoptionActions(plan: AdoptionPlan): AdoptionActions | null {
 export function choiceActions(choice: AdoptionChoice): AdoptionActions {
 	switch (choice) {
 		case "merge":
-			return { pushLocal: true, wipeLocal: false, wipeAccount: false };
+			return { pushLocal: true, wipeAccount: false, wipeLocal: false };
 		case "keep-local":
-			return { pushLocal: true, wipeLocal: false, wipeAccount: true };
+			return { pushLocal: true, wipeAccount: true, wipeLocal: false };
 		case "keep-account":
-			return { pushLocal: false, wipeLocal: true, wipeAccount: false };
+			return { pushLocal: false, wipeAccount: false, wipeLocal: true };
 	}
 }
 

@@ -53,9 +53,9 @@ export const LARGE_ONLY = [1];
  * sheet re-snaps when the step changes.
  */
 export const IMPORT_STEP_SNAP_FRACTION: Record<ImportStep, number> = {
-	source: 0.5,
+	done: 0.55,
 	file: 0.65,
 	resolve: 0.7,
 	review: 0.85,
-	done: 0.55,
+	source: 0.5,
 };

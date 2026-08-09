@@ -8,11 +8,7 @@ import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
 import { rateLimiter } from "./enrichment";
-import {
-	GROUNDED_REQUEST_TIMEOUT_MS,
-	runGroundedLookup,
-	runGroundedLookupCall,
-} from "./groundedLookup";
+import { GROUNDED_REQUEST_TIMEOUT_MS, runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
 import { budgetConfig } from "./lib/spend";
 import schema from "./schema";
 
@@ -20,73 +16,65 @@ const modules = import.meta.glob("./**/*.ts");
 
 const fakeWebSearchTool = tool({
 	description: "test double for xai's provider-executed web search",
-	inputSchema: z.object({}),
 	execute: async () => ({ query: "", sources: [] }),
+	inputSchema: z.object({}),
 });
 
 function usageStub(inputTokens?: number, outputTokens?: number) {
 	return {
 		inputTokens: {
-			total: inputTokens,
-			noCache: undefined,
 			cacheRead: undefined,
 			cacheWrite: undefined,
+			noCache: undefined,
+			total: inputTokens,
 		},
 		outputTokens: {
-			total: outputTokens,
-			text: undefined,
 			reasoning: undefined,
+			text: undefined,
+			total: outputTokens,
 		},
 	};
 }
 
-function mockTextModel(
-	text: string,
-	options?: { input?: number; output?: number; sourceUrl?: string },
-) {
+function mockTextModel(text: string, options?: { input?: number; output?: number; sourceUrl?: string }) {
 	return new MockLanguageModelV3({
 		doGenerate: async () => ({
 			content: [
-				{ type: "text", text },
+				{ text, type: "text" },
 				...(options?.sourceUrl
 					? [
 							{
-								type: "source" as const,
-								sourceType: "url" as const,
 								id: "src-1",
+								sourceType: "url" as const,
+								type: "source" as const,
 								url: options.sourceUrl,
 							},
 						]
 					: []),
 			],
-			finishReason: { unified: "stop", raw: undefined },
+			finishReason: { raw: undefined, unified: "stop" },
 			usage: usageStub(options?.input, options?.output),
 			warnings: [],
 		}),
 	});
 }
 
-const BASE_ARGS = { key: "farmatodo", name: "Farmatodo", income: false };
+const BASE_ARGS = { income: false, key: "farmatodo", name: "Farmatodo" };
 
 const CONFIDENT_PAYLOAD = {
 	categoryName: "Healthcare",
+	domain: "farmatodo.com",
 	emoji: "💊",
 	tags: ["pharmacy"],
-	domain: "farmatodo.com",
 };
 
 describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", () => {
 	test("the single call carries the injected web_search tool set", async () => {
 		const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD));
 
-		await runGroundedLookupCall(
-			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
-		);
+		await runGroundedLookupCall({ grounding, groundingTools: { web_search: fakeWebSearchTool } }, BASE_ARGS);
 
-		expect(grounding.doGenerateCalls[0]?.tools).toEqual([
-			expect.objectContaining({ name: "web_search" }),
-		]);
+		expect(grounding.doGenerateCalls[0]?.tools).toEqual([expect.objectContaining({ name: "web_search" })]);
 	});
 
 	test("parses a clean JSON response with no fence or prose", async () => {
@@ -96,31 +84,28 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.candidate).toMatchObject({
-			key: "farmatodo",
 			categoryName: "Healthcare",
 			domain: "farmatodo.com",
+			key: "farmatodo",
 			tags: ["pharmacy"],
 		});
 	});
 
 	test("parses JSON wrapped in a ```json fence", async () => {
-		const text = [
-			"Here is what I found after searching:",
-			"```json",
-			JSON.stringify(CONFIDENT_PAYLOAD),
-			"```",
-		].join("\n");
+		const text = ["Here is what I found after searching:", "```json", JSON.stringify(CONFIDENT_PAYLOAD), "```"].join(
+			"\n"
+		);
 		const grounding = mockTextModel(text, {
 			sourceUrl: "https://farmatodo.com/about",
 		});
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.candidate).toMatchObject({
@@ -137,7 +122,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.candidate).toMatchObject({
@@ -147,13 +132,11 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 	});
 
 	test("degrades to an all-null candidate on unparseable output, without throwing", async () => {
-		const grounding = mockTextModel(
-			"I was unable to confirm any details about this merchant.",
-		);
+		const grounding = mockTextModel("I was unable to confirm any details about this merchant.");
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.candidate).toMatchObject({
@@ -179,8 +162,8 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 					grounding: throwing,
 					groundingTools: { web_search: fakeWebSearchTool },
 				},
-				BASE_ARGS,
-			),
+				BASE_ARGS
+			)
 		).rejects.toThrow();
 
 		expect(calls).toBe(1);
@@ -194,29 +177,26 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 		// above); this test's only target is the `stopWhen` value itself.
 		const loopingSearch = tool({
 			description: "always requests another round",
-			inputSchema: z.object({}),
 			execute: async () => ({ query: "farmatodo", sources: [] }),
+			inputSchema: z.object({}),
 		});
 		const grounding = new MockLanguageModelV3({
 			doGenerate: async () => ({
 				content: [
 					{
-						type: "tool-call",
+						input: "{}",
 						toolCallId: "call-1",
 						toolName: "web_search",
-						input: "{}",
+						type: "tool-call",
 					},
 				],
-				finishReason: { unified: "tool-calls", raw: undefined },
+				finishReason: { raw: undefined, unified: "tool-calls" },
 				usage: usageStub(10, 5),
 				warnings: [],
 			}),
 		});
 
-		await runGroundedLookupCall(
-			{ grounding, groundingTools: { web_search: loopingSearch } },
-			BASE_ARGS,
-		);
+		await runGroundedLookupCall({ grounding, groundingTools: { web_search: loopingSearch } }, BASE_ARGS);
 
 		expect(grounding.doGenerateCalls.length).toBe(4);
 	});
@@ -230,13 +210,13 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.candidate).toMatchObject({
-			key: "farmatodo",
 			categoryName: "Healthcare",
 			domain: "farmatodo.com",
+			key: "farmatodo",
 			tags: ["pharmacy"],
 		});
 		expect(outcome.sources).toEqual([{ url: "https://farmatodo.com/about" }]);
@@ -251,7 +231,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
 		await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			{ ...BASE_ARGS, regionCode: "VE" },
+			{ ...BASE_ARGS, regionCode: "VE" }
 		);
 
 		const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
@@ -265,7 +245,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
 		await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			{ ...BASE_ARGS, regionCode: "VE" },
+			{ ...BASE_ARGS, regionCode: "VE" }
 		);
 
 		const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
@@ -276,16 +256,16 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 		const grounding = new MockLanguageModelV3({
 			doGenerate: async () => ({
 				content: [
-					{ type: "text", text: JSON.stringify(CONFIDENT_PAYLOAD) },
+					{ text: JSON.stringify(CONFIDENT_PAYLOAD), type: "text" },
 					{
-						type: "source",
-						sourceType: "document",
 						id: "doc-1",
 						mediaType: "application/pdf",
+						sourceType: "document",
 						title: "not a url",
+						type: "source",
 					},
 				],
-				finishReason: { unified: "stop", raw: undefined },
+				finishReason: { raw: undefined, unified: "stop" },
 				usage: usageStub(10, 5),
 				warnings: [],
 			}),
@@ -293,7 +273,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.sources).toEqual([]);
@@ -304,16 +284,14 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 	test("performs no model work when groundedPerKey is already exhausted for this key", async () => {
 		const t = convexTest(schema, modules);
 		rateLimiterTest.register(t);
-		await t.run((ctx) =>
-			rateLimiter.limit(ctx, "groundedPerKey", { key: "farmatodo" }),
-		);
+		await t.run((ctx) => rateLimiter.limit(ctx, "groundedPerKey", { key: "farmatodo" }));
 		const grounding = mockTextModel("irrelevant");
 
 		await t.action(async (ctx) =>
 			runGroundedLookup(ctx, BASE_ARGS, {
 				grounding,
 				groundingTools: { web_search: fakeWebSearchTool },
-			}),
+			})
 		);
 
 		expect(grounding.doGenerateCalls.length).toBe(0);
@@ -325,9 +303,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 		const limitSpy = vi
 			.spyOn(rateLimiter, "limit")
 			.mockImplementation(async (_ctx, name) =>
-				name === "groundedBudgetMicros"
-					? { ok: false, retryAfter: 1000 }
-					: { ok: true, retryAfter: undefined },
+				name === "groundedBudgetMicros" ? { ok: false, retryAfter: 1000 } : { ok: true, retryAfter: undefined }
 			);
 		const grounding = mockTextModel("irrelevant");
 
@@ -335,7 +311,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 			runGroundedLookup(ctx, BASE_ARGS, {
 				grounding,
 				groundingTools: { web_search: fakeWebSearchTool },
-			}),
+			})
 		);
 
 		expect(grounding.doGenerateCalls.length).toBe(0);
@@ -355,14 +331,14 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 			runGroundedLookup(ctx, BASE_ARGS, {
 				grounding,
 				groundingTools: { web_search: fakeWebSearchTool },
-			}),
+			})
 		);
 
 		const knowledge = await t.run((ctx) =>
 			ctx.db
 				.query("merchantKnowledge")
 				.withIndex("by_key", (q) => q.eq("key", "farmatodo"))
-				.unique(),
+				.unique()
 		);
 		expect(knowledge).toMatchObject({
 			categoryName: "Healthcare",
@@ -392,23 +368,23 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 				runGroundedLookup(ctx, BASE_ARGS, {
 					grounding: aborting,
 					groundingTools: { web_search: fakeWebSearchTool },
-				}),
-			),
+				})
+			)
 		).resolves.not.toThrow();
 
 		const knowledge = await t.run((ctx) =>
 			ctx.db
 				.query("merchantKnowledge")
 				.withIndex("by_key", (q) => q.eq("key", "farmatodo"))
-				.unique(),
+				.unique()
 		);
 		expect(knowledge).toBeNull();
 
 		const spend = await t.run((ctx) => ctx.db.query("groundedSpend").collect());
 		expect(spend).toHaveLength(1);
 		expect(spend[0]).toMatchObject({
-			published: false,
 			actualMicros: 0,
+			published: false,
 			searchCalls: 0,
 		});
 		warnSpy.mockRestore();
@@ -424,14 +400,14 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 			runGroundedLookup(ctx, BASE_ARGS, {
 				grounding,
 				groundingTools: { web_search: fakeWebSearchTool },
-			}),
+			})
 		);
 
 		const knowledge = await t.run((ctx) =>
 			ctx.db
 				.query("merchantKnowledge")
 				.withIndex("by_key", (q) => q.eq("key", "farmatodo"))
-				.unique(),
+				.unique()
 		);
 		expect(knowledge).toBeNull();
 
@@ -446,22 +422,16 @@ describe("runGroundedLookupCall domain guard (model-hallucinated denylisted doma
 		["img.logo.dev", "https://img.logo.dev/about"],
 		["itunes.apple.com", "https://itunes.apple.com/about"],
 		["is1-ssl.mzstatic.com", "https://is1-ssl.mzstatic.com/about"],
-	])(
-		"nulls a corroborated but denylisted domain %s",
-		async (domain, sourceUrl) => {
-			const grounding = mockTextModel(
-				JSON.stringify({ ...CONFIDENT_PAYLOAD, domain }),
-				{ sourceUrl },
-			);
+	])("nulls a corroborated but denylisted domain %s", async (domain, sourceUrl) => {
+		const grounding = mockTextModel(JSON.stringify({ ...CONFIDENT_PAYLOAD, domain }), { sourceUrl });
 
-			const outcome = await runGroundedLookupCall(
-				{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-				BASE_ARGS,
-			);
+		const outcome = await runGroundedLookupCall(
+			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
+			BASE_ARGS
+		);
 
-			expect(outcome.candidate.domain).toBeNull();
-		},
-	);
+		expect(outcome.candidate.domain).toBeNull();
+	});
 
 	test("keeps an ordinary corroborated domain untouched", async () => {
 		const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
@@ -470,7 +440,7 @@ describe("runGroundedLookupCall domain guard (model-hallucinated denylisted doma
 
 		const outcome = await runGroundedLookupCall(
 			{ grounding, groundingTools: { web_search: fakeWebSearchTool } },
-			BASE_ARGS,
+			BASE_ARGS
 		);
 
 		expect(outcome.candidate.domain).toBe("farmatodo.com");

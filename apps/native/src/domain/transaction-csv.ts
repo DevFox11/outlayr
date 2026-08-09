@@ -7,26 +7,19 @@ import { minorUnitsFor } from "./money";
  * trip in any zone, and `Currency` exists at all because a row now carries one —
  * dropping it would restate a €12.50 lunch as $12.50 on the way back in.
  */
-export const CSV_HEADER = [
-	"Date",
-	"Note",
-	"Amount",
-	"Currency",
-	"Category",
-	"Type",
-] as const;
+export const CSV_HEADER = ["Date", "Note", "Amount", "Currency", "Category", "Type"] as const;
 
 export const CSV_TYPE_INCOME = "Income";
 export const CSV_TYPE_EXPENSE = "Expense";
 
 export interface ExportableTransaction {
-	date: Date;
-	note: string;
 	amount: number;
+	categoryName: string | null;
 	/** Null means the row stated none and takes the ledger's code. */
 	currency: string | null;
-	categoryName: string | null;
+	date: Date;
 	income: boolean;
+	note: string;
 }
 
 export type DecimalSeparator = "." | ",";
@@ -35,10 +28,7 @@ export type DecimalSeparator = "." | ",";
 const MAX_DECIMALS = 10;
 
 function exactDecimal(value: number): string {
-	const plain = value
-		.toFixed(MAX_DECIMALS)
-		.replace(/0+$/, "")
-		.replace(/\.$/, "");
+	const plain = value.toFixed(MAX_DECIMALS).replace(/0+$/, "").replace(/\.$/, "");
 	return Number.parseFloat(plain) === value ? plain : String(value);
 }
 
@@ -51,9 +41,7 @@ function exactDecimal(value: number): string {
 export function serializeCsvAmount(amount: number, currency: string): string {
 	const magnitude = Math.abs(amount);
 	const fixed = magnitude.toFixed(minorUnitsFor(currency));
-	return Number.parseFloat(fixed) === magnitude
-		? fixed
-		: exactDecimal(magnitude);
+	return Number.parseFloat(fixed) === magnitude ? fixed : exactDecimal(magnitude);
 }
 
 /**
@@ -62,9 +50,7 @@ export function serializeCsvAmount(amount: number, currency: string): string {
  * holding both `1.234,56` and `9,90` is not. A separator appearing twice, or
  * once with a three-digit tail, reads as grouping and casts no vote.
  */
-export function detectDecimalSeparator(
-	values: readonly string[],
-): DecimalSeparator {
+export function detectDecimalSeparator(values: readonly string[]): DecimalSeparator {
 	let comma = 0;
 	let dot = 0;
 
@@ -106,10 +92,7 @@ export function detectDecimalSeparator(
  * Answers null rather than a guess, so the import preview can show the row as
  * unreadable instead of writing a number nobody typed.
  */
-export function parseCsvAmount(
-	text: string,
-	separator: DecimalSeparator = ".",
-): number | null {
+export function parseCsvAmount(text: string, separator: DecimalSeparator = "."): number | null {
 	const trimmed = text.trim();
 	if (trimmed === "") {
 		return null;
@@ -159,12 +142,11 @@ export const DATE_FORMATS = [
 const TOKENS = ["yyyy", "MM", "dd", "HH", "mm", "ss"] as const;
 type Token = (typeof TOKENS)[number];
 
-const ISO_INSTANT =
-	/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
 
 interface FormatPattern {
-	regex: RegExp;
 	order: Token[];
+	regex: RegExp;
 }
 
 const PATTERN_CACHE = new Map<string, FormatPattern | null>();
@@ -189,16 +171,14 @@ function compile(format: string): FormatPattern | null {
 		}
 		// A two-digit field with no separator after it cannot be variable-width, or
 		// `yyyyMMdd` would read "0729" as month 7 and day 29 only by luck.
-		const adjacent = TOKENS.some((candidate) =>
-			format.startsWith(candidate, i),
-		);
+		const adjacent = TOKENS.some((candidate) => format.startsWith(candidate, i));
 		source += adjacent ? "(\\d{2})" : "(\\d{1,2})";
 	}
 
 	if (order.length === 0) {
 		return null;
 	}
-	return { regex: new RegExp(`${source}$`), order };
+	return { order, regex: new RegExp(`${source}$`) };
 }
 
 function patternFor(format: string): FormatPattern | null {
@@ -234,31 +214,19 @@ export function parseCsvDate(value: string, format: string): Date | null {
 	}
 
 	const parts: Record<Token, number> = {
-		yyyy: 1970,
-		MM: 1,
 		dd: 1,
 		HH: 0,
+		MM: 1,
 		mm: 0,
 		ss: 0,
+		yyyy: 1970,
 	};
 	for (const [index, token] of pattern.order.entries()) {
 		parts[token] = Number.parseInt(match[index + 1] ?? "", 10);
 	}
 
-	const date = new Date(
-		parts.yyyy,
-		parts.MM - 1,
-		parts.dd,
-		parts.HH,
-		parts.mm,
-		parts.ss,
-		0,
-	);
-	if (
-		date.getFullYear() !== parts.yyyy ||
-		date.getMonth() !== parts.MM - 1 ||
-		date.getDate() !== parts.dd
-	) {
+	const date = new Date(parts.yyyy, parts.MM - 1, parts.dd, parts.HH, parts.mm, parts.ss, 0);
+	if (date.getFullYear() !== parts.yyyy || date.getMonth() !== parts.MM - 1 || date.getDate() !== parts.dd) {
 		return null;
 	}
 	return date;
@@ -279,27 +247,21 @@ export function deduceDateFormat(values: readonly string[]): string | null {
 	// A format is judged by how many values it parses, not by parsing them
 	// all: one stray malformed row must not turn every other date unreadable.
 	const parseCount = new Map(
-		DATE_FORMATS.map((format) => [
-			format,
-			sample.filter((value) => parseCsvDate(value, format) != null).length,
-		]),
+		DATE_FORMATS.map((format) => [format, sample.filter((value) => parseCsvDate(value, format) != null).length])
 	);
 	const best = Math.max(...parseCount.values());
 	if (best === 0 || best * 2 < sample.length) {
 		return null;
 	}
-	const viable = DATE_FORMATS.filter(
-		(format) => parseCount.get(format) === best,
-	);
+	const viable = DATE_FORMATS.filter((format) => parseCount.get(format) === best);
 
 	const dayFirst = viable.find((format) => format.startsWith("dd"));
 	const monthFirst = viable.find((format) => format.startsWith("MM"));
 	if (dayFirst != null && monthFirst != null) {
 		const leadsAboveTwelve = sample.some(
 			(value) =>
-				(parseCsvDate(value, dayFirst) != null ||
-					parseCsvDate(value, monthFirst) != null) &&
-				Number.parseInt(value.slice(0, 2), 10) > 12,
+				(parseCsvDate(value, dayFirst) != null || parseCsvDate(value, monthFirst) != null) &&
+				Number.parseInt(value.slice(0, 2), 10) > 12
 		);
 		return leadsAboveTwelve ? dayFirst : monthFirst;
 	}
@@ -322,10 +284,7 @@ export function parseCsvType(value: string): boolean | null {
 	return null;
 }
 
-export function transactionsToCsv(
-	rows: readonly ExportableTransaction[],
-	ledgerCurrency: string,
-): string {
+export function transactionsToCsv(rows: readonly ExportableTransaction[], ledgerCurrency: string): string {
 	const lines = [formatCsvRow(CSV_HEADER)];
 	for (const row of rows) {
 		const currency = row.currency ?? ledgerCurrency;
@@ -337,7 +296,7 @@ export function transactionsToCsv(
 				currency,
 				row.categoryName ?? "",
 				row.income ? CSV_TYPE_INCOME : CSV_TYPE_EXPENSE,
-			]),
+			])
 		);
 	}
 	return `${lines.join("\n")}\n`;

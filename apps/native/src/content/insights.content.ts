@@ -1,79 +1,18 @@
 import { type Dictionary, t } from "intlayer";
 
 const insights = {
-	key: "insights" as const,
 	content: {
-		"insights.title": t({
-			en: "Insights",
-			es: "Estadísticas",
-		}),
-		"insights.period.week": t({
-			en: "Week",
-			es: "Semana",
-		}),
-		"insights.period.month": t({
-			en: "Month",
-			es: "Mes",
-		}),
-		"insights.period.year": t({
-			en: "Year",
-			es: "Año",
-		}),
-		"insights.period.change": t({
-			en: "Change period",
-			es: "Cambiar período",
-		}),
-		"insights.measure.spent": t({
-			en: "Spent",
-			es: "Gastado",
-		}),
-		"insights.measure.income": t({
-			en: "Income",
-			es: "Ingreso",
-		}),
-		"insights.measure.net": t({
-			en: "Net",
-			es: "Neto",
-		}),
 		"insights.balance": t({
 			en: "Balance",
 			es: "Saldo",
 		}),
-		"insights.window.title": t({
-			en: "Window",
-			es: "Ventana",
+		"insights.burndown.holding": t({
+			en: "Burn-down chart, day {day} of {days}, {percent} percent of the limit left",
+			es: "Gráfico de consumo, día {day} de {days}, queda el {percent} por ciento del límite",
 		}),
-		"insights.window.shown": t({
-			en: "Window shown",
-			es: "Ventana mostrada",
-		}),
-		"insights.window.earlier": t({
-			en: "Earlier",
-			es: "Anterior",
-		}),
-		"insights.window.later": t({
-			en: "Later",
-			es: "Siguiente",
-		}),
-		"insights.window.now": t({
-			en: "Now",
-			es: "Ahora",
-		}),
-		"insights.scope.selectedPeriod": t({
-			en: "Selected period",
-			es: "Período seleccionado",
-		}),
-		"insights.scope.clearBar": t({
-			en: "Clear the selected bar",
-			es: "Quitar la barra seleccionada",
-		}),
-		"insights.scope.filteredCategory": t({
-			en: "Filtered category",
-			es: "Categoría filtrada",
-		}),
-		"insights.scope.clearCategory": t({
-			en: "Clear the category filter",
-			es: "Quitar el filtro de categoría",
+		"insights.burndown.over": t({
+			en: "Burn-down chart, day {day} of {days}, {percent} percent over the limit",
+			es: "Gráfico de consumo, día {day} de {days}, {percent} por ciento por encima del límite",
 		}),
 		"insights.categories": t({
 			en: "Categories",
@@ -87,6 +26,26 @@ const insights = {
 			en: "{name} {percent} percent",
 			es: "{name} {percent} por ciento",
 		}),
+		"insights.list.empty": t({
+			en: "No entries found.",
+			es: "No se encontraron registros.",
+		}),
+		"insights.measure.income": t({
+			en: "Income",
+			es: "Ingreso",
+		}),
+		"insights.measure.net": t({
+			en: "Net",
+			es: "Neto",
+		}),
+		"insights.measure.spent": t({
+			en: "Spent",
+			es: "Gastado",
+		}),
+		"insights.movers.new": t({
+			en: "new",
+			es: "nuevo",
+		}),
 		"insights.movers.title": t({
 			en: "Movers",
 			es: "Cambios",
@@ -94,10 +53,6 @@ const insights = {
 		"insights.movers.versus": t({
 			en: "vs {label}",
 			es: "vs. {label}",
-		}),
-		"insights.movers.new": t({
-			en: "new",
-			es: "nuevo",
 		}),
 		"insights.net.slotAhead": t({
 			en: "{date}, balance {amount} ahead",
@@ -107,37 +62,25 @@ const insights = {
 			en: "{date}, balance {amount} behind",
 			es: "{date}, saldo {amount} en contra",
 		}),
-		"insights.trend.rising": t({
-			en: "Trend line, rising",
-			es: "Línea de tendencia, al alza",
+		"insights.period.change": t({
+			en: "Change period",
+			es: "Cambiar período",
 		}),
-		"insights.trend.falling": t({
-			en: "Trend line, falling",
-			es: "Línea de tendencia, a la baja",
+		"insights.period.month": t({
+			en: "Month",
+			es: "Mes",
 		}),
-		"insights.trend.flat": t({
-			en: "Trend line, flat",
-			es: "Línea de tendencia, estable",
+		"insights.period.week": t({
+			en: "Week",
+			es: "Semana",
 		}),
-		"insights.trend.dailyTotals": t({
-			en: "Chart of daily totals",
-			es: "Gráfico de totales diarios",
+		"insights.period.year": t({
+			en: "Year",
+			es: "Año",
 		}),
-		"insights.trend.monthlyTotals": t({
-			en: "Chart of monthly totals",
-			es: "Gráfico de totales mensuales",
-		}),
-		"insights.burndown.holding": t({
-			en: "Burn-down chart, day {day} of {days}, {percent} percent of the limit left",
-			es: "Gráfico de consumo, día {day} de {days}, queda el {percent} por ciento del límite",
-		}),
-		"insights.burndown.over": t({
-			en: "Burn-down chart, day {day} of {days}, {percent} percent over the limit",
-			es: "Gráfico de consumo, día {day} de {days}, {percent} por ciento por encima del límite",
-		}),
-		"insights.quiet.title": t({
-			en: "Nothing to chart",
-			es: "Nada que graficar",
+		"insights.quiet.accessibility": t({
+			en: "{measure} has nothing to chart {period}. {sentence}",
+			es: "{measure} no tiene nada que graficar {period}. {sentence}",
 		}),
 		"insights.quiet.alternative": t({
 			en: "{measure} has {period} covered — tap it above.",
@@ -147,41 +90,33 @@ const insights = {
 			en: "Nothing logged {period}.",
 			es: "Nada registrado {period}.",
 		}),
-		"insights.quiet.accessibility": t({
-			en: "{measure} has nothing to chart {period}. {sentence}",
-			es: "{measure} no tiene nada que graficar {period}. {sentence}",
+		"insights.quiet.thisMonth": t({
+			en: "this month",
+			es: "este mes",
 		}),
 		"insights.quiet.thisWeek": t({
 			en: "this week",
 			es: "esta semana",
 		}),
-		"insights.quiet.thisMonth": t({
-			en: "this month",
-			es: "este mes",
-		}),
 		"insights.quiet.thisYear": t({
 			en: "this year",
 			es: "este año",
 		}),
-		"insights.list.empty": t({
-			en: "No entries found.",
-			es: "No se encontraron registros.",
+		"insights.quiet.title": t({
+			en: "Nothing to chart",
+			es: "Nada que graficar",
 		}),
 		"insights.sample.badge": t({
 			en: "Sample",
 			es: "Ejemplo",
 		}),
-		"insights.sample.month": t({
-			en: "March",
-			es: "Marzo",
+		"insights.sample.body": t({
+			en: "Yours starts filling in from your first entry.",
+			es: "El tuyo empieza a llenarse desde tu primer registro.",
 		}),
-		"insights.sample.priorLabel": t({
-			en: "February",
-			es: "Febrero",
-		}),
-		"insights.sample.verdict": t({
-			en: "{delta} less than February. {category} alone gave back {moved}.",
-			es: "{delta} menos que febrero. Solo {category} devolvió {moved}.",
+		"insights.sample.cta": t({
+			en: "Log your first expense",
+			es: "Registra tu primer gasto",
 		}),
 		"insights.sample.dining": t({
 			en: "Dining Out",
@@ -195,15 +130,80 @@ const insights = {
 			en: "This is what a month looks like",
 			es: "Así se ve un mes",
 		}),
-		"insights.sample.body": t({
-			en: "Yours starts filling in from your first entry.",
-			es: "El tuyo empieza a llenarse desde tu primer registro.",
+		"insights.sample.month": t({
+			en: "March",
+			es: "Marzo",
 		}),
-		"insights.sample.cta": t({
-			en: "Log your first expense",
-			es: "Registra tu primer gasto",
+		"insights.sample.priorLabel": t({
+			en: "February",
+			es: "Febrero",
+		}),
+		"insights.sample.verdict": t({
+			en: "{delta} less than February. {category} alone gave back {moved}.",
+			es: "{delta} menos que febrero. Solo {category} devolvió {moved}.",
+		}),
+		"insights.scope.clearBar": t({
+			en: "Clear the selected bar",
+			es: "Quitar la barra seleccionada",
+		}),
+		"insights.scope.clearCategory": t({
+			en: "Clear the category filter",
+			es: "Quitar el filtro de categoría",
+		}),
+		"insights.scope.filteredCategory": t({
+			en: "Filtered category",
+			es: "Categoría filtrada",
+		}),
+		"insights.scope.selectedPeriod": t({
+			en: "Selected period",
+			es: "Período seleccionado",
+		}),
+		"insights.title": t({
+			en: "Insights",
+			es: "Estadísticas",
+		}),
+		"insights.trend.dailyTotals": t({
+			en: "Chart of daily totals",
+			es: "Gráfico de totales diarios",
+		}),
+		"insights.trend.falling": t({
+			en: "Trend line, falling",
+			es: "Línea de tendencia, a la baja",
+		}),
+		"insights.trend.flat": t({
+			en: "Trend line, flat",
+			es: "Línea de tendencia, estable",
+		}),
+		"insights.trend.monthlyTotals": t({
+			en: "Chart of monthly totals",
+			es: "Gráfico de totales mensuales",
+		}),
+		"insights.trend.rising": t({
+			en: "Trend line, rising",
+			es: "Línea de tendencia, al alza",
+		}),
+		"insights.window.earlier": t({
+			en: "Earlier",
+			es: "Anterior",
+		}),
+		"insights.window.later": t({
+			en: "Later",
+			es: "Siguiente",
+		}),
+		"insights.window.now": t({
+			en: "Now",
+			es: "Ahora",
+		}),
+		"insights.window.shown": t({
+			en: "Window shown",
+			es: "Ventana mostrada",
+		}),
+		"insights.window.title": t({
+			en: "Window",
+			es: "Ventana",
 		}),
 	},
+	key: "insights" as const,
 } satisfies Dictionary;
 
 export default insights;

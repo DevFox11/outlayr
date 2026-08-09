@@ -15,22 +15,18 @@ export { quietAlternative } from "@/domain/insights-quiet";
 const PLOT_HEIGHT = 150;
 
 const PERIOD_PHRASE_KEY: Record<InsightsPeriod, TranslationKey> = {
-	week: "insights.quiet.thisWeek",
 	month: "insights.quiet.thisMonth",
+	week: "insights.quiet.thisWeek",
 	year: "insights.quiet.thisYear",
 };
 
 interface InsightsQuietProps {
-	measure: InsightsMeasure;
 	alternative: InsightsMeasure | null;
+	measure: InsightsMeasure;
 	period: InsightsPeriod;
 }
 
-export function InsightsQuiet({
-	measure,
-	alternative,
-	period,
-}: InsightsQuietProps) {
+export function InsightsQuiet({ measure, alternative, period }: InsightsQuietProps) {
 	const t = useTranslation();
 	const phrase = t(PERIOD_PHRASE_KEY[period]);
 	const sentence = alternative
@@ -61,9 +57,7 @@ export function InsightsQuiet({
 						<ChartAtZero />
 					</MarkInk>
 				</View>
-				<Text className="max-w-60 text-center text-footnote text-muted">
-					{sentence}
-				</Text>
+				<Text className="max-w-60 text-center text-footnote text-muted">{sentence}</Text>
 			</View>
 			<View className="h-px w-full bg-border" />
 		</View>
@@ -84,12 +78,7 @@ function ChartAtZero() {
 
 	return (
 		<Svg height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`} width={CHART_W}>
-			<Path
-				d={`M${left} 3 V${floor} H${CHART_W - 2}`}
-				fill="none"
-				stroke={ink.rule}
-				strokeWidth={1}
-			/>
+			<Path d={`M${left} 3 V${floor} H${CHART_W - 2}`} fill="none" stroke={ink.rule} strokeWidth={1} />
 			<Path
 				d={`M${left} 14 H${CHART_W - 2} M${left} 27 H${CHART_W - 2}`}
 				stroke={ink.rule}
@@ -98,24 +87,9 @@ function ChartAtZero() {
 			/>
 			{Array.from({ length: COLUMNS }, (_, index) => {
 				const x = left + step * index + (step - stub) / 2;
-				return (
-					<Rect
-						fill={ink.fill}
-						height={3}
-						key={x}
-						rx={1.5}
-						width={stub}
-						x={x}
-						y={floor - 3}
-					/>
-				);
+				return <Rect fill={ink.fill} height={3} key={x} rx={1.5} width={stub} x={x} y={floor - 3} />;
 			})}
-			<Path
-				d={`M${left} ${floor} H${CHART_W - 2}`}
-				stroke={colors.foreground}
-				strokeLinecap="round"
-				strokeWidth={2}
-			/>
+			<Path d={`M${left} ${floor} H${CHART_W - 2}`} stroke={colors.foreground} strokeLinecap="round" strokeWidth={2} />
 		</Svg>
 	);
 }

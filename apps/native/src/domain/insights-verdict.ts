@@ -7,19 +7,19 @@ import { formatAmount } from "./money";
 const FLAT_BAND = 0.02;
 
 export interface VerdictInput {
-	measure: InsightsMeasure;
+	code: string;
 	/**
 	 * This window's figure and the previous one's, already signed the way the
 	 * measure reads: magnitudes for spent and income, the signed net for net.
 	 */
 	current: number;
+	measure: InsightsMeasure;
 	prior: number;
 	/** What to call the window being compared against, e.g. "2025". */
 	priorLabel: string;
-	topMover: { name: string; delta: number } | null;
-	code: string;
 	showCents: boolean;
 	t: TranslateFn;
+	topMover: { name: string; delta: number } | null;
 }
 
 export interface Verdict {
@@ -37,8 +37,7 @@ export interface Verdict {
  * fact about spending.
  */
 export function insightsVerdict(input: VerdictInput): Verdict {
-	const { measure, current, prior, priorLabel, topMover, code, showCents, t } =
-		input;
+	const { measure, current, prior, priorLabel, topMover, code, showCents, t } = input;
 
 	if (prior === 0) {
 		return { badge: null, favourable: true, sentence: null };
@@ -65,13 +64,10 @@ export function insightsVerdict(input: VerdictInput): Verdict {
 	});
 
 	if (topMover) {
-		sentence += ` ${t(
-			topMover.delta > 0 ? "verdict.moverAdded" : "verdict.moverGaveBack",
-			{
-				name: topMover.name,
-				amount: formatAmount(Math.abs(topMover.delta), code, showCents),
-			},
-		)}`;
+		sentence += ` ${t(topMover.delta > 0 ? "verdict.moverAdded" : "verdict.moverGaveBack", {
+			amount: formatAmount(Math.abs(topMover.delta), code, showCents),
+			name: topMover.name,
+		})}`;
 	}
 
 	return { badge, favourable, sentence };

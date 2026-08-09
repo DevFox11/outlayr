@@ -1,10 +1,5 @@
 import { createXai } from "@ai-sdk/xai";
-import {
-	generateText,
-	isStepCount,
-	type LanguageModel,
-	type ToolSet,
-} from "ai";
+import { generateText, isStepCount, type LanguageModel, type ToolSet } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 
@@ -18,11 +13,7 @@ import {
 	sanitizeEmoji,
 	sanitizeTags,
 } from "./enrichment";
-import {
-	CANONICAL_CATEGORY_NAMES,
-	type KnowledgeCandidate,
-	shouldPublish,
-} from "./lib/merchantTrust";
+import { CANONICAL_CATEGORY_NAMES, type KnowledgeCandidate, shouldPublish } from "./lib/merchantTrust";
 import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
 
 export const GROUNDED_REQUEST_TIMEOUT_MS = 25_000;
@@ -34,21 +25,17 @@ const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
  * client's favicon tier, so it is nulled out here rather than only guarding a
  * fetch that no longer exists.
  */
-const FORBIDDEN_LOGO_ORIGINS = [
-	/(^|\.)logo\.dev$/i,
-	/(^|\.)itunes\.apple\.com$/i,
-	/(^|\.)mzstatic\.com$/i,
-];
+const FORBIDDEN_LOGO_ORIGINS = [/(^|\.)logo\.dev$/i, /(^|\.)itunes\.apple\.com$/i, /(^|\.)mzstatic\.com$/i];
 
 function isForbiddenLogoOrigin(domain: string): boolean {
 	return FORBIDDEN_LOGO_ORIGINS.some((pattern) => pattern.test(domain));
 }
 
 export interface GroundedRunArgs {
-	key: string;
-	name: string;
 	income: boolean;
+	key: string;
 	locale?: string;
+	name: string;
 	regionCode?: string;
 }
 
@@ -59,20 +46,19 @@ export interface GroundedCallDeps {
 
 const groundedOutputSchema = z.object({
 	categoryName: z.string().nullable(),
+	domain: z.string().nullable(),
 	emoji: z.string().nullish(),
 	tags: z.array(z.string()),
-	domain: z.string().nullable(),
 });
 
 const UNPARSEABLE_GROUNDED_OUTPUT: z.infer<typeof groundedOutputSchema> = {
 	categoryName: null,
+	domain: null,
 	emoji: null,
 	tags: [],
-	domain: null,
 };
 
-const JSON_SHAPE =
-	'{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
+const JSON_SHAPE = '{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
 
 /**
  * `regionCode` beats a same-named business elsewhere without licensing a
@@ -90,7 +76,7 @@ function buildGroundedPrompt(
 	name: string,
 	income: boolean,
 	locale: string | undefined,
-	regionCode: string | undefined,
+	regionCode: string | undefined
 ): string {
 	const kind = income ? "income" : "expense";
 	return [
@@ -129,9 +115,7 @@ function extractJsonCandidate(text: string): string | null {
  * An unparseable answer degrades to all-null fields rather than throwing —
  * exactly like a confident "I don't know" from the model would.
  */
-function parseGroundedOutput(
-	text: string,
-): z.infer<typeof groundedOutputSchema> {
+function parseGroundedOutput(text: string): z.infer<typeof groundedOutputSchema> {
 	const jsonText = extractJsonCandidate(text);
 	if (jsonText === null) {
 		return UNPARSEABLE_GROUNDED_OUTPUT;
@@ -148,10 +132,10 @@ function parseGroundedOutput(
 
 export interface GroundedCallOutcome {
 	candidate: KnowledgeCandidate;
-	sources: readonly { url: string }[];
 	inputTokens: number;
 	outputTokens: number;
 	searchCalls: number;
+	sources: readonly { url: string }[];
 }
 
 /**
@@ -167,20 +151,15 @@ export interface GroundedCallOutcome {
  */
 export async function runGroundedLookupCall(
 	deps: GroundedCallDeps,
-	args: GroundedRunArgs,
+	args: GroundedRunArgs
 ): Promise<GroundedCallOutcome> {
 	const result = await generateText({
-		model: deps.grounding,
-		tools: deps.groundingTools,
-		stopWhen: isStepCount(4),
-		prompt: buildGroundedPrompt(
-			args.name,
-			args.income,
-			args.locale,
-			args.regionCode,
-		),
 		abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
 		maxRetries: 0,
+		model: deps.grounding,
+		prompt: buildGroundedPrompt(args.name, args.income, args.locale, args.regionCode),
+		stopWhen: isStepCount(4),
+		tools: deps.groundingTools,
 	});
 
 	const output = parseGroundedOutput(result.text);
@@ -188,18 +167,15 @@ export async function runGroundedLookupCall(
 	const sanitizedDomain = sanitizeDomain(output.domain);
 
 	const candidate: KnowledgeCandidate = {
-		key: args.key,
-		// A domain the model claims cannot be one of the image hosts this app
-		// itself denylists — see `isForbiddenLogoOrigin`.
-		domain:
-			sanitizedDomain !== null && isForbiddenLogoOrigin(sanitizedDomain)
-				? null
-				: sanitizedDomain,
 		// No user tree exists for a globally-shared record — the model
 		// is asked to pick from the closed canonical set instead.
 		categoryName: sanitizeCategoryName(output.categoryName),
-		parentCategoryName: null,
+		// A domain the model claims cannot be one of the image hosts this app
+		// itself denylists — see `isForbiddenLogoOrigin`.
+		domain: sanitizedDomain !== null && isForbiddenLogoOrigin(sanitizedDomain) ? null : sanitizedDomain,
 		emoji: sanitizeEmoji(output.emoji ?? null),
+		key: args.key,
+		parentCategoryName: null,
 		tags: sanitizeTags(output.tags),
 	};
 
@@ -212,13 +188,13 @@ export async function runGroundedLookupCall(
 
 	return {
 		candidate,
-		sources: urlSources,
 		inputTokens: result.usage.inputTokens ?? 0,
 		outputTokens: result.usage.outputTokens ?? 0,
 		// `web_search` is the only registered tool, so every recorded call is a
 		// search round. One answer measured at 3 search calls — bills ~3x a
 		// naive per-lookup estimate ($0.022 measured vs $0.005 assumed).
 		searchCalls: result.toolCalls.length,
+		sources: urlSources,
 	};
 }
 
@@ -239,7 +215,7 @@ export type GroundedLookupCtx = Pick<ActionCtx, "runQuery" | "runMutation">;
 export async function runGroundedLookup(
 	ctx: GroundedLookupCtx,
 	args: GroundedRunArgs,
-	overrideDeps?: GroundedCallDeps,
+	overrideDeps?: GroundedCallDeps
 ): Promise<void> {
 	const perKey = await rateLimiter.limit(ctx, "groundedPerKey", {
 		key: args.key,
@@ -250,8 +226,8 @@ export async function runGroundedLookup(
 
 	const estimated = estimateMicros();
 	const budget = await rateLimiter.limit(ctx, "groundedBudgetMicros", {
-		count: estimated,
 		config: budgetConfig(),
+		count: estimated,
 	});
 	if (!budget.ok) {
 		return;
@@ -265,10 +241,7 @@ export async function runGroundedLookup(
 			return;
 		}
 		const xaiProvider = createXai({ apiKey });
-		modelId =
-			process.env.XAI_GROUNDED_MODEL_ID ||
-			process.env.XAI_MODEL_ID ||
-			ENRICHMENT_MODEL_ID;
+		modelId = process.env.XAI_GROUNDED_MODEL_ID || process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID;
 		const model = xaiProvider(modelId);
 		deps = {
 			grounding: model,
@@ -282,67 +255,61 @@ export async function runGroundedLookup(
 	} catch (error) {
 		console.warn(
 			`[groundedLookup] call threw for "${args.key}":`,
-			error instanceof Error
-				? `${error.name}: ${error.message}`
-				: String(error),
+			error instanceof Error ? `${error.name}: ${error.message}` : String(error)
 		);
 		await ctx.runMutation(internal.groundedSpend.record, {
+			actualMicros: 0,
 			at: Date.now(),
 			chargedMicros: estimated,
-			actualMicros: 0,
-			searchCalls: 0,
 			inputTokens: 0,
 			outputTokens: 0,
 			published: false,
+			searchCalls: 0,
 		});
 		return;
 	}
 	const published = shouldPublish(outcome.candidate, outcome.sources);
 
-	if (
-		published &&
-		outcome.candidate.domain !== null &&
-		outcome.candidate.categoryName !== null
-	) {
+	if (published && outcome.candidate.domain !== null && outcome.candidate.categoryName !== null) {
 		await ctx.runMutation(internal.merchantKnowledge.record, {
-			key: outcome.candidate.key,
-			domain: outcome.candidate.domain,
 			categoryName: outcome.candidate.categoryName,
-			parentCategoryName: null,
+			domain: outcome.candidate.domain,
 			emoji: outcome.candidate.emoji,
-			tags: [...outcome.candidate.tags],
-			resolvedAt: Date.now(),
+			key: outcome.candidate.key,
 			modelId,
+			parentCategoryName: null,
+			resolvedAt: Date.now(),
+			tags: [...outcome.candidate.tags],
 		});
 	}
 
 	// Spend is recorded unconditionally, even when the result never cleared
 	// `shouldPublish`.
 	await ctx.runMutation(internal.groundedSpend.record, {
-		at: Date.now(),
-		chargedMicros: estimated,
 		actualMicros: measureMicros(
 			{ inputTokens: outcome.inputTokens, outputTokens: outcome.outputTokens },
-			outcome.searchCalls,
+			outcome.searchCalls
 		),
-		searchCalls: outcome.searchCalls,
+		at: Date.now(),
+		chargedMicros: estimated,
 		inputTokens: outcome.inputTokens,
 		outputTokens: outcome.outputTokens,
 		published,
+		searchCalls: outcome.searchCalls,
 	});
 }
 
 export const run = internalAction({
 	args: {
-		key: v.string(),
-		name: v.string(),
 		income: v.boolean(),
+		key: v.string(),
 		locale: v.optional(v.string()),
+		name: v.string(),
 		regionCode: v.optional(v.string()),
 	},
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		await runGroundedLookup(ctx, args);
 		return null;
 	},
+	returns: v.null(),
 });

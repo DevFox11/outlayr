@@ -54,11 +54,9 @@ export async function deferAccount(db: Database): Promise<void> {
 export function shouldSettleLegacyLedger(
 	completed: string | null,
 	currencyChosen: string | null,
-	migrated: string | null,
+	migrated: string | null
 ): boolean {
-	return (
-		migrated !== "true" && completed !== "true" && currencyChosen === "true"
-	);
+	return migrated !== "true" && completed !== "true" && currencyChosen === "true";
 }
 
 /**

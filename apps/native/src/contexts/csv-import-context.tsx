@@ -2,11 +2,7 @@ import { createContext, use, useEffect, useMemo } from "react";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { type CategoryMetaRow, useCategoryMeta } from "@/data/categories";
-import {
-	categoryKey,
-	type ParsedImportFile,
-	uniqueCategoryValues,
-} from "@/data/transfer-core";
+import { categoryKey, type ParsedImportFile, uniqueCategoryValues } from "@/data/transfer-core";
 import type { MappingDraft } from "@/domain/import-mapping";
 import { type UseCsvImportResult, useCsvImport } from "@/hooks/use-csv-import";
 import { useRegionCode } from "@/hooks/use-region-code";
@@ -14,11 +10,11 @@ import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
 
 const EMPTY_PARSED: ParsedImportFile = { header: null, rows: [], width: 0 };
 const EMPTY_DRAFT: MappingDraft = {
-	category: null,
-	note: null,
-	date: null,
 	amount: null,
+	category: null,
 	currency: null,
+	date: null,
+	note: null,
 	type: null,
 };
 
@@ -27,16 +23,12 @@ function buildCategoryTree(meta: ReadonlyMap<string, CategoryMetaRow>) {
 	return named
 		.filter(([, row]) => row.parentId == null)
 		.map(([id, row]) => ({
+			children: named.filter(([, child]) => child.parentId === id).map(([, child]) => child.name as string),
 			name: row.name as string,
-			children: named
-				.filter(([, child]) => child.parentId === id)
-				.map(([, child]) => child.name as string),
 		}));
 }
 
-function buildCategoryIdByKey(
-	meta: ReadonlyMap<string, CategoryMetaRow>,
-): Map<string, string> {
+function buildCategoryIdByKey(meta: ReadonlyMap<string, CategoryMetaRow>): Map<string, string> {
 	const byKey = new Map<string, string>();
 	for (const [id, row] of meta) {
 		if (row.name == null) {
@@ -68,24 +60,20 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 		if (state.parsed == null || state.resolved == null) {
 			return [];
 		}
-		return uniqueCategoryValues(
-			state.parsed.rows,
-			state.resolved.mapping.category,
-		);
+		return uniqueCategoryValues(state.parsed.rows, state.resolved.mapping.category);
 	}, [state.parsed, state.resolved]);
 
 	const result = useCsvImport({
-		parsed: state.parsed ?? EMPTY_PARSED,
-		draft: state.draft ?? EMPTY_DRAFT,
-		labels,
-		chars: state.file?.chars ?? 0,
-		categoryTree,
-		categoryIdByKey,
 		aiEnrichment,
+		categoryIdByKey,
+		categoryTree,
+		chars: state.file?.chars ?? 0,
+		draft: state.draft ?? EMPTY_DRAFT,
+		fileKey: state.file == null ? null : `${state.file.name}:${state.file.chars}`,
 		groundedLookup,
+		labels,
+		parsed: state.parsed ?? EMPTY_PARSED,
 		regionCode,
-		fileKey:
-			state.file == null ? null : `${state.file.name}:${state.file.chars}`,
 	});
 
 	useEffect(() => {
@@ -93,27 +81,21 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 			return;
 		}
 		importDraftStore.dispatch({
-			type: "resolutionSettled",
+			fromModel: result.fromModel,
+			links: result.links,
 			outcome: result.outcome,
 			reason: result.reason,
-			links: result.links,
-			fromModel: result.fromModel,
+			type: "resolutionSettled",
 		});
 	}, [result.outcome, result.reason, result.links, result.fromModel]);
 
-	return (
-		<CsvImportContext.Provider value={result}>
-			{children}
-		</CsvImportContext.Provider>
-	);
+	return <CsvImportContext.Provider value={result}>{children}</CsvImportContext.Provider>;
 }
 
 export function useCsvImportContext(): UseCsvImportResult {
 	const value = use(CsvImportContext);
 	if (value == null) {
-		throw new Error(
-			"useCsvImportContext must be used within CsvImportProvider",
-		);
+		throw new Error("useCsvImportContext must be used within CsvImportProvider");
 	}
 	return value;
 }

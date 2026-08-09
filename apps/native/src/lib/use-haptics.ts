@@ -8,15 +8,15 @@ import { appMeta } from "@/db/schema";
 import { type HapticEvent, hapticPlay } from "@/domain/haptics";
 
 const IMPACT = {
+	heavy: Haptics.ImpactFeedbackStyle.Heavy,
 	light: Haptics.ImpactFeedbackStyle.Light,
 	medium: Haptics.ImpactFeedbackStyle.Medium,
-	heavy: Haptics.ImpactFeedbackStyle.Heavy,
 } as const;
 
 const NOTIFICATION = {
+	error: Haptics.NotificationFeedbackType.Error,
 	success: Haptics.NotificationFeedbackType.Success,
 	warning: Haptics.NotificationFeedbackType.Warning,
-	error: Haptics.NotificationFeedbackType.Error,
 } as const;
 
 /**
@@ -32,11 +32,8 @@ function useHapticsLevel(): number | null {
 		() =>
 			db === null
 				? { all: (): { value: string | null }[] => [] }
-				: db
-						.select({ value: appMeta.value })
-						.from(appMeta)
-						.where(eq(appMeta.key, "haptics")),
-		[db],
+				: db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, "haptics")),
+		[db]
 	);
 	if (db === null) {
 		return null;
@@ -72,6 +69,6 @@ export function useHaptics(): (event: HapticEvent) => void {
 					void Haptics.notificationAsync(NOTIFICATION[play.type]);
 			}
 		},
-		[level],
+		[level]
 	);
 }

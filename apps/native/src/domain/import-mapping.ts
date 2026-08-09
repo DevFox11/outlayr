@@ -5,18 +5,15 @@ export type MappingGap = "noLabelColumn" | "noDate" | "noAmount";
 export type MappingDraft = Record<keyof ColumnMapping, number | null>;
 
 export interface ResolvedMapping {
-	mapping: ColumnMapping;
 	labelSource: LabelSource;
+	mapping: ColumnMapping;
 }
 
-export type MappingResolution =
-	| { ok: true; value: ResolvedMapping }
-	| { ok: false; gaps: readonly MappingGap[] };
+export type MappingResolution = { ok: true; value: ResolvedMapping } | { ok: false; gaps: readonly MappingGap[] };
 
 export function resolveImportMapping(draft: MappingDraft): MappingResolution {
 	const gaps: MappingGap[] = [];
-	const labelSource: LabelSource =
-		draft.category != null ? "categoryColumn" : "descriptionColumn";
+	const labelSource: LabelSource = draft.category == null ? "descriptionColumn" : "categoryColumn";
 	const category = draft.category ?? draft.note;
 
 	if (category == null) {
@@ -30,21 +27,21 @@ export function resolveImportMapping(draft: MappingDraft): MappingResolution {
 	}
 
 	if (category == null || draft.date == null || draft.amount == null) {
-		return { ok: false, gaps };
+		return { gaps, ok: false };
 	}
 
 	return {
 		ok: true,
 		value: {
+			labelSource,
 			mapping: {
-				category,
-				note: draft.note,
-				date: draft.date,
 				amount: draft.amount,
+				category,
 				currency: draft.currency,
+				date: draft.date,
+				note: draft.note,
 				type: draft.type,
 			},
-			labelSource,
 		},
 	};
 }

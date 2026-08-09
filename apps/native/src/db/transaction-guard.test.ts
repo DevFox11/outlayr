@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const SRC = join(__dirname, "..");
+const SRC = join(import.meta.dirname, "..");
 
 /** Where the ban is explained, so it necessarily names the API it bans. */
 const EXEMPT = join(SRC, "db", "transaction.ts");
@@ -49,8 +49,6 @@ describe("drizzle transaction ban", () => {
 
 	it("the exempt file still carries the helper the ban points at", () => {
 		const source = readFileSync(EXEMPT, "utf8");
-		expect(
-			source.includes("export async function withTransaction"),
-		).toBeTruthy();
+		expect(source.includes("export async function withTransaction")).toBeTruthy();
 	});
 });

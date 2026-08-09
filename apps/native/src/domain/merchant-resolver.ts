@@ -2,8 +2,8 @@ import { MERCHANT_INDEX, type MerchantEntry } from "./merchant-map";
 
 export interface MerchantMatch {
 	readonly categoryName: string;
-	readonly tags: readonly string[];
 	readonly domain: string | null;
+	readonly tags: readonly string[];
 }
 
 export function merchantKey(raw: string): string {
@@ -16,10 +16,7 @@ export function merchantKey(raw: string): string {
 		.replace(/\s+/g, " ");
 }
 
-function containsTokenSequence(
-	haystack: readonly string[],
-	needle: readonly string[],
-): boolean {
+function containsTokenSequence(haystack: readonly string[], needle: readonly string[]): boolean {
 	if (needle.length === 0 || needle.length > haystack.length) {
 		return false;
 	}
@@ -66,11 +63,7 @@ function boundedLevenshtein(a: string, b: string, earlyExitAt: number): number {
 		let rowMin = row;
 		for (let col = 1; col <= b.length; col++) {
 			const cost = a[row - 1] === b[col - 1] ? 0 : 1;
-			const value = Math.min(
-				previous[col] + 1,
-				current[col - 1] + 1,
-				previous[col - 1] + cost,
-			);
+			const value = Math.min(previous[col] + 1, current[col - 1] + 1, previous[col - 1] + cost);
 			current.push(value);
 			rowMin = Math.min(rowMin, value);
 		}
@@ -95,10 +88,7 @@ function resolveFuzzy(key: string): MerchantEntry | null {
 		if (Math.abs(pattern.length - key.length) > FUZZY_MAX_DISTANCE) {
 			continue;
 		}
-		if (
-			boundedLevenshtein(key, pattern, FUZZY_EARLY_EXIT_DISTANCE) <=
-			FUZZY_MAX_DISTANCE
-		) {
+		if (boundedLevenshtein(key, pattern, FUZZY_EARLY_EXIT_DISTANCE) <= FUZZY_MAX_DISTANCE) {
 			matches.add(entry);
 		}
 	}
@@ -106,7 +96,7 @@ function resolveFuzzy(key: string): MerchantEntry | null {
 }
 
 function toMatch(entry: MerchantEntry, domain: string | null): MerchantMatch {
-	return { categoryName: entry.categoryName, tags: entry.tags, domain };
+	return { categoryName: entry.categoryName, domain, tags: entry.tags };
 }
 
 export function resolveMerchant(rawName: string): MerchantMatch | null {

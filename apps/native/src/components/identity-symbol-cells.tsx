@@ -22,45 +22,34 @@ const GLYPH_SIZE = 20;
 
 /** Cells are square in a flexible column, so they grow with the sheet. */
 export function symbolCellSize(width: number): number {
-	return Math.floor(
-		(width - SYMBOL_MARGIN * 2 - SYMBOL_GAP * (SYMBOL_COLUMNS - 1)) /
-			SYMBOL_COLUMNS,
-	);
+	return Math.floor((width - SYMBOL_MARGIN * 2 - SYMBOL_GAP * (SYMBOL_COLUMNS - 1)) / SYMBOL_COLUMNS);
 }
 
 interface SymbolCellProps {
-	/** Effective identity tint — the category colour, or income green. */
-	tint: string;
+	onPress: () => void;
 	selected: boolean;
 	size: number;
-	onPress: () => void;
+	/** Effective identity tint — the category colour, or income green. */
+	tint: string;
 }
 
 function useCellStyle(tint: string, selected: boolean, size: number) {
 	const colors = useColors();
 	return {
-		width: size,
-		height: size,
-		borderRadius: SYMBOL_CELL_RADIUS,
 		alignItems: "center" as const,
-		justifyContent: "center" as const,
-		borderWidth: selected ? 2 : 0,
-		borderColor: tint,
 		// `colors.surface`, NOT the grouped-cell colour, which is lighter than the
 		// sheet these sit on.
-		backgroundColor: selected
-			? withAlpha(tint, SYMBOL_SELECTED_WASH)
-			: colors.surface,
+		backgroundColor: selected ? withAlpha(tint, SYMBOL_SELECTED_WASH) : colors.surface,
+		borderColor: tint,
+		borderRadius: SYMBOL_CELL_RADIUS,
+		borderWidth: selected ? 2 : 0,
+		height: size,
+		justifyContent: "center" as const,
+		width: size,
 	};
 }
 
-export function SymbolIconCell({
-	iconKey,
-	tint,
-	selected,
-	size,
-	onPress,
-}: SymbolCellProps & { iconKey: string }) {
+export function SymbolIconCell({ iconKey, tint, selected, size, onPress }: SymbolCellProps & { iconKey: string }) {
 	const colors = useColors();
 	const { theme } = useTheme();
 	const isDark = theme === "dark";
@@ -82,13 +71,7 @@ export function SymbolIconCell({
 	);
 }
 
-export function SymbolEmojiCell({
-	emoji,
-	tint,
-	selected,
-	size,
-	onPress,
-}: SymbolCellProps & { emoji: string }) {
+export function SymbolEmojiCell({ emoji, tint, selected, size, onPress }: SymbolCellProps & { emoji: string }) {
 	return (
 		<Pressable
 			accessibilityLabel={emoji}
@@ -126,46 +109,44 @@ export function ColorSwatch({
 	const dimmed = used && !selected;
 	return (
 		<Pressable
-			accessibilityHint={
-				dimmed ? t("transaction.identity.colorUsed") : undefined
-			}
+			accessibilityHint={dimmed ? t("transaction.identity.colorUsed") : undefined}
 			accessibilityLabel={hex}
 			accessibilityRole="button"
 			accessibilityState={{ selected }}
 			disabled={dimmed}
 			onPress={onPress}
 			style={({ pressed }) => ({
-				width: SWATCH_BOX,
-				height: SWATCH_BOX,
 				alignItems: "center",
+				height: SWATCH_BOX,
 				justifyContent: "center",
 				transform: [{ scale: pressed ? 0.92 : 1 }],
+				width: SWATCH_BOX,
 			})}
 		>
 			<View
 				style={{
-					width: SWATCH,
-					height: SWATCH,
-					borderRadius: SWATCH / 2,
 					backgroundColor: hex,
-					opacity: dimmed ? 0.3 : 1,
+					borderColor: withAlpha(colors.foreground, 0.12),
+					borderRadius: SWATCH / 2,
 					// A dimmed swatch keeps a hairline INSIDE its edge; the selected one's
 					// ring stands off the circle instead, so it never eats into the colour
 					// it is marking.
 					borderWidth: dimmed ? 1 : 0,
-					borderColor: withAlpha(colors.foreground, 0.12),
+					height: SWATCH,
+					opacity: dimmed ? 0.3 : 1,
+					width: SWATCH,
 				}}
 			/>
 			{selected ? (
 				<View
 					pointerEvents="none"
 					style={{
-						position: "absolute",
-						width: SWATCH_BOX,
-						height: SWATCH_BOX,
+						borderColor: colors.foreground,
 						borderRadius: SWATCH_BOX / 2,
 						borderWidth: 2,
-						borderColor: colors.foreground,
+						height: SWATCH_BOX,
+						position: "absolute",
+						width: SWATCH_BOX,
 					}}
 				/>
 			) : null}

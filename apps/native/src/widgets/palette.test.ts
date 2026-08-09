@@ -1,12 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-	PALETTE_VARIABLES,
-	WIDGET_PALETTE,
-	type WidgetPalette,
-} from "./palette";
+import { PALETTE_VARIABLES, WIDGET_PALETTE, type WidgetPalette } from "./palette";
 
-const CSS = readFileSync(join(__dirname, "../../global.css"), "utf8");
+const CSS = readFileSync(join(import.meta.dirname, "../../global.css"), "utf8");
 
 /** Pulls one `@variant light|dark { … }` block out of the `@layer theme` rules. */
 function variantBlock(variant: "light" | "dark"): string {
@@ -29,9 +25,7 @@ describe("widget palette", () => {
 		it(`matches every ${variant} token declared in global.css`, () => {
 			const block = variantBlock(variant);
 			for (const [name, variable] of Object.entries(PALETTE_VARIABLES)) {
-				expect(WIDGET_PALETTE[variant][name as keyof WidgetPalette]).toBe(
-					declaredValue(block, variable),
-				);
+				expect(WIDGET_PALETTE[variant][name as keyof WidgetPalette]).toBe(declaredValue(block, variable));
 			}
 		});
 	}

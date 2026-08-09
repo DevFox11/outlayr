@@ -102,8 +102,13 @@ for (const [path, original] of before) {
 	}
 }
 
+// Biome exits 1 when diagnostics survive the fixes and 2+ when the run itself
+// failed. Only the latter is this script's business: `pnpm run check` and CI
+// gate on diagnostics, while pre-commit calls this one to format staged files.
+const fixerStatus = (status) => (status !== null && status >= 2 ? status : 0);
+
 if (casualties.length === 0) {
-	process.exit(fix.status ?? 0);
+	process.exit(fixerStatus(fix.status));
 }
 
 console.error(
@@ -141,4 +146,4 @@ for (const { delta, original, path } of casualties) {
 if (unhealed > 0) {
 	process.exit(1);
 }
-process.exit(fix.status ?? healed.status ?? 0);
+process.exit(fixerStatus(fix.status) || fixerStatus(healed.status));

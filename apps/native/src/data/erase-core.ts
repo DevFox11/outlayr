@@ -1,12 +1,7 @@
 import { isNull } from "drizzle-orm";
 import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
-import {
-	budgets,
-	mainBudget,
-	templateTransactions,
-	transactions,
-} from "@/db/schema";
+import { budgets, mainBudget, templateTransactions, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
@@ -36,41 +31,41 @@ export const ERASED_DATE = new Date(0);
  * which is exactly the failure this constant exists to prevent.
  */
 export const ERASED_TRANSACTION = {
+	accountId: null,
 	amount: 0,
-	income: false,
+	amountUsd: null,
+	categoryId: null,
 	currency: null,
-	note: "",
-	details: null,
+	customColor: null,
 	date: ERASED_DATE,
 	day: ERASED_DATE,
-	month: ERASED_DATE,
-	icon: null,
+	details: null,
 	emoji: null,
-	customColor: null,
-	imageColor: null,
-	imageUri: null,
-	imageKey: null,
-	onceRecurring: false,
-	recurringType: RECURRING_TYPE.none,
-	recurringCoefficient: 1,
-	recurringEndDate: null,
-	recurringAnchorDay: null,
-	reminderLeadDays: null,
-	categoryId: null,
-	accountId: null,
-	amountUsd: null,
 	exchangeRate: null,
 	exchangeRateType: null,
+	icon: null,
+	imageColor: null,
+	imageKey: null,
+	imageUri: null,
+	income: false,
+	month: ERASED_DATE,
+	note: "",
+	onceRecurring: false,
+	recurringAnchorDay: null,
+	recurringCoefficient: 1,
+	recurringEndDate: null,
+	recurringType: RECURRING_TYPE.none,
+	reminderLeadDays: null,
 } as const;
 
 const ERASED_TEMPLATE = {
 	amount: 0,
+	categoryId: null,
 	income: false,
 	note: null,
-	sortOrder: 0,
-	recurringType: RECURRING_TYPE.none,
 	recurringCoefficient: 1,
-	categoryId: null,
+	recurringType: RECURRING_TYPE.none,
+	sortOrder: 0,
 } as const;
 
 /**
@@ -82,20 +77,17 @@ const ERASED_TEMPLATE = {
  * `deletedAt` the user never asked for again nor pushes a row that has not
  * changed.
  */
-export async function eraseLedger(
-	db: Database,
-	scope: EraseScope,
-): Promise<void> {
+export async function eraseLedger(db: Database, scope: EraseScope): Promise<void> {
 	const now = new Date();
 
 	await withTransaction(db, async () => {
 		await db
 			.update(transactions)
-			.set({ ...ERASED_TRANSACTION, updatedAt: now, deletedAt: now })
+			.set({ ...ERASED_TRANSACTION, deletedAt: now, updatedAt: now })
 			.where(isNull(transactions.deletedAt));
 		await db
 			.update(templateTransactions)
-			.set({ ...ERASED_TEMPLATE, updatedAt: now, deletedAt: now })
+			.set({ ...ERASED_TEMPLATE, deletedAt: now, updatedAt: now })
 			.where(isNull(templateTransactions.deletedAt));
 
 		if (scope !== "everything") {
@@ -103,11 +95,11 @@ export async function eraseLedger(
 		}
 		await db
 			.update(budgets)
-			.set({ ...TOMBSTONED_BUDGET, updatedAt: now, deletedAt: now })
+			.set({ ...TOMBSTONED_BUDGET, deletedAt: now, updatedAt: now })
 			.where(isNull(budgets.deletedAt));
 		await db
 			.update(mainBudget)
-			.set({ ...TOMBSTONED_MAIN_BUDGET, updatedAt: now, deletedAt: now })
+			.set({ ...TOMBSTONED_MAIN_BUDGET, deletedAt: now, updatedAt: now })
 			.where(isNull(mainBudget.deletedAt));
 	});
 }

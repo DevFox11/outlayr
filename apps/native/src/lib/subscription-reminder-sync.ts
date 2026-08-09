@@ -9,12 +9,7 @@ import { reminderReconcile } from "@/domain/reminder";
 import { orphanedReminderIds } from "@/domain/subscription-reminder";
 import { translateNow } from "@/i18n/runtime";
 import { readReminderTime } from "./reminder-sync";
-import {
-	cancelReminders,
-	pendingReminderIds,
-	reminderPermission,
-	scheduleDatedReminder,
-} from "./reminders";
+import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
 
 /**
  * Reconciles iOS's pending queue with the subscriptions that asked to be
@@ -45,32 +40,26 @@ export function syncSubscriptionReminders(db: Database): Promise<void> {
 let queue: Promise<unknown> = Promise.resolve();
 
 async function reconcileSubscriptionReminders(db: Database): Promise<void> {
-	const [enabled, permission] = await Promise.all([
-		readBoolSetting(db, "subscriptionReminders"),
-		reminderPermission(),
-	]);
+	const [enabled, permission] = await Promise.all([readBoolSetting(db, "subscriptionReminders"), reminderPermission()]);
 	const decision = reminderReconcile(enabled, permission);
-	const armed =
-		decision === "schedule"
-			? await pendingReminderPlan(db, new Date(), await readReminderTime(db))
-			: [];
+	const armed = decision === "schedule" ? await pendingReminderPlan(db, new Date(), await readReminderTime(db)) : [];
 
 	await cancelReminders(
 		orphanedReminderIds(
 			armed.map((reminder) => reminder.id),
-			await pendingReminderIds(),
-		),
+			await pendingReminderIds()
+		)
 	);
 
 	for (const reminder of armed) {
 		await scheduleDatedReminder({
-			id: reminder.id,
-			title: reminder.note.trim() || translateNow("reminder.due.untitled"),
 			body: translateNow("reminder.due.body", {
 				amount: formatAmount(reminder.amount, reminder.currency),
 				date: formatUpcomingDate(reminder.landing),
 			}),
 			fireAt: reminder.fireAt,
+			id: reminder.id,
+			title: reminder.note.trim() || translateNow("reminder.due.untitled"),
 		});
 	}
 

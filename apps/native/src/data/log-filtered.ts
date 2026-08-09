@@ -1,15 +1,4 @@
-import {
-	and,
-	desc,
-	eq,
-	gt,
-	gte,
-	inArray,
-	isNull,
-	lt,
-	lte,
-	or,
-} from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
@@ -28,15 +17,15 @@ type UndecoratedRow = Omit<
 >;
 
 export interface LogFilterScope {
-	filter: LogFilter;
 	/** Null until a `category` filter resolves one. */
 	categoryId: string | null;
 	/** Where a day/week/month filter is pointed. Normalized by the caller. */
 	cursor: Date;
-	/** Which side a `type` filter shows. */
-	income: boolean;
+	filter: LogFilter;
 	/** 1 = Sunday, 2 = Monday. */
 	firstWeekday: number;
+	/** Which side a `type` filter shows. */
+	income: boolean;
 }
 
 function visibleAt(now: Date) {
@@ -47,10 +36,7 @@ function visibleAt(now: Date) {
  * The category itself plus its children. Mirrors Swift's
  * `category == %@ OR category.parent == %@`.
  */
-function categoryScope(
-	categoryId: string,
-	meta: Map<string, { parentId: string | null }>,
-): string[] {
+function categoryScope(categoryId: string, meta: Map<string, { parentId: string | null }>): string[] {
 	const ids = [categoryId];
 	for (const [id, row] of meta) {
 		if (row.parentId === categoryId) {
@@ -67,21 +53,14 @@ function categoryScope(
  * Returns null for `all` and `upcoming`, which the screen serves from
  * `useLoggedTransactions` and {@link useUpcomingTransactions} instead.
  */
-function filterPredicate(
-	scope: LogFilterScope,
-	now: Date,
-	categoryIds: string[] | null,
-) {
+function filterPredicate(scope: LogFilterScope, now: Date, categoryIds: string[] | null) {
 	switch (scope.filter) {
 		case "category":
 			return categoryIds && categoryIds.length > 0
 				? and(visibleAt(now), inArray(transactions.categoryId, categoryIds))
 				: null;
 		case "day":
-			return and(
-				visibleAt(now),
-				eq(transactions.day, cursorStart("day", scope.cursor)),
-			);
+			return and(visibleAt(now), eq(transactions.day, cursorStart("day", scope.cursor)));
 		case "week":
 		case "month": {
 			const unit = scope.filter;
@@ -90,11 +69,7 @@ function filterPredicate(
 			// The current window ends at "now", not at its own boundary: a future-
 			// dated row inside this week belongs to Upcoming, not to the list.
 			const upper = end.getTime() > now.getTime() ? now : end;
-			return and(
-				isNull(transactions.deletedAt),
-				gte(transactions.date, start),
-				lt(transactions.date, upper),
-			);
+			return and(isNull(transactions.deletedAt), gte(transactions.date, start), lt(transactions.date, upper));
 		}
 		case "type":
 			return and(visibleAt(now), eq(transactions.income, scope.income));
@@ -110,10 +85,7 @@ function filterPredicate(
  * would leave every row showing a renamed category's old name and colour until
  * some *transaction* was written.
  */
-function useDecorated(
-	db: Database,
-	rows: UndecoratedRow[],
-): TransactionWithCategory[] {
+function useDecorated(db: Database, rows: UndecoratedRow[]): TransactionWithCategory[] {
 	const meta = useCategoryMeta(db);
 	return useMemo(
 		() =>
@@ -121,13 +93,13 @@ function useDecorated(
 				const found = row.categoryId ? meta.get(row.categoryId) : undefined;
 				return {
 					...row,
-					categoryName: found?.name ?? null,
 					categoryColor: found?.color ?? null,
-					categoryIcon: found?.icon ?? null,
 					categoryEmoji: found?.emoji ?? null,
+					categoryIcon: found?.icon ?? null,
+					categoryName: found?.name ?? null,
 				};
 			}),
-		[rows, meta],
+		[rows, meta]
 	);
 }
 
@@ -135,16 +107,9 @@ function useDecorated(
  * `all` and `upcoming` return empty — the screen serves those from the paged
  * window and from {@link useUpcomingTransactions}.
  */
-export function useFilteredTransactions(
-	db: Database,
-	nowMs: number,
-	scope: LogFilterScope,
-): TransactionWithCategory[] {
+export function useFilteredTransactions(db: Database, nowMs: number, scope: LogFilterScope): TransactionWithCategory[] {
 	const meta = useCategoryMeta(db);
-	const categoryIds =
-		scope.filter === "category" && scope.categoryId
-			? categoryScope(scope.categoryId, meta)
-			: null;
+	const categoryIds = scope.filter === "category" && scope.categoryId ? categoryScope(scope.categoryId, meta) : null;
 	const now = new Date(nowMs);
 	const where = filterPredicate(scope, now, categoryIds);
 	// The cursor is part of the key, not just the closure: `useLiveQuery` only
@@ -159,10 +124,7 @@ export function useFilteredTransactions(
 						.from(transactions)
 						.where(where)
 						.orderBy(desc(transactions.day), desc(transactions.date))
-				: db
-						.select(LOG_COLUMNS)
-						.from(transactions)
-						.where(eq(transactions.id, "")),
+				: db.select(LOG_COLUMNS).from(transactions).where(eq(transactions.id, "")),
 		[
 			nowMs,
 			scope.filter,
@@ -171,7 +133,7 @@ export function useFilteredTransactions(
 			scope.income,
 			scope.firstWeekday,
 			categoryIds?.join(",") ?? "",
-		],
+		]
 	);
 
 	return useDecorated(db, rows);
@@ -192,11 +154,7 @@ export interface UpcomingTransactions {
  * Sorted by when each entry will next land, furthest out first, matching Swift's
  * `FutureListView`. `limited` clips the list to the next two weeks.
  */
-export function useUpcomingTransactions(
-	db: Database,
-	nowMs: number,
-	limited: boolean,
-): UpcomingTransactions {
+export function useUpcomingTransactions(db: Database, nowMs: number, limited: boolean): UpcomingTransactions {
 	const now = new Date(nowMs);
 	const rows = useLiveQuery(
 		transactions,
@@ -211,11 +169,11 @@ export function useUpcomingTransactions(
 							// A scheduled entry is upcoming even when its stored date is
 							// past: what is upcoming is its next occurrence.
 							gt(transactions.recurringType, 0),
-							gt(transactions.date, now),
-						),
-					),
+							gt(transactions.date, now)
+						)
+					)
 				),
-		[nowMs],
+		[nowMs]
 	);
 
 	const decorated = useDecorated(db, rows);
@@ -224,17 +182,13 @@ export function useUpcomingTransactions(
 	// depending on it would recompute the sort on each one.
 	return useMemo(() => {
 		const at = new Date(nowMs);
-		const schedules = [...decorated].sort(
-			(a, b) => landingDate(b, at).getTime() - landingDate(a, at).getTime(),
-		);
+		const schedules = [...decorated].sort((a, b) => landingDate(b, at).getTime() - landingDate(a, at).getTime());
 		if (!limited) {
 			return { rows: schedules, schedules };
 		}
 		const horizon = addDays(startOfDay(at), 14);
 		return {
-			rows: schedules.filter(
-				(row) => landingDate(row, at).getTime() < horizon.getTime(),
-			),
+			rows: schedules.filter((row) => landingDate(row, at).getTime() < horizon.getTime()),
 			schedules,
 		};
 	}, [decorated, limited, nowMs]);
@@ -245,11 +199,5 @@ export function landingDate(row: TransactionWithCategory, now: Date): Date {
 	if (row.date.getTime() > now.getTime()) {
 		return row.date;
 	}
-	return (
-		nextDate(
-			row.day ?? row.date,
-			row.recurringType,
-			row.recurringCoefficient ?? 1,
-		) ?? row.date
-	);
+	return nextDate(row.day ?? row.date, row.recurringType, row.recurringCoefficient ?? 1) ?? row.date;
 }

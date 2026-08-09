@@ -2,17 +2,14 @@ import { utcDateString } from "@outlayr/money";
 import { convertUsdSum, type RateTable } from "./valuation";
 
 export interface CurrencyBucket {
-	currencyCode: string;
 	/** Already signed — income adds, expense subtracts. */
 	amount: number;
+	currencyCode: string;
 	transactionCount: number;
 }
 
 /** Mirrors Swift's `CurrencyTotals.dominanceOrder`. */
-export function dominanceOrder(
-	counts: Map<string, number>,
-	globalCurrency: string,
-): string[] {
+export function dominanceOrder(counts: Map<string, number>, globalCurrency: string): string[] {
 	return [...counts.keys()].sort((lhs, rhs) => {
 		const byCount = (counts.get(rhs) ?? 0) - (counts.get(lhs) ?? 0);
 		if (byCount !== 0) {
@@ -26,22 +23,22 @@ export function dominanceOrder(
 }
 
 export interface CurrencyEntry {
+	amount: number;
+	/** Frozen USD value, when the entry has one. Absent leaves it unconvertible. */
+	amountUsd?: number | null;
 	/**
 	 * Null means the entry stated none — it was written under whatever the
 	 * ledger's currency was that day, which today's setting cannot be assumed to
 	 * match. Only its frozen USD value can place it.
 	 */
 	currency?: string | null;
-	amount: number;
-	income: boolean;
-	/** Frozen USD value, when the entry has one. Absent leaves it unconvertible. */
-	amountUsd?: number | null;
 	/**
 	 * When the money moved; absent leaves the entry unconvertible. The
 	 * transaction's own instant, not its local midnight — the same instant the
 	 * USD value was frozen against.
 	 */
 	date?: Date;
+	income: boolean;
 }
 
 /**
@@ -52,6 +49,11 @@ export interface CurrencyEntry {
  * makes a period total and the day subtotals under it round to the same cents.
  */
 export interface CurrencyCell {
+	/** Total in `currencyCode`, unsigned, over every row in the cell. */
+	amount: number;
+	/** Total of the frozen USD values, unsigned. Zero if none were canonical. */
+	amountUsd: number;
+	count: number;
 	/**
 	 * The currency the rows stated, or null when they stated none. Null is NOT
 	 * the global currency: only their frozen USD value can place those rows.
@@ -60,13 +62,8 @@ export interface CurrencyCell {
 	/** UTC `YYYY-MM-DD`; the empty string when the rows carried no date. */
 	dateKey: string;
 	income: boolean;
-	/** Total in `currencyCode`, unsigned, over every row in the cell. */
-	amount: number;
-	/** Total of the frozen USD values, unsigned. Zero if none were canonical. */
-	amountUsd: number;
 	/** Unsigned total of just the rows with no frozen USD value. */
 	unconvertedAmount: number;
-	count: number;
 	unconvertedCount: number;
 }
 
@@ -79,13 +76,13 @@ export function toCells(entries: readonly CurrencyEntry[]): CurrencyCell[] {
 		let cell = cells.get(key);
 		if (!cell) {
 			cell = {
+				amount: 0,
+				amountUsd: 0,
+				count: 0,
 				currencyCode,
 				dateKey,
 				income: entry.income,
-				amount: 0,
-				amountUsd: 0,
 				unconvertedAmount: 0,
-				count: 0,
 				unconvertedCount: 0,
 			};
 			cells.set(key, cell);
@@ -106,28 +103,19 @@ export function toCells(entries: readonly CurrencyEntry[]): CurrencyCell[] {
  * A cell's magnitude in the global currency, falling back to its face value
  * when no rate reaches it. {@link cellFigures} keeps the split instead.
  */
-export function valueCell(
-	cell: CurrencyCell,
-	globalCurrency: string,
-	rates?: RateTable,
-): number {
+export function valueCell(cell: CurrencyCell, globalCurrency: string, rates?: RateTable): number {
 	if (cell.currencyCode === globalCurrency || !rates) {
 		return cell.amount;
 	}
-	const converted = convertUsdSum(
-		cell.amountUsd,
-		cell.dateKey,
-		globalCurrency,
-		rates,
-	);
+	const converted = convertUsdSum(cell.amountUsd, cell.dateKey, globalCurrency, rates);
 	return converted === null ? cell.amount : converted + cell.unconvertedAmount;
 }
 
 export interface CurrencyFigures {
-	currencyCode: string;
-	income: number;
-	expense: number;
 	count: number;
+	currencyCode: string;
+	expense: number;
+	income: number;
 }
 
 /**
@@ -141,18 +129,13 @@ export interface CurrencyFigures {
 export function cellFigures(
 	cells: readonly CurrencyCell[],
 	globalCurrency: string,
-	rates?: RateTable,
+	rates?: RateTable
 ): CurrencyFigures[] {
 	const income = new Map<string, number>();
 	const expense = new Map<string, number>();
 	const counts = new Map<string, number>();
 
-	const add = (
-		code: string,
-		magnitude: number,
-		isIncome: boolean,
-		n: number,
-	) => {
+	const add = (code: string, magnitude: number, isIncome: boolean, n: number) => {
 		const side = isIncome ? income : expense;
 		side.set(code, (side.get(code) ?? 0) + magnitude);
 		counts.set(code, (counts.get(code) ?? 0) + n);
@@ -171,41 +154,26 @@ export function cellFigures(
 				: null;
 		if (converted === null) {
 			// Nothing can place it; the global currency is the only label left.
-			add(
-				cell.currencyCode ?? globalCurrency,
-				cell.amount,
-				cell.income,
-				cell.count,
-			);
+			add(cell.currencyCode ?? globalCurrency, cell.amount, cell.income, cell.count);
 			continue;
 		}
-		add(
-			globalCurrency,
-			converted,
-			cell.income,
-			cell.count - cell.unconvertedCount,
-		);
+		add(globalCurrency, converted, cell.income, cell.count - cell.unconvertedCount);
 		if (cell.unconvertedCount > 0) {
 			// Rows with no frozen USD value stay in their own currency: the rate
 			// exists, but there is nothing to apply it to.
-			add(
-				cell.currencyCode ?? globalCurrency,
-				cell.unconvertedAmount,
-				cell.income,
-				cell.unconvertedCount,
-			);
+			add(cell.currencyCode ?? globalCurrency, cell.unconvertedAmount, cell.income, cell.unconvertedCount);
 		}
 	}
 
 	if (counts.size === 0) {
-		return [{ currencyCode: globalCurrency, income: 0, expense: 0, count: 0 }];
+		return [{ count: 0, currencyCode: globalCurrency, expense: 0, income: 0 }];
 	}
 
 	return dominanceOrder(counts, globalCurrency).map((code) => ({
-		currencyCode: code,
-		income: income.get(code) ?? 0,
-		expense: expense.get(code) ?? 0,
 		count: counts.get(code) ?? 0,
+		currencyCode: code,
+		expense: expense.get(code) ?? 0,
+		income: income.get(code) ?? 0,
 	}));
 }
 
@@ -213,11 +181,11 @@ export function cellFigures(
 export function cellTotals(
 	cells: readonly CurrencyCell[],
 	globalCurrency: string,
-	rates?: RateTable,
+	rates?: RateTable
 ): CurrencyBucket[] {
 	return cellFigures(cells, globalCurrency, rates).map((figures) => ({
-		currencyCode: figures.currencyCode,
 		amount: figures.income - figures.expense,
+		currencyCode: figures.currencyCode,
 		transactionCount: figures.count,
 	}));
 }
@@ -225,7 +193,7 @@ export function cellTotals(
 export function currencyTotals(
 	entries: readonly CurrencyEntry[],
 	globalCurrency: string,
-	rates?: RateTable,
+	rates?: RateTable
 ): CurrencyBucket[] {
 	return cellTotals(toCells(entries), globalCurrency, rates);
 }

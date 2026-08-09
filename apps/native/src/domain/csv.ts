@@ -21,7 +21,7 @@ export function formatCsvRow(fields: readonly string[]): string {
 
 /** Rows of raw cell strings. Blank and all-empty rows are dropped. */
 export function parseCsv(text: string): string[][] {
-	const source = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+	const source = text.charCodeAt(0) === 0xfe_ff ? text.slice(1) : text;
 	const rows: string[][] = [];
 	let row: string[] = [];
 	let field = "";

@@ -13,49 +13,49 @@ const SENTINEL_LOCALE = "es-VE";
 const SENTINEL_REGION = "VE";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
 jest.mock("@/theme/use-colors", () => ({
+	SYSTEM_COLORS: {
+		card: "#FFFFFF",
+		groupedBackground: "#EFEDE6",
+		separator: "#DAD6C9",
+	},
 	useColors: () => ({
+		accent: "#3D7A5C",
+		accentForeground: "#FFFFFF",
 		background: "#F2F0EA",
+		border: "#DAD6C9",
+		danger: "#B5482F",
+		expense: "#B5482F",
 		foreground: "#17150F",
+		future: "#8A8578",
+		groupedBackground: "#EFEDE6",
+		income: "#3D7A5C",
 		muted: "#8A8578",
+		overBudget: "#B5482F",
+		railTrack: "rgba(0,0,0,0.08)",
+		separator: "#DAD6C9",
 		subtle: "#B4AFA0",
 		surface: "#FFFFFF",
 		surfaceSecondary: "#F7F5EF",
-		groupedBackground: "#EFEDE6",
-		border: "#DAD6C9",
-		separator: "#DAD6C9",
-		accent: "#3D7A5C",
-		accentForeground: "#FFFFFF",
 		tint: "#3D7A5C",
-		income: "#3D7A5C",
-		expense: "#B5482F",
-		future: "#8A8578",
-		danger: "#B5482F",
-		overBudget: "#B5482F",
 		warning: "#C08A2E",
-		railTrack: "rgba(0,0,0,0.08)",
 	}),
-	SYSTEM_COLORS: {
-		groupedBackground: "#EFEDE6",
-		card: "#FFFFFF",
-		separator: "#DAD6C9",
-	},
 }));
 jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
 jest.mock("react-native-safe-area-context", () => ({
-	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+	useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
 
 interface ObservableStateDouble {
-	value: unknown;
 	get: () => unknown;
-	set: (v: unknown) => void;
 	onChange: unknown;
+	set: (v: unknown) => void;
+	value: unknown;
 }
 
 jest.mock("@expo/ui/swift-ui", () => {
@@ -69,23 +69,23 @@ jest.mock("@expo/ui/swift-ui", () => {
 				let value = initial;
 				let onChange: unknown = null;
 				ref.current = {
-					get value() {
-						return value;
-					},
-					set value(v: unknown) {
-						value = v;
-					},
 					get() {
 						return value;
-					},
-					set(v: unknown) {
-						value = v;
 					},
 					get onChange() {
 						return onChange;
 					},
 					set onChange(fn: unknown) {
 						onChange = fn;
+					},
+					set(v: unknown) {
+						value = v;
+					},
+					get value() {
+						return value;
+					},
+					set value(v: unknown) {
+						value = v;
 					},
 				} as unknown as ObservableStateDouble;
 			}
@@ -107,8 +107,7 @@ const mockUseTransactionEnrichment = jest.fn((..._args: unknown[]) => ({
 }));
 
 jest.mock("@/hooks/use-transaction-enrichment", () => ({
-	useTransactionEnrichment: (...args: unknown[]) =>
-		mockUseTransactionEnrichment(...args),
+	useTransactionEnrichment: (...args: unknown[]) => mockUseTransactionEnrichment(...args),
 }));
 
 jest.mock("@/hooks/use-locale-tag", () => ({
@@ -119,29 +118,25 @@ jest.mock("@/hooks/use-region-code", () => ({
 	useRegionCode: () => SENTINEL_REGION,
 }));
 
-const mockFetchMerchantImage = jest.fn((..._args: unknown[]) =>
-	Promise.resolve({ kind: "none" as const }),
-);
+const mockFetchMerchantImage = jest.fn((..._args: unknown[]) => Promise.resolve({ kind: "none" as const }));
 
 jest.mock("@/lib/logo-fetch", () => ({
 	fetchMerchantImage: (...args: unknown[]) => mockFetchMerchantImage(...args),
 }));
 
 jest.mock("@/i18n", () => ({
-	useTranslation: () => (key: string) => key,
 	useLanguage: () => ({ preference: "en" }),
+	useTranslation: () => (key: string) => key,
 }));
 
-const MIGRATIONS = join(__dirname, "../../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -178,12 +173,10 @@ describe("TransactionForm enrichment locale wiring", () => {
 		await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
-		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
-			expect.objectContaining({ locale: SENTINEL_LOCALE }),
-		);
+		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(expect.objectContaining({ locale: SENTINEL_LOCALE }));
 	});
 });
 
@@ -193,12 +186,10 @@ describe("TransactionForm regionCode wiring", () => {
 		await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
-		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
-			expect.objectContaining({ regionCode: SENTINEL_REGION }),
-		);
+		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(expect.objectContaining({ regionCode: SENTINEL_REGION }));
 	});
 });
 
@@ -208,12 +199,10 @@ describe("TransactionForm groundedLookup wiring", () => {
 		await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
-		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(
-			expect.objectContaining({ groundedLookup: true }),
-		);
+		expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(expect.objectContaining({ groundedLookup: true }));
 	});
 });
 
@@ -223,23 +212,21 @@ describe("TransactionForm merchant logo wiring", () => {
 		await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		await act(async () => {
 			latestOnSuggest()({
 				categoryId: null,
-				pendingCategory: null,
-				tagIds: [],
-				pendingTagNames: [],
 				domain: "example.com",
+				pendingCategory: null,
+				pendingTagNames: [],
 				source: "remote",
+				tagIds: [],
 			});
 		});
 
-		expect(mockFetchMerchantImage).toHaveBeenCalledWith(
-			expect.objectContaining({ domain: "example.com" }),
-		);
+		expect(mockFetchMerchantImage).toHaveBeenCalledWith(expect.objectContaining({ domain: "example.com" }));
 	});
 
 	it("passes a null domain for a curated suggestion with none", async () => {
@@ -247,22 +234,20 @@ describe("TransactionForm merchant logo wiring", () => {
 		await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		await act(async () => {
 			latestOnSuggest()({
 				categoryId: null,
-				pendingCategory: null,
-				tagIds: [],
-				pendingTagNames: [],
 				domain: null,
+				pendingCategory: null,
+				pendingTagNames: [],
 				source: "curated",
+				tagIds: [],
 			});
 		});
 
-		expect(mockFetchMerchantImage).toHaveBeenCalledWith(
-			expect.objectContaining({ domain: null }),
-		);
+		expect(mockFetchMerchantImage).toHaveBeenCalledWith(expect.objectContaining({ domain: null }));
 	});
 });

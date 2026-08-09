@@ -23,25 +23,8 @@ const TILE_RADIUS = 9;
 const DELETE_ACTION = "delete";
 
 interface TransactionRowProps {
-	/**
-	 * `details` is optional because most surfaces read a projection that leaves the
-	 * free text out (`LOG_COLUMNS`); only the search read carries it, and only a
-	 * row that has it prints the excerpt.
-	 */
-	transaction: TransactionWithCategory & { details?: string | null };
 	/** Global display currency, used when the row's own currency is null. */
 	currency: string;
-	/** Rates for `currency`. Without it no row is marked unplaced. */
-	rates?: RateTable;
-	onPress: (id: string) => void;
-	/** Opens the row's action menu. Omit on a surface that offers none. */
-	onLongPress?: (id: string) => void;
-	/**
-	 * Same deletion the swipe performs. Pass it on a surface whose rows swipe: a
-	 * pan is the one gesture assistive technology cannot make, so the action has to
-	 * also exist as an accessibility action.
-	 */
-	onDelete?: (id: string) => void;
 	/**
 	 * Forces the upcoming variant. A scheduled entry whose stored date is already
 	 * past is still upcoming — what is upcoming is its next occurrence — so the
@@ -50,6 +33,23 @@ interface TransactionRowProps {
 	future?: boolean;
 	/** When the row lands, for the upcoming variant's subtitle. */
 	landsOn?: Date;
+	/**
+	 * Same deletion the swipe performs. Pass it on a surface whose rows swipe: a
+	 * pan is the one gesture assistive technology cannot make, so the action has to
+	 * also exist as an accessibility action.
+	 */
+	onDelete?: (id: string) => void;
+	/** Opens the row's action menu. Omit on a surface that offers none. */
+	onLongPress?: (id: string) => void;
+	onPress: (id: string) => void;
+	/** Rates for `currency`. Without it no row is marked unplaced. */
+	rates?: RateTable;
+	/**
+	 * `details` is optional because most surfaces read a projection that leaves the
+	 * free text out (`LOG_COLUMNS`); only the search read carries it, and only a
+	 * row that has it prints the excerpt.
+	 */
+	transaction: TransactionWithCategory & { details?: string | null };
 }
 
 export function TransactionRow({
@@ -70,10 +70,7 @@ export function TransactionRow({
 	const code = transaction.currency ?? currency;
 	const identity = resolveTransactionIdentity(transaction);
 	const recurring = transaction.recurringType > 0;
-	const foreignCode =
-		transaction.currency && transaction.currency !== currency
-			? transaction.currency
-			: null;
+	const foreignCode = transaction.currency && transaction.currency !== currency ? transaction.currency : null;
 	// A row that stated no currency is printed under the global code. That is a
 	// fact only while something can place it; once nothing can, the code is an
 	// assumption and the mark says so.
@@ -83,12 +80,12 @@ export function TransactionRow({
 		!isExact(
 			{
 				amount: transaction.amount,
-				currency: null,
 				amountUsd: transaction.amountUsd,
+				currency: null,
 				dateKey: utcDateString(date.getTime()),
 			},
 			currency,
-			rates,
+			rates
 		);
 
 	const subtitle = future
@@ -102,12 +99,9 @@ export function TransactionRow({
 			// The hold is the only route to the action menu, and nothing on screen says
 			// so; the rotor entry is the only route to Delete, which otherwise lives
 			// behind a swipe no assistive gesture can perform.
-			accessibilityActions={
-				onDelete
-					? [{ name: DELETE_ACTION, label: t("log.row.deleteAccessibility") }]
-					: undefined
-			}
+			accessibilityActions={onDelete ? [{ label: t("log.row.deleteAccessibility"), name: DELETE_ACTION }] : undefined}
 			accessibilityHint={onLongPress ? t("log.row.actionsHint") : undefined}
+			accessibilityRole="button"
 			className="flex-row items-center gap-3 py-2 active:opacity-70"
 			onAccessibilityAction={
 				onDelete
@@ -118,51 +112,36 @@ export function TransactionRow({
 						}
 					: undefined
 			}
-			onPress={() => onPress(transaction.id)}
 			onLongPress={onLongPress ? () => onLongPress(transaction.id) : undefined}
-			accessibilityRole="button"
+			onPress={() => onPress(transaction.id)}
 		>
 			<View>
 				<CategoryIconTile
 					color={identity.color}
 					emoji={identity.emoji}
-					icon={identity.icon}
-					size={TILE_SIZE}
-					radius={TILE_RADIUS}
-					type="solid"
 					future={future}
+					icon={identity.icon}
 					imageUri={transaction.imageUri}
+					radius={TILE_RADIUS}
+					size={TILE_SIZE}
+					type="solid"
 				/>
 				{recurring ? (
-					<View
-						className="absolute rounded-md bg-surface-secondary"
-						style={{ right: -5, bottom: -5, padding: 3 }}
-					>
-						<HugeiconsIcon
-							icon={RefreshIcon}
-							size={12}
-							color={colors.foreground}
-							strokeWidth={2}
-						/>
+					<View className="absolute rounded-md bg-surface-secondary" style={{ bottom: -5, padding: 3, right: -5 }}>
+						<HugeiconsIcon color={colors.foreground} icon={RefreshIcon} size={12} strokeWidth={2} />
 					</View>
 				) : null}
 			</View>
 			<View className="flex-1 gap-0.5">
 				<Text
-					className={cn(
-						"font-sans-medium text-callout",
-						future ? "text-future" : "text-foreground",
-					)}
+					className={cn("font-sans-medium text-callout", future ? "text-future" : "text-foreground")}
 					numberOfLines={1}
 				>
 					{transaction.note}
 				</Text>
 				<View className="flex-row items-center gap-1.25">
 					<Text
-						className={cn(
-							"font-sans-medium text-subtitle",
-							future ? "text-subtle" : "text-muted",
-						)}
+						className={cn("font-sans-medium text-subtitle", future ? "text-subtle" : "text-muted")}
 						numberOfLines={1}
 					>
 						{subtitle}
@@ -182,22 +161,16 @@ export function TransactionRow({
 					) : null}
 				</View>
 				{transaction.details ? (
-					<Text
-						className={cn(
-							"text-footnote",
-							future ? "text-subtle" : "text-muted",
-						)}
-						numberOfLines={1}
-					>
+					<Text className={cn("text-footnote", future ? "text-subtle" : "text-muted")} numberOfLines={1}>
 						{transaction.details}
 					</Text>
 				) : null}
 			</View>
 			<RowAmount
 				amount={transaction.amount}
+				code={code}
 				income={transaction.income}
 				isFuture={future}
-				code={code}
 				showCents={showCents}
 			/>
 		</Pressable>

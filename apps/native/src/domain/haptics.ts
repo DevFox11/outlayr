@@ -12,15 +12,7 @@ export const HAPTICS_EXCESSIVE = 2;
  * every action. Swift gates its keypad the same way, at `excessive` only
  * (`NumberPad.swift:28`).
  */
-export type HapticEvent =
-	| "selection"
-	| "keyTap"
-	| "light"
-	| "medium"
-	| "heavy"
-	| "success"
-	| "warning"
-	| "error";
+export type HapticEvent = "selection" | "keyTap" | "light" | "medium" | "heavy" | "success" | "warning" | "error";
 
 export const HAPTIC_EVENTS: readonly HapticEvent[] = [
 	"selection",
@@ -39,10 +31,7 @@ export type HapticPlay =
 	| { kind: "notification"; type: "success" | "warning" | "error" };
 
 /** What the device should actually do, or `null` for silence. */
-export function hapticPlay(
-	level: number,
-	event: HapticEvent,
-): HapticPlay | null {
+export function hapticPlay(level: number, event: HapticEvent): HapticPlay | null {
 	if (level < HAPTICS_SUBTLE) {
 		return null;
 	}

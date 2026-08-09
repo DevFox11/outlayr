@@ -35,7 +35,7 @@ export function useAllSettings(db: Database | null): SettingsSnapshot {
 	const rows = useLiveQuery<typeof appMeta.$inferSelect>(
 		appMeta,
 		() => (db == null ? { all: () => [] } : db.select().from(appMeta)),
-		[db],
+		[db]
 	);
 
 	return useMemo(() => {
@@ -44,23 +44,18 @@ export function useAllSettings(db: Database | null): SettingsSnapshot {
 			raw.set(row.key, row.value);
 		}
 		return {
-			bool: (key) =>
-				parseBoolSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
-			number: (key) =>
-				parseIntSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
+			bool: (key) => parseBoolSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
+			number: (key) => parseIntSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
 		};
 	}, [rows]);
 }
 
-export function useBoolSetting(
-	db: Database | null,
-	key: BoolSettingKey,
-): boolean {
+export function useBoolSetting(db: Database | null, key: BoolSettingKey): boolean {
 	return useLiveValue(
 		appMeta,
 		() => selectSetting(db, key),
 		(rows) => parseBoolSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]),
-		[db, key],
+		[db, key]
 	);
 }
 
@@ -85,15 +80,12 @@ export function useSeededClockPreference(db: Database): void {
 	}, [db, deviceUses24Hour]);
 }
 
-export function useNumberSetting(
-	db: Database | null,
-	key: NumberSettingKey,
-): number {
+export function useNumberSetting(db: Database | null, key: NumberSettingKey): number {
 	return useLiveValue(
 		appMeta,
 		() => selectSetting(db, key),
 		(rows) => parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]),
-		[db, key],
+		[db, key]
 	);
 }
 
@@ -101,13 +93,10 @@ export function useNumberSetting(
 // splash gate while the database is still opening.
 function selectSetting(
 	db: Database | null,
-	key: BoolSettingKey | NumberSettingKey,
+	key: BoolSettingKey | NumberSettingKey
 ): SyncQuery<{ value: string | null }> {
 	if (db == null) {
 		return { all: () => [] };
 	}
-	return db
-		.select({ value: appMeta.value })
-		.from(appMeta)
-		.where(eq(appMeta.key, key));
+	return db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, key));
 }

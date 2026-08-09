@@ -1,10 +1,5 @@
 import { Text as SwiftText } from "@expo/ui/swift-ui";
-import {
-	font,
-	foregroundStyle,
-	kerning,
-	textCase,
-} from "@expo/ui/swift-ui/modifiers";
+import { font, foregroundStyle, kerning, textCase } from "@expo/ui/swift-ui/modifiers";
 import { PlatformColor } from "react-native";
 import type { ThemeColors } from "@/theme/use-colors";
 
@@ -17,11 +12,11 @@ import type { ThemeColors } from "@/theme/use-colors";
 export const LABEL = PlatformColor("label");
 
 export const PARENT_NAME = font({
-	textStyle: "body",
 	design: "rounded",
+	textStyle: "body",
 	weight: "semibold",
 });
-export const CHILD_NAME = font({ textStyle: "subheadline", design: "rounded" });
+export const CHILD_NAME = font({ design: "rounded", textStyle: "subheadline" });
 
 export const PARENT_TILE = 34;
 export const CHILD_TILE = 28;
@@ -47,22 +42,9 @@ const EYEBROW_FONT = font({
  * spec — a `Section` header slot renders a SwiftUI view, so the uniwind `Text` one
  * cannot be reused here. Restyle both or neither.
  */
-export function Eyebrow({
-	colors,
-	children,
-}: {
-	colors: ThemeColors;
-	children: string;
-}) {
+export function Eyebrow({ colors, children }: { colors: ThemeColors; children: string }) {
 	return (
-		<SwiftText
-			modifiers={[
-				EYEBROW_FONT,
-				kerning(1.2),
-				textCase("uppercase"),
-				foregroundStyle(colors.muted),
-			]}
-		>
+		<SwiftText modifiers={[EYEBROW_FONT, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}>
 			{children}
 		</SwiftText>
 	);

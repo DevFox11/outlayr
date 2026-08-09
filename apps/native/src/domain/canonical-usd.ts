@@ -45,7 +45,7 @@ export async function canonicalUsd(
 		currency: string | null;
 		displayCurrency: string;
 		date: Date;
-	},
+	}
 ): Promise<CanonicalUsd> {
 	const currency = input.currency ?? input.displayCurrency;
 
@@ -60,18 +60,12 @@ export async function canonicalUsd(
 
 	const date = utcDateString(input.date.getTime());
 	try {
-		const exchangeRate = await resolveEntryRate(
-			lookup,
-			currency,
-			DEFAULT_RATE_TYPE,
-			undefined,
-			date,
-		);
+		const exchangeRate = await resolveEntryRate(lookup, currency, DEFAULT_RATE_TYPE, undefined, date);
 		const amountUsd = await computeAmountUSD(lookup, {
 			baseAmount: input.amount,
+			date,
 			exchangeRate,
 			exchangeRateType: DEFAULT_RATE_TYPE,
-			date,
 		});
 		return { amountUsd, exchangeRate, exchangeRateType: DEFAULT_RATE_TYPE };
 	} catch (error) {

@@ -15,14 +15,14 @@ import {
 /** Mirrors the Swift `Budget.type` codes. */
 export const BUDGET_TYPE = {
 	day: 1,
-	week: 2,
 	month: 3,
+	week: 2,
 	year: 4,
 } as const;
 
 export interface BudgetWindow {
-	start: Date;
 	end: Date;
+	start: Date;
 }
 
 /** Adds `n` days keeping local wall time (DST-tolerant, like Calendar `.day`). */
@@ -64,11 +64,7 @@ export function periodEnd(start: Date, type: number): Date {
 }
 
 /** The aligned start of the period — the anchor a budget is created with. */
-export function startOfPeriod(
-	now: Date,
-	type: number,
-	calendar: CalendarSettings = DEFAULT_CALENDAR,
-): Date {
+export function startOfPeriod(now: Date, type: number, calendar: CalendarSettings = DEFAULT_CALENDAR): Date {
 	switch (type) {
 		case BUDGET_TYPE.day:
 			return startOfDay(now);
@@ -88,18 +84,14 @@ export function startOfPeriod(
  * Ports `BudgetRepository.updateBudgetDates()`. The `end > start` guard stops an
  * unknown/zero-length type from looping forever.
  */
-export function advanceBudgetWindow(
-	startDate: Date,
-	type: number,
-	now: Date,
-): BudgetWindow {
+export function advanceBudgetWindow(startDate: Date, type: number, now: Date): BudgetWindow {
 	let start = new Date(startDate);
 	let end = periodEnd(start, type);
 	while (end.getTime() <= now.getTime() && end.getTime() > start.getTime()) {
 		start = end;
 		end = periodEnd(start, type);
 	}
-	return { start, end };
+	return { end, start };
 }
 
 /** The start of the period immediately before the one beginning at `start`. */
@@ -119,21 +111,16 @@ export function previousPeriodStart(start: Date, type: number): Date {
 }
 
 /** The window `offset` whole periods from the one at `start`; negative steps back. */
-export function shiftWindow(
-	start: Date,
-	type: number,
-	offset: number,
-): BudgetWindow {
+export function shiftWindow(start: Date, type: number, offset: number): BudgetWindow {
 	let cursor = new Date(start);
 	for (let step = 0; step < Math.abs(offset); step += 1) {
-		const next =
-			offset < 0 ? previousPeriodStart(cursor, type) : periodEnd(cursor, type);
+		const next = offset < 0 ? previousPeriodStart(cursor, type) : periodEnd(cursor, type);
 		if (next.getTime() === cursor.getTime()) {
 			break;
 		}
 		cursor = next;
 	}
-	return { start: cursor, end: periodEnd(cursor, type) };
+	return { end: periodEnd(cursor, type), start: cursor };
 }
 
 /** 100 years of months, or three of days — far past any window worth browsing. */
@@ -145,11 +132,7 @@ const MAX_PERIODS_BACK = 1200;
  * `firstDate` guard: before the oldest entry that could count there is nothing
  * to show, and a budget's own anchor rolls forward, so it cannot be the floor.
  */
-export function periodsBackTo(
-	currentStart: Date,
-	type: number,
-	earliest: Date | null,
-): number {
+export function periodsBackTo(currentStart: Date, type: number, earliest: Date | null): number {
 	if (!earliest) {
 		return 0;
 	}
@@ -175,11 +158,7 @@ function twoDigitYear(date: Date): string {
 }
 
 /** Ports the Swift stepper's `dateString`. Ends are exclusive; the label is not. */
-export function budgetWindowLabel(
-	window: BudgetWindow,
-	type: number,
-	language: Language = runtimeLanguage(),
-): string {
+export function budgetWindowLabel(window: BudgetWindow, type: number, language: Language = runtimeLanguage()): string {
 	if (type === BUDGET_TYPE.day) {
 		return `${dayMonth(window.start, language)} ${window.start.getFullYear()}`;
 	}
@@ -250,51 +229,29 @@ export function budgetPace(window: BudgetWindow, now: Date): BudgetPace {
 
 /** Whole days remaining in the window (Swift `numberOfDays - numberOfDaysPast`). */
 export function daysLeftInWindow(window: BudgetWindow, now: Date): number {
-	const totalDays = Math.max(
-		1,
-		Math.round((window.end.getTime() - window.start.getTime()) / DAY_MS),
-	);
-	const daysPast = Math.max(
-		0,
-		Math.floor((now.getTime() - window.start.getTime()) / DAY_MS),
-	);
+	const totalDays = Math.max(1, Math.round((window.end.getTime() - window.start.getTime()) / DAY_MS));
+	const daysPast = Math.max(0, Math.floor((now.getTime() - window.start.getTime()) / DAY_MS));
 	return Math.max(0, totalDays - daysPast);
 }
 
 /** Whole hours remaining in a daily window (Swift `24 - hoursPast`). */
 export function hoursLeftInDay(window: BudgetWindow, now: Date): number {
-	const hoursPast = Math.max(
-		0,
-		Math.floor((now.getTime() - window.start.getTime()) / HOUR_MS),
-	);
+	const hoursPast = Math.max(0, Math.floor((now.getTime() - window.start.getTime()) / HOUR_MS));
 	return Math.max(0, 24 - hoursPast);
 }
 
-export function budgetTimeLeftLabel(
-	window: BudgetWindow,
-	type: number,
-	now: Date,
-	t: TranslateFn,
-): string {
+export function budgetTimeLeftLabel(window: BudgetWindow, type: number, now: Date, t: TranslateFn): string {
 	if (type === BUDGET_TYPE.day) {
 		return t("budgetTime.hoursLeft", { count: hoursLeftInDay(window, now) });
 	}
 	return t("budgetTime.daysLeft", { count: daysLeftInWindow(window, now) });
 }
 
-export function leftPerDay(
-	leftover: number,
-	window: BudgetWindow,
-	now: Date,
-): number {
+export function leftPerDay(leftover: number, window: BudgetWindow, now: Date): number {
 	return leftover / Math.max(1, daysLeftInWindow(window, now));
 }
 
-export function isBehindPace(
-	remaining: number,
-	amount: number,
-	leftover: number,
-): boolean {
+export function isBehindPace(remaining: number, amount: number, leftover: number): boolean {
 	return remaining * amount > leftover;
 }
 
@@ -302,11 +259,7 @@ export function isBehindPace(
  * The 0.95 ceiling keeps the marker clear of the arc's ends (Swift's
  * `0 < targetPercent < 0.95`).
  */
-export function shouldShowPaceMarker(
-	type: number,
-	remaining: number,
-	over: boolean,
-): boolean {
+export function shouldShowPaceMarker(type: number, remaining: number, over: boolean): boolean {
 	return type !== BUDGET_TYPE.day && !over && remaining > 0 && remaining < 0.95;
 }
 

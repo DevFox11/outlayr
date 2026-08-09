@@ -9,8 +9,8 @@ jest.mock("@/i18n", () => ({
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
 		foreground: "#17150F",
-		muted: "#8A8578",
 		income: "#2E7D32",
+		muted: "#8A8578",
 	}),
 }));
 jest.mock("@/contexts/display-settings-context", () => ({
@@ -20,60 +20,58 @@ jest.mock("@/contexts/display-settings-context", () => ({
 }));
 
 const ENTRY = {
-	note: "Bakery",
-	categoryId: "cat-food",
-	income: false,
 	amount: 12.5,
+	categoryId: "cat-food",
 	currency: null,
 	date: new Date(2026, 6, 28),
+	income: false,
+	note: "Bakery",
 };
 
-function doneReview(
-	overrides: Partial<ImportReviewResult> = {},
-): ImportReviewResult {
+function doneReview(overrides: Partial<ImportReviewResult> = {}): ImportReviewResult {
 	return {
+		categoryName: new Map(),
+		categoryTile: new Map(),
+		commit: {
+			count: 12,
+			duplicatesSkipped: 0,
+			outAmount: 348.4,
+			phase: "success",
+		},
+		currency: "USD",
+		excluded: new Set([1]),
+		onCommit: jest.fn(),
+		onToggle: jest.fn(),
 		plan: {
-			entries: [ENTRY],
-			skipped: [],
 			earliest: new Date(2026, 6, 1),
+			entries: [ENTRY],
 			latest: new Date(2026, 6, 28),
+			skipped: [],
 		},
 		rows: [
 			{
-				kind: "entry",
-				key: "entry-0",
-				index: 0,
-				entry: ENTRY,
 				duplicate: false,
+				entry: ENTRY,
+				index: 0,
+				key: "entry-0",
+				kind: "entry",
 			},
 			{
-				kind: "entry",
-				key: "entry-1",
-				index: 1,
-				entry: ENTRY,
 				duplicate: true,
+				entry: ENTRY,
+				index: 1,
+				key: "entry-1",
+				kind: "entry",
 			},
 		],
-		excluded: new Set([1]),
 		selectedCount: 1,
-		categoryName: new Map(),
-		categoryTile: new Map(),
-		currency: "USD",
-		commit: {
-			phase: "success",
-			count: 12,
-			outAmount: 348.4,
-			duplicatesSkipped: 0,
-		},
-		onToggle: jest.fn(),
-		onCommit: jest.fn(),
 		...overrides,
 	} as ImportReviewResult;
 }
 
 interface JsonNode {
-	props?: Record<string, unknown>;
 	children?: (JsonNode | string)[] | null;
+	props?: Record<string, unknown>;
 }
 
 function classNames(node: JsonNode | JsonNode[] | null): string[] {
@@ -86,29 +84,21 @@ function classNames(node: JsonNode | JsonNode[] | null): string[] {
 	const own = node.props?.className;
 	return [
 		...(typeof own === "string" ? [own] : []),
-		...(node.children ?? []).flatMap((child) =>
-			typeof child === "string" ? [] : classNames(child),
-		),
+		...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
 	];
 }
 
 describe("DoneStep", () => {
 	it("renders the ink stamp with the committed count", async () => {
-		const { getByTestId, getByText } = await render(
-			<DoneStep onDone={jest.fn()} review={doneReview()} />,
-		);
+		const { getByTestId, getByText } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
 		expect(getByTestId("import-done-stamp")).toBeTruthy();
 		expect(getByText('import.doneStamp:{"count":12}')).toBeTruthy();
 	});
 
 	it("rotates the stamp slightly with an income-coloured border", async () => {
-		const { getByTestId } = await render(
-			<DoneStep onDone={jest.fn()} review={doneReview()} />,
-		);
+		const { getByTestId } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
 		const style = getByTestId("import-done-stamp").props.style;
-		const flat = Array.isArray(style)
-			? Object.assign({}, ...style.filter(Boolean))
-			: style;
+		const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
 		expect(flat.borderWidth).toBe(1.5);
 		expect(flat.transform).toStrictEqual([{ rotate: "-2deg" }]);
 	});
@@ -122,17 +112,15 @@ describe("DoneStep", () => {
 				onDone={jest.fn()}
 				review={doneReview({
 					commit: {
-						phase: "success",
 						count: 12,
-						outAmount: 348.4,
 						duplicatesSkipped: 1,
+						outAmount: 348.4,
+						phase: "success",
 					},
 				})}
-			/>,
+			/>
 		);
-		expect(
-			getByText(`import.doneSubline:{"count":1,"month":"${month}"}`),
-		).toBeTruthy();
+		expect(getByText(`import.doneSubline:{"count":1,"month":"${month}"}`)).toBeTruthy();
 	});
 
 	it("drops the duplicates clause when none were skipped", async () => {
@@ -141,18 +129,12 @@ describe("DoneStep", () => {
 		});
 		const review = doneReview({ excluded: new Set<number>() });
 		review.rows = [review.rows[0]];
-		const { getByText } = await render(
-			<DoneStep onDone={jest.fn()} review={review} />,
-		);
-		expect(
-			getByText(`import.doneSublineNoDuplicates:{"month":"${month}"}`),
-		).toBeTruthy();
+		const { getByText } = await render(<DoneStep onDone={jest.fn()} review={review} />);
+		expect(getByText(`import.doneSublineNoDuplicates:{"month":"${month}"}`)).toBeTruthy();
 	});
 
 	it("shows the added count and out amount in the measure strip", async () => {
-		const { getByText } = await render(
-			<DoneStep onDone={jest.fn()} review={doneReview()} />,
-		);
+		const { getByText } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
 		expect(getByText("import.doneAddedLabel")).toBeTruthy();
 		expect(getByText("12")).toBeTruthy();
 		expect(getByText("log.measure.out")).toBeTruthy();
@@ -161,33 +143,21 @@ describe("DoneStep", () => {
 
 	it("dismisses through the ghost Done button", async () => {
 		const onDone = jest.fn();
-		const { getByTestId } = await render(
-			<DoneStep onDone={onDone} review={doneReview()} />,
-		);
+		const { getByTestId } = await render(<DoneStep onDone={onDone} review={doneReview()} />);
 		fireEvent.press(getByTestId("import-done-cta"));
 		expect(onDone).toHaveBeenCalledTimes(1);
 	});
 
 	it("centers the stamp block inside an explicit min height, not an inert flex fill", async () => {
-		const { toJSON } = await render(
-			<DoneStep onDone={jest.fn()} review={doneReview()} />,
-		);
+		const { toJSON } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
 		const classes = classNames(toJSON() as unknown as JsonNode);
-		expect(
-			classes.some(
-				(c) => /\bmin-h-\d+\b/.test(c) && /\bjustify-center\b/.test(c),
-			),
-		).toBe(true);
-		expect(
-			classes.some((c) => /\bflex-1\b/.test(c) && /\bjustify-center\b/.test(c)),
-		).toBe(false);
+		expect(classes.some((c) => /\bmin-h-\d+\b/.test(c) && /\bjustify-center\b/.test(c))).toBe(true);
+		expect(classes.some((c) => /\bflex-1\b/.test(c) && /\bjustify-center\b/.test(c))).toBe(false);
 	});
 
 	it("renders nothing before a commit succeeded", async () => {
 		const review = doneReview({ commit: { phase: "idle" } });
-		const { toJSON } = await render(
-			<DoneStep onDone={jest.fn()} review={review} />,
-		);
+		const { toJSON } = await render(<DoneStep onDone={jest.fn()} review={review} />);
 		expect(toJSON()).toBeNull();
 	});
 });

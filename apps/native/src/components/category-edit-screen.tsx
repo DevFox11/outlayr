@@ -24,11 +24,11 @@ export function CategoryEditScreen({ id }: { id: string }) {
 	const title = t(
 		edited == null
 			? "categories.kind.category"
-			: edited.parentId != null
-				? "categories.kind.subcategory"
-				: edited.income
+			: edited.parentId == null
+				? edited.income
 					? "categories.kind.income"
-					: "categories.kind.expense",
+					: "categories.kind.expense"
+				: "categories.kind.subcategory"
 	);
 
 	const confirmDelete = async () => {
@@ -43,28 +43,21 @@ export function CategoryEditScreen({ id }: { id: string }) {
 			.select({ id: categories.id })
 			.from(categories)
 			.where(and(eq(categories.parentId, id), isNull(categories.deletedAt)));
-		const message = t(
-			children.length > 0
-				? "categories.delete.messageWithChildren"
-				: "categories.delete.message",
-			{ name: category.name },
-		);
-		Alert.alert(
-			t("categories.delete.title", { name: category.name }),
-			message,
-			[
-				{ text: t("common.cancel"), style: "cancel" },
-				{
-					text: t("common.delete"),
-					style: "destructive",
-					onPress: async () => {
-						haptics("warning");
-						await categoriesRepo.remove(db, id);
-						router.back();
-					},
+		const message = t(children.length > 0 ? "categories.delete.messageWithChildren" : "categories.delete.message", {
+			name: category.name,
+		});
+		Alert.alert(t("categories.delete.title", { name: category.name }), message, [
+			{ style: "cancel", text: t("common.cancel") },
+			{
+				onPress: async () => {
+					haptics("warning");
+					await categoriesRepo.remove(db, id);
+					router.back();
 				},
-			],
-		);
+				style: "destructive",
+				text: t("common.delete"),
+			},
+		]);
 	};
 
 	return (

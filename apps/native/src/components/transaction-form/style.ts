@@ -1,11 +1,4 @@
-import {
-	Animation,
-	contentShape,
-	font,
-	foregroundStyle,
-	frame,
-	shapes,
-} from "@expo/ui/swift-ui/modifiers";
+import { Animation, contentShape, font, foregroundStyle, frame, shapes } from "@expo/ui/swift-ui/modifiers";
 
 export const ROW = [frame({ minHeight: 54 })];
 /**
@@ -23,18 +16,18 @@ export const CARD_SHAPE = shapes.roundedRectangle({
 	roundedCornerStyle: "continuous",
 });
 
-export const BODY = font({ textStyle: "body", design: "rounded" });
+export const BODY = font({ design: "rounded", textStyle: "body" });
 export const BODY_MEDIUM = font({
-	textStyle: "body",
 	design: "rounded",
+	textStyle: "body",
 	weight: "medium",
 });
 export const BODY_SEMIBOLD = font({
-	textStyle: "body",
 	design: "rounded",
+	textStyle: "body",
 	weight: "semibold",
 });
-export const CAPTION = font({ textStyle: "caption", design: "rounded" });
+export const CAPTION = font({ design: "rounded", textStyle: "caption" });
 
 /**
  * Swift's `IdentityHero.topPadding` (24) less 6pt: expo-router's native header
@@ -45,12 +38,12 @@ export const HERO_TOP_PADDING = 18;
 export const HERO_BOTTOM_PADDING = 6;
 
 export const rowLabel = foregroundStyle({
-	type: "hierarchical",
 	style: "secondary",
+	type: "hierarchical",
 });
 export const tertiary = foregroundStyle({
-	type: "hierarchical",
 	style: "tertiary",
+	type: "hierarchical",
 });
 
 export const MORPH = Animation.easeInOut({ duration: 0.25 });
@@ -66,11 +59,11 @@ export const FORM_BLUR_RADIUS = 8;
  * home and the sheet has gone.
  */
 export const FLY_UP = Animation.spring({
-	response: 0.4,
 	dampingFraction: 0.85,
+	response: 0.4,
 });
 export const FLY_BACK = Animation.spring({
-	response: 0.29,
 	dampingFraction: 0.98,
+	response: 0.29,
 });
 export const ENRICHING = Animation.easeInOut({ duration: 0.25 });

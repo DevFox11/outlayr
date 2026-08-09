@@ -7,9 +7,7 @@ export default function SettingsTabLayout() {
 		<Stack>
 			<Stack.Screen name="index">
 				<Stack.Header transparent />
-				<Stack.Screen.Title large>
-					{t("settings.screenTitle")}
-				</Stack.Screen.Title>
+				<Stack.Screen.Title large>{t("settings.screenTitle")}</Stack.Screen.Title>
 			</Stack.Screen>
 		</Stack>
 	);

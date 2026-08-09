@@ -20,11 +20,7 @@ import {
 	transactions as transactionsTable,
 } from "@/db/schema";
 import { advanceBudgetWindow, budgetPeriodPhrase } from "@/domain/budget-math";
-import {
-	formatDayHeader,
-	formatUpcomingDate,
-	startOfDay,
-} from "@/domain/dates";
+import { formatDayHeader, formatUpcomingDate, startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY, formatAmount } from "@/domain/money";
 import { limitIn } from "@/domain/valuation";
 import type { TranslationKey } from "@/i18n/catalog";
@@ -39,8 +35,8 @@ import { WIDGET_PALETTE, type WidgetPalette } from "./palette";
  * why the colours travel as data at all.
  */
 export interface WidgetChrome {
-	light: WidgetPalette;
 	dark: WidgetPalette;
+	light: WidgetPalette;
 }
 
 const CHROME: WidgetChrome = WIDGET_PALETTE;
@@ -58,17 +54,28 @@ export interface BudgetConfiguration {
 }
 
 export interface BudgetViewProps {
-	/** False when no budget of any kind exists — the layout pitches one instead. */
-	present: boolean;
-	name: string;
+	/** How far through the period we are, in [0, 1] — the pace marker. */
+	elapsedFraction: number;
+	/**
+	 * Window end in epoch ms. Not rendered — it is the one instant at which every
+	 * figure above becomes wrong, so the publisher schedules the next timeline
+	 * entry here instead of polling.
+	 */
+	endsAt: number;
 	/**
 	 * Whether `name` is the overall budget or the per-category one this fell back
 	 * to. The layout must say which: "$189 LEFT · THIS MONTH" without the name
 	 * reads as the whole month when it is only Groceries.
 	 */
 	isOverall: boolean;
+	limit: string;
+	name: string;
+	over: boolean;
+	percent: string;
 	/** Eyebrow copy, e.g. "THIS MONTH". */
 	periodLabel: string;
+	/** False when no budget of any kind exists — the layout pitches one instead. */
+	present: boolean;
 	/** Compact window, e.g. "1 – 31 JUL". */
 	rangeLabel: string;
 	/** The hero figure, already in the user's currency and cents preference. */
@@ -81,19 +88,8 @@ export interface BudgetViewProps {
 	 * column can hold.
 	 */
 	spent: string;
-	limit: string;
-	percent: string;
 	/** Spend as a fraction of the limit, clamped to [0, 1] for the gauge. */
 	spentFraction: number;
-	/** How far through the period we are, in [0, 1] — the pace marker. */
-	elapsedFraction: number;
-	over: boolean;
-	/**
-	 * Window end in epoch ms. Not rendered — it is the one instant at which every
-	 * figure above becomes wrong, so the publisher schedules the next timeline
-	 * entry here instead of polling.
-	 */
-	endsAt: number;
 	url: string;
 }
 
@@ -110,15 +106,15 @@ export interface BudgetWidgetProps {
 }
 
 export interface LedgerEntryProps {
-	id: string;
-	note: string;
 	/** Unsigned; `income` decides the colour and the sign glyph. */
 	amount: string;
-	income: boolean;
 	color: string;
+	day: string;
 	/** Empty string rather than null — the layout branches on truthiness. */
 	emoji: string;
-	day: string;
+	id: string;
+	income: boolean;
+	note: string;
 }
 
 /** What the Ledger's header figure can be pinned to. `"today"` is its default. */
@@ -126,15 +122,15 @@ export type LedgerHeaderPeriod = "today" | InsightsPeriod;
 export type LedgerHeaderMeasure = "spent" | "income" | "net";
 
 export interface LedgerHeaderProps {
-	label: string;
 	amount: string;
+	label: string;
 	/** Net can be either way round; the sign is the figure's, not a glyph's. */
 	positive: boolean;
 }
 
 export interface LedgerConfiguration {
-	period: LedgerHeaderPeriod;
 	measure: LedgerHeaderMeasure;
+	period: LedgerHeaderPeriod;
 }
 
 export interface LedgerWidgetProps {
@@ -147,10 +143,7 @@ export interface LedgerWidgetProps {
 	 * a choice it was not handed — the same reason `Insights` ships every window
 	 * rather than the one currently selected.
 	 */
-	headers: Record<
-		LedgerHeaderPeriod,
-		Record<LedgerHeaderMeasure, LedgerHeaderProps>
-	>;
+	headers: Record<LedgerHeaderPeriod, Record<LedgerHeaderMeasure, LedgerHeaderProps>>;
 	url: string;
 }
 
@@ -162,16 +155,16 @@ export interface InsightsConfiguration {
 }
 
 export interface InsightsViewProps {
-	periodLabel: string;
-	rangeLabel: string;
+	/** `ChartDataPoint` shape, oldest first — spend per bucket. */
+	bars: { x: string; y: number }[];
+	income: string;
 	/** Net for the window, signed by `netPositive` rather than by a glyph. */
 	net: string;
 	netPositive: boolean;
-	spent: string;
-	income: string;
-	/** `ChartDataPoint` shape, oldest first — spend per bucket. */
-	bars: { x: string; y: number }[];
+	periodLabel: string;
+	rangeLabel: string;
 	slices: { name: string; color: string; amount: string; fraction: number }[];
+	spent: string;
 	url: string;
 }
 
@@ -197,22 +190,22 @@ export interface LogWidgetProps {
  */
 export interface IntentBudgetProps {
 	id: string;
+	limit: string;
 	name: string;
+	percent: string;
+	periodLabel: string;
 	remaining: string;
 	remainingCaption: string;
 	spent: string;
-	limit: string;
-	percent: string;
-	periodLabel: string;
 }
 
 export interface WidgetProps {
 	Budget: BudgetWidgetProps;
-	Ledger: LedgerWidgetProps;
 	Insights: InsightsWidgetProps;
-	Log: LogWidgetProps;
 	/** Every budget, overall first — see {@link IntentBudgetProps}. */
 	intentBudgets: IntentBudgetProps[];
+	Ledger: LedgerWidgetProps;
+	Log: LogWidgetProps;
 }
 
 /** The Insights period codes as stored (`insightsTimeFrame`). */
@@ -223,8 +216,8 @@ const PERIODS: Readonly<Record<number, InsightsPeriod>> = {
 };
 
 const PERIOD_EYEBROW: Readonly<Record<InsightsPeriod, TranslationKey>> = {
-	week: "insights.quiet.thisWeek",
 	month: "insights.quiet.thisMonth",
+	week: "insights.quiet.thisWeek",
 	year: "insights.quiet.thisYear",
 };
 
@@ -270,42 +263,37 @@ type CategoryRow = {
  * Runs outside React (on background, after a queued write lands), so it is a
  * plain async function over `SpendDb` and testable against `better-sqlite3`.
  */
-export async function buildWidgetProps(
-	db: SpendDb,
-	now: Date = new Date(),
-): Promise<WidgetProps> {
-	const [currencyRaw, showCentsRaw, weekdayRaw, monthDayRaw, periodRaw] =
-		await Promise.all([
-			getMeta(db, META_KEYS.currency),
-			getMeta(db, "showCents"),
-			getMeta(db, "firstWeekday"),
-			getMeta(db, "firstDayOfMonth"),
-			getMeta(db, "insightsTimeFrame"),
-		]);
+export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Promise<WidgetProps> {
+	const [currencyRaw, showCentsRaw, weekdayRaw, monthDayRaw, periodRaw] = await Promise.all([
+		getMeta(db, META_KEYS.currency),
+		getMeta(db, "showCents"),
+		getMeta(db, "firstWeekday"),
+		getMeta(db, "firstDayOfMonth"),
+		getMeta(db, "insightsTimeFrame"),
+	]);
 
 	const currency = currencyRaw ?? DEFAULT_CURRENCY;
 	const showCents = parseBoolSetting(showCentsRaw, true);
 	const calendar: InsightsCalendar = {
-		firstWeekday: parseIntSetting(weekdayRaw, 1),
 		firstDayOfMonth: parseIntSetting(monthDayRaw, 1),
+		firstWeekday: parseIntSetting(weekdayRaw, 1),
 	};
 	const period = PERIODS[parseIntSetting(periodRaw, 1)] ?? "week";
 	const money = (value: number) => formatAmount(value, currency, showCents);
 	/** Supporting figures, cents always off — see `BudgetWidgetProps.spent`. */
 	const whole = (value: number) => formatAmount(value, currency, false);
-	const entryMoney = (value: number, code: string | null) =>
-		formatAmount(value, code ?? currency, showCents);
+	const entryMoney = (value: number, code: string | null) => formatAmount(value, code ?? currency, showCents);
 
 	const valuation = await loadValuation(db);
 	const contributions = await loadContributions(db, now, valuation);
 	const categoryRows = await db
 		.select({
-			id: categoriesTable.id,
-			name: categoriesTable.name,
 			color: categoriesTable.color,
-			icon: categoriesTable.icon,
 			emoji: categoriesTable.emoji,
+			icon: categoriesTable.icon,
+			id: categoriesTable.id,
 			income: categoriesTable.income,
+			name: categoriesTable.name,
 			parentId: categoriesTable.parentId,
 		})
 		.from(categoriesTable)
@@ -313,68 +301,23 @@ export async function buildWidgetProps(
 	const categoriesById = new Map(categoryRows.map((row) => [row.id, row]));
 
 	return {
-		Budget: await buildBudget(
-			db,
-			now,
-			contributions,
-			categoriesById,
-			money,
-			whole,
-			valuation,
-		),
-		Ledger: await buildLedger(
-			db,
-			now,
-			categoriesById,
-			money,
-			entryMoney,
-			contributions,
-			calendar,
-		),
+		Budget: await buildBudget(db, now, contributions, categoriesById, money, whole, valuation),
+		Insights: {
+			chrome: CHROME,
+			defaultPeriod: period,
+			windows: {
+				month: buildInsights(contributions, categoriesById, "month", now, calendar, money),
+				week: buildInsights(contributions, categoriesById, "week", now, calendar, money),
+				year: buildInsights(contributions, categoriesById, "year", now, calendar, money),
+			},
+		},
+		intentBudgets: await buildIntentBudgets(db, now, contributions, categoriesById, money, whole, valuation),
+		Ledger: await buildLedger(db, now, categoriesById, money, entryMoney, contributions, calendar),
 		Log: {
 			chrome: CHROME,
 			todayLabel: translateNow("common.today").toUpperCase(),
 			todaySpent: money(sumExpenses(contributions, startOfDay(now), now, null)),
 			url: DEEP_LINKS.newExpense,
-		},
-		intentBudgets: await buildIntentBudgets(
-			db,
-			now,
-			contributions,
-			categoriesById,
-			money,
-			whole,
-			valuation,
-		),
-		Insights: {
-			chrome: CHROME,
-			defaultPeriod: period,
-			windows: {
-				week: buildInsights(
-					contributions,
-					categoriesById,
-					"week",
-					now,
-					calendar,
-					money,
-				),
-				month: buildInsights(
-					contributions,
-					categoriesById,
-					"month",
-					now,
-					calendar,
-					money,
-				),
-				year: buildInsights(
-					contributions,
-					categoriesById,
-					"year",
-					now,
-					calendar,
-					money,
-				),
-			},
 		},
 	};
 }
@@ -394,46 +337,40 @@ async function buildBudget(
 	categoriesById: ReadonlyMap<string, CategoryRow>,
 	money: Money,
 	whole: Money,
-	valuation: Valuation,
+	valuation: Valuation
 ): Promise<BudgetWidgetProps> {
 	const empty: BudgetViewProps = {
-		present: false,
-		name: translateNow("budgets.widget.none"),
+		elapsedFraction: 0,
+		endsAt: 0,
 		isOverall: true,
+		limit: "",
+		name: translateNow("budgets.widget.none"),
+		over: false,
+		percent: "",
 		periodLabel: translateNow("budgets.form.defaultName").toUpperCase(),
+		present: false,
 		rangeLabel: "",
 		remaining: "",
 		remainingCaption: "",
 		spent: "",
-		limit: "",
-		percent: "",
 		spentFraction: 0,
-		elapsedFraction: 0,
-		over: false,
-		endsAt: 0,
 		url: DEEP_LINKS.budgets,
 	};
 
-	const mainRows = await db
-		.select()
-		.from(mainBudgetTable)
-		.where(isNull(mainBudgetTable.deletedAt))
-		.limit(1);
+	const mainRows = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
 	const main = mainRows[0];
 
 	let overall = empty;
 	if (main) {
 		const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
 		overall = present(
-			main.name?.trim()
-				? main.name.trim()
-				: translateNow("budgets.form.defaultOverall"),
+			main.name?.trim() ? main.name.trim() : translateNow("budgets.form.defaultOverall"),
 			true,
 			limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
 			sumExpenses(contributions, window.start, now, null),
 			main.type,
 			window,
-			DEEP_LINKS.overallBudget,
+			DEEP_LINKS.overallBudget
 		);
 	}
 
@@ -448,23 +385,16 @@ async function buildBudget(
 		.map((row) => {
 			const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
 			return {
+				limit: limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
 				row,
-				window,
-				limit: limitIn(
-					row,
-					window.start,
-					valuation.displayCurrency,
-					valuation.rates,
-				),
 				spent: sumExpenses(contributions, window.start, now, row.categoryId),
+				window,
 			};
 		})
 		.sort((a, b) => b.spent / b.limit - a.spent / a.limit)[0];
 	if (ranked) {
 		// Name precedence mirrors `usePerCategoryBudgets`.
-		const rankedCategory = ranked.row.categoryId
-			? categoriesById.get(ranked.row.categoryId)
-			: undefined;
+		const rankedCategory = ranked.row.categoryId ? categoriesById.get(ranked.row.categoryId) : undefined;
 		worst = present(
 			ranked.row.name?.trim()
 				? ranked.row.name.trim()
@@ -474,7 +404,7 @@ async function buildBudget(
 			ranked.spent,
 			ranked.row.type,
 			ranked.window,
-			`${DEEP_LINKS.budgets}/${ranked.row.id}`,
+			`${DEEP_LINKS.budgets}/${ranked.row.id}`
 		);
 	}
 
@@ -490,30 +420,26 @@ async function buildBudget(
 		spent: number,
 		type: number,
 		window: { start: Date; end: Date },
-		url: string,
+		url: string
 	): BudgetViewProps {
 		const over = spent > amount;
 		const span = window.end.getTime() - window.start.getTime();
 		const fraction = amount > 0 ? spent / amount : 0;
 		return {
-			present: true,
-			name,
+			elapsedFraction: clamp01(span > 0 ? (now.getTime() - window.start.getTime()) / span : 0),
+			endsAt: window.end.getTime(),
 			isOverall,
+			limit: whole(amount),
+			name,
+			over,
+			percent: `${Math.round(fraction * 100)}%`,
 			periodLabel: translateNow(budgetPeriodPhrase(type)).toUpperCase(),
+			present: true,
 			rangeLabel: rangeLabel(window.start, window.end),
 			remaining: money(Math.abs(amount - spent)),
-			remainingCaption: translateNow(
-				over ? "budgets.suffix.over" : "budgets.suffix.left",
-			).toUpperCase(),
+			remainingCaption: translateNow(over ? "budgets.suffix.over" : "budgets.suffix.left").toUpperCase(),
 			spent: whole(spent),
-			limit: whole(amount),
-			percent: `${Math.round(fraction * 100)}%`,
 			spentFraction: clamp01(fraction),
-			elapsedFraction: clamp01(
-				span > 0 ? (now.getTime() - window.start.getTime()) / span : 0,
-			),
-			over,
-			endsAt: window.end.getTime(),
 			url,
 		};
 	}
@@ -527,47 +453,33 @@ async function buildIntentBudgets(
 	categoriesById: ReadonlyMap<string, CategoryRow>,
 	money: Money,
 	whole: Money,
-	valuation: Valuation,
+	valuation: Valuation
 ): Promise<IntentBudgetProps[]> {
-	const shape = (
-		id: string,
-		name: string,
-		amount: number,
-		spent: number,
-		type: number,
-	): IntentBudgetProps => ({
+	const shape = (id: string, name: string, amount: number, spent: number, type: number): IntentBudgetProps => ({
 		id,
-		name,
-		remaining: money(Math.abs(amount - spent)),
-		remainingCaption: translateNow(
-			spent > amount ? "budgets.suffix.over" : "budgets.suffix.left",
-		),
-		spent: whole(spent),
 		limit: whole(amount),
+		name,
 		percent: `${Math.round((amount > 0 ? spent / amount : 0) * 100)}%`,
 		periodLabel: translateNow(budgetPeriodPhrase(type)),
+		remaining: money(Math.abs(amount - spent)),
+		remainingCaption: translateNow(spent > amount ? "budgets.suffix.over" : "budgets.suffix.left"),
+		spent: whole(spent),
 	});
 
 	const out: IntentBudgetProps[] = [];
 
-	const mainRows = await db
-		.select()
-		.from(mainBudgetTable)
-		.where(isNull(mainBudgetTable.deletedAt))
-		.limit(1);
+	const mainRows = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
 	const main = mainRows[0];
 	if (main) {
 		const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
 		out.push(
 			shape(
 				OVERALL_BUDGET_ID,
-				main.name?.trim()
-					? main.name.trim()
-					: translateNow("budgets.form.kindOverall"),
+				main.name?.trim() ? main.name.trim() : translateNow("budgets.form.kindOverall"),
 				limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
 				sumExpenses(contributions, window.start, now, null),
-				main.type,
-			),
+				main.type
+			)
 		);
 	}
 
@@ -578,19 +490,15 @@ async function buildIntentBudgets(
 		.orderBy(asc(budgetsTable.dateCreated));
 	for (const row of rows) {
 		const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
-		const meta = row.categoryId
-			? categoriesById.get(row.categoryId)
-			: undefined;
+		const meta = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
 		out.push(
 			shape(
 				row.id,
-				row.name?.trim()
-					? row.name.trim()
-					: (meta?.name ?? translateNow("budgets.form.defaultName")),
+				row.name?.trim() ? row.name.trim() : (meta?.name ?? translateNow("budgets.form.defaultName")),
 				limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
 				sumExpenses(contributions, window.start, now, row.categoryId),
-				row.type,
-			),
+				row.type
+			)
 		);
 	}
 
@@ -603,11 +511,7 @@ async function buildIntentBudgets(
  * overall budget, which every expense feeds.
  */
 /** The income counterpart of {@link sumExpenses}, unscoped by category. */
-function sumIncome(
-	rows: readonly Contribution[],
-	start: Date,
-	now: Date,
-): number {
+function sumIncome(rows: readonly Contribution[], start: Date, now: Date): number {
 	const startMs = start.getTime();
 	const nowMs = now.getTime();
 	let total = 0;
@@ -620,12 +524,7 @@ function sumIncome(
 	return total;
 }
 
-function sumExpenses(
-	rows: readonly Contribution[],
-	start: Date,
-	now: Date,
-	categoryId: string | null,
-): number {
+function sumExpenses(rows: readonly Contribution[], start: Date, now: Date, categoryId: string | null): number {
 	const startMs = start.getTime();
 	const nowMs = now.getTime();
 	let total = 0;
@@ -637,11 +536,7 @@ function sumExpenses(
 		if (t < startMs || t > nowMs) {
 			continue;
 		}
-		if (
-			categoryId == null ||
-			row.categoryId === categoryId ||
-			row.parentId === categoryId
-		) {
+		if (categoryId == null || row.categoryId === categoryId || row.parentId === categoryId) {
 			total += row.amount;
 		}
 	}
@@ -655,54 +550,46 @@ async function buildLedger(
 	money: Money,
 	entryMoney: EntryMoney,
 	contributions: readonly Contribution[],
-	calendar: InsightsCalendar,
+	calendar: InsightsCalendar
 ): Promise<LedgerWidgetProps> {
 	const rows = await db
 		.select({
-			id: transactionsTable.id,
-			note: transactionsTable.note,
 			amount: transactionsTable.amount,
-			currency: transactionsTable.currency,
-			income: transactionsTable.income,
-			emoji: transactionsTable.emoji,
-			customColor: transactionsTable.customColor,
-			imageColor: transactionsTable.imageColor,
 			categoryId: transactionsTable.categoryId,
+			currency: transactionsTable.currency,
+			customColor: transactionsTable.customColor,
 			date: transactionsTable.date,
+			emoji: transactionsTable.emoji,
+			id: transactionsTable.id,
+			imageColor: transactionsTable.imageColor,
+			income: transactionsTable.income,
+			note: transactionsTable.note,
 		})
 		.from(transactionsTable)
-		.where(
-			and(
-				isNull(transactionsTable.deletedAt),
-				lte(transactionsTable.date, now),
-			),
-		)
+		.where(and(isNull(transactionsTable.deletedAt), lte(transactionsTable.date, now)))
 		.orderBy(desc(transactionsTable.date))
 		.limit(LEDGER_LIMIT);
 
 	return {
 		chrome: CHROME,
-		headers: buildLedgerHeaders(contributions, now, calendar, money),
-		url: DEEP_LINKS.log,
 		entries: rows.map((row) => {
-			const category = row.categoryId
-				? categoriesById.get(row.categoryId)
-				: undefined;
+			const category = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
 			return {
-				id: row.id,
-				note: row.note,
 				amount: entryMoney(row.amount, row.currency),
-				income: row.income,
 				// Identity precedence, matching the form.
-				color:
-					row.customColor ?? row.imageColor ?? category?.color ?? "#767676",
+				color: row.customColor ?? row.imageColor ?? category?.color ?? "#767676",
+				day: formatDayHeader(row.date, now),
 				// Hugeicons glyphs are a React Native font the widget runtime does not
 				// link, so an icon identity degrades to its colour dot. An emoji is
 				// just text and crosses the process boundary intact.
 				emoji: row.emoji ?? category?.emoji ?? "",
-				day: formatDayHeader(row.date, now),
+				id: row.id,
+				income: row.income,
+				note: row.note,
 			};
 		}),
+		headers: buildLedgerHeaders(contributions, now, calendar, money),
+		url: DEEP_LINKS.log,
 	};
 }
 
@@ -718,37 +605,37 @@ function buildLedgerHeaders(
 	contributions: readonly Contribution[],
 	now: Date,
 	calendar: InsightsCalendar,
-	money: Money,
+	money: Money
 ): Record<LedgerHeaderPeriod, Record<LedgerHeaderMeasure, LedgerHeaderProps>> {
 	const measures = (
 		label: string,
-		totals: { income: number; spent: number },
+		totals: { income: number; spent: number }
 	): Record<LedgerHeaderMeasure, LedgerHeaderProps> => {
 		const net = totals.income - totals.spent;
 		return {
-			spent: { label, amount: money(totals.spent), positive: false },
-			income: { label, amount: money(totals.income), positive: true },
-			net: { label, amount: money(Math.abs(net)), positive: net >= 0 },
+			income: { amount: money(totals.income), label, positive: true },
+			net: { amount: money(Math.abs(net)), label, positive: net >= 0 },
+			spent: { amount: money(totals.spent), label, positive: false },
 		};
 	};
 
 	const startToday = startOfDay(now);
 	return {
+		month: measures(
+			translateNow("insights.period.month").toUpperCase(),
+			windowTotals(contributions, "month", now, 0, calendar)
+		),
 		today: measures(translateNow("common.today").toUpperCase(), {
-			spent: sumExpenses(contributions, startToday, now, null),
 			income: sumIncome(contributions, startToday, now),
+			spent: sumExpenses(contributions, startToday, now, null),
 		}),
 		week: measures(
 			translateNow("insights.period.week").toUpperCase(),
-			windowTotals(contributions, "week", now, 0, calendar),
-		),
-		month: measures(
-			translateNow("insights.period.month").toUpperCase(),
-			windowTotals(contributions, "month", now, 0, calendar),
+			windowTotals(contributions, "week", now, 0, calendar)
 		),
 		year: measures(
 			translateNow("insights.period.year").toUpperCase(),
-			windowTotals(contributions, "year", now, 0, calendar),
+			windowTotals(contributions, "year", now, 0, calendar)
 		),
 	};
 }
@@ -759,36 +646,32 @@ function buildInsights(
 	period: InsightsPeriod,
 	now: Date,
 	calendar: InsightsCalendar,
-	money: Money,
+	money: Money
 ): InsightsViewProps {
 	const totals = windowTotals(contributions, period, now, 0, calendar);
 	const net = totals.income - totals.spent;
-	const slices = categoryBreakdown(
-		contributions,
-		categoriesById,
-		period,
-		"spent",
-		now,
+	const slices = categoryBreakdown(contributions, categoriesById, period, "spent", now, 0, calendar).slice(
 		0,
-		calendar,
-	).slice(0, SLICE_LIMIT);
+		SLICE_LIMIT
+	);
 
 	return {
-		periodLabel: translateNow(PERIOD_EYEBROW[period]).toUpperCase(),
-		rangeLabel: windowLabel(period, 0, now, calendar),
+		bars: bucketSeries(contributions, period, "spent", now, 0, calendar).map((bucket) => ({
+			x: bucket.label,
+			y: bucket.value,
+		})),
+		income: money(totals.income),
 		net: money(Math.abs(net)),
 		netPositive: net >= 0,
-		spent: money(totals.spent),
-		income: money(totals.income),
-		bars: bucketSeries(contributions, period, "spent", now, 0, calendar).map(
-			(bucket) => ({ x: bucket.label, y: bucket.value }),
-		),
+		periodLabel: translateNow(PERIOD_EYEBROW[period]).toUpperCase(),
+		rangeLabel: windowLabel(period, 0, now, calendar),
 		slices: slices.map((slice) => ({
-			name: slice.name,
-			color: slice.color,
 			amount: money(slice.amount),
+			color: slice.color,
 			fraction: slice.fraction,
+			name: slice.name,
 		})),
+		spent: money(totals.spent),
 		url: DEEP_LINKS.insights,
 	};
 }

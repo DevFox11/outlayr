@@ -1,27 +1,11 @@
 import { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { router } from "expo-router";
-import {
-	type Ref,
-	useCallback,
-	useEffect,
-	useImperativeHandle,
-	useRef,
-	useState,
-} from "react";
+import { type Ref, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Platform, View } from "react-native";
-import Animated, {
-	FadeInLeft,
-	FadeInRight,
-	ReduceMotion,
-} from "react-native-reanimated";
+import Animated, { FadeInLeft, FadeInRight, ReduceMotion } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 import { CsvImportProvider } from "@/contexts/csv-import-context";
-import {
-	canAdvance,
-	IMPORT_STEPS,
-	type ImportFlowState,
-	type ImportStep,
-} from "@/domain/import-flow";
+import { canAdvance, IMPORT_STEPS, type ImportFlowState, type ImportStep } from "@/domain/import-flow";
 import { useImportReview } from "@/hooks/use-import-review";
 import { type TranslationKey, useTranslation } from "@/i18n";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
@@ -37,25 +21,22 @@ import { useChooseImportFile } from "./use-choose-import-file";
 const STEP_TRANSITION_MS = 200;
 
 const STEP_TITLE: Record<ImportStep, TranslationKey> = {
-	source: "import.titleSource",
+	done: "import.titleDone",
 	file: "import.titleFile",
 	resolve: "import.titleResolve",
 	review: "import.titleReview",
-	done: "import.titleDone",
+	source: "import.titleSource",
 };
 
 const STEP_BACK: Record<ImportStep, ImportStep | null> = {
-	source: null,
+	done: null,
 	file: "source",
 	resolve: "file",
 	review: "file",
-	done: null,
+	source: null,
 };
 
-export function resolveLegalStep(
-	flow: ImportFlowState,
-	step: ImportStep,
-): ImportStep {
+export function resolveLegalStep(flow: ImportFlowState, step: ImportStep): ImportStep {
 	let index = IMPORT_STEPS.indexOf(step);
 	while (index > 0 && !canAdvance(flow, IMPORT_STEPS[index - 1])) {
 		index -= 1;
@@ -64,14 +45,14 @@ export function resolveLegalStep(
 }
 
 export interface ImportSheetHandle {
-	present(): void;
 	dismiss(): void;
+	present(): void;
 }
 
 interface StepBodyProps {
-	step: ImportStep;
-	onOpenFeatureLab: () => void;
 	onDone: () => void;
+	onOpenFeatureLab: () => void;
+	step: ImportStep;
 }
 
 function StepBody({ step, onOpenFeatureLab, onDone }: StepBodyProps) {
@@ -84,9 +65,7 @@ function StepBody({ step, onOpenFeatureLab, onDone }: StepBodyProps) {
 		case "file":
 			return <FileStep busy={status === "loading"} onChoose={choose} />;
 		case "resolve":
-			return (
-				<ResolveStep onOpenFeatureLab={onOpenFeatureLab} review={review} />
-			);
+			return <ResolveStep onOpenFeatureLab={onOpenFeatureLab} review={review} />;
 		case "review":
 			return <ReviewStep review={review} />;
 		case "done":
@@ -113,13 +92,13 @@ export function ImportSheet({ ref }: ImportSheetProps) {
 	useImperativeHandle(
 		ref,
 		() => ({
+			dismiss,
 			present() {
 				setPresented(true);
 				sheetRef.current?.present();
 			},
-			dismiss,
 		}),
-		[dismiss],
+		[dismiss]
 	);
 
 	const draft = useImportDraft();
@@ -132,8 +111,7 @@ export function ImportSheet({ ref }: ImportSheetProps) {
 	}, [presented]);
 
 	const previousStepRef = useRef(step);
-	const forward =
-		IMPORT_STEPS.indexOf(step) >= IMPORT_STEPS.indexOf(previousStepRef.current);
+	const forward = IMPORT_STEPS.indexOf(step) >= IMPORT_STEPS.indexOf(previousStepRef.current);
 	previousStepRef.current = step;
 
 	const onDismiss = useCallback(() => {
@@ -151,44 +129,29 @@ export function ImportSheet({ ref }: ImportSheetProps) {
 	}, [dismiss]);
 
 	const back = STEP_BACK[step];
-	const onBack =
-		back == null ? undefined : () => importDraftStore.setStep(back);
+	const onBack = back == null ? undefined : () => importDraftStore.setStep(back);
 
-	const entering = (forward ? FadeInRight : FadeInLeft)
-		.duration(STEP_TRANSITION_MS)
-		.reduceMotion(ReduceMotion.System);
+	const entering = (forward ? FadeInRight : FadeInLeft).duration(STEP_TRANSITION_MS).reduceMotion(ReduceMotion.System);
 
 	return (
 		<BottomSheetModal
-			ref={sheetRef}
+			backgroundStyle={{
+				backgroundColor: Platform.OS === "ios" ? `${backgroundColor}FA` : backgroundColor,
+			}}
 			enableDynamicSizing
 			enablePanDownToClose
-			backgroundStyle={{
-				backgroundColor:
-					Platform.OS === "ios" ? `${backgroundColor}FA` : backgroundColor,
-			}}
 			onDismiss={onDismiss}
+			ref={sheetRef}
 		>
 			<View className="flex-1" testID="import-sheet-root">
 				{presented ? (
 					<CsvImportProvider>
 						<View className="gap-4">
-							<SheetHeader
-								forward={forward}
-								onBack={onBack}
-								onClose={dismiss}
-								title={t(STEP_TITLE[step])}
-							/>
+							<SheetHeader forward={forward} onBack={onBack} onClose={dismiss} title={t(STEP_TITLE[step])} />
 
-							{draft.ui.resumed ? (
-								<ResumeNotice onStartOver={() => importDraftStore.clear()} />
-							) : null}
+							{draft.ui.resumed ? <ResumeNotice onStartOver={() => importDraftStore.clear()} /> : null}
 							<Animated.View className="flex-1" entering={entering} key={step}>
-								<StepBody
-									onDone={dismiss}
-									onOpenFeatureLab={onOpenFeatureLab}
-									step={step}
-								/>
+								<StepBody onDone={dismiss} onOpenFeatureLab={onOpenFeatureLab} step={step} />
 							</Animated.View>
 						</View>
 					</CsvImportProvider>

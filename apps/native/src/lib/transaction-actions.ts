@@ -1,43 +1,28 @@
 import { Alert, type AlertButton } from "react-native";
-import {
-	stopRecurringPrompt,
-	type TransactionRowActions,
-} from "@/domain/transaction-actions";
+import { stopRecurringPrompt, type TransactionRowActions } from "@/domain/transaction-actions";
 import { translateNow } from "@/i18n/runtime";
 
 interface TransactionActionsOptions {
-	note: string;
 	actions: TransactionRowActions;
+	note: string;
+	onDelete: () => void;
+	onEdit: () => void;
+	onLogAgain: () => void;
+	onStopRecurring: () => void;
 	/** The row is the charge still to land rather than one already logged. */
 	pending: boolean;
-	onStopRecurring: () => void;
-	onLogAgain: () => void;
-	onEdit: () => void;
-	onDelete: () => void;
 }
 
-export function confirmStopRecurring(
-	note: string,
-	pending: boolean,
-	onConfirm: () => void,
-): void {
-	const {
-		titleKey,
-		messageKey,
-		note: named,
-	} = stopRecurringPrompt(note, pending);
-	Alert.alert(
-		translateNow(titleKey, { note: named ?? undefined }),
-		translateNow(messageKey),
-		[
-			{ text: translateNow("common.cancel"), style: "cancel" },
-			{
-				text: translateNow("alerts.transaction.stopRecurring"),
-				style: "destructive",
-				onPress: onConfirm,
-			},
-		],
-	);
+export function confirmStopRecurring(note: string, pending: boolean, onConfirm: () => void): void {
+	const { titleKey, messageKey, note: named } = stopRecurringPrompt(note, pending);
+	Alert.alert(translateNow(titleKey, { note: named ?? undefined }), translateNow(messageKey), [
+		{ style: "cancel", text: translateNow("common.cancel") },
+		{
+			onPress: onConfirm,
+			style: "destructive",
+			text: translateNow("alerts.transaction.stopRecurring"),
+		},
+	]);
 }
 
 /**
@@ -59,29 +44,25 @@ export function showTransactionActions({
 	const buttons: AlertButton[] = [];
 	if (actions.canLogAgain) {
 		buttons.push({
-			text: translateNow("alerts.transaction.logAgain"),
 			onPress: onLogAgain,
+			text: translateNow("alerts.transaction.logAgain"),
 		});
 	}
 	if (actions.canStopRecurring) {
 		buttons.push({
-			text: translateNow("alerts.transaction.stopRecurring"),
 			onPress: () => confirmStopRecurring(note, pending, onStopRecurring),
+			text: translateNow("alerts.transaction.stopRecurring"),
 		});
 	}
-	buttons.push({ text: translateNow("common.edit"), onPress: onEdit });
+	buttons.push({ onPress: onEdit, text: translateNow("common.edit") });
 	if (actions.canDelete) {
 		buttons.push({
-			text: translateNow("common.delete"),
-			style: "destructive",
 			onPress: onDelete,
+			style: "destructive",
+			text: translateNow("common.delete"),
 		});
 	}
-	buttons.push({ text: translateNow("common.cancel"), style: "cancel" });
+	buttons.push({ style: "cancel", text: translateNow("common.cancel") });
 
-	Alert.alert(
-		note.trim() || translateNow("alerts.transaction.fallbackTitle"),
-		undefined,
-		buttons,
-	);
+	Alert.alert(note.trim() || translateNow("alerts.transaction.fallbackTitle"), undefined, buttons);
 }

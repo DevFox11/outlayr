@@ -15,14 +15,9 @@ export function LogNoResults() {
 	const t = useTranslation();
 	const { height } = useWindowDimensions();
 	return (
-		<View
-			className="items-center justify-center gap-3 opacity-70"
-			style={{ height: height * 0.7 }}
-		>
-			<HugeiconsIcon icon={Archive02Icon} size={38} color={colors.muted} />
-			<Text className="font-sans-medium text-muted text-title">
-				{t("log.noResults")}
-			</Text>
+		<View className="items-center justify-center gap-3 opacity-70" style={{ height: height * 0.7 }}>
+			<HugeiconsIcon color={colors.muted} icon={Archive02Icon} size={38} />
+			<Text className="font-sans-medium text-muted text-title">{t("log.noResults")}</Text>
 		</View>
 	);
 }

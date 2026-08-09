@@ -22,8 +22,6 @@ describe("translateNow", () => {
 
 	it("interpolates params", () => {
 		setRuntimeLanguage("en");
-		expect(translateNow("alerts.budget.deleteNamed", { name: "Rent" })).toBe(
-			"Delete the 'Rent' budget?",
-		);
+		expect(translateNow("alerts.budget.deleteNamed", { name: "Rent" })).toBe("Delete the 'Rent' budget?");
 	});
 });

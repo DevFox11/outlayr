@@ -5,15 +5,14 @@ import { addDays, startOfDay } from "./dates";
  * `recurringType` reads identically across the two apps.
  */
 export const RECURRING_TYPE = {
-	none: 0,
 	daily: 1,
-	weekly: 2,
 	monthly: 3,
+	none: 0,
+	weekly: 2,
 	yearly: 4,
 } as const;
 
-export type RecurringType =
-	(typeof RECURRING_TYPE)[keyof typeof RECURRING_TYPE];
+export type RecurringType = (typeof RECURRING_TYPE)[keyof typeof RECURRING_TYPE];
 
 /** In the order the picker renders them. */
 export const SELECTABLE_RECURRING_TYPES: readonly RecurringType[] = [
@@ -70,12 +69,7 @@ function normalizeAnchor(anchorDay: number | null | undefined, from: Date) {
  * March after February clamped it to the 28th; omitting it anchors to `from`'s
  * own day, which is the same thing for any schedule that has never clamped.
  */
-export function nextDate(
-	from: Date,
-	type: number,
-	coefficient: number,
-	anchorDay?: number | null,
-): Date | null {
+export function nextDate(from: Date, type: number, coefficient: number, anchorDay?: number | null): Date | null {
 	const n = Math.max(1, Math.round(coefficient));
 	const anchor = normalizeAnchor(anchorDay, from);
 	switch (type) {
@@ -96,9 +90,9 @@ export function nextDate(
 export const next = nextDate;
 
 export interface ScheduledCharge {
-	date: Date;
 	/** The target month was too short to hold the anchor day, so this one moved. */
 	clamped: boolean;
+	date: Date;
 }
 
 /**
@@ -109,7 +103,7 @@ export function schedulePreview(
 	firstPayment: Date,
 	type: number,
 	coefficient: number,
-	count: number,
+	count: number
 ): ScheduledCharge[] {
 	const anchorDay = firstPayment.getDate();
 	const charges: ScheduledCharge[] = [];
@@ -121,10 +115,8 @@ export function schedulePreview(
 			break;
 		}
 		charges.push({
+			clamped: (type === RECURRING_TYPE.monthly || type === RECURRING_TYPE.yearly) && advanced.getDate() !== anchorDay,
 			date: advanced,
-			clamped:
-				(type === RECURRING_TYPE.monthly || type === RECURRING_TYPE.yearly) &&
-				advanced.getDate() !== anchorDay,
 		});
 		holding = advanced;
 	}
@@ -151,15 +143,13 @@ export function nextLanding(
 	coefficient: number,
 	endDate: Date | null,
 	now: Date,
-	anchorDay?: number | null,
+	anchorDay?: number | null
 ): Date | null {
 	const today = startOfDay(now);
 	const endLimit = endDate == null ? null : startOfDay(endDate);
 	const anchor = normalizeAnchor(anchorDay, from);
-	const advance = (at: Date): Date | null =>
-		nextDate(at, type, coefficient, anchor);
-	const pastEndLimit = (at: Date): boolean =>
-		endLimit != null && startOfDay(at).getTime() > endLimit.getTime();
+	const advance = (at: Date): Date | null => nextDate(at, type, coefficient, anchor);
+	const pastEndLimit = (at: Date): boolean => endLimit != null && startOfDay(at).getTime() > endLimit.getTime();
 
 	// A row with no cadence has no schedule to land on, checked before `from`
 	// itself is considered so a future-dated one-off can never be mistaken for a
@@ -177,10 +167,7 @@ export function nextLanding(
 
 	let holding = from;
 	let advanced = advance(holding);
-	while (
-		advanced != null &&
-		startOfDay(advanced).getTime() > startOfDay(holding).getTime()
-	) {
+	while (advanced != null && startOfDay(advanced).getTime() > startOfDay(holding).getTime()) {
 		if (pastEndLimit(advanced)) {
 			return null;
 		}

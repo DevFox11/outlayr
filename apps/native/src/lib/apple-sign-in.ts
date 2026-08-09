@@ -1,7 +1,4 @@
-import {
-	AppleAuthenticationScope,
-	signInAsync,
-} from "expo-apple-authentication";
+import { AppleAuthenticationScope, signInAsync } from "expo-apple-authentication";
 
 /**
  * Resolves to the Apple identity token. Null when Apple returned a credential
@@ -11,10 +8,7 @@ import {
  */
 export async function appleIdToken(): Promise<string | null> {
 	const credential = await signInAsync({
-		requestedScopes: [
-			AppleAuthenticationScope.FULL_NAME,
-			AppleAuthenticationScope.EMAIL,
-		],
+		requestedScopes: [AppleAuthenticationScope.FULL_NAME, AppleAuthenticationScope.EMAIL],
 	});
 	return credential.identityToken;
 }

@@ -4,13 +4,11 @@ import type { CategoryPickerSheetRef } from "../category-picker-sheet";
 
 export interface CategoryPickerField {
 	readonly present: () => void;
-	readonly select: (picked: Category) => void;
 	readonly ref: RefObject<CategoryPickerSheetRef | null>;
+	readonly select: (picked: Category) => void;
 }
 
-export function useCategoryPickerField(
-	onSelect: (picked: Category) => void,
-): CategoryPickerField {
+export function useCategoryPickerField(onSelect: (picked: Category) => void): CategoryPickerField {
 	const ref = useRef<CategoryPickerSheetRef>(null);
 	return {
 		present: () => ref.current?.present(),

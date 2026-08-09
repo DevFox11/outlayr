@@ -1,57 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	SUGGESTED_CATEGORY_PRESETS,
-	type SuggestedCategoryPreset,
-} from "@/data/categories-core";
-import {
-	getCachedEnrichment,
-	type RemoteEnrichmentResult,
-	setCachedEnrichment,
-} from "@/domain/enrichment-cache";
-import {
-	type MerchantMatch,
-	merchantKey,
-	resolveMerchant,
-} from "@/domain/merchant-resolver";
-import {
-	type CategoryBranch,
-	type EnrichmentFn,
-	enrichmentTransport,
-} from "@/lib/convex";
+import { SUGGESTED_CATEGORY_PRESETS, type SuggestedCategoryPreset } from "@/data/categories-core";
+import { getCachedEnrichment, type RemoteEnrichmentResult, setCachedEnrichment } from "@/domain/enrichment-cache";
+import { type MerchantMatch, merchantKey, resolveMerchant } from "@/domain/merchant-resolver";
+import { type CategoryBranch, type EnrichmentFn, enrichmentTransport } from "@/lib/convex";
 
 export interface PendingCategory {
-	name: string;
-	icon: string;
 	color: string;
 	emoji: string | null;
+	icon: string;
+	name: string;
 	parentName: string | null;
 }
 
 export interface EnrichmentSuggestion {
 	categoryId: string | null;
-	pendingCategory: PendingCategory | null;
-	tagIds: readonly string[];
-	pendingTagNames: readonly string[];
 	domain: string | null;
+	pendingCategory: PendingCategory | null;
+	pendingTagNames: readonly string[];
 	source: "curated" | "remote";
+	tagIds: readonly string[];
 }
 
 export interface UseTransactionEnrichmentArgs {
-	enabled: boolean;
-	income: boolean;
 	categoryTree: readonly CategoryBranch[];
-	resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
-	onSuggest: (suggestion: EnrichmentSuggestion) => void;
-	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
-	remoteEnabled?: boolean;
+	enabled: boolean;
+	/** The server re-checks the `groundedLookup` setting independently. */
+	groundedLookup?: boolean;
+	income: boolean;
 	locale?: string;
+	onSuggest: (suggestion: EnrichmentSuggestion) => void;
 	/**
 	 * The device's own region — a signal `locale` cannot substitute for, since a
 	 * user may run an English UI on a device set to a different region.
 	 */
 	regionCode?: string;
-	/** The server re-checks the `groundedLookup` setting independently. */
-	groundedLookup?: boolean;
+	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
+	remoteEnabled?: boolean;
+	resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
 }
@@ -83,12 +68,8 @@ const ALL_CATEGORY_PRESETS: readonly SuggestedCategoryPreset[] = [
 	...SUGGESTED_CATEGORY_PRESETS.income,
 ];
 
-function findCategoryPreset(
-	categoryName: string,
-): SuggestedCategoryPreset | null {
-	return (
-		ALL_CATEGORY_PRESETS.find((preset) => preset.name === categoryName) ?? null
-	);
+function findCategoryPreset(categoryName: string): SuggestedCategoryPreset | null {
+	return ALL_CATEGORY_PRESETS.find((preset) => preset.name === categoryName) ?? null;
 }
 
 /**
@@ -112,50 +93,45 @@ function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
 	const preset = findCategoryPreset(match.categoryName);
 	return {
 		categoryId: null,
+		domain: match.domain,
 		pendingCategory: preset
 			? {
-					name: match.categoryName,
-					icon: preset.icon,
 					color: preset.color,
 					emoji: null,
+					icon: preset.icon,
+					name: match.categoryName,
 					// The curated map only ever names top-level categories.
 					parentName: null,
 				}
 			: null,
-		tagIds: [],
 		pendingTagNames: match.tags,
-		domain: match.domain,
 		source: "curated",
+		tagIds: [],
 	};
 }
 
-function toRemoteSuggestion(
-	result: RemoteEnrichmentResult,
-): EnrichmentSuggestion {
-	const preset =
-		result.categoryName == null ? null : presetForName(result.categoryName);
+function toRemoteSuggestion(result: RemoteEnrichmentResult): EnrichmentSuggestion {
+	const preset = result.categoryName == null ? null : presetForName(result.categoryName);
 	return {
 		categoryId: null,
+		domain: result.domain,
 		pendingCategory:
 			result.categoryName == null || preset == null
 				? null
 				: {
-						name: result.categoryName,
-						icon: preset.icon,
 						color: preset.color,
 						emoji: result.emoji ?? null,
+						icon: preset.icon,
+						name: result.categoryName,
 						parentName: result.parentCategoryName ?? null,
 					},
-		tagIds: [],
 		pendingTagNames: result.tags,
-		domain: result.domain,
 		source: "remote",
+		tagIds: [],
 	};
 }
 
-export function useTransactionEnrichment(
-	args: UseTransactionEnrichmentArgs,
-): UseTransactionEnrichmentResult {
+export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): UseTransactionEnrichmentResult {
 	const {
 		enabled,
 		income,
@@ -224,35 +200,32 @@ export function useTransactionEnrichment(
 	const emitNothing = useCallback(() => {
 		onSuggestRef.current({
 			categoryId: null,
-			pendingCategory: null,
-			tagIds: [],
-			pendingTagNames: [],
 			domain: null,
+			pendingCategory: null,
+			pendingTagNames: [],
 			source: "curated",
+			tagIds: [],
 		});
 	}, []);
 
 	const resolveTransport = useCallback(
-		() =>
-			transportRef.current === undefined
-				? enrichmentTransport()
-				: transportRef.current,
-		[],
+		() => (transportRef.current === undefined ? enrichmentTransport() : transportRef.current),
+		[]
 	);
 
 	const buildRequest = useCallback(
 		(groundedLookup: boolean) => ({
-			name: nameRef.current.trim(),
-			income: incomeRef.current,
-			locale: localeRef.current,
-			regionCode: regionCodeRef.current,
 			categoryTree: treeRef.current.map((branch) => ({
-				name: branch.name,
 				children: [...branch.children],
+				name: branch.name,
 			})),
 			groundedLookup,
+			income: incomeRef.current,
+			locale: localeRef.current,
+			name: nameRef.current.trim(),
+			regionCode: regionCodeRef.current,
 		}),
-		[],
+		[]
 	);
 
 	const emitDomainResult = useCallback(
@@ -271,7 +244,7 @@ export function useTransactionEnrichment(
 			}
 			return true;
 		},
-		[emit],
+		[emit]
 	);
 
 	const runRemote = useCallback(
@@ -297,7 +270,7 @@ export function useTransactionEnrichment(
 				result = null;
 			}
 			inFlightRef.current.delete(key);
-			lastRemoteOutcomeRef.current = { key, hasDomain: result?.domain != null };
+			lastRemoteOutcomeRef.current = { hasDomain: result?.domain != null, key };
 			if (id !== requestIdRef.current) {
 				return;
 			}
@@ -318,7 +291,7 @@ export function useTransactionEnrichment(
 			}
 			emit(toRemoteSuggestion(result));
 		},
-		[emit, emitNothing, resolveTransport, buildRequest],
+		[emit, emitNothing, resolveTransport, buildRequest]
 	);
 
 	/** A fast result that already carried a domain suppresses this follow-up entirely. */
@@ -336,8 +309,7 @@ export function useTransactionEnrichment(
 			return;
 		}
 		const ticket = requestIdRef.current;
-		const stale = () =>
-			ticket !== requestIdRef.current || merchantKey(nameRef.current) !== key;
+		const stale = () => ticket !== requestIdRef.current || merchantKey(nameRef.current) !== key;
 		void (async () => {
 			let result: RemoteEnrichmentResult | null = null;
 			try {
@@ -438,12 +410,9 @@ export function useTransactionEnrichment(
 				recheckTimerRef.current = null;
 			}
 			timerRef.current = setTimeout(run, DEBOUNCE_MS);
-			groundedTimerRef.current = setTimeout(
-				runGroundedFollowUp,
-				GROUNDED_IDLE_MS,
-			);
+			groundedTimerRef.current = setTimeout(runGroundedFollowUp, GROUNDED_IDLE_MS);
 		},
-		[run, runGroundedFollowUp],
+		[run, runGroundedFollowUp]
 	);
 
 	const teardown = useCallback(() => {

@@ -50,7 +50,7 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
 export function useLiveQuery<TRow>(
 	table: SQLiteTable,
 	build: () => SyncQuery<TRow>,
-	deps: readonly unknown[] = [],
+	deps: readonly unknown[] = []
 ): TRow[] {
 	return useLiveRead(table, () => build().all(), deps);
 }
@@ -72,16 +72,12 @@ export function useLiveValue<TRow, TValue>(
 	table: SQLiteTable,
 	build: () => SyncQuery<TRow>,
 	select: (rows: TRow[]) => TValue,
-	deps: readonly unknown[] = [],
+	deps: readonly unknown[] = []
 ): TValue {
 	return useLiveRead(table, () => select(build().all()), deps);
 }
 
-function useLiveRead<TValue>(
-	table: SQLiteTable,
-	read: () => TValue,
-	deps: readonly unknown[],
-): TValue {
+function useLiveRead<TValue>(table: SQLiteTable, read: () => TValue, deps: readonly unknown[]): TValue {
 	const tableName = getTableName(table);
 	const revision = useRef(0);
 	const snapshot = useRef<Snapshot<TValue> | null>(null);
@@ -109,7 +105,7 @@ function useLiveRead<TValue>(
 				unsubscribe();
 			};
 		},
-		[tableName],
+		[tableName]
 	);
 
 	// React calls this on every render to detect a change, so it must return the
@@ -117,11 +113,7 @@ function useLiveRead<TValue>(
 	// even re-wrapping the rows) here would loop forever.
 	const getSnapshot = (): TValue => {
 		const cached = snapshot.current;
-		if (
-			cached !== null &&
-			cached.revision === revision.current &&
-			sameDeps(cached.deps, deps)
-		) {
+		if (cached !== null && cached.revision === revision.current && sameDeps(cached.deps, deps)) {
 			return cached.value;
 		}
 		const value = read();

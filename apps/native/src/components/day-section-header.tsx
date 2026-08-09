@@ -6,7 +6,6 @@ import { DayTotal } from "./amount-text";
 import { MonoLabel } from "./mono-label";
 
 interface DaySectionHeaderProps {
-	section: DaySection<unknown>;
 	/**
 	 * The top inset is the gap between one day group and the next — the previous
 	 * group's 18pt trailing padding plus this header's own 10pt. The first group
@@ -15,22 +14,19 @@ interface DaySectionHeaderProps {
 	first?: boolean;
 	/** Opens the day group's actions. Omit on a surface that offers none. */
 	onLongPress?: () => void;
+	section: DaySection<unknown>;
 }
 
-export function DaySectionHeader({
-	section,
-	first = false,
-	onLongPress,
-}: DaySectionHeaderProps) {
+export function DaySectionHeader({ section, first = false, onLongPress }: DaySectionHeaderProps) {
 	const { showCents } = useDisplaySettings().state;
 	const body = (
 		<>
 			<View className="flex-row items-baseline justify-between gap-2">
 				<MonoLabel>{formatDayHeader(section.day)}</MonoLabel>
-				<DayTotal totals={section.totals} showCents={showCents} />
+				<DayTotal showCents={showCents} totals={section.totals} />
 			</View>
 			{/* A 1.3 stroke with round caps, not a 1px border. */}
-			<View className="bg-border" style={{ height: 1.3, borderRadius: 0.65 }} />
+			<View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
 		</>
 	);
 	const className = first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7";
@@ -40,11 +36,7 @@ export function DaySectionHeader({
 	}
 
 	return (
-		<Pressable
-			accessibilityRole="button"
-			className={className}
-			onLongPress={onLongPress}
-		>
+		<Pressable accessibilityRole="button" className={className} onLongPress={onLongPress}>
 			{body}
 		</Pressable>
 	);

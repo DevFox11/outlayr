@@ -16,15 +16,15 @@
  */
 
 export interface Allocation {
-	categoryId: string | null;
 	/** Unsigned, like the row's own amount: direction comes from `income`. */
 	amount: number;
+	categoryId: string | null;
 }
 
 export interface SplittableEntry {
-	id: string;
 	amount: number;
 	categoryId: string | null;
+	id: string;
 }
 
 /**
@@ -33,12 +33,9 @@ export interface SplittableEntry {
  * `explicit` is what the allocations table holds for this entry, which is empty
  * for every entry that has never been split.
  */
-export function allocationsFor(
-	entry: SplittableEntry,
-	explicit: readonly Allocation[],
-): Allocation[] {
+export function allocationsFor(entry: SplittableEntry, explicit: readonly Allocation[]): Allocation[] {
 	if (explicit.length === 0) {
-		return [{ categoryId: entry.categoryId, amount: entry.amount }];
+		return [{ amount: entry.amount, categoryId: entry.categoryId }];
 	}
 	return explicit.map((allocation) => ({ ...allocation }));
 }
@@ -49,10 +46,7 @@ export function allocationsFor(
  * Positive means under-allocated, negative over. The UI needs the signed figure
  * to say which, so this does not clamp.
  */
-export function unallocated(
-	total: number,
-	allocations: readonly Allocation[],
-): number {
+export function unallocated(total: number, allocations: readonly Allocation[]): number {
 	return round(total - allocations.reduce((sum, one) => sum + one.amount, 0));
 }
 
@@ -67,10 +61,7 @@ export function unallocated(
  * A single allocation is not a split — it is the implicit case written down —
  * so it is allowed but pointless, and the UI is what declines to offer it.
  */
-export function isBalanced(
-	total: number,
-	allocations: readonly Allocation[],
-): boolean {
+export function isBalanced(total: number, allocations: readonly Allocation[]): boolean {
 	return allocations.length > 0 && unallocated(total, allocations) === 0;
 }
 
@@ -86,22 +77,18 @@ export function rebalance(
 	total: number,
 	allocations: readonly Allocation[],
 	index: number,
-	amount: number,
+	amount: number
 ): Allocation[] {
 	const next = allocations.map((allocation) => ({ ...allocation }));
 	if (index < 0 || index >= next.length) {
 		return next;
 	}
 	next[index] = { ...next[index], amount: round(Math.max(0, amount)) };
-	const absorber =
-		next.length - 1 === index ? next.length - 2 : next.length - 1;
+	const absorber = next.length - 1 === index ? next.length - 2 : next.length - 1;
 	if (absorber < 0) {
 		return next;
 	}
-	const others = next.reduce(
-		(sum, one, at) => (at === absorber ? sum : sum + one.amount),
-		0,
-	);
+	const others = next.reduce((sum, one, at) => (at === absorber ? sum : sum + one.amount), 0);
 	next[absorber] = { ...next[absorber], amount: round(total - others) };
 	return next;
 }
@@ -113,18 +100,14 @@ export function rebalance(
  * of 10.00 reads 3.34 / 3.33 / 3.33. Spreading it would be fairer and much
  * harder to check by eye, and a split is something the owner reads back.
  */
-export function splitEvenly(
-	total: number,
-	count: number,
-	categoryIds: readonly (string | null)[] = [],
-): Allocation[] {
+export function splitEvenly(total: number, count: number, categoryIds: readonly (string | null)[] = []): Allocation[] {
 	if (count < 1) {
 		return [];
 	}
 	const each = round(total / count);
 	const parts: Allocation[] = [];
 	for (let index = 0; index < count; index += 1) {
-		parts.push({ categoryId: categoryIds[index] ?? null, amount: each });
+		parts.push({ amount: each, categoryId: categoryIds[index] ?? null });
 	}
 	parts[0] = { ...parts[0], amount: round(total - each * (count - 1)) };
 	return parts;
@@ -139,18 +122,12 @@ export function splitEvenly(
  */
 export function totalsByCategory(
 	entries: readonly SplittableEntry[],
-	explicitByEntry: ReadonlyMap<string, readonly Allocation[]>,
+	explicitByEntry: ReadonlyMap<string, readonly Allocation[]>
 ): Map<string | null, number> {
 	const totals = new Map<string | null, number>();
 	for (const entry of entries) {
-		for (const allocation of allocationsFor(
-			entry,
-			explicitByEntry.get(entry.id) ?? [],
-		)) {
-			totals.set(
-				allocation.categoryId,
-				round((totals.get(allocation.categoryId) ?? 0) + allocation.amount),
-			);
+		for (const allocation of allocationsFor(entry, explicitByEntry.get(entry.id) ?? [])) {
+			totals.set(allocation.categoryId, round((totals.get(allocation.categoryId) ?? 0) + allocation.amount));
 		}
 	}
 	return totals;

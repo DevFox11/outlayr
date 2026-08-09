@@ -49,10 +49,7 @@ function ensureAuthComponentRegistered(t: AnyTestConvex): void {
 	registeredInstances.add(t);
 }
 
-export async function seedAuthUser(
-	t: AnyTestConvex,
-	options?: SeedOptions,
-): Promise<SeededIdentity> {
+export async function seedAuthUser(t: AnyTestConvex, options?: SeedOptions): Promise<SeededIdentity> {
 	ensureAuthComponentRegistered(t);
 
 	seedCounter += 1;
@@ -64,45 +61,39 @@ export async function seedAuthUser(
 	const { userId, sessionId } = await t.run(async (ctx) => {
 		const user = (await ctx.runMutation(components.betterAuth.adapter.create, {
 			input: {
-				model: "user",
 				data: {
-					name,
+					createdAt: now,
 					email,
 					emailVerified: true,
-					createdAt: now,
+					name,
 					updatedAt: now,
 				},
+				model: "user",
 			},
 		})) as { _id: string };
 
-		const session = (await ctx.runMutation(
-			components.betterAuth.adapter.create,
-			{
-				input: {
-					model: "session",
-					data: {
-						userId: user._id,
-						token: `session-token-${uniqueSuffix}`,
-						expiresAt: now + SESSION_TTL_MS,
-						createdAt: now,
-						updatedAt: now,
-					},
+		const session = (await ctx.runMutation(components.betterAuth.adapter.create, {
+			input: {
+				data: {
+					createdAt: now,
+					expiresAt: now + SESSION_TTL_MS,
+					token: `session-token-${uniqueSuffix}`,
+					updatedAt: now,
+					userId: user._id,
 				},
+				model: "session",
 			},
-		)) as { _id: string };
+		})) as { _id: string };
 
-		return { userId: user._id, sessionId: session._id };
+		return { sessionId: session._id, userId: user._id };
 	});
 
-	return { userId, sessionId, subject: userId, email };
+	return { email, sessionId, subject: userId, userId };
 }
 
-export function authenticatedAs(
-	t: AnyTestConvex,
-	identity: SeededIdentity,
-): AnyTestConvex {
+export function authenticatedAs(t: AnyTestConvex, identity: SeededIdentity): AnyTestConvex {
 	return t.withIdentity({
-		subject: identity.subject,
 		sessionId: identity.sessionId,
+		subject: identity.subject,
 	}) as AnyTestConvex;
 }

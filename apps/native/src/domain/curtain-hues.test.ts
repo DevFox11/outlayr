@@ -2,17 +2,17 @@ import type { IdentitySelection } from "@/components/identity-picker-content";
 import { computeCurtainHues } from "./curtain-hues";
 
 const EMPTY_IDENTITY: IdentitySelection = {
+	color: null,
 	emoji: null,
 	icon: null,
-	photoUri: null,
 	photoColor: null,
-	color: null,
+	photoUri: null,
 };
 
 const BASE = {
 	categoryColor: "#112233" as string | null,
-	incomeColor: "#00FF00",
 	foregroundColor: "#000000",
+	incomeColor: "#00FF00",
 };
 
 const NEVER_CALLED = (): string[] => {
@@ -21,10 +21,7 @@ const NEVER_CALLED = (): string[] => {
 
 describe("computeCurtainHues", () => {
 	it("returns null when no identity is chosen", () => {
-		const hues = computeCurtainHues(
-			{ ...BASE, identity: EMPTY_IDENTITY, income: false },
-			NEVER_CALLED,
-		);
+		const hues = computeCurtainHues({ ...BASE, identity: EMPTY_IDENTITY, income: false }, NEVER_CALLED);
 		expect(hues).toBe(null);
 	});
 
@@ -36,7 +33,7 @@ describe("computeCurtainHues", () => {
 				identity: { ...EMPTY_IDENTITY, icon: "wallet" },
 				income: false,
 			},
-			NEVER_CALLED,
+			NEVER_CALLED
 		);
 		expect(hues).toStrictEqual(["#000000"]);
 	});
@@ -48,7 +45,7 @@ describe("computeCurtainHues", () => {
 				identity: { ...EMPTY_IDENTITY, emoji: "🎉" },
 				income: false,
 			},
-			() => ["#AAAAAA", "#BBBBBB", "#CCCCCC"],
+			() => ["#AAAAAA", "#BBBBBB", "#CCCCCC"]
 		);
 		expect(hues).toStrictEqual(["#AAAAAA", "#BBBBBB", "#112233"]);
 	});
@@ -64,7 +61,7 @@ describe("computeCurtainHues", () => {
 				},
 				income: false,
 			},
-			NEVER_CALLED,
+			NEVER_CALLED
 		);
 		expect(hues).toStrictEqual(["#654321"]);
 	});
@@ -76,7 +73,7 @@ describe("computeCurtainHues", () => {
 				identity: { ...EMPTY_IDENTITY, photoUri: "file:///a.jpg" },
 				income: true,
 			},
-			NEVER_CALLED,
+			NEVER_CALLED
 		);
 		expect(hues).toStrictEqual(["#00FF00"]);
 	});
@@ -88,7 +85,7 @@ describe("computeCurtainHues", () => {
 				identity: { ...EMPTY_IDENTITY, color: "#123456", icon: "wallet" },
 				income: true,
 			},
-			NEVER_CALLED,
+			NEVER_CALLED
 		);
 		expect(hues).toStrictEqual(["#123456"]);
 	});
@@ -101,7 +98,7 @@ describe("computeCurtainHues", () => {
 				identity: { ...EMPTY_IDENTITY, icon: "wallet" },
 				income: true,
 			},
-			NEVER_CALLED,
+			NEVER_CALLED
 		);
 		expect(hues).toStrictEqual(["#00FF00"]);
 	});

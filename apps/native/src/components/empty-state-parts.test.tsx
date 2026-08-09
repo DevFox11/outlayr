@@ -28,9 +28,7 @@ describe("mark corners", () => {
 	});
 
 	it("keeps the continuous curve when a caller overrides GhostPanel's radius", async () => {
-		const style = await rootStyle(
-			<GhostPanel style={{ borderRadius: 18 }} width={200} />,
-		);
+		const style = await rootStyle(<GhostPanel style={{ borderRadius: 18 }} width={200} />);
 		expect(style.borderRadius).toBe(18);
 		expect(style.borderCurve).toBe("continuous");
 	});

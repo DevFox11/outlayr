@@ -1,10 +1,7 @@
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { IdentityFlyUpSheetHost } from "@/components/identity-fly-up";
-import {
-	CATEGORY_TABS,
-	IdentityPickerHost,
-} from "@/components/identity-picker-content";
+import { CATEGORY_TABS, IdentityPickerHost } from "@/components/identity-picker-content";
 import { useIdentityDraft } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { CATEGORY_PALETTE, useCategoriesByNamespace } from "@/data/categories";

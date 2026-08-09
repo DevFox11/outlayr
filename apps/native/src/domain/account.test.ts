@@ -9,24 +9,19 @@ import {
 	signInFailureMessage,
 } from "./account";
 
-const t: TranslateFn = (key, params) =>
-	translate(key, { catalog: EN, fallback: EN, params });
+const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
 describe("account label", () => {
 	it("prefers the name the provider gave", () => {
-		expect(
-			accountLabel({ name: "Ada Lovelace", email: "ada@example.com" }, t),
-		).toBe("Ada Lovelace");
+		expect(accountLabel({ email: "ada@example.com", name: "Ada Lovelace" }, t)).toBe("Ada Lovelace");
 	});
 
 	it("falls back to the email when the name is blank", () => {
-		expect(accountLabel({ name: "   ", email: "ada@example.com" }, t)).toBe(
-			"ada@example.com",
-		);
+		expect(accountLabel({ email: "ada@example.com", name: "   " }, t)).toBe("ada@example.com");
 	});
 
 	it("stays readable when Apple withheld both", () => {
-		expect(accountLabel({ name: null, email: null }, t)).toBe("Signed in");
+		expect(accountLabel({ email: null, name: null }, t)).toBe("Signed in");
 		expect(accountLabel(undefined, t)).toBe("Signed in");
 	});
 });
@@ -37,10 +32,10 @@ describe("settings row value", () => {
 			accountRowValue(
 				{
 					kind: "signed-in",
-					user: { name: null, email: "ada@example.com" },
+					user: { email: "ada@example.com", name: null },
 				},
-				t,
-			),
+				t
+			)
 		).toBe("ada@example.com");
 	});
 
@@ -63,9 +58,7 @@ describe("sign-in cancellation", () => {
 	});
 
 	it("does not swallow a real failure", () => {
-		expect(isSignInCancellation({ code: "PLAY_SERVICES_NOT_AVAILABLE" })).toBe(
-			false,
-		);
+		expect(isSignInCancellation({ code: "PLAY_SERVICES_NOT_AVAILABLE" })).toBe(false);
 		expect(isSignInCancellation(new Error("network down"))).toBe(false);
 		expect(isSignInCancellation(null)).toBe(false);
 		expect(isSignInCancellation("ERR_REQUEST_CANCELED")).toBe(false);
@@ -74,9 +67,7 @@ describe("sign-in cancellation", () => {
 
 describe("sign-in failure message", () => {
 	it("explains the one cause the user can act on", () => {
-		expect(
-			signInFailureMessage({ code: "PLAY_SERVICES_NOT_AVAILABLE" }, t),
-		).toMatch(/Google Play services/);
+		expect(signInFailureMessage({ code: "PLAY_SERVICES_NOT_AVAILABLE" }, t)).toMatch(/Google Play services/);
 	});
 
 	it("never shows the provider's own wording, which is developer-facing", () => {
@@ -89,9 +80,7 @@ describe("sign-in failure message", () => {
 	});
 
 	it("keeps the provider's wording available for a log line", () => {
-		expect(signInFailureDetail({ message: "Account already linked" })).toBe(
-			"Account already linked",
-		);
+		expect(signInFailureDetail({ message: "Account already linked" })).toBe("Account already linked");
 		expect(signInFailureDetail({})).toBe(null);
 	});
 

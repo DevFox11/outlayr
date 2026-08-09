@@ -18,11 +18,7 @@ export default function CategoryCreateScreen() {
 				/>
 			</Stack.Toolbar>
 
-			<CategoryEditor
-				income={params.income === "1"}
-				mode="create"
-				parentId={null}
-			/>
+			<CategoryEditor income={params.income === "1"} mode="create" parentId={null} />
 		</>
 	);
 }

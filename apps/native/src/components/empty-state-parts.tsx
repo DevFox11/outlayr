@@ -5,9 +5,9 @@ import Svg, { Rect } from "react-native-svg";
 import { useMark } from "./empty-state";
 
 interface BarProps {
-	width: number;
 	height?: number;
 	opacity?: number;
+	width: number;
 }
 
 export function Bar({ width, height = 8, opacity }: BarProps) {
@@ -15,11 +15,11 @@ export function Bar({ width, height = 8, opacity }: BarProps) {
 	return (
 		<View
 			style={{
-				width,
-				height,
-				borderRadius: height / 2,
 				backgroundColor: ink.fill,
+				borderRadius: height / 2,
+				height,
 				opacity,
+				width,
 			}}
 		/>
 	);
@@ -27,38 +27,23 @@ export function Bar({ width, height = 8, opacity }: BarProps) {
 
 export function Hairline({ opacity }: { opacity?: number }) {
 	const ink = useMark();
-	return (
-		<View
-			style={{ height: 1, width: "100%", backgroundColor: ink.rule, opacity }}
-		/>
-	);
+	return <View style={{ backgroundColor: ink.rule, height: 1, opacity, width: "100%" }} />;
 }
 
 interface SlotProps {
-	width: number;
+	children?: ReactNode;
 	height: number;
 	radius?: number;
-	children?: ReactNode;
 	style?: ViewStyle;
+	width: number;
 }
 
-export function Slot({
-	width,
-	height,
-	radius = 10,
-	children,
-	style,
-}: SlotProps) {
+export function Slot({ width, height, radius = 10, children, style }: SlotProps) {
 	const ink = useMark();
 	const inset = 0.75;
 	return (
-		<View style={[{ width, height }, style]}>
-			<Svg
-				height={height}
-				style={StyleSheet.absoluteFill}
-				viewBox={`0 0 ${width} ${height}`}
-				width={width}
-			>
+		<View style={[{ height, width }, style]}>
+			<Svg height={height} style={StyleSheet.absoluteFill} viewBox={`0 0 ${width} ${height}`} width={width}>
 				<Rect
 					fill="none"
 					height={height - inset * 2}
@@ -91,14 +76,14 @@ export function Tile({
 	return (
 		<View
 			style={{
-				width: size,
-				height: size,
-				borderRadius: radius ?? size * 0.24,
-				borderCurve: "continuous",
-				backgroundColor: ink.fill,
-				opacity,
 				alignItems: "center",
+				backgroundColor: ink.fill,
+				borderCurve: "continuous",
+				borderRadius: radius ?? size * 0.24,
+				height: size,
 				justifyContent: "center",
+				opacity,
+				width: size,
 			}}
 		>
 			{children}
@@ -111,35 +96,27 @@ export function GhostAvatar({ size = 30 }: { size?: number }) {
 	return (
 		<View
 			style={{
-				width: size,
-				height: size,
-				borderRadius: size / 2,
 				backgroundColor: ink.fill,
+				borderRadius: size / 2,
+				height: size,
+				width: size,
 			}}
 		/>
 	);
 }
 
-export function GhostPanel({
-	width,
-	children,
-	style,
-}: {
-	width: number;
-	children?: ReactNode;
-	style?: ViewStyle;
-}) {
+export function GhostPanel({ width, children, style }: { width: number; children?: ReactNode; style?: ViewStyle }) {
 	const ink = useMark();
 	return (
 		<View
 			style={[
 				{
-					width,
 					backgroundColor: ink.wash,
-					borderWidth: 1.5,
 					borderColor: ink.edge,
-					borderRadius: 20,
 					borderCurve: "continuous",
+					borderRadius: 20,
+					borderWidth: 1.5,
+					width,
 				},
 				style,
 			]}
@@ -150,29 +127,19 @@ export function GhostPanel({
 }
 
 interface GhostRowProps {
-	noteWidth: number;
-	subWidth?: number;
 	amountWidth?: number;
-	opacity?: number;
 	avatarSize?: number;
+	noteWidth: number;
+	opacity?: number;
 	scale?: number;
+	subWidth?: number;
 }
 
-export function GhostRow({
-	noteWidth,
-	subWidth,
-	amountWidth,
-	opacity,
-	avatarSize = 30,
-	scale = 1,
-}: GhostRowProps) {
+export function GhostRow({ noteWidth, subWidth, amountWidth, opacity, avatarSize = 30, scale = 1 }: GhostRowProps) {
 	return (
-		<View
-			className="flex-row items-center"
-			style={{ paddingVertical: 8 * scale, opacity }}
-		>
+		<View className="flex-row items-center" style={{ opacity, paddingVertical: 8 * scale }}>
 			<GhostAvatar size={avatarSize} />
-			<View style={{ marginLeft: 10 * scale, gap: 5 * scale }}>
+			<View style={{ gap: 5 * scale, marginLeft: 10 * scale }}>
 				<Bar height={8 * scale} width={noteWidth} />
 				{subWidth ? <Bar height={6 * scale} width={subWidth} /> : null}
 			</View>

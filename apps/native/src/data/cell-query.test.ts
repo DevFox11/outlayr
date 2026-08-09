@@ -45,8 +45,8 @@ function makeDb() {
 
 const NOW = new Date(Date.UTC(2026, 6, 31, 23));
 const eurRates = buildRateTable([
-	{ quote: "EUR", date: "2026-07-01", rate: 0.9 },
-	{ quote: "EUR", date: "2026-07-10", rate: 0.95 },
+	{ date: "2026-07-01", quote: "EUR", rate: 0.9 },
+	{ date: "2026-07-10", quote: "EUR", rate: 0.95 },
 ]);
 
 let seq = 0;
@@ -58,18 +58,18 @@ async function add(
 		amountUsd: number | null;
 		date: Date;
 		income?: boolean;
-	},
+	}
 ): Promise<void> {
 	seq += 1;
 	await db.insert(transactions).values({
-		id: `t${seq}`,
 		amount: row.amount,
-		income: row.income ?? false,
+		amountUsd: row.amountUsd,
 		currency: row.currency,
 		date: row.date,
 		day: row.date,
+		id: `t${seq}`,
+		income: row.income ?? false,
 		month: row.date,
-		amountUsd: row.amountUsd,
 		updatedAt: NOW,
 	});
 }
@@ -87,35 +87,32 @@ describe("logCellQuery", () => {
 		// grouping must too or the two paths disagree about which rate applies.
 		await add(db, {
 			amount: 10,
-			currency: "USD",
 			amountUsd: 10,
+			currency: "USD",
 			date: new Date(Date.UTC(2026, 6, 5, 23)),
 		});
 		await add(db, {
 			amount: 10,
-			currency: "USD",
 			amountUsd: 10,
+			currency: "USD",
 			date: new Date(Date.UTC(2026, 6, 6, 1)),
 		});
 		const rows = await logCellQuery(db, null, NOW);
-		expect(rows.map((row) => row.dateKey).sort()).toStrictEqual([
-			"2026-07-05",
-			"2026-07-06",
-		]);
+		expect(rows.map((row) => row.dateKey).sort()).toStrictEqual(["2026-07-05", "2026-07-06"]);
 	});
 
 	it("splits a group's canonicalized and uncanonicalized halves", async () => {
 		const db = makeDb();
 		await add(db, {
 			amount: 100,
-			currency: "USD",
 			amountUsd: 100,
+			currency: "USD",
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		await add(db, {
 			amount: 40,
-			currency: "USD",
 			amountUsd: null,
+			currency: "USD",
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		const rows = await logCellQuery(db, null, NOW);
@@ -132,20 +129,18 @@ describe("logCellQuery", () => {
 		const db = makeDb();
 		await add(db, {
 			amount: 100,
-			currency: "USD",
 			amountUsd: 100,
+			currency: "USD",
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		await add(db, {
 			amount: 100,
-			currency: "USD",
 			amountUsd: 100,
+			currency: "USD",
 			date: new Date(Date.UTC(2026, 6, 20, 12)),
 		});
 		// 90 + 95, not 200 at either single rate.
-		expect(await figures(db, "EUR")).toStrictEqual([
-			{ currencyCode: "EUR", income: 0, expense: 185, count: 2 },
-		]);
+		expect(await figures(db, "EUR")).toStrictEqual([{ count: 2, currencyCode: "EUR", expense: 185, income: 0 }]);
 	});
 
 	it("keeps income and expense apart inside a converted currency", async () => {
@@ -153,39 +148,37 @@ describe("logCellQuery", () => {
 		const july5 = new Date(Date.UTC(2026, 6, 5, 12));
 		await add(db, {
 			amount: 100,
-			currency: "USD",
 			amountUsd: 100,
+			currency: "USD",
 			date: july5,
 		});
 		await add(db, {
 			amount: 200,
-			currency: "USD",
 			amountUsd: 200,
+			currency: "USD",
 			date: july5,
 			income: true,
 		});
-		expect(await figures(db, "EUR")).toStrictEqual([
-			{ currencyCode: "EUR", income: 180, expense: 90, count: 2 },
-		]);
+		expect(await figures(db, "EUR")).toStrictEqual([{ count: 2, currencyCode: "EUR", expense: 90, income: 180 }]);
 	});
 
 	it("leaves what it cannot convert in its own currency", async () => {
 		const db = makeDb();
 		await add(db, {
 			amount: 60,
-			currency: "EUR",
 			amountUsd: 66.67,
+			currency: "EUR",
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		await add(db, {
 			amount: 25,
-			currency: "GBP",
 			amountUsd: null,
+			currency: "GBP",
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		expect(await figures(db, "EUR")).toStrictEqual([
-			{ currencyCode: "EUR", income: 0, expense: 60, count: 1 },
-			{ currencyCode: "GBP", income: 0, expense: 25, count: 1 },
+			{ count: 1, currencyCode: "EUR", expense: 60, income: 0 },
+			{ count: 1, currencyCode: "GBP", expense: 25, income: 0 },
 		]);
 	});
 
@@ -193,13 +186,11 @@ describe("logCellQuery", () => {
 		const db = makeDb();
 		await add(db, {
 			amount: 100,
-			currency: "EUR",
 			amountUsd: 111,
+			currency: "EUR",
 			date: new Date(Date.UTC(2026, 6, 5, 12)),
 		});
 		await db.update(transactions).set({ deletedAt: NOW });
-		expect(await figures(db, "EUR")).toStrictEqual([
-			{ currencyCode: "EUR", income: 0, expense: 0, count: 0 },
-		]);
+		expect(await figures(db, "EUR")).toStrictEqual([{ count: 0, currencyCode: "EUR", expense: 0, income: 0 }]);
 	});
 });

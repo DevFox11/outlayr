@@ -35,12 +35,7 @@ function OnboardingGroundingContent({ db }: { db: Database }) {
 			eyebrow={t("onboarding.grounding.eyebrow")}
 			title={t("onboarding.grounding.title")}
 		>
-			<ToggleRow
-				icon="Sparkles"
-				onValueChange={setEnabled}
-				title={t("onboarding.grounding.toggle")}
-				value={enabled}
-			/>
+			<ToggleRow icon="Sparkles" onValueChange={setEnabled} title={t("onboarding.grounding.toggle")} value={enabled} />
 		</FirstRun>
 	);
 }

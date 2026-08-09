@@ -1,9 +1,4 @@
-import {
-	lockFailureMessage,
-	lockGate,
-	lockIsUnenforceable,
-	relocksOnPhase,
-} from "./app-lock";
+import { lockFailureMessage, lockGate, lockIsUnenforceable, relocksOnPhase } from "./app-lock";
 
 describe("app lock gate", () => {
 	it("stays open while the setting is off", () => {

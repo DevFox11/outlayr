@@ -1,10 +1,4 @@
-export type LogoRejection =
-	| "status"
-	| "content-type"
-	| "too-small"
-	| "too-large"
-	| "not-an-image"
-	| "placeholder";
+export type LogoRejection = "status" | "content-type" | "too-small" | "too-large" | "not-an-image" | "placeholder";
 
 export type LogoVerdict = { ok: true } | { ok: false; reason: LogoRejection };
 
@@ -38,11 +32,7 @@ function startsWith(bytes: Uint8Array, signature: readonly number[]): boolean {
 	return signature.every((byte, index) => bytes[index] === byte);
 }
 
-function matchesAt(
-	bytes: Uint8Array,
-	offset: number,
-	signature: readonly number[],
-): boolean {
+function matchesAt(bytes: Uint8Array, offset: number, signature: readonly number[]): boolean {
 	if (bytes.length < offset + signature.length) {
 		return false;
 	}
@@ -66,10 +56,10 @@ function isRasterImage(bytes: Uint8Array): boolean {
 }
 
 function fnv1a32(bytes: Uint8Array): number {
-	let hash = 0x811c9dc5;
+	let hash = 0x81_1c_9d_c5;
 	for (const byte of bytes) {
 		hash ^= byte;
-		hash = Math.imul(hash, 0x01000193) >>> 0;
+		hash = Math.imul(hash, 0x01_00_01_93) >>> 0;
 	}
 	return hash >>> 0;
 }
@@ -84,19 +74,13 @@ function fnv1a32(bytes: Uint8Array): number {
  * The pinned entry is what `s2/favicons` returns for a domain with no icon. It
  * arrives with a 404 today, so this is the second line rather than the first.
  */
-const PLACEHOLDER_FINGERPRINTS: ReadonlySet<string> = new Set([
-	"726:1468888882",
-]);
+const PLACEHOLDER_FINGERPRINTS: ReadonlySet<string> = new Set(["726:1468888882"]);
 
 export function fingerprint(bytes: Uint8Array): string {
 	return `${bytes.length}:${fnv1a32(bytes)}`;
 }
 
-export function isRealLogo(
-	status: number,
-	contentType: string | null,
-	bytes: Uint8Array,
-): LogoVerdict {
+export function isRealLogo(status: number, contentType: string | null, bytes: Uint8Array): LogoVerdict {
 	if (status !== 200) {
 		return { ok: false, reason: "status" };
 	}

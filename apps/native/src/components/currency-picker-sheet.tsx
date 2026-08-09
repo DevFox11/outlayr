@@ -1,16 +1,10 @@
-import {
-	BottomSheetModal,
-	BottomSheetTextInput,
-} from "@expo/ui/community/bottom-sheet";
+import { BottomSheetModal, BottomSheetTextInput } from "@expo/ui/community/bottom-sheet";
 import { SymbolView } from "expo-symbols";
 import { type Ref, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalData } from "@/contexts/local-data-context";
-import {
-	toggleFavouriteCurrency,
-	useFavouriteCurrencies,
-} from "@/data/favourite-currencies";
+import { toggleFavouriteCurrency, useFavouriteCurrencies } from "@/data/favourite-currencies";
 import { isFavourite } from "@/domain/favourite-currencies";
 import { useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
@@ -19,9 +13,9 @@ import { CurrencyPickerList } from "./currency-picker-list";
 import { Text } from "./text";
 
 interface CurrencyPickerSheetProps {
-	selected: string;
 	onSelect: (code: string) => void;
 	ref?: Ref<BottomSheetModal>;
+	selected: string;
 }
 
 const SHORT_DETENT = 0.55;
@@ -33,11 +27,7 @@ const TITLE_HEIGHT = 48;
 const SEARCH_HEIGHT = 52;
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
-export function CurrencyPickerSheet({
-	selected,
-	onSelect,
-	ref,
-}: CurrencyPickerSheetProps) {
+export function CurrencyPickerSheet({ selected, onSelect, ref }: CurrencyPickerSheetProps) {
 	const colors = useColors();
 	const { height } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
@@ -68,28 +58,25 @@ export function CurrencyPickerSheet({
 			return;
 		}
 		toggleFavouriteCurrency(db, code).then((next) => {
-			haptics(!favourite && !isFavourite(next, code) ? "warning" : "light");
+			haptics(favourite || isFavourite(next, code) ? "light" : "warning");
 		});
 	};
 
 	return (
 		<BottomSheetModal
-			ref={ref}
-			snapPoints={[`${SHORT_DETENT * 100}%`, "100%"]}
-			enableDynamicSizing={false}
-			enablePanDownToClose
 			// Solid, not the default translucent material: the rows are opaque (see
 			// `currency-picker-list`) and no solid colour can match a blur.
 			backgroundStyle={{ backgroundColor: colors.background }}
+			enableDynamicSizing={false}
+			enablePanDownToClose
+			ref={ref}
+			snapPoints={[`${SHORT_DETENT * 100}%`, "100%"]}
 		>
 			<View className="flex-1 bg-background">
 				{/* Explicit heights, so what the floor above subtracts is what the chrome
 				    is — and so both survive the frames where their own contents measure
 				    to zero. */}
-				<View
-					className="items-center justify-center px-5"
-					style={{ height: TITLE_HEIGHT }}
-				>
+				<View className="items-center justify-center px-5" style={{ height: TITLE_HEIGHT }}>
 					<Text className="font-sans-semibold text-foreground text-headline">
 						{t("onboarding.currency.picker.title")}
 					</Text>
@@ -97,33 +84,27 @@ export function CurrencyPickerSheet({
 
 				<View className="px-5 pb-2" style={{ height: SEARCH_HEIGHT }}>
 					<View className="flex-1 flex-row items-center gap-2 rounded-full bg-surface px-4">
-						<SymbolView
-							name="magnifyingglass"
-							size={16}
-							weight="semibold"
-							tintColor={colors.muted}
-							type="monochrome"
-						/>
+						<SymbolView name="magnifyingglass" size={16} tintColor={colors.muted} type="monochrome" weight="semibold" />
 						<BottomSheetTextInput
-							value={query}
+							autoCapitalize="characters"
+							autoCorrect={false}
 							onChangeText={setQuery}
 							placeholder={t("onboarding.currency.picker.searchPlaceholder")}
 							placeholderTextColor={colors.muted}
-							autoCapitalize="characters"
-							autoCorrect={false}
 							style={{
+								color: colors.foreground,
 								flex: 1,
 								fontFamily: "SFProRounded-Regular",
 								fontSize: 16,
-								color: colors.foreground,
 								padding: 0,
 							}}
+							value={query}
 						/>
 					</View>
 				</View>
 
 				<CurrencyPickerList
-					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+					contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20 }}
 					favourites={favourites}
 					onSelect={onSelect}
 					onToggleFavourite={db === null ? null : onToggleFavourite}

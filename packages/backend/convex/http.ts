@@ -7,11 +7,9 @@ const http = httpRouter();
 authComponent.registerRoutes(http, createAuth, { cors: true });
 
 http.route({
-	path: "/source",
+	handler: httpAction(async () => Response.redirect("https://github.com/danestves/outlayr", 302)),
 	method: "GET",
-	handler: httpAction(async () => {
-		return Response.redirect("https://github.com/danestves/outlayr", 302);
-	}),
+	path: "/source",
 });
 
 export default http;

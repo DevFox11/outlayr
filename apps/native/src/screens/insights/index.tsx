@@ -9,11 +9,7 @@ import { type LedgerCell, LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { ScopeChip } from "@/components/scope-chip";
 import { Text } from "@/components/text";
-import {
-	useDisplaySettings,
-	useSettingBool,
-	useSettingNumber,
-} from "@/contexts/display-settings-context";
+import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -69,8 +65,8 @@ const PERIOD_OPTIONS: readonly { labelKey: TranslationKey; value: number }[] = [
 ];
 
 const PERIOD_LABEL_KEY: Record<InsightsPeriod, TranslationKey> = {
-	week: "insights.period.week",
 	month: "insights.period.month",
+	week: "insights.period.week",
 	year: "insights.period.year",
 };
 
@@ -88,8 +84,7 @@ function InsightsContent({ db }: { db: Database }) {
 	const nowMs = useNow();
 
 	const incomeTracking = useSettingBool("incomeTracking");
-	const period =
-		PERIOD_BY_VALUE[useSettingNumber("insightsTimeFrame")] ?? "week";
+	const period = PERIOD_BY_VALUE[useSettingNumber("insightsTimeFrame")] ?? "week";
 
 	// With income tracking off there is only one direction, so the measure is not
 	// a choice.
@@ -99,8 +94,8 @@ function InsightsContent({ db }: { db: Database }) {
 	const firstWeekday = useSettingNumber("firstWeekday");
 	const firstDayOfMonth = useSettingNumber("firstDayOfMonth");
 	const calendar: InsightsCalendar = useMemo(
-		() => ({ firstWeekday, firstDayOfMonth }),
-		[firstWeekday, firstDayOfMonth],
+		() => ({ firstDayOfMonth, firstWeekday }),
+		[firstWeekday, firstDayOfMonth]
 	);
 
 	const [offset, setOffset] = useState(0);
@@ -119,9 +114,7 @@ function InsightsContent({ db }: { db: Database }) {
 	}, [offset, period, measure]);
 
 	const step = useCallback((direction: 1 | -1) => {
-		setOffset((current) =>
-			direction === 1 ? Math.min(0, current + 1) : current - 1,
-		);
+		setOffset((current) => (direction === 1 ? Math.min(0, current + 1) : current - 1));
 	}, []);
 
 	const selectPeriod = (value: number) => {
@@ -133,10 +126,8 @@ function InsightsContent({ db }: { db: Database }) {
 		void setNumberSetting(db, "insightsMeasure", storedInsightsMeasure(next));
 	};
 
-	const lockedBucket =
-		lockedIndex != null ? (result.buckets[lockedIndex] ?? null) : null;
-	const scrubBucket =
-		scrubIndex != null ? (result.buckets[scrubIndex] ?? null) : null;
+	const lockedBucket = lockedIndex == null ? null : (result.buckets[lockedIndex] ?? null);
+	const scrubBucket = scrubIndex == null ? null : (result.buckets[scrubIndex] ?? null);
 	const readBucket = scrubBucket ?? lockedBucket;
 
 	const breakdown = useMemo(() => {
@@ -148,23 +139,14 @@ function InsightsContent({ db }: { db: Database }) {
 			result.categoriesById,
 			measure,
 			{
-				start: lockedBucket.start.getTime(),
 				end: lockedBucket.end.getTime(),
+				start: lockedBucket.start.getTime(),
 			},
-			new Date(nowMs),
+			new Date(nowMs)
 		);
-	}, [
-		lockedBucket,
-		result.breakdown,
-		result.rows,
-		result.categoriesById,
-		measure,
-		nowMs,
-	]);
+	}, [lockedBucket, result.breakdown, result.rows, result.categoriesById, measure, nowMs]);
 
-	const filteredEntry = filterId
-		? (breakdown.find((entry) => entry.id === filterId) ?? null)
-		: null;
+	const filteredEntry = filterId ? (breakdown.find((entry) => entry.id === filterId) ?? null) : null;
 
 	const subBreakdown = useMemo(() => {
 		if (filterId == null) {
@@ -177,10 +159,10 @@ function InsightsContent({ db }: { db: Database }) {
 				filterId,
 				measure,
 				{
-					start: lockedBucket.start.getTime(),
 					end: lockedBucket.end.getTime(),
+					start: lockedBucket.start.getTime(),
 				},
-				new Date(nowMs),
+				new Date(nowMs)
 			);
 		}
 		return subcategoryBreakdown(
@@ -191,19 +173,9 @@ function InsightsContent({ db }: { db: Database }) {
 			measure,
 			new Date(nowMs),
 			offset,
-			calendar,
+			calendar
 		);
-	}, [
-		filterId,
-		lockedBucket,
-		result.rows,
-		result.categoriesById,
-		period,
-		measure,
-		nowMs,
-		offset,
-		calendar,
-	]);
+	}, [filterId, lockedBucket, result.rows, result.categoriesById, period, measure, nowMs, offset, calendar]);
 
 	const totals = { income: result.income, spent: result.spent };
 	const scoped = readBucket != null || filteredEntry != null;
@@ -217,12 +189,8 @@ function InsightsContent({ db }: { db: Database }) {
 	const readIndex = scrubIndex ?? lockedIndex;
 	// Net is charted as a running balance, so a slot's reading is the balance at
 	// that point, not the slot's own flow — see `runningTotals`.
-	const running = useMemo(
-		() => (isNet ? runningTotals(result.buckets) : []),
-		[isNet, result.buckets],
-	);
-	const readBalance =
-		isNet && readIndex != null ? (running[readIndex] ?? null) : null;
+	const running = useMemo(() => (isNet ? runningTotals(result.buckets) : []), [isNet, result.buckets]);
+	const readBalance = isNet && readIndex != null ? (running[readIndex] ?? null) : null;
 
 	// The hero follows the narrowest thing selected.
 	let heroMagnitude: number;
@@ -252,44 +220,41 @@ function InsightsContent({ db }: { db: Database }) {
 		: `${t(MEASURE_KEY[measure])} · ${result.label}`;
 
 	const verdict = insightsVerdict({
+		code: currency,
+		current: measure === "net" ? netTotal(totals) : insightsMeasureMagnitude(measure, totals),
 		measure,
-		current:
-			measure === "net"
-				? netTotal(totals)
-				: insightsMeasureMagnitude(measure, totals),
 		prior: measure === "net" ? result.priorNet : result.priorMeasure,
 		priorLabel: result.priorLabel,
-		topMover: result.movers[0] ?? null,
-		code: currency,
 		showCents,
 		t,
+		topMover: result.movers[0] ?? null,
 	});
 
 	const windowActions: MenuAction[] = [
 		{
-			id: "earlier",
-			title: t("insights.window.earlier"),
-			image: "chevron.left",
 			attributes: { disabled: result.atEarliest },
+			id: "earlier",
+			image: "chevron.left",
+			title: t("insights.window.earlier"),
 		},
 		{
-			id: "later",
-			title: t("insights.window.later"),
-			image: "chevron.right",
 			attributes: { disabled: result.atCurrent },
+			id: "later",
+			image: "chevron.right",
+			title: t("insights.window.later"),
 		},
 		{
-			id: "now-section",
-			title: "",
 			displayInline: true,
+			id: "now-section",
 			subactions: [
 				{
-					id: "now",
-					title: t("insights.window.now"),
-					image: "arrow.uturn.backward",
 					attributes: { disabled: result.atCurrent },
+					id: "now",
+					image: "arrow.uturn.backward",
+					title: t("insights.window.now"),
 				},
 			],
+			title: "",
 		},
 	];
 
@@ -307,14 +272,13 @@ function InsightsContent({ db }: { db: Database }) {
 		if (!(lockedBucket || filterId)) {
 			return null;
 		}
-		const direction =
-			measure === "income" ? true : measure === "spent" ? false : null;
+		const direction = measure === "income" ? true : measure === "spent" ? false : null;
 		return {
-			start: lockedBucket ? lockedBucket.start : result.start,
-			end: lockedBucket ? lockedBucket.end : result.end,
-			nowMs,
-			income: direction,
 			categoryId: filterId,
+			end: lockedBucket ? lockedBucket.end : result.end,
+			income: direction,
+			nowMs,
+			start: lockedBucket ? lockedBucket.start : result.start,
 		};
 	}, [lockedBucket, filterId, measure, nowMs, result.start, result.end]);
 
@@ -329,9 +293,7 @@ function InsightsContent({ db }: { db: Database }) {
 
 	let chart: ReactNode;
 	if (chartIsEmpty) {
-		chart = (
-			<InsightsQuiet alternative={quietAlt} measure={measure} period={period} />
-		);
+		chart = <InsightsQuiet alternative={quietAlt} measure={measure} period={period} />;
 	} else if (isNet) {
 		chart = (
 			<InsightsNetChart
@@ -362,20 +324,14 @@ function InsightsContent({ db }: { db: Database }) {
 	}
 
 	if (!result.hasHistory) {
-		return (
-			<InsightsSample
-				onAddTransaction={() => router.push("/transactions/create")}
-			/>
-		);
+		return <InsightsSample onAddTransaction={() => router.push("/transactions/create")} />;
 	}
 
 	return (
 		<>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Menu accessibilityLabel={t("insights.period.change")}>
-					<Stack.Toolbar.Label>
-						{t(PERIOD_LABEL_KEY[period])}
-					</Stack.Toolbar.Label>
+					<Stack.Toolbar.Label>{t(PERIOD_LABEL_KEY[period])}</Stack.Toolbar.Label>
 					{PERIOD_OPTIONS.map((option) => (
 						<Stack.Toolbar.MenuAction
 							isOn={PERIOD_BY_VALUE[option.value] === period}
@@ -426,13 +382,10 @@ function InsightsContent({ db }: { db: Database }) {
 						{!scoped && verdict.badge ? (
 							<View
 								style={{
+									backgroundColor: withAlpha(verdict.favourable ? colors.income : colors.danger, 0.2),
 									borderRadius: 6,
 									paddingHorizontal: 5,
 									paddingVertical: 2,
-									backgroundColor: withAlpha(
-										verdict.favourable ? colors.income : colors.danger,
-										0.2,
-									),
 								}}
 							>
 								<Text
@@ -454,18 +407,12 @@ function InsightsContent({ db }: { db: Database }) {
 							showCents={showCents}
 							sign={heroPositive ? "+" : "-"}
 							size={40}
-							toneClass={
-								insightsMeasureIsIncome(measure)
-									? "text-income"
-									: "text-foreground"
-							}
+							toneClass={insightsMeasureIsIncome(measure) ? "text-income" : "text-foreground"}
 						/>
 					</View>
 
 					{!scoped && verdict.sentence ? (
-						<Text className="pt-0.5 text-footnote text-muted">
-							{verdict.sentence}
-						</Text>
+						<Text className="pt-0.5 text-footnote text-muted">{verdict.sentence}</Text>
 					) : null}
 
 					{incomeTracking && !scoped ? (
@@ -473,13 +420,13 @@ function InsightsContent({ db }: { db: Database }) {
 							<LedgerHead
 								cells={insightsMeasureAlternatives(measure).map(
 									(alternative): LedgerCell => ({
+										income: insightsMeasureIsIncome(alternative),
 										key: alternative,
 										label: t(MEASURE_KEY[alternative]),
 										magnitude: insightsMeasureMagnitude(alternative, totals),
-										positive: insightsMeasureIsPositive(alternative, totals),
-										income: insightsMeasureIsIncome(alternative),
 										onPress: () => promote(alternative),
-									}),
+										positive: insightsMeasureIsPositive(alternative, totals),
+									})
 								)}
 								code={currency}
 							/>
@@ -488,16 +435,11 @@ function InsightsContent({ db }: { db: Database }) {
 
 					<View className="pt-4">{chart}</View>
 
-					{!scoped ? (
+					{scoped ? null : (
 						<View className="pt-6">
-							<InsightsMovers
-								code={currency}
-								measure={measure}
-								movers={result.movers}
-								priorLabel={result.priorLabel}
-							/>
+							<InsightsMovers code={currency} measure={measure} movers={result.movers} priorLabel={result.priorLabel} />
 						</View>
-					) : null}
+					)}
 				</View>
 
 				{breakdown.length > 0 ? (
@@ -510,11 +452,7 @@ function InsightsContent({ db }: { db: Database }) {
 							</MonoLabel>
 						</View>
 						<View className="pb-1">
-							<CategoryProportionBar
-								entries={breakdown}
-								onSelect={setFilterId}
-								selectedId={filterId}
-							/>
+							<CategoryProportionBar entries={breakdown} onSelect={setFilterId} selectedId={filterId} />
 						</View>
 						<View className="pt-2">
 							{breakdown.map((entry) => (
@@ -525,11 +463,7 @@ function InsightsContent({ db }: { db: Database }) {
 										entry={entry}
 										measure={measure}
 										onClear={() => setFilterId(null)}
-										onPress={() =>
-											setFilterId((current) =>
-												current === entry.id ? null : entry.id,
-											)
-										}
+										onPress={() => setFilterId((current) => (current === entry.id ? null : entry.id))}
 										selected={filterId === entry.id}
 										showCents={showCents}
 									/>
@@ -575,33 +509,21 @@ function InsightsContent({ db }: { db: Database }) {
 }
 
 interface ChildRowProps {
-	name: string;
-	color: string;
-	icon: string | null;
-	emoji: string | null;
 	amount: number;
-	fraction: number;
 	code: string;
+	color: string;
+	emoji: string | null;
+	fraction: number;
+	icon: string | null;
+	name: string;
 	showCents: boolean;
 }
 
-function ChildRow({
-	name,
-	color,
-	icon,
-	emoji,
-	amount,
-	fraction,
-	code,
-	showCents,
-}: ChildRowProps) {
+function ChildRow({ name, color, icon, emoji, amount, fraction, code, showCents }: ChildRowProps) {
 	return (
 		<View className="flex-row items-center gap-2.5">
 			<CategoryIconTile color={color} emoji={emoji} icon={icon} size={26} />
-			<Text
-				className="flex-1 font-sans-medium text-caption text-foreground"
-				numberOfLines={1}
-			>
+			<Text className="flex-1 font-sans-medium text-caption text-foreground" numberOfLines={1}>
 				{name}
 			</Text>
 			<Text
@@ -611,10 +533,7 @@ function ChildRow({
 			>
 				{formatAmount(amount, code, showCents)}
 			</Text>
-			<Text
-				className="font-mono text-label text-muted"
-				style={{ minWidth: 34, textAlign: "right" }}
-			>
+			<Text className="font-mono text-label text-muted" style={{ minWidth: 34, textAlign: "right" }}>
 				{Math.round(fraction * 100)}%
 			</Text>
 		</View>

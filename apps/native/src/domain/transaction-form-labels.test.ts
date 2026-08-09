@@ -4,8 +4,7 @@ import { translate } from "@/i18n/translate";
 import { RECURRING_TYPE } from "./recurrence";
 import { cadenceLabel, ctaKey, leadLabel } from "./transaction-form-labels";
 
-const en: TranslateFn = (key, params) =>
-	translate(key, { catalog: EN, fallback: EN, params });
+const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
 describe("ctaKey", () => {
 	it("is the save key in edit mode regardless of subscription state", () => {

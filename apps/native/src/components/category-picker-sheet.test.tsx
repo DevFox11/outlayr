@@ -7,38 +7,35 @@ import { createRef } from "react";
 import { seedCategories, seededCategoryId } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import {
-	CategoryPickerSheet,
-	type CategoryPickerSheetRef,
-} from "./category-picker-sheet";
+import { CategoryPickerSheet, type CategoryPickerSheetRef } from "./category-picker-sheet";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
+		accent: "#010101",
+		accentForeground: "#ffffff",
 		background: "#ffffff",
+		border: "#d2d6db",
+		danger: "#da0f01",
+		expense: "#010101",
 		foreground: "#010101",
+		future: "#6d6d6d",
+		groupedBackground: "#f2f2f7",
+		income: "#027d51",
 		muted: "#6d6d6d",
+		overBudget: "#da0f01",
+		railTrack: "rgba(0,0,0,.06)",
+		separator: "#d2d6db",
 		subtle: "#6c6c78",
 		surface: "#f6f6f6",
 		surfaceSecondary: "#f0f0f0",
-		groupedBackground: "#f2f2f7",
-		border: "#d2d6db",
-		separator: "#d2d6db",
-		accent: "#010101",
-		accentForeground: "#ffffff",
 		tint: "#0069de",
-		income: "#027d51",
-		expense: "#010101",
-		future: "#6d6d6d",
-		danger: "#da0f01",
-		overBudget: "#da0f01",
 		warning: "#d8a13a",
-		railTrack: "rgba(0,0,0,.06)",
 	}),
 }));
 jest.mock("@/i18n", () => ({
@@ -48,16 +45,14 @@ jest.mock("@/i18n", () => ({
 			params == null ? key : `${key}:${Object.values(params).join(",")}`,
 }));
 
-const MIGRATIONS = join(__dirname, "../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -74,21 +69,16 @@ async function seededDb(): Promise<Database> {
 	return db;
 }
 
-function addChild(
-	db: Database,
-	id: string,
-	name: string,
-	parentId: string,
-): void {
+function addChild(db: Database, id: string, name: string, parentId: string): void {
 	db.insert(categories)
 		.values({
-			id,
-			name,
-			icon: "ShoppingCart01",
 			color: "#34C759",
+			icon: "ShoppingCart01",
+			id,
 			income: false,
-			sortOrder: 0,
+			name,
 			parentId,
+			sortOrder: 0,
 			updatedAt: new Date(0),
 		})
 		.run();
@@ -98,14 +88,14 @@ function addTransaction(db: Database, categoryId: string, at: number): void {
 	const date = new Date(at);
 	db.insert(transactions)
 		.values({
-			id: `tx-${at}`,
 			amount: 5,
-			income: false,
-			note: "",
+			categoryId,
 			date,
 			day: date,
+			id: `tx-${at}`,
+			income: false,
 			month: date,
-			categoryId,
+			note: "",
 			updatedAt: date,
 		})
 		.run();
@@ -113,9 +103,8 @@ function addTransaction(db: Database, categoryId: string, at: number): void {
 
 interface SheetOptions {
 	db: Database;
-	selectedId?: string | null;
-	onSelect?: (category: { id: string; name: string | null }) => void;
 	onCreate?: (name: string) => void;
+	onSelect?: (category: { id: string; name: string | null }) => void;
 	pendingCategory?: {
 		name: string;
 		icon: string;
@@ -123,6 +112,7 @@ interface SheetOptions {
 		emoji: string | null;
 		parentName: string | null;
 	} | null;
+	selectedId?: string | null;
 }
 
 async function mount(options: SheetOptions) {
@@ -136,7 +126,7 @@ async function mount(options: SheetOptions) {
 			pendingCategory={options.pendingCategory ?? null}
 			ref={ref}
 			selectedId={options.selectedId ?? null}
-		/>,
+		/>
 	);
 	await act(async () => {
 		ref.current?.present();
@@ -164,10 +154,10 @@ describe("CategoryPickerSheet", () => {
 		const { toJSON } = await mount({
 			db: migratedDb(),
 			pendingCategory: {
-				name: "Entertainment",
-				icon: "FilmRoll01",
 				color: "#AF52DE",
 				emoji: null,
+				icon: "FilmRoll01",
+				name: "Entertainment",
 				parentName: null,
 			},
 		});
@@ -178,9 +168,7 @@ describe("CategoryPickerSheet", () => {
 
 	it("renders no pending row when there is no pending category", async () => {
 		const { toJSON } = await mount({ db: migratedDb() });
-		expect(JSON.stringify(toJSON())).not.toContain(
-			"transaction.category.willBeCreated",
-		);
+		expect(JSON.stringify(toJSON())).not.toContain("transaction.category.willBeCreated");
 	});
 
 	it("expands the parent of a selected subcategory so its checkmark is reachable", async () => {
@@ -236,9 +224,7 @@ describe("CategoryPickerSheet", () => {
 		});
 		await type("veterinary");
 
-		expect(
-			screen.getByText("transaction.category.noMatches:veterinary"),
-		).toBeTruthy();
+		expect(screen.getByText("transaction.category.noMatches:veterinary")).toBeTruthy();
 		press("category-create");
 		expect(created).toEqual(["veterinary"]);
 	});
@@ -252,7 +238,7 @@ describe("CategoryPickerSheet", () => {
 
 	it("shows recently used categories ahead of the full list", async () => {
 		const db = await seededDb();
-		addTransaction(db, seededCategoryId("Rent", false), 2_000);
+		addTransaction(db, seededCategoryId("Rent", false), 2000);
 		await mount({ db });
 
 		expect(screen.getByTestId("category-recents")).toBeTruthy();
@@ -265,7 +251,7 @@ describe("CategoryPickerSheet", () => {
 
 	it("hides the recents rail while searching", async () => {
 		const db = await seededDb();
-		addTransaction(db, seededCategoryId("Rent", false), 2_000);
+		addTransaction(db, seededCategoryId("Rent", false), 2000);
 		await mount({ db });
 		await type("rent");
 

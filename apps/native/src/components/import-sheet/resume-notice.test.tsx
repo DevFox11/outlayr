@@ -8,9 +8,7 @@ jest.mock("@/i18n", () => ({
 describe("ResumeNotice", () => {
 	it("renders the resume copy and calls onStartOver when Start over is pressed", async () => {
 		const onStartOver = jest.fn();
-		const { getByText, getByTestId } = await render(
-			<ResumeNotice onStartOver={onStartOver} />,
-		);
+		const { getByText, getByTestId } = await render(<ResumeNotice onStartOver={onStartOver} />);
 
 		expect(getByText("import.resumeNotice")).toBeTruthy();
 

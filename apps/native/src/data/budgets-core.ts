@@ -18,17 +18,17 @@ import { DEFAULT_CURRENCY } from "@/domain/money";
 async function budgetLimit(
 	db: Database,
 	amount: number,
-	at: Date,
+	at: Date
 ): Promise<{ amount: number; currency: string; amountUsd: number | null }> {
 	const magnitude = Math.abs(amount);
 	const currency = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
 	const { amountUsd } = await canonicalUsd(localRateLookup(db), {
 		amount: magnitude,
 		currency,
-		displayCurrency: currency,
 		date: at,
+		displayCurrency: currency,
 	});
-	return { amount: magnitude, currency, amountUsd };
+	return { amount: magnitude, amountUsd, currency };
 }
 
 /**
@@ -40,24 +40,24 @@ async function budgetLimit(
 export const OVERALL_BUDGET_ID = "overall";
 
 export interface CreateBudgetInput {
-	categoryId: string;
 	amount: number;
-	type: number;
+	categoryId: string;
 	/** Custom label; blank falls back to the category name at read time. */
 	name?: string | null;
-	/** Explicit anchor; omitted anchors to the start of the current period. */
-	startDate?: Date | null;
 	/** Carries an unspent or overspent window into the next one. */
 	rollover?: boolean;
+	/** Explicit anchor; omitted anchors to the start of the current period. */
+	startDate?: Date | null;
+	type: number;
 }
 
 export interface CreateMainBudgetInput {
 	amount: number;
-	type: number;
 	name?: string | null;
-	startDate?: Date | null;
 	/** Omitted leaves an existing budget's setting alone; see `upsertMainBudget`. */
 	rollover?: boolean;
+	startDate?: Date | null;
+	type: number;
 }
 
 /** Blank names are stored as null so the views keep their own fallback label. */
@@ -66,12 +66,7 @@ function customName(name: string | null | undefined): string | null {
 	return trimmed ? trimmed : null;
 }
 
-async function anchorFor(
-	db: Database,
-	startDate: Date | null | undefined,
-	type: number,
-	now: Date,
-): Promise<Date> {
+async function anchorFor(db: Database, startDate: Date | null | undefined, type: number, now: Date): Promise<Date> {
 	if (startDate) {
 		return startDate;
 	}
@@ -79,7 +74,7 @@ async function anchorFor(
 		readNumberSetting(db, "firstWeekday"),
 		readNumberSetting(db, "firstDayOfMonth"),
 	]);
-	return startOfPeriod(now, type, { firstWeekday, firstDayOfMonth });
+	return startOfPeriod(now, type, { firstDayOfMonth, firstWeekday });
 }
 
 /**
@@ -94,31 +89,39 @@ async function anchorFor(
  * first time a column is added to the table.
  */
 export const TOMBSTONED_BUDGET = {
-	name: null,
 	amount: 0,
-	type: 0,
-	startDate: null,
-	dateCreated: null,
-	currency: null,
 	amountUsd: null,
-	green: false,
-	rollover: false,
 	categoryId: null,
+	currency: null,
+	dateCreated: null,
+	green: false,
+	name: null,
+	rollover: false,
+	startDate: null,
+	type: 0,
 } as const;
 
 export const TOMBSTONED_MAIN_BUDGET = {
-	name: null,
 	amount: 0,
-	type: 0,
-	startDate: null,
-	dateCreated: null,
-	currency: null,
 	amountUsd: null,
+	currency: null,
+	dateCreated: null,
 	green: false,
+	name: null,
 	rollover: false,
+	startDate: null,
+	type: 0,
 } as const;
 
 export const budgetsRepo = {
+	/** See `advanceBudgetWindow`. */
+	async advanceBudgetStart(db: Database, id: string, start: Date): Promise<void> {
+		await db.update(budgets).set({ startDate: start, updatedAt: new Date() }).where(eq(budgets.id, id));
+	},
+
+	async advanceMainStart(db: Database, id: string, start: Date): Promise<void> {
+		await db.update(mainBudget).set({ startDate: start, updatedAt: new Date() }).where(eq(mainBudget.id, id));
+	},
 	async createBudget(db: Database, input: CreateBudgetInput): Promise<string> {
 		const now = new Date();
 		const id = newId();
@@ -127,14 +130,14 @@ export const budgetsRepo = {
 			id,
 			name: customName(input.name),
 			...(await budgetLimit(db, input.amount, start)),
-			type: input.type,
 			categoryId: input.categoryId,
-			startDate: start,
 			dateCreated: now,
+			deletedAt: null,
 			green: false,
 			rollover: input.rollover ?? false,
+			startDate: start,
+			type: input.type,
 			updatedAt: now,
-			deletedAt: null,
 		});
 		return id;
 	},
@@ -143,10 +146,7 @@ export const budgetsRepo = {
 	 * There is only ever one overall budget, so an existing non-deleted row is
 	 * re-pointed instead of inserting a second.
 	 */
-	async createMainBudget(
-		db: Database,
-		input: CreateMainBudgetInput,
-	): Promise<string> {
+	async createMainBudget(db: Database, input: CreateMainBudgetInput): Promise<string> {
 		const now = new Date();
 		const existing = await db
 			.select({ id: mainBudget.id })
@@ -163,8 +163,8 @@ export const budgetsRepo = {
 					// whatever the existing budget is called.
 					...(input.name === undefined ? {} : { name: customName(input.name) }),
 					...(await budgetLimit(db, input.amount, start)),
-					type: input.type,
 					startDate: start,
+					type: input.type,
 					// Only when supplied, for the same reason `name` is guarded: the
 					// form opens on Overall without it and would otherwise turn it off.
 					...(input.rollover === undefined ? {} : { rollover: input.rollover }),
@@ -178,36 +178,15 @@ export const budgetsRepo = {
 			id,
 			name: customName(input.name),
 			...(await budgetLimit(db, input.amount, start)),
-			type: input.type,
-			startDate: start,
 			dateCreated: now,
+			deletedAt: null,
 			green: false,
 			rollover: input.rollover ?? false,
+			startDate: start,
+			type: input.type,
 			updatedAt: now,
-			deletedAt: null,
 		});
 		return id;
-	},
-
-	async updateBudget(
-		db: Database,
-		id: string,
-		input: CreateBudgetInput,
-	): Promise<void> {
-		const now = new Date();
-		const start = await anchorFor(db, input.startDate, input.type, now);
-		await db
-			.update(budgets)
-			.set({
-				name: customName(input.name),
-				...(await budgetLimit(db, input.amount, start)),
-				type: input.type,
-				categoryId: input.categoryId,
-				startDate: start,
-				rollover: input.rollover ?? false,
-				updatedAt: now,
-			})
-			.where(eq(budgets.id, id));
 	},
 
 	/**
@@ -219,7 +198,7 @@ export const budgetsRepo = {
 		const now = new Date();
 		await db
 			.update(budgets)
-			.set({ ...TOMBSTONED_BUDGET, updatedAt: now, deletedAt: now })
+			.set({ ...TOMBSTONED_BUDGET, deletedAt: now, updatedAt: now })
 			.where(and(eq(budgets.id, id), isNull(budgets.deletedAt)));
 	},
 
@@ -227,27 +206,25 @@ export const budgetsRepo = {
 		const now = new Date();
 		await db
 			.update(mainBudget)
-			.set({ ...TOMBSTONED_MAIN_BUDGET, updatedAt: now, deletedAt: now })
+			.set({ ...TOMBSTONED_MAIN_BUDGET, deletedAt: now, updatedAt: now })
 			.where(and(eq(mainBudget.id, id), isNull(mainBudget.deletedAt)));
 	},
 
-	/** See `advanceBudgetWindow`. */
-	async advanceBudgetStart(
-		db: Database,
-		id: string,
-		start: Date,
-	): Promise<void> {
+	async updateBudget(db: Database, id: string, input: CreateBudgetInput): Promise<void> {
+		const now = new Date();
+		const start = await anchorFor(db, input.startDate, input.type, now);
 		await db
 			.update(budgets)
-			.set({ startDate: start, updatedAt: new Date() })
+			.set({
+				name: customName(input.name),
+				...(await budgetLimit(db, input.amount, start)),
+				categoryId: input.categoryId,
+				rollover: input.rollover ?? false,
+				startDate: start,
+				type: input.type,
+				updatedAt: now,
+			})
 			.where(eq(budgets.id, id));
-	},
-
-	async advanceMainStart(db: Database, id: string, start: Date): Promise<void> {
-		await db
-			.update(mainBudget)
-			.set({ startDate: start, updatedAt: new Date() })
-			.where(eq(mainBudget.id, id));
 	},
 };
 
@@ -256,10 +233,7 @@ export const budgetsRepo = {
  * the edit form can have the row in hand during its first render instead of
  * flashing an empty one for a frame.
  */
-export function getBudgetById(
-	db: Database,
-	id: string,
-): typeof budgets.$inferSelect | null {
+export function getBudgetById(db: Database, id: string): typeof budgets.$inferSelect | null {
 	const rows = db
 		.select()
 		.from(budgets)

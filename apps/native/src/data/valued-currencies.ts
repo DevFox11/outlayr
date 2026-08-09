@@ -23,11 +23,7 @@ import { VALUATION_RATE_TYPE } from "./valuation-source";
  * have this claim a row exists that does not.
  */
 export function useValuedCurrencies(db: Database): ReadonlySet<string> {
-	const revision = useSyncExternalStore(
-		subscribeRatesRevision,
-		ratesRevision,
-		ratesRevision,
-	);
+	const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
 
 	const rows = useLiveQuery(
 		exchangeRates,
@@ -36,7 +32,7 @@ export function useValuedCurrencies(db: Database): ReadonlySet<string> {
 				.selectDistinct({ quote: exchangeRates.quote })
 				.from(exchangeRates)
 				.where(eq(exchangeRates.rateType, VALUATION_RATE_TYPE)),
-		[revision],
+		[revision]
 	);
 
 	return useMemo(() => new Set(rows.map((row) => row.quote)), [rows]);

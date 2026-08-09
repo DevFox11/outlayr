@@ -35,9 +35,7 @@ function RestoringScreen() {
 	return (
 		<View className="absolute inset-0 items-center justify-center gap-4 bg-background px-8">
 			<ActivityIndicator color={colors.subtle} />
-			<Text className="text-muted text-subtitle">
-				{t("auth.restoring.title")}
-			</Text>
+			<Text className="text-muted text-subtitle">{t("auth.restoring.title")}</Text>
 		</View>
 	);
 }

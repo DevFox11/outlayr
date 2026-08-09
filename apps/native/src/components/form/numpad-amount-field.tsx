@@ -14,12 +14,12 @@ export interface NumpadAmountField {
 }
 
 interface UseNumpadAmountFieldOptions {
-	value: string;
-	onChange: (next: string) => void;
 	code: string;
 	minorUnits: number;
-	toneClass?: string;
+	onChange: (next: string) => void;
 	onCurrencyChange?: (code: string) => void;
+	toneClass?: string;
+	value: string;
 }
 
 export function useNumpadAmountField({

@@ -1,5 +1,7 @@
 import type { TranslationKey } from "@/i18n/catalog";
 export interface AppIconChoice {
+	detail: TranslationKey;
+	label: TranslationKey;
 	/**
 	 * The alternate's name in the asset catalogue, or `null` for the primary.
 	 * iOS reports and accepts `null` for whichever icon the build ships as
@@ -9,40 +11,38 @@ export interface AppIconChoice {
 	name: string | null;
 	/** Picks the preview PNG in `assets/images/app-icon-previews/`. */
 	slug: string;
-	label: TranslationKey;
-	detail: TranslationKey;
 }
 
 export const APP_ICONS = [
 	{
+		detail: "appIcon.default.detail",
+		label: "appIcon.default.label",
 		name: null,
 		slug: "default",
-		label: "appIcon.default.label",
-		detail: "appIcon.default.detail",
 	},
 	{
+		detail: "appIcon.ink.detail",
+		label: "appIcon.ink.label",
 		name: "OutlayrInk",
 		slug: "ink",
-		label: "appIcon.ink.label",
-		detail: "appIcon.ink.detail",
 	},
 	{
+		detail: "appIcon.hairline.detail",
+		label: "appIcon.hairline.label",
 		name: "OutlayrHairline",
 		slug: "hairline",
-		label: "appIcon.hairline.label",
-		detail: "appIcon.hairline.detail",
 	},
 	{
+		detail: "appIcon.mono.detail",
+		label: "appIcon.mono.label",
 		name: "OutlayrMono",
 		slug: "mono",
-		label: "appIcon.mono.label",
-		detail: "appIcon.mono.detail",
 	},
 	{
+		detail: "appIcon.emboss.detail",
+		label: "appIcon.emboss.label",
 		name: "OutlayrEmboss",
 		slug: "emboss",
-		label: "appIcon.emboss.label",
-		detail: "appIcon.emboss.detail",
 	},
 ] as const satisfies readonly AppIconChoice[];
 
@@ -61,9 +61,9 @@ export type AppIconSlug = (typeof APP_ICONS)[number]["slug"];
 type AppIconName = NonNullable<(typeof APP_ICONS)[number]["name"]>;
 
 /** Read by `app.config.ts` to copy the bundles in and declare them to actool. */
-export const ALTERNATE_ICON_NAMES: readonly string[] = APP_ICONS.map(
-	(icon) => icon.name,
-).filter((name): name is AppIconName => name !== null);
+export const ALTERNATE_ICON_NAMES: readonly string[] = APP_ICONS.map((icon) => icon.name).filter(
+	(name): name is AppIconName => name !== null
+);
 
 export function appIconChoice(active: string | null): AppIconChoice {
 	return APP_ICONS.find((icon) => icon.name === active) ?? APP_ICONS[0];
@@ -89,9 +89,7 @@ export const RELEASE_PRIMARY_ICON = "Outlayr";
  * build made before it was carried.
  */
 export function defaultRowDetail(primary: string | null): TranslationKey {
-	return primary === RELEASE_PRIMARY_ICON
-		? "appIcon.default.detail"
-		: "appIcon.default.detailDev";
+	return primary === RELEASE_PRIMARY_ICON ? "appIcon.default.detail" : "appIcon.default.detailDev";
 }
 
 export interface AppIconState {
@@ -114,17 +112,12 @@ export type AppIconEvent =
  * dropped tap from an accepted one by identity and only then reach for the
  * native call.
  */
-export function appIconTransition(
-	state: AppIconState,
-	event: AppIconEvent,
-): AppIconState {
+export function appIconTransition(state: AppIconState, event: AppIconEvent): AppIconState {
 	switch (event.kind) {
 		case "tap":
 			// Overlapping setAlternateIconName calls are a documented rejection
 			// source, and whichever settled last would win regardless of tap order.
-			return state.pending === null
-				? { active: event.name, pending: { name: event.name } }
-				: state;
+			return state.pending === null ? { active: event.name, pending: { name: event.name } } : state;
 		case "resolved":
 			// A landing for anything but the outstanding request is stale: it would
 			// otherwise resurrect an icon the user has already moved off.

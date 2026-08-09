@@ -17,57 +17,56 @@ import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { TransactionForm } from "./index";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
 jest.mock("@/i18n", () => ({
-	useTranslation: () => (key: string) => key,
 	useLanguage: () => ({
 		language: "en",
 		preference: "system",
 		setPreference: () => {},
 	}),
+	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({
+	SYSTEM_COLORS: {
+		card: "#FFFFFF",
+		groupedBackground: "#EFEDE6",
+		separator: "#DAD6C9",
+	},
 	useColors: () => ({
+		accent: "#3D7A5C",
+		accentForeground: "#FFFFFF",
 		background: "#F2F0EA",
+		border: "#DAD6C9",
+		danger: "#B5482F",
+		expense: "#B5482F",
 		foreground: "#17150F",
+		future: "#8A8578",
+		groupedBackground: "#EFEDE6",
+		income: "#3D7A5C",
 		muted: "#8A8578",
+		overBudget: "#B5482F",
+		railTrack: "rgba(0,0,0,0.08)",
+		separator: "#DAD6C9",
 		subtle: "#B4AFA0",
 		surface: "#FFFFFF",
 		surfaceSecondary: "#F7F5EF",
-		groupedBackground: "#EFEDE6",
-		border: "#DAD6C9",
-		separator: "#DAD6C9",
-		accent: "#3D7A5C",
-		accentForeground: "#FFFFFF",
 		tint: "#3D7A5C",
-		income: "#3D7A5C",
-		expense: "#B5482F",
-		future: "#8A8578",
-		danger: "#B5482F",
-		overBudget: "#B5482F",
 		warning: "#C08A2E",
-		railTrack: "rgba(0,0,0,0.08)",
 	}),
-	SYSTEM_COLORS: {
-		groupedBackground: "#EFEDE6",
-		card: "#FFFFFF",
-		separator: "#DAD6C9",
-	},
 }));
 jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
 jest.mock("number-flow-react-native", () => {
 	const react = require("react") as typeof import("react");
 	return {
-		NumberFlow: (props: Record<string, unknown>) =>
-			react.createElement("NumberFlow", props),
+		NumberFlow: (props: Record<string, unknown>) => react.createElement("NumberFlow", props),
 	};
 });
 jest.mock("react-native-safe-area-context", () => ({
-	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+	useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
 jest.mock("@/lib/subscription-reminder-sync", () => ({
 	syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
@@ -89,10 +88,10 @@ jest.mock("@/data/transactions", () => {
 // `TransactionForm`'s own hooks and its extracted sections can render; it does
 // NOT simulate cross-thread synchronization or the native TextField binding.
 interface ObservableStateDouble {
-	value: unknown;
 	get: () => unknown;
-	set: (v: unknown) => void;
 	onChange: unknown;
+	set: (v: unknown) => void;
+	value: unknown;
 }
 
 jest.mock("@expo/ui/swift-ui", () => {
@@ -106,23 +105,23 @@ jest.mock("@expo/ui/swift-ui", () => {
 				let value = initial;
 				let onChange: unknown = null;
 				ref.current = {
-					get value() {
-						return value;
-					},
-					set value(v: unknown) {
-						value = v;
-					},
 					get() {
 						return value;
-					},
-					set(v: unknown) {
-						value = v;
 					},
 					get onChange() {
 						return onChange;
 					},
 					set onChange(fn: unknown) {
 						onChange = fn;
+					},
+					set(v: unknown) {
+						value = v;
+					},
+					get value() {
+						return value;
+					},
+					set value(v: unknown) {
+						value = v;
 					},
 				} as unknown as ObservableStateDouble;
 			}
@@ -132,16 +131,12 @@ jest.mock("@expo/ui/swift-ui", () => {
 });
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByProp(
-	node: JsonNode | JsonNode[] | null,
-	key: string,
-	value: unknown,
-): JsonNode | null {
+function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -169,10 +164,7 @@ function findByProp(
 	return null;
 }
 
-function containsText(
-	node: JsonNode | JsonNode[] | null,
-	text: string,
-): boolean {
+function containsText(node: JsonNode | JsonNode[] | null, text: string): boolean {
 	if (node == null) {
 		return false;
 	}
@@ -193,16 +185,14 @@ function containsText(
 	return false;
 }
 
-const MIGRATIONS = join(__dirname, "../../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -213,11 +203,11 @@ function migratedDb(): Database {
 
 async function seedCategory(db: Database, id = "c1", name = "Groceries") {
 	await db.insert(categories).values({
-		id,
-		name,
 		color: "#3D7A5C",
 		emoji: "🛒",
+		id,
 		income: false,
+		name,
 		sortOrder: 0,
 		updatedAt: new Date(),
 	});
@@ -226,9 +216,9 @@ async function seedCategory(db: Database, id = "c1", name = "Groceries") {
 
 async function seedTag(db: Database, id: string, name: string) {
 	await db.insert(tags).values({
+		color: null,
 		id,
 		name,
-		color: null,
 		sortOrder: 0,
 		updatedAt: new Date(),
 	});
@@ -238,10 +228,7 @@ function hasSwiftText(tree: JsonNode, value: string): boolean {
 	return findByProp(tree, "text", value) !== null;
 }
 
-function countSwiftText(
-	node: JsonNode | JsonNode[] | null,
-	value: string,
-): number {
+function countSwiftText(node: JsonNode | JsonNode[] | null, value: string): number {
 	if (node == null) {
 		return 0;
 	}
@@ -260,7 +247,7 @@ function countSwiftText(
 
 function findButtonWithText(
 	node: JsonNode | JsonNode[] | null,
-	text: string,
+	text: string
 ): (JsonNode & { props: { onButtonPress: () => void } }) | null {
 	if (node == null) {
 		return null;
@@ -295,11 +282,7 @@ function findButtonWithText(
 }
 
 function findTextChangeHandler(tree: JsonNode): (text: string) => void {
-	const node = findByProp(
-		tree,
-		"placeholder",
-		"transaction.field.namePlaceholder",
-	) as
+	const node = findByProp(tree, "placeholder", "transaction.field.namePlaceholder") as
 		| (JsonNode & {
 				props: {
 					onTextChange: (event: { nativeEvent: { value: string } }) => void;
@@ -309,8 +292,7 @@ function findTextChangeHandler(tree: JsonNode): (text: string) => void {
 	if (node == null) {
 		throw new Error("Could not find the name TextField in the render tree.");
 	}
-	return (text: string) =>
-		node.props.onTextChange({ nativeEvent: { value: text } });
+	return (text: string) => node.props.onTextChange({ nativeEvent: { value: text } });
 }
 
 const dbHolder: { current: Database | null } = { current: null };
@@ -338,7 +320,7 @@ describe("TransactionForm", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 		expect(toJSON()).toBeTruthy();
 	});
@@ -347,35 +329,35 @@ describe("TransactionForm", () => {
 		const db = dbHolder.current as Database;
 		const categoryId = await seedCategory(db);
 		const initial: Partial<Transaction> = {
-			id: "t1",
 			amount: 12.5,
-			income: false,
 			categoryId,
-			note: "Netflix",
-			details: null,
-			date: new Date(),
-			icon: null,
-			emoji: "🎬",
-			recurringType: 30,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			reminderLeadDays: null,
 			currency: null,
 			customColor: null,
+			date: new Date(),
+			details: null,
+			emoji: "🎬",
+			icon: null,
+			id: "t1",
 			imageColor: null,
 			imageUri: null,
+			income: false,
+			note: "Netflix",
 			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 30,
+			reminderLeadDays: null,
 		};
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm
 					db={db}
-					mode="edit"
 					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
 					initial={initial as any}
+					mode="edit"
 					onDone={() => {}}
 				/>
-			</Providers>,
+			</Providers>
 		);
 		expect(toJSON()).toBeTruthy();
 	});
@@ -384,35 +366,35 @@ describe("TransactionForm", () => {
 		const db = dbHolder.current as Database;
 		const categoryId = await seedCategory(db);
 		const initial: Partial<Transaction> = {
-			id: "t1",
 			amount: 12.5,
-			income: false,
 			categoryId,
-			note: "Concert",
-			details: null,
-			date: new Date(),
-			icon: null,
-			emoji: "🎸",
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			reminderLeadDays: null,
 			currency: null,
 			customColor: null,
+			date: new Date(),
+			details: null,
+			emoji: "🎸",
+			icon: null,
+			id: "t1",
 			imageColor: null,
 			imageUri: null,
+			income: false,
+			note: "Concert",
 			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
+			reminderLeadDays: null,
 		};
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm
 					db={db}
-					mode="edit"
 					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
 					initial={initial as any}
+					mode="edit"
 					onDone={() => {}}
 				/>
-			</Providers>,
+			</Providers>
 		);
 		expect(containsText(toJSON() as JsonNode, "🎸")).toBe(true);
 	});
@@ -421,35 +403,35 @@ describe("TransactionForm", () => {
 		const db = dbHolder.current as Database;
 		const categoryId = await seedCategory(db);
 		const initial: Partial<Transaction> = {
-			id: "t1",
 			amount: 42,
-			income: false,
 			categoryId,
-			note: "Rent share",
-			details: null,
-			date: new Date(),
-			icon: null,
-			emoji: null,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			reminderLeadDays: null,
 			currency: "USD",
 			customColor: null,
+			date: new Date(),
+			details: null,
+			emoji: null,
+			icon: null,
+			id: "t1",
 			imageColor: null,
 			imageUri: null,
+			income: false,
+			note: "Rent share",
 			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
+			reminderLeadDays: null,
 		};
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm
 					db={db}
-					mode="edit"
 					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
 					initial={initial as any}
+					mode="edit"
 					onDone={() => {}}
 				/>
-			</Providers>,
+			</Providers>
 		);
 		const tree = toJSON() as JsonNode;
 		expect(JSON.stringify(tree)).toContain("$");
@@ -463,7 +445,7 @@ describe("TransactionForm", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		// In once mode the repeat switch is the only toggle on screen; End Date's
@@ -483,9 +465,7 @@ describe("TransactionForm", () => {
 		});
 
 		const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-			typeof message === "string"
-				? /Rendered (more|fewer) hooks/.test(message)
-				: false,
+			typeof message === "string" ? /Rendered (more|fewer) hooks/.test(message) : false
 		);
 		expect(hookOrderViolations).toHaveLength(0);
 		errorSpy.mockRestore();
@@ -496,12 +476,10 @@ describe("TransactionForm", () => {
 		const { toJSON, rerender } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
-		expect(containsText(toJSON() as JsonNode, "transaction.field.remind")).toBe(
-			false,
-		);
+		expect(containsText(toJSON() as JsonNode, "transaction.field.remind")).toBe(false);
 
 		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
 			| (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
@@ -515,7 +493,7 @@ describe("TransactionForm", () => {
 			rerender(
 				<Providers>
 					<TransactionForm db={db} mode="create" onDone={() => {}} />
-				</Providers>,
+				</Providers>
 			);
 		});
 	});
@@ -524,31 +502,31 @@ describe("TransactionForm", () => {
 		const db = dbHolder.current as Database;
 		const categoryId = await seedCategory(db);
 		const initial: Partial<Transaction> = {
-			id: "t1",
 			amount: 9,
-			income: false,
 			categoryId,
-			note: "Coffee",
-			details: null,
-			date: new Date(),
-			icon: null,
-			emoji: null,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			reminderLeadDays: null,
 			currency: null,
 			customColor: null,
+			date: new Date(),
+			details: null,
+			emoji: null,
+			icon: null,
+			id: "t1",
 			imageColor: null,
 			imageUri: null,
+			income: false,
+			note: "Coffee",
 			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
+			reminderLeadDays: null,
 		};
 		const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
 		const { rerender } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		await act(async () => {
@@ -556,19 +534,17 @@ describe("TransactionForm", () => {
 				<Providers>
 					<TransactionForm
 						db={db}
-						mode="edit"
 						// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
 						initial={initial as any}
+						mode="edit"
 						onDone={() => {}}
 					/>
-				</Providers>,
+				</Providers>
 			);
 		});
 
 		const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-			typeof message === "string"
-				? /Rendered (more|fewer) hooks/.test(message)
-				: false,
+			typeof message === "string" ? /Rendered (more|fewer) hooks/.test(message) : false
 		);
 		expect(hookOrderViolations).toHaveLength(0);
 		errorSpy.mockRestore();
@@ -581,31 +557,23 @@ describe("TransactionForm submit re-entrancy", () => {
 		const categoryId = await seedCategory(db);
 		const copyOf: LogAgainDraft = {
 			amount: 25,
-			income: false,
 			categoryId,
-			note: "",
-			details: null,
 			currency: null,
-			icon: null,
-			emoji: null,
 			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "",
 		};
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					copyOf={copyOf}
-					db={db}
-					mode="create"
-					onDone={() => {}}
-				/>
-			</Providers>,
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
 		);
 
-		const saveButton = findButtonWithText(
-			toJSON() as JsonNode,
-			"transaction.cta.add",
-		);
+		const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
 		expect(saveButton).not.toBeNull();
 
 		await act(async () => {
@@ -622,14 +590,14 @@ describe("TransactionForm submit re-entrancy", () => {
 		const categoryId = await seedCategory(db);
 		const copyOf: LogAgainDraft = {
 			amount: 25,
-			income: false,
 			categoryId,
-			note: "",
-			details: null,
 			currency: null,
-			icon: null,
-			emoji: null,
 			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "",
 		};
 
 		let resolveBackfill: () => void = () => {};
@@ -637,18 +605,13 @@ describe("TransactionForm submit re-entrancy", () => {
 			() =>
 				new Promise<void>((resolve) => {
 					resolveBackfill = resolve;
-				}),
+				})
 		);
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					copyOf={copyOf}
-					db={db}
-					mode="create"
-					onDone={() => {}}
-				/>
-			</Providers>,
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
 		);
 
 		const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
@@ -659,10 +622,7 @@ describe("TransactionForm submit re-entrancy", () => {
 			repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } });
 		});
 
-		const saveButton = findButtonWithText(
-			toJSON() as JsonNode,
-			"transaction.cta.addSubscription",
-		);
+		const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.addSubscription");
 		expect(saveButton).not.toBeNull();
 
 		await act(async () => {
@@ -678,10 +638,9 @@ describe("TransactionForm submit re-entrancy", () => {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		});
 
-		const stillDisabled = findButtonWithText(
-			toJSON() as JsonNode,
-			"transaction.cta.addSubscription",
-		) as (JsonNode & { props: { disabled?: boolean } }) | null;
+		const stillDisabled = findButtonWithText(toJSON() as JsonNode, "transaction.cta.addSubscription") as
+			| (JsonNode & { props: { disabled?: boolean } })
+			| null;
 		expect(stillDisabled?.props.disabled).toBe(true);
 	});
 });
@@ -704,7 +663,7 @@ describe("TransactionForm enrichment", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -724,25 +683,20 @@ describe("TransactionForm enrichment", () => {
 		await seedCategory(db, "c-entertainment", "Entertainment");
 		const copyOf: LogAgainDraft = {
 			amount: 15,
-			income: false,
 			categoryId: groceriesId,
-			note: "",
-			details: null,
 			currency: null,
-			icon: null,
-			emoji: null,
 			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "",
 		};
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					copyOf={copyOf}
-					db={db}
-					mode="create"
-					onDone={() => {}}
-				/>
-			</Providers>,
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -767,7 +721,7 @@ describe("TransactionForm enrichment", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -794,36 +748,36 @@ describe("TransactionForm enrichment", () => {
 		const categoryId = await seedCategory(db, "c-groceries", "Groceries");
 		await seedCategory(db, "c-entertainment", "Entertainment");
 		const initial: Partial<Transaction> = {
-			id: "t1",
 			amount: 12.5,
-			income: false,
 			categoryId,
-			note: "Groceries run",
-			details: null,
-			date: new Date(),
-			icon: null,
-			emoji: null,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			reminderLeadDays: null,
 			currency: null,
 			customColor: null,
+			date: new Date(),
+			details: null,
+			emoji: null,
+			icon: null,
+			id: "t1",
 			imageColor: null,
 			imageUri: null,
+			income: false,
+			note: "Groceries run",
 			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
+			reminderLeadDays: null,
 		};
 
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm
 					db={db}
-					mode="edit"
 					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
 					initial={initial as any}
+					mode="edit"
 					onDone={() => {}}
 				/>
-			</Providers>,
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -853,13 +807,8 @@ describe("TransactionForm pending category and tag materialization", () => {
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					mode="create"
-					onDone={() => {}}
-					seed={{ amount: 25 }}
-				/>
-			</Providers>,
+				<TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -880,10 +829,7 @@ describe("TransactionForm pending category and tag materialization", () => {
 		});
 
 		expect(alertSpy).not.toHaveBeenCalled();
-		const created = await db
-			.select()
-			.from(categories)
-			.where(eq(categories.name, "Entertainment"));
+		const created = await db.select().from(categories).where(eq(categories.name, "Entertainment"));
 		expect(created).toHaveLength(1);
 
 		const savedTx = await db.select().from(transactions);
@@ -902,13 +848,8 @@ describe("TransactionForm pending category and tag materialization", () => {
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					mode="create"
-					onDone={() => {}}
-					seed={{ amount: 25 }}
-				/>
-			</Providers>,
+				<TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -930,10 +871,7 @@ describe("TransactionForm pending category and tag materialization", () => {
 		expect(calledTagIds).toHaveLength(2);
 
 		const createdTags = await db.select().from(tags);
-		expect(createdTags.map((row) => row.name).sort()).toStrictEqual([
-			"Streaming",
-			"Subscription",
-		]);
+		expect(createdTags.map((row) => row.name).sort()).toStrictEqual(["Streaming", "Subscription"]);
 
 		setTagsSpy.mockRestore();
 	});
@@ -944,7 +882,7 @@ describe("TransactionForm pending category and tag materialization", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -952,40 +890,23 @@ describe("TransactionForm pending category and tag materialization", () => {
 			onTextChange("netflix");
 			jest.advanceTimersByTime(600);
 		});
-		expect(
-			countSwiftText(
-				toJSON() as JsonNode,
-				"transaction.category.willBeCreated",
-			),
-		).toBe(1);
+		expect(countSwiftText(toJSON() as JsonNode, "transaction.category.willBeCreated")).toBe(1);
 
 		await act(async () => {
 			onTextChange("netflix");
 			jest.advanceTimersByTime(600);
 		});
-		expect(
-			countSwiftText(
-				toJSON() as JsonNode,
-				"transaction.category.willBeCreated",
-			),
-		).toBe(1);
+		expect(countSwiftText(toJSON() as JsonNode, "transaction.category.willBeCreated")).toBe(1);
 	});
 
 	it("aborts before writing any transaction row when the pending category fails to materialize", async () => {
 		const db = dbHolder.current as Database;
-		const createSpy = jest
-			.spyOn(categoriesRepo, "create")
-			.mockRejectedValueOnce(new Error("boom"));
+		const createSpy = jest.spyOn(categoriesRepo, "create").mockRejectedValueOnce(new Error("boom"));
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					db={db}
-					mode="create"
-					onDone={() => {}}
-					seed={{ amount: 25 }}
-				/>
-			</Providers>,
+				<TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+			</Providers>
 		);
 
 		const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
@@ -996,10 +917,7 @@ describe("TransactionForm pending category and tag materialization", () => {
 		expect(hasSwiftText(toJSON() as JsonNode, "Entertainment")).toBe(true);
 		expect(createSpy).not.toHaveBeenCalled();
 
-		const saveButton = findButtonWithText(
-			toJSON() as JsonNode,
-			"transaction.cta.add",
-		);
+		const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
 		await act(async () => {
 			saveButton?.props.onButtonPress();
 		});
@@ -1015,14 +933,14 @@ describe("TransactionForm pending category and tag materialization", () => {
 describe("TransactionForm account attachment", () => {
 	async function seedAccount(db: Database, id = "acc-1", name = "Checking") {
 		await db.insert(accounts).values({
-			id,
-			name,
 			currency: "USD",
-			initialBalance: 0,
-			initialBalanceUsd: 0,
-			initialBalanceDate: new Date(),
-			sortOrder: 0,
 			dateCreated: new Date(),
+			id,
+			initialBalance: 0,
+			initialBalanceDate: new Date(),
+			initialBalanceUsd: 0,
+			name,
+			sortOrder: 0,
 			updatedAt: new Date(),
 		});
 		return id;
@@ -1033,7 +951,7 @@ describe("TransactionForm account attachment", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 		const tree = toJSON() as JsonNode;
 		expect(hasSwiftText(tree, "transaction.field.account")).toBe(true);
@@ -1048,7 +966,7 @@ describe("TransactionForm account attachment", () => {
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm db={db} mode="create" onDone={() => {}} />
-			</Providers>,
+			</Providers>
 		);
 
 		expect(hasSwiftText(toJSON() as JsonNode, "Checking")).toBe(true);
@@ -1061,37 +979,37 @@ describe("TransactionForm account attachment", () => {
 		await seedAccount(db, "acc-2", "Savings");
 		await setMeta(db, META_KEYS.lastTransactionAccount, "acc-1");
 		const initial: Partial<Transaction> = {
-			id: "t1",
-			amount: 12.5,
-			income: false,
-			categoryId,
 			accountId: "acc-2",
-			note: "Groceries run",
-			details: null,
-			date: new Date(),
-			icon: null,
-			emoji: null,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			reminderLeadDays: null,
+			amount: 12.5,
+			categoryId,
 			currency: null,
 			customColor: null,
+			date: new Date(),
+			details: null,
+			emoji: null,
+			icon: null,
+			id: "t1",
 			imageColor: null,
 			imageUri: null,
+			income: false,
+			note: "Groceries run",
 			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
+			reminderLeadDays: null,
 		};
 
 		const { toJSON } = await render(
 			<Providers>
 				<TransactionForm
 					db={db}
-					mode="edit"
 					// biome-ignore lint/suspicious/noExplicitAny: partial fixture, only the fields TransactionForm reads are populated
 					initial={initial as any}
+					mode="edit"
 					onDone={() => {}}
 				/>
-			</Providers>,
+			</Providers>
 		);
 
 		const tree = toJSON() as JsonNode;
@@ -1106,31 +1024,23 @@ describe("TransactionForm account attachment", () => {
 		await setMeta(db, META_KEYS.lastTransactionAccount, accountId);
 		const copyOf: LogAgainDraft = {
 			amount: 25,
-			income: false,
 			categoryId,
-			note: "",
-			details: null,
 			currency: null,
-			icon: null,
-			emoji: null,
 			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "",
 		};
 
 		const { toJSON } = await render(
 			<Providers>
-				<TransactionForm
-					copyOf={copyOf}
-					db={db}
-					mode="create"
-					onDone={() => {}}
-				/>
-			</Providers>,
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
 		);
 
-		const saveButton = findButtonWithText(
-			toJSON() as JsonNode,
-			"transaction.cta.add",
-		);
+		const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
 		await act(async () => {
 			saveButton?.props.onButtonPress();
 		});

@@ -5,12 +5,12 @@ import { AccessibilityInfo } from "react-native";
 import { cn } from "@/components/tw";
 
 interface StepCtaProps {
-	label: string;
-	confirmLabel?: string;
-	onPress: () => void;
-	disabled?: boolean;
 	busy?: boolean;
 	className?: string;
+	confirmLabel?: string;
+	disabled?: boolean;
+	label: string;
+	onPress: () => void;
 	testID?: string;
 }
 

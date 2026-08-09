@@ -39,7 +39,7 @@ export function useRecentLines(db: Database, limit: number): Transaction[] {
 				.where(isNull(transactions.deletedAt))
 				.orderBy(desc(transactions.date))
 				.limit(limit),
-		[limit],
+		[limit]
 	) as Transaction[];
 }
 
@@ -57,9 +57,9 @@ export type TransactionWithCategory = {
 };
 
 export interface LoggedTransactions {
-	rows: TransactionWithCategory[];
 	/** False while older days remain to be fetched. */
 	reachedEnd: boolean;
+	rows: TransactionWithCategory[];
 }
 
 /**
@@ -76,43 +76,29 @@ export interface LoggedTransactions {
  * inserting a transaction above it shifts every later page, duplicating or
  * skipping rows.
  */
-export function useLoggedTransactions(
-	db: Database,
-	nowMs: number,
-	days: number,
-): LoggedTransactions {
-	const dayRows = useLiveQuery(
-		transactions,
-		() => logWindowDaysQuery(db, nowMs, days),
-		[nowMs, days],
-	);
+export function useLoggedTransactions(db: Database, nowMs: number, days: number): LoggedTransactions {
+	const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days]);
 
 	const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
 	const reachedEnd = dayRows.length < days;
 
-	const data = useLiveQuery(
-		transactions,
-		() => logWindowRowsQuery(db, nowMs, floorMs),
-		[nowMs, floorMs],
-	);
+	const data = useLiveQuery(transactions, () => logWindowRowsQuery(db, nowMs, floorMs), [nowMs, floorMs]);
 	const categoryMeta = useCategoryMeta(db);
 
 	const rows = useMemo(
 		() =>
 			data.map((row) => {
-				const meta = row.categoryId
-					? categoryMeta.get(row.categoryId)
-					: undefined;
+				const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
 				return {
 					...row,
-					categoryName: meta?.name ?? null,
 					categoryColor: meta?.color ?? null,
-					categoryIcon: meta?.icon ?? null,
 					categoryEmoji: meta?.emoji ?? null,
+					categoryIcon: meta?.icon ?? null,
+					categoryName: meta?.name ?? null,
 				};
 			}),
-		[data, categoryMeta],
+		[data, categoryMeta]
 	);
 
-	return useMemo(() => ({ rows, reachedEnd }), [rows, reachedEnd]);
+	return useMemo(() => ({ reachedEnd, rows }), [rows, reachedEnd]);
 }

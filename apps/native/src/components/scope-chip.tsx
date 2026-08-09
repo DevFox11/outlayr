@@ -1,9 +1,6 @@
 import MenuView, { type MenuAction } from "@expo/ui/community/menu";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import {
-	ArrowDown01Icon,
-	Cancel01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { ArrowDown01Icon, Cancel01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "@/i18n";
@@ -11,15 +8,15 @@ import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 
 interface ScopeChipProps {
-	title: string;
+	accessibilityLabel?: string;
 	/** Menu the title opens. Omit for a chip that only reports and dismisses. */
 	actions?: MenuAction[];
+	clearAccessibilityLabel?: string;
+	menuTitle?: string;
 	onAction?: (id: string) => void;
 	/** Omit where the scope cannot be cleared, e.g. the window always has a value. */
 	onClear?: () => void;
-	menuTitle?: string;
-	accessibilityLabel?: string;
-	clearAccessibilityLabel?: string;
+	title: string;
 }
 
 export function ScopeChip({
@@ -38,15 +35,10 @@ export function ScopeChip({
 
 	const label = (
 		<View className="flex-row items-center gap-1.25">
-			<Text
-				className="font-sans-semibold text-foreground text-subtitle"
-				numberOfLines={1}
-			>
+			<Text className="font-sans-semibold text-foreground text-subtitle" numberOfLines={1}>
 				{title}
 			</Text>
-			{hasMenu ? (
-				<HugeiconsIcon color={colors.muted} icon={ArrowDown01Icon} size={10} />
-			) : null}
+			{hasMenu ? <HugeiconsIcon color={colors.muted} icon={ArrowDown01Icon} size={10} /> : null}
 		</View>
 	);
 
@@ -68,7 +60,7 @@ export function ScopeChip({
 					<View
 						onLayout={(event) => setLabelWidth(event.nativeEvent.layout.width)}
 						pointerEvents="none"
-						style={{ position: "absolute", opacity: 0, left: 0, top: 0 }}
+						style={{ left: 0, opacity: 0, position: "absolute", top: 0 }}
 					>
 						{label}
 					</View>

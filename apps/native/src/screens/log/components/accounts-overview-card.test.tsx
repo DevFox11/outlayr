@@ -8,12 +8,7 @@ jest.mock("@/i18n", () => ({
 describe("AccountsOverviewCard", () => {
 	it("renders nothing when there are no accounts", async () => {
 		const { toJSON } = await render(
-			<AccountsOverviewCard
-				currency="USD"
-				onPress={() => {}}
-				overview={null}
-				showCents
-			/>,
+			<AccountsOverviewCard currency="USD" onPress={() => {}} overview={null} showCents />
 		);
 		expect(toJSON()).toBeNull();
 	});
@@ -23,9 +18,9 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 3, total: 4210.55, exact: true }}
+				overview={{ count: 3, exact: true, total: 4210.55 }}
 				showCents
-			/>,
+			/>
 		);
 		getByText("accounts.overview.heading · 3");
 		getByText("$4,210.55");
@@ -36,9 +31,9 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 1, total: -120, exact: true }}
+				overview={{ count: 1, exact: true, total: -120 }}
 				showCents
-			/>,
+			/>
 		);
 		getByText("-$120.00");
 	});
@@ -48,9 +43,9 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 2, total: 100, exact: false }}
+				overview={{ count: 2, exact: false, total: 100 }}
 				showCents
-			/>,
+			/>
 		);
 		getByText("USD?");
 
@@ -58,9 +53,9 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 2, total: 100, exact: true }}
+				overview={{ count: 2, exact: true, total: 100 }}
 				showCents
-			/>,
+			/>
 		);
 		expect(queryByText("USD?")).toBeNull();
 	});
@@ -68,12 +63,7 @@ describe("AccountsOverviewCard", () => {
 	it("routes the tap through onPress", async () => {
 		const onPress = jest.fn();
 		const { getByTestId } = await render(
-			<AccountsOverviewCard
-				currency="USD"
-				onPress={onPress}
-				overview={{ count: 1, total: 0, exact: true }}
-				showCents
-			/>,
+			<AccountsOverviewCard currency="USD" onPress={onPress} overview={{ count: 1, exact: true, total: 0 }} showCents />
 		);
 		fireEvent.press(getByTestId("accounts-overview-card"));
 		expect(onPress).toHaveBeenCalledTimes(1);

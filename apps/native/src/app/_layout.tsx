@@ -1,26 +1,14 @@
 import "../../global.css";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
-import {
-	GeistMono_400Regular,
-	GeistMono_500Medium,
-	useFonts,
-} from "@expo-google-fonts/geist-mono";
+import { GeistMono_400Regular, GeistMono_500Medium, useFonts } from "@expo-google-fonts/geist-mono";
 import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { PanelUIProvider, useTheme } from "panelui-native";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import {
-	Pressable,
-	useColorScheme,
-	useWindowDimensions,
-	View,
-} from "react-native";
-import {
-	SafeAreaListener,
-	SafeAreaProvider,
-} from "react-native-safe-area-context";
+import { Pressable, useColorScheme, useWindowDimensions, View } from "react-native";
+import { SafeAreaListener, SafeAreaProvider } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
 
 import { AppLockGate } from "@/components/app-lock-gate";
@@ -29,29 +17,17 @@ import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
-import {
-	LocalDataProvider,
-	useDatabase,
-	useLocalData,
-} from "@/contexts/local-data-context";
+import { LocalDataProvider, useDatabase, useLocalData } from "@/contexts/local-data-context";
 import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { rootStackGroup } from "@/domain/auth-gate";
 import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
 import { localShellReady, routeSettled } from "@/domain/splash-gate";
-import {
-	LanguageProvider,
-	translateNow,
-	useLanguageReady,
-	useTranslation,
-} from "@/i18n";
+import { LanguageProvider, translateNow, useLanguageReady, useTranslation } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { convex } from "@/lib/convex";
-import {
-	LedgerAdoptionProvider,
-	useLedgerAdoption,
-} from "@/lib/ledger-adoption";
+import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
 import { ACCOUNT_DETENT, identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
@@ -68,15 +44,9 @@ export const unstable_settings = {
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 	return (
 		<View className="flex-1 items-center justify-center bg-background px-8">
-			<Text className="pb-2 font-sans-semibold text-foreground text-title">
-				{translateNow("error.boundary.title")}
-			</Text>
-			<Text className="pb-4 text-center text-muted text-subtitle">
-				{translateNow("error.boundary.body")}
-			</Text>
-			<Text className="pb-6 text-center text-label text-muted">
-				{error.message}
-			</Text>
+			<Text className="pb-2 font-sans-semibold text-foreground text-title">{translateNow("error.boundary.title")}</Text>
+			<Text className="pb-4 text-center text-muted text-subtitle">{translateNow("error.boundary.body")}</Text>
+			<Text className="pb-6 text-center text-label text-muted">{error.message}</Text>
 			<Pressable
 				accessibilityRole="button"
 				className="rounded-full bg-accent px-6 py-3"
@@ -84,9 +54,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 					retry();
 				}}
 			>
-				<Text className="font-sans-semibold text-accent-foreground text-subtitle">
-					{translateNow("common.retry")}
-				</Text>
+				<Text className="font-sans-semibold text-accent-foreground text-subtitle">{translateNow("common.retry")}</Text>
 			</Pressable>
 		</View>
 	);
@@ -123,7 +91,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 
 	const base = isDark ? DarkTheme : DefaultTheme;
 
-	if (localShellReady({ fontsLoaded, languageReady, data: status })) {
+	if (localShellReady({ data: status, fontsLoaded, languageReady })) {
 		return (
 			<LedgerAdoptionProvider>
 				<RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
@@ -132,8 +100,8 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 					<ThemeProvider
 						value={{
 							...base,
+							colors: { ...base.colors, background, border, card, text },
 							dark: isDark,
-							colors: { ...base.colors, background, card, text, border },
 						}}
 					>
 						<AuthCover>
@@ -178,7 +146,7 @@ function RouteGate({
 }) {
 	const { gate } = useAuthSession();
 	const { status } = useLedgerAdoption();
-	const settled = routeSettled({ gate, adoption: status });
+	const settled = routeSettled({ adoption: status, gate });
 
 	useEffect(() => {
 		if (settled) {
@@ -186,7 +154,7 @@ function RouteGate({
 		}
 	}, [settled, hideSplash]);
 
-	if (!settled && !splashHidden) {
+	if (!(settled || splashHidden)) {
 		return null;
 	}
 
@@ -224,10 +192,10 @@ function RootStack() {
 	useSeededClockPreference(db);
 
 	const group = rootStackGroup({
-		onboarded,
-		gate,
-		reconciled: adoption === "settled",
 		deferred,
+		gate,
+		onboarded,
+		reconciled: adoption === "settled",
 	});
 
 	return (
@@ -235,10 +203,7 @@ function RootStack() {
 			{/* Declared before `(tabs)`: with the anchor guarded away on a first run,
 			    the stack opens on whatever screen is left first. */}
 			<Stack.Protected guard={group === "onboarding"}>
-				<Stack.Screen
-					name="onboarding/index"
-					options={{ headerShown: false }}
-				/>
+				<Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
 				{/* The steps carry the OS back button rather than a drawn one, which
 				    brings the matching hit target with it. Transparent, because the
 				    stock theme card differs from the flow's `--fr-ground` — an opaque
@@ -258,10 +223,7 @@ function RootStack() {
 			</Stack.Protected>
 
 			<Stack.Protected guard={group === "adopt"}>
-				<Stack.Screen
-					name="auth/adopt"
-					options={{ headerShown: false, gestureEnabled: false }}
-				/>
+				<Stack.Screen name="auth/adopt" options={{ gestureEnabled: false, headerShown: false }} />
 			</Stack.Protected>
 
 			{/* `StackRouter.getStateForRouteNamesChange` only filters `state.routes`
@@ -302,9 +264,9 @@ function RootStack() {
 					name="settings/accounts/create"
 					options={{
 						presentation: "formSheet",
-						title: t("accounts.nav.new"),
 						sheetAllowedDetents: [ACCOUNT_DETENT, 1],
 						sheetGrabberVisible: true,
+						title: t("accounts.nav.new"),
 					}}
 				>
 					<Stack.Header transparent />
@@ -315,9 +277,9 @@ function RootStack() {
 					name="settings/accounts/[accountId]/edit"
 					options={{
 						presentation: "formSheet",
-						title: t("accounts.nav.edit"),
 						sheetAllowedDetents: [ACCOUNT_DETENT, 1],
 						sheetGrabberVisible: true,
+						title: t("accounts.nav.edit"),
 					}}
 				>
 					<Stack.Header transparent />
@@ -336,9 +298,9 @@ function RootStack() {
 						name={sheet.name}
 						options={{
 							presentation: "formSheet",
-							title: t(sheet.titleKey),
 							sheetAllowedDetents: [sheet.detent, 1],
 							sheetGrabberVisible: true,
+							title: t(sheet.titleKey),
 						}}
 					>
 						<Stack.Header transparent />
@@ -349,26 +311,20 @@ function RootStack() {
 				<Stack.Screen
 					name="settings/category-symbol"
 					options={{
-						presentation: "formSheet",
 						headerShown: false,
-						sheetGrabberVisible: true,
+						presentation: "formSheet",
 						sheetAllowedDetents: [pickerDetent, 1],
 						sheetCornerRadius: 40,
+						sheetGrabberVisible: true,
 					}}
 				/>
 
-				<Stack.Screen
-					name="transactions/create"
-					options={{ presentation: "modal" }}
-				>
+				<Stack.Screen name="transactions/create" options={{ presentation: "modal" }}>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />
 					<Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
 				</Stack.Screen>
-				<Stack.Screen
-					name="transactions/[id]"
-					options={{ presentation: "modal" }}
-				>
+				<Stack.Screen name="transactions/[id]" options={{ presentation: "modal" }}>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />
 					<Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
@@ -376,12 +332,12 @@ function RootStack() {
 				<Stack.Screen
 					name="transactions/identity"
 					options={{
-						presentation: "formSheet",
 						headerShown: false,
-						sheetGrabberVisible: true,
+						presentation: "formSheet",
 						sheetAllowedDetents: [pickerDetent, 1],
-						sheetLargestUndimmedDetentIndex: 0,
 						sheetCornerRadius: 40,
+						sheetGrabberVisible: true,
+						sheetLargestUndimmedDetentIndex: 0,
 					}}
 				/>
 			</Stack.Protected>

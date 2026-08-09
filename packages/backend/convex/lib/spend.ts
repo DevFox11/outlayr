@@ -2,7 +2,7 @@ import type { RateLimitConfig } from "@convex-dev/rate-limiter";
 import { DAY } from "@convex-dev/rate-limiter";
 
 /** $0.005 per xAI web-search call — https://docs.x.ai/docs/pricing (verified). */
-const DEFAULT_SEARCH_PRICE_MICROS = 5_000;
+const DEFAULT_SEARCH_PRICE_MICROS = 5000;
 /** $1.25 per 1M input tokens on `grok-4.20-0309-non-reasoning`. */
 const DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN = 1.25;
 /** $2.50 per 1M output tokens on `grok-4.20-0309-non-reasoning`. */
@@ -13,7 +13,7 @@ const BUDGET_PERIOD_MS = 30 * DAY;
 /** Cost-model worst case: up to 3 search rounds per lookup. */
 const WORST_CASE_SEARCH_CALLS = 3;
 /** Rough two-pass token estimate backing the pessimistic pre-charge. */
-const ESTIMATED_INPUT_TOKENS = 5_600;
+const ESTIMATED_INPUT_TOKENS = 5600;
 const ESTIMATED_OUTPUT_TOKENS = 420;
 
 function envNumber(name: string, fallback: number): number {
@@ -30,17 +30,11 @@ export function searchPriceMicros(): number {
 }
 
 export function inputPriceMicrosPerToken(): number {
-	return envNumber(
-		"GROUNDED_INPUT_PRICE_MICROS_PER_TOKEN",
-		DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN,
-	);
+	return envNumber("GROUNDED_INPUT_PRICE_MICROS_PER_TOKEN", DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN);
 }
 
 export function outputPriceMicrosPerToken(): number {
-	return envNumber(
-		"GROUNDED_OUTPUT_PRICE_MICROS_PER_TOKEN",
-		DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN,
-	);
+	return envNumber("GROUNDED_OUTPUT_PRICE_MICROS_PER_TOKEN", DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN);
 }
 
 /** Read live so `npx convex env set GROUNDED_BUDGET_MICROS=0` closes the gate without a deploy. */
@@ -56,8 +50,8 @@ export function budgetCeilingMicros(): number {
 export function budgetConfig(): RateLimitConfig {
 	return {
 		kind: "fixed window",
-		rate: budgetCeilingMicros(),
 		period: BUDGET_PERIOD_MS,
+		rate: budgetCeilingMicros(),
 		shards: 10,
 	};
 }

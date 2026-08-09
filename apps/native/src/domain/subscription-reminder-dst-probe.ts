@@ -7,24 +7,21 @@ import { reminderFireAt } from "./subscription-reminder";
  * ignored — only a fresh process picks up a different zone.
  */
 interface ProbeResult {
-	landingOffset: number;
 	earlierOffset: number;
 	fire: [number, number, number, number, number, number];
+	landingOffset: number;
 }
 
-const [
-	[landingYear, landingMonth, landingDay],
-	[earlierYear, earlierMonth, earlierDay],
-]: [[number, number, number], [number, number, number]] = JSON.parse(
-	process.argv[2] ?? "[]",
-);
+const [[landingYear, landingMonth, landingDay], [earlierYear, earlierMonth, earlierDay]]: [
+	[number, number, number],
+	[number, number, number],
+] = JSON.parse(process.argv[2] ?? "[]");
 
 const landing = new Date(landingYear, landingMonth, landingDay);
 const earlier = new Date(earlierYear, earlierMonth, earlierDay);
 const fire = reminderFireAt(landing, 7, { hour: 9, minute: 0 });
 
 const result: ProbeResult = {
-	landingOffset: landing.getTimezoneOffset(),
 	earlierOffset: earlier.getTimezoneOffset(),
 	fire: [
 		fire.getFullYear(),
@@ -34,6 +31,7 @@ const result: ProbeResult = {
 		fire.getMinutes(),
 		fire.getSeconds(),
 	],
+	landingOffset: landing.getTimezoneOffset(),
 };
 
 process.stdout.write(JSON.stringify(result));

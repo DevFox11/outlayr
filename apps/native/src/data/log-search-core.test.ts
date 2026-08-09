@@ -6,8 +6,7 @@ import { logWindowRowsQuery } from "./transactions-core";
 
 type TestDb = ReturnType<typeof drizzle>;
 
-const at = (y: number, m: number, d: number, h = 0, min = 0): Date =>
-	new Date(y, m - 1, d, h, min, 0, 0);
+const at = (y: number, m: number, d: number, h = 0, min = 0): Date => new Date(y, m - 1, d, h, min, 0, 0);
 
 const NOW = at(2025, 7, 15, 12).getTime();
 
@@ -49,48 +48,39 @@ function makeDb(): TestDb {
 }
 
 interface RowSeed {
-	id: string;
-	note?: string;
+	amount?: number;
+	categoryId?: string;
+	date: Date;
+	deletedAt?: Date;
 	/** The form's longer free-text field. */
 	details?: string;
-	amount?: number;
-	date: Date;
-	categoryId?: string;
-	deletedAt?: Date;
+	id: string;
+	note?: string;
 }
 
 async function seed(db: TestDb, rows: RowSeed[]): Promise<void> {
 	await db.insert(transactions).values(
 		rows.map((row) => ({
-			id: row.id,
 			amount: row.amount ?? 10,
-			income: false,
-			note: row.note ?? "",
-			details: row.details ?? null,
-			date: row.date,
-			day: at(
-				row.date.getFullYear(),
-				row.date.getMonth() + 1,
-				row.date.getDate(),
-			),
-			month: at(row.date.getFullYear(), row.date.getMonth() + 1, 1),
 			categoryId: row.categoryId ?? null,
-			updatedAt: new Date(0),
+			date: row.date,
+			day: at(row.date.getFullYear(), row.date.getMonth() + 1, row.date.getDate()),
 			deletedAt: row.deletedAt ?? null,
-		})),
+			details: row.details ?? null,
+			id: row.id,
+			income: false,
+			month: at(row.date.getFullYear(), row.date.getMonth() + 1, 1),
+			note: row.note ?? "",
+			updatedAt: new Date(0),
+		}))
 	);
 }
 
-async function search(
-	db: TestDb,
-	query: string,
-	categoryIds: string[] = [],
-	nowMs = NOW,
-): Promise<string[]> {
+async function search(db: TestDb, query: string, categoryIds: string[] = [], nowMs = NOW): Promise<string[]> {
 	const rows = await searchedTransactionsQuery(db, {
-		query,
 		categoryIds,
 		nowMs,
+		query,
 	});
 	return rows.map((row) => row.id);
 }
@@ -99,8 +89,8 @@ describe("search query", () => {
 	it("matches a note containing the query, in any case", async () => {
 		const db = makeDb();
 		await seed(db, [
-			{ id: "hit", note: "Weekly GROCERIES run", date: at(2025, 7, 14) },
-			{ id: "miss", note: "Petrol", date: at(2025, 7, 14) },
+			{ date: at(2025, 7, 14), id: "hit", note: "Weekly GROCERIES run" },
+			{ date: at(2025, 7, 14), id: "miss", note: "Petrol" },
 		]);
 
 		expect(await search(db, "groceries")).toStrictEqual(["hit"]);
@@ -110,12 +100,12 @@ describe("search query", () => {
 		const db = makeDb();
 		await seed(db, [
 			{
+				categoryId: "cat-food",
+				date: at(2025, 7, 14),
 				id: "in-cat",
 				note: "nothing textual to match",
-				date: at(2025, 7, 14),
-				categoryId: "cat-food",
 			},
-			{ id: "other", note: "nothing textual to match", date: at(2025, 7, 14) },
+			{ date: at(2025, 7, 14), id: "other", note: "nothing textual to match" },
 		]);
 
 		expect(await search(db, "food", ["cat-food"])).toStrictEqual(["in-cat"]);
@@ -124,8 +114,8 @@ describe("search query", () => {
 	it("matches an exact amount when the query reads as a number", async () => {
 		const db = makeDb();
 		await seed(db, [
-			{ id: "exact", amount: 42, note: "rent", date: at(2025, 7, 14) },
-			{ id: "near", amount: 4200, note: "rent", date: at(2025, 7, 13) },
+			{ amount: 42, date: at(2025, 7, 14), id: "exact", note: "rent" },
+			{ amount: 4200, date: at(2025, 7, 13), id: "near", note: "rent" },
 		]);
 
 		expect(await search(db, "42")).toStrictEqual(["exact"]);
@@ -134,8 +124,8 @@ describe("search query", () => {
 	it("excludes rows dated ahead of the clock, which have not been spent yet", async () => {
 		const db = makeDb();
 		await seed(db, [
-			{ id: "landed", note: "Rent", amount: 1500, date: at(2025, 7, 1) },
-			{ id: "scheduled", note: "Rent", amount: 1500, date: at(2025, 8, 1) },
+			{ amount: 1500, date: at(2025, 7, 1), id: "landed", note: "Rent" },
+			{ amount: 1500, date: at(2025, 8, 1), id: "scheduled", note: "Rent" },
 		]);
 
 		expect(await search(db, "rent")).toStrictEqual(["landed"]);
@@ -143,24 +133,20 @@ describe("search query", () => {
 
 	it("takes in a row the moment the clock reaches it", async () => {
 		const db = makeDb();
-		await seed(db, [
-			{ id: "later-today", note: "Rent", date: at(2025, 7, 15, 18) },
-		]);
+		await seed(db, [{ date: at(2025, 7, 15, 18), id: "later-today", note: "Rent" }]);
 
 		expect(await search(db, "rent")).toStrictEqual([]);
-		expect(
-			await search(db, "rent", [], at(2025, 7, 15, 19).getTime()),
-		).toStrictEqual(["later-today"]);
+		expect(await search(db, "rent", [], at(2025, 7, 15, 19).getTime())).toStrictEqual(["later-today"]);
 	});
 
 	it("excludes tombstones", async () => {
 		const db = makeDb();
 		await seed(db, [
 			{
-				id: "gone",
-				note: "Rent",
 				date: at(2025, 7, 1),
 				deletedAt: new Date(0),
+				id: "gone",
+				note: "Rent",
 			},
 		]);
 
@@ -169,9 +155,7 @@ describe("search query", () => {
 
 	it("matches nothing at all on an empty query", async () => {
 		const db = makeDb();
-		await seed(db, [
-			{ id: "any", note: "Rent", details: "anything", date: at(2025, 7, 1) },
-		]);
+		await seed(db, [{ date: at(2025, 7, 1), details: "anything", id: "any", note: "Rent" }]);
 
 		expect(await search(db, "")).toStrictEqual([]);
 	});
@@ -179,16 +163,12 @@ describe("search query", () => {
 	it("returns newest first", async () => {
 		const db = makeDb();
 		await seed(db, [
-			{ id: "middle", note: "Rent", date: at(2025, 7, 10) },
-			{ id: "newest", note: "Rent", date: at(2025, 7, 14) },
-			{ id: "oldest", note: "Rent", date: at(2025, 6, 30) },
+			{ date: at(2025, 7, 10), id: "middle", note: "Rent" },
+			{ date: at(2025, 7, 14), id: "newest", note: "Rent" },
+			{ date: at(2025, 6, 30), id: "oldest", note: "Rent" },
 		]);
 
-		expect(await search(db, "rent")).toStrictEqual([
-			"newest",
-			"middle",
-			"oldest",
-		]);
+		expect(await search(db, "rent")).toStrictEqual(["newest", "middle", "oldest"]);
 	});
 });
 
@@ -197,12 +177,12 @@ describe("search over the note's free text", () => {
 		const db = makeDb();
 		await seed(db, [
 			{
+				date: at(2025, 7, 14),
+				details: "Quarterly dentist deposit",
 				id: "in-details",
 				note: "Card 4471",
-				details: "Quarterly dentist deposit",
-				date: at(2025, 7, 14),
 			},
-			{ id: "other", note: "Card 4471", date: at(2025, 7, 14) },
+			{ date: at(2025, 7, 14), id: "other", note: "Card 4471" },
 		]);
 
 		expect(await search(db, "dentist")).toStrictEqual(["in-details"]);
@@ -212,10 +192,10 @@ describe("search over the note's free text", () => {
 		const db = makeDb();
 		await seed(db, [
 			{
+				date: at(2025, 7, 14),
+				details: "coffee beans for the office",
 				id: "both",
 				note: "Coffee",
-				details: "coffee beans for the office",
-				date: at(2025, 7, 14),
 			},
 		]);
 
@@ -226,17 +206,17 @@ describe("search over the note's free text", () => {
 		const db = makeDb();
 		await seed(db, [
 			{
+				date: at(2025, 8, 1),
+				details: "dentist",
 				id: "scheduled",
 				note: "Card 4471",
-				details: "dentist",
-				date: at(2025, 8, 1),
 			},
 			{
-				id: "gone",
-				note: "Card 4471",
-				details: "dentist",
 				date: at(2025, 7, 1),
 				deletedAt: new Date(0),
+				details: "dentist",
+				id: "gone",
+				note: "Card 4471",
 			},
 		]);
 
@@ -249,16 +229,16 @@ describe("wildcards in the query", () => {
 		const db = makeDb();
 		await seed(db, [
 			{
-				id: "literal",
-				note: "50% off socks",
 				amount: 12,
 				date: at(2025, 7, 14),
+				id: "literal",
+				note: "50% off socks",
 			},
 			{
-				id: "wildcard-bait",
-				note: "5000 off",
 				amount: 13,
 				date: at(2025, 7, 14),
+				id: "wildcard-bait",
+				note: "5000 off",
 			},
 		]);
 
@@ -269,16 +249,16 @@ describe("wildcards in the query", () => {
 		const db = makeDb();
 		await seed(db, [
 			{
+				date: at(2025, 7, 14),
+				details: "ref a_b",
 				id: "literal",
 				note: "Invoice",
-				details: "ref a_b",
-				date: at(2025, 7, 14),
 			},
 			{
+				date: at(2025, 7, 13),
+				details: "ref axb",
 				id: "wildcard-bait",
 				note: "Invoice",
-				details: "ref axb",
-				date: at(2025, 7, 13),
 			},
 		]);
 
@@ -288,10 +268,10 @@ describe("wildcards in the query", () => {
 
 describe("the search projection", () => {
 	const row = {
+		date: at(2025, 7, 14),
+		details: "Quarterly dentist deposit",
 		id: "row",
 		note: "Card 4471",
-		details: "Quarterly dentist deposit",
-		date: at(2025, 7, 14),
 	};
 
 	it("carries the free text, so a matched row can show why it matched", async () => {
@@ -299,14 +279,12 @@ describe("the search projection", () => {
 		await seed(db, [row]);
 
 		const rows = await searchedTransactionsQuery(db, {
-			query: "dentist",
 			categoryIds: [],
 			nowMs: NOW,
+			query: "dentist",
 		});
 
-		expect(rows.map((found) => found.details)).toStrictEqual([
-			"Quarterly dentist deposit",
-		]);
+		expect(rows.map((found) => found.details)).toStrictEqual(["Quarterly dentist deposit"]);
 	});
 
 	it("leaves the free text out of the Log's own read", async () => {
@@ -316,8 +294,6 @@ describe("the search projection", () => {
 		const rows = await logWindowRowsQuery(db, NOW, null);
 
 		expect(rows.length).toBe(1);
-		expect(
-			rows.flatMap((found) => Object.keys(found)).includes("details"),
-		).toBe(false);
+		expect(rows.flatMap((found) => Object.keys(found)).includes("details")).toBe(false);
 	});
 });

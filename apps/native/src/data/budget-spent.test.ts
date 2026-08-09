@@ -3,12 +3,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { categories, transactions } from "@/db/schema";
 import { buildRateTable, sumValuedIn, valueIn } from "@/domain/valuation";
-import {
-	type ExpenseContribution,
-	expenseContributionQuery,
-	spentForCategory,
-	spentForMain,
-} from "./budget-spent";
+import { type ExpenseContribution, expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
 
 type TestDb = ReturnType<typeof drizzle>;
 
@@ -69,89 +64,89 @@ function makeDb(): TestDb {
 async function seed(db: TestDb): Promise<void> {
 	const now = new Date();
 	await db.insert(categories).values([
-		{ id: "food", name: "Food", income: false, sortOrder: 0, updatedAt: now },
+		{ id: "food", income: false, name: "Food", sortOrder: 0, updatedAt: now },
 		{
 			id: "groc",
-			name: "Groceries",
 			income: false,
+			name: "Groceries",
 			parentId: "food",
 			sortOrder: 1,
 			updatedAt: now,
 		},
-		{ id: "rent", name: "Rent", income: false, sortOrder: 2, updatedAt: now },
-		{ id: "sal", name: "Salary", income: true, sortOrder: 0, updatedAt: now },
+		{ id: "rent", income: false, name: "Rent", sortOrder: 2, updatedAt: now },
+		{ id: "sal", income: true, name: "Salary", sortOrder: 0, updatedAt: now },
 	]);
 	const base = {
-		note: "",
 		day: WINDOW_START,
 		month: WINDOW_START,
+		note: "",
 		onceRecurring: false,
-		recurringType: 0,
 		recurringCoefficient: 1,
+		recurringType: 0,
 		updatedAt: now,
 	};
 	await db.insert(transactions).values([
 		// In-window expenses that count.
 		{
 			...base,
-			id: "t-food",
 			amount: 10,
-			income: false,
 			categoryId: "food",
 			date: at(2025, 1, 10),
+			id: "t-food",
+			income: false,
 		},
 		{
 			...base,
-			id: "t-groc",
 			amount: 20,
-			income: false,
 			categoryId: "groc",
 			date: at(2025, 1, 15),
+			id: "t-groc",
+			income: false,
 		},
 		{
 			...base,
-			id: "t-rent",
 			amount: 100,
-			income: false,
 			categoryId: "rent",
 			date: at(2025, 1, 20),
+			id: "t-rent",
+			income: false,
 		},
 		// Income is never spending.
 		{
 			...base,
-			id: "t-inc",
 			amount: 500,
-			income: true,
 			categoryId: "sal",
 			date: at(2025, 1, 12),
+			id: "t-inc",
+			income: true,
 		},
 		// Before the window.
 		{
 			...base,
-			id: "t-before",
 			amount: 5,
-			income: false,
 			categoryId: "food",
 			date: at(2024, 12, 20),
+			id: "t-before",
+			income: false,
 		},
 		// After `now`.
 		{
 			...base,
-			id: "t-after",
 			amount: 7,
-			income: false,
 			categoryId: "food",
 			date: at(2025, 2, 5),
+			id: "t-after",
+			income: false,
 		},
 		// Soft-deleted.
 		{
 			...base,
-			id: "t-del",
 			amount: 999,
-			income: false,
 			categoryId: "food",
 			date: at(2025, 1, 18),
 			deletedAt: now,
+			id: "t-del",
+			income: false,
 		},
 	]);
 }
@@ -159,10 +154,10 @@ async function seed(db: TestDb): Promise<void> {
 // The reactive hooks load one expense set (non-deleted, income=false, date<=now)
 // and bucket in JS; this mirrors that query result.
 const CONTRIBUTIONS: ExpenseContribution[] = [
-	{ amount: 10, categoryId: "food", parentId: null, date: at(2025, 1, 10) },
-	{ amount: 20, categoryId: "groc", parentId: "food", date: at(2025, 1, 15) },
-	{ amount: 100, categoryId: "rent", parentId: null, date: at(2025, 1, 20) },
-	{ amount: 5, categoryId: "food", parentId: null, date: at(2024, 12, 20) },
+	{ amount: 10, categoryId: "food", date: at(2025, 1, 10), parentId: null },
+	{ amount: 20, categoryId: "groc", date: at(2025, 1, 15), parentId: "food" },
+	{ amount: 100, categoryId: "rent", date: at(2025, 1, 20), parentId: null },
+	{ amount: 5, categoryId: "food", date: at(2024, 12, 20), parentId: null },
 ];
 
 describe("expenseContributionQuery", () => {
@@ -176,16 +171,12 @@ describe("expenseContributionQuery", () => {
 		// Every budget figure is a JS reduction over this one result, so a row that
 		// slips through here is spend nothing downstream removes.
 		const rows = await expenseContributionQuery(db, NOW);
-		expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([
-			5, 10, 20, 100,
-		]);
+		expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([5, 10, 20, 100]);
 	});
 
 	it("hides a future-dated expense until its day arrives", async () => {
 		const rows = await expenseContributionQuery(db, at(2025, 1, 12));
-		expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([
-			5, 10,
-		]);
+		expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([5, 10]);
 	});
 
 	it("carries the currency columns the valuation needs", async () => {
@@ -203,16 +194,12 @@ describe("spentForCategory", () => {
 
 	it("counts only the exact category when it has no children", () => {
 		expect(spentForCategory(CONTRIBUTIONS, "groc", WINDOW_START, NOW)).toBe(20);
-		expect(spentForCategory(CONTRIBUTIONS, "rent", WINDOW_START, NOW)).toBe(
-			100,
-		);
+		expect(spentForCategory(CONTRIBUTIONS, "rent", WINDOW_START, NOW)).toBe(100);
 	});
 
 	it("respects the window lower bound", () => {
 		// Widening the window back to December pulls in the 5.00 expense.
-		expect(spentForCategory(CONTRIBUTIONS, "food", at(2024, 12, 1), NOW)).toBe(
-			35,
-		);
+		expect(spentForCategory(CONTRIBUTIONS, "food", at(2024, 12, 1), NOW)).toBe(35);
 	});
 });
 
@@ -230,49 +217,47 @@ describe("a budget's spend does not depend on which list it is summed from", () 
 	// The detail screen queries its own contributing rows instead of sharing the
 	// list every other budget surface reads, so the conversion has to be applied
 	// twice or the hero contradicts the rows printed under it.
-	const RATES = buildRateTable([
-		{ quote: "EUR", date: "2026-07-01", rate: 0.8 },
-	]);
+	const RATES = buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.8 }]);
 	const JULY_15 = new Date(Date.UTC(2026, 6, 15, 12));
 	const ROWS = [
 		{
 			amount: 40,
-			currency: "EUR",
 			amountUsd: 50,
-			date: JULY_15,
 			categoryId: "food",
+			currency: "EUR",
+			date: JULY_15,
 		},
 		{
 			amount: 50,
-			currency: "USD",
 			amountUsd: null,
-			date: JULY_15,
 			categoryId: "food",
+			currency: "USD",
+			date: JULY_15,
 		},
 	];
 
 	it("agrees with the shared expense list, in the display currency", () => {
 		const shared: ExpenseContribution[] = ROWS.map((row) => ({
-			categoryId: row.categoryId,
-			parentId: null,
-			date: row.date,
 			amount: valueIn(
 				{
 					amount: row.amount,
-					currency: row.currency,
 					amountUsd: row.amountUsd,
+					currency: row.currency,
 					dateKey: utcDateString(row.date.getTime()),
 				},
 				"EUR",
-				RATES,
+				RATES
 			),
+			categoryId: row.categoryId,
+			date: row.date,
+			parentId: null,
 		}));
 
 		const fromShared = spentForCategory(
 			shared,
 			"food",
 			new Date(Date.UTC(2026, 6, 1)),
-			new Date(Date.UTC(2026, 6, 31)),
+			new Date(Date.UTC(2026, 6, 31))
 		);
 		const fromDetail = sumValuedIn(ROWS, "EUR", RATES);
 

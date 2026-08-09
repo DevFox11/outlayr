@@ -15,25 +15,14 @@ export const PUBLISH_DEBOUNCE_MS = 750;
 export const SPOTLIGHT_DEBOUNCE_MS = 20_000;
 
 /** Only these tables change what a widget renders. */
-const WIDGET_TABLES = new Set([
-	"transactions",
-	"budgets",
-	"mainBudget",
-	"categories",
-	"appMeta",
-]);
+const WIDGET_TABLES = new Set(["transactions", "budgets", "mainBudget", "categories", "appMeta"]);
 
 /**
  * What `indexSpotlight` reads. `mainBudget` is absent on purpose: the index
  * lists budget rows and never the overall-budget singleton, so a change to it
  * would cost a full domain rewrite that produces identical items.
  */
-const SPOTLIGHT_TABLES = new Set([
-	"transactions",
-	"budgets",
-	"categories",
-	"appMeta",
-]);
+const SPOTLIGHT_TABLES = new Set(["transactions", "budgets", "categories", "appMeta"]);
 
 export function affectsWidgets(tableName: string): boolean {
 	return WIDGET_TABLES.has(tableName);

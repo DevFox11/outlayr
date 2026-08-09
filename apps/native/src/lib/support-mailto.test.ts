@@ -1,12 +1,12 @@
 import { supportBody, supportMailto } from "./support-mailto";
 
 const INFO = {
+	appBuild: "42",
 	appName: "Outlayr",
+	appVersion: "1.2.0",
+	deviceName: "iPhone",
 	osName: "iOS",
 	osVersion: "26.0",
-	deviceName: "iPhone",
-	appVersion: "1.2.0",
-	appBuild: "42",
 };
 
 describe("support email body", () => {

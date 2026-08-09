@@ -1,8 +1,6 @@
 import { useMemo, useRef } from "react";
 import { type AccessibilityActionEvent, Pressable, View } from "react-native";
-import ReanimatedSwipeable, {
-	type SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated from "react-native-reanimated";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
@@ -12,11 +10,7 @@ import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
-import {
-	BUDGET_TYPE,
-	budgetTimeLeftLabel,
-	leftPerDay,
-} from "@/domain/budget-math";
+import { BUDGET_TYPE, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useTranslation } from "@/i18n";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
@@ -26,15 +20,15 @@ import { BudgetDaySlots } from "./budget-day-slots";
 
 interface BudgetRowProps {
 	budget: CategoryBudgetView;
-	currency: string;
-	onPress: (id: string) => void;
-	onLongPress?: (id: string) => void;
-	/** Runs once the swipe's Delete is confirmed; the row asks the question itself. */
-	onDelete: (id: string) => void;
 	burndown?: Burndown | null;
 	contributions: readonly ExpenseContribution[];
+	currency: string;
 	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
 	nowMs: number;
+	/** Runs once the swipe's Delete is confirmed; the row asks the question itself. */
+	onDelete: (id: string) => void;
+	onLongPress?: (id: string) => void;
+	onPress: (id: string) => void;
 }
 
 const THUMB_WIDTH = 88;
@@ -65,10 +59,10 @@ export function BudgetRow({
 			return null;
 		}
 		const slots = buildDaySlots(contributions, {
-			limit: budget.amount,
-			window: budget.window,
-			now: new Date(nowMs),
 			categoryId: budget.categoryId,
+			limit: budget.amount,
+			now: new Date(nowMs),
+			window: budget.window,
 		});
 		return dayVerdictSentence(slots, budget.name, t);
 	}, [isDay, contributions, budget, nowMs, t]);
@@ -77,13 +71,11 @@ export function BudgetRow({
 	// Cents off regardless of the setting: the exact figure is already alongside.
 	const meta = [
 		t("budgets.spentOfLimit", {
-			spent: formatAmount(budget.spent, currency, false),
 			limit: formatAmount(budget.amount, currency, false),
+			spent: formatAmount(budget.spent, currency, false),
 		}),
 		budgetTimeLeftLabel(budget.window, budget.type, now, t),
-		over || isDay
-			? null
-			: t("budgets.perDay", { amount: formatAmount(perDay, currency, false) }),
+		over || isDay ? null : t("budgets.perDay", { amount: formatAmount(perDay, currency, false) }),
 	]
 		.filter(Boolean)
 		.join(" · ");
@@ -103,9 +95,7 @@ export function BudgetRow({
 				requestDelete();
 			}}
 		>
-			<Text className="font-sans-semibold text-subtitle text-white">
-				{t("budgets.action.delete")}
-			</Text>
+			<Text className="font-sans-semibold text-subtitle text-white">{t("budgets.action.delete")}</Text>
 		</Pressable>
 	);
 
@@ -126,13 +116,11 @@ export function BudgetRow({
 					// assistive gesture can perform.
 					accessibilityActions={[
 						{
-							name: DELETE_ACTION,
 							label: t("budgets.row.deleteA11y", { name: budget.name }),
+							name: DELETE_ACTION,
 						},
 					]}
-					accessibilityHint={
-						onLongPress ? t("budgets.row.actionsHint") : undefined
-					}
+					accessibilityHint={onLongPress ? t("budgets.row.actionsHint") : undefined}
 					accessibilityRole="button"
 					className="flex-row items-center gap-3 py-3.5 active:opacity-70"
 					onAccessibilityAction={(event: AccessibilityActionEvent) => {
@@ -145,21 +133,12 @@ export function BudgetRow({
 				>
 					<View className="flex-1 gap-1">
 						<View className="flex-row items-center gap-2">
-							<View
-								className="size-2 rounded-full"
-								style={{ backgroundColor: budget.color }}
-							/>
-							<Text
-								className="flex-1 font-sans-semibold text-body text-foreground"
-								numberOfLines={1}
-							>
+							<View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
+							<Text className="flex-1 font-sans-semibold text-body text-foreground" numberOfLines={1}>
 								{budget.name}
 							</Text>
 							<Text
-								className={cn(
-									"font-sans-semibold text-body",
-									over ? "text-over-budget" : "text-foreground",
-								)}
+								className={cn("font-sans-semibold text-body", over ? "text-over-budget" : "text-foreground")}
 								numberOfLines={1}
 								style={{ fontVariant: ["tabular-nums"] }}
 							>
@@ -171,11 +150,7 @@ export function BudgetRow({
 						</View>
 						<MonoLabel numberOfLines={1}>{meta}</MonoLabel>
 
-						{isDay && dayVerdict ? (
-							<Text className="pt-1 text-foreground text-label">
-								{dayVerdict}
-							</Text>
-						) : null}
+						{isDay && dayVerdict ? <Text className="pt-1 text-foreground text-label">{dayVerdict}</Text> : null}
 					</View>
 
 					{isDay ? (

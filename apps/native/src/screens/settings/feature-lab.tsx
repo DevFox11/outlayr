@@ -1,9 +1,6 @@
 import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
-import {
-	useAppSettings,
-	useDisplaySettings,
-} from "@/contexts/display-settings-context";
+import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting } from "@/data/settings";
 import type { Database } from "@/db/client";
@@ -48,10 +45,7 @@ function FeatureLabContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection
-				footer={t("settings.featureLab.confettiNote")}
-				title={t("settings.featureLab.addingSection")}
-			>
+			<SettingsSection footer={t("settings.featureLab.confettiNote")} title={t("settings.featureLab.addingSection")}>
 				<ToggleRow
 					icon="Sparkles"
 					onValueChange={(next) => {
@@ -62,10 +56,7 @@ function FeatureLabContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection
-				footer={t("settings.featureLab.experimental")}
-				title={t("settings.featureLab.logSection")}
-			>
+			<SettingsSection footer={t("settings.featureLab.experimental")} title={t("settings.featureLab.logSection")}>
 				<ToggleRow
 					icon="ChartLineData01"
 					onValueChange={(next) => {
@@ -76,10 +67,7 @@ function FeatureLabContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection
-				footer={t("settings.featureLab.budgetRowsNote")}
-				title={t("settings.featureLab.budgetsSection")}
-			>
+			<SettingsSection footer={t("settings.featureLab.budgetRowsNote")} title={t("settings.featureLab.budgetsSection")}>
 				<ToggleRow
 					icon="LayoutTable01"
 					onValueChange={(next) => {

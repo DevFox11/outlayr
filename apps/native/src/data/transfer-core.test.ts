@@ -3,11 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
 import { parseCsv } from "@/domain/csv";
-import {
-	CSV_HEADER,
-	parseCsvAmount,
-	parseCsvDate,
-} from "@/domain/transaction-csv";
+import { CSV_HEADER, parseCsvAmount, parseCsvDate } from "@/domain/transaction-csv";
 import { transactionsRepo } from "./transactions-core";
 import {
 	applyImport,
@@ -79,25 +75,25 @@ async function seed(db: Database) {
 	await db.insert(categories).values([
 		{
 			id: "cat-food",
-			name: "Groceries",
 			income: false,
+			name: "Groceries",
 			sortOrder: 0,
 			updatedAt: NOW,
 		},
 		{
 			id: "cat-pay",
-			name: "Paycheck",
 			income: true,
+			name: "Paycheck",
 			sortOrder: 1,
 			updatedAt: NOW,
 		},
 		{
+			deletedAt: NOW,
 			id: "cat-gone",
-			name: "Retired",
 			income: false,
+			name: "Retired",
 			sortOrder: 2,
 			updatedAt: NOW,
-			deletedAt: NOW,
 		},
 	]);
 }
@@ -105,41 +101,41 @@ async function seed(db: Database) {
 async function seedTransactions(db: Database) {
 	await db.insert(transactions).values([
 		{
-			id: "t-1",
 			amount: 12.5,
-			income: false,
+			categoryId: "cat-food",
 			currency: "EUR",
-			note: "Bakery, twice",
 			date: new Date(2026, 6, 28, 9, 30),
 			day: new Date(2026, 6, 28),
+			id: "t-1",
+			income: false,
 			month: new Date(2026, 6, 1),
-			categoryId: "cat-food",
+			note: "Bakery, twice",
 			updatedAt: NOW,
 		},
 		{
-			id: "t-2",
 			amount: 2400,
-			income: true,
+			categoryId: "cat-pay",
 			currency: null,
-			note: "Salary",
 			date: new Date(2026, 6, 27, 8, 0),
 			day: new Date(2026, 6, 27),
+			id: "t-2",
+			income: true,
 			month: new Date(2026, 6, 1),
-			categoryId: "cat-pay",
+			note: "Salary",
 			updatedAt: NOW,
 		},
 		{
-			id: "t-dead",
 			amount: 99,
-			income: false,
+			categoryId: "cat-food",
 			currency: "USD",
-			note: "Deleted",
 			date: new Date(2026, 6, 26, 8, 0),
 			day: new Date(2026, 6, 26),
-			month: new Date(2026, 6, 1),
-			categoryId: "cat-food",
-			updatedAt: NOW,
 			deletedAt: NOW,
+			id: "t-dead",
+			income: false,
+			month: new Date(2026, 6, 1),
+			note: "Deleted",
+			updatedAt: NOW,
 		},
 	]);
 }
@@ -192,9 +188,7 @@ describe("exportTransactionsCsv", () => {
 
 describe("exportFileName", () => {
 	it("stamps the local day", () => {
-		expect(exportFileName(new Date(2026, 6, 5, 23))).toBe(
-			"outlayr-2026-07-05.csv",
-		);
+		expect(exportFileName(new Date(2026, 6, 5, 23))).toBe("outlayr-2026-07-05.csv");
 	});
 });
 
@@ -221,11 +215,11 @@ describe("uniqueCategoryValues", () => {
 });
 
 const MAPPING = {
-	category: 0,
-	note: 1,
-	date: 2,
 	amount: 3,
+	category: 0,
 	currency: null,
+	date: 2,
+	note: 1,
 	type: null,
 };
 
@@ -265,7 +259,7 @@ describe("splitHeaderAndRows", () => {
 			splitHeaderAndRows([
 				["Date", "Note", "Amount"],
 				["2026-07-28", "Bakery", "12.50"],
-			]),
+			])
 		).toStrictEqual({
 			header: ["Date", "Note", "Amount"],
 			rows: [["2026-07-28", "Bakery", "12.50"]],
@@ -273,9 +267,7 @@ describe("splitHeaderAndRows", () => {
 	});
 
 	it("keeps a first line that already carries data", () => {
-		expect(
-			splitHeaderAndRows([["2026-07-28", "Bakery", "12.50"]]),
-		).toStrictEqual({
+		expect(splitHeaderAndRows([["2026-07-28", "Bakery", "12.50"]])).toStrictEqual({
 			header: null,
 			rows: [["2026-07-28", "Bakery", "12.50"]],
 		});
@@ -286,7 +278,7 @@ describe("splitHeaderAndRows", () => {
 			splitHeaderAndRows([
 				["a", "b", "c"],
 				["1", "2", "3", "4"],
-			]),
+			])
 		).toStrictEqual({
 			header: ["a", "b", "c"],
 			rows: [["1", "2", "3", "4"]],
@@ -297,11 +289,11 @@ describe("splitHeaderAndRows", () => {
 describe("guessMapping", () => {
 	it("maps a file this app exported without asking", () => {
 		expect(guessMapping([...CSV_HEADER])).toStrictEqual({
+			amount: 2,
+			category: 4,
+			currency: 3,
 			date: 0,
 			note: 1,
-			amount: 2,
-			currency: 3,
-			category: 4,
 			type: 5,
 		});
 	});
@@ -345,171 +337,80 @@ describe("buildImportPlan", () => {
 	]);
 
 	it("parses every readable row", () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries.length).toBe(2);
 		expect(plan.skipped.length).toBe(0);
 	});
 
 	it("takes direction from the matched category", () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.income).toBe(false);
 		expect(plan.entries[1]?.income).toBe(true);
 	});
 
 	it("prefers an explicit type column over the category's direction", () => {
 		const typed = rows.map((row) => [...row, "Income"]);
-		const plan = buildImportPlan(
-			typed,
-			{ ...MAPPING, type: 4 },
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(typed, { ...MAPPING, type: 4 }, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.income).toBe(true);
 	});
 
 	it("stores the magnitude, never a signed amount", () => {
 		const negative = [["Food", "Refund", "2026-07-28", "-12.50"]];
-		const plan = buildImportPlan(
-			negative,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(negative, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.amount).toBe(12.5);
 	});
 
 	it("reads a mapped currency column", () => {
 		const withCurrency = rows.map((row) => [...row, "eur"]);
-		const plan = buildImportPlan(
-			withCurrency,
-			{ ...MAPPING, currency: 4 },
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(withCurrency, { ...MAPPING, currency: 4 }, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.currency).toBe("EUR");
 	});
 
 	it("leaves currency null when no column is mapped, so the ledger's code applies", () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.currency).toBe(null);
 	});
 
 	it("rejects a currency cell that is not a three-letter code", () => {
 		const bad = [["Food", "Bakery", "2026-07-28", "12.50", "dollars"]];
-		const plan = buildImportPlan(
-			bad,
-			{ ...MAPPING, currency: 4 },
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(bad, { ...MAPPING, currency: 4 }, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.currency).toBe(null);
 	});
 
 	it("skips a row whose date does not parse and names the reason", () => {
 		const bad = [...rows, ["Food", "Mystery", "last tuesday", "5"]];
-		const plan = buildImportPlan(
-			bad,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(bad, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries.length).toBe(2);
-		expect(plan.skipped).toStrictEqual([{ row: 3, reason: "date" }]);
+		expect(plan.skipped).toStrictEqual([{ reason: "date", row: 3 }]);
 	});
 
 	it("skips a row whose amount does not parse", () => {
 		const bad = [["Food", "Mystery", "2026-07-28", "n/a"]];
-		const plan = buildImportPlan(
-			bad,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
-		expect(plan.skipped).toStrictEqual([{ row: 1, reason: "amount" }]);
+		const plan = buildImportPlan(bad, MAPPING, "yyyy-MM-dd", ".", links, income);
+		expect(plan.skipped).toStrictEqual([{ reason: "amount", row: 1 }]);
 	});
 
 	it("skips a row whose category value was never linked", () => {
 		const bad = [["Travel", "Flight", "2026-07-28", "300"]];
-		const plan = buildImportPlan(
-			bad,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
-		expect(plan.skipped).toStrictEqual([{ row: 1, reason: "category" }]);
+		const plan = buildImportPlan(bad, MAPPING, "yyyy-MM-dd", ".", links, income);
+		expect(plan.skipped).toStrictEqual([{ reason: "category", row: 1 }]);
 	});
 
 	it("skips a ragged row missing the mapped column entirely", () => {
 		const bad = [["Food", "Bakery"]];
-		const plan = buildImportPlan(
-			bad,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(bad, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries.length).toBe(0);
 		expect(plan.skipped.length).toBe(1);
 	});
 
 	it("carries a blank note through as blank, leaving the fallback to the write", () => {
 		const blank = [["Food", "  ", "2026-07-28", "12.50"]];
-		const plan = buildImportPlan(
-			blank,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(blank, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.note).toBe("");
 	});
 
 	it("reports the date span of what it will write", () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.earliest).toStrictEqual(new Date(2026, 6, 27));
 		expect(plan.latest).toStrictEqual(new Date(2026, 6, 28));
 	});
@@ -542,28 +443,14 @@ describe("applyImport", () => {
 	]);
 
 	it("writes every planned entry", async () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		const written = await applyImport(db, plan);
 		expect(written).toBe(2);
 		expect((await db.select().from(transactions)).length).toBe(2);
 	});
 
 	it("buckets each row into its own day and month", async () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
 		const first = rowsOut.find((row) => row.note === "Bakery");
@@ -580,43 +467,25 @@ describe("applyImport", () => {
 	it("rolls back every entry when the write fails partway through", async () => {
 		const transactionalDb = makeDb({ withRealTransactions: true });
 		await seed(transactionalDb);
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		const originalCreate = transactionsRepo.create;
 		let calls = 0;
-		const spy = jest
-			.spyOn(transactionsRepo, "create")
-			.mockImplementation(async (targetDb, input) => {
-				calls += 1;
-				if (calls === 2) {
-					throw new Error("disk full");
-				}
-				return originalCreate(targetDb, input);
-			});
+		const spy = jest.spyOn(transactionsRepo, "create").mockImplementation(async (targetDb, input) => {
+			calls += 1;
+			if (calls === 2) {
+				throw new Error("disk full");
+			}
+			return originalCreate(targetDb, input);
+		});
 
-		await expect(applyImport(transactionalDb, plan)).rejects.toThrow(
-			"disk full",
-		);
+		await expect(applyImport(transactionalDb, plan)).rejects.toThrow("disk full");
 		expect((await transactionalDb.select().from(transactions)).length).toBe(0);
 
 		spy.mockRestore();
 	});
 
 	it("leaves imported rows non-recurring", async () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
 		expect(rowsOut.every((row) => row.recurringType === 0)).toBeTruthy();
@@ -625,28 +494,14 @@ describe("applyImport", () => {
 
 	it("names a blank-note row after its category", async () => {
 		const blank = [["Food", "  ", "2026-07-28", "12.50"]];
-		const plan = buildImportPlan(
-			blank,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(blank, MAPPING, "yyyy-MM-dd", ".", links, income);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
 		expect(rowsOut[0]?.note).toBe("Groceries");
 	});
 
 	it("stamps the ledger currency on rows that named none", async () => {
-		const plan = buildImportPlan(
-			rows,
-			MAPPING,
-			"yyyy-MM-dd",
-			".",
-			links,
-			income,
-		);
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		await applyImport(db, plan);
 		const rowsOut = await db.select().from(transactions);
 		expect(rowsOut.every((row) => row.currency === "USD")).toBeTruthy();
@@ -658,14 +513,14 @@ describe("applyImport", () => {
 		const parsed = parseCsv(csv).slice(1);
 		const plan = buildImportPlan(
 			parsed,
-			{ category: 4, note: 1, date: 0, amount: 2, currency: 3, type: 5 },
+			{ amount: 2, category: 4, currency: 3, date: 0, note: 1, type: 5 },
 			"ISO",
 			".",
 			new Map([
 				["groceries", "cat-food"],
 				["paycheck", "cat-pay"],
 			]),
-			income,
+			income
 		);
 		expect(plan.skipped.length).toBe(0);
 		expect(plan.entries.length).toBe(2);

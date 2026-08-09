@@ -1,8 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import {
-	ArrowLeft01Icon,
-	ArrowRight01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
@@ -11,23 +8,17 @@ import { useTranslation } from "@/i18n";
 import { useColors } from "@/theme/use-colors";
 
 interface BudgetPeriodStepperProps {
-	window: BudgetWindow;
-	type: number;
-	/** 0 is the running window; negative counts closed windows behind it. */
-	offset: number;
 	/** How many closed windows the ledger reaches back through. */
 	maxBack: number;
+	/** 0 is the running window; negative counts closed windows behind it. */
+	offset: number;
 	onStep: (offset: number) => void;
+	type: number;
+	window: BudgetWindow;
 }
 
 /** Ports Swift's `BudgetStepperView`: browse the windows behind the running one. */
-export function BudgetPeriodStepper({
-	window,
-	type,
-	offset,
-	maxBack,
-	onStep,
-}: BudgetPeriodStepperProps) {
+export function BudgetPeriodStepper({ window, type, offset, maxBack, onStep }: BudgetPeriodStepperProps) {
 	const t = useTranslation();
 	return (
 		<View className="flex-row items-center justify-between">
@@ -39,9 +30,7 @@ export function BudgetPeriodStepper({
 				<ArrowGlyph back />
 			</StepButton>
 
-			<MonoLabel className="text-foreground">
-				{budgetWindowLabel(window, type)}
-			</MonoLabel>
+			<MonoLabel className="text-foreground">{budgetWindowLabel(window, type)}</MonoLabel>
 
 			<StepButton
 				accessibilityLabel={t("budgets.stepper.next")}

@@ -1,28 +1,10 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import {
-	Cancel01Icon,
-	CheckIcon,
-	MinusSignIcon,
-	PlusSignIcon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { Cancel01Icon, CheckIcon, MinusSignIcon, PlusSignIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { NumberFlow } from "number-flow-react-native";
 import { BottomSheet, Button, cn, Tabs } from "panelui-native";
-import {
-	type RefObject,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
-import Animated, {
-	Easing,
-	FadeIn,
-	FadeOut,
-	useAnimatedStyle,
-	withTiming,
-} from "react-native-reanimated";
+import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { formatChargeDate } from "@/domain/dates";
 import {
 	MAX_INTERVAL,
@@ -79,47 +61,41 @@ const UNIT_TITLE_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.yearly]: "transaction.cadence.years",
 };
 
-const UNIT_NOUN_KEY: Record<
-	number,
-	{ readonly one: TranslationKey; readonly many: TranslationKey }
-> = {
+const UNIT_NOUN_KEY: Record<number, { readonly one: TranslationKey; readonly many: TranslationKey }> = {
 	[RECURRING_TYPE.daily]: {
-		one: "transaction.unit.day",
 		many: "transaction.unit.days",
+		one: "transaction.unit.day",
 	},
 	[RECURRING_TYPE.weekly]: {
-		one: "transaction.unit.week",
 		many: "transaction.unit.weeks",
+		one: "transaction.unit.week",
 	},
 	[RECURRING_TYPE.monthly]: {
-		one: "transaction.unit.month",
 		many: "transaction.unit.months",
+		one: "transaction.unit.month",
 	},
 	[RECURRING_TYPE.yearly]: {
-		one: "transaction.unit.year",
 		many: "transaction.unit.years",
+		one: "transaction.unit.year",
 	},
 };
 
-const INTERVAL_KEY: Record<
-	number,
-	{ readonly one: TranslationKey; readonly many: TranslationKey }
-> = {
+const INTERVAL_KEY: Record<number, { readonly one: TranslationKey; readonly many: TranslationKey }> = {
 	[RECURRING_TYPE.daily]: {
-		one: "transaction.interval.day",
 		many: "transaction.interval.days",
+		one: "transaction.interval.day",
 	},
 	[RECURRING_TYPE.weekly]: {
-		one: "transaction.interval.week",
 		many: "transaction.interval.weeks",
+		one: "transaction.interval.week",
 	},
 	[RECURRING_TYPE.monthly]: {
-		one: "transaction.interval.month",
 		many: "transaction.interval.months",
+		one: "transaction.interval.month",
 	},
 	[RECURRING_TYPE.yearly]: {
-		one: "transaction.interval.year",
 		many: "transaction.interval.years",
+		one: "transaction.interval.year",
 	},
 };
 
@@ -129,11 +105,7 @@ const INTERVAL_KEY: Record<
  * because English and Spanish take the same shape here, and the count is a plain
  * integer the caller already clamped — no locale number formatting is involved.
  */
-export function intervalPhrase(
-	t: TranslateFn,
-	type: number,
-	coefficient: number,
-): string {
+export function intervalPhrase(t: TranslateFn, type: number, coefficient: number): string {
 	const n = Math.max(1, Math.round(coefficient));
 	const keys = INTERVAL_KEY[type] ?? INTERVAL_KEY[RECURRING_TYPE.monthly];
 	return n <= 1 ? t(keys.one) : t(keys.many, { count: n });
@@ -146,8 +118,8 @@ function unitNoun(t: TranslateFn, type: number, coefficient: number): string {
 
 function normalizeSchedule(type: number, coefficient: number) {
 	return {
-		type: type === RECURRING_TYPE.none ? RECURRING_TYPE.monthly : type,
 		coefficient: Math.min(MAX_INTERVAL, Math.max(1, Math.round(coefficient))),
+		type: type === RECURRING_TYPE.none ? RECURRING_TYPE.monthly : type,
 	};
 }
 
@@ -163,10 +135,7 @@ function chargeKey(charges: readonly ScheduledCharge[]): string {
  * lands at the midpoint of its own fade — no frame ever shows a date the sheet
  * is not about to keep.
  */
-function useRippledCharges(
-	charges: readonly ScheduledCharge[],
-	ready: RefObject<boolean>,
-) {
+function useRippledCharges(charges: readonly ScheduledCharge[], ready: RefObject<boolean>) {
 	const [shown, setShown] = useState<readonly ScheduledCharge[]>(charges);
 	const [swapping, setSwapping] = useState<readonly boolean[]>([]);
 	/*
@@ -175,9 +144,7 @@ function useRippledCharges(
 	 * hides the note, shrinks the sheet, then grows it again a beat later — the
 	 * one height change here, played twice, in the middle of the motion.
 	 */
-	const [noteVisible, setNoteVisible] = useState(() =>
-		charges.some((charge) => charge.clamped),
-	);
+	const [noteVisible, setNoteVisible] = useState(() => charges.some((charge) => charge.clamped));
 	const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 	const next = chargeKey(charges);
 	const current = chargeKey(shown);
@@ -207,16 +174,13 @@ function useRippledCharges(
 						setTimeout(() => {
 							setShown((prev) => withAt(prev, index, charges[index]));
 							setSwapping((prev) => withAt(prev, index, false));
-						}, SWAP.duration),
+						}, SWAP.duration)
 					);
-				}, index * RIPPLE_STAGGER_MS),
+				}, index * RIPPLE_STAGGER_MS)
 			);
 		});
 		timers.current.push(
-			setTimeout(
-				() => setNoteVisible(clamped),
-				(charges.length - 1) * RIPPLE_STAGGER_MS + SWAP.duration * 2,
-			),
+			setTimeout(() => setNoteVisible(clamped), (charges.length - 1) * RIPPLE_STAGGER_MS + SWAP.duration * 2)
 		);
 	}, [next, current, charges, ready]);
 
@@ -226,10 +190,10 @@ function useRippledCharges(
 				clearTimeout(timer);
 			}
 		},
-		[],
+		[]
 	);
 
-	return { shown, swapping, noteVisible };
+	return { noteVisible, shown, swapping };
 }
 
 function withAt<T>(list: readonly T[], index: number, value: T): T[] {
@@ -239,12 +203,12 @@ function withAt<T>(list: readonly T[], index: number, value: T): T[] {
 }
 
 interface CustomScheduleSheetProps {
-	open: boolean;
-	recurringType: number;
-	recurringCoefficient: number;
 	firstPayment: Date;
-	onOpenChange: (open: boolean) => void;
 	onDone: (recurringType: number, recurringCoefficient: number) => void;
+	onOpenChange: (open: boolean) => void;
+	open: boolean;
+	recurringCoefficient: number;
+	recurringType: number;
 }
 
 /**
@@ -292,12 +256,9 @@ export function CustomScheduleSheet({
 
 	const charges = useMemo(
 		() => schedulePreview(firstPayment, type, coefficient, PREVIEW_COUNT),
-		[firstPayment, type, coefficient],
+		[firstPayment, type, coefficient]
 	);
-	const { shown, swapping, noteVisible } = useRippledCharges(
-		charges,
-		rippleReady,
-	);
+	const { shown, swapping, noteVisible } = useRippledCharges(charges, rippleReady);
 
 	useEffect(() => {
 		if (!open) {
@@ -317,51 +278,29 @@ export function CustomScheduleSheet({
 	}, [onDone, onOpenChange, type, coefficient]);
 
 	const pickType = useCallback((next: string) => setType(Number(next)), []);
-	const stepUp = useCallback(
-		() => setCoefficient((c) => Math.min(MAX_INTERVAL, c + 1)),
-		[],
-	);
-	const stepDown = useCallback(
-		() => setCoefficient((c) => Math.max(1, c - 1)),
-		[],
-	);
+	const stepUp = useCallback(() => setCoefficient((c) => Math.min(MAX_INTERVAL, c + 1)), []);
+	const stepDown = useCallback(() => setCoefficient((c) => Math.max(1, c - 1)), []);
 
 	return (
 		<BottomSheet native onOpenChange={onOpenChange} open={open}>
 			<BottomSheet.Content className="pt-0" size="auto">
 				<View className="flex-row items-center justify-between py-1">
 					<Button
-						variant="secondary"
+						accessibilityLabel={t("common.cancel")}
 						className="rounded-full"
 						onPress={close}
-						accessibilityLabel={t("common.cancel")}
 						size="icon"
+						variant="secondary"
 					>
-						<HugeiconsIcon
-							size={22}
-							icon={Cancel01Icon}
-							color={colors.foreground}
-						/>
+						<HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
 					</Button>
 
-					<Text
-						accessibilityRole="header"
-						className="font-medium text-foreground text-lg"
-					>
+					<Text accessibilityRole="header" className="font-medium text-foreground text-lg">
 						{t("transaction.schedule.customTitle")}
 					</Text>
 
-					<Button
-						size="icon"
-						className="rounded-full"
-						onPress={done}
-						accessibilityLabel={t("common.done")}
-					>
-						<HugeiconsIcon
-							size={22}
-							icon={CheckIcon}
-							color={colors.accentForeground}
-						/>
+					<Button accessibilityLabel={t("common.done")} className="rounded-full" onPress={done} size="icon">
+						<HugeiconsIcon color={colors.accentForeground} icon={CheckIcon} size={22} />
 					</Button>
 				</View>
 
@@ -375,9 +314,7 @@ export function CustomScheduleSheet({
 					style={{ marginBottom: 16, marginTop: 12 }}
 					testID="schedule-sentence"
 				>
-					<Text className={SENTENCE}>
-						{t("transaction.schedule.everyLabel")}
-					</Text>
+					<Text className={SENTENCE}>{t("transaction.schedule.everyLabel")}</Text>
 					<StepButton
 						accessibilityLabel={t("transaction.schedule.fewer")}
 						disabled={coefficient <= 1}
@@ -445,14 +382,8 @@ export function CustomScheduleSheet({
 				</Tabs>
 
 				<View className="mt-5 rounded-2xl bg-background p-4">
-					<MonoLabel className="pb-2">
-						{t("transaction.schedule.nextCharges")}
-					</MonoLabel>
-					<ChargeRow
-						date={firstPayment}
-						first
-						tag={t("transaction.schedule.firstPaymentTag")}
-					/>
+					<MonoLabel className="pb-2">{t("transaction.schedule.nextCharges")}</MonoLabel>
+					<ChargeRow date={firstPayment} first tag={t("transaction.schedule.firstPaymentTag")} />
 					{shown.map((charge, index) => (
 						<ChargeRow
 							date={charge.date}
@@ -460,11 +391,7 @@ export function CustomScheduleSheet({
 							key={index}
 							last={index === shown.length - 1}
 							swapping={swapping[index] === true}
-							tag={
-								charge.clamped
-									? t("transaction.schedule.shortMonthTag")
-									: undefined
-							}
+							tag={charge.clamped ? t("transaction.schedule.shortMonthTag") : undefined}
 							tinted={charge.clamped}
 						/>
 					))}
@@ -487,10 +414,10 @@ const HOLD_DELAY_MS = 350;
 const HOLD_REPEAT_MS = 70;
 
 interface StepButtonProps {
+	accessibilityLabel: string;
+	disabled: boolean;
 	icon: typeof PlusSignIcon;
 	onStep: () => void;
-	disabled: boolean;
-	accessibilityLabel: string;
 }
 
 /**
@@ -500,12 +427,7 @@ interface StepButtonProps {
  * range: without it, reaching 30 is 29 taps, and that is the gap the row of
  * preset chips used to fill.
  */
-function StepButton({
-	icon,
-	onStep,
-	disabled,
-	accessibilityLabel,
-}: StepButtonProps) {
+function StepButton({ icon, onStep, disabled, accessibilityLabel }: StepButtonProps) {
 	const colors = useColors();
 	const held = useRef<{
 		delay?: ReturnType<typeof setTimeout>;
@@ -549,34 +471,22 @@ function StepButton({
 			}}
 			onPressOut={release}
 		>
-			<HugeiconsIcon
-				color={colors.foreground}
-				icon={icon}
-				size={STEP_ICON_SIZE}
-				strokeWidth={2.4}
-			/>
+			<HugeiconsIcon color={colors.foreground} icon={icon} size={STEP_ICON_SIZE} strokeWidth={2.4} />
 		</Pressable>
 	);
 }
 
 interface ChargeRowProps {
 	date: Date;
-	tag?: string;
 	first?: boolean;
 	last?: boolean;
-	tinted?: boolean;
 	/** This row's date is mid-handover and is not currently true. */
 	swapping?: boolean;
+	tag?: string;
+	tinted?: boolean;
 }
 
-function ChargeRow({
-	date,
-	tag,
-	first = false,
-	last = false,
-	tinted = false,
-	swapping = false,
-}: ChargeRowProps) {
+function ChargeRow({ date, tag, first = false, last = false, tinted = false, swapping = false }: ChargeRowProps) {
 	// Transform and opacity only: neither reaches layout, so the row never
 	// re-measures and the platform sheet never re-settles under the motion.
 	const dateStyle = useAnimatedStyle(() => ({
@@ -592,38 +502,21 @@ function ChargeRow({
 			{/* The rule is drawn before the dot so the dot covers it; an unfilled
 			    dot is a ring, and a line crossing its middle reads as a strikethrough. */}
 			<View className="w-5.5 items-center justify-center self-stretch">
-				{last ? null : (
-					<View className="absolute top-1/2 bottom-0 w-[1.5px] bg-separator" />
-				)}
-				{first ? null : (
-					<View className="absolute top-0 bottom-1/2 w-[1.5px] bg-separator" />
-				)}
+				{last ? null : <View className="absolute top-1/2 bottom-0 w-[1.5px] bg-separator" />}
+				{first ? null : <View className="absolute top-0 bottom-1/2 w-[1.5px] bg-separator" />}
 				<Animated.View
 					className={cn(
 						"size-2.25 rounded-full",
-						first
-							? "bg-foreground"
-							: "border-[1.5px] border-muted bg-background",
+						first ? "bg-foreground" : "border-[1.5px] border-muted bg-background"
 					)}
 					style={first ? undefined : dotStyle}
 				/>
 			</View>
-			<Animated.View
-				className="flex-1 flex-row items-center gap-3"
-				style={first ? undefined : dateStyle}
-			>
-				<Text
-					className={
-						tinted
-							? "font-sans-semibold text-foreground text-subtitle"
-							: "text-foreground text-subtitle"
-					}
-				>
+			<Animated.View className="flex-1 flex-row items-center gap-3" style={first ? undefined : dateStyle}>
+				<Text className={tinted ? "font-sans-semibold text-foreground text-subtitle" : "text-foreground text-subtitle"}>
 					{formatChargeDate(date)}
 				</Text>
-				{tag == null ? null : (
-					<Text className="text-label text-muted">{tag}</Text>
-				)}
+				{tag == null ? null : <Text className="text-label text-muted">{tag}</Text>}
 			</Animated.View>
 		</View>
 	);

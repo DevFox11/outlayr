@@ -18,16 +18,16 @@ function png(length = 1024): Uint8Array {
 
 function imageResponse(status: number, bytes: Uint8Array): Response {
 	return {
-		status,
-		headers: { get: () => "image/png" },
 		arrayBuffer: async () => bytes.buffer,
+		headers: { get: () => "image/png" },
+		status,
 	} as unknown as Response;
 }
 
 const notFound = {
-	status: 404,
-	headers: { get: () => "application/json" },
 	arrayBuffer: async () => new Uint8Array(0).buffer,
+	headers: { get: () => "application/json" },
+	status: 404,
 } as unknown as Response;
 
 describe("url builders", () => {
@@ -47,17 +47,14 @@ describe("fetchMerchantImage", () => {
 	it("tries logo.dev before the favicon, with no shared-cache tier ahead of it", async () => {
 		const branded = png(900);
 		const calls: string[] = [];
-		const result = await fetchMerchantImage(
-			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
-			(async (url: string) => {
-				calls.push(String(url));
-				return String(url).includes("img.logo.dev")
-					? imageResponse(200, branded)
-					: notFound;
-			}) as unknown as typeof fetch,
-		);
+		const result = await fetchMerchantImage({ domain: "zzqq-nothing.example", name: "zzqq nothing" }, (async (
+			url: string
+		) => {
+			calls.push(String(url));
+			return String(url).includes("img.logo.dev") ? imageResponse(200, branded) : notFound;
+		}) as unknown as typeof fetch);
 
-		expect(result).toStrictEqual({ kind: "logo", bytes: branded });
+		expect(result).toStrictEqual({ bytes: branded, kind: "logo" });
 		expect(calls).toHaveLength(1);
 		expect(calls[0]).toContain("img.logo.dev");
 	});
@@ -65,25 +62,22 @@ describe("fetchMerchantImage", () => {
 	it("falls through to the favicon tier when logo.dev refuses", async () => {
 		const favicon = png(1200);
 		const calls: string[] = [];
-		const result = await fetchMerchantImage(
-			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
-			(async (url: string) => {
-				calls.push(String(url));
-				return String(url).includes("img.logo.dev")
-					? notFound
-					: imageResponse(200, favicon);
-			}) as unknown as typeof fetch,
-		);
+		const result = await fetchMerchantImage({ domain: "zzqq-nothing.example", name: "zzqq nothing" }, (async (
+			url: string
+		) => {
+			calls.push(String(url));
+			return String(url).includes("img.logo.dev") ? notFound : imageResponse(200, favicon);
+		}) as unknown as typeof fetch);
 
-		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
+		expect(result).toStrictEqual({ bytes: favicon, kind: "logo" });
 		expect(calls[0]).toContain("img.logo.dev");
 		expect(calls[1]).toContain("s2/favicons");
 	});
 
 	it("returns none when every tier refuses", async () => {
 		const result = await fetchMerchantImage(
-			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
-			(async () => notFound) as unknown as typeof fetch,
+			{ domain: "zzqq-nothing.example", name: "zzqq nothing" },
+			(async () => notFound) as unknown as typeof fetch
 		);
 
 		expect(result).toStrictEqual({ kind: "none" });
@@ -91,22 +85,16 @@ describe("fetchMerchantImage", () => {
 
 	it("returns none without calling out when there is no name or domain", async () => {
 		const fetchImpl = jest.fn();
-		const result = await fetchMerchantImage(
-			{ name: "", domain: null },
-			fetchImpl as unknown as typeof fetch,
-		);
+		const result = await fetchMerchantImage({ domain: null, name: "" }, fetchImpl as unknown as typeof fetch);
 
 		expect(result).toStrictEqual({ kind: "none" });
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
 	it("survives a thrown request", async () => {
-		const result = await fetchMerchantImage(
-			{ name: "Netflix", domain: "netflix.com" },
-			(async () => {
-				throw new Error("offline");
-			}) as unknown as typeof fetch,
-		);
+		const result = await fetchMerchantImage({ domain: "netflix.com", name: "Netflix" }, (async () => {
+			throw new Error("offline");
+		}) as unknown as typeof fetch);
 
 		expect(result).toStrictEqual({ kind: "none" });
 	});
@@ -116,20 +104,18 @@ describe("fetchMerchantImage", () => {
 		jest.doMock("@outlayr/env/native", () => ({
 			env: { EXPO_PUBLIC_LOGO_DEV_TOKEN: undefined },
 		}));
-		const { fetchMerchantImage: fetchWithNoToken } =
-			require("./logo-fetch") as typeof import("./logo-fetch");
+		const { fetchMerchantImage: fetchWithNoToken } = require("./logo-fetch") as typeof import("./logo-fetch");
 
 		const favicon = png(1300);
 		const calls: string[] = [];
-		const result = await fetchWithNoToken(
-			{ name: "zzqq nothing", domain: "zzqq-nothing.example" },
-			(async (url: string) => {
-				calls.push(String(url));
-				return imageResponse(200, favicon);
-			}) as unknown as typeof fetch,
-		);
+		const result = await fetchWithNoToken({ domain: "zzqq-nothing.example", name: "zzqq nothing" }, (async (
+			url: string
+		) => {
+			calls.push(String(url));
+			return imageResponse(200, favicon);
+		}) as unknown as typeof fetch);
 
-		expect(result).toStrictEqual({ kind: "logo", bytes: favicon });
+		expect(result).toStrictEqual({ bytes: favicon, kind: "logo" });
 		expect(calls).toHaveLength(1);
 		expect(calls[0]).toContain("s2/favicons");
 		jest.dontMock("@outlayr/env/native");

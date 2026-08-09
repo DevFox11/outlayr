@@ -4,25 +4,12 @@ import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import {
-	accounts,
-	budgets,
-	categories,
-	mainBudget,
-	templateTransactions,
-	transactions,
-} from "@/db/schema";
+import { accounts, budgets, categories, mainBudget, templateTransactions, transactions } from "@/db/schema";
 import { seedCategories } from "./categories-core";
-import {
-	type AdoptionEngine,
-	adoptedAccount,
-	localLedgerState,
-	markAdopted,
-	runAdoption,
-} from "./ledger-adoption";
+import { type AdoptionEngine, adoptedAccount, localLedgerState, markAdopted, runAdoption } from "./ledger-adoption";
 import { isSyncEnabled, outboxPendingCount } from "./sync-outbox-core";
 
-const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -40,21 +27,17 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-async function addTransaction(
-	target: Database,
-	id: string,
-	deletedAt: Date | null = null,
-): Promise<void> {
+async function addTransaction(target: Database, id: string, deletedAt: Date | null = null): Promise<void> {
 	const now = new Date();
 	await target.insert(transactions).values({
-		id,
 		amount: 12,
-		income: false,
 		date: now,
 		day: now,
+		deletedAt,
+		id,
+		income: false,
 		month: now,
 		updatedAt: now,
-		deletedAt,
 	});
 }
 
@@ -88,30 +71,28 @@ describe("local ledger state", () => {
 	it("reads a budget as populated", async () => {
 		const [first] = await db.select().from(categories).limit(1);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 100,
-			type: 0,
 			categoryId: first?.id ?? null,
+			id: "b1",
+			type: 0,
 			updatedAt: new Date(),
 		});
 		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads a main budget as populated", async () => {
-		await db
-			.insert(mainBudget)
-			.values({ id: "m1", amount: 100, type: 0, updatedAt: new Date() });
+		await db.insert(mainBudget).values({ amount: 100, id: "m1", type: 0, updatedAt: new Date() });
 		expect(await localLedgerState(db)).toBe("populated");
 	});
 
 	it("reads an account as populated", async () => {
 		const now = new Date();
 		await db.insert(accounts).values({
-			id: "a1",
-			name: "Checking",
 			currency: "USD",
-			initialBalanceDate: now,
 			dateCreated: now,
+			id: "a1",
+			initialBalanceDate: now,
+			name: "Checking",
 			updatedAt: now,
 		});
 		expect(await localLedgerState(db)).toBe("populated");
@@ -119,8 +100,8 @@ describe("local ledger state", () => {
 
 	it("reads a template transaction as populated", async () => {
 		await db.insert(templateTransactions).values({
-			id: "tt1",
 			amount: 5,
+			id: "tt1",
 			income: false,
 			updatedAt: new Date(),
 		});
@@ -148,9 +129,9 @@ describe("local ledger state", () => {
 	it("reads an added category as populated", async () => {
 		const now = new Date();
 		await db.insert(categories).values({
+			dateCreated: now,
 			id: "c-new",
 			name: "Mine",
-			dateCreated: now,
 			updatedAt: now,
 		});
 		expect(await localLedgerState(db)).toBe("populated");
@@ -177,16 +158,16 @@ describe("adoption marker", () => {
 function recordingEngine(): AdoptionEngine & { calls: string[] } {
 	const calls: string[] = [];
 	return {
-		calls,
 		accountLedger: async () => {
 			calls.push("accountLedger");
 			return "populated";
 		},
-		replaceFromAccount: async () => {
-			calls.push("replaceFromAccount");
-		},
+		calls,
 		discardAccountLedger: async () => {
 			calls.push("discardAccountLedger");
+		},
+		replaceFromAccount: async () => {
+			calls.push("replaceFromAccount");
 		},
 	};
 }
@@ -195,8 +176,8 @@ describe("running an adoption", () => {
 	it("opens the sync gate without queueing when there is nothing to push", async () => {
 		await runAdoption(db, null, {
 			pushLocal: false,
-			wipeLocal: false,
 			wipeAccount: false,
+			wipeLocal: false,
 		});
 		expect(await isSyncEnabled(db)).toBe(true);
 		expect(await outboxPendingCount(db)).toBe(0);
@@ -206,8 +187,8 @@ describe("running an adoption", () => {
 		await addTransaction(db, "t1");
 		await runAdoption(db, null, {
 			pushLocal: true,
-			wipeLocal: false,
 			wipeAccount: false,
+			wipeLocal: false,
 		});
 		expect(await isSyncEnabled(db)).toBe(true);
 		expect((await outboxPendingCount(db)) > 1).toBeTruthy();
@@ -217,16 +198,16 @@ describe("running an adoption", () => {
 		await expect(
 			runAdoption(db, null, {
 				pushLocal: false,
-				wipeLocal: true,
 				wipeAccount: false,
-			}),
+				wipeLocal: true,
+			})
 		).rejects.toThrow();
 		await expect(
 			runAdoption(db, null, {
 				pushLocal: true,
-				wipeLocal: false,
 				wipeAccount: true,
-			}),
+				wipeLocal: false,
+			})
 		).rejects.toThrow();
 		expect(await isSyncEnabled(db)).toBe(false);
 		expect(await outboxPendingCount(db)).toBe(0);
@@ -241,8 +222,8 @@ describe("running an adoption", () => {
 		};
 		await runAdoption(db, engine, {
 			pushLocal: false,
-			wipeLocal: true,
 			wipeAccount: false,
+			wipeLocal: true,
 		});
 		expect(engine.calls).toStrictEqual(["replaceFromAccount"]);
 		expect(await isSyncEnabled(db)).toBe(true);
@@ -254,8 +235,8 @@ describe("running an adoption", () => {
 		const engine = recordingEngine();
 		await runAdoption(db, engine, {
 			pushLocal: true,
-			wipeLocal: false,
 			wipeAccount: true,
+			wipeLocal: false,
 		});
 		expect(engine.calls).toStrictEqual(["discardAccountLedger"]);
 		expect((await outboxPendingCount(db)) > 1).toBeTruthy();
@@ -270,9 +251,9 @@ describe("running an adoption", () => {
 		await expect(
 			runAdoption(db, engine, {
 				pushLocal: true,
-				wipeLocal: false,
 				wipeAccount: true,
-			}),
+				wipeLocal: false,
+			})
 		).rejects.toThrow();
 		expect(await isSyncEnabled(db)).toBe(false);
 		expect(await outboxPendingCount(db)).toBe(0);

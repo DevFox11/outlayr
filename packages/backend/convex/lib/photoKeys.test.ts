@@ -1,12 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-	isPhotoName,
-	ownsPhotoKey,
-	PHOTO_KEY_PREFIX,
-	photoKeyFor,
-	photoNameFromKey,
-} from "./photoKeys";
+import { isPhotoName, ownsPhotoKey, PHOTO_KEY_PREFIX, photoKeyFor, photoNameFromKey } from "./photoKeys";
 
 const USER = "user-aaaa";
 const OTHER = "user-bbbb";
@@ -33,9 +27,7 @@ describe("isPhotoName", () => {
 
 describe("photoKeyFor", () => {
 	test("namespaces the object under the account", () => {
-		expect(photoKeyFor(USER, "a.jpg")).toBe(
-			`${PHOTO_KEY_PREFIX}/${USER}/a.jpg`,
-		);
+		expect(photoKeyFor(USER, "a.jpg")).toBe(`${PHOTO_KEY_PREFIX}/${USER}/a.jpg`);
 	});
 
 	test("is derivable, so a retried upload reuses the same key", () => {
@@ -53,9 +45,7 @@ describe("ownsPhotoKey", () => {
 	});
 
 	test("refuses a key that smuggles the owner into the name half", () => {
-		expect(
-			ownsPhotoKey(USER, `${PHOTO_KEY_PREFIX}/${OTHER}/../${USER}/a.jpg`),
-		).toBe(false);
+		expect(ownsPhotoKey(USER, `${PHOTO_KEY_PREFIX}/${OTHER}/../${USER}/a.jpg`)).toBe(false);
 	});
 
 	test("refuses a key outside the photo prefix", () => {

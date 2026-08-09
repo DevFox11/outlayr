@@ -19,33 +19,29 @@ describe("reviewEntryIdentity", () => {
 	it("falls back to the tier-2 enrichment cache for the domain", () => {
 		setCachedEnrichment(merchantKey("Bakery Corner"), {
 			categoryName: "Groceries",
+			domain: "bakerycorner.example",
 			isNewCategory: false,
 			tags: [],
-			domain: "bakerycorner.example",
 		});
-		expect(reviewEntryIdentity("Bakery Corner").domain).toBe(
-			"bakerycorner.example",
-		);
+		expect(reviewEntryIdentity("Bakery Corner").domain).toBe("bakerycorner.example");
 	});
 
 	it("resolves the cached domain for a note carrying a store number", () => {
 		setCachedEnrichment(merchantKey("Blue Bottle Coffee"), {
 			categoryName: "Food & Drink",
+			domain: "bluebottlecoffee.com",
 			isNewCategory: false,
 			tags: [],
-			domain: "bluebottlecoffee.com",
 		});
-		expect(reviewEntryIdentity("BLUE BOTTLE COFFEE #08761").domain).toBe(
-			"bluebottlecoffee.com",
-		);
+		expect(reviewEntryIdentity("BLUE BOTTLE COFFEE #08761").domain).toBe("bluebottlecoffee.com");
 	});
 
 	it("still hits a cache entry whose key kept the note's digits", () => {
 		setCachedEnrichment(merchantKey("Depot 55110"), {
 			categoryName: "Shopping",
+			domain: "depot.example",
 			isNewCategory: false,
 			tags: [],
-			domain: "depot.example",
 		});
 		expect(reviewEntryIdentity("Depot 55110").domain).toBe("depot.example");
 	});

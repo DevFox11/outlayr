@@ -38,14 +38,7 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, PlatformColor, View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import {
-	CHILD_NAME,
-	CHILD_TILE,
-	Eyebrow,
-	LABEL,
-	PARENT_NAME,
-	PARENT_TILE,
-} from "@/components/category-list-chrome";
+import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
 import { MarkInk } from "@/components/empty-state";
 import { Slot, Tile } from "@/components/empty-state-parts";
 import { Fade, Settle } from "@/components/mark-motion";
@@ -94,52 +87,49 @@ const GROUP_GAP = 10;
 const STEM = [foregroundStyle(CONNECTOR), frame({ width: CONNECTOR_WEIGHT })];
 /** Not a Spacer — see `TreeConnector`. */
 const STEM_HIDDEN = [...STEM, opacity(0)];
-const ELBOW_BAR = [
-	foregroundStyle(CONNECTOR),
-	frame({ width: ELBOW, height: CONNECTOR_WEIGHT }),
-];
+const ELBOW_BAR = [foregroundStyle(CONNECTOR), frame({ height: CONNECTOR_WEIGHT, width: ELBOW })];
 
 const NO_RULE = listRowSeparator("hidden");
 const FLUSH_ROW = listRowInsets({
-	top: 0,
-	leading: 0,
 	bottom: 0,
+	leading: 0,
+	top: 0,
 	trailing: 0,
 });
 const PARENT_ROW = listRowInsets({
-	top: GROUP_GAP,
-	leading: 0,
 	bottom: 0,
+	leading: 0,
+	top: GROUP_GAP,
 	trailing: 0,
 });
 const CLOSING_ROW = listRowInsets({
-	top: 0,
-	leading: 0,
 	bottom: GROUP_GAP,
+	leading: 0,
+	top: 0,
 	trailing: 0,
 });
 
 /** Text styles rather than fixed point sizes, so every font scales with Dynamic Type. */
 const SUBHEADLINE_MEDIUM = font({
-	textStyle: "subheadline",
 	design: "rounded",
+	textStyle: "subheadline",
 	weight: "medium",
 });
 const PARENT_CHEVRON = font({
-	textStyle: "footnote",
 	design: "rounded",
+	textStyle: "footnote",
 	weight: "semibold",
 });
 const CHILD_CHEVRON = font({
-	textStyle: "caption",
 	design: "rounded",
+	textStyle: "caption",
 	weight: "semibold",
 });
-const SUGGESTED_NAME = font({ textStyle: "body", design: "rounded" });
-const SUGGESTED_PLUS = font({ textStyle: "title3", design: "rounded" });
+const SUGGESTED_NAME = font({ design: "rounded", textStyle: "body" });
+const SUGGESTED_PLUS = font({ design: "rounded", textStyle: "title3" });
 const EMPTY_TEXT = font({
-	textStyle: "body",
 	design: "rounded",
+	textStyle: "body",
 	weight: "medium",
 });
 export function Categories({ income }: { income: boolean }) {
@@ -165,7 +155,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 				.flatMap((parent) => [parent, ...parent.children])
 				.map((category) => `${category.id}:${category.name}:${category.icon}`)
 				.join("|"),
-		[parents],
+		[parents]
 	);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `signature` is the intentional recompute trigger (it changes with the live tree); the effect body reads only db/income.
 	useEffect(() => {
@@ -182,62 +172,54 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 
 	const goToNewChild = (parent: CategoryWithChildren) => {
 		router.push({
-			pathname: "/settings/categories/[categoryId]/subcategories/create",
 			params: { categoryId: parent.id },
+			pathname: "/settings/categories/[categoryId]/subcategories/create",
 		});
 	};
 
 	const goToEdit = (category: Category) => {
 		if (category.parentId) {
 			router.push({
-				pathname:
-					"/settings/categories/[categoryId]/subcategories/[subcategoryId]",
 				params: { categoryId: category.parentId, subcategoryId: category.id },
+				pathname: "/settings/categories/[categoryId]/subcategories/[subcategoryId]",
 			});
 			return;
 		}
 		router.push({
-			pathname: "/settings/categories/[categoryId]",
 			params: { categoryId: category.id },
+			pathname: "/settings/categories/[categoryId]",
 		});
 	};
 
 	const goToReorder = () => {
 		router.push({
-			pathname: "/settings/categories/reorder",
 			params: { income: income ? "1" : "0" },
+			pathname: "/settings/categories/reorder",
 		});
 	};
 
 	const confirmDelete = (category: Category, hasChildren: boolean) => {
-		const message = t(
-			hasChildren
-				? "categories.delete.messageWithChildren"
-				: "categories.delete.message",
-			{ name: category.name },
-		);
-		Alert.alert(
-			t("categories.delete.title", { name: category.name }),
-			message,
-			[
-				{ text: t("common.cancel"), style: "cancel" },
-				{
-					text: t("common.delete"),
-					style: "destructive",
-					onPress: () => {
-						categoriesRepo.remove(db, category.id);
-					},
+		const message = t(hasChildren ? "categories.delete.messageWithChildren" : "categories.delete.message", {
+			name: category.name,
+		});
+		Alert.alert(t("categories.delete.title", { name: category.name }), message, [
+			{ style: "cancel", text: t("common.cancel") },
+			{
+				onPress: () => {
+					categoriesRepo.remove(db, category.id);
 				},
-			],
-		);
+				style: "destructive",
+				text: t("common.delete"),
+			},
+		]);
 	};
 
 	const addSuggested = (preset: SuggestedCategoryPreset) => {
 		categoriesRepo.addSuggested(db, {
-			name: preset.name,
-			icon: preset.icon,
 			color: preset.color,
+			icon: preset.icon,
 			income,
+			name: preset.name,
 		});
 	};
 
@@ -251,9 +233,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 				<Stack.Toolbar.Button
 					{...toolbarIcon(showSuggestions ? "suggestionsOn" : "suggestionsOff")}
 					accessibilityLabel={t(
-						showSuggestions
-							? "categories.a11y.hideSuggestions"
-							: "categories.a11y.showSuggestions",
+						showSuggestions ? "categories.a11y.hideSuggestions" : "categories.a11y.showSuggestions"
 					)}
 					onPress={() => {
 						setBoolSetting(db, "categorySuggestions", !showSuggestions);
@@ -270,7 +250,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 				<List modifiers={[listStyle("insetGrouped")]}>
 					{parents.length === 0 ? (
 						<Section>
-							<CategoriesEmpty income={income} colors={colors} />
+							<CategoriesEmpty colors={colors} income={income} />
 						</Section>
 					) : (
 						<Section header={<CensusLine colors={colors} parents={parents} />}>
@@ -319,23 +299,12 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 	);
 }
 
-function CensusLine({
-	parents,
-	colors,
-}: {
-	parents: CategoryWithChildren[];
-	colors: ThemeColors;
-}) {
+function CensusLine({ parents, colors }: { parents: CategoryWithChildren[]; colors: ThemeColors }) {
 	const t = useTranslation();
-	const children = parents.reduce(
-		(total, parent) => total + parent.children.length,
-		0,
-	);
+	const children = parents.reduce((total, parent) => total + parent.children.length, 0);
 	// `parents.length` is never zero here — the empty state renders a headerless
 	// Section instead.
-	const clauses = [
-		t("categories.census.categories", { count: parents.length }),
-	];
+	const clauses = [t("categories.census.categories", { count: parents.length })];
 	if (children > 0) {
 		clauses.push(t("categories.census.subcategories", { count: children }));
 	}
@@ -377,10 +346,7 @@ const EMPTY_MARK_WIDTH = EMPTY_MARK_TILE * 4 + EMPTY_MARK_GAP * 3;
 function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
 	return (
 		<MarkInk tier="inFlow">
-			<View
-				className="flex-row items-center"
-				style={{ width: EMPTY_MARK_WIDTH, gap: EMPTY_MARK_GAP }}
-			>
+			<View className="flex-row items-center" style={{ gap: EMPTY_MARK_GAP, width: EMPTY_MARK_WIDTH }}>
 				<Fade delay={staggerDelay(0)} from={0} to={1}>
 					<Tile opacity={1} size={EMPTY_MARK_TILE} />
 				</Fade>
@@ -394,12 +360,7 @@ function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
 					width={EMPTY_MARK_TILE}
 				>
 					<Settle delay={staggerDelay(3)}>
-						<HugeiconsIcon
-							color={colors.foreground}
-							icon={PlusSignIcon}
-							size={15}
-							strokeWidth={2.4}
-						/>
+						<HugeiconsIcon color={colors.foreground} icon={PlusSignIcon} size={15} strokeWidth={2.4} />
 					</Settle>
 				</Slot>
 				<Fade delay={staggerDelay(2)} from={0} to={1}>
@@ -410,35 +371,16 @@ function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
 	);
 }
 
-function CategoriesEmpty({
-	income,
-	colors,
-}: {
-	income: boolean;
-	colors: ThemeColors;
-}) {
+function CategoriesEmpty({ income, colors }: { income: boolean; colors: ThemeColors }) {
 	const t = useTranslation();
 	return (
-		<VStack
-			modifiers={[
-				frame({ maxWidth: 10_000, alignment: "center" }),
-				padding({ vertical: 37 }),
-			]}
-			spacing={10}
-		>
+		<VStack modifiers={[frame({ alignment: "center", maxWidth: 10_000 }), padding({ vertical: 37 })]} spacing={10}>
 			<RNHostView matchContents>
-				<View style={{ width: EMPTY_MARK_WIDTH, height: EMPTY_MARK_TILE }}>
+				<View style={{ height: EMPTY_MARK_TILE, width: EMPTY_MARK_WIDTH }}>
 					<CategoryGridOpen colors={colors} />
 				</View>
 			</RNHostView>
-			<SwiftText
-				modifiers={[
-					EMPTY_TEXT,
-					italic(),
-					multilineTextAlignment("center"),
-					foregroundStyle(colors.muted),
-				]}
-			>
+			<SwiftText modifiers={[EMPTY_TEXT, italic(), multilineTextAlignment("center"), foregroundStyle(colors.muted)]}>
 				{t(income ? "categories.empty.income" : "categories.empty.expense")}
 			</SwiftText>
 		</VStack>
@@ -470,7 +412,7 @@ function ParentGroup({
 	const hasChildren = parent.children.length > 0;
 	const rolledUpTotal = parent.children.reduce(
 		(sum, child) => sum + (totals.get(child.id) ?? 0),
-		totals.get(parent.id) ?? 0,
+		totals.get(parent.id) ?? 0
 	);
 	const addTint = income ? colors.tint : accent;
 
@@ -498,11 +440,7 @@ function ParentGroup({
 					tint={accent}
 				/>
 			))}
-			<GhostAddRow
-				closesTree={closesTree}
-				onPress={() => onAddChild(parent)}
-				tint={addTint}
-			/>
+			<GhostAddRow closesTree={closesTree} onPress={() => onAddChild(parent)} tint={addTint} />
 		</>
 	);
 }
@@ -553,34 +491,16 @@ function CategoryRow({
 					spacing={indented ? 10 : 12}
 				>
 					<RNHostView matchContents>
-						<View style={{ width: size, height: size }}>
-							<CategoryIconTile
-								color={tint}
-								emoji={category.emoji}
-								icon={category.icon}
-								size={size}
-								type="solid"
-							/>
+						<View style={{ height: size, width: size }}>
+							<CategoryIconTile color={tint} emoji={category.emoji} icon={category.icon} size={size} type="solid" />
 						</View>
 					</RNHostView>
-					<SwiftText
-						modifiers={[
-							indented ? CHILD_NAME : PARENT_NAME,
-							lineLimit(1),
-							foregroundStyle(LABEL),
-						]}
-					>
+					<SwiftText modifiers={[indented ? CHILD_NAME : PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}>
 						{category.name}
 					</SwiftText>
 					<Spacer />
 					{amount > 0 ? (
-						<SwiftText
-							modifiers={[
-								SUBHEADLINE_MEDIUM,
-								lineLimit(1),
-								foregroundStyle(colors.muted),
-							]}
-						>
+						<SwiftText modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(colors.muted)]}>
 							{formatAmount(amount, currency, false)}
 						</SwiftText>
 					) : null}
@@ -593,12 +513,7 @@ function CategoryRow({
 			</ZStack>
 			<SwipeActions.Actions edge="trailing">
 				{/* biome-ignore lint/a11y/useValidAriaRole: @expo/ui Button `role` is a SwiftUI ButtonRole, not an ARIA role */}
-				<Button
-					label={t("common.delete")}
-					onPress={onDelete}
-					role="destructive"
-					systemImage="trash"
-				/>
+				<Button label={t("common.delete")} onPress={onDelete} role="destructive" systemImage="trash" />
 			</SwipeActions.Actions>
 		</SwipeActions>
 	);
@@ -609,23 +524,12 @@ function CategoryRow({
  * hide-bottom and a show-top request landing on the same hairline resolve inside
  * UIKit.
  */
-function GhostAddRow({
-	tint,
-	closesTree,
-	onPress,
-}: {
-	tint: string;
-	closesTree: boolean;
-	onPress: () => void;
-}) {
+function GhostAddRow({ tint, closesTree, onPress }: { tint: string; closesTree: boolean; onPress: () => void }) {
 	const t = useTranslation();
 	return (
 		<ZStack
 			alignment="leading"
-			modifiers={[
-				closesTree ? FLUSH_ROW : CLOSING_ROW,
-				closesTree ? NO_RULE : listRowSeparator("visible", "bottom"),
-			]}
+			modifiers={[closesTree ? FLUSH_ROW : CLOSING_ROW, closesTree ? NO_RULE : listRowSeparator("visible", "bottom")]}
 		>
 			<TreeConnector kind="last" />
 			<HStack
@@ -639,26 +543,19 @@ function GhostAddRow({
 				spacing={10}
 			>
 				<RNHostView matchContents>
-					<View style={{ width: CHILD_TILE, height: CHILD_TILE }}>
+					<View style={{ height: CHILD_TILE, width: CHILD_TILE }}>
 						<CategoryIconTile
 							color={tint}
 							future
 							glyph={({ color, size }) => (
-								<HugeiconsIcon
-									color={color}
-									icon={PlusSignIcon}
-									size={size}
-									strokeWidth={2.4}
-								/>
+								<HugeiconsIcon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />
 							)}
 							icon={null}
 							size={CHILD_TILE}
 						/>
 					</View>
 				</RNHostView>
-				<SwiftText
-					modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(tint)]}
-				>
+				<SwiftText modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(tint)]}>
 					{t("categories.addSubcategory")}
 				</SwiftText>
 				<Spacer />
@@ -680,31 +577,13 @@ function SuggestedRow({
 		<Button modifiers={[buttonStyle("plain")]} onPress={() => onAdd(preset)}>
 			<HStack spacing={10}>
 				<RNHostView matchContents>
-					<View style={{ width: PARENT_TILE, height: PARENT_TILE }}>
-						<CategoryIconTile
-							color={preset.color}
-							future
-							icon={preset.icon}
-							size={PARENT_TILE}
-							type="solid"
-						/>
+					<View style={{ height: PARENT_TILE, width: PARENT_TILE }}>
+						<CategoryIconTile color={preset.color} future icon={preset.icon} size={PARENT_TILE} type="solid" />
 					</View>
 				</RNHostView>
-				<SwiftText
-					modifiers={[
-						SUGGESTED_NAME,
-						lineLimit(1),
-						foregroundStyle(colors.muted),
-					]}
-				>
-					{preset.name}
-				</SwiftText>
+				<SwiftText modifiers={[SUGGESTED_NAME, lineLimit(1), foregroundStyle(colors.muted)]}>{preset.name}</SwiftText>
 				<Spacer />
-				<Image
-					color={colors.muted}
-					modifiers={[SUGGESTED_PLUS]}
-					systemName="plus.circle.fill"
-				/>
+				<Image color={colors.muted} modifiers={[SUGGESTED_PLUS]} systemName="plus.circle.fill" />
 			</HStack>
 		</Button>
 	);

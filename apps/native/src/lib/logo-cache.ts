@@ -4,10 +4,7 @@ const CACHE_DIRECTORY = "merchant-logos";
 /** Written for a merchant that resolved to nothing, so the miss is remembered. */
 const MISS_MARKER = ".miss";
 
-export type CachedLogo =
-	| { kind: "logo"; bytes: Uint8Array }
-	| { kind: "miss" }
-	| { kind: "unknown" };
+export type CachedLogo = { kind: "logo"; bytes: Uint8Array } | { kind: "miss" } | { kind: "unknown" };
 
 function directory(): Directory {
 	const dir = new Directory(Paths.cache, CACHE_DIRECTORY);
@@ -48,7 +45,7 @@ export async function readCachedLogo(key: string): Promise<CachedLogo> {
 		}
 		const hit = new File(directory(), key);
 		if (hit.exists) {
-			return { kind: "logo", bytes: await hit.bytes() };
+			return { bytes: await hit.bytes(), kind: "logo" };
 		}
 	} catch {
 		return { kind: "unknown" };
@@ -82,10 +79,7 @@ export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
 		return;
 	}
 	try {
-		const target = new File(
-			directory(),
-			bytes == null ? `${key}${MISS_MARKER}` : key,
-		);
+		const target = new File(directory(), bytes == null ? `${key}${MISS_MARKER}` : key);
 		target.create({ overwrite: true });
 		target.write(bytes ?? new Uint8Array(0));
 	} catch {

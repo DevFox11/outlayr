@@ -34,7 +34,7 @@ describe("useChooseImportFile", () => {
 		mockPickCsvFile.mockReturnValue(
 			new Promise((resolve) => {
 				resolvePick = resolve;
-			}),
+			})
 		);
 		const { getByText, findByText } = await render(<Harness />);
 
@@ -59,7 +59,7 @@ describe("useChooseImportFile", () => {
 	});
 
 	it("dispatches fileParsed with the resolved mapping, clearing any prior error first", async () => {
-		importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		importDraftStore.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		importDraftStore.setFileError({ cause: "empty" });
 		mockPickCsvFile.mockResolvedValue({
 			name: "bank.csv",
@@ -73,16 +73,12 @@ describe("useChooseImportFile", () => {
 			expect(importDraftStore.getSnapshot().flow.parsed).not.toBeNull();
 		});
 		expect(importDraftStore.getSnapshot().flow.mappingGaps).toStrictEqual([]);
-		expect(importDraftStore.getSnapshot().flow.resolved?.labelSource).toBe(
-			"descriptionColumn",
-		);
+		expect(importDraftStore.getSnapshot().flow.resolved?.labelSource).toBe("descriptionColumn");
 		expect(importDraftStore.getSnapshot().ui.fileError).toBeNull();
 	});
 
 	it("records an io error with the thrown key", async () => {
-		mockPickCsvFile.mockRejectedValue(
-			new TransferError("alerts.transfer.unreadableFile"),
-		);
+		mockPickCsvFile.mockRejectedValue(new TransferError("alerts.transfer.unreadableFile"));
 		const { getByText } = await render(<Harness />);
 
 		fireEvent.press(getByText("choose"));

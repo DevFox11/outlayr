@@ -8,44 +8,34 @@ import Animated, {
 	withDelay,
 	withTiming,
 } from "react-native-reanimated";
-import {
-	CONFETTI_FLIGHT_MS,
-	type ConfettiPiece,
-	confettiBurst,
-} from "@/domain/confetti";
+import { CONFETTI_FLIGHT_MS, type ConfettiPiece, confettiBurst } from "@/domain/confetti";
 import { useColors } from "@/theme/use-colors";
 
 const PIECE_COUNT = 36;
 
 interface ConfettiProps {
-	/** Burst box, in points — pieces launch across it and fall out the bottom. */
-	width: number;
 	height: number;
 	/** Changing this re-seeds the burst; the same value never re-fires. */
 	seed: number;
+	/** Burst box, in points — pieces launch across it and fall out the bottom. */
+	width: number;
 }
 
 export function Confetti({ width, height, seed }: ConfettiProps) {
 	const colors = useColors();
-	const palette = useMemo(
-		() => [colors.income, colors.tint, colors.warning, colors.foreground],
-		[colors],
-	);
-	const pieces = useMemo(
-		() => confettiBurst(PIECE_COUNT, palette.length, seed),
-		[palette.length, seed],
-	);
+	const palette = useMemo(() => [colors.income, colors.tint, colors.warning, colors.foreground], [colors]);
+	const pieces = useMemo(() => confettiBurst(PIECE_COUNT, palette.length, seed), [palette.length, seed]);
 
 	return (
 		<View
 			pointerEvents="none"
 			style={{
-				position: "absolute",
+				height,
 				left: 0,
+				overflow: "hidden",
+				position: "absolute",
 				top: 0,
 				width,
-				height,
-				overflow: "hidden",
 			}}
 		>
 			{pieces.map((piece) => (
@@ -80,7 +70,7 @@ function Piece({
 			withTiming(1, {
 				duration: piece.durationMs,
 				easing: Easing.out(Easing.quad),
-			}),
+			})
 		);
 	}, [progress, piece.delayMs, piece.durationMs]);
 
@@ -91,11 +81,7 @@ function Piece({
 			transform: [
 				{ translateX: p * piece.drift * width },
 				{
-					translateY: interpolate(
-						p,
-						[0, 0.32, 1],
-						[0, -piece.rise * height, piece.fall * height],
-					),
+					translateY: interpolate(p, [0, 0.32, 1], [0, -piece.rise * height, piece.fall * height]),
 				},
 				{ rotate: `${p * piece.spin}deg` },
 			],
@@ -106,15 +92,15 @@ function Piece({
 		<Animated.View
 			style={[
 				{
-					position: "absolute",
+					backgroundColor: color,
+					borderRadius: 1,
+					height: piece.size * 0.6,
 					left: piece.x * width,
+					position: "absolute",
 					// Launched from the floor of the box: the burst reads as thrown up
 					// from the row the user just committed, not rained down on it.
 					top: height,
 					width: piece.size,
-					height: piece.size * 0.6,
-					borderRadius: 1,
-					backgroundColor: color,
 				},
 				style,
 			]}

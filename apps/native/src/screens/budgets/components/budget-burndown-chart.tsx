@@ -9,12 +9,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import {
-	Easing,
-	useReducedMotion,
-	useSharedValue,
-	withTiming,
-} from "react-native-reanimated";
+import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { Burndown } from "@/domain/budget-burndown";
@@ -26,34 +21,34 @@ import { useColors } from "@/theme/use-colors";
 
 interface BudgetBurndownChartProps {
 	burndown: Burndown;
-	limit: number;
-	width: number;
-	height?: number;
-	/** Called with the scrubbed day (1-indexed) or null when the finger lifts. */
-	onScrub?: (day: number | null) => void;
-	/**
-	 * False turns the chart into a static sparkline. The pan claims the touch the
-	 * moment it lands, so a thumbnail inside a pressable row must opt out or the
-	 * row never registers a tap.
-	 */
-	interactive?: boolean;
 	/**
 	 * `auto` fits the plot to this budget's own range; `limit` pins the axis to
 	 * ±the limit so a column of thumbnails shares one unit — without it a
 	 * 200%-over budget looks identical to a 2%-over one.
 	 */
 	domain?: "auto" | "limit";
+	height?: number;
+	/**
+	 * False turns the chart into a static sparkline. The pan claims the touch the
+	 * moment it lands, so a thumbnail inside a pressable row must opt out or the
+	 * row never registers a tap.
+	 */
+	interactive?: boolean;
+	limit: number;
+	/** Called with the scrubbed day (1-indexed) or null when the finger lifts. */
+	onScrub?: (day: number | null) => void;
+	width: number;
 }
 
-const PAD = { left: 4, right: 4, top: 10, bottom: 10 } as const;
+const PAD = { bottom: 10, left: 4, right: 4, top: 10 } as const;
 
 interface Plot {
-	x: (day: number) => number;
-	y: (value: number) => number;
-	zeroY: number;
 	plotLeft: number;
 	plotRight: number;
 	span: number;
+	x: (day: number) => number;
+	y: (value: number) => number;
+	zeroY: number;
 }
 
 /**
@@ -61,13 +56,7 @@ interface Plot {
  * screen whether the budget held or blew, and stretches to cover the projection
  * when it dips below the worst actual balance.
  */
-function makePlot(
-	burndown: Burndown,
-	limit: number,
-	width: number,
-	height: number,
-	domain: "auto" | "limit",
-): Plot {
+function makePlot(burndown: Burndown, limit: number, width: number, height: number, domain: "auto" | "limit"): Plot {
 	const plotLeft = PAD.left;
 	const plotRight = width - PAD.right;
 	const span = Math.max(1, burndown.totalDays - 1);
@@ -99,12 +88,12 @@ function makePlot(
 	};
 
 	return {
-		x: (day) => plotLeft + ((day - 1) / span) * (plotRight - plotLeft),
-		y,
-		zeroY: y(0),
 		plotLeft,
 		plotRight,
 		span,
+		x: (day) => plotLeft + ((day - 1) / span) * (plotRight - plotLeft),
+		y,
+		zeroY: y(0),
 	};
 }
 
@@ -158,52 +147,48 @@ export function BudgetBurndownChart({
 		const plot = makePlot(burndown, limit, width, height, domain);
 		const last = burndown.points.at(-1);
 
-		const actual = Skia.Path.MakeFromSVGString(
-			actualPathD(burndown, limit, plot),
-		);
+		const actual = Skia.Path.MakeFromSVGString(actualPathD(burndown, limit, plot));
 		const ideal = Skia.Path.MakeFromSVGString(
-			`M ${plot.x(1)} ${plot.y(limit)} L ${plot.x(burndown.totalDays)} ${plot.y(0)}`,
+			`M ${plot.x(1)} ${plot.y(limit)} L ${plot.x(burndown.totalDays)} ${plot.y(0)}`
 		);
 
 		const projection =
 			last && burndown.projectedBalance != null
 				? Skia.Path.MakeFromSVGString(
-						`M ${plot.x(last.day)} ${plot.y(last.balance)} L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)}`,
+						`M ${plot.x(last.day)} ${plot.y(last.balance)} L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)}`
 					)
 				: null;
 
 		const surplus = Skia.Path.MakeFromSVGString(
-			`${actualPathD(burndown, limit, plot)} L ${plot.x(last?.day ?? 1)} ${plot.zeroY} L ${plot.x(1)} ${plot.zeroY} Z`,
+			`${actualPathD(burndown, limit, plot)} L ${plot.x(last?.day ?? 1)} ${plot.zeroY} L ${plot.x(1)} ${plot.zeroY} Z`
 		);
 
 		let deficit: ReturnType<typeof Skia.Path.MakeFromSVGString> = null;
 		if (burndown.runwayDay != null && last) {
 			const crossX = plot.x(burndown.runwayDay);
 			const tail =
-				burndown.projectedBalance != null
-					? `L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)} L ${plot.x(burndown.totalDays)} ${plot.zeroY}`
-					: `L ${plot.x(last.day)} ${plot.zeroY}`;
+				burndown.projectedBalance == null
+					? `L ${plot.x(last.day)} ${plot.zeroY}`
+					: `L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)} L ${plot.x(burndown.totalDays)} ${plot.zeroY}`;
 			deficit = Skia.Path.MakeFromSVGString(
-				`M ${crossX} ${plot.zeroY} L ${crossX} ${plot.y(last.balance)} L ${plot.x(last.day)} ${plot.y(last.balance)} ${tail} Z`,
+				`M ${crossX} ${plot.zeroY} L ${crossX} ${plot.y(last.balance)} L ${plot.x(last.day)} ${plot.y(last.balance)} ${tail} Z`
 			);
 		}
 
 		const hatch = Skia.Path.MakeFromSVGString(hatchPathD(width, height));
 
-		const axis = Skia.Path.MakeFromSVGString(
-			`M ${plot.plotLeft} ${plot.zeroY} L ${plot.plotRight} ${plot.zeroY}`,
-		);
+		const axis = Skia.Path.MakeFromSVGString(`M ${plot.plotLeft} ${plot.zeroY} L ${plot.plotRight} ${plot.zeroY}`);
 
 		return {
-			plot,
 			actual,
-			ideal,
-			projection,
-			surplus,
+			axis,
 			deficit,
 			hatch,
-			axis,
+			ideal,
 			last,
+			plot,
+			projection,
+			surplus,
 		};
 	}, [burndown, limit, width, height, domain]);
 
@@ -220,9 +205,7 @@ export function BudgetBurndownChart({
 		}
 		const x = plot.x(marker.day);
 		const over = CHART_SCRUB.ruleOvershoot;
-		return Skia.Path.MakeFromSVGString(
-			`M ${x} ${PAD.top - over} L ${x} ${height - PAD.bottom + over}`,
-		);
+		return Skia.Path.MakeFromSVGString(`M ${x} ${PAD.top - over} L ${x} ${height - PAD.bottom + over}`);
 	}, [plot, marker, height]);
 
 	const pan = useMemo(() => {
@@ -280,10 +263,11 @@ export function BudgetBurndownChart({
 		const day = last?.day ?? 1;
 		const balance = last?.balance ?? limit;
 		const share = Math.round((Math.abs(balance) / Math.max(1, limit)) * 100);
-		return t(
-			balance < 0 ? "insights.burndown.over" : "insights.burndown.holding",
-			{ day, days: burndown.totalDays, percent: share },
-		);
+		return t(balance < 0 ? "insights.burndown.over" : "insights.burndown.holding", {
+			day,
+			days: burndown.totalDays,
+			percent: share,
+		});
 	}, [last, limit, burndown.totalDays, t]);
 
 	// A non-interactive chart is a thumbnail inside a budget row or card whose own
@@ -296,40 +280,24 @@ export function BudgetBurndownChart({
 			accessibilityRole={interactive ? "image" : undefined}
 			accessible={interactive}
 			collapsable={false}
-			importantForAccessibility={
-				interactive ? undefined : "no-hide-descendants"
-			}
-			style={{ width, height }}
+			importantForAccessibility={interactive ? undefined : "no-hide-descendants"}
+			style={{ height, width }}
 		>
 			{/* Skia's canvas is a native view and swallows touches, so the pan
 				    detector on the wrapper never sees them unless this opts out. */}
-			<Canvas style={{ width, height }} pointerEvents="none">
+			<Canvas pointerEvents="none" style={{ height, width }}>
 				{geometry.surplus ? (
-					<SkPath
-						path={geometry.surplus}
-						color={withAlpha(colors.foreground, 0.07)}
-						opacity={draw}
-					/>
+					<SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={geometry.surplus} />
 				) : null}
 
 				{geometry.deficit && geometry.hatch ? (
 					<SkGroup clip={geometry.deficit} opacity={draw}>
-						<SkPath
-							path={geometry.hatch}
-							style="stroke"
-							strokeWidth={1.6}
-							color={withAlpha(colors.overBudget, 0.55)}
-						/>
+						<SkPath color={withAlpha(colors.overBudget, 0.55)} path={geometry.hatch} strokeWidth={1.6} style="stroke" />
 					</SkGroup>
 				) : null}
 
 				{geometry.ideal ? (
-					<SkPath
-						path={geometry.ideal}
-						style="stroke"
-						strokeWidth={1}
-						color={colors.muted}
-					>
+					<SkPath color={colors.muted} path={geometry.ideal} strokeWidth={1} style="stroke">
 						<DashPathEffect intervals={[...CHART_DASH.reference]} />
 					</SkPath>
 				) : null}
@@ -338,84 +306,57 @@ export function BudgetBurndownChart({
 				{geometry.actual ? (
 					<>
 						<SkGroup clip={Skia.XYWHRect(0, 0, width, plot.zeroY)}>
-							<SkPath
-								path={geometry.actual}
-								style="stroke"
-								strokeWidth={2.2}
-								color={colors.foreground}
-								end={draw}
-							/>
+							<SkPath color={colors.foreground} end={draw} path={geometry.actual} strokeWidth={2.2} style="stroke" />
 						</SkGroup>
-						<SkGroup
-							clip={Skia.XYWHRect(0, plot.zeroY, width, height - plot.zeroY)}
-						>
-							<SkPath
-								path={geometry.actual}
-								style="stroke"
-								strokeWidth={2.2}
-								color={colors.overBudget}
-								end={draw}
-							/>
+						<SkGroup clip={Skia.XYWHRect(0, plot.zeroY, width, height - plot.zeroY)}>
+							<SkPath color={colors.overBudget} end={draw} path={geometry.actual} strokeWidth={2.2} style="stroke" />
 						</SkGroup>
 					</>
 				) : null}
 
 				{geometry.projection ? (
 					<SkPath
-						path={geometry.projection}
-						style="stroke"
-						strokeWidth={1.6}
-						color={
-							(burndown.projectedBalance ?? 0) < 0
-								? colors.overBudget
-								: colors.muted
-						}
+						color={(burndown.projectedBalance ?? 0) < 0 ? colors.overBudget : colors.muted}
 						opacity={draw}
+						path={geometry.projection}
+						strokeWidth={1.6}
+						style="stroke"
 					>
 						<DashPathEffect intervals={[...CHART_DASH.projection]} />
 					</SkPath>
 				) : null}
 
 				{geometry.axis ? (
-					<SkPath
-						path={geometry.axis}
-						style="stroke"
-						strokeWidth={1.6}
-						color={colors.foreground}
-					/>
+					<SkPath color={colors.foreground} path={geometry.axis} strokeWidth={1.6} style="stroke" />
 				) : null}
 
-				{burndown.runwayDay != null ? (
+				{burndown.runwayDay == null ? null : (
 					<SkCircle
+						color={colors.overBudget}
 						cx={plot.x(burndown.runwayDay)}
 						cy={plot.zeroY}
-						r={3.4}
-						style="stroke"
-						strokeWidth={2}
-						color={colors.overBudget}
 						opacity={draw}
+						r={3.4}
+						strokeWidth={2}
+						style="stroke"
 					/>
-				) : null}
+				)}
 
 				{marker ? (
 					<SkGroup opacity={draw}>
 						{markerRule ? (
 							<SkPath
+								color={scrubbed ? colors.foreground : withAlpha(colors.foreground, 0.55)}
 								path={markerRule}
-								style="stroke"
 								strokeWidth={CHART_SCRUB.ruleWidth}
-								color={
-									scrubbed
-										? colors.foreground
-										: withAlpha(colors.foreground, 0.55)
-								}
+								style="stroke"
 							/>
 						) : null}
 						<SkCircle
+							color={marker.balance < 0 ? colors.overBudget : colors.foreground}
 							cx={plot.x(marker.day)}
 							cy={plot.y(marker.balance)}
 							r={scrubbed ? CHART_SCRUB.activeDotRadius : CHART_SCRUB.dotRadius}
-							color={marker.balance < 0 ? colors.overBudget : colors.foreground}
 						/>
 					</SkGroup>
 				) : null}
@@ -425,9 +366,5 @@ export function BudgetBurndownChart({
 
 	// A disabled detector still claims the touch, leaving the thumbnail a dead
 	// zone for the row's swipe.
-	return interactive ? (
-		<GestureDetector gesture={pan}>{canvas}</GestureDetector>
-	) : (
-		canvas
-	);
+	return interactive ? <GestureDetector gesture={pan}>{canvas}</GestureDetector> : canvas;
 }

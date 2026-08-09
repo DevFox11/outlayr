@@ -12,39 +12,24 @@ import { useColors } from "@/theme/use-colors";
 import { StepCta } from "../step-cta";
 
 const REASON_COPY: Record<UnavailableReason, TranslationKey> = {
-	offline: "import.unavailableOffline",
-	timeout: "import.unavailableTimeout",
-	rateLimited: "import.unavailableRateLimited",
-	providerError: "import.unavailableProviderError",
-	notConfigured: "import.unavailableNotConfigured",
 	invalidResponse: "import.unavailableInvalidResponse",
+	notConfigured: "import.unavailableNotConfigured",
+	offline: "import.unavailableOffline",
 	overCap: "import.unavailableOverCap",
+	providerError: "import.unavailableProviderError",
+	rateLimited: "import.unavailableRateLimited",
+	timeout: "import.unavailableTimeout",
 	unauthenticated: "import.unavailableUnauthenticated",
 };
 
-const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set([
-	"overCap",
-	"notConfigured",
-]);
+const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set(["overCap", "notConfigured"]);
 
-function StageTask({
-	children,
-	label,
-	status,
-}: {
-	children: React.ReactNode;
-	label: string;
-	status: TaskStatus;
-}) {
+function StageTask({ children, label, status }: { children: React.ReactNode; label: string; status: TaskStatus }) {
 	const colors = useColors();
 	return (
 		<Task className="gap-1.5 border-border border-b py-2.5" status={status}>
 			<Task.Trigger
-				icon={
-					status === "running" ? (
-						<ActivityIndicator color={colors.foreground} size="small" />
-					) : undefined
-				}
+				icon={status === "running" ? <ActivityIndicator color={colors.foreground} size="small" /> : undefined}
 				title={label}
 			/>
 			<Task.Content>{children}</Task.Content>
@@ -60,10 +45,7 @@ export function matchedStatus(stage: CsvImportStage): TaskStatus {
  * Stays `pending` after a settled run that sent nothing: the model was never
  * asked, so a tick would claim work that did not happen.
  */
-export function askedStatus(
-	stage: CsvImportStage,
-	tier2Sent: number,
-): TaskStatus {
+export function askedStatus(stage: CsvImportStage, tier2Sent: number): TaskStatus {
 	if (stage === "asking") {
 		return "running";
 	}
@@ -74,31 +56,18 @@ export function askedStatus(
 }
 
 function StageDetail({ children }: { children: React.ReactNode }) {
-	return (
-		<Text className="font-mono text-footnote text-muted tabular-nums">
-			{children}
-		</Text>
-	);
+	return <Text className="font-mono text-footnote text-muted tabular-nums">{children}</Text>;
 }
 
 interface ResolveStepProps {
-	review: ImportReviewResult;
 	onOpenFeatureLab: () => void;
+	review: ImportReviewResult;
 }
 
 export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 	const t = useTranslation();
 	const { flow } = useImportDraft();
-	const {
-		running,
-		stage,
-		outcome,
-		reason,
-		totalLabels,
-		tier1Matched,
-		tier2Sent,
-		run,
-	} = useCsvImportContext();
+	const { running, stage, outcome, reason, totalLabels, tier1Matched, tier2Sent, run } = useCsvImportContext();
 
 	useEffect(() => {
 		if (!running && outcome == null) {
@@ -119,18 +88,12 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 		return (
 			<View className="flex-1 gap-4 px-5 pt-4">
 				<View className="gap-2 border-border border-y py-3">
-					<Text className="font-sans-medium text-callout text-foreground">
-						{t("import.unavailableTitle")}
-					</Text>
-					<Text className="text-footnote text-muted">
-						{t(REASON_COPY[reason])}
-					</Text>
+					<Text className="font-sans-medium text-callout text-foreground">{t("import.unavailableTitle")}</Text>
+					<Text className="text-footnote text-muted">{t(REASON_COPY[reason])}</Text>
 				</View>
 				{NO_RETRY_REASONS.has(reason) ? null : (
 					<Pressable accessibilityRole="button" onPress={run}>
-						<Text className="font-sans-medium text-body text-tint">
-							{t("import.tryAgain")}
-						</Text>
+						<Text className="font-sans-medium text-body text-tint">{t("import.tryAgain")}</Text>
 					</Pressable>
 				)}
 			</View>
@@ -141,17 +104,11 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 		return (
 			<View className="flex-1 gap-4 px-5 pt-4">
 				<View className="gap-2 border-border border-y py-3">
-					<Text className="font-sans-medium text-callout text-foreground">
-						{t("import.unavailableTitle")}
-					</Text>
-					<Text className="text-footnote text-muted">
-						{t("import.declinedBody")}
-					</Text>
+					<Text className="font-sans-medium text-callout text-foreground">{t("import.unavailableTitle")}</Text>
+					<Text className="text-footnote text-muted">{t("import.declinedBody")}</Text>
 				</View>
 				<Pressable accessibilityRole="button" onPress={onOpenFeatureLab}>
-					<Text className="font-sans-medium text-body text-tint">
-						{t("import.openFeatureLab")}
-					</Text>
+					<Text className="font-sans-medium text-body text-tint">{t("import.openFeatureLab")}</Text>
 				</Pressable>
 			</View>
 		);
@@ -166,18 +123,11 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 			<View>
 				<StageTask label={t("import.resolveRunningReadFile")} status="complete">
 					<Task.Item>
-						{flow.file == null ? null : (
-							<Task.File className="bg-transparent">{flow.file.name}</Task.File>
-						)}
-						<StageDetail>
-							{t("import.resolveDetailRows", { count: rowCount })}
-						</StageDetail>
+						{flow.file == null ? null : <Task.File className="bg-transparent">{flow.file.name}</Task.File>}
+						<StageDetail>{t("import.resolveDetailRows", { count: rowCount })}</StageDetail>
 					</Task.Item>
 				</StageTask>
-				<StageTask
-					label={t("import.resolveRunningMatched")}
-					status={matchedStatus(settledStage)}
-				>
+				<StageTask label={t("import.resolveRunningMatched")} status={matchedStatus(settledStage)}>
 					<Task.Item>
 						<StageDetail>
 							{t("import.resolveDetailMatched", {
@@ -187,10 +137,7 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 						</StageDetail>
 					</Task.Item>
 				</StageTask>
-				<StageTask
-					label={t("import.resolveRunningAsked")}
-					status={askedStatus(settledStage, tier2Sent)}
-				>
+				<StageTask label={t("import.resolveRunningAsked")} status={askedStatus(settledStage, tier2Sent)}>
 					<Task.Item>
 						<StageDetail>
 							{tier2Sent > 0
@@ -200,9 +147,7 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 					</Task.Item>
 				</StageTask>
 			</View>
-			<Text className="text-footnote text-muted leading-snug">
-				{t("import.resolveFootnote")}
-			</Text>
+			<Text className="text-footnote text-muted leading-snug">{t("import.resolveFootnote")}</Text>
 
 			{showCta ? (
 				<StepCta

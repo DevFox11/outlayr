@@ -1,22 +1,12 @@
 import { createXai } from "@ai-sdk/xai";
 import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
-import {
-	generateText,
-	type LanguageModel,
-	NoObjectGeneratedError,
-	Output,
-	TypeValidationError,
-} from "ai";
+import { generateText, type LanguageModel, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import {
-	type GroundedScheduleCtx,
-	maybeScheduleGrounded,
-	sanitizeRegionCode,
-} from "./enrichment";
+import { type GroundedScheduleCtx, maybeScheduleGrounded, sanitizeRegionCode } from "./enrichment";
 import { merchantKey } from "./lib/merchantKey";
 
 /** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
@@ -33,19 +23,17 @@ const REQUEST_TIMEOUT_MS = 12_000;
  * date value, and no per-row data of any kind may reach here.
  */
 export const csvImportArgs = {
-	labels: v.array(v.string()),
-	categoryTree: v.array(
-		v.object({ name: v.string(), children: v.array(v.string()) }),
-	),
+	categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
 	/** One side of the dual-authority consent gate — see `enrichment.ts:suggestArgs`. */
 	groundedLookup: v.optional(v.boolean()),
+	labels: v.array(v.string()),
 	regionCode: v.optional(v.string()),
 };
 
 const labelSuggestion = v.object({
-	label: v.string(),
 	categoryName: v.string(),
 	domain: v.union(v.string(), v.null()),
+	label: v.string(),
 });
 
 const csvImportStatus = v.union(
@@ -55,24 +43,24 @@ const csvImportStatus = v.union(
 	v.literal("rateLimited"),
 	v.literal("invalid"),
 	v.literal("providerError"),
-	v.literal("invalidResponse"),
+	v.literal("invalidResponse")
 );
 
 const csvImportResult = v.object({
+	degraded: v.optional(v.boolean()),
 	status: csvImportStatus,
 	suggestions: v.union(v.array(labelSuggestion), v.null()),
-	degraded: v.optional(v.boolean()),
 });
 
 export interface CategoryBranch {
-	name: string;
 	children: string[];
+	name: string;
 }
 
 export interface LabelSuggestion {
-	label: string;
 	categoryName: string;
 	domain: string | null;
+	label: string;
 }
 
 export type CsvImportStatus =
@@ -85,9 +73,9 @@ export type CsvImportStatus =
 	| "invalidResponse";
 
 export interface CsvImportResult {
+	degraded?: boolean;
 	status: CsvImportStatus;
 	suggestions: LabelSuggestion[] | null;
-	degraded?: boolean;
 }
 
 function failure(status: Exclude<CsvImportStatus, "ok">): CsvImportResult {
@@ -98,9 +86,9 @@ function failure(status: Exclude<CsvImportStatus, "ok">): CsvImportResult {
 const modelOutputSchema = z.object({
 	mapping: z.array(
 		z.object({
-			label: z.string(),
 			categoryName: z.string().nullable(),
-		}),
+			label: z.string(),
+		})
 	),
 });
 
@@ -110,16 +98,14 @@ function describeTree(tree: readonly CategoryBranch[]): string {
 	}
 	return tree
 		.map((branch) =>
-			branch.children.length > 0
-				? `${branch.name} (containing ${branch.children.join(", ")})`
-				: branch.name,
+			branch.children.length > 0 ? `${branch.name} (containing ${branch.children.join(", ")})` : branch.name
 		)
 		.join("; ");
 }
 
 export interface RunClassifyArgs {
-	labels: readonly string[];
 	categoryTree: readonly CategoryBranch[];
+	labels: readonly string[];
 }
 
 function buildPrompt(args: RunClassifyArgs): string {
@@ -147,13 +133,10 @@ const DEFAULT_PER_USER_CAPACITY = 2;
 export function perUserLimitConfig() {
 	const override = Number(process.env.CSV_IMPORT_CAPACITY);
 	return {
+		capacity: Number.isInteger(override) && override > 0 ? override : DEFAULT_PER_USER_CAPACITY,
 		kind: "token bucket",
-		rate: 6,
 		period: HOUR,
-		capacity:
-			Number.isInteger(override) && override > 0
-				? override
-				: DEFAULT_PER_USER_CAPACITY,
+		rate: 6,
 	} as const;
 }
 
@@ -165,8 +148,8 @@ export function perUserLimitConfig() {
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	csvImportGlobal: {
 		kind: "fixed window",
-		rate: 200,
 		period: HOUR,
+		rate: 200,
 		shards: 10,
 	},
 });
@@ -177,24 +160,19 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
  * directly, since the real xAI provider cannot be substituted through the
  * wrapped `csvImport` action.
  */
-export async function classify(
-	model: LanguageModel,
-	args: RunClassifyArgs,
-): Promise<CsvImportResult> {
+export async function classify(model: LanguageModel, args: RunClassifyArgs): Promise<CsvImportResult> {
 	try {
 		const { output } = await generateText({
-			model,
-			output: Output.object({ schema: modelOutputSchema }),
-			prompt: buildPrompt(args),
 			abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 			// The SDK default is 2 retries, which alone would blow past the
 			// client's own 15s `Promise.race` abort.
 			maxRetries: 0,
+			model,
+			output: Output.object({ schema: modelOutputSchema }),
+			prompt: buildPrompt(args),
 		});
 
-		const known = new Set(
-			args.categoryTree.flatMap((branch) => [branch.name, ...branch.children]),
-		);
+		const known = new Set(args.categoryTree.flatMap((branch) => [branch.name, ...branch.children]));
 
 		const suggestions: LabelSuggestion[] = [];
 		for (const item of output.mapping) {
@@ -202,18 +180,15 @@ export async function classify(
 			// The model cannot know this ledger's shape: a name it invents is
 			// dropped rather than trusted, and dropping it is not a schema
 			// failure — the rest of a well-formed response still applies.
-			if (!categoryName || !known.has(categoryName)) {
+			if (!(categoryName && known.has(categoryName))) {
 				continue;
 			}
-			suggestions.push({ label: item.label, categoryName, domain: null });
+			suggestions.push({ categoryName, domain: null, label: item.label });
 		}
 
 		return { status: "ok", suggestions };
 	} catch (error) {
-		if (
-			NoObjectGeneratedError.isInstance(error) ||
-			TypeValidationError.isInstance(error)
-		) {
+		if (NoObjectGeneratedError.isInstance(error) || TypeValidationError.isInstance(error)) {
 			// The model's JSON failed schema validation: the whole response is
 			// untrustworthy, so zero suggestions are applied rather than
 			// sanitising per field.
@@ -233,8 +208,8 @@ export async function classify(
 export const GROUNDED_IMPORT_MAX = 10;
 
 export interface ImportGroundedArgs {
-	labels: readonly string[];
 	groundedLookup: boolean;
+	labels: readonly string[];
 	regionCode?: string;
 }
 
@@ -250,7 +225,7 @@ export interface ImportGroundedArgs {
 export async function scheduleImportGrounded(
 	ctx: GroundedScheduleCtx,
 	tokenIdentifier: string,
-	args: ImportGroundedArgs,
+	args: ImportGroundedArgs
 ): Promise<number> {
 	if (!args.groundedLookup) {
 		return 0;
@@ -274,8 +249,8 @@ export async function scheduleImportGrounded(
 		attempts += 1;
 		const ok = await maybeScheduleGrounded(ctx, tokenIdentifier, {
 			groundedLookup: true,
-			name: label,
 			income: false,
+			name: label,
 			regionCode: args.regionCode,
 		});
 		if (ok) {
@@ -291,7 +266,6 @@ export async function scheduleImportGrounded(
  */
 export const csvImport = action({
 	args: csvImportArgs,
-	returns: csvImportResult,
 	handler: async (ctx, args): Promise<CsvImportResult> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (identity === null) {
@@ -308,8 +282,8 @@ export const csvImport = action({
 		}
 
 		const perUser = await rateLimiter.limit(ctx, "csvImportPerUser", {
-			key: identity.tokenIdentifier,
 			config: perUserLimitConfig(),
+			key: identity.tokenIdentifier,
 		});
 		if (!perUser.ok) {
 			return failure("rateLimited");
@@ -334,17 +308,17 @@ export const csvImport = action({
 				remaining.push(label);
 			} else {
 				known.push({
-					label,
 					categoryName: row.categoryName,
 					domain: row.domain,
+					label,
 				});
 			}
 		}
 		// Scheduled before the model call so a provider failure still learns the
 		// batch's unknown merchants for next time.
 		await scheduleImportGrounded(ctx, identity.tokenIdentifier, {
-			labels: remaining,
 			groundedLookup: args.groundedLookup === true,
+			labels: remaining,
 			regionCode: sanitizeRegionCode(args.regionCode),
 		});
 
@@ -355,15 +329,16 @@ export const csvImport = action({
 		const xaiProvider = createXai({ apiKey });
 		const modelId = process.env.XAI_MODEL_ID || CSV_IMPORT_MODEL_ID;
 		const classified = await classify(xaiProvider(modelId), {
-			labels: remaining,
 			categoryTree: args.categoryTree,
+			labels: remaining,
 		});
 		if (classified.status !== "ok" || classified.suggestions === null) {
 			if (known.length > 0) {
-				return { status: "ok", suggestions: known, degraded: true };
+				return { degraded: true, status: "ok", suggestions: known };
 			}
 			return classified;
 		}
 		return { status: "ok", suggestions: [...known, ...classified.suggestions] };
 	},
+	returns: csvImportResult,
 });

@@ -11,10 +11,10 @@ import { useValuation } from "./use-valuation";
 export * from "./categories-core";
 
 export interface CategoryMetaRow {
-	name: string | null;
 	color: string | null;
-	icon: string | null;
 	emoji: string | null;
+	icon: string | null;
+	name: string | null;
 	parentId: string | null;
 }
 
@@ -30,24 +30,24 @@ export function useCategoryMeta(db: Database): Map<string, CategoryMetaRow> {
 	const rows = useLiveQuery(categories, () =>
 		db
 			.select({
+				color: categories.color,
+				emoji: categories.emoji,
+				icon: categories.icon,
 				id: categories.id,
 				name: categories.name,
-				color: categories.color,
-				icon: categories.icon,
-				emoji: categories.emoji,
 				parentId: categories.parentId,
 			})
 			.from(categories)
-			.where(isNull(categories.deletedAt)),
+			.where(isNull(categories.deletedAt))
 	);
 	return useMemo(() => {
 		const byId = new Map<string, CategoryMetaRow>();
 		for (const row of rows) {
 			byId.set(row.id, {
-				name: row.name,
 				color: row.color,
-				icon: row.icon,
 				emoji: row.emoji,
+				icon: row.icon,
+				name: row.name,
 				parentId: row.parentId,
 			});
 		}
@@ -79,20 +79,14 @@ export function useCategoryTotals(db: Database): Map<string, number> {
 			}
 			const cell = toCurrencyCell(row);
 			const previous = totals.get(row.categoryId) ?? 0;
-			totals.set(
-				row.categoryId,
-				previous + valueCell(cell, displayCurrency, rates),
-			);
+			totals.set(row.categoryId, previous + valueCell(cell, displayCurrency, rates));
 		}
 		return totals;
 	}, [rows, displayCurrency, rates]);
 }
 
 /** Top-level categories only, each with its ordered children nested. */
-export function useCategoriesByNamespace(
-	db: Database,
-	income: boolean,
-): CategoryWithChildren[] {
+export function useCategoriesByNamespace(db: Database, income: boolean): CategoryWithChildren[] {
 	const rows = useLiveQuery(
 		categories,
 		() =>
@@ -101,7 +95,7 @@ export function useCategoriesByNamespace(
 				.from(categories)
 				.where(and(eq(categories.income, income), isNull(categories.deletedAt)))
 				.orderBy(asc(categories.sortOrder)),
-		[income],
+		[income]
 	) as Category[];
 	// Memoized so the nested objects keep their identity between renders: the
 	// picker's rows are `memo`'d, and a freshly spread parent on every render

@@ -30,17 +30,17 @@ export function EditTransaction({ id }: { id: string }) {
 			t("transaction.delete.title"),
 			t("transaction.delete.body"),
 			[
-				{ text: t("common.cancel"), style: "cancel" },
+				{ style: "cancel", text: t("common.cancel") },
 				{
-					text: t("common.delete"),
-					style: "destructive",
 					onPress: async () => {
 						await transactionsRepo.remove(db, id);
 						router.back();
 					},
+					style: "destructive",
+					text: t("common.delete"),
 				},
 			],
-			{ cancelable: true },
+			{ cancelable: true }
 		);
 	};
 
@@ -59,13 +59,7 @@ export function EditTransaction({ id }: { id: string }) {
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
-			<TransactionForm
-				db={db}
-				mode="edit"
-				initial={initial}
-				onDelete={confirmDelete}
-				onDone={() => router.back()}
-			/>
+			<TransactionForm db={db} initial={initial} mode="edit" onDelete={confirmDelete} onDone={() => router.back()} />
 		</>
 	);
 }

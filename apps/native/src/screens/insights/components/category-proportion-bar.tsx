@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { type LayoutChangeEvent, Pressable, View } from "react-native";
-import Animated, {
-	useAnimatedStyle,
-	useReducedMotion,
-	useSharedValue,
-	withTiming,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { CategoryBreakdownEntry } from "@/data/insights";
 import { useTranslation } from "@/i18n";
@@ -19,15 +14,11 @@ const MIN_SHARE = 0.005;
 
 interface CategoryProportionBarProps {
 	entries: CategoryBreakdownEntry[];
-	selectedId: string | null;
 	onSelect: (id: string | null) => void;
+	selectedId: string | null;
 }
 
-export function CategoryProportionBar({
-	entries,
-	selectedId,
-	onSelect,
-}: CategoryProportionBarProps) {
+export function CategoryProportionBar({ entries, selectedId, onSelect }: CategoryProportionBarProps) {
 	const colors = useColors();
 	const t = useTranslation();
 	const reduceMotion = useReducedMotion();
@@ -60,38 +51,33 @@ export function CategoryProportionBar({
 
 	return (
 		<View onLayout={onLayout} style={{ height: HEIGHT }}>
-			<Animated.View
-				style={[
-					{ height: HEIGHT, flexDirection: "row", overflow: "hidden" },
-					revealStyle,
-				]}
-			>
-				<View style={{ width, flexDirection: "row", gap: GAP }}>
+			<Animated.View style={[{ flexDirection: "row", height: HEIGHT, overflow: "hidden" }, revealStyle]}>
+				<View style={{ flexDirection: "row", gap: GAP, width }}>
 					{shown.map((entry) => {
 						const active = selectedId === entry.id;
 						const dimmed = selectedId != null && !active;
 						return (
 							<Pressable
-								key={entry.id}
-								onPress={() => onSelect(active ? null : entry.id)}
-								accessibilityRole="button"
 								accessibilityLabel={t("insights.category.share", {
 									name: entry.name,
 									percent: Math.round(entry.fraction * 100),
 								})}
+								accessibilityRole="button"
+								key={entry.id}
+								onPress={() => onSelect(active ? null : entry.id)}
 								style={{
-									width: (usable * entry.fraction) / shownTotal,
 									height: HEIGHT,
+									width: (usable * entry.fraction) / shownTotal,
 								}}
 							>
 								<View
 									style={{
-										flex: 1,
-										borderRadius: CHART_BAR.radius,
 										backgroundColor: entry.color,
-										opacity: dimmed ? 0.4 : 1,
-										borderWidth: active ? 1.5 : 0,
 										borderColor: colors.foreground,
+										borderRadius: CHART_BAR.radius,
+										borderWidth: active ? 1.5 : 0,
+										flex: 1,
+										opacity: dimmed ? 0.4 : 1,
 									}}
 								/>
 							</Pressable>

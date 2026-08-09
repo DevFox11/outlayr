@@ -31,40 +31,40 @@ import { useLiveQuery } from "./live-query";
 import { useValuation } from "./use-valuation";
 
 export interface UseInsightsResult {
-	buckets: InsightsBucket[];
-	total: number;
-	/** Mean over the window's *elapsed* slots. Signed. */
-	measureAverage: number;
-	/** `|net|` over the elapsed slots. */
-	netAverage: number;
-	income: number;
-	spent: number;
-	/** Signed: `income − spent`. */
-	net: number;
-	priorNet: number;
-	/** Magnitude for the *selected* measure. */
-	priorMeasure: number;
-	priorLabel: string;
-	/** Each entry carries its vs-prior delta. */
-	breakdown: CategoryBreakdownEntry[];
-	/** Empty when there is no prior window to compare against. */
-	movers: CategoryMover[];
-	label: string;
-	prevLabel: string;
-	nextLabel: string;
 	/** True at offset 0, where the pager cannot step newer. */
 	atCurrent: boolean;
 	/** True once the window reaches the earliest transaction's period. */
 	atEarliest: boolean;
+	/** Each entry carries its vs-prior delta. */
+	breakdown: CategoryBreakdownEntry[];
+	buckets: InsightsBucket[];
+	categoriesById: Map<string, CategoryMeta>;
+	end: Date;
 	/**
 	 * Whether the ledger holds anything at all. The empty state turns on this and
 	 * not on the window being empty.
 	 */
 	hasHistory: boolean;
-	start: Date;
-	end: Date;
+	income: number;
+	label: string;
+	/** Mean over the window's *elapsed* slots. Signed. */
+	measureAverage: number;
+	/** Empty when there is no prior window to compare against. */
+	movers: CategoryMover[];
+	/** Signed: `income − spent`. */
+	net: number;
+	/** `|net|` over the elapsed slots. */
+	netAverage: number;
+	nextLabel: string;
+	prevLabel: string;
+	priorLabel: string;
+	/** Magnitude for the *selected* measure. */
+	priorMeasure: number;
+	priorNet: number;
 	rows: InsightsContribution[];
-	categoriesById: Map<string, CategoryMeta>;
+	spent: number;
+	start: Date;
+	total: number;
 }
 
 export function useInsights(
@@ -73,7 +73,7 @@ export function useInsights(
 	period: InsightsPeriod,
 	measure: InsightsMeasure,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): UseInsightsResult {
 	const { firstWeekday, firstDayOfMonth } = calendar;
 	// Threaded through every label below rather than left to the `runtimeLanguage()`
@@ -87,10 +87,10 @@ export function useInsights(
 	const queryStart = useMemo(
 		() =>
 			windowStart(period, new Date(nowMs), offset - 1, {
-				firstWeekday,
 				firstDayOfMonth,
+				firstWeekday,
 			}),
-		[period, nowMs, offset, firstWeekday, firstDayOfMonth],
+		[period, nowMs, offset, firstWeekday, firstDayOfMonth]
 	);
 
 	const txData = useLiveQuery(
@@ -99,21 +99,21 @@ export function useInsights(
 			db
 				.select({
 					amount: transactions.amount,
-					income: transactions.income,
-					date: transactions.date,
+					amountUsd: transactions.amountUsd,
 					categoryId: transactions.categoryId,
 					currency: transactions.currency,
-					amountUsd: transactions.amountUsd,
+					date: transactions.date,
+					income: transactions.income,
 				})
 				.from(transactions)
 				.where(
 					and(
 						isNull(transactions.deletedAt),
 						gte(transactions.date, queryStart),
-						lte(transactions.date, new Date(nowMs)),
-					),
+						lte(transactions.date, new Date(nowMs))
+					)
 				),
-		[nowMs, queryStart.getTime()],
+		[nowMs, queryStart.getTime()]
 	);
 
 	// How far back the pager may step. Derived from its own aggregate row because
@@ -123,26 +123,24 @@ export function useInsights(
 		db
 			.select({ earliest: min(transactions.date) })
 			.from(transactions)
-			.where(isNull(transactions.deletedAt)),
+			.where(isNull(transactions.deletedAt))
 	);
 
-	const catData = useLiveQuery(categories, () =>
-		db.select().from(categories).where(isNull(categories.deletedAt)),
-	);
+	const catData = useLiveQuery(categories, () => db.select().from(categories).where(isNull(categories.deletedAt)));
 
 	const { displayCurrency, rates } = useValuation(db);
 
 	return useMemo(() => {
-		const cal: InsightsCalendar = { firstWeekday, firstDayOfMonth };
+		const cal: InsightsCalendar = { firstDayOfMonth, firstWeekday };
 		const categoriesById = new Map<string, CategoryMeta>();
 		for (const category of catData) {
 			categoriesById.set(category.id, {
-				id: category.id,
-				name: category.name,
 				color: category.color,
-				icon: category.icon,
 				emoji: category.emoji,
+				icon: category.icon,
+				id: category.id,
 				income: category.income,
+				name: category.name,
 				parentId: category.parentId,
 			});
 		}
@@ -154,23 +152,13 @@ export function useInsights(
 		const rows: InsightsContribution[] = txData.map((row, index) => ({
 			// `amount` is the valued amount from here down, not the row's stored one.
 			amount: valued[index],
-			income: row.income,
 			categoryId: row.categoryId,
-			parentId: row.categoryId
-				? (categoriesById.get(row.categoryId)?.parentId ?? null)
-				: null,
 			date: row.date,
+			income: row.income,
+			parentId: row.categoryId ? (categoriesById.get(row.categoryId)?.parentId ?? null) : null,
 		}));
 		const now = new Date(nowMs);
-		const buckets = bucketSeries(
-			rows,
-			period,
-			measure,
-			now,
-			offset,
-			cal,
-			language,
-		);
+		const buckets = bucketSeries(rows, period, measure, now, offset, cal, language);
 		const total = periodTotal(buckets);
 		const { income, spent } = windowTotals(rows, period, now, offset, cal);
 		const prior = windowTotals(rows, period, now, offset - 1, cal);
@@ -181,28 +169,10 @@ export function useInsights(
 		// an empty table.
 		const earliestRaw = earliestData[0]?.earliest ?? null;
 		const earliest = earliestRaw == null ? null : new Date(Number(earliestRaw));
-		const minOffset = earliest
-			? Math.min(0, offsetForDate(period, earliest, now, cal))
-			: 0;
+		const minOffset = earliest ? Math.min(0, offsetForDate(period, earliest, now, cal)) : 0;
 
-		const composition = categoryBreakdown(
-			rows,
-			categoriesById,
-			period,
-			measure,
-			now,
-			offset,
-			cal,
-		);
-		const priorComposition = categoryBreakdown(
-			rows,
-			categoriesById,
-			period,
-			measure,
-			now,
-			offset - 1,
-			cal,
-		);
+		const composition = categoryBreakdown(rows, categoriesById, period, measure, now, offset, cal);
+		const priorComposition = categoryBreakdown(rows, categoriesById, period, measure, now, offset - 1, cal);
 		// The breakdown's own total, so the movers' floor and the rows' shares
 		// share a denominator.
 		let compositionTotal = 0;
@@ -211,28 +181,28 @@ export function useInsights(
 		}
 
 		return {
-			buckets,
-			total,
-			measureAverage: total / divisor,
-			netAverage: Math.abs(net) / divisor,
-			income,
-			spent,
-			net,
-			priorNet: prior.income - prior.spent,
-			priorMeasure: measure === "income" ? prior.income : prior.spent,
-			priorLabel: windowLabel(period, offset - 1, now, cal, language),
-			breakdown: withCategoryDeltas(composition, priorComposition),
-			movers: categoryMovers(composition, priorComposition, compositionTotal),
-			label: windowLabel(period, offset, now, cal, language),
-			prevLabel: windowShortLabel(period, offset - 1, now, cal, language),
-			nextLabel: windowShortLabel(period, offset + 1, now, cal, language),
 			atCurrent: offset >= 0,
 			atEarliest: offset <= minOffset,
-			hasHistory: earliest != null,
-			start: windowStart(period, now, offset, cal),
-			end: windowEnd(period, now, offset, cal),
-			rows,
+			breakdown: withCategoryDeltas(composition, priorComposition),
+			buckets,
 			categoriesById,
+			end: windowEnd(period, now, offset, cal),
+			hasHistory: earliest != null,
+			income,
+			label: windowLabel(period, offset, now, cal, language),
+			measureAverage: total / divisor,
+			movers: categoryMovers(composition, priorComposition, compositionTotal),
+			net,
+			netAverage: Math.abs(net) / divisor,
+			nextLabel: windowShortLabel(period, offset + 1, now, cal, language),
+			prevLabel: windowShortLabel(period, offset - 1, now, cal, language),
+			priorLabel: windowLabel(period, offset - 1, now, cal, language),
+			priorMeasure: measure === "income" ? prior.income : prior.spent,
+			priorNet: prior.income - prior.spent,
+			rows,
+			spent,
+			start: windowStart(period, now, offset, cal),
+			total,
 		};
 	}, [
 		txData,

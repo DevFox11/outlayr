@@ -8,82 +8,69 @@ import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import { PUSH_BATCH_LIMIT } from "./sync";
-import {
-	authenticatedAs,
-	type SeededIdentity,
-	seedAuthUser,
-} from "./test.helpers";
+import { authenticatedAs, type SeededIdentity, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
 type TestClient = TestConvex<typeof schema>;
 
 type PushRows = FunctionArgs<typeof api.sync.push>["rows"];
-type Arm<T extends PushRows[number]["table"]> = Extract<
-	PushRows[number],
-	{ table: T }
->;
+type Arm<T extends PushRows[number]["table"]> = Extract<PushRows[number], { table: T }>;
 
 const DEVICE_A = "device-aaaa";
 const DEVICE_B = "device-bbbb";
 
-const transactionFields = (
-	overrides: Partial<Arm<"transactions">["fields"]> = {},
-): Arm<"transactions">["fields"] => ({
+const transactionFields = (overrides: Partial<Arm<"transactions">["fields"]> = {}): Arm<"transactions">["fields"] => ({
+	accountId: null,
 	amount: 12.5,
-	income: false,
+	amountUsd: 12.5,
+	categoryId: null,
 	currency: "USD",
-	note: "coffee",
-	details: null,
+	customColor: null,
 	date: 1_700_000_000_000,
 	day: 1_700_000_000_000,
-	month: 1_700_000_000_000,
-	icon: null,
+	details: null,
 	emoji: null,
-	customColor: null,
-	imageColor: null,
-	imageKey: null,
-	onceRecurring: false,
-	recurringType: 0,
-	recurringCoefficient: 1,
-	recurringEndDate: null,
-	categoryId: null,
-	accountId: null,
-	amountUsd: 12.5,
 	exchangeRate: 1,
 	exchangeRateType: "official",
-	...overrides,
-});
-
-const accountFields = (
-	overrides: Partial<Arm<"accounts">["fields"]> = {},
-): Arm<"accounts">["fields"] => ({
-	name: "Checking",
-	currency: "USD",
-	initialBalance: 250,
-	initialBalanceUsd: 250,
-	initialBalanceDate: 1_700_000_000_000,
 	icon: null,
-	emoji: null,
-	customColor: null,
 	imageColor: null,
 	imageKey: null,
-	sortOrder: 0,
-	dateCreated: 1_700_000_000_000,
+	income: false,
+	month: 1_700_000_000_000,
+	note: "coffee",
+	onceRecurring: false,
+	recurringCoefficient: 1,
+	recurringEndDate: null,
+	recurringType: 0,
 	...overrides,
 });
 
-const categoryFields = (
-	overrides: Partial<Arm<"categories">["fields"]> = {},
-): Arm<"categories">["fields"] => ({
-	name: "Groceries",
-	color: "#FFFFFF",
-	icon: null,
+const accountFields = (overrides: Partial<Arm<"accounts">["fields"]> = {}): Arm<"accounts">["fields"] => ({
+	currency: "USD",
+	customColor: null,
+	dateCreated: 1_700_000_000_000,
 	emoji: null,
-	income: false,
+	icon: null,
+	imageColor: null,
+	imageKey: null,
+	initialBalance: 250,
+	initialBalanceDate: 1_700_000_000_000,
+	initialBalanceUsd: 250,
+	name: "Checking",
 	sortOrder: 0,
+	...overrides,
+});
+
+const categoryFields = (overrides: Partial<Arm<"categories">["fields"]> = {}): Arm<"categories">["fields"] => ({
+	color: "#FFFFFF",
 	dateCreated: null,
+	emoji: null,
+	icon: null,
+	income: false,
+	name: "Groceries",
 	parentId: null,
+	sortOrder: 0,
 	...overrides,
 });
 
@@ -93,42 +80,32 @@ function transactionRow(
 	options: {
 		deletedAt?: number | null;
 		fields?: Partial<Arm<"transactions">["fields"]>;
-	} = {},
+	} = {}
 ): Arm<"transactions"> {
 	return {
-		table: "transactions",
-		localId,
-		updatedAt,
 		deletedAt: options.deletedAt ?? null,
 		fields: transactionFields(options.fields),
+		localId,
+		table: "transactions",
+		updatedAt,
 	};
 }
 
 function categoryRow(localId: string, updatedAt: number): Arm<"categories"> {
 	return {
-		table: "categories",
-		localId,
-		updatedAt,
 		deletedAt: null,
 		fields: categoryFields(),
+		localId,
+		table: "categories",
+		updatedAt,
 	};
 }
 
-function pushAs(
-	t: TestClient,
-	who: SeededIdentity,
-	deviceId: string,
-	rows: PushRows,
-) {
+function pushAs(t: TestClient, who: SeededIdentity, deviceId: string, rows: PushRows) {
 	return authenticatedAs(t, who).mutation(api.sync.push, { deviceId, rows });
 }
 
-function pullAs(
-	t: TestClient,
-	who: SeededIdentity,
-	cursor: number,
-	limit?: number,
-) {
+function pullAs(t: TestClient, who: SeededIdentity, cursor: number, limit?: number) {
 	return authenticatedAs(t, who).query(api.sync.pullSince, { cursor, limit });
 }
 
@@ -140,7 +117,7 @@ describe("push authorization", () => {
 			t.mutation(api.sync.push, {
 				deviceId: DEVICE_A,
 				rows: [transactionRow("t1", 100)],
-			}),
+			})
 		).rejects.toThrow(ConvexError);
 	});
 
@@ -171,9 +148,7 @@ describe("push authorization", () => {
 	test("refuses a batch larger than the per-transaction budget", async () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
-		const rows = Array.from({ length: PUSH_BATCH_LIMIT + 1 }, (_, i) =>
-			transactionRow(`t${i}`, 100),
-		);
+		const rows = Array.from({ length: PUSH_BATCH_LIMIT + 1 }, (_, i) => transactionRow(`t${i}`, 100));
 
 		await expect(pushAs(t, owner, DEVICE_A, rows)).rejects.toThrow(ConvexError);
 	});
@@ -185,42 +160,42 @@ describe("push table coverage", () => {
 		const owner = await seedAuthUser(t);
 		const rows: PushRows = [
 			{
-				table: "tags",
+				deletedAt: null,
+				fields: { color: null, name: "festival", sortOrder: 0 },
 				localId: "tag-1",
+				table: "tags",
 				updatedAt: 1,
-				deletedAt: null,
-				fields: { name: "festival", color: null, sortOrder: 0 },
 			},
 			{
-				table: "transactionTags",
+				deletedAt: null,
+				fields: { tagId: "tag-1", transactionId: "tx-1" },
 				localId: "tt-1",
+				table: "transactionTags",
 				updatedAt: 2,
-				deletedAt: null,
-				fields: { transactionId: "tx-1", tagId: "tag-1" },
 			},
 			{
-				table: "transactionPhotos",
-				localId: "tp-1",
-				updatedAt: 3,
 				deletedAt: null,
 				fields: {
-					transactionId: "tx-1",
-					imageKey: null,
 					imageColor: null,
+					imageKey: null,
 					sortOrder: 0,
+					transactionId: "tx-1",
 				},
+				localId: "tp-1",
+				table: "transactionPhotos",
+				updatedAt: 3,
 			},
 			{
-				table: "transactionSplits",
-				localId: "ts-1",
-				updatedAt: 4,
 				deletedAt: null,
 				fields: {
-					transactionId: "tx-1",
-					categoryId: null,
 					amount: 5,
+					categoryId: null,
 					sortOrder: 0,
+					transactionId: "tx-1",
 				},
+				localId: "ts-1",
+				table: "transactionSplits",
+				updatedAt: 4,
 			},
 		];
 
@@ -243,11 +218,11 @@ describe("push table coverage", () => {
 
 		await pushAs(t, owner, DEVICE_A, [
 			{
-				table: "accounts",
-				localId: "acct-1",
-				updatedAt: 1,
 				deletedAt: null,
 				fields: accountFields({ currency: "EUR", initialBalanceUsd: null }),
+				localId: "acct-1",
+				table: "accounts",
+				updatedAt: 1,
 			},
 			transactionRow("t1", 2, { fields: { accountId: "acct-1" } }),
 		]);
@@ -256,10 +231,10 @@ describe("push table coverage", () => {
 		const account = page.rows.find((row) => row.table === "accounts");
 		expect(account?.localId).toBe("acct-1");
 		expect(account?.fields).toMatchObject({
-			name: "Checking",
 			currency: "EUR",
 			initialBalance: 250,
 			initialBalanceUsd: null,
+			name: "Checking",
 			sortOrder: 0,
 		});
 		const transaction = page.rows.find((row) => row.table === "transactions");
@@ -273,15 +248,15 @@ describe("push table coverage", () => {
 		const { accountId: _absent, ...legacy } = transactionFields();
 		await t.run(async (ctx) => {
 			await ctx.db.insert("transactions", {
-				userId: owner.userId,
+				deletedAt: null,
+				deviceId: DEVICE_A,
 				localId: "t-legacy",
 				seq: 1,
-				deviceId: DEVICE_A,
 				updatedAt: 100,
-				deletedAt: null,
+				userId: owner.userId,
 				...legacy,
 			});
-			await ctx.db.insert("syncState", { userId: owner.userId, nextSeq: 2 });
+			await ctx.db.insert("syncState", { nextSeq: 2, userId: owner.userId });
 		});
 
 		const page = await pullAs(t, owner, 0);
@@ -294,20 +269,20 @@ describe("push table coverage", () => {
 
 		await pushAs(t, owner, DEVICE_A, [
 			{
-				table: "accounts",
-				localId: "acct-1",
-				updatedAt: 100,
 				deletedAt: null,
 				fields: accountFields(),
+				localId: "acct-1",
+				table: "accounts",
+				updatedAt: 100,
 			},
 		]);
 		await pushAs(t, owner, DEVICE_B, [
 			{
-				table: "accounts",
-				localId: "acct-1",
-				updatedAt: 50,
 				deletedAt: 50,
 				fields: accountFields(),
+				localId: "acct-1",
+				table: "accounts",
+				updatedAt: 50,
 			},
 		]);
 
@@ -321,20 +296,20 @@ describe("push table coverage", () => {
 		const owner = await seedAuthUser(t);
 		const live: PushRows = [
 			{
-				table: "tags",
-				localId: "tag-1",
-				updatedAt: 100,
 				deletedAt: null,
-				fields: { name: "festival", color: null, sortOrder: 0 },
+				fields: { color: null, name: "festival", sortOrder: 0 },
+				localId: "tag-1",
+				table: "tags",
+				updatedAt: 100,
 			},
 		];
 		const tombstone: PushRows = [
 			{
-				table: "tags",
-				localId: "tag-1",
-				updatedAt: 50,
 				deletedAt: 50,
-				fields: { name: "festival", color: null, sortOrder: 0 },
+				fields: { color: null, name: "festival", sortOrder: 0 },
+				localId: "tag-1",
+				table: "tags",
+				updatedAt: 50,
 			},
 		];
 
@@ -358,7 +333,7 @@ describe("push sequencing", () => {
 			transactionRow("t2", 102),
 		]);
 
-		expect(result).toEqual({ accepted: 3, skipped: 0, nextSeq: 4 });
+		expect(result).toEqual({ accepted: 3, nextSeq: 4, skipped: 0 });
 		const states = await t.run((ctx) => ctx.db.query("syncState").collect());
 		expect(states).toHaveLength(1);
 		expect(states[0].nextSeq).toBe(4);
@@ -380,11 +355,9 @@ describe("push sequencing", () => {
 		const owner = await seedAuthUser(t);
 
 		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
-		const replay = await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 100),
-		]);
+		const replay = await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
-		expect(replay).toEqual({ accepted: 0, skipped: 1, nextSeq: 2 });
+		expect(replay).toEqual({ accepted: 0, nextSeq: 2, skipped: 1 });
 	});
 
 	test("upserts by localId rather than inserting a second copy", async () => {
@@ -392,9 +365,7 @@ describe("push sequencing", () => {
 		const owner = await seedAuthUser(t);
 
 		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
-		await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 200, { fields: { note: "tea" } }),
-		]);
+		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 200, { fields: { note: "tea" } })]);
 
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
 		expect(stored).toHaveLength(1);
@@ -407,20 +378,20 @@ describe("push sequencing", () => {
 
 		await pushAs(t, owner, DEVICE_A, [
 			{
-				table: "appMeta",
-				localId: "currency",
-				updatedAt: 100,
 				deletedAt: null,
 				fields: { value: "USD" },
+				localId: "currency",
+				table: "appMeta",
+				updatedAt: 100,
 			},
 		]);
 		await pushAs(t, owner, DEVICE_B, [
 			{
-				table: "appMeta",
-				localId: "currency",
-				updatedAt: 200,
 				deletedAt: null,
 				fields: { value: "EUR" },
+				localId: "currency",
+				table: "appMeta",
+				updatedAt: 200,
 			},
 		]);
 
@@ -435,12 +406,8 @@ describe("push conflict resolution", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 
-		await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 100, { deletedAt: 100 }),
-		]);
-		const result = await pushAs(t, owner, DEVICE_B, [
-			transactionRow("t1", 500, { fields: { note: "resurrected" } }),
-		]);
+		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100, { deletedAt: 100 })]);
+		const result = await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 500, { fields: { note: "resurrected" } })]);
 
 		expect(result.accepted).toBe(0);
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
@@ -453,9 +420,7 @@ describe("push conflict resolution", () => {
 		const owner = await seedAuthUser(t);
 
 		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 500)]);
-		await pushAs(t, owner, DEVICE_B, [
-			transactionRow("t1", 100, { deletedAt: 100 }),
-		]);
+		await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { deletedAt: 100 })]);
 
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
 		expect(stored[0].deletedAt).toBe(100);
@@ -465,12 +430,8 @@ describe("push conflict resolution", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 
-		await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 500, { fields: { note: "newer" } }),
-		]);
-		const stale = await pushAs(t, owner, DEVICE_B, [
-			transactionRow("t1", 100, { fields: { note: "older" } }),
-		]);
+		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 500, { fields: { note: "newer" } })]);
+		const stale = await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { fields: { note: "older" } })]);
 
 		expect(stale.skipped).toBe(1);
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
@@ -481,15 +442,9 @@ describe("push conflict resolution", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 
-		await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 100, { fields: { note: "from-a" } }),
-		]);
-		await pushAs(t, owner, DEVICE_B, [
-			transactionRow("t1", 100, { fields: { note: "from-b" } }),
-		]);
-		const reverse = await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 100, { fields: { note: "from-a-again" } }),
-		]);
+		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100, { fields: { note: "from-a" } })]);
+		await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { fields: { note: "from-b" } })]);
+		const reverse = await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100, { fields: { note: "from-a-again" } })]);
 
 		expect(reverse.accepted).toBe(0);
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
@@ -501,9 +456,7 @@ describe("pullSince", () => {
 	test("refuses a caller with no session", async () => {
 		const t = convexTest(schema, modules);
 
-		await expect(t.query(api.sync.pullSince, { cursor: 0 })).rejects.toThrow(
-			ConvexError,
-		);
+		await expect(t.query(api.sync.pullSince, { cursor: 0 })).rejects.toThrow(ConvexError);
 	});
 
 	test("merge-sorts six streams into one seq-ordered log", async () => {
@@ -514,22 +467,22 @@ describe("pullSince", () => {
 			transactionRow("t1", 100),
 			categoryRow("c1", 101),
 			{
-				table: "budgets",
-				localId: "b1",
-				updatedAt: 102,
 				deletedAt: null,
 				fields: {
-					name: null,
 					amount: 100,
-					type: 0,
-					startDate: null,
-					dateCreated: null,
-					currency: "USD",
 					amountUsd: 100,
-					green: false,
-					rollover: false,
 					categoryId: "c1",
+					currency: "USD",
+					dateCreated: null,
+					green: false,
+					name: null,
+					rollover: false,
+					startDate: null,
+					type: 0,
 				},
+				localId: "b1",
+				table: "budgets",
+				updatedAt: 102,
 			},
 			transactionRow("t2", 103),
 		]);
@@ -549,11 +502,7 @@ describe("pullSince", () => {
 	test("serves only what is strictly after the cursor", async () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
-		await pushAs(t, owner, DEVICE_A, [
-			transactionRow("t1", 100),
-			transactionRow("t2", 101),
-			transactionRow("t3", 102),
-		]);
+		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100), transactionRow("t2", 101), transactionRow("t3", 102)]);
 
 		const page = await pullAs(t, owner, 2);
 
@@ -567,7 +516,7 @@ describe("pullSince", () => {
 			t,
 			owner,
 			DEVICE_A,
-			Array.from({ length: 7 }, (_, i) => transactionRow(`t${i}`, 100 + i)),
+			Array.from({ length: 7 }, (_, i) => transactionRow(`t${i}`, 100 + i))
 		);
 
 		const seen: string[] = [];
@@ -590,7 +539,7 @@ describe("pullSince", () => {
 		await pushAs(t, owner, DEVICE_A, [
 			transactionRow("t1", 100, {
 				deletedAt: 150,
-				fields: { note: "gone", amount: 9.99 },
+				fields: { amount: 9.99, note: "gone" },
 			}),
 		]);
 
@@ -607,11 +556,11 @@ describe("pullSince", () => {
 		const owner = await seedAuthUser(t);
 		await pushAs(t, owner, DEVICE_A, [
 			{
-				table: "appMeta",
-				localId: "currencyChosen",
-				updatedAt: 100,
 				deletedAt: null,
 				fields: { value: "1" },
+				localId: "currencyChosen",
+				table: "appMeta",
+				updatedAt: 100,
 			},
 		]);
 
@@ -640,9 +589,7 @@ describe("currentSeq", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 
-		expect(await authenticatedAs(t, owner).query(api.sync.currentSeq, {})).toBe(
-			0,
-		);
+		expect(await authenticatedAs(t, owner).query(api.sync.currentSeq, {})).toBe(0);
 	});
 
 	test("moves when any device pushes", async () => {
@@ -650,9 +597,7 @@ describe("currentSeq", () => {
 		const owner = await seedAuthUser(t);
 		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
-		expect(await authenticatedAs(t, owner).query(api.sync.currentSeq, {})).toBe(
-			2,
-		);
+		expect(await authenticatedAs(t, owner).query(api.sync.currentSeq, {})).toBe(2);
 	});
 
 	test("refuses a caller with no session", async () => {

@@ -1,7 +1,4 @@
-import {
-	type EnrichmentCacheLookup,
-	getCachedEnrichment,
-} from "@/domain/enrichment-cache";
+import { type EnrichmentCacheLookup, getCachedEnrichment } from "@/domain/enrichment-cache";
 import { scrubLabel } from "@/domain/import-ai-payload";
 import { merchantKey, resolveMerchant } from "@/domain/merchant-resolver";
 

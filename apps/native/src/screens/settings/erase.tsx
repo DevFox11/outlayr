@@ -12,7 +12,7 @@ import { type TranslationKey, useTranslation } from "@/i18n";
 import { clearStoredPhotos } from "@/lib/photo-storage";
 import { clearSpotlight } from "@/lib/spotlight";
 
-const RESIDUE: EraseResidue = { clearStoredPhotos, clearSpotlight };
+const RESIDUE: EraseResidue = { clearSpotlight, clearStoredPhotos };
 
 export function EraseData() {
 	const db = useDatabase();
@@ -24,27 +24,20 @@ function EraseDataContent({ db }: { db: Database }) {
 	const t = useTranslation();
 	const count = useTransactionCount(db);
 
-	const confirm = (
-		scope: EraseScope,
-		title: TranslationKey,
-		message: TranslationKey,
-	) => {
+	const confirm = (scope: EraseScope, title: TranslationKey, message: TranslationKey) => {
 		Alert.alert(t(title), t(message), [
-			{ text: t("common.cancel"), style: "cancel" },
+			{ style: "cancel", text: t("common.cancel") },
 			{
-				text: t("settings.erase.action"),
-				style: "destructive",
 				onPress: () => {
 					eraseData(db, scope, RESIDUE)
 						.then(() => router.back())
 						.catch((error: unknown) => {
 							console.error("Erase failed", error);
-							Alert.alert(
-								t("settings.erase.failedTitle"),
-								t("settings.erase.failedBody"),
-							);
+							Alert.alert(t("settings.erase.failedTitle"), t("settings.erase.failedBody"));
 						});
 				},
+				style: "destructive",
+				text: t("settings.erase.action"),
 			},
 		]);
 	};
@@ -53,29 +46,18 @@ function EraseDataContent({ db }: { db: Database }) {
 		<SettingsScreen>
 			<View className="gap-1 pt-6">
 				<MonoLabel>{t("settings.erase.onThisDevice")}</MonoLabel>
-				<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
-					{count}
-				</Text>
+				<Text className="font-sans-semibold text-foreground text-hero tabular-nums">{count}</Text>
 				<Text className="text-muted text-subtitle">
-					{count === 1
-						? t("settings.erase.transactionLogged")
-						: t("settings.erase.transactionsLogged")}
+					{count === 1 ? t("settings.erase.transactionLogged") : t("settings.erase.transactionsLogged")}
 				</Text>
 			</View>
 
-			<SettingsSection
-				footer={t("settings.erase.footer")}
-				title={t("settings.erase.section")}
-			>
+			<SettingsSection footer={t("settings.erase.footer")} title={t("settings.erase.section")}>
 				<LinkRow
 					destructive
 					icon="Delete02"
 					onPress={() =>
-						confirm(
-							"transactions",
-							"settings.erase.confirmTransactionsTitle",
-							"settings.erase.confirmTransactionsBody",
-						)
+						confirm("transactions", "settings.erase.confirmTransactionsTitle", "settings.erase.confirmTransactionsBody")
 					}
 					title={t("settings.erase.transactionsOnly")}
 				/>
@@ -83,11 +65,7 @@ function EraseDataContent({ db }: { db: Database }) {
 					destructive
 					icon="Delete02"
 					onPress={() =>
-						confirm(
-							"everything",
-							"settings.erase.confirmEverythingTitle",
-							"settings.erase.confirmEverythingBody",
-						)
+						confirm("everything", "settings.erase.confirmEverythingTitle", "settings.erase.confirmEverythingBody")
 					}
 					title={t("settings.erase.transactionsAndBudgets")}
 				/>

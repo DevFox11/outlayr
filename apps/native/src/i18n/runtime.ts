@@ -19,10 +19,7 @@ export function runtimeLanguage(): Language {
  * scheduling. Inside a component use `useTranslation`, which re-renders when the
  * language changes; this does not.
  */
-export function translateNow(
-	key: TranslatableKey,
-	params?: TranslationParams,
-): string {
+export function translateNow(key: TranslatableKey, params?: TranslationParams): string {
 	return translate(key, {
 		catalog: CATALOGS[current] ?? EN,
 		fallback: EN,

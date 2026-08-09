@@ -5,24 +5,17 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { categories, transactionSplits, transactions } from "@/db/schema";
 import { totalsByCategory } from "@/domain/split";
-import {
-	allSplitsQuery,
-	splitsForQuery,
-	splitsRepo,
-	UnbalancedSplitError,
-} from "./splits-core";
+import { allSplitsQuery, splitsForQuery, splitsRepo, UnbalancedSplitError } from "./splits-core";
 import { transactionsRepo } from "./transactions-core";
 
-const MIGRATIONS = join(__dirname, "../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -38,21 +31,21 @@ async function seed(db: Database) {
 	]) {
 		await db.insert(categories).values({
 			id,
-			name,
 			income: false,
+			name,
 			sortOrder: 0,
 			updatedAt: new Date(1),
 		});
 	}
 	await db.insert(transactions).values({
-		id: "t1",
 		amount: 40,
-		income: false,
-		note: "",
+		categoryId: "food",
 		date: new Date(1),
 		day: new Date(1),
+		id: "t1",
+		income: false,
 		month: new Date(1),
-		categoryId: "food",
+		note: "",
 		updatedAt: new Date(1),
 	});
 }
@@ -67,16 +60,11 @@ describe("splitsRepo", () => {
 
 	it("writes the parts in the order they were given", async () => {
 		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		]);
 
-		expect(
-			(await splitsForQuery(db, "t1")).map((row) => [
-				row.categoryId,
-				row.amount,
-			]),
-		).toStrictEqual([
+		expect((await splitsForQuery(db, "t1")).map((row) => [row.categoryId, row.amount])).toStrictEqual([
 			["food", 25],
 			["travel", 15],
 		]);
@@ -84,49 +72,37 @@ describe("splitsRepo", () => {
 
 	it("refuses a split that does not add up", async () => {
 		// The only guard there is: SQLite cannot express the constraint.
-		await expect(
-			splitsRepo.setSplit(db, "t1", 40, [{ categoryId: "food", amount: 25 }]),
-		).rejects.toThrow(UnbalancedSplitError);
+		await expect(splitsRepo.setSplit(db, "t1", 40, [{ amount: 25, categoryId: "food" }])).rejects.toThrow(
+			UnbalancedSplitError
+		);
 		expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
 	});
 
 	it("replaces a split wholesale rather than merging into it", async () => {
 		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		]);
-		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "travel", amount: 40 },
-		]);
+		await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "travel" }]);
 
-		expect(
-			(await splitsForQuery(db, "t1")).map((row) => [
-				row.categoryId,
-				row.amount,
-			]),
-		).toStrictEqual([["travel", 40]]);
+		expect((await splitsForQuery(db, "t1")).map((row) => [row.categoryId, row.amount])).toStrictEqual([["travel", 40]]);
 	});
 
 	it("clears a split so the entry goes back to its own category", async () => {
 		// No rows is the implicit whole, not "attributed to nothing".
 		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		]);
 		await splitsRepo.setSplit(db, "t1", 40, []);
 
 		expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
-		const totals = totalsByCategory(
-			[{ id: "t1", amount: 40, categoryId: "food" }],
-			new Map(),
-		);
+		const totals = totalsByCategory([{ amount: 40, categoryId: "food", id: "t1" }], new Map());
 		expect(totals.get("food")).toBe(40);
 	});
 
 	it("leaves the replaced rows as tombstones so the change travels", async () => {
-		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 40 },
-		]);
+		await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }]);
 		await splitsRepo.setSplit(db, "t1", 40, []);
 
 		const all = await db.select().from(transactionSplits);
@@ -138,8 +114,8 @@ describe("splitsRepo", () => {
 		// A live split under a tombstoned entry keeps feeding its categories: the
 		// entry is gone from every list and its parts are not.
 		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		]);
 
 		await splitsRepo.clearForTransactions(db, ["t1"]);
@@ -148,9 +124,7 @@ describe("splitsRepo", () => {
 	});
 
 	it("does nothing when given no entries to clear", async () => {
-		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 40 },
-		]);
+		await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }]);
 		await splitsRepo.clearForTransactions(db, []);
 		expect((await splitsForQuery(db, "t1")).length).toBe(1);
 	});
@@ -160,8 +134,8 @@ describe("splitsRepo", () => {
 		// feed a category even though the rows are still live. That is why delete
 		// does not touch them — and why undo cannot lose them.
 		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		]);
 		await transactionsRepo.remove(db, "t1");
 
@@ -174,23 +148,17 @@ describe("splitsRepo", () => {
 
 	it("feeds the category totals without double-counting the entry", async () => {
 		await splitsRepo.setSplit(db, "t1", 40, [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		]);
 
-		const byEntry = new Map<
-			string,
-			{ categoryId: string | null; amount: number }[]
-		>();
+		const byEntry = new Map<string, { categoryId: string | null; amount: number }[]>();
 		for (const row of await allSplitsQuery(db)) {
 			const existing = byEntry.get(row.transactionId) ?? [];
-			existing.push({ categoryId: row.categoryId, amount: row.amount });
+			existing.push({ amount: row.amount, categoryId: row.categoryId });
 			byEntry.set(row.transactionId, existing);
 		}
-		const totals = totalsByCategory(
-			[{ id: "t1", amount: 40, categoryId: "food" }],
-			byEntry,
-		);
+		const totals = totalsByCategory([{ amount: 40, categoryId: "food", id: "t1" }], byEntry);
 
 		expect(totals.get("food")).toBe(25);
 		expect(totals.get("travel")).toBe(15);

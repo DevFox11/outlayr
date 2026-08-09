@@ -5,10 +5,7 @@ jest.mock("expo", () => {
 	return new Proxy(actual, {
 		get(target, prop) {
 			if (prop === "requireOptionalNativeModule") {
-				return (name) =>
-					name === "ExpoObserve"
-						? null
-						: target.requireOptionalNativeModule(name);
+				return (name) => (name === "ExpoObserve" ? null : target.requireOptionalNativeModule(name));
 			}
 			return target[prop];
 		},

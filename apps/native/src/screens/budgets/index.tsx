@@ -54,10 +54,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const mainBurndown = useBurndown(contributions, nowMs, main, null);
 	const burndowns = useBurndowns(contributions, nowMs, budgets);
 
-	const ranked = useMemo(
-		() => [...budgets].sort(compareBudgetSeverity),
-		[budgets],
-	);
+	const ranked = useMemo(() => [...budgets].sort(compareBudgetSeverity), [budgets]);
 	const overCount = budgets.filter((budget) => budget.overBudget).length;
 
 	// Both reads run in render, so null/[] here means the user genuinely has no
@@ -66,7 +63,7 @@ function BudgetContent({ db }: { db: Database }) {
 
 	const monthWindow = useMemo(() => {
 		const start = firstOfMonth(new Date(nowMs));
-		return { start, end: periodEnd(start, BUDGET_TYPE.month) };
+		return { end: periodEnd(start, BUDGET_TYPE.month), start };
 	}, [nowMs]);
 
 	const monthToDate = useMemo(
@@ -78,15 +75,12 @@ function BudgetContent({ db }: { db: Database }) {
 						window: monthWindow,
 					})
 				: null,
-		[isEmpty, contributions, monthWindow, nowMs],
+		[isEmpty, contributions, monthWindow, nowMs]
 	);
 
 	const monthExpenseCount = useMemo(
-		() =>
-			contributions.filter(
-				(row) => row.date.getTime() >= monthWindow.start.getTime(),
-			).length,
-		[contributions, monthWindow],
+		() => contributions.filter((row) => row.date.getTime() >= monthWindow.start.getTime()).length,
+		[contributions, monthWindow]
 	);
 
 	// The write is async and the action sheet is already gone by the time it lands,
@@ -95,10 +89,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const deleteBudget = (id: string) => {
 		budgetsRepo.deleteBudget(db, id).catch((error: unknown) => {
 			console.error("Failed to delete the budget", error);
-			Alert.alert(
-				t("budgets.delete.failedTitle"),
-				t("budgets.delete.failedBody"),
-			);
+			Alert.alert(t("budgets.delete.failedTitle"), t("budgets.delete.failedBody"));
 		});
 	};
 
@@ -121,8 +112,8 @@ function BudgetContent({ db }: { db: Database }) {
 		}
 		showBudgetActions({
 			name: budget.name,
-			onEdit: () => router.push(`/budgets/edit/${id}`),
 			onDelete: () => deleteBudget(id),
+			onEdit: () => router.push(`/budgets/edit/${id}`),
 		});
 	};
 
@@ -144,14 +135,14 @@ function BudgetContent({ db }: { db: Database }) {
 	return (
 		<ScrollView
 			className="bg-background"
-			contentInsetAdjustmentBehavior="automatic"
-			style={{ flex: 1 }}
 			contentContainerStyle={{
-				paddingHorizontal: 20,
 				// `NativeTabs` supplies the bar + safe-area inset; this only clears
 				// the floating add button.
 				paddingBottom: 100,
+				paddingHorizontal: 20,
 			}}
+			contentInsetAdjustmentBehavior="automatic"
+			style={{ flex: 1 }}
 		>
 			{main ? (
 				<BudgetBurndownHero
@@ -167,9 +158,7 @@ function BudgetContent({ db }: { db: Database }) {
 			{budgets.length ? (
 				<View className="pt-6">
 					<View className="flex-row items-baseline justify-between pb-2">
-						<MonoLabel>
-							{main ? t("budgets.list.categories") : t("budgets.list.budgets")}
-						</MonoLabel>
+						<MonoLabel>{main ? t("budgets.list.categories") : t("budgets.list.budgets")}</MonoLabel>
 						{overCount ? (
 							<MonoLabel>
 								{t("budgets.list.overCount", {

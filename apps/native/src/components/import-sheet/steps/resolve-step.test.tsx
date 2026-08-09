@@ -10,20 +10,18 @@ const mockOpenFeatureLab = jest.fn();
 
 let mockContext: UseCsvImportResult;
 
-function baseContext(
-	overrides: Partial<UseCsvImportResult> = {},
-): UseCsvImportResult {
+function baseContext(overrides: Partial<UseCsvImportResult> = {}): UseCsvImportResult {
 	return {
-		running: false,
-		stage: "idle",
+		fromModel: new Set(),
+		links: new Map(),
 		outcome: null,
 		reason: null,
-		links: new Map(),
-		fromModel: new Set(),
-		totalLabels: 24,
+		run: mockRun,
+		running: false,
+		stage: "idle",
 		tier1Matched: 0,
 		tier2Sent: 0,
-		run: mockRun,
+		totalLabels: 24,
 		...overrides,
 	};
 }
@@ -34,11 +32,11 @@ jest.mock("@/i18n", () => ({
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
+		danger: "#B5482F",
 		foreground: "#17150F",
+		income: "#2E7D32",
 		muted: "#8A8578",
 		subtle: "#B4AFA0",
-		income: "#2E7D32",
-		danger: "#B5482F",
 		tint: "#3366FF",
 	}),
 }));
@@ -47,34 +45,42 @@ jest.mock("@/contexts/csv-import-context", () => ({
 }));
 
 const ENTRY: ImportEntry = {
-	note: "Bakery",
-	categoryId: "cat-food",
-	income: false,
 	amount: 12.5,
+	categoryId: "cat-food",
 	currency: null,
 	date: new Date(2026, 6, 28),
+	income: false,
+	note: "Bakery",
 } as ImportEntry;
 
 function reviewWith(entries: ImportEntry[]): ImportReviewResult {
 	return {
-		plan: { entries, skipped: [], earliest: null, latest: null },
-		rows: [],
-		excluded: new Set(),
-		selectedCount: entries.length,
 		categoryName: new Map(),
 		categoryTile: new Map(),
-		currency: "USD",
 		commit: { phase: "idle" },
-		onToggle: jest.fn(),
+		currency: "USD",
+		excluded: new Set(),
 		onCommit: jest.fn(),
+		onToggle: jest.fn(),
+		plan: { earliest: null, entries, latest: null, skipped: [] },
+		rows: [],
+		selectedCount: entries.length,
 	};
 }
 
 function loadFile() {
-	importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	importDraftStore.dispatch({ sourceId: "csv", type: "sourceSelected" });
 	importDraftStore.dispatch({
-		type: "fileParsed",
-		file: { name: "bank.csv", chars: 42 },
+		draft: {
+			amount: 2,
+			category: 1,
+			currency: null,
+			date: 0,
+			note: 1,
+			type: null,
+		},
+		file: { chars: 42, name: "bank.csv" },
+		gaps: [],
 		parsed: {
 			header: ["date", "note", "amount"],
 			rows: [
@@ -83,32 +89,24 @@ function loadFile() {
 			],
 			width: 3,
 		},
-		draft: {
-			category: 1,
-			note: 1,
-			date: 0,
-			amount: 2,
-			currency: null,
-			type: null,
-		},
 		resolved: {
+			labelSource: "descriptionColumn",
 			mapping: {
-				category: 1,
-				note: 1,
-				date: 0,
 				amount: 2,
+				category: 1,
 				currency: null,
+				date: 0,
+				note: 1,
 				type: null,
 			},
-			labelSource: "descriptionColumn",
 		},
-		gaps: [],
+		type: "fileParsed",
 	});
 }
 
 interface JsonNode {
-	props?: Record<string, unknown>;
 	children?: (JsonNode | string)[] | null;
+	props?: Record<string, unknown>;
 }
 
 function classNames(node: JsonNode | JsonNode[] | null): string[] {
@@ -121,9 +119,7 @@ function classNames(node: JsonNode | JsonNode[] | null): string[] {
 	const own = node.props?.className;
 	return [
 		...(typeof own === "string" ? [own] : []),
-		...(node.children ?? []).flatMap((child) =>
-			typeof child === "string" ? [] : classNames(child),
-		),
+		...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
 	];
 }
 
@@ -131,9 +127,7 @@ function isPureFlexFill(className: string): boolean {
 	return className
 		.trim()
 		.split(/\s+/)
-		.every((token) =>
-			/^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token),
-		);
+		.every((token) => /^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token));
 }
 
 describe("stage → task status", () => {
@@ -167,10 +161,7 @@ describe("ResolveStep", () => {
 	it("names the file once, on the step that read it, with the checklist and the privacy footnote", async () => {
 		loadFile();
 		const { getAllByText, getByText } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
+			<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
 		);
 
 		expect(getAllByText("bank.csv")).toHaveLength(1);
@@ -183,24 +174,14 @@ describe("ResolveStep", () => {
 
 	it("auto-runs the resolution when idle", async () => {
 		loadFile();
-		await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 		expect(mockRun).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not re-run once an outcome settled", async () => {
 		loadFile();
 		mockContext = baseContext({ outcome: "applied" });
-		await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 		expect(mockRun).not.toHaveBeenCalled();
 	});
 
@@ -208,12 +189,7 @@ describe("ResolveStep", () => {
 		loadFile();
 		importDraftStore.setStep("resolve");
 		mockContext = baseContext({ outcome: "applied" });
-		await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([ENTRY])}
-			/>,
-		);
+		await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([ENTRY])} />);
 		expect(importDraftStore.getSnapshot().ui.step).toBe("review");
 	});
 
@@ -221,24 +197,14 @@ describe("ResolveStep", () => {
 		loadFile();
 		importDraftStore.setStep("resolve");
 		mockContext = baseContext({ outcome: "applied" });
-		await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 		expect(importDraftStore.getSnapshot().ui.step).toBe("resolve");
 	});
 
 	it("shows the unavailable reason with a retry", async () => {
 		loadFile();
 		mockContext = baseContext({ outcome: "unavailable", reason: "timeout" });
-		const { getByText } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		const { getByText } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 
 		expect(getByText("import.unavailableTitle")).toBeTruthy();
 		expect(getByText("import.unavailableTimeout")).toBeTruthy();
@@ -249,12 +215,7 @@ describe("ResolveStep", () => {
 	it("offers no retry for a no-retry reason", async () => {
 		loadFile();
 		mockContext = baseContext({ outcome: "unavailable", reason: "overCap" });
-		const { queryByText } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		const { queryByText } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 		expect(queryByText("import.tryAgain")).toBeNull();
 	});
 
@@ -262,12 +223,7 @@ describe("ResolveStep", () => {
 		loadFile();
 		importDraftStore.setStep("resolve");
 		mockContext = baseContext({ outcome: "applied" });
-		const { toJSON } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([ENTRY])}
-			/>,
-		);
+		const { toJSON } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([ENTRY])} />);
 		const classes = classNames(toJSON() as unknown as JsonNode);
 		expect(classes.some(isPureFlexFill)).toBe(false);
 		expect(classes.some((c) => /\bmt-6\b/.test(c))).toBe(true);
@@ -280,12 +236,7 @@ describe("ResolveStep", () => {
 			stage: "settled",
 			tier2Sent: 7,
 		});
-		const { getByText } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		const { getByText } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 
 		expect(getByText('import.resolveDetailSent:{"count":7}')).toBeTruthy();
 	});
@@ -297,12 +248,7 @@ describe("ResolveStep", () => {
 			stage: "settled",
 			tier2Sent: 0,
 		});
-		const { getByText } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		const { getByText } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 
 		expect(getByText("import.resolveDetailNothingSent")).toBeTruthy();
 	});
@@ -310,15 +256,8 @@ describe("ResolveStep", () => {
 	it("never fills the filename chip with the muted text colour", async () => {
 		loadFile();
 		mockContext = baseContext({ outcome: "applied", stage: "settled" });
-		const { toJSON } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
-		const chip = classNames(toJSON() as unknown as JsonNode).find((c) =>
-			/\bbg-transparent\b/.test(c),
-		);
+		const { toJSON } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
+		const chip = classNames(toJSON() as unknown as JsonNode).find((c) => /\bbg-transparent\b/.test(c));
 		expect(chip).toBeDefined();
 		expect(chip).not.toMatch(/\bbg-muted\b/);
 	});
@@ -326,12 +265,7 @@ describe("ResolveStep", () => {
 	it("routes the declined branch through onOpenFeatureLab", async () => {
 		loadFile();
 		mockContext = baseContext({ outcome: "declined" });
-		const { getByText } = await render(
-			<ResolveStep
-				onOpenFeatureLab={mockOpenFeatureLab}
-				review={reviewWith([])}
-			/>,
-		);
+		const { getByText } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
 
 		expect(getByText("import.declinedBody")).toBeTruthy();
 		fireEvent.press(getByText("import.openFeatureLab"));

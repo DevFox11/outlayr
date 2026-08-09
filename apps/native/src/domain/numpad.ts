@@ -6,20 +6,7 @@
  */
 const MAX_INTEGER_DIGITS = 13;
 
-export type NumpadKey =
-	| "0"
-	| "1"
-	| "2"
-	| "3"
-	| "4"
-	| "5"
-	| "6"
-	| "7"
-	| "8"
-	| "9"
-	| "."
-	| "back"
-	| "clear";
+export type NumpadKey = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "." | "back" | "clear";
 
 /** The keys a keypad draws. `clear` arrives from a long press, not from a tile. */
 export type NumpadTileKey = Exclude<NumpadKey, "clear">;
@@ -62,11 +49,7 @@ function fromMinorDigits(digits: string, minorUnits: number): string {
 	return `${padded.slice(0, cut)}.${padded.slice(cut)}`;
 }
 
-function applyPreDottedKey(
-	current: string,
-	key: Exclude<NumpadTileKey, ".">,
-	minorUnits: number,
-): string {
+function applyPreDottedKey(current: string, key: Exclude<NumpadTileKey, ".">, minorUnits: number): string {
 	const digits = toMinorDigits(current, minorUnits);
 	const next = key === "back" ? digits.slice(0, -1) : `${digits}${key}`;
 	const entry = fromMinorDigits(next, minorUnits);
@@ -75,12 +58,7 @@ function applyPreDottedKey(
 }
 
 /** The empty string represents an unset amount. */
-export function applyNumpadKey(
-	current: string,
-	key: NumpadKey,
-	minorUnits: number,
-	mode: NumpadMode,
-): string {
+export function applyNumpadKey(current: string, key: NumpadKey, minorUnits: number, mode: NumpadMode): string {
 	if (key === "clear") {
 		return "";
 	}

@@ -18,10 +18,7 @@ jest.mock("@/components/account/provider-sign-in-buttons", () => {
 	const { Pressable, Text } = require("react-native");
 	return {
 		ProviderSignInButtons: ({ busy, start }: StubButtonsProps) => (
-			<Pressable
-				onPress={() => start("apple", () => Promise.resolve("token"))}
-				testID="provider-sign-in-buttons-stub"
-			>
+			<Pressable onPress={() => start("apple", () => Promise.resolve("token"))} testID="provider-sign-in-buttons-stub">
 				<Text>{busy ?? "idle"}</Text>
 			</Pressable>
 		),
@@ -58,10 +55,7 @@ jest.mock("@/lib/use-provider-sign-in", () => ({
 	useProviderSignIn: (...args: unknown[]) => mockUseProviderSignIn(...args),
 }));
 
-const routerSpy = jest.requireMock("expo-router").router as Record<
-	string,
-	jest.Mock
->;
+const routerSpy = jest.requireMock("expo-router").router as Record<string, jest.Mock>;
 
 function expectRouterNeverCalled() {
 	for (const method of Object.values(routerSpy)) {
@@ -80,8 +74,7 @@ beforeEach(() => {
 describe("Account — restoring", () => {
 	it("shows only the checking title, no detail, no button", async () => {
 		mockUseSession.mockReturnValue({ data: undefined, isPending: true });
-		const { getByText, queryAllByRole, queryByTestId, queryByText } =
-			await render(<Account />);
+		const { getByText, queryAllByRole, queryByTestId, queryByText } = await render(<Account />);
 		expect(getByText("settings.account.checking")).toBeTruthy();
 		expect(queryByText("settings.account.signedOutDetail")).toBeNull();
 		expect(queryAllByRole("button")).toHaveLength(0);
@@ -132,16 +125,11 @@ describe("Account — signed-in", () => {
 			data: { user: { email: "jane@example.com", name: "Jane" } },
 			isPending: false,
 		});
-		const { getByText, getByRole, queryByTestId, queryAllByRole } =
-			await render(<Account />);
+		const { getByText, getByRole, queryByTestId, queryAllByRole } = await render(<Account />);
 		expect(getByText("settings.account.signedInAs")).toBeTruthy();
 		expect(getByText("Jane")).toBeTruthy();
-		expect(
-			getByRole("button", { name: "settings.account.signOut" }),
-		).toBeTruthy();
-		expect(
-			getByRole("button", { name: "settings.account.delete" }),
-		).toBeTruthy();
+		expect(getByRole("button", { name: "settings.account.signOut" })).toBeTruthy();
+		expect(getByRole("button", { name: "settings.account.delete" })).toBeTruthy();
 		expect(queryByTestId("provider-sign-in-buttons-stub")).toBeNull();
 		expect(queryAllByRole("button")).toHaveLength(2);
 		expectRouterNeverCalled();

@@ -12,14 +12,7 @@ import {
 	VStack,
 } from "@expo/ui/swift-ui";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
-import {
-	animation,
-	datePickerStyle,
-	foregroundStyle,
-	labelsHidden,
-	tag,
-	tint,
-} from "@expo/ui/swift-ui/modifiers";
+import { animation, datePickerStyle, foregroundStyle, labelsHidden, tag, tint } from "@expo/ui/swift-ui/modifiers";
 import {
 	Calendar03Icon,
 	CalendarRemove01Icon,
@@ -32,52 +25,52 @@ import { TransactionFormRowIcon } from "./row-icon";
 import { BODY, MORPH, ROW, rowLabel } from "./style";
 
 interface CadenceOption {
-	type: number;
 	label: string;
+	type: number;
 }
 
 interface LeadOption {
-	lead: number;
 	label: string;
+	lead: number;
 }
 
 interface TransactionFormScheduleSectionProps {
-	card: ViewModifier[];
-	hairline: ViewModifier[];
-	foregroundColor: string;
-	mutedColor: string;
-	incomeColor: string;
-	isSubscription: boolean;
-
-	scheduleLabel: string;
-	scheduleMenuLabel: string;
 	cadenceOptions: readonly CadenceOption[];
-	recurringType: number;
-	onScheduleChange: (type: number) => void;
+	card: ViewModifier[];
 	customScheduleLabel: string;
-	onOpenCustomSchedule: () => void;
-
-	firstPaymentLabel: string;
 	date: Date;
-	onDateChange: (date: Date) => void;
+
+	dateLabel: string;
+	endDate: Date;
 
 	endDateLabel: string;
-	hasEndDate: boolean;
-	onHasEndDateChange: (value: boolean) => void;
 
 	endsLabel: string;
-	endDate: Date;
+
+	firstPaymentLabel: string;
+	foregroundColor: string;
+	hairline: ViewModifier[];
+	hasEndDate: boolean;
+	incomeColor: string;
+	isSubscription: boolean;
+	leadDays: number | null;
+	leadOffLabel: string;
+	leadOffTag: number;
+	leadOptions: readonly LeadOption[];
+	mutedColor: string;
+	onDateChange: (date: Date) => void;
 	onEndDateChange: (date: Date) => void;
+	onHasEndDateChange: (value: boolean) => void;
+	onLeadChange: (next: number) => void;
+	onOpenCustomSchedule: () => void;
+	onScheduleChange: (type: number) => void;
+	recurringType: number;
 
 	remindLabel: string;
 	remindMenuLabel: string;
-	leadDays: number | null;
-	leadOffTag: number;
-	leadOffLabel: string;
-	leadOptions: readonly LeadOption[];
-	onLeadChange: (next: number) => void;
 
-	dateLabel: string;
+	scheduleLabel: string;
+	scheduleMenuLabel: string;
 	timeLabel: string;
 }
 
@@ -125,35 +118,20 @@ export function TransactionFormScheduleSection({
 						<Menu
 							label={
 								<HStack spacing={4}>
-									<SwiftText
-										modifiers={[BODY, foregroundStyle(foregroundColor)]}
-									>
-										{scheduleMenuLabel}
-									</SwiftText>
-									<Image
-										color={mutedColor}
-										size={12}
-										systemName="chevron.up.chevron.down"
-									/>
+									<SwiftText modifiers={[BODY, foregroundStyle(foregroundColor)]}>{scheduleMenuLabel}</SwiftText>
+									<Image color={mutedColor} size={12} systemName="chevron.up.chevron.down" />
 								</HStack>
 							}
 							modifiers={[menuTint]}
 						>
-							<Picker
-								label={scheduleLabel}
-								onSelectionChange={onScheduleChange}
-								selection={recurringType}
-							>
+							<Picker label={scheduleLabel} onSelectionChange={onScheduleChange} selection={recurringType}>
 								{cadenceOptions.map((option) => (
 									<SwiftText key={option.type} modifiers={[tag(option.type)]}>
 										{option.label}
 									</SwiftText>
 								))}
 							</Picker>
-							<Button
-								label={customScheduleLabel}
-								onPress={onOpenCustomSchedule}
-							/>
+							<Button label={customScheduleLabel} onPress={onOpenCustomSchedule} />
 						</Menu>
 					</HStack>
 
@@ -161,9 +139,7 @@ export function TransactionFormScheduleSection({
 
 					<HStack modifiers={ROW} spacing={12}>
 						<TransactionFormRowIcon color={mutedColor} icon={Calendar03Icon} />
-						<SwiftText modifiers={[BODY, rowLabel]}>
-							{firstPaymentLabel}
-						</SwiftText>
+						<SwiftText modifiers={[BODY, rowLabel]}>{firstPaymentLabel}</SwiftText>
 						<Spacer />
 						<DatePicker
 							displayedComponents={["date"]}
@@ -176,10 +152,7 @@ export function TransactionFormScheduleSection({
 					<Divider modifiers={hairline} />
 
 					<HStack modifiers={ROW} spacing={12}>
-						<TransactionFormRowIcon
-							color={mutedColor}
-							icon={CalendarRemove01Icon}
-						/>
+						<TransactionFormRowIcon color={mutedColor} icon={CalendarRemove01Icon} />
 						<SwiftText modifiers={[BODY, rowLabel]}>{endDateLabel}</SwiftText>
 						<Spacer />
 						<Toggle
@@ -193,10 +166,7 @@ export function TransactionFormScheduleSection({
 						<>
 							<Divider modifiers={hairline} />
 							<HStack modifiers={ROW} spacing={12}>
-								<TransactionFormRowIcon
-									color={mutedColor}
-									icon={CalendarRemove01Icon}
-								/>
+								<TransactionFormRowIcon color={mutedColor} icon={CalendarRemove01Icon} />
 								<SwiftText modifiers={[BODY, rowLabel]}>{endsLabel}</SwiftText>
 								<Spacer />
 								<DatePicker
@@ -213,37 +183,20 @@ export function TransactionFormScheduleSection({
 
 					{/* Label outside the Menu, as on the Schedule row above. */}
 					<HStack modifiers={ROW} spacing={12}>
-						<TransactionFormRowIcon
-							color={mutedColor}
-							icon={Notification03Icon}
-						/>
+						<TransactionFormRowIcon color={mutedColor} icon={Notification03Icon} />
 						<SwiftText modifiers={[BODY, rowLabel]}>{remindLabel}</SwiftText>
 						<Spacer />
 						<Menu
 							label={
 								<HStack spacing={4}>
-									<SwiftText
-										modifiers={[BODY, foregroundStyle(foregroundColor)]}
-									>
-										{remindMenuLabel}
-									</SwiftText>
-									<Image
-										color={mutedColor}
-										size={12}
-										systemName="chevron.up.chevron.down"
-									/>
+									<SwiftText modifiers={[BODY, foregroundStyle(foregroundColor)]}>{remindMenuLabel}</SwiftText>
+									<Image color={mutedColor} size={12} systemName="chevron.up.chevron.down" />
 								</HStack>
 							}
 							modifiers={[menuTint]}
 						>
-							<Picker
-								label={remindLabel}
-								onSelectionChange={onLeadChange}
-								selection={leadDays ?? leadOffTag}
-							>
-								<SwiftText modifiers={[tag(leadOffTag)]}>
-									{leadOffLabel}
-								</SwiftText>
+							<Picker label={remindLabel} onSelectionChange={onLeadChange} selection={leadDays ?? leadOffTag}>
+								<SwiftText modifiers={[tag(leadOffTag)]}>{leadOffLabel}</SwiftText>
 								{leadOptions.map((option) => (
 									<SwiftText key={option.lead} modifiers={[tag(option.lead)]}>
 										{option.label}

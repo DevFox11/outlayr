@@ -6,15 +6,11 @@ import { transactions } from "@/db/schema";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { setMeta } from "./app-meta-core";
-import {
-	pendingReminderPlan,
-	reminderCandidates,
-} from "./subscription-reminders-core";
+import { pendingReminderPlan, reminderCandidates } from "./subscription-reminders-core";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
 const NINE_AM = { hour: 9, minute: 0 };
-const at = (y: number, m: number, day: number, hour = 0, minute = 0): Date =>
-	new Date(y, m - 1, day, hour, minute);
+const at = (y: number, m: number, day: number, hour = 0, minute = 0): Date => new Date(y, m - 1, day, hour, minute);
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -58,42 +54,39 @@ function makeDb(): Database {
 }
 
 interface CarrierOverrides {
-	/** Its LAST charge, clock time included — the landing must not be read off it. */
-	date: Date;
-	id?: string;
-	note?: string;
 	amount?: number;
 	currency?: string | null;
-	recurringType?: number;
+	/** Its LAST charge, clock time included — the landing must not be read off it. */
+	date: Date;
+	deletedAt?: Date | null;
+	id?: string;
+	note?: string;
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
+	recurringType?: number;
 	reminderLeadDays?: number | null;
-	deletedAt?: Date | null;
 }
 
-async function seedCarrier(
-	db: Database,
-	overrides: CarrierOverrides,
-): Promise<string> {
+async function seedCarrier(db: Database, overrides: CarrierOverrides): Promise<string> {
 	const id = overrides.id ?? "src";
 	await db.insert(transactions).values({
-		id,
 		amount: overrides.amount ?? 9.99,
-		income: false,
+		categoryId: "bills",
 		currency: overrides.currency === undefined ? "USD" : overrides.currency,
-		note: overrides.note ?? "Netflix",
-		details: null,
 		date: overrides.date,
 		day: startOfDay(overrides.date),
+		deletedAt: overrides.deletedAt ?? null,
+		details: null,
+		id,
+		income: false,
 		month: startOfDay(overrides.date),
+		note: overrides.note ?? "Netflix",
 		onceRecurring: true,
-		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
 		recurringCoefficient: overrides.recurringCoefficient ?? 1,
 		recurringEndDate: overrides.recurringEndDate ?? null,
+		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
 		reminderLeadDays: overrides.reminderLeadDays ?? null,
-		categoryId: "bills",
 		updatedAt: NOW,
-		deletedAt: overrides.deletedAt ?? null,
 	});
 	return id;
 }
@@ -120,9 +113,7 @@ describe("reminderCandidates", () => {
 		expect(candidates[0]?.localId).toBe("src");
 		expect(candidates[0]?.leadDays).toBe(2);
 		expect(candidates[0]?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
-		expect(
-			(candidates[0]?.landing.getTime() ?? 0) > NOW.getTime(),
-		).toBeTruthy();
+		expect((candidates[0]?.landing.getTime() ?? 0) > NOW.getTime()).toBeTruthy();
 	});
 
 	// Reading the landing off `date` would carry the last charge's clock time onto
@@ -153,10 +144,10 @@ describe("reminderCandidates", () => {
 
 	it("carries the copy a notice has to print", async () => {
 		await seedCarrier(db, {
-			date: at(2025, 3, 15),
-			note: "Spotify",
 			amount: 11.99,
 			currency: "EUR",
+			date: at(2025, 3, 15),
+			note: "Spotify",
 			reminderLeadDays: 1,
 		});
 
@@ -170,8 +161,8 @@ describe("reminderCandidates", () => {
 	it("stamps a row that stored no currency with the ledger's", async () => {
 		await setMeta(db, "currency", "MXN");
 		await seedCarrier(db, {
-			date: at(2025, 3, 15),
 			currency: null,
+			date: at(2025, 3, 15),
 			reminderLeadDays: 1,
 		});
 
@@ -182,8 +173,8 @@ describe("reminderCandidates", () => {
 
 	it("falls back to the app default when the ledger names no currency", async () => {
 		await seedCarrier(db, {
-			date: at(2025, 3, 15),
 			currency: null,
+			date: at(2025, 3, 15),
 			reminderLeadDays: 1,
 		});
 
@@ -210,8 +201,8 @@ describe("reminderCandidates", () => {
 	it("yields nothing for a soft-deleted carrier", async () => {
 		await seedCarrier(db, {
 			date: at(2025, 3, 15),
-			reminderLeadDays: 2,
 			deletedAt: NOW,
+			reminderLeadDays: 2,
 		});
 
 		expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
@@ -232,8 +223,8 @@ describe("reminderCandidates", () => {
 	it("yields nothing once the chain has run past its end date", async () => {
 		await seedCarrier(db, {
 			date: at(2025, 6, 10),
-			recurringType: RECURRING_TYPE.weekly,
 			recurringEndDate: at(2025, 6, 16),
+			recurringType: RECURRING_TYPE.weekly,
 			reminderLeadDays: 1,
 		});
 
@@ -242,28 +233,24 @@ describe("reminderCandidates", () => {
 
 	it("resolves every live carrier, each on its own cadence", async () => {
 		await seedCarrier(db, {
-			id: "netflix",
 			date: at(2025, 3, 15),
+			id: "netflix",
 			reminderLeadDays: 2,
 		});
 		await seedCarrier(db, {
-			id: "gym",
 			date: at(2025, 6, 10),
+			id: "gym",
 			recurringType: RECURRING_TYPE.weekly,
 			reminderLeadDays: 1,
 		});
 
 		const candidates = await reminderCandidates(db, NOW);
 
-		expect(
-			candidates
-				.map((candidate) => [candidate.localId, candidate.landing.getTime()])
-				.sort(),
-		).toStrictEqual(
+		expect(candidates.map((candidate) => [candidate.localId, candidate.landing.getTime()]).sort()).toStrictEqual(
 			[
 				["gym", at(2025, 6, 17).getTime()],
 				["netflix", at(2025, 7, 15).getTime()],
-			].sort(),
+			].sort()
 		);
 	});
 });
@@ -300,13 +287,13 @@ describe("pendingReminderPlan", () => {
 
 	it("keeps the soonest notices when the cap truncates", async () => {
 		await seedCarrier(db, {
-			id: "netflix",
 			date: at(2025, 3, 15),
+			id: "netflix",
 			reminderLeadDays: 2,
 		});
 		await seedCarrier(db, {
-			id: "gym",
 			date: at(2025, 6, 10),
+			id: "gym",
 			recurringType: RECURRING_TYPE.weekly,
 			reminderLeadDays: 1,
 		});
@@ -329,10 +316,10 @@ describe("pendingReminderPlan", () => {
 	// without its copy would announce a bare identifier.
 	it("carries the copy and the landing each notice has to print", async () => {
 		await seedCarrier(db, {
-			date: at(2025, 3, 15),
-			note: "Spotify",
 			amount: 11.99,
 			currency: "EUR",
+			date: at(2025, 3, 15),
+			note: "Spotify",
 			reminderLeadDays: 2,
 		});
 
@@ -347,8 +334,8 @@ describe("pendingReminderPlan", () => {
 	it("resolves a row with no currency of its own against the ledger's", async () => {
 		await setMeta(db, "currency", "MXN");
 		await seedCarrier(db, {
-			date: at(2025, 3, 15),
 			currency: null,
+			date: at(2025, 3, 15),
 			reminderLeadDays: 2,
 		});
 
@@ -361,17 +348,17 @@ describe("pendingReminderPlan", () => {
 	// copy, not the row the plan dropped.
 	it("keeps each notice's copy with its own request under the cap", async () => {
 		await seedCarrier(db, {
-			id: "netflix",
-			date: at(2025, 3, 15),
-			note: "Netflix",
 			amount: 9.99,
+			date: at(2025, 3, 15),
+			id: "netflix",
+			note: "Netflix",
 			reminderLeadDays: 2,
 		});
 		await seedCarrier(db, {
-			id: "gym",
-			date: at(2025, 6, 10),
-			note: "Gym",
 			amount: 40,
+			date: at(2025, 6, 10),
+			id: "gym",
+			note: "Gym",
 			recurringType: RECURRING_TYPE.weekly,
 			reminderLeadDays: 1,
 		});

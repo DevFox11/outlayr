@@ -1,23 +1,12 @@
-import {
-	arrivalFrame,
-	MARK_MOTION,
-	recedeDelay,
-	settleFrame,
-	staggerDelay,
-} from "./mark-motion";
+import { arrivalFrame, MARK_MOTION, recedeDelay, settleFrame, staggerDelay } from "./mark-motion";
 
 describe("frame builders run on the UI runtime", () => {
 	it.each([
 		["arrivalFrame", arrivalFrame],
 		["settleFrame", settleFrame],
-	])(
-		"%s is workletized, so useAnimatedStyle can call it without a remote-function crash",
-		(_name, fn) => {
-			expect(
-				(fn as unknown as { __workletHash?: number }).__workletHash,
-			).toEqual(expect.any(Number));
-		},
-	);
+	])("%s is workletized, so useAnimatedStyle can call it without a remote-function crash", (_name, fn) => {
+		expect((fn as unknown as { __workletHash?: number }).__workletHash).toEqual(expect.any(Number));
+	});
 });
 
 describe("arrivalFrame", () => {

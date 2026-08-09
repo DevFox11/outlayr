@@ -35,9 +35,7 @@ describe("parseCsv", () => {
 	});
 
 	it("unescapes doubled quotes", () => {
-		expect(parseCsv('"He said ""hi""",5')).toStrictEqual([
-			['He said "hi"', "5"],
-		]);
+		expect(parseCsv('"He said ""hi""",5')).toStrictEqual([['He said "hi"', "5"]]);
 	});
 
 	it("keeps a newline inside a quoted field", () => {

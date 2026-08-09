@@ -1,13 +1,7 @@
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import {
-	appMeta,
-	budgets,
-	exchangeRates,
-	mainBudget,
-	transactions,
-} from "@/db/schema";
+import { appMeta, budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
 import type { SpendDb } from "./budget-spent";
 import {
 	backfillBudgetUsd,
@@ -101,12 +95,12 @@ const JULY_28 = new Date(Date.UTC(2026, 6, 28, 12));
 
 async function seedRate(db: SpendDb): Promise<void> {
 	await db.insert(exchangeRates).values({
-		quote: "EUR",
 		date: "2026-07-28",
-		rateType: "official",
-		rate: 0.87775,
-		source: "frankfurter",
 		fetchedAt: JULY_28.getTime(),
+		quote: "EUR",
+		rate: 0.877_75,
+		rateType: "official",
+		source: "frankfurter",
 	});
 }
 
@@ -118,20 +112,20 @@ async function add(
 		currency: string | null;
 		amountUsd?: number | null;
 		date?: Date;
-	},
+	}
 ): Promise<string> {
 	seq += 1;
 	const id = `t${seq}`;
 	const date = row.date ?? JULY_28;
 	await db.insert(transactions).values({
-		id,
 		amount: row.amount,
-		income: false,
+		amountUsd: row.amountUsd ?? null,
 		currency: row.currency,
 		date,
 		day: date,
+		id,
+		income: false,
 		month: date,
-		amountUsd: row.amountUsd ?? null,
 		updatedAt: JULY_28,
 	});
 	return id;
@@ -145,13 +139,8 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 100, currency: "JPY" });
 
 		expect(await stampLedgerCurrency(db)).toBe(1);
-		const rows = await db
-			.select({ id: transactions.id, currency: transactions.currency })
-			.from(transactions);
-		expect(rows.map((row) => row.currency).sort()).toStrictEqual([
-			"EUR",
-			"JPY",
-		]);
+		const rows = await db.select({ currency: transactions.currency, id: transactions.id }).from(transactions);
+		expect(rows.map((row) => row.currency).sort()).toStrictEqual(["EUR", "JPY"]);
 	});
 
 	it("leaves a row that already named one alone", async () => {
@@ -160,9 +149,7 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 100, currency: "JPY" });
 
 		expect(await stampLedgerCurrency(db)).toBe(0);
-		const [row] = await db
-			.select({ currency: transactions.currency })
-			.from(transactions);
+		const [row] = await db.select({ currency: transactions.currency }).from(transactions);
 		expect(row.currency).toBe("JPY");
 	});
 
@@ -171,9 +158,7 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 10, currency: null });
 
 		expect(await stampLedgerCurrency(db)).toBe(0);
-		const [row] = await db
-			.select({ currency: transactions.currency })
-			.from(transactions);
+		const [row] = await db.select({ currency: transactions.currency }).from(transactions);
 		expect(row.currency).toBe(null);
 	});
 
@@ -183,9 +168,7 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 10, currency: null });
 
 		expect(await stampLedgerCurrency(db)).toBe(0);
-		const [row] = await db
-			.select({ currency: transactions.currency })
-			.from(transactions);
+		const [row] = await db.select({ currency: transactions.currency }).from(transactions);
 		expect(row.currency).toBe(null);
 	});
 
@@ -198,9 +181,7 @@ describe("stampLedgerCurrency", () => {
 		await add(db, { amount: 10, currency: null });
 
 		expect(await stampLedgerCurrency(db)).toBe(1);
-		const [row] = await db
-			.select({ currency: transactions.currency })
-			.from(transactions);
+		const [row] = await db.select({ currency: transactions.currency }).from(transactions);
 		expect(row.currency).toBe("USD");
 	});
 
@@ -228,8 +209,8 @@ describe("a row kept under a currency nobody stated", () => {
 
 		const [row] = await db
 			.select({
-				currency: transactions.currency,
 				amountUsd: transactions.amountUsd,
+				currency: transactions.currency,
 				exchangeRate: transactions.exchangeRate,
 			})
 			.from(transactions)
@@ -267,7 +248,7 @@ describe("backfillCanonicalUsd", () => {
 			.from(transactions);
 		// 100 EUR / 0.87775 — the divisor is currency-per-USD.
 		expect(Math.round((row.amountUsd ?? 0) * 100) / 100).toBe(113.93);
-		expect(row.exchangeRate).toBe(0.87775);
+		expect(row.exchangeRate).toBe(0.877_75);
 		expect(row.exchangeRateType).toBe("official");
 	});
 
@@ -296,13 +277,13 @@ describe("hasUncanonicalized", () => {
 describe("valuationCoverage", () => {
 	it("reports nothing outstanding once every row is frozen", async () => {
 		const db = makeDb();
-		await add(db, { amount: 100, currency: "EUR", amountUsd: 113.9 });
+		await add(db, { amount: 100, amountUsd: 113.9, currency: "EUR" });
 		await add(db, { amount: 20, currency: null });
 
 		expect(await valuationCoverage(db)).toStrictEqual({
+			beyondRateHistory: 0,
 			converted: 1,
 			pending: 0,
-			beyondRateHistory: 0,
 		});
 	});
 
@@ -312,7 +293,7 @@ describe("valuationCoverage", () => {
 		// window that starts no earlier.
 		const db = makeDb();
 		await seedRate(db);
-		await add(db, { amount: 100, currency: "EUR", amountUsd: 113.9 });
+		await add(db, { amount: 100, amountUsd: 113.9, currency: "EUR" });
 		await add(db, { amount: 40, currency: "EUR" });
 		await add(db, {
 			amount: 55,
@@ -321,9 +302,9 @@ describe("valuationCoverage", () => {
 		});
 
 		expect(await valuationCoverage(db)).toStrictEqual({
+			beyondRateHistory: 1,
 			converted: 1,
 			pending: 1,
-			beyondRateHistory: 1,
 		});
 	});
 
@@ -338,9 +319,9 @@ describe("valuationCoverage", () => {
 		});
 
 		expect(await valuationCoverage(db)).toStrictEqual({
+			beyondRateHistory: 0,
 			converted: 0,
 			pending: 1,
-			beyondRateHistory: 0,
 		});
 	});
 
@@ -355,9 +336,9 @@ describe("valuationCoverage", () => {
 		});
 
 		expect(await valuationCoverage(db)).toStrictEqual({
+			beyondRateHistory: 0,
 			converted: 0,
 			pending: 1,
-			beyondRateHistory: 0,
 		});
 	});
 });
@@ -369,26 +350,24 @@ describe("stampLedgerCurrency over budgets", () => {
 		const db = makeDb();
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: null,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 		await db.insert(mainBudget).values({
-			id: "m1",
 			amount: 2400,
-			type: 3,
 			currency: null,
+			id: "m1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
 		// One transaction-less ledger: the count is the two budgets.
 		expect(await stampLedgerCurrency(db)).toBe(2);
 		const [b] = await db.select({ currency: budgets.currency }).from(budgets);
-		const [m] = await db
-			.select({ currency: mainBudget.currency })
-			.from(mainBudget);
+		const [m] = await db.select({ currency: mainBudget.currency }).from(mainBudget);
 		expect(b.currency).toBe("EUR");
 		expect(m.currency).toBe("EUR");
 	});
@@ -397,10 +376,10 @@ describe("stampLedgerCurrency over budgets", () => {
 		const db = makeDb();
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "GBP",
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -415,20 +394,17 @@ const JULY_1 = new Date(Date.UTC(2026, 6, 1, 12));
 async function seedJulyRates(db: SpendDb): Promise<void> {
 	await seedRate(db);
 	await db.insert(exchangeRates).values({
-		quote: "EUR",
 		date: "2026-07-01",
-		rateType: "official",
-		rate: 0.8,
-		source: "frankfurter",
 		fetchedAt: JULY_1.getTime(),
+		quote: "EUR",
+		rate: 0.8,
+		rateType: "official",
+		source: "frankfurter",
 	});
 }
 
 async function budgetUsd(db: SpendDb, id: string): Promise<number | null> {
-	const [row] = await db
-		.select({ amountUsd: budgets.amountUsd })
-		.from(budgets)
-		.where(eq(budgets.id, id));
+	const [row] = await db.select({ amountUsd: budgets.amountUsd }).from(budgets).where(eq(budgets.id, id));
 	return row?.amountUsd ?? null;
 }
 
@@ -437,11 +413,11 @@ describe("backfillBudgetUsd", () => {
 		const db = makeDb();
 		await seedJulyRates(db);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: JULY_1,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -454,12 +430,12 @@ describe("backfillBudgetUsd", () => {
 		const db = makeDb();
 		await seedJulyRates(db);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: null,
+			id: "b1",
 			startDate: JULY_1,
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -473,11 +449,11 @@ describe("backfillBudgetUsd", () => {
 		const db = makeDb();
 		await seedJulyRates(db);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: null,
 			dateCreated: JULY_1,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -488,11 +464,11 @@ describe("backfillBudgetUsd", () => {
 	it("leaves a target it cannot value for the next pass to retry", async () => {
 		const db = makeDb();
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: JULY_1,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -503,11 +479,11 @@ describe("backfillBudgetUsd", () => {
 	it("freezes a USD target without consulting a rate", async () => {
 		const db = makeDb();
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "USD",
 			dateCreated: JULY_1,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -519,26 +495,24 @@ describe("backfillBudgetUsd", () => {
 		const db = makeDb();
 		await seedJulyRates(db);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: JULY_1,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 		await db.insert(mainBudget).values({
-			id: "m1",
 			amount: 2400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: JULY_1,
+			id: "m1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
 		expect(await backfillBudgetUsd(db)).toBe(2);
-		const [m] = await db
-			.select({ amountUsd: mainBudget.amountUsd })
-			.from(mainBudget);
+		const [m] = await db.select({ amountUsd: mainBudget.amountUsd }).from(mainBudget);
 		expect(m.amountUsd).toBe(3000);
 	});
 
@@ -546,11 +520,11 @@ describe("backfillBudgetUsd", () => {
 		const db = makeDb();
 		await seedJulyRates(db);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: JULY_1,
+			id: "b1",
+			type: 3,
 			updatedAt: JULY_28,
 		});
 
@@ -562,13 +536,13 @@ describe("backfillBudgetUsd", () => {
 		const db = makeDb();
 		await seedJulyRates(db);
 		await db.insert(budgets).values({
-			id: "b1",
 			amount: 400,
-			type: 3,
 			currency: "EUR",
 			dateCreated: JULY_1,
-			updatedAt: JULY_28,
 			deletedAt: JULY_28,
+			id: "b1",
+			type: 3,
+			updatedAt: JULY_28,
 		});
 
 		expect(await backfillBudgetUsd(db)).toBe(0);
@@ -577,24 +551,19 @@ describe("backfillBudgetUsd", () => {
 });
 
 describe("backfillCanonicalUsd over a backlog", () => {
-	async function addMany(
-		db: SpendDb,
-		count: number,
-		currency: string,
-		firstId: number,
-	): Promise<void> {
+	async function addMany(db: SpendDb, count: number, currency: string, firstId: number): Promise<void> {
 		await db.insert(transactions).values(
 			Array.from({ length: count }, (_, i) => ({
-				id: `r${String(firstId + i).padStart(5, "0")}`,
 				amount: 100,
-				income: false,
+				amountUsd: null,
 				currency,
 				date: JULY_28,
 				day: JULY_28,
+				id: `r${String(firstId + i).padStart(5, "0")}`,
+				income: false,
 				month: JULY_28,
-				amountUsd: null,
 				updatedAt: JULY_28,
-			})),
+			}))
 		);
 	}
 

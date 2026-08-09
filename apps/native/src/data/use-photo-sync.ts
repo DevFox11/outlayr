@@ -11,9 +11,7 @@ import { runPhotoSync } from "./photo-sync-core";
 import { isSyncEnabled } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
-const PHOTO_TABLE_NAMES = PHOTO_TABLES.map((photoTable) =>
-	getTableName(photoTable.table),
-);
+const PHOTO_TABLE_NAMES = PHOTO_TABLES.map((photoTable) => getTableName(photoTable.table));
 
 /**
  * Longer than `useSyncEngine`'s: a photo pass moves whole files, and a burst of

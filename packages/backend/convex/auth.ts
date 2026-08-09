@@ -22,11 +22,7 @@ import authConfig from "./auth.config";
  * after first load still picks them up.
  */
 function resolveSiteUrl() {
-	return (
-		process.env.SITE_URL ||
-		process.env.CONVEX_SITE_URL ||
-		"http://localhost:3000"
-	);
+	return process.env.SITE_URL || process.env.CONVEX_SITE_URL || "http://localhost:3000";
 }
 
 const nativeAppUrl = process.env.NATIVE_APP_URL || "outlayr://";
@@ -40,7 +36,7 @@ const appleConfig = (() => {
 	const privateKey = env.APPLE_PRIVATE_KEY;
 
 	if (clientId && teamId && keyId && privateKey) {
-		return { clientId, teamId, keyId, privateKey };
+		return { clientId, keyId, privateKey, teamId };
 	}
 
 	return null;
@@ -63,12 +59,7 @@ const googleConfig = (() => {
  * private key, valid for at most six months, so it must be minted per request
  * rather than stored as an env var.
  */
-async function generateAppleClientSecret(
-	clientId: string,
-	teamId: string,
-	keyId: string,
-	privateKey: string,
-) {
+async function generateAppleClientSecret(clientId: string, teamId: string, keyId: string, privateKey: string) {
 	const key = await importPKCS8(privateKey, "ES256");
 	const now = Math.floor(Date.now() / 1000);
 	return new SignJWT({})
@@ -86,16 +77,52 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 
 	return betterAuth({
 		baseURL: siteUrl,
-		trustedOrigins: [
-			siteUrl,
-			nativeAppUrl,
-			"exp://",
-			"https://appleid.apple.com",
-		],
 		database: authComponent.adapter(ctx),
 		emailAndPassword: {
 			enabled: false,
 		},
+		plugins: [
+			expo(),
+			crossDomain({ siteUrl }),
+			convex({
+				authConfig,
+				jwksRotateOnTokenGenerationError: true,
+			}),
+		],
+		socialProviders: {
+			apple: async () => {
+				if (!appleConfig) {
+					return {
+						appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER ?? "",
+						clientId: "",
+						clientSecret: "",
+						enabled: false,
+					};
+				}
+
+				return {
+					appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER ?? "",
+					clientId: appleConfig.clientId,
+					clientSecret: await generateAppleClientSecret(
+						appleConfig.clientId,
+						appleConfig.teamId,
+						appleConfig.keyId,
+						appleConfig.privateKey
+					),
+					enabled: true,
+				};
+			},
+			google: googleConfig
+				? {
+						clientId: googleConfig.clientId,
+						clientSecret: googleConfig.clientSecret,
+					}
+				: {
+						clientId: [],
+						clientSecret: "",
+					},
+		},
+		trustedOrigins: [siteUrl, nativeAppUrl, "exp://", "https://appleid.apple.com"],
 		user: {
 			/**
 			 * App Store guideline 5.1.1(v): an app that creates accounts must let the
@@ -103,7 +130,6 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 			 * the rule.
 			 */
 			deleteUser: {
-				enabled: true,
 				/**
 				 * The ledger is purged BEFORE the account row, so a failure leaves the
 				 * account intact and retryable. The reverse order would leave rows
@@ -131,49 +157,9 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 						done = result.done;
 					}
 				},
+				enabled: true,
 			},
 		},
-		socialProviders: {
-			apple: async () => {
-				if (!appleConfig) {
-					return {
-						clientId: "",
-						clientSecret: "",
-						appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER ?? "",
-						enabled: false,
-					};
-				}
-
-				return {
-					clientId: appleConfig.clientId,
-					clientSecret: await generateAppleClientSecret(
-						appleConfig.clientId,
-						appleConfig.teamId,
-						appleConfig.keyId,
-						appleConfig.privateKey,
-					),
-					appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER ?? "",
-					enabled: true,
-				};
-			},
-			google: googleConfig
-				? {
-						clientId: googleConfig.clientId,
-						clientSecret: googleConfig.clientSecret,
-					}
-				: {
-						clientId: [],
-						clientSecret: "",
-					},
-		},
-		plugins: [
-			expo(),
-			crossDomain({ siteUrl }),
-			convex({
-				authConfig,
-				jwksRotateOnTokenGenerationError: true,
-			}),
-		],
 	});
 }
 

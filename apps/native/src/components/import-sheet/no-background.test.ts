@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(__dirname);
+const ROOT = join(import.meta.dirname);
 const SHEET_ROOT_FILE = "import-sheet.tsx";
 /** Washes and cards: the Grid grammar rules ink onto the sheet's own paper. */
 const WASH_CLASS = /\bbg-(surface|card|foreground\/\d+)\b/;

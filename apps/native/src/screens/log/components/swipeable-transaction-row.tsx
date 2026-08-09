@@ -1,8 +1,6 @@
 import { useRef } from "react";
 import { Pressable } from "react-native";
-import ReanimatedSwipeable, {
-	type SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated from "react-native-reanimated";
 import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
@@ -11,12 +9,12 @@ import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n";
 
 interface SwipeableTransactionRowProps {
-	transaction: TransactionWithCategory;
 	currency: string;
-	rates?: RateTable;
-	onPress: (id: string) => void;
-	onLongPress: (id: string) => void;
 	onDelete: (id: string) => void;
+	onLongPress: (id: string) => void;
+	onPress: (id: string) => void;
+	rates?: RateTable;
+	transaction: TransactionWithCategory;
 }
 
 export function SwipeableTransactionRow({
@@ -32,36 +30,34 @@ export function SwipeableTransactionRow({
 
 	const renderRightActions = () => (
 		<Pressable
+			accessibilityLabel={t("log.row.deleteAccessibility")}
+			accessibilityRole="button"
 			className="my-1 ml-3 items-center justify-center rounded-xl bg-danger-fill px-6"
 			onPress={() => {
 				swipeRef.current?.close();
 				onDelete(transaction.id);
 			}}
-			accessibilityRole="button"
-			accessibilityLabel={t("log.row.deleteAccessibility")}
 		>
-			<Text className="font-sans-semibold text-subtitle text-white">
-				{t("log.row.delete")}
-			</Text>
+			<Text className="font-sans-semibold text-subtitle text-white">{t("log.row.delete")}</Text>
 		</Pressable>
 	);
 
 	return (
 		<ReanimatedSwipeable
-			ref={swipeRef}
 			friction={2}
-			rightThreshold={40}
 			overshootRight={false}
+			ref={swipeRef}
 			renderRightActions={renderRightActions}
+			rightThreshold={40}
 		>
 			<Animated.View className="bg-background">
 				<TransactionRow
-					transaction={transaction}
 					currency={currency}
-					rates={rates}
-					onPress={onPress}
-					onLongPress={onLongPress}
 					onDelete={onDelete}
+					onLongPress={onLongPress}
+					onPress={onPress}
+					rates={rates}
+					transaction={transaction}
 				/>
 			</Animated.View>
 		</ReanimatedSwipeable>

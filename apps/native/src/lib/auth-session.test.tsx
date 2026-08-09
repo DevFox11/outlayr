@@ -12,8 +12,6 @@ function Probe() {
 describe("useAuthSession", () => {
 	it("resolves the unconfigured default via use() outside a provider", async () => {
 		const { getByTestId } = await render(<Probe />);
-		expect(getByTestId("probe").props.children).toBe(
-			JSON.stringify({ gate: "unconfigured", accountId: null }),
-		);
+		expect(getByTestId("probe").props.children).toBe(JSON.stringify({ accountId: null, gate: "unconfigured" }));
 	});
 });

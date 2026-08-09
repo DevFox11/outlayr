@@ -6,20 +6,14 @@ const URL_NAMESPACE = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
 
 describe("uuidV5", () => {
 	it("matches the RFC 4122 published vectors", () => {
-		expect(uuidV5("python.org", DNS_NAMESPACE)).toBe(
-			"886313e1-3b8a-5372-9b90-0c9aee199e5d",
-		);
-		expect(uuidV5("http://python.org/", URL_NAMESPACE)).toBe(
-			"4c565f0d-3f5a-5890-b41b-20cf47701c5e",
-		);
+		expect(uuidV5("python.org", DNS_NAMESPACE)).toBe("886313e1-3b8a-5372-9b90-0c9aee199e5d");
+		expect(uuidV5("http://python.org/", URL_NAMESPACE)).toBe("4c565f0d-3f5a-5890-b41b-20cf47701c5e");
 	});
 
 	it("stamps version 5 and the RFC variant", () => {
 		const id = uuidV5("anything", DNS_NAMESPACE);
 
-		expect(id).toMatch(
-			/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-		);
+		expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 	});
 
 	it("is stable across calls and distinct across names", () => {

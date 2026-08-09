@@ -19,35 +19,23 @@ import { VALUATION_RATE_TYPE } from "./valuation-source";
  * (see `rates-revision.ts`), so the revision counter carries that half instead.
  */
 export function useValuationIn(db: Database, code: string): Valuation {
-	const revision = useSyncExternalStore(
-		subscribeRatesRevision,
-		ratesRevision,
-		ratesRevision,
-	);
+	const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
 
 	const rows = useLiveQuery(
 		exchangeRates,
 		() =>
 			db
 				.select({
-					quote: exchangeRates.quote,
 					date: exchangeRates.date,
+					quote: exchangeRates.quote,
 					rate: exchangeRates.rate,
 				})
 				.from(exchangeRates)
-				.where(
-					and(
-						eq(exchangeRates.quote, code),
-						eq(exchangeRates.rateType, VALUATION_RATE_TYPE),
-					),
-				),
-		[code, revision],
+				.where(and(eq(exchangeRates.quote, code), eq(exchangeRates.rateType, VALUATION_RATE_TYPE))),
+		[code, revision]
 	);
 
-	return useMemo(
-		() => ({ displayCurrency: code, rates: buildRateTable(rows) }),
-		[code, rows],
-	);
+	return useMemo(() => ({ displayCurrency: code, rates: buildRateTable(rows) }), [code, rows]);
 }
 
 /** {@link useValuationIn} for the ledger's own display currency. */

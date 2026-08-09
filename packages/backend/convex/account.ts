@@ -32,7 +32,6 @@ export const PURGE_BATCH = 200;
  */
 export const purgeBatch = internalMutation({
 	args: { userId: v.string() },
-	returns: v.object({ removed: v.number(), done: v.boolean() }),
 	handler: async (ctx, args) => {
 		const photos = await ctx.db
 			.query("photoSizes")
@@ -43,7 +42,7 @@ export const purgeBatch = internalMutation({
 				await releaseObject(ctx, photo.key);
 				await ctx.db.delete(photo._id);
 			}
-			return { removed: photos.length, done: false };
+			return { done: false, removed: photos.length };
 		}
 
 		for (const table of SYNCED_TABLES) {
@@ -57,7 +56,7 @@ export const purgeBatch = internalMutation({
 			for (const row of rows) {
 				await ctx.db.delete(row._id);
 			}
-			return { removed: rows.length, done: false };
+			return { done: false, removed: rows.length };
 		}
 
 		// Last, and only once nothing else is left: it is the counter that stamps
@@ -69,10 +68,11 @@ export const purgeBatch = internalMutation({
 			.unique();
 		if (state) {
 			await ctx.db.delete(state._id);
-			return { removed: 1, done: true };
+			return { done: true, removed: 1 };
 		}
-		return { removed: 0, done: true };
+		return { done: true, removed: 0 };
 	},
+	returns: v.object({ done: v.boolean(), removed: v.number() }),
 });
 
 /**

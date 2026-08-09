@@ -1,14 +1,6 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Database } from "@/db/client";
-import {
-	accounts,
-	appMeta,
-	budgets,
-	categories,
-	mainBudget,
-	templateTransactions,
-	transactions,
-} from "@/db/schema";
+import { accounts, appMeta, budgets, categories, mainBudget, templateTransactions, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import {
 	ARCHIVE_FORMAT,
@@ -21,13 +13,13 @@ import {
 } from "@/domain/archive";
 
 const TABLES: Record<ArchiveTable, SQLiteTable> = {
-	categories,
 	accounts,
-	transactions,
+	appMeta,
 	budgets,
+	categories,
 	mainBudget,
 	templateTransactions,
-	appMeta,
+	transactions,
 };
 
 /**
@@ -37,22 +29,17 @@ const TABLES: Record<ArchiveTable, SQLiteTable> = {
  * come back as a live row the moment a peer that never saw it pushed again, and
  * the undo window restores from them too.
  */
-export async function buildArchive(
-	db: Database,
-	now: Date,
-): Promise<ArchiveDocument> {
+export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocument> {
 	const tables = {} as Record<ArchiveTable, Record<string, unknown>[]>;
 	for (const table of ARCHIVE_TABLES) {
 		const rows = await db.select().from(TABLES[table]);
-		tables[table] = rows.map((row) =>
-			encodeArchiveRow(table, row as Record<string, unknown>),
-		);
+		tables[table] = rows.map((row) => encodeArchiveRow(table, row as Record<string, unknown>));
 	}
 	return {
-		format: ARCHIVE_FORMAT,
-		version: ARCHIVE_VERSION,
 		exportedAt: now.getTime(),
+		format: ARCHIVE_FORMAT,
 		tables,
+		version: ARCHIVE_VERSION,
 	};
 }
 
@@ -68,19 +55,14 @@ export async function buildArchive(
  * never points at a parent that has not been written yet — the same reason
  * `ARCHIVE_TABLES` is ordered rather than alphabetical.
  */
-export async function restoreArchive(
-	db: Database,
-	document: ArchiveDocument,
-): Promise<number> {
+export async function restoreArchive(db: Database, document: ArchiveDocument): Promise<number> {
 	let written = 0;
 	await withTransaction(db, async () => {
 		for (const table of [...ARCHIVE_TABLES].reverse()) {
 			await db.delete(TABLES[table]);
 		}
 		for (const table of ARCHIVE_TABLES) {
-			const rows = document.tables[table].map((row) =>
-				decodeArchiveRow(table, row),
-			);
+			const rows = document.tables[table].map((row) => decodeArchiveRow(table, row));
 			if (rows.length === 0) {
 				continue;
 			}

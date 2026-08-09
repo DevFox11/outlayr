@@ -1,9 +1,4 @@
-import {
-	type AuthGate,
-	authGate,
-	authRoute,
-	rootStackGroup,
-} from "./auth-gate";
+import { type AuthGate, authGate, authRoute, rootStackGroup } from "./auth-gate";
 import { ROOT_STACK_SCREEN_NAMES } from "./root-stack";
 
 describe("auth gate", () => {
@@ -12,9 +7,9 @@ describe("auth gate", () => {
 			authGate({
 				configured: true,
 				hasSession: true,
-				restoring: false,
 				restoreExpired: false,
-			}),
+				restoring: false,
+			})
 		).toBe("signed-in");
 	});
 
@@ -23,9 +18,9 @@ describe("auth gate", () => {
 			authGate({
 				configured: true,
 				hasSession: true,
-				restoring: true,
 				restoreExpired: false,
-			}),
+				restoring: true,
+			})
 		).toBe("signed-in");
 	});
 
@@ -34,9 +29,9 @@ describe("auth gate", () => {
 			authGate({
 				configured: true,
 				hasSession: true,
-				restoring: true,
 				restoreExpired: true,
-			}),
+				restoring: true,
+			})
 		).toBe("signed-in");
 	});
 
@@ -45,9 +40,9 @@ describe("auth gate", () => {
 			authGate({
 				configured: true,
 				hasSession: false,
-				restoring: true,
 				restoreExpired: false,
-			}),
+				restoring: true,
+			})
 		).toBe("restoring");
 	});
 
@@ -56,9 +51,9 @@ describe("auth gate", () => {
 			authGate({
 				configured: true,
 				hasSession: false,
-				restoring: true,
 				restoreExpired: true,
-			}),
+				restoring: true,
+			})
 		).toBe("signed-out");
 	});
 
@@ -67,9 +62,9 @@ describe("auth gate", () => {
 			authGate({
 				configured: true,
 				hasSession: false,
-				restoring: false,
 				restoreExpired: false,
-			}),
+				restoring: false,
+			})
 		).toBe("signed-out");
 	});
 
@@ -78,27 +73,24 @@ describe("auth gate", () => {
 			authGate({
 				configured: false,
 				hasSession: false,
-				restoring: false,
 				restoreExpired: false,
-			}),
+				restoring: false,
+			})
 		).toBe("unconfigured");
 		expect(
 			authGate({
 				configured: false,
 				hasSession: false,
-				restoring: true,
 				restoreExpired: false,
-			}),
+				restoring: true,
+			})
 		).toBe("unconfigured");
 	});
 });
 
 describe("account routing", () => {
-	const at = (
-		gate: Parameters<typeof authRoute>[0]["gate"],
-		reconciled: boolean,
-		deferred = false,
-	) => authRoute({ gate, reconciled, deferred });
+	const at = (gate: Parameters<typeof authRoute>[0]["gate"], reconciled: boolean, deferred = false) =>
+		authRoute({ deferred, gate, reconciled });
 
 	it("opens the ledger of a build that cannot sign anyone in", () => {
 		expect(at("unconfigured", true)).toBe("ledger");
@@ -142,12 +134,7 @@ describe("account routing", () => {
 });
 
 describe("rootStackGroup", () => {
-	const GATES: AuthGate[] = [
-		"restoring",
-		"signed-in",
-		"signed-out",
-		"unconfigured",
-	];
+	const GATES: AuthGate[] = ["restoring", "signed-in", "signed-out", "unconfigured"];
 	const BOOLEANS = [true, false];
 
 	it("returns exactly one of the four groups for every state, each with screens to admit", () => {
@@ -156,14 +143,12 @@ describe("rootStackGroup", () => {
 				for (const reconciled of BOOLEANS) {
 					for (const deferred of BOOLEANS) {
 						const group = rootStackGroup({
-							onboarded,
-							gate,
-							reconciled,
 							deferred,
+							gate,
+							onboarded,
+							reconciled,
 						});
-						expect(["onboarding", "sign-in", "adopt", "ledger"]).toContain(
-							group,
-						);
+						expect(["onboarding", "sign-in", "adopt", "ledger"]).toContain(group);
 						expect(ROOT_STACK_SCREEN_NAMES[group].length).toBeGreaterThan(0);
 					}
 				}
@@ -175,9 +160,7 @@ describe("rootStackGroup", () => {
 		for (const gate of GATES) {
 			for (const reconciled of BOOLEANS) {
 				for (const deferred of BOOLEANS) {
-					expect(
-						rootStackGroup({ onboarded: false, gate, reconciled, deferred }),
-					).toBe("onboarding");
+					expect(rootStackGroup({ deferred, gate, onboarded: false, reconciled })).toBe("onboarding");
 				}
 			}
 		}
@@ -187,9 +170,9 @@ describe("rootStackGroup", () => {
 		for (const gate of GATES) {
 			for (const reconciled of BOOLEANS) {
 				for (const deferred of BOOLEANS) {
-					expect(
-						rootStackGroup({ onboarded: true, gate, reconciled, deferred }),
-					).toBe(authRoute({ gate, reconciled, deferred }));
+					expect(rootStackGroup({ deferred, gate, onboarded: true, reconciled })).toBe(
+						authRoute({ deferred, gate, reconciled })
+					);
 				}
 			}
 		}

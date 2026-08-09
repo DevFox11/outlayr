@@ -5,11 +5,7 @@ import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
-import {
-	backfillAllRecurring,
-	backfillRecurring,
-	repairOrphanedRecurrence,
-} from "./recurrence-backfill";
+import { backfillAllRecurring, backfillRecurring, repairOrphanedRecurrence } from "./recurrence-backfill";
 import { transactionsRepo } from "./transactions-core";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
@@ -70,55 +66,48 @@ function makeDb(): Database {
 
 interface SourceOverrides {
 	date: Date;
+	deletedAt?: Date | null;
 	id?: string;
-	recurringType?: number;
+	onceRecurring?: boolean;
+	recurringAnchorDay?: number | null;
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
-	recurringAnchorDay?: number | null;
+	recurringType?: number;
 	reminderLeadDays?: number | null;
-	onceRecurring?: boolean;
-	deletedAt?: Date | null;
 }
 
-async function seedSource(
-	db: Database,
-	overrides: SourceOverrides,
-): Promise<string> {
+async function seedSource(db: Database, overrides: SourceOverrides): Promise<string> {
 	const id = overrides.id ?? "src";
 	await db.insert(transactions).values({
-		id,
 		amount: 9.99,
-		income: false,
+		categoryId: "bills",
 		currency: "USD",
-		note: "Netflix",
-		details: "family plan",
+		customColor: "#FF0000",
 		date: overrides.date,
 		day: startOfDay(overrides.date),
-		month: startOfDay(overrides.date),
-		icon: "Tv01",
+		deletedAt: overrides.deletedAt ?? null,
+		details: "family plan",
 		emoji: null,
-		customColor: "#FF0000",
+		icon: "Tv01",
+		id,
 		imageColor: null,
 		imageUri: null,
+		income: false,
+		month: startOfDay(overrides.date),
+		note: "Netflix",
 		onceRecurring: overrides.onceRecurring ?? true,
-		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
+		recurringAnchorDay: overrides.recurringAnchorDay ?? null,
 		recurringCoefficient: overrides.recurringCoefficient ?? 1,
 		recurringEndDate: overrides.recurringEndDate ?? null,
-		recurringAnchorDay: overrides.recurringAnchorDay ?? null,
+		recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
 		reminderLeadDays: overrides.reminderLeadDays ?? null,
-		categoryId: "bills",
 		updatedAt: NOW,
-		deletedAt: overrides.deletedAt ?? null,
 	});
 	return id;
 }
 
 function allRows(db: Database) {
-	return db
-		.select()
-		.from(transactions)
-		.where(isNull(transactions.deletedAt))
-		.orderBy(asc(transactions.date));
+	return db.select().from(transactions).where(isNull(transactions.deletedAt)).orderBy(asc(transactions.date));
 }
 
 async function generatedRows(db: Database, sourceId: string) {
@@ -137,10 +126,7 @@ async function liveCarrier(db: Database) {
 
 /** A soft-delete as it landed before the handover existed: schedule left intact. */
 async function orphanCarrier(db: Database, id: string): Promise<void> {
-	await db
-		.update(transactions)
-		.set({ deletedAt: NOW })
-		.where(eq(transactions.id, id));
+	await db.update(transactions).set({ deletedAt: NOW }).where(eq(transactions.id, id));
 }
 
 describe("backfillRecurring", () => {
@@ -155,9 +141,7 @@ describe("backfillRecurring", () => {
 		await backfillRecurring(db, id, NOW);
 
 		const rows = await generatedRows(db, id);
-		expect(rows.map((row) => row.date.getDate())).toStrictEqual([
-			28, 31, 30, 31,
-		]);
+		expect(rows.map((row) => row.date.getDate())).toStrictEqual([28, 31, 30, 31]);
 	});
 
 	it("walks from the stored anchor when the carrier's own day already clamped", async () => {
@@ -189,9 +173,7 @@ describe("backfillRecurring", () => {
 		const generated = await generatedRows(db, id);
 		expect(generated.length).toBe(3);
 		expect(generated.map((row) => row.date.getTime())).toStrictEqual(
-			[at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map((d) =>
-				startOfDay(d).getTime(),
-			),
+			[at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map((d) => startOfDay(d).getTime())
 		);
 
 		for (const row of generated) {
@@ -302,9 +284,7 @@ describe("backfillRecurring", () => {
 
 		const generated = await generatedRows(db, id);
 		expect(generated.length).toBe(1);
-		expect(generated[0]?.date.getTime()).toBe(
-			startOfDay(at(2025, 6, 15)).getTime(),
-		);
+		expect(generated[0]?.date.getTime()).toBe(startOfDay(at(2025, 6, 15)).getTime());
 		expect(generated[0]?.recurringType).toBe(RECURRING_TYPE.monthly);
 		const source = (await allRows(db)).find((row) => row.id === id);
 		expect(source?.recurringType).toBe(RECURRING_TYPE.none);
@@ -321,11 +301,9 @@ describe("backfillRecurring", () => {
 		const generated = await generatedRows(db, id);
 		expect(generated.length).toBe(2);
 		expect(generated.map((row) => row.date.getTime())).toStrictEqual(
-			[at(2025, 4, 15), at(2025, 5, 15)].map((d) => startOfDay(d).getTime()),
+			[at(2025, 4, 15), at(2025, 5, 15)].map((d) => startOfDay(d).getTime())
 		);
-		const past = generated.some(
-			(row) => row.date.getTime() > startOfDay(at(2025, 5, 15)).getTime(),
-		);
+		const past = generated.some((row) => row.date.getTime() > startOfDay(at(2025, 5, 15)).getTime());
 		expect(past).toBe(false);
 	});
 
@@ -343,8 +321,8 @@ describe("backfillRecurring", () => {
 	it("makes forward progress under a malformed coefficient (guard)", async () => {
 		const id = await seedSource(db, {
 			date: at(2025, 6, 12),
-			recurringType: RECURRING_TYPE.daily,
 			recurringCoefficient: 0,
+			recurringType: RECURRING_TYPE.daily,
 		});
 
 		await backfillRecurring(db, id, NOW);
@@ -353,9 +331,7 @@ describe("backfillRecurring", () => {
 		expect(generated.length).toBe(3);
 		const times = generated.map((row) => row.date.getTime());
 		expect(times).toStrictEqual(
-			[at(2025, 6, 13), at(2025, 6, 14), at(2025, 6, 15)].map((d) =>
-				startOfDay(d).getTime(),
-			),
+			[at(2025, 6, 13), at(2025, 6, 14), at(2025, 6, 15)].map((d) => startOfDay(d).getTime())
 		);
 		for (let i = 1; i < times.length; i++) {
 			expect((times[i] ?? 0) > (times[i - 1] ?? 0)).toBeTruthy();
@@ -392,13 +368,7 @@ describe("backfillAllRecurring", () => {
 
 		const dates = (await allRows(db)).map((row) => row.date.getTime());
 		expect(dates).toStrictEqual(
-			[
-				at(2025, 3, 15),
-				at(2025, 4, 15),
-				at(2025, 5, 15),
-				at(2025, 6, 15),
-				at(2025, 7, 15),
-			].map((d) => d.getTime()),
+			[at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15), at(2025, 7, 15)].map((d) => d.getTime())
 		);
 	});
 
@@ -422,34 +392,27 @@ describe("backfillAllRecurring", () => {
 
 		const rows = await allRows(db);
 		const carrying = rows.filter((row) => row.reminderLeadDays != null);
-		expect(carrying.map((row) => row.date.getTime())).toStrictEqual([
-			at(2025, 7, 15).getTime(),
-		]);
+		expect(carrying.map((row) => row.date.getTime())).toStrictEqual([at(2025, 7, 15).getTime()]);
 		expect(carrying[0]?.recurringType).toBe(RECURRING_TYPE.monthly);
 		expect(carrying[0]?.reminderLeadDays).toBe(2);
 	});
 
 	it("sweeps every live subscription", async () => {
-		await seedSource(db, { id: "netflix", date: at(2025, 4, 15) });
+		await seedSource(db, { date: at(2025, 4, 15), id: "netflix" });
 		await seedSource(db, {
-			id: "gym",
 			date: at(2025, 6, 8),
+			id: "gym",
 			recurringType: RECURRING_TYPE.weekly,
 		});
 
 		await backfillAllRecurring(db, NOW);
 
 		const rows = await allRows(db);
-		const live = rows.filter(
-			(row) => row.recurringType !== RECURRING_TYPE.none,
-		);
+		const live = rows.filter((row) => row.recurringType !== RECURRING_TYPE.none);
 		expect(rows.length).toBe(5);
-		expect(live.map((row) => row.date.getTime())).toStrictEqual([
-			at(2025, 6, 15).getTime(),
-			at(2025, 6, 15).getTime(),
-		]);
+		expect(live.map((row) => row.date.getTime())).toStrictEqual([at(2025, 6, 15).getTime(), at(2025, 6, 15).getTime()]);
 		expect(live.map((row) => row.recurringType).sort()).toStrictEqual(
-			[RECURRING_TYPE.weekly, RECURRING_TYPE.monthly].sort(),
+			[RECURRING_TYPE.weekly, RECURRING_TYPE.monthly].sort()
 		);
 	});
 
@@ -493,9 +456,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		const live = await allRows(db);
 		expect(live.some((row) => row.id === carrier?.id)).toBe(false);
-		expect(
-			live.some((row) => row.date.getTime() === at(2025, 6, 15).getTime()),
-		).toBe(false);
+		expect(live.some((row) => row.date.getTime() === at(2025, 6, 15).getTime())).toBe(false);
 	});
 
 	it("retires the schedule on the tombstone", async () => {
@@ -505,9 +466,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
 		await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
 
-		const tombstone = (await everyRow(db)).find(
-			(row) => row.id === carrier?.id,
-		);
+		const tombstone = (await everyRow(db)).find((row) => row.id === carrier?.id);
 		expect(tombstone?.deletedAt).not.toBe(null);
 		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
 	});
@@ -526,16 +485,14 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		const successor = await liveCarrier(db);
 		expect(successor?.date.getTime()).toBe(at(2025, 7, 15).getTime());
 		expect(successor?.recurringCoefficient).toBe(2);
-		expect(successor?.recurringEndDate?.getTime()).toBe(
-			at(2026, 3, 15).getTime(),
-		);
+		expect(successor?.recurringEndDate?.getTime()).toBe(at(2026, 3, 15).getTime());
 	});
 
 	it("ends the chain when the next occurrence is past the end date", async () => {
 		const id = await seedSource(db, {
 			date: at(2025, 6, 10),
-			recurringType: RECURRING_TYPE.weekly,
 			recurringEndDate: at(2025, 6, 16),
+			recurringType: RECURRING_TYPE.weekly,
 		});
 
 		await transactionsRepo.remove(db, id, NOW);
@@ -566,9 +523,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 	it("leaves a settled occurrence's delete alone", async () => {
 		const id = await seedSource(db, { date: at(2025, 3, 15) });
 		await backfillRecurring(db, id, NOW);
-		const inert = (await allRows(db)).find(
-			(row) => row.id !== id && row.recurringType === RECURRING_TYPE.none,
-		);
+		const inert = (await allRows(db)).find((row) => row.id !== id && row.recurringType === RECURRING_TYPE.none);
 		const before = (await allRows(db)).length;
 
 		await transactionsRepo.remove(db, inert?.id ?? "", NOW);
@@ -586,14 +541,9 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
 
 		expect((await allRows(db)).map((row) => row.date.getTime())).toStrictEqual(
-			[
-				at(2025, 3, 15),
-				at(2025, 4, 15),
-				at(2025, 5, 15),
-				at(2025, 7, 15),
-				at(2025, 8, 15),
-				at(2025, 9, 15),
-			].map((d) => d.getTime()),
+			[at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 7, 15), at(2025, 8, 15), at(2025, 9, 15)].map((d) =>
+				d.getTime()
+			)
 		);
 	});
 
@@ -638,9 +588,7 @@ describe("transactionsRepo.stopRecurring", () => {
 		await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
 
 		expect((await allRows(db)).map((row) => row.date.getTime())).toStrictEqual(
-			[at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map(
-				(d) => d.getTime(),
-			),
+			[at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map((d) => d.getTime())
 		);
 	});
 
@@ -710,9 +658,7 @@ describe("repairOrphanedRecurrence", () => {
 		await repairOrphanedRecurrence(db, NOW);
 
 		expect((await liveCarrier(db))?.reminderLeadDays).toBe(1);
-		const tombstone = (await everyRow(db)).find(
-			(row) => row.id === carrier?.id,
-		);
+		const tombstone = (await everyRow(db)).find((row) => row.id === carrier?.id);
 		expect(tombstone?.reminderLeadDays).toBe(null);
 	});
 
@@ -724,9 +670,7 @@ describe("repairOrphanedRecurrence", () => {
 
 		await repairOrphanedRecurrence(db, NOW);
 
-		const tombstone = (await everyRow(db)).find(
-			(row) => row.id === carrier?.id,
-		);
+		const tombstone = (await everyRow(db)).find((row) => row.id === carrier?.id);
 		expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
 	});
 
@@ -738,9 +682,7 @@ describe("repairOrphanedRecurrence", () => {
 		expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
 
 		expect((await everyRow(db)).length).toBe(before);
-		expect((await liveCarrier(db))?.date.getTime()).toBe(
-			at(2025, 6, 15).getTime(),
-		);
+		expect((await liveCarrier(db))?.date.getTime()).toBe(at(2025, 6, 15).getTime());
 	});
 
 	it("only ever runs once, so a later tombstone is not swept up", async () => {
@@ -781,8 +723,8 @@ describe("repairOrphanedRecurrence", () => {
 	it("retires a tombstone whose chain has run past its end date", async () => {
 		const id = await seedSource(db, {
 			date: at(2025, 6, 10),
-			recurringType: RECURRING_TYPE.weekly,
 			recurringEndDate: at(2025, 6, 16),
+			recurringType: RECURRING_TYPE.weekly,
 		});
 		await orphanCarrier(db, id);
 
@@ -829,9 +771,7 @@ describe("occurrence identity across devices", () => {
 
 		const rows = await everyRow(db);
 		expect(rows.filter((row) => row.id === replicated.id).length).toBe(1);
-		expect(rows.find((row) => row.id === replicated.id)?.note).toBe(
-			"from-peer",
-		);
+		expect(rows.find((row) => row.id === replicated.id)?.note).toBe("from-peer");
 		expect(rows.length).toBe((await everyRow(solo)).length);
 	});
 
@@ -843,9 +783,7 @@ describe("occurrence identity across devices", () => {
 		await backfillRecurring(solo, "src", NOW);
 		const replicated = (await generatedRows(solo, "src"))[0];
 
-		await db
-			.insert(transactions)
-			.values({ ...replicated, deletedAt: NOW, updatedAt: NOW });
+		await db.insert(transactions).values({ ...replicated, deletedAt: NOW, updatedAt: NOW });
 		await backfillRecurring(db, "src", NOW);
 
 		const raised = (await allRows(db)).find((row) => row.id === replicated.id);
@@ -871,8 +809,6 @@ describe("occurrence identity across devices", () => {
 		await transactionsRepo.remove(first, "src", NOW);
 		await transactionsRepo.remove(second, "src", NOW);
 
-		expect((await everyRow(first)).map((row) => row.id)).toStrictEqual(
-			(await everyRow(second)).map((row) => row.id),
-		);
+		expect((await everyRow(first)).map((row) => row.id)).toStrictEqual((await everyRow(second)).map((row) => row.id));
 	});
 });

@@ -17,9 +17,9 @@ describe("getCachedEnrichment", () => {
 	it("retrieves a positive result that was cached earlier", () => {
 		const value = {
 			categoryName: "Entertainment",
+			domain: "spotify.com",
 			isNewCategory: false,
 			tags: ["Music", "Streaming"],
-			domain: "spotify.com",
 		};
 		setCachedEnrichment("spotify", value);
 		expect(getCachedEnrichment("spotify")).toStrictEqual({
@@ -66,17 +66,17 @@ describe("setCachedEnrichment eviction", () => {
 		}
 		setCachedEnrichment("merchant-0", {
 			categoryName: "Shopping",
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 		expect(getCachedEnrichment("merchant-0")).toStrictEqual({
 			hit: true,
 			value: {
 				categoryName: "Shopping",
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			},
 		});
 		expect(getCachedEnrichment("merchant-1")).toStrictEqual({
@@ -90,10 +90,10 @@ describe("grounding field on RemoteEnrichmentResult", () => {
 	it("round-trips a cache hit carrying grounding", () => {
 		const value: RemoteEnrichmentResult = {
 			categoryName: "Healthcare",
-			isNewCategory: false,
-			tags: ["pharmacy"],
 			domain: "farmatodo.com",
 			grounding: false,
+			isNewCategory: false,
+			tags: ["pharmacy"],
 		};
 		setCachedEnrichment("farmatodo", value);
 		expect(getCachedEnrichment("farmatodo")).toStrictEqual({
@@ -105,9 +105,9 @@ describe("grounding field on RemoteEnrichmentResult", () => {
 	it("omits grounding without a type error", () => {
 		const value: RemoteEnrichmentResult = {
 			categoryName: "Entertainment",
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		};
 		setCachedEnrichment("netflix", value);
 		expect(getCachedEnrichment("netflix")).toStrictEqual({

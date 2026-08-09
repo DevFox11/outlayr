@@ -27,7 +27,7 @@ export function relativeLuminance(hex: string): number {
 	const channels = [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 	return channels.reduce((sum, channel, index) => {
 		const v = channel / 255;
-		const linear = v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+		const linear = v <= 0.039_28 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 		return sum + CHANNEL_WEIGHTS[index] * linear;
 	}, 0);
 }

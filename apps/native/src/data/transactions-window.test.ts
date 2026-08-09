@@ -5,8 +5,7 @@ import { logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
 
 type TestDb = ReturnType<typeof drizzle>;
 
-const at = (y: number, m: number, d: number, h = 0, min = 0): Date =>
-	new Date(y, m - 1, d, h, min, 0, 0);
+const at = (y: number, m: number, d: number, h = 0, min = 0): Date => new Date(y, m - 1, d, h, min, 0, 0);
 
 const NOW = at(2025, 7, 15, 23).getTime();
 
@@ -56,15 +55,15 @@ async function seedDay(db: TestDb, d: number, count: number): Promise<void> {
 	const day = at(2025, 7, d);
 	await db.insert(transactions).values(
 		Array.from({ length: count }, (_, i) => ({
-			id: `jul${d}-${i}`,
 			amount: 1,
-			income: false,
-			note: `jul${d}-${i}`,
 			date: at(2025, 7, d, 0, i),
 			day,
+			id: `jul${d}-${i}`,
+			income: false,
 			month: at(2025, 7, 1),
+			note: `jul${d}-${i}`,
 			updatedAt: new Date(0),
-		})),
+		}))
 	);
 }
 
@@ -72,7 +71,7 @@ async function windowFor(db: TestDb, days: number) {
 	const dayRows = await logWindowDaysQuery(db, NOW, days);
 	const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
 	const rows = await logWindowRowsQuery(db, NOW, floorMs);
-	return { dayRows, rows, reachedEnd: dayRows.length < days };
+	return { dayRows, reachedEnd: dayRows.length < days, rows };
 }
 
 describe("log window", () => {
@@ -95,31 +94,31 @@ describe("log window", () => {
 		const db = makeDb();
 		const day = at(2025, 7, 15);
 		await db.insert(transactions).values({
-			id: "identity",
 			amount: 1,
-			income: false,
-			note: "Lunch",
+			customColor: "#FF0000",
 			date: day,
 			day,
-			month: at(2025, 7, 1),
-			icon: "Coffee02",
 			emoji: "🍕",
-			customColor: "#FF0000",
+			icon: "Coffee02",
+			id: "identity",
 			imageColor: "#00FF00",
+			income: false,
+			month: at(2025, 7, 1),
+			note: "Lunch",
 			updatedAt: new Date(0),
 		});
 
 		const { rows } = await windowFor(db, 1);
 
 		expect({
-			icon: rows[0]?.icon,
-			emoji: rows[0]?.emoji,
 			customColor: rows[0]?.customColor,
+			emoji: rows[0]?.emoji,
+			icon: rows[0]?.icon,
 			imageColor: rows[0]?.imageColor,
 		}).toStrictEqual({
-			icon: "Coffee02",
-			emoji: "🍕",
 			customColor: "#FF0000",
+			emoji: "🍕",
+			icon: "Coffee02",
 			imageColor: "#00FF00",
 		});
 	});
@@ -167,24 +166,24 @@ describe("log window", () => {
 		await seedDay(db, 14, 1);
 		await db.insert(transactions).values([
 			{
-				id: "deleted",
 				amount: 1,
-				income: false,
-				note: "deleted",
 				date: at(2025, 7, 13),
 				day: at(2025, 7, 13),
-				month: at(2025, 7, 1),
-				updatedAt: new Date(0),
 				deletedAt: new Date(0),
+				id: "deleted",
+				income: false,
+				month: at(2025, 7, 1),
+				note: "deleted",
+				updatedAt: new Date(0),
 			},
 			{
-				id: "future",
 				amount: 1,
-				income: false,
-				note: "future",
 				date: at(2025, 7, 20),
 				day: at(2025, 7, 20),
+				id: "future",
+				income: false,
 				month: at(2025, 7, 1),
+				note: "future",
 				updatedAt: new Date(0),
 			},
 		]);

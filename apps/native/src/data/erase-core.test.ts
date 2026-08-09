@@ -2,13 +2,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import {
-	budgets,
-	categories,
-	mainBudget,
-	templateTransactions,
-	transactions,
-} from "@/db/schema";
+import { budgets, categories, mainBudget, templateTransactions, transactions } from "@/db/schema";
 import { ERASED_TRANSACTION, eraseLedger } from "./erase-core";
 import { deletedTransactionsQuery } from "./transactions-core";
 
@@ -107,75 +101,75 @@ const AUTHORED = new Date("2026-03-04T10:00:00.000Z");
 
 async function seed(db: Database): Promise<void> {
 	await db.insert(categories).values({
-		id: "cat-1",
-		name: "Coffee",
-		icon: "Coffee02",
 		color: "#279AF4",
-		income: false,
 		dateCreated: AUTHORED,
+		icon: "Coffee02",
+		id: "cat-1",
+		income: false,
+		name: "Coffee",
 		updatedAt: AUTHORED,
 	});
 	await db.insert(transactions).values({
-		id: "tx-1",
+		accountId: "acct-1",
 		amount: 42.5,
-		income: false,
+		amountUsd: 46.2,
+		categoryId: "cat-1",
 		currency: "EUR",
-		note: "Flat white with Marta",
-		details: "corner cafe",
+		customColor: "#112233",
 		date: AUTHORED,
 		day: AUTHORED,
-		month: AUTHORED,
-		icon: "Coffee02",
+		details: "corner cafe",
 		emoji: "☕️",
-		customColor: "#112233",
-		imageColor: "#445566",
-		imageUri: "file:///photos/tx-1.jpg",
-		onceRecurring: true,
-		recurringType: 2,
-		recurringCoefficient: 3,
-		recurringEndDate: AUTHORED,
-		reminderLeadDays: 3,
-		categoryId: "cat-1",
-		accountId: "acct-1",
-		amountUsd: 46.2,
 		exchangeRate: 1.087,
 		exchangeRateType: "official",
+		icon: "Coffee02",
+		id: "tx-1",
+		imageColor: "#445566",
+		imageUri: "file:///photos/tx-1.jpg",
+		income: false,
+		month: AUTHORED,
+		note: "Flat white with Marta",
+		onceRecurring: true,
+		recurringCoefficient: 3,
+		recurringEndDate: AUTHORED,
+		recurringType: 2,
+		reminderLeadDays: 3,
 		updatedAt: AUTHORED,
 	});
 	await db.insert(templateTransactions).values({
-		id: "tpl-1",
 		amount: 9.99,
+		categoryId: "cat-1",
+		id: "tpl-1",
 		income: false,
 		note: "Streaming",
-		sortOrder: 4,
-		recurringType: 3,
 		recurringCoefficient: 2,
-		categoryId: "cat-1",
+		recurringType: 3,
+		sortOrder: 4,
 		updatedAt: AUTHORED,
 	});
 	await db.insert(budgets).values({
+		amount: 100,
+		amountUsd: 108.7,
+		categoryId: "cat-1",
+		currency: "EUR",
+		dateCreated: AUTHORED,
+		green: true,
 		id: "bud-1",
 		name: "Coffee cap",
-		amount: 100,
-		type: 2,
 		startDate: AUTHORED,
-		dateCreated: AUTHORED,
-		currency: "EUR",
-		amountUsd: 108.7,
-		green: true,
-		categoryId: "cat-1",
+		type: 2,
 		updatedAt: AUTHORED,
 	});
 	await db.insert(mainBudget).values({
+		amount: 2000,
+		amountUsd: 2174,
+		currency: "EUR",
+		dateCreated: AUTHORED,
+		green: false,
 		id: "main-1",
 		name: "Everything",
-		amount: 2000,
-		type: 3,
 		startDate: AUTHORED,
-		dateCreated: AUTHORED,
-		currency: "EUR",
-		amountUsd: 2174,
-		green: false,
+		type: 3,
 		updatedAt: AUTHORED,
 	});
 }
@@ -190,10 +184,7 @@ describe("eraseLedger", () => {
 	it("leaves no readable transaction but keeps a replicable tombstone", async () => {
 		await eraseLedger(db, "transactions");
 
-		const readable = await db
-			.select()
-			.from(transactions)
-			.where(isNull(transactions.deletedAt));
+		const readable = await db.select().from(transactions).where(isNull(transactions.deletedAt));
 		expect(readable.length).toBe(0);
 
 		const replicable = await db.select().from(transactions);
@@ -208,35 +199,29 @@ describe("eraseLedger", () => {
 	it("keeps the rows it erased out of Recently Deleted", async () => {
 		const removed = new Date("2026-02-01T00:00:00.000Z");
 		await db.insert(transactions).values({
-			id: "tx-2",
 			amount: 7,
-			income: false,
-			note: "already gone",
 			date: AUTHORED,
 			day: AUTHORED,
-			month: AUTHORED,
-			updatedAt: removed,
 			deletedAt: removed,
+			id: "tx-2",
+			income: false,
+			month: AUTHORED,
+			note: "already gone",
+			updatedAt: removed,
 		});
 
 		await eraseLedger(db, "transactions");
 
-		expect(
-			(await deletedTransactionsQuery(db)).map((row) => row.id),
-		).toStrictEqual(["tx-2"]);
+		expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual(["tx-2"]);
 	});
 
 	// A column added to `transactions` and not to the constant would survive the
 	// erase on the tombstone, and no round-trip assertion above would notice.
 	it("names every column of a transaction that is not the envelope", () => {
 		const ENVELOPE = new Set(["id", "updatedAt", "deletedAt"]);
-		const declared = Object.keys(getTableColumns(transactions)).filter(
-			(name) => !ENVELOPE.has(name),
-		);
+		const declared = Object.keys(getTableColumns(transactions)).filter((name) => !ENVELOPE.has(name));
 
-		expect(Object.keys(ERASED_TRANSACTION).sort()).toStrictEqual(
-			declared.sort(),
-		);
+		expect(Object.keys(ERASED_TRANSACTION).sort()).toStrictEqual(declared.sort());
 	});
 
 	it("strips everything personal off a transaction tombstone", async () => {
@@ -271,10 +256,7 @@ describe("eraseLedger", () => {
 	it("strips everything personal off a template tombstone", async () => {
 		await eraseLedger(db, "transactions");
 
-		const readable = await db
-			.select()
-			.from(templateTransactions)
-			.where(isNull(templateTransactions.deletedAt));
+		const readable = await db.select().from(templateTransactions).where(isNull(templateTransactions.deletedAt));
 		expect(readable.length).toBe(0);
 
 		const [row] = await db.select().from(templateTransactions);
@@ -292,15 +274,9 @@ describe("eraseLedger", () => {
 	it("keeps budgets live under the transactions scope", async () => {
 		await eraseLedger(db, "transactions");
 
-		const liveBudgets = await db
-			.select()
-			.from(budgets)
-			.where(isNull(budgets.deletedAt));
+		const liveBudgets = await db.select().from(budgets).where(isNull(budgets.deletedAt));
 		expect(liveBudgets.length).toBe(1);
-		const liveMain = await db
-			.select()
-			.from(mainBudget)
-			.where(isNull(mainBudget.deletedAt));
+		const liveMain = await db.select().from(mainBudget).where(isNull(mainBudget.deletedAt));
 		expect(liveMain.length).toBe(1);
 	});
 
@@ -336,17 +312,14 @@ describe("eraseLedger", () => {
 
 		const now = new Date();
 		await db.insert(budgets).values({
-			id: "bud-2",
 			amount: 50,
-			type: 2,
 			categoryId: "cat-1",
 			green: false,
+			id: "bud-2",
+			type: 2,
 			updatedAt: now,
 		});
-		const live = await db
-			.select()
-			.from(budgets)
-			.where(isNull(budgets.deletedAt));
+		const live = await db.select().from(budgets).where(isNull(budgets.deletedAt));
 		expect(live.length).toBe(1);
 		expect(live[0].id).toBe("bud-2");
 	});
@@ -354,10 +327,7 @@ describe("eraseLedger", () => {
 	it("keeps categories untouched under either scope", async () => {
 		await eraseLedger(db, "everything");
 
-		const live = await db
-			.select()
-			.from(categories)
-			.where(isNull(categories.deletedAt));
+		const live = await db.select().from(categories).where(isNull(categories.deletedAt));
 		expect(live.length).toBe(1);
 		expect(live[0].name).toBe("Coffee");
 		expect(live[0].updatedAt.getTime()).toBe(AUTHORED.getTime());
@@ -376,23 +346,21 @@ describe("eraseLedger", () => {
 		expect(second[0].updatedAt.getTime()).toBe(first[0].updatedAt.getTime());
 
 		const secondBudget = await db.select().from(budgets);
-		expect(secondBudget[0].updatedAt.getTime()).toBe(
-			firstBudget[0].updatedAt.getTime(),
-		);
+		expect(secondBudget[0].updatedAt.getTime()).toBe(firstBudget[0].updatedAt.getTime());
 	});
 
 	it("leaves a row another path already tombstoned alone", async () => {
 		const removed = new Date("2026-02-01T00:00:00.000Z");
 		await db.insert(transactions).values({
-			id: "tx-2",
 			amount: 7,
-			income: false,
-			note: "already gone",
 			date: AUTHORED,
 			day: AUTHORED,
-			month: AUTHORED,
-			updatedAt: removed,
 			deletedAt: removed,
+			id: "tx-2",
+			income: false,
+			month: AUTHORED,
+			note: "already gone",
+			updatedAt: removed,
 		});
 
 		await eraseLedger(db, "transactions");

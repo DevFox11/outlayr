@@ -5,16 +5,12 @@ import { TransactionFormDetailsSection } from "./details-section";
 import { CARD_SHAPE } from "./style";
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByProp(
-	node: JsonNode | JsonNode[] | null,
-	key: string,
-	value: unknown,
-): JsonNode | null {
+function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -44,7 +40,7 @@ function findByProp(
 
 function findButtonWithText(
 	node: JsonNode | JsonNode[] | null,
-	text: string,
+	text: string
 ): (JsonNode & { props: { onButtonPress: () => void } }) | null {
 	if (node == null) {
 		return null;
@@ -58,10 +54,7 @@ function findButtonWithText(
 		}
 		return null;
 	}
-	if (
-		typeof node.props?.onButtonPress === "function" &&
-		findByProp(node, "text", text) !== null
-	) {
+	if (typeof node.props?.onButtonPress === "function" && findByProp(node, "text", text) !== null) {
 		return node as JsonNode & { props: { onButtonPress: () => void } };
 	}
 	for (const child of node.children ?? []) {
@@ -77,15 +70,13 @@ function findButtonWithText(
 }
 
 const FAKE_NOTES = {
-	value: "",
 	get: () => "",
-	set: () => {},
 	onChange: null,
+	set: () => {},
+	value: "",
 } as unknown as Parameters<typeof TransactionFormDetailsSection>[0]["notes"];
 
-function renderSection(
-	overrides: Partial<Parameters<typeof TransactionFormDetailsSection>[0]> = {},
-) {
+function renderSection(overrides: Partial<Parameters<typeof TransactionFormDetailsSection>[0]> = {}) {
 	return render(
 		<TransactionFormDetailsSection
 			accountLabel="Account"
@@ -100,7 +91,7 @@ function renderSection(
 			notesPlaceholder="Add a note"
 			onAccountPress={() => {}}
 			{...overrides}
-		/>,
+		/>
 	);
 }
 
@@ -112,16 +103,12 @@ describe("TransactionFormDetailsSection", () => {
 
 	it("passes the placeholder through to the text field", async () => {
 		const { toJSON } = await renderSection();
-		expect(
-			findByProp(toJSON() as JsonNode, "placeholder", "Add a note"),
-		).not.toBeNull();
+		expect(findByProp(toJSON() as JsonNode, "placeholder", "Add a note")).not.toBeNull();
 	});
 
 	it("carries the foreground color into the text field's modifiers", async () => {
 		const { toJSON } = await renderSection({ foregroundColor: "#ABCDEF" });
-		expect(JSON.stringify(toJSON())).toContain(
-			'"$type":"foregroundStyle","styleType":"color","color":"#ABCDEF"',
-		);
+		expect(JSON.stringify(toJSON())).toContain('"$type":"foregroundStyle","styleType":"color","color":"#ABCDEF"');
 	});
 
 	it("applies the caller's card modifiers to the section root", async () => {

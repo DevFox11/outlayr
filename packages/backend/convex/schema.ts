@@ -45,111 +45,6 @@ import {
  */
 export default defineSchema({
 	/**
-	 * Market exchange rates, quoted per USD. Written only by the fetcher crons and
-	 * bounded by `pruneStale`.
-	 *
-	 * `date` is a UTC `YYYY-MM-DD` string rather than an epoch so the composite
-	 * index reads as a calendar and `resolveRateOnDate` can ask for "the newest row
-	 * on or before this day", which is what covers the weekend and holiday gaps in
-	 * the provider feed.
-	 */
-	exchangeRates: defineTable({
-		quote: v.string(),
-		rateType: marketRateType,
-		source: rateSource,
-		rate: v.number(),
-		date: v.string(),
-		fetchedAt: v.number(),
-	})
-		.index("by_quote_and_rateType_and_date", ["quote", "rateType", "date"])
-		.index("by_date", ["date"]),
-
-	/**
-	 * One document per user, holding the counter that stamps `seq`. Bumped once
-	 * per push batch rather than once per row, so a three-device household is
-	 * nowhere near the write contention that would make a single hot document a
-	 * problem.
-	 */
-	syncState: defineTable({
-		userId: v.string(),
-		nextSeq: v.number(),
-	}).index("by_user", ["userId"]),
-
-	/**
-	 * `parentId` holds another category's `localId`, not a Convex `Id`. The whole
-	 * point of the envelope is that a row's identity survives a device that has
-	 * never synced, so foreign keys stay in local-id space on both sides.
-	 */
-	categories: defineTable({ ...replicated, ...categoryFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/**
-	 * `amount` is a float in the ledger's own currency, matching SQLite `REAL` —
-	 * both sides are IEEE-754 float64, so the value round-trips bit-for-bit and
-	 * sync neither introduces nor repairs the float-dollar rounding the local
-	 * schema already lives with.
-	 *
-	 * `amountUsd` / `exchangeRate` / `exchangeRateType` are frozen at write and
-	 * only ever move together with `amount`, `currency` and `date`. They are
-	 * replicated verbatim; nothing here recomputes them.
-	 *
-	 * `imageKey` names the photo's bytes in R2; the bytes themselves travel out
-	 * of band (`photos.ts`) because a `push` batch is small records, not blobs.
-	 */
-	transactions: defineTable({ ...replicated, ...transactionColumns })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/**
-	 * SQLite declares `categoryId` unique; Convex has no unique constraint and
-	 * this table deliberately does not fake one. Two offline devices can each
-	 * create a budget for the same category, and the merge that reconciles them
-	 * runs on the client — see "Two rows that must be one" in the design doc.
-	 */
-	budgets: defineTable({ ...replicated, ...budgetFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/** Singleton by convention only, for the same reason `budgets` is. */
-	mainBudget: defineTable({ ...replicated, ...mainBudgetFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	templateTransactions: defineTable({
-		...replicated,
-		...templateTransactionFields,
-	})
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/**
-	 * A label that crosses categories, and the join that attaches it. The join
-	 * carries its own `localId` rather than keying on the pair, because that is
-	 * what the envelope addresses rows by and what a tombstone has to name.
-	 */
-	tags: defineTable({ ...replicated, ...tagFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	transactionTags: defineTable({ ...replicated, ...transactionTagFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/**
-	 * One entry's amount attributed to one category. No rows means the entry is
-	 * attributed wholly to its own `categoryId` — see `domain/split.ts`.
-	 */
-	transactionSplits: defineTable({ ...replicated, ...transactionSplitFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/** A photo attached to an entry. The bytes travel out of band, as ever. */
-	transactionPhotos: defineTable({ ...replicated, ...transactionPhotoFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	/**
 	 * `transactions.accountId` holds an account's `localId`, staying in local-id
 	 * space like every other foreign key the envelope carries.
 	 */
@@ -169,15 +64,92 @@ export default defineSchema({
 	 * design, not by omission.
 	 */
 	appMeta: defineTable({
-		userId: v.string(),
+		deviceId: v.string(),
 		key: v.string(),
 		seq: v.number(),
-		deviceId: v.string(),
 		updatedAt: v.number(),
+		userId: v.string(),
 		...appMetaFields,
 	})
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_key", ["userId", "key"]),
+
+	/**
+	 * SQLite declares `categoryId` unique; Convex has no unique constraint and
+	 * this table deliberately does not fake one. Two offline devices can each
+	 * create a budget for the same category, and the merge that reconciles them
+	 * runs on the client — see "Two rows that must be one" in the design doc.
+	 */
+	budgets: defineTable({ ...replicated, ...budgetFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * `parentId` holds another category's `localId`, not a Convex `Id`. The whole
+	 * point of the envelope is that a row's identity survives a device that has
+	 * never synced, so foreign keys stay in local-id space on both sides.
+	 */
+	categories: defineTable({ ...replicated, ...categoryFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+	/**
+	 * Market exchange rates, quoted per USD. Written only by the fetcher crons and
+	 * bounded by `pruneStale`.
+	 *
+	 * `date` is a UTC `YYYY-MM-DD` string rather than an epoch so the composite
+	 * index reads as a calendar and `resolveRateOnDate` can ask for "the newest row
+	 * on or before this day", which is what covers the weekend and holiday gaps in
+	 * the provider feed.
+	 */
+	exchangeRates: defineTable({
+		date: v.string(),
+		fetchedAt: v.number(),
+		quote: v.string(),
+		rate: v.number(),
+		rateType: marketRateType,
+		source: rateSource,
+	})
+		.index("by_quote_and_rateType_and_date", ["quote", "rateType", "date"])
+		.index("by_date", ["date"]),
+
+	/**
+	 * The grounded-lookup invoice. No key, no user, no merchant name — only what
+	 * was spent and whether it published, so `groundedSpend.monthlyTotal` (the
+	 * only reader, internal-only) can tighten the env-configured unit prices
+	 * from observed data without ever exposing a per-merchant spend trail.
+	 */
+	groundedSpend: defineTable({
+		actualMicros: v.number(),
+		at: v.number(),
+		chargedMicros: v.number(),
+		inputTokens: v.number(),
+		outputTokens: v.number(),
+		published: v.boolean(),
+		searchCalls: v.number(),
+	}).index("by_at", ["at"]),
+
+	/** Singleton by convention only, for the same reason `budgets` is. */
+	mainBudget: defineTable({ ...replicated, ...mainBudgetFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * Globally shared, no `userId` by construction — same shape as
+	 * `exchangeRates` and `photoObjects` above. Exactly one index and exactly
+	 * one exact-key reader (`merchantKnowledge.lookup`, internal-only): a
+	 * prefix or range index here would be an enumeration surface over a
+	 * shared table (see the merchantKnowledge module's own doc comment).
+	 */
+	merchantKnowledge: defineTable({
+		categoryName: v.string(),
+		domain: v.string(),
+		emoji: v.union(v.string(), v.null()),
+		key: v.string(),
+		modelId: v.string(),
+		parentCategoryName: v.union(v.string(), v.null()),
+		resolvedAt: v.number(),
+		tags: v.array(v.string()),
+	}).index("by_key", ["key"]),
 
 	/**
 	 * Where Convex file storage put a photo, keyed by the same derived key R2
@@ -211,44 +183,71 @@ export default defineSchema({
 	 * replacement.
 	 */
 	photoSizes: defineTable({
-		userId: v.string(),
-		key: v.string(),
 		bytes: v.number(),
+		key: v.string(),
+		userId: v.string(),
 	})
 		.index("by_user", ["userId"])
 		.index("by_key", ["key"]),
 
 	/**
-	 * Globally shared, no `userId` by construction — same shape as
-	 * `exchangeRates` and `photoObjects` above. Exactly one index and exactly
-	 * one exact-key reader (`merchantKnowledge.lookup`, internal-only): a
-	 * prefix or range index here would be an enumeration surface over a
-	 * shared table (see the merchantKnowledge module's own doc comment).
+	 * One document per user, holding the counter that stamps `seq`. Bumped once
+	 * per push batch rather than once per row, so a three-device household is
+	 * nowhere near the write contention that would make a single hot document a
+	 * problem.
 	 */
-	merchantKnowledge: defineTable({
-		key: v.string(),
-		domain: v.string(),
-		categoryName: v.string(),
-		parentCategoryName: v.union(v.string(), v.null()),
-		emoji: v.union(v.string(), v.null()),
-		tags: v.array(v.string()),
-		resolvedAt: v.number(),
-		modelId: v.string(),
-	}).index("by_key", ["key"]),
+	syncState: defineTable({
+		nextSeq: v.number(),
+		userId: v.string(),
+	}).index("by_user", ["userId"]),
 
 	/**
-	 * The grounded-lookup invoice. No key, no user, no merchant name — only what
-	 * was spent and whether it published, so `groundedSpend.monthlyTotal` (the
-	 * only reader, internal-only) can tighten the env-configured unit prices
-	 * from observed data without ever exposing a per-merchant spend trail.
+	 * A label that crosses categories, and the join that attaches it. The join
+	 * carries its own `localId` rather than keying on the pair, because that is
+	 * what the envelope addresses rows by and what a tombstone has to name.
 	 */
-	groundedSpend: defineTable({
-		at: v.number(),
-		chargedMicros: v.number(),
-		actualMicros: v.number(),
-		searchCalls: v.number(),
-		inputTokens: v.number(),
-		outputTokens: v.number(),
-		published: v.boolean(),
-	}).index("by_at", ["at"]),
+	tags: defineTable({ ...replicated, ...tagFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	templateTransactions: defineTable({
+		...replicated,
+		...templateTransactionFields,
+	})
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/** A photo attached to an entry. The bytes travel out of band, as ever. */
+	transactionPhotos: defineTable({ ...replicated, ...transactionPhotoFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * One entry's amount attributed to one category. No rows means the entry is
+	 * attributed wholly to its own `categoryId` — see `domain/split.ts`.
+	 */
+	transactionSplits: defineTable({ ...replicated, ...transactionSplitFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	/**
+	 * `amount` is a float in the ledger's own currency, matching SQLite `REAL` —
+	 * both sides are IEEE-754 float64, so the value round-trips bit-for-bit and
+	 * sync neither introduces nor repairs the float-dollar rounding the local
+	 * schema already lives with.
+	 *
+	 * `amountUsd` / `exchangeRate` / `exchangeRateType` are frozen at write and
+	 * only ever move together with `amount`, `currency` and `date`. They are
+	 * replicated verbatim; nothing here recomputes them.
+	 *
+	 * `imageKey` names the photo's bytes in R2; the bytes themselves travel out
+	 * of band (`photos.ts`) because a `push` batch is small records, not blobs.
+	 */
+	transactions: defineTable({ ...replicated, ...transactionColumns })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
+
+	transactionTags: defineTable({ ...replicated, ...transactionTagFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
 });

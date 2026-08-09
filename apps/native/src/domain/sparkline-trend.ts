@@ -33,15 +33,9 @@ export function sparklineTrendKey(amounts: readonly number[]): TranslationKey {
  * that can only ever flatter the line. They name the granularity they plot
  * instead of inventing a movement.
  */
-export function sparklineLabelKey(
-	measure: LogMeasure,
-	amounts: readonly number[],
-	byMonth: boolean,
-): TranslationKey {
+export function sparklineLabelKey(measure: LogMeasure, amounts: readonly number[], byMonth: boolean): TranslationKey {
 	if (measure === "net") {
 		return sparklineTrendKey(amounts);
 	}
-	return byMonth
-		? "insights.trend.monthlyTotals"
-		: "insights.trend.dailyTotals";
+	return byMonth ? "insights.trend.monthlyTotals" : "insights.trend.dailyTotals";
 }

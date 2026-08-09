@@ -1,20 +1,6 @@
-import {
-	HAPTIC_EVENTS,
-	HAPTICS_EXCESSIVE,
-	HAPTICS_OFF,
-	HAPTICS_SUBTLE,
-	type HapticEvent,
-	hapticPlay,
-} from "./haptics";
+import { HAPTIC_EVENTS, HAPTICS_EXCESSIVE, HAPTICS_OFF, HAPTICS_SUBTLE, type HapticEvent, hapticPlay } from "./haptics";
 
-const LANDINGS: HapticEvent[] = [
-	"light",
-	"medium",
-	"heavy",
-	"success",
-	"warning",
-	"error",
-];
+const LANDINGS: HapticEvent[] = ["light", "medium", "heavy", "success", "warning", "error"];
 const TICKS: HapticEvent[] = ["selection", "keyTap"];
 
 describe("haptics setting", () => {

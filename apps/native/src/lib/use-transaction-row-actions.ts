@@ -22,14 +22,14 @@ async function stopRecurring(db: Database, id: string): Promise<void> {
 			translateNow("transaction.stopRecurring.failedTitle"),
 			translateNow("transaction.stopRecurring.failedBody"),
 			[
-				{ text: translateNow("common.cancel"), style: "cancel" },
+				{ style: "cancel", text: translateNow("common.cancel") },
 				{
-					text: translateNow("common.retry"),
 					onPress: () => {
 						void stopRecurring(db, id);
 					},
+					text: translateNow("common.retry"),
 				},
-			],
+			]
 		);
 	}
 }
@@ -45,7 +45,7 @@ async function stopRecurring(db: Database, id: string): Promise<void> {
 export function useTransactionRowActions(
 	db: Database,
 	nowMs: number,
-	onDelete: (id: string) => void,
+	onDelete: (id: string) => void
 ): (id: string, future: boolean) => void {
 	const router = useRouter();
 
@@ -57,22 +57,22 @@ export function useTransactionRowActions(
 			}
 			const now = new Date(nowMs);
 			showTransactionActions({
-				note: row.note,
 				actions: transactionRowActions({
-					recurringType: row.recurringType,
 					date: row.date,
 					future,
 					now,
+					recurringType: row.recurringType,
 				}),
-				pending: row.date.getTime() > now.getTime(),
+				note: row.note,
+				onDelete: () => onDelete(id),
+				onEdit: () => router.push(`/transactions/${id}`),
+				onLogAgain: () => router.push(`/transactions/create?from=${id}`),
 				onStopRecurring: () => {
 					void stopRecurring(db, id);
 				},
-				onLogAgain: () => router.push(`/transactions/create?from=${id}`),
-				onEdit: () => router.push(`/transactions/${id}`),
-				onDelete: () => onDelete(id),
+				pending: row.date.getTime() > now.getTime(),
 			});
 		},
-		[db, nowMs, onDelete, router],
+		[db, nowMs, onDelete, router]
 	);
 }

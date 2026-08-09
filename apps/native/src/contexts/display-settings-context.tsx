@@ -1,8 +1,5 @@
 import { createContext, type ReactNode, use, useMemo } from "react";
-import {
-	type DisplaySettings,
-	selectDisplaySettings,
-} from "@/data/display-settings";
+import { type DisplaySettings, selectDisplaySettings } from "@/data/display-settings";
 import {
 	type BoolSettingKey,
 	type NumberSettingKey,
@@ -20,15 +17,14 @@ interface DisplaySettingsValue {
 }
 
 interface AppSettingsValue {
-	state: SettingsSnapshot;
 	actions: {
 		setBool: (key: BoolSettingKey, value: boolean) => void;
 		setNumber: (key: NumberSettingKey, value: number) => void;
 	};
+	state: SettingsSnapshot;
 }
 
-const OUTSIDE_PROVIDER =
-	"useDisplaySettings and useAppSettings must be used within AppSettingsProvider";
+const OUTSIDE_PROVIDER = "useDisplaySettings and useAppSettings must be used within AppSettingsProvider";
 
 const DisplaySettingsContext = createContext<DisplaySettingsValue | null>(null);
 const AppSettingsContext = createContext<AppSettingsValue | null>(null);
@@ -43,17 +39,15 @@ const AppSettingsContext = createContext<AppSettingsValue | null>(null);
 export function AppSettingsProvider({ children }: { children: ReactNode }) {
 	const { db } = useLocalData();
 	const settings = useAllSettings(db);
-	const { showCents, use24Hour, swapTimeLabel } =
-		selectDisplaySettings(settings);
+	const { showCents, use24Hour, swapTimeLabel } = selectDisplaySettings(settings);
 
 	const displayValue = useMemo<DisplaySettingsValue>(
-		() => ({ state: { showCents, use24Hour, swapTimeLabel } }),
-		[showCents, use24Hour, swapTimeLabel],
+		() => ({ state: { showCents, swapTimeLabel, use24Hour } }),
+		[showCents, use24Hour, swapTimeLabel]
 	);
 
 	const appValue = useMemo<AppSettingsValue>(
 		() => ({
-			state: settings,
 			actions: {
 				setBool: (key, value) => {
 					if (db == null) {
@@ -68,15 +62,14 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
 					void setNumberSetting(db, key, value);
 				},
 			},
+			state: settings,
 		}),
-		[settings, db],
+		[settings, db]
 	);
 
 	return (
 		<AppSettingsContext.Provider value={appValue}>
-			<DisplaySettingsContext.Provider value={displayValue}>
-				{children}
-			</DisplaySettingsContext.Provider>
+			<DisplaySettingsContext.Provider value={displayValue}>{children}</DisplaySettingsContext.Provider>
 		</AppSettingsContext.Provider>
 	);
 }

@@ -3,10 +3,7 @@ import { useUniwind } from "uniwind";
 
 import type { ThemePreference } from "./theme-preference";
 
-function toPreference(
-	theme: string,
-	hasAdaptiveThemes: boolean,
-): ThemePreference {
+function toPreference(theme: string, hasAdaptiveThemes: boolean): ThemePreference {
 	if (hasAdaptiveThemes) {
 		return "system";
 	}

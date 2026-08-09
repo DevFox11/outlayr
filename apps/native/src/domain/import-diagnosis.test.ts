@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { parseImportFile } from "@/data/transfer-core";
 import { classifyParseFailure } from "./import-diagnosis";
 
-const SOURCE = readFileSync(join(__dirname, "import-diagnosis.ts"), "utf8");
+const SOURCE = readFileSync(join(import.meta.dirname, "import-diagnosis.ts"), "utf8");
 
 describe("import-diagnosis.ts: shares the header heuristic with transfer-core.ts", () => {
 	it("consumes splitHeaderAndRows instead of re-implementing the heuristic", () => {

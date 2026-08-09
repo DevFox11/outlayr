@@ -80,13 +80,9 @@ describe("weekdayInitial", () => {
 describe("formatDayHeader", () => {
 	it("names today and yesterday rather than dating them", () => {
 		expect(formatDayHeader(NOW, NOW, "en")).toBe("TODAY");
-		expect(formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "en")).toBe(
-			"YESTERDAY",
-		);
+		expect(formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "en")).toBe("YESTERDAY");
 		expect(formatDayHeader(NOW, NOW, "es")).toBe("HOY");
-		expect(formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "es")).toBe(
-			"AYER",
-		);
+		expect(formatDayHeader(new Date("2026-07-26T09:00:00"), NOW, "es")).toBe("AYER");
 	});
 
 	it("abbreviates the weekday and puts the day before the month", () => {
@@ -105,9 +101,7 @@ describe("formatUpcomingDate", () => {
 	it("names only the day and month an entry lands on", () => {
 		expect(formatUpcomingDate(WEDNESDAY, "en")).toBe("22 JUL");
 		expect(formatUpcomingDate(WEDNESDAY, "es")).toBe("22 JUL");
-		expect(formatUpcomingDate(new Date("2026-01-09T09:00:00"), "es")).toBe(
-			"9 ENE",
-		);
+		expect(formatUpcomingDate(new Date("2026-01-09T09:00:00"), "es")).toBe("9 ENE");
 	});
 });
 
@@ -140,9 +134,7 @@ describe("formatTime", () => {
 	});
 
 	it("renders the same 24-hour string in either language", () => {
-		expect(formatTime(EVENING, true, "es")).toBe(
-			formatTime(EVENING, true, "en"),
-		);
+		expect(formatTime(EVENING, true, "es")).toBe(formatTime(EVENING, true, "en"));
 	});
 
 	it("stays on the 12-hour clock until the setting says otherwise", () => {
@@ -184,17 +176,11 @@ describe("the module surface", () => {
 
 describe("formatChargeDate", () => {
 	it("writes the weekday and day in the language's own case", () => {
-		expect(formatChargeDate(new Date(2026, 10, 7), NOW, "en")).toBe(
-			"Sat, 7 Nov",
-		);
-		expect(formatChargeDate(new Date(2026, 10, 7), NOW, "es")).toBe(
-			"sáb, 7 nov",
-		);
+		expect(formatChargeDate(new Date(2026, 10, 7), NOW, "en")).toBe("Sat, 7 Nov");
+		expect(formatChargeDate(new Date(2026, 10, 7), NOW, "es")).toBe("sáb, 7 nov");
 	});
 
 	it("adds the year only once the charge leaves the current one", () => {
-		expect(formatChargeDate(new Date(2027, 1, 7), NOW, "en")).toBe(
-			"Sun, 7 Feb 2027",
-		);
+		expect(formatChargeDate(new Date(2027, 1, 7), NOW, "en")).toBe("Sun, 7 Feb 2027");
 	});
 });

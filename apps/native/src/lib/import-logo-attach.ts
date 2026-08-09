@@ -14,13 +14,9 @@ interface Brand {
  * bytes and tint are resolved once per domain; a merchant the logo cache
  * cannot answer for keeps its category tile.
  */
-export async function attachImportLogos(
-	entries: readonly ImportEntry[],
-): Promise<ImportEntry[]> {
-	const photoStorage =
-		require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
-	const { glowFromImage } =
-		require("@/theme/glow") as typeof import("@/theme/glow");
+export async function attachImportLogos(entries: readonly ImportEntry[]): Promise<ImportEntry[]> {
+	const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+	const { glowFromImage } = require("@/theme/glow") as typeof import("@/theme/glow");
 
 	const brands = new Map<string, Brand | null>();
 	const result: ImportEntry[] = [];
@@ -32,11 +28,8 @@ export async function attachImportLogos(
 		}
 		let brand = brands.get(identity.domain);
 		if (brand === undefined) {
-			const cached = await readCachedLogo(
-				logoCacheKey(identity.domain, identity.domain),
-			);
-			brand =
-				cached.kind === "logo" ? { bytes: cached.bytes, color: null } : null;
+			const cached = await readCachedLogo(logoCacheKey(identity.domain, identity.domain));
+			brand = cached.kind === "logo" ? { bytes: cached.bytes, color: null } : null;
 			brands.set(identity.domain, brand);
 		}
 		if (brand == null) {
@@ -49,7 +42,7 @@ export async function attachImportLogos(
 				const hues = await glowFromImage(imageUri);
 				brand.color = hues[0] ?? null;
 			}
-			result.push({ ...entry, imageUri, imageColor: brand.color });
+			result.push({ ...entry, imageColor: brand.color, imageUri });
 		} catch {
 			result.push(entry);
 		}

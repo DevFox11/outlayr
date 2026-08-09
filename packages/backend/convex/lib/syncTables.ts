@@ -7,39 +7,41 @@ import { v } from "convex/values";
  * silently missing data, which no test on either side alone would catch.
  */
 export const replicated = {
-	userId: v.string(),
-	localId: v.string(),
-	seq: v.number(),
-	deviceId: v.string(),
-	/** Client wall clock at the edit, mirroring the SQLite `updatedAt`. */
-	updatedAt: v.number(),
 	/** Soft-delete tombstone; rows are never removed from this table. */
 	deletedAt: v.union(v.number(), v.null()),
+	deviceId: v.string(),
+	localId: v.string(),
+	seq: v.number(),
+	/** Client wall clock at the edit, mirroring the SQLite `updatedAt`. */
+	updatedAt: v.number(),
+	userId: v.string(),
 };
 
 export const categoryFields = {
-	name: v.union(v.string(), v.null()),
 	color: v.union(v.string(), v.null()),
-	icon: v.union(v.string(), v.null()),
-	emoji: v.union(v.string(), v.null()),
-	income: v.boolean(),
-	sortOrder: v.number(),
 	dateCreated: v.union(v.number(), v.null()),
+	emoji: v.union(v.string(), v.null()),
+	icon: v.union(v.string(), v.null()),
+	income: v.boolean(),
+	name: v.union(v.string(), v.null()),
 	parentId: v.union(v.string(), v.null()),
+	sortOrder: v.number(),
 };
 
 export const transactionFields = {
+	accountId: v.union(v.string(), v.null()),
 	amount: v.number(),
-	income: v.boolean(),
+	amountUsd: v.union(v.number(), v.null()),
+	categoryId: v.union(v.string(), v.null()),
 	currency: v.union(v.string(), v.null()),
-	note: v.string(),
-	details: v.union(v.string(), v.null()),
+	customColor: v.union(v.string(), v.null()),
 	date: v.number(),
 	day: v.number(),
-	month: v.number(),
-	icon: v.union(v.string(), v.null()),
+	details: v.union(v.string(), v.null()),
 	emoji: v.union(v.string(), v.null()),
-	customColor: v.union(v.string(), v.null()),
+	exchangeRate: v.union(v.number(), v.null()),
+	exchangeRateType: v.union(v.string(), v.null()),
+	icon: v.union(v.string(), v.null()),
 	imageColor: v.union(v.string(), v.null()),
 	/**
 	 * The photo's R2 object key, or null. Not a url: `r2.getUrl` mints a signed
@@ -47,37 +49,35 @@ export const transactionFields = {
 	 * next launch. The key is the stable half and every read re-mints from it.
 	 */
 	imageKey: v.union(v.string(), v.null()),
+	income: v.boolean(),
+	month: v.number(),
+	note: v.string(),
 	onceRecurring: v.boolean(),
-	recurringType: v.number(),
-	recurringCoefficient: v.number(),
-	recurringEndDate: v.union(v.number(), v.null()),
 	/**
 	 * Optional, not just nullable: a handset still on the previous build pushes
 	 * rows without the key at all, and a required field would reject the whole
 	 * batch rather than the one column it cannot fill.
 	 */
 	recurringAnchorDay: v.optional(v.union(v.number(), v.null())),
-	categoryId: v.union(v.string(), v.null()),
-	accountId: v.union(v.string(), v.null()),
-	amountUsd: v.union(v.number(), v.null()),
-	exchangeRate: v.union(v.number(), v.null()),
-	exchangeRateType: v.union(v.string(), v.null()),
+	recurringCoefficient: v.number(),
+	recurringEndDate: v.union(v.number(), v.null()),
+	recurringType: v.number(),
 };
 
 /** `imageUri` is absent: it is a path into one device's container. */
 export const accountFields = {
-	name: v.string(),
 	currency: v.string(),
-	initialBalance: v.number(),
-	initialBalanceUsd: v.union(v.number(), v.null()),
-	initialBalanceDate: v.number(),
-	icon: v.union(v.string(), v.null()),
-	emoji: v.union(v.string(), v.null()),
 	customColor: v.union(v.string(), v.null()),
+	dateCreated: v.number(),
+	emoji: v.union(v.string(), v.null()),
+	icon: v.union(v.string(), v.null()),
 	imageColor: v.union(v.string(), v.null()),
 	imageKey: v.union(v.string(), v.null()),
+	initialBalance: v.number(),
+	initialBalanceDate: v.number(),
+	initialBalanceUsd: v.union(v.number(), v.null()),
+	name: v.string(),
 	sortOrder: v.number(),
-	dateCreated: v.number(),
 };
 
 /**
@@ -94,46 +94,46 @@ export const accountFields = {
  */
 export const transactionColumns = {
 	...transactionFields,
-	imageUri: v.optional(v.union(v.string(), v.null())),
 	// Optional in storage only: documents written before accounts existed have no
 	// such field, and a required column would fail the schema push over them. The
 	// wire keeps it required; `toWire` serves the absent field as null.
 	accountId: v.optional(v.union(v.string(), v.null())),
+	imageUri: v.optional(v.union(v.string(), v.null())),
 };
 
 export const budgetFields = {
-	name: v.union(v.string(), v.null()),
 	amount: v.number(),
-	type: v.number(),
-	startDate: v.union(v.number(), v.null()),
-	dateCreated: v.union(v.number(), v.null()),
-	currency: v.union(v.string(), v.null()),
 	amountUsd: v.union(v.number(), v.null()),
-	green: v.boolean(),
-	rollover: v.boolean(),
 	categoryId: v.union(v.string(), v.null()),
+	currency: v.union(v.string(), v.null()),
+	dateCreated: v.union(v.number(), v.null()),
+	green: v.boolean(),
+	name: v.union(v.string(), v.null()),
+	rollover: v.boolean(),
+	startDate: v.union(v.number(), v.null()),
+	type: v.number(),
 };
 
 export const mainBudgetFields = {
-	name: v.union(v.string(), v.null()),
 	amount: v.number(),
-	type: v.number(),
-	startDate: v.union(v.number(), v.null()),
-	dateCreated: v.union(v.number(), v.null()),
-	currency: v.union(v.string(), v.null()),
 	amountUsd: v.union(v.number(), v.null()),
+	currency: v.union(v.string(), v.null()),
+	dateCreated: v.union(v.number(), v.null()),
 	green: v.boolean(),
+	name: v.union(v.string(), v.null()),
 	rollover: v.boolean(),
+	startDate: v.union(v.number(), v.null()),
+	type: v.number(),
 };
 
 export const templateTransactionFields = {
 	amount: v.number(),
+	categoryId: v.union(v.string(), v.null()),
 	income: v.boolean(),
 	note: v.union(v.string(), v.null()),
-	sortOrder: v.number(),
-	recurringType: v.number(),
 	recurringCoefficient: v.number(),
-	categoryId: v.union(v.string(), v.null()),
+	recurringType: v.number(),
+	sortOrder: v.number(),
 };
 
 export const appMetaFields = {
@@ -141,8 +141,8 @@ export const appMetaFields = {
 };
 
 export const tagFields = {
-	name: v.string(),
 	color: v.union(v.string(), v.null()),
+	name: v.string(),
 	sortOrder: v.number(),
 };
 
@@ -151,23 +151,23 @@ export const tagFields = {
  * `localId`, and a composite key has nothing for a tombstone to name.
  */
 export const transactionTagFields = {
-	transactionId: v.string(),
 	tagId: v.string(),
+	transactionId: v.string(),
 };
 
 /** `imageUri` is absent: it is a path into one device's container. */
 export const transactionPhotoFields = {
-	transactionId: v.string(),
-	imageKey: v.union(v.string(), v.null()),
 	imageColor: v.union(v.string(), v.null()),
+	imageKey: v.union(v.string(), v.null()),
 	sortOrder: v.number(),
+	transactionId: v.string(),
 };
 
 export const transactionSplitFields = {
-	transactionId: v.string(),
-	categoryId: v.union(v.string(), v.null()),
 	amount: v.number(),
+	categoryId: v.union(v.string(), v.null()),
 	sortOrder: v.number(),
+	transactionId: v.string(),
 };
 
 export const TOMBSTONED_TABLES = [
@@ -192,23 +192,23 @@ export const SYNCED_TABLES = [...TOMBSTONED_TABLES, "appMeta"] as const;
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
 export const FIELDS_BY_TABLE = {
-	categories: categoryFields,
-	transactions: transactionFields,
-	budgets: budgetFields,
-	mainBudget: mainBudgetFields,
-	templateTransactions: templateTransactionFields,
-	tags: tagFields,
-	transactionTags: transactionTagFields,
-	transactionPhotos: transactionPhotoFields,
-	transactionSplits: transactionSplitFields,
 	accounts: accountFields,
 	appMeta: appMetaFields,
+	budgets: budgetFields,
+	categories: categoryFields,
+	mainBudget: mainBudgetFields,
+	tags: tagFields,
+	templateTransactions: templateTransactionFields,
+	transactionPhotos: transactionPhotoFields,
+	transactionSplits: transactionSplitFields,
+	transactions: transactionFields,
+	transactionTags: transactionTagFields,
 } as const;
 
 interface Versioned {
-	updatedAt: number;
 	deletedAt: number | null;
 	deviceId: string;
+	updatedAt: number;
 }
 
 /**
@@ -226,10 +226,7 @@ interface Versioned {
  * A row identical on both sides does NOT win, which is what makes a re-push of
  * an unchanged row a no-op and the whole drain safe to retry.
  */
-export function incomingWins(
-	incoming: Versioned,
-	existing: Versioned | null,
-): boolean {
+export function incomingWins(incoming: Versioned, existing: Versioned | null): boolean {
 	if (existing === null) {
 		return true;
 	}

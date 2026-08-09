@@ -8,20 +8,7 @@ import {
 	toggleFavourite,
 } from "./favourite-currencies";
 
-const TWELVE = [
-	"USD",
-	"VES",
-	"AED",
-	"AFN",
-	"ALL",
-	"AMD",
-	"ANG",
-	"AOA",
-	"ARS",
-	"AUD",
-	"AWG",
-	"AZN",
-];
+const TWELVE = ["USD", "VES", "AED", "AFN", "ALL", "AMD", "ANG", "AOA", "ARS", "AUD", "AWG", "AZN"];
 
 const EIGHT = TWELVE.slice(0, FAVOURITE_CURRENCY_LIMIT);
 
@@ -72,29 +59,16 @@ describe("serialiseFavourites", () => {
 	});
 
 	it("round-trips every code in the catalogue", () => {
-		for (
-			let start = 0;
-			start < PICKABLE_CURRENCY_CODES.length;
-			start += FAVOURITE_CURRENCY_LIMIT
-		) {
-			const chunk = PICKABLE_CURRENCY_CODES.slice(
-				start,
-				start + FAVOURITE_CURRENCY_LIMIT,
-			);
-			expect(parseFavourites(serialiseFavourites(chunk))).toStrictEqual([
-				...chunk,
-			]);
+		for (let start = 0; start < PICKABLE_CURRENCY_CODES.length; start += FAVOURITE_CURRENCY_LIMIT) {
+			const chunk = PICKABLE_CURRENCY_CODES.slice(start, start + FAVOURITE_CURRENCY_LIMIT);
+			expect(parseFavourites(serialiseFavourites(chunk))).toStrictEqual([...chunk]);
 		}
 	});
 });
 
 describe("toggleFavourite", () => {
 	it("appends an absent code to the end", () => {
-		expect(toggleFavourite(["EUR", "JPY"], "GBP")).toStrictEqual([
-			"EUR",
-			"JPY",
-			"GBP",
-		]);
+		expect(toggleFavourite(["EUR", "JPY"], "GBP")).toStrictEqual(["EUR", "JPY", "GBP"]);
 		expect(toggleFavourite([], "GBP")).toStrictEqual(["GBP"]);
 	});
 
@@ -103,14 +77,8 @@ describe("toggleFavourite", () => {
 	});
 
 	it("removes from the middle without disturbing the order", () => {
-		expect(toggleFavourite(["EUR", "JPY", "GBP"], "JPY")).toStrictEqual([
-			"EUR",
-			"GBP",
-		]);
-		expect(toggleFavourite(["EUR", "JPY", "GBP"], "jpy")).toStrictEqual([
-			"EUR",
-			"GBP",
-		]);
+		expect(toggleFavourite(["EUR", "JPY", "GBP"], "JPY")).toStrictEqual(["EUR", "GBP"]);
+		expect(toggleFavourite(["EUR", "JPY", "GBP"], "jpy")).toStrictEqual(["EUR", "GBP"]);
 	});
 
 	it("returns the list unchanged when adding a ninth", () => {
@@ -175,11 +143,7 @@ describe("the cluster a new ledger starts with", () => {
 	});
 
 	it("stays inside the limit, so nothing it seeds is dropped on read", () => {
-		expect(
-			seedFavourites("JPY").length <= FAVOURITE_CURRENCY_LIMIT,
-		).toBeTruthy();
-		expect(
-			parseFavourites(serialiseFavourites(seedFavourites("JPY"))),
-		).toStrictEqual(["USD", "EUR", "JPY"]);
+		expect(seedFavourites("JPY").length <= FAVOURITE_CURRENCY_LIMIT).toBeTruthy();
+		expect(parseFavourites(serialiseFavourites(seedFavourites("JPY")))).toStrictEqual(["USD", "EUR", "JPY"]);
 	});
 });

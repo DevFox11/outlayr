@@ -45,17 +45,17 @@ const JUNE_1 = new Date("2026-06-01T12:00:00.000Z");
 
 async function addTransaction(
 	db: Database,
-	overrides: Partial<typeof transactions.$inferInsert> & { id: string },
+	overrides: Partial<typeof transactions.$inferInsert> & { id: string }
 ): Promise<void> {
 	await db.insert(transactions).values({
 		amount: 10,
-		income: false,
-		currency: "USD",
 		amountUsd: 10,
-		note: "",
+		currency: "USD",
 		date: JUNE_1,
 		day: JUNE_1,
+		income: false,
 		month: JUNE_1,
+		note: "",
 		updatedAt: JUNE_1,
 		...overrides,
 	});
@@ -68,15 +68,15 @@ describe("accountsCellQuery", () => {
 	});
 
 	it("groups attached rows by account, currency, direction and day", async () => {
-		await addTransaction(db, { id: "t1", accountId: "a1", amount: 5 });
-		await addTransaction(db, { id: "t2", accountId: "a1", amount: 7 });
+		await addTransaction(db, { accountId: "a1", amount: 5, id: "t1" });
+		await addTransaction(db, { accountId: "a1", amount: 7, id: "t2" });
 		await addTransaction(db, {
-			id: "t3",
 			accountId: "a1",
 			amount: 3,
+			id: "t3",
 			income: true,
 		});
-		await addTransaction(db, { id: "t4", accountId: "a2", amount: 11 });
+		await addTransaction(db, { accountId: "a2", amount: 11, id: "t4" });
 
 		const rows = await accountsCellQuery(db);
 		const byKey = rows.map((row) => ({
@@ -84,27 +84,23 @@ describe("accountsCellQuery", () => {
 			...toCurrencyCell(row),
 		}));
 
-		const a1Expense = byKey.find(
-			(cell) => cell.accountId === "a1" && !cell.income,
-		);
+		const a1Expense = byKey.find((cell) => cell.accountId === "a1" && !cell.income);
 		expect(a1Expense?.amount).toBe(12);
 		expect(a1Expense?.count).toBe(2);
-		const a1Income = byKey.find(
-			(cell) => cell.accountId === "a1" && cell.income,
-		);
+		const a1Income = byKey.find((cell) => cell.accountId === "a1" && cell.income);
 		expect(a1Income?.amount).toBe(3);
 		expect(byKey.find((cell) => cell.accountId === "a2")?.amount).toBe(11);
 	});
 
 	it("excludes detached and soft-deleted rows", async () => {
-		await addTransaction(db, { id: "t1", accountId: null, amount: 99 });
+		await addTransaction(db, { accountId: null, amount: 99, id: "t1" });
 		await addTransaction(db, {
-			id: "t2",
 			accountId: "a1",
 			amount: 5,
 			deletedAt: JUNE_1,
+			id: "t2",
 		});
-		await addTransaction(db, { id: "t3", accountId: "a1", amount: 4 });
+		await addTransaction(db, { accountId: "a1", amount: 4, id: "t3" });
 
 		const rows = await accountsCellQuery(db);
 		expect(rows).toHaveLength(1);

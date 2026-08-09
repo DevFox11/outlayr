@@ -1,10 +1,4 @@
-import {
-	ADOPTION_CHOICES,
-	adoptionActions,
-	adoptionPlan,
-	choiceActions,
-	isDestructiveChoice,
-} from "./ledger-adoption";
+import { ADOPTION_CHOICES, adoptionActions, adoptionPlan, choiceActions, isDestructiveChoice } from "./ledger-adoption";
 
 describe("adoption plan", () => {
 	it("has nothing to reconcile when neither side holds a ledger", () => {
@@ -33,24 +27,24 @@ describe("adoption actions", () => {
 	it("does nothing on a fresh pairing", () => {
 		expect(adoptionActions("fresh")).toStrictEqual({
 			pushLocal: false,
-			wipeLocal: false,
 			wipeAccount: false,
+			wipeLocal: false,
 		});
 	});
 
 	it("pushes and destroys nothing when adopting", () => {
 		expect(adoptionActions("adopt")).toStrictEqual({
 			pushLocal: true,
-			wipeLocal: false,
 			wipeAccount: false,
+			wipeLocal: false,
 		});
 	});
 
 	it("keeps the account's ledger by discarding the local replica", () => {
 		expect(adoptionActions("replace")).toStrictEqual({
 			pushLocal: false,
-			wipeLocal: true,
 			wipeAccount: false,
+			wipeLocal: true,
 		});
 	});
 
@@ -62,19 +56,15 @@ describe("adoption actions", () => {
 
 describe("adoption choice", () => {
 	it("offers merge first, because it is the only one that keeps everything", () => {
-		expect(ADOPTION_CHOICES).toStrictEqual([
-			"merge",
-			"keep-local",
-			"keep-account",
-		]);
+		expect(ADOPTION_CHOICES).toStrictEqual(["merge", "keep-local", "keep-account"]);
 	});
 
 	it("destroys nothing when merging", () => {
 		expect(isDestructiveChoice("merge")).toBe(false);
 		expect(choiceActions("merge")).toStrictEqual({
 			pushLocal: true,
-			wipeLocal: false,
 			wipeAccount: false,
+			wipeLocal: false,
 		});
 	});
 
@@ -82,8 +72,8 @@ describe("adoption choice", () => {
 		expect(isDestructiveChoice("keep-local")).toBe(true);
 		expect(choiceActions("keep-local")).toStrictEqual({
 			pushLocal: true,
-			wipeLocal: false,
 			wipeAccount: true,
+			wipeLocal: false,
 		});
 	});
 
@@ -91,8 +81,8 @@ describe("adoption choice", () => {
 		expect(isDestructiveChoice("keep-account")).toBe(true);
 		expect(choiceActions("keep-account")).toStrictEqual({
 			pushLocal: false,
-			wipeLocal: true,
 			wipeAccount: false,
+			wipeLocal: true,
 		});
 	});
 

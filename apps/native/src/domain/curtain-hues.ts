@@ -1,11 +1,11 @@
 import type { IdentitySelection } from "@/components/identity-picker-content";
 
 export interface CurtainHuesInput {
+	categoryColor: string | null | undefined;
+	foregroundColor: string;
 	identity: IdentitySelection;
 	income: boolean;
-	categoryColor: string | null | undefined;
 	incomeColor: string;
-	foregroundColor: string;
 }
 
 /**
@@ -15,23 +15,15 @@ export interface CurtainHuesInput {
  * pass `glowFromEmoji` directly.
  */
 export function computeCurtainHues(
-	{
-		identity,
-		income,
-		categoryColor,
-		incomeColor,
-		foregroundColor,
-	}: CurtainHuesInput,
-	glowHues: (emoji: string) => string[],
+	{ identity, income, categoryColor, incomeColor, foregroundColor }: CurtainHuesInput,
+	glowHues: (emoji: string) => string[]
 ): string[] | null {
-	const identityEmpty = !identity.emoji && !identity.icon && !identity.photoUri;
+	const identityEmpty = !(identity.emoji || identity.icon || identity.photoUri);
 	if (identityEmpty) {
 		return null;
 	}
 	const curtainTint =
-		identity.color ??
-		identity.photoColor ??
-		(income ? incomeColor : (categoryColor ?? foregroundColor));
+		identity.color ?? identity.photoColor ?? (income ? incomeColor : (categoryColor ?? foregroundColor));
 	if (identity.emoji) {
 		return [...glowHues(identity.emoji).slice(0, 2), curtainTint];
 	}
