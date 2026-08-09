@@ -131,6 +131,22 @@ function AccountsReady({ db }: { db: Database }) {
 								/>
 							))}
 						</Section>
+						{rows.length >= 2 ? (
+							<Section>
+								<HStack
+									modifiers={[
+										contentShape(shapes.rectangle()),
+										accessibilityLabel(t("transfers.a11y.new")),
+										onTapGesture(() => router.push("/transfers/create")),
+									]}
+									spacing={12}
+								>
+									<Image color={colors.tint} size={18} systemName="arrow.left.arrow.right" />
+									<SwiftText modifiers={[foregroundStyle(colors.tint)]}>{t("transfers.title")}</SwiftText>
+									<Spacer />
+								</HStack>
+							</Section>
+						) : null}
 					</List>
 				</Host>
 			)}

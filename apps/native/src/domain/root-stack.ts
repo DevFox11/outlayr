@@ -68,6 +68,7 @@ export const ROOT_STACK_SCREEN_NAMES: Readonly<Record<RootStackGroup, readonly s
 		"settings/categories/reorder",
 		...CATEGORY_SHEETS.map((sheet) => sheet.name),
 		"settings/category-symbol",
+		"transfers/create",
 		"transactions/create",
 		"transactions/[id]",
 		"transactions/identity",
