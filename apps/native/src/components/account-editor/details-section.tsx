@@ -15,6 +15,7 @@ import {
 	contentShape,
 	font,
 	foregroundStyle,
+	frame,
 	listSectionMargins,
 	multilineTextAlignment,
 	onSubmit,
@@ -35,6 +36,7 @@ const SIGN_FONT = font({
 	design: "rounded",
 	weight: "medium",
 });
+const SIGN_HIT = 44;
 
 interface AccountEditorDetailsSectionProps {
 	caption: string | null;
@@ -142,6 +144,9 @@ export function AccountEditorDetailsSection({
 						modifiers={[
 							SIGN_FONT,
 							foregroundStyle(negative ? tintColor : mutedColor),
+							// A bare glyph measures ~10pt; 44 is the HIG minimum target.
+							frame({ width: SIGN_HIT, height: SIGN_HIT }),
+							contentShape(shapes.rectangle()),
 						]}
 					>
 						{negative ? "−" : "+"}

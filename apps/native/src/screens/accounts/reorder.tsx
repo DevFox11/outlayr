@@ -8,6 +8,7 @@ import {
 	Text as SwiftText,
 } from "@expo/ui/swift-ui";
 import {
+	deleteDisabled,
 	environment,
 	foregroundStyle,
 	lineLimit,
@@ -44,7 +45,9 @@ function AccountReorderReady({ db }: { db: Database }) {
 			source,
 			destination,
 		);
-		accountsRepo.reorder(db, ordered);
+		accountsRepo.reorder(db, ordered).catch((error) => {
+			console.error("Failed to reorder the accounts", error);
+		});
 	};
 
 	return (
@@ -79,7 +82,9 @@ function AccountReorderReady({ db }: { db: Database }) {
 
 function ReorderRow({ account, tint }: { account: Account; tint: string }) {
 	return (
-		<HStack spacing={12}>
+		// Edit mode offers a delete badge as well as the drag handle, and this
+		// screen has no `onDelete`: the row would animate away and come back.
+		<HStack modifiers={[deleteDisabled(true)]} spacing={12}>
 			<RNHostView matchContents>
 				<View style={{ width: PARENT_TILE, height: PARENT_TILE }}>
 					<CategoryIconTile

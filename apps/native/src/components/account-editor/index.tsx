@@ -7,12 +7,18 @@ import {
 	listStyle,
 	opacity,
 	scrollContentBackground,
+	scrollDismissesKeyboard,
 } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
-import { useDerivedValue, useSharedValue } from "react-native-reanimated";
+import Animated, {
+	useAnimatedStyle,
+	useDerivedValue,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
@@ -230,6 +236,28 @@ function AccountEditorReady(
 		});
 	}, [navigation, pickerOpen]);
 
+	// The balance field raises a decimal pad, which has no return key, and the CTA
+	// is pinned to the bottom — without this it is simply unreachable while typing.
+	const keyboardLift = useSharedValue(0);
+	useEffect(() => {
+		const show = Keyboard.addListener("keyboardWillShow", (event) => {
+			keyboardLift.value = withTiming(
+				Math.max(0, event.endCoordinates.height - insets.bottom),
+				{ duration: event.duration },
+			);
+		});
+		const hide = Keyboard.addListener("keyboardWillHide", (event) => {
+			keyboardLift.value = withTiming(0, { duration: event.duration });
+		});
+		return () => {
+			show.remove();
+			hide.remove();
+		};
+	}, [insets.bottom, keyboardLift]);
+	const ctaStyle = useAnimatedStyle(() => ({
+		transform: [{ translateY: -keyboardLift.value }],
+	}));
+
 	const identity = useAccountIdentity({
 		enabled: mode === "create",
 		remoteEnabled: aiEnrichment,
@@ -326,6 +354,10 @@ function AccountEditorReady(
 						modifiers={[
 							listStyle("insetGrouped"),
 							scrollContentBackground("hidden"),
+							// The decimal pad has no return key and the CTA sits under it,
+							// so a drag has to be able to put the keyboard away without
+							// collapsing the sheet out from under the form.
+							scrollDismissesKeyboard("immediately"),
 							...underPicker,
 						]}
 					>
@@ -375,9 +407,10 @@ function AccountEditorReady(
 				photoUri={draft.photoUri}
 			/>
 
-			<View
+			<Animated.View
 				pointerEvents="box-none"
 				className="absolute right-0 bottom-safe-offset-2 left-0 px-5"
+				style={ctaStyle}
 			>
 				<AccountEditorCta
 					canSave={canSave}
@@ -388,10 +421,13 @@ function AccountEditorReady(
 					tintColor={colors.foreground}
 					underPicker={underPicker}
 				/>
-			</View>
+			</Animated.View>
 
 			<CurrencyPickerSheet
-				onSelect={(code) => form.setFieldValue("currency", code)}
+				onSelect={(code) => {
+					form.setFieldValue("currency", code);
+					currencySheetRef.current?.dismiss();
+				}}
 				ref={currencySheetRef}
 				selected={currency}
 			/>
@@ -440,7 +476,15 @@ export function confirmAccountDelete(
 				text: t("common.delete"),
 				style: "destructive",
 				onPress: async () => {
-					await accountsRepo.softDelete(db, id);
+					try {
+						await accountsRepo.softDelete(db, id);
+					} catch {
+						Alert.alert(
+							t("accounts.error.deleteTitle"),
+							t("accounts.error.generic"),
+						);
+						return;
+					}
 					onDeleted();
 				},
 			},

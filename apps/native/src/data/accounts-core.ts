@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
-import { accounts } from "@/db/schema";
+import { accounts, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
@@ -159,15 +159,26 @@ export const accountsRepo = {
 			.where(eq(accounts.id, id));
 	},
 
+	/**
+	 * `transactions.accountId` declares `onDelete: "set null"`, which never fires
+	 * for a tombstone — so the detach the delete copy promises has to happen here,
+	 * or every entry keeps pointing at a row only the `deletedAt` filters hide.
+	 */
 	async softDelete(
 		db: Database,
 		id: string,
 		now: Date = new Date(),
 	): Promise<void> {
-		await db
-			.update(accounts)
-			.set({ deletedAt: now, updatedAt: now })
-			.where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
+		await withTransaction(db, async () => {
+			await db
+				.update(accounts)
+				.set({ deletedAt: now, updatedAt: now })
+				.where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
+			await db
+				.update(transactions)
+				.set({ accountId: null, updatedAt: now })
+				.where(eq(transactions.accountId, id));
+		});
 	},
 
 	/** The caller supplies every live account already in the desired order. */

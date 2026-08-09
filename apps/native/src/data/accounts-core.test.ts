@@ -303,6 +303,44 @@ describe("accountsRepo lifecycle", () => {
 		expect(getAccountById(db, first)).toBe(null);
 	});
 
+	it("softDelete detaches the entries it kept, and leaves other accounts alone", async () => {
+		const doomed = await accountsRepo.create(db, {
+			name: "Checking",
+			currency: "USD",
+		});
+		const kept = await accountsRepo.create(db, {
+			name: "Savings",
+			currency: "USD",
+		});
+		const detached = await transactionsRepo.create(db, {
+			amount: 25,
+			income: false,
+			categoryId: "cat-1",
+			note: "Coffee",
+			details: null,
+			date: JAN_5,
+			currency: "USD",
+			accountId: doomed,
+		});
+		const untouched = await transactionsRepo.create(db, {
+			amount: 10,
+			income: false,
+			categoryId: "cat-1",
+			note: "Tea",
+			details: null,
+			date: JAN_5,
+			currency: "USD",
+			accountId: kept,
+		});
+
+		await accountsRepo.softDelete(db, doomed);
+
+		const rows = await db.select().from(transactions);
+		const byId = new Map(rows.map((row) => [row.id, row]));
+		expect(byId.get(detached)?.accountId).toBe(null);
+		expect(byId.get(untouched)?.accountId).toBe(kept);
+	});
+
 	it("reorder assigns each id its array index and stamps updatedAt", async () => {
 		const a = await accountsRepo.create(db, { name: "A", currency: "USD" });
 		const b = await accountsRepo.create(db, { name: "B", currency: "USD" });

@@ -103,6 +103,10 @@ const accounts = {
 			en: "Couldn't Save Account",
 			es: "No se pudo guardar la cuenta",
 		}),
+		"accounts.error.deleteTitle": t({
+			en: "Couldn't Delete Account",
+			es: "No se pudo eliminar la cuenta",
+		}),
 		"accounts.error.generic": t({
 			en: "Something went wrong. Please try again.",
 			es: "Algo salió mal. Inténtalo de nuevo.",

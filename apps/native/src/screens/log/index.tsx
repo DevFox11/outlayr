@@ -1,6 +1,7 @@
 import { SectionList } from "@legendapp/list/section-list";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
+import { ScrollView } from "react-native";
 
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
@@ -272,7 +273,27 @@ function LogContent({ db }: { db: Database }) {
 	if (windowRows.length === 0 && filter === "all") {
 		return (
 			<>
-				<LogEmptyState />
+				{accountsOverview ? (
+					// The card rides a scroll view purely for its automatic inset: the
+					// header is transparent, so anything laid out flat here starts under
+					// the large title.
+					<ScrollView
+						className="bg-background"
+						contentContainerStyle={{ paddingHorizontal: 20, flexGrow: 1 }}
+						contentInsetAdjustmentBehavior="automatic"
+						scrollEnabled={false}
+					>
+						<AccountsOverviewCard
+							currency={currency}
+							onPress={() => router.push("/settings/accounts")}
+							overview={accountsOverview}
+							showCents={showCents}
+						/>
+						<LogEmptyState />
+					</ScrollView>
+				) : (
+					<LogEmptyState />
+				)}
 				<FloatingAddButton />
 			</>
 		);
