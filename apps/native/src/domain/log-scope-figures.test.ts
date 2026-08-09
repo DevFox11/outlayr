@@ -13,10 +13,10 @@ describe("scopeTotals", () => {
 	it("gives an empty scope a zero bucket in the currency the screen is read in", () => {
 		const { shown, others } = scopeTotals([], "EUR");
 		expect(shown).toStrictEqual({
-			currencyCode: "EUR",
-			income: 0,
-			expense: 0,
 			count: 0,
+			currencyCode: "EUR",
+			expense: 0,
+			income: 0,
 		});
 		expect(others).toStrictEqual([]);
 	});
@@ -49,27 +49,17 @@ describe("scopeTotals", () => {
 
 		expect(others.length).toBe(1);
 		// Pinned against the summer the rest of the app totals with, per bucket.
-		const buckets = new Map(
-			currencyTotals(scope, "USD").map((bucket) => [
-				bucket.currencyCode,
-				bucket.amount,
-			]),
-		);
+		const buckets = new Map(currencyTotals(scope, "USD").map((bucket) => [bucket.currencyCode, bucket.amount]));
 		expect(buckets.size).toBe(2);
 		for (const figures of [shown, ...others]) {
 			expect(netTotal(figures)).toBe(buckets.get(figures.currencyCode));
 		}
 		// -60 is what adding two currencies together would have produced.
-		expect(
-			[shown, ...others].every((figures) => netTotal(figures) !== -60),
-		).toBeTruthy();
+		expect([shown, ...others].every((figures) => netTotal(figures) !== -60)).toBeTruthy();
 	});
 
 	it("promotes the currency the screen is read in over the dominant one", () => {
-		const { shown } = scopeTotals(
-			[entry(40, "USD"), entry(10, "EUR"), entry(10, "EUR")],
-			"USD",
-		);
+		const { shown } = scopeTotals([entry(40, "USD"), entry(10, "EUR"), entry(10, "EUR")], "USD");
 		expect(shown.currencyCode).toBe("USD");
 		expect(netTotal(shown)).toBe(-40);
 	});
@@ -83,21 +73,19 @@ describe("scopeTotals", () => {
 	});
 
 	it("folds a foreign entry in once a rate reaches it", () => {
-		const rates = buildRateTable([
-			{ quote: "EUR", date: "2026-07-01", rate: 0.9 },
-		]);
+		const rates = buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.9 }]);
 		const { shown, others } = scopeTotals(
 			[
 				{
 					amount: 100,
-					currency: "USD",
 					amountUsd: 100,
+					currency: "USD",
 					date: JULY_5,
 					income: false,
 				},
 			],
 			"EUR",
-			rates,
+			rates
 		);
 		expect(others.length).toBe(0);
 		expect(shown.currencyCode).toBe("EUR");

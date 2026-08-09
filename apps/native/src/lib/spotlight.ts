@@ -5,11 +5,7 @@ import { getMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { parseBoolSetting } from "@/data/settings-core";
 import { loadValuation, type Valuation } from "@/data/valuation-source";
-import {
-	budgets as budgetsTable,
-	categories as categoriesTable,
-	transactions as transactionsTable,
-} from "@/db/schema";
+import { budgets as budgetsTable, categories as categoriesTable, transactions as transactionsTable } from "@/db/schema";
 import { advanceBudgetWindow } from "@/domain/budget-math";
 import { formatDayHeader } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
@@ -56,8 +52,7 @@ export async function indexSpotlight(db: SpendDb, now = new Date()) {
 		// The code is per figure, not per index: a stored amount and the display
 		// currency are two different things, and printing one under the other's
 		// symbol misreports money.
-		const money = (value: number, code: string) =>
-			formatAmount(value, code, showCents);
+		const money = (value: number, code: string) => formatAmount(value, code, showCents);
 
 		const categoryRows = await db
 			.select({
@@ -88,11 +83,7 @@ type Money = (value: number, code: string) => string;
  */
 function keywordForms(key: TranslatableKey): string[] {
 	return [
-		...new Set(
-			SUPPORTED_LANGUAGES.map((language) =>
-				translate(key, { catalog: CATALOGS[language], fallback: EN }),
-			),
-		),
+		...new Set(SUPPORTED_LANGUAGES.map((language) => translate(key, { catalog: CATALOGS[language], fallback: EN }))),
 	];
 }
 
@@ -101,26 +92,21 @@ async function indexTransactions(
 	now: Date,
 	money: Money,
 	valuation: Valuation,
-	categoryName: ReadonlyMap<string, string | null>,
+	categoryName: ReadonlyMap<string, string | null>
 ) {
 	const rows = await db
 		.select({
-			id: transactionsTable.id,
-			note: transactionsTable.note,
-			details: transactionsTable.details,
 			amount: transactionsTable.amount,
-			currency: transactionsTable.currency,
-			income: transactionsTable.income,
 			categoryId: transactionsTable.categoryId,
+			currency: transactionsTable.currency,
 			date: transactionsTable.date,
+			details: transactionsTable.details,
+			id: transactionsTable.id,
+			income: transactionsTable.income,
+			note: transactionsTable.note,
 		})
 		.from(transactionsTable)
-		.where(
-			and(
-				isNull(transactionsTable.deletedAt),
-				lte(transactionsTable.date, now),
-			),
-		)
+		.where(and(isNull(transactionsTable.deletedAt), lte(transactionsTable.date, now)))
 		.orderBy(desc(transactionsTable.date))
 		.limit(TRANSACTION_LIMIT);
 
@@ -135,41 +121,30 @@ async function indexTransactions(
 
 	await Spotlight.indexItems(
 		rows.map((row) => {
-			const category = row.categoryId
-				? (categoryName.get(row.categoryId) ?? null)
-				: null;
+			const category = row.categoryId ? (categoryName.get(row.categoryId) ?? null) : null;
 			// Under its own code, never the ledger's: the Log row this result opens
 			// prints the stored amount unconverted and marks the foreign code beside
 			// it, so converting here would disagree with the screen it deep-links to.
-			const amount = money(
-				row.amount,
-				row.currency ?? valuation.displayCurrency,
-			);
+			const amount = money(row.amount, row.currency ?? valuation.displayCurrency);
 			return {
-				uniqueIdentifier: transactionLink(row.id),
+				// What the row says on the Log, in the order the Log says it.
+				contentDescription: [row.income ? `+${amount}` : amount, category, formatDayHeader(row.date, now)]
+					.filter(Boolean)
+					.join(" · "),
 				domainIdentifier: TRANSACTION_DOMAIN,
+				keywords: [
+					// The amount is included unformatted so "12.40" finds the coffee.
+					...[row.note, category, row.details, String(row.amount)].filter((value): value is string => Boolean(value)),
+					...(row.income ? incomeKeywords : expenseKeywords),
+				],
+				lastUsedDate: row.date.getTime(),
 				// `note` is non-null but can be empty, and a blank Spotlight title
 				// renders as an untappable-looking empty row. The write path already
 				// falls back to the category name; this covers rows that predate it.
 				title: row.note.trim() || category || untitled,
-				// What the row says on the Log, in the order the Log says it.
-				contentDescription: [
-					row.income ? `+${amount}` : amount,
-					category,
-					formatDayHeader(row.date, now),
-				]
-					.filter(Boolean)
-					.join(" · "),
-				keywords: [
-					// The amount is included unformatted so "12.40" finds the coffee.
-					...[row.note, category, row.details, String(row.amount)].filter(
-						(value): value is string => Boolean(value),
-					),
-					...(row.income ? incomeKeywords : expenseKeywords),
-				],
-				lastUsedDate: row.date.getTime(),
+				uniqueIdentifier: transactionLink(row.id),
 			};
-		}),
+		})
 	);
 }
 
@@ -178,18 +153,18 @@ async function indexBudgets(
 	now: Date,
 	money: Money,
 	valuation: Valuation,
-	categoryName: ReadonlyMap<string, string | null>,
+	categoryName: ReadonlyMap<string, string | null>
 ) {
 	const rows = await db
 		.select({
+			amount: budgetsTable.amount,
+			amountUsd: budgetsTable.amountUsd,
+			categoryId: budgetsTable.categoryId,
+			currency: budgetsTable.currency,
 			id: budgetsTable.id,
 			name: budgetsTable.name,
-			amount: budgetsTable.amount,
-			currency: budgetsTable.currency,
-			amountUsd: budgetsTable.amountUsd,
 			startDate: budgetsTable.startDate,
 			type: budgetsTable.type,
-			categoryId: budgetsTable.categoryId,
 		})
 		.from(budgetsTable)
 		.where(isNull(budgetsTable.deletedAt))
@@ -216,30 +191,21 @@ async function indexBudgets(
 			// target set in one currency is not the same number under another.
 			const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
 			return {
-				uniqueIdentifier: budgetLink(row.id),
-				domainIdentifier: BUDGET_DOMAIN,
-				title: name
-					? translateNow("spotlight.budget.title", { name })
-					: unnamed,
 				// Deliberately the limit, not what is left: Spotlight results are not
 				// re-indexed as you spend, so a "left" figure would go stale between
 				// writes and quietly misreport money.
 				contentDescription: translateNow("spotlight.budget.limit", {
 					amount: money(
-						limitIn(
-							row,
-							window.start,
-							valuation.displayCurrency,
-							valuation.rates,
-						),
-						valuation.displayCurrency,
+						limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
+						valuation.displayCurrency
 					),
 				}),
-				keywords: [name, ...budgetKeywords].filter((value): value is string =>
-					Boolean(value),
-				),
+				domainIdentifier: BUDGET_DOMAIN,
+				keywords: [name, ...budgetKeywords].filter((value): value is string => Boolean(value)),
+				title: name ? translateNow("spotlight.budget.title", { name }) : unnamed,
+				uniqueIdentifier: budgetLink(row.id),
 			};
-		}),
+		})
 	);
 }
 

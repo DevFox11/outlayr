@@ -1,10 +1,7 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
-import {
-	type AccountCompositionEntry,
-	accountBalance,
-} from "./account-balance";
+import { type AccountCompositionEntry, accountBalance } from "./account-balance";
 import type { CurrencyCell } from "./currency-totals";
 import { formatAmount } from "./money";
 import { convertUsdSum, type RateTable } from "./valuation";
@@ -14,35 +11,29 @@ export function formatSignedAmount(
 	amount: number,
 	code: string,
 	showCents = true,
-	language: Language = runtimeLanguage(),
+	language: Language = runtimeLanguage()
 ): string {
 	const magnitude = formatAmount(Math.abs(amount), code, showCents, language);
 	return amount < 0 ? `-${magnitude}` : magnitude;
 }
 
-export function isMultiCurrency(
-	composition: readonly AccountCompositionEntry[],
-	accountCurrency: string,
-): boolean {
-	return composition.some(
-		(entry) =>
-			entry.currencyCode !== null && entry.currencyCode !== accountCurrency,
-	);
+export function isMultiCurrency(composition: readonly AccountCompositionEntry[], accountCurrency: string): boolean {
+	return composition.some((entry) => entry.currencyCode !== null && entry.currencyCode !== accountCurrency);
 }
 
 export interface OverviewAccount {
-	id: string;
 	currency: string;
+	id: string;
 	initialBalance: number;
-	initialBalanceUsd: number | null;
 	initialBalanceDate: Date;
+	initialBalanceUsd: number | null;
 }
 
 export interface AccountsOverview {
 	count: number;
-	total: number;
 	/** False when any part fell back to face value instead of converting. */
 	exact: boolean;
+	total: number;
 }
 
 export type AccountCellRow = CurrencyCell & { accountId: string | null };
@@ -55,7 +46,7 @@ export function accountsOverview(
 	accounts: readonly OverviewAccount[],
 	cells: readonly AccountCellRow[],
 	displayCurrency: string,
-	rates: RateTable,
+	rates: RateTable
 ): AccountsOverview | null {
 	if (accounts.length === 0) {
 		return null;
@@ -80,32 +71,30 @@ export function accountsOverview(
 		const flow = accountBalance(
 			{ currency: displayCurrency, initialBalance: 0 },
 			byAccount.get(account.id) ?? [],
-			rates,
+			rates
 		);
 		total += start.value + flow.total;
 		exact = exact && start.exact && flow.exact;
 	}
-	return { count: accounts.length, total, exact };
+	return { count: accounts.length, exact, total };
 }
 
 function initialInDisplay(
 	account: OverviewAccount,
 	displayCurrency: string,
-	rates: RateTable,
+	rates: RateTable
 ): { value: number; exact: boolean } {
 	if (account.currency === displayCurrency || account.initialBalance === 0) {
-		return { value: account.initialBalance, exact: true };
+		return { exact: true, value: account.initialBalance };
 	}
 	if (account.initialBalanceUsd == null) {
-		return { value: account.initialBalance, exact: false };
+		return { exact: false, value: account.initialBalance };
 	}
 	const converted = convertUsdSum(
 		account.initialBalanceUsd,
 		utcDateString(account.initialBalanceDate.getTime()),
 		displayCurrency,
-		rates,
+		rates
 	);
-	return converted == null
-		? { value: account.initialBalance, exact: false }
-		: { value: converted, exact: true };
+	return converted == null ? { exact: false, value: account.initialBalance } : { exact: true, value: converted };
 }

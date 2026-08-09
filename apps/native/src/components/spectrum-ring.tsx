@@ -16,10 +16,10 @@ const SEGMENTS = 36;
 const OVERLAP = 1.2;
 
 interface SpectrumRingProps {
-	/** Outer size, matching SwiftUI's `strokeBorder` (stroke sits inside). */
-	size: number;
 	/** Outer corner radius, so the outline stays concentric with the tile. */
 	radius: number;
+	/** Outer size, matching SwiftUI's `strokeBorder` (stroke sits inside). */
+	size: number;
 }
 
 /**
@@ -72,13 +72,7 @@ export function SpectrumRing({ size, radius }: SpectrumRingProps) {
 	);
 }
 
-function roundedRectPath(
-	x: number,
-	y: number,
-	width: number,
-	height: number,
-	radius: number,
-): string {
+function roundedRectPath(x: number, y: number, width: number, height: number, radius: number): string {
 	const right = x + width;
 	const bottom = y + height;
 	return [

@@ -28,15 +28,10 @@ import {
 	textInputAutocapitalization,
 } from "@expo/ui/swift-ui/modifiers";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
+import { launchImageLibraryAsync } from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
-import {
-	Alert,
-	PlatformColor,
-	Pressable,
-	useWindowDimensions,
-} from "react-native";
+import { type ReactNode, useState } from "react";
+import { Alert, PlatformColor, Pressable, useWindowDimensions } from "react-native";
 import {
 	ColorSwatch,
 	SYMBOL_COLUMNS,
@@ -46,42 +41,35 @@ import {
 	SymbolIconCell,
 	symbolCellSize,
 } from "@/components/identity-symbol-cells";
-import { CATEGORY_PALETTE } from "@/data/categories";
-import {
-	CATEGORY_EMOJI_GROUPS,
-	CATEGORY_ICON_GROUPS,
-	iconKeysMatching,
-} from "@/domain/category-icon-catalog";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { CATEGORY_PALETTE } from "@/data/categories-core";
+import { CATEGORY_EMOJI_GROUPS, CATEGORY_ICON_GROUPS, iconKeysMatching } from "@/domain/category-icon-catalog";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { persistPickedPhoto } from "@/lib/photo-storage";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
 
-export type IdentitySelection = {
+export interface IdentitySelection {
+	color: string | null;
 	emoji: string | null;
 	icon: string | null;
-	photoUri: string | null;
 	/** Photo glow color — auto-detected from the image, overridable via the swatch. */
 	photoColor: string | null;
-	color: string | null;
-};
+	photoUri: string | null;
+}
 
 export type IdentityTab = "photo" | "emoji" | "icons";
 
-export const TRANSACTION_TABS: readonly IdentityTab[] = [
-	"photo",
-	"emoji",
-	"icons",
-];
+export const TRANSACTION_TABS: readonly IdentityTab[] = ["photo", "emoji", "icons"];
 /** A category is a glyph, never a photo. */
 export const CATEGORY_TABS: readonly IdentityTab[] = ["icons", "emoji"];
 
 const TAB_LABEL: Record<IdentityTab, TranslationKey> = {
-	photo: "transaction.identity.tab.photo",
 	emoji: "transaction.identity.tab.emoji",
 	icons: "transaction.identity.tab.icons",
+	photo: "transaction.identity.tab.photo",
 };
 
 const SECONDARY_LABEL = PlatformColor("secondaryLabel");
@@ -96,18 +84,18 @@ const CARD_SHAPE = shapes.roundedRectangle({
 });
 
 const GROUP_TITLE = font({
-	textStyle: "subheadline",
 	design: "rounded",
+	textStyle: "subheadline",
 	weight: "semibold",
 });
 const SECTION_LABEL = font({
-	textStyle: "caption",
 	design: "rounded",
+	textStyle: "caption",
 	weight: "semibold",
 });
-const EMPTY_TEXT = font({ textStyle: "subheadline", design: "rounded" });
-const SUBHEADLINE = font({ textStyle: "subheadline", design: "rounded" });
-const CAPTION2 = font({ textStyle: "caption2", design: "rounded" });
+const EMPTY_TEXT = font({ design: "rounded", textStyle: "subheadline" });
+const SUBHEADLINE = font({ design: "rounded", textStyle: "subheadline" });
+const CAPTION2 = font({ design: "rounded", textStyle: "caption2" });
 
 /** App-icon squircle for the photo well (radius ≈ 0.226 · size, matching the hero). */
 const PHOTO_WELL = 132;
@@ -121,10 +109,7 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 	return rows;
 }
 
-function initialTab(
-	value: IdentitySelection,
-	tabs: readonly IdentityTab[],
-): IdentityTab {
+function initialTab(value: IdentitySelection, tabs: readonly IdentityTab[]): IdentityTab {
 	if (value.icon && tabs.includes("icons")) {
 		return "icons";
 	}
@@ -138,17 +123,17 @@ function initialTab(
 }
 
 export interface IdentityPickerContentProps {
-	value: IdentitySelection;
 	onChange: (next: IdentitySelection) => void;
+	onDone: () => void;
+	/** Off for income and for subcategories. */
+	showsColorRail?: boolean;
 	/** Which tabs the sheet offers, in display order. */
 	tabs?: readonly IdentityTab[];
 	/** Glyph wash / highlight color: the chosen category color, or income green. */
 	tint?: string;
 	/** Colors sibling expense categories already own; dimmed and unpickable. */
 	usedColors?: readonly string[];
-	/** Off for income and for subcategories. */
-	showsColorRail?: boolean;
-	onDone: () => void;
+	value: IdentitySelection;
 }
 
 /**
@@ -188,29 +173,29 @@ export function IdentityPickerContent({
 	const pickEmoji = (emoji: string) => {
 		haptics("selection");
 		onChange({
+			color: value.color,
 			emoji,
 			icon: null,
-			photoUri: null,
 			photoColor: null,
-			color: value.color,
+			photoUri: null,
 		});
 	};
 	const pickIcon = (icon: string) => {
 		haptics("selection");
 		onChange({
+			color: value.color ?? CATEGORY_PALETTE[0],
 			emoji: null,
 			icon,
-			photoUri: null,
 			photoColor: null,
-			color: value.color ?? CATEGORY_PALETTE[0],
+			photoUri: null,
 		});
 	};
 
 	const adoptPickedPhoto = async () => {
-		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ["images"],
+		const result = await launchImageLibraryAsync({
 			allowsEditing: true,
 			aspect: [1, 1],
+			mediaTypes: ["images"],
 			quality: 0.9,
 		});
 		if (result.canceled || result.assets.length === 0) {
@@ -227,11 +212,11 @@ export function IdentityPickerContent({
 		// resolves to `[]` rather than rejecting, so the photo is still adopted.
 		const hues = await glowFromImage(uri);
 		onChange({
+			color: value.color,
 			emoji: null,
 			icon: null,
-			photoUri: uri,
 			photoColor: hues[0] ?? null,
-			color: value.color,
+			photoUri: uri,
 		});
 	};
 
@@ -246,25 +231,81 @@ export function IdentityPickerContent({
 		});
 	};
 
-	return (
-		<VStack
-			modifiers={[background(SYSTEM_COLORS.groupedBackground)]}
-			spacing={0}
-		>
-			<HStack modifiers={[padding({ horizontal: 20, top: 16, bottom: 8 })]}>
-				<Spacer />
-				<Button
-					label={t("common.done")}
-					modifiers={[font({ weight: "semibold" })]}
-					onPress={onDone}
+	let panel: ReactNode;
+	if (tab === "photo") {
+		panel = (
+			<PhotoPanel
+				onColorChange={(color) => onChange({ ...value, photoColor: color })}
+				onPick={pickPhoto}
+				photoColor={value.photoColor}
+				uri={value.photoUri}
+			/>
+		);
+	} else if (tab === "emoji") {
+		panel = (
+			<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN })]} spacing={20}>
+				{CATEGORY_EMOJI_GROUPS.map((group) => (
+					<VStack alignment="leading" key={group.titleKey} spacing={SYMBOL_GAP}>
+						<GroupHeader title={t(group.titleKey)} />
+						<EmojiRows
+							cell={cell}
+							emojis={group.emoji}
+							onSelect={pickEmoji}
+							selectedEmoji={value.emoji ?? ""}
+							tint={glyphTint}
+						/>
+					</VStack>
+				))}
+			</VStack>
+		);
+	} else if (searching && searchResults.length === 0) {
+		panel = (
+			<VStack modifiers={[padding({ top: 60 })]}>
+				<SwiftText modifiers={[EMPTY_TEXT, foregroundStyle(SECONDARY_LABEL)]}>
+					{t("transaction.identity.noIcons")}
+				</SwiftText>
+			</VStack>
+		);
+	} else if (searching) {
+		panel = (
+			<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN, top: 4 })]}>
+				<IconRows
+					cell={cell}
+					keys={searchResults}
+					onSelect={pickIcon}
+					selectedIcon={value.icon ?? ""}
+					tint={glyphTint}
 				/>
+			</VStack>
+		);
+	} else {
+		panel = (
+			<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN })]} spacing={20}>
+				{CATEGORY_ICON_GROUPS.map((group) => (
+					<VStack alignment="leading" key={group.titleKey} spacing={SYMBOL_GAP}>
+						<GroupHeader title={t(group.titleKey)} />
+						<IconRows
+							cell={cell}
+							keys={group.keys}
+							onSelect={pickIcon}
+							selectedIcon={value.icon ?? ""}
+							tint={glyphTint}
+						/>
+					</VStack>
+				))}
+			</VStack>
+		);
+	}
+
+	return (
+		<VStack modifiers={[background(SYSTEM_COLORS.groupedBackground)]} spacing={0}>
+			<HStack modifiers={[padding({ bottom: 8, horizontal: 20, top: 16 })]}>
+				<Spacer />
+				<Button label={t("common.done")} modifiers={[font({ weight: "semibold" })]} onPress={onDone} />
 			</HStack>
 
 			<Picker
-				modifiers={[
-					pickerStyle("segmented"),
-					padding({ horizontal: 20, bottom: 12 }),
-				]}
+				modifiers={[pickerStyle("segmented"), padding({ bottom: 12, horizontal: 20 })]}
 				onSelectionChange={(next) => setTab(next as IdentityTab)}
 				selection={tab}
 			>
@@ -281,15 +322,11 @@ export function IdentityPickerContent({
 					modifiers={[
 						padding({ horizontal: 10, vertical: 8 }),
 						background(SEARCH_FIELD_BACKGROUND, SEARCH_FIELD_SHAPE),
-						padding({ horizontal: 20, bottom: 12 }),
+						padding({ bottom: 12, horizontal: 20 }),
 					]}
 					spacing={8}
 				>
-					<SwiftImage
-						color={SECONDARY_LABEL}
-						size={15}
-						systemName="magnifyingglass"
-					/>
+					<SwiftImage color={SECONDARY_LABEL} size={15} systemName="magnifyingglass" />
 					<TextField
 						modifiers={[textInputAutocapitalization("never")]}
 						onTextChange={setQuery}
@@ -304,11 +341,7 @@ export function IdentityPickerContent({
 								setQuery("");
 							}}
 						>
-							<SwiftImage
-								color={SECONDARY_LABEL}
-								size={15}
-								systemName="xmark.circle.fill"
-							/>
+							<SwiftImage color={SECONDARY_LABEL} size={15} systemName="xmark.circle.fill" />
 						</Button>
 					) : null}
 				</HStack>
@@ -317,94 +350,10 @@ export function IdentityPickerContent({
 			{/* The photo tab carries its own colour control, so the rail belongs to
 			    the glyph tabs alone. */}
 			{showsColorRail && tab !== "photo" ? (
-				<ColorRail
-					onSelect={pickColor}
-					selected={value.color}
-					usedColors={usedColors}
-				/>
+				<ColorRail onSelect={pickColor} selected={value.color} usedColors={usedColors} />
 			) : null}
 
-			<ScrollView showsIndicators={false}>
-				{tab === "photo" ? (
-					<PhotoPanel
-						onColorChange={(color) => onChange({ ...value, photoColor: color })}
-						onPick={pickPhoto}
-						photoColor={value.photoColor}
-						uri={value.photoUri}
-					/>
-				) : tab === "emoji" ? (
-					<VStack
-						alignment="leading"
-						modifiers={[padding({ horizontal: SYMBOL_MARGIN, bottom: 24 })]}
-						spacing={20}
-					>
-						{CATEGORY_EMOJI_GROUPS.map((group) => (
-							<VStack
-								alignment="leading"
-								key={group.titleKey}
-								spacing={SYMBOL_GAP}
-							>
-								<GroupHeader title={t(group.titleKey)} />
-								<EmojiRows
-									cell={cell}
-									emojis={group.emoji}
-									onSelect={pickEmoji}
-									selectedEmoji={value.emoji ?? ""}
-									tint={glyphTint}
-								/>
-							</VStack>
-						))}
-					</VStack>
-				) : searching ? (
-					searchResults.length === 0 ? (
-						<VStack modifiers={[padding({ top: 60 })]}>
-							<SwiftText
-								modifiers={[EMPTY_TEXT, foregroundStyle(SECONDARY_LABEL)]}
-							>
-								{t("transaction.identity.noIcons")}
-							</SwiftText>
-						</VStack>
-					) : (
-						<VStack
-							alignment="leading"
-							modifiers={[
-								padding({ horizontal: SYMBOL_MARGIN, top: 4, bottom: 24 }),
-							]}
-						>
-							<IconRows
-								cell={cell}
-								keys={searchResults}
-								onSelect={pickIcon}
-								selectedIcon={value.icon ?? ""}
-								tint={glyphTint}
-							/>
-						</VStack>
-					)
-				) : (
-					<VStack
-						alignment="leading"
-						modifiers={[padding({ horizontal: SYMBOL_MARGIN, bottom: 24 })]}
-						spacing={20}
-					>
-						{CATEGORY_ICON_GROUPS.map((group) => (
-							<VStack
-								alignment="leading"
-								key={group.titleKey}
-								spacing={SYMBOL_GAP}
-							>
-								<GroupHeader title={t(group.titleKey)} />
-								<IconRows
-									cell={cell}
-									keys={group.keys}
-									onSelect={pickIcon}
-									selectedIcon={value.icon ?? ""}
-									tint={glyphTint}
-								/>
-							</VStack>
-						))}
-					</VStack>
-				)}
-			</ScrollView>
+			<ScrollView showsIndicators={false}>{panel}</ScrollView>
 		</VStack>
 	);
 }
@@ -415,15 +364,7 @@ export function IdentityPickerContent({
  */
 function GroupHeader({ title }: { title: string }) {
 	return (
-		<SwiftText
-			modifiers={[
-				GROUP_TITLE,
-				foregroundStyle(SECONDARY_LABEL),
-				padding({ vertical: 8 }),
-			]}
-		>
-			{title}
-		</SwiftText>
+		<SwiftText modifiers={[GROUP_TITLE, foregroundStyle(SECONDARY_LABEL), padding({ vertical: 8 })]}>{title}</SwiftText>
 	);
 }
 
@@ -505,11 +446,7 @@ function ColorRail({
 	onSelect: (hex: string) => void;
 }) {
 	return (
-		<ScrollView
-			axes="horizontal"
-			modifiers={[padding({ bottom: 8 })]}
-			showsIndicators={false}
-		>
+		<ScrollView axes="horizontal" modifiers={[padding({ bottom: 8 })]} showsIndicators={false}>
 			<HStack modifiers={[padding({ horizontal: 20 })]} spacing={12}>
 				{CATEGORY_PALETTE.map((hex) => (
 					<RNHostView key={hex} matchContents>
@@ -549,61 +486,29 @@ function PhotoPanel({
 	const colors = useColors();
 	const t = useTranslation();
 	return (
-		<VStack
-			modifiers={[padding({ horizontal: SYMBOL_MARGIN, top: 6, bottom: 24 })]}
-			spacing={0}
-		>
+		<VStack modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN, top: 6 })]} spacing={0}>
 			<RNHostView matchContents>
 				<PhotoWell colors={colors} onPress={onPick} uri={uri} />
 			</RNHostView>
 
-			<SwiftText
-				modifiers={[
-					SUBHEADLINE,
-					foregroundStyle(SECONDARY_LABEL),
-					padding({ top: 10, bottom: 24 }),
-				]}
-			>
-				{t(
-					uri
-						? "transaction.identity.changePhotoPrompt"
-						: "transaction.identity.selectPhotoPrompt",
-				)}
+			<SwiftText modifiers={[SUBHEADLINE, foregroundStyle(SECONDARY_LABEL), padding({ bottom: 24, top: 10 })]}>
+				{t(uri ? "transaction.identity.changePhotoPrompt" : "transaction.identity.selectPhotoPrompt")}
 			</SwiftText>
 
 			<VStack alignment="leading" spacing={8}>
-				<SwiftText
-					modifiers={[
-						SECTION_LABEL,
-						textCase("uppercase"),
-						foregroundStyle(SECONDARY_LABEL),
-					]}
-				>
+				<SwiftText modifiers={[SECTION_LABEL, textCase("uppercase"), foregroundStyle(SECONDARY_LABEL)]}>
 					{t("transaction.identity.color")}
 				</SwiftText>
 
 				<HStack
-					modifiers={[
-						padding({ horizontal: 15, vertical: 13 }),
-						background(SYSTEM_COLORS.card, CARD_SHAPE),
-					]}
+					modifiers={[padding({ horizontal: 15, vertical: 13 }), background(SYSTEM_COLORS.card, CARD_SHAPE)]}
 					spacing={12}
 				>
-					<SwiftImage
-						color={uri ? colors.income : withAlpha(colors.muted, 0.35)}
-						size={14}
-						systemName="checkmark"
-					/>
+					<SwiftImage color={uri ? colors.income : withAlpha(colors.muted, 0.35)} size={14} systemName="checkmark" />
 					<VStack alignment="leading" spacing={1}>
-						<SwiftText modifiers={[SUBHEADLINE]}>
-							{t("transaction.identity.autoDetected")}
-						</SwiftText>
+						<SwiftText modifiers={[SUBHEADLINE]}>{t("transaction.identity.autoDetected")}</SwiftText>
 						<SwiftText modifiers={[CAPTION2, foregroundStyle(SECONDARY_LABEL)]}>
-							{t(
-								uri
-									? "transaction.identity.primaryColor"
-									: "transaction.identity.pickPhotoFirst",
-							)}
+							{t(uri ? "transaction.identity.primaryColor" : "transaction.identity.pickPhotoFirst")}
 						</SwiftText>
 					</VStack>
 					<Spacer />
@@ -631,37 +536,24 @@ function PhotoWell({
 	const t = useTranslation();
 	return (
 		<Pressable
-			accessibilityLabel={t(
-				uri
-					? "transaction.identity.changePhoto"
-					: "transaction.identity.selectPhoto",
-			)}
+			accessibilityLabel={t(uri ? "transaction.identity.changePhoto" : "transaction.identity.selectPhoto")}
 			accessibilityRole="button"
 			onPress={onPress}
 			style={({ pressed }) => ({
-				width: PHOTO_WELL,
-				height: PHOTO_WELL,
-				borderRadius: PHOTO_WELL_RADIUS,
-				overflow: "hidden",
 				alignItems: "center",
+				backgroundColor: withAlpha(colors.muted, 0.12),
+				borderRadius: PHOTO_WELL_RADIUS,
+				height: PHOTO_WELL,
 				justifyContent: "center",
 				opacity: pressed ? 0.8 : 1,
-				backgroundColor: withAlpha(colors.muted, 0.12),
+				overflow: "hidden",
+				width: PHOTO_WELL,
 			})}
 		>
 			{uri ? (
-				<Image
-					contentFit="cover"
-					source={{ uri }}
-					style={{ width: PHOTO_WELL, height: PHOTO_WELL }}
-				/>
+				<Image contentFit="cover" source={{ uri }} style={{ height: PHOTO_WELL, width: PHOTO_WELL }} />
 			) : (
-				<SymbolView
-					name="photo"
-					size={42}
-					tintColor={colors.muted}
-					type="monochrome"
-				/>
+				<SymbolView name="photo" size={42} tintColor={colors.muted} type="monochrome" />
 			)}
 		</Pressable>
 	);

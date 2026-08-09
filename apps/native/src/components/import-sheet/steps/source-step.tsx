@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { IMPORT_SOURCES } from "@/domain/import-sources";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
 import { EyebrowRow } from "../eyebrow-row";
@@ -32,56 +32,36 @@ export function SourceStep() {
 					accessibilityState={source.available ? undefined : { disabled: true }}
 					className={cn(
 						"flex-row items-center gap-3 border-border border-b py-3",
-						source.available ? "active:opacity-70" : "opacity-40",
+						source.available ? "active:opacity-70" : "opacity-40"
 					)}
 					disabled={!source.available}
 					key={source.id}
 					onPress={() => {
 						importDraftStore.dispatch({
-							type: "sourceSelected",
 							sourceId: source.id,
+							type: "sourceSelected",
 						});
 						importDraftStore.setStep("file");
 					}}
 					testID={`import-source-${source.id}`}
 				>
-					<View
-						className="items-center justify-center"
-						style={{ width: ICON_TILE_SIZE, height: ICON_TILE_SIZE }}
-					>
-						<HugeiconsIcon
-							color={colors.foreground}
-							icon={source.icon}
-							size={20}
-							strokeWidth={1.9}
-						/>
+					<View className="items-center justify-center" style={{ height: ICON_TILE_SIZE, width: ICON_TILE_SIZE }}>
+						<HugeiconsIcon color={colors.foreground} icon={source.icon} size={20} strokeWidth={1.9} />
 					</View>
 					<View className="flex-1 gap-0.5">
-						<Text
-							className="font-sans-medium text-callout text-foreground"
-							numberOfLines={1}
-						>
+						<Text className="font-sans-medium text-callout text-foreground" numberOfLines={1}>
 							{t(source.titleKey)}
 						</Text>
 						<Text className="text-muted text-subtitle" numberOfLines={1}>
-							{source.available
-								? t(source.subtitleKey)
-								: t("import.sourceComingSoon")}
+							{source.available ? t(source.subtitleKey) : t("import.sourceComingSoon")}
 						</Text>
 					</View>
 					{source.available ? (
-						<HugeiconsIcon
-							color={colors.muted}
-							icon={ArrowRight01Icon}
-							size={16}
-							strokeWidth={2}
-						/>
+						<HugeiconsIcon color={colors.muted} icon={ArrowRight01Icon} size={16} strokeWidth={2} />
 					) : null}
 				</Pressable>
 			))}
-			<Text className="pt-3 text-footnote text-muted leading-snug">
-				{t("import.sourceLede")}
-			</Text>
+			<Text className="pt-3 text-footnote text-muted leading-snug">{t("import.sourceLede")}</Text>
 		</View>
 	);
 }

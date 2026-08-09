@@ -9,19 +9,19 @@ import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
 interface BudgetCardProps {
 	budget: CategoryBudgetView;
-	currency: string;
-	onPress: (id: string) => void;
-	onLongPress: (id: string) => void;
 	burndown?: Burndown | null;
 	contributions: readonly ExpenseContribution[];
+	currency: string;
 	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
 	nowMs: number;
+	onLongPress: (id: string) => void;
+	onPress: (id: string) => void;
 }
 
 const THUMB_HEIGHT = 40;
@@ -61,12 +61,12 @@ export function BudgetCard({
 			accessibilityLabel={
 				over
 					? t("budgets.card.a11yOver", {
-							name: budget.name,
 							amount: differenceLabel,
+							name: budget.name,
 						})
 					: t("budgets.card.a11yLeft", {
-							name: budget.name,
 							amount: differenceLabel,
+							name: budget.name,
 						})
 			}
 			accessibilityRole="button"
@@ -75,23 +75,14 @@ export function BudgetCard({
 			onPress={() => onPress(budget.id)}
 		>
 			<View className="flex-row items-center gap-2">
-				<View
-					className="size-2 rounded-full"
-					style={{ backgroundColor: budget.color }}
-				/>
-				<Text
-					className="flex-1 font-sans-semibold text-foreground text-subtitle"
-					numberOfLines={1}
-				>
+				<View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
+				<Text className="flex-1 font-sans-semibold text-foreground text-subtitle" numberOfLines={1}>
 					{budget.name}
 				</Text>
 			</View>
 
 			<Text
-				className={cn(
-					"font-sans-semibold text-body",
-					over ? "text-over-budget" : "text-foreground",
-				)}
+				className={cn("font-sans-semibold text-body", over ? "text-over-budget" : "text-foreground")}
 				numberOfLines={1}
 				style={{ fontVariant: ["tabular-nums"] }}
 			>
@@ -132,8 +123,8 @@ export function BudgetCard({
 
 			<MonoLabel numberOfLines={1}>
 				{`${t("budgets.spentOfLimit", {
-					spent: formatAmount(budget.spent, currency, false),
 					limit: formatAmount(budget.amount, currency, false),
+					spent: formatAmount(budget.spent, currency, false),
 				})} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
 			</MonoLabel>
 		</Pressable>

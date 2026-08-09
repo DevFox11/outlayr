@@ -1,8 +1,8 @@
 import { Alert, type AlertButton } from "react-native";
 
 interface SubmittableForm {
-	readonly state: { readonly isSubmitting: boolean };
 	handleSubmit: () => Promise<void>;
+	readonly state: { readonly isSubmitting: boolean };
 }
 
 /**
@@ -20,14 +20,11 @@ export function pressSubmit(form: SubmittableForm): void {
 }
 
 interface SubmittableFormWithMeta<TMeta> {
-	readonly state: { readonly isSubmitting: boolean };
 	handleSubmit: (meta: TMeta) => Promise<void>;
+	readonly state: { readonly isSubmitting: boolean };
 }
 
-export function pressSubmitWith<TMeta>(
-	form: SubmittableFormWithMeta<TMeta>,
-	meta: TMeta,
-): void {
+export function pressSubmitWith<TMeta>(form: SubmittableFormWithMeta<TMeta>, meta: TMeta): void {
 	if (form.state.isSubmitting) {
 		return;
 	}
@@ -38,15 +35,17 @@ export function pressSubmitWith<TMeta>(
 
 /** Never settles: the caller's write has committed and the CTA must not re-enable. */
 export function holdSubmitting(): Promise<never> {
-	return new Promise<never>(() => {});
+	return new Promise<never>(() => {
+		// Intentionally never settles.
+	});
 }
 
 interface ReportSaveFailureOptions {
-	title: string;
 	body: string;
 	buttons?: AlertButton[];
-	log?: string;
 	cause?: unknown;
+	log?: string;
+	title: string;
 }
 
 export function reportSaveFailure(options: ReportSaveFailureOptions): void {

@@ -73,26 +73,16 @@ type Content =
  */
 export type TranslationKey = keyof UnionToIntersection<Content>;
 
-type UnionToIntersection<U> = (
-	U extends unknown
-		? (k: U) => void
-		: never
-) extends (k: infer I) => void
-	? I
-	: never;
+type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
-type PluralStem<K extends string> = K extends `${infer Stem}_other`
-	? Stem
-	: never;
+type PluralStem<K extends string> = K extends `${infer Stem}_other` ? Stem : never;
 
 /**
  * What `t` accepts. A plural is called by its stem — `t("budgets.days",
  * { count })` — so the stem has to be nameable without existing as a key of its
  * own, or every plural would need a third, unrendered entry.
  */
-export type TranslatableKey =
-	| TranslationKey
-	| PluralStem<TranslationKey & string>;
+export type TranslatableKey = TranslationKey | PluralStem<TranslationKey & string>;
 
 /**
  * `@intlayer/core` reads `document.cookie` and `localStorage`, which React

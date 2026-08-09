@@ -8,22 +8,19 @@
  * alone.
  */
 export interface PendingWrite {
-	id: string;
 	amount: number;
-	income: boolean;
-	note: string;
-	/** Category name as spoken; resolved to a real category by the drain. */
-	category: string | null;
-	/** Epoch ms — when the intent ran, not when the app got around to it. */
-	date: number;
 	/**
 	 * The amount exactly as it arrived, e.g. "€12,40" — the drain reads the
 	 * currency back out of it. A Wallet purchase is in the card's currency, not
 	 * the ledger's, and this app is multi-currency.
 	 */
 	amountText?: string | null;
+	/** Category name as spoken; resolved to a real category by the drain. */
+	category: string | null;
 	/** An explicit ISO code when the automation pinned one; beats `amountText`. */
 	currency?: string | null;
+	/** Epoch ms — when the intent ran, not when the app got around to it. */
+	date: number;
 	/**
 	 * Identifies the *purchase*, where `id` identifies the enqueue. A Wallet
 	 * automation fires once when the card authorizes and again when the charge
@@ -34,6 +31,9 @@ export interface PendingWrite {
 	 * `WALLET_DEDUPE_WINDOW_MS` in `src/data/pending-writes-core.ts`.
 	 */
 	dedupeKey?: string | null;
+	id: string;
+	income: boolean;
+	note: string;
 }
 
 /** Where the intents append, inside the App Group container. */
@@ -50,13 +50,13 @@ const CLAIM_NAME = /^claimed-(\d+)\.jsonl$/;
  * `expo-file-system`.
  */
 export interface QueueFiles {
-	/** Every file currently in the queue directory. */
-	list(): string[];
 	/** Moves the live queue aside under `name`. False when nothing was queued. */
-	claim(name: string): boolean;
-	read(name: string): string;
-	write(name: string, text: string): void;
-	discard(name: string): void;
+	claim: (name: string) => boolean;
+	discard: (name: string) => void;
+	/** Every file currently in the queue directory. */
+	list: () => string[];
+	read: (name: string) => string;
+	write: (name: string, text: string) => void;
 }
 
 /** Claimed files and their contents, oldest first. */
@@ -81,10 +81,7 @@ function claimNames(files: QueueFiles): string[] {
  * and a drain interrupted halfway still replays oldest first.
  */
 export function claimName(files: QueueFiles): string {
-	const highest = claimNames(files).reduce(
-		(top, name) => Math.max(top, claimOrder(name)),
-		0,
-	);
+	const highest = claimNames(files).reduce((top, name) => Math.max(top, claimOrder(name)), 0);
 	return `claimed-${highest + 1}.jsonl`;
 }
 
@@ -121,7 +118,9 @@ export function parseQueue(text: string): PendingWrite[] {
 			if (isPendingWrite(parsed)) {
 				jobs.push(parsed);
 			}
-		} catch {}
+		} catch {
+			// Skip a malformed line rather than losing the rest of the log.
+		}
 	}
 	return jobs;
 }
@@ -168,15 +167,12 @@ export function claimPendingWrites(files: QueueFiles): ClaimedWrites {
 		names.push(next);
 	}
 	return {
-		names,
 		jobs: names.flatMap((name) => parseQueue(files.read(name))),
+		names,
 	};
 }
 
-export function releasePendingWrites(
-	files: QueueFiles,
-	claimed: ClaimedWrites,
-): void {
+export function releasePendingWrites(files: QueueFiles, claimed: ClaimedWrites): void {
 	for (const name of claimed.names) {
 		files.discard(name);
 	}

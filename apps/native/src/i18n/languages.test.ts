@@ -76,10 +76,7 @@ describe("resolveLanguage", () => {
 
 describe("LANGUAGE_OPTIONS", () => {
 	it("offers system plus every supported language", () => {
-		expect(LANGUAGE_OPTIONS.map((option) => option.value)).toStrictEqual([
-			"system",
-			...SUPPORTED_LANGUAGES,
-		]);
+		expect(LANGUAGE_OPTIONS.map((option) => option.value)).toStrictEqual(["system", ...SUPPORTED_LANGUAGES]);
 	});
 
 	it("names each language in that language, so it is legible to its own speakers", () => {

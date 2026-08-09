@@ -1,8 +1,4 @@
-import {
-	accountLedgerState,
-	discardAccountLedger,
-	replaceLocalFromAccount,
-} from "@/data/adoption-engine-core";
+import { accountLedgerState, discardAccountLedger, replaceLocalFromAccount } from "@/data/adoption-engine-core";
 import type { AdoptionEngine } from "@/data/ledger-adoption";
 import type { Database } from "@/db/client";
 import { syncTransport } from "@/lib/convex";
@@ -20,7 +16,7 @@ export function adoptionEngine(db: Database | null): AdoptionEngine | null {
 	}
 	return {
 		accountLedger: () => accountLedgerState(transport.pull),
-		replaceFromAccount: () => replaceLocalFromAccount(db, transport.pull),
 		discardAccountLedger: () => discardAccountLedger(db, transport),
+		replaceFromAccount: () => replaceLocalFromAccount(db, transport.pull),
 	};
 }

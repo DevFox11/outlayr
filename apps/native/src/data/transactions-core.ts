@@ -22,35 +22,32 @@ export const LOG_PAGE_DAYS = 30;
  * in the list paints it.
  */
 export const LOG_COLUMNS = {
-	id: transactions.id,
 	amount: transactions.amount,
-	income: transactions.income,
-	currency: transactions.currency,
 	// Carried so a mixed-currency day can total as one figure.
 	amountUsd: transactions.amountUsd,
-	note: transactions.note,
+	categoryId: transactions.categoryId,
+	currency: transactions.currency,
+	customColor: transactions.customColor,
 	date: transactions.date,
 	day: transactions.day,
-	icon: transactions.icon,
 	emoji: transactions.emoji,
-	customColor: transactions.customColor,
+	icon: transactions.icon,
+	id: transactions.id,
 	imageColor: transactions.imageColor,
 	imageUri: transactions.imageUri,
-	recurringType: transactions.recurringType,
+	income: transactions.income,
+	note: transactions.note,
 	// Upcoming projects each scheduled entry forward, which needs the interval as
 	// well as the cadence.
 	recurringCoefficient: transactions.recurringCoefficient,
 	// And the end, or a schedule the owner has already stopped keeps counting
 	// toward what their subscriptions cost a month.
 	recurringEndDate: transactions.recurringEndDate,
-	categoryId: transactions.categoryId,
+	recurringType: transactions.recurringType,
 } as const;
 
 function visibleAt(nowMs: number) {
-	return and(
-		isNull(transactions.deletedAt),
-		lte(transactions.date, new Date(nowMs)),
-	);
+	return and(isNull(transactions.deletedAt), lte(transactions.date, new Date(nowMs)));
 }
 
 /**
@@ -75,10 +72,7 @@ export function logWindowDaysQuery(db: SpendDb, nowMs: number, days: number) {
  * screen prints, which has to fall to zero the moment an erase lands.
  */
 export function ledgerSizeQuery(db: SpendDb) {
-	return db
-		.select({ id: transactions.id })
-		.from(transactions)
-		.where(isNull(transactions.deletedAt));
+	return db.select({ id: transactions.id }).from(transactions).where(isNull(transactions.deletedAt));
 }
 
 /**
@@ -87,13 +81,13 @@ export function ledgerSizeQuery(db: SpendDb) {
  * nothing here draws the identity artwork.
  */
 export const DELETED_COLUMNS = {
-	id: transactions.id,
 	amount: transactions.amount,
-	income: transactions.income,
 	currency: transactions.currency,
-	note: transactions.note,
 	date: transactions.date,
 	deletedAt: transactions.deletedAt,
+	id: transactions.id,
+	income: transactions.income,
+	note: transactions.note,
 } as const;
 
 export type DeletedTransaction = {
@@ -116,12 +110,7 @@ export function deletedTransactionsQuery(db: SpendDb) {
 	return db
 		.select(DELETED_COLUMNS)
 		.from(transactions)
-		.where(
-			and(
-				isNotNull(transactions.deletedAt),
-				gt(transactions.date, ERASED_DATE),
-			),
-		)
+		.where(and(isNotNull(transactions.deletedAt), gt(transactions.date, ERASED_DATE)))
 		.orderBy(desc(transactions.deletedAt), desc(transactions.date));
 }
 
@@ -129,65 +118,53 @@ export function deletedTransactionsQuery(db: SpendDb) {
  * A null floor means no day matched at all, so the bound is left off rather
  * than faked.
  */
-export function logWindowRowsQuery(
-	db: SpendDb,
-	nowMs: number,
-	floorMs: number | null,
-) {
+export function logWindowRowsQuery(db: SpendDb, nowMs: number, floorMs: number | null) {
 	return db
 		.select(LOG_COLUMNS)
 		.from(transactions)
-		.where(
-			floorMs == null
-				? visibleAt(nowMs)
-				: and(visibleAt(nowMs), gte(transactions.day, new Date(floorMs))),
-		)
+		.where(floorMs == null ? visibleAt(nowMs) : and(visibleAt(nowMs), gte(transactions.day, new Date(floorMs))))
 		.orderBy(desc(transactions.day), desc(transactions.date));
 }
 
 export type Transaction = typeof transactions.$inferSelect;
 
 export interface TransactionInput {
+	/** The account this entry moves money in or out of; null is unattached. */
+	accountId?: string | null;
 	amount: number;
-	income: boolean;
 	categoryId: string;
-	note: string;
-	details: string | null;
-	date: Date;
 	/** null = adopt the ledger's currency, which the write stamps in. */
 	currency: string | null;
-	/** Chosen logo icon (registry key) — mutually exclusive with `emoji`. */
-	icon?: string | null;
-	/** Chosen logo emoji — mutually exclusive with `icon`. */
-	emoji?: string | null;
 	/** Identity color override (hex). */
 	customColor?: string | null;
-	/** Chosen logo photo URI — mutually exclusive with `icon`/`emoji`. */
-	imageUri?: string | null;
+	date: Date;
+	details: string | null;
+	/** Chosen logo emoji — mutually exclusive with `icon`. */
+	emoji?: string | null;
+	/** Chosen logo icon (registry key) — mutually exclusive with `emoji`. */
+	icon?: string | null;
 	/** Color derived for (or chosen for) a photo identity (hex). */
 	imageColor?: string | null;
+	/** Chosen logo photo URI — mutually exclusive with `icon`/`emoji`. */
+	imageUri?: string | null;
+	income: boolean;
+	note: string;
 	/** Marks the transaction as recurring. */
 	onceRecurring?: boolean;
-	/** Cadence: none=0, daily=1, weekly=2, monthly=3, yearly=4. */
-	recurringType?: number;
 	/** Interval multiplier for the cadence (e.g. "every 2 weeks"). */
 	recurringCoefficient?: number;
 	recurringEndDate?: Date | null;
+	/** Cadence: none=0, daily=1, weekly=2, monthly=3, yearly=4. */
+	recurringType?: number;
 	/** Days of notice for the due-date reminder; null is off, 0 is the day itself. */
 	reminderLeadDays?: number | null;
-	/** The account this entry moves money in or out of; null is unattached. */
-	accountId?: string | null;
 }
 
 /**
  * Materializing a subscription's past charges is not done here: the form calls
  * `backfillRecurring` (`data/recurrence-backfill.ts`) after the save.
  */
-async function toRow(
-	db: Database,
-	id: string,
-	input: TransactionInput,
-): Promise<typeof transactions.$inferInsert> {
+async function toRow(db: Database, id: string, input: TransactionInput): Promise<typeof transactions.$inferInsert> {
 	const trimmedNote = input.note.trim();
 	let note = trimmedNote;
 	if (note === "") {
@@ -202,45 +179,41 @@ async function toRow(
 	// $18.50 lunch as €18.50.
 	const currency = input.currency ?? (await displayCurrency(db));
 	return {
-		id,
+		accountId: input.accountId ?? null,
 		amount: Math.abs(input.amount),
-		income: input.income,
+		categoryId: input.categoryId,
 		currency,
-		note,
-		details,
+		customColor: input.customColor ?? null,
 		date: input.date,
 		day: startOfDay(input.date),
-		month: firstOfMonth(input.date),
-		categoryId: input.categoryId,
-		accountId: input.accountId ?? null,
-		icon: input.icon ?? null,
+		details,
 		emoji: input.emoji ?? null,
-		customColor: input.customColor ?? null,
+		icon: input.icon ?? null,
+		id,
 		imageColor: input.imageColor ?? null,
 		imageUri: input.imageUri ?? null,
+		income: input.income,
+		month: firstOfMonth(input.date),
+		note,
 		onceRecurring: recurring,
-		recurringType: recurring ? (input.recurringType ?? 0) : 0,
-		recurringCoefficient: recurring
-			? Math.max(1, input.recurringCoefficient ?? 1)
-			: 1,
-		recurringEndDate: recurring ? (input.recurringEndDate ?? null) : null,
 		// Derived, never chosen: the schedule is anchored to the day the first
 		// payment falls on, and re-deriving it on every write is what keeps an
 		// edited first payment from leaving the chain anchored to the old day.
 		recurringAnchorDay: recurring ? input.date.getDate() : null,
-		reminderLeadDays: recurring
-			? normalizeLead(input.reminderLeadDays ?? null)
-			: null,
+		recurringCoefficient: recurring ? Math.max(1, input.recurringCoefficient ?? 1) : 1,
+		recurringEndDate: recurring ? (input.recurringEndDate ?? null) : null,
+		recurringType: recurring ? (input.recurringType ?? 0) : 0,
+		reminderLeadDays: recurring ? normalizeLead(input.reminderLeadDays ?? null) : null,
 		// Frozen at write with the rate of the day the money moved; converting at
 		// read time would make last month's spending change every morning.
 		...(await canonicalUsd(localRateLookup(db), {
 			amount: Math.abs(input.amount),
 			currency,
-			displayCurrency: currency,
 			date: input.date,
+			displayCurrency: currency,
 		})),
-		updatedAt: now,
 		deletedAt: null,
+		updatedAt: now,
 	};
 }
 
@@ -255,10 +228,7 @@ async function displayCurrency(db: Database): Promise<string> {
  * unresolvable and renaming its note would erase a value that was correct. Any
  * of the three moving returns null instead, which the next backfill pass retries.
  */
-function keptCanonical(
-	next: typeof transactions.$inferInsert,
-	previous: Transaction | null,
-): CanonicalUsd | null {
+function keptCanonical(next: typeof transactions.$inferInsert, previous: Transaction | null): CanonicalUsd | null {
 	if (
 		previous?.amountUsd == null ||
 		previous.amount !== next.amount ||
@@ -287,10 +257,7 @@ function keptCanonical(
  * key until the uploader records the new one, which is how the uploader knows
  * there is a superseded object to release.
  */
-function removesPhoto(
-	previous: Transaction | null,
-	next: typeof transactions.$inferInsert,
-): boolean {
+function removesPhoto(previous: Transaction | null, next: typeof transactions.$inferInsert): boolean {
 	return previous?.imageUri != null && next.imageUri == null;
 }
 
@@ -307,14 +274,12 @@ function removesPhoto(
 function keptLead(
 	next: typeof transactions.$inferInsert,
 	previous: Transaction | null,
-	input: TransactionInput,
+	input: TransactionInput
 ): number | null {
 	if (!next.onceRecurring) {
 		return null;
 	}
-	return input.reminderLeadDays === undefined
-		? (previous?.reminderLeadDays ?? null)
-		: (next.reminderLeadDays ?? null);
+	return input.reminderLeadDays === undefined ? (previous?.reminderLeadDays ?? null) : (next.reminderLeadDays ?? null);
 }
 
 /**
@@ -322,13 +287,8 @@ function keptLead(
  * build inputs without the field, and neither save is a detach. Only an
  * explicit `null` takes the entry off its account.
  */
-function keptAccount(
-	previous: Transaction | null,
-	input: TransactionInput,
-): string | null {
-	return input.accountId === undefined
-		? (previous?.accountId ?? null)
-		: input.accountId;
+function keptAccount(previous: Transaction | null, input: TransactionInput): string | null {
+	return input.accountId === undefined ? (previous?.accountId ?? null) : input.accountId;
 }
 
 /**
@@ -339,12 +299,7 @@ export function accountTransactionsQuery(db: SpendDb, accountId: string) {
 	return db
 		.select(LOG_COLUMNS)
 		.from(transactions)
-		.where(
-			and(
-				isNull(transactions.deletedAt),
-				eq(transactions.accountId, accountId),
-			),
-		)
+		.where(and(isNull(transactions.deletedAt), eq(transactions.accountId, accountId)))
 		.orderBy(desc(transactions.date));
 }
 
@@ -356,27 +311,6 @@ export const transactionsRepo = {
 		return id;
 	},
 
-	async update(
-		db: Database,
-		id: string,
-		input: TransactionInput,
-	): Promise<void> {
-		const previous = getTransactionById(db, id);
-		const row = await toRow(db, id, input);
-		const { id: _omit, ...rest } = row;
-		const kept = keptCanonical(row, previous);
-		await db
-			.update(transactions)
-			.set({
-				...rest,
-				...(kept ?? {}),
-				accountId: keptAccount(previous, input),
-				reminderLeadDays: keptLead(row, previous, input),
-				...(removesPhoto(previous, row) ? { imageKey: null } : {}),
-			})
-			.where(eq(transactions.id, id));
-	},
-
 	/**
 	 * Soft-deletes (tombstone). The UI defers this call behind the undo window.
 	 *
@@ -386,16 +320,9 @@ export const transactionsRepo = {
 	 * with no warning. The tombstone is retired to `none` either way, which is
 	 * what makes deleting the *pending* charge the way to stop one.
 	 */
-	async remove(
-		db: Database,
-		id: string,
-		now: Date = new Date(),
-	): Promise<void> {
+	async remove(db: Database, id: string, now: Date = new Date()): Promise<void> {
 		const row = getTransactionById(db, id);
-		const successor =
-			row == null || row.deletedAt != null
-				? null
-				: await scheduleSuccessor(db, row, now);
+		const successor = row == null || row.deletedAt != null ? null : await scheduleSuccessor(db, row, now);
 
 		await withTransaction(db, async () => {
 			if (successor != null) {
@@ -407,9 +334,9 @@ export const transactionsRepo = {
 				.update(transactions)
 				.set({
 					deletedAt: now,
-					updatedAt: now,
 					recurringType: RECURRING_TYPE.none,
 					reminderLeadDays: null,
+					updatedAt: now,
 				})
 				.where(eq(transactions.id, id));
 		});
@@ -430,11 +357,7 @@ export const transactionsRepo = {
 	 * Scoped to rows that are actually tombstoned, which makes a repeat restore a
 	 * no-op rather than a write that queues a replication carrying no change.
 	 */
-	async restore(
-		db: Database,
-		id: string,
-		now: Date = new Date(),
-	): Promise<void> {
+	async restore(db: Database, id: string, now: Date = new Date()): Promise<void> {
 		await db
 			.update(transactions)
 			.set({ deletedAt: null, updatedAt: now })
@@ -451,11 +374,7 @@ export const transactionsRepo = {
 	 * Tombstones are excluded because their schedule is the only record
 	 * `repairOrphanedRecurrence` has left to read a broken chain back from.
 	 */
-	async stopRecurring(
-		db: Database,
-		id: string,
-		now: Date = new Date(),
-	): Promise<void> {
+	async stopRecurring(db: Database, id: string, now: Date = new Date()): Promise<void> {
 		await db
 			.update(transactions)
 			.set({
@@ -465,6 +384,23 @@ export const transactionsRepo = {
 			})
 			.where(and(eq(transactions.id, id), isNull(transactions.deletedAt)));
 	},
+
+	async update(db: Database, id: string, input: TransactionInput): Promise<void> {
+		const previous = getTransactionById(db, id);
+		const row = await toRow(db, id, input);
+		const { id: _omit, ...rest } = row;
+		const kept = keptCanonical(row, previous);
+		await db
+			.update(transactions)
+			.set({
+				...rest,
+				...(kept ?? {}),
+				accountId: keptAccount(previous, input),
+				reminderLeadDays: keptLead(row, previous, input),
+				...(removesPhoto(previous, row) ? { imageKey: null } : {}),
+			})
+			.where(eq(transactions.id, id));
+	},
 };
 
 /**
@@ -472,15 +408,7 @@ export const transactionsRepo = {
  * (`getFirstSync`), so a caller can have the row in hand during its first render
  * instead of flashing a placeholder for one frame.
  */
-export function getTransactionById(
-	db: Database,
-	id: string,
-): Transaction | null {
-	const rows = db
-		.select()
-		.from(transactions)
-		.where(eq(transactions.id, id))
-		.limit(1)
-		.all();
+export function getTransactionById(db: Database, id: string): Transaction | null {
+	const rows = db.select().from(transactions).where(eq(transactions.id, id)).limit(1).all();
 	return rows[0] ?? null;
 }

@@ -11,7 +11,7 @@ import settingsSelectedIcon from "@/assets/tab-icons/settings-selected.png";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useOverBudgetCount } from "@/data/budgets";
 import { useNow } from "@/data/use-now";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 // The ink tint barely distinguishes the selected label on its own, so the weight
@@ -31,10 +31,7 @@ export default function TabLayout() {
 	return (
 		<NativeTabs labelStyle={LABEL_STYLE} tintColor={accent}>
 			<NativeTabs.Trigger name="(transactions)">
-				<NativeTabs.Trigger.Icon
-					renderingMode="template"
-					src={{ default: logIcon, selected: logSelectedIcon }}
-				/>
+				<NativeTabs.Trigger.Icon renderingMode="template" src={{ default: logIcon, selected: logSelectedIcon }} />
 				<NativeTabs.Trigger.Label>{t("nav.tab.log")}</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
 			<NativeTabs.Trigger name="insights">
@@ -42,33 +39,23 @@ export default function TabLayout() {
 					renderingMode="template"
 					src={{ default: insightsIcon, selected: insightsSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>
-					{t("nav.tab.insights")}
-				</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>{t("nav.tab.insights")}</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
 			<NativeTabs.Trigger name="budgets">
 				<NativeTabs.Trigger.Icon
 					renderingMode="template"
 					src={{ default: budgetsIcon, selected: budgetsSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>
-					{t("nav.tab.budgets")}
-				</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>{t("nav.tab.budgets")}</NativeTabs.Trigger.Label>
 
-				{overBudget > 0 ? (
-					<NativeTabs.Trigger.Badge>
-						{String(overBudget)}
-					</NativeTabs.Trigger.Badge>
-				) : null}
+				{overBudget > 0 ? <NativeTabs.Trigger.Badge>{String(overBudget)}</NativeTabs.Trigger.Badge> : null}
 			</NativeTabs.Trigger>
 			<NativeTabs.Trigger name="settings">
 				<NativeTabs.Trigger.Icon
 					renderingMode="template"
 					src={{ default: settingsIcon, selected: settingsSelectedIcon }}
 				/>
-				<NativeTabs.Trigger.Label>
-					{t("nav.tab.settings")}
-				</NativeTabs.Trigger.Label>
+				<NativeTabs.Trigger.Label>{t("nav.tab.settings")}</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>
 		</NativeTabs>
 	);

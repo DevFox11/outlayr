@@ -1,4 +1,4 @@
-import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 
 const CATALOGUE: ReadonlySet<string> = new Set(PICKABLE_CURRENCY_CODES);
 
@@ -90,10 +90,7 @@ export function isFavourite(codes: readonly string[], code: string): boolean {
  * the user picked those eight deliberately, so dropping one for them would be
  * the surprising move. Removal is never refused — that is the way out.
  */
-export function toggleFavourite(
-	codes: readonly string[],
-	code: string,
-): string[] {
+export function toggleFavourite(codes: readonly string[], code: string): string[] {
 	const wanted = normalise(code);
 	if (isFavourite(codes, wanted)) {
 		return codes.filter((favourite) => normalise(favourite) !== wanted);

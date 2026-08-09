@@ -67,5 +67,5 @@ export function toolbarIcon(name: ToolbarIconName) {
  */
 export function useToolbarIcon(name: ToolbarIconName) {
 	const image = useImage(SOURCE[name]);
-	return { image, iconRenderingMode: "template" } as const;
+	return { iconRenderingMode: "template", image } as const;
 }

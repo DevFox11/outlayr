@@ -3,9 +3,9 @@ import type { AdoptionStatus } from "@/lib/ledger-adoption";
 import type { AuthGate } from "./auth-gate";
 
 export interface ShellProbe {
+	data: LocalDataStatus;
 	fontsLoaded: boolean;
 	languageReady: boolean;
-	data: LocalDataStatus;
 }
 
 /**
@@ -17,8 +17,8 @@ export function localShellReady(probe: ShellProbe): boolean {
 }
 
 export interface RouteProbe {
-	gate: AuthGate;
 	adoption: AdoptionStatus;
+	gate: AuthGate;
 }
 
 /**

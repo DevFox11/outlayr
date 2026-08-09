@@ -1,12 +1,12 @@
 import { supportBody, supportMailto } from "./support-mailto";
 
 const INFO = {
+	appBuild: "42",
 	appName: "Outlayr",
+	appVersion: "1.2.0",
+	deviceName: "iPhone",
 	osName: "iOS",
 	osVersion: "26.0",
-	deviceName: "iPhone",
-	appVersion: "1.2.0",
-	appBuild: "42",
 };
 
 describe("support email body", () => {
@@ -40,7 +40,7 @@ describe("support mailto", () => {
 
 	it("percent-encodes the body so newlines never truncate the link", () => {
 		const url = supportMailto("help@example.com", "Support Email", INFO);
-		const body = url.split("&body=")[1];
+		const [, body] = url.split("&body=");
 		expect(body).toBeTruthy();
 		expect(body).not.toMatch(/\n/);
 		expect(decodeURIComponent(body)).toBe(supportBody(INFO));

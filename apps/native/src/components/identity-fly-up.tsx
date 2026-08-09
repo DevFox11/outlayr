@@ -10,15 +10,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { floatTargetY } from "@/domain/identity-flyup-geometry";
-import {
-	FLOAT_SCALE,
-	FLOAT_TILE,
-	HERO_RING,
-	type HeroVariant,
-	IdentityHero,
-} from "./identity-hero";
+// biome-ignore lint/style/noExportedImports: account-editor and category-editor take HERO_RING from this path, and it is read here too, so `export … from` would make this component module a barrel instead
+import { FLOAT_TILE, HERO_RING, type HeroVariant, IdentityHero } from "./identity-hero";
 
-export { FLOAT_SCALE, floatTargetY, HERO_RING };
+export { HERO_RING };
 
 /** Half the floated tile — what the clamp keeps below the top of the screen. */
 const HERO_HALF = FLOAT_TILE / 2;
@@ -56,23 +51,29 @@ export function useFloatOffset({
 		if (Number.isNaN(restCenterY.value)) {
 			return 0;
 		}
-		const container =
-			containerHeight.value > 0 ? containerHeight.value : windowHeight;
-		const sheet =
-			sheetHeight.value > 0
-				? sheetHeight.value
-				: container * FIRST_OPEN_DETENT_FRACTION;
+		const container = containerHeight.value > 0 ? containerHeight.value : windowHeight;
+		const sheet = sheetHeight.value > 0 ? sheetHeight.value : container * FIRST_OPEN_DETENT_FRACTION;
 		return (
 			floatTargetY({
 				containerHeight: container,
-				sheetHeight: sheet,
 				heroHalf: HERO_HALF,
+				sheetHeight: sheet,
 			}) - restCenterY.value
 		);
 	});
 }
 
 interface IdentityFlyUpLayerProps {
+	/** Custom color override; falls back to income green / foreground. */
+	color: string | null;
+	/** Height of the screen the sheet is centred against. */
+	containerHeight: SharedValue<number>;
+	emoji: string | null;
+	icon: string | null;
+	income: boolean;
+	/** Called after the return spring has already been started. */
+	onDismiss: () => void;
+	photoUri: string | null;
 	/**
 	 * Where the hero's ring rests right now, in form-local points, so the twin starts
 	 * exactly on the real hero instead of jumping. A shared value because it is live:
@@ -80,17 +81,7 @@ interface IdentityFlyUpLayerProps {
 	 * so tracking it costs no renders. The layer latches it for the flight.
 	 */
 	restTop: SharedValue<number>;
-	/** Height of the screen the sheet is centred against. */
-	containerHeight: SharedValue<number>;
-	emoji: string | null;
-	icon: string | null;
-	photoUri: string | null;
-	/** Custom color override; falls back to income green / foreground. */
-	color: string | null;
-	income: boolean;
 	variant?: HeroVariant;
-	/** Called after the return spring has already been started. */
-	onDismiss: () => void;
 }
 
 /**
@@ -125,7 +116,7 @@ export function IdentityFlyUpLayer({
 				restLaunchTop.value = resting;
 			}
 		},
-		[],
+		[]
 	);
 	// The reaction only fires once the prepared value CHANGES, so the very first
 	// reading has to be taken here or the latch would sit at its sentinel until the
@@ -136,9 +127,7 @@ export function IdentityFlyUpLayer({
 		}
 	}, [restLaunchTop, restTop]);
 
-	const restCenterY = useDerivedValue(
-		() => restLaunchTop.value + HERO_RING / 2,
-	);
+	const restCenterY = useDerivedValue(() => restLaunchTop.value + HERO_RING / 2);
 	const floatOffsetY = useFloatOffset({ containerHeight, restCenterY });
 
 	// A screen showing its own hero is, by definition, not showing a picker.
@@ -183,11 +172,11 @@ export function IdentityFlyUpLayer({
 				pointerEvents="none"
 				style={[
 					{
-						position: "absolute",
-						top: 0,
-						left: 0,
-						right: 0,
 						alignItems: "center",
+						left: 0,
+						position: "absolute",
+						right: 0,
+						top: 0,
 					},
 					twinStyle,
 				]}
@@ -208,24 +197,20 @@ export function IdentityFlyUpLayer({
 	);
 }
 
-type DismissalEvent = { data?: { closing?: boolean } };
-type DismissalNavigation = {
-	addListener: (
-		type: string,
-		listener: (event: DismissalEvent) => void,
-	) => () => void;
-};
+interface DismissalEvent {
+	data?: { closing?: boolean };
+}
+interface DismissalNavigation {
+	addListener: (type: string, listener: (event: DismissalEvent) => void) => () => void;
+}
 
 const NOOP = () => {
 	// An unsupported listener name leaves nothing to unsubscribe from.
 };
 
-function listen(
-	navigation: DismissalNavigation,
-	type: string,
-	listener: (event: DismissalEvent) => void,
-): () => void {
+function listen(navigation: DismissalNavigation, type: string, listener: (event: DismissalEvent) => void): () => void {
 	try {
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: DismissalNavigation is our narrowing of the real navigation object, whose addListener returns nothing for an event type the navigator does not emit
 		return navigation.addListener(type, listener) ?? NOOP;
 	} catch {
 		return NOOP;
@@ -279,10 +264,7 @@ export function IdentityFlyUpSheetHost({ children }: { children: ReactNode }) {
 	}, [navigation, setPickerOpen]);
 
 	return (
-		<View
-			onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)}
-			style={{ flex: 1 }}
-		>
+		<View onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)} style={{ flex: 1 }}>
 			{children}
 		</View>
 	);

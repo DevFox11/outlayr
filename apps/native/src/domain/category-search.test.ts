@@ -1,34 +1,26 @@
 import type { Category, CategoryWithChildren } from "@/data/categories-core";
-import {
-	categorySearchKey,
-	expandedForSelectedCategory,
-	searchCategoryTree,
-} from "./category-search";
+import { categorySearchKey, expandedForSelectedCategory, searchCategoryTree } from "./category-search";
 
 function category(id: string, name: string, parentId: string | null): Category {
 	return {
-		id,
-		name,
-		icon: "ShoppingCart01",
-		emoji: null,
 		color: "#34C759",
-		income: false,
-		sortOrder: 0,
-		parentId,
 		dateCreated: new Date(0),
-		updatedAt: new Date(0),
 		deletedAt: null,
+		emoji: null,
+		icon: "ShoppingCart01",
+		id,
+		income: false,
+		name,
+		parentId,
+		sortOrder: 0,
+		updatedAt: new Date(0),
 	};
 }
 
-function tree(
-	...parents: Array<[string, string, Array<[string, string]>]>
-): CategoryWithChildren[] {
+function tree(...parents: [string, string, [string, string][]][]): CategoryWithChildren[] {
 	return parents.map(([id, name, children]) => ({
 		...category(id, name, null),
-		children: children.map(([childId, childName]) =>
-			category(childId, childName, id),
-		),
+		children: children.map(([childId, childName]) => category(childId, childName, id)),
 	}));
 }
 
@@ -42,7 +34,7 @@ const SAMPLE = tree(
 		],
 	],
 	["transport", "Transport", []],
-	["subscriptions", "Subscriptions", [["storage", "Storage"]]],
+	["subscriptions", "Subscriptions", [["storage", "Storage"]]]
 );
 
 describe("categorySearchKey", () => {
@@ -83,21 +75,12 @@ describe("searchCategoryTree", () => {
 
 	it("keeps tree order, with a matching child directly after its parent", () => {
 		const matches = searchCategoryTree(SAMPLE, "or");
-		expect(matches.map((match) => match.category.id)).toEqual([
-			"organic",
-			"transport",
-			"storage",
-		]);
+		expect(matches.map((match) => match.category.id)).toEqual(["organic", "transport", "storage"]);
 	});
 
 	it("reports where the match sits so the row can highlight it", () => {
 		const [match] = searchCategoryTree(SAMPLE, "port");
-		expect(
-			match?.category.name?.slice(
-				match.matchStart,
-				match.matchStart + match.matchLength,
-			),
-		).toBe("port");
+		expect(match?.category.name?.slice(match.matchStart, match.matchStart + match.matchLength)).toBe("port");
 	});
 
 	it("matches across diacritics in both directions", () => {
@@ -109,12 +92,7 @@ describe("searchCategoryTree", () => {
 	it("keeps highlight offsets aligned when the name carries a combining mark", () => {
 		const decomposed = tree(["cafe", "Café Bar", []]);
 		const [match] = searchCategoryTree(decomposed, "bar");
-		expect(
-			match?.category.name?.slice(
-				match.matchStart,
-				match.matchStart + match.matchLength,
-			),
-		).toBe("Bar");
+		expect(match?.category.name?.slice(match.matchStart, match.matchStart + match.matchLength)).toBe("Bar");
 	});
 
 	it("returns nothing when no name contains the query", () => {
@@ -124,9 +102,7 @@ describe("searchCategoryTree", () => {
 
 describe("expandedForSelectedCategory", () => {
 	it("opens the parent holding the selected child", () => {
-		expect([...expandedForSelectedCategory(SAMPLE, "organic")]).toEqual([
-			"groceries",
-		]);
+		expect([...expandedForSelectedCategory(SAMPLE, "organic")]).toEqual(["groceries"]);
 	});
 
 	it("opens nothing when the selection is a top-level category", () => {

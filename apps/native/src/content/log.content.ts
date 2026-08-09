@@ -1,8 +1,11 @@
 import { type Dictionary, t } from "intlayer";
 
 const log = {
-	key: "log" as const,
 	content: {
+		"log.add.import": t({
+			en: "Import transactions",
+			es: "Importar transacciones",
+		}),
 		"log.add.menu": t({
 			en: "Add",
 			es: "Agregar",
@@ -10,10 +13,6 @@ const log = {
 		"log.add.transaction": t({
 			en: "Create transaction",
 			es: "Crear transacción",
-		}),
-		"log.add.import": t({
-			en: "Import transactions",
-			es: "Importar transacciones",
 		}),
 		"log.chip.earlier": t({
 			en: "Earlier",
@@ -216,6 +215,7 @@ const log = {
 			es: "AL MES",
 		}),
 	},
+	key: "log" as const,
 } satisfies Dictionary;
 
 export default log;

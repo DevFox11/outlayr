@@ -1,44 +1,27 @@
-import {
-	createContext,
-	use,
-	useCallback,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
-import {
-	type SharedValue,
-	useSharedValue,
-	withSpring,
-} from "react-native-reanimated";
+import { createContext, use, useCallback, useMemo, useRef, useState } from "react";
+import { type SharedValue, useSharedValue, withSpring } from "react-native-reanimated";
 import type { IdentitySelection } from "@/components/identity-picker-content";
 import { useHaptics } from "@/lib/use-haptics";
 
 /** Launch spring (response 0.4, dampingFraction 0.85) as stiffness/damping. */
-export const LAUNCH_SPRING = { stiffness: 246, damping: 27, mass: 1 } as const;
+export const LAUNCH_SPRING = { damping: 27, mass: 1, stiffness: 246 } as const;
 /**
  * Not the launch played backwards: the return has to land inside the ~350ms UIKit
  * takes to dismiss the sheet, or the hero is still easing home after the sheet has
  * gone. ω ≈ 17.3 rad/s (response 0.36) with ζ ≈ 0.92 reaches Reanimated's rest
  * band at ~290ms.
  */
-const RETURN_SPRING = { stiffness: 300, damping: 32, mass: 1 } as const;
+const RETURN_SPRING = { damping: 32, mass: 1, stiffness: 300 } as const;
 
 interface IdentityDraftValue {
 	draft: IdentitySelection;
 	// Accepts an updater as well as a value: an async writer (a fetched logo)
 	// has to re-read the draft at write time, because the seeding effect may
 	// have replaced it while the request was out.
-	setDraft: (
-		next:
-			| IdentitySelection
-			| ((previous: IdentitySelection) => IdentitySelection),
-	) => void;
+	setDraft: (next: IdentitySelection | ((previous: IdentitySelection) => IdentitySelection)) => void;
 }
 
 interface IdentityFlyUpValue {
-	pickerOpen: boolean;
-	setPickerOpen: (open: boolean) => void;
 	/**
 	 * 0 → resting, 1 → floated.
 	 *
@@ -47,25 +30,26 @@ interface IdentityFlyUpValue {
 	 * sets `freezeOnBlur`.
 	 */
 	floatProgress: SharedValue<number>;
+	pickerOpen: boolean;
+	setPickerOpen: (open: boolean) => void;
+	setSheetHeight: (height: number) => void;
 	/**
 	 * The picker sheet's measured height in points, 0 until it has ever laid out.
 	 * The sheet uses FRACTIONAL detents, so its height varies by device and cannot
 	 * be replaced with a constant.
 	 */
 	sheetHeight: SharedValue<number>;
-	setSheetHeight: (height: number) => void;
 }
 
 const EMPTY_DRAFT: IdentitySelection = {
+	color: null,
 	emoji: null,
 	icon: null,
-	photoUri: null,
 	photoColor: null,
-	color: null,
+	photoUri: null,
 };
 
-const OUTSIDE_PROVIDER =
-	"useIdentityDraft and useIdentityFlyUp must be used within IdentityDraftProvider";
+const OUTSIDE_PROVIDER = "useIdentityDraft and useIdentityFlyUp must be used within IdentityDraftProvider";
 
 const IdentityDraftContext = createContext<IdentityDraftValue | null>(null);
 const IdentityFlyUpContext = createContext<IdentityFlyUpValue | null>(null);
@@ -75,11 +59,7 @@ const IdentityFlyUpContext = createContext<IdentityFlyUpValue | null>(null);
  * `draft`, so merging them would drag every consumer — the whole transaction
  * form, SwiftUI `Host` tree included — through a re-render per tap.
  */
-export function IdentityDraftProvider({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export function IdentityDraftProvider({ children }: { children: React.ReactNode }) {
 	const haptics = useHaptics();
 	const [draft, setDraft] = useState<IdentitySelection>(EMPTY_DRAFT);
 	const [pickerOpen, setPickerOpenState] = useState(false);
@@ -104,12 +84,9 @@ export function IdentityDraftProvider({
 				haptics("light");
 			}
 			setPickerOpenState(open);
-			floatProgress.value = withSpring(
-				open ? 1 : 0,
-				open ? LAUNCH_SPRING : RETURN_SPRING,
-			);
+			floatProgress.value = withSpring(open ? 1 : 0, open ? LAUNCH_SPRING : RETURN_SPRING);
 		},
-		[floatProgress, haptics],
+		[floatProgress, haptics]
 	);
 
 	// A JS-side latch instead of reading `sheetHeight.value`: that is a cross-thread
@@ -121,6 +98,7 @@ export function IdentityDraftProvider({
 			// The first measurement lands hard: springing off the 0 sentinel would drag
 			// the hero's target through every height in between while it is still
 			// flying up.
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is narrowed to the literal `false` it was seeded with, but the first call writes `sheetMeasured.current = true` below and every later call reads it here
 			if (sheetMeasured.current) {
 				sheetHeight.value = withSpring(height, LAUNCH_SPRING);
 				return;
@@ -128,26 +106,24 @@ export function IdentityDraftProvider({
 			sheetMeasured.current = true;
 			sheetHeight.value = height;
 		},
-		[sheetHeight],
+		[sheetHeight]
 	);
 
 	const draftValue = useMemo(() => ({ draft, setDraft }), [draft]);
 	const flyUpValue = useMemo(
 		() => ({
+			floatProgress,
 			pickerOpen,
 			setPickerOpen,
-			floatProgress,
-			sheetHeight,
 			setSheetHeight,
+			sheetHeight,
 		}),
-		[pickerOpen, setPickerOpen, floatProgress, sheetHeight, setSheetHeight],
+		[pickerOpen, setPickerOpen, floatProgress, sheetHeight, setSheetHeight]
 	);
 
 	return (
 		<IdentityDraftContext.Provider value={draftValue}>
-			<IdentityFlyUpContext.Provider value={flyUpValue}>
-				{children}
-			</IdentityFlyUpContext.Provider>
+			<IdentityFlyUpContext.Provider value={flyUpValue}>{children}</IdentityFlyUpContext.Provider>
 		</IdentityDraftContext.Provider>
 	);
 }

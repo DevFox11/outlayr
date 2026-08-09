@@ -1,126 +1,167 @@
 {
-	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-	"vcs": {
-		"enabled": true,
-		"clientKind": "git",
-		"useIgnoreFile": true
-	},
-	"files": {
-		"ignoreUnknown": false,
-		"includes": [
-			"**",
-			"!**/.next",
-			"!**/dist",
-			"!**/.turbo",
-			"!**/.nx",
-			"!**/dev-dist",
-			"!**/.zed",
-			"!**/.vscode",
-			"!**/routeTree.gen.ts",
-			"!**/src-tauri",
-			"!**/.nuxt",
-			"!bts.jsonc",
-			"!skills-lock.json",
-			"!**/.expo",
-			"!**/.wrangler",
-			"!**/.alchemy",
-			"!**/.svelte-kit",
-			"!**/wrangler.jsonc",
-			"!**/.source",
-			"!**/convex/_generated",
-			"!**/drizzle",
-			"!**/uniwind-types.d.ts",
-			"!**/catalog.generated.ts",
-			"!**/ios",
-			"!**/android",
-			"!**/Pods",
-			"!**/*.icon",
-			"!**/*.svg",
-			"!**/.agents",
-			"!**/.claude",
-			"!**/*.html"
-		]
-	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "tab"
-	},
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"preset": "recommended",
-			"correctness": {
-				"useExhaustiveDependencies": "info"
-			},
-			"nursery": {
-				"useSortedClasses": {
-					"level": "warn",
-					"fix": "safe",
-					"options": {
-						"functions": ["clsx", "cva", "cn"]
-					}
-				}
-			},
-			"style": {
-				"noParameterAssign": "error",
-				"useAsConstAssertion": "error",
-				"useDefaultParameterLast": "error",
-				"useEnumInitializers": "error",
-				"useSelfClosingElements": "error",
-				"useSingleVarDeclarator": "error",
-				"noUnusedTemplateLiteral": "error",
-				"useNumberNamespace": "error",
-				"noInferrableTypes": "error",
-				"noUselessElse": "error"
-			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double"
-		}
-	},
-	"css": {
-		"parser": {
-			"tailwindDirectives": true
-		}
-	},
-	"overrides": [
-		{
-			"includes": ["**/global.css"],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noDuplicateCustomProperties": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": [
-				"apps/native/src/**",
-				"!apps/native/src/data/live-query.ts",
-				"!apps/native/src/lib/use-haptics.ts"
-			],
-			"linter": {
-				"rules": {
-					"style": {
-						"noRestrictedImports": {
-							"level": "error",
-							"options": {
-								"paths": {
-									"drizzle-orm/expo-sqlite": {
-										"importNames": ["useLiveQuery"],
-										"message": "Drizzle's useLiveQuery renders one empty frame before its query answers. Import useLiveQuery from @/data/live-query, which reads in render."
-									},
-									"expo-haptics": "A direct call fires whatever the Haptics setting says. Use useHaptics from @/lib/use-haptics."
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	]
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "!**/.expo",
+      "!**/.nx",
+      "!**/dev-dist",
+      "!**/.zed",
+      "!**/.vscode",
+      "!**/src-tauri",
+      "!bts.jsonc",
+      "!skills-lock.json",
+      "!**/.alchemy",
+      "!**/wrangler.jsonc",
+      "!**/.source",
+      "!**/drizzle",
+      "!**/uniwind-types.d.ts",
+      "!**/ios",
+      "!**/android",
+      "!**/Pods",
+      "!**/*.icon",
+      "!**/*.svg",
+      "!**/.agents",
+      "!**/.claude",
+      "!**/*.html"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "tab",
+    "lineWidth": 120
+  },
+  "javascript": {
+    "globals": ["__DEV__", "jest"]
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 25
+          }
+        }
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "info"
+      },
+      "performance": {
+        "noJsxPropsBind": "off"
+      },
+      "preset": "recommended",
+      "style": {
+        "useSingleVarDeclarator": "error"
+      },
+      "suspicious": {
+        "noEqualsToNull": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.{ts,tsx}", "apps/native/jest/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off",
+            "useTopLevelRegex": "off"
+          },
+          "suspicious": {
+            "noBitwiseOperators": "off",
+            "noEmptyBlockStatements": "off",
+            "noUnnecessaryConditions": "off",
+            "useAwait": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/backend/convex/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useAtIndex": "off",
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": {
+                "filenameCases": ["camelCase"],
+                "requireAscii": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedAttributes": "off"
+          }
+        }
+      },
+      "includes": [
+        "apps/native/src/screens/log/index.tsx",
+        "apps/native/src/screens/search/index.tsx",
+        "apps/native/src/screens/budgets/components/budget-detail-view.tsx"
+      ]
+    },
+    {
+      "includes": [
+        "apps/native/src/domain/uuid5.ts",
+        "apps/native/src/domain/confetti.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noBitwiseOperators": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/global.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noDuplicateCustomProperties": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/native/src/**",
+        "!apps/native/src/data/live-query.ts",
+        "!apps/native/src/lib/use-haptics.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "drizzle-orm/expo-sqlite": {
+                    "importNames": ["useLiveQuery"],
+                    "message": "Drizzle's useLiveQuery renders one empty frame before its query answers. Import useLiveQuery from @/data/live-query, which reads in render."
+                  },
+                  "expo-haptics": "A direct call fires whatever the Haptics setting says. Use useHaptics from @/lib/use-haptics."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/vitest",
+    "ultracite/biome/react",
+    "ultracite/biome/jest",
+    "ultracite/biome/tanstack",
+    "ultracite/biome/astro"
+  ]
 }

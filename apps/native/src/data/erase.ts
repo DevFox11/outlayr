@@ -1,7 +1,7 @@
 import type { Database } from "@/db/client";
 import { type EraseScope, eraseLedger } from "./erase-core";
 
-export type { EraseScope };
+export type { EraseScope } from "./erase-core";
 
 /**
  * The two stores an erase has to clear outside the database. Injected so this
@@ -9,8 +9,8 @@ export type { EraseScope };
  * of which can load under the node test runner.
  */
 export interface EraseResidue {
-	clearStoredPhotos(): void;
-	clearSpotlight(): Promise<void>;
+	clearSpotlight: () => Promise<void>;
+	clearStoredPhotos: () => void;
 }
 
 /**
@@ -26,11 +26,7 @@ export interface EraseResidue {
  * row names. The photo failure is rethrown afterwards so the screen reports a
  * partial erase rather than confirming a clean one.
  */
-export async function eraseData(
-	db: Database,
-	scope: EraseScope,
-	residue: EraseResidue,
-): Promise<void> {
+export async function eraseData(db: Database, scope: EraseScope, residue: EraseResidue): Promise<void> {
 	await eraseLedger(db, scope);
 
 	// Boxed rather than kept as `unknown`: a thrown `undefined` is still a failure.

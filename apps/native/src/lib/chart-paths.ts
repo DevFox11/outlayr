@@ -19,12 +19,7 @@ export function hatchPathD(width: number, height: number, step = 7): string {
  * Vertical hairlines every seven days. `bottom` is the plot's baseline, so the
  * rules stop at the axis.
  */
-export function weekRulesD(
-	totalDays: number,
-	x: (day: number) => number,
-	top: number,
-	bottom: number,
-): string {
+export function weekRulesD(totalDays: number, x: (day: number) => number, top: number, bottom: number): string {
 	const parts: string[] = [];
 	for (let day = 8; day < totalDays; day += 7) {
 		parts.push(`M ${x(day)} ${top} L ${x(day)} ${bottom}`);

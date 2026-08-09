@@ -27,7 +27,7 @@ describe("Arrive", () => {
 		const { getByText } = await render(
 			<Arrive>
 				<Text>row</Text>
-			</Arrive>,
+			</Arrive>
 		);
 
 		expect(getByText("row")).toBeTruthy();
@@ -39,7 +39,7 @@ describe("Arrive", () => {
 		const style = await rootStyle(
 			<Arrive>
 				<Text>row</Text>
-			</Arrive>,
+			</Arrive>
 		);
 
 		expect(style.opacity ?? 1).toBe(1);
@@ -50,13 +50,13 @@ describe("Arrive", () => {
 		const moving = await rootStyle(
 			<Arrive style={{ marginTop: 7 }}>
 				<Text>row</Text>
-			</Arrive>,
+			</Arrive>
 		);
 		mockStill.mockReturnValue(true);
 		const settled = await rootStyle(
 			<Arrive style={{ marginTop: 7 }}>
 				<Text>row</Text>
-			</Arrive>,
+			</Arrive>
 		);
 
 		expect(moving.marginTop).toBe(7);
@@ -71,7 +71,7 @@ describe("Fade", () => {
 		const style = await rootStyle(
 			<Fade to={0.3}>
 				<Text>rule</Text>
-			</Fade>,
+			</Fade>
 		);
 
 		expect(style.opacity).toBe(0.3);
@@ -83,7 +83,7 @@ describe("Fade", () => {
 		const style = await rootStyle(
 			<Fade to={0}>
 				<Text>dashes</Text>
-			</Fade>,
+			</Fade>
 		);
 
 		expect(style.opacity).toBe(0);

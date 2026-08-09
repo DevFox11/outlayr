@@ -1,6 +1,9 @@
+// biome-ignore-all lint/style/useFilenamingConvention: Convex keys the module by its path — `_generated/api.d.ts:53` carries "lib/merchantTrust" — and regenerating that is not a lint fix
+
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 const MAX_DOMAIN_LENGTH = 253;
 const KEY_PATTERN = /^[a-z0-9 ]{3,64}$/;
+const EMOJI_PATTERN = /\p{Extended_Pictographic}/u;
 const MAX_TAGS = 3;
 const MAX_TAG_LENGTH = 24;
 
@@ -47,11 +50,11 @@ export const CANONICAL_CATEGORY_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 export interface KnowledgeCandidate {
-	key: string;
-	domain: string | null;
 	categoryName: string | null;
-	parentCategoryName: string | null;
+	domain: string | null;
 	emoji: string | null;
+	key: string;
+	parentCategoryName: string | null;
 	tags: readonly string[];
 }
 
@@ -80,10 +83,7 @@ function tagsAreSanitized(tags: readonly string[]): boolean {
 	if (tags.length > MAX_TAGS) {
 		return false;
 	}
-	return tags.every(
-		(tag) =>
-			tag.length > 0 && tag === tag.trim() && tag.length <= MAX_TAG_LENGTH,
-	);
+	return tags.every((tag) => tag.length > 0 && tag === tag.trim() && tag.length <= MAX_TAG_LENGTH);
 }
 
 function emojiIsSanitized(emoji: string | null): boolean {
@@ -94,7 +94,7 @@ function emojiIsSanitized(emoji: string | null): boolean {
 	if (trimmed !== emoji || trimmed.length === 0 || [...trimmed].length > 3) {
 		return false;
 	}
-	return /\p{Extended_Pictographic}/u.test(trimmed);
+	return EMOJI_PATTERN.test(trimmed);
 }
 
 /**
@@ -104,21 +104,15 @@ function emojiIsSanitized(emoji: string | null): boolean {
  * persisted: no public source exists for it, and a null domain fails rule 1
  * first regardless.
  */
-export function shouldPublish(
-	candidate: KnowledgeCandidate,
-	sources: readonly { url: string }[],
-): boolean {
-	if (candidate.domain === null || !isSanitizedDomain(candidate.domain)) {
+export function shouldPublish(candidate: KnowledgeCandidate, sources: readonly { url: string }[]): boolean {
+	const { domain } = candidate;
+	if (domain === null || !isSanitizedDomain(domain)) {
 		return false;
 	}
-	const domain = candidate.domain;
 	if (!sources.some((source) => corroborates(domain, source.url))) {
 		return false;
 	}
-	if (
-		candidate.categoryName === null ||
-		!CANONICAL_CATEGORY_NAMES.has(candidate.categoryName)
-	) {
+	if (candidate.categoryName === null || !CANONICAL_CATEGORY_NAMES.has(candidate.categoryName)) {
 		return false;
 	}
 	if (!KEY_PATTERN.test(candidate.key)) {

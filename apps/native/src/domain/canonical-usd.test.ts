@@ -1,17 +1,14 @@
-import type { RateLookup } from "@outlayr/money";
+import type { RateLookup } from "@outlayr/money/rates";
 import { canonicalUsd } from "./canonical-usd";
 
 /** A lookup over a fixed table, mirroring what the local replica serves. */
-function lookupOf(
-	rows: Record<string, number>,
-	seen?: { calls: number },
-): RateLookup {
+function lookupOf(rows: Record<string, number>, seen?: { calls: number }): RateLookup {
 	return async (quote, _rateType, date) => {
 		if (seen) {
 			seen.calls += 1;
 		}
 		const rate = rows[quote];
-		return rate === undefined ? null : { rate, date };
+		return rate === undefined ? null : { date, rate };
 	};
 }
 
@@ -23,8 +20,8 @@ describe("canonicalUsd", () => {
 		const result = await canonicalUsd(lookupOf({ EUR: 0.92 }), {
 			amount: 92,
 			currency: "EUR",
-			displayCurrency: "EUR",
 			date: DATE,
+			displayCurrency: "EUR",
 		});
 		expect(result.amountUsd).toBe(100);
 		expect(result.exchangeRate).toBe(0.92);
@@ -35,8 +32,8 @@ describe("canonicalUsd", () => {
 		const result = await canonicalUsd(lookupOf({ VES: 40 }), {
 			amount: 1000,
 			currency: "VES",
-			displayCurrency: "VES",
 			date: DATE,
+			displayCurrency: "VES",
 		});
 		expect(result.amountUsd).toBe(25);
 	});
@@ -46,8 +43,8 @@ describe("canonicalUsd", () => {
 		const result = await canonicalUsd(lookupOf({}, seen), {
 			amount: 12.4,
 			currency: "USD",
-			displayCurrency: "USD",
 			date: DATE,
+			displayCurrency: "USD",
 		});
 		expect(result).toStrictEqual({
 			amountUsd: 12.4,
@@ -61,8 +58,8 @@ describe("canonicalUsd", () => {
 		const result = await canonicalUsd(lookupOf({ EUR: 0.5 }), {
 			amount: 10,
 			currency: null,
-			displayCurrency: "EUR",
 			date: DATE,
+			displayCurrency: "EUR",
 		});
 		expect(result.amountUsd).toBe(20);
 	});
@@ -72,8 +69,8 @@ describe("canonicalUsd", () => {
 		const result = await canonicalUsd(lookupOf({}), {
 			amount: 50,
 			currency: "GBP",
-			displayCurrency: "USD",
 			date: DATE,
+			displayCurrency: "USD",
 		});
 		expect(result).toStrictEqual({
 			amountUsd: null,
@@ -88,8 +85,8 @@ describe("canonicalUsd", () => {
 		const result = await canonicalUsd(lookupOf({ EUR: 0 }), {
 			amount: 10,
 			currency: "EUR",
-			displayCurrency: "EUR",
 			date: DATE,
+			displayCurrency: "EUR",
 		});
 		expect(result.amountUsd).toBe(null);
 	});

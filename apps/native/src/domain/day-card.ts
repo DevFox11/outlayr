@@ -27,48 +27,44 @@ export type CardWeight = "mono" | "regular" | "medium" | "semibold";
 export type CardTone = "ink" | "muted";
 
 export interface CardText {
+	align: "left" | "right";
+	size: number;
 	text: string;
+	tone: CardTone;
+	weight: CardWeight;
 	x: number;
 	/** Baseline, not the top of the box. */
 	y: number;
-	size: number;
-	weight: CardWeight;
-	align: "left" | "right";
-	tone: CardTone;
 }
 
 export interface CardRule {
+	height: number;
+	width: number;
 	x: number;
 	y: number;
-	width: number;
-	height: number;
 }
 
 export interface DayCardRow {
-	note: string;
+	amount: string;
 	/** Time, or the category name when "Swap Time Label" is on. */
 	meta: string;
-	amount: string;
+	note: string;
 }
 
 export interface DayCardInput {
 	dayLabel: string;
-	total: string;
 	rows: readonly DayCardRow[];
+	total: string;
 }
 
 export interface DayCardLayout {
-	width: number;
 	height: number;
-	texts: CardText[];
 	rules: CardRule[];
+	texts: CardText[];
+	width: number;
 }
 
-export function truncateToWidth(
-	text: string,
-	size: number,
-	maxWidth: number,
-): string {
+export function truncateToWidth(text: string, size: number, maxWidth: number): string {
 	const budget = Math.floor(maxWidth / (size * AVERAGE_GLYPH));
 	if (budget >= text.length) {
 		return text;
@@ -88,28 +84,28 @@ export function layoutDayCard(input: DayCardInput): DayCardLayout {
 
 	let y = PADDING + LABEL_SIZE;
 	texts.push({
+		align: "left",
+		size: LABEL_SIZE,
 		text: input.dayLabel,
+		tone: "muted",
+		weight: "mono",
 		x: left,
 		y,
-		size: LABEL_SIZE,
-		weight: "mono",
-		align: "left",
-		tone: "muted",
 	});
 
 	y += TOTAL_SIZE + 6;
 	texts.push({
+		align: "left",
+		size: TOTAL_SIZE,
 		text: input.total,
+		tone: "ink",
+		weight: "semibold",
 		x: left,
 		y,
-		size: TOTAL_SIZE,
-		weight: "semibold",
-		align: "left",
-		tone: "ink",
 	});
 
 	y += 18;
-	rules.push({ x: left, y, width: contentWidth, height: RULE_HEIGHT });
+	rules.push({ height: RULE_HEIGHT, width: contentWidth, x: left, y });
 
 	// The amount takes the trailing third; the note is truncated against what is
 	// left so the two never overlap on a long merchant name.
@@ -119,55 +115,55 @@ export function layoutDayCard(input: DayCardInput): DayCardLayout {
 	for (const row of input.rows) {
 		y += ROW_HEIGHT;
 		texts.push({
+			align: "left",
+			size: NOTE_SIZE,
 			text: truncateToWidth(row.note, NOTE_SIZE, noteWidth),
+			tone: "ink",
+			weight: "medium",
 			x: left,
 			y,
-			size: NOTE_SIZE,
-			weight: "medium",
-			align: "left",
-			tone: "ink",
 		});
 		texts.push({
+			align: "right",
+			size: NOTE_SIZE,
 			text: row.amount,
+			tone: "ink",
+			weight: "medium",
 			x: right,
 			y,
-			size: NOTE_SIZE,
-			weight: "medium",
-			align: "right",
-			tone: "ink",
 		});
 		if (row.meta !== "") {
 			y += META_SIZE + 3;
 			texts.push({
+				align: "left",
+				size: META_SIZE,
 				text: truncateToWidth(row.meta, META_SIZE, noteWidth),
+				tone: "muted",
+				weight: "regular",
 				x: left,
 				y,
-				size: META_SIZE,
-				weight: "regular",
-				align: "left",
-				tone: "muted",
 			});
 		}
 	}
 
 	y += 22;
-	rules.push({ x: left, y, width: contentWidth, height: RULE_HEIGHT });
+	rules.push({ height: RULE_HEIGHT, width: contentWidth, x: left, y });
 
 	y += SIGNATURE_SIZE + 14;
 	texts.push({
+		align: "left",
+		size: SIGNATURE_SIZE,
 		text: "OUTLAYR",
+		tone: "muted",
+		weight: "mono",
 		x: left,
 		y,
-		size: SIGNATURE_SIZE,
-		weight: "mono",
-		align: "left",
-		tone: "muted",
 	});
 
 	return {
-		width: DAY_CARD_WIDTH,
 		height: y + PADDING,
-		texts,
 		rules,
+		texts,
+		width: DAY_CARD_WIDTH,
 	};
 }

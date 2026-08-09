@@ -4,22 +4,10 @@ import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import {
-	appMeta,
-	budgets,
-	categories,
-	exchangeRates,
-	mainBudget,
-	outbox,
-} from "@/db/schema";
+import { appMeta, budgets, categories, exchangeRates, mainBudget, outbox } from "@/db/schema";
 import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
-import {
-	budgetsRepo,
-	getBudgetById,
-	TOMBSTONED_BUDGET,
-	TOMBSTONED_MAIN_BUDGET,
-} from "./budgets-core";
+import { budgetsRepo, getBudgetById, TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "./budgets-core";
 import { setSyncEnabled } from "./sync-outbox-core";
 
 function makeDb(): Database {
@@ -71,7 +59,7 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 /**
  * The shipped migrations, applied in order. The delete tests need the real
@@ -95,9 +83,7 @@ function migratedDb(): Database {
 }
 
 async function queued(db: Database): Promise<[string, string][]> {
-	const rows = await db
-		.select({ tableName: outbox.tableName, localId: outbox.localId })
-		.from(outbox);
+	const rows = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);
 	return rows.map((row) => [row.tableName, row.localId]);
 }
 
@@ -111,10 +97,10 @@ describe("budgetsRepo.createBudget", () => {
 
 	it("persists a passed start date verbatim", async () => {
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
 		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
@@ -122,60 +108,58 @@ describe("budgetsRepo.createBudget", () => {
 
 	it("anchors an omitted start date to the period start", async () => {
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
+			categoryId: "cat-1",
 			type: BUDGET_TYPE.month,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		expect(row?.startDate?.getTime()).toBe(
-			startOfPeriod(new Date(), BUDGET_TYPE.month).getTime(),
-		);
+		expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.month).getTime());
 	});
 
 	it("anchors an omitted start date to the user's own week", async () => {
 		await db.insert(appMeta).values({ key: "firstWeekday", value: "2" });
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
+			categoryId: "cat-1",
 			type: BUDGET_TYPE.week,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
 		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.week, {
-				firstWeekday: 2,
 				firstDayOfMonth: 1,
-			}).getTime(),
+				firstWeekday: 2,
+			}).getTime()
 		);
 	});
 
 	it("anchors an omitted start date to the user's own month", async () => {
 		await db.insert(appMeta).values({ key: "firstDayOfMonth", value: "25" });
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
+			categoryId: "cat-1",
 			type: BUDGET_TYPE.month,
 		});
 		const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
 		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.month, {
-				firstWeekday: 1,
 				firstDayOfMonth: 25,
-			}).getTime(),
+				firstWeekday: 1,
+			}).getTime()
 		);
 	});
 
 	it("stores a trimmed custom name and nulls a blank one", async () => {
 		const named = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			name: "  Coffee run  ",
+			type: BUDGET_TYPE.month,
 		});
 		const blank = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-2",
 			amount: 250,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-2",
 			name: "   ",
+			type: BUDGET_TYPE.month,
 		});
 		const rows = await db.select().from(budgets);
 		expect(rows.find((r) => r.id === named)?.name).toBe("Coffee run");
@@ -192,13 +176,10 @@ describe("budgetsRepo.createMainBudget", () => {
 	it("persists a passed start date verbatim", async () => {
 		const id = await budgetsRepo.createMainBudget(db, {
 			amount: 1000,
-			type: BUDGET_TYPE.week,
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.week,
 		});
-		const [row] = await db
-			.select()
-			.from(mainBudget)
-			.where(eq(mainBudget.id, id));
+		const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
 		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 	});
 
@@ -207,43 +188,35 @@ describe("budgetsRepo.createMainBudget", () => {
 			amount: 1000,
 			type: BUDGET_TYPE.week,
 		});
-		const [row] = await db
-			.select()
-			.from(mainBudget)
-			.where(eq(mainBudget.id, id));
-		expect(row?.startDate?.getTime()).toBe(
-			startOfPeriod(new Date(), BUDGET_TYPE.week).getTime(),
-		);
+		const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
+		expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.week).getTime());
 	});
 
 	it("anchors first-run's exact call shape to the 1st of the month", async () => {
 		const id = await budgetsRepo.createMainBudget(db, {
 			amount: 2400,
-			type: BUDGET_TYPE.month,
 			startDate: null,
+			type: BUDGET_TYPE.month,
 		});
-		const [row] = await db
-			.select()
-			.from(mainBudget)
-			.where(eq(mainBudget.id, id));
+		const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
 		expect(row?.startDate?.getTime()).toBe(
 			startOfPeriod(new Date(), BUDGET_TYPE.month, {
-				firstWeekday: 1,
 				firstDayOfMonth: 1,
-			}).getTime(),
+				firstWeekday: 1,
+			}).getTime()
 		);
 	});
 
 	it("re-points the singleton on a second first-run-shaped call", async () => {
 		const first = await budgetsRepo.createMainBudget(db, {
 			amount: 2400,
-			type: BUDGET_TYPE.month,
 			startDate: null,
+			type: BUDGET_TYPE.month,
 		});
 		const second = await budgetsRepo.createMainBudget(db, {
 			amount: 3000,
-			type: BUDGET_TYPE.month,
 			startDate: null,
+			type: BUDGET_TYPE.month,
 		});
 		const rows = await db.select().from(mainBudget);
 		expect(second).toBe(first);
@@ -254,13 +227,13 @@ describe("budgetsRepo.createMainBudget", () => {
 	it("re-points the singleton rather than inserting a second", async () => {
 		const first = await budgetsRepo.createMainBudget(db, {
 			amount: 1000,
-			type: BUDGET_TYPE.month,
 			name: "Everything",
+			type: BUDGET_TYPE.month,
 		});
 		const second = await budgetsRepo.createMainBudget(db, {
 			amount: 1200,
-			type: BUDGET_TYPE.month,
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 		const rows = await db.select().from(mainBudget);
 		expect(second).toBe(first);
@@ -274,8 +247,8 @@ describe("budgetsRepo.createMainBudget", () => {
 		// not silently erase what the budget was already called.
 		await budgetsRepo.createMainBudget(db, {
 			amount: 1000,
-			type: BUDGET_TYPE.month,
 			name: "Household",
+			type: BUDGET_TYPE.month,
 		});
 		await budgetsRepo.createMainBudget(db, {
 			amount: 3500,
@@ -288,13 +261,13 @@ describe("budgetsRepo.createMainBudget", () => {
 	it("clears the name when the caller explicitly blanks it", async () => {
 		await budgetsRepo.createMainBudget(db, {
 			amount: 1000,
-			type: BUDGET_TYPE.month,
 			name: "Household",
+			type: BUDGET_TYPE.month,
 		});
 		await budgetsRepo.createMainBudget(db, {
 			amount: 3500,
-			type: BUDGET_TYPE.month,
 			name: "   ",
+			type: BUDGET_TYPE.month,
 		});
 		const rows = await db.select().from(mainBudget);
 		expect(rows[0]?.name).toBe(null);
@@ -305,11 +278,11 @@ describe("getBudgetById", () => {
 	it("hands back the stored row so an edit opens on what was saved", async () => {
 		const db = makeDb();
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			name: "Coffee run",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 		const row = getBudgetById(db, id);
 		expect(row?.name).toBe("Coffee run");
@@ -330,19 +303,19 @@ describe("budgetsRepo.updateBudget", () => {
 		// target must not cost the user the window the budget has been running in.
 		const db = makeDb();
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 
 		const existing = getBudgetById(db, id);
 		await budgetsRepo.updateBudget(db, id, {
-			categoryId: existing?.categoryId ?? "cat-1",
 			amount: 300,
-			type: existing?.type ?? BUDGET_TYPE.month,
+			categoryId: existing?.categoryId ?? "cat-1",
 			name: existing?.name,
 			startDate: existing?.startDate,
+			type: existing?.type ?? BUDGET_TYPE.month,
 		});
 
 		const row = getBudgetById(db, id);
@@ -353,29 +326,27 @@ describe("budgetsRepo.updateBudget", () => {
 	it("honours an explicit start date and falls back to the period start", async () => {
 		const db = makeDb();
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 250,
+			categoryId: "cat-1",
 			type: BUDGET_TYPE.month,
 		});
 
 		await budgetsRepo.updateBudget(db, id, {
-			categoryId: "cat-1",
 			amount: 300,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 		let [row] = await db.select().from(budgets).where(eq(budgets.id, id));
 		expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 
 		await budgetsRepo.updateBudget(db, id, {
-			categoryId: "cat-1",
 			amount: 300,
+			categoryId: "cat-1",
 			type: BUDGET_TYPE.month,
 		});
 		[row] = await db.select().from(budgets).where(eq(budgets.id, id));
-		expect(row?.startDate?.getTime()).toBe(
-			startOfPeriod(new Date(), BUDGET_TYPE.month).getTime(),
-		);
+		expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.month).getTime());
 	});
 });
 
@@ -387,43 +358,45 @@ describe("an edited budget stays coherent", () => {
 			{ key: "firstDayOfMonth", value: "25" },
 		]);
 		await db.insert(exchangeRates).values({
-			quote: "EUR",
-			rateType: "official",
 			date: "2020-01-01",
-			rate: 0.9,
-			source: "frankfurter",
 			fetchedAt: 0,
+			quote: "EUR",
+			rate: 0.9,
+			rateType: "official",
+			source: "frankfurter",
 		});
-		const rates = buildRateTable([
-			{ quote: "EUR", date: "2020-01-01", rate: 0.9 },
-		]);
+		const rates = buildRateTable([{ date: "2020-01-01", quote: "EUR", rate: 0.9 }]);
 
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 450,
+			categoryId: "cat-1",
 			type: BUDGET_TYPE.month,
 		});
 		const anchor = startOfPeriod(new Date(), BUDGET_TYPE.month, {
-			firstWeekday: 1,
 			firstDayOfMonth: 25,
+			firstWeekday: 1,
 		});
 
 		const created = getBudgetById(db, id);
-		if (!created) throw new Error("expected the budget to exist");
+		if (!created) {
+			throw new Error("expected the budget to exist");
+		}
 		expect(created.startDate?.getTime()).toBe(anchor.getTime());
 		expect(created.amountUsd).toBe(500);
 		expect(limitIn(created, anchor, "USD", rates)).toBe(500);
 
 		await budgetsRepo.updateBudget(db, id, {
-			categoryId: created.categoryId ?? "cat-1",
 			amount: 900,
-			type: created.type,
+			categoryId: created.categoryId ?? "cat-1",
 			name: created.name,
 			startDate: created.startDate,
+			type: created.type,
 		});
 
 		const edited = getBudgetById(db, id);
-		if (!edited) throw new Error("expected the budget to exist");
+		if (!edited) {
+			throw new Error("expected the budget to exist");
+		}
 		expect(edited.startDate?.getTime()).toBe(anchor.getTime());
 		expect(edited.amountUsd).toBe(1000);
 		expect(limitIn(edited, anchor, "USD", rates)).toBe(1000);
@@ -435,27 +408,27 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 		const db = makeDb();
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await db.insert(exchangeRates).values({
-			quote: "EUR",
-			rateType: "official",
 			date: "2020-01-01",
-			rate: 0.9,
-			source: "frankfurter",
 			fetchedAt: 0,
+			quote: "EUR",
+			rate: 0.9,
+			rateType: "official",
+			source: "frankfurter",
 		});
 
 		const id = await budgetsRepo.createBudget(db, {
-			name: null,
 			amount: 400,
-			type: 3,
 			categoryId: "cat",
+			name: null,
 			startDate: null,
+			type: 3,
 		});
 
 		const [row] = await db
 			.select({
 				amount: budgets.amount,
-				currency: budgets.currency,
 				amountUsd: budgets.amountUsd,
+				currency: budgets.currency,
 			})
 			.from(budgets)
 			.where(eq(budgets.id, id));
@@ -472,34 +445,31 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await db.insert(exchangeRates).values([
 			{
-				quote: "EUR",
-				rateType: "official",
 				date: "2026-02-01",
-				rate: 0.9,
-				source: "frankfurter",
 				fetchedAt: 0,
+				quote: "EUR",
+				rate: 0.9,
+				rateType: "official",
+				source: "frankfurter",
 			},
 			{
-				quote: "EUR",
-				rateType: "official",
 				date: "2026-06-01",
-				rate: 0.5,
-				source: "frankfurter",
 				fetchedAt: 0,
+				quote: "EUR",
+				rate: 0.5,
+				rateType: "official",
+				source: "frankfurter",
 			},
 		]);
 
 		const id = await budgetsRepo.createBudget(db, {
 			amount: 400,
-			type: BUDGET_TYPE.month,
 			categoryId: "cat",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 
-		const [row] = await db
-			.select({ amountUsd: budgets.amountUsd })
-			.from(budgets)
-			.where(eq(budgets.id, id));
+		const [row] = await db.select({ amountUsd: budgets.amountUsd }).from(budgets).where(eq(budgets.id, id));
 		// 400 EUR / 0.9, February's rate — not 0.5, the rate on the day of the write.
 		expect(Math.round((row.amountUsd ?? 0) * 100) / 100).toBe(444.44);
 	});
@@ -507,16 +477,13 @@ describe("budgetsRepo stamps the currency it was set in", () => {
 	it("stores the amount unsigned", async () => {
 		const db = makeDb();
 		const id = await budgetsRepo.createBudget(db, {
-			name: null,
 			amount: -250,
-			type: 3,
 			categoryId: "cat",
+			name: null,
 			startDate: null,
+			type: 3,
 		});
-		const [row] = await db
-			.select({ amount: budgets.amount })
-			.from(budgets)
-			.where(eq(budgets.id, id));
+		const [row] = await db.select({ amount: budgets.amount }).from(budgets).where(eq(budgets.id, id));
 		expect(row.amount).toBe(250);
 	});
 });
@@ -530,36 +497,38 @@ describe("a budget stepped back to a closed window", () => {
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await db.insert(exchangeRates).values([
 			{
-				quote: "EUR",
-				rateType: "official",
 				date: "2026-03-01",
-				rate: 0.9,
-				source: "frankfurter",
 				fetchedAt: 0,
+				quote: "EUR",
+				rate: 0.9,
+				rateType: "official",
+				source: "frankfurter",
 			},
 			{
-				quote: "EUR",
-				rateType: "official",
 				date: "2026-07-01",
-				rate: 0.5,
-				source: "frankfurter",
 				fetchedAt: 0,
+				quote: "EUR",
+				rate: 0.5,
+				rateType: "official",
+				source: "frankfurter",
 			},
 		]);
 		const rates = buildRateTable([
-			{ quote: "EUR", date: "2026-03-01", rate: 0.9 },
-			{ quote: "EUR", date: "2026-07-01", rate: 0.5 },
+			{ date: "2026-03-01", quote: "EUR", rate: 0.9 },
+			{ date: "2026-07-01", quote: "EUR", rate: 0.5 },
 		]);
 
 		const current = new Date(2026, 6, 1);
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 450,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			startDate: current,
+			type: BUDGET_TYPE.month,
 		});
 		const row = getBudgetById(db, id);
-		if (!row) throw new Error("expected the budget to exist");
+		if (!row) {
+			throw new Error("expected the budget to exist");
+		}
 
 		const july = shiftWindow(current, BUDGET_TYPE.month, 0);
 		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
@@ -573,26 +542,26 @@ describe("a budget stepped back to a closed window", () => {
 		const db = makeDb();
 		await db.insert(appMeta).values({ key: "currency", value: "EUR" });
 		await db.insert(exchangeRates).values({
-			quote: "EUR",
-			rateType: "official",
 			date: "2026-07-01",
-			rate: 0.5,
-			source: "frankfurter",
 			fetchedAt: 0,
+			quote: "EUR",
+			rate: 0.5,
+			rateType: "official",
+			source: "frankfurter",
 		});
-		const rates = buildRateTable([
-			{ quote: "EUR", date: "2026-07-01", rate: 0.5 },
-		]);
+		const rates = buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.5 }]);
 
 		const current = new Date(2026, 6, 1);
 		const id = await budgetsRepo.createBudget(db, {
-			categoryId: "cat-1",
 			amount: 450,
-			type: BUDGET_TYPE.month,
+			categoryId: "cat-1",
 			startDate: current,
+			type: BUDGET_TYPE.month,
 		});
 		const row = getBudgetById(db, id);
-		if (!row) throw new Error("expected the budget to exist");
+		if (!row) {
+			throw new Error("expected the budget to exist");
+		}
 
 		const march = shiftWindow(current, BUDGET_TYPE.month, -4);
 		// 450 / 0.5: the write-time freeze, since March predates every EUR rate.
@@ -608,8 +577,8 @@ describe("budgetsRepo.deleteBudget", () => {
 		// Before the gate opens, so the category's own insert queues nothing.
 		await db.insert(categories).values({
 			id: "cat-1",
-			name: "Coffee",
 			income: false,
+			name: "Coffee",
 			updatedAt: BACKDATE,
 		});
 		await setSyncEnabled(db, true);
@@ -617,11 +586,11 @@ describe("budgetsRepo.deleteBudget", () => {
 
 	function add(categoryId: string): Promise<string> {
 		return budgetsRepo.createBudget(db, {
-			categoryId,
 			amount: 250,
-			type: BUDGET_TYPE.month,
+			categoryId,
 			name: "Coffee cap",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 	}
 
@@ -643,10 +612,7 @@ describe("budgetsRepo.deleteBudget", () => {
 		await budgetsRepo.deleteBudget(db, id);
 
 		expect(getBudgetById(db, id)).toBe(null);
-		const live = await db
-			.select()
-			.from(budgets)
-			.where(isNull(budgets.deletedAt));
+		const live = await db.select().from(budgets).where(isNull(budgets.deletedAt));
 		expect(live.length).toBe(0);
 
 		const replicable = await db.select().from(budgets);
@@ -678,10 +644,7 @@ describe("budgetsRepo.deleteBudget", () => {
 
 		const second = await add("cat-1");
 
-		const live = await db
-			.select()
-			.from(budgets)
-			.where(isNull(budgets.deletedAt));
+		const live = await db.select().from(budgets).where(isNull(budgets.deletedAt));
 		expect(live.length).toBe(1);
 		expect(live[0]?.id).toBe(second);
 		expect(live[0]?.categoryId).toBe("cat-1");
@@ -713,9 +676,9 @@ describe("budgetsRepo.deleteMainBudget", () => {
 	function add(): Promise<string> {
 		return budgetsRepo.createMainBudget(db, {
 			amount: 2000,
-			type: BUDGET_TYPE.month,
 			name: "Everything",
 			startDate: BACKDATE,
+			type: BUDGET_TYPE.month,
 		});
 	}
 
@@ -733,10 +696,7 @@ describe("budgetsRepo.deleteMainBudget", () => {
 		expect(replicable[0]?.amount).toBe(0);
 		expect(replicable[0]?.startDate).toBe(null);
 
-		const live = await db
-			.select()
-			.from(mainBudget)
-			.where(isNull(mainBudget.deletedAt));
+		const live = await db.select().from(mainBudget).where(isNull(mainBudget.deletedAt));
 		expect(live.length).toBe(0);
 	});
 
@@ -747,10 +707,7 @@ describe("budgetsRepo.deleteMainBudget", () => {
 		const second = await add();
 
 		expect(second).not.toBe(first);
-		const live = await db
-			.select()
-			.from(mainBudget)
-			.where(isNull(mainBudget.deletedAt));
+		const live = await db.select().from(mainBudget).where(isNull(mainBudget.deletedAt));
 		expect(live.length).toBe(1);
 		expect(live[0]?.id).toBe(second);
 		expect(live[0]?.amount).toBe(2000);
@@ -765,22 +722,14 @@ describe("the budget tombstone shapes", () => {
 	const ENVELOPE = new Set(["id", "updatedAt", "deletedAt"]);
 
 	it("names every column of a budget that is not the envelope", () => {
-		const declared = Object.keys(getTableColumns(budgets)).filter(
-			(name) => !ENVELOPE.has(name),
-		);
+		const declared = Object.keys(getTableColumns(budgets)).filter((name) => !ENVELOPE.has(name));
 
-		expect(Object.keys(TOMBSTONED_BUDGET).sort()).toStrictEqual(
-			declared.sort(),
-		);
+		expect(Object.keys(TOMBSTONED_BUDGET).sort()).toStrictEqual(declared.sort());
 	});
 
 	it("names every column of the overall budget that is not the envelope", () => {
-		const declared = Object.keys(getTableColumns(mainBudget)).filter(
-			(name) => !ENVELOPE.has(name),
-		);
+		const declared = Object.keys(getTableColumns(mainBudget)).filter((name) => !ENVELOPE.has(name));
 
-		expect(Object.keys(TOMBSTONED_MAIN_BUDGET).sort()).toStrictEqual(
-			declared.sort(),
-		);
+		expect(Object.keys(TOMBSTONED_MAIN_BUDGET).sort()).toStrictEqual(declared.sort());
 	});
 });

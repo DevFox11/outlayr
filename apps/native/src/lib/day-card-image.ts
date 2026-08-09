@@ -1,16 +1,5 @@
-import {
-	FontWeight,
-	ImageFormat,
-	type SkCanvas,
-	Skia,
-	type SkTypeface,
-} from "@shopify/react-native-skia";
-import {
-	type CardTone,
-	type CardWeight,
-	type DayCardInput,
-	layoutDayCard,
-} from "@/domain/day-card";
+import { FontWeight, ImageFormat, type SkCanvas, Skia, type SkTypeface } from "@shopify/react-native-skia";
+import { type CardTone, type CardWeight, type DayCardInput, layoutDayCard } from "@/domain/day-card";
 import { translateNow } from "@/i18n/runtime";
 import { shareBytes, TransferError } from "./data-transfer";
 
@@ -26,9 +15,9 @@ const INK = "#17150F";
 const MUTED = "#767676";
 
 const WEIGHTS: Record<CardWeight, FontWeight> = {
+	medium: FontWeight.Medium,
 	mono: FontWeight.Medium,
 	regular: FontWeight.Normal,
-	medium: FontWeight.Medium,
 	semibold: FontWeight.SemiBold,
 };
 
@@ -79,16 +68,13 @@ function draw(canvas: SkCanvas, input: DayCardInput): void {
 	const rulePaint = paintFor("muted");
 	rulePaint.setAlphaf(0.35);
 	for (const rule of layout.rules) {
-		canvas.drawRect(
-			Skia.XYWHRect(rule.x, rule.y, rule.width, rule.height),
-			rulePaint,
-		);
+		canvas.drawRect(Skia.XYWHRect(rule.x, rule.y, rule.width, rule.height), rulePaint);
 	}
 
 	for (const text of layout.texts) {
 		const font = Skia.Font(typefaceFor(text.weight), text.size);
 		const paint = paintFor(text.tone);
-		const width = font.measureText(text.text).width;
+		const { width } = font.measureText(text.text);
 		const x = text.align === "right" ? text.x - width : text.x;
 		canvas.drawText(text.text, x, text.y, paint, font);
 	}
@@ -96,10 +82,7 @@ function draw(canvas: SkCanvas, input: DayCardInput): void {
 
 export function renderDayCard(input: DayCardInput): Uint8Array | null {
 	const layout = layoutDayCard(input);
-	const surface = Skia.Surface.MakeOffscreen(
-		Math.ceil(layout.width * SCALE),
-		Math.ceil(layout.height * SCALE),
-	);
+	const surface = Skia.Surface.MakeOffscreen(Math.ceil(layout.width * SCALE), Math.ceil(layout.height * SCALE));
 	if (surface == null) {
 		return null;
 	}
@@ -119,18 +102,10 @@ export function renderDayCard(input: DayCardInput): Uint8Array | null {
  * a feature the user may only want once. "Save Image" is one tap inside the
  * sheet, and the same sheet also covers Messages, Mail and Files.
  */
-export async function shareDayCard(
-	input: DayCardInput,
-	fileName: string,
-): Promise<void> {
+export async function shareDayCard(input: DayCardInput, fileName: string): Promise<void> {
 	const bytes = renderDayCard(input);
 	if (bytes == null) {
 		throw new TransferError("alerts.dayCard.undrawable");
 	}
-	await shareBytes(
-		bytes,
-		fileName,
-		"image/png",
-		translateNow("alerts.dayCard.shareTitle"),
-	);
+	await shareBytes(bytes, fileName, "image/png", translateNow("alerts.dayCard.shareTitle"));
 }

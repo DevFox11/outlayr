@@ -3,11 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
-import {
-	readFavourites,
-	toggleFavouriteCurrency,
-	writeFavourites,
-} from "./favourite-currencies-core";
+import { readFavourites, toggleFavouriteCurrency, writeFavourites } from "./favourite-currencies-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -58,11 +54,7 @@ describe("favourite currencies storage", () => {
 
 	it("appends rather than reordering when adding to a held list", async () => {
 		await writeFavourites(db, ["EUR", "GBP"]);
-		expect(await toggleFavouriteCurrency(db, "JPY")).toStrictEqual([
-			"EUR",
-			"GBP",
-			"JPY",
-		]);
+		expect(await toggleFavouriteCurrency(db, "JPY")).toStrictEqual(["EUR", "GBP", "JPY"]);
 	});
 
 	it("refuses a ninth and answers the eight unchanged", async () => {
@@ -74,19 +66,14 @@ describe("favourite currencies storage", () => {
 
 	it("still lets a removal through at the limit", async () => {
 		await writeFavourites(db, EIGHT);
-		expect(await toggleFavouriteCurrency(db, "USD")).toStrictEqual(
-			EIGHT.slice(1),
-		);
+		expect(await toggleFavouriteCurrency(db, "USD")).toStrictEqual(EIGHT.slice(1));
 	});
 
 	it("keeps both stars when two taps land before the first write", async () => {
 		// Dispatched the way onPress does it — neither awaited — so both would read
 		// the same empty list if the toggles did not serialise, and the second write
 		// would erase the first.
-		const [first, second] = await Promise.all([
-			toggleFavouriteCurrency(db, "EUR"),
-			toggleFavouriteCurrency(db, "JPY"),
-		]);
+		const [first, second] = await Promise.all([toggleFavouriteCurrency(db, "EUR"), toggleFavouriteCurrency(db, "JPY")]);
 		expect(first).toStrictEqual(["EUR"]);
 		expect(second).toStrictEqual(["EUR", "JPY"]);
 		expect(await readFavourites(db)).toStrictEqual(["EUR", "JPY"]);
@@ -105,17 +92,9 @@ describe("favourite currencies storage", () => {
 	it("hides a retired code on read and leaves it stored until a toggle", async () => {
 		await setMeta(db, META_KEYS.favouriteCurrencies, "EUR,XXX,GBP");
 		expect(await readFavourites(db)).toStrictEqual(["EUR", "GBP"]);
-		expect(await getMeta(db, META_KEYS.favouriteCurrencies)).toBe(
-			"EUR,XXX,GBP",
-		);
+		expect(await getMeta(db, META_KEYS.favouriteCurrencies)).toBe("EUR,XXX,GBP");
 
-		expect(await toggleFavouriteCurrency(db, "JPY")).toStrictEqual([
-			"EUR",
-			"GBP",
-			"JPY",
-		]);
-		expect(await getMeta(db, META_KEYS.favouriteCurrencies)).toBe(
-			"EUR,GBP,JPY",
-		);
+		expect(await toggleFavouriteCurrency(db, "JPY")).toStrictEqual(["EUR", "GBP", "JPY"]);
+		expect(await getMeta(db, META_KEYS.favouriteCurrencies)).toBe("EUR,GBP,JPY");
 	});
 });

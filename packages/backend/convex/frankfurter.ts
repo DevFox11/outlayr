@@ -1,4 +1,4 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
@@ -54,9 +54,7 @@ function isValidRecord(value: unknown): value is FrankfurterRecord {
 	if (typeof value !== "object" || value === null) {
 		return false;
 	}
-	if (
-		!("base" in value && "quote" in value && "rate" in value && "date" in value)
-	) {
+	if (!("base" in value && "quote" in value && "rate" in value && "date" in value)) {
 		return false;
 	}
 	const { base, quote, rate, date } = value;
@@ -74,7 +72,6 @@ function isValidRecord(value: unknown): value is FrankfurterRecord {
 
 export const fetchRates = internalAction({
 	args: {},
-	returns: v.null(),
 	handler: async (ctx) => {
 		let payload: unknown;
 		try {
@@ -94,16 +91,13 @@ export const fetchRates = internalAction({
 			return null;
 		}
 
-		const ratesByDate = new Map<
-			string,
-			{ quote: string; rateType: "official"; rate: number }[]
-		>();
+		const ratesByDate = new Map<string, { quote: string; rateType: "official"; rate: number }[]>();
 		const records = payload.filter(isValidRecord);
 		for (const record of records) {
 			const entry = {
 				quote: record.quote,
-				rateType: "official" as const,
 				rate: record.rate,
+				rateType: "official" as const,
 			};
 			const group = ratesByDate.get(record.date);
 			if (group) {
@@ -124,12 +118,16 @@ export const fetchRates = internalAction({
 		// Only days past the refresh margin need the test — the rest are written
 		// either way, so asking what they hold would read the window for nothing.
 		const aged = [...ratesByDate.keys()].filter((date) => date < refreshFrom);
-		const heldByDate = new Map<string, Set<string>>();
+		const coverageBatches: string[][] = [];
 		for (let start = 0; start < aged.length; start += COVERAGE_BATCH_DATES) {
-			const batch = await ctx.runQuery(
-				internal.exchangeRates.officialQuotesByDate,
-				{ dates: aged.slice(start, start + COVERAGE_BATCH_DATES) },
-			);
+			coverageBatches.push(aged.slice(start, start + COVERAGE_BATCH_DATES));
+		}
+		const coverage = await Promise.all(
+			coverageBatches.map((dates) => ctx.runQuery(internal.exchangeRates.officialQuotesByDate, { dates }))
+		);
+
+		const heldByDate = new Map<string, Set<string>>();
+		for (const batch of coverage) {
 			for (const entry of batch) {
 				heldByDate.set(entry.date, new Set(entry.quotes));
 			}
@@ -144,17 +142,19 @@ export const fetchRates = internalAction({
 			if (held && rates.every((entry) => held.has(entry.quote))) {
 				continue;
 			}
+			// biome-ignore lint/performance/noAwaitInLoops: every date's upsert reads and writes the same exchangeRates table (exchangeRates.ts:150), so parallel mutations would contend on one write set and be retried under OCC
 			await ctx.runMutation(internal.exchangeRates.upsertRates, {
-				source: "frankfurter",
 				date,
 				fetchedAt,
 				rates,
+				source: "frankfurter",
 			});
 			written += 1;
 		}
 		console.log(
-			`Frankfurter: ${written} of ${ratesByDate.size} dates written, ${ratesByDate.size - written} already complete`,
+			`Frankfurter: ${written} of ${ratesByDate.size} dates written, ${ratesByDate.size - written} already complete`
 		);
 		return null;
 	},
+	returns: v.null(),
 });

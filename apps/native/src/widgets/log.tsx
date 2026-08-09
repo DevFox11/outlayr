@@ -1,13 +1,4 @@
-import {
-	Circle,
-	HStack,
-	Image,
-	Rectangle,
-	Spacer,
-	Text,
-	VStack,
-	ZStack,
-} from "@expo/ui/swift-ui";
+import { Circle, HStack, Image, Rectangle, Spacer, Text, VStack, ZStack } from "@expo/ui/swift-ui";
 import {
 	containerBackground,
 	font,
@@ -48,42 +39,22 @@ const LogWidget = (props: LogWidgetProps, environment: WidgetEnvironment) => {
 	);
 
 	if (family === "accessoryInline") {
-		return (
-			<Text modifiers={[widgetURL(props.url)]}>
-				{`Log an expense · ${props.todaySpent} today`}
-			</Text>
-		);
+		return <Text modifiers={[widgetURL(props.url)]}>{`Log an expense · ${props.todaySpent} today`}</Text>;
 	}
 
 	// Accessory families render vibrant — the system flattens everything to one
 	// tint, so the plus carries the meaning on its own rather than relying on the
 	// filled ink disc the home screen version uses.
 	if (family === "accessoryCircular") {
-		return (
-			<Image
-				modifiers={[
-					font({ size: 22, weight: "semibold" }),
-					widgetURL(props.url),
-				]}
-				systemName="plus"
-			/>
-		);
+		return <Image modifiers={[font({ size: 22, weight: "semibold" }), widgetURL(props.url)]} systemName="plus" />;
 	}
 
 	if (family === "accessoryRectangular") {
 		return (
-			<VStack
-				alignment="leading"
-				modifiers={[widgetURL(props.url)]}
-				spacing={2}
-			>
+			<VStack alignment="leading" modifiers={[widgetURL(props.url)]} spacing={2}>
 				{eyebrow(`${props.todayLabel} · TAP TO LOG`)}
 				<Text
-					modifiers={[
-						font({ design: "rounded", size: 20, weight: "semibold" }),
-						lineLimit(1),
-						minimumScaleFactor(0.5),
-					]}
+					modifiers={[font({ design: "rounded", size: 20, weight: "semibold" }), lineLimit(1), minimumScaleFactor(0.5)]}
 				>
 					{props.todaySpent}
 				</Text>
@@ -93,13 +64,10 @@ const LogWidget = (props: LogWidgetProps, environment: WidgetEnvironment) => {
 
 	// Matches the app's own `FloatingAddButton`.
 	const plus = (size: number) => (
-		<ZStack modifiers={[frame({ width: size, height: size })]}>
+		<ZStack modifiers={[frame({ height: size, width: size })]}>
 			<Circle modifiers={[foregroundStyle(palette.ink)]} />
 			<Image
-				modifiers={[
-					font({ size: size * 0.5, weight: "semibold" }),
-					foregroundStyle(palette.background),
-				]}
+				modifiers={[font({ size: size * 0.5, weight: "semibold" }), foregroundStyle(palette.background)]}
 				systemName="plus"
 			/>
 		</ZStack>
@@ -108,10 +76,7 @@ const LogWidget = (props: LogWidgetProps, environment: WidgetEnvironment) => {
 	return (
 		<VStack
 			alignment="leading"
-			modifiers={[
-				widgetURL(props.url),
-				containerBackground(palette.background, "widget"),
-			]}
+			modifiers={[widgetURL(props.url), containerBackground(palette.background, "widget")]}
 			spacing={0}
 		>
 			{eyebrow(props.todayLabel)}
@@ -130,9 +95,7 @@ const LogWidget = (props: LogWidgetProps, environment: WidgetEnvironment) => {
 				{eyebrow("OUT")}
 			</HStack>
 			<Spacer />
-			<Rectangle
-				modifiers={[frame({ height: 1 }), foregroundStyle(palette.border)]}
-			/>
+			<Rectangle modifiers={[frame({ height: 1 }), foregroundStyle(palette.border)]} />
 			<Spacer modifiers={[frame({ height: 10 })]} />
 			<HStack spacing={8}>
 				{plus(28)}

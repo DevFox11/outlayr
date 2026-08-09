@@ -1,9 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react-native";
 import type { ImportEntry } from "@/data/transfer-core";
-import {
-	clearEnrichmentCache,
-	setCachedEnrichment,
-} from "@/domain/enrichment-cache";
+import { clearEnrichmentCache, setCachedEnrichment } from "@/domain/enrichment-cache";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { useReviewEnrichment } from "./use-review-enrichment";
@@ -11,18 +8,14 @@ import { useReviewEnrichment } from "./use-review-enrichment";
 const mockCacheUris = new Map<string, string>();
 
 jest.mock("@/lib/logo-cache", () => ({
-	logoCacheKey: (name: string, domain: string | null) =>
-		`${name}|${domain ?? ""}`.toLowerCase(),
 	cachedLogoUri: (key: string) => mockCacheUris.get(key) ?? null,
+	logoCacheKey: (name: string, domain: string | null) => `${name}|${domain ?? ""}`.toLowerCase(),
 }));
 
 jest.mock("@/lib/logo-fetch", () => ({
 	fetchMerchantImage: jest.fn(async ({ name, domain }) => {
-		mockCacheUris.set(
-			`${name}|${domain}`.toLowerCase(),
-			`file:///cache/${domain}`,
-		);
-		return { kind: "logo", bytes: new Uint8Array([1]) };
+		mockCacheUris.set(`${name}|${domain}`.toLowerCase(), `file:///cache/${domain}`);
+		return { bytes: new Uint8Array([1]), kind: "logo" };
 	}),
 }));
 
@@ -35,12 +28,12 @@ beforeEach(() => {
 
 function entry(note: string): ImportEntry {
 	return {
-		note,
-		categoryId: "cat-1",
-		income: false,
 		amount: 10,
+		categoryId: "cat-1",
 		currency: null,
 		date: new Date(2026, 6, 28),
+		income: false,
+		note,
 	};
 }
 
@@ -60,11 +53,7 @@ describe("useReviewEnrichment", () => {
 	});
 
 	it("fetches the logo of an uncached merchant with a domain, exactly once", async () => {
-		const entries = [
-			entry("SPOTIFY P2E4B8"),
-			entry("Spotify"),
-			entry("Corner Bakery"),
-		];
+		const entries = [entry("SPOTIFY P2E4B8"), entry("Spotify"), entry("Corner Bakery")];
 		const { result } = await renderHook(() => useReviewEnrichment(entries));
 
 		await waitFor(() => {
@@ -77,17 +66,15 @@ describe("useReviewEnrichment", () => {
 	it("fetches the logo for a noisy note whose enrichment entry is keyed by the clean name", async () => {
 		setCachedEnrichment(merchantKey("Blue Bottle Coffee"), {
 			categoryName: "Food & Drink",
+			domain: "bluebottlecoffee.com",
 			isNewCategory: false,
 			tags: [],
-			domain: "bluebottlecoffee.com",
 		});
 		const entries = [entry("BLUE BOTTLE COFFEE #08761")];
 		const { result } = await renderHook(() => useReviewEnrichment(entries));
 
 		await waitFor(() => {
-			expect(result.current.get(0)?.logoUri).toBe(
-				"file:///cache/bluebottlecoffee.com",
-			);
+			expect(result.current.get(0)?.logoUri).toBe("file:///cache/bluebottlecoffee.com");
 		});
 	});
 
@@ -99,9 +86,7 @@ describe("useReviewEnrichment", () => {
 
 	it("keeps a stable map identity for the same entries", async () => {
 		const entries = [entry("NETFLIX")];
-		const { result, rerender } = await renderHook(() =>
-			useReviewEnrichment(entries),
-		);
+		const { result, rerender } = await renderHook(() => useReviewEnrichment(entries));
 		const first = result.current;
 		await rerender(undefined);
 		expect(result.current).toBe(first);

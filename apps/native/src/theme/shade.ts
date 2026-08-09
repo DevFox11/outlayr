@@ -20,8 +20,7 @@ export function curtainShade(hex: string, isDark: boolean): string {
 	if (!parsed) {
 		return hex;
 	}
-	const mix = (channel: number) =>
-		isDark ? channel * 0.55 : channel * 0.5 + 255 * 0.5;
+	const mix = (channel: number) => (isDark ? channel * 0.55 : channel * 0.5 + 255 * 0.5);
 	const to = (v: number) =>
 		Math.round(Math.max(0, Math.min(255, v)))
 			.toString(16)
@@ -61,12 +60,11 @@ export function glyphShade(hex: string, isDark: boolean): string {
 
 	const ink: Rgb = [0.09, 0.09, 0.1];
 	const paper: Rgb = [0.99, 0.99, 0.99];
-	const anchor =
-		contrastRatio(ink, wash) >= contrastRatio(paper, wash) ? ink : paper;
+	const anchor = contrastRatio(ink, wash) >= contrastRatio(paper, wash) ? ink : paper;
 
 	let lo = 0;
 	let hi = 1;
-	for (let index = 0; index < 10; index++) {
+	for (let index = 0; index < 10; index += 1) {
 		const mid = (lo + hi) / 2;
 		if (contrastRatio(mixRgb(tint, anchor, mid), wash) >= TARGET_CONTRAST) {
 			hi = mid;
@@ -75,25 +73,16 @@ export function glyphShade(hex: string, isDark: boolean): string {
 		}
 	}
 	const shaded = mixRgb(tint, anchor, hi);
-	return rgbToHex(
-		contrastRatio(shaded, wash) >= TARGET_CONTRAST ? shaded : anchor,
-	);
+	return rgbToHex(contrastRatio(shaded, wash) >= TARGET_CONTRAST ? shaded : anchor);
 }
 
 function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
-	return [
-		a[0] * (1 - t) + b[0] * t,
-		a[1] * (1 - t) + b[1] * t,
-		a[2] * (1 - t) + b[2] * t,
-	];
+	return [a[0] * (1 - t) + b[0] * t, a[1] * (1 - t) + b[1] * t, a[2] * (1 - t) + b[2] * t];
 }
 
 function relativeLuminance(c: Rgb): number {
-	const channel = (v: number) =>
-		v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-	return (
-		0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2])
-	);
+	const channel = (v: number) => (v <= 0.039_28 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+	return 0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2]);
 }
 
 function contrastRatio(a: Rgb, b: Rgb): number {
@@ -126,8 +115,11 @@ function parseHex(hex: string): { r: number; g: number; b: number } | null {
 		return null;
 	}
 	return {
-		r: (int >> 16) & 255,
-		g: (int >> 8) & 255,
+		// biome-ignore lint/suspicious/noBitwiseOperators: `int` is the hex parsed as one packed 24-bit word; the channels are its bytes
 		b: int & 255,
+		// biome-ignore lint/suspicious/noBitwiseOperators: `int` is the hex parsed as one packed 24-bit word; the channels are its bytes
+		g: (int >> 8) & 255,
+		// biome-ignore lint/suspicious/noBitwiseOperators: `int` is the hex parsed as one packed 24-bit word; the channels are its bytes
+		r: (int >> 16) & 255,
 	};
 }

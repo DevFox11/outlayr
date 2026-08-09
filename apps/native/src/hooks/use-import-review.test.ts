@@ -5,6 +5,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 import type { ImportPlan } from "@/data/transfer-core";
+// biome-ignore lint/performance/noNamespaceImport: jest.spyOn installs onto the module namespace object, so applyImport cannot be spied through a named import
 import * as transferCore from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
@@ -23,7 +24,7 @@ jest.mock("expo-sqlite", () => ({
 jest.mock("expo-router", () => ({
 	useNavigation: (parent?: string) => mockUseNavigation(parent),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));
@@ -34,16 +35,14 @@ jest.mock("@/contexts/local-data-context", () => ({
 	useLocalData: () => ({ db: dbHolder.current }),
 }));
 
-const MIGRATIONS = join(__dirname, "../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -57,19 +56,19 @@ const NOW = new Date(2026, 6, 29, 12);
 async function seedCategories(db: Database) {
 	await db.insert(categories).values([
 		{
-			id: "cat-food",
-			name: "Groceries",
-			income: false,
 			color: "#3D8A4E",
 			icon: "basket",
+			id: "cat-food",
+			income: false,
+			name: "Groceries",
 			updatedAt: NOW,
 		},
 		{
-			id: "cat-pay",
-			name: "Paycheck",
-			income: true,
 			color: "#2E5AAC",
 			emoji: "💰",
+			id: "cat-pay",
+			income: true,
+			name: "Paycheck",
 			updatedAt: NOW,
 		},
 	]);
@@ -80,11 +79,11 @@ const ROWS = [
 	["Pay", "Salary", "2026-07-27", "2400"],
 ];
 const MAPPING = {
-	category: 0,
-	note: 1,
-	date: 2,
 	amount: 3,
+	category: 0,
 	currency: null,
+	date: 2,
+	note: 1,
 	type: null,
 };
 const LINKS = new Map([
@@ -93,21 +92,21 @@ const LINKS = new Map([
 ]);
 
 function withReview() {
-	importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	importDraftStore.dispatch({ sourceId: "csv", type: "sourceSelected" });
 	importDraftStore.dispatch({
-		type: "fileParsed",
-		file: { name: "bank.csv", chars: 80 },
-		parsed: { header: null, rows: ROWS, width: 4 },
 		draft: MAPPING,
-		resolved: { mapping: MAPPING, labelSource: "categoryColumn" },
+		file: { chars: 80, name: "bank.csv" },
 		gaps: [],
+		parsed: { header: null, rows: ROWS, width: 4 },
+		resolved: { labelSource: "categoryColumn", mapping: MAPPING },
+		type: "fileParsed",
 	});
 	importDraftStore.dispatch({
-		type: "resolutionSettled",
+		fromModel: new Set(),
+		links: LINKS,
 		outcome: "applied",
 		reason: null,
-		links: LINKS,
-		fromModel: new Set(),
+		type: "resolutionSettled",
 	});
 	importDraftStore.setStep("review");
 }
@@ -121,51 +120,51 @@ beforeEach(() => {
 
 describe("buildReviewRows", () => {
 	const plan: ImportPlan = {
+		earliest: new Date(2026, 6, 27),
 		entries: [
 			{
-				note: "Bakery",
-				categoryId: "cat-food",
-				income: false,
 				amount: 12.5,
+				categoryId: "cat-food",
 				currency: null,
 				date: new Date(2026, 6, 28),
+				income: false,
+				note: "Bakery",
 			},
 			{
-				note: "Salary",
-				categoryId: "cat-pay",
-				income: true,
 				amount: 2400,
+				categoryId: "cat-pay",
 				currency: null,
 				date: new Date(2026, 6, 27),
+				income: true,
+				note: "Salary",
 			},
 		],
-		skipped: [{ row: 3, reason: "amount" }],
-		earliest: new Date(2026, 6, 27),
 		latest: new Date(2026, 6, 28),
+		skipped: [{ reason: "amount", row: 3 }],
 	};
 
 	it("maps every entry in order, flagging duplicates from the given set", () => {
 		const rows = buildReviewRows(plan, new Set([1]));
 		expect(rows[0]).toMatchObject({
-			kind: "entry",
-			index: 0,
 			duplicate: false,
+			index: 0,
+			kind: "entry",
 		});
-		expect(rows[1]).toMatchObject({ kind: "entry", index: 1, duplicate: true });
+		expect(rows[1]).toMatchObject({ duplicate: true, index: 1, kind: "entry" });
 	});
 
 	it("appends a trailing header and skipped rows when any exist", () => {
 		const rows = buildReviewRows(plan, new Set());
 		expect(rows[2]).toStrictEqual({
-			kind: "header",
-			key: "skipped-header",
 			count: 1,
+			key: "skipped-header",
+			kind: "header",
 		});
 		expect(rows[3]).toStrictEqual({
-			kind: "skipped",
 			key: "skipped-3",
-			row: 3,
+			kind: "skipped",
 			reason: "amount",
+			row: 3,
 		});
 	});
 
@@ -192,14 +191,14 @@ describe("useImportReview", () => {
 		const db = dbHolder.current as Database;
 		await seedCategories(db);
 		await db.insert(transactions).values({
-			id: "t-existing",
 			amount: 12.5,
-			income: false,
-			note: "Bakery",
 			categoryId: "cat-food",
 			date: new Date(2026, 6, 28),
 			day: new Date(2026, 6, 28),
+			id: "t-existing",
+			income: false,
 			month: new Date(2026, 6, 1),
+			note: "Bakery",
 			updatedAt: NOW,
 		});
 		withReview();
@@ -215,31 +214,27 @@ describe("useImportReview", () => {
 		const db = dbHolder.current as Database;
 		await seedCategories(db);
 		await db.insert(transactions).values({
-			id: "t-existing",
 			amount: 12.5,
-			income: false,
-			note: "Bakery",
 			categoryId: "cat-food",
 			date: new Date(2026, 6, 28),
 			day: new Date(2026, 6, 28),
+			id: "t-existing",
+			income: false,
 			month: new Date(2026, 6, 1),
+			note: "Bakery",
 			updatedAt: NOW,
 		});
 		withReview();
 
 		const first = await renderHook(() => useImportReview());
-		await waitFor(() =>
-			expect(first.result.current.excluded.has(0)).toBe(true),
-		);
+		await waitFor(() => expect(first.result.current.excluded.has(0)).toBe(true));
 		await act(async () => {
 			first.result.current.onToggle(0);
 		});
 		expect(importDraftStore.getSnapshot().flow.excluded.has(0)).toBe(false);
 
 		const second = await renderHook(() => useImportReview());
-		await waitFor(() =>
-			expect(second.result.current.plan.entries.length).toBe(2),
-		);
+		await waitFor(() => expect(second.result.current.plan.entries.length).toBe(2));
 		expect(second.result.current.excluded.has(0)).toBe(false);
 	});
 
@@ -261,13 +256,13 @@ describe("useImportReview", () => {
 
 		expect(result.current.categoryTile.get("cat-food")).toStrictEqual({
 			color: "#3D8A4E",
-			icon: "basket",
 			emoji: null,
+			icon: "basket",
 		});
 		expect(result.current.categoryTile.get("cat-pay")).toStrictEqual({
 			color: "#2E5AAC",
-			icon: null,
 			emoji: "💰",
+			icon: null,
 		});
 	});
 
@@ -312,10 +307,10 @@ describe("useImportReview", () => {
 		expect((await db.select().from(transactions)).length).toBe(2);
 		const snapshot = importDraftStore.getSnapshot();
 		expect(snapshot.flow.commit).toStrictEqual({
-			phase: "success",
 			count: 2,
-			outAmount: 12.5,
 			duplicatesSkipped: 0,
+			outAmount: 12.5,
+			phase: "success",
 		});
 		expect(snapshot.flow).not.toStrictEqual(INITIAL_IMPORT_FLOW_STATE);
 		expect(snapshot.ui.step).toBe("done");
@@ -326,9 +321,7 @@ describe("useImportReview", () => {
 	it("onCommit failure keeps the sheet's selections intact and reports the failure, without navigating", async () => {
 		await seedCategories(dbHolder.current as Database);
 		withReview();
-		const applySpy = jest
-			.spyOn(transferCore, "applyImport")
-			.mockRejectedValueOnce(new Error("disk full"));
+		const applySpy = jest.spyOn(transferCore, "applyImport").mockRejectedValueOnce(new Error("disk full"));
 
 		const { result } = await renderHook(() => useImportReview());
 		await waitFor(() => expect(result.current.plan.entries.length).toBe(2));
@@ -342,9 +335,9 @@ describe("useImportReview", () => {
 
 		await waitFor(() =>
 			expect(importDraftStore.getSnapshot().flow.commit).toStrictEqual({
-				phase: "failed",
 				detail: "disk full",
-			}),
+				phase: "failed",
+			})
 		);
 		expect(importDraftStore.getSnapshot().flow.excluded).toBe(excludedBefore);
 		expect(mockGoBack).not.toHaveBeenCalled();

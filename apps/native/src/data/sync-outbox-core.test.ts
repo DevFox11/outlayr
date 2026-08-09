@@ -16,7 +16,7 @@ import {
 	setSyncEnabled,
 } from "./sync-outbox-core";
 
-const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -36,11 +36,11 @@ function makeDb(): Database {
 
 async function addTransaction(db: Database, id: string): Promise<void> {
 	await db.insert(transactions).values({
-		id,
 		amount: 1,
-		income: false,
 		date: new Date(1),
 		day: new Date(1),
+		id,
+		income: false,
 		month: new Date(1),
 		updatedAt: new Date(1),
 	});
@@ -149,22 +149,22 @@ describe("enqueueAllForSync", () => {
 	it("queues rows written before the gate opened, tombstones included", async () => {
 		await addTransaction(db, "t1");
 		await db.insert(transactions).values({
-			id: "gone",
 			amount: 0,
-			income: false,
 			date: new Date(1),
 			day: new Date(1),
+			deletedAt: new Date(2),
+			id: "gone",
+			income: false,
 			month: new Date(1),
 			updatedAt: new Date(1),
-			deletedAt: new Date(2),
 		});
 		await db.insert(categories).values({ id: "c1", updatedAt: new Date(1) });
 		await db.insert(accounts).values({
-			id: "a1",
-			name: "Checking",
 			currency: "USD",
-			initialBalanceDate: new Date(1),
 			dateCreated: new Date(1),
+			id: "a1",
+			initialBalanceDate: new Date(1),
+			name: "Checking",
 			updatedAt: new Date(1),
 		});
 

@@ -4,9 +4,9 @@ import { FirstRun } from "@/components/first-run";
 import { ToggleRow } from "@/components/settings/settings-row";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function OnboardingGrounding() {
 	const db = useDatabase();
@@ -35,12 +35,7 @@ function OnboardingGroundingContent({ db }: { db: Database }) {
 			eyebrow={t("onboarding.grounding.eyebrow")}
 			title={t("onboarding.grounding.title")}
 		>
-			<ToggleRow
-				icon="Sparkles"
-				onValueChange={setEnabled}
-				title={t("onboarding.grounding.toggle")}
-				value={enabled}
-			/>
+			<ToggleRow icon="Sparkles" onValueChange={setEnabled} title={t("onboarding.grounding.toggle")} value={enabled} />
 		</FirstRun>
 	);
 }

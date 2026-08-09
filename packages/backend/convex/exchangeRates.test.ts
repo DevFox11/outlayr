@@ -27,19 +27,14 @@ function seed(t: TestClient, row: SeedRate): Promise<unknown> {
 	return t.run((ctx) => ctx.db.insert("exchangeRates", row));
 }
 
-function readKey(
-	t: TestClient,
-	quote: string,
-	rateType: MarketRateType,
-	date: string,
-) {
+function readKey(t: TestClient, quote: string, rateType: MarketRateType, date: string) {
 	return t.run((ctx) =>
 		ctx.db
 			.query("exchangeRates")
 			.withIndex("by_quote_and_rateType_and_date", (q) =>
-				q.eq("quote", quote).eq("rateType", rateType).eq("date", date),
+				q.eq("quote", quote).eq("rateType", rateType).eq("date", date)
 			)
-			.collect(),
+			.collect()
 	);
 }
 
@@ -47,23 +42,23 @@ describe("upsertRates", () => {
 	test("re-running the same key patches the row in place, never duplicates", async () => {
 		const t = convexTest(schema, modules);
 		await t.mutation(internal.exchangeRates.upsertRates, {
-			source: "frankfurter",
 			date: "2026-03-13",
 			fetchedAt: 1000,
-			rates: [{ quote: "VES", rateType: "official", rate: 40 }],
+			rates: [{ quote: "VES", rate: 40, rateType: "official" }],
+			source: "frankfurter",
 		});
 		await t.mutation(internal.exchangeRates.upsertRates, {
-			source: "frankfurter",
 			date: "2026-03-13",
 			fetchedAt: 2000,
-			rates: [{ quote: "VES", rateType: "official", rate: 41 }],
+			rates: [{ quote: "VES", rate: 41, rateType: "official" }],
+			source: "frankfurter",
 		});
 
 		const rows = await readKey(t, "VES", "official", "2026-03-13");
 		expect(rows).toHaveLength(1);
 		expect(rows[0]).toMatchObject({
-			rate: 41,
 			fetchedAt: 2000,
+			rate: 41,
 			source: "frankfurter",
 		});
 	});
@@ -71,68 +66,68 @@ describe("upsertRates", () => {
 	test("frankfurter never overwrites a same-key cotizave row", async () => {
 		const t = convexTest(schema, modules);
 		await seed(t, {
-			quote: "VES",
-			rateType: "official",
-			source: "cotizave",
-			rate: 38.5,
 			date: "2026-03-13",
 			fetchedAt: 500,
+			quote: "VES",
+			rate: 38.5,
+			rateType: "official",
+			source: "cotizave",
 		});
 
 		await t.mutation(internal.exchangeRates.upsertRates, {
-			source: "frankfurter",
 			date: "2026-03-13",
 			fetchedAt: 1000,
-			rates: [{ quote: "VES", rateType: "official", rate: 40 }],
+			rates: [{ quote: "VES", rate: 40, rateType: "official" }],
+			source: "frankfurter",
 		});
 
 		const rows = await readKey(t, "VES", "official", "2026-03-13");
 		expect(rows).toHaveLength(1);
 		expect(rows[0]).toMatchObject({
+			fetchedAt: 500,
 			rate: 38.5,
 			source: "cotizave",
-			fetchedAt: 500,
 		});
 	});
 
 	test("cotizave overwrites a same-key frankfurter row", async () => {
 		const t = convexTest(schema, modules);
 		await t.mutation(internal.exchangeRates.upsertRates, {
-			source: "frankfurter",
 			date: "2026-03-13",
 			fetchedAt: 500,
-			rates: [{ quote: "VES", rateType: "official", rate: 40 }],
+			rates: [{ quote: "VES", rate: 40, rateType: "official" }],
+			source: "frankfurter",
 		});
 
 		await t.mutation(internal.exchangeRates.upsertRates, {
-			source: "cotizave",
 			date: "2026-03-13",
 			fetchedAt: 1000,
-			rates: [{ quote: "VES", rateType: "official", rate: 38.5 }],
+			rates: [{ quote: "VES", rate: 38.5, rateType: "official" }],
+			source: "cotizave",
 		});
 
 		const rows = await readKey(t, "VES", "official", "2026-03-13");
 		expect(rows).toHaveLength(1);
 		expect(rows[0]).toMatchObject({
+			fetchedAt: 1000,
 			rate: 38.5,
 			source: "cotizave",
-			fetchedAt: 1000,
 		});
 	});
 
 	test("drops non-positive and non-finite rates, upserts the valid subset", async () => {
 		const t = convexTest(schema, modules);
 		await t.mutation(internal.exchangeRates.upsertRates, {
-			source: "frankfurter",
 			date: "2026-03-13",
 			fetchedAt: 1000,
 			rates: [
-				{ quote: "AAA", rateType: "official", rate: 0 },
-				{ quote: "BBB", rateType: "official", rate: -5 },
-				{ quote: "CCC", rateType: "official", rate: Number.POSITIVE_INFINITY },
-				{ quote: "DDD", rateType: "official", rate: Number.NaN },
-				{ quote: "EUR", rateType: "official", rate: 0.92 },
+				{ quote: "AAA", rate: 0, rateType: "official" },
+				{ quote: "BBB", rate: -5, rateType: "official" },
+				{ quote: "CCC", rate: Number.POSITIVE_INFINITY, rateType: "official" },
+				{ quote: "DDD", rate: Number.NaN, rateType: "official" },
+				{ quote: "EUR", rate: 0.92, rateType: "official" },
 			],
+			source: "frankfurter",
 		});
 
 		const all = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
@@ -146,28 +141,28 @@ describe("getLatestRate", () => {
 		const t = convexTest(schema, modules);
 		const seeds: SeedRate[] = [
 			{
-				quote: "VES",
-				rateType: "official",
-				source: "frankfurter",
-				rate: 39,
 				date: "2026-03-11",
 				fetchedAt: 100,
-			},
-			{
 				quote: "VES",
+				rate: 39,
 				rateType: "official",
 				source: "frankfurter",
-				rate: 41,
+			},
+			{
 				date: "2026-03-13",
 				fetchedAt: 300,
-			},
-			{
 				quote: "VES",
+				rate: 41,
 				rateType: "official",
 				source: "frankfurter",
-				rate: 40,
+			},
+			{
 				date: "2026-03-12",
 				fetchedAt: 200,
+				quote: "VES",
+				rate: 40,
+				rateType: "official",
+				source: "frankfurter",
 			},
 		];
 		for (const row of seeds) {
@@ -178,18 +173,18 @@ describe("getLatestRate", () => {
 			quote: "VES",
 			rateType: "official",
 		});
-		expect(latest).toEqual({ rate: 41, date: "2026-03-13", fetchedAt: 300 });
+		expect(latest).toEqual({ date: "2026-03-13", fetchedAt: 300, rate: 41 });
 	});
 
 	test("returns null when no rate exists for the pair", async () => {
 		const t = convexTest(schema, modules);
 		await seed(t, {
-			quote: "VES",
-			rateType: "binance",
-			source: "cotizave",
-			rate: 42,
 			date: "2026-03-13",
 			fetchedAt: 100,
+			quote: "VES",
+			rate: 42,
+			rateType: "binance",
+			source: "cotizave",
 		});
 
 		const latest = await t.query(api.exchangeRates.getLatestRate, {
@@ -203,20 +198,20 @@ describe("getLatestRate", () => {
 describe("getRateOnDate", () => {
 	const gappedSeeds: SeedRate[] = [
 		{
-			quote: "VES",
-			rateType: "official",
-			source: "frankfurter",
-			rate: 38,
 			date: "2026-03-11",
 			fetchedAt: 100,
-		},
-		{
 			quote: "VES",
+			rate: 38,
 			rateType: "official",
 			source: "frankfurter",
-			rate: 40,
+		},
+		{
 			date: "2026-03-13",
 			fetchedAt: 300,
+			quote: "VES",
+			rate: 40,
+			rateType: "official",
+			source: "frankfurter",
 		},
 	];
 
@@ -227,11 +222,11 @@ describe("getRateOnDate", () => {
 		}
 
 		const result = await t.query(api.exchangeRates.getRateOnDate, {
+			date: "2026-03-13",
 			quote: "VES",
 			rateType: "official",
-			date: "2026-03-13",
 		});
-		expect(result).toEqual({ rate: 40, date: "2026-03-13", fetchedAt: 300 });
+		expect(result).toEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
 	});
 
 	test("falls back to the newest earlier date across a weekend gap", async () => {
@@ -241,11 +236,11 @@ describe("getRateOnDate", () => {
 		}
 
 		const saturday = await t.query(api.exchangeRates.getRateOnDate, {
+			date: "2026-03-14",
 			quote: "VES",
 			rateType: "official",
-			date: "2026-03-14",
 		});
-		expect(saturday).toEqual({ rate: 40, date: "2026-03-13", fetchedAt: 300 });
+		expect(saturday).toEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
 	});
 
 	test("returns null when no row is on or before the requested date", async () => {
@@ -255,9 +250,9 @@ describe("getRateOnDate", () => {
 		}
 
 		const before = await t.query(api.exchangeRates.getRateOnDate, {
+			date: "2026-03-01",
 			quote: "VES",
 			rateType: "official",
-			date: "2026-03-01",
 		});
 		expect(before).toBeNull();
 	});
@@ -269,18 +264,14 @@ function daysAgoDate(days: number): string {
 	return new Date(Date.now() - days * MS_PER_DAY).toISOString().slice(0, 10);
 }
 
-function seedOfficialRate(
-	t: TestClient,
-	quote: string,
-	date: string,
-): Promise<unknown> {
+function seedOfficialRate(t: TestClient, quote: string, date: string): Promise<unknown> {
 	return seed(t, {
-		quote,
-		rateType: "official",
-		source: "frankfurter",
-		rate: 40,
 		date,
 		fetchedAt: 1000,
+		quote,
+		rate: 40,
+		rateType: "official",
+		source: "frankfurter",
 	});
 }
 
@@ -288,9 +279,7 @@ function allRateDates(t: TestClient, quote: string): Promise<string[]> {
 	return t.run(async (ctx) => {
 		const rows = await ctx.db
 			.query("exchangeRates")
-			.withIndex("by_quote_and_rateType_and_date", (q) =>
-				q.eq("quote", quote).eq("rateType", "official"),
-			)
+			.withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", quote).eq("rateType", "official"))
 			.collect();
 		return rows.map((row) => row.date).sort();
 	});
@@ -302,10 +291,7 @@ async function runPruneToCompletion(t: TestClient): Promise<void> {
 }
 
 /** 250 pre-window dates: forces at least two pages at the 200-row batch size. */
-async function seedPreWindowBacklog(
-	t: TestClient,
-	quote: string,
-): Promise<void> {
+async function seedPreWindowBacklog(t: TestClient, quote: string): Promise<void> {
 	for (let days = 91; days <= 340; days += 1) {
 		await seedOfficialRate(t, quote, daysAgoDate(days));
 	}
@@ -327,9 +313,7 @@ describe("pruneStale", () => {
 
 		await runPruneToCompletion(t);
 
-		expect(await allRateDates(t, "VES")).toEqual(
-			[daysAgoDate(200), daysAgoDate(100), daysAgoDate(5)].sort(),
-		);
+		expect(await allRateDates(t, "VES")).toEqual([daysAgoDate(200), daysAgoDate(100), daysAgoDate(5)].sort());
 	});
 
 	test("collapses several rows in one month down to that month's newest", async () => {
@@ -354,9 +338,7 @@ describe("pruneStale", () => {
 
 		await runPruneToCompletion(t);
 
-		expect(await allRateDates(t, "XXX")).toEqual(
-			[daysAgoDate(200), daysAgoDate(100)].sort(),
-		);
+		expect(await allRateDates(t, "XXX")).toEqual([daysAgoDate(200), daysAgoDate(100)].sort());
 	});
 
 	test("completes across self-scheduled batches when stale rows exceed one batch", async () => {
@@ -371,9 +353,7 @@ describe("pruneStale", () => {
 		// newest survivor is still the row adjacent to the boundary.
 		const survivors = await allRateDates(t, "VES");
 		expect(survivors).toContain(daysAgoDate(91));
-		expect(new Set(survivors.map((date) => date.slice(0, 7))).size).toBe(
-			survivors.length,
-		);
+		expect(new Set(survivors.map((date) => date.slice(0, 7))).size).toBe(survivors.length);
 		expect(survivors.length).toBeLessThan(12);
 	});
 
@@ -405,11 +385,7 @@ describe("pruneStale", () => {
 			expect(survivors).toContain(date);
 		}
 		expect(new Set(survivors.map((date) => date.slice(0, 7))).size).toBe(
-			new Set(
-				survivors
-					.filter((date) => date < originalAnchor)
-					.map((date) => date.slice(0, 7)),
-			).size + 1,
+			new Set(survivors.filter((date) => date < originalAnchor).map((date) => date.slice(0, 7))).size + 1
 		);
 	});
 
@@ -442,9 +418,7 @@ describe("pruneStale", () => {
 		// Unauthenticated on purpose: `pullRates` is public.
 		const result = await t.query(api.exchangeRates.pullRates, {});
 
-		const dates = result.rows
-			.filter((r) => r.quote === "VES")
-			.map((r) => r.date);
+		const dates = result.rows.filter((r) => r.quote === "VES").map((r) => r.date);
 		// All three: the in-window row plus both monthly anchors. Serving only the
 		// newest anchor is what left anything older than it on face value.
 		expect(dates).toHaveLength(3);

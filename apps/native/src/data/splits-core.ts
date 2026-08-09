@@ -20,17 +20,12 @@ export class UnbalancedSplitError extends Error {
 export function splitsForQuery(db: Database, transactionId: string) {
 	return db
 		.select({
-			id: transactionSplits.id,
-			categoryId: transactionSplits.categoryId,
 			amount: transactionSplits.amount,
+			categoryId: transactionSplits.categoryId,
+			id: transactionSplits.id,
 		})
 		.from(transactionSplits)
-		.where(
-			and(
-				eq(transactionSplits.transactionId, transactionId),
-				isNull(transactionSplits.deletedAt),
-			),
-		)
+		.where(and(eq(transactionSplits.transactionId, transactionId), isNull(transactionSplits.deletedAt)))
 		.orderBy(asc(transactionSplits.sortOrder));
 }
 
@@ -38,9 +33,9 @@ export function splitsForQuery(db: Database, transactionId: string) {
 export function allSplitsQuery(db: Database) {
 	return db
 		.select({
-			transactionId: transactionSplits.transactionId,
-			categoryId: transactionSplits.categoryId,
 			amount: transactionSplits.amount,
+			categoryId: transactionSplits.categoryId,
+			transactionId: transactionSplits.transactionId,
 		})
 		.from(transactionSplits)
 		.where(isNull(transactionSplits.deletedAt))
@@ -48,6 +43,23 @@ export function allSplitsQuery(db: Database) {
 }
 
 export const splitsRepo = {
+	/**
+	 * Retires the splits of entries that are going.
+	 *
+	 * A live split pointing at a tombstoned entry would keep contributing to its
+	 * categories forever — the entry is gone from every list, and its parts are
+	 * not.
+	 */
+	async clearForTransactions(db: Database, transactionIds: readonly string[]): Promise<void> {
+		if (transactionIds.length === 0) {
+			return;
+		}
+		const now = new Date();
+		await db
+			.update(transactionSplits)
+			.set({ deletedAt: now, updatedAt: now })
+			.where(and(inArray(transactionSplits.transactionId, [...transactionIds]), isNull(transactionSplits.deletedAt)));
+	},
 	/**
 	 * Replaces an entry's split with `allocations`, or clears it when given none.
 	 *
@@ -63,7 +75,7 @@ export const splitsRepo = {
 		db: Database,
 		transactionId: string,
 		total: number,
-		allocations: readonly Allocation[],
+		allocations: readonly Allocation[]
 	): Promise<void> {
 		if (allocations.length > 0 && !isBalanced(total, allocations)) {
 			const allocated = allocations.reduce((sum, one) => sum + one.amount, 0);
@@ -73,53 +85,22 @@ export const splitsRepo = {
 		await withTransaction(db, async () => {
 			await db
 				.update(transactionSplits)
-				.set({ updatedAt: now, deletedAt: now })
-				.where(
-					and(
-						eq(transactionSplits.transactionId, transactionId),
-						isNull(transactionSplits.deletedAt),
-					),
-				);
+				.set({ deletedAt: now, updatedAt: now })
+				.where(and(eq(transactionSplits.transactionId, transactionId), isNull(transactionSplits.deletedAt)));
 			if (allocations.length === 0) {
 				return;
 			}
 			await db.insert(transactionSplits).values(
 				allocations.map((allocation, index) => ({
-					id: newId(),
-					transactionId,
-					categoryId: allocation.categoryId,
 					amount: allocation.amount,
-					sortOrder: index,
-					updatedAt: now,
+					categoryId: allocation.categoryId,
 					deletedAt: null,
-				})),
+					id: newId(),
+					sortOrder: index,
+					transactionId,
+					updatedAt: now,
+				}))
 			);
 		});
-	},
-
-	/**
-	 * Retires the splits of entries that are going.
-	 *
-	 * A live split pointing at a tombstoned entry would keep contributing to its
-	 * categories forever — the entry is gone from every list, and its parts are
-	 * not.
-	 */
-	async clearForTransactions(
-		db: Database,
-		transactionIds: readonly string[],
-	): Promise<void> {
-		if (transactionIds.length === 0) {
-			return;
-		}
-		const now = new Date();
-		await db
-			.update(transactionSplits)
-			.set({ updatedAt: now, deletedAt: now })
-			.where(
-				and(
-					inArray(transactionSplits.transactionId, [...transactionIds]),
-					isNull(transactionSplits.deletedAt),
-				),
-			);
 	},
 };

@@ -11,7 +11,8 @@ import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { archiveFileName, serializeArchive } from "@/domain/archive";
 import { CSV_HEADER } from "@/domain/transaction-csv";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { shareText, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
 
@@ -50,15 +51,13 @@ function ExportDataContent({ db }: { db: Database }) {
 					serializeArchive(document),
 					archiveFileName(new Date()),
 					"application/json",
-					t("settings.export.archiveShareTitle"),
-				),
+					t("settings.export.archiveShareTitle")
+				)
 			)
 			.catch((error: unknown) => {
 				Alert.alert(
 					t("settings.export.failedTitle"),
-					error instanceof TransferError
-						? t(error.key)
-						: t("settings.export.failedBody"),
+					error instanceof TransferError ? t(error.key) : t("settings.export.failedBody")
 				);
 			})
 			.finally(() => setBusy(false));
@@ -67,20 +66,11 @@ function ExportDataContent({ db }: { db: Database }) {
 	const run = () => {
 		setBusy(true);
 		exportTransactionsCsv(db)
-			.then((csv) =>
-				shareText(
-					csv,
-					exportFileName(new Date()),
-					"text/csv",
-					t("settings.export.shareTitle"),
-				),
-			)
+			.then((csv) => shareText(csv, exportFileName(new Date()), "text/csv", t("settings.export.shareTitle")))
 			.catch((error: unknown) => {
 				Alert.alert(
 					t("settings.export.failedTitle"),
-					error instanceof TransferError
-						? t(error.key)
-						: t("settings.export.failedBody"),
+					error instanceof TransferError ? t(error.key) : t("settings.export.failedBody")
 				);
 			})
 			.finally(() => setBusy(false));
@@ -90,13 +80,9 @@ function ExportDataContent({ db }: { db: Database }) {
 		<SettingsScreen footer={t("settings.export.footer")}>
 			<View className="gap-1 pt-6">
 				<MonoLabel>{t("settings.export.ready")}</MonoLabel>
-				<Text className="font-sans-semibold text-foreground text-hero tabular-nums">
-					{count}
-				</Text>
+				<Text className="font-sans-semibold text-foreground text-hero tabular-nums">{count}</Text>
 				<Text className="text-muted text-subtitle">
-					{count === 1
-						? t("settings.export.transaction")
-						: t("settings.export.transactions")}
+					{count === 1 ? t("settings.export.transaction") : t("settings.export.transactions")}
 				</Text>
 			</View>
 
@@ -111,52 +97,33 @@ function ExportDataContent({ db }: { db: Database }) {
 					{busy ? (
 						<ActivityIndicator color={colors.background} />
 					) : (
-						<Text className="font-sans-semibold text-background text-callout">
-							{t("settings.export.action")}
-						</Text>
+						<Text className="font-sans-semibold text-background text-callout">{t("settings.export.action")}</Text>
 					)}
 				</Pressable>
 			</View>
 
-			<SettingsSection
-				footer={t("settings.export.archiveNote")}
-				title={t("settings.export.archiveTitle")}
-			>
+			<SettingsSection footer={t("settings.export.archiveNote")} title={t("settings.export.archiveTitle")}>
 				<Pressable
 					accessibilityRole="button"
 					className="flex-row items-center border-border border-b py-3 active:opacity-70"
 					disabled={busy}
 					onPress={runArchive}
 				>
-					<Text className="flex-1 text-body text-foreground">
-						{t("settings.export.archiveAction")}
-					</Text>
+					<Text className="flex-1 text-body text-foreground">{t("settings.export.archiveAction")}</Text>
 				</Pressable>
 			</SettingsSection>
 
-			<SettingsSection
-				footer={t("settings.export.columnsNote")}
-				title={t("settings.export.columns")}
-			>
+			<SettingsSection footer={t("settings.export.columnsNote")} title={t("settings.export.columns")}>
 				{CSV_HEADER.map((column) => (
-					<View
-						className="flex-row items-center border-border border-b py-3"
-						key={column}
-					>
+					<View className="flex-row items-center border-border border-b py-3" key={column}>
 						<Text className="flex-1 text-body text-foreground">{column}</Text>
 					</View>
 				))}
 			</SettingsSection>
 
-			<SettingsSection
-				footer={t("settings.export.omittedNote")}
-				title={t("settings.export.omitted")}
-			>
+			<SettingsSection footer={t("settings.export.omittedNote")} title={t("settings.export.omitted")}>
 				{OMITTED.map((key) => (
-					<View
-						className="flex-row items-center border-border border-b py-3"
-						key={key}
-					>
+					<View className="flex-row items-center border-border border-b py-3" key={key}>
 						<Text className="flex-1 text-body text-muted">{t(key)}</Text>
 					</View>
 				))}

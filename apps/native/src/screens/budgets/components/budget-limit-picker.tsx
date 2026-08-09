@@ -9,12 +9,7 @@ import {
 	vec,
 } from "@shopify/react-native-skia";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	type LayoutChangeEvent,
-	Pressable,
-	useWindowDimensions,
-	View,
-} from "react-native";
+import { type LayoutChangeEvent, Pressable, useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -26,7 +21,7 @@ import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
 import { crossingDay } from "@/domain/budget-limit-crossing";
 import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
 import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";
@@ -35,11 +30,11 @@ import { useColors } from "@/theme/use-colors";
 interface BudgetLimitPickerProps {
 	/** Month-to-date burn-down built with `limit: 0`, so `points[].spent` is the curve. */
 	burndown: Burndown;
+	currency: string;
+	onCommit: (limit: number) => void;
 	/** How many expenses are behind the curve. */
 	sampleSize: number;
-	currency: string;
 	windowStart: Date;
-	onCommit: (limit: number) => void;
 }
 
 const LIMIT_STEP = 25;
@@ -55,7 +50,7 @@ const ELAPSED_FLOOR = 0.2;
 
 const CHART_HEIGHT = 200;
 const GUTTER = 20;
-const PAD = { left: 6, right: 6, top: 18, bottom: 18 } as const;
+const PAD = { bottom: 18, left: 6, right: 6, top: 18 } as const;
 const PLOT_TOP = PAD.top;
 const PLOT_HEIGHT = CHART_HEIGHT - PAD.top - PAD.bottom;
 
@@ -71,7 +66,7 @@ function snapToStep(value: number, max: number): number {
 function curvePathD(
 	points: readonly BurndownPoint[],
 	x: (day: number) => number,
-	y: (value: number) => number,
+	y: (value: number) => number
 ): string {
 	const parts = [`M ${x(1)} ${y(0)}`];
 	let previous = 0;
@@ -89,13 +84,7 @@ function formatDayMonth(date: Date): string {
 	return `${date.getDate()} ${month[0]}${month.slice(1).toLowerCase()}`;
 }
 
-export function BudgetLimitPicker({
-	burndown,
-	sampleSize,
-	currency,
-	windowStart,
-	onCommit,
-}: BudgetLimitPickerProps) {
+export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart, onCommit }: BudgetLimitPickerProps) {
 	const { showCents } = useDisplaySettings().state;
 	const colors = useColors();
 	const haptics = useHaptics();
@@ -104,10 +93,7 @@ export function BudgetLimitPicker({
 	const [measured, setMeasured] = useState(0);
 	const width = measured > 0 ? measured : windowWidth - GUTTER * 2;
 
-	const cumulative = useMemo(
-		() => burndown.points.map((point) => point.spent),
-		[burndown],
-	);
+	const cumulative = useMemo(() => burndown.points.map((point) => point.spent), [burndown]);
 	const total = cumulative.at(-1) ?? 0;
 	const axisTop = Math.max(LIMIT_STEP * 4, total * 1.35);
 	const maxLimit = Math.floor(axisTop / LIMIT_STEP) * LIMIT_STEP;
@@ -115,10 +101,7 @@ export function BudgetLimitPicker({
 	const sparse = sampleSize < SPARSE_HISTORY || elapsedFraction < ELAPSED_FLOOR;
 
 	// Opens under the month's total so the curve already crosses it.
-	const suggested = useMemo(
-		() => snapToStep(total * 0.8, maxLimit),
-		[total, maxLimit],
-	);
+	const suggested = useMemo(() => snapToStep(total * 0.8, maxLimit), [total, maxLimit]);
 	const [limit, setLimit] = useState(suggested);
 
 	const limitY = useSharedValue(yForLimit(suggested, axisTop));
@@ -128,6 +111,7 @@ export function BudgetLimitPicker({
 	const touched = useRef(false);
 
 	useEffect(() => {
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: applyLimit writes true into this ref, so its initial false is not the only value it holds.
 		if (!touched.current) {
 			setLimit(suggested);
 		}
@@ -159,7 +143,7 @@ export function BudgetLimitPicker({
 			}
 			setLimit(next);
 		},
-		[cumulative, sparse, haptics],
+		[cumulative, sparse, haptics]
 	);
 
 	const pan = useMemo(() => {
@@ -201,8 +185,7 @@ export function BudgetLimitPicker({
 		const plotRight = width - PAD.right;
 		const span = Math.max(1, burndown.totalDays - 1);
 		const bottomY = PLOT_TOP + PLOT_HEIGHT;
-		const x = (day: number) =>
-			plotLeft + ((day - 1) / span) * (plotRight - plotLeft);
+		const x = (day: number) => plotLeft + ((day - 1) / span) * (plotRight - plotLeft);
 		const y = (value: number) => yForLimit(value, axisTop);
 
 		const curveD = curvePathD(burndown.points, x, y);
@@ -210,36 +193,26 @@ export function BudgetLimitPicker({
 		const weeksD = weekRulesD(burndown.totalDays, x, PLOT_TOP, bottomY);
 
 		return {
-			x,
-			y,
+			area: Skia.Path.MakeFromSVGString(`${curveD} L ${x(lastDay)} ${bottomY} L ${x(1)} ${bottomY} Z`),
 			bottomY,
+			curve: Skia.Path.MakeFromSVGString(curveD),
+			hatch: Skia.Path.MakeFromSVGString(hatchPathD(width, CHART_HEIGHT)),
+			lastDay,
 			plotLeft,
 			plotRight,
-			lastDay,
-			curve: Skia.Path.MakeFromSVGString(curveD),
-			area: Skia.Path.MakeFromSVGString(
-				`${curveD} L ${x(lastDay)} ${bottomY} L ${x(1)} ${bottomY} Z`,
-			),
 			weeks: weeksD ? Skia.Path.MakeFromSVGString(weeksD) : null,
-			hatch: Skia.Path.MakeFromSVGString(hatchPathD(width, CHART_HEIGHT)),
+			x,
+			y,
 		};
 	}, [burndown, width, axisTop]);
 
-	const limitLineStart = useDerivedValue(() =>
-		vec(geometry.plotLeft, limitY.value),
-	);
-	const limitLineEnd = useDerivedValue(() =>
-		vec(geometry.plotRight, limitY.value),
-	);
+	const limitLineStart = useDerivedValue(() => vec(geometry.plotLeft, limitY.value));
+	const limitLineEnd = useDerivedValue(() => vec(geometry.plotRight, limitY.value));
 	const crossing = sparse ? null : crossingDay(cumulative, limit);
 	const crossingDate =
 		crossing == null
 			? null
-			: new Date(
-					windowStart.getFullYear(),
-					windowStart.getMonth(),
-					windowStart.getDate() + crossing - 1,
-				);
+			: new Date(windowStart.getFullYear(), windowStart.getMonth(), windowStart.getDate() + crossing - 1);
 	const monthName = formatMonthLabel(windowStart);
 	const limitLabel = formatAmount(limit, currency, false);
 
@@ -268,8 +241,8 @@ export function BudgetLimitPicker({
 					});
 	} else {
 		readout = t("budgets.picker.held", {
-			month: monthName,
 			amount: formatAmount(limit - total, currency, showCents),
+			month: monthName,
 		});
 	}
 
@@ -282,31 +255,16 @@ export function BudgetLimitPicker({
 	const limitYCommitted = yForLimit(limit, axisTop);
 
 	return (
-		<View
-			onLayout={onLayout}
-			style={{ width: "100%", paddingHorizontal: GUTTER }}
-		>
+		<View onLayout={onLayout} style={{ paddingHorizontal: GUTTER, width: "100%" }}>
 			<View className="flex-row items-baseline justify-between">
-				<MonoLabel>
-					{t("budgets.picker.eyebrow", { month: monthName.toUpperCase() })}
-				</MonoLabel>
-				<MonoLabel>
-					{t("budgets.expenses", { count: sampleSize }).toUpperCase()}
-				</MonoLabel>
+				<MonoLabel>{t("budgets.picker.eyebrow", { month: monthName.toUpperCase() })}</MonoLabel>
+				<MonoLabel>{t("budgets.expenses", { count: sampleSize }).toUpperCase()}</MonoLabel>
 			</View>
 
 			<View className="pt-2">
-				<HeroNumber
-					amount={limit}
-					code={currency}
-					showCents={false}
-					sign=""
-					size={40}
-				/>
+				<HeroNumber amount={limit} code={currency} showCents={false} sign="" size={40} />
 			</View>
-			<Text className="pt-0.5 text-footnote text-muted">
-				{t("budgets.picker.cadence")}
-			</Text>
+			<Text className="pt-0.5 text-footnote text-muted">{t("budgets.picker.cadence")}</Text>
 
 			<View className="pt-4">
 				<GestureDetector gesture={pan}>
@@ -315,20 +273,12 @@ export function BudgetLimitPicker({
 							amount: limitLabel,
 						})}
 						collapsable={false}
-						style={{ width, height: CHART_HEIGHT }}
+						style={{ height: CHART_HEIGHT, width }}
 					>
 						{/* Skia's canvas is a native view and swallows touches, so the pan
 						    detector on the wrapper never sees them unless this opts out. */}
-						<Canvas
-							pointerEvents="none"
-							style={{ width, height: CHART_HEIGHT }}
-						>
-							{geometry.area ? (
-								<SkPath
-									color={withAlpha(colors.foreground, 0.06)}
-									path={geometry.area}
-								/>
-							) : null}
+						<Canvas pointerEvents="none" style={{ height: CHART_HEIGHT, width }}>
+							{geometry.area ? <SkPath color={withAlpha(colors.foreground, 0.06)} path={geometry.area} /> : null}
 
 							{geometry.area && geometry.hatch && total > limit ? (
 								<SkGroup clip={geometry.area}>
@@ -344,12 +294,7 @@ export function BudgetLimitPicker({
 							) : null}
 
 							{geometry.weeks ? (
-								<SkPath
-									color={colors.muted}
-									path={geometry.weeks}
-									strokeWidth={1}
-									style="stroke"
-								>
+								<SkPath color={colors.muted} path={geometry.weeks} strokeWidth={1} style="stroke">
 									<DashPathEffect intervals={[1.5, 4]} />
 								</SkPath>
 							) : null}
@@ -358,7 +303,7 @@ export function BudgetLimitPicker({
 								color={colors.foreground}
 								path={
 									Skia.Path.MakeFromSVGString(
-										`M ${geometry.plotLeft} ${geometry.bottomY} L ${geometry.plotRight} ${geometry.bottomY}`,
+										`M ${geometry.plotLeft} ${geometry.bottomY} L ${geometry.plotRight} ${geometry.bottomY}`
 									) ?? Skia.Path.Make()
 								}
 								strokeWidth={1.6}
@@ -368,38 +313,21 @@ export function BudgetLimitPicker({
 							{/* One path drawn twice, clipped either side of the limit. */}
 							{geometry.curve ? (
 								<>
-									<SkGroup
-										clip={Skia.XYWHRect(
-											0,
-											limitYCommitted,
-											width,
-											CHART_HEIGHT - limitYCommitted,
-										)}
-									>
-										<SkPath
-											color={colors.foreground}
-											path={geometry.curve}
-											strokeWidth={2.2}
-											style="stroke"
-										/>
+									<SkGroup clip={Skia.XYWHRect(0, limitYCommitted, width, CHART_HEIGHT - limitYCommitted)}>
+										<SkPath color={colors.foreground} path={geometry.curve} strokeWidth={2.2} style="stroke" />
 									</SkGroup>
 									<SkGroup clip={Skia.XYWHRect(0, 0, width, limitYCommitted)}>
-										<SkPath
-											color={colors.overBudget}
-											path={geometry.curve}
-											strokeWidth={2.2}
-											style="stroke"
-										/>
+										<SkPath color={colors.overBudget} path={geometry.curve} strokeWidth={2.2} style="stroke" />
 									</SkGroup>
 								</>
 							) : null}
 
-							{crossing != null ? (
+							{crossing == null ? null : (
 								<SkPath
 									color={withAlpha(colors.overBudget, 0.7)}
 									path={
 										Skia.Path.MakeFromSVGString(
-											`M ${geometry.x(crossing)} ${PLOT_TOP} L ${geometry.x(crossing)} ${geometry.bottomY}`,
+											`M ${geometry.x(crossing)} ${PLOT_TOP} L ${geometry.x(crossing)} ${geometry.bottomY}`
 										) ?? Skia.Path.Make()
 									}
 									strokeWidth={1}
@@ -407,14 +335,9 @@ export function BudgetLimitPicker({
 								>
 									<DashPathEffect intervals={[3.5, 3.5]} />
 								</SkPath>
-							) : null}
+							)}
 
-							<SkCircle
-								color={colors.foreground}
-								cx={geometry.x(geometry.lastDay)}
-								cy={geometry.y(total)}
-								r={3.2}
-							/>
+							<SkCircle color={colors.foreground} cx={geometry.x(geometry.lastDay)} cy={geometry.y(total)} r={3.2} />
 
 							<SkLine
 								color={colors.foreground}
@@ -423,14 +346,9 @@ export function BudgetLimitPicker({
 								strokeWidth={1.6}
 								style="stroke"
 							/>
-							<SkCircle
-								color={colors.foreground}
-								cx={geometry.plotRight - 5}
-								cy={limitY}
-								r={5}
-							/>
+							<SkCircle color={colors.foreground} cx={geometry.plotRight - 5} cy={limitY} r={5} />
 
-							{crossing != null ? (
+							{crossing == null ? null : (
 								<SkCircle
 									color={colors.overBudget}
 									cx={geometry.x(crossing)}
@@ -439,7 +357,7 @@ export function BudgetLimitPicker({
 									strokeWidth={2}
 									style="stroke"
 								/>
-							) : null}
+							)}
 						</Canvas>
 					</View>
 				</GestureDetector>

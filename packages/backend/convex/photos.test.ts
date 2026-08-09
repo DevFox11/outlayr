@@ -9,11 +9,7 @@ import { api, internal } from "./_generated/api";
 import { photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
 import { PHOTO_QUOTA_BYTES, PHOTO_URL_BATCH_LIMIT } from "./photos";
 import schema from "./schema";
-import {
-	authenticatedAs,
-	type SeededIdentity,
-	seedAuthUser,
-} from "./test.helpers";
+import { authenticatedAs, type SeededIdentity, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -25,63 +21,60 @@ const PHOTO = "k7q2x9f1.jpg";
 
 function transactionRow(
 	localId: string,
-	options: { imageKey?: string | null; deletedAt?: number | null } = {},
+	options: { imageKey?: string | null; deletedAt?: number | null } = {}
 ): PushRows[number] {
 	return {
-		table: "transactions",
-		localId,
-		updatedAt: 100,
 		deletedAt: options.deletedAt ?? null,
 		fields: {
+			accountId: null,
 			amount: 12.5,
-			income: false,
+			amountUsd: 12.5,
+			categoryId: null,
 			currency: "USD",
-			note: "coffee",
-			details: null,
+			customColor: null,
 			date: 1_700_000_000_000,
 			day: 1_700_000_000_000,
-			month: 1_700_000_000_000,
-			icon: null,
+			details: null,
 			emoji: null,
-			customColor: null,
-			imageColor: null,
-			imageKey: options.imageKey ?? null,
-			onceRecurring: false,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			categoryId: null,
-			accountId: null,
-			amountUsd: 12.5,
 			exchangeRate: 1,
 			exchangeRateType: "official",
+			icon: null,
+			imageColor: null,
+			imageKey: options.imageKey ?? null,
+			income: false,
+			month: 1_700_000_000_000,
+			note: "coffee",
+			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
 		},
+		localId,
+		table: "transactions",
+		updatedAt: 100,
 	};
 }
 
-function accountRow(
-	localId: string,
-	options: { imageKey?: string | null } = {},
-): PushRows[number] {
+function accountRow(localId: string, options: { imageKey?: string | null } = {}): PushRows[number] {
 	return {
-		table: "accounts",
-		localId,
-		updatedAt: 100,
 		deletedAt: null,
 		fields: {
-			name: "Checking",
 			currency: "USD",
-			initialBalance: 0,
-			initialBalanceUsd: 0,
-			initialBalanceDate: 1_700_000_000_000,
-			icon: null,
-			emoji: null,
 			customColor: null,
+			dateCreated: 1_700_000_000_000,
+			emoji: null,
+			icon: null,
 			imageColor: null,
 			imageKey: options.imageKey ?? null,
+			initialBalance: 0,
+			initialBalanceDate: 1_700_000_000_000,
+			initialBalanceUsd: 0,
+			name: "Checking",
 			sortOrder: 0,
-			dateCreated: 1_700_000_000_000,
 		},
+		localId,
+		table: "accounts",
+		updatedAt: 100,
 	};
 }
 
@@ -94,7 +87,7 @@ function push(t: TestClient, who: SeededIdentity, rows: PushRows) {
 
 /** Records what an object weighs, the way a confirmed upload does. */
 async function storeSize(t: TestClient, key: string, bytes: number) {
-	await t.mutation(internal.photos.recordPhotoSize, { key, bytes });
+	await t.mutation(internal.photos.recordPhotoSize, { bytes, key });
 }
 
 async function totalStored(t: TestClient, userId: string): Promise<number> {
@@ -111,9 +104,7 @@ describe("requestUpload", () => {
 	test("refuses a caller with no session", async () => {
 		const t = convexTest(schema, modules);
 
-		await expect(
-			t.mutation(api.photos.requestUpload, { name: PHOTO }),
-		).rejects.toThrow(ConvexError);
+		await expect(t.mutation(api.photos.requestUpload, { name: PHOTO })).rejects.toThrow(ConvexError);
 	});
 
 	test("refuses a name that would climb out of the account's prefix", async () => {
@@ -123,7 +114,7 @@ describe("requestUpload", () => {
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.requestUpload, {
 				name: "../other/a.jpg",
-			}),
+			})
 		).rejects.toThrow(ConvexError);
 	});
 
@@ -135,23 +126,16 @@ describe("requestUpload", () => {
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.requestUpload, {
 				name: PHOTO,
-			}),
+			})
 		).rejects.toThrow(ConvexError);
 	});
 
 	test("mints a url while the account is still under the ceiling", async () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
-		await storeSize(
-			t,
-			photoKeyFor(owner.userId, "big.jpg"),
-			PHOTO_QUOTA_BYTES - 1,
-		);
+		await storeSize(t, photoKeyFor(owner.userId, "big.jpg"), PHOTO_QUOTA_BYTES - 1);
 
-		const { key } = await authenticatedAs(t, owner).mutation(
-			api.photos.requestUpload,
-			{ name: PHOTO },
-		);
+		const { key } = await authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: PHOTO });
 		expect(key).toBe(photoKeyFor(owner.userId, PHOTO));
 	});
 
@@ -161,16 +145,9 @@ describe("requestUpload", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 		const stranger = await seedAuthUser(t);
-		await storeSize(
-			t,
-			photoKeyFor(stranger.userId, "big.jpg"),
-			PHOTO_QUOTA_BYTES,
-		);
+		await storeSize(t, photoKeyFor(stranger.userId, "big.jpg"), PHOTO_QUOTA_BYTES);
 
-		const { key } = await authenticatedAs(t, owner).mutation(
-			api.photos.requestUpload,
-			{ name: PHOTO },
-		);
+		const { key } = await authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: PHOTO });
 		expect(key).toBe(photoKeyFor(owner.userId, PHOTO));
 	});
 });
@@ -192,13 +169,11 @@ describe("accounting for what an account stores", () => {
 	test("records nothing for a key that is not a photo key", async () => {
 		const t = convexTest(schema, modules);
 		await t.mutation(internal.photos.recordPhotoSize, {
-			key: "not/a/photo/key",
 			bytes: 999,
+			key: "not/a/photo/key",
 		});
 
-		const rows = await t.run(async (ctx) =>
-			ctx.db.query("photoSizes").collect(),
-		);
+		const rows = await t.run(async (ctx) => ctx.db.query("photoSizes").collect());
 		expect(rows).toEqual([]);
 	});
 });
@@ -212,7 +187,7 @@ describe("confirmUpload", () => {
 		await expect(
 			authenticatedAs(t, owner).action(api.photos.confirmUpload, {
 				key: photoKeyFor(stranger.userId, PHOTO),
-			}),
+			})
 		).rejects.toThrow(ConvexError);
 	});
 });
@@ -221,30 +196,22 @@ describe("readUrls", () => {
 	test("refuses a caller with no session", async () => {
 		const t = convexTest(schema, modules);
 
-		await expect(t.query(api.photos.readUrls, { keys: [] })).rejects.toThrow(
-			ConvexError,
-		);
+		await expect(t.query(api.photos.readUrls, { keys: [] })).rejects.toThrow(ConvexError);
 	});
 
 	test("refuses a batch bigger than the limit", async () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
-		const keys = Array.from({ length: PHOTO_URL_BATCH_LIMIT + 1 }, (_, i) =>
-			photoKeyFor(owner.userId, `p${i}.jpg`),
-		);
+		const keys = Array.from({ length: PHOTO_URL_BATCH_LIMIT + 1 }, (_, i) => photoKeyFor(owner.userId, `p${i}.jpg`));
 
-		await expect(
-			authenticatedAs(t, owner).query(api.photos.readUrls, { keys }),
-		).rejects.toThrow(ConvexError);
+		await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys })).rejects.toThrow(ConvexError);
 	});
 
 	test("mints nothing for an empty batch without reaching R2", async () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 
-		await expect(
-			authenticatedAs(t, owner).query(api.photos.readUrls, { keys: [] }),
-		).resolves.toEqual([]);
+		await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys: [] })).resolves.toEqual([]);
 	});
 
 	test("drops a key belonging to another account rather than minting for it", async () => {
@@ -255,7 +222,7 @@ describe("readUrls", () => {
 		await expect(
 			authenticatedAs(t, owner).query(api.photos.readUrls, {
 				keys: [photoKeyFor(stranger.userId, PHOTO)],
-			}),
+			})
 		).resolves.toEqual([]);
 	});
 });
@@ -269,7 +236,7 @@ describe("releaseUnreferenced", () => {
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
 				key: photoKeyFor(stranger.userId, PHOTO),
-			}),
+			})
 		).rejects.toThrow(ConvexError);
 	});
 
@@ -282,7 +249,7 @@ describe("releaseUnreferenced", () => {
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
 				key,
-			}),
+			})
 		).resolves.toEqual({ released: false });
 	});
 
@@ -290,16 +257,14 @@ describe("releaseUnreferenced", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 		const key = photoKeyFor(owner.userId, PHOTO);
-		await push(t, owner, [
-			transactionRow("t1", { imageKey: key, deletedAt: 200 }),
-		]);
+		await push(t, owner, [transactionRow("t1", { deletedAt: 200, imageKey: key })]);
 
 		// The undo window restores from a tombstone, and a device that has not
 		// pulled the delete is still rendering the photo.
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
 				key,
-			}),
+			})
 		).resolves.toEqual({ released: false });
 	});
 
@@ -312,7 +277,7 @@ describe("releaseUnreferenced", () => {
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
 				key,
-			}),
+			})
 		).resolves.toEqual({ released: false });
 	});
 
@@ -329,7 +294,7 @@ describe("releaseUnreferenced", () => {
 		await expect(
 			authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
 				key,
-			}),
+			})
 		).rejects.toThrow();
 	});
 });
@@ -346,7 +311,7 @@ describe("merchant cache keys stay unowned (T8)", () => {
 		await expect(
 			authenticatedAs(t, owner).query(api.photos.readUrls, {
 				keys: ["merchant/farmatodo"],
-			}),
+			})
 		).resolves.toEqual([]);
 	});
 });
@@ -362,9 +327,7 @@ describe("the convex storage fallback", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 		const key = photoKeyFor(owner.userId, PHOTO);
-		const storageId = await t.run(
-			async (ctx) => await ctx.storage.store(new Blob(["bytes"])),
-		);
+		const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
 
 		await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
 			key,
@@ -382,12 +345,8 @@ describe("the convex storage fallback", () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 		const key = photoKeyFor(owner.userId, PHOTO);
-		const first = await t.run(
-			async (ctx) => await ctx.storage.store(new Blob(["one"])),
-		);
-		const second = await t.run(
-			async (ctx) => await ctx.storage.store(new Blob(["two"])),
-		);
+		const first = await t.run(async (ctx) => await ctx.storage.store(new Blob(["one"])));
+		const second = await t.run(async (ctx) => await ctx.storage.store(new Blob(["two"])));
 
 		const confirm = (storageId: typeof first) =>
 			authenticatedAs(t, owner).action(api.photos.confirmUpload, {
@@ -397,39 +356,26 @@ describe("the convex storage fallback", () => {
 		await confirm(first);
 		await confirm(second);
 
-		const mappings = await t.run(
-			async (ctx) => await ctx.db.query("photoObjects").collect(),
-		);
+		const mappings = await t.run(async (ctx) => await ctx.db.query("photoObjects").collect());
 		expect(mappings).toHaveLength(1);
 		expect(mappings[0]?.storageId).toBe(second);
-		expect(await t.run(async (ctx) => await ctx.storage.getUrl(first))).toBe(
-			null,
-		);
+		expect(await t.run(async (ctx) => await ctx.storage.getUrl(first))).toBe(null);
 	});
 
 	test("releasing an unreferenced key drops the mapping and the bytes", async () => {
 		const t = convexTest(schema, modules);
 		const owner = await seedAuthUser(t);
 		const key = photoKeyFor(owner.userId, PHOTO);
-		const storageId = await t.run(
-			async (ctx) => await ctx.storage.store(new Blob(["bytes"])),
-		);
+		const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
 		await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
 			key,
 			storageId,
 		});
 
-		const released = await authenticatedAs(t, owner).mutation(
-			api.photos.releaseUnreferenced,
-			{ key },
-		);
+		const released = await authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, { key });
 
 		expect(released).toEqual({ released: true });
-		expect(
-			await t.run(async (ctx) => await ctx.db.query("photoObjects").collect()),
-		).toHaveLength(0);
-		expect(
-			await t.run(async (ctx) => await ctx.storage.getUrl(storageId)),
-		).toBe(null);
+		expect(await t.run(async (ctx) => await ctx.db.query("photoObjects").collect())).toHaveLength(0);
+		expect(await t.run(async (ctx) => await ctx.storage.getUrl(storageId))).toBe(null);
 	});
 });

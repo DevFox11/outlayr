@@ -30,19 +30,19 @@ afterEach(() => {
 function mockModel(text: string) {
 	return new MockLanguageModelV3({
 		doGenerate: async () => ({
-			content: [{ type: "text", text }],
-			finishReason: { unified: "stop", raw: undefined },
+			content: [{ text, type: "text" }],
+			finishReason: { raw: undefined, unified: "stop" },
 			usage: {
 				inputTokens: {
-					total: undefined,
-					noCache: undefined,
 					cacheRead: undefined,
 					cacheWrite: undefined,
+					noCache: undefined,
+					total: undefined,
 				},
 				outputTokens: {
-					total: undefined,
-					text: undefined,
 					reasoning: undefined,
+					text: undefined,
+					total: undefined,
 				},
 			},
 			warnings: [],
@@ -59,17 +59,17 @@ function rejectingModel(error: Error) {
 }
 
 const BASE_ARGS = {
-	labels: ["Coffee Shop", "Unknown Store"],
 	categoryTree: [
-		{ name: "Food", children: ["Coffee"] },
-		{ name: "Groceries", children: [] },
+		{ children: ["Coffee"], name: "Food" },
+		{ children: [], name: "Groceries" },
 	],
+	labels: ["Coffee Shop", "Unknown Store"],
 };
 
 describe("csvImportArgs", () => {
 	test("carries exactly the privacy-boundary fields — labels, tree, consent, region", () => {
 		expect(Object.keys(csvImportArgs).sort()).toEqual(
-			["categoryTree", "groundedLookup", "labels", "regionCode"].sort(),
+			["categoryTree", "groundedLookup", "labels", "regionCode"].sort()
 		);
 	});
 });
@@ -78,9 +78,10 @@ describe("csvImport guard ladder", () => {
 	test("returns unauthenticated for a signed-out caller", async () => {
 		const t = convexTest(schema, modules);
 
-		await expect(t.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual(
-			{ status: "unauthenticated", suggestions: null },
-		);
+		await expect(t.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+			status: "unauthenticated",
+			suggestions: null,
+		});
 	});
 
 	test("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
@@ -88,9 +89,10 @@ describe("csvImport guard ladder", () => {
 		const t = convexTest(schema, modules);
 		const identity = await seedAuthUser(t);
 
-		await expect(
-			authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS),
-		).resolves.toEqual({ status: "notConfigured", suggestions: null });
+		await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+			status: "notConfigured",
+			suggestions: null,
+		});
 	});
 
 	test("returns invalid when there are no labels to classify", async () => {
@@ -102,7 +104,7 @@ describe("csvImport guard ladder", () => {
 			authenticatedAs(t, identity).action(api.csvImport.csvImport, {
 				...BASE_ARGS,
 				labels: [],
-			}),
+			})
 		).resolves.toEqual({ status: "invalid", suggestions: null });
 	});
 
@@ -115,7 +117,7 @@ describe("csvImport guard ladder", () => {
 			authenticatedAs(t, identity).action(api.csvImport.csvImport, {
 				...BASE_ARGS,
 				labels: Array.from({ length: 201 }, (_, i) => `Merchant ${i}`),
-			}),
+			})
 		).resolves.toEqual({ status: "invalid", suggestions: null });
 	});
 
@@ -125,24 +127,23 @@ describe("csvImport guard ladder", () => {
 		rateLimiterTest.register(t);
 		const identity = await seedAuthUser(t);
 		const asUser = authenticatedAs(t, identity);
-		const tokenIdentifier = await asUser.run(
-			async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier,
-		);
+		const tokenIdentifier = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);
 		if (!tokenIdentifier) {
 			throw new Error("Expected an authenticated identity");
 		}
 
 		await t.run(async (ctx) =>
 			rateLimiter.limit(ctx, "csvImportPerUser", {
-				key: tokenIdentifier,
-				count: 2,
 				config: perUserLimitConfig(),
-			}),
+				count: 2,
+				key: tokenIdentifier,
+			})
 		);
 
-		await expect(
-			asUser.action(api.csvImport.csvImport, BASE_ARGS),
-		).resolves.toEqual({ status: "rateLimited", suggestions: null });
+		await expect(asUser.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+			status: "rateLimited",
+			suggestions: null,
+		});
 	});
 
 	test("returns rateLimited and never throws once the global window is exhausted", async () => {
@@ -153,14 +154,13 @@ describe("csvImport guard ladder", () => {
 		const limitSpy = vi
 			.spyOn(rateLimiter, "limit")
 			.mockImplementation(async (_ctx, name) =>
-				name === "csvImportGlobal"
-					? { ok: false, retryAfter: 1000 }
-					: { ok: true, retryAfter: undefined },
+				name === "csvImportGlobal" ? { ok: false, retryAfter: 1000 } : { ok: true, retryAfter: undefined }
 			);
 
-		await expect(
-			authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS),
-		).resolves.toEqual({ status: "rateLimited", suggestions: null });
+		await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+			status: "rateLimited",
+			suggestions: null,
+		});
 		expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "csvImportGlobal");
 	});
 
@@ -171,35 +171,35 @@ describe("csvImport guard ladder", () => {
 		const identity = await seedAuthUser(t);
 		await t.run((ctx) =>
 			ctx.db.insert("merchantKnowledge", {
-				key: "farmacia saas",
-				domain: "farmaciasaas.com",
 				categoryName: "Healthcare",
-				parentCategoryName: null,
+				domain: "farmaciasaas.com",
 				emoji: null,
-				tags: ["Pharmacy"],
-				resolvedAt: Date.now(),
+				key: "farmacia saas",
 				modelId: "test-model",
-			}),
+				parentCategoryName: null,
+				resolvedAt: Date.now(),
+				tags: ["Pharmacy"],
+			})
 		);
 
 		const stale = t.withIdentity({
-			subject: identity.subject,
 			sessionId: "session-that-was-revoked",
+			subject: identity.subject,
 		});
 
 		await expect(
 			stale.action(api.csvImport.csvImport, {
-				labels: ["FARMACIA SAAS"],
-				categoryTree: [{ name: "Healthcare", children: [] }],
+				categoryTree: [{ children: [], name: "Healthcare" }],
 				groundedLookup: true,
-			}),
+				labels: ["FARMACIA SAAS"],
+			})
 		).resolves.toEqual({
 			status: "ok",
 			suggestions: [
 				{
-					label: "FARMACIA SAAS",
 					categoryName: "Healthcare",
 					domain: "farmaciasaas.com",
+					label: "FARMACIA SAAS",
 				},
 			],
 		});
@@ -226,17 +226,17 @@ describe("perUserLimitConfig", () => {
 			vi.stubEnv("CSV_IMPORT_CAPACITY", value);
 
 			expect(perUserLimitConfig().capacity).toBe(2);
-		},
+		}
 	);
 
 	test("leaves the refill rate alone, so only the burst is tunable", () => {
 		vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
 		expect(perUserLimitConfig()).toEqual({
-			kind: "token bucket",
-			rate: 6,
-			period: HOUR,
 			capacity: 25,
+			kind: "token bucket",
+			period: HOUR,
+			rate: 6,
 		});
 	});
 
@@ -245,38 +245,32 @@ describe("perUserLimitConfig", () => {
 		vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 		const t = convexTest(schema, modules);
 		const identity = await seedAuthUser(t);
-		const limitSpy = vi
-			.spyOn(rateLimiter, "limit")
-			.mockResolvedValue({ ok: false, retryAfter: 1000 });
+		const limitSpy = vi.spyOn(rateLimiter, "limit").mockResolvedValue({ ok: false, retryAfter: 1000 });
 
-		await expect(
-			authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS),
-		).resolves.toEqual({ status: "rateLimited", suggestions: null });
+		await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+			status: "rateLimited",
+			suggestions: null,
+		});
 
 		expect(limitSpy).toHaveBeenCalledWith(
 			expect.anything(),
 			"csvImportPerUser",
 			expect.objectContaining({
 				config: expect.objectContaining({ capacity: 25 }),
-			}),
+			})
 		);
 	});
 });
 
 async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
-	const rows = await t.run((ctx) =>
-		ctx.db.system.query("_scheduled_functions").collect(),
-	);
+	const rows = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 	return rows.filter((row) => row.name.includes("groundedLookup"));
 }
 
-function asIdentity(
-	t: ReturnType<typeof convexTest>,
-	identity: Awaited<ReturnType<typeof seedAuthUser>>,
-) {
+function asIdentity(t: ReturnType<typeof convexTest>, identity: Awaited<ReturnType<typeof seedAuthUser>>) {
 	return t.withIdentity({
-		subject: identity.subject,
 		sessionId: identity.sessionId,
+		subject: identity.subject,
 	});
 }
 
@@ -288,10 +282,10 @@ describe("scheduleImportGrounded", () => {
 
 		const scheduled = await asIdentity(t, identity).run((ctx) =>
 			scheduleImportGrounded(ctx, "token-import-a", {
-				labels: ["Corpoelec", "CORPOELEC!!", "Automercado Plaza's"],
 				groundedLookup: true,
+				labels: ["Corpoelec", "CORPOELEC!!", "Automercado Plaza's"],
 				regionCode: "VE",
-			}),
+			})
 		);
 
 		expect(scheduled).toBe(2);
@@ -301,18 +295,18 @@ describe("scheduleImportGrounded", () => {
 			runs.map((run) => {
 				const scheduledArgs = run.args[0] as Record<string, unknown>;
 				return [scheduledArgs.key, scheduledArgs];
-			}),
+			})
 		);
 		expect(argsByKey.get(merchantKey("Corpoelec"))).toEqual({
+			income: false,
 			key: "corpoelec",
 			name: "Corpoelec",
-			income: false,
 			regionCode: "VE",
 		});
 		expect(argsByKey.get(merchantKey("Automercado Plaza's"))).toEqual({
+			income: false,
 			key: "automercado plaza s",
 			name: "Automercado Plaza's",
-			income: false,
 			regionCode: "VE",
 		});
 	});
@@ -322,15 +316,12 @@ describe("scheduleImportGrounded", () => {
 		rateLimiterTest.register(t);
 		const identity = await seedAuthUser(t);
 
-		const labels = Array.from(
-			{ length: GROUNDED_IMPORT_MAX + 2 },
-			(_, i) => `Unknown Merchant ${"x".repeat(i + 1)}`,
-		);
+		const labels = Array.from({ length: GROUNDED_IMPORT_MAX + 2 }, (_, i) => `Unknown Merchant ${"x".repeat(i + 1)}`);
 		const scheduled = await asIdentity(t, identity).run((ctx) =>
 			scheduleImportGrounded(ctx, "token-import-b", {
-				labels,
 				groundedLookup: true,
-			}),
+				labels,
+			})
 		);
 
 		expect(scheduled).toBe(GROUNDED_IMPORT_MAX);
@@ -343,9 +334,9 @@ describe("scheduleImportGrounded", () => {
 
 		const scheduled = await asIdentity(t, identity).run((ctx) =>
 			scheduleImportGrounded(ctx, "token-import-c", {
-				labels: ["Corpoelec"],
 				groundedLookup: false,
-			}),
+				labels: ["Corpoelec"],
+			})
 		);
 
 		expect(scheduled).toBe(0);
@@ -357,20 +348,20 @@ describe("scheduleImportGrounded", () => {
 		const identity = await seedAuthUser(t);
 		await t.run((ctx) =>
 			ctx.db.insert("appMeta", {
-				userId: identity.userId,
+				deviceId: "test-device",
 				key: "groundedLookup",
 				seq: 1,
-				deviceId: "test-device",
 				updatedAt: Date.now(),
+				userId: identity.userId,
 				value: "false",
-			}),
+			})
 		);
 
 		const scheduled = await asIdentity(t, identity).run((ctx) =>
 			scheduleImportGrounded(ctx, "token-import-d", {
-				labels: ["Corpoelec"],
 				groundedLookup: true,
-			}),
+				labels: ["Corpoelec"],
+			})
 		);
 
 		expect(scheduled).toBe(0);
@@ -383,17 +374,17 @@ describe("scheduleImportGrounded", () => {
 		const identity = await seedAuthUser(t);
 
 		const stale = t.withIdentity({
-			subject: identity.subject,
 			sessionId: "session-that-was-revoked",
+			subject: identity.subject,
 		});
 
 		await expect(
 			stale.run((ctx) =>
 				scheduleImportGrounded(ctx, "token-import-e", {
-					labels: ["Corpoelec"],
 					groundedLookup: true,
-				}),
-			),
+					labels: ["Corpoelec"],
+				})
+			)
 		).resolves.toBe(0);
 		expect(await scheduledGroundedRuns(t)).toHaveLength(0);
 	});
@@ -407,29 +398,29 @@ describe("merchantKnowledge tier", () => {
 		const identity = await seedAuthUser(t);
 		await t.run((ctx) =>
 			ctx.db.insert("merchantKnowledge", {
-				key: "farmacia saas",
-				domain: "farmaciasaas.com",
 				categoryName: "Healthcare",
-				parentCategoryName: null,
+				domain: "farmaciasaas.com",
 				emoji: null,
-				tags: ["Pharmacy"],
-				resolvedAt: Date.now(),
+				key: "farmacia saas",
 				modelId: "test-model",
-			}),
+				parentCategoryName: null,
+				resolvedAt: Date.now(),
+				tags: ["Pharmacy"],
+			})
 		);
 
 		await expect(
 			authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+				categoryTree: [{ children: [], name: "Healthcare" }],
 				labels: ["FARMACIA SAAS"],
-				categoryTree: [{ name: "Healthcare", children: [] }],
-			}),
+			})
 		).resolves.toEqual({
 			status: "ok",
 			suggestions: [
 				{
-					label: "FARMACIA SAAS",
 					categoryName: "Healthcare",
 					domain: "farmaciasaas.com",
+					label: "FARMACIA SAAS",
 				},
 			],
 		});
@@ -443,24 +434,21 @@ describe("merchantKnowledge tier", () => {
 			vi.fn(
 				async () =>
 					new Response('{"error":"unauthorized"}', {
-						status: 401,
 						headers: { "content-type": "application/json" },
-					}),
-			),
+						status: 401,
+					})
+			)
 		);
 		const t = convexTest(schema, modules);
 		rateLimiterTest.register(t);
 		const identity = await seedAuthUser(t);
 
-		const result = await authenticatedAs(t, identity).action(
-			api.csvImport.csvImport,
-			{
-				labels: ["Corpoelec"],
-				categoryTree: [{ name: "Utilities", children: [] }],
-				groundedLookup: true,
-				regionCode: "VE",
-			},
-		);
+		const result = await authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+			categoryTree: [{ children: [], name: "Utilities" }],
+			groundedLookup: true,
+			labels: ["Corpoelec"],
+			regionCode: "VE",
+		});
 
 		expect(result.status).toBe("providerError");
 		const runs = await scheduledGroundedRuns(t);
@@ -475,40 +463,40 @@ describe("merchantKnowledge tier", () => {
 			vi.fn(
 				async () =>
 					new Response('{"error":"unauthorized"}', {
-						status: 401,
 						headers: { "content-type": "application/json" },
-					}),
-			),
+						status: 401,
+					})
+			)
 		);
 		const t = convexTest(schema, modules);
 		rateLimiterTest.register(t);
 		const identity = await seedAuthUser(t);
 		await t.run((ctx) =>
 			ctx.db.insert("merchantKnowledge", {
-				key: "farmacia saas",
-				domain: "farmaciasaas.com",
 				categoryName: "Healthcare",
-				parentCategoryName: null,
+				domain: "farmaciasaas.com",
 				emoji: null,
-				tags: ["Pharmacy"],
-				resolvedAt: Date.now(),
+				key: "farmacia saas",
 				modelId: "test-model",
-			}),
+				parentCategoryName: null,
+				resolvedAt: Date.now(),
+				tags: ["Pharmacy"],
+			})
 		);
 
 		await expect(
 			authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+				categoryTree: [{ children: [], name: "Healthcare" }],
 				labels: ["FARMACIA SAAS", "Unknown Store"],
-				categoryTree: [{ name: "Healthcare", children: [] }],
-			}),
+			})
 		).resolves.toEqual({
-			status: "ok",
 			degraded: true,
+			status: "ok",
 			suggestions: [
 				{
-					label: "FARMACIA SAAS",
 					categoryName: "Healthcare",
 					domain: "farmaciasaas.com",
+					label: "FARMACIA SAAS",
 				},
 			],
 		});
@@ -520,22 +508,22 @@ describe("classify", () => {
 		const model = mockModel(
 			JSON.stringify({
 				mapping: [
-					{ label: "Coffee Shop", categoryName: "Coffee" },
-					{ label: "Unknown Store", categoryName: "Groceries" },
+					{ categoryName: "Coffee", label: "Coffee Shop" },
+					{ categoryName: "Groceries", label: "Unknown Store" },
 				],
-			}),
+			})
 		);
 
 		await expect(
 			classify(model, {
-				labels: BASE_ARGS.labels,
 				categoryTree: BASE_ARGS.categoryTree,
-			}),
+				labels: BASE_ARGS.labels,
+			})
 		).resolves.toEqual({
 			status: "ok",
 			suggestions: [
-				{ label: "Coffee Shop", categoryName: "Coffee", domain: null },
-				{ label: "Unknown Store", categoryName: "Groceries", domain: null },
+				{ categoryName: "Coffee", domain: null, label: "Coffee Shop" },
+				{ categoryName: "Groceries", domain: null, label: "Unknown Store" },
 			],
 		});
 	});
@@ -544,22 +532,20 @@ describe("classify", () => {
 		const model = mockModel(
 			JSON.stringify({
 				mapping: [
-					{ label: "Coffee Shop", categoryName: "Coffee" },
-					{ label: "Unknown Store", categoryName: "Invented Category" },
+					{ categoryName: "Coffee", label: "Coffee Shop" },
+					{ categoryName: "Invented Category", label: "Unknown Store" },
 				],
-			}),
+			})
 		);
 
 		await expect(
 			classify(model, {
-				labels: BASE_ARGS.labels,
 				categoryTree: BASE_ARGS.categoryTree,
-			}),
+				labels: BASE_ARGS.labels,
+			})
 		).resolves.toEqual({
 			status: "ok",
-			suggestions: [
-				{ label: "Coffee Shop", categoryName: "Coffee", domain: null },
-			],
+			suggestions: [{ categoryName: "Coffee", domain: null, label: "Coffee Shop" }],
 		});
 	});
 
@@ -568,9 +554,9 @@ describe("classify", () => {
 
 		await expect(
 			classify(model, {
-				labels: BASE_ARGS.labels,
 				categoryTree: BASE_ARGS.categoryTree,
-			}),
+				labels: BASE_ARGS.labels,
+			})
 		).resolves.toEqual({
 			status: "invalidResponse",
 			suggestions: null,
@@ -582,9 +568,9 @@ describe("classify", () => {
 
 		await expect(
 			classify(model, {
-				labels: BASE_ARGS.labels,
 				categoryTree: BASE_ARGS.categoryTree,
-			}),
+				labels: BASE_ARGS.labels,
+			})
 		).resolves.toEqual({
 			status: "providerError",
 			suggestions: null,

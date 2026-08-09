@@ -11,8 +11,8 @@ export const authClient = createAuthClient({
 		convexClient(),
 		expoClient({
 			scheme: Constants.expoConfig?.scheme as string,
-			storagePrefix: Constants.expoConfig?.scheme as string,
 			storage: { getItem, setItem },
+			storagePrefix: Constants.expoConfig?.scheme as string,
 		}),
 	],
 });

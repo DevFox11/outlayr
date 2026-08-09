@@ -31,9 +31,8 @@ export function ratesPuller(): PullRatesFn {
  */
 export function syncTransport(): { push: PushFn; pull: PullFn } {
 	return {
+		pull: async (args) => convex.query("sync:pullSince" as never, args as never),
 		push: async (args) => convex.mutation("sync:push" as never, args as never),
-		pull: async (args) =>
-			convex.query("sync:pullSince" as never, args as never),
 	};
 }
 
@@ -52,9 +51,7 @@ export function syncTransport(): { push: PushFn; pull: PullFn } {
  * token, so tearing it down on the first error would mean no realtime until the
  * next remount.
  */
-export function watchSyncWatermark(
-	onWatermark: (watermark: number) => void,
-): () => void {
+export function watchSyncWatermark(onWatermark: (watermark: number) => void): () => void {
 	const watch = convex.watchQuery("sync:currentSeq" as never, {} as never);
 	return watch.onUpdate(() => {
 		let watermark: unknown;
@@ -70,29 +67,27 @@ export function watchSyncWatermark(
 }
 
 export interface CategoryBranch {
-	name: string;
 	children: string[];
+	name: string;
 }
 
 export interface EnrichmentRequest {
-	name: string;
+	/** Names only — the shape of the ledger, never its figures. */
+	categoryTree: CategoryBranch[];
+	/** The synced `groundedLookup` setting; the server re-checks it too. */
+	groundedLookup: boolean;
 	income: boolean;
+	knowledgeOnly?: boolean;
 	locale?: string;
+	name: string;
 	/**
 	 * The device's own region — a signal `locale` cannot substitute for, since a
 	 * user may run an English UI on a device set to a different region.
 	 */
 	regionCode?: string;
-	/** Names only — the shape of the ledger, never its figures. */
-	categoryTree: CategoryBranch[];
-	/** The synced `groundedLookup` setting; the server re-checks it too. */
-	groundedLookup: boolean;
-	knowledgeOnly?: boolean;
 }
 
-export type EnrichmentFn = (
-	args: EnrichmentRequest,
-) => Promise<RemoteEnrichmentResult>;
+export type EnrichmentFn = (args: EnrichmentRequest) => Promise<RemoteEnrichmentResult>;
 
 /**
  * Only the merchant name and the user's own category names are sent — the
@@ -106,15 +101,14 @@ export type EnrichmentFn = (
  * for `syncTransport`.
  */
 export function enrichmentTransport(): EnrichmentFn {
-	return async (args) =>
-		convex.action("enrichment:suggest" as never, args as never);
+	return async (args) => convex.action("enrichment:suggest" as never, args as never);
 }
 
 export interface LabelSuggestion {
-	label: string;
 	categoryName: string;
 	/** Absent from a backend deployed before the merchantKnowledge tier. */
 	domain?: string | null;
+	label: string;
 }
 
 export type CsvImportStatus =
@@ -127,16 +121,16 @@ export type CsvImportStatus =
 	| "invalidResponse";
 
 export interface CsvImportResult {
+	degraded?: boolean;
 	status: CsvImportStatus;
 	suggestions: LabelSuggestion[] | null;
-	degraded?: boolean;
 }
 
 export interface CsvImportRequest {
-	labels: string[];
 	categoryTree: CategoryBranch[];
 	/** The synced `groundedLookup` setting; the server re-checks it too. */
 	groundedLookup?: boolean;
+	labels: string[];
 	regionCode?: string;
 }
 
@@ -149,8 +143,7 @@ export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
  * itself, exactly as it does for `enrichmentTransport`.
  */
 export function csvImportTransport(): CsvImportFn {
-	return async (args) =>
-		convex.action("csvImport:csvImport" as never, args as never);
+	return async (args) => convex.action("csvImport:csvImport" as never, args as never);
 }
 
 /**
@@ -162,44 +155,8 @@ export function csvImportTransport(): CsvImportFn {
  */
 export function photoTransport(): PhotoTransport {
 	return {
-		requestUpload: async (name) =>
-			convex.mutation("photos:requestUpload" as never, { name } as never),
 		confirmUpload: async (key, storageId) => {
-			await convex.action(
-				"photos:confirmUpload" as never,
-				(storageId ? { key, storageId } : { key }) as never,
-			);
-		},
-		readUrls: async (keys) =>
-			convex.query(
-				"photos:readUrls" as never,
-				{
-					keys: [...keys],
-				} as never,
-			),
-		release: async (key) => {
-			await convex.mutation(
-				"photos:releaseUnreferenced" as never,
-				{ key } as never,
-			);
-		},
-		put: async (url, bytes) => {
-			const response = await fetch(url, {
-				method: "PUT",
-				body: bytes as unknown as BodyInit,
-				headers: { "Content-Type": "image/jpeg" },
-			});
-			if (!response.ok) {
-				throw new Error(`Photo upload failed: ${response.status}`);
-			}
-			// Convex file storage answers the PUT with the id it allocated; R2
-			// answers with nothing, because its key is already the address.
-			try {
-				const body = (await response.json()) as { storageId?: string };
-				return body.storageId ?? null;
-			} catch {
-				return null;
-			}
+			await convex.action("photos:confirmUpload" as never, (storageId ? { key, storageId } : { key }) as never);
 		},
 		get: async (url) => {
 			const response = await fetch(url);
@@ -213,5 +170,34 @@ export function photoTransport(): PhotoTransport {
 			}
 			return new Uint8Array(await response.arrayBuffer());
 		},
+		put: async (url, bytes) => {
+			const response = await fetch(url, {
+				body: bytes as unknown as BodyInit,
+				headers: { "Content-Type": "image/jpeg" },
+				method: "PUT",
+			});
+			if (!response.ok) {
+				throw new Error(`Photo upload failed: ${response.status}`);
+			}
+			// Convex file storage answers the PUT with the id it allocated; R2
+			// answers with nothing, because its key is already the address.
+			try {
+				const body = (await response.json()) as { storageId?: string };
+				return body.storageId ?? null;
+			} catch {
+				return null;
+			}
+		},
+		readUrls: async (keys) =>
+			convex.query(
+				"photos:readUrls" as never,
+				{
+					keys: [...keys],
+				} as never
+			),
+		release: async (key) => {
+			await convex.mutation("photos:releaseUnreferenced" as never, { key } as never);
+		},
+		requestUpload: async (name) => convex.mutation("photos:requestUpload" as never, { name } as never),
 	};
 }

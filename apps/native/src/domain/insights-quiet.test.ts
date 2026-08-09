@@ -8,9 +8,7 @@ describe("quietAlternative", () => {
 	});
 
 	it("sends a quiet spend window to the income that window did hold", () => {
-		expect(quietAlternative("spent", { income: 1200, spent: 0 })).toBe(
-			"income",
-		);
+		expect(quietAlternative("spent", { income: 1200, spent: 0 })).toBe("income");
 	});
 
 	it("sends a quiet income window to spent rather than net, because a direction beats a derived figure", () => {

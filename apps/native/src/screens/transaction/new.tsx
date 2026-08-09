@@ -3,12 +3,9 @@ import { useState } from "react";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
-import { getTransactionById } from "@/data/transactions";
-import {
-	type LogAgainDraft,
-	logAgainDraft,
-} from "@/domain/transaction-actions";
-import { useTranslation } from "@/i18n";
+import { getTransactionById } from "@/data/transactions-core";
+import { type LogAgainDraft, logAgainDraft } from "@/domain/transaction-actions";
+import { useTranslation } from "@/i18n/context";
 
 export function NewTransaction({
 	income,
@@ -52,8 +49,8 @@ export function NewTransaction({
 				mode="create"
 				onDone={() => router.back()}
 				seed={{
-					income: income === "1",
 					amount: Number.isFinite(seededAmount) ? seededAmount : undefined,
+					income: income === "1",
 					note,
 				}}
 			/>

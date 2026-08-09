@@ -4,21 +4,16 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import {
-	RECENT_CATEGORY_LIMIT,
-	recentCategoryIdsQuery,
-} from "./category-recents";
+import { RECENT_CATEGORY_LIMIT, recentCategoryIdsQuery } from "./category-recents";
 
-const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -29,19 +24,24 @@ function makeDb(): Database {
 
 let clock = 0;
 
+function nextTick(): number {
+	clock += 1;
+	return clock;
+}
+
 function log(
 	db: Database,
 	categoryId: string | null,
-	options: { income?: boolean; deleted?: boolean; at?: number } = {},
+	options: { income?: boolean; deleted?: boolean; at?: number } = {}
 ): void {
-	const at = options.at ?? ++clock;
+	const at = options.at ?? nextTick();
 	const date = new Date(at * 1000);
 	if (categoryId != null) {
 		db.insert(categories)
 			.values({
 				id: categoryId,
-				name: categoryId,
 				income: options.income ?? false,
+				name: categoryId,
 				sortOrder: 0,
 				updatedAt: date,
 			})
@@ -50,25 +50,21 @@ function log(
 	}
 	db.insert(transactions)
 		.values({
-			id: `tx-${at}-${categoryId ?? "none"}`,
 			amount: 10,
-			income: options.income ?? false,
-			note: "",
+			categoryId,
 			date,
 			day: date,
-			month: date,
-			categoryId,
-			updatedAt: date,
 			deletedAt: options.deleted === true ? date : null,
+			id: `tx-${at}-${categoryId ?? "none"}`,
+			income: options.income ?? false,
+			month: date,
+			note: "",
+			updatedAt: date,
 		})
 		.run();
 }
 
-function ids(
-	db: Database,
-	income: boolean,
-	limit = RECENT_CATEGORY_LIMIT,
-): string[] {
+function ids(db: Database, income: boolean, limit = RECENT_CATEGORY_LIMIT): string[] {
 	return recentCategoryIdsQuery(db, income, limit)
 		.all()
 		.map((row) => row.categoryId)

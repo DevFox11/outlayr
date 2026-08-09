@@ -4,18 +4,18 @@ import type { DayCardInput } from "./day-card";
 import { amountDigits, amountParts, withCurrencySymbol } from "./money";
 
 export interface CardableTransaction {
-	note: string;
 	amount: number;
-	income: boolean;
+	categoryName: string | null;
 	currency: string | null;
 	date: Date;
-	categoryName: string | null;
+	income: boolean;
+	note: string;
 }
 
 export interface CardableSection {
+	data: readonly CardableTransaction[];
 	day: Date;
 	totals: readonly CurrencyBucket[];
-	data: readonly CardableTransaction[];
 }
 
 export interface DayCardOptions {
@@ -44,28 +44,22 @@ function signed(amount: number, code: string, showCents: boolean): string {
 export function dayCardContent(
 	section: CardableSection,
 	options: DayCardOptions,
-	now: Date = new Date(),
+	now: Date = new Date()
 ): DayCardInput {
 	return {
 		dayLabel: formatDayHeader(section.day, now),
-		// Two currencies are printed side by side, never summed: the day header
-		// makes the same refusal, and inventing a rate here would contradict it.
-		total: section.totals
-			.map((bucket) =>
-				signed(bucket.amount, bucket.currencyCode, options.showCents),
-			)
-			.join(" / "),
 		rows: section.data.map((row) => {
 			const code = row.currency ?? options.currency;
 			const magnitude = figure(row.amount, code, options.showCents);
 			return {
-				note: row.note,
-				meta: options.swapTimeLabel
-					? (row.categoryName ?? "")
-					: formatTime(row.date, options.use24Hour),
 				amount: `${row.income ? "+" : "-"}${magnitude}`,
+				meta: options.swapTimeLabel ? (row.categoryName ?? "") : formatTime(row.date, options.use24Hour),
+				note: row.note,
 			};
 		}),
+		// Two currencies are printed side by side, never summed: the day header
+		// makes the same refusal, and inventing a rate here would contradict it.
+		total: section.totals.map((bucket) => signed(bucket.amount, bucket.currencyCode, options.showCents)).join(" / "),
 	};
 }
 

@@ -13,12 +13,7 @@ import {
 	query,
 } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
-import {
-	isPhotoName,
-	ownsPhotoKey,
-	photoKeyFor,
-	photoOwnerFromKey,
-} from "./lib/photoKeys";
+import { isPhotoName, ownsPhotoKey, photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
 
 /**
  * Transaction photo bytes, which travel outside `sync.ts` entirely.
@@ -58,10 +53,7 @@ function usingR2(): boolean {
 }
 
 /** The Convex-storage id for `key`, or null when R2 holds the bytes. */
-async function storageIdFor(
-	ctx: QueryCtx,
-	key: string,
-): Promise<Id<"_storage"> | null> {
+async function storageIdFor(ctx: QueryCtx, key: string): Promise<Id<"_storage"> | null> {
 	const row = await ctx.db
 		.query("photoObjects")
 		.withIndex("by_key", (q) => q.eq("key", key))
@@ -115,8 +107,8 @@ async function checkPhotoQuota(ctx: QueryCtx, userId: string): Promise<void> {
 	if (used >= PHOTO_QUOTA_BYTES) {
 		throw new ConvexError({
 			code: "PHOTO_QUOTA_EXCEEDED",
-			used,
 			limit: PHOTO_QUOTA_BYTES,
+			used,
 		});
 	}
 }
@@ -131,7 +123,6 @@ async function checkPhotoQuota(ctx: QueryCtx, userId: string): Promise<void> {
  */
 export const requestUpload = mutation({
 	args: { name: v.string() },
-	returns: v.object({ key: v.string(), url: v.string() }),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
 		await checkPhotoQuota(ctx, userId);
@@ -144,6 +135,7 @@ export const requestUpload = mutation({
 		}
 		return { key, url: await ctx.storage.generateUploadUrl() };
 	},
+	returns: v.object({ key: v.string(), url: v.string() }),
 });
 
 /**
@@ -152,8 +144,8 @@ export const requestUpload = mutation({
  */
 export const callerId = internalQuery({
 	args: {},
-	returns: v.string(),
 	handler: async (ctx) => await requireUserId(ctx),
+	returns: v.string(),
 });
 
 /**
@@ -167,7 +159,6 @@ export const callerId = internalQuery({
  */
 export const confirmUpload = action({
 	args: { key: v.string(), storageId: v.optional(v.id("_storage")) },
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		const userId: string = await ctx.runQuery(internal.photos.callerId, {});
 		if (!ownsPhotoKey(userId, args.key)) {
@@ -190,11 +181,12 @@ export const confirmUpload = action({
 		// where losing a photo is not.
 		const metadata = await r2.getMetadata(ctx, args.key);
 		await ctx.runMutation(internal.photos.recordPhotoSize, {
-			key: args.key,
 			bytes: metadata?.size ?? 0,
+			key: args.key,
 		});
 		return null;
 	},
+	returns: v.null(),
 });
 
 /**
@@ -204,12 +196,12 @@ export const confirmUpload = action({
  * be replaced with it rather than added to.
  */
 export const recordPhotoSize = internalMutation({
-	args: { key: v.string(), bytes: v.number() },
-	returns: v.null(),
+	args: { bytes: v.number(), key: v.string() },
 	handler: async (ctx, args) => {
 		await writePhotoSize(ctx, args.key, args.bytes);
 		return null;
 	},
+	returns: v.null(),
 });
 
 /**
@@ -218,11 +210,7 @@ export const recordPhotoSize = internalMutation({
  * user to act on, and failing here would fail an upload whose bytes are safely
  * stored.
  */
-async function writePhotoSize(
-	ctx: MutationCtx,
-	key: string,
-	bytes: number,
-): Promise<void> {
+async function writePhotoSize(ctx: MutationCtx, key: string, bytes: number): Promise<void> {
 	const userId = photoOwnerFromKey(key);
 	if (userId === null) {
 		return;
@@ -235,7 +223,7 @@ async function writePhotoSize(
 		await ctx.db.patch(existing._id, { bytes });
 		return;
 	}
-	await ctx.db.insert("photoSizes", { userId, key, bytes });
+	await ctx.db.insert("photoSizes", { bytes, key, userId });
 }
 
 /** Drops the accounting for an object whose bytes are gone. */
@@ -257,7 +245,6 @@ async function forgetPhotoSize(ctx: MutationCtx, key: string): Promise<void> {
  */
 export const mapStorageId = internalMutation({
 	args: { key: v.string(), storageId: v.id("_storage") },
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query("photoObjects")
@@ -281,6 +268,7 @@ export const mapStorageId = internalMutation({
 		});
 		return null;
 	},
+	returns: v.null(),
 });
 
 /**
@@ -293,13 +281,10 @@ export const mapStorageId = internalMutation({
  */
 export const readUrls = query({
 	args: { keys: v.array(v.string()) },
-	returns: v.array(v.object({ key: v.string(), url: v.string() })),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
 		if (args.keys.length > PHOTO_URL_BATCH_LIMIT) {
-			throw new ConvexError(
-				`A read asks for at most ${PHOTO_URL_BATCH_LIMIT} urls; got ${args.keys.length}`,
-			);
+			throw new ConvexError(`A read asks for at most ${PHOTO_URL_BATCH_LIMIT} urls; got ${args.keys.length}`);
 		}
 
 		const owned = args.keys.filter((key) => ownsPhotoKey(userId, key));
@@ -312,12 +297,11 @@ export const readUrls = query({
 					? await ctx.storage.getUrl(storageId)
 					: await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS });
 				return url === null ? null : { key, url };
-			}),
+			})
 		);
-		return minted.filter((entry): entry is { key: string; url: string } =>
-			Boolean(entry),
-		);
+		return minted.filter((entry): entry is { key: string; url: string } => Boolean(entry));
 	},
+	returns: v.array(v.object({ key: v.string(), url: v.string() })),
 });
 
 /**
@@ -332,11 +316,7 @@ export const readUrls = query({
  * what a device that has not pulled yet is still rendering, so treating one as
  * unreferenced would delete bytes two live readers can name.
  */
-async function isReferenced(
-	ctx: MutationCtx,
-	userId: string,
-	key: string,
-): Promise<boolean> {
+async function isReferenced(ctx: MutationCtx, userId: string, key: string): Promise<boolean> {
 	const transactionRows = await ctx.db
 		.query("transactions")
 		.withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
@@ -371,7 +351,6 @@ async function isReferenced(
  */
 export const releaseUnreferenced = mutation({
 	args: { key: v.string() },
-	returns: v.object({ released: v.boolean() }),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
 		if (!ownsPhotoKey(userId, args.key)) {
@@ -397,4 +376,5 @@ export const releaseUnreferenced = mutation({
 		await forgetPhotoSize(ctx, args.key);
 		return { released: true };
 	},
+	returns: v.object({ released: v.boolean() }),
 });

@@ -1,21 +1,17 @@
 import type { ColumnMapping, ParsedImportFile } from "@/data/transfer-core";
 import { parseCsvAmount, parseCsvDate } from "@/domain/transaction-csv";
-import {
-	buildClassificationPayload,
-	MAX_LABELS,
-	scrubLabel,
-} from "./import-ai-payload";
+import { buildClassificationPayload, MAX_LABELS, scrubLabel } from "./import-ai-payload";
 
 const DRAFT: Record<keyof ColumnMapping, number | null> = {
-	category: 1,
-	note: 1,
-	date: 0,
 	amount: 2,
+	category: 1,
 	currency: null,
+	date: 0,
+	note: 1,
 	type: null,
 };
 
-const CATEGORY_TREE = [{ name: "Food", children: ["Coffee"] }];
+const CATEGORY_TREE = [{ children: ["Coffee"], name: "Food" }];
 
 const PARSED: ParsedImportFile = {
 	header: ["date", "description", "amount"],
@@ -28,9 +24,7 @@ const PARSED: ParsedImportFile = {
 
 describe("scrubLabel", () => {
 	test("strips a run of 4 or more digits", () => {
-		expect(scrubLabel("Card ending 1234 purchase")).toBe(
-			"Card ending purchase",
-		);
+		expect(scrubLabel("Card ending 1234 purchase")).toBe("Card ending purchase");
 	});
 
 	test("keeps 7-Eleven intact", () => {
@@ -46,9 +40,7 @@ describe("scrubLabel", () => {
 	});
 
 	test("strips a run of 4+ fullwidth digits", () => {
-		expect(scrubLabel("Card ending ４５６７ purchase")).toBe(
-			"Card ending purchase",
-		);
+		expect(scrubLabel("Card ending ４５６７ purchase")).toBe("Card ending purchase");
 	});
 
 	test("strips a run of 4+ Arabic-Indic digits", () => {
@@ -64,36 +56,34 @@ describe("buildClassificationPayload", () => {
 	test("returns null when there are no unresolved labels", () => {
 		expect(
 			buildClassificationPayload({
-				parsed: PARSED,
-				draft: DRAFT,
-				unresolvedLabels: [],
 				categoryTree: CATEGORY_TREE,
-			}),
+				draft: DRAFT,
+				parsed: PARSED,
+				unresolvedLabels: [],
+			})
 		).toBeNull();
 	});
 
 	test("returns exactly the two declared keys, with no headers or sampleRows", () => {
 		const payload = buildClassificationPayload({
-			parsed: PARSED,
-			draft: DRAFT,
-			unresolvedLabels: ["Coffee Shop", "Unknown Store 12345"],
 			categoryTree: CATEGORY_TREE,
+			draft: DRAFT,
+			parsed: PARSED,
+			unresolvedLabels: ["Coffee Shop", "Unknown Store 12345"],
 		});
 
 		expect(payload).not.toBeNull();
-		expect(Object.keys(payload as object).sort()).toEqual(
-			["categoryTree", "labels"].sort(),
-		);
+		expect(Object.keys(payload as object).sort()).toEqual(["categoryTree", "labels"].sort());
 	});
 
 	test("caps labels at MAX_LABELS", () => {
 		const manyLabels = Array.from({ length: 250 }, (_, i) => `Merchant ${i}`);
 
 		const payload = buildClassificationPayload({
-			parsed: PARSED,
-			draft: DRAFT,
-			unresolvedLabels: manyLabels,
 			categoryTree: CATEGORY_TREE,
+			draft: DRAFT,
+			parsed: PARSED,
+			unresolvedLabels: manyLabels,
 		});
 
 		expect(payload).not.toBeNull();
@@ -102,10 +92,10 @@ describe("buildClassificationPayload", () => {
 
 	test("a genuinely non-null payload carries the requested category tree verbatim", () => {
 		const payload = buildClassificationPayload({
-			parsed: PARSED,
-			draft: DRAFT,
-			unresolvedLabels: ["Coffee Shop"],
 			categoryTree: CATEGORY_TREE,
+			draft: DRAFT,
+			parsed: PARSED,
+			unresolvedLabels: ["Coffee Shop"],
 		});
 
 		expect(payload).not.toBeNull();
@@ -115,10 +105,10 @@ describe("buildClassificationPayload", () => {
 
 	test("no raw CSV date or amount string appears anywhere in the stringified payload", () => {
 		const payload = buildClassificationPayload({
-			parsed: PARSED,
-			draft: DRAFT,
-			unresolvedLabels: ["Coffee Shop", "Unknown Store 12345"],
 			categoryTree: CATEGORY_TREE,
+			draft: DRAFT,
+			parsed: PARSED,
+			unresolvedLabels: ["Coffee Shop", "Unknown Store 12345"],
 		});
 
 		expect(payload).not.toBeNull();

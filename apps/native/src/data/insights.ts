@@ -7,6 +7,7 @@ import {
 	DEFAULT_CALENDAR,
 	monthAbbrev,
 	monthAbbrevTitle,
+	// biome-ignore lint/style/noExportedImports: the rule's own fix, `export { monthPeriodStart } from "@/domain/dates"`, is rejected here by lint/performance/noBarrelFile
 	monthPeriodStart,
 	startOfWeek,
 	startOfYear,
@@ -37,35 +38,35 @@ export const DEFAULT_INSIGHTS_CALENDAR: InsightsCalendar = DEFAULT_CALENDAR;
 /** Already filtered to non-deleted rows dated on or before now. */
 export interface InsightsContribution {
 	amount: number;
-	income: boolean;
 	categoryId: string | null;
-	parentId: string | null;
 	date: Date;
+	income: boolean;
+	parentId: string | null;
 }
 
 export interface CategoryMeta {
-	id: string;
-	name: string | null;
 	color: string | null;
-	icon: string | null;
 	emoji: string | null;
+	icon: string | null;
+	id: string;
 	income: boolean;
+	name: string | null;
 	parentId: string | null;
 }
 
 export interface InsightsBucket {
-	start: Date;
 	/** Exclusive. */
 	end: Date;
 	label: string;
+	start: Date;
 	/** Signed for `net` (income − expense); a positive magnitude otherwise. */
 	value: number;
 }
 
 interface BucketRange {
-	start: Date;
 	end: Date;
 	label: string;
+	start: Date;
 }
 
 /**
@@ -76,7 +77,7 @@ export function windowStart(
 	period: InsightsPeriod,
 	now: Date,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): Date {
 	if (period === "week") {
 		return addDays(startOfWeek(now, calendar.firstWeekday), offset * 7);
@@ -94,7 +95,7 @@ export function windowEnd(
 	period: InsightsPeriod,
 	now: Date,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): Date {
 	return windowStart(period, now, offset + 1, calendar);
 }
@@ -108,35 +109,29 @@ export function bucketRanges(
 	now: Date,
 	offset = 0,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
-	language: Language = runtimeLanguage(),
+	language: Language = runtimeLanguage()
 ): BucketRange[] {
 	const start = windowStart(period, now, offset, calendar);
 	const ranges: BucketRange[] = [];
 	if (period === "year") {
-		for (let i = 0; i < 12; i++) {
+		for (let i = 0; i < 12; i += 1) {
 			const slot = addMonths(start, i);
 			ranges.push({
-				start: slot,
 				end: addMonths(slot, 1),
 				label: monthAbbrev(slot, language),
+				start: slot,
 			});
 		}
 		return ranges;
 	}
 	const end = windowEnd(period, now, offset, calendar);
-	const slots =
-		period === "week"
-			? 7
-			: Math.round((end.getTime() - start.getTime()) / DAY_MS);
-	for (let i = 0; i < slots; i++) {
+	const slots = period === "week" ? 7 : Math.round((end.getTime() - start.getTime()) / DAY_MS);
+	for (let i = 0; i < slots; i += 1) {
 		const slot = addDays(start, i);
 		ranges.push({
-			start: slot,
 			end: addDays(slot, 1),
-			label:
-				period === "week"
-					? weekdayInitial(slot, language)
-					: String(slot.getDate()),
+			label: period === "week" ? weekdayInitial(slot, language) : String(slot.getDate()),
+			start: slot,
 		});
 	}
 	return ranges;
@@ -147,7 +142,7 @@ export function elapsedSlots(
 	period: InsightsPeriod,
 	now: Date,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): number {
 	const ranges = bucketRanges(period, now, offset, calendar);
 	if (ranges.length === 0) {
@@ -157,23 +152,19 @@ export function elapsedSlots(
 	let elapsed = 0;
 	for (const range of ranges) {
 		if (range.start.getTime() <= nowMs) {
-			elapsed++;
+			elapsed += 1;
 		}
 	}
 	return Math.max(1, Math.min(ranges.length, elapsed));
 }
 
-function measureValue(
-	income: boolean,
-	amount: number,
-	measure: InsightsMeasure,
-): number {
+function measureValue(income: boolean, amount: number, measure: InsightsMeasure): number {
 	switch (measure) {
 		case "spent":
 			return income ? 0 : amount;
 		case "income":
 			return income ? amount : 0;
-		case "net":
+		default:
 			return income ? amount : -amount;
 	}
 }
@@ -186,21 +177,22 @@ export function bucketSeries(
 	now: Date,
 	offset = 0,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
-	language: Language = runtimeLanguage(),
+	language: Language = runtimeLanguage()
 ): InsightsBucket[] {
 	const nowMs = now.getTime();
-	const buckets: InsightsBucket[] = bucketRanges(
-		period,
-		now,
-		offset,
-		calendar,
-		language,
-	).map((r) => ({ ...r, value: 0 }));
+	const buckets: InsightsBucket[] = bucketRanges(period, now, offset, calendar, language).map((r) => ({
+		...r,
+		value: 0,
+	}));
 	if (buckets.length === 0) {
 		return buckets;
 	}
+	const last = buckets.at(-1);
+	if (!last) {
+		return buckets;
+	}
 	const start = buckets[0].start.getTime();
-	const end = buckets[buckets.length - 1].end.getTime();
+	const end = last.end.getTime();
 	for (const row of rows) {
 		const t = row.date.getTime();
 		if (t > nowMs || t < start || t >= end) {
@@ -243,15 +235,19 @@ function windowBounds(
 	period: InsightsPeriod,
 	now: Date,
 	offset: number,
-	calendar: InsightsCalendar,
+	calendar: InsightsCalendar
 ): { start: number; end: number } | null {
 	const ranges = bucketRanges(period, now, offset, calendar);
 	if (ranges.length === 0) {
 		return null;
 	}
+	const last = ranges.at(-1);
+	if (!last) {
+		return null;
+	}
 	return {
+		end: last.end.getTime(),
 		start: ranges[0].start.getTime(),
-		end: ranges[ranges.length - 1].end.getTime(),
 	};
 }
 
@@ -263,7 +259,7 @@ export function categoryBreakdown(
 	measure: InsightsMeasure,
 	now: Date,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): CategoryBreakdownEntry[] {
 	const bounds = windowBounds(period, now, offset, calendar);
 	if (!bounds) {
@@ -277,7 +273,7 @@ export function categoryBreakdownWithin(
 	categoriesById: ReadonlyMap<string, CategoryMeta>,
 	measure: InsightsMeasure,
 	bounds: { start: number; end: number },
-	now: Date,
+	now: Date
 ): CategoryBreakdownEntry[] {
 	const wantIncome = measure === "income";
 	const nowMs = now.getTime();
@@ -304,14 +300,14 @@ export function categoryBreakdownWithin(
 	for (const [id, amount] of sums) {
 		const meta = categoriesById.get(id);
 		entries.push({
+			amount,
+			color: meta?.color ?? FALLBACK_CATEGORY_COLOR,
+			delta: null,
+			emoji: meta?.emoji ?? null,
+			fraction: total > 0 ? amount / total : 0,
+			icon: meta?.icon ?? null,
 			id,
 			name: meta?.name ?? "Uncategorized",
-			color: meta?.color ?? FALLBACK_CATEGORY_COLOR,
-			icon: meta?.icon ?? null,
-			emoji: meta?.emoji ?? null,
-			amount,
-			fraction: total > 0 ? amount / total : 0,
-			delta: null,
 		});
 	}
 	entries.sort((a, b) => b.amount - a.amount);
@@ -319,49 +315,48 @@ export function categoryBreakdownWithin(
 }
 
 export interface CategoryBreakdownEntry {
-	/** Top-level category id. */
-	id: string;
-	name: string;
-	color: string;
-	icon: string | null;
-	emoji: string | null;
 	/** Positive magnitude summed across the category and its subcategories. */
 	amount: number;
-	/** `amount` ÷ breakdown total, in [0, 1]. */
-	fraction: number;
+	color: string;
 	/**
 	 * Change against the same window one period earlier, as a fraction of the
 	 * prior amount; null when there is no prior amount to compare against.
 	 * Filled by {@link withCategoryDeltas}, not by the breakdown itself.
 	 */
 	delta: number | null;
+	emoji: string | null;
+	/** `amount` ÷ breakdown total, in [0, 1]. */
+	fraction: number;
+	icon: string | null;
+	/** Top-level category id. */
+	id: string;
+	name: string;
 }
 
 export function withCategoryDeltas(
 	current: readonly CategoryBreakdownEntry[],
-	prior: readonly CategoryBreakdownEntry[],
+	prior: readonly CategoryBreakdownEntry[]
 ): CategoryBreakdownEntry[] {
 	const priorById = new Map(prior.map((entry) => [entry.id, entry.amount]));
 	return current.map((entry) => {
 		const before = priorById.get(entry.id);
 		return {
 			...entry,
-			delta:
-				before != null && before > 0 ? (entry.amount - before) / before : null,
+			delta: before != null && before > 0 ? (entry.amount - before) / before : null,
 		};
 	});
 }
 
 export interface CategoryMover {
-	id: string;
-	name: string;
 	color: string;
-	icon: string | null;
-	emoji: string | null;
 	/** Signed change in currency. Positive means more flowed this window. */
 	delta: number;
+	emoji: string | null;
 	/** `delta` ÷ the prior amount, or null for a category that is simply new. */
 	fraction: number | null;
+	icon: string | null;
+	id: string;
+	name: string;
 }
 
 const MOVER_MIN_SHARE = 0.05;
@@ -371,7 +366,7 @@ const MOVER_LIMIT = 3;
 export function categoryMovers(
 	current: readonly CategoryBreakdownEntry[],
 	prior: readonly CategoryBreakdownEntry[],
-	windowTotal: number,
+	windowTotal: number
 ): CategoryMover[] {
 	if (prior.length === 0 || windowTotal <= 0) {
 		return [];
@@ -388,14 +383,13 @@ export function categoryMovers(
 			continue;
 		}
 		movers.push({
+			color: entry.color,
+			delta,
+			emoji: entry.emoji,
+			fraction: before != null && before.amount > 0 ? delta / before.amount : null,
+			icon: entry.icon,
 			id: entry.id,
 			name: entry.name,
-			color: entry.color,
-			icon: entry.icon,
-			emoji: entry.emoji,
-			delta,
-			fraction:
-				before != null && before.amount > 0 ? delta / before.amount : null,
 		});
 	}
 
@@ -407,13 +401,13 @@ export function categoryMovers(
 			continue;
 		}
 		movers.push({
+			color: entry.color,
+			delta: -entry.amount,
+			emoji: entry.emoji,
+			fraction: -1,
+			icon: entry.icon,
 			id: entry.id,
 			name: entry.name,
-			color: entry.color,
-			icon: entry.icon,
-			emoji: entry.emoji,
-			delta: -entry.amount,
-			fraction: -1,
 		});
 	}
 
@@ -427,7 +421,7 @@ export function windowTotals(
 	period: InsightsPeriod,
 	now: Date,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): { income: number; spent: number } {
 	const bounds = windowBounds(period, now, offset, calendar);
 	if (!bounds) {
@@ -463,32 +457,22 @@ export function subcategoryBreakdown(
 	measure: InsightsMeasure,
 	now: Date,
 	offset = 0,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): CategoryBreakdownEntry[] {
 	const bounds = windowBounds(period, now, offset, calendar);
 	if (!bounds) {
 		return [];
 	}
-	return subcategoryBreakdownWithin(
-		rows,
-		categoriesById,
-		parentId,
-		measure,
-		bounds,
-		now,
-	);
+	return subcategoryBreakdownWithin(rows, categoriesById, parentId, measure, bounds, now);
 }
 
-export function subcategoryBreakdownWithin(
+function subcategorySums(
 	rows: readonly InsightsContribution[],
-	categoriesById: ReadonlyMap<string, CategoryMeta>,
 	parentId: string,
-	measure: InsightsMeasure,
+	wantIncome: boolean,
 	bounds: { start: number; end: number },
-	now: Date,
-): CategoryBreakdownEntry[] {
-	const wantIncome = measure === "income";
-	const nowMs = now.getTime();
+	nowMs: number
+): Map<string, number> {
 	const sums = new Map<string, number>();
 	for (const row of rows) {
 		if (row.income !== wantIncome) {
@@ -504,6 +488,18 @@ export function subcategoryBreakdownWithin(
 		const key = row.categoryId ?? parentId;
 		sums.set(key, (sums.get(key) ?? 0) + row.amount);
 	}
+	return sums;
+}
+
+export function subcategoryBreakdownWithin(
+	rows: readonly InsightsContribution[],
+	categoriesById: ReadonlyMap<string, CategoryMeta>,
+	parentId: string,
+	measure: InsightsMeasure,
+	bounds: { start: number; end: number },
+	now: Date
+): CategoryBreakdownEntry[] {
+	const sums = subcategorySums(rows, parentId, measure === "income", bounds, now.getTime());
 	let total = 0;
 	for (const amount of sums.values()) {
 		total += amount;
@@ -514,15 +510,14 @@ export function subcategoryBreakdownWithin(
 		const direct = key === parentId;
 		const meta = categoriesById.get(key);
 		entries.push({
+			amount,
+			color: (direct ? parentMeta?.color : meta?.color) ?? FALLBACK_CATEGORY_COLOR,
+			delta: null,
+			emoji: (direct ? parentMeta?.emoji : meta?.emoji) ?? null,
+			fraction: total > 0 ? amount / total : 0,
+			icon: (direct ? parentMeta?.icon : meta?.icon) ?? null,
 			id: key,
 			name: direct ? "Direct" : (meta?.name ?? "Uncategorized"),
-			color:
-				(direct ? parentMeta?.color : meta?.color) ?? FALLBACK_CATEGORY_COLOR,
-			icon: (direct ? parentMeta?.icon : meta?.icon) ?? null,
-			emoji: (direct ? parentMeta?.emoji : meta?.emoji) ?? null,
-			amount,
-			fraction: total > 0 ? amount / total : 0,
-			delta: null,
 		});
 	}
 	entries.sort((a, b) => b.amount - a.amount);
@@ -534,7 +529,7 @@ export function offsetForDate(
 	period: InsightsPeriod,
 	target: Date,
 	now: Date,
-	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
 ): number {
 	if (period === "week") {
 		const from = startOfWeek(now, calendar.firstWeekday).getTime();
@@ -544,10 +539,7 @@ export function offsetForDate(
 	if (period === "month") {
 		const from = monthPeriodStart(now, calendar.firstDayOfMonth);
 		const to = monthPeriodStart(target, calendar.firstDayOfMonth);
-		return (
-			(to.getFullYear() - from.getFullYear()) * 12 +
-			(to.getMonth() - from.getMonth())
-		);
+		return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
 	}
 	return target.getFullYear() - now.getFullYear();
 }
@@ -565,7 +557,7 @@ export function windowLabel(
 	offset: number,
 	now: Date,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
-	language: Language = runtimeLanguage(),
+	language: Language = runtimeLanguage()
 ): string {
 	const start = windowStart(period, now, offset, calendar);
 	if (period === "week") {
@@ -590,7 +582,7 @@ export function windowShortLabel(
 	offset: number,
 	now: Date,
 	calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
-	language: Language = runtimeLanguage(),
+	language: Language = runtimeLanguage()
 ): string {
 	const start = windowStart(period, now, offset, calendar);
 	if (period === "week") {
@@ -603,11 +595,7 @@ export function windowShortLabel(
 }
 
 /** "12 Jul 2025" for a day, "Jul 2025" for a month. */
-export function bucketDateLabel(
-	period: InsightsPeriod,
-	date: Date,
-	language: Language = runtimeLanguage(),
-): string {
+export function bucketDateLabel(period: InsightsPeriod, date: Date, language: Language = runtimeLanguage()): string {
 	if (period === "year") {
 		return `${monthAbbrevTitle(date, language)} ${date.getFullYear()}`;
 	}
@@ -621,32 +609,28 @@ export function bucketDateLabel(
 export async function loadContributions(
 	db: SpendDb,
 	now: Date,
-	valuation: Valuation = NO_VALUATION,
+	valuation: Valuation = NO_VALUATION
 ): Promise<InsightsContribution[]> {
 	const rows = await db
 		.select({
 			amount: transactions.amount,
-			income: transactions.income,
-			date: transactions.date,
-			categoryId: transactions.categoryId,
-			parentId: categories.parentId,
-			currency: transactions.currency,
 			amountUsd: transactions.amountUsd,
+			categoryId: transactions.categoryId,
+			currency: transactions.currency,
+			date: transactions.date,
+			income: transactions.income,
+			parentId: categories.parentId,
 		})
 		.from(transactions)
 		.leftJoin(categories, eq(transactions.categoryId, categories.id))
 		.where(and(isNull(transactions.deletedAt), lte(transactions.date, now)));
-	const valued = valueDatedRowsIn(
-		rows,
-		valuation.displayCurrency,
-		valuation.rates,
-	);
+	const valued = valueDatedRowsIn(rows, valuation.displayCurrency, valuation.rates);
 	return rows.map((row, index) => ({
 		// `amount` is the valued amount from here down, not the row's stored one.
 		amount: valued[index],
-		income: row.income,
 		categoryId: row.categoryId,
-		parentId: row.parentId ?? null,
 		date: row.date,
+		income: row.income,
+		parentId: row.parentId ?? null,
 	}));
 }

@@ -31,13 +31,10 @@ const withMinPodDeploymentTarget: ConfigPlugin = (config) =>
 		}
 		if (!contents.includes(POST_INSTALL_ANCHOR)) {
 			throw new Error(
-				`withMinPodDeploymentTarget: could not find "${POST_INSTALL_ANCHOR}" in the generated Podfile. The Expo template may have changed; update this plugin.`,
+				`withMinPodDeploymentTarget: could not find "${POST_INSTALL_ANCHOR}" in the generated Podfile. The Expo template may have changed; update this plugin.`
 			);
 		}
-		podfileConfig.modResults.contents = contents.replace(
-			POST_INSTALL_ANCHOR,
-			POST_INSTALL_PATCH,
-		);
+		podfileConfig.modResults.contents = contents.replace(POST_INSTALL_ANCHOR, POST_INSTALL_PATCH);
 		return podfileConfig;
 	});
 

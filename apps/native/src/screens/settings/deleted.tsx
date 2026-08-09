@@ -9,15 +9,11 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useLiveQuery } from "@/data/live-query";
-import {
-	type DeletedTransaction,
-	deletedTransactionsQuery,
-	transactionsRepo,
-} from "@/data/transactions-core";
+import { type DeletedTransaction, deletedTransactionsQuery, transactionsRepo } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { formatDayHeader } from "@/domain/dates";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function RecentlyDeleted() {
 	const db = useDatabase();
@@ -32,10 +28,7 @@ function RecentlyDeletedContent({ db }: { db: Database }) {
 	const restore = (id: string) => {
 		transactionsRepo.restore(db, id).catch((error: unknown) => {
 			console.error("Restore failed", error);
-			Alert.alert(
-				t("settings.deleted.failedTitle"),
-				t("settings.deleted.failedBody"),
-			);
+			Alert.alert(t("settings.deleted.failedTitle"), t("settings.deleted.failedBody"));
 		});
 	};
 
@@ -46,20 +39,9 @@ function RecentlyDeletedContent({ db }: { db: Database }) {
 				title={t("settings.deleted.section")}
 			>
 				{rows.length === 0 ? (
-					<EmptyState
-						body={t("settings.deleted.empty")}
-						mark={<HeldSlot />}
-						tier="insetRow"
-					/>
+					<EmptyState body={t("settings.deleted.empty")} mark={<HeldSlot />} tier="insetRow" />
 				) : (
-					rows.map((row) => (
-						<DeletedRow
-							currency={currency}
-							key={row.id}
-							onRestore={() => restore(row.id)}
-							row={row}
-						/>
-					))
+					rows.map((row) => <DeletedRow currency={currency} key={row.id} onRestore={() => restore(row.id)} row={row} />)
 				)}
 			</SettingsSection>
 		</SettingsScreen>
@@ -123,9 +105,7 @@ function DeletedRow({
 				className="active:opacity-60"
 				onPress={onRestore}
 			>
-				<Text className="font-sans-semibold text-subtitle text-tint">
-					{t("settings.deleted.restore")}
-				</Text>
+				<Text className="font-sans-semibold text-subtitle text-tint">{t("settings.deleted.restore")}</Text>
 			</Pressable>
 		</View>
 	);

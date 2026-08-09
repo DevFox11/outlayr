@@ -32,10 +32,7 @@ function attributeName(key: string): string {
 }
 
 function escapeAttribute(value: string): string {
-	return value
-		.replace(/&/g, "&amp;")
-		.replace(/"/g, "&quot;")
-		.replace(/</g, "&lt;");
+	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 /**
@@ -47,11 +44,7 @@ function escapeAttribute(value: string): string {
  *
  * `ink` is the colour baked into the pixels — see {@link DEFAULT_INK}.
  */
-export function toSvg(
-	elements: SvgElement[],
-	strokeWidth?: number,
-	ink: string = DEFAULT_INK,
-): string {
+export function toSvg(elements: SvgElement[], strokeWidth?: number, ink: string = DEFAULT_INK): string {
 	const shapes = elements
 		.map(([tag, attributes]) => {
 			const serialized = Object.entries(attributes)
@@ -81,24 +74,15 @@ export function rasterize(svg: string, basePath: string, points: number) {
 	for (const scale of SCALES) {
 		const pixels = String(points * scale);
 		const suffix = scale === 1 ? "" : `@${scale}x`;
-		execFileSync(
-			"rsvg-convert",
-			["-w", pixels, "-h", pixels, "-o", `${basePath}${suffix}.png`],
-			{ input: svg },
-		);
+		execFileSync("rsvg-convert", ["-w", pixels, "-h", pixels, "-o", `${basePath}${suffix}.png`], { input: svg });
 	}
 }
 
-export async function loadIcon(
-	weight: IconWeight,
-	name: string,
-): Promise<SvgElement[]> {
+export async function loadIcon(weight: IconWeight, name: string): Promise<SvgElement[]> {
 	const module = await import(`@hugeicons-pro/core-${weight}-rounded/${name}`);
 	const elements = module.default as SvgElement[] | undefined;
 	if (!Array.isArray(elements)) {
-		throw new Error(
-			`@hugeicons-pro/core-${weight}-rounded/${name} has no icon data`,
-		);
+		throw new Error(`@hugeicons-pro/core-${weight}-rounded/${name} has no icon data`);
 	}
 	return elements;
 }
@@ -106,10 +90,8 @@ export async function loadIcon(
 export function requireRsvgConvert() {
 	try {
 		execFileSync("rsvg-convert", ["--version"], { stdio: "ignore" });
-	} catch {
-		throw new Error(
-			"rsvg-convert not found on PATH — install it with `brew install librsvg`",
-		);
+	} catch (error) {
+		throw new Error("rsvg-convert not found on PATH — install it with `brew install librsvg`", { cause: error });
 	}
 }
 

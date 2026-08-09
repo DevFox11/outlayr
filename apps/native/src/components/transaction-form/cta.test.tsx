@@ -82,9 +82,6 @@ describe("transactionFormCtaActions", () => {
 			onDelete: () => {},
 			saveLabel: "Save changes",
 		});
-		expect(actions.map((a) => a.accessibilityLabel)).toEqual([
-			"Delete entry",
-			"Save changes",
-		]);
+		expect(actions.map((a) => a.accessibilityLabel)).toEqual(["Delete entry", "Save changes"]);
 	});
 });

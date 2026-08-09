@@ -2,16 +2,12 @@ import type { ExpenseContribution } from "@/data/budget-spent";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
-import {
-	buildDaySlots,
-	categoryMedian,
-	dayVerdictSentence,
-} from "./budget-day-slots";
+import { buildDaySlots, categoryMedian, dayVerdictSentence } from "./budget-day-slots";
 import type { BudgetWindow } from "./budget-math";
 
 const TODAY: BudgetWindow = {
-	start: new Date(2026, 6, 25),
 	end: new Date(2026, 6, 26),
+	start: new Date(2026, 6, 25),
 };
 
 const NOW = new Date(2026, 6, 25, 18, 30);
@@ -22,22 +18,16 @@ function expense(
 	day: number,
 	amount: number,
 	categoryId: string | null = COFFEE,
-	parentId: string | null = null,
+	parentId: string | null = null
 ): ExpenseContribution {
-	return { amount, categoryId, parentId, date: new Date(2026, 6, day, 9) };
+	return { amount, categoryId, date: new Date(2026, 6, day, 9), parentId };
 }
 
-const t: TranslateFn = (key, params) =>
-	translate(key, { catalog: EN, fallback: EN, params });
+const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
 describe("categoryMedian", () => {
 	it("ignores an outlier a mean would follow", () => {
-		const rows = [
-			expense(20, 10),
-			expense(21, 12),
-			expense(22, 11),
-			expense(23, 500),
-		];
+		const rows = [expense(20, 10), expense(21, 12), expense(22, 11), expense(23, 500)];
 
 		expect(categoryMedian(rows, COFFEE)).toBe(11.5);
 	});
@@ -58,15 +48,13 @@ describe("buildDaySlots", () => {
 		const rows = [expense(24, 6), expense(25, 4), expense(25, 9)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
-		expect(
-			slots.blocks.map((block) => [block.start, block.amount, block.over]),
-		).toStrictEqual([
+		expect(slots.blocks.map((block) => [block.start, block.amount, block.over])).toStrictEqual([
 			[0, 4, false],
 			[4, 9, false],
 		]);
@@ -78,10 +66,10 @@ describe("buildDaySlots", () => {
 		const rows = [expense(24, 6), expense(24, 6), expense(25, 5)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.median).toBe(6);
@@ -95,29 +83,27 @@ describe("buildDaySlots", () => {
 		const rows = [expense(24, 6), expense(24, 6), expense(25, 16)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.median).toBe(6);
 		expect(slots.ghost).toBe(null);
 		expect(slots.roomFor).toBe(0);
 		expect(slots.verdict).toBe("tight");
-		expect(dayVerdictSentence(slots, "Coffee", t)).toBe(
-			"Not enough for another.",
-		);
+		expect(dayVerdictSentence(slots, "Coffee", t)).toBe("Not enough for another.");
 	});
 
 	it("draws no slot at all with no history for the category", () => {
 		const rows = [expense(25, 5, "rent")];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.median).toBe(null);
@@ -131,17 +117,13 @@ describe("buildDaySlots", () => {
 		const rows = [expense(25, 10), expense(25, 8), expense(25, 9)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
-		expect(slots.blocks.map((block) => block.over)).toStrictEqual([
-			false,
-			false,
-			true,
-		]);
+		expect(slots.blocks.map((block) => block.over)).toStrictEqual([false, false, true]);
 		expect(slots.overflow).toBe(1);
 		expect(slots.remaining).toBe(-7);
 		expect(slots.verdict).toBe("over");
@@ -152,10 +134,10 @@ describe("buildDaySlots", () => {
 		const rows = [expense(25, 18), expense(25, 6), expense(25, 6)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.overflow).toBe(2);
@@ -166,10 +148,10 @@ describe("buildDaySlots", () => {
 		const rows = [expense(25, 30)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.scale).toBe(30);
@@ -179,10 +161,10 @@ describe("buildDaySlots", () => {
 		const rows = [expense(23, 5), expense(24, 7)];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.blocks).toStrictEqual([]);
@@ -196,16 +178,16 @@ describe("buildDaySlots", () => {
 			{
 				amount: 5,
 				categoryId: COFFEE,
-				parentId: null,
 				date: new Date(2026, 6, 25, 21),
+				parentId: null,
 			},
 		];
 
 		const slots = buildDaySlots(rows, {
-			limit: 20,
-			window: TODAY,
-			now: NOW,
 			categoryId: COFFEE,
+			limit: 20,
+			now: NOW,
+			window: TODAY,
 		});
 
 		expect(slots.blocks).toStrictEqual([]);

@@ -4,12 +4,12 @@
  * body containing one silently truncate the link — `encodeURIComponent` here.
  */
 export interface SupportDiagnostics {
+	appBuild: string;
 	appName: string;
+	appVersion: string;
+	deviceName: string;
 	osName: string;
 	osVersion: string;
-	deviceName: string;
-	appVersion: string;
-	appBuild: string;
 }
 
 const RULE = "--------------------------------------";
@@ -29,14 +29,7 @@ export function supportBody(info: SupportDiagnostics): string {
 	].join("\n");
 }
 
-export function supportMailto(
-	address: string,
-	subject: string,
-	info: SupportDiagnostics,
-): string {
-	const query = [
-		`subject=${encodeURIComponent(subject)}`,
-		`body=${encodeURIComponent(supportBody(info))}`,
-	].join("&");
+export function supportMailto(address: string, subject: string, info: SupportDiagnostics): string {
+	const query = [`subject=${encodeURIComponent(subject)}`, `body=${encodeURIComponent(supportBody(info))}`].join("&");
 	return `mailto:${address}?${query}`;
 }

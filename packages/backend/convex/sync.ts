@@ -34,8 +34,8 @@ export const PUSH_BATCH_LIMIT = 500;
 export const PULL_PAGE_LIMIT = 1000;
 
 const tombstone = {
-	updatedAt: v.number(),
 	deletedAt: v.union(v.number(), v.null()),
+	updatedAt: v.number(),
 };
 
 /**
@@ -46,115 +46,107 @@ const tombstone = {
  */
 const pushRow = v.union(
 	v.object({
-		table: v.literal("categories"),
 		localId: v.string(),
+		table: v.literal("categories"),
 		...tombstone,
 		fields: v.object(categoryFields),
 	}),
 	v.object({
-		table: v.literal("transactions"),
 		localId: v.string(),
+		table: v.literal("transactions"),
 		...tombstone,
 		fields: v.object(transactionFields),
 	}),
 	v.object({
-		table: v.literal("budgets"),
 		localId: v.string(),
+		table: v.literal("budgets"),
 		...tombstone,
 		fields: v.object(budgetFields),
 	}),
 	v.object({
-		table: v.literal("mainBudget"),
 		localId: v.string(),
+		table: v.literal("mainBudget"),
 		...tombstone,
 		fields: v.object(mainBudgetFields),
 	}),
 	v.object({
-		table: v.literal("templateTransactions"),
 		localId: v.string(),
+		table: v.literal("templateTransactions"),
 		...tombstone,
 		fields: v.object(templateTransactionFields),
 	}),
 	v.object({
-		table: v.literal("tags"),
 		localId: v.string(),
+		table: v.literal("tags"),
 		...tombstone,
 		fields: v.object(tagFields),
 	}),
 	v.object({
-		table: v.literal("transactionTags"),
 		localId: v.string(),
+		table: v.literal("transactionTags"),
 		...tombstone,
 		fields: v.object(transactionTagFields),
 	}),
 	v.object({
-		table: v.literal("transactionPhotos"),
 		localId: v.string(),
+		table: v.literal("transactionPhotos"),
 		...tombstone,
 		fields: v.object(transactionPhotoFields),
 	}),
 	v.object({
-		table: v.literal("transactionSplits"),
 		localId: v.string(),
+		table: v.literal("transactionSplits"),
 		...tombstone,
 		fields: v.object(transactionSplitFields),
 	}),
 	v.object({
-		table: v.literal("accounts"),
 		localId: v.string(),
+		table: v.literal("accounts"),
 		...tombstone,
 		fields: v.object(accountFields),
 	}),
 	v.object({
-		table: v.literal("appMeta"),
-		localId: v.string(),
-		updatedAt: v.number(),
 		/** Keys are never deleted, so this side of the union has no tombstone. */
 		deletedAt: v.null(),
 		fields: v.object(appMetaFields),
-	}),
+		localId: v.string(),
+		table: v.literal("appMeta"),
+		updatedAt: v.number(),
+	})
 );
 
-type PushRow = {
-	table: SyncedTable;
-	localId: string;
-	updatedAt: number;
+interface PushRow {
 	deletedAt: number | null;
 	fields: Record<string, unknown>;
-};
+	localId: string;
+	table: SyncedTable;
+	updatedAt: number;
+}
 
 const pulledRow = v.object({
-	table: v.union(...SYNCED_TABLES.map((table) => v.literal(table))),
+	deletedAt: v.union(v.number(), v.null()),
+	deviceId: v.string(),
+	fields: v.record(v.string(), v.any()),
 	localId: v.string(),
 	seq: v.number(),
-	deviceId: v.string(),
+	table: v.union(...SYNCED_TABLES.map((table) => v.literal(table))),
 	updatedAt: v.number(),
-	deletedAt: v.union(v.number(), v.null()),
-	fields: v.record(v.string(), v.any()),
 });
 
 /**
  * `appMeta` stores its identity in `key` rather than `localId`, so it is the one
  * table the lookup has to special-case. Everything downstream speaks `localId`.
  */
-async function findExisting(
-	ctx: MutationCtx,
-	userId: string,
-	row: PushRow,
-): Promise<Doc<SyncedTable> | null> {
+async function findExisting(ctx: MutationCtx, userId: string, row: PushRow): Promise<Doc<SyncedTable> | null> {
 	if (row.table === "appMeta") {
 		return await ctx.db
 			.query("appMeta")
-			.withIndex("by_user_and_key", (q) =>
-				q.eq("userId", userId).eq("key", row.localId),
-			)
+			.withIndex("by_user_and_key", (q) => q.eq("userId", userId).eq("key", row.localId))
 			.unique();
 	}
 	return await ctx.db
 		.query(row.table)
-		.withIndex("by_user_and_localId", (q) =>
-			q.eq("userId", userId).eq("localId", row.localId),
-		)
+		.withIndex("by_user_and_localId", (q) => q.eq("userId", userId).eq("localId", row.localId))
 		.unique();
 }
 
@@ -164,9 +156,9 @@ async function findExisting(
  */
 function versioned(doc: Doc<SyncedTable>) {
 	return {
-		updatedAt: doc.updatedAt,
 		deletedAt: "deletedAt" in doc ? doc.deletedAt : null,
 		deviceId: doc.deviceId,
+		updatedAt: doc.updatedAt,
 	};
 }
 
@@ -180,15 +172,15 @@ async function upsert(
 	ctx: MutationCtx,
 	row: PushRow,
 	existing: Doc<SyncedTable> | null,
-	stamp: { userId: string; deviceId: string; seq: number },
+	stamp: { userId: string; deviceId: string; seq: number }
 ): Promise<void> {
 	const envelope = {
-		userId: stamp.userId,
+		deletedAt: row.deletedAt,
+		deviceId: stamp.deviceId,
 		localId: row.localId,
 		seq: stamp.seq,
-		deviceId: stamp.deviceId,
 		updatedAt: row.updatedAt,
-		deletedAt: row.deletedAt,
+		userId: stamp.userId,
 	};
 
 	switch (row.table) {
@@ -204,11 +196,7 @@ async function upsert(
 		case "transactions": {
 			const doc = { ...envelope, ...(row.fields as Doc<"transactions">) };
 			if (existing) {
-				await ctx.db.patch(
-					"transactions",
-					existing._id as Id<"transactions">,
-					doc,
-				);
+				await ctx.db.patch("transactions", existing._id as Id<"transactions">, doc);
 			} else {
 				await ctx.db.insert("transactions", doc);
 			}
@@ -244,11 +232,7 @@ async function upsert(
 		case "transactionTags": {
 			const doc = { ...envelope, ...(row.fields as Doc<"transactionTags">) };
 			if (existing) {
-				await ctx.db.patch(
-					"transactionTags",
-					existing._id as Id<"transactionTags">,
-					doc,
-				);
+				await ctx.db.patch("transactionTags", existing._id as Id<"transactionTags">, doc);
 			} else {
 				await ctx.db.insert("transactionTags", doc);
 			}
@@ -257,11 +241,7 @@ async function upsert(
 		case "transactionPhotos": {
 			const doc = { ...envelope, ...(row.fields as Doc<"transactionPhotos">) };
 			if (existing) {
-				await ctx.db.patch(
-					"transactionPhotos",
-					existing._id as Id<"transactionPhotos">,
-					doc,
-				);
+				await ctx.db.patch("transactionPhotos", existing._id as Id<"transactionPhotos">, doc);
 			} else {
 				await ctx.db.insert("transactionPhotos", doc);
 			}
@@ -270,11 +250,7 @@ async function upsert(
 		case "transactionSplits": {
 			const doc = { ...envelope, ...(row.fields as Doc<"transactionSplits">) };
 			if (existing) {
-				await ctx.db.patch(
-					"transactionSplits",
-					existing._id as Id<"transactionSplits">,
-					doc,
-				);
+				await ctx.db.patch("transactionSplits", existing._id as Id<"transactionSplits">, doc);
 			} else {
 				await ctx.db.insert("transactionSplits", doc);
 			}
@@ -295,11 +271,7 @@ async function upsert(
 				...(row.fields as Doc<"templateTransactions">),
 			};
 			if (existing) {
-				await ctx.db.patch(
-					"templateTransactions",
-					existing._id as Id<"templateTransactions">,
-					doc,
-				);
+				await ctx.db.patch("templateTransactions", existing._id as Id<"templateTransactions">, doc);
 			} else {
 				await ctx.db.insert("templateTransactions", doc);
 			}
@@ -307,11 +279,11 @@ async function upsert(
 		}
 		case "appMeta": {
 			const doc = {
-				userId: stamp.userId,
+				deviceId: stamp.deviceId,
 				key: row.localId,
 				seq: stamp.seq,
-				deviceId: stamp.deviceId,
 				updatedAt: row.updatedAt,
+				userId: stamp.userId,
 				value: (row.fields as { value: string | null }).value,
 			};
 			if (existing) {
@@ -340,18 +312,11 @@ export const push = mutation({
 		deviceId: v.string(),
 		rows: v.array(pushRow),
 	},
-	returns: v.object({
-		accepted: v.number(),
-		skipped: v.number(),
-		nextSeq: v.number(),
-	}),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
 
 		if (args.rows.length > PUSH_BATCH_LIMIT) {
-			throw new ConvexError(
-				`A push carries at most ${PUSH_BATCH_LIMIT} rows; got ${args.rows.length}`,
-			);
+			throw new ConvexError(`A push carries at most ${PUSH_BATCH_LIMIT} rows; got ${args.rows.length}`);
 		}
 
 		const state = await ctx.db
@@ -366,11 +331,12 @@ export const push = mutation({
 		let skipped = 0;
 
 		for (const row of args.rows as PushRow[]) {
+			// biome-ignore lint/performance/noAwaitInLoops: rows are applied in order — `seq` is handed out one per accepted row, and two rows for the same localId in one batch require the second lookup to observe the first row's upsert.
 			const existing = await findExisting(ctx, userId, row);
 			const candidate = {
-				updatedAt: row.updatedAt,
 				deletedAt: row.deletedAt,
 				deviceId: args.deviceId,
+				updatedAt: row.updatedAt,
 			};
 			if (!incomingWins(candidate, existing ? versioned(existing) : null)) {
 				// The server keeps the winner and the pull hands it back, so a device
@@ -382,9 +348,9 @@ export const push = mutation({
 			}
 
 			await upsert(ctx, row, existing, {
-				userId,
 				deviceId: args.deviceId,
 				seq: nextSeq,
+				userId,
 			});
 			nextSeq += 1;
 			accepted += 1;
@@ -395,31 +361,34 @@ export const push = mutation({
 			if (state) {
 				await ctx.db.patch("syncState", state._id, { nextSeq });
 			} else {
-				await ctx.db.insert("syncState", { userId, nextSeq });
+				await ctx.db.insert("syncState", { nextSeq, userId });
 			}
 		}
 
-		return { accepted, skipped, nextSeq };
+		return { accepted, nextSeq, skipped };
 	},
+	returns: v.object({
+		accepted: v.number(),
+		nextSeq: v.number(),
+		skipped: v.number(),
+	}),
 });
 
 function toWire(table: SyncedTable, doc: Doc<SyncedTable>) {
-	const fieldNames = Object.keys(
-		FIELDS_BY_TABLE[table] as Record<string, Validator<unknown>>,
-	);
+	const fieldNames = Object.keys(FIELDS_BY_TABLE[table] as Record<string, Validator<unknown>>);
 	const source = doc as unknown as Record<string, unknown>;
 	const fields: Record<string, unknown> = {};
 	for (const name of fieldNames) {
 		fields[name] = source[name] ?? null;
 	}
 	return {
-		table,
+		deletedAt: (source.deletedAt ?? null) as number | null,
+		deviceId: doc.deviceId,
+		fields,
 		localId: (source.localId ?? source.key) as string,
 		seq: doc.seq,
-		deviceId: doc.deviceId,
+		table,
 		updatedAt: doc.updatedAt,
-		deletedAt: (source.deletedAt ?? null) as number | null,
-		fields,
 	};
 }
 
@@ -441,47 +410,40 @@ export const pullSince = query({
 		cursor: v.number(),
 		limit: v.optional(v.number()),
 	},
-	returns: v.object({
-		rows: v.array(pulledRow),
-		cursor: v.number(),
-		hasMore: v.boolean(),
-	}),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
-		const limit = Math.min(
-			Math.max(Math.trunc(args.limit ?? PULL_PAGE_LIMIT), 1),
-			PULL_PAGE_LIMIT,
-		);
+		const limit = Math.min(Math.max(Math.trunc(args.limit ?? PULL_PAGE_LIMIT), 1), PULL_PAGE_LIMIT);
 
 		const pages = await Promise.all(
 			SYNCED_TABLES.map((table: SyncedTable) =>
 				ctx.db
 					.query(table)
-					.withIndex("by_user_and_seq", (q) =>
-						q.eq("userId", userId).gt("seq", args.cursor),
-					)
-					.take(limit),
-			),
+					.withIndex("by_user_and_seq", (q) => q.eq("userId", userId).gt("seq", args.cursor))
+					.take(limit)
+			)
 		);
 
 		const merged = pages
-			.flatMap((docs, index) =>
-				docs.map((doc) => toWire(SYNCED_TABLES[index], doc)),
-			)
+			.flatMap((docs, index) => docs.map((doc) => toWire(SYNCED_TABLES[index], doc)))
 			.sort((a, b) => a.seq - b.seq);
 
 		const rows = merged.slice(0, limit);
 		const last = rows[rows.length - 1];
 
 		return {
-			rows,
 			cursor: last ? last.seq : args.cursor,
 			// A full page may be exactly the tail, in which case the next call
 			// serves nothing and the walk stops there — one wasted query, never a
 			// missed row.
 			hasMore: merged.length >= limit,
+			rows,
 		};
 	},
+	returns: v.object({
+		cursor: v.number(),
+		hasMore: v.boolean(),
+		rows: v.array(pulledRow),
+	}),
 });
 
 /**
@@ -491,7 +453,6 @@ export const pullSince = query({
  */
 export const currentSeq = query({
 	args: {},
-	returns: v.number(),
 	handler: async (ctx) => {
 		const userId = await requireUserId(ctx);
 		const state = await ctx.db
@@ -500,4 +461,5 @@ export const currentSeq = query({
 			.unique();
 		return state?.nextSeq ?? 0;
 	},
+	returns: v.number(),
 });

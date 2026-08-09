@@ -1,10 +1,6 @@
 export interface SyncLabel {
-	key:
-		| "settings.sync.upToDate"
-		| "settings.sync.never"
-		| "settings.sync.pending"
-		| "settings.sync.pendingOne";
 	count?: number;
+	key: "settings.sync.upToDate" | "settings.sync.never" | "settings.sync.pending" | "settings.sync.pendingOne";
 }
 
 /**
@@ -19,17 +15,12 @@ export interface SyncLabel {
  * `docs/convex-sync-design.md` settles the UX as silent-and-retrying — a count
  * that stops falling is honest about what is true without guessing at why.
  */
-export function syncStatusLabel(
-	pending: number,
-	syncedAt: Date | null,
-): SyncLabel {
+export function syncStatusLabel(pending: number, syncedAt: Date | null): SyncLabel {
 	if (pending === 1) {
 		return { key: "settings.sync.pendingOne" };
 	}
 	if (pending > 1) {
-		return { key: "settings.sync.pending", count: pending };
+		return { count: pending, key: "settings.sync.pending" };
 	}
-	return syncedAt === null
-		? { key: "settings.sync.never" }
-		: { key: "settings.sync.upToDate" };
+	return syncedAt === null ? { key: "settings.sync.never" } : { key: "settings.sync.upToDate" };
 }

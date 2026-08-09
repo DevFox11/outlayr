@@ -1,13 +1,13 @@
 import { Form, Host, Section, Text } from "@expo/ui/swift-ui";
 import { Stack } from "expo-router";
 import { View } from "react-native";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { secondaryText } from "./styles";
 
 interface SettingsStubProps {
-	title: string;
 	/** One-line explanation of why the screen is a placeholder. */
 	note: string;
+	title: string;
 }
 
 export function SettingsStub({ title, note }: SettingsStubProps) {
@@ -18,9 +18,7 @@ export function SettingsStub({ title, note }: SettingsStubProps) {
 			<Host style={{ flex: 1 }} useViewportSizeMeasurement>
 				<Form>
 					<Section footer={<Text modifiers={[secondaryText]}>{note}</Text>}>
-						<Text modifiers={[secondaryText]}>
-							{t("settings.stub.notAvailable")}
-						</Text>
+						<Text modifiers={[secondaryText]}>{t("settings.stub.notAvailable")}</Text>
 					</Section>
 				</Form>
 			</Host>

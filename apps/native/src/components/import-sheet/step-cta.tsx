@@ -5,12 +5,12 @@ import { AccessibilityInfo } from "react-native";
 import { cn } from "@/components/tw";
 
 interface StepCtaProps {
-	label: string;
-	confirmLabel?: string;
-	onPress: () => void;
-	disabled?: boolean;
 	busy?: boolean;
 	className?: string;
+	confirmLabel?: string;
+	disabled?: boolean;
+	label: string;
+	onPress: () => void;
 	testID?: string;
 }
 
@@ -25,6 +25,7 @@ export function StepCta({
 }: StepCtaProps) {
 	const [armedFor, setArmedFor] = useState<string | null>(null);
 	const armed = confirmLabel !== undefined && armedFor === confirmLabel;
+	const shownLabel = armed && confirmLabel !== undefined ? confirmLabel : label;
 
 	function handlePress() {
 		if (busy) {
@@ -54,7 +55,7 @@ export function StepCta({
 			testID={testID}
 			variant="primary"
 		>
-			{armed ? confirmLabel : label}
+			{shownLabel}
 		</Button>
 	);
 }

@@ -38,7 +38,7 @@ describe("resolveImportMapping", () => {
 	it("fails before any network call when neither column exists", () => {
 		const draft = guessMapping(["date", "amount", "balance"]);
 		const result = resolveImportMapping(draft);
-		expect(result).toStrictEqual({ ok: false, gaps: ["noLabelColumn"] });
+		expect(result).toStrictEqual({ gaps: ["noLabelColumn"], ok: false });
 	});
 
 	it("surfaces a gap for a missing date column", () => {

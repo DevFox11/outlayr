@@ -27,8 +27,8 @@ const RING_STAGGER_MS = 70;
  * page.
  */
 const ENTRANCE = {
-	cover: { object: 0, rings: 100, text: 220, dock: 400 },
-	step: { object: 0, rings: 0, text: 60, dock: 160 },
+	cover: { dock: 400, object: 0, rings: 100, text: 220 },
+	step: { dock: 160, object: 0, rings: 0, text: 60 },
 } as const;
 
 function useRise(active: boolean, delayMs: number, distance = 6) {
@@ -41,7 +41,7 @@ function useRise(active: boolean, delayMs: number, distance = 6) {
 		}
 		progress.value = withDelay(
 			reduced ? 0 : delayMs,
-			withTiming(1, { duration: reduced ? FADE_MS : 480, easing: EASE }),
+			withTiming(1, { duration: reduced ? FADE_MS : 480, easing: EASE })
 		);
 	}, [active, delayMs, reduced, progress]);
 
@@ -51,22 +51,14 @@ function useRise(active: boolean, delayMs: number, distance = 6) {
 	}));
 }
 
-function Ring({
-	size,
-	targetOpacity,
-	delayMs,
-}: {
-	size: number;
-	targetOpacity: number;
-	delayMs: number;
-}) {
+function Ring({ size, targetOpacity, delayMs }: { size: number; targetOpacity: number; delayMs: number }) {
 	const reduced = useReducedMotion();
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
 		progress.value = withDelay(
 			reduced ? 0 : delayMs,
-			withTiming(1, { duration: reduced ? FADE_MS : 600, easing: EASE }),
+			withTiming(1, { duration: reduced ? FADE_MS : 600, easing: EASE })
 		);
 	}, [delayMs, reduced, progress]);
 
@@ -86,10 +78,7 @@ function Ring({
 /** Concentric layers radiating from the stage object — the mark's own geometry. */
 function Rings({ delayMs }: { delayMs: number }) {
 	return (
-		<View
-			className="absolute inset-0 items-center justify-center"
-			pointerEvents="none"
-		>
+		<View className="absolute inset-0 items-center justify-center" pointerEvents="none">
 			{RING_SIZES.map((size, index) => (
 				<Ring
 					delayMs={delayMs + index * RING_STAGGER_MS}
@@ -102,19 +91,14 @@ function Rings({ delayMs }: { delayMs: number }) {
 	);
 }
 
-function StageObject({
-	children,
-	cover,
-}: {
-	children: ReactNode;
-	cover: boolean;
-}) {
+function StageObject({ children, cover }: { children: ReactNode; cover: boolean }) {
 	const reduced = useReducedMotion();
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
+		const arrivalMs = cover ? 480 : 380;
 		progress.value = withTiming(1, {
-			duration: reduced ? FADE_MS : cover ? 480 : 380,
+			duration: reduced ? FADE_MS : arrivalMs,
 			easing: EASE,
 		});
 	}, [cover, reduced, progress]);
@@ -125,15 +109,10 @@ function StageObject({
 		}
 		// The cover's mark settles into place; a step's object arrives from a
 		// touch above scale, so a push reads as the stage swapping objects.
-		const scale = cover
-			? 0.92 + progress.value * 0.08
-			: 1.05 - progress.value * 0.05;
+		const scale = cover ? 0.92 + progress.value * 0.08 : 1.05 - progress.value * 0.05;
 		return {
 			opacity: progress.value,
-			transform: [
-				{ scale },
-				{ translateY: cover ? (1 - progress.value) * 6 : 0 },
-			],
+			transform: [{ scale }, { translateY: cover ? (1 - progress.value) * 6 : 0 }],
 		};
 	});
 
@@ -141,9 +120,9 @@ function StageObject({
 }
 
 export interface FirstRunAction {
+	disabled?: boolean;
 	label: string;
 	onPress: () => void;
-	disabled?: boolean;
 }
 
 export interface FirstRunSkip {
@@ -152,27 +131,27 @@ export interface FirstRunSkip {
 }
 
 interface FirstRunProps {
+	action?: FirstRunAction;
+	body?: string;
+	/** Controls docked above the action — a picker row, the provider buttons. */
+	children?: ReactNode;
+	/** The cover's longer arrival choreography. Only the first screen sets it. */
+	cover?: boolean;
+	/**
+	 * Rendered in permanently reserved space: an error that pushed into flow
+	 * would shift the buttons under the user's thumb at the moment it appeared.
+	 */
+	error?: string | null;
+	eyebrow?: string;
+	footnote?: string;
 	/**
 	 * The one thing the stage holds, centered over the layer-rings. Screens
 	 * without one (the adoption and unconfigured states) fall back to a head-
 	 * at-top layout with `children` filling the space instead.
 	 */
 	object?: ReactNode;
-	/** The cover's longer arrival choreography. Only the first screen sets it. */
-	cover?: boolean;
-	eyebrow?: string;
-	title: string;
-	body?: string;
-	/** Controls docked above the action — a picker row, the provider buttons. */
-	children?: ReactNode;
-	action?: FirstRunAction;
 	skip?: FirstRunSkip;
-	footnote?: string;
-	/**
-	 * Rendered in permanently reserved space: an error that pushed into flow
-	 * would shift the buttons under the user's thumb at the moment it appeared.
-	 */
-	error?: string | null;
+	title: string;
 }
 
 /**
@@ -204,17 +183,9 @@ export function FirstRun({
 			{object === undefined ? (
 				<>
 					<View className="gap-2">
-						{eyebrow ? (
-							<MonoLabel className="text-fr-muted">{eyebrow}</MonoLabel>
-						) : null}
-						<Text className="font-sans-semibold text-fr-ink text-title">
-							{title}
-						</Text>
-						{body ? (
-							<Text className="text-fr-muted text-subtitle leading-snug">
-								{body}
-							</Text>
-						) : null}
+						{eyebrow ? <MonoLabel className="text-fr-muted">{eyebrow}</MonoLabel> : null}
+						<Text className="font-sans-semibold text-fr-ink text-title">{title}</Text>
+						{body ? <Text className="text-fr-muted text-subtitle leading-snug">{body}</Text> : null}
 					</View>
 					<View className="flex-1 justify-center">{children}</View>
 				</>
@@ -225,18 +196,12 @@ export function FirstRun({
 						<StageObject cover={cover}>{object}</StageObject>
 					</View>
 					<Animated.View className="items-center gap-2.5" style={textStyle}>
-						{eyebrow ? (
-							<MonoLabel className="text-center text-fr-vermilion">
-								{eyebrow}
-							</MonoLabel>
-						) : null}
+						{eyebrow ? <MonoLabel className="text-center text-fr-vermilion">{eyebrow}</MonoLabel> : null}
 						<Text className="text-center font-sans-semibold text-[28px] text-fr-ink leading-[33px] tracking-[-0.5px]">
 							{title}
 						</Text>
 						{body ? (
-							<Text className="max-w-72 text-center text-fr-muted text-subtitle leading-snug">
-								{body}
-							</Text>
+							<Text className="max-w-72 text-center text-fr-muted text-subtitle leading-snug">{body}</Text>
 						) : null}
 					</Animated.View>
 					{children ? (
@@ -248,36 +213,25 @@ export function FirstRun({
 			)}
 
 			{action ? (
-				<Animated.View
-					className="pt-5"
-					style={object === undefined ? null : dockStyle}
-				>
+				<Animated.View className="pt-5" style={object === undefined ? null : dockStyle}>
 					<Pressable
 						accessibilityRole="button"
 						className="items-center rounded-full bg-fr-ink px-7 py-3.5 active:opacity-80 disabled:opacity-50"
 						disabled={action.disabled}
 						onPress={action.onPress}
 					>
-						<Text className="font-sans-semibold text-body text-fr-ground">
-							{action.label}
-						</Text>
+						<Text className="font-sans-semibold text-body text-fr-ground">{action.label}</Text>
 					</Pressable>
 				</Animated.View>
 			) : null}
 
 			{skip ? (
 				<Pressable accessibilityRole="button" onPress={skip.onPress}>
-					<Text className="pt-3 text-center font-sans-medium text-fr-muted text-subtitle">
-						{skip.label}
-					</Text>
+					<Text className="pt-3 text-center font-sans-medium text-fr-muted text-subtitle">{skip.label}</Text>
 				</Pressable>
 			) : null}
 
-			{footnote ? (
-				<Text className="pt-3 text-center text-footnote text-fr-muted">
-					{footnote}
-				</Text>
-			) : null}
+			{footnote ? <Text className="pt-3 text-center text-footnote text-fr-muted">{footnote}</Text> : null}
 
 			{error === undefined ? null : (
 				<View className="min-h-9 justify-start pt-2">

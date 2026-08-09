@@ -1,33 +1,30 @@
 import { useCallback, useRef } from "react";
 import type { EnrichmentFn } from "@/lib/convex";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
-import {
-	type EnrichmentSuggestion,
-	useTransactionEnrichment,
-} from "./use-transaction-enrichment";
+import { type EnrichmentSuggestion, useTransactionEnrichment } from "./use-transaction-enrichment";
 
 export interface AccountLogo {
-	imageUri: string;
 	imageColor: string | null;
+	imageUri: string;
 }
 
 export interface UseAccountIdentityArgs {
+	/** Read at attach time; false leaves the tile alone. */
+	canAttach?: () => boolean;
 	enabled: boolean;
-	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
-	remoteEnabled?: boolean;
+	fetchImage?: typeof fetchMerchantImage;
 	/** The `groundedLookup` setting. */
 	groundedLookup?: boolean;
 	locale?: string;
-	regionCode?: string;
-	/** Read at attach time; false leaves the tile alone. */
-	canAttach?: () => boolean;
-	onLogo: (logo: AccountLogo) => void;
 	/** The name resolved to nothing — a previously suggested logo must go. */
 	onClear: () => void;
+	onLogo: (logo: AccountLogo) => void;
+	persistLogo?: (bytes: Uint8Array) => Promise<AccountLogo>;
+	regionCode?: string;
+	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
+	remoteEnabled?: boolean;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
-	fetchImage?: typeof fetchMerchantImage;
-	persistLogo?: (bytes: Uint8Array) => Promise<AccountLogo>;
 }
 
 export interface UseAccountIdentityResult {
@@ -38,13 +35,11 @@ export interface UseAccountIdentityResult {
 async function persistDefault(bytes: Uint8Array): Promise<AccountLogo> {
 	// Required lazily so rendering the editor does not pull Skia's downscaler
 	// into the module graph, matching `domain/ids.ts`.
-	const photoStorage =
-		require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
-	const { glowFromImage } =
-		require("@/theme/glow") as typeof import("@/theme/glow");
+	const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+	const { glowFromImage } = require("@/theme/glow") as typeof import("@/theme/glow");
 	const imageUri = await photoStorage.persistLogoBytes(bytes);
 	const hues = await glowFromImage(imageUri);
-	return { imageUri, imageColor: hues[0] ?? null };
+	return { imageColor: hues[0] ?? null, imageUri };
 }
 
 /**
@@ -53,9 +48,7 @@ async function persistDefault(bytes: Uint8Array): Promise<AccountLogo> {
  * only for the logo an account's name resolves to. Category and tag
  * suggestions never reach the caller.
  */
-export function useAccountIdentity(
-	args: UseAccountIdentityArgs,
-): UseAccountIdentityResult {
+export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIdentityResult {
 	const {
 		enabled,
 		remoteEnabled = true,
@@ -88,15 +81,16 @@ export function useAccountIdentity(
 		if (blocked()) {
 			return;
 		}
-		const ticket = ++ticketRef.current;
+		ticketRef.current += 1;
+		const ticket = ticketRef.current;
 		const stale = () => ticket !== ticketRef.current || blocked();
 		if (domain == null) {
 			onClearRef.current();
 			return;
 		}
 		const outcome = await fetchImageRef.current({
-			name: nameRef.current,
 			domain,
+			name: nameRef.current,
 		});
 		if (stale()) {
 			return;
@@ -121,26 +115,23 @@ export function useAccountIdentity(
 
 	const onSuggest = useCallback(
 		(suggestion: EnrichmentSuggestion) => {
-			void attach(suggestion.domain);
+			attach(suggestion.domain);
 		},
-		[attach],
+		[attach]
 	);
 
-	const resolveLocal = useCallback(
-		(suggestion: EnrichmentSuggestion) => suggestion,
-		[],
-	);
+	const resolveLocal = useCallback((suggestion: EnrichmentSuggestion) => suggestion, []);
 
 	const enrichment = useTransactionEnrichment({
-		enabled,
-		income: false,
 		categoryTree: [],
-		resolveLocal,
-		onSuggest,
-		remoteEnabled,
-		locale,
-		regionCode,
+		enabled,
 		groundedLookup,
+		income: false,
+		locale,
+		onSuggest,
+		regionCode,
+		remoteEnabled,
+		resolveLocal,
 		transport,
 	});
 
@@ -149,7 +140,7 @@ export function useAccountIdentity(
 			nameRef.current = next;
 			enrichment.onNameChange(next);
 		},
-		[enrichment.onNameChange],
+		[enrichment.onNameChange]
 	);
 
 	return { onNameChange, pending: enrichment.pending };

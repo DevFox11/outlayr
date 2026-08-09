@@ -2,13 +2,7 @@ import type { ReactNode } from "react";
 import { ScrollView } from "react-native";
 import { Text } from "@/components/text";
 
-export function SettingsScreen({
-	children,
-	footer,
-}: {
-	children: ReactNode;
-	footer?: string;
-}) {
+export function SettingsScreen({ children, footer }: { children: ReactNode; footer?: string }) {
 	return (
 		<ScrollView
 			className="flex-1 bg-background"
@@ -16,11 +10,7 @@ export function SettingsScreen({
 			contentInsetAdjustmentBehavior="automatic"
 		>
 			{children}
-			{footer ? (
-				<Text className="pt-8 text-center text-muted text-subtitle">
-					{footer}
-				</Text>
-			) : null}
+			{footer ? <Text className="pt-8 text-center text-muted text-subtitle">{footer}</Text> : null}
 		</ScrollView>
 	);
 }

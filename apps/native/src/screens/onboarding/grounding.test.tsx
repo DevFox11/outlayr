@@ -6,7 +6,7 @@ jest.mock("expo-router", () => ({
 	useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -15,7 +15,7 @@ jest.mock("@/contexts/local-data-context", () => ({
 }));
 
 const mockSetBoolSetting = jest.fn((..._args: unknown[]) => Promise.resolve());
-jest.mock("@/data/settings", () => ({
+jest.mock("@/data/settings-core", () => ({
 	setBoolSetting: (...args: unknown[]) => mockSetBoolSetting(...args),
 }));
 
@@ -37,36 +37,20 @@ describe("onboarding grounding screen", () => {
 
 		fireEvent.press(getByText("common.continue"));
 
-		await waitFor(() =>
-			expect(mockPush).toHaveBeenCalledWith("/onboarding/rhythm"),
-		);
+		await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding/rhythm"));
 		expect(mockSetBoolSetting).toHaveBeenCalledTimes(1);
-		expect(mockSetBoolSetting).toHaveBeenCalledWith(
-			expect.anything(),
-			"groundedLookup",
-			true,
-		);
+		expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "groundedLookup", true);
 	});
 
 	it("persists false with no further prompt after turning it off then continuing", async () => {
 		const { getByLabelText, getByText } = await render(<OnboardingGrounding />);
 
-		await fireEvent(
-			getByLabelText("onboarding.grounding.toggle"),
-			"valueChange",
-			false,
-		);
+		await fireEvent(getByLabelText("onboarding.grounding.toggle"), "valueChange", false);
 		fireEvent.press(getByText("common.continue"));
 
-		await waitFor(() =>
-			expect(mockPush).toHaveBeenCalledWith("/onboarding/rhythm"),
-		);
+		await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding/rhythm"));
 		expect(mockSetBoolSetting).toHaveBeenCalledTimes(1);
-		expect(mockSetBoolSetting).toHaveBeenCalledWith(
-			expect.anything(),
-			"groundedLookup",
-			false,
-		);
+		expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "groundedLookup", false);
 		expect(mockPush).toHaveBeenCalledTimes(1);
 	});
 });

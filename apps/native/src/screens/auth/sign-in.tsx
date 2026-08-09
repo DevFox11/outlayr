@@ -1,4 +1,4 @@
-import { currencyDisplayFor } from "@outlayr/money";
+import { currencyDisplayFor } from "@outlayr/money/currency";
 import { View } from "react-native";
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
 import { FirstRun } from "@/components/first-run";
@@ -6,18 +6,17 @@ import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { deferAccount, useReminderChosen } from "@/data/onboarding";
+import { useReminderChosen } from "@/data/onboarding";
+import { deferAccount } from "@/data/onboarding-core";
 import { flyleafDate } from "@/domain/flyleaf";
-import {
-	clampTimeOfDay,
-	formatTimeOfDay,
-	reminderTime,
-} from "@/domain/reminder";
-import { useLanguage, useTranslation } from "@/i18n";
+import { clampTimeOfDay, formatTimeOfDay, reminderTime } from "@/domain/reminder";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = typeof authClient;
+
+const PLACEHOLDER = /\{\w+\}/;
 
 export function SignIn() {
 	return <SignInContent client={authClient} />;
@@ -29,35 +28,16 @@ export function SignIn() {
  * its placeholder intact — `t` leaves `{braces}` alone when no params are
  * passed — and is split here instead of interpolated.
  */
-function FlyleafLine({
-	template,
-	value,
-	quiet,
-}: {
-	template: string;
-	value: string;
-	quiet?: boolean;
-}) {
-	const [before, after] = template.split(/\{\w+\}/);
+function FlyleafLine({ template, value, quiet }: { template: string; value: string; quiet?: boolean }) {
+	const [before, after] = template.split(PLACEHOLDER);
 	// "Bs." + the template's own full stop would print "Bs.." — the value's
 	// trailing period absorbs the sentence's.
-	const tail =
-		value.endsWith(".") && after?.startsWith(".") ? after.slice(1) : after;
+	const tail = value.endsWith(".") && after?.startsWith(".") ? after.slice(1) : after;
 	return (
-		<Text
-			className={
-				quiet
-					? "text-fr-muted text-label"
-					: "font-sans-medium text-callout text-fr-ink leading-8"
-			}
-		>
+		<Text className={quiet ? "text-fr-muted text-label" : "font-sans-medium text-callout text-fr-ink leading-8"}>
 			{before}
 			<Text
-				className={
-					quiet
-						? "font-mono text-fr-ink text-micro"
-						: "font-mono-medium text-body text-fr-ink"
-				}
+				className={quiet ? "font-mono text-fr-ink text-micro" : "font-mono-medium text-body text-fr-ink"}
 				style={{ fontVariant: ["tabular-nums"] }}
 			>
 				{value}
@@ -87,21 +67,9 @@ function FlyleafCard() {
 
 	return (
 		<View className="w-64 gap-1 rounded-3xl border border-fr-rule bg-fr-card px-5 py-4">
-			<FlyleafLine
-				quiet
-				template={t("auth.signIn.begun")}
-				value={flyleafDate(new Date(), language)}
-			/>
-			<FlyleafLine
-				template={t("auth.signIn.kept")}
-				value={`${currency} ${currencyDisplayFor(currency).symbol}`}
-			/>
-			{reminderChosen ? (
-				<FlyleafLine
-					template={t("auth.signIn.written")}
-					value={formatTimeOfDay(time)}
-				/>
-			) : null}
+			<FlyleafLine quiet template={t("auth.signIn.begun")} value={flyleafDate(new Date(), language)} />
+			<FlyleafLine template={t("auth.signIn.kept")} value={`${currency} ${currencyDisplayFor(currency).symbol}`} />
+			{reminderChosen ? <FlyleafLine template={t("auth.signIn.written")} value={formatTimeOfDay(time)} /> : null}
 		</View>
 	);
 }
@@ -128,11 +96,7 @@ function SignInContent({ client }: { client: AuthClient }) {
 			}}
 			title={t("auth.signIn.title")}
 		>
-			<ProviderSignInButtons
-				busy={busy}
-				fallbackClassName="text-fr-muted text-subtitle leading-snug"
-				start={start}
-			/>
+			<ProviderSignInButtons busy={busy} fallbackClassName="text-fr-muted text-subtitle leading-snug" start={start} />
 		</FirstRun>
 	);
 }

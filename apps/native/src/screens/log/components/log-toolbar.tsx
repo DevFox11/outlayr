@@ -6,39 +6,33 @@ import type { LogPeriod } from "@/data/log-totals";
 import { LOG_PERIOD_ORDER } from "@/data/log-totals";
 import type { LogFilter } from "@/domain/log-filter";
 import { LOG_FILTER_ORDER } from "@/domain/log-filter";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { FILTER_LABEL_KEY, PERIOD_PHRASE_KEY } from "../labels";
 
 const FILTER_ICON: Record<LogFilter, ToolbarIconName> = {
 	all: "showAll",
-	type: "showType",
-	day: "showDay",
-	week: "showWeek",
-	month: "showMonth",
 	category: "showCategory",
+	day: "showDay",
+	month: "showMonth",
 	recurring: "showRecurring",
+	type: "showType",
 	upcoming: "showUpcoming",
+	week: "showWeek",
 };
 
 interface LogToolbarProps {
-	period: LogPeriod;
-	onPeriod: (period: LogPeriod) => void;
 	filter: LogFilter;
 	onFilter: (filter: LogFilter) => void;
+	onPeriod: (period: LogPeriod) => void;
 	onSearch: () => void;
+	period: LogPeriod;
 }
 
 /**
  * Rendered from the screen rather than the layout, because both menus read and
  * write screen state.
  */
-export function LogToolbar({
-	period,
-	onPeriod,
-	filter,
-	onFilter,
-	onSearch,
-}: LogToolbarProps) {
+export function LogToolbar({ period, onPeriod, filter, onFilter, onSearch }: LogToolbarProps) {
 	const t = useTranslation();
 	return (
 		<>
@@ -50,18 +44,11 @@ export function LogToolbar({
 				/>
 			</Stack.Toolbar>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Menu
-					{...toolbarIcon("period")}
-					accessibilityLabel={t("log.toolbar.period")}
-				>
+				<Stack.Toolbar.Menu {...toolbarIcon("period")} accessibilityLabel={t("log.toolbar.period")}>
 					{/* Nested and inline so the options carry a section header. */}
 					<Stack.Toolbar.Menu inline title={t("log.toolbar.period")}>
 						{LOG_PERIOD_ORDER.map((option) => (
-							<Stack.Toolbar.MenuAction
-								key={option}
-								isOn={option === period}
-								onPress={() => onPeriod(option)}
-							>
+							<Stack.Toolbar.MenuAction isOn={option === period} key={option} onPress={() => onPeriod(option)}>
 								{t(PERIOD_PHRASE_KEY[option])}
 							</Stack.Toolbar.MenuAction>
 						))}

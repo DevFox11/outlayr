@@ -4,9 +4,9 @@ import type { ValuationCoverage } from "@/domain/valuation-coverage";
 import { valuationCoverage } from "./canonicalize-backfill";
 
 const NOTHING: ValuationCoverage = {
+	beyondRateHistory: 0,
 	converted: 0,
 	pending: 0,
-	beyondRateHistory: 0,
 };
 
 /**

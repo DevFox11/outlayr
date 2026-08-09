@@ -2,25 +2,25 @@ import type { TransactionInput } from "@/data/transactions-core";
 import { RECURRING_TYPE } from "./recurrence";
 
 export interface TransactionSaveDraft {
-	amount: number;
-	income: boolean;
-	categoryId: string;
-	note: string;
-	details: string;
-	date: Date;
-	currency: string | null;
-	icon: string | null;
-	emoji: string | null;
-	customColor: string | null;
-	imageUri: string | null;
-	imageColor: string | null;
-	isSubscription: boolean;
-	recurringType: number;
-	coefficient: number;
-	hasEndDate: boolean;
-	endDate: Date;
-	leadDays: number | null;
 	accountId: string | null;
+	amount: number;
+	categoryId: string;
+	coefficient: number;
+	currency: string | null;
+	customColor: string | null;
+	date: Date;
+	details: string;
+	emoji: string | null;
+	endDate: Date;
+	hasEndDate: boolean;
+	icon: string | null;
+	imageColor: string | null;
+	imageUri: string | null;
+	income: boolean;
+	isSubscription: boolean;
+	leadDays: number | null;
+	note: string;
+	recurringType: number;
 }
 
 /**
@@ -29,32 +29,25 @@ export interface TransactionSaveDraft {
  * independently, so a row switched back to "once" can never resurrect a
  * lead or end date left over from before the toggle.
  */
-export function buildTransactionInput(
-	draft: TransactionSaveDraft,
-): TransactionInput {
+export function buildTransactionInput(draft: TransactionSaveDraft): TransactionInput {
 	return {
-		amount: draft.amount,
-		income: draft.income,
-		categoryId: draft.categoryId,
-		note: draft.note,
-		details: draft.details,
-		date: draft.date,
-		currency: draft.currency,
-		icon: draft.icon,
-		emoji: draft.emoji,
-		customColor: draft.customColor,
-		imageUri: draft.imageUri,
-		imageColor: draft.imageColor,
-		onceRecurring: draft.isSubscription,
-		recurringType: draft.isSubscription
-			? draft.recurringType
-			: RECURRING_TYPE.none,
-		recurringCoefficient: draft.isSubscription
-			? Math.max(1, draft.coefficient)
-			: 1,
-		recurringEndDate:
-			draft.isSubscription && draft.hasEndDate ? draft.endDate : null,
-		reminderLeadDays: draft.isSubscription ? draft.leadDays : null,
 		accountId: draft.accountId,
+		amount: draft.amount,
+		categoryId: draft.categoryId,
+		currency: draft.currency,
+		customColor: draft.customColor,
+		date: draft.date,
+		details: draft.details,
+		emoji: draft.emoji,
+		icon: draft.icon,
+		imageColor: draft.imageColor,
+		imageUri: draft.imageUri,
+		income: draft.income,
+		note: draft.note,
+		onceRecurring: draft.isSubscription,
+		recurringCoefficient: draft.isSubscription ? Math.max(1, draft.coefficient) : 1,
+		recurringEndDate: draft.isSubscription && draft.hasEndDate ? draft.endDate : null,
+		recurringType: draft.isSubscription ? draft.recurringType : RECURRING_TYPE.none,
+		reminderLeadDays: draft.isSubscription ? draft.leadDays : null,
 	};
 }

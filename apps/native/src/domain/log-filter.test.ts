@@ -31,23 +31,17 @@ describe("filterDetail", () => {
 
 	it("names the span a period filter is pointed at", () => {
 		expect(filterDetail("day", SCOPE)).toBe("22 Jul 2026");
-		expect(filterDetail("week", { ...SCOPE, firstWeekday: 1 })).toBe(
-			"19 Jul – 25 Jul",
-		);
+		expect(filterDetail("week", { ...SCOPE, firstWeekday: 1 })).toBe("19 Jul – 25 Jul");
 	});
 
 	it("names the pinned category", () => {
-		expect(
-			filterDetail("category", { ...SCOPE, categoryName: "Groceries" }),
-		).toBe("Groceries");
+		expect(filterDetail("category", { ...SCOPE, categoryName: "Groceries" })).toBe("Groceries");
 	});
 
 	it("falls back to the filter's own name before a category resolves", () => {
 		// The chip loads categories asynchronously and must not render blank.
 		expect(filterDetail("category", SCOPE)).toBe("by category");
-		expect(filterDetail("category", { ...SCOPE, categoryName: "" })).toBe(
-			"by category",
-		);
+		expect(filterDetail("category", { ...SCOPE, categoryName: "" })).toBe("by category");
 	});
 
 	it("names which side a type filter shows", () => {

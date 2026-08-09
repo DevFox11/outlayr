@@ -1,9 +1,5 @@
 import type { ParsedImportFile } from "@/data/transfer-core";
-import {
-	type ImportFlowEvent,
-	INITIAL_IMPORT_FLOW_STATE,
-	importFlowReducer,
-} from "@/domain/import-flow";
+import { type ImportFlowEvent, INITIAL_IMPORT_FLOW_STATE, importFlowReducer } from "@/domain/import-flow";
 import type { MappingDraft } from "@/domain/import-mapping";
 import { createImportDraftStore, isResumable } from "./import-draft-store";
 
@@ -14,29 +10,29 @@ const PARSED: ParsedImportFile = {
 };
 
 const DRAFT: MappingDraft = {
-	category: null,
-	note: 1,
-	date: 0,
 	amount: 2,
+	category: null,
 	currency: null,
+	date: 0,
+	note: 1,
 	type: null,
 };
 
 function dispatchFileParsed(store: ReturnType<typeof createImportDraftStore>) {
 	store.dispatch({
-		type: "fileParsed",
-		file: { name: "bank.csv", chars: 42 },
-		parsed: PARSED,
 		draft: DRAFT,
-		resolved: null,
+		file: { chars: 42, name: "bank.csv" },
 		gaps: ["noAmount"],
+		parsed: PARSED,
+		resolved: null,
+		type: "fileParsed",
 	});
 }
 
 describe("createImportDraftStore", () => {
 	it("delegates dispatch to importFlowReducer verbatim", () => {
 		const store = createImportDraftStore();
-		const event: ImportFlowEvent = { type: "sourceSelected", sourceId: "csv" };
+		const event: ImportFlowEvent = { sourceId: "csv", type: "sourceSelected" };
 		const expected = importFlowReducer(INITIAL_IMPORT_FLOW_STATE, event);
 
 		store.dispatch(event);
@@ -63,7 +59,7 @@ describe("createImportDraftStore", () => {
 
 	it("clear resets flow to INITIAL and ui.step to source", () => {
 		const store = createImportDraftStore();
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		store.setStep("file");
 		store.setFileError({ cause: "empty" });
 
@@ -79,7 +75,7 @@ describe("createImportDraftStore", () => {
 		const listener = jest.fn();
 		const unsubscribe = store.subscribe(listener);
 
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		expect(listener).toHaveBeenCalledTimes(1);
 
 		unsubscribe();
@@ -91,16 +87,14 @@ describe("createImportDraftStore", () => {
 describe("isResumable", () => {
 	it("is true once and only once a file has been parsed", () => {
 		expect(isResumable(INITIAL_IMPORT_FLOW_STATE)).toBe(false);
-		expect(isResumable({ ...INITIAL_IMPORT_FLOW_STATE, parsed: PARSED })).toBe(
-			true,
-		);
+		expect(isResumable({ ...INITIAL_IMPORT_FLOW_STATE, parsed: PARSED })).toBe(true);
 	});
 });
 
 describe("commitDismissal", () => {
 	it("clears the draft when the flow is not resumable (no file parsed yet)", () => {
 		const store = createImportDraftStore();
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		store.setStep("file");
 
 		store.commitDismissal();
@@ -112,7 +106,7 @@ describe("commitDismissal", () => {
 
 	it("preserves the draft and marks it resumed at the current step when the flow is resumable", () => {
 		const store = createImportDraftStore();
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		dispatchFileParsed(store);
 		store.setStep("resolve");
 
@@ -129,20 +123,20 @@ describe("commitDismissal", () => {
 describe("clearing ui.resumed", () => {
 	it("dispatch clears ui.resumed, even for an event the reducer treats as a no-op", () => {
 		const store = createImportDraftStore();
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		dispatchFileParsed(store);
 		store.setStep("resolve");
 		store.commitDismissal();
 		expect(store.getSnapshot().ui.resumed).toBe(true);
 
-		store.dispatch({ type: "rowToggled", index: 0 });
+		store.dispatch({ index: 0, type: "rowToggled" });
 
 		expect(store.getSnapshot().ui.resumed).toBe(false);
 	});
 
 	it("setStep clears ui.resumed when called with a genuinely different step", () => {
 		const store = createImportDraftStore();
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		dispatchFileParsed(store);
 		store.setStep("resolve");
 		store.commitDismissal();
@@ -155,7 +149,7 @@ describe("clearing ui.resumed", () => {
 
 	it("setStep is idempotent on the step value alone: the resumed seed's own recorder must not clear the notice", () => {
 		const store = createImportDraftStore();
-		store.dispatch({ type: "sourceSelected", sourceId: "csv" });
+		store.dispatch({ sourceId: "csv", type: "sourceSelected" });
 		dispatchFileParsed(store);
 		store.setStep("resolve");
 		store.commitDismissal();

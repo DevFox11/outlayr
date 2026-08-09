@@ -67,7 +67,7 @@ function makeDb(): Database {
 	return drizzle(sqlite) as unknown as Database;
 }
 
-const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 /**
  * The hand-rolled schema above carries no outbox and no triggers, so anything
@@ -90,9 +90,7 @@ function syncedDb(): Database {
 	// The shipped schema enforces the category foreign key the inline one above
 	// leaves off, so the category every draft here names has to exist.
 	sqlite
-		.prepare(
-			"INSERT INTO categories (id, name, income, sortOrder, updatedAt) VALUES ('cat-1', 'Groceries', 0, 0, 1)",
-		)
+		.prepare("INSERT INTO categories (id, name, income, sortOrder, updatedAt) VALUES ('cat-1', 'Groceries', 0, 0, 1)")
 		.run();
 	return drizzle(sqlite) as unknown as Database;
 }
@@ -102,22 +100,22 @@ const LONG_AGO = new Date(Date.UTC(2020, 0, 1, 12));
 
 const DRAFT: TransactionInput = {
 	amount: 100,
-	income: false,
 	categoryId: "cat-1",
-	note: "Bakery",
-	details: null,
-	date: LONG_AGO,
 	currency: "EUR",
+	date: LONG_AGO,
+	details: null,
+	income: false,
+	note: "Bakery",
 };
 
 async function frozen(db: Database, id: string) {
 	const [row] = await db
 		.select({
 			amount: transactions.amount,
-			note: transactions.note,
 			amountUsd: transactions.amountUsd,
 			exchangeRate: transactions.exchangeRate,
 			exchangeRateType: transactions.exchangeRateType,
+			note: transactions.note,
 		})
 		.from(transactions)
 		.where(eq(transactions.id, id));
@@ -131,12 +129,12 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 	beforeEach(async () => {
 		db = makeDb();
 		await db.insert(exchangeRates).values({
-			quote: "EUR",
-			rateType: "official",
 			date: "2020-01-01",
-			rate: 0.9,
-			source: "frankfurter",
 			fetchedAt: LONG_AGO.getTime(),
+			quote: "EUR",
+			rate: 0.9,
+			rateType: "official",
+			source: "frankfurter",
 		});
 		id = await transactionsRepo.create(db, DRAFT);
 		// `pullRatesIfDue` replaces the replica wholesale and the feed only serves
@@ -146,7 +144,7 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 
 	it("freezes the value at the rate of the day it happened", async () => {
 		const row = await frozen(db, id);
-		expect(row.amountUsd).toBe(111.111111);
+		expect(row.amountUsd).toBe(111.111_111);
 		expect(row.exchangeRate).toBe(0.9);
 		expect(row.exchangeRateType).toBe("official");
 	});
@@ -159,7 +157,7 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 
 		const row = await frozen(db, id);
 		expect(row.note).toBe("Bakery, corner one");
-		expect(row.amountUsd).toBe(111.111111);
+		expect(row.amountUsd).toBe(111.111_111);
 		expect(row.exchangeRate).toBe(0.9);
 		expect(row.exchangeRateType).toBe("official");
 	});
@@ -176,18 +174,18 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 
 	it("re-freezes a changed amount whenever the rate is back", async () => {
 		await db.insert(exchangeRates).values({
-			quote: "EUR",
-			rateType: "official",
 			date: "2020-01-01",
-			rate: 0.9,
-			source: "frankfurter",
 			fetchedAt: LONG_AGO.getTime(),
+			quote: "EUR",
+			rate: 0.9,
+			rateType: "official",
+			source: "frankfurter",
 		});
 
 		await transactionsRepo.update(db, id, { ...DRAFT, amount: 200 });
 
 		const row = await frozen(db, id);
-		expect(row.amountUsd).toBe(222.222222);
+		expect(row.amountUsd).toBe(222.222_222);
 		expect(row.exchangeRate).toBe(0.9);
 	});
 });
@@ -199,8 +197,8 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 	async function photoColumns(db: Database, id: string) {
 		const [row] = await db
 			.select({
-				imageUri: transactions.imageUri,
 				imageKey: transactions.imageKey,
+				imageUri: transactions.imageUri,
 			})
 			.from(transactions)
 			.where(eq(transactions.id, id));
@@ -210,26 +208,20 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 	it("clears the key when the user takes a visible photo off", async () => {
 		const db = makeDb();
 		const id = await transactionsRepo.create(db, { ...DRAFT, imageUri: PHOTO });
-		await db
-			.update(transactions)
-			.set({ imageKey: KEY })
-			.where(eq(transactions.id, id));
+		await db.update(transactions).set({ imageKey: KEY }).where(eq(transactions.id, id));
 
 		await transactionsRepo.update(db, id, { ...DRAFT, imageUri: null });
 
 		expect(await photoColumns(db, id)).toStrictEqual({
-			imageUri: null,
 			imageKey: null,
+			imageUri: null,
 		});
 	});
 
 	it("keeps the key when the row's bytes have not reached this device", async () => {
 		const db = makeDb();
 		const id = await transactionsRepo.create(db, DRAFT);
-		await db
-			.update(transactions)
-			.set({ imageKey: KEY })
-			.where(eq(transactions.id, id));
+		await db.update(transactions).set({ imageKey: KEY }).where(eq(transactions.id, id));
 
 		// Saving an unrelated edit on a row whose photo is still downloading must
 		// not read as "the user removed the photo" — that would delete it account-wide.
@@ -241,10 +233,7 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 	it("keeps the superseded key when the photo is replaced, for the uploader to release", async () => {
 		const db = makeDb();
 		const id = await transactionsRepo.create(db, { ...DRAFT, imageUri: PHOTO });
-		await db
-			.update(transactions)
-			.set({ imageKey: KEY })
-			.where(eq(transactions.id, id));
+		await db.update(transactions).set({ imageKey: KEY }).where(eq(transactions.id, id));
 
 		await transactionsRepo.update(db, id, {
 			...DRAFT,
@@ -259,24 +248,24 @@ describe("the reminder notice on a subscription", () => {
 	const NOW = new Date(2026, 3, 1, 9, 0);
 	const SUBSCRIPTION: TransactionInput = {
 		amount: 12,
-		income: false,
 		categoryId: "cat-1",
-		note: "Netflix",
-		details: null,
-		date: new Date(2026, 2, 15),
 		currency: "USD",
+		date: new Date(2026, 2, 15),
+		details: null,
+		income: false,
+		note: "Netflix",
 		onceRecurring: true,
-		recurringType: RECURRING_TYPE.monthly,
 		recurringCoefficient: 1,
+		recurringType: RECURRING_TYPE.monthly,
 		reminderLeadDays: 3,
 	};
 
 	async function notices(db: Database) {
 		return db
 			.select({
+				deletedAt: transactions.deletedAt,
 				id: transactions.id,
 				reminderLeadDays: transactions.reminderLeadDays,
-				deletedAt: transactions.deletedAt,
 			})
 			.from(transactions);
 	}
@@ -393,16 +382,16 @@ describe("restoring a tombstoned transaction", () => {
 	const RESTORED_AT = new Date(2026, 3, 2, 8, 30);
 	const LATER_STILL = new Date(2026, 3, 3, 8, 30);
 
-	async function timestamps(db: Database, id: string) {
-		const [row] = await db
+	async function timestamps(database: Database, transactionId: string) {
+		const [row] = await database
 			.select({
 				deletedAt: transactions.deletedAt,
-				updatedAt: transactions.updatedAt,
 				recurringType: transactions.recurringType,
 				reminderLeadDays: transactions.reminderLeadDays,
+				updatedAt: transactions.updatedAt,
 			})
 			.from(transactions)
-			.where(eq(transactions.id, id));
+			.where(eq(transactions.id, transactionId));
 		return row;
 	}
 
@@ -420,16 +409,12 @@ describe("restoring a tombstoned transaction", () => {
 
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
-		expect((await ledgerSizeQuery(db)).map((row) => row.id)).toStrictEqual([
-			id,
-		]);
+		expect((await ledgerSizeQuery(db)).map((row) => row.id)).toStrictEqual([id]);
 		expect((await logWindowDaysQuery(db, Date.now(), 30)).length).toBe(1);
 	});
 
 	it("takes the entry off the deleted list it was restored from", async () => {
-		expect(
-			(await deletedTransactionsQuery(db)).map((row) => row.id),
-		).toStrictEqual([id]);
+		expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual([id]);
 
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
@@ -448,17 +433,15 @@ describe("restoring a tombstoned transaction", () => {
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 		await transactionsRepo.restore(db, id, LATER_STILL);
 
-		expect((await timestamps(db, id))?.updatedAt.getTime()).toBe(
-			RESTORED_AT.getTime(),
-		);
+		expect((await timestamps(db, id))?.updatedAt.getTime()).toBe(RESTORED_AT.getTime());
 	});
 
 	it("leaves a subscription the delete ended ended", async () => {
 		const carrier = await transactionsRepo.create(db, {
 			...DRAFT,
 			onceRecurring: true,
-			recurringType: RECURRING_TYPE.monthly,
 			recurringCoefficient: 1,
+			recurringType: RECURRING_TYPE.monthly,
 			reminderLeadDays: 3,
 		});
 		await transactionsRepo.remove(db, carrier, DELETED_AT);
@@ -479,9 +462,9 @@ describe("a restore the account has to hear about", () => {
 	async function queued(db: Database) {
 		return db
 			.select({
+				localId: outbox.localId,
 				seq: outbox.seq,
 				tableName: outbox.tableName,
-				localId: outbox.localId,
 			})
 			.from(outbox);
 	}
@@ -495,9 +478,7 @@ describe("a restore the account has to hear about", () => {
 
 		await transactionsRepo.restore(db, id, RESTORED_AT);
 
-		expect(
-			(await queued(db)).map((row) => [row.tableName, row.localId]),
-		).toStrictEqual([["transactions", id]]);
+		expect((await queued(db)).map((row) => [row.tableName, row.localId])).toStrictEqual([["transactions", id]]);
 	});
 
 	it("queues nothing for a restore that had nothing to lift", async () => {
@@ -529,12 +510,8 @@ describe("switching sync off over a ledger already logged", () => {
 		const afterOff = await transactionsRepo.create(db, DRAFT);
 
 		expect(await db.select({ seq: outbox.seq }).from(outbox)).toStrictEqual([]);
-		expect(
-			(await ledgerSizeQuery(db)).map((row) => row.id).sort(),
-		).toStrictEqual([kept, afterOff].sort());
-		expect(
-			(await deletedTransactionsQuery(db)).map((row) => row.id),
-		).toStrictEqual([tombstoned]);
+		expect((await ledgerSizeQuery(db)).map((row) => row.id).sort()).toStrictEqual([kept, afterOff].sort());
+		expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual([tombstoned]);
 	});
 });
 
@@ -608,20 +585,16 @@ describe("accountTransactionsQuery", () => {
 	const JUNE_1 = new Date(Date.UTC(2026, 5, 1, 12));
 	const JUNE_2 = new Date(Date.UTC(2026, 5, 2, 12));
 
-	async function seed(
-		db: Database,
-		id: string,
-		overrides: Partial<typeof transactions.$inferInsert>,
-	) {
+	async function seed(db: Database, id: string, overrides: Partial<typeof transactions.$inferInsert>) {
 		await db.insert(transactions).values({
-			id,
 			amount: 10,
-			income: false,
 			currency: "USD",
-			note: id,
 			date: JUNE_1,
 			day: JUNE_1,
+			id,
+			income: false,
 			month: JUNE_1,
+			note: id,
 			updatedAt: JUNE_1,
 			...overrides,
 		});
@@ -660,25 +633,25 @@ describe("ledgerSizeQuery", () => {
 		const now = new Date();
 		await db.insert(transactions).values([
 			{
-				id: "live",
 				amount: 10,
-				income: false,
-				note: "",
 				date: now,
 				day: now,
+				id: "live",
+				income: false,
 				month: now,
+				note: "",
 				updatedAt: now,
 			},
 			{
-				id: "tombstoned",
 				amount: 10,
-				income: false,
-				note: "",
 				date: now,
 				day: now,
-				month: now,
-				updatedAt: now,
 				deletedAt: now,
+				id: "tombstoned",
+				income: false,
+				month: now,
+				note: "",
+				updatedAt: now,
 			},
 		]);
 

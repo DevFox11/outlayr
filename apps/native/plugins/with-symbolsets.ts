@@ -15,15 +15,11 @@ import { type ConfigPlugin, withDangerousMod } from "expo/config-plugins";
  * `Images.xcassets`, so nothing has to be registered in the pbxproj — unlike an
  * alternate app icon, which also needs build settings (`with-alternate-icons`).
  */
-const withSymbolsets: ConfigPlugin<{ directory: string }> = (
-	config,
-	{ directory },
-) =>
+const withSymbolsets: ConfigPlugin<{ directory: string }> = (config, { directory }) =>
 	withDangerousMod(config, [
 		"ios",
 		async (dangerousConfig) => {
-			const { platformProjectRoot, projectName, projectRoot } =
-				dangerousConfig.modRequest;
+			const { platformProjectRoot, projectName, projectRoot } = dangerousConfig.modRequest;
 			if (!projectName) {
 				throw new Error("withSymbolsets: no iOS project name.");
 			}
@@ -32,21 +28,19 @@ const withSymbolsets: ConfigPlugin<{ directory: string }> = (
 			const catalog = join(platformProjectRoot, projectName, "Images.xcassets");
 
 			const entries = await readdir(source, { withFileTypes: true });
-			const bundles = entries.filter(
-				(entry) => entry.isDirectory() && extname(entry.name) === ".symbolset",
-			);
+			const bundles = entries.filter((entry) => entry.isDirectory() && extname(entry.name) === ".symbolset");
 
 			if (bundles.length === 0) {
-				throw new Error(
-					`withSymbolsets: no .symbolset bundles in ${directory} — run \`pnpm gen:symbolsets\`.`,
-				);
+				throw new Error(`withSymbolsets: no .symbolset bundles in ${directory} — run \`pnpm gen:symbolsets\`.`);
 			}
 
-			for (const bundle of bundles) {
-				await cp(join(source, bundle.name), join(catalog, bundle.name), {
-					recursive: true,
-				});
-			}
+			await Promise.all(
+				bundles.map((bundle) =>
+					cp(join(source, bundle.name), join(catalog, bundle.name), {
+						recursive: true,
+					})
+				)
+			);
 
 			return dangerousConfig;
 		},

@@ -4,84 +4,80 @@ describe("logCurrencyOptions", () => {
 	it("offers the ledger's currency alone on a single-currency ledger", () => {
 		// This is what "the chip always shows" rests on: one option, still an
 		// option, so the chip has something to render and stays tappable.
-		expect(
-			logCurrencyOptions({ global: "USD", favourites: [], produced: ["USD"] }),
-		).toStrictEqual(["USD"]);
+		expect(logCurrencyOptions({ favourites: [], global: "USD", produced: ["USD"] })).toStrictEqual(["USD"]);
 	});
 
 	it("offers the ledger's currency even when the period produced nothing", () => {
-		expect(
-			logCurrencyOptions({ global: "USD", favourites: [], produced: [] }),
-		).toStrictEqual(["USD"]);
+		expect(logCurrencyOptions({ favourites: [], global: "USD", produced: [] })).toStrictEqual(["USD"]);
 	});
 
 	it("leads with the ledger's currency whatever the period produced", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: [],
+				global: "USD",
 				produced: ["JPY", "EUR", "USD"],
-			}),
+			})
 		).toStrictEqual(["USD", "JPY", "EUR"]);
 	});
 
 	it("leads with the ledger's currency even when a favourite repeats it", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["EUR", "USD", "JPY"],
+				global: "USD",
 				produced: [],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR", "JPY"]);
 	});
 
 	it("keeps favourites in the order they were arranged, not sorted", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["JPY", "EUR", "AUD"],
+				global: "USD",
 				produced: [],
-			}),
+			})
 		).toStrictEqual(["USD", "JPY", "EUR", "AUD"]);
 	});
 
 	it("appends a produced currency that is not already offered", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["EUR"],
+				global: "USD",
 				produced: ["VES"],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR", "VES"]);
 	});
 
 	it("appends produced currencies after every favourite, in their own order", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["EUR", "JPY"],
+				global: "USD",
 				produced: ["VES", "COP"],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR", "JPY", "VES", "COP"]);
 	});
 
 	it("collapses a produced currency that is already a favourite", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["EUR", "JPY"],
+				global: "USD",
 				produced: ["JPY", "USD", "EUR"],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR", "JPY"]);
 	});
 
 	it("collapses repeats inside one list", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["EUR", "EUR"],
+				global: "USD",
 				produced: ["VES", "VES"],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR", "VES"]);
 	});
 
@@ -90,45 +86,43 @@ describe("logCurrencyOptions", () => {
 		// bucket label are matched against, so it must not be rewritten.
 		expect(
 			logCurrencyOptions({
-				global: "usd",
 				favourites: ["USD", "eur"],
+				global: "usd",
 				produced: ["EUR"],
-			}),
+			})
 		).toStrictEqual(["usd", "eur"]);
 	});
 
 	it("drops empty and whitespace-only codes rather than offering a blank", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: ["", " "],
+				global: "USD",
 				produced: ["\t", "EUR"],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR"]);
 	});
 
 	it("trims the padding a hand-edited stored list would carry", () => {
 		expect(
 			logCurrencyOptions({
-				global: "USD",
 				favourites: [" EUR "],
+				global: "USD",
 				produced: ["EUR", " JPY"],
-			}),
+			})
 		).toStrictEqual(["USD", "EUR", "JPY"]);
 	});
 
 	it("offers a produced code the currency catalogue does not know", () => {
 		// Dropping it would leave the one figure on screen unreadable: the user
 		// could see the bucket and never switch the screen into it.
-		expect(
-			logCurrencyOptions({ global: "USD", favourites: [], produced: ["XXX"] }),
-		).toStrictEqual(["USD", "XXX"]);
+		expect(logCurrencyOptions({ favourites: [], global: "USD", produced: ["XXX"] })).toStrictEqual(["USD", "XXX"]);
 	});
 
 	it("never mutates the lists it is handed", () => {
 		const favourites = ["EUR"];
 		const produced = ["JPY"];
-		logCurrencyOptions({ global: "USD", favourites, produced });
+		logCurrencyOptions({ favourites, global: "USD", produced });
 		expect(favourites).toStrictEqual(["EUR"]);
 		expect(produced).toStrictEqual(["JPY"]);
 	});
@@ -144,11 +138,11 @@ describe("logCurrencyOptions", () => {
 			// never be in — the screen would name CHF and print EUR.
 			expect(
 				logCurrencyOptions({
-					global: "EUR",
-					favourites: ["CHF", "JPY"],
-					produced: [],
 					convertible: reaches("JPY"),
-				}),
+					favourites: ["CHF", "JPY"],
+					global: "EUR",
+					produced: [],
+				})
 			).toStrictEqual(["EUR", "JPY"]);
 		});
 
@@ -157,43 +151,43 @@ describe("logCurrencyOptions", () => {
 			// screen in whatever it was last switched to.
 			expect(
 				logCurrencyOptions({
-					global: "VES",
-					favourites: [],
-					produced: [],
 					convertible: () => false,
-				}),
+					favourites: [],
+					global: "VES",
+					produced: [],
+				})
 			).toStrictEqual(["VES"]);
 		});
 
 		it("keeps a produced code even when nothing can reach it", () => {
 			expect(
 				logCurrencyOptions({
-					global: "USD",
-					favourites: [],
-					produced: ["VES"],
 					convertible: () => false,
-				}),
+					favourites: [],
+					global: "USD",
+					produced: ["VES"],
+				})
 			).toStrictEqual(["USD", "VES"]);
 		});
 
 		it("tests the trimmed code, not the stored spelling", () => {
 			expect(
 				logCurrencyOptions({
-					global: "USD",
-					favourites: [" EUR "],
-					produced: [],
 					convertible: reaches("EUR"),
-				}),
+					favourites: [" EUR "],
+					global: "USD",
+					produced: [],
+				})
 			).toStrictEqual(["USD", "EUR"]);
 		});
 
 		it("offers every favourite when no predicate is given", () => {
 			expect(
 				logCurrencyOptions({
-					global: "USD",
 					favourites: ["CHF"],
+					global: "USD",
 					produced: [],
-				}),
+				})
 			).toStrictEqual(["USD", "CHF"]);
 		});
 	});

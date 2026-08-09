@@ -17,7 +17,7 @@ const PLACEHOLDER_BASE64 =
 function base64ToBytes(base64: string): Uint8Array {
 	const binary = globalThis.atob(base64);
 	const bytes = new Uint8Array(binary.length);
-	for (let index = 0; index < binary.length; index++) {
+	for (let index = 0; index < binary.length; index += 1) {
 		bytes[index] = binary.charCodeAt(index);
 	}
 	return bytes;
@@ -26,9 +26,7 @@ function base64ToBytes(base64: string): Uint8Array {
 const PLACEHOLDER_BYTES = base64ToBytes(PLACEHOLDER_BASE64);
 
 const PNG_1KB = padded([0x89, 0x50, 0x4e, 0x47], 1024);
-const HTML = new TextEncoder().encode(
-	`<!doctype html><html><body>${"nope ".repeat(200)}</body></html>`,
-);
+const HTML = new TextEncoder().encode(`<!doctype html><html><body>${"nope ".repeat(200)}</body></html>`);
 
 describe("isRealLogo", () => {
 	it("accepts a real png", () => {
@@ -36,9 +34,7 @@ describe("isRealLogo", () => {
 	});
 
 	it("accepts an ico, which is what some providers return", () => {
-		expect(
-			isRealLogo(200, "image/vnd.microsoft.icon", padded([0, 0, 1, 0], 9854)),
-		).toStrictEqual({ ok: true });
+		expect(isRealLogo(200, "image/vnd.microsoft.icon", padded([0, 0, 1, 0], 9854))).toStrictEqual({ ok: true });
 	});
 
 	it("accepts a webp, whose signature is split across two offsets", () => {
@@ -62,21 +58,21 @@ describe("isRealLogo", () => {
 	});
 
 	it("rejects a tracker pixel under the size floor", () => {
-		expect(
-			isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 12)),
-		).toStrictEqual({ ok: false, reason: "too-small" });
+		expect(isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 12))).toStrictEqual({
+			ok: false,
+			reason: "too-small",
+		});
 	});
 
 	it("accepts a multi-resolution icon", () => {
-		expect(
-			isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 300_000)),
-		).toStrictEqual({ ok: true });
+		expect(isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 300_000))).toStrictEqual({ ok: true });
 	});
 
 	it("rejects an oversized payload", () => {
-		expect(
-			isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 600_000)),
-		).toStrictEqual({ ok: false, reason: "too-large" });
+		expect(isRealLogo(200, "image/png", padded([0x89, 0x50, 0x4e, 0x47], 600_000))).toStrictEqual({
+			ok: false,
+			reason: "too-large",
+		});
 	});
 
 	it("rejects a json body", () => {
@@ -108,9 +104,7 @@ describe("isRealLogo", () => {
 
 	it("would otherwise have accepted it — every earlier rule passes", () => {
 		expect(PLACEHOLDER_BYTES.length).toBeGreaterThan(512);
-		expect(Array.from(PLACEHOLDER_BYTES.subarray(0, 4))).toStrictEqual([
-			0x89, 0x50, 0x4e, 0x47,
-		]);
+		expect(Array.from(PLACEHOLDER_BYTES.subarray(0, 4))).toStrictEqual([0x89, 0x50, 0x4e, 0x47]);
 	});
 });
 
@@ -125,8 +119,6 @@ describe("fingerprint", () => {
 	});
 
 	it("separates blobs of equal length", () => {
-		expect(fingerprint(padded([1, 2, 3, 4], 64))).not.toBe(
-			fingerprint(padded([4, 3, 2, 1], 64)),
-		);
+		expect(fingerprint(padded([1, 2, 3, 4], 64))).not.toBe(fingerprint(padded([4, 3, 2, 1], 64)));
 	});
 });

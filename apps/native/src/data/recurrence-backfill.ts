@@ -13,15 +13,8 @@ import { localRateLookup } from "./rates";
 type TransactionRow = typeof transactions.$inferSelect;
 type TransactionInsert = typeof transactions.$inferInsert;
 
-async function loadSource(
-	db: Database,
-	id: string,
-): Promise<TransactionRow | null> {
-	const rows = await db
-		.select()
-		.from(transactions)
-		.where(eq(transactions.id, id))
-		.limit(1);
+async function loadSource(db: Database, id: string): Promise<TransactionRow | null> {
+	const rows = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
 	return rows[0] ?? null;
 }
 
@@ -44,10 +37,7 @@ const OCCURRENCE_NAMESPACE = "0f2b9f1e-6d3a-4c58-9a71-2c8f5d6e4b31";
  * two devices in different time zones must still land on one id.
  */
 export function occurrenceId(parentLocalId: string, holding: Date): string {
-	return uuidV5(
-		`${parentLocalId}:${startOfDay(holding).getTime()}`,
-		OCCURRENCE_NAMESPACE,
-	);
+	return uuidV5(`${parentLocalId}:${startOfDay(holding).getTime()}`, OCCURRENCE_NAMESPACE);
 }
 
 /**
@@ -58,37 +48,32 @@ function anchorDayOf(source: TransactionRow): number {
 	return source.recurringAnchorDay ?? source.date.getDate();
 }
 
-function occurrenceRow(
-	source: TransactionRow,
-	holding: Date,
-	carriesSchedule: boolean,
-	now: Date,
-): TransactionInsert {
+function occurrenceRow(source: TransactionRow, holding: Date, carriesSchedule: boolean, now: Date): TransactionInsert {
 	return {
-		id: occurrenceId(source.id, holding),
 		amount: source.amount,
-		income: source.income,
+		categoryId: source.categoryId,
 		currency: source.currency,
-		note: source.note,
-		details: source.details,
+		customColor: source.customColor,
 		date: holding,
 		day: startOfDay(holding),
-		month: firstOfMonth(holding),
-		icon: source.icon,
+		deletedAt: null,
+		details: source.details,
 		emoji: source.emoji,
-		customColor: source.customColor,
+		icon: source.icon,
+		id: occurrenceId(source.id, holding),
 		imageColor: source.imageColor,
-		imageUri: source.imageUri,
 		imageKey: source.imageKey,
+		imageUri: source.imageUri,
+		income: source.income,
+		month: firstOfMonth(holding),
+		note: source.note,
 		onceRecurring: true,
-		recurringType: carriesSchedule ? source.recurringType : RECURRING_TYPE.none,
+		recurringAnchorDay: carriesSchedule ? anchorDayOf(source) : null,
 		recurringCoefficient: carriesSchedule ? source.recurringCoefficient : 1,
 		recurringEndDate: carriesSchedule ? source.recurringEndDate : null,
-		recurringAnchorDay: carriesSchedule ? anchorDayOf(source) : null,
+		recurringType: carriesSchedule ? source.recurringType : RECURRING_TYPE.none,
 		reminderLeadDays: carriesSchedule ? source.reminderLeadDays : null,
-		categoryId: source.categoryId,
 		updatedAt: now,
-		deletedAt: null,
 	};
 }
 
@@ -105,17 +90,9 @@ function occurrenceRow(
  * The `advanced <= holding` break is a defensive stop against a malformed
  * coefficient that fails to advance the schedule.
  */
-export async function backfillRecurring(
-	db: Database,
-	id: string,
-	now: Date = new Date(),
-): Promise<void> {
+export async function backfillRecurring(db: Database, id: string, now: Date = new Date()): Promise<void> {
 	const source = await loadSource(db, id);
-	if (
-		source == null ||
-		!source.onceRecurring ||
-		source.recurringType === RECURRING_TYPE.none
-	) {
+	if (source == null || !source.onceRecurring || source.recurringType === RECURRING_TYPE.none) {
 		return;
 	}
 
@@ -123,20 +100,13 @@ export async function backfillRecurring(
 	const coefficient = source.recurringCoefficient;
 	const anchorDay = anchorDayOf(source);
 	const today = startOfDay(now);
-	const endLimit =
-		source.recurringEndDate == null
-			? null
-			: startOfDay(source.recurringEndDate);
-	const withinEndLimit = (d: Date): boolean =>
-		endLimit == null || startOfDay(d).getTime() <= endLimit.getTime();
+	const endLimit = source.recurringEndDate == null ? null : startOfDay(source.recurringEndDate);
+	const withinEndLimit = (d: Date): boolean => endLimit == null || startOfDay(d).getTime() <= endLimit.getTime();
 
-	const occurrenceAt = (
-		holding: Date,
-		carriesSchedule: boolean,
-	): TransactionInsert => occurrenceRow(source, holding, carriesSchedule, now);
+	const occurrenceAt = (holding: Date, carriesSchedule: boolean): TransactionInsert =>
+		occurrenceRow(source, holding, carriesSchedule, now);
 
-	const next =
-		nextDate(source.date, type, coefficient, anchorDay) ?? source.date;
+	const next = nextDate(source.date, type, coefficient, anchorDay) ?? source.date;
 	const pending: TransactionInsert[] = [];
 
 	// A row may only inherit the schedule when its own next charge is strictly
@@ -150,10 +120,7 @@ export async function backfillRecurring(
 
 	if (startOfDay(next).getTime() < today.getTime()) {
 		let holding = next;
-		while (
-			startOfDay(holding).getTime() <= today.getTime() &&
-			withinEndLimit(holding)
-		) {
+		while (startOfDay(holding).getTime() <= today.getTime() && withinEndLimit(holding)) {
 			const advanced = nextDate(holding, type, coefficient, anchorDay);
 			pending.push(occurrenceAt(holding, carriesFrom(holding, advanced)));
 			if (advanced == null) {
@@ -185,10 +152,10 @@ export async function backfillRecurring(
 			...(await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency ?? null,
-				displayCurrency: display,
 				date: row.date,
+				displayCurrency: display,
 			})),
-		})),
+		}))
 	);
 
 	// Atomic on purpose: dying between the insert and the retire leaves the source
@@ -224,37 +191,27 @@ export async function backfillRecurring(
  * Sequential rather than concurrent: each iteration writes, and the rows share
  * one SQLite connection.
  */
-export async function backfillAllRecurring(
-	db: Database,
-	now: Date = new Date(),
-): Promise<void> {
+export async function backfillAllRecurring(db: Database, now: Date = new Date()): Promise<void> {
 	const live = await db
 		.select({ id: transactions.id })
 		.from(transactions)
-		.where(
-			and(
-				gt(transactions.recurringType, RECURRING_TYPE.none),
-				isNull(transactions.deletedAt),
-			),
-		);
+		.where(and(gt(transactions.recurringType, RECURRING_TYPE.none), isNull(transactions.deletedAt)));
 
 	for (const row of live) {
+		// biome-ignore lint/performance/noAwaitInLoops: every iteration writes through the one SQLite connection these rows share, so the sweep has to advance one chain at a time.
 		await backfillRecurring(db, row.id, now);
 	}
 }
 
-async function withCanonicalUsd(
-	db: Database,
-	row: TransactionInsert,
-): Promise<TransactionInsert> {
+async function withCanonicalUsd(db: Database, row: TransactionInsert): Promise<TransactionInsert> {
 	const display = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
 	return {
 		...row,
 		...(await canonicalUsd(localRateLookup(db), {
 			amount: row.amount,
 			currency: row.currency ?? null,
-			displayCurrency: display,
 			date: row.date,
+			displayCurrency: display,
 		})),
 	};
 }
@@ -277,7 +234,7 @@ async function withCanonicalUsd(
 export async function scheduleSuccessor(
 	db: Database,
 	carrier: TransactionRow,
-	now: Date,
+	now: Date
 ): Promise<TransactionInsert | null> {
 	if (!carrier.onceRecurring || carrier.recurringType === RECURRING_TYPE.none) {
 		return null;
@@ -291,7 +248,7 @@ export async function scheduleSuccessor(
 		carrier.recurringCoefficient,
 		carrier.recurringEndDate,
 		now,
-		anchorDayOf(carrier),
+		anchorDayOf(carrier)
 	);
 	if (landing == null) {
 		return null;
@@ -311,10 +268,7 @@ export async function scheduleSuccessor(
  * Guarded twice over — the marker skips the pass, and clearing every tombstone it
  * examines empties the predicate that selected them.
  */
-export async function repairOrphanedRecurrence(
-	db: Database,
-	now: Date = new Date(),
-): Promise<number> {
+export async function repairOrphanedRecurrence(db: Database, now: Date = new Date()): Promise<number> {
 	if ((await getMeta(db, META_KEYS.recurrenceRepaired)) === "true") {
 		return 0;
 	}
@@ -326,12 +280,13 @@ export async function repairOrphanedRecurrence(
 			and(
 				isNotNull(transactions.deletedAt),
 				eq(transactions.onceRecurring, true),
-				gt(transactions.recurringType, RECURRING_TYPE.none),
-			),
+				gt(transactions.recurringType, RECURRING_TYPE.none)
+			)
 		);
 
 	let reinstated = 0;
 	for (const carrier of orphaned) {
+		// biome-ignore lint/performance/noAwaitInLoops: each carrier is reinstated inside its own write transaction on the one SQLite connection, and overlapping transactions on it would interleave.
 		const successor = await scheduleSuccessor(db, carrier, now);
 		await withTransaction(db, async () => {
 			if (successor != null) {

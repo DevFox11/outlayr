@@ -1,20 +1,14 @@
-import {
-	addDays,
-	addMonths,
-	firstOfMonth,
-	startOfDay,
-	startOfWeek,
-} from "./dates";
+import { addDays, addMonths, firstOfMonth, startOfDay, startOfWeek } from "./dates";
 import type { LogMeasure } from "./log-measure";
 
 export interface SparklinePoint {
-	date: Date;
 	amount: number;
+	date: Date;
 }
 
 export interface SparklineRow {
-	date: Date;
 	amount: number;
+	date: Date;
 	income: boolean;
 }
 
@@ -30,7 +24,7 @@ function endOfDay(day: Date): Date {
  */
 function sampleEdges(
 	period: "day" | "week" | "month" | "year" | "all",
-	now: Date,
+	now: Date
 ): { edges: Date[]; unit: "day" | "month" } | null {
 	const today = startOfDay(now);
 
@@ -72,7 +66,7 @@ export function sparklineSeries(
 	rows: readonly SparklineRow[],
 	measure: LogMeasure,
 	period: "day" | "week" | "month" | "year" | "all",
-	now: Date,
+	now: Date
 ): SparklinePoint[] {
 	const sampled = sampleEdges(period, now);
 	if (!sampled) {
@@ -86,15 +80,12 @@ export function sparklineSeries(
 		let running = 0;
 		let index = 0;
 		return sampled.edges.map((edge) => {
-			while (
-				index < sorted.length &&
-				sorted[index].date.getTime() < edge.getTime()
-			) {
+			while (index < sorted.length && sorted[index].date.getTime() < edge.getTime()) {
 				const row = sorted[index];
 				running += row.income ? row.amount : -row.amount;
 				index += 1;
 			}
-			return { date: edge, amount: running };
+			return { amount: running, date: edge };
 		});
 	}
 
@@ -102,54 +93,38 @@ export function sparklineSeries(
 	let index = 0;
 	return sampled.edges.map((edge) => {
 		let bucket = 0;
-		while (
-			index < sorted.length &&
-			sorted[index].date.getTime() < edge.getTime()
-		) {
+		while (index < sorted.length && sorted[index].date.getTime() < edge.getTime()) {
 			const row = sorted[index];
 			if (row.income === wantIncome && row.date.getTime() > windowStart) {
 				bucket += row.amount;
 			}
 			index += 1;
 		}
-		return { date: edge, amount: bucket };
+		return { amount: bucket, date: edge };
 	});
 }
 
 /** How many trailing points belong to the period the hero is measuring. */
-export function sparklineRange(
-	period: "day" | "week" | "month" | "year" | "all",
-	now: Date,
-	firstWeekday = 1,
-): number {
+export function sparklineRange(period: "day" | "week" | "month" | "year" | "all", now: Date, firstWeekday = 1): number {
 	const today = startOfDay(now);
 	const day = 86_400_000;
 	if (period === "month") {
-		return (
-			Math.round((today.getTime() - firstOfMonth(now).getTime()) / day) + 1
-		);
+		return Math.round((today.getTime() - firstOfMonth(now).getTime()) / day) + 1;
 	}
 	if (period === "year") {
 		return now.getMonth() + 1;
 	}
-	return (
-		Math.round(
-			(today.getTime() - startOfWeek(now, firstWeekday).getTime()) / day,
-		) + 1
-	);
+	return Math.round((today.getTime() - startOfWeek(now, firstWeekday).getTime()) / day) + 1;
 }
 
 /** The direction the line should read as good. */
-export function sparklineIsPositive(
-	measure: LogMeasure,
-	points: readonly SparklinePoint[],
-): boolean {
+export function sparklineIsPositive(measure: LogMeasure, points: readonly SparklinePoint[]): boolean {
 	switch (measure) {
 		case "net":
 			return (points[0]?.amount ?? 0) < (points.at(-1)?.amount ?? 0);
 		case "in":
 			return true;
-		case "out":
+		default:
 			return false;
 	}
 }

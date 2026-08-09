@@ -5,20 +5,13 @@ import { ScrollView } from "react-native";
 
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
-import {
-	useDisplaySettings,
-	useSettingBool,
-	useSettingNumber,
-} from "@/contexts/display-settings-context";
+import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountsOverviewIn } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoryMeta } from "@/data/categories";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
-import {
-	useFilteredTransactions,
-	useUpcomingTransactions,
-} from "@/data/log-filtered";
+import { useFilteredTransactions, useUpcomingTransactions } from "@/data/log-filtered";
 import {
 	type LogPeriod,
 	logPeriodFromStored,
@@ -26,8 +19,9 @@ import {
 	useLogInsights,
 	useSparklineRows,
 } from "@/data/log-totals";
-import { setNumberSetting } from "@/data/settings";
-import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
+import { setNumberSetting } from "@/data/settings-core";
+import { useLoggedTransactions } from "@/data/transactions";
+import { LOG_PAGE_DAYS } from "@/data/transactions-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
@@ -38,20 +32,12 @@ import { groupByDay } from "@/domain/day-sections";
 import { logCurrencyOptions } from "@/domain/log-currency-options";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
-import {
-	type LogMeasure,
-	logMeasureFromStored,
-	storedLogMeasure,
-} from "@/domain/log-measure";
+import { type LogMeasure, logMeasureFromStored, storedLogMeasure } from "@/domain/log-measure";
 import { cursorStart } from "@/domain/log-period-cursor";
 import { scopeTotals } from "@/domain/log-scope-figures";
-import {
-	sparklineIsPositive,
-	sparklineRange,
-	sparklineSeries,
-} from "@/domain/log-sparkline";
+import { sparklineIsPositive, sparklineRange, sparklineSeries } from "@/domain/log-sparkline";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { AccountsOverviewCard } from "./components/accounts-overview-card";
@@ -83,7 +69,7 @@ function useSparkline(
 	period: LogPeriod,
 	firstWeekday: number,
 	displayCurrency: string,
-	rates: RateTable,
+	rates: RateTable
 ): SparklineData | null {
 	const today = startOfDay(new Date(nowMs));
 	const floor = period === "month" ? addMonths(today, -1) : addDays(today, -7);
@@ -96,7 +82,7 @@ function useSparkline(
 		// would cut short.
 		period === "year" ? null : floor,
 		displayCurrency,
-		rates,
+		rates
 	);
 
 	return useMemo(() => {
@@ -106,10 +92,10 @@ function useSparkline(
 		const now = new Date(nowMs);
 		const points = sparklineSeries(rows, measure, period, now);
 		return {
+			byMonth: period === "year",
 			points,
 			positive: sparklineIsPositive(measure, points),
 			range: sparklineRange(period, now, firstWeekday),
-			byMonth: period === "year",
 		};
 	}, [rows, measure, period, firstWeekday, enabled, nowMs]);
 }
@@ -144,45 +130,35 @@ function LogContent({ db }: { db: Database }) {
 	// filters out from under the user.
 	const [cursors, setCursors] = useState<Record<string, Date>>(() => ({
 		day: new Date(nowMs),
-		week: new Date(nowMs),
 		month: new Date(nowMs),
+		week: new Date(nowMs),
 	}));
 
 	const [days, setDays] = useState(LOG_PAGE_DAYS);
 
 	const categoryMeta = useCategoryMeta(db);
 	const filterableCategories = useMemo(
-		() =>
-			[...categoryMeta]
-				.filter(([, meta]) => meta.parentId == null)
-				.map(([id, meta]) => ({ id, meta })),
-		[categoryMeta],
+		() => [...categoryMeta].filter(([, meta]) => meta.parentId == null).map(([id, meta]) => ({ id, meta })),
+		[categoryMeta]
 	);
 	const activeCategoryId = categoryId ?? filterableCategories[0]?.id ?? null;
 
 	const cursorUnit = filter === "week" || filter === "month" ? filter : "day";
 	const cursor = cursors[cursorUnit] ?? new Date(nowMs);
 
-	const { rows: windowRows, reachedEnd } = useLoggedTransactions(
-		db,
-		nowMs,
-		days,
-	);
+	const { rows: windowRows, reachedEnd } = useLoggedTransactions(db, nowMs, days);
 	const filteredRows = useFilteredTransactions(db, nowMs, {
-		filter,
 		categoryId: activeCategoryId,
 		cursor,
-		income,
+		filter,
 		firstWeekday,
+		income,
 	});
 	const upcoming = useUpcomingTransactions(db, nowMs, showUpcomingSoon);
 	const insights = useLogInsights(db, nowMs, period, currency, rates);
 	const currencyOptions = useMemo(
 		() =>
 			logCurrencyOptions({
-				global: globalCurrency,
-				favourites: favouriteCurrencies,
-				produced: insights.perCurrency.map((figures) => figures.currencyCode),
 				// Asked of `valued`, not of `rates`: `rates` holds one currency — the
 				// one on screen — so it answers no for every other code, and the chip
 				// offered no favourite at all (#237).
@@ -191,66 +167,43 @@ function LogContent({ db }: { db: Database }) {
 				// pulled a rate: `valueExactIn` returns the row's frozen `amountUsd` for
 				// a USD display and never reaches the rate table.
 				convertible: (code) => code === "USD" || valued.has(code),
+				favourites: favouriteCurrencies,
+				global: globalCurrency,
+				produced: insights.perCurrency.map((figures) => figures.currencyCode),
 			}),
-		[globalCurrency, favouriteCurrencies, insights, valued],
+		[globalCurrency, favouriteCurrencies, insights, valued]
 	);
-	const sparkline = useSparkline(
-		db,
-		nowMs,
-		logViewLineGraph,
-		measure,
-		period,
-		firstWeekday,
-		currency,
-		rates,
-	);
+	const sparkline = useSparkline(db, nowMs, logViewLineGraph, measure, period, firstWeekday, currency, rates);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 
 	const listRows = filter === "all" ? windowRows : filteredRows;
-	const visibleRows = useMemo(
-		() => listRows.filter((row) => row.id !== pendingId),
-		[listRows, pendingId],
-	);
-	const sections = useMemo(
-		() => groupByDay(visibleRows, currency, rates),
-		[visibleRows, currency, rates],
-	);
+	const visibleRows = useMemo(() => listRows.filter((row) => row.id !== pendingId), [listRows, pendingId]);
+	const sections = useMemo(() => groupByDay(visibleRows, currency, rates), [visibleRows, currency, rates]);
 	// Totalled over the filtered read, which `useFilteredTransactions` leaves
 	// unwindowed: `windowRows` is a page, so `all` gets the period header instead.
 	// The same rows the sections are built from, so the figure and the day
 	// subtotals under it agree to the cent.
 	const scopeFigures = useMemo(
-		() =>
-			filter === "all" || visibleRows.length === 0
-				? null
-				: scopeTotals(visibleRows, currency, rates),
-		[filter, visibleRows, currency, rates],
+		() => (filter === "all" || visibleRows.length === 0 ? null : scopeTotals(visibleRows, currency, rates)),
+		[filter, visibleRows, currency, rates]
 	);
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 	const cardOptions = useMemo(
 		() => ({ currency, showCents, swapTimeLabel, use24Hour }),
-		[currency, showCents, swapTimeLabel, use24Hour],
+		[currency, showCents, swapTimeLabel, use24Hour]
 	);
 	const shareDay = useDayCardShare(cardOptions);
 
 	// Only the period filters name a stretch of time, which the calendar
 	// composes; every other scope is a word, and words come from the catalog.
 	const detail = filterPeriodUnit(filter)
-		? filterDetail(filter, { cursor, income, firstWeekday })
-		: filterScopeLabel(
-				t,
-				filter,
-				activeCategoryId ? categoryMeta.get(activeCategoryId)?.name : null,
-				income,
-			);
+		? filterDetail(filter, { cursor, firstWeekday, income })
+		: filterScopeLabel(t, filter, activeCategoryId ? categoryMeta.get(activeCategoryId)?.name : null, income);
 
-	const showUpcomingSection =
-		filter === "upcoming" || (filter === "all" && showUpcoming);
+	const showUpcomingSection = filter === "upcoming" || (filter === "all" && showUpcoming);
 	const upcomingRows = showUpcomingSection ? upcoming.rows : [];
-	const emptyResult =
-		sections.length === 0 &&
-		(filter !== "upcoming" || upcomingRows.length === 0);
+	const emptyResult = sections.length === 0 && (filter !== "upcoming" || upcomingRows.length === 0);
 
 	// One setting behind both headers: the promoted figure must not depend on
 	// whether a filter happens to be on.
@@ -279,7 +232,7 @@ function LogContent({ db }: { db: Database }) {
 					// the large title.
 					<ScrollView
 						className="bg-background"
-						contentContainerStyle={{ paddingHorizontal: 20, flexGrow: 1 }}
+						contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}
 						contentInsetAdjustmentBehavior="automatic"
 						scrollEnabled={false}
 					>
@@ -318,11 +271,11 @@ function LogContent({ db }: { db: Database }) {
 					}
 				}}
 				contentContainerStyle={{
-					paddingHorizontal: 20,
+					flexGrow: 1,
 					// `NativeTabs` supplies the bar + safe-area inset; this only clears
 					// the floating add button.
 					paddingBottom: 100,
-					flexGrow: 1,
+					paddingHorizontal: 20,
 				}}
 				ListHeaderComponent={
 					<>

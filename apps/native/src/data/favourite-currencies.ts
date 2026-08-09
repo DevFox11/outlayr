@@ -6,8 +6,6 @@ import { parseFavourites } from "@/domain/favourite-currencies";
 import { META_KEYS } from "./app-meta-core";
 import { useLiveQuery } from "./live-query";
 
-export * from "./favourite-currencies-core";
-
 /**
  * `db` is nullable because the currency picker sheet is mounted by forms whose
  * callers can sit above the root splash gate, where `useDatabase()` throws. No
@@ -19,11 +17,8 @@ export function useFavouriteCurrencies(db: Database | null): string[] {
 		() =>
 			db === null
 				? { all: (): { value: string | null }[] => [] }
-				: db
-						.select({ value: appMeta.value })
-						.from(appMeta)
-						.where(eq(appMeta.key, META_KEYS.favouriteCurrencies)),
-		[db],
+				: db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, META_KEYS.favouriteCurrencies)),
+		[db]
 	);
 	const stored = rows[0]?.value ?? null;
 	// Keyed on the stored string so the parsed array keeps its identity across

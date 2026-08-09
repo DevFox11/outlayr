@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import BetterSqlite3 from "better-sqlite3";
 
-const MIGRATIONS = join(__dirname, "../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
 
 function migrationFiles(): string[] {
 	return readdirSync(MIGRATIONS)
@@ -15,9 +15,7 @@ function applyUpTo(sqlite: BetterSqlite3.Database, stopBefore: string): void {
 		if (file === stopBefore) {
 			return;
 		}
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -26,9 +24,7 @@ function applyUpTo(sqlite: BetterSqlite3.Database, stopBefore: string): void {
 }
 
 function applyOne(sqlite: BetterSqlite3.Database, file: string): void {
-	for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-		"--> statement-breakpoint",
-	)) {
+	for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 		if (statement.trim()) {
 			sqlite.exec(statement);
 		}
@@ -55,13 +51,13 @@ function ledgerBeforeThePhotosTable(): BetterSqlite3.Database {
 function insertTransaction(
 	sqlite: BetterSqlite3.Database,
 	id: string,
-	columns: { imageUri?: string | null; imageKey?: string | null },
+	columns: { imageUri?: string | null; imageKey?: string | null }
 ): void {
 	sqlite
 		.prepare(
 			`INSERT INTO transactions
 			 (id, amount, income, note, date, day, month, categoryId, imageUri, imageKey, imageColor, updatedAt)
-			 VALUES (?, 10, 0, '', 1, 1, 1, 'c1', ?, ?, '#abcdef', 1)`,
+			 VALUES (?, 10, 0, '', 1, 1, 1, 'c1', ?, ?, '#abcdef', 1)`
 		)
 		.run(id, columns.imageUri ?? null, columns.imageKey ?? null);
 }
@@ -73,15 +69,13 @@ describe("moving existing photos into their own table", () => {
 		// nothing reads that column any more.
 		const sqlite = ledgerBeforeThePhotosTable();
 		insertTransaction(sqlite, "t1", {
-			imageUri: "file:///photos/a.jpg",
 			imageKey: "transaction-photos/u1/a.jpg",
+			imageUri: "file:///photos/a.jpg",
 		});
 
 		applyOne(sqlite, PHOTOS_MIGRATION);
 
-		const rows = sqlite
-			.prepare("SELECT * FROM transactionPhotos")
-			.all() as Record<string, unknown>[];
+		const rows = sqlite.prepare("SELECT * FROM transactionPhotos").all() as Record<string, unknown>[];
 		expect(rows.length).toBe(1);
 		expect(rows[0].transactionId).toBe("t1");
 		expect(rows[0].imageUri).toBe("file:///photos/a.jpg");
@@ -94,8 +88,8 @@ describe("moving existing photos into their own table", () => {
 		// A photo the account holds that this device has not fetched yet.
 		const sqlite = ledgerBeforeThePhotosTable();
 		insertTransaction(sqlite, "t1", {
-			imageUri: null,
 			imageKey: "transaction-photos/u1/a.jpg",
+			imageUri: null,
 		});
 
 		applyOne(sqlite, PHOTOS_MIGRATION);
@@ -106,13 +100,11 @@ describe("moving existing photos into their own table", () => {
 
 	it("leaves an entry that never had a photo alone", () => {
 		const sqlite = ledgerBeforeThePhotosTable();
-		insertTransaction(sqlite, "t1", { imageUri: null, imageKey: null });
+		insertTransaction(sqlite, "t1", { imageKey: null, imageUri: null });
 
 		applyOne(sqlite, PHOTOS_MIGRATION);
 
-		expect(
-			sqlite.prepare("SELECT * FROM transactionPhotos").all(),
-		).toStrictEqual([]);
+		expect(sqlite.prepare("SELECT * FROM transactionPhotos").all()).toStrictEqual([]);
 	});
 
 	it("gives every carried photo a distinct id", () => {

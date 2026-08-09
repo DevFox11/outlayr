@@ -4,15 +4,15 @@ import type { BudgetWindow } from "./budget-math";
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 
-const JULY: BudgetWindow = { start: at(2026, 7, 1), end: at(2026, 8, 1) };
+const JULY: BudgetWindow = { end: at(2026, 8, 1), start: at(2026, 7, 1) };
 
 function expense(
 	day: number,
 	amount: number,
 	categoryId: string | null = null,
-	parentId: string | null = null,
+	parentId: string | null = null
 ): ExpenseContribution {
-	return { amount, categoryId, parentId, date: at(2026, 7, day) };
+	return { amount, categoryId, date: at(2026, 7, day), parentId };
 }
 
 /**
@@ -40,8 +40,8 @@ describe("buildBurndown", () => {
 	it("reproduces the spend and overage the Budgets screen shows", () => {
 		const result = buildBurndown(REAL_JULY, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 25),
+			window: JULY,
 		});
 
 		const today = result.points.at(-1);
@@ -52,8 +52,8 @@ describe("buildBurndown", () => {
 	it("reports the day the balance first went negative", () => {
 		const result = buildBurndown(REAL_JULY, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 25),
+			window: JULY,
 		});
 
 		expect(result.runwayDay).toBe(23);
@@ -63,8 +63,8 @@ describe("buildBurndown", () => {
 	it("leaves the runway empty while the budget still holds", () => {
 		const result = buildBurndown([expense(3, 120)], {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 25),
+			window: JULY,
 		});
 
 		expect(result.runwayDay).toBe(null);
@@ -74,8 +74,8 @@ describe("buildBurndown", () => {
 	it("stops the actual series at today rather than the window end", () => {
 		const result = buildBurndown(REAL_JULY, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 25),
+			window: JULY,
 		});
 
 		expect(result.totalDays).toBe(31);
@@ -86,13 +86,11 @@ describe("buildBurndown", () => {
 	it("carries the balance across days with no spending", () => {
 		const result = buildBurndown([expense(1, 100)], {
 			limit: 500,
-			window: JULY,
 			now: at(2026, 7, 4),
+			window: JULY,
 		});
 
-		expect(result.points.map((p) => p.balance)).toStrictEqual([
-			400, 400, 400, 400,
-		]);
+		expect(result.points.map((p) => p.balance)).toStrictEqual([400, 400, 400, 400]);
 	});
 
 	it("counts a subcategory's spending toward its parent's budget", () => {
@@ -103,10 +101,10 @@ describe("buildBurndown", () => {
 		];
 
 		const result = buildBurndown(rows, {
-			limit: 500,
-			window: JULY,
-			now: at(2026, 7, 10),
 			categoryId: "dining",
+			limit: 500,
+			now: at(2026, 7, 10),
+			window: JULY,
 		});
 
 		expect(result.points.at(-1)?.spent).toBe(75);
@@ -114,15 +112,15 @@ describe("buildBurndown", () => {
 
 	it("ignores expenses outside the window", () => {
 		const rows = [
-			{ amount: 999, categoryId: null, parentId: null, date: at(2026, 6, 30) },
+			{ amount: 999, categoryId: null, date: at(2026, 6, 30), parentId: null },
 			expense(5, 40),
-			{ amount: 777, categoryId: null, parentId: null, date: at(2026, 8, 2) },
+			{ amount: 777, categoryId: null, date: at(2026, 8, 2), parentId: null },
 		];
 
 		const result = buildBurndown(rows, {
 			limit: 500,
-			window: JULY,
 			now: at(2026, 7, 10),
+			window: JULY,
 		});
 
 		expect(result.points.at(-1)?.spent).toBe(40);
@@ -131,8 +129,8 @@ describe("buildBurndown", () => {
 	it("ignores expenses dated after now but still inside the window", () => {
 		const result = buildBurndown([expense(5, 40), expense(28, 500)], {
 			limit: 500,
-			window: JULY,
 			now: at(2026, 7, 10),
+			window: JULY,
 		});
 
 		expect(result.points.at(-1)?.spent).toBe(40);
@@ -144,8 +142,8 @@ describe("buildBurndown", () => {
 
 		const result = buildBurndown(rows, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 10),
+			window: JULY,
 		});
 
 		// 31 days x $100 = $3,100 spent, against a $2,000 limit.
@@ -155,16 +153,14 @@ describe("buildBurndown", () => {
 	it("keeps a lone outlier from dominating the projection", () => {
 		const result = buildBurndown(REAL_JULY, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 25),
+			window: JULY,
 		});
 
 		// A mean rate spreads the single $2,500 charge across all 31 days and
 		// forecasts -$1,573. Taking a typical purchase instead lands near the
 		// -$881.50 already spent, plus a realistic six days more of small ones.
-		expect(
-			result.projectedBalance != null && result.projectedBalance > -1100,
-		).toBeTruthy();
+		expect(result.projectedBalance != null && result.projectedBalance > -1100).toBeTruthy();
 		expect(result.projectedBalance).toBe(-970.54);
 	});
 
@@ -175,8 +171,8 @@ describe("buildBurndown", () => {
 
 		const result = buildBurndown(rows, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 10),
+			window: JULY,
 		});
 
 		// $300 a shop, 3 shops in 10 days, 21 days left: 300 * 0.3 * 21 = 1890.
@@ -186,32 +182,26 @@ describe("buildBurndown", () => {
 	it("still warns before the blowout when spending is sparse", () => {
 		// The state the hero's ENDS SHORT footer exists for: solvent today, but
 		// pacing into the ground on 10 shopping days out of 25 elapsed.
-		const rows = [0, 2, 4, 7, 9, 12, 15, 18, 21, 24].map((offset) =>
-			expense(offset + 1, 190),
-		);
+		const rows = [0, 2, 4, 7, 9, 12, 15, 18, 21, 24].map((offset) => expense(offset + 1, 190));
 
 		const result = buildBurndown(rows, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 25),
+			window: JULY,
 		});
 
 		expect(result.runwayDay).toBe(null);
-		expect(
-			result.projectedBalance != null && result.projectedBalance < 0,
-		).toBeTruthy();
+		expect(result.projectedBalance != null && result.projectedBalance < 0).toBeTruthy();
 		expect(result.projectedBalance).toBe(-356);
 	});
 
 	it("averages the middle pair when an even number of days has elapsed", () => {
-		const rows = [10, 20, 30, 40, 50, 60, 70, 80].map((amount, i) =>
-			expense(i + 1, amount),
-		);
+		const rows = [10, 20, 30, 40, 50, 60, 70, 80].map((amount, i) => expense(i + 1, amount));
 
 		const result = buildBurndown(rows, {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 8),
+			window: JULY,
 		});
 
 		// Median of 8 days is (40 + 50) / 2 = 45, across the 23 days left.
@@ -221,8 +211,8 @@ describe("buildBurndown", () => {
 	it("withholds the projection while too little of the window has elapsed", () => {
 		const result = buildBurndown([expense(1, 900)], {
 			limit: 2000,
-			window: JULY,
 			now: at(2026, 7, 2),
+			window: JULY,
 		});
 
 		expect(result.projectedBalance).toBe(null);
@@ -231,8 +221,8 @@ describe("buildBurndown", () => {
 	it("survives a zero limit without dividing by it", () => {
 		const result = buildBurndown([expense(2, 50)], {
 			limit: 0,
-			window: JULY,
 			now: at(2026, 7, 10),
+			window: JULY,
 		});
 
 		expect(result.points.at(-1)?.balance).toBe(-50);
@@ -242,22 +232,20 @@ describe("buildBurndown", () => {
 	it("buckets by calendar day so a DST shift cannot smear spending", () => {
 		// US DST ends Nov 1 2026; Nov 2 is a 25-hour day away from the start.
 		const november: BudgetWindow = {
-			start: at(2026, 11, 1),
 			end: at(2026, 12, 1),
+			start: at(2026, 11, 1),
 		};
 		const rows = [
-			{ amount: 10, categoryId: null, parentId: null, date: at(2026, 11, 1) },
-			{ amount: 20, categoryId: null, parentId: null, date: at(2026, 11, 3) },
+			{ amount: 10, categoryId: null, date: at(2026, 11, 1), parentId: null },
+			{ amount: 20, categoryId: null, date: at(2026, 11, 3), parentId: null },
 		];
 
 		const result = buildBurndown(rows, {
 			limit: 100,
-			window: november,
 			now: at(2026, 11, 5),
+			window: november,
 		});
 
-		expect(result.points.map((p) => p.spent)).toStrictEqual([
-			10, 10, 30, 30, 30,
-		]);
+		expect(result.points.map((p) => p.spent)).toStrictEqual([10, 10, 30, 30, 30]);
 	});
 });

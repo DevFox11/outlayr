@@ -4,22 +4,17 @@ import { TransactionFormAmountHero } from "./amount-hero";
 jest.mock("number-flow-react-native", () => {
 	const react = require("react") as typeof import("react");
 	return {
-		NumberFlow: (props: Record<string, unknown>) =>
-			react.createElement("NumberFlow", props),
+		NumberFlow: (props: Record<string, unknown>) => react.createElement("NumberFlow", props),
 	};
 });
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByProp(
-	node: JsonNode | JsonNode[] | null,
-	key: string,
-	value: unknown,
-): JsonNode | null {
+function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -48,15 +43,15 @@ function findByProp(
 }
 
 const BASE = {
+	amount: 4503,
 	amountColor: "#FFFFFF",
 	chipColor: "#2C2C2E",
-	amount: 4503,
 	contentWidth: 353,
 	currency: "USD",
-	minorUnits: 2,
 	expenseLabel: "Expense",
 	income: false,
 	incomeLabel: "Income",
+	minorUnits: 2,
 	mutedColor: "#A4A4A9",
 	onCurrencyPress: () => {},
 	onPress: () => {},
@@ -66,9 +61,7 @@ const BASE = {
 
 describe("TransactionFormAmountHero", () => {
 	it("renders the symbol, digits and currency code passed in", async () => {
-		const { toJSON } = await render(
-			<TransactionFormAmountHero {...BASE} currency="EUR" symbol="€" />,
-		);
+		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} currency="EUR" symbol="€" />);
 		const tree = toJSON() as JsonNode;
 		expect(JSON.stringify(tree)).toContain("€");
 		expect(findByProp(tree, "value", 4503)).not.toBeNull();
@@ -83,13 +76,7 @@ describe("TransactionFormAmountHero", () => {
 	});
 
 	it("carries the amount color into the digits, not the symbol", async () => {
-		const { toJSON } = await render(
-			<TransactionFormAmountHero
-				{...BASE}
-				amountColor="#0FFFA9"
-				mutedColor="#ABCDEF"
-			/>,
-		);
+		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} amountColor="#0FFFA9" mutedColor="#ABCDEF" />);
 		const tree = toJSON() as JsonNode;
 		const digits = findByProp(tree, "value", 4503);
 		expect(JSON.stringify(digits?.props.style)).toContain("#0FFFA9");
@@ -106,33 +93,23 @@ describe("TransactionFormAmountHero", () => {
 	});
 
 	it("formats the figure to the currency's minor units", async () => {
-		const { toJSON } = await render(
-			<TransactionFormAmountHero {...BASE} minorUnits={0} />,
-		);
+		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} minorUnits={0} />);
 		const digits = findByProp(toJSON() as JsonNode, "value", 4503);
 		expect(digits?.props.format).toMatchObject({
-			minimumFractionDigits: 0,
 			maximumFractionDigits: 0,
+			minimumFractionDigits: 0,
 		});
 	});
 
 	it("tints the selected type chip and leaves the other muted", async () => {
 		const { toJSON } = await render(
-			<TransactionFormAmountHero
-				{...BASE}
-				amountColor="#0FFFA9"
-				chipColor="#2C2C2E"
-				income
-				mutedColor="#ABCDEF"
-			/>,
+			<TransactionFormAmountHero {...BASE} amountColor="#0FFFA9" chipColor="#2C2C2E" income mutedColor="#ABCDEF" />
 		);
 		const tree = toJSON() as JsonNode;
 		const selected = findByProp(tree, "text", "Income");
 		const unselected = findByProp(tree, "text", "Expense");
 		expect(JSON.stringify(selected?.props.modifiers)).toContain("#2C2C2E");
-		expect(JSON.stringify(unselected?.props.modifiers)).not.toContain(
-			"#2C2C2E",
-		);
+		expect(JSON.stringify(unselected?.props.modifiers)).not.toContain("#2C2C2E");
 		expect(JSON.stringify(unselected?.props.modifiers)).toContain("#ABCDEF");
 	});
 
@@ -146,7 +123,7 @@ describe("TransactionFormAmountHero", () => {
 				onCurrencyPress={onCurrencyPress}
 				onPress={onPress}
 				onTypeChange={onTypeChange}
-			/>,
+			/>
 		);
 		const tree = toJSON() as JsonNode;
 		expect(findByProp(tree, "onButtonPress", onPress)).not.toBeNull();
@@ -155,9 +132,7 @@ describe("TransactionFormAmountHero", () => {
 
 	it("reports the type each chip selects", async () => {
 		const onTypeChange = jest.fn();
-		const { toJSON } = await render(
-			<TransactionFormAmountHero {...BASE} onTypeChange={onTypeChange} />,
-		);
+		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} onTypeChange={onTypeChange} />);
 		const tree = toJSON() as JsonNode;
 		const expense = findByProp(tree, "text", "Expense");
 		const income = findByProp(tree, "text", "Income");
@@ -170,9 +145,7 @@ describe("TransactionFormAmountHero", () => {
 		}
 		expect(expense).not.toBeNull();
 		expect(income).not.toBeNull();
-		expect(onTypeChange.mock.calls.map(([kind]) => kind)).toEqual(
-			expect.arrayContaining(["expense", "income"]),
-		);
+		expect(onTypeChange.mock.calls.map(([kind]) => kind)).toEqual(expect.arrayContaining(["expense", "income"]));
 	});
 });
 

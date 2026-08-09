@@ -66,14 +66,14 @@ const AUTHORED = new Date("2026-03-04T10:00:00.000Z");
 
 async function seed(db: Database): Promise<void> {
 	await db.insert(transactions).values({
-		id: "tx-1",
 		amount: 12.4,
-		income: false,
-		note: "Flat white",
 		date: AUTHORED,
 		day: AUTHORED,
-		month: AUTHORED,
+		id: "tx-1",
 		imageUri: "file:///photos/tx-1.jpg",
+		income: false,
+		month: AUTHORED,
+		note: "Flat white",
 		updatedAt: AUTHORED,
 	});
 }
@@ -92,24 +92,21 @@ function spyResidue(failures: { photos?: unknown; spotlight?: unknown } = {}): {
 	return {
 		calls,
 		residue: {
+			clearSpotlight() {
+				calls.push("spotlight");
+				return "spotlight" in failures ? Promise.reject(failures.spotlight) : Promise.resolve();
+			},
 			clearStoredPhotos() {
 				calls.push("photos");
 				if ("photos" in failures) {
 					throw failures.photos;
 				}
 			},
-			clearSpotlight() {
-				calls.push("spotlight");
-				return "spotlight" in failures
-					? Promise.reject(failures.spotlight)
-					: Promise.resolve();
-			},
 		},
 	};
 }
 
-const liveTransactions = (db: Database) =>
-	db.select().from(transactions).where(isNull(transactions.deletedAt));
+const liveTransactions = (db: Database) => db.select().from(transactions).where(isNull(transactions.deletedAt));
 
 describe("eraseData", () => {
 	let db: Database;
@@ -189,9 +186,7 @@ describe("eraseData", () => {
 		// native-addon `SqliteError`, and Jest gives each test file its own realm,
 		// so `instanceof Error` on it is not reliable across files — `toThrow()`
 		// silently reports "did not throw" when that happens.
-		await expect(
-			eraseData(unwritable, "transactions", residue),
-		).rejects.toMatchObject({ message: expect.any(String) });
+		await expect(eraseData(unwritable, "transactions", residue)).rejects.toMatchObject({ message: expect.any(String) });
 
 		expect(calls).toStrictEqual([]);
 	});

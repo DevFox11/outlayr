@@ -11,8 +11,7 @@ const WIDGET_FILES = ["budget.tsx", "ledger.tsx", "insights.tsx", "log.tsx"];
  * A top-level value declaration: `const X =`, `let x`, `function f()`, `class C`.
  * Anchored to column 0, so anything indented (i.e. inside the component) passes.
  */
-const TOP_LEVEL_DECLARATION =
-	/^(?:export\s+)?(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/;
+const TOP_LEVEL_DECLARATION = /^(?:export\s+)?(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/;
 
 /**
  * A widget body is stringified by babel and evaluated inside the widget
@@ -31,7 +30,7 @@ const TOP_LEVEL_DECLARATION =
 describe("widget module scope", () => {
 	for (const file of WIDGET_FILES) {
 		it(`${file} declares nothing at module scope but its component`, () => {
-			const source = readFileSync(join(__dirname, file), "utf8");
+			const source = readFileSync(join(import.meta.dirname, file), "utf8");
 			const component = file.replace(".tsx", "");
 			const offenders: string[] = [];
 
@@ -53,7 +52,7 @@ describe("widget module scope", () => {
 	}
 
 	it("covers every widget file that exists", () => {
-		const index = readFileSync(join(__dirname, "index.ts"), "utf8");
+		const index = readFileSync(join(import.meta.dirname, "publish.ts"), "utf8");
 		for (const file of WIDGET_FILES) {
 			expect(index.includes(`./${file.replace(".tsx", "")}`)).toBeTruthy();
 		}

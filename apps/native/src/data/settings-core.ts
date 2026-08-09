@@ -1,5 +1,5 @@
 import type { Database } from "@/db/client";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 import type { Language } from "@/i18n/languages";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 
@@ -70,80 +70,74 @@ export type NumberSettingKey =
  * 2 = this week. `logInsightsType`: 1 = net. `insightsTimeFrame`: 1 = week.
  */
 export const SETTING_DEFAULTS = {
-	showCents: true,
-	incomeTracking: true,
-	animatedCharts: true,
-	showUpcoming: true,
-	showUpcomingSoon: false,
-	logViewLineGraph: false,
-	biometricLock: false,
-	showNotifications: false,
-	subscriptionReminders: false,
-	categorySuggestions: true,
 	aiEnrichment: true,
-	groundedLookup: true,
-	swapTimeLabel: false,
-	confetti: false,
+	animatedCharts: true,
+	biometricLock: false,
 	budgetViewStyle: true,
-	use24HourClock: false,
-	insightsTimeFrame: 1,
-	insightsMeasure: 1,
-	firstWeekday: 1,
+	categorySuggestions: true,
+	confetti: false,
 	firstDayOfMonth: 1,
-	numberEntryType: 2,
+	firstWeekday: 1,
+	groundedLookup: true,
 	haptics: 1,
+	incomeTracking: true,
+	insightsMeasure: 1,
+	insightsTimeFrame: 1,
 	logInsightsTimeFrame: 2,
 	logInsightsType: 1,
-	notificationOption: 1,
+	logViewLineGraph: false,
 	notificationHour: 8,
 	notificationMinute: 0,
-} as const satisfies Record<
-	BoolSettingKey | NumberSettingKey,
-	boolean | number
->;
+	notificationOption: 1,
+	numberEntryType: 2,
+	showCents: true,
+	showNotifications: false,
+	showUpcoming: true,
+	showUpcomingSoon: false,
+	subscriptionReminders: false,
+	swapTimeLabel: false,
+	use24HourClock: false,
+} as const satisfies Record<BoolSettingKey | NumberSettingKey, boolean | number>;
 
-type ChoiceOption = {
-	label: TranslationKey;
+interface ChoiceOption {
 	detail: TranslationKey;
+	label: TranslationKey;
 	value: number;
-};
+}
 
 export const HAPTICS_OPTIONS: readonly ChoiceOption[] = [
 	{
-		label: "settings.haptics.none",
 		detail: "settings.haptics.noneDetail",
+		label: "settings.haptics.none",
 		value: 0,
 	},
 	{
-		label: "settings.haptics.subtle",
 		detail: "settings.haptics.subtleDetail",
+		label: "settings.haptics.subtle",
 		value: 1,
 	},
 	{
-		label: "settings.haptics.excessive",
 		detail: "settings.haptics.excessiveDetail",
+		label: "settings.haptics.excessive",
 		value: 2,
 	},
 ];
 
 export const NUMBER_ENTRY_OPTIONS: readonly ChoiceOption[] = [
 	{
-		label: "settings.numberEntry.type1",
 		detail: "settings.numberEntry.type1Detail",
+		label: "settings.numberEntry.type1",
 		value: 1,
 	},
 	{
-		label: "settings.numberEntry.type2",
 		detail: "settings.numberEntry.type2Detail",
+		label: "settings.numberEntry.type2",
 		value: 2,
 	},
 ];
 
 /** Null where no option owns the value, as the empty label used to signal. */
-export function choiceDetail(
-	options: readonly ChoiceOption[],
-	value: number,
-): TranslationKey | null {
+export function choiceDetail(options: readonly ChoiceOption[], value: number): TranslationKey | null {
 	return options.find((option) => option.value === value)?.detail ?? null;
 }
 
@@ -155,10 +149,7 @@ export function shownHiddenLabel(value: boolean): TranslationKey {
 	return value ? "common.shown" : "common.hidden";
 }
 
-export function parseBoolSetting(
-	raw: string | null,
-	fallback: boolean,
-): boolean {
+export function parseBoolSetting(raw: string | null, fallback: boolean): boolean {
 	if (raw == null) {
 		return fallback;
 	}
@@ -173,33 +164,19 @@ export function parseIntSetting(raw: string | null, fallback: number): number {
 	return Number.isNaN(value) ? fallback : value;
 }
 
-export async function readBoolSetting(
-	db: Database,
-	key: BoolSettingKey,
-): Promise<boolean> {
+export async function readBoolSetting(db: Database, key: BoolSettingKey): Promise<boolean> {
 	return parseBoolSetting(await getMeta(db, key), SETTING_DEFAULTS[key]);
 }
 
-export async function readNumberSetting(
-	db: Database,
-	key: NumberSettingKey,
-): Promise<number> {
+export async function readNumberSetting(db: Database, key: NumberSettingKey): Promise<number> {
 	return parseIntSetting(await getMeta(db, key), SETTING_DEFAULTS[key]);
 }
 
-export async function setBoolSetting(
-	db: Database,
-	key: BoolSettingKey,
-	value: boolean,
-): Promise<void> {
+export async function setBoolSetting(db: Database, key: BoolSettingKey, value: boolean): Promise<void> {
 	await setMeta(db, key, value ? "true" : "false");
 }
 
-export async function setNumberSetting(
-	db: Database,
-	key: NumberSettingKey,
-	value: number,
-): Promise<void> {
+export async function setNumberSetting(db: Database, key: NumberSettingKey, value: number): Promise<void> {
 	await setMeta(db, key, String(value));
 }
 
@@ -221,10 +198,7 @@ export async function setCurrency(db: Database, code: string): Promise<void> {
  * choice. Absence is the whole signal here, so this reads the raw row rather
  * than `readBoolSetting`, which cannot tell "false" from "never written".
  */
-export async function seedClockPreference(
-	db: Database,
-	deviceUses24Hour: boolean,
-): Promise<void> {
+export async function seedClockPreference(db: Database, deviceUses24Hour: boolean): Promise<void> {
 	if ((await getMeta(db, "use24HourClock")) != null) {
 		return;
 	}

@@ -3,16 +3,12 @@ import { render } from "@testing-library/react-native";
 import { CategoryEditorCta } from "./cta";
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByProp(
-	node: JsonNode | JsonNode[] | null,
-	key: string,
-	value: unknown,
-): JsonNode | null {
+function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -40,9 +36,7 @@ function findByProp(
 	return null;
 }
 
-function findButtonModifiers(
-	node: JsonNode | JsonNode[] | null,
-): { $type: string }[] | null {
+function findButtonModifiers(node: JsonNode | JsonNode[] | null): { $type: string }[] | null {
 	if (node == null) {
 		return null;
 	}
@@ -56,10 +50,7 @@ function findButtonModifiers(
 		return null;
 	}
 	const modifiers = node.props?.modifiers as { $type: string }[] | undefined;
-	if (
-		Array.isArray(modifiers) &&
-		modifiers.some((m) => m.$type === "buttonStyle")
-	) {
+	if (Array.isArray(modifiers) && modifiers.some((m) => m.$type === "buttonStyle")) {
 		return modifiers;
 	}
 	for (const child of node.children ?? []) {
@@ -77,13 +68,7 @@ function findButtonModifiers(
 describe("CategoryEditorCta", () => {
 	it("renders the label text passed in", async () => {
 		const { toJSON } = await render(
-			<CategoryEditorCta
-				canSave
-				label="Add Category"
-				onPress={() => {}}
-				tintColor="#000000"
-				underPicker={[]}
-			/>,
+			<CategoryEditorCta canSave label="Add Category" onPress={() => {}} tintColor="#000000" underPicker={[]} />
 		);
 		const label = findByProp(toJSON() as JsonNode, "text", "Add Category");
 		expect(label).not.toBeNull();
@@ -91,47 +76,23 @@ describe("CategoryEditorCta", () => {
 
 	it("carries the tint color into its modifiers", async () => {
 		const { toJSON } = await render(
-			<CategoryEditorCta
-				canSave
-				label="Save Category"
-				onPress={() => {}}
-				tintColor="#222222"
-				underPicker={[]}
-			/>,
+			<CategoryEditorCta canSave label="Save Category" onPress={() => {}} tintColor="#222222" underPicker={[]} />
 		);
-		expect(JSON.stringify(toJSON())).toContain(
-			'"$type":"tint","color":"#222222"',
-		);
+		expect(JSON.stringify(toJSON())).toContain('"$type":"tint","color":"#222222"');
 	});
 
 	it("disables the button when canSave is false", async () => {
 		const { toJSON } = await render(
-			<CategoryEditorCta
-				canSave={false}
-				label="Add Category"
-				onPress={() => {}}
-				tintColor="#000000"
-				underPicker={[]}
-			/>,
+			<CategoryEditorCta canSave={false} label="Add Category" onPress={() => {}} tintColor="#000000" underPicker={[]} />
 		);
-		expect(JSON.stringify(toJSON())).toContain(
-			'"$type":"disabled","disabled":true',
-		);
+		expect(JSON.stringify(toJSON())).toContain('"$type":"disabled","disabled":true');
 	});
 
 	it("enables the button when canSave is true", async () => {
 		const { toJSON } = await render(
-			<CategoryEditorCta
-				canSave
-				label="Add Category"
-				onPress={() => {}}
-				tintColor="#000000"
-				underPicker={[]}
-			/>,
+			<CategoryEditorCta canSave label="Add Category" onPress={() => {}} tintColor="#000000" underPicker={[]} />
 		);
-		expect(JSON.stringify(toJSON())).toContain(
-			'"$type":"disabled","disabled":false',
-		);
+		expect(JSON.stringify(toJSON())).toContain('"$type":"disabled","disabled":false');
 	});
 
 	it("appends the caller's underPicker modifiers after its own", async () => {
@@ -142,15 +103,9 @@ describe("CategoryEditorCta", () => {
 				onPress={() => {}}
 				tintColor="#000000"
 				underPicker={[opacity(0.5)]}
-			/>,
+			/>
 		);
 		const modifiers = findButtonModifiers(toJSON() as JsonNode);
-		expect(modifiers?.map((m) => m.$type)).toEqual([
-			"buttonStyle",
-			"controlSize",
-			"tint",
-			"disabled",
-			"opacity",
-		]);
+		expect(modifiers?.map((m) => m.$type)).toEqual(["buttonStyle", "controlSize", "tint", "disabled", "opacity"]);
 	});
 });

@@ -10,17 +10,17 @@ import type { TransactionWithCategory } from "@/data/transactions";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { MARK_MOTION, recedeDelay } from "@/theme/mark-motion";
 
 interface InsightsTransactionListProps {
-	transactions: TransactionWithCategory[];
 	currency: string;
-	onPress: (id: string) => void;
 	/** Break the list into day sections with their signed subtotals. */
 	grouped?: boolean;
+	onPress: (id: string) => void;
+	onRequestDelete: (id: string) => void;
 	/**
 	 * Row whose delete is waiting out its undo window, hidden from the list. Both
 	 * halves of the delete are the owning screen's: the toast that offers the undo
@@ -29,7 +29,7 @@ interface InsightsTransactionListProps {
 	 * the pending write before the window elapsed.
 	 */
 	pendingDeleteId: string | null;
-	onRequestDelete: (id: string) => void;
+	transactions: TransactionWithCategory[];
 }
 
 export function InsightsTransactionList({
@@ -45,14 +45,10 @@ export function InsightsTransactionList({
 	const nowMs = useNow();
 	const openRowActions = useTransactionRowActions(db, nowMs, onRequestDelete);
 	const rows = useMemo(
-		() =>
-			transactions.filter((transaction) => transaction.id !== pendingDeleteId),
-		[transactions, pendingDeleteId],
+		() => transactions.filter((transaction) => transaction.id !== pendingDeleteId),
+		[transactions, pendingDeleteId]
 	);
-	const sections = useMemo(
-		() => (grouped ? groupByDay(rows, currency, rates) : []),
-		[grouped, rows, currency, rates],
-	);
+	const sections = useMemo(() => (grouped ? groupByDay(rows, currency, rates) : []), [grouped, rows, currency, rates]);
 
 	if (rows.length === 0) {
 		return <InsightsNoResults />;
@@ -87,26 +83,15 @@ export function InsightsTransactionList({
 
 function InsightsNoResults() {
 	const t = useTranslation();
-	return (
-		<EmptyState
-			body={t("insights.list.empty")}
-			mark={<RulesEmptied />}
-			tier="inFlow"
-		/>
-	);
+	return <EmptyState body={t("insights.list.empty")} mark={<RulesEmptied />} tier="inFlow" />;
 }
 
 function RulesEmptied() {
 	const RULES = [1, 0.62, 0.34, 0.15];
 	return (
-		<View style={{ width: MARK_CEILING.inFlow, gap: 13 }}>
+		<View style={{ gap: 13, width: MARK_CEILING.inFlow }}>
 			{RULES.map((opacity, index) => (
-				<Fade
-					delay={recedeDelay(index)}
-					duration={MARK_MOTION.recede.duration}
-					key={opacity}
-					to={opacity}
-				>
+				<Fade delay={recedeDelay(index)} duration={MARK_MOTION.recede.duration} key={opacity} to={opacity}>
 					<Hairline />
 				</Fade>
 			))}

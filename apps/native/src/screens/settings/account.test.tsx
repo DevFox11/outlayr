@@ -1,7 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { Account } from "./account";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -18,10 +18,7 @@ jest.mock("@/components/account/provider-sign-in-buttons", () => {
 	const { Pressable, Text } = require("react-native");
 	return {
 		ProviderSignInButtons: ({ busy, start }: StubButtonsProps) => (
-			<Pressable
-				onPress={() => start("apple", () => Promise.resolve("token"))}
-				testID="provider-sign-in-buttons-stub"
-			>
+			<Pressable onPress={() => start("apple", () => Promise.resolve("token"))} testID="provider-sign-in-buttons-stub">
 				<Text>{busy ?? "idle"}</Text>
 			</Pressable>
 		),
@@ -58,15 +55,12 @@ jest.mock("@/lib/use-provider-sign-in", () => ({
 	useProviderSignIn: (...args: unknown[]) => mockUseProviderSignIn(...args),
 }));
 
-const routerSpy = jest.requireMock("expo-router").router as Record<
-	string,
-	jest.Mock
->;
+const routerSpy = jest.requireMock("expo-router").router as Record<string, jest.Mock>;
 
-function expectRouterNeverCalled() {
-	for (const method of Object.values(routerSpy)) {
-		expect(method).not.toHaveBeenCalled();
-	}
+function calledRouterMethods(): string[] {
+	return Object.entries(routerSpy)
+		.filter(([, method]) => method.mock.calls.length > 0)
+		.map(([name]) => name);
 }
 
 beforeEach(() => {
@@ -80,13 +74,12 @@ beforeEach(() => {
 describe("Account — restoring", () => {
 	it("shows only the checking title, no detail, no button", async () => {
 		mockUseSession.mockReturnValue({ data: undefined, isPending: true });
-		const { getByText, queryAllByRole, queryByTestId, queryByText } =
-			await render(<Account />);
+		const { getByText, queryAllByRole, queryByTestId, queryByText } = await render(<Account />);
 		expect(getByText("settings.account.checking")).toBeTruthy();
 		expect(queryByText("settings.account.signedOutDetail")).toBeNull();
 		expect(queryAllByRole("button")).toHaveLength(0);
 		expect(queryByTestId("provider-sign-in-buttons-stub")).toBeNull();
-		expectRouterNeverCalled();
+		expect(calledRouterMethods()).toEqual([]);
 	});
 });
 
@@ -102,7 +95,7 @@ describe("Account — signed-out", () => {
 		expect(getByText("settings.account.signInSection")).toBeTruthy();
 		expect(getByText("settings.account.signInFooter")).toBeTruthy();
 		expect(getByTestId("provider-sign-in-buttons-stub")).toBeTruthy();
-		expectRouterNeverCalled();
+		expect(calledRouterMethods()).toEqual([]);
 	});
 
 	it("renders Failure with the mapped message on a rejected sign-in", async () => {
@@ -113,7 +106,7 @@ describe("Account — signed-out", () => {
 		});
 		const { getByText } = await render(<Account />);
 		expect(getByText("settings.account.genericFailure")).toBeTruthy();
-		expectRouterNeverCalled();
+		expect(calledRouterMethods()).toEqual([]);
 	});
 
 	it("wires the stub's press through to useProviderSignIn's start", async () => {
@@ -122,7 +115,7 @@ describe("Account — signed-out", () => {
 		const { getByTestId } = await render(<Account />);
 		fireEvent.press(getByTestId("provider-sign-in-buttons-stub"));
 		expect(start).toHaveBeenCalledWith("apple", expect.any(Function));
-		expectRouterNeverCalled();
+		expect(calledRouterMethods()).toEqual([]);
 	});
 });
 
@@ -132,18 +125,13 @@ describe("Account — signed-in", () => {
 			data: { user: { email: "jane@example.com", name: "Jane" } },
 			isPending: false,
 		});
-		const { getByText, getByRole, queryByTestId, queryAllByRole } =
-			await render(<Account />);
+		const { getByText, getByRole, queryByTestId, queryAllByRole } = await render(<Account />);
 		expect(getByText("settings.account.signedInAs")).toBeTruthy();
 		expect(getByText("Jane")).toBeTruthy();
-		expect(
-			getByRole("button", { name: "settings.account.signOut" }),
-		).toBeTruthy();
-		expect(
-			getByRole("button", { name: "settings.account.delete" }),
-		).toBeTruthy();
+		expect(getByRole("button", { name: "settings.account.signOut" })).toBeTruthy();
+		expect(getByRole("button", { name: "settings.account.delete" })).toBeTruthy();
 		expect(queryByTestId("provider-sign-in-buttons-stub")).toBeNull();
 		expect(queryAllByRole("button")).toHaveLength(2);
-		expectRouterNeverCalled();
+		expect(calledRouterMethods()).toEqual([]);
 	});
 });

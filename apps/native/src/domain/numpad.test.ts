@@ -1,22 +1,7 @@
-import {
-	applyNumpadKey,
-	type NumpadKey,
-	type NumpadMode,
-	numberToNumpad,
-	numpadMode,
-	numpadToNumber,
-} from "./numpad";
+import { applyNumpadKey, type NumpadKey, type NumpadMode, numberToNumpad, numpadMode, numpadToNumber } from "./numpad";
 
-function type(
-	keys: string,
-	minorUnits = 2,
-	from = "",
-	mode: NumpadMode = "explicitSeparator",
-): string {
-	return [...keys].reduce(
-		(acc, key) => applyNumpadKey(acc, key as NumpadKey, minorUnits, mode),
-		from,
-	);
+function type(keys: string, minorUnits = 2, from = "", mode: NumpadMode = "explicitSeparator"): string {
+	return [...keys].reduce((acc, key) => applyNumpadKey(acc, key as NumpadKey, minorUnits, mode), from);
 }
 
 function preDotted(keys: string, minorUnits = 2, from = ""): string {
@@ -222,9 +207,7 @@ describe("numberToNumpad", () => {
 			[1234, 0],
 			[9.999, 3],
 		] as const) {
-			expect(numpadToNumber(numberToNumpad(amount, minorUnits))).toBe(
-				Number(amount.toFixed(minorUnits)),
-			);
+			expect(numpadToNumber(numberToNumpad(amount, minorUnits))).toBe(Number(amount.toFixed(minorUnits)));
 		}
 	});
 });

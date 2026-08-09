@@ -12,29 +12,27 @@ const MISSING_KEY_PATTERN = /COTIZAVE_API_KEY/;
 
 function liveRatesPayload() {
 	return {
+		base: "USD",
 		country: "VE",
 		currency: "VES",
-		base: "USD",
-		rates: [
-			{ market: "reference", type: "reference", mid: 652.9726 },
-			{ market: "eur_reference", type: "reference", mid: 747.327_140_7 },
-			{ market: "parallel", type: "parallel", mid: 736.979_75 },
-			{ market: "binance", type: "p2p", ask: 737.9, bid: 739.2, mid: 738.55 },
-			{ market: "bybit", type: "p2p", mid: 737.475 },
-		],
 		fetched_at: "2026-07-03T18:22:36Z",
+		rates: [
+			{ market: "reference", mid: 652.9726, type: "reference" },
+			{ market: "eur_reference", mid: 747.327_140_7, type: "reference" },
+			{ market: "parallel", mid: 736.979_75, type: "parallel" },
+			{ ask: 737.9, bid: 739.2, market: "binance", mid: 738.55, type: "p2p" },
+			{ market: "bybit", mid: 737.475, type: "p2p" },
+		],
 	};
 }
 
 function stubFetch(payload: unknown, ok = true) {
 	const response = {
+		json: () => Promise.resolve(payload),
 		ok,
 		status: ok ? 200 : 500,
-		json: () => Promise.resolve(payload),
 	};
-	const fetchMock = vi.fn((_input: string, _init?: RequestInit) =>
-		Promise.resolve(response),
-	);
+	const fetchMock = vi.fn((_input: string, _init?: RequestInit) => Promise.resolve(response));
 	vi.stubGlobal("fetch", fetchMock);
 	return fetchMock;
 }
@@ -61,10 +59,10 @@ describe("cotizave.fetchRates", () => {
 		const eur = rows.find((row) => row.rateType === "eur_reference");
 		const binance = rows.find((row) => row.rateType === "binance");
 		expect(official).toMatchObject({
+			date: "2026-07-03",
 			quote: "VES",
 			rate: 652.9726,
 			source: "cotizave",
-			date: "2026-07-03",
 		});
 		expect(eur).toMatchObject({
 			quote: "VES",
@@ -84,13 +82,13 @@ describe("cotizave.fetchRates", () => {
 		const t = convexTest(schema, modules);
 		await t.run((ctx) =>
 			ctx.db.insert("exchangeRates", {
-				quote: "VES",
-				rateType: "official",
-				source: "frankfurter",
-				rate: 40,
 				date: "2026-07-03",
 				fetchedAt: 1,
-			}),
+				quote: "VES",
+				rate: 40,
+				rateType: "official",
+				source: "frankfurter",
+			})
 		);
 		stubFetch(liveRatesPayload());
 
@@ -100,12 +98,9 @@ describe("cotizave.fetchRates", () => {
 			ctx.db
 				.query("exchangeRates")
 				.withIndex("by_quote_and_rateType_and_date", (q) =>
-					q
-						.eq("quote", "VES")
-						.eq("rateType", "official")
-						.eq("date", "2026-07-03"),
+					q.eq("quote", "VES").eq("rateType", "official").eq("date", "2026-07-03")
 				)
-				.unique(),
+				.unique()
 		);
 		expect(official).toMatchObject({ rate: 652.9726, source: "cotizave" });
 	});
@@ -116,16 +111,16 @@ describe("cotizave.fetchRates", () => {
 		const t = convexTest(schema, modules);
 		await t.run((ctx) =>
 			ctx.db.insert("exchangeRates", {
-				quote: "VES",
-				rateType: "eur_reference",
-				source: "cotizave",
-				rate: 700,
 				date: "2026-07-03",
 				fetchedAt: 1,
-			}),
+				quote: "VES",
+				rate: 700,
+				rateType: "eur_reference",
+				source: "cotizave",
+			})
 		);
 		const payload = liveRatesPayload();
-		payload.rates[1] = { market: "eur_reference", type: "reference", mid: 0 };
+		payload.rates[1] = { market: "eur_reference", mid: 0, type: "reference" };
 		stubFetch(payload);
 
 		await t.action(internal.cotizave.fetchRates, {});
@@ -141,8 +136,8 @@ describe("cotizave.fetchRates", () => {
 			source: "cotizave",
 		});
 		expect(byType.get("eur_reference")).toMatchObject({
-			rate: 700,
 			fetchedAt: 1,
+			rate: 700,
 		});
 	});
 
@@ -150,13 +145,13 @@ describe("cotizave.fetchRates", () => {
 		const t = convexTest(schema, modules);
 		await t.run((ctx) =>
 			ctx.db.insert("exchangeRates", {
-				quote: "VES",
-				rateType: "official",
-				source: "cotizave",
-				rate: 650,
 				date: "2026-07-03",
 				fetchedAt: 1,
-			}),
+				quote: "VES",
+				rate: 650,
+				rateType: "official",
+				source: "cotizave",
+			})
 		);
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {
 			// silence expected error log
@@ -180,8 +175,8 @@ describe("cotizave.fetchRates", () => {
 			base: "USD",
 			currency: "VES",
 			rates: [
-				{ market: "parallel", type: "parallel", mid: 736.97 },
-				{ market: "bybit", type: "p2p", mid: 737.47 },
+				{ market: "parallel", mid: 736.97, type: "parallel" },
+				{ market: "bybit", mid: 737.47, type: "p2p" },
 			],
 		});
 
@@ -196,13 +191,13 @@ describe("cotizave.fetchRates", () => {
 		const t = convexTest(schema, modules);
 		await t.run((ctx) =>
 			ctx.db.insert("exchangeRates", {
-				quote: "VES",
-				rateType: "official",
-				source: "cotizave",
-				rate: 650,
 				date: "2026-07-03",
 				fetchedAt: 1,
-			}),
+				quote: "VES",
+				rate: 650,
+				rateType: "official",
+				source: "cotizave",
+			})
 		);
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {
 			// silence expected error log
@@ -214,7 +209,7 @@ describe("cotizave.fetchRates", () => {
 
 		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
 		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({ rate: 650, fetchedAt: 1 });
+		expect(rows[0]).toMatchObject({ fetchedAt: 1, rate: 650 });
 		expect(errorSpy).toHaveBeenCalled();
 	});
 
@@ -222,13 +217,13 @@ describe("cotizave.fetchRates", () => {
 		const t = convexTest(schema, modules);
 		await t.run((ctx) =>
 			ctx.db.insert("exchangeRates", {
-				quote: "VES",
-				rateType: "official",
-				source: "cotizave",
-				rate: 650,
 				date: "2026-07-03",
 				fetchedAt: 1,
-			}),
+				quote: "VES",
+				rate: 650,
+				rateType: "official",
+				source: "cotizave",
+			})
 		);
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {
 			// silence expected error log
@@ -240,7 +235,7 @@ describe("cotizave.fetchRates", () => {
 
 		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
 		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({ rate: 650, fetchedAt: 1 });
+		expect(rows[0]).toMatchObject({ fetchedAt: 1, rate: 650 });
 		expect(errorSpy).toHaveBeenCalled();
 	});
 
@@ -249,9 +244,7 @@ describe("cotizave.fetchRates", () => {
 		const t = convexTest(schema, modules);
 		const fetchMock = stubFetch(liveRatesPayload());
 
-		await expect(t.action(internal.cotizave.fetchRates, {})).rejects.toThrow(
-			MISSING_KEY_PATTERN,
-		);
+		await expect(t.action(internal.cotizave.fetchRates, {})).rejects.toThrow(MISSING_KEY_PATTERN);
 
 		expect(fetchMock).not.toHaveBeenCalled();
 		const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
@@ -265,7 +258,7 @@ describe("cotizave.fetchRates", () => {
 		await t.action(internal.cotizave.fetchRates, {});
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const firstCall = fetchMock.mock.calls[0];
+		const [firstCall] = fetchMock.mock.calls;
 		if (!firstCall) {
 			throw new Error("Expected fetch to have been called once");
 		}

@@ -1,29 +1,26 @@
 import { RECURRING_TYPE } from "./recurrence";
-import {
-	buildTransactionInput,
-	type TransactionSaveDraft,
-} from "./transaction-form-save";
+import { buildTransactionInput, type TransactionSaveDraft } from "./transaction-form-save";
 
 const BASE: TransactionSaveDraft = {
-	amount: 1250,
-	income: false,
-	categoryId: "cat-1",
-	note: "Coffee",
-	details: "",
-	date: new Date(2026, 2, 10),
-	currency: "USD",
-	icon: "cup.and.saucer",
-	emoji: null,
-	customColor: null,
-	imageUri: null,
-	imageColor: null,
-	isSubscription: false,
-	recurringType: RECURRING_TYPE.weekly,
-	coefficient: 3,
-	hasEndDate: true,
-	endDate: new Date(2026, 5, 10),
-	leadDays: 2,
 	accountId: "acc-1",
+	amount: 1250,
+	categoryId: "cat-1",
+	coefficient: 3,
+	currency: "USD",
+	customColor: null,
+	date: new Date(2026, 2, 10),
+	details: "",
+	emoji: null,
+	endDate: new Date(2026, 5, 10),
+	hasEndDate: true,
+	icon: "cup.and.saucer",
+	imageColor: null,
+	imageUri: null,
+	income: false,
+	isSubscription: false,
+	leadDays: 2,
+	note: "Coffee",
+	recurringType: RECURRING_TYPE.weekly,
 };
 
 describe("buildTransactionInput", () => {
@@ -64,28 +61,20 @@ describe("buildTransactionInput", () => {
 	it("drops the end date for a subscription that has none, even with an endDate value staged", () => {
 		const input = buildTransactionInput({
 			...BASE,
-			isSubscription: true,
 			hasEndDate: false,
+			isSubscription: true,
 		});
 		expect(input.recurringEndDate).toBe(null);
 	});
 
 	it("clamps the coefficient to at least 1", () => {
-		expect(
-			buildTransactionInput({ ...BASE, isSubscription: true, coefficient: 0 })
-				.recurringCoefficient,
-		).toBe(1);
-		expect(
-			buildTransactionInput({ ...BASE, isSubscription: true, coefficient: -5 })
-				.recurringCoefficient,
-		).toBe(1);
+		expect(buildTransactionInput({ ...BASE, coefficient: 0, isSubscription: true }).recurringCoefficient).toBe(1);
+		expect(buildTransactionInput({ ...BASE, coefficient: -5, isSubscription: true }).recurringCoefficient).toBe(1);
 	});
 
 	it("carries the account attachment through, an explicit detach included", () => {
 		expect(buildTransactionInput(BASE).accountId).toBe("acc-1");
-		expect(buildTransactionInput({ ...BASE, accountId: null }).accountId).toBe(
-			null,
-		);
+		expect(buildTransactionInput({ ...BASE, accountId: null }).accountId).toBe(null);
 	});
 
 	it("passes a null lead through for a subscription with reminders off", () => {

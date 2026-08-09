@@ -1,9 +1,9 @@
 {
-	"platforms": ["apple", "android"],
-	"apple": {
-		"modules": ["GlowModule"]
-	},
-	"android": {
-		"modules": ["expo.modules.glow.GlowModule"]
-	}
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["GlowModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.glow.GlowModule"]
+  }
 }

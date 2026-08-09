@@ -1,14 +1,4 @@
-import {
-	and,
-	desc,
-	eq,
-	getTableColumns,
-	gte,
-	inArray,
-	isNull,
-	lt,
-	lte,
-} from "drizzle-orm";
+import { and, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
@@ -17,17 +7,17 @@ import { useLiveQuery } from "./live-query";
 import type { TransactionWithCategory } from "./transactions";
 
 export interface WindowTransactionsQuery {
-	start: Date;
-	/** Exclusive, and clamped against `nowMs` so the future never shows. */
-	end: Date;
-	nowMs: number;
-	/** Restricts to one direction; `null` keeps both. */
-	income?: boolean | null;
 	/**
 	 * Restricts to a top-level category and its children, mirroring the Swift
 	 * `category == %@ OR category.parent == %@` predicate. `null` keeps all.
 	 */
 	categoryId?: string | null;
+	/** Exclusive, and clamped against `nowMs` so the future never shows. */
+	end: Date;
+	/** Restricts to one direction; `null` keeps both. */
+	income?: boolean | null;
+	nowMs: number;
+	start: Date;
 }
 
 /**
@@ -35,16 +25,16 @@ export interface WindowTransactionsQuery {
  * {@link useCategoryMeta} rather than a join, for both the child filter and the
  * display fields: `useLiveQuery` only invalidates on the table it watches, so a
  * joined category would leave a renamed or re-parented category stale until some
- * *transaction* was written.
+ *transaction* was written.
  */
-export function useWindowTransactions(
-	db: Database,
-	query: WindowTransactionsQuery | null,
-): TransactionWithCategory[] {
+export function useWindowTransactions(db: Database, query: WindowTransactionsQuery | null): TransactionWithCategory[] {
 	const categoryMeta = useCategoryMeta(db);
 
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: query really is nullable — screens/insights/index.tsx:393 passes the null windowQuery returns while no chart bucket is selected
 	const startMs = query?.start.getTime() ?? 0;
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: query is nullable — dropping the chain throws whenever no chart bucket is selected
 	const endMs = query?.end.getTime() ?? 0;
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: query is nullable — dropping the fallback yields undefined whenever no chart bucket is selected
 	const nowMs = query?.nowMs ?? 0;
 	const income = query?.income ?? null;
 	const categoryId = query?.categoryId ?? null;
@@ -69,11 +59,7 @@ export function useWindowTransactions(
 
 	const data = useLiveQuery(transactions, () => {
 		if (!enabled) {
-			return db
-				.select(getTableColumns(transactions))
-				.from(transactions)
-				.where(eq(transactions.id, ""))
-				.limit(0);
+			return db.select(getTableColumns(transactions)).from(transactions).where(eq(transactions.id, "")).limit(0);
 		}
 		return db
 			.select(getTableColumns(transactions))
@@ -85,10 +71,8 @@ export function useWindowTransactions(
 					lt(transactions.date, new Date(endMs)),
 					lte(transactions.date, new Date(nowMs)),
 					income == null ? undefined : eq(transactions.income, income),
-					contributingIds
-						? inArray(transactions.categoryId, contributingIds)
-						: undefined,
-				),
+					contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
+				)
 			)
 			.orderBy(desc(transactions.date));
 	}, [enabled, startMs, endMs, nowMs, income, contributingKey]);
@@ -96,17 +80,15 @@ export function useWindowTransactions(
 	return useMemo(
 		() =>
 			data.map((row) => {
-				const meta = row.categoryId
-					? categoryMeta.get(row.categoryId)
-					: undefined;
+				const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
 				return {
 					...row,
-					categoryName: meta?.name ?? null,
 					categoryColor: meta?.color ?? null,
-					categoryIcon: meta?.icon ?? null,
 					categoryEmoji: meta?.emoji ?? null,
+					categoryIcon: meta?.icon ?? null,
+					categoryName: meta?.name ?? null,
 				};
 			}),
-		[data, categoryMeta],
+		[data, categoryMeta]
 	);
 }

@@ -22,10 +22,8 @@ describe("useMark", () => {
 		const { getByTestId: inside } = await render(
 			<MarkInk tier="insetRow">
 				<Probe />
-			</MarkInk>,
+			</MarkInk>
 		);
-		expect(inside("probe").props.children).not.toBe(
-			outside("probe").props.children,
-		);
+		expect(inside("probe").props.children).not.toBe(outside("probe").props.children);
 	});
 });

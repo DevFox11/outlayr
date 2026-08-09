@@ -1,7 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { FeatureLab } from "./feature-lab";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -10,7 +10,7 @@ jest.mock("@/contexts/local-data-context", () => ({
 }));
 
 const mockSetBoolSetting = jest.fn();
-jest.mock("@/data/settings", () => ({
+jest.mock("@/data/settings-core", () => ({
 	setBoolSetting: (...args: unknown[]) => mockSetBoolSetting(...args),
 }));
 
@@ -32,24 +32,14 @@ describe("FeatureLab — grounded lookup row", () => {
 
 		const { getByLabelText } = await render(<FeatureLab />);
 
-		expect(
-			getByLabelText("settings.featureLab.groundedLookup").props.value,
-		).toBe(true);
+		expect(getByLabelText("settings.featureLab.groundedLookup").props.value).toBe(true);
 	});
 
 	it("writes the toggled value through setBoolSetting", async () => {
 		const { getByLabelText } = await render(<FeatureLab />);
 
-		fireEvent(
-			getByLabelText("settings.featureLab.groundedLookup"),
-			"valueChange",
-			false,
-		);
+		fireEvent(getByLabelText("settings.featureLab.groundedLookup"), "valueChange", false);
 
-		expect(mockSetBoolSetting).toHaveBeenCalledWith(
-			expect.anything(),
-			"groundedLookup",
-			false,
-		);
+		expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "groundedLookup", false);
 	});
 });

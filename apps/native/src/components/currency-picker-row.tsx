@@ -1,17 +1,11 @@
-import {
-	type MenuAction,
-	MenuView,
-	type NativeActionEvent,
-} from "@expo/ui/community/menu";
+import { type MenuAction, MenuView, type NativeActionEvent } from "@expo/ui/community/menu";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react-native";
 import { StarIcon as StarSolidIcon } from "@hugeicons-pro/core-solid-rounded";
 import { StarIcon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
-import { CURRENCY_META } from "@outlayr/money";
+import { CURRENCY_META } from "@outlayr/money/catalog";
 import { useRef } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
-import ReanimatedSwipeable, {
-	type SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
 	Easing,
 	ReduceMotion,
@@ -25,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { CurrencyCode } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";
@@ -35,30 +29,18 @@ import { cn } from "./tw";
 /** The app's motion curve, shared so nothing here invents a second one. */
 const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
 
-export function CurrencySectionHeader({
-	section,
-}: {
-	section: "favourites" | "all";
-}) {
+export function CurrencySectionHeader({ section }: { section: "favourites" | "all" }) {
 	const t = useTranslation();
 	return (
 		<MonoLabel className="pt-4 pb-1">
-			{t(
-				section === "favourites"
-					? "settings.currency.favourites"
-					: "settings.currency.all",
-			)}
+			{t(section === "favourites" ? "settings.currency.favourites" : "settings.currency.all")}
 		</MonoLabel>
 	);
 }
 
 export function CurrencyHint() {
 	const t = useTranslation();
-	return (
-		<Text className="pb-3 text-footnote text-muted">
-			{t("settings.currency.favouritesHint")}
-		</Text>
-	);
+	return <Text className="pb-3 text-footnote text-muted">{t("settings.currency.favouritesHint")}</Text>;
 }
 
 /**
@@ -66,9 +48,7 @@ export function CurrencyHint() {
  * An entering animation on the rows themselves would fire on every row that
  * scrolls into the virtualised window.
  */
-const TICK_ARRIVES = ZoomIn.duration(240)
-	.easing(EASE.factory())
-	.reduceMotion(ReduceMotion.System);
+const TICK_ARRIVES = ZoomIn.duration(240).easing(EASE.factory()).reduceMotion(ReduceMotion.System);
 
 /**
  * `bg-background` is required: UIKit snapshots the context-menu trigger for its
@@ -128,7 +108,7 @@ function SwipeAction({
 				armed.value = next;
 				runOnJS(onArm)(next);
 			}
-		},
+		}
 	);
 
 	const style = useAnimatedStyle(() => ({
@@ -154,25 +134,13 @@ function SwipeAction({
 				accessibilityHint={accessibilityHint}
 				accessibilityLabel={accessibilityLabel}
 				accessibilityRole="button"
-				className={cn(
-					"flex-1 items-center justify-center gap-1 rounded-xl",
-					fillClassName,
-				)}
+				className={cn("flex-1 items-center justify-center gap-1 rounded-xl", fillClassName)}
 				onPress={onPress}
 			>
 				<Animated.View style={glyph}>
-					<HugeiconsIcon
-						color={iconColor}
-						icon={icon}
-						size={18}
-						strokeWidth={2}
-					/>
+					<HugeiconsIcon color={iconColor} icon={icon} size={18} strokeWidth={2} />
 				</Animated.View>
-				<Text
-					className={cn("font-sans-semibold text-footnote", labelClassName)}
-				>
-					{label}
-				</Text>
+				<Text className={cn("font-sans-semibold text-footnote", labelClassName)}>{label}</Text>
 			</Pressable>
 		</Animated.View>
 	);
@@ -193,10 +161,7 @@ function CurrencyRowFace({
 	return (
 		<>
 			<View className="w-9 items-center">
-				<Text
-					className="text-body text-muted"
-					style={{ fontVariant: ["tabular-nums"] }}
-				>
+				<Text className="text-body text-muted" style={{ fontVariant: ["tabular-nums"] }}>
 					{meta.symbol}
 				</Text>
 			</View>
@@ -209,12 +174,7 @@ function CurrencyRowFace({
 			<View className="w-5 items-center">
 				{selected ? (
 					<Animated.View entering={tickEnters ? TICK_ARRIVES : undefined}>
-						<HugeiconsIcon
-							color={colors.tint}
-							icon={Tick02Icon}
-							size={20}
-							strokeWidth={2.4}
-						/>
+						<HugeiconsIcon color={colors.tint} icon={Tick02Icon} size={20} strokeWidth={2.4} />
 					</Animated.View>
 				) : null}
 			</View>
@@ -227,13 +187,7 @@ function CurrencyRowFace({
  * sections. Its tick never re-enters: the copy is lifted off a row that is
  * already on screen.
  */
-export function CurrencyRowCopy({
-	code,
-	selected,
-}: {
-	code: CurrencyCode;
-	selected: boolean;
-}) {
+export function CurrencyRowCopy({ code, selected }: { code: CurrencyCode; selected: boolean }) {
 	return (
 		<View className={ROW_SURFACE}>
 			<CurrencyRowFace code={code} selected={selected} tickEnters={false} />
@@ -241,18 +195,25 @@ export function CurrencyRowCopy({
 	);
 }
 
+function swipeLaneFill(refuses: boolean, favourite: boolean): string {
+	if (refuses) {
+		return "bg-surface-secondary";
+	}
+	return favourite ? "bg-danger-fill" : "bg-gold-fill";
+}
+
 interface CurrencyRowProps {
 	code: CurrencyCode;
 	favourite: boolean;
-	selected: boolean;
 	full: boolean;
-	/** Held back while the list flies a copy of this row to its new section. */
-	travelling: boolean;
 	/** Last of its section, so it draws no separator beneath itself. */
 	last: boolean;
 	onPress: () => void;
 	/** `null` while no database is open, so favouriting is absent rather than dead. */
 	onToggleFavourite: (() => void) | null;
+	selected: boolean;
+	/** Held back while the list flies a copy of this row to its new section. */
+	travelling: boolean;
 }
 
 export function CurrencyRow({
@@ -275,11 +236,7 @@ export function CurrencyRow({
 	const fullLabel = t("settings.currency.favouritesFull", {
 		limit: FAVOURITE_CURRENCY_LIMIT,
 	});
-	const laneFill = refuses
-		? "bg-surface-secondary"
-		: favourite
-			? "bg-danger-fill"
-			: "bg-gold-fill";
+	const laneFill = swipeLaneFill(refuses, favourite);
 
 	// Answers only the refusal this row can already see. `full` comes from a live
 	// query, so two rows pressed a tick apart at seven favourites both render as
@@ -293,23 +250,11 @@ export function CurrencyRow({
 		onToggleFavourite?.();
 	};
 
-	const renderRightActions = (
-		_progress: SharedValue<number>,
-		translation: SharedValue<number>,
-	) => (
+	const renderRightActions = (_progress: SharedValue<number>, translation: SharedValue<number>) => (
 		<SwipeAction
-			accessibilityHint={
-				refuses ? t("settings.currency.favouritesFullBody") : undefined
-			}
+			accessibilityHint={refuses ? t("settings.currency.favouritesFullBody") : undefined}
 			accessibilityLabel={
-				refuses
-					? fullLabel
-					: t(
-							favourite
-								? "settings.currency.unfavourite"
-								: "settings.currency.favourite",
-							{ code },
-						)
+				refuses ? fullLabel : t(favourite ? "settings.currency.unfavourite" : "settings.currency.favourite", { code })
 			}
 			fillClassName={laneFill}
 			icon={favourite || refuses ? StarIcon : StarSolidIcon}
@@ -319,11 +264,7 @@ export function CurrencyRow({
 					? t("settings.currency.favouritesFullShort", {
 							limit: FAVOURITE_CURRENCY_LIMIT,
 						})
-					: t(
-							favourite
-								? "settings.currency.unfavouriteAction"
-								: "settings.currency.favouriteAction",
-						)
+					: t(favourite ? "settings.currency.unfavouriteAction" : "settings.currency.favouriteAction")
 			}
 			labelClassName={refuses ? "text-muted" : "text-white"}
 			onArm={(armed) => {
@@ -337,23 +278,18 @@ export function CurrencyRow({
 	const actions: MenuAction[] = [];
 	if (onToggleFavourite !== null) {
 		actions.push({
+			attributes: refuses ? { disabled: true } : undefined,
 			id: "favourite",
+			image: favourite ? "star.slash" : "star",
 			title: refuses
 				? fullLabel
-				: t(
-						favourite
-							? "settings.currency.unfavourite"
-							: "settings.currency.favourite",
-						{ code },
-					),
-			image: favourite ? "star.slash" : "star",
-			attributes: refuses ? { disabled: true } : undefined,
+				: t(favourite ? "settings.currency.unfavourite" : "settings.currency.favourite", { code }),
 		});
 	}
 	actions.push({
 		id: "use",
-		title: t("settings.currency.use", { code }),
 		state: selected ? "on" : "off",
+		title: t("settings.currency.use", { code }),
 	});
 
 	const onPressAction = ({ nativeEvent }: NativeActionEvent) => {
@@ -368,21 +304,20 @@ export function CurrencyRow({
 		<ReanimatedSwipeable
 			containerStyle={travelling ? HELD_BACK : undefined}
 			friction={1}
-			// Without overshoot `translation` clamps at the lane's width and can
-			// never reach the full-swipe threshold.
-			overshootFriction={1}
 			// On release rather than mid-drag — see `SwipeAction`.
 			onSwipeableWillOpen={() => {
+				// biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is inferred from its `false` seed, but `onArm` writes the live full-swipe state into it
 				if (!armedFullSwipe.current) {
 					return;
 				}
 				armedFullSwipe.current = false;
 				commit();
 			}}
+			// Without overshoot `translation` clamps at the lane's width and can
+			// never reach the full-swipe threshold.
+			overshootFriction={1}
 			ref={swipeRef}
-			renderRightActions={
-				onToggleFavourite === null ? undefined : renderRightActions
-			}
+			renderRightActions={onToggleFavourite === null ? undefined : renderRightActions}
 			rightThreshold={40}
 		>
 			{/* Not `@expo/ui/swift-ui`'s ContextMenu: that needs a SwiftUI `Host` per
@@ -397,11 +332,7 @@ export function CurrencyRow({
 				<Pressable
 					accessibilityRole="button"
 					accessibilityState={{ selected }}
-					className={cn(
-						ROW_SURFACE,
-						last ? undefined : ROW_RULE,
-						"active:opacity-60",
-					)}
+					className={cn(ROW_SURFACE, last ? undefined : ROW_RULE, "active:opacity-60")}
 					onPress={onPress}
 				>
 					<CurrencyRowFace code={code} selected={selected} tickEnters />

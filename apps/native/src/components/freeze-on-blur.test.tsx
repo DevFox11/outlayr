@@ -8,8 +8,7 @@ const mockFocusListeners = new Set<() => void>();
 
 jest.mock("expo-router", () => ({
 	useIsFocused: () => {
-		const { useSyncExternalStore: subscribeToFocus } =
-			jest.requireActual<typeof import("react")>("react");
+		const { useSyncExternalStore: subscribeToFocus } = jest.requireActual<typeof import("react")>("react");
 		return subscribeToFocus(
 			(notify: () => void) => {
 				mockFocusListeners.add(notify);
@@ -17,7 +16,7 @@ jest.mock("expo-router", () => ({
 					mockFocusListeners.delete(notify);
 				};
 			},
-			() => mockFocus.current,
+			() => mockFocus.current
 		);
 	},
 }));
@@ -37,7 +36,7 @@ async function setFocus(next: boolean) {
 	});
 }
 
-const ticker = { value: "first", listeners: new Set<() => void>() };
+const ticker = { listeners: new Set<() => void>(), value: "first" };
 
 async function tick(next: string) {
 	ticker.value = next;
@@ -58,7 +57,7 @@ function Screen() {
 				ticker.listeners.delete(notify);
 			};
 		},
-		() => ticker.value,
+		() => ticker.value
 	);
 	renders += 1;
 	return <Text testID="screen">{value}</Text>;
@@ -77,11 +76,9 @@ describe("FreezeOnBlur", () => {
 		const { getByTestId } = await render(
 			<FreezeOnBlur>
 				<Screen />
-			</FreezeOnBlur>,
+			</FreezeOnBlur>
 		);
-		await waitFor(() =>
-			expect(getByTestId("screen").props.children).toBe("first"),
-		);
+		await waitFor(() => expect(getByTestId("screen").props.children).toBe("first"));
 
 		await tick("second");
 
@@ -92,7 +89,7 @@ describe("FreezeOnBlur", () => {
 		await render(
 			<FreezeOnBlur>
 				<Screen />
-			</FreezeOnBlur>,
+			</FreezeOnBlur>
 		);
 		await setFocus(false);
 		const whileBlurred = renders;
@@ -107,7 +104,7 @@ describe("FreezeOnBlur", () => {
 		const { getByTestId } = await render(
 			<FreezeOnBlur>
 				<Screen />
-			</FreezeOnBlur>,
+			</FreezeOnBlur>
 		);
 		await setFocus(false);
 		await tick("second");
@@ -115,9 +112,7 @@ describe("FreezeOnBlur", () => {
 
 		await setFocus(true);
 
-		await waitFor(() =>
-			expect(getByTestId("screen").props.children).toBe("third"),
-		);
+		await waitFor(() => expect(getByTestId("screen").props.children).toBe("third"));
 		// One catch-up render, not one per missed tick.
 		expect(renders).toBe(2);
 	});

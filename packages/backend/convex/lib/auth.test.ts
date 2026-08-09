@@ -15,9 +15,7 @@ describe("requireUserId", () => {
 		const t = convexTest(schema, modules);
 		const identity = await seedAuthUser(t);
 
-		const resolved = await authenticatedAs(t, identity).run((ctx) =>
-			requireUserId(ctx),
-		);
+		const resolved = await authenticatedAs(t, identity).run((ctx) => requireUserId(ctx));
 
 		expect(resolved).toBe(identity.userId);
 	});
@@ -25,9 +23,7 @@ describe("requireUserId", () => {
 	test("throws a ConvexError when there is no identity", async () => {
 		const t = convexTest(schema, modules);
 
-		await expect(t.run((ctx) => requireUserId(ctx))).rejects.toThrow(
-			ConvexError,
-		);
+		await expect(t.run((ctx) => requireUserId(ctx))).rejects.toThrow(ConvexError);
 	});
 
 	test("throws when the identity names a session that does not exist", async () => {
@@ -39,9 +35,7 @@ describe("requireUserId", () => {
 			subject: identity.subject,
 		});
 
-		await expect(stale.run((ctx) => requireUserId(ctx))).rejects.toThrow(
-			ConvexError,
-		);
+		await expect(stale.run((ctx) => requireUserId(ctx))).rejects.toThrow(ConvexError);
 	});
 
 	test("scopes two signed-in users to distinct ids", async () => {
@@ -49,12 +43,8 @@ describe("requireUserId", () => {
 		const first = await seedAuthUser(t);
 		const second = await seedAuthUser(t);
 
-		const firstId = await authenticatedAs(t, first).run((ctx) =>
-			requireUserId(ctx),
-		);
-		const secondId = await authenticatedAs(t, second).run((ctx) =>
-			requireUserId(ctx),
-		);
+		const firstId = await authenticatedAs(t, first).run((ctx) => requireUserId(ctx));
+		const secondId = await authenticatedAs(t, second).run((ctx) => requireUserId(ctx));
 
 		expect(firstId).not.toBe(secondId);
 	});
@@ -65,9 +55,7 @@ describe("optionalUserId", () => {
 		const t = convexTest(schema, modules);
 		const identity = await seedAuthUser(t);
 
-		const resolved = await authenticatedAs(t, identity).run((ctx) =>
-			optionalUserId(ctx),
-		);
+		const resolved = await authenticatedAs(t, identity).run((ctx) => optionalUserId(ctx));
 
 		expect(resolved).toBe(identity.userId);
 	});

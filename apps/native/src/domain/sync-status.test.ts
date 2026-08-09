@@ -23,15 +23,15 @@ describe("syncStatusLabel", () => {
 
 	it("carries the count once there is more than one", () => {
 		expect(syncStatusLabel(7, AT)).toStrictEqual({
-			key: "settings.sync.pending",
 			count: 7,
+			key: "settings.sync.pending",
 		});
 	});
 
 	it("reports pending work even before a first successful cycle", () => {
 		expect(syncStatusLabel(3, null)).toStrictEqual({
-			key: "settings.sync.pending",
 			count: 3,
+			key: "settings.sync.pending",
 		});
 	});
 });

@@ -43,9 +43,7 @@ function makeDb(): Database {
 
 function write(db: Database, key: string, value: string) {
 	(db as unknown as { $client: BetterSqlite3.Database }).$client
-		.prepare(
-			"INSERT INTO appMeta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-		)
+		.prepare("INSERT INTO appMeta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
 		.run(key, value);
 }
 
@@ -56,7 +54,7 @@ function Probe({ db, watch }: { db: Database; watch: string }) {
 		appMeta,
 		() => db.select().from(appMeta).where(eq(appMeta.key, watch)),
 		(rows) => rows[0]?.value ?? "unset",
-		[watch],
+		[watch]
 	);
 	renders += 1;
 	return <Text testID="probe">{value}</Text>;
@@ -73,9 +71,7 @@ describe("useLiveValue", () => {
 
 	it("does not re-render when an invalidation leaves the derived value unchanged", async () => {
 		const { getByTestId } = await render(<Probe db={db} watch="alpha" />);
-		await waitFor(() =>
-			expect(getByTestId("probe").props.children).toBe("unset"),
-		);
+		await waitFor(() => expect(getByTestId("probe").props.children).toBe("unset"));
 		const before = renders;
 
 		write(db, "beta", "irrelevant");
@@ -87,17 +83,13 @@ describe("useLiveValue", () => {
 
 	it("re-renders when the watched value changes", async () => {
 		const { getByTestId } = await render(<Probe db={db} watch="alpha" />);
-		await waitFor(() =>
-			expect(getByTestId("probe").props.children).toBe("unset"),
-		);
+		await waitFor(() => expect(getByTestId("probe").props.children).toBe("unset"));
 		const before = renders;
 
 		write(db, "alpha", "one");
 		await fireAppMetaChange();
 
-		await waitFor(() =>
-			expect(getByTestId("probe").props.children).toBe("one"),
-		);
+		await waitFor(() => expect(getByTestId("probe").props.children).toBe("one"));
 		expect(renders).toBeGreaterThan(before);
 	});
 });

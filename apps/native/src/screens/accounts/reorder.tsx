@@ -1,32 +1,15 @@
 import { Host } from "@expo/ui";
-import {
-	HStack,
-	List,
-	RNHostView,
-	Section,
-	Spacer,
-	Text as SwiftText,
-} from "@expo/ui/swift-ui";
-import {
-	deleteDisabled,
-	environment,
-	foregroundStyle,
-	lineLimit,
-	listStyle,
-} from "@expo/ui/swift-ui/modifiers";
+import { HStack, List, RNHostView, Section, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
+import { deleteDisabled, environment, foregroundStyle, lineLimit, listStyle } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import {
-	Eyebrow,
-	LABEL,
-	PARENT_NAME,
-	PARENT_TILE,
-} from "@/components/category-list-chrome";
+import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type Account, accountsRepo, useAccounts } from "@/data/accounts";
+import { useAccounts } from "@/data/accounts";
+import { type Account, accountsRepo } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { applyMove } from "@/domain/reorder";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 export function AccountReorder() {
@@ -43,7 +26,7 @@ function AccountReorderReady({ db }: { db: Database }) {
 		const ordered = applyMove(
 			rows.map((account) => account.id),
 			source,
-			destination,
+			destination
 		);
 		accountsRepo.reorder(db, ordered).catch((error) => {
 			console.error("Failed to reorder the accounts", error);
@@ -52,25 +35,16 @@ function AccountReorderReady({ db }: { db: Database }) {
 
 	return (
 		<Host style={{ flex: 1 }} useViewportSizeMeasurement>
-			<List
-				modifiers={[
-					listStyle("insetGrouped"),
-					environment({ key: "editMode", value: "active" }),
-				]}
-			>
+			<List modifiers={[listStyle("insetGrouped"), environment({ key: "editMode", value: "active" })]}>
 				{/* A non-empty `title` short-circuits the `header` slot natively, so the
 				    header passes the eyebrow instead of a plain string. */}
-				<Section
-					header={<Eyebrow colors={colors}>{t("accounts.title")}</Eyebrow>}
-				>
+				<Section header={<Eyebrow colors={colors}>{t("accounts.title")}</Eyebrow>}>
 					<List.ForEach onMove={reorder}>
 						{rows.map((account) => (
 							<ReorderRow
 								account={account}
 								key={account.id}
-								tint={
-									account.imageColor ?? account.customColor ?? colors.foreground
-								}
+								tint={account.imageColor ?? account.customColor ?? colors.foreground}
 							/>
 						))}
 					</List.ForEach>
@@ -86,7 +60,7 @@ function ReorderRow({ account, tint }: { account: Account; tint: string }) {
 		// screen has no `onDelete`: the row would animate away and come back.
 		<HStack modifiers={[deleteDisabled(true)]} spacing={12}>
 			<RNHostView matchContents>
-				<View style={{ width: PARENT_TILE, height: PARENT_TILE }}>
+				<View style={{ height: PARENT_TILE, width: PARENT_TILE }}>
 					<CategoryIconTile
 						color={tint}
 						emoji={account.emoji}
@@ -97,11 +71,7 @@ function ReorderRow({ account, tint }: { account: Account; tint: string }) {
 					/>
 				</View>
 			</RNHostView>
-			<SwiftText
-				modifiers={[PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}
-			>
-				{account.name}
-			</SwiftText>
+			<SwiftText modifiers={[PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}>{account.name}</SwiftText>
 			<Spacer />
 		</HStack>
 	);

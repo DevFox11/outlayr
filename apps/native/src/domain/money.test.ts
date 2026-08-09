@@ -13,19 +13,19 @@ import {
 describe("numberLocale", () => {
 	it("gives English a leading symbol and a dot decimal", () => {
 		expect(numberLocale("en")).toMatchObject({
-			group: ",",
 			decimal: ".",
-			placement: "prefix",
 			gap: "",
+			group: ",",
+			placement: "prefix",
 		});
 	});
 
 	it("gives Spanish a trailing symbol and a comma decimal", () => {
 		expect(numberLocale("es")).toMatchObject({
-			group: ".",
 			decimal: ",",
-			placement: "suffix",
 			gap: NBSP,
+			group: ".",
+			placement: "suffix",
 		});
 	});
 });
@@ -52,20 +52,18 @@ describe("formatAmount", () => {
 	});
 
 	it("groups every three digits past a thousand", () => {
-		expect(formatAmount(1234567.89, "USD", true, "en")).toBe("$1,234,567.89");
-		expect(formatAmount(1234567.89, "EUR", true, "es")).toBe(
-			`1.234.567,89${NBSP}€`,
-		);
+		expect(formatAmount(1_234_567.89, "USD", true, "en")).toBe("$1,234,567.89");
+		expect(formatAmount(1_234_567.89, "EUR", true, "es")).toBe(`1.234.567,89${NBSP}€`);
 	});
 });
 
 describe("amountParts", () => {
 	it("carries the locale so callers assemble their own strings correctly", () => {
 		expect(amountParts(12.34, "EUR", true, "es")).toMatchObject({
-			symbol: "€",
-			integer: "12",
 			fraction: "34",
+			integer: "12",
 			minorUnits: 2,
+			symbol: "€",
 		});
 	});
 
@@ -78,12 +76,8 @@ describe("amountParts", () => {
 
 describe("amountDigits", () => {
 	it("joins the fraction with the language's decimal mark", () => {
-		expect(amountDigits(amountParts(1234.5, "USD", true, "en"))).toBe(
-			"1,234.50",
-		);
-		expect(amountDigits(amountParts(1234.5, "EUR", true, "es"))).toBe(
-			"1.234,50",
-		);
+		expect(amountDigits(amountParts(1234.5, "USD", true, "en"))).toBe("1,234.50");
+		expect(amountDigits(amountParts(1234.5, "EUR", true, "es"))).toBe("1.234,50");
 	});
 
 	it("omits the mark entirely when there is no fraction", () => {
@@ -108,9 +102,7 @@ describe("splitSymbol", () => {
 			const parts = amountParts(1234.5, "EUR", true, language);
 			const { prefixSymbol, suffixSymbol } = splitSymbol(parts);
 			const digits = amountDigits(parts);
-			expect(`${prefixSymbol}${digits}${suffixSymbol}`).toBe(
-				withCurrencySymbol(parts, digits),
-			);
+			expect(`${prefixSymbol}${digits}${suffixSymbol}`).toBe(withCurrencySymbol(parts, digits));
 		}
 	});
 });

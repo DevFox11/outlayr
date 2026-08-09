@@ -1,13 +1,6 @@
-import {
-	affectsSpotlight,
-	affectsWidgets,
-	debounce,
-	PUBLISH_DEBOUNCE_MS,
-	SPOTLIGHT_DEBOUNCE_MS,
-} from "./sync-cadence";
+import { affectsSpotlight, affectsWidgets, debounce, PUBLISH_DEBOUNCE_MS, SPOTLIGHT_DEBOUNCE_MS } from "./sync-cadence";
 
-const sleep = (ms: number) =>
-	new Promise<void>((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 describe("sync cadence", () => {
 	it("routes a table change to the surfaces that read it", () => {

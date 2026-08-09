@@ -2,22 +2,11 @@ import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
 import { Alert, Linking, Platform, Share } from "react-native";
-import {
-	ImportSheet,
-	type ImportSheetHandle,
-} from "@/components/import-sheet/import-sheet";
+import { ImportSheet, type ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { AccountRow } from "@/components/settings/account-row";
-import {
-	LinkRow,
-	PickerRow,
-	SettingsSection,
-	ToggleRow,
-} from "@/components/settings/settings-row";
+import { LinkRow, PickerRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
-import {
-	useAppSettings,
-	useDisplaySettings,
-} from "@/contexts/display-settings-context";
+import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -28,7 +17,7 @@ import {
 	setBoolSetting,
 	setNumberSetting,
 	shownHiddenLabel,
-} from "@/data/settings";
+} from "@/data/settings-core";
 import { useSyncStatus } from "@/data/use-sync-status";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
@@ -36,13 +25,9 @@ import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
 import { syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
-import {
-	LANGUAGE_OPTIONS,
-	languageLabel,
-	translateNow,
-	useLanguage,
-	useTranslation,
-} from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import { LANGUAGE_OPTIONS, languageLabel } from "@/i18n/languages";
+import { translateNow } from "@/i18n/runtime";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { importDraftStore } from "@/lib/import-draft-store";
@@ -60,19 +45,14 @@ const X_PROFILE = "https://x.com/tryoutlayr";
  * user shuts themselves out behind a Face ID they never enrolled.
  */
 async function toggleAppLock(db: Database, next: boolean): Promise<void> {
-	const result = await requestUnlock(
-		translateNow(next ? "settings.lock.promptOn" : "settings.lock.promptOff"),
-	);
+	const result = await requestUnlock(translateNow(next ? "settings.lock.promptOn" : "settings.lock.promptOff"));
 	if (result.success) {
 		await setBoolSetting(db, "biometricLock", next);
 		return;
 	}
 	const messageKey = lockFailureMessage(result.error);
 	if (messageKey) {
-		Alert.alert(
-			translateNow("settings.lock.alertTitle"),
-			translateNow(messageKey),
-		);
+		Alert.alert(translateNow("settings.lock.alertTitle"), translateNow(messageKey));
 	}
 }
 
@@ -85,10 +65,8 @@ function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
-	const { preference: themePreference, setPreference: setThemePreference } =
-		useThemePreference();
-	const { preference: languagePreference, setPreference: setLanguage } =
-		useLanguage();
+	const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
+	const { preference: languagePreference, setPreference: setLanguage } = useLanguage();
 	useReminderSync(db);
 
 	const currency = useGlobalCurrency(db);
@@ -112,9 +90,7 @@ function SettingsContent({ db }: { db: Database }) {
 
 	const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt);
 	const syncValue =
-		syncLabel.count === undefined
-			? t(syncLabel.key)
-			: t(syncLabel.key, { count: String(syncLabel.count) });
+		syncLabel.count === undefined ? t(syncLabel.key) : t(syncLabel.key, { count: String(syncLabel.count) });
 
 	return (
 		<SettingsScreen footer={`Outlayr ${version} (${build})`}>
@@ -128,10 +104,7 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 			</SettingsSection>
 
-			<SettingsSection
-				title={t("settings.section.money")}
-				footer={coverageNote(coverage, t) ?? undefined}
-			>
+			<SettingsSection footer={coverageNote(coverage, t) ?? undefined} title={t("settings.section.money")}>
 				<LinkRow
 					icon="Currency"
 					onPress={() => router.push("/settings/currency")}
@@ -187,10 +160,7 @@ function SettingsContent({ db }: { db: Database }) {
 					icon="LanguageSkill"
 					onChange={setLanguage}
 					options={LANGUAGE_OPTIONS.map((option) => ({
-						label:
-							option.value === "system"
-								? t("language.system")
-								: languageLabel(option.value),
+						label: option.value === "system" ? t("language.system") : languageLabel(option.value),
 						value: option.value,
 					}))}
 					title={t("settings.row.language")}
@@ -207,11 +177,7 @@ function SettingsContent({ db }: { db: Database }) {
 			</SettingsSection>
 
 			<SettingsSection title={t("settings.section.ledger")}>
-				<LinkRow
-					icon="Bank"
-					onPress={() => router.push("/settings/accounts")}
-					title={t("settings.row.accounts")}
-				/>
+				<LinkRow icon="Bank" onPress={() => router.push("/settings/accounts")} title={t("settings.row.accounts")} />
 				<LinkRow
 					icon="DashboardSquare01"
 					onPress={() => router.push("/settings/categories")}
@@ -223,11 +189,7 @@ function SettingsContent({ db }: { db: Database }) {
 					title={t("settings.row.upcoming")}
 					value={t(shownHiddenLabel(showUpcoming))}
 				/>
-				<LinkRow
-					icon="Calendar01"
-					onPress={() => router.push("/settings/time")}
-					title={t("settings.row.timeFrames")}
-				/>
+				<LinkRow icon="Calendar01" onPress={() => router.push("/settings/time")} title={t("settings.row.timeFrames")} />
 			</SettingsSection>
 
 			<SettingsSection title={t("settings.section.device")}>
@@ -239,8 +201,8 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 				<ToggleRow
 					icon="BiometricAccess"
-					onValueChange={(next) => {
-						void toggleAppLock(db, next);
+					onValueChange={async (next) => {
+						await toggleAppLock(db, next);
 					}}
 					title={t("settings.row.authentication")}
 					value={biometricLock}
@@ -268,21 +230,13 @@ function SettingsContent({ db }: { db: Database }) {
 					}}
 					title={t("settings.row.import")}
 				/>
-				<LinkRow
-					icon="FileExport"
-					onPress={() => router.push("/settings/export")}
-					title={t("settings.row.export")}
-				/>
+				<LinkRow icon="FileExport" onPress={() => router.push("/settings/export")} title={t("settings.row.export")} />
 				<LinkRow
 					icon="ArchiveRestore"
 					onPress={() => router.push("/settings/restore")}
 					title={t("settings.row.restore")}
 				/>
-				<LinkRow
-					icon="Delete02"
-					onPress={() => router.push("/settings/deleted")}
-					title={t("settings.row.deleted")}
-				/>
+				<LinkRow icon="Delete02" onPress={() => router.push("/settings/deleted")} title={t("settings.row.deleted")} />
 				<LinkRow
 					destructive
 					icon="Delete02"
@@ -300,26 +254,14 @@ function SettingsContent({ db }: { db: Database }) {
 				<LinkRow
 					icon="Bug01"
 					onPress={() => {
-						Linking.openURL(
-							supportMailto(
-								SUPPORT_EMAIL,
-								t("settings.support.bugSubject"),
-								diagnostics,
-							),
-						);
+						Linking.openURL(supportMailto(SUPPORT_EMAIL, t("settings.support.bugSubject"), diagnostics));
 					}}
 					title={t("settings.row.reportBug")}
 				/>
 				<LinkRow
 					icon="Idea01"
 					onPress={() => {
-						Linking.openURL(
-							supportMailto(
-								SUPPORT_EMAIL,
-								t("settings.support.featureSubject"),
-								diagnostics,
-							),
-						);
+						Linking.openURL(supportMailto(SUPPORT_EMAIL, t("settings.support.featureSubject"), diagnostics));
 					}}
 					title={t("settings.row.featureRequest")}
 				/>
@@ -383,16 +325,13 @@ function AppIconRow() {
  * user-assigned-device-name entitlement, which is coarser than Swift's
  * `modelName` but still narrows a report to a platform and OS release.
  */
-function supportDiagnostics(
-	version: string,
-	build: string,
-): SupportDiagnostics {
+function supportDiagnostics(version: string, build: string): SupportDiagnostics {
 	return {
-		appName: Constants.expoConfig?.name ?? "Outlayr",
-		osName: Platform.select({ ios: "iOS", android: "Android" }) ?? Platform.OS,
-		osVersion: String(Platform.Version),
-		deviceName: Constants.deviceName ?? "",
-		appVersion: version,
 		appBuild: build,
+		appName: Constants.expoConfig?.name ?? "Outlayr",
+		appVersion: version,
+		deviceName: Constants.deviceName ?? "",
+		osName: Platform.select({ android: "Android", ios: "iOS" }) ?? Platform.OS,
+		osVersion: String(Platform.Version),
 	};
 }

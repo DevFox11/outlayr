@@ -1,9 +1,5 @@
 import { act, renderHook } from "@testing-library/react-native";
-import {
-	clearEnrichmentCache,
-	getCachedEnrichment,
-	type RemoteEnrichmentResult,
-} from "@/domain/enrichment-cache";
+import { clearEnrichmentCache, getCachedEnrichment, type RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import { merchantKey } from "@/domain/merchant-resolver";
 import type { EnrichmentFn, EnrichmentRequest } from "@/lib/convex";
 import {
@@ -22,15 +18,13 @@ const OTHER_UNKNOWN = "zzq unresolvable merchant beta";
  * `transport: null` by default — the real one resolves a Convex client, and a
  * test that forgot to inject would otherwise reach for the network.
  */
-function baseArgs(
-	overrides: Partial<UseTransactionEnrichmentArgs> = {},
-): UseTransactionEnrichmentArgs {
+function baseArgs(overrides: Partial<UseTransactionEnrichmentArgs> = {}): UseTransactionEnrichmentArgs {
 	return {
+		categoryTree: [],
 		enabled: true,
 		income: false,
-		categoryTree: [],
-		resolveLocal: (suggestion) => suggestion,
 		onSuggest: () => {},
+		resolveLocal: (suggestion) => suggestion,
 		transport: null,
 		...overrides,
 	};
@@ -53,16 +47,16 @@ function deferredTransport(): {
 					args,
 					settle: (value) => resolve(value as RemoteEnrichmentResult),
 				});
-			}),
+			})
 	) as EnrichmentFn & jest.Mock;
-	return { fn, calls };
+	return { calls, fn };
 }
 
 const REMOTE_RESULT: RemoteEnrichmentResult = {
 	categoryName: "Entertainment",
+	domain: "example.com",
 	isNewCategory: false,
 	tags: ["Streaming"],
-	domain: "example.com",
 };
 
 beforeEach(() => {
@@ -83,9 +77,7 @@ describe("latency contract", () => {
 describe("debouncing", () => {
 	it("collapses 20 rapid keystrokes into exactly one suggestion at 600ms", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
 
 		const target = "netflix";
 		const keystrokes = [
@@ -112,9 +104,7 @@ describe("debouncing", () => {
 describe("tier 1: curated match", () => {
 	it("emits a curated suggestion synchronously with zero pending flags", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
 
 		result.current.onNameChange("netflix");
 		jest.advanceTimersByTime(DEBOUNCE_MS);
@@ -123,15 +113,12 @@ describe("tier 1: curated match", () => {
 		const suggestion = onSuggest.mock.calls[0][0] as EnrichmentSuggestion;
 		expect(suggestion.source).toBe("curated");
 		expect(suggestion.domain).toBe("netflix.com");
-		expect(suggestion.pendingTagNames).toStrictEqual([
-			"Streaming",
-			"Subscription",
-		]);
+		expect(suggestion.pendingTagNames).toStrictEqual(["Streaming", "Subscription"]);
 		expect(suggestion.pendingCategory).toStrictEqual({
-			name: "Entertainment",
-			icon: "FilmRoll01",
 			color: "#AF52DE",
 			emoji: null,
+			icon: "FilmRoll01",
+			name: "Entertainment",
 			parentName: null,
 		});
 		expect(result.current.pending).toBe(false);
@@ -139,15 +126,11 @@ describe("tier 1: curated match", () => {
 
 	it("reports an empty suggestion below the 3-character floor so stale fields clear", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
 
 		result.current.onNameChange("netflix");
 		jest.advanceTimersByTime(DEBOUNCE_MS);
-		expect(onSuggest).toHaveBeenLastCalledWith(
-			expect.objectContaining({ domain: "netflix.com" }),
-		);
+		expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: "netflix.com" }));
 
 		// Silence here would leave Netflix's category and logo on an entry that
 		// is no longer Netflix.
@@ -155,19 +138,17 @@ describe("tier 1: curated match", () => {
 		jest.advanceTimersByTime(DEBOUNCE_MS);
 		expect(onSuggest).toHaveBeenLastCalledWith({
 			categoryId: null,
-			pendingCategory: null,
-			tagIds: [],
-			pendingTagNames: [],
 			domain: null,
+			pendingCategory: null,
+			pendingTagNames: [],
 			source: "curated",
+			tagIds: [],
 		});
 	});
 
 	it("does not emit for a merchant name with no curated or remote match", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
 
 		result.current.onNameChange("a wholly made up merchant name");
 		jest.advanceTimersByTime(DEBOUNCE_MS);
@@ -181,12 +162,10 @@ describe("tier 1: curated match", () => {
 				...suggestion,
 				categoryId: "resolved-category-id",
 				pendingCategory: null,
-			}),
+			})
 		);
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ resolveLocal, onSuggest })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, resolveLocal })));
 
 		result.current.onNameChange("netflix");
 		jest.advanceTimersByTime(DEBOUNCE_MS);
@@ -196,7 +175,7 @@ describe("tier 1: curated match", () => {
 			expect.objectContaining({
 				categoryId: "resolved-category-id",
 				pendingCategory: null,
-			}),
+			})
 		);
 	});
 });
@@ -204,9 +183,7 @@ describe("tier 1: curated match", () => {
 describe("tier 1.5: domain-less curated fallthrough", () => {
 	it("emits the curated category and tags at once for a domain-less curated hit", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: null })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: null })));
 
 		result.current.onNameChange("cantv");
 		jest.advanceTimersByTime(DEBOUNCE_MS);
@@ -221,9 +198,7 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 	it("issues exactly one transport call and merges only the remote domain onto the curated result", async () => {
 		const { fn, calls } = deferredTransport();
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })));
 
 		result.current.onNameChange("cantv");
 		await act(async () => {
@@ -235,9 +210,9 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: "Something Else",
+				domain: "cantv.com.ve",
 				isNewCategory: false,
 				tags: ["Wrong"],
-				domain: "cantv.com.ve",
 			});
 		});
 
@@ -251,9 +226,7 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 	it("leaves the curated category and tags intact when the remote result is stale or fails", async () => {
 		const { fn, calls } = deferredTransport();
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })));
 
 		result.current.onNameChange("cantv");
 		await act(async () => {
@@ -277,9 +250,7 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 		const { fn } = deferredTransport();
 		const onSuggest = jest.fn();
 		const { result } = await renderHook(() =>
-			useTransactionEnrichment(
-				baseArgs({ onSuggest, transport: fn, remoteEnabled: false }),
-			),
+			useTransactionEnrichment(baseArgs({ onSuggest, remoteEnabled: false, transport: fn }))
 		);
 
 		result.current.onNameChange("cantv");
@@ -297,9 +268,7 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 	it("reuses a cached remote domain to merge onto the curated result, with no new call", async () => {
 		const { fn, calls } = deferredTransport();
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })));
 
 		result.current.onNameChange("cantv");
 		await act(async () => {
@@ -308,9 +277,9 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: null,
+				domain: "cantv.com.ve",
 				isNewCategory: false,
 				tags: [],
-				domain: "cantv.com.ve",
 			});
 		});
 		expect(fn).toHaveBeenCalledTimes(1);
@@ -330,9 +299,7 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
 describe("tier 2: remote fallback", () => {
 	it("never calls the transport when tier 1 already answered", async () => {
 		const { fn } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange("netflix");
 		await act(async () => {
@@ -344,11 +311,9 @@ describe("tier 2: remote fallback", () => {
 
 	it("issues exactly one call for 20 keystrokes of an unknown merchant", async () => {
 		const { fn } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
-		for (let index = 0; index < 20; index++) {
+		for (let index = 0; index < 20; index += 1) {
 			result.current.onNameChange(UNKNOWN.slice(0, 10 + (index % 10)));
 		}
 		await act(async () => {
@@ -363,10 +328,10 @@ describe("tier 2: remote fallback", () => {
 		const { result } = await renderHook(() =>
 			useTransactionEnrichment(
 				baseArgs({
+					categoryTree: [{ children: [], name: "Groceries" }],
 					transport: fn,
-					categoryTree: [{ name: "Groceries", children: [] }],
-				}),
-			),
+				})
+			)
 		);
 
 		result.current.onNameChange(UNKNOWN);
@@ -386,9 +351,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("threads regionCode into both the fast and grounded-follow-up calls", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn, regionCode: "VE" })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ regionCode: "VE", transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -397,9 +360,9 @@ describe("tier 2: remote fallback", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: "Entertainment",
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 		await act(async () => {
@@ -412,9 +375,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("the fast 600ms pass always sends groundedLookup false", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -426,9 +387,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("typing then settling issues exactly one grounded-enabled follow-up call", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -437,9 +396,9 @@ describe("tier 2: remote fallback", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: "Entertainment",
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 		await act(async () => {
@@ -453,9 +412,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("typing a prefix then continuing issues no grounded call for the abandoned prefix", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange("Rio");
 		await act(async () => {
@@ -469,16 +426,12 @@ describe("tier 2: remote fallback", () => {
 			jest.advanceTimersByTime(GROUNDED_IDLE_MS);
 		});
 
-		expect(calls.every((call) => call.args.groundedLookup === false)).toBe(
-			true,
-		);
+		expect(calls.every((call) => call.args.groundedLookup === false)).toBe(true);
 	});
 
 	it("a fast result with a domain issues no follow-up", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -497,9 +450,7 @@ describe("tier 2: remote fallback", () => {
 	it("never issues a grounded-enabled follow-up when the setting is off", async () => {
 		const { fn, calls } = deferredTransport();
 		const { result } = await renderHook(() =>
-			useTransactionEnrichment(
-				baseArgs({ transport: fn, groundedLookup: false }),
-			),
+			useTransactionEnrichment(baseArgs({ groundedLookup: false, transport: fn }))
 		);
 
 		result.current.onNameChange(UNKNOWN);
@@ -510,9 +461,9 @@ describe("tier 2: remote fallback", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: "Entertainment",
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 		await act(async () => {
@@ -524,9 +475,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("reuses a cached negative result rather than calling again", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -548,9 +497,7 @@ describe("tier 2: remote fallback", () => {
 	it("drops a stale result once a newer request supersedes it", async () => {
 		const { fn, calls } = deferredTransport();
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -576,9 +523,7 @@ describe("tier 2: remote fallback", () => {
 		const { fn } = deferredTransport();
 		const onSuggest = jest.fn();
 		const { result } = await renderHook(() =>
-			useTransactionEnrichment(
-				baseArgs({ onSuggest, transport: fn, remoteEnabled: false }),
-			),
+			useTransactionEnrichment(baseArgs({ onSuggest, remoteEnabled: false, transport: fn }))
 		);
 
 		result.current.onNameChange(UNKNOWN);
@@ -593,17 +538,13 @@ describe("tier 2: remote fallback", () => {
 		});
 		// Twice: the empty report for the unresolvable name, then the curated hit.
 		expect(onSuggest).toHaveBeenCalledTimes(2);
-		expect(onSuggest).toHaveBeenLastCalledWith(
-			expect.objectContaining({ domain: "netflix.com", source: "curated" }),
-		);
+		expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: "netflix.com", source: "curated" }));
 		expect(fn).not.toHaveBeenCalled();
 	});
 
 	it("makes no call and raises nothing when there is no backend", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: null })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: null })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -616,9 +557,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("does not cache a grounding-pending result, so a repeat lookup tries again", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -627,10 +566,10 @@ describe("tier 2: remote fallback", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: null,
-				isNewCategory: false,
-				tags: [],
 				domain: null,
 				grounding: true,
+				isNewCategory: false,
+				tags: [],
 			});
 		});
 
@@ -648,9 +587,7 @@ describe("tier 2: remote fallback", () => {
 
 	it("gives up at the abort budget and caches the miss", async () => {
 		const { fn } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -674,15 +611,11 @@ describe("grounded re-check: the open form receives the domain", () => {
 	const GROUNDED_RECHECK_MS = 8000;
 	const GROUNDED_RECHECK_RETRY_MS = 12_000;
 
-	async function reachFollowUp(
-		overrides: Partial<UseTransactionEnrichmentArgs>,
-	) {
+	async function reachFollowUp(overrides: Partial<UseTransactionEnrichmentArgs>) {
 		const { fn, calls } = deferredTransport();
 		const onSuggest = jest.fn();
 		const { result, unmount } = await renderHook(() =>
-			useTransactionEnrichment(
-				baseArgs({ onSuggest, transport: fn, ...overrides }),
-			),
+			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn, ...overrides }))
 		);
 
 		result.current.onNameChange(UNKNOWN);
@@ -692,15 +625,15 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: "Entertainment",
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 		await act(async () => {
 			jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
 		});
-		return { fn, calls, onSuggest, result, unmount };
+		return { calls, fn, onSuggest, result, unmount };
 	}
 
 	it("merges a domain the follow-up itself answers with, without any re-check", async () => {
@@ -725,10 +658,10 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[1].settle({
 				categoryName: "Entertainment",
-				isNewCategory: false,
-				tags: [],
 				domain: null,
 				grounding: true,
+				isNewCategory: false,
+				tags: [],
 			});
 		});
 		expect(fn).toHaveBeenCalledTimes(2);
@@ -753,10 +686,10 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[1].settle({
 				categoryName: "Entertainment",
-				isNewCategory: false,
-				tags: [],
 				domain: null,
 				grounding: true,
+				isNewCategory: false,
+				tags: [],
 			});
 		});
 		await act(async () => {
@@ -767,9 +700,9 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[2].settle({
 				categoryName: null,
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 		expect(onSuggest.mock.calls.length).toBe(emitted);
@@ -781,10 +714,10 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[1].settle({
 				categoryName: "Entertainment",
-				isNewCategory: false,
-				tags: [],
 				domain: null,
 				grounding: true,
+				isNewCategory: false,
+				tags: [],
 			});
 		});
 		await act(async () => {
@@ -793,9 +726,9 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[2].settle({
 				categoryName: null,
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 
@@ -818,9 +751,7 @@ describe("grounded re-check: the open form receives the domain", () => {
 	it("merges the re-checked domain onto a domain-less curated hit, keeping curated category and tags", async () => {
 		const { fn, calls } = deferredTransport();
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })));
 
 		result.current.onNameChange("cantv");
 		await act(async () => {
@@ -829,9 +760,9 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[0].settle({
 				categoryName: null,
+				domain: null,
 				isNewCategory: false,
 				tags: [],
-				domain: null,
 			});
 		});
 		await act(async () => {
@@ -840,10 +771,10 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[1].settle({
 				categoryName: null,
-				isNewCategory: false,
-				tags: [],
 				domain: null,
 				grounding: true,
+				isNewCategory: false,
+				tags: [],
 			});
 		});
 		await act(async () => {
@@ -852,9 +783,9 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[2].settle({
 				categoryName: "Something Else",
+				domain: "cantv.com.ve",
 				isNewCategory: false,
 				tags: ["Wrong"],
-				domain: "cantv.com.ve",
 			});
 		});
 
@@ -865,8 +796,7 @@ describe("grounded re-check: the open form receives the domain", () => {
 	});
 
 	it("a follow-up that settles after unmount emits nothing", async () => {
-		const { fn, calls, onSuggest, result, unmount } = await reachFollowUp({});
-		void result;
+		const { fn, calls, onSuggest, unmount } = await reachFollowUp({});
 		const emitted = onSuggest.mock.calls.length;
 
 		await unmount();
@@ -887,10 +817,10 @@ describe("grounded re-check: the open form receives the domain", () => {
 		await act(async () => {
 			calls[1].settle({
 				categoryName: "Entertainment",
-				isNewCategory: false,
-				tags: [],
 				domain: null,
 				grounding: true,
+				isNewCategory: false,
+				tags: [],
 			});
 		});
 		result.current.onNameChange(OTHER_UNKNOWN);
@@ -898,20 +828,14 @@ describe("grounded re-check: the open form receives the domain", () => {
 			jest.advanceTimersByTime(GROUNDED_RECHECK_MS);
 		});
 
-		expect(
-			fn.mock.calls.filter(
-				(call: [EnrichmentRequest]) => call[0].name === UNKNOWN,
-			),
-		).toHaveLength(2);
+		expect(fn.mock.calls.filter((call: [EnrichmentRequest]) => call[0].name === UNKNOWN)).toHaveLength(2);
 	});
 });
 
 describe("unmount and disable", () => {
 	it("clears the pending timer on unmount so a settling debounce never fires", async () => {
 		const onSuggest = jest.fn();
-		const { result, unmount } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ onSuggest })),
-		);
+		const { result, unmount } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
 
 		result.current.onNameChange("netflix");
 		await unmount();
@@ -922,9 +846,7 @@ describe("unmount and disable", () => {
 
 	it("unmount cancels both the fast and grounded-follow-up timers", async () => {
 		const { fn } = deferredTransport();
-		const { result, unmount } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ transport: fn })),
-		);
+		const { result, unmount } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await unmount();
@@ -935,9 +857,7 @@ describe("unmount and disable", () => {
 
 	it("is fully inert when disabled: no timer, no suggestion, constant pending flags", async () => {
 		const onSuggest = jest.fn();
-		const { result } = await renderHook(() =>
-			useTransactionEnrichment(baseArgs({ enabled: false, onSuggest })),
-		);
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ enabled: false, onSuggest })));
 
 		result.current.onNameChange("netflix");
 		jest.advanceTimersByTime(DEBOUNCE_MS);

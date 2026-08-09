@@ -31,7 +31,6 @@ function watchAppState() {
 	}) as typeof AppState.addEventListener;
 
 	return {
-		remove,
 		async emit(status: AppStateStatus) {
 			await act(async () => {
 				for (const listener of listeners) {
@@ -39,6 +38,7 @@ function watchAppState() {
 				}
 			});
 		},
+		remove,
 	};
 }
 

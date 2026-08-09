@@ -1,15 +1,12 @@
-import {
-	EMPTY_STATE_TIERS,
-	type EmptyStateTier,
-	ghostInk,
-	MARK_CEILING,
-} from "./empty-state-ink";
+import { EMPTY_STATE_TIERS, type EmptyStateTier, ghostInk, MARK_CEILING } from "./empty-state-ink";
 
 const INK = "#010101";
 
 function alphaOf(rgba: string): number {
 	const match = rgba.match(/rgba\([^)]*,\s*([\d.]+)\)$/);
-	if (!match) throw new Error(`not an rgba string: ${rgba}`);
+	if (!match) {
+		throw new Error(`not an rgba string: ${rgba}`);
+	}
 	return Number(match[1]);
 }
 
@@ -21,7 +18,7 @@ describe("the mark size ladder", () => {
 	});
 
 	it("descends strictly — each tier is smaller than the one above", () => {
-		for (let index = 1; index < LADDER.length; index++) {
+		for (let index = 1; index < LADDER.length; index += 1) {
 			const above = MARK_CEILING[LADDER[index - 1]];
 			const here = MARK_CEILING[LADDER[index]];
 			expect(here < above).toBeTruthy();
@@ -32,7 +29,7 @@ describe("the mark size ladder", () => {
 describe("ghost ink rises as the mark shrinks", () => {
 	for (const channel of ["wash", "fill", "rule", "edge"] as const) {
 		it(`raises ${channel} at every step down the ladder`, () => {
-			for (let index = 1; index < LADDER.length; index++) {
+			for (let index = 1; index < LADDER.length; index += 1) {
 				const above = alphaOf(ghostInk(INK, LADDER[index - 1])[channel]);
 				const here = alphaOf(ghostInk(INK, LADDER[index])[channel]);
 				expect(here > above).toBeTruthy();
@@ -43,12 +40,7 @@ describe("ghost ink rises as the mark shrinks", () => {
 	it("keeps the channels ordered wash < fill < rule < edge within a tier", () => {
 		for (const tier of LADDER) {
 			const ink = ghostInk(INK, tier);
-			const [wash, fill, rule, edge] = [
-				alphaOf(ink.wash),
-				alphaOf(ink.fill),
-				alphaOf(ink.rule),
-				alphaOf(ink.edge),
-			];
+			const [wash, fill, rule, edge] = [alphaOf(ink.wash), alphaOf(ink.fill), alphaOf(ink.rule), alphaOf(ink.edge)];
 			expect(wash < fill).toBeTruthy();
 			expect(fill < rule).toBeTruthy();
 			expect(rule < edge).toBeTruthy();

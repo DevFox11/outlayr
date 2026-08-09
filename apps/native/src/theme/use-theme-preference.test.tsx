@@ -3,7 +3,7 @@ import { Pressable, Text } from "react-native";
 import type { ThemePreference } from "./theme-preference";
 import { useThemePreference } from "./use-theme-preference";
 
-const mockState = { theme: "light", hasAdaptiveThemes: false };
+const mockState = { hasAdaptiveThemes: false, theme: "light" };
 const mockSetTheme = jest.fn();
 
 jest.mock("uniwind", () => ({
@@ -11,7 +11,7 @@ jest.mock("uniwind", () => ({
 }));
 
 jest.mock("panelui-native", () => ({
-	useTheme: () => ({ theme: mockState.theme, setTheme: mockSetTheme }),
+	useTheme: () => ({ setTheme: mockSetTheme, theme: mockState.theme }),
 }));
 
 function Probe({ press }: { press?: ThemePreference }) {

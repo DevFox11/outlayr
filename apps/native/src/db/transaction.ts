@@ -22,10 +22,7 @@ import type { Database } from "./client";
  * and run under `node --test` against better-sqlite3, so this file must never
  * pull `expo-sqlite` into their runtime graph.
  */
-export async function withTransaction(
-	db: Database,
-	task: () => Promise<void>,
-): Promise<void> {
+export async function withTransaction(db: Database, task: () => Promise<void>): Promise<void> {
 	const client = db.$client as {
 		withTransactionAsync?: (t: () => Promise<void>) => Promise<void>;
 	};

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getBudgetById } from "@/data/budgets";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { BudgetForm } from "@/screens/budgets/components/budget-form";
 
 export default function EditBudgetScreen() {

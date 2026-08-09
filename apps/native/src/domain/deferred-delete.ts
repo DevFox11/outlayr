@@ -4,36 +4,36 @@
  * hands back.
  */
 export interface DeferredDeleteTimers<Handle> {
-	set: (run: () => void, ms: number) => Handle;
 	clear: (handle: Handle) => void;
+	set: (run: () => void, ms: number) => Handle;
 }
 
 export interface DeferredDeleteSnapshot {
-	/** Id the caller hides from its list while the undo window is open. */
-	pendingId: string | null;
 	/**
 	 * A delete whose write rejected. Nothing reached the database, so the row is
 	 * back on the list — and a row reappearing with nothing said is
 	 * indistinguishable from the app having dropped the swipe.
 	 */
 	failedId: string | null;
+	/** Id the caller hides from its list while the undo window is open. */
+	pendingId: string | null;
 }
 
 export interface DeferredDeleteController {
-	snapshot: DeferredDeleteSnapshot;
-	requestDelete: (id: string) => void;
-	undo: () => void;
 	/** Drops the failure report once it has been delivered. */
 	acknowledgeFailure: () => void;
 	/** Commits whatever is still pending, e.g. because the screen is going away. */
 	flush: () => void;
+	requestDelete: (id: string) => void;
+	snapshot: DeferredDeleteSnapshot;
+	undo: () => void;
 }
 
 export interface DeferredDeleteOptions<Handle> {
 	commit: (id: string) => Promise<unknown>;
-	windowMs: number;
-	timers: DeferredDeleteTimers<Handle>;
 	onChange: (snapshot: DeferredDeleteSnapshot) => void;
+	timers: DeferredDeleteTimers<Handle>;
+	windowMs: number;
 }
 
 /**
@@ -51,15 +51,15 @@ export function createDeferredDelete<Handle>({
 	let handle: Handle | null = null;
 
 	const controller: DeferredDeleteController = {
-		snapshot: { pendingId: null, failedId: null },
-		requestDelete,
-		undo,
 		acknowledgeFailure,
 		flush,
+		requestDelete,
+		snapshot: { failedId: null, pendingId: null },
+		undo,
 	};
 
 	function publish() {
-		controller.snapshot = { pendingId, failedId };
+		controller.snapshot = { failedId, pendingId };
 		onChange(controller.snapshot);
 	}
 

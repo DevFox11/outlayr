@@ -19,36 +19,32 @@ import {
 } from "@/domain/log-measure";
 import { canStepForward, stepCursor } from "@/domain/log-period-cursor";
 import type { ScopeTotals } from "@/domain/log-scope-figures";
-import { type TranslateFn, useTranslation } from "@/i18n";
-import {
-	FILTER_LABEL_KEY,
-	MEASURE_WORD_KEY,
-	scopeMeasureLabel,
-} from "../labels";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
+import { FILTER_LABEL_KEY, MEASURE_WORD_KEY, scopeMeasureLabel } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 
 interface LogFilterChipProps {
-	filter: LogFilter;
-	detail: string | null;
 	categories: { id: string; meta: CategoryMetaRow }[];
 	categoryId: string | null;
-	onCategory: (id: string) => void;
 	cursor: Date;
-	onCursor: (date: Date) => void;
-	income: boolean;
-	onIncome: (income: boolean) => void;
+	detail: string | null;
+	/** The currency the whole screen is being read in. */
+	displayCurrency: string;
+	filter: LogFilter;
 	firstWeekday: number;
+	income: boolean;
+	measure: LogMeasure;
 	nowMs: number;
+	onCategory: (id: string) => void;
 	onClear: () => void;
+	onCursor: (date: Date) => void;
+	onIncome: (income: boolean) => void;
+	onMeasure: (measure: LogMeasure) => void;
 	/**
 	 * In/out/net over the whole filtered scope. Null for a scope with nothing in
 	 * it, which has no figure to state and says so in the list instead.
 	 */
 	totals: ScopeTotals | null;
-	measure: LogMeasure;
-	onMeasure: (measure: LogMeasure) => void;
-	/** The currency the whole screen is being read in. */
-	displayCurrency: string;
 }
 
 export function LogFilterChip({
@@ -83,25 +79,25 @@ export function LogFilterChip({
 					actions={
 						hasMenu
 							? menuActions({
-									t,
-									filter,
 									categories,
 									categoryId,
 									cursor,
-									income,
+									filter,
 									firstWeekday,
+									income,
 									nowMs,
+									t,
 								})
 							: undefined
 					}
 					clearAccessibilityLabel={t("log.chip.remove")}
 					onAction={(event) =>
 						handleAction(event, {
-							filter,
 							cursor,
+							filter,
 							firstWeekday,
-							onCursor,
 							onCategory,
+							onCursor,
 							onIncome,
 						})
 					}
@@ -112,11 +108,11 @@ export function LogFilterChip({
 
 			{totals ? (
 				<ScopeFigures
-					totals={totals}
+					displayCurrency={displayCurrency}
 					measure={measure}
 					onMeasure={onMeasure}
-					displayCurrency={displayCurrency}
 					showCents={showCents}
+					totals={totals}
 				/>
 			) : null}
 		</View>
@@ -146,9 +142,7 @@ function ScopeFigures({
 
 	return (
 		<View className="pt-3 pb-1.5">
-			<MonoLabel>
-				{scopeMeasureLabel(t, measure, shown.currencyCode, displayCurrency)}
-			</MonoLabel>
+			<MonoLabel>{scopeMeasureLabel(t, measure, shown.currencyCode, displayCurrency)}</MonoLabel>
 			<View className="pt-1">
 				<LogHeroNumber
 					code={shown.currencyCode}
@@ -161,13 +155,13 @@ function ScopeFigures({
 				<LedgerHead
 					cells={measureAlternatives(measure).map(
 						(alternative): LedgerCell => ({
+							income: measureIsIncome(alternative),
 							key: alternative,
 							label: t(MEASURE_WORD_KEY[alternative]),
 							magnitude: measureMagnitude(alternative, shown),
-							positive: measureIsPositive(alternative, shown),
-							income: measureIsIncome(alternative),
 							onPress: () => onMeasure(alternative),
-						}),
+							positive: measureIsPositive(alternative, shown),
+						})
 					)}
 					code={shown.currencyCode}
 				/>
@@ -176,12 +170,7 @@ function ScopeFigures({
 				<View className="gap-1.5 pt-3">
 					<MonoLabel>{t("log.scope.otherCurrencies")}</MonoLabel>
 					{others.map((figures) => (
-						<OtherCurrencyRow
-							figures={figures}
-							key={figures.currencyCode}
-							measure={measure}
-							showCents={showCents}
-						/>
+						<OtherCurrencyRow figures={figures} key={figures.currencyCode} measure={measure} showCents={showCents} />
 					))}
 				</View>
 			) : null}
@@ -217,14 +206,14 @@ function OtherCurrencyRow({
 }
 
 interface MenuContext {
-	t: TranslateFn;
-	filter: LogFilter;
 	categories: { id: string; meta: CategoryMetaRow }[];
 	categoryId: string | null;
 	cursor: Date;
-	income: boolean;
+	filter: LogFilter;
 	firstWeekday: number;
+	income: boolean;
 	nowMs: number;
+	t: TranslateFn;
 }
 
 const CATEGORY_PREFIX = "category:";
@@ -235,34 +224,29 @@ function menuActions(ctx: MenuContext): MenuAction[] {
 		return [
 			{
 				id: "earlier",
-				title: ctx.t("log.chip.earlier"),
 				image: "chevron.left",
+				title: ctx.t("log.chip.earlier"),
 			},
 			{
-				id: "later",
-				title: ctx.t("log.chip.later"),
-				image: "chevron.right",
 				attributes: {
-					disabled: !canStepForward(
-						unit,
-						ctx.cursor,
-						new Date(ctx.nowMs),
-						ctx.firstWeekday,
-					),
+					disabled: !canStepForward(unit, ctx.cursor, new Date(ctx.nowMs), ctx.firstWeekday),
 				},
+				id: "later",
+				image: "chevron.right",
+				title: ctx.t("log.chip.later"),
 			},
 			// An inline section is how a native menu draws a separator.
 			{
-				id: "now-section",
-				title: "",
 				displayInline: true,
+				id: "now-section",
 				subactions: [
 					{
 						id: "now",
-						title: ctx.t("log.chip.now"),
 						image: "arrow.uturn.backward",
+						title: ctx.t("log.chip.now"),
 					},
 				],
+				title: "",
 			},
 		];
 	}
@@ -270,35 +254,35 @@ function menuActions(ctx: MenuContext): MenuAction[] {
 	if (ctx.filter === "category") {
 		return [
 			{
-				id: "category-section",
-				title: ctx.t("log.filter.category"),
 				displayInline: true,
+				id: "category-section",
 				subactions: ctx.categories.map((entry) => ({
 					id: `${CATEGORY_PREFIX}${entry.id}`,
-					title: entry.meta.name ?? "",
 					state: entry.id === ctx.categoryId ? "on" : "off",
+					title: entry.meta.name ?? "",
 				})),
+				title: ctx.t("log.filter.category"),
 			},
 		];
 	}
 
 	return [
 		{
-			id: "type-section",
-			title: ctx.t("log.filter.type"),
 			displayInline: true,
+			id: "type-section",
 			subactions: [
 				{
 					id: "expense",
-					title: ctx.t("log.type.expense"),
 					state: ctx.income ? "off" : "on",
+					title: ctx.t("log.type.expense"),
 				},
 				{
 					id: "income",
-					title: ctx.t("log.type.income"),
 					state: ctx.income ? "on" : "off",
+					title: ctx.t("log.type.income"),
 				},
 			],
+			title: ctx.t("log.filter.type"),
 		},
 	];
 }
@@ -312,7 +296,7 @@ function handleAction(
 		onCursor: (date: Date) => void;
 		onCategory: (id: string) => void;
 		onIncome: (income: boolean) => void;
-	},
+	}
 ) {
 	if (event.startsWith(CATEGORY_PREFIX)) {
 		ctx.onCategory(event.slice(CATEGORY_PREFIX.length));
@@ -331,7 +315,5 @@ function handleAction(
 		ctx.onCursor(new Date());
 		return;
 	}
-	ctx.onCursor(
-		stepCursor(unit, ctx.cursor, event === "later" ? 1 : -1, ctx.firstWeekday),
-	);
+	ctx.onCursor(stepCursor(unit, ctx.cursor, event === "later" ? 1 : -1, ctx.firstWeekday));
 }

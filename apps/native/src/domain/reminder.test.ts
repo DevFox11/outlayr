@@ -24,9 +24,7 @@ describe("reminder time", () => {
 	});
 
 	it("uses the stored time only on the custom option", () => {
-		expect(
-			reminderTime(REMINDER_CUSTOM, { hour: 13, minute: 45 }),
-		).toStrictEqual({
+		expect(reminderTime(REMINDER_CUSTOM, { hour: 13, minute: 45 })).toStrictEqual({
 			hour: 13,
 			minute: 45,
 		});
@@ -50,12 +48,10 @@ describe("reminder time", () => {
 	});
 
 	it("carries a clamped custom time through", () => {
-		expect(reminderTime(REMINDER_CUSTOM, clampTimeOfDay(99, 99))).toStrictEqual(
-			{
-				hour: 23,
-				minute: 59,
-			},
-		);
+		expect(reminderTime(REMINDER_CUSTOM, clampTimeOfDay(99, 99))).toStrictEqual({
+			hour: 23,
+			minute: 59,
+		});
 	});
 });
 

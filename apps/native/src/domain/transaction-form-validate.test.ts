@@ -1,8 +1,4 @@
-import {
-	isMissingCategory,
-	TRANSACTION_FORM_ERROR,
-	transactionFormErrors,
-} from "./transaction-form-validate";
+import { isMissingCategory, TRANSACTION_FORM_ERROR, transactionFormErrors } from "./transaction-form-validate";
 
 const CATEGORY = { id: "cat_1" };
 const PENDING = { name: "Coffee" };
@@ -14,7 +10,7 @@ describe("transactionFormErrors", () => {
 				amount: "1200",
 				category: CATEGORY,
 				pendingCategory: null,
-			}),
+			})
 		).toBeNull();
 	});
 
@@ -24,7 +20,7 @@ describe("transactionFormErrors", () => {
 				amount: "1200",
 				category: null,
 				pendingCategory: PENDING,
-			}),
+			})
 		).toBeNull();
 	});
 
@@ -34,7 +30,7 @@ describe("transactionFormErrors", () => {
 				amount: "",
 				category: CATEGORY,
 				pendingCategory: null,
-			}),
+			})
 		).toEqual({ fields: { amount: TRANSACTION_FORM_ERROR.amountRequired } });
 	});
 
@@ -44,7 +40,7 @@ describe("transactionFormErrors", () => {
 				amount: "0",
 				category: CATEGORY,
 				pendingCategory: null,
-			}),
+			})
 		).toEqual({ fields: { amount: TRANSACTION_FORM_ERROR.amountRequired } });
 	});
 
@@ -54,7 +50,7 @@ describe("transactionFormErrors", () => {
 				amount: "1200",
 				category: null,
 				pendingCategory: null,
-			}),
+			})
 		).toEqual({
 			fields: { category: TRANSACTION_FORM_ERROR.categoryRequired },
 		});
@@ -66,7 +62,7 @@ describe("transactionFormErrors", () => {
 				amount: "",
 				category: null,
 				pendingCategory: null,
-			}),
+			})
 		).toEqual({
 			fields: {
 				amount: TRANSACTION_FORM_ERROR.amountRequired,
@@ -78,14 +74,8 @@ describe("transactionFormErrors", () => {
 
 describe("isMissingCategory", () => {
 	it("is true only when the category is the failing rule", () => {
-		expect(isMissingCategory({ category: null, pendingCategory: null })).toBe(
-			true,
-		);
-		expect(
-			isMissingCategory({ category: CATEGORY, pendingCategory: null }),
-		).toBe(false);
-		expect(
-			isMissingCategory({ category: null, pendingCategory: PENDING }),
-		).toBe(false);
+		expect(isMissingCategory({ category: null, pendingCategory: null })).toBe(true);
+		expect(isMissingCategory({ category: CATEGORY, pendingCategory: null })).toBe(false);
+		expect(isMissingCategory({ category: null, pendingCategory: PENDING })).toBe(false);
 	});
 });

@@ -3,9 +3,7 @@ import { isRealLogo } from "@/domain/logo-acceptance";
 
 const REQUEST_TIMEOUT_MS = 3000;
 
-export type LogoOutcome =
-	| { kind: "logo"; bytes: Uint8Array }
-	| { kind: "none" };
+export type LogoOutcome = { kind: "logo"; bytes: Uint8Array } | { kind: "none" };
 
 const NONE: LogoOutcome = { kind: "none" };
 
@@ -27,21 +25,14 @@ export function faviconUrl(domain: string): string {
 	return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }
 
-async function fetchAccepted(
-	url: string,
-	fetchImpl: typeof fetch,
-): Promise<LogoOutcome> {
+async function fetchAccepted(url: string, fetchImpl: typeof fetch): Promise<LogoOutcome> {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 	try {
 		const response = await fetchImpl(url, { signal: controller.signal });
 		const bytes = new Uint8Array(await response.arrayBuffer());
-		const verdict = isRealLogo(
-			response.status,
-			response.headers.get("content-type"),
-			bytes,
-		);
-		return verdict.ok ? { kind: "logo", bytes } : NONE;
+		const verdict = isRealLogo(response.status, response.headers.get("content-type"), bytes);
+		return verdict.ok ? { bytes, kind: "logo" } : NONE;
 	} catch {
 		return NONE;
 	} finally {
@@ -50,10 +41,10 @@ async function fetchAccepted(
 }
 
 export interface MerchantImageRequest {
-	/** What the user typed; folded into the on-device cache key. */
-	name: string;
 	/** The resolved domain, used by the logo and favicon tiers. */
 	domain: string | null;
+	/** What the user typed; folded into the on-device cache key. */
+	name: string;
 }
 
 /**
@@ -63,7 +54,7 @@ export interface MerchantImageRequest {
  */
 export async function fetchMerchantImage(
 	request: MerchantImageRequest,
-	fetchImpl: typeof fetch = fetch,
+	fetchImpl: typeof fetch = fetch
 ): Promise<LogoOutcome> {
 	// Required lazily so importing this module does not pull expo-file-system
 	// into every consumer's graph, matching `domain/ids.ts`. A cache that will
@@ -79,7 +70,7 @@ export async function fetchMerchantImage(
 		kind: "unknown" as const,
 	};
 	if (cached.kind === "logo") {
-		return { kind: "logo", bytes: cached.bytes };
+		return { bytes: cached.bytes, kind: "logo" };
 	}
 	if (cached.kind === "miss") {
 		return NONE;
@@ -98,11 +89,8 @@ export async function fetchMerchantImage(
  * never to promote other goods or services, which is what a merchant logo
  * row on a transaction would be doing. Do not reintroduce it.
  */
-async function resolveMerchantImage(
-	request: MerchantImageRequest,
-	fetchImpl: typeof fetch,
-): Promise<LogoOutcome> {
-	const domain = request.domain;
+async function resolveMerchantImage(request: MerchantImageRequest, fetchImpl: typeof fetch): Promise<LogoOutcome> {
+	const { domain } = request;
 	if (domain == null || domain.length === 0) {
 		return NONE;
 	}

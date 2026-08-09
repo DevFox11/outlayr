@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { BudgetForm } from "@/screens/budgets/components/budget-form";
 
 export default function CreateBudgetScreen() {
@@ -14,9 +14,7 @@ export default function CreateBudgetScreen() {
 			<Stack.Screen.Title>{t("budgets.new.title")}</Stack.Screen.Title>
 			{/* A modal has no back button, so swipe-down would be the only way out. */}
 			<Stack.Toolbar placement="left">
-				<Stack.Toolbar.Button onPress={() => router.back()}>
-					{t("budgets.action.cancel")}
-				</Stack.Toolbar.Button>
+				<Stack.Toolbar.Button onPress={() => router.back()}>{t("budgets.action.cancel")}</Stack.Toolbar.Button>
 			</Stack.Toolbar>
 		</>
 	);

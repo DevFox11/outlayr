@@ -5,36 +5,36 @@ import { FileStep } from "./file-step";
 
 const mockChoose = jest.fn();
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
-		foreground: "#17150F",
 		background: "#F2F0EA",
+		danger: "#B5482F",
+		foreground: "#17150F",
 		income: "#2E7D32",
 		muted: "#8A8578",
 		subtle: "#B4AFA0",
-		danger: "#B5482F",
 	}),
 }));
 
 const RESOLVED_MAPPING: ResolvedMapping = {
+	labelSource: "descriptionColumn",
 	mapping: {
-		category: 1,
-		note: 1,
-		date: 0,
 		amount: 2,
+		category: 1,
 		currency: null,
+		date: 0,
+		note: 1,
 		type: null,
 	},
-	labelSource: "descriptionColumn",
 };
 
 interface JsonNode {
-	props?: Record<string, unknown>;
 	children?: (JsonNode | string)[] | null;
+	props?: Record<string, unknown>;
 }
 
 function classNames(node: JsonNode | JsonNode[] | null): string[] {
@@ -47,9 +47,7 @@ function classNames(node: JsonNode | JsonNode[] | null): string[] {
 	const own = node.props?.className;
 	return [
 		...(typeof own === "string" ? [own] : []),
-		...(node.children ?? []).flatMap((child) =>
-			typeof child === "string" ? [] : classNames(child),
-		),
+		...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
 	];
 }
 
@@ -57,31 +55,29 @@ function isPureFlexFill(className: string): boolean {
 	return className
 		.trim()
 		.split(/\s+/)
-		.every((token) =>
-			/^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token),
-		);
+		.every((token) => /^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token));
 }
 
 function loadFile(gaps: readonly string[], resolved: ResolvedMapping | null) {
-	importDraftStore.dispatch({ type: "sourceSelected", sourceId: "csv" });
+	importDraftStore.dispatch({ sourceId: "csv", type: "sourceSelected" });
 	importDraftStore.dispatch({
-		type: "fileParsed",
-		file: { name: "bank.csv", chars: 42 },
+		draft: {
+			amount: 2,
+			category: 1,
+			currency: null,
+			date: 0,
+			note: 1,
+			type: null,
+		},
+		file: { chars: 42, name: "bank.csv" },
+		gaps: gaps as never,
 		parsed: {
 			header: ["date", "description", "amount"],
 			rows: [["13/08/2026", "Coffee", "3,50"]],
 			width: 3,
 		},
-		draft: {
-			category: 1,
-			note: 1,
-			date: 0,
-			amount: 2,
-			currency: null,
-			type: null,
-		},
 		resolved,
-		gaps: gaps as never,
+		type: "fileParsed",
 	});
 }
 
@@ -101,9 +97,7 @@ describe("FileStep", () => {
 	});
 
 	it("previews the loaded shape as a ghost measure strip, not an illustration", async () => {
-		const { getAllByText, getByText, queryByTestId } = await render(
-			<FileStep onChoose={mockChoose} />,
-		);
+		const { getAllByText, getByText, queryByTestId } = await render(<FileStep onChoose={mockChoose} />);
 		expect(getByText("import.fileRowsLabel")).toBeTruthy();
 		expect(getByText("import.fileColumnsLabel")).toBeTruthy();
 		expect(getByText("import.fileDatesLabel")).toBeTruthy();
@@ -116,8 +110,7 @@ describe("FileStep", () => {
 		const { toJSON } = await render(<FileStep onChoose={mockChoose} />);
 		const washed = classNames(toJSON() as unknown as JsonNode).filter(
 			(className) =>
-				/\bbg-(background|surface|card|foreground\/\d+)\b/.test(className) ||
-				/\brounded-(xl|2xl)\b/.test(className),
+				/\bbg-(background|surface|card|foreground\/\d+)\b/.test(className) || /\brounded-(xl|2xl)\b/.test(className)
 		);
 		expect(washed).toStrictEqual([]);
 	});

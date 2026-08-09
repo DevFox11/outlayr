@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { AccountReorder } from "@/screens/accounts/reorder";
 
 export default function AccountReorderScreen() {

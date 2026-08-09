@@ -10,17 +10,17 @@ import { localRateLookup } from "./rates";
 export type Account = typeof accounts.$inferSelect;
 
 export interface AccountInput {
-	name: string;
 	currency: string;
+	customColor?: string | null;
+	emoji?: string | null;
+	icon?: string | null;
+	imageColor?: string | null;
+	imageKey?: string | null;
+	imageUri?: string | null;
 	initialBalance?: number;
 	/** Defaults to now — the account starts holding this balance today. */
 	initialBalanceDate?: Date;
-	icon?: string | null;
-	emoji?: string | null;
-	customColor?: string | null;
-	imageColor?: string | null;
-	imageUri?: string | null;
-	imageKey?: string | null;
+	name: string;
 }
 
 export function getAccountById(db: Database, id: string): Account | null {
@@ -43,10 +43,7 @@ export function getLastUsedAccount(db: Database): Account | null {
 	return id == null ? null : getAccountById(db, id);
 }
 
-export async function rememberLastUsedAccount(
-	db: Database,
-	id: string,
-): Promise<void> {
+export async function rememberLastUsedAccount(db: Database, id: string): Promise<void> {
 	await setMeta(db, META_KEYS.lastTransactionAccount, id);
 }
 
@@ -66,20 +63,15 @@ async function nextSortOrder(db: Database): Promise<number> {
  * contract `transactions.amountUsd` keeps. Signed, unlike an entry: an account
  * can open overdrawn, so the magnitude is canonicalized and the sign restored.
  */
-async function frozenUsd(
-	db: Database,
-	amount: number,
-	currency: string,
-	date: Date,
-): Promise<number | null> {
+async function frozenUsd(db: Database, amount: number, currency: string, date: Date): Promise<number | null> {
 	if (amount === 0) {
 		return 0;
 	}
 	const { amountUsd } = await canonicalUsd(localRateLookup(db), {
 		amount: Math.abs(amount),
 		currency,
-		displayCurrency: currency,
 		date,
+		displayCurrency: currency,
 	});
 	return amountUsd == null ? null : Math.sign(amount) * amountUsd;
 }
@@ -91,36 +83,57 @@ export const accountsRepo = {
 		const initialBalance = input.initialBalance ?? 0;
 		const initialBalanceDate = input.initialBalanceDate ?? now;
 		await db.insert(accounts).values({
-			id,
-			name: input.name,
 			currency: input.currency,
-			initialBalance,
-			initialBalanceUsd: await frozenUsd(
-				db,
-				initialBalance,
-				input.currency,
-				initialBalanceDate,
-			),
-			initialBalanceDate,
-			icon: input.icon ?? null,
-			emoji: input.emoji ?? null,
 			customColor: input.customColor ?? null,
-			imageColor: input.imageColor ?? null,
-			imageUri: input.imageUri ?? null,
-			imageKey: input.imageKey ?? null,
-			sortOrder: await nextSortOrder(db),
 			dateCreated: now,
-			updatedAt: now,
 			deletedAt: null,
+			emoji: input.emoji ?? null,
+			icon: input.icon ?? null,
+			id,
+			imageColor: input.imageColor ?? null,
+			imageKey: input.imageKey ?? null,
+			imageUri: input.imageUri ?? null,
+			initialBalance,
+			initialBalanceDate,
+			initialBalanceUsd: await frozenUsd(db, initialBalance, input.currency, initialBalanceDate),
+			name: input.name,
+			sortOrder: await nextSortOrder(db),
+			updatedAt: now,
 		});
 		return id;
 	},
 
-	async update(
-		db: Database,
-		id: string,
-		patch: Partial<AccountInput>,
-	): Promise<void> {
+	async listActive(db: Database): Promise<Account[]> {
+		return await db.select().from(accounts).where(isNull(accounts.deletedAt)).orderBy(accounts.sortOrder);
+	},
+
+	/** The caller supplies every live account already in the desired order. */
+	async reorder(db: Database, orderedIds: string[]): Promise<void> {
+		const now = new Date();
+		await withTransaction(db, async () => {
+			for (let index = 0; index < orderedIds.length; index += 1) {
+				// biome-ignore lint/performance/noAwaitInLoops: one expo-sqlite connection backs the surrounding withTransaction, so concurrent statements would interleave inside the same transaction
+				await db.update(accounts).set({ sortOrder: index, updatedAt: now }).where(eq(accounts.id, orderedIds[index]));
+			}
+		});
+	},
+
+	/**
+	 * `transactions.accountId` declares `onDelete: "set null"`, which never fires
+	 * for a tombstone — so the detach the delete copy promises has to happen here,
+	 * or every entry keeps pointing at a row only the `deletedAt` filters hide.
+	 */
+	async softDelete(db: Database, id: string, now: Date = new Date()): Promise<void> {
+		await withTransaction(db, async () => {
+			await db
+				.update(accounts)
+				.set({ deletedAt: now, updatedAt: now })
+				.where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
+			await db.update(transactions).set({ accountId: null, updatedAt: now }).where(eq(transactions.accountId, id));
+		});
+	},
+
+	async update(db: Database, id: string, patch: Partial<AccountInput>): Promise<void> {
 		const existing = getAccountById(db, id);
 		if (existing == null) {
 			throw new Error("Account not found.");
@@ -128,8 +141,7 @@ export const accountsRepo = {
 
 		const initialBalance = patch.initialBalance ?? existing.initialBalance;
 		const currency = patch.currency ?? existing.currency;
-		const initialBalanceDate =
-			patch.initialBalanceDate ?? existing.initialBalanceDate;
+		const initialBalanceDate = patch.initialBalanceDate ?? existing.initialBalanceDate;
 		const moneyMoved =
 			initialBalance !== existing.initialBalance ||
 			currency !== existing.currency ||
@@ -138,18 +150,15 @@ export const accountsRepo = {
 		// The twin of `removesPhoto` in transactions-core.ts: an account whose bytes
 		// this device has not fetched also has a null path, so only a removal read
 		// against the PREVIOUS path may clear the key.
-		const removesLogo =
-			existing.imageUri != null &&
-			"imageUri" in patch &&
-			patch.imageUri == null;
+		const removesLogo = existing.imageUri != null && "imageUri" in patch && patch.imageUri == null;
 
 		await db
 			.update(accounts)
 			.set({
 				...patch,
 				...(removesLogo ? { imageKey: null } : {}),
-				initialBalance,
 				currency,
+				initialBalance,
 				initialBalanceDate,
 				initialBalanceUsd: moneyMoved
 					? await frozenUsd(db, initialBalance, currency, initialBalanceDate)
@@ -157,48 +166,5 @@ export const accountsRepo = {
 				updatedAt: new Date(),
 			})
 			.where(eq(accounts.id, id));
-	},
-
-	/**
-	 * `transactions.accountId` declares `onDelete: "set null"`, which never fires
-	 * for a tombstone — so the detach the delete copy promises has to happen here,
-	 * or every entry keeps pointing at a row only the `deletedAt` filters hide.
-	 */
-	async softDelete(
-		db: Database,
-		id: string,
-		now: Date = new Date(),
-	): Promise<void> {
-		await withTransaction(db, async () => {
-			await db
-				.update(accounts)
-				.set({ deletedAt: now, updatedAt: now })
-				.where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
-			await db
-				.update(transactions)
-				.set({ accountId: null, updatedAt: now })
-				.where(eq(transactions.accountId, id));
-		});
-	},
-
-	/** The caller supplies every live account already in the desired order. */
-	async reorder(db: Database, orderedIds: string[]): Promise<void> {
-		const now = new Date();
-		await withTransaction(db, async () => {
-			for (let index = 0; index < orderedIds.length; index++) {
-				await db
-					.update(accounts)
-					.set({ sortOrder: index, updatedAt: now })
-					.where(eq(accounts.id, orderedIds[index]));
-			}
-		});
-	},
-
-	async listActive(db: Database): Promise<Account[]> {
-		return await db
-			.select()
-			.from(accounts)
-			.where(isNull(accounts.deletedAt))
-			.orderBy(accounts.sortOrder);
 	},
 };

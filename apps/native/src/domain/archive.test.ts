@@ -12,26 +12,26 @@ import {
 
 function emptyDocument(): ArchiveDocument {
 	return {
-		format: ARCHIVE_FORMAT,
-		version: ARCHIVE_VERSION,
 		exportedAt: 1_700_000_000_000,
+		format: ARCHIVE_FORMAT,
 		tables: {
-			categories: [],
 			accounts: [],
-			transactions: [],
+			appMeta: [],
 			budgets: [],
+			categories: [],
 			mainBudget: [],
 			templateTransactions: [],
-			appMeta: [],
+			transactions: [],
 		},
+		version: ARCHIVE_VERSION,
 	};
 }
 
 describe("encoding a row", () => {
 	it("writes an instant as epoch milliseconds", () => {
 		const encoded = encodeArchiveRow("transactions", {
-			id: "t1",
 			date: new Date(1_700_000_000_000),
+			id: "t1",
 		});
 		expect(encoded.date).toBe(1_700_000_000_000);
 	});
@@ -45,19 +45,13 @@ describe("encoding a row", () => {
 
 	it("round-trips an instant back to the same moment", () => {
 		const original = new Date(1_700_000_000_123);
-		const decoded = decodeArchiveRow(
-			"transactions",
-			encodeArchiveRow("transactions", { day: original }),
-		);
+		const decoded = decodeArchiveRow("transactions", encodeArchiveRow("transactions", { day: original }));
 		expect(decoded.day instanceof Date).toBeTruthy();
 		expect((decoded.day as Date).getTime()).toBe(original.getTime());
 	});
 
 	it("round-trips a null instant as null, not as the epoch", () => {
-		const decoded = decodeArchiveRow(
-			"transactions",
-			encodeArchiveRow("transactions", { deletedAt: null }),
-		);
+		const decoded = decodeArchiveRow("transactions", encodeArchiveRow("transactions", { deletedAt: null }));
 		expect(decoded.deletedAt).toBe(null);
 	});
 
@@ -110,7 +104,7 @@ describe("reading a file back", () => {
 	it("reads a table the file omits as empty rather than refusing it", () => {
 		// An archive written before a table existed still holds intact data.
 		const partial = emptyDocument() as unknown as Record<string, unknown>;
-		delete (partial.tables as Record<string, unknown>).templateTransactions;
+		(partial.tables as Record<string, unknown>).templateTransactions = undefined;
 		const parsed = parseArchive(JSON.stringify(partial));
 		expect(parsed?.tables.templateTransactions).toStrictEqual([]);
 	});
@@ -125,8 +119,6 @@ describe("describing a file", () => {
 	});
 
 	it("names the file by the day it was written", () => {
-		expect(archiveFileName(new Date(Date.UTC(2026, 6, 30, 15, 0)))).toBe(
-			"outlayr-archive-2026-07-30.json",
-		);
+		expect(archiveFileName(new Date(Date.UTC(2026, 6, 30, 15, 0)))).toBe("outlayr-archive-2026-07-30.json");
 	});
 });

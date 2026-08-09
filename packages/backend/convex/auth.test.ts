@@ -29,8 +29,8 @@ describe("auth base url", () => {
 	// OAuth redirects against localhost.
 	test("falls back to the deployment site url when SITE_URL is unset", async () => {
 		const baseURL = await baseUrlWith({
-			SITE_URL: "",
 			CONVEX_SITE_URL: "https://example-deployment.convex.site",
+			SITE_URL: "",
 		});
 
 		expect(baseURL).toBe("https://example-deployment.convex.site");
@@ -38,8 +38,8 @@ describe("auth base url", () => {
 
 	test("prefers an explicit SITE_URL over the deployment site url", async () => {
 		const baseURL = await baseUrlWith({
-			SITE_URL: "https://app.tryoutlayr.com",
 			CONVEX_SITE_URL: "https://example-deployment.convex.site",
+			SITE_URL: "https://app.tryoutlayr.com",
 		});
 
 		expect(baseURL).toBe("https://app.tryoutlayr.com");
@@ -56,9 +56,7 @@ describe("auth", () => {
 	test("builds without any social provider credentials", async () => {
 		const t = convexTest(schema, modules);
 
-		const handlerType = await t.run(
-			async (ctx) => typeof createAuth(ctx).handler,
-		);
+		const handlerType = await t.run(async (ctx) => typeof createAuth(ctx).handler);
 
 		expect(handlerType).toBe("function");
 	});
@@ -73,10 +71,7 @@ describe("auth", () => {
 		const t = convexTest(schema, modules);
 		const identity = await seedAuthUser(t, { email: "signed-in@example.com" });
 
-		const user = await authenticatedAs(t, identity).query(
-			api.auth.getCurrentUser,
-			{},
-		);
+		const user = await authenticatedAs(t, identity).query(api.auth.getCurrentUser, {});
 
 		expect(user).toMatchObject({
 			_id: identity.userId,

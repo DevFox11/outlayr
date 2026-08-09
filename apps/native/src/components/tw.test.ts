@@ -14,14 +14,7 @@ const SIZES = [
 	"text-hero",
 ] as const;
 
-const TONES = [
-	"text-foreground",
-	"text-muted",
-	"text-danger",
-	"text-income",
-	"text-future",
-	"text-tint",
-] as const;
+const TONES = ["text-foreground", "text-muted", "text-danger", "text-income", "text-future", "text-tint"] as const;
 
 /**
  * The reason this file exists. `tailwind-merge` does not know this app's

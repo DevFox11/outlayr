@@ -6,20 +6,10 @@
  */
 const MAX_INTEGER_DIGITS = 13;
 
-export type NumpadKey =
-	| "0"
-	| "1"
-	| "2"
-	| "3"
-	| "4"
-	| "5"
-	| "6"
-	| "7"
-	| "8"
-	| "9"
-	| "."
-	| "back"
-	| "clear";
+const LEADING_ZEROS = /^0+/;
+const ZERO_FRACTION = /\.0+$/;
+
+export type NumpadKey = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "." | "back" | "clear";
 
 /** The keys a keypad draws. `clear` arrives from a long press, not from a tile. */
 export type NumpadTileKey = Exclude<NumpadKey, "clear">;
@@ -48,7 +38,7 @@ function toMinorDigits(current: string, minorUnits: number): string {
 
 /** Inverse of `toMinorDigits`. The empty string for digits that read as zero. */
 function fromMinorDigits(digits: string, minorUnits: number): string {
-	const trimmed = digits.replace(/^0+/, "");
+	const trimmed = digits.replace(LEADING_ZEROS, "");
 	if (trimmed === "") {
 		return "";
 	}
@@ -62,11 +52,7 @@ function fromMinorDigits(digits: string, minorUnits: number): string {
 	return `${padded.slice(0, cut)}.${padded.slice(cut)}`;
 }
 
-function applyPreDottedKey(
-	current: string,
-	key: Exclude<NumpadTileKey, ".">,
-	minorUnits: number,
-): string {
+function applyPreDottedKey(current: string, key: Exclude<NumpadTileKey, ".">, minorUnits: number): string {
 	const digits = toMinorDigits(current, minorUnits);
 	const next = key === "back" ? digits.slice(0, -1) : `${digits}${key}`;
 	const entry = fromMinorDigits(next, minorUnits);
@@ -75,12 +61,7 @@ function applyPreDottedKey(
 }
 
 /** The empty string represents an unset amount. */
-export function applyNumpadKey(
-	current: string,
-	key: NumpadKey,
-	minorUnits: number,
-	mode: NumpadMode,
-): string {
+export function applyNumpadKey(current: string, key: NumpadKey, minorUnits: number, mode: NumpadMode): string {
 	if (key === "clear") {
 		return "";
 	}
@@ -126,5 +107,5 @@ export function numberToNumpad(amount: number, minorUnits: number): string {
 	}
 	const fixed = amount.toFixed(minorUnits);
 	// Drop a pure ".00" tail so the entry reads like a fresh integer.
-	return fixed.replace(/\.0+$/, "");
+	return fixed.replace(ZERO_FRACTION, "");
 }

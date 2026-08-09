@@ -1,8 +1,8 @@
 export const MARK_MOTION = {
-	arrive: { delay: 350, duration: 1150, distance: 46 },
-	settle: { delay: 500, duration: 750, scale: 1.08 },
+	arrive: { delay: 350, distance: 46, duration: 1150 },
 	fade: { duration: 500 },
 	recede: { duration: 850, stagger: 60 },
+	settle: { delay: 500, duration: 750, scale: 1.08 },
 	stagger: 90,
 } as const;
 

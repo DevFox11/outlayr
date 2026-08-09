@@ -10,8 +10,7 @@ export interface TransactionFormCategoryValues {
 	readonly pendingCategory: unknown;
 }
 
-export interface TransactionFormValidationValues
-	extends TransactionFormCategoryValues {
+export interface TransactionFormValidationValues extends TransactionFormCategoryValues {
 	readonly amount: string;
 }
 
@@ -20,14 +19,12 @@ export interface TransactionFormFieldErrors {
 	category?: string;
 }
 
-export function isMissingCategory(
-	value: TransactionFormCategoryValues,
-): boolean {
+export function isMissingCategory(value: TransactionFormCategoryValues): boolean {
 	return value.category == null && value.pendingCategory == null;
 }
 
 export function transactionFormErrors(
-	value: TransactionFormValidationValues,
+	value: TransactionFormValidationValues
 ): { fields: TransactionFormFieldErrors } | null {
 	const fields: TransactionFormFieldErrors = {};
 	if (numpadToNumber(value.amount) <= 0) {
@@ -36,7 +33,5 @@ export function transactionFormErrors(
 	if (isMissingCategory(value)) {
 		fields.category = TRANSACTION_FORM_ERROR.categoryRequired;
 	}
-	return fields.amount === undefined && fields.category === undefined
-		? null
-		: { fields };
+	return fields.amount === undefined && fields.category === undefined ? null : { fields };
 }

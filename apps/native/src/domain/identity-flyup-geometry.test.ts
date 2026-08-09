@@ -9,9 +9,9 @@ describe("floatTargetY", () => {
 		expect(
 			floatTargetY({
 				containerHeight: 874,
-				sheetHeight: 426,
 				heroHalf: HERO_HALF,
-			}),
+				sheetHeight: 426,
+			})
 		).toBe(224);
 	});
 
@@ -20,9 +20,9 @@ describe("floatTargetY", () => {
 		expect(
 			floatTargetY({
 				containerHeight: 667,
-				sheetHeight: 333,
 				heroHalf: HERO_HALF,
-			}),
+				sheetHeight: 333,
+			})
 		).toBe(167);
 	});
 
@@ -32,9 +32,9 @@ describe("floatTargetY", () => {
 		expect(
 			floatTargetY({
 				containerHeight: 874,
-				sheetHeight: 800,
 				heroHalf: HERO_HALF,
-			}),
+				sheetHeight: 800,
+			})
 		).toBe(98);
 	});
 
@@ -44,9 +44,9 @@ describe("floatTargetY", () => {
 		expect(
 			floatTargetY({
 				containerHeight: 596,
-				sheetHeight: 400,
 				heroHalf: HERO_HALF,
-			}),
+				sheetHeight: 400,
+			})
 		).toBe(98);
 	});
 });

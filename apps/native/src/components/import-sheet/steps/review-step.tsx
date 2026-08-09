@@ -6,11 +6,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-	DayTotal,
-	MeasureCellAmount,
-	RowAmount,
-} from "@/components/amount-text";
+import { DayTotal, MeasureCellAmount, RowAmount } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
@@ -19,21 +15,19 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ImportEntry, SkipReason } from "@/data/transfer-core";
 import { formatDayHeader } from "@/domain/dates";
 import { FALLBACK_IDENTITY_COLOR } from "@/domain/transaction-identity";
-import type {
-	ImportReviewResult,
-	ReviewCategoryTile,
-} from "@/hooks/use-import-review";
+import type { ImportReviewResult, ReviewCategoryTile } from "@/hooks/use-import-review";
 import { useReviewEnrichment } from "@/hooks/use-review-enrichment";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { LARGE_SHEET_TOP_INSET } from "@/lib/sheet-detents";
 import { useColors } from "@/theme/use-colors";
 import { MeasureStrip } from "../measure-strip";
 import { StepCta } from "../step-cta";
 
 const SKIP_REASON_KEY: Record<SkipReason, TranslationKey> = {
+	amount: "import.skipReasonAmount",
 	category: "import.skipReasonCategory",
 	date: "import.skipReasonDate",
-	amount: "import.skipReasonAmount",
 };
 
 /** The Log row's tile: a 20pt glyph in 8pt of padding. */
@@ -45,16 +39,16 @@ const LIST_CHROME_HEIGHT = 224;
 const COMMIT_FAILED_NOTICE_HEIGHT = 96;
 
 interface ReviewEntryListRow {
-	key: string;
-	index: number;
-	entry: ImportEntry;
 	duplicate: boolean;
+	entry: ImportEntry;
+	index: number;
+	key: string;
 }
 
 interface ReviewDaySection {
-	key: string;
-	day: Date;
 	data: ReviewEntryListRow[];
+	day: Date;
+	key: string;
 }
 
 function dayKeyOf(date: Date): string {
@@ -62,19 +56,19 @@ function dayKeyOf(date: Date): string {
 }
 
 interface EntryRowProps {
-	index: number;
-	entry: ImportEntry;
-	duplicate: boolean;
-	checked: boolean;
 	categoryName: string | undefined;
-	tile: ReviewCategoryTile | undefined;
-	displayName: string;
-	logoUri: string | null;
+	checked: boolean;
 	currency: string;
+	displayName: string;
+	duplicate: boolean;
+	entry: ImportEntry;
+	index: number;
+	logoUri: string | null;
 	onToggle: (index: number) => void;
+	tile: ReviewCategoryTile | undefined;
 }
 
-export const EntryRow = memo(function EntryRow({
+export const EntryRow = memo(function EntryRowInner({
 	index,
 	entry,
 	duplicate,
@@ -90,15 +84,26 @@ export const EntryRow = memo(function EntryRow({
 	const colors = useColors();
 	const { showCents } = useDisplaySettings().state;
 	const onPress = useCallback(() => onToggle(index), [onToggle, index]);
+	const tileColor = tile === undefined ? FALLBACK_IDENTITY_COLOR : tile.color;
+	const categoryCaption =
+		categoryName == null ? null : (
+			<Text className="font-sans-medium text-muted text-subtitle" numberOfLines={1}>
+				{categoryName}
+			</Text>
+		);
+	const caption = duplicate ? (
+		<Text className="text-danger text-footnote" numberOfLines={1}>
+			{t("import.reviewDuplicateCaption")}
+		</Text>
+	) : (
+		categoryCaption
+	);
 
 	return (
 		<Pressable
 			accessibilityRole="checkbox"
 			accessibilityState={{ checked }}
-			className={cn(
-				"flex-row items-center gap-3 py-2 active:opacity-70",
-				!checked && "opacity-40",
-			)}
+			className={cn("flex-row items-center gap-3 py-2 active:opacity-70", !checked && "opacity-40")}
 			onPress={onPress}
 			testID={`review-row-${index}`}
 		>
@@ -111,7 +116,7 @@ export const EntryRow = memo(function EntryRow({
 				/>
 			</View>
 			<CategoryIconTile
-				color={tile?.color ?? FALLBACK_IDENTITY_COLOR}
+				color={tileColor}
 				emoji={tile?.emoji}
 				icon={tile?.icon}
 				imageUri={logoUri}
@@ -121,26 +126,12 @@ export const EntryRow = memo(function EntryRow({
 			/>
 			<View className="flex-1 gap-0.5">
 				<Text
-					className={cn(
-						"font-sans-medium text-callout text-foreground",
-						!checked && "line-through",
-					)}
+					className={cn("font-sans-medium text-callout text-foreground", !checked && "line-through")}
 					numberOfLines={1}
 				>
 					{displayName}
 				</Text>
-				{duplicate ? (
-					<Text className="text-danger text-footnote" numberOfLines={1}>
-						{t("import.reviewDuplicateCaption")}
-					</Text>
-				) : categoryName == null ? null : (
-					<Text
-						className="font-sans-medium text-muted text-subtitle"
-						numberOfLines={1}
-					>
-						{categoryName}
-					</Text>
-				)}
+				{caption}
 			</View>
 			<View className="items-end gap-0.5">
 				<RowAmount
@@ -162,7 +153,7 @@ export const EntryRow = memo(function EntryRow({
 	);
 });
 
-const DayHeader = memo(function DayHeader({
+const DayHeader = memo(function DayHeaderInner({
 	day,
 	total,
 	currency,
@@ -178,15 +169,10 @@ const DayHeader = memo(function DayHeader({
 		<View className={first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7"}>
 			<View className="flex-row items-baseline justify-between gap-2">
 				<MonoLabel>{formatDayHeader(day)}</MonoLabel>
-				<DayTotal
-					showCents={showCents}
-					totals={[
-						{ currencyCode: currency, amount: total, transactionCount: 0 },
-					]}
-				/>
+				<DayTotal showCents={showCents} totals={[{ amount: total, currencyCode: currency, transactionCount: 0 }]} />
 			</View>
 			{/* A 1.3 stroke with round caps, matching the Log's day rule. */}
-			<View className="bg-border" style={{ height: 1.3, borderRadius: 0.65 }} />
+			<View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
 		</View>
 	);
 });
@@ -206,32 +192,24 @@ export function ReviewStep({ review }: ReviewStepProps) {
 		setShowSkipped((current) => !current);
 	}, []);
 
-	const entryRows = useMemo(
-		() => review.rows.filter((row) => row.kind === "entry"),
-		[review.rows],
-	);
-	const skippedRows = useMemo(
-		() => review.rows.filter((row) => row.kind === "skipped"),
-		[review.rows],
-	);
+	const entryRows = useMemo(() => review.rows.filter((row) => row.kind === "entry"), [review.rows]);
+	const skippedRows = useMemo(() => review.rows.filter((row) => row.kind === "skipped"), [review.rows]);
 
 	const sections = useMemo<ReviewDaySection[]>(() => {
-		const sorted = [...entryRows].sort(
-			(a, b) => b.entry.date.getTime() - a.entry.date.getTime(),
-		);
+		const sorted = [...entryRows].sort((a, b) => b.entry.date.getTime() - a.entry.date.getTime());
 		const byDay = new Map<string, ReviewDaySection>();
 		for (const row of sorted) {
 			const key = dayKeyOf(row.entry.date);
 			let section = byDay.get(key);
 			if (section == null) {
-				section = { key: `day-${key}`, day: row.entry.date, data: [] };
+				section = { data: [], day: row.entry.date, key: `day-${key}` };
 				byDay.set(key, section);
 			}
 			section.data.push({
-				key: row.key,
-				index: row.index,
-				entry: row.entry,
 				duplicate: row.duplicate,
+				entry: row.entry,
+				index: row.index,
+				key: row.key,
 			});
 		}
 		return [...byDay.values()];
@@ -251,7 +229,7 @@ export function ReviewStep({ review }: ReviewStepProps) {
 			const signed = row.entry.income ? row.entry.amount : -row.entry.amount;
 			totals.set(key, (totals.get(key) ?? 0) + signed);
 		}
-		return { outMagnitude: out, dayTotals: totals };
+		return { dayTotals: totals, outMagnitude: out };
 	}, [entryRows, review.excluded]);
 
 	const renderItem = useCallback(
@@ -269,14 +247,7 @@ export function ReviewStep({ review }: ReviewStepProps) {
 				tile={review.categoryTile.get(item.entry.categoryId)}
 			/>
 		),
-		[
-			review.currency,
-			review.categoryName,
-			review.categoryTile,
-			review.excluded,
-			review.onToggle,
-			enrichment,
-		],
+		[review.currency, review.categoryName, review.categoryTile, review.excluded, review.onToggle, enrichment]
 	);
 
 	const renderSectionHeader = useCallback(
@@ -288,7 +259,7 @@ export function ReviewStep({ review }: ReviewStepProps) {
 				total={dayTotals.get(dayKeyOf(section.day)) ?? 0}
 			/>
 		),
-		[review.currency, sections, dayTotals],
+		[review.currency, sections, dayTotals]
 	);
 
 	const skippedFooter =
@@ -301,20 +272,12 @@ export function ReviewStep({ review }: ReviewStepProps) {
 					testID="review-skipped-toggle"
 				>
 					<Text className="text-footnote text-muted">
-						{t(
-							showSkipped
-								? "import.reviewSkippedHide"
-								: "import.reviewSkippedShow",
-							{ count: skippedRows.length },
-						)}
+						{t(showSkipped ? "import.reviewSkippedHide" : "import.reviewSkippedShow", { count: skippedRows.length })}
 					</Text>
 				</Pressable>
 				{showSkipped
 					? skippedRows.map((row) => (
-							<View
-								className="flex-row items-center justify-between gap-3 border-border border-b py-2"
-								key={row.key}
-							>
+							<View className="flex-row items-center justify-between gap-3 border-border border-b py-2" key={row.key}>
 								<MonoLabel>{String(row.row)}</MonoLabel>
 								<Text className="text-footnote text-muted" numberOfLines={1}>
 									{t(SKIP_REASON_KEY[row.reason])}
@@ -328,9 +291,7 @@ export function ReviewStep({ review }: ReviewStepProps) {
 	if (review.rows.length === 0) {
 		return (
 			<View className="items-center pt-10">
-				<Text className="text-muted text-subtitle">
-					{t("import.reviewEmptyTitle")}
-				</Text>
+				<Text className="text-muted text-subtitle">{t("import.reviewEmptyTitle")}</Text>
 			</View>
 		);
 	}
@@ -351,20 +312,11 @@ export function ReviewStep({ review }: ReviewStepProps) {
 	return (
 		<View className="flex-1 gap-3">
 			{failed ? (
-				<View
-					className="mx-5 gap-1 border-border border-y py-3"
-					testID="review-commit-failed"
-				>
-					<Text className="font-sans-medium text-body text-danger">
-						{t("import.reviewCommitFailedTitle")}
-					</Text>
-					<Text className="text-footnote text-muted">
-						{t("import.reviewCommitFailedBody")}
-					</Text>
+				<View className="mx-5 gap-1 border-border border-y py-3" testID="review-commit-failed">
+					<Text className="font-sans-medium text-body text-danger">{t("import.reviewCommitFailedTitle")}</Text>
+					<Text className="text-footnote text-muted">{t("import.reviewCommitFailedBody")}</Text>
 					{review.commit.phase === "failed" && review.commit.detail != null ? (
-						<Text className="text-subtitle text-subtle">
-							{review.commit.detail}
-						</Text>
+						<Text className="text-subtitle text-subtle">{review.commit.detail}</Text>
 					) : null}
 				</View>
 			) : null}
@@ -398,9 +350,9 @@ export function ReviewStep({ review }: ReviewStepProps) {
 
 			<View style={{ maxHeight: listMaxHeight }} testID="review-list">
 				<SectionList
-					contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+					contentContainerStyle={{ paddingBottom: 16, paddingHorizontal: 20 }}
 					estimatedItemSize={ESTIMATED_ROW_HEIGHT}
-					extraData={{ excluded: review.excluded, enrichment, showSkipped }}
+					extraData={{ enrichment, excluded: review.excluded, showSkipped }}
 					keyExtractor={keyOf}
 					ListFooterComponent={skippedFooter}
 					// Rows hold a toggle state; a recycled container would flash the
@@ -424,11 +376,7 @@ export function ReviewStep({ review }: ReviewStepProps) {
 								})
 					}
 					disabled={review.selectedCount === 0 || writing}
-					label={
-						failed
-							? t("import.tryAgain")
-							: t("import.reviewCommitCta", { count: review.selectedCount })
-					}
+					label={failed ? t("import.tryAgain") : t("import.reviewCommitCta", { count: review.selectedCount })}
 					onPress={review.onCommit}
 					testID="review-commit-cta"
 				/>

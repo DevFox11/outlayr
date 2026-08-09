@@ -2,19 +2,19 @@ import { Stack, type StackHeaderItemSharedProps } from "expo-router";
 import { type ToolbarIconName, toolbarIcon } from "@/components/toolbar-icons";
 
 export interface TransactionFormCtaProps {
-	saveLabel: string;
 	canSave: boolean;
-	onPress: () => void;
 	deleteLabel?: string;
 	deleteTint?: string;
 	onDelete?: () => void;
+	onPress: () => void;
+	saveLabel: string;
 }
 
 export interface TransactionFormCtaAction {
-	key: "delete" | "save";
-	icon: ToolbarIconName;
 	accessibilityLabel: string;
 	disabled: boolean;
+	icon: ToolbarIconName;
+	key: "delete" | "save";
 	onPress: () => void;
 	separateBackground?: boolean;
 	tintColor?: string;
@@ -33,20 +33,20 @@ export function transactionFormCtaActions({
 	// Destructive first, so the outermost item under the thumb is Save.
 	if (onDelete) {
 		actions.push({
-			key: "delete",
-			icon: "delete",
 			accessibilityLabel: deleteLabel ?? "",
 			disabled: false,
-			tintColor: deleteTint,
+			icon: "delete",
+			key: "delete",
 			onPress: onDelete,
+			tintColor: deleteTint,
 		});
 	}
 
 	actions.push({
-		key: "save",
-		icon: "done",
 		accessibilityLabel: saveLabel,
 		disabled: !canSave,
+		icon: "done",
+		key: "save",
 		onPress,
 		variant: "done",
 	});
@@ -63,9 +63,9 @@ export function TransactionFormCta(props: TransactionFormCtaProps) {
 					disabled={action.disabled}
 					key={action.key}
 					onPress={action.onPress}
+					separateBackground={action.separateBackground}
 					tintColor={action.tintColor}
 					variant={action.variant}
-					separateBackground={action.separateBackground}
 				/>
 			))}
 		</Stack.Toolbar>

@@ -18,48 +18,48 @@ describe("resolving the six required named merchants", () => {
 	it("resolves duolingo", () => {
 		expect(resolveMerchant("Duolingo")).toStrictEqual({
 			categoryName: "Education",
-			tags: ["Learning", "Subscription"],
 			domain: "duolingo.com",
+			tags: ["Learning", "Subscription"],
 		});
 	});
 
 	it("resolves netflix", () => {
 		expect(resolveMerchant("Netflix")).toStrictEqual({
 			categoryName: "Entertainment",
-			tags: ["Streaming", "Subscription"],
 			domain: "netflix.com",
+			tags: ["Streaming", "Subscription"],
 		});
 	});
 
 	it("resolves apple", () => {
 		expect(resolveMerchant("Apple")).toStrictEqual({
 			categoryName: "Shopping",
-			tags: ["Apple"],
 			domain: "apple.com",
+			tags: ["Apple"],
 		});
 	});
 
 	it("resolves apple music", () => {
 		expect(resolveMerchant("Apple Music")).toStrictEqual({
 			categoryName: "Entertainment",
-			tags: ["Music", "Streaming", "Subscription"],
 			domain: "music.apple.com",
+			tags: ["Music", "Streaming", "Subscription"],
 		});
 	});
 
 	it("resolves youtube", () => {
 		expect(resolveMerchant("YouTube")).toStrictEqual({
 			categoryName: "Entertainment",
-			tags: ["Streaming", "Subscription"],
 			domain: "youtube.com",
+			tags: ["Streaming", "Subscription"],
 		});
 	});
 
 	it("resolves youtube music", () => {
 		expect(resolveMerchant("YouTube Music")).toStrictEqual({
 			categoryName: "Entertainment",
-			tags: ["Music", "Streaming", "Subscription"],
 			domain: "music.youtube.com",
+			tags: ["Music", "Streaming", "Subscription"],
 		});
 	});
 });

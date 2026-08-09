@@ -3,44 +3,41 @@ import { act, render } from "@testing-library/react-native";
 import { createRef } from "react";
 import { TagPickerSheet } from "./tag-picker-sheet";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
+		accent: "#3D7A5C",
+		accentForeground: "#FFFFFF",
 		background: "#F2F0EA",
+		border: "#DAD6C9",
+		danger: "#B5482F",
+		expense: "#B5482F",
 		foreground: "#17150F",
+		future: "#8A8578",
+		groupedBackground: "#EFEDE6",
+		income: "#3D7A5C",
 		muted: "#8A8578",
+		overBudget: "#B5482F",
+		railTrack: "rgba(0,0,0,0.08)",
+		separator: "#DAD6C9",
 		subtle: "#B4AFA0",
 		surface: "#FFFFFF",
 		surfaceSecondary: "#F7F5EF",
-		groupedBackground: "#EFEDE6",
-		border: "#DAD6C9",
-		separator: "#DAD6C9",
-		accent: "#3D7A5C",
-		accentForeground: "#FFFFFF",
 		tint: "#3D7A5C",
-		income: "#3D7A5C",
-		expense: "#B5482F",
-		future: "#8A8578",
-		danger: "#B5482F",
-		overBudget: "#B5482F",
 		warning: "#C08A2E",
-		railTrack: "rgba(0,0,0,0.08)",
 	}),
 }));
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function containsText(
-	node: JsonNode | JsonNode[] | null,
-	text: string,
-): boolean {
+function containsText(node: JsonNode | JsonNode[] | null, text: string): boolean {
 	if (node == null) {
 		return false;
 	}
@@ -64,15 +61,7 @@ function containsText(
 describe("TagPickerSheet", () => {
 	it("lands ref on the BottomSheetModal", async () => {
 		const ref = createRef<BottomSheetModal>();
-		await render(
-			<TagPickerSheet
-				onCreate={async () => null}
-				onToggle={() => {}}
-				ref={ref}
-				selected={[]}
-				tags={[]}
-			/>,
-		);
+		await render(<TagPickerSheet onCreate={async () => null} onToggle={() => {}} ref={ref} selected={[]} tags={[]} />);
 		expect(ref.current).toBeTruthy();
 	});
 
@@ -86,19 +75,15 @@ describe("TagPickerSheet", () => {
 				ref={ref}
 				selected={[]}
 				tags={[]}
-			/>,
+			/>
 		);
 		await act(async () => {
 			ref.current?.present();
 		});
 
 		const tree = toJSON() as JsonNode;
-		expect(
-			containsText(tree, 'transaction.tags.create:{"name":"Streaming"}'),
-		).toBe(true);
-		expect(
-			containsText(tree, 'transaction.tags.create:{"name":"Subscription"}'),
-		).toBe(true);
+		expect(containsText(tree, 'transaction.tags.create:{"name":"Streaming"}')).toBe(true);
+		expect(containsText(tree, 'transaction.tags.create:{"name":"Subscription"}')).toBe(true);
 	});
 
 	it("does not offer a pending affordance for a name that already answers to a real tag", async () => {
@@ -110,17 +95,15 @@ describe("TagPickerSheet", () => {
 				pendingTagNames={["Streaming"]}
 				ref={ref}
 				selected={[]}
-				tags={[{ id: "t1", name: "Streaming", color: null, sortOrder: 0 }]}
-			/>,
+				tags={[{ color: null, id: "t1", name: "Streaming", sortOrder: 0 }]}
+			/>
 		);
 		await act(async () => {
 			ref.current?.present();
 		});
 
 		const tree = toJSON() as JsonNode;
-		expect(
-			containsText(tree, 'transaction.tags.create:{"name":"Streaming"}'),
-		).toBe(false);
+		expect(containsText(tree, 'transaction.tags.create:{"name":"Streaming"}')).toBe(false);
 		expect(containsText(tree, "Streaming")).toBe(true);
 	});
 });

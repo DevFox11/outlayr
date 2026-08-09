@@ -1,16 +1,10 @@
-import {
-	capitalizeCategoryName,
-	SUGGESTED_CATEGORY_PRESETS,
-} from "@/data/categories-core";
+import { capitalizeCategoryName, SUGGESTED_CATEGORY_PRESETS } from "@/data/categories-core";
 import { MERCHANT_INDEX, MERCHANTS } from "./merchant-map";
 import { merchantKey, resolveMerchant } from "./merchant-resolver";
 import { normalizeTagName, TAG_NAME_LIMIT } from "./tags";
 
 const VALID_CATEGORY_NAMES = new Set(
-	[
-		...SUGGESTED_CATEGORY_PRESETS.expense,
-		...SUGGESTED_CATEGORY_PRESETS.income,
-	].map((preset) => preset.name),
+	[...SUGGESTED_CATEGORY_PRESETS.expense, ...SUGGESTED_CATEGORY_PRESETS.income].map((preset) => preset.name)
 );
 
 describe("seeding the curated merchant map", () => {
@@ -30,17 +24,13 @@ describe("seeding the curated merchant map", () => {
 
 	it("stores every categoryName already capitalized and drawn from a suggested preset", () => {
 		for (const entry of MERCHANTS) {
-			expect(capitalizeCategoryName(entry.categoryName)).toBe(
-				entry.categoryName,
-			);
+			expect(capitalizeCategoryName(entry.categoryName)).toBe(entry.categoryName);
 			expect(VALID_CATEGORY_NAMES.has(entry.categoryName)).toBe(true);
 		}
 	});
 
 	it("keeps every pattern's matching key unique across every entry", () => {
-		const keys = MERCHANTS.flatMap((entry) =>
-			entry.patterns.map((pattern) => merchantKey(pattern)),
-		);
+		const keys = MERCHANTS.flatMap((entry) => entry.patterns.map((pattern) => merchantKey(pattern)));
 		expect(new Set(keys).size).toBe(keys.length);
 	});
 
@@ -53,46 +43,46 @@ describe("seeding the curated merchant map", () => {
 		const byId = new Map(MERCHANTS.map((entry) => [entry.id, entry]));
 
 		expect(byId.get("duolingo")).toStrictEqual({
+			categoryName: "Education",
+			domain: "duolingo.com",
 			id: "duolingo",
 			patterns: ["duolingo", "duolingo super", "duolingo plus"],
-			categoryName: "Education",
 			tags: ["Learning", "Subscription"],
-			domain: "duolingo.com",
 		});
 		expect(byId.get("netflix")).toStrictEqual({
+			categoryName: "Entertainment",
+			domain: "netflix.com",
 			id: "netflix",
 			patterns: ["netflix"],
-			categoryName: "Entertainment",
 			tags: ["Streaming", "Subscription"],
-			domain: "netflix.com",
 		});
 		expect(byId.get("apple")).toStrictEqual({
+			categoryName: "Shopping",
+			domain: "apple.com",
 			id: "apple",
 			patterns: ["apple", "apple store", "apple com bill"],
-			categoryName: "Shopping",
 			tags: ["Apple"],
-			domain: "apple.com",
 		});
 		expect(byId.get("apple-music")).toStrictEqual({
+			categoryName: "Entertainment",
+			domain: "music.apple.com",
 			id: "apple-music",
 			patterns: ["apple music", "itunes music"],
-			categoryName: "Entertainment",
 			tags: ["Music", "Streaming", "Subscription"],
-			domain: "music.apple.com",
 		});
 		expect(byId.get("youtube")).toStrictEqual({
+			categoryName: "Entertainment",
+			domain: "youtube.com",
 			id: "youtube",
 			patterns: ["youtube", "youtube premium"],
-			categoryName: "Entertainment",
 			tags: ["Streaming", "Subscription"],
-			domain: "youtube.com",
 		});
 		expect(byId.get("youtube-music")).toStrictEqual({
+			categoryName: "Entertainment",
+			domain: "music.youtube.com",
 			id: "youtube-music",
 			patterns: ["youtube music", "yt music"],
-			categoryName: "Entertainment",
 			tags: ["Music", "Streaming", "Subscription"],
-			domain: "music.youtube.com",
 		});
 	});
 });
@@ -116,11 +106,11 @@ describe("logo.dev domain backfill", () => {
 	it("resolves a verified logo.dev domain for each backfilled merchant", () => {
 		const verified: Record<string, string> = {
 			"central madeirense": "tucentralonline.com",
-			locatel: "locatel.com.ve",
-			traki: "traki.com",
 			digitel: "digitel.com.ve",
 			farmahorro: "farmahorro.com.ve",
+			locatel: "locatel.com.ve",
 			mcdonalds: "mcdonalds.com",
+			traki: "traki.com",
 		};
 		for (const [name, domain] of Object.entries(verified)) {
 			expect(resolveMerchant(name)?.domain).toBe(domain);

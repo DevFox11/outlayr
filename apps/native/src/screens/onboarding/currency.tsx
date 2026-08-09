@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { currencyDisplayFor } from "@outlayr/money";
+import { currencyDisplayFor } from "@outlayr/money/currency";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -14,19 +14,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { FirstRun } from "@/components/first-run";
-import {
-	holdSubmitting,
-	pressSubmitWith,
-	reportSaveFailure,
-} from "@/components/form/submit-guard";
+import { holdSubmitting, pressSubmitWith, reportSaveFailure } from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { finishOnboarding } from "@/data/onboarding-core";
-import { setCurrency } from "@/data/settings";
+import { setCurrency } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 type CommitKind = "continue" | "finish";
 
@@ -55,15 +51,11 @@ function CurrencyGlyph({ symbol }: { symbol: string }) {
 			spin.value = -90;
 			spin.value = withTiming(0, { duration: 320, easing: EASE_OUT });
 		};
-		spin.value = withTiming(
-			90,
-			{ duration: 160, easing: Easing.in(Easing.ease) },
-			(finished) => {
-				if (finished) {
-					runOnJS(commit)(symbol);
-				}
-			},
-		);
+		spin.value = withTiming(90, { duration: 160, easing: Easing.in(Easing.ease) }, (finished) => {
+			if (finished) {
+				runOnJS(commit)(symbol);
+			}
+		});
 	}, [symbol, shown, reduced, spin]);
 
 	const style = useAnimatedStyle(() => ({
@@ -97,7 +89,6 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
 	const [initialValues] = useState(() => ({ picked: null as string | null }));
 	const form = useForm({
 		defaultValues: initialValues,
-		onSubmitMeta: "continue" as CommitKind,
 		onSubmit: async ({ value, meta }) => {
 			const code = value.picked ?? stored;
 			try {
@@ -115,11 +106,12 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
 				return await holdSubmitting();
 			} catch {
 				reportSaveFailure({
-					title: t("onboarding.currency.saveFailed.title"),
 					body: t("onboarding.currency.saveFailed.body"),
+					title: t("onboarding.currency.saveFailed.title"),
 				});
 			}
 		},
+		onSubmitMeta: "continue" as CommitKind,
 	});
 	const { picked } = useSelector(form.store, (s) => s.values);
 	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
@@ -131,9 +123,7 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
 		<FirstRun
 			action={{
 				disabled: isSubmitting,
-				label: isSubmitting
-					? t("onboarding.currency.saving")
-					: t("common.continue"),
+				label: isSubmitting ? t("onboarding.currency.saving") : t("common.continue"),
 				onPress: () => pressSubmitWith(form, "continue" as CommitKind),
 			}}
 			body={t("onboarding.currency.body")}
@@ -151,20 +141,14 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
 				className="flex-row items-center gap-3 rounded-2xl border border-fr-rule bg-fr-card px-4 py-3.5 active:opacity-60"
 				onPress={() => sheet.current?.present()}
 			>
-				<Text className="w-8 text-center text-fr-muted text-headline">
-					{display.symbol}
-				</Text>
+				<Text className="w-8 text-center text-fr-muted text-headline">{display.symbol}</Text>
 				<View className="flex-1 gap-0.5">
-					<Text className="font-sans-semibold text-body text-fr-ink">
-						{code}
-					</Text>
+					<Text className="font-sans-semibold text-body text-fr-ink">{code}</Text>
 					<Text className="text-footnote text-fr-muted" numberOfLines={1}>
 						{display.name}
 					</Text>
 				</View>
-				<MonoLabel className="text-fr-muted">
-					{t("onboarding.currency.change")}
-				</MonoLabel>
+				<MonoLabel className="text-fr-muted">{t("onboarding.currency.change")}</MonoLabel>
 			</Pressable>
 
 			<CurrencyPickerSheet

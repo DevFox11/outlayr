@@ -9,38 +9,32 @@ import {
 } from "./split";
 
 const entry = (id: string, amount: number, categoryId: string | null) => ({
-	id,
 	amount,
 	categoryId,
+	id,
 });
 
 describe("attributing an entry", () => {
 	it("reads an unsplit entry as one allocation of its whole amount", () => {
 		// This is what keeps every existing row, and every reader that never learns
 		// about splitting, correct without being touched.
-		expect(allocationsFor(entry("t1", 40, "food"), [])).toStrictEqual([
-			{ categoryId: "food", amount: 40 },
-		]);
+		expect(allocationsFor(entry("t1", 40, "food"), [])).toStrictEqual([{ amount: 40, categoryId: "food" }]);
 	});
 
 	it("carries a null category through rather than inventing one", () => {
-		expect(allocationsFor(entry("t1", 40, null), [])).toStrictEqual([
-			{ categoryId: null, amount: 40 },
-		]);
+		expect(allocationsFor(entry("t1", 40, null), [])).toStrictEqual([{ amount: 40, categoryId: null }]);
 	});
 
 	it("uses the explicit allocations when the entry has them", () => {
 		const explicit: Allocation[] = [
-			{ categoryId: "food", amount: 25 },
-			{ categoryId: "travel", amount: 15 },
+			{ amount: 25, categoryId: "food" },
+			{ amount: 15, categoryId: "travel" },
 		];
-		expect(allocationsFor(entry("t1", 40, "food"), explicit)).toStrictEqual(
-			explicit,
-		);
+		expect(allocationsFor(entry("t1", 40, "food"), explicit)).toStrictEqual(explicit);
 	});
 
 	it("does not hand back the caller's own array to mutate", () => {
-		const explicit: Allocation[] = [{ categoryId: "food", amount: 40 }];
+		const explicit: Allocation[] = [{ amount: 40, categoryId: "food" }];
 		const result = allocationsFor(entry("t1", 40, "food"), explicit);
 		result[0].amount = 999;
 		expect(explicit[0].amount).toBe(40);
@@ -51,9 +45,9 @@ describe("whether a split adds up", () => {
 	it("accepts parts that sum to the entry", () => {
 		expect(
 			isBalanced(40, [
-				{ categoryId: "a", amount: 25 },
-				{ categoryId: "b", amount: 15 },
-			]),
+				{ amount: 25, categoryId: "a" },
+				{ amount: 15, categoryId: "b" },
+			])
 		).toBe(true);
 	});
 
@@ -61,15 +55,15 @@ describe("whether a split adds up", () => {
 		// The row shows its own amount and the parts sit underneath it. A split
 		// that does not add up is a visible contradiction, and every category
 		// total downstream inherits it.
-		expect(isBalanced(40, [{ categoryId: "a", amount: 25 }])).toBe(false);
+		expect(isBalanced(40, [{ amount: 25, categoryId: "a" }])).toBe(false);
 	});
 
 	it("refuses parts that overshoot", () => {
 		expect(
 			isBalanced(40, [
-				{ categoryId: "a", amount: 25 },
-				{ categoryId: "b", amount: 20 },
-			]),
+				{ amount: 25, categoryId: "a" },
+				{ amount: 20, categoryId: "b" },
+			])
 		).toBe(false);
 	});
 
@@ -78,8 +72,8 @@ describe("whether a split adds up", () => {
 	});
 
 	it("reports how far off a split is, with a sign", () => {
-		expect(unallocated(40, [{ categoryId: "a", amount: 25 }])).toBe(15);
-		expect(unallocated(40, [{ categoryId: "a", amount: 55 }])).toBe(-15);
+		expect(unallocated(40, [{ amount: 25, categoryId: "a" }])).toBe(15);
+		expect(unallocated(40, [{ amount: 55, categoryId: "a" }])).toBe(-15);
 	});
 });
 
@@ -101,10 +95,7 @@ describe("splitting evenly", () => {
 
 	it("takes the categories it is given", () => {
 		const parts = splitEvenly(10, 2, ["food", "travel"]);
-		expect(parts.map((part) => part.categoryId)).toStrictEqual([
-			"food",
-			"travel",
-		]);
+		expect(parts.map((part) => part.categoryId)).toStrictEqual(["food", "travel"]);
 	});
 
 	it("answers nothing for a count below one", () => {
@@ -114,8 +105,8 @@ describe("splitting evenly", () => {
 
 describe("editing one part of a split", () => {
 	const two: Allocation[] = [
-		{ categoryId: "a", amount: 25 },
-		{ categoryId: "b", amount: 15 },
+		{ amount: 25, categoryId: "a" },
+		{ amount: 15, categoryId: "b" },
 	];
 
 	it("takes the difference out of another part so it stays balanced", () => {
@@ -137,10 +128,8 @@ describe("editing one part of a split", () => {
 	});
 
 	it("leaves a lone part alone rather than balancing against nothing", () => {
-		const one: Allocation[] = [{ categoryId: "a", amount: 40 }];
-		expect(rebalance(40, one, 0, 25)).toStrictEqual([
-			{ categoryId: "a", amount: 25 },
-		]);
+		const one: Allocation[] = [{ amount: 40, categoryId: "a" }];
+		expect(rebalance(40, one, 0, 25)).toStrictEqual([{ amount: 25, categoryId: "a" }]);
 	});
 
 	it("ignores an index that is not there", () => {
@@ -161,11 +150,11 @@ describe("totalling by category", () => {
 				[
 					"t1",
 					[
-						{ categoryId: "food", amount: 25 },
-						{ categoryId: "travel", amount: 15 },
+						{ amount: 25, categoryId: "food" },
+						{ amount: 15, categoryId: "travel" },
 					],
 				],
-			]),
+			])
 		);
 		expect(totals.get("food")).toBe(25);
 		expect(totals.get("travel")).toBe(15);
@@ -180,11 +169,11 @@ describe("totalling by category", () => {
 				[
 					"t1",
 					[
-						{ categoryId: "food", amount: 25 },
-						{ categoryId: "travel", amount: 15 },
+						{ amount: 25, categoryId: "food" },
+						{ amount: 15, categoryId: "travel" },
 					],
 				],
-			]),
+			])
 		);
 		const sum = [...totals.values()].reduce((a, b) => a + b, 0);
 		expect(sum).toBe(50);

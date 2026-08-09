@@ -6,12 +6,7 @@ import { isBehindWatermark } from "@/domain/sync-wakeup";
 import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 import { runSync } from "./sync-engine-core";
-import {
-	getSyncCursor,
-	isSyncEnabled,
-	SYNCED_TABLES,
-	setSyncedAt,
-} from "./sync-outbox-core";
+import { getSyncCursor, isSyncEnabled, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
 /**
@@ -62,6 +57,7 @@ export function useSyncEngine(db: Database | null): void {
 			try {
 				do {
 					queued = false;
+					// biome-ignore lint/performance/noAwaitInLoops: each pass drains the outbox the previous one left behind, so a second push must not start until the first has been acknowledged.
 					const { tables } = await runSync(db, transport);
 					// Outside the write transaction, so nothing repaints against rows a
 					// rollback is about to remove.
@@ -79,10 +75,10 @@ export function useSyncEngine(db: Database | null): void {
 		};
 
 		const schedule = debounce(SYNC_DEBOUNCE_MS, () => {
-			void cycle();
+			cycle();
 		});
 
-		void cycle();
+		cycle();
 
 		const listener = addDatabaseChangeListener((event) => {
 			if (REPLICATED.has(event.tableName)) {
@@ -92,7 +88,7 @@ export function useSyncEngine(db: Database | null): void {
 
 		const subscription = AppState.addEventListener("change", (state) => {
 			if (state === "active") {
-				void cycle();
+				cycle();
 			} else if (state === "background") {
 				schedule.cancel();
 			}
@@ -125,7 +121,7 @@ export function useSyncEngine(db: Database | null): void {
 			}
 			if (wanted) {
 				unwatch = watchSyncWatermark((watermark) => {
-					void wake(watermark).catch((error) => {
+					wake(watermark).catch((error) => {
 						console.warn("[outlayr] sync wake-up failed", error);
 					});
 				});
@@ -136,7 +132,7 @@ export function useSyncEngine(db: Database | null): void {
 		};
 
 		const watchGate = () => {
-			void reconcileWatch().catch((error) => {
+			reconcileWatch().catch((error) => {
 				console.warn("[outlayr] sync watch reconcile failed", error);
 			});
 		};

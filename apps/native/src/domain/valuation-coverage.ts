@@ -1,27 +1,23 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import type { TranslateFn } from "@/i18n/context";
 import { type DatedValuable, type RateTable, valueExactIn } from "./valuation";
 
 /** How much of the ledger the converted figures on screen actually rest on. */
 export interface ValuationCoverage {
-	/** Rows carrying a frozen USD value. */
-	converted: number;
-	/** Rows a later rate pull can still value. */
-	pending: number;
 	/**
 	 * Rows dated before the earliest rate their currency has. The server serves a
 	 * bounded window and every pull wipe-replaces the local table, so no later
 	 * pull reaches back to them — face value is final, not provisional.
 	 */
 	beyondRateHistory: number;
+	/** Rows carrying a frozen USD value. */
+	converted: number;
+	/** Rows a later rate pull can still value. */
+	pending: number;
 }
 
 /** A USD leg needs no rate consulted, so it can never fall off the history. */
-function predatesHistory(
-	code: string | null,
-	dateKey: string,
-	rates: RateTable,
-): boolean {
+function predatesHistory(code: string | null, dateKey: string, rates: RateTable): boolean {
 	if (code === null || code === "USD") {
 		return false;
 	}
@@ -40,27 +36,24 @@ function predatesHistory(
 export function coverageOf(
 	rows: readonly DatedValuable[],
 	displayCurrency: string,
-	rates: RateTable,
+	rates: RateTable
 ): ValuationCoverage {
 	const coverage: ValuationCoverage = {
+		beyondRateHistory: 0,
 		converted: 0,
 		pending: 0,
-		beyondRateHistory: 0,
 	};
 	for (const row of rows) {
 		const dateKey = utcDateString(row.date.getTime());
 		const valuable = {
 			amount: row.amount,
-			currency: row.currency,
 			amountUsd: row.amountUsd,
+			currency: row.currency,
 			dateKey,
 		};
 		if (valueExactIn(valuable, displayCurrency, rates) !== null) {
 			coverage.converted += 1;
-		} else if (
-			predatesHistory(row.currency, dateKey, rates) ||
-			predatesHistory(displayCurrency, dateKey, rates)
-		) {
+		} else if (predatesHistory(row.currency, dateKey, rates) || predatesHistory(displayCurrency, dateKey, rates)) {
 			coverage.beyondRateHistory += 1;
 		} else {
 			coverage.pending += 1;
@@ -70,10 +63,7 @@ export function coverageOf(
 }
 
 /** Null when every figure on screen is a converted one. */
-export function coverageNote(
-	coverage: ValuationCoverage,
-	t: TranslateFn,
-): string | null {
+export function coverageNote(coverage: ValuationCoverage, t: TranslateFn): string | null {
 	const { converted, pending, beyondRateHistory } = coverage;
 	const total = converted + pending + beyondRateHistory;
 	if (total === 0 || (pending === 0 && beyondRateHistory === 0)) {
@@ -87,7 +77,7 @@ export function coverageNote(
 	}
 	return t("coverage.pendingAndPredate", {
 		count: pending,
-		total,
 		predate: beyondRateHistory,
+		total,
 	});
 }

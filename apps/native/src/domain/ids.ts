@@ -6,8 +6,7 @@
  * the node test runner (which can't transform React Native's source).
  */
 export function newId(): string {
-	const webCrypto = (globalThis as { crypto?: { randomUUID?: () => string } })
-		.crypto;
+	const webCrypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
 	if (typeof webCrypto?.randomUUID === "function") {
 		return webCrypto.randomUUID();
 	}

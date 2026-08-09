@@ -12,11 +12,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import {
-	rasterize,
-	requireRsvgConvert,
-	resetDirectory,
-} from "./hugeicon-raster";
+import { rasterize, requireRsvgConvert, resetDirectory } from "./hugeicon-raster";
 
 /** Points. Matches the 44pt tile Swift's `SettingsAppIconView` drew. */
 const TILE_SIZE = 44;
@@ -34,11 +30,7 @@ const sources = readdirSync(sourceDir)
 
 for (const file of sources) {
 	const slug = file.replace(/\.svg$/, "");
-	rasterize(
-		readFileSync(join(sourceDir, file), "utf8"),
-		join(outputDir, slug),
-		TILE_SIZE,
-	);
+	rasterize(readFileSync(join(sourceDir, file), "utf8"), join(outputDir, slug), TILE_SIZE);
 }
 
 console.log(`Wrote ${sources.length} app icon previews to ${outputDir}`);

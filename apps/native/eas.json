@@ -1,39 +1,39 @@
 {
-	"cli": {
-		"version": ">= 20.1.0",
-		"appVersionSource": "remote"
-	},
-	"build": {
-		"base": {
-			"env": {
-				"HUGEICONS_PRO_TOKEN": "@HUGEICONS_PRO_TOKEN"
-			}
-		},
-		"development": {
-			"extends": "base",
-			"developmentClient": true,
-			"distribution": "internal",
-			"ios": {
-				"simulator": true
-			}
-		},
-		"development-device": {
-			"extends": "development",
-			"ios": {
-				"simulator": false
-			},
-			"autoIncrement": true
-		},
-		"preview": {
-			"extends": "base",
-			"distribution": "internal"
-		},
-		"production": {
-			"extends": "base",
-			"autoIncrement": true
-		}
-	},
-	"submit": {
-		"production": {}
-	}
+  "cli": {
+    "version": ">= 20.1.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "env": {
+        "HUGEICONS_PRO_TOKEN": "@HUGEICONS_PRO_TOKEN"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "development-device": {
+      "extends": "development",
+      "ios": {
+        "simulator": false
+      },
+      "autoIncrement": true
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal"
+    },
+    "production": {
+      "extends": "base",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
 }

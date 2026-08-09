@@ -72,11 +72,10 @@ export function photoNameFromKey(key: string): string | null {
  * segments does not pass.
  */
 export function photoOwnerFromKey(key: string): string | null {
-	const segments = key.split("/");
+	const [, userId] = key.split("/");
 	const name = photoNameFromKey(key);
 	if (name === null) {
 		return null;
 	}
-	const userId = segments[1];
 	return userId !== "" && photoKeyFor(userId, name) === key ? userId : null;
 }

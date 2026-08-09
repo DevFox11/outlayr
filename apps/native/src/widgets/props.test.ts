@@ -1,13 +1,7 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { SpendDb } from "@/data/budget-spent";
-import {
-	appMeta,
-	budgets,
-	categories,
-	mainBudget,
-	transactions,
-} from "@/db/schema";
+import { appMeta, budgets, categories, mainBudget, transactions } from "@/db/schema";
 import { buildWidgetProps } from "./props";
 
 function makeDb(): SpendDb {
@@ -110,22 +104,22 @@ describe("the Ledger widget's entries", () => {
 		// twelve thousand dollars on the home screen.
 		const db = makeDb();
 		await db.insert(categories).values({
-			id: "cat-1",
-			name: "Food",
 			color: "#FF0000",
+			id: "cat-1",
 			income: false,
+			name: "Food",
 			updatedAt: NOW,
 		});
 		await db.insert(transactions).values({
-			id: "t1",
 			amount: 12_000,
-			income: false,
+			categoryId: "cat-1",
 			currency: "JPY",
-			note: "Ramen",
 			date: NOW,
 			day: NOW,
+			id: "t1",
+			income: false,
 			month: NOW,
-			categoryId: "cat-1",
+			note: "Ramen",
 			updatedAt: NOW,
 		});
 
@@ -138,14 +132,14 @@ describe("the Ledger widget's entries", () => {
 	it("leaves an entry in the ledger's own currency alone", async () => {
 		const db = makeDb();
 		await db.insert(transactions).values({
-			id: "t1",
 			amount: 18.5,
-			income: false,
 			currency: "USD",
-			note: "Coffee",
 			date: NOW,
 			day: NOW,
+			id: "t1",
+			income: false,
 			month: NOW,
+			note: "Coffee",
 			updatedAt: NOW,
 		});
 
@@ -157,14 +151,14 @@ describe("the Ledger widget's entries", () => {
 	it("falls back to the ledger's currency when the entry named none", async () => {
 		const db = makeDb();
 		await db.insert(transactions).values({
-			id: "t1",
 			amount: 18.5,
-			income: false,
 			currency: null,
-			note: "Coffee",
 			date: NOW,
 			day: NOW,
+			id: "t1",
+			income: false,
 			month: NOW,
+			note: "Coffee",
 			updatedAt: NOW,
 		});
 
@@ -183,58 +177,58 @@ describe("the Budget widget's selections", () => {
 	async function withBudgets(overall: boolean): Promise<SpendDb> {
 		const db = makeDb();
 		await db.insert(categories).values([
-			{ id: "cat-1", name: "Food", income: false, updatedAt: NOW },
-			{ id: "cat-2", name: "Transit", income: false, updatedAt: NOW },
+			{ id: "cat-1", income: false, name: "Food", updatedAt: NOW },
+			{ id: "cat-2", income: false, name: "Transit", updatedAt: NOW },
 		]);
 		if (overall) {
 			await db.insert(mainBudget).values({
+				amount: 1000,
 				id: "main",
 				name: "Overall Budget",
-				amount: 1000,
-				type: 3,
 				startDate: new Date(Date.UTC(2026, 6, 1)),
+				type: 3,
 				updatedAt: NOW,
 			});
 		}
 		await db.insert(budgets).values([
 			{
-				id: "b-food",
 				amount: 100,
-				type: 3,
-				startDate: new Date(Date.UTC(2026, 6, 1)),
 				categoryId: "cat-1",
+				id: "b-food",
+				startDate: new Date(Date.UTC(2026, 6, 1)),
+				type: 3,
 				updatedAt: NOW,
 			},
 			{
-				id: "b-transit",
 				amount: 100,
-				type: 3,
-				startDate: new Date(Date.UTC(2026, 6, 1)),
 				categoryId: "cat-2",
+				id: "b-transit",
+				startDate: new Date(Date.UTC(2026, 6, 1)),
+				type: 3,
 				updatedAt: NOW,
 			},
 		]);
 		await db.insert(transactions).values([
 			{
-				id: "t1",
 				amount: 90,
-				income: false,
-				note: "Groceries",
+				categoryId: "cat-1",
 				date: NOW,
 				day: NOW,
+				id: "t1",
+				income: false,
 				month: NOW,
-				categoryId: "cat-1",
+				note: "Groceries",
 				updatedAt: NOW,
 			},
 			{
-				id: "t2",
 				amount: 10,
-				income: false,
-				note: "Bus",
+				categoryId: "cat-2",
 				date: NOW,
 				day: NOW,
+				id: "t2",
+				income: false,
 				month: NOW,
-				categoryId: "cat-2",
+				note: "Bus",
 				updatedAt: NOW,
 			},
 		]);
@@ -265,11 +259,7 @@ describe("the Insights widget's windows", () => {
 
 		const props = await buildWidgetProps(db, NOW);
 
-		expect(Object.keys(props.Insights.windows).sort()).toStrictEqual([
-			"month",
-			"week",
-			"year",
-		]);
+		expect(Object.keys(props.Insights.windows).sort()).toStrictEqual(["month", "week", "year"]);
 		expect(props.Insights.windows.week.periodLabel).toBe("THIS WEEK");
 		expect(props.Insights.windows.year.periodLabel).toBe("THIS YEAR");
 	});

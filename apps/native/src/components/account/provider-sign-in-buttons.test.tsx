@@ -4,7 +4,7 @@ import { appleIdToken } from "@/lib/apple-sign-in";
 import { googleIdToken } from "@/lib/google-sign-in";
 import { ProviderSignInButtons } from "./provider-sign-in-buttons";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -13,8 +13,8 @@ jest.mock("@/lib/apple-sign-in", () => ({
 }));
 
 jest.mock("@/lib/google-sign-in", () => ({
-	isGoogleSignInAvailable: true,
 	googleIdToken: jest.fn(),
+	isGoogleSignInAvailable: true,
 }));
 
 interface ButtonProps {
@@ -27,11 +27,7 @@ jest.mock("@/components/account/apple-sign-in-button", () => {
 	const { Pressable, Text } = require("react-native");
 	return {
 		AppleSignInButton: ({ disabled, onPress, pending }: ButtonProps) => (
-			<Pressable
-				accessibilityState={{ busy: pending, disabled }}
-				onPress={onPress}
-				testID="apple-sign-in-button"
-			>
+			<Pressable accessibilityState={{ busy: pending, disabled }} onPress={onPress} testID="apple-sign-in-button">
 				<Text>apple</Text>
 			</Pressable>
 		),
@@ -42,11 +38,7 @@ jest.mock("@/components/account/google-sign-in-button", () => {
 	const { Pressable, Text } = require("react-native");
 	return {
 		GoogleSignInButton: ({ disabled, onPress, pending }: ButtonProps) => (
-			<Pressable
-				accessibilityState={{ busy: pending, disabled }}
-				onPress={onPress}
-				testID="google-sign-in-button"
-			>
+			<Pressable accessibilityState={{ busy: pending, disabled }} onPress={onPress} testID="google-sign-in-button">
 				<Text>google</Text>
 			</Pressable>
 		),
@@ -69,11 +61,7 @@ describe("ProviderSignInButtons availability", () => {
 		Platform.OS = "ios";
 		googleSignInMock.isGoogleSignInAvailable = false;
 		const { queryByTestId } = await render(
-			<ProviderSignInButtons
-				busy={null}
-				fallbackClassName="fallback"
-				start={jest.fn()}
-			/>,
+			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
 		);
 		expect(queryByTestId("apple-sign-in-button")).not.toBeNull();
 		expect(queryByTestId("google-sign-in-button")).toBeNull();
@@ -83,11 +71,7 @@ describe("ProviderSignInButtons availability", () => {
 		Platform.OS = "android";
 		googleSignInMock.isGoogleSignInAvailable = true;
 		const { queryByTestId } = await render(
-			<ProviderSignInButtons
-				busy={null}
-				fallbackClassName="fallback"
-				start={jest.fn()}
-			/>,
+			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
 		);
 		expect(queryByTestId("apple-sign-in-button")).toBeNull();
 		expect(queryByTestId("google-sign-in-button")).not.toBeNull();
@@ -97,11 +81,7 @@ describe("ProviderSignInButtons availability", () => {
 		Platform.OS = "ios";
 		googleSignInMock.isGoogleSignInAvailable = true;
 		const { queryByTestId } = await render(
-			<ProviderSignInButtons
-				busy={null}
-				fallbackClassName="fallback"
-				start={jest.fn()}
-			/>,
+			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
 		);
 		expect(queryByTestId("apple-sign-in-button")).not.toBeNull();
 		expect(queryByTestId("google-sign-in-button")).not.toBeNull();
@@ -115,14 +95,12 @@ describe("ProviderSignInButtons availability", () => {
 				busy={null}
 				fallbackClassName="text-fr-muted text-subtitle leading-snug"
 				start={jest.fn()}
-			/>,
+			/>
 		);
 		expect(queryByTestId("apple-sign-in-button")).toBeNull();
 		expect(queryByTestId("google-sign-in-button")).toBeNull();
 		const fallback = getByText("settings.account.noProvider");
-		expect(fallback.props.className).toBe(
-			"text-fr-muted text-subtitle leading-snug",
-		);
+		expect(fallback.props.className).toBe("text-fr-muted text-subtitle leading-snug");
 	});
 });
 
@@ -140,34 +118,18 @@ describe("ProviderSignInButtons busy state", () => {
 
 	it("shows neither control as pending or disabled while idle", async () => {
 		const { getByTestId } = await render(
-			<ProviderSignInButtons
-				busy={null}
-				fallbackClassName="fallback"
-				start={jest.fn()}
-			/>,
+			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
 		);
-		expect(
-			getByTestId("apple-sign-in-button").props.accessibilityState,
-		).toEqual({ busy: false, disabled: false });
-		expect(
-			getByTestId("google-sign-in-button").props.accessibilityState,
-		).toEqual({ busy: false, disabled: false });
+		expect(getByTestId("apple-sign-in-button").props.accessibilityState).toEqual({ busy: false, disabled: false });
+		expect(getByTestId("google-sign-in-button").props.accessibilityState).toEqual({ busy: false, disabled: false });
 	});
 
 	it("marks Apple pending and Google disabled while Apple is busy", async () => {
 		const { getByTestId } = await render(
-			<ProviderSignInButtons
-				busy="apple"
-				fallbackClassName="fallback"
-				start={jest.fn()}
-			/>,
+			<ProviderSignInButtons busy="apple" fallbackClassName="fallback" start={jest.fn()} />
 		);
-		expect(
-			getByTestId("apple-sign-in-button").props.accessibilityState,
-		).toEqual({ busy: true, disabled: true });
-		expect(
-			getByTestId("google-sign-in-button").props.accessibilityState,
-		).toEqual({ busy: false, disabled: true });
+		expect(getByTestId("apple-sign-in-button").props.accessibilityState).toEqual({ busy: true, disabled: true });
+		expect(getByTestId("google-sign-in-button").props.accessibilityState).toEqual({ busy: false, disabled: true });
 	});
 });
 
@@ -186,11 +148,7 @@ describe("ProviderSignInButtons start wiring", () => {
 	it("starts Apple with the apple id token getter", async () => {
 		const start = jest.fn();
 		const { getByTestId } = await render(
-			<ProviderSignInButtons
-				busy={null}
-				fallbackClassName="fallback"
-				start={start}
-			/>,
+			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
 		);
 		fireEvent.press(getByTestId("apple-sign-in-button"));
 		expect(start).toHaveBeenCalledWith("apple", appleIdToken);
@@ -199,11 +157,7 @@ describe("ProviderSignInButtons start wiring", () => {
 	it("starts Google with the google id token getter", async () => {
 		const start = jest.fn();
 		const { getByTestId } = await render(
-			<ProviderSignInButtons
-				busy={null}
-				fallbackClassName="fallback"
-				start={start}
-			/>,
+			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
 		);
 		fireEvent.press(getByTestId("google-sign-in-button"));
 		expect(start).toHaveBeenCalledWith("google", googleIdToken);

@@ -1,41 +1,37 @@
 import type { IconSvgElement } from "@hugeicons/react-native";
-import {
-	ClipboardPasteIcon,
-	File01Icon,
-	Image01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import { ClipboardPasteIcon, File01Icon, Image01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import type { TranslationKey } from "@/i18n/catalog";
 
 export type ImportSourceId = "csv" | "clipboard" | "screenshot";
 
 export interface ImportSource {
-	readonly id: ImportSourceId;
-	readonly titleKey: TranslationKey;
-	readonly subtitleKey: TranslationKey;
-	readonly icon: IconSvgElement;
 	readonly available: boolean;
+	readonly icon: IconSvgElement;
+	readonly id: ImportSourceId;
+	readonly subtitleKey: TranslationKey;
+	readonly titleKey: TranslationKey;
 }
 
 export const IMPORT_SOURCES: readonly ImportSource[] = [
 	{
-		id: "csv",
-		titleKey: "settings.import.sourceCsvTitle",
-		subtitleKey: "settings.import.sourceCsvSubtitle",
-		icon: File01Icon,
 		available: true,
+		icon: File01Icon,
+		id: "csv",
+		subtitleKey: "settings.import.sourceCsvSubtitle",
+		titleKey: "settings.import.sourceCsvTitle",
 	},
 	{
-		id: "clipboard",
-		titleKey: "settings.import.sourceClipboardTitle",
-		subtitleKey: "settings.import.sourceClipboardSubtitle",
+		available: false,
 		icon: ClipboardPasteIcon,
-		available: false,
+		id: "clipboard",
+		subtitleKey: "settings.import.sourceClipboardSubtitle",
+		titleKey: "settings.import.sourceClipboardTitle",
 	},
 	{
-		id: "screenshot",
-		titleKey: "settings.import.sourceScreenshotTitle",
-		subtitleKey: "settings.import.sourceScreenshotSubtitle",
-		icon: Image01Icon,
 		available: false,
+		icon: Image01Icon,
+		id: "screenshot",
+		subtitleKey: "settings.import.sourceScreenshotSubtitle",
+		titleKey: "settings.import.sourceScreenshotTitle",
 	},
 ];

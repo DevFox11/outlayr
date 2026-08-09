@@ -7,17 +7,17 @@ export interface AccountBalanceInput {
 }
 
 export interface AccountCompositionEntry {
-	currencyCode: string | null;
 	/** Signed net at face value — income adds, expense subtracts. */
 	amount: number;
+	currencyCode: string | null;
 }
 
 export interface AccountBalance {
-	/** `initialBalance` plus every cell, valued in the account's currency. */
-	total: number;
+	composition: AccountCompositionEntry[];
 	/** False when any cell fell back to face value instead of converting. */
 	exact: boolean;
-	composition: AccountCompositionEntry[];
+	/** `initialBalance` plus every cell, valued in the account's currency. */
+	total: number;
 }
 
 function cellIsExact(cell: CurrencyCell, currency: string, rates: RateTable) {
@@ -33,7 +33,7 @@ function cellIsExact(cell: CurrencyCell, currency: string, rates: RateTable) {
 export function accountBalance(
 	account: AccountBalanceInput,
 	cells: readonly CurrencyCell[],
-	rates: RateTable,
+	rates: RateTable
 ): AccountBalance {
 	let total = account.initialBalance;
 	let exact = true;
@@ -45,18 +45,15 @@ export function accountBalance(
 		if (!cellIsExact(cell, account.currency, rates)) {
 			exact = false;
 		}
-		composition.set(
-			cell.currencyCode,
-			(composition.get(cell.currencyCode) ?? 0) + sign * cell.amount,
-		);
+		composition.set(cell.currencyCode, (composition.get(cell.currencyCode) ?? 0) + sign * cell.amount);
 	}
 
 	return {
-		total,
-		exact,
 		composition: [...composition.entries()].map(([currencyCode, amount]) => ({
-			currencyCode,
 			amount,
+			currencyCode,
 		})),
+		exact,
+		total,
 	};
 }

@@ -3,13 +3,11 @@ import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 import { rowAmountLabel } from "./amount-label";
 
-const en: TranslateFn = (key, params) =>
-	translate(key, { catalog: EN, fallback: EN, params });
+const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
-const es: TranslateFn = (key, params) =>
-	translate(key, { catalog: ES, fallback: EN, params });
+const es: TranslateFn = (key, params) => translate(key, { catalog: ES, fallback: EN, params });
 
-const USD = { code: "USD", amount: 1240.5 };
+const USD = { amount: 1240.5, code: "USD" };
 
 /**
  * A row separates money in from money out with a `+`/`-` glyph and a hue, and a
@@ -25,9 +23,7 @@ describe("rowAmountLabel states the direction in words", () => {
 	});
 
 	it("distinguishes the two directions, so hue is never the only cue", () => {
-		expect(rowAmountLabel({ ...USD, income: true }, en)).not.toBe(
-			rowAmountLabel({ ...USD, income: false }, en),
-		);
+		expect(rowAmountLabel({ ...USD, income: true }, en)).not.toBe(rowAmountLabel({ ...USD, income: false }, en));
 	});
 
 	it("keeps the direction in Spanish too", () => {
@@ -44,20 +40,14 @@ describe("rowAmountLabel carries the figure it labels", () => {
 	});
 
 	it("uses the row's own currency, not a fixed one", () => {
-		expect(
-			rowAmountLabel({ code: "EUR", amount: 12, income: false }, en),
-		).toMatch(/€12\.00/);
+		expect(rowAmountLabel({ amount: 12, code: "EUR", income: false }, en)).toMatch(/€12\.00/);
 		// A zero-minor-unit code has no fraction to read out at all.
-		expect(
-			rowAmountLabel({ code: "JPY", amount: 1240, income: false }, en),
-		).toBe("Expense ¥1,240");
+		expect(rowAmountLabel({ amount: 1240, code: "JPY", income: false }, en)).toBe("Expense ¥1,240");
 	});
 
 	/** 1240.50 lands on 1240, not 1241: `roundMoney` is half-even. */
 	it("drops the cents when the display setting does", () => {
-		expect(
-			rowAmountLabel({ ...USD, income: false, showCents: false }, en),
-		).toBe("Expense $1,240");
+		expect(rowAmountLabel({ ...USD, income: false, showCents: false }, en)).toBe("Expense $1,240");
 	});
 
 	/**
@@ -65,9 +55,9 @@ describe("rowAmountLabel carries the figure it labels", () => {
 	 * negative must not smuggle a second, contradicting sign into the sentence.
 	 */
 	it("never doubles the sign for a negative magnitude", () => {
-		expect(
-			rowAmountLabel({ code: "USD", amount: -1240.5, income: false }, en),
-		).toBe(rowAmountLabel({ code: "USD", amount: 1240.5, income: false }, en));
+		expect(rowAmountLabel({ amount: -1240.5, code: "USD", income: false }, en)).toBe(
+			rowAmountLabel({ amount: 1240.5, code: "USD", income: false }, en)
+		);
 	});
 
 	it("resolves both keys rather than leaking them", () => {

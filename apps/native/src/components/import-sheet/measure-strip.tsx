@@ -13,29 +13,17 @@ export interface MeasureStripCell {
 	value: ReactNode;
 }
 
-export function MeasureStrip({
-	cells,
-	className,
-}: {
-	cells: readonly MeasureStripCell[];
-	className?: string;
-}) {
+export function MeasureStrip({ cells, className }: { cells: readonly MeasureStripCell[]; className?: string }) {
 	return (
 		<View className={cn("border-border border-y", className)}>
 			<View className="flex-row">
 				{cells.map((cell, index) => (
 					<View className={cn("flex-1", index > 0 && "pl-3.5")} key={cell.key}>
-						{index > 0 ? (
-							<View className="absolute inset-y-0 left-0 w-px bg-border" />
-						) : null}
+						{index > 0 ? <View className="absolute inset-y-0 left-0 w-px bg-border" /> : null}
 						<View className="gap-0.75 py-2.5">
 							<MonoLabel numberOfLines={1}>{cell.label}</MonoLabel>
 							{typeof cell.value === "string" ? (
-								<Text
-									className="font-sans-semibold text-body text-foreground"
-									numberOfLines={1}
-									style={TABULAR}
-								>
+								<Text className="font-sans-semibold text-body text-foreground" numberOfLines={1} style={TABULAR}>
 									{cell.value}
 								</Text>
 							) : (

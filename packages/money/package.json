@@ -1,29 +1,35 @@
 {
-	"name": "@outlayr/money",
-	"version": "0.0.0",
-	"private": true,
-	"type": "module",
-	"exports": {
-		".": "./src/index.ts",
-		"./fixtures": "./src/fixtures.ts"
-	},
-	"scripts": {
-		"check-types": "tsc --noEmit",
-		"check:types": "tsc --noEmit",
-		"generate:catalog": "node scripts/generate-catalog.mjs",
-		"test": "vitest run",
-		"test:watch": "vitest"
-	},
-	"dependencies": {
-		"dinero.js": "^2.0.2"
-	},
-	"devDependencies": {
-		"@outlayr/config": "workspace:*",
-		"@types/node": "^22.13.14",
-		"cldr-core": "45.0.0",
-		"cldr-numbers-modern": "45.0.0",
-		"typescript": "^6",
-		"vite": "8.1.2",
-		"vitest": "^4.1.9"
-	}
+  "name": "@outlayr/money",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./assert": "./src/assert.ts",
+    "./catalog": "./src/catalog.generated.ts",
+    "./currency": "./src/currency.ts",
+    "./dates": "./src/dates.ts",
+    "./errors": "./src/errors.ts",
+    "./fixtures": "./src/fixtures.ts",
+    "./rates": "./src/rates.ts",
+    "./round": "./src/round.ts"
+  },
+  "scripts": {
+    "check:types": "tsc --noEmit",
+    "check-types": "tsc --noEmit",
+    "generate:catalog": "node scripts/generate-catalog.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "dinero.js": "^2.0.2"
+  },
+  "devDependencies": {
+    "@outlayr/config": "workspace:*",
+    "@types/node": "^22.13.14",
+    "cldr-core": "45.0.0",
+    "cldr-numbers-modern": "45.0.0",
+    "typescript": "^6",
+    "vite": "8.1.2",
+    "vitest": "^4.1.9"
+  }
 }

@@ -14,13 +14,9 @@ import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
-import {
-	type CurrencyFigures,
-	cellFigures,
-	toCells,
-} from "@/domain/currency-totals";
+import { type CurrencyFigures, cellFigures, toCells } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { SearchEmptyState } from "./components/search-empty-state";
@@ -28,6 +24,16 @@ import { SearchEmptyState } from "./components/search-empty-state";
 export function Search() {
 	const db = useDatabase();
 	return <SearchContent db={db} />;
+}
+
+function emptyState(query: string, rowCount: number) {
+	if (query.trim() === "") {
+		return <SearchEmptyState kind="idle" />;
+	}
+	if (rowCount === 0) {
+		return <SearchEmptyState kind="noResults" query={query} />;
+	}
+	return null;
 }
 
 /**
@@ -45,70 +51,47 @@ function SearchContent({ db }: { db: Database }) {
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 
 	const found = useSearchedTransactions(db, query, nowMs);
-	const rows = useMemo(
-		() => found.filter((row) => row.id !== pendingId),
-		[found, pendingId],
-	);
-	const sections = useMemo(
-		() => groupByDay(rows, currency, rates),
-		[rows, currency, rates],
-	);
-	const figures = useMemo(
-		() => cellFigures(toCells(rows), currency, rates),
-		[rows, currency, rates],
-	);
+	const rows = useMemo(() => found.filter((row) => row.id !== pendingId), [found, pendingId]);
+	const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
+	const figures = useMemo(() => cellFigures(toCells(rows), currency, rates), [rows, currency, rates]);
 
-	const empty =
-		query.trim() === "" ? (
-			<SearchEmptyState kind="idle" />
-		) : rows.length === 0 ? (
-			<SearchEmptyState kind="noResults" query={query} />
-		) : null;
+	const empty = emptyState(query, rows.length);
 
 	return (
 		<>
 			<Stack.SearchBar
 				autoFocus
-				placeholder={t("search.placeholder")}
 				hideWhenScrolling={false}
-				onChangeText={(event) => setQuery(event.nativeEvent.text)}
 				// The field's Cancel closes the whole task, not just the field.
 				onCancelButtonPress={() => router.back()}
+				onChangeText={(event) => setQuery(event.nativeEvent.text)}
+				placeholder={t("search.placeholder")}
 			/>
 			{empty ? (
 				<View className="flex-1 bg-background">{empty}</View>
 			) : (
 				<SectionList
 					className="bg-background"
-					contentInsetAdjustmentBehavior="automatic"
-					sections={sections}
-					keyExtractor={(item) => item.id}
-					stickySectionHeadersEnabled={false}
-					recycleItems
-					keyboardDismissMode="on-drag"
 					contentContainerStyle={{
-						paddingHorizontal: 20,
 						paddingBottom: 40,
+						paddingHorizontal: 20,
 					}}
-					ListHeaderComponent={
-						<SearchResultsTotal
-							count={rows.length}
-							figures={figures}
-							showCents={showCents}
-						/>
-					}
-					renderSectionHeader={({ section }) => (
-						<DaySectionHeader section={section} />
-					)}
+					contentInsetAdjustmentBehavior="automatic"
+					keyboardDismissMode="on-drag"
+					keyExtractor={(item) => item.id}
+					ListHeaderComponent={<SearchResultsTotal count={rows.length} figures={figures} showCents={showCents} />}
+					recycleItems
 					renderItem={({ item }) => (
 						<TransactionRow
-							transaction={item}
 							currency={currency}
-							rates={rates}
-							onPress={(id) => router.push(`/transactions/${id}`)}
 							onLongPress={(id) => openRowActions(id, false)}
+							onPress={(id) => router.push(`/transactions/${id}`)}
+							rates={rates}
+							transaction={item}
 						/>
 					)}
+					renderSectionHeader={({ section }) => <DaySectionHeader section={section} />}
+					sections={sections}
 				/>
 			)}
 			<UndoToast onUndo={undo} visible={pendingId != null} />
@@ -117,10 +100,10 @@ function SearchContent({ db }: { db: Database }) {
 }
 
 interface SearchResultsTotalProps {
-	/** One block per currency the results ended up expressed in, dominant first. */
-	figures: readonly CurrencyFigures[];
 	/** Rows matched, across every currency. */
 	count: number;
+	/** One block per currency the results ended up expressed in, dominant first. */
+	figures: readonly CurrencyFigures[];
 	showCents: boolean;
 }
 
@@ -130,11 +113,7 @@ interface SearchResultsTotalProps {
  * mixed-currency result gets a block each: nothing here holds a rate across them,
  * and one combined figure would be an invention.
  */
-function SearchResultsTotal({
-	figures,
-	count,
-	showCents,
-}: SearchResultsTotalProps) {
+function SearchResultsTotal({ figures, count, showCents }: SearchResultsTotalProps) {
 	const t = useTranslation();
 	const named = figures.length > 1;
 
@@ -145,27 +124,27 @@ function SearchResultsTotal({
 				const net = entry.income - entry.expense;
 				const cells = [
 					{
+						// Only money actually coming in earns the income colour; a positive
+						// net is still just a net.
+						income: true,
 						key: "in",
 						label: t("search.results.in"),
 						magnitude: entry.income,
 						positive: true,
-						// Only money actually coming in earns the income colour; a positive
-						// net is still just a net.
-						income: true,
 					},
 					{
+						income: false,
 						key: "out",
 						label: t("search.results.out"),
 						magnitude: entry.expense,
 						positive: false,
-						income: false,
 					},
 					{
+						income: false,
 						key: "net",
 						label: t("search.results.net"),
 						magnitude: Math.abs(net),
 						positive: net >= 0,
-						income: false,
 					},
 				];
 

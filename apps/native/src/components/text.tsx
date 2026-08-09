@@ -1,16 +1,11 @@
 import type { ComponentRef, Ref } from "react";
-import {
-	Text as RNText,
-	StyleSheet,
-	type TextProps,
-	type TextStyle,
-} from "react-native";
+import { Text as RNText, StyleSheet, type TextProps, type TextStyle } from "react-native";
 
 const FAMILY = {
-	regular: "SFProRounded-Regular",
-	medium: "SFProRounded-Medium",
-	semibold: "SFProRounded-Semibold",
 	bold: "SFProRounded-Bold",
+	medium: "SFProRounded-Medium",
+	regular: "SFProRounded-Regular",
+	semibold: "SFProRounded-Semibold",
 } as const;
 
 function toNumericWeight(weight: TextStyle["fontWeight"]): number {
@@ -68,17 +63,7 @@ const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
  */
 export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
 	const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
-	const keepFamily =
-		flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
-	const fontFamily = keepFamily
-		? undefined
-		: roundedFamily(flattened?.fontWeight);
-	return (
-		<RNText
-			ref={ref}
-			className={className}
-			style={fontFamily ? [style, { fontFamily }] : style}
-			{...rest}
-		/>
-	);
+	const keepFamily = flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
+	const fontFamily = keepFamily ? undefined : roundedFamily(flattened?.fontWeight);
+	return <RNText className={className} ref={ref} style={fontFamily ? [style, { fontFamily }] : style} {...rest} />;
 }

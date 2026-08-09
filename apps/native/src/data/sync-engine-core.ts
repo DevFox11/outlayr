@@ -36,16 +36,16 @@ export const PULL_PAGE_LIMIT = 1000;
 const ID_CHUNK = 300;
 
 export interface WireRow {
-	table: SyncedTable;
-	localId: string;
-	updatedAt: number;
 	deletedAt: number | null;
 	fields: Record<string, unknown>;
+	localId: string;
+	table: SyncedTable;
+	updatedAt: number;
 }
 
 export interface PulledRow extends WireRow {
-	seq: number;
 	deviceId: string;
+	seq: number;
 }
 
 export type PushFn = (args: {
@@ -59,8 +59,8 @@ export type PullFn = (args: {
 }) => Promise<{ rows: PulledRow[]; cursor: number; hasMore: boolean }>;
 
 interface TableSpec {
-	table: SQLiteTable;
-	id: SQLiteColumn;
+	/** Stored as `Date` locally and as epoch milliseconds on the wire. */
+	dates: readonly string[];
 	/**
 	 * The replicated payload, which must name exactly the columns the Convex
 	 * table declares in `packages/backend/convex/lib/syncTables.ts`. A column
@@ -68,29 +68,94 @@ interface TableSpec {
 	 * `sync-engine-core.test.ts` checks this list against the local schema.
 	 */
 	fields: readonly string[];
-	/** Stored as `Date` locally and as epoch milliseconds on the wire. */
-	dates: readonly string[];
+	id: SQLiteColumn;
+	table: SQLiteTable;
 }
 
 const SPECS: Record<SyncedTable, TableSpec> = {
-	categories: {
-		table: categories,
-		id: categories.id,
+	accounts: {
+		dates: ["initialBalanceDate", "dateCreated"],
+		// `imageUri` is absent for the same reason it is on `transactions`.
 		fields: [
 			"name",
-			"color",
+			"currency",
+			"initialBalance",
+			"initialBalanceUsd",
+			"initialBalanceDate",
 			"icon",
 			"emoji",
-			"income",
+			"customColor",
+			"imageColor",
+			"imageKey",
 			"sortOrder",
 			"dateCreated",
-			"parentId",
 		],
+		id: accounts.id,
+		table: accounts,
+	},
+	appMeta: {
+		dates: [],
+		fields: ["value"],
+		id: appMeta.key,
+		table: appMeta,
+	},
+	budgets: {
+		dates: ["startDate", "dateCreated"],
+		fields: [
+			"name",
+			"amount",
+			"type",
+			"startDate",
+			"dateCreated",
+			"currency",
+			"amountUsd",
+			"green",
+			"rollover",
+			"categoryId",
+		],
+		id: budgets.id,
+		table: budgets,
+	},
+	categories: {
 		dates: ["dateCreated"],
+		fields: ["name", "color", "icon", "emoji", "income", "sortOrder", "dateCreated", "parentId"],
+		id: categories.id,
+		table: categories,
+	},
+	mainBudget: {
+		dates: ["startDate", "dateCreated"],
+		fields: ["name", "amount", "type", "startDate", "dateCreated", "currency", "amountUsd", "green", "rollover"],
+		id: mainBudget.id,
+		table: mainBudget,
+	},
+	tags: {
+		dates: [],
+		fields: ["name", "color", "sortOrder"],
+		id: tags.id,
+		table: tags,
+	},
+	templateTransactions: {
+		dates: [],
+		fields: ["amount", "income", "note", "sortOrder", "recurringType", "recurringCoefficient", "categoryId"],
+		id: templateTransactions.id,
+		table: templateTransactions,
+	},
+	transactionPhotos: {
+		dates: [],
+		// `imageUri` is absent on purpose: it is a path into THIS device's
+		// container, meaningless on another and stale here after an update.
+		fields: ["transactionId", "imageKey", "imageColor", "sortOrder"],
+		id: transactionPhotos.id,
+		table: transactionPhotos,
+	},
+	transactionSplits: {
+		dates: [],
+		fields: ["transactionId", "categoryId", "amount", "sortOrder"],
+		id: transactionSplits.id,
+		table: transactionSplits,
 	},
 	transactions: {
-		table: transactions,
-		id: transactions.id,
+		dates: ["date", "day", "month", "recurringEndDate"],
 		fields: [
 			"amount",
 			"income",
@@ -122,106 +187,14 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"exchangeRate",
 			"exchangeRateType",
 		],
-		dates: ["date", "day", "month", "recurringEndDate"],
-	},
-	budgets: {
-		table: budgets,
-		id: budgets.id,
-		fields: [
-			"name",
-			"amount",
-			"type",
-			"startDate",
-			"dateCreated",
-			"currency",
-			"amountUsd",
-			"green",
-			"rollover",
-			"categoryId",
-		],
-		dates: ["startDate", "dateCreated"],
-	},
-	mainBudget: {
-		table: mainBudget,
-		id: mainBudget.id,
-		fields: [
-			"name",
-			"amount",
-			"type",
-			"startDate",
-			"dateCreated",
-			"currency",
-			"amountUsd",
-			"green",
-			"rollover",
-		],
-		dates: ["startDate", "dateCreated"],
-	},
-	tags: {
-		table: tags,
-		id: tags.id,
-		fields: ["name", "color", "sortOrder"],
-		dates: [],
+		id: transactions.id,
+		table: transactions,
 	},
 	transactionTags: {
-		table: transactionTags,
-		id: transactionTags.id,
+		dates: [],
 		fields: ["transactionId", "tagId"],
-		dates: [],
-	},
-	transactionPhotos: {
-		table: transactionPhotos,
-		id: transactionPhotos.id,
-		// `imageUri` is absent on purpose: it is a path into THIS device's
-		// container, meaningless on another and stale here after an update.
-		fields: ["transactionId", "imageKey", "imageColor", "sortOrder"],
-		dates: [],
-	},
-	transactionSplits: {
-		table: transactionSplits,
-		id: transactionSplits.id,
-		fields: ["transactionId", "categoryId", "amount", "sortOrder"],
-		dates: [],
-	},
-	accounts: {
-		table: accounts,
-		id: accounts.id,
-		// `imageUri` is absent for the same reason it is on `transactions`.
-		fields: [
-			"name",
-			"currency",
-			"initialBalance",
-			"initialBalanceUsd",
-			"initialBalanceDate",
-			"icon",
-			"emoji",
-			"customColor",
-			"imageColor",
-			"imageKey",
-			"sortOrder",
-			"dateCreated",
-		],
-		dates: ["initialBalanceDate", "dateCreated"],
-	},
-	templateTransactions: {
-		table: templateTransactions,
-		id: templateTransactions.id,
-		fields: [
-			"amount",
-			"income",
-			"note",
-			"sortOrder",
-			"recurringType",
-			"recurringCoefficient",
-			"categoryId",
-		],
-		dates: [],
-	},
-	appMeta: {
-		table: appMeta,
-		id: appMeta.key,
-		fields: ["value"],
-		dates: [],
+		id: transactionTags.id,
+		table: transactionTags,
 	},
 };
 
@@ -233,13 +206,13 @@ export function specFor(table: SyncedTable): TableSpec {
 // keyed by a name checked against `SPECS`. The alternative is six copies of each
 // helper.
 type Row = Record<string, unknown>;
-type AnyWriter = {
+interface AnyWriter {
 	select: (columns?: unknown) => {
 		from: (table: SQLiteTable) => {
 			where: (clause: unknown) => Promise<Row[]>;
 		};
 	};
-};
+}
 
 function toEpoch(value: unknown): number | null {
 	return value instanceof Date ? value.getTime() : null;
@@ -254,15 +227,15 @@ function toWireFields(spec: TableSpec, row: Row): Record<string, unknown> {
 	return fields;
 }
 
+function toLocalDate(value: unknown): Date | null {
+	return typeof value === "number" ? new Date(value) : null;
+}
+
 function toLocalFields(spec: TableSpec, fields: Record<string, unknown>): Row {
 	const local: Row = {};
 	for (const name of spec.fields) {
 		const value = fields[name] ?? null;
-		local[name] = spec.dates.includes(name)
-			? typeof value === "number"
-				? new Date(value)
-				: null
-			: value;
+		local[name] = spec.dates.includes(name) ? toLocalDate(value) : value;
 	}
 	return local;
 }
@@ -275,18 +248,19 @@ function chunked<T>(values: readonly T[]): T[][] {
 	return chunks;
 }
 
-async function rowsById(
-	db: Database,
-	table: SyncedTable,
-	ids: readonly string[],
-): Promise<Map<string, Row>> {
+async function rowsById(db: Database, table: SyncedTable, ids: readonly string[]): Promise<Map<string, Row>> {
 	const spec = SPECS[table];
+	const batches = await Promise.all(
+		chunked(ids).map(
+			(chunk) =>
+				(db as unknown as AnyWriter)
+					.select()
+					.from(spec.table)
+					.where(inArray(spec.id, [...chunk])) as Promise<Row[]>
+		)
+	);
 	const found = new Map<string, Row>();
-	for (const chunk of chunked(ids)) {
-		const rows = (await (db as unknown as AnyWriter)
-			.select()
-			.from(spec.table)
-			.where(inArray(spec.id, [...chunk]))) as Row[];
+	for (const rows of batches) {
 		for (const row of rows) {
 			found.set(String(row[spec.id.name]), row);
 		}
@@ -294,9 +268,7 @@ async function rowsById(
 	return found;
 }
 
-function groupByTable<T extends { tableName: string; localId: string }>(
-	entries: readonly T[],
-): Map<SyncedTable, T[]> {
+function groupByTable<T extends { tableName: string; localId: string }>(entries: readonly T[]): Map<SyncedTable, T[]> {
 	const grouped = new Map<SyncedTable, T[]>();
 	for (const entry of entries) {
 		const table = entry.tableName as SyncedTable;
@@ -330,27 +302,28 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 	let pushed = 0;
 
 	for (;;) {
-		const queued = await db
-			.select()
-			.from(outbox)
-			.orderBy(asc(outbox.seq))
-			.limit(PUSH_BATCH_LIMIT);
+		// biome-ignore lint/performance/noAwaitInLoops: each pass reads the outbox left behind by the previous pass's push and delete, so the batches cannot overlap
+		const queued = await db.select().from(outbox).orderBy(asc(outbox.seq)).limit(PUSH_BATCH_LIMIT);
 		if (queued.length === 0) {
 			return pushed;
 		}
 
 		const grouped = groupByTable(queued);
-		const loaded = new Map<SyncedTable, Map<string, Row>>();
-		for (const [table, entries] of grouped) {
-			loaded.set(
-				table,
-				await rowsById(
-					db,
-					table,
-					entries.map((entry) => entry.localId),
-				),
-			);
-		}
+		const loaded = new Map<SyncedTable, Map<string, Row>>(
+			await Promise.all(
+				[...grouped].map(
+					async ([table, entries]) =>
+						[
+							table,
+							await rowsById(
+								db,
+								table,
+								entries.map((entry) => entry.localId)
+							),
+						] as const
+				)
+			)
+		);
 
 		const rows: WireRow[] = [];
 		for (const entry of queued) {
@@ -361,16 +334,13 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 			}
 			const spec = SPECS[table];
 			rows.push({
-				table,
-				localId: entry.localId,
-				// `appMeta` has no clock of its own, so the enqueue time is the only
-				// honest "when did this device last say so" it can carry.
-				updatedAt:
-					table === "appMeta"
-						? (toEpoch(entry.enqueuedAt) ?? 0)
-						: (toEpoch(row.updatedAt) ?? 0),
 				deletedAt: table === "appMeta" ? null : toEpoch(row.deletedAt),
 				fields: toWireFields(spec, row),
+				localId: entry.localId,
+				table,
+				// `appMeta` has no clock of its own, so the enqueue time is the only
+				// honest "when did this device last say so" it can carry.
+				updatedAt: table === "appMeta" ? (toEpoch(entry.enqueuedAt) ?? 0) : (toEpoch(row.updatedAt) ?? 0),
 			});
 		}
 
@@ -380,6 +350,7 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 		}
 
 		for (const chunk of chunked(queued.map((entry) => entry.seq))) {
+			// biome-ignore lint/performance/noAwaitInLoops: chunking only exists to stay under SQLite's bound-parameter limit, and one connection serialises writers anyway, so overlapping these deletes buys contention rather than parallelism
 			await db.delete(outbox).where(inArray(outbox.seq, chunk));
 		}
 
@@ -390,9 +361,9 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 }
 
 interface LocalVersion {
+	deletedAt: number | null;
 	/** Null for a table with no clock of its own — `appMeta` is the only one. */
 	updatedAt: number | null;
-	deletedAt: number | null;
 }
 
 /**
@@ -408,7 +379,7 @@ interface LocalVersion {
 export function incomingWinsLocally(
 	incoming: { updatedAt: number; deletedAt: number | null },
 	local: LocalVersion | null,
-	localIsPending: boolean,
+	localIsPending: boolean
 ): boolean {
 	if (local === null) {
 		return true;
@@ -440,7 +411,7 @@ export function incomingWinsLocally(
  */
 function keepsCategory(
 	incoming: { updatedAt: number; localId: string },
-	rival: { updatedAt: number; id: string },
+	rival: { updatedAt: number; id: string }
 ): boolean {
 	if (incoming.updatedAt !== rival.updatedAt) {
 		return incoming.updatedAt > rival.updatedAt;
@@ -471,14 +442,12 @@ export interface ApplyResult {
 async function applyInTransaction(
 	db: Database,
 	page: { rows: readonly PulledRow[]; cursor: number },
-	now: Date,
+	now: Date
 ): Promise<ApplyResult> {
 	const pending = new Set(
-		(
-			await db
-				.select({ tableName: outbox.tableName, localId: outbox.localId })
-				.from(outbox)
-		).map((entry) => `${entry.tableName} ${entry.localId}`),
+		(await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox)).map(
+			(entry) => `${entry.tableName} ${entry.localId}`
+		)
 	);
 
 	const byTable = new Map<SyncedTable, PulledRow[]>();
@@ -491,17 +460,21 @@ async function applyInTransaction(
 		byTable.set(row.table, bucket);
 	}
 
-	const existing = new Map<SyncedTable, Map<string, Row>>();
-	for (const [table, rows] of byTable) {
-		existing.set(
-			table,
-			await rowsById(
-				db,
-				table,
-				rows.map((row) => row.localId),
-			),
-		);
-	}
+	const existing = new Map<SyncedTable, Map<string, Row>>(
+		await Promise.all(
+			[...byTable].map(
+				async ([table, rows]) =>
+					[
+						table,
+						await rowsById(
+							db,
+							table,
+							rows.map((row) => row.localId)
+						),
+					] as const
+			)
+		)
+	);
 
 	const winners: PulledRow[] = [];
 	for (const row of page.rows) {
@@ -513,10 +486,8 @@ async function applyInTransaction(
 			local === undefined
 				? null
 				: {
-						updatedAt:
-							row.table === "appMeta" ? null : (toEpoch(local.updatedAt) ?? 0),
-						deletedAt:
-							row.table === "appMeta" ? null : toEpoch(local.deletedAt),
+						deletedAt: row.table === "appMeta" ? null : toEpoch(local.deletedAt),
+						updatedAt: row.table === "appMeta" ? null : (toEpoch(local.updatedAt) ?? 0),
 					};
 		const isPending = pending.has(`${row.table} ${row.localId}`);
 		if (incomingWinsLocally(row, localVersion, isPending)) {
@@ -531,6 +502,7 @@ async function applyInTransaction(
 		for (const row of winners) {
 			// A row R3 rewrote is NOT what the server holds, so it stays queued and
 			// this device pushes its correction rather than silently diverging.
+			// biome-ignore lint/performance/noAwaitInLoops: R3 resolution inside writeRow reads the budgets an earlier winner left live, so the winners must be written one at a time
 			if (await writeRow(db, row, now)) {
 				replicatedVerbatim.push(row);
 			}
@@ -539,17 +511,14 @@ async function applyInTransaction(
 
 		const cleared = groupByTable(
 			replicatedVerbatim.map((row) => ({
-				tableName: row.table,
 				localId: row.localId,
-			})),
+				tableName: row.table,
+			}))
 		);
 		for (const [table, entries] of cleared) {
 			for (const chunk of chunked(entries.map((entry) => entry.localId))) {
-				await db
-					.delete(outbox)
-					.where(
-						and(eq(outbox.tableName, table), inArray(outbox.localId, chunk)),
-					);
+				// biome-ignore lint/performance/noAwaitInLoops: these deletes run inside one SQLite transaction, which admits a single writer, so they cannot overlap
+				await db.delete(outbox).where(and(eq(outbox.tableName, table), inArray(outbox.localId, chunk)));
 			}
 		}
 
@@ -576,12 +545,8 @@ async function applyInTransaction(
  * tombstoned. Both push their tombstone, and R1 makes it absorbing, so the
  * account converges on one live budget per category.
  */
-async function resolveBudgetCategory(
-	db: Database,
-	row: PulledRow,
-	now: Date,
-): Promise<boolean> {
-	const categoryId = row.fields.categoryId;
+async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): Promise<boolean> {
+	const { categoryId } = row.fields;
 	if (row.deletedAt !== null || typeof categoryId !== "string") {
 		return false;
 	}
@@ -596,12 +561,11 @@ async function resolveBudgetCategory(
 		if (rival.id === row.localId) {
 			continue;
 		}
-		if (
-			keepsCategory(row, { id: rival.id, updatedAt: rival.updatedAt.getTime() })
-		) {
+		if (keepsCategory(row, { id: rival.id, updatedAt: rival.updatedAt.getTime() })) {
+			// biome-ignore lint/performance/noAwaitInLoops: this runs inside the apply transaction, which admits a single writer, so the rival tombstones cannot overlap
 			await db
 				.update(budgets)
-				.set({ deletedAt: now, updatedAt: now, categoryId: null })
+				.set({ categoryId: null, deletedAt: now, updatedAt: now })
 				.where(eq(budgets.id, rival.id));
 		} else {
 			incomingLoses = true;
@@ -620,11 +584,7 @@ function retiresSchedule(values: Row): boolean {
 }
 
 /** Answers whether the row landed verbatim, or was rewritten by R3. */
-async function writeRow(
-	db: Database,
-	row: PulledRow,
-	now: Date,
-): Promise<boolean> {
+async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolean> {
 	const spec = SPECS[row.table];
 
 	if (row.table === "appMeta") {
@@ -635,22 +595,17 @@ async function writeRow(
 		await db
 			.insert(appMeta)
 			.values({ key: row.localId, value })
-			.onConflictDoUpdate({ target: appMeta.key, set: { value } });
+			.onConflictDoUpdate({ set: { value }, target: appMeta.key });
 		return true;
 	}
 
-	const lostCategory =
-		row.table === "budgets" && (await resolveBudgetCategory(db, row, now));
+	const lostCategory = row.table === "budgets" && (await resolveBudgetCategory(db, row, now));
 
 	const values: Row = {
 		...toLocalFields(spec, row.fields),
 		[spec.id.name]: row.localId,
+		deletedAt: lostCategory ? now : toLocalDate(row.deletedAt),
 		updatedAt: lostCategory ? now : new Date(row.updatedAt),
-		deletedAt: lostCategory
-			? now
-			: row.deletedAt === null
-				? null
-				: new Date(row.deletedAt),
 	};
 	if (lostCategory) {
 		values.categoryId = null;
@@ -667,17 +622,11 @@ async function writeRow(
 	const writer = db as unknown as {
 		insert: (table: SQLiteTable) => {
 			values: (row: Row) => {
-				onConflictDoUpdate: (config: {
-					target: SQLiteColumn;
-					set: Row;
-				}) => Promise<unknown>;
+				onConflictDoUpdate: (config: { target: SQLiteColumn; set: Row }) => Promise<unknown>;
 			};
 		};
 	};
-	await writer
-		.insert(spec.table)
-		.values(values)
-		.onConflictDoUpdate({ target: spec.id, set: values });
+	await writer.insert(spec.table).values(values).onConflictDoUpdate({ set: values, target: spec.id });
 	return !lostCategory;
 }
 
@@ -697,20 +646,18 @@ async function reconcileMainBudget(db: Database, now: Date): Promise<boolean> {
 	const survivor = live.reduce((best, row) =>
 		keepsCategory(
 			{ localId: row.id, updatedAt: row.updatedAt.getTime() },
-			{ id: best.id, updatedAt: best.updatedAt.getTime() },
+			{ id: best.id, updatedAt: best.updatedAt.getTime() }
 		)
 			? row
-			: best,
+			: best
 	);
 
 	for (const row of live) {
 		if (row.id === survivor.id) {
 			continue;
 		}
-		await db
-			.update(mainBudget)
-			.set({ deletedAt: now, updatedAt: now })
-			.where(eq(mainBudget.id, row.id));
+		// biome-ignore lint/performance/noAwaitInLoops: this runs inside the apply transaction, which admits a single writer, so the tombstones cannot overlap
+		await db.update(mainBudget).set({ deletedAt: now, updatedAt: now }).where(eq(mainBudget.id, row.id));
 	}
 	return true;
 }
@@ -723,15 +670,13 @@ async function reconcileMainBudget(db: Database, now: Date): Promise<boolean> {
 export async function applyPulledRows(
 	db: Database,
 	page: { rows: readonly PulledRow[]; cursor: number },
-	now: Date = new Date(),
+	now: Date = new Date()
 ): Promise<ApplyResult> {
 	if (page.rows.length === 0) {
 		return { applied: 0, tables: [] };
 	}
 
-	const before = await db.all<{ foreign_keys: number }>(
-		sql`PRAGMA foreign_keys`,
-	);
+	const before = await db.all<{ foreign_keys: number }>(sql`PRAGMA foreign_keys`);
 	const wasOn = before[0]?.foreign_keys === 1;
 
 	// A no-op inside a transaction, which is why it is issued out here.
@@ -753,11 +698,7 @@ export async function applyPulledRows(
  * The `cursor` guard is not paranoia: a page that returns rows but does not
  * advance the watermark would otherwise be replayed forever.
  */
-export async function pullAndApply(
-	db: Database,
-	pull: PullFn,
-	now: Date = new Date(),
-): Promise<ApplyResult> {
+export async function pullAndApply(db: Database, pull: PullFn, now: Date = new Date()): Promise<ApplyResult> {
 	if (!(await isSyncEnabled(db))) {
 		return { applied: 0, tables: [] };
 	}
@@ -767,6 +708,7 @@ export async function pullAndApply(
 	const tables = new Set<SyncedTable>();
 
 	for (;;) {
+		// biome-ignore lint/performance/noAwaitInLoops: each page is fetched from the cursor the previous page returned, so the walk is inherently sequential
 		const page = await pull({ cursor, limit: PULL_PAGE_LIMIT });
 		if (page.rows.length === 0) {
 			return { applied, tables: [...tables] };
@@ -779,7 +721,7 @@ export async function pullAndApply(
 		if (page.cursor <= cursor) {
 			return { applied, tables: [...tables] };
 		}
-		cursor = page.cursor;
+		({ cursor } = page);
 		if (!page.hasMore) {
 			return { applied, tables: [...tables] };
 		}
@@ -794,9 +736,9 @@ export async function pullAndApply(
 export async function runSync(
 	db: Database,
 	transport: { push: PushFn; pull: PullFn },
-	now: Date = new Date(),
+	now: Date = new Date()
 ): Promise<{ pushed: number; applied: number; tables: SyncedTable[] }> {
 	const pushed = await drainOutbox(db, transport.push);
 	const { applied, tables } = await pullAndApply(db, transport.pull, now);
-	return { pushed, applied, tables };
+	return { applied, pushed, tables };
 }

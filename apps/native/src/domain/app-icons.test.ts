@@ -12,13 +12,14 @@ import {
 	RELEASE_PRIMARY_ICON,
 } from "./app-icons";
 
-const nativeRoot = join(__dirname, "../..");
+const nativeRoot = join(import.meta.dirname, "../..");
 
 function declaredInAppConfig(): string[] {
 	const source = readFileSync(join(nativeRoot, "app.config.ts"), "utf8");
 	const block = /const ALTERNATE_ICONS = \[([\s\S]*?)\];/.exec(source);
-	if (!block)
+	if (!block) {
 		throw new Error("app.config.ts no longer declares ALTERNATE_ICONS");
+	}
 	return [...block[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
 }
 
@@ -30,10 +31,10 @@ function declaredInAppConfig(): string[] {
  */
 function primaryIconsInAppConfig(): string[] {
 	const source = readFileSync(join(nativeRoot, "app.config.ts"), "utf8");
-	const names = [...source.matchAll(/"\.\/assets\/(\w+)\.icon"/g)].map(
-		(match) => match[1],
-	);
-	expect(names.length > 0).toBeTruthy();
+	const names = [...source.matchAll(/"\.\/assets\/(\w+)\.icon"/g)].map((match) => match[1]);
+	if (names.length === 0) {
+		throw new Error("app.config.ts no longer names a primary icon bundle");
+	}
 	return names;
 }
 
@@ -44,20 +45,15 @@ function primaryIconsInAppConfig(): string[] {
  */
 function primaryIconBranches(): { icon: string[]; extra: string[] } {
 	const source = readFileSync(join(nativeRoot, "app.config.ts"), "utf8");
-	const icon =
-		/icon:\s*isProduction\s*\?\s*"\.\/assets\/(\w+)\.icon"\s*:\s*"\.\/assets\/(\w+)\.icon"/.exec(
-			source,
-		);
-	const extra =
-		/primaryAppIcon:\s*isProduction\s*\?\s*"(\w+)"\s*:\s*"(\w+)"/.exec(source);
-	if (!icon)
+	const icon = /icon:\s*isProduction\s*\?\s*"\.\/assets\/(\w+)\.icon"\s*:\s*"\.\/assets\/(\w+)\.icon"/.exec(source);
+	const extra = /primaryAppIcon:\s*isProduction\s*\?\s*"(\w+)"\s*:\s*"(\w+)"/.exec(source);
+	if (!icon) {
 		throw new Error("app.config.ts no longer picks ios.icon on isProduction");
-	if (!extra) {
-		throw new Error(
-			"app.config.ts no longer carries extra.primaryAppIcon on isProduction",
-		);
 	}
-	return { icon: [icon[1], icon[2]], extra: [extra[1], extra[2]] };
+	if (!extra) {
+		throw new Error("app.config.ts no longer carries extra.primaryAppIcon on isProduction");
+	}
+	return { extra: [extra[1], extra[2]], icon: [icon[1], icon[2]] };
 }
 
 function iconBundlesOnDisk(): string[] {
@@ -73,17 +69,13 @@ describe("app icon catalogue", () => {
 
 	it("ships a bundle for every alternate it offers", () => {
 		for (const name of ALTERNATE_ICON_NAMES) {
-			expect(
-				existsSync(join(nativeRoot, "assets", `${name}.icon`, "icon.json")),
-			).toBeTruthy();
+			expect(existsSync(join(nativeRoot, "assets", `${name}.icon`, "icon.json"))).toBeTruthy();
 		}
 	});
 
 	it("ships a bundle for every primary a build can launch with", () => {
 		for (const name of primaryIconsInAppConfig()) {
-			expect(
-				existsSync(join(nativeRoot, "assets", `${name}.icon`, "icon.json")),
-			).toBeTruthy();
+			expect(existsSync(join(nativeRoot, "assets", `${name}.icon`, "icon.json"))).toBeTruthy();
 		}
 	});
 
@@ -95,10 +87,7 @@ describe("app icon catalogue", () => {
 	});
 
 	it("carries no icon bundle no build declares", () => {
-		const declared = new Set([
-			...declaredInAppConfig(),
-			...primaryIconsInAppConfig(),
-		]);
+		const declared = new Set([...declaredInAppConfig(), ...primaryIconsInAppConfig()]);
 		for (const name of iconBundlesOnDisk()) {
 			expect(declared.has(name)).toBeTruthy();
 		}
@@ -110,13 +99,7 @@ describe("app icon catalogue", () => {
 		for (const icon of APP_ICONS) {
 			for (const scale of ["", "@2x", "@3x"]) {
 				expect(
-					existsSync(
-						join(
-							nativeRoot,
-							"assets/images/app-icon-previews",
-							`${icon.slug}${scale}.png`,
-						),
-					),
+					existsSync(join(nativeRoot, "assets/images/app-icon-previews", `${icon.slug}${scale}.png`))
 				).toBeTruthy();
 			}
 		}
@@ -126,9 +109,7 @@ describe("app icon catalogue", () => {
 		const drawn = readdirSync(join(nativeRoot, "assets/app-icon-previews"))
 			.filter((entry) => entry.endsWith(".svg"))
 			.map((entry) => entry.slice(0, -".svg".length));
-		expect(drawn.sort()).toStrictEqual(
-			APP_ICONS.map((icon) => icon.slug).sort(),
-		);
+		expect(drawn.sort()).toStrictEqual(APP_ICONS.map((icon) => icon.slug).sort());
 	});
 
 	it("names the primary exactly once, and first", () => {
@@ -169,9 +150,7 @@ describe("describing the Default row", () => {
 	});
 
 	it("does not claim it in a build that stamps the blueprint icon", () => {
-		expect(defaultRowDetail("OutlayrTesting")).toBe(
-			"appIcon.default.detailDev",
-		);
+		expect(defaultRowDetail("OutlayrTesting")).toBe("appIcon.default.detailDev");
 	});
 
 	it("does not claim it where the build named no primary at all", () => {
@@ -252,8 +231,6 @@ describe("choosing an icon", () => {
 			kind: "rejected",
 			reported: "OutlayrMono",
 		});
-		expect(
-			appIconTransition(refused, { kind: "resolved", name: "OutlayrInk" }),
-		).toBe(refused);
+		expect(appIconTransition(refused, { kind: "resolved", name: "OutlayrInk" })).toBe(refused);
 	});
 });

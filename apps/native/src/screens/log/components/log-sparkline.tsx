@@ -2,13 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, useReducedMotion } from "react-native-reanimated";
-import Svg, {
-	Circle,
-	Defs,
-	LinearGradient,
-	Path,
-	Stop,
-} from "react-native-svg";
+import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
@@ -16,7 +10,8 @@ import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
-import { type Language, useLanguage, useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
 import { CHART_SCRUB } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -24,22 +19,16 @@ const HEIGHT = 34;
 const INSET = 10;
 
 interface LogSparklineProps {
+	byMonth: boolean;
+	/** Decides whether the line has a direction worth speaking. */
+	measure: LogMeasure;
 	points: SparklinePoint[];
 	positive: boolean;
 	/** How many trailing points belong to the period being reported. */
 	range: number;
-	byMonth: boolean;
-	/** Decides whether the line has a direction worth speaking. */
-	measure: LogMeasure;
 }
 
-export function LogSparkline({
-	points,
-	positive,
-	range,
-	byMonth,
-	measure,
-}: LogSparklineProps) {
+export function LogSparkline({ points, positive, range, byMonth, measure }: LogSparklineProps) {
 	const colors = useColors();
 	const t = useTranslation();
 	const { language } = useLanguage();
@@ -91,9 +80,9 @@ export function LogSparkline({
 			sparklineLabelKey(
 				measure,
 				points.map((point) => point.amount),
-				byMonth,
+				byMonth
 			),
-		[measure, points, byMonth],
+		[measure, points, byMonth]
 	);
 
 	// Where the muted part of the line hands over to the trend colour.
@@ -117,17 +106,14 @@ export function LogSparkline({
 						return;
 					}
 					const step = width / (count - 1);
-					const index = Math.min(
-						count - 1,
-						Math.max(0, Math.round(event.x / step)),
-					);
+					const index = Math.min(count - 1, Math.max(0, Math.round(event.x / step)));
 					runOnJS(setScrubIndex)(index);
 				})
 				.onFinalize(() => {
 					"worklet";
 					runOnJS(setScrubIndex)(null);
 				}),
-		[count, width],
+		[count, width]
 	);
 
 	if (points.length < 2) {
@@ -135,14 +121,10 @@ export function LogSparkline({
 	}
 
 	const scrubbed = scrubIndex == null ? null : points[scrubIndex];
-	const scrubCoord =
-		scrubIndex == null ? null : (geometry?.coords[scrubIndex] ?? null);
+	const scrubCoord = scrubIndex == null ? null : (geometry?.coords[scrubIndex] ?? null);
 	// Before the period starts, the scrubber marks history rather than the figure
 	// the hero is reporting — so it takes the rule's colour, not the trend's.
-	const scrubColor =
-		scrubIndex != null && points.length - range > scrubIndex
-			? colors.border
-			: color;
+	const scrubColor = scrubIndex != null && points.length - range > scrubIndex ? colors.border : color;
 
 	return (
 		<View className="pt-4 pb-1" style={{ paddingHorizontal: INSET }}>
@@ -154,35 +136,32 @@ export function LogSparkline({
 					accessibilityLabel={t(labelKey)}
 					accessibilityRole="image"
 					accessible
-					style={{ height: HEIGHT }}
 					onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+					style={{ height: HEIGHT }}
 				>
 					{geometry ? (
-						<Svg width="100%" height={HEIGHT}>
+						<Svg height={HEIGHT} width="100%">
 							<Defs>
-								<LinearGradient id="spark" x1="0" y1="0" x2="1" y2="0">
-									<Stop
-										offset={Math.max(0, boundary - 0.01)}
-										stopColor={colors.border}
-									/>
+								<LinearGradient id="spark" x1="0" x2="1" y1="0" y2="0">
+									<Stop offset={Math.max(0, boundary - 0.01)} stopColor={colors.border} />
 									<Stop offset={boundary} stopColor={color} />
 								</LinearGradient>
 							</Defs>
 							<Path
 								d={geometry.d}
-								stroke="url(#spark)"
-								strokeWidth={2}
-								strokeLinecap="round"
-								strokeLinejoin="round"
 								fill="none"
 								opacity={drawn ? 1 : 0}
+								stroke="url(#spark)"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
 							/>
 							<Circle
 								cx={geometry.coords.at(-1)?.x ?? 0}
 								cy={geometry.coords.at(-1)?.y ?? 0}
-								r={CHART_SCRUB.dotRadius}
 								fill={color}
 								opacity={drawn ? 1 : 0}
+								r={CHART_SCRUB.dotRadius}
 							/>
 							{scrubCoord ? (
 								<>
@@ -191,14 +170,14 @@ export function LogSparkline({
 									<Path
 										d={`M${scrubCoord.x} 0 L${scrubCoord.x} ${HEIGHT}`}
 										stroke={scrubColor}
-										strokeWidth={CHART_SCRUB.ruleWidth}
 										strokeLinecap="round"
+										strokeWidth={CHART_SCRUB.ruleWidth}
 									/>
 									<Circle
 										cx={scrubCoord.x}
 										cy={scrubCoord.y}
-										r={CHART_SCRUB.activeDotRadius}
 										fill={scrubColor}
+										r={CHART_SCRUB.activeDotRadius}
 										stroke={colors.background}
 										strokeWidth={2}
 									/>
@@ -218,17 +197,15 @@ export function LogSparkline({
 					importantForAccessibility="no-hide-descendants"
 					pointerEvents="none"
 					style={{
+						bottom: HEIGHT + 8,
 						left: INSET + scrubCoord.x - 40,
 						width: 80,
-						bottom: HEIGHT + 8,
 					}}
 				>
 					<Text className="font-sans-medium text-micro text-muted">
 						{formatSample(scrubbed.date, byMonth, language)}
 					</Text>
-					<Text className="font-sans-semibold text-foreground text-label">
-						{formatAmount(scrubbed.amount)}
-					</Text>
+					<Text className="font-sans-semibold text-foreground text-label">{formatAmount(scrubbed.amount)}</Text>
 				</View>
 			) : null}
 		</View>
@@ -236,15 +213,9 @@ export function LogSparkline({
 }
 
 /** "24 Jul" by day, "Jul 26" by month. */
-function formatSample(
-	date: Date,
-	byMonth: boolean,
-	language: Language,
-): string {
+function formatSample(date: Date, byMonth: boolean, language: Language): string {
 	const month = monthAbbrevTitle(date, language);
-	return byMonth
-		? `${month} ${String(date.getFullYear()).slice(-2)}`
-		: `${date.getDate()} ${month}`;
+	return byMonth ? `${month} ${String(date.getFullYear()).slice(-2)}` : `${date.getDate()} ${month}`;
 }
 
 function formatAmount(amount: number): string {

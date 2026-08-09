@@ -1,4 +1,4 @@
-import { PICKABLE_CURRENCY_CODES } from "@outlayr/money";
+import { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 import { currencyPickerRows } from "./currency-picker-rows";
 
 const codes = (rows: ReturnType<typeof currencyPickerRows>) =>
@@ -7,8 +7,7 @@ const codes = (rows: ReturnType<typeof currencyPickerRows>) =>
 const sections = (rows: ReturnType<typeof currencyPickerRows>) =>
 	rows.flatMap((row) => (row.kind === "header" ? [row.section] : []));
 
-const hints = (rows: ReturnType<typeof currencyPickerRows>) =>
-	rows.filter((row) => row.kind === "hint");
+const hints = (rows: ReturnType<typeof currencyPickerRows>) => rows.filter((row) => row.kind === "hint");
 
 describe("the currency picker's rows", () => {
 	it("teaches the gesture under an empty cluster, above the whole catalogue", () => {
@@ -60,9 +59,7 @@ describe("the currency picker's rows", () => {
 
 	it("marks the cluster's rows as favourites and the rest as not", () => {
 		const rows = currencyPickerRows(["USD"], "");
-		const favourites = rows.filter(
-			(row) => row.kind === "currency" && row.favourite,
-		);
+		const favourites = rows.filter((row) => row.kind === "currency" && row.favourite);
 		expect(favourites.length).toBe(1);
 		expect(favourites[0].kind === "currency" && favourites[0].code).toBe("USD");
 	});
@@ -87,9 +84,7 @@ describe("the currency picker's rows", () => {
 	});
 
 	it("searches by code and by name, ignoring case and padding", () => {
-		expect(
-			codes(currencyPickerRows([], "  JpY ")).includes("JPY"),
-		).toBeTruthy();
+		expect(codes(currencyPickerRows([], "  JpY ")).includes("JPY")).toBeTruthy();
 		expect(codes(currencyPickerRows([], "yen")).includes("JPY")).toBeTruthy();
 	});
 
@@ -100,18 +95,16 @@ describe("the currency picker's rows", () => {
 
 describe("where a section closes", () => {
 	const lastCodes = (rows: ReturnType<typeof currencyPickerRows>) =>
-		rows.flatMap((row) =>
-			row.kind === "currency" && row.last ? [row.code] : [],
-		);
+		rows.flatMap((row) => (row.kind === "currency" && row.last ? [row.code] : []));
 
 	it("closes on the row before a header, and on the very last row", () => {
 		// The row draws its own separator, so the one closing a section has to leave
 		// it off or it stacks a hairline against the next header.
 		const rows = currencyPickerRows(["USD", "VES"], "");
-		const codes = lastCodes(rows);
-		expect(codes[0]).toBe("VES");
-		expect(codes.length).toBe(2);
-		expect(codes[1]).toBe(rows.at(-1)?.kind === "currency" ? codes[1] : null);
+		const closingCodes = lastCodes(rows);
+		expect(closingCodes[0]).toBe("VES");
+		expect(closingCodes.length).toBe(2);
+		expect(closingCodes[1]).toBe(rows.at(-1)?.kind === "currency" ? closingCodes[1] : null);
 	});
 
 	it("closes only the final row of a search", () => {

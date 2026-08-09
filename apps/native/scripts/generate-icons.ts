@@ -13,14 +13,7 @@
 
 import { dirname, join, resolve } from "node:path";
 
-import {
-	loadIcon,
-	rasterize,
-	requireRsvgConvert,
-	resetDirectory,
-	SCALE_COUNT,
-	toSvg,
-} from "./hugeicon-raster";
+import { loadIcon, rasterize, requireRsvgConvert, resetDirectory, SCALE_COUNT, toSvg } from "./hugeicon-raster";
 import { type IconSet, SETS } from "./icon-sets";
 
 const appDir = resolve(dirname(process.argv[1]), "..");
@@ -41,45 +34,31 @@ async function writeSet(set: IconSet): Promise<number> {
 		const strokeWidth =
 			weight === "solid"
 				? undefined
-				: (entry.strokeWidth ??
-					(set.stroke === undefined
-						? undefined
-						: (set.stroke * size) / set.size));
+				: (entry.strokeWidth ?? (set.stroke === undefined ? undefined : (set.stroke * size) / set.size));
 
+		// biome-ignore lint/performance/noAwaitInLoops: rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
 		const elements = await loadIcon(weight, entry.icon);
-		rasterize(
-			toSvg(elements, strokeWidth, set.ink),
-			join(outDir, entry.slug),
-			size,
-		);
+		rasterize(toSvg(elements, strokeWidth, set.ink), join(outDir, entry.slug), size);
 		written += SCALE_COUNT;
 
 		if (entry.withSelected) {
 			const solid = await loadIcon("solid", entry.icon);
-			rasterize(
-				toSvg(solid, undefined, set.ink),
-				join(outDir, `${entry.slug}-selected`),
-				size,
-			);
+			rasterize(toSvg(solid, undefined, set.ink), join(outDir, `${entry.slug}-selected`), size);
 			written += SCALE_COUNT;
 		}
 
-		console.log(
-			`  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""}, ${size}pt)`,
-		);
+		console.log(`  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""}, ${size}pt)`);
 	}
 
 	return written;
 }
 
 async function main() {
-	const only = process.argv[2];
+	const [, , only] = process.argv;
 	const sets = only ? SETS.filter((set) => set.dir === only) : SETS;
 
 	if (sets.length === 0) {
-		throw new Error(
-			`no icon set named "${only}" — known sets: ${SETS.map((set) => set.dir).join(", ")}`,
-		);
+		throw new Error(`no icon set named "${only}" — known sets: ${SETS.map((set) => set.dir).join(", ")}`);
 	}
 
 	requireRsvgConvert();
@@ -87,12 +66,11 @@ async function main() {
 	let total = 0;
 	for (const set of sets) {
 		console.log(`\n${set.dir}`);
+		// biome-ignore lint/performance/noAwaitInLoops: writeSet empties its output directory first, so concurrent sets would interleave their progress lines under the wrong header
 		total += await writeSet(set);
 	}
 
-	console.log(
-		`\nWrote ${total} PNGs across ${sets.length} set${sets.length === 1 ? "" : "s"}`,
-	);
+	console.log(`\nWrote ${total} PNGs across ${sets.length} set${sets.length === 1 ? "" : "s"}`);
 }
 
 main().catch((error: unknown) => {

@@ -50,9 +50,7 @@ export type EnableReminderStep = "schedule" | "request" | "open-settings";
  * from inside the app at all, so the tap has to hand the user to Settings
  * instead of silently doing nothing.
  */
-export function enableReminderStep(
-	permission: ReminderPermission,
-): EnableReminderStep {
+export function enableReminderStep(permission: ReminderPermission): EnableReminderStep {
 	switch (permission) {
 		case "granted":
 			return "schedule";
@@ -73,10 +71,7 @@ export type ReminderReconcile = "schedule" | "disable" | "none";
  * The granted branch re-arms rather than trusting the queue: a restore onto a
  * new device carries the setting across but not the pending request.
  */
-export function reminderReconcile(
-	enabled: boolean,
-	permission: ReminderPermission,
-): ReminderReconcile {
+export function reminderReconcile(enabled: boolean, permission: ReminderPermission): ReminderReconcile {
 	if (!enabled) {
 		return "none";
 	}
@@ -95,10 +90,7 @@ export interface ReminderChoiceWrites {
  * writes nothing at all, leaving the flow's skip and an explicit decline
  * indistinguishable, matching how skipping step 04 leaves no budget row.
  */
-export function reminderChoiceWrites(
-	option: number | null,
-	custom: TimeOfDay,
-): ReminderChoiceWrites | null {
+export function reminderChoiceWrites(option: number | null, custom: TimeOfDay): ReminderChoiceWrites | null {
 	if (option === null) {
 		return null;
 	}

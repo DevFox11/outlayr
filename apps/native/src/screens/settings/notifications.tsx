@@ -1,16 +1,12 @@
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import { useMemo } from "react";
 import { Alert, View } from "react-native";
-import {
-	ChoiceRow,
-	SettingsSection,
-	ToggleRow,
-} from "@/components/settings/settings-row";
+import { ChoiceRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setBoolSetting, setNumberSetting } from "@/data/settings";
+import { setBoolSetting, setNumberSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import {
 	clampTimeOfDay,
@@ -22,7 +18,9 @@ import {
 	reminderTime,
 	type TimeOfDay,
 } from "@/domain/reminder";
-import { type TranslationKey, translateNow, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
+import { translateNow } from "@/i18n/runtime";
 import { armReminder, useReminderSync } from "@/lib/reminder-sync";
 import {
 	cancelReminder,
@@ -35,16 +33,16 @@ import { useColors } from "@/theme/use-colors";
 
 const OPTIONS = [
 	{
-		value: REMINDER_MORNING,
-		label: "settings.notifications.morning",
 		detail: "settings.notifications.morningDetail",
+		label: "settings.notifications.morning",
+		value: REMINDER_MORNING,
 	},
 	{
-		value: REMINDER_EVENING,
-		label: "settings.notifications.evening",
 		detail: "settings.notifications.eveningDetail",
+		label: "settings.notifications.evening",
+		value: REMINDER_EVENING,
 	},
-	{ value: REMINDER_CUSTOM, label: "settings.notifications.custom" },
+	{ label: "settings.notifications.custom", value: REMINDER_CUSTOM },
 ] as const satisfies readonly {
 	value: number;
 	label: TranslationKey;
@@ -58,25 +56,20 @@ function reportReminderFailure(error: unknown): void {
 async function enableReminders(db: Database): Promise<void> {
 	const existing = await reminderPermission();
 	if (enableReminderStep(existing) === "open-settings") {
-		Alert.alert(
-			translateNow("settings.notifications.deniedTitle"),
-			translateNow("settings.notifications.deniedBody"),
-			[
-				{
-					style: "cancel",
-					text: translateNow("settings.notifications.notNow"),
-				},
-				{
-					onPress: openNotificationSettings,
-					text: translateNow("settings.notifications.openSettings"),
-				},
-			],
-		);
+		Alert.alert(translateNow("settings.notifications.deniedTitle"), translateNow("settings.notifications.deniedBody"), [
+			{
+				style: "cancel",
+				text: translateNow("settings.notifications.notNow"),
+			},
+			{
+				onPress: openNotificationSettings,
+				text: translateNow("settings.notifications.openSettings"),
+			},
+		]);
 		return;
 	}
 
-	const granted =
-		existing === "granted" ? existing : await requestReminderPermission();
+	const granted = existing === "granted" ? existing : await requestReminderPermission();
 	if (granted !== "granted") {
 		return;
 	}
@@ -95,10 +88,7 @@ async function disableReminders(db: Database): Promise<void> {
  * notices are separate promises, and the revoke reconcile writes each back off
  * on its own.
  */
-async function setSubscriptionReminders(
-	db: Database,
-	next: boolean,
-): Promise<void> {
+async function setSubscriptionReminders(db: Database, next: boolean): Promise<void> {
 	if (next) {
 		const existing = await reminderPermission();
 		if (enableReminderStep(existing) === "open-settings") {
@@ -114,12 +104,11 @@ async function setSubscriptionReminders(
 						onPress: openNotificationSettings,
 						text: translateNow("settings.notifications.openSettings"),
 					},
-				],
+				]
 			);
 			return;
 		}
-		const granted =
-			existing === "granted" ? existing : await requestReminderPermission();
+		const granted = existing === "granted" ? existing : await requestReminderPermission();
 		if (granted !== "granted") {
 			return;
 		}
@@ -142,10 +131,7 @@ function NotificationsContent({ db }: { db: Database }) {
 	const enabled = settings.bool("showNotifications");
 	const subscriptionsEnabled = settings.bool("subscriptionReminders");
 	const option = settings.number("notificationOption");
-	const custom = clampTimeOfDay(
-		settings.number("notificationHour"),
-		settings.number("notificationMinute"),
-	);
+	const custom = clampTimeOfDay(settings.number("notificationHour"), settings.number("notificationMinute"));
 	const scheduled = reminderTime(option, custom);
 
 	const pickerValue = useMemo(() => {
@@ -161,26 +147,18 @@ function NotificationsContent({ db }: { db: Database }) {
 	};
 
 	const chooseTime = ({ hour, minute }: TimeOfDay) => {
-		Promise.all([
-			setNumberSetting(db, "notificationHour", hour),
-			setNumberSetting(db, "notificationMinute", minute),
-		])
+		Promise.all([setNumberSetting(db, "notificationHour", hour), setNumberSetting(db, "notificationMinute", minute)])
 			.then(() => armReminder(db))
 			.catch(reportReminderFailure);
 	};
 
 	return (
 		<SettingsScreen>
-			<SettingsSection
-				footer={t("settings.notifications.footer")}
-				title={t("settings.notifications.section")}
-			>
+			<SettingsSection footer={t("settings.notifications.footer")} title={t("settings.notifications.section")}>
 				<ToggleRow
 					icon="Notification03"
 					onValueChange={(next) => {
-						(next ? enableReminders(db) : disableReminders(db)).catch(
-							reportReminderFailure,
-						);
+						(next ? enableReminders(db) : disableReminders(db)).catch(reportReminderFailure);
 					}}
 					title={t("settings.notifications.toggle")}
 					value={enabled}
@@ -205,9 +183,7 @@ function NotificationsContent({ db }: { db: Database }) {
 					))}
 					{option === REMINDER_CUSTOM ? (
 						<View className="flex-row items-center justify-between border-border border-b py-2">
-							<Text className="text-body text-foreground">
-								{t("settings.notifications.time")}
-							</Text>
+							<Text className="text-body text-foreground">{t("settings.notifications.time")}</Text>
 							<DateTimePicker
 								accentColor={colors.tint}
 								display="compact"

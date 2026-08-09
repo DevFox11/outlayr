@@ -1,10 +1,4 @@
-import {
-	canStepForward,
-	cursorEnd,
-	cursorLabel,
-	cursorStart,
-	stepCursor,
-} from "./log-period-cursor";
+import { canStepForward, cursorEnd, cursorLabel, cursorStart, stepCursor } from "./log-period-cursor";
 
 // A Wednesday.
 const MID_WEEK = new Date("2026-07-22T15:30:00");
@@ -12,9 +6,7 @@ const NOW = new Date("2026-07-27T13:00:00");
 
 describe("cursorStart", () => {
 	it("normalizes a day to its midnight", () => {
-		expect(cursorStart("day", MID_WEEK).getTime()).toBe(
-			new Date("2026-07-22T00:00:00").getTime(),
-		);
+		expect(cursorStart("day", MID_WEEK).getTime()).toBe(new Date("2026-07-22T00:00:00").getTime());
 	});
 
 	it("normalizes a week to the configured first weekday", () => {
@@ -71,8 +63,6 @@ describe("cursorLabel", () => {
 	});
 
 	it("names both months when a week straddles them", () => {
-		expect(cursorLabel("week", new Date("2026-07-29T09:00:00"), 1)).toBe(
-			"26 Jul – 1 Aug",
-		);
+		expect(cursorLabel("week", new Date("2026-07-29T09:00:00"), 1)).toBe("26 Jul – 1 Aug");
 	});
 });

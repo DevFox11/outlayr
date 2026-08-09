@@ -9,8 +9,8 @@ import { Text } from "@/components/text";
  * than theme tokens: the button has to look the same in every app that shows it.
  */
 const BRAND = {
-	light: { background: "#FFFFFF", border: "#747775", label: "#1F1F1F" },
 	dark: { background: "#131314", border: "#8E918F", label: "#E3E3E3" },
+	light: { background: "#FFFFFF", border: "#747775", label: "#1F1F1F" },
 } as const;
 
 const LOGO = 20;
@@ -71,10 +71,7 @@ export function GoogleSignInButton({
 				<>
 					<GoogleLogo />
 					<View>
-						<Text
-							className="font-sans-medium text-callout"
-							style={{ color: brand.label }}
-						>
+						<Text className="font-sans-medium text-callout" style={{ color: brand.label }}>
 							Continue with Google
 						</Text>
 					</View>

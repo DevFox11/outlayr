@@ -2,7 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { RotateClockwiseIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 interface ResumeNoticeProps {
@@ -14,21 +14,10 @@ export function ResumeNotice({ onStartOver }: ResumeNoticeProps) {
 	const colors = useColors();
 
 	return (
-		<View
-			className="mx-5 flex-row items-center gap-3 border-border border-y py-2.5"
-			testID="import-resume-notice"
-		>
-			<HugeiconsIcon
-				color={colors.foreground}
-				icon={RotateClockwiseIcon}
-				size={18}
-				strokeWidth={1.9}
-			/>
+		<View className="mx-5 flex-row items-center gap-3 border-border border-y py-2.5" testID="import-resume-notice">
+			<HugeiconsIcon color={colors.foreground} icon={RotateClockwiseIcon} size={18} strokeWidth={1.9} />
 			<View className="flex-1 gap-0.5">
-				<Text
-					className="font-sans-medium text-footnote text-foreground"
-					numberOfLines={1}
-				>
+				<Text className="font-sans-medium text-footnote text-foreground" numberOfLines={1}>
 					{t("import.resumeNotice")}
 				</Text>
 				<Text className="text-muted text-subtitle" numberOfLines={1}>
@@ -42,9 +31,7 @@ export function ResumeNotice({ onStartOver }: ResumeNoticeProps) {
 				onPress={onStartOver}
 				testID="import-resume-start-over"
 			>
-				<Text className="font-sans-medium text-footnote text-muted underline">
-					{t("import.startOver")}
-				</Text>
+				<Text className="font-sans-medium text-footnote text-muted underline">{t("import.startOver")}</Text>
 			</Pressable>
 		</View>
 	);

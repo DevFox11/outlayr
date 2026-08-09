@@ -1,30 +1,17 @@
 import { DatePicker, Host, HStack, Spacer, Toggle } from "@expo/ui/swift-ui";
-import {
-	datePickerStyle,
-	labelsHidden,
-	tint,
-} from "@expo/ui/swift-ui/modifiers";
+import { datePickerStyle, labelsHidden, tint } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useMemo, useState } from "react";
 import { Pressable, TextInput, Vibration, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import Animated, {
-	useAnimatedStyle,
-	useSharedValue,
-	withSequence,
-	withTiming,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { HeroNumber } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
-import {
-	holdSubmitting,
-	pressSubmit,
-	reportSaveFailure,
-} from "@/components/form/submit-guard";
+import { holdSubmitting, pressSubmit, reportSaveFailure } from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
@@ -32,12 +19,12 @@ import { cn } from "@/components/tw";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Budget, budgetsRepo } from "@/data/budgets";
-import { getCategoryById } from "@/data/categories";
+import { getCategoryById } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 type Kind = "overall" | "category";
@@ -45,19 +32,19 @@ type Period = "day" | "week" | "month" | "year";
 
 const PERIOD_TYPE: Record<Period, number> = {
 	day: BUDGET_TYPE.day,
-	week: BUDGET_TYPE.week,
 	month: BUDGET_TYPE.month,
+	week: BUDGET_TYPE.week,
 	year: BUDGET_TYPE.year,
 };
 
 interface BudgetFormProps {
 	db: Database;
-	onDone: () => void;
 	/**
 	 * The row an edit re-writes. Its kind is fixed: a per-category budget cannot
 	 * become the overall singleton without orphaning its own row.
 	 */
 	initial?: Budget;
+	onDone: () => void;
 }
 
 const PERIOD_BY_TYPE: Record<number, Period> = {
@@ -75,10 +62,10 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	const { state: settings } = useAppSettings();
 	const calendar = useMemo(
 		() => ({
-			firstWeekday: settings.number("firstWeekday"),
 			firstDayOfMonth: settings.number("firstDayOfMonth"),
+			firstWeekday: settings.number("firstWeekday"),
 		}),
-		[settings],
+		[settings]
 	);
 
 	const colors = useColors();
@@ -94,22 +81,18 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 			withTiming(-8, { duration: 45 }),
 			withTiming(8, { duration: 45 }),
 			withTiming(-6, { duration: 45 }),
-			withTiming(0, { duration: 45 }),
+			withTiming(0, { duration: 45 })
 		);
 	};
 
 	const [initialValues] = useState(() => ({
-		kind: (initial ? "category" : "overall") as Kind,
-		category: initial?.categoryId
-			? getCategoryById(db, initial.categoryId)
-			: null,
 		amount: initial ? numberToNumpad(initial.amount, minorUnits) : "",
+		category: initial?.categoryId ? getCategoryById(db, initial.categoryId) : null,
+		kind: (initial ? "category" : "overall") as Kind,
 		name: initial?.name ?? "",
-		period: (initial
-			? (PERIOD_BY_TYPE[initial.type] ?? "month")
-			: "month") as Period,
-		startDate: initial?.startDate ?? null,
+		period: (initial ? (PERIOD_BY_TYPE[initial.type] ?? "month") : "month") as Period,
 		rollover: initial?.rollover ?? false,
+		startDate: initial?.startDate ?? null,
 	}));
 
 	const form = useForm({
@@ -130,47 +113,46 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 				if (initial) {
 					if (value.category) {
 						await budgetsRepo.updateBudget(db, initial.id, {
-							categoryId: value.category.id,
 							amount: amountNumber,
-							type,
+							categoryId: value.category.id,
 							name: value.name,
-							startDate: value.startDate,
 							rollover: value.rollover,
+							startDate: value.startDate,
+							type,
 						});
 					}
 				} else if (value.kind === "overall") {
 					await budgetsRepo.createMainBudget(db, {
 						amount: amountNumber,
-						type,
 						name: value.name,
-						startDate: value.startDate,
 						rollover: value.rollover,
+						startDate: value.startDate,
+						type,
 					});
 				} else if (value.category) {
 					await budgetsRepo.createBudget(db, {
-						categoryId: value.category.id,
 						amount: amountNumber,
-						type,
+						categoryId: value.category.id,
 						name: value.name,
-						startDate: value.startDate,
 						rollover: value.rollover,
+						startDate: value.startDate,
+						type,
 					});
 				}
 				onDone();
 				return await holdSubmitting();
 			} catch (error) {
 				reportSaveFailure({
-					title: t("budgets.save.failedTitle"),
 					body: t("budgets.save.failedBody"),
-					log: "Failed to save budget",
 					cause: error,
+					log: "Failed to save budget",
+					title: t("budgets.save.failedTitle"),
 				});
 			}
 		},
 	});
 
-	const { kind, category, amount, name, period, startDate, rollover } =
-		useSelector(form.store, (s) => s.values);
+	const { kind, category, amount, name, period, startDate, rollover } = useSelector(form.store, (s) => s.values);
 	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const amountField = useNumpadAmountField({
@@ -185,73 +167,64 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 	});
 
 	const amountNumber = amountField.amount;
-	const canSave =
-		amountNumber > 0 &&
-		(kind === "overall" || category != null) &&
-		!isSubmitting;
+	const canSave = amountNumber > 0 && (kind === "overall" || category != null) && !isSubmitting;
 	const defaultName =
-		kind === "overall"
-			? t("budgets.form.defaultOverall")
-			: (category?.name ?? t("budgets.form.defaultName"));
+		kind === "overall" ? t("budgets.form.defaultOverall") : (category?.name ?? t("budgets.form.defaultName"));
 
 	// Untouched, the picker shows the anchor the repo would pick anyway.
-	const periodStart = useMemo(
-		() => startOfPeriod(new Date(), PERIOD_TYPE[period], calendar),
-		[period, calendar],
-	);
+	const periodStart = useMemo(() => startOfPeriod(new Date(), PERIOD_TYPE[period], calendar), [period, calendar]);
 	// The window rolls forward from the stored anchor, so an older date is lost —
 	// except one an existing budget already runs on, which the picker must be
 	// able to show or SwiftUI clamps the selection out from under the edit.
 	const backdateRange = useMemo(() => {
 		const anchor = initial?.startDate;
-		const start =
-			anchor && anchor.getTime() < periodStart.getTime() ? anchor : periodStart;
-		return { start, end: new Date() };
+		const start = anchor && anchor.getTime() < periodStart.getTime() ? anchor : periodStart;
+		return { end: new Date(), start };
 	}, [periodStart, initial]);
 
 	return (
 		<View className="flex-1 bg-background">
 			<KeyboardAwareScrollView
+				bottomOffset={24}
 				className="flex-1"
 				contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
 				keyboardShouldPersistTaps="handled"
-				bottomOffset={24}
 			>
 				{initial ? null : (
 					<SegmentedControl
+						onChange={(next) => form.setFieldValue("kind", next as Kind)}
 						options={[
 							{ label: t("budgets.form.kindOverall"), value: "overall" },
 							{ label: t("budgets.form.kindCategory"), value: "category" },
 						]}
 						value={kind}
-						onChange={(next) => form.setFieldValue("kind", next as Kind)}
 					/>
 				)}
 
 				<Pressable
+					accessibilityLabel={t("budgets.form.amountA11y")}
+					accessibilityRole="button"
 					className="items-center py-8 active:opacity-70"
 					onPress={amountField.present}
-					accessibilityRole="button"
-					accessibilityLabel={t("budgets.form.amountA11y")}
 				>
 					<HeroNumber
 						amount={amountNumber}
 						code={currency}
 						sign=""
-						toneClass={amountNumber > 0 ? "text-foreground" : "text-subtle"}
 						size={52}
+						toneClass={amountNumber > 0 ? "text-foreground" : "text-subtle"}
 					/>
 				</Pressable>
 
 				<Field label={t("budgets.form.name")}>
 					<TextInput
+						autoCapitalize="words"
 						className="rounded-xl border border-border px-3 py-3 font-sans text-body text-foreground"
-						value={name}
 						onChangeText={(next) => form.setFieldValue("name", next)}
 						placeholder={defaultName}
 						placeholderTextColorClassName="accent-muted"
-						autoCapitalize="words"
 						returnKeyType="done"
+						value={name}
 					/>
 				</Field>
 
@@ -259,12 +232,12 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 					<Field label={t("budgets.form.category")}>
 						<Animated.View style={shakeStyle}>
 							<Pressable
+								accessibilityRole="button"
 								className={cn(
 									"flex-row items-center gap-3 rounded-xl border px-3 py-3 active:opacity-70",
-									missingCategory ? "border-danger" : "border-border",
+									missingCategory ? "border-danger" : "border-border"
 								)}
 								onPress={categoryField.present}
-								accessibilityRole="button"
 							>
 								{category ? (
 									<>
@@ -274,14 +247,10 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 											icon={category.icon}
 											size={28}
 										/>
-										<Text className="flex-1 text-body text-foreground">
-											{category.name}
-										</Text>
+										<Text className="flex-1 text-body text-foreground">{category.name}</Text>
 									</>
 								) : (
-									<Text className="flex-1 text-body text-muted">
-										{t("budgets.form.selectCategory")}
-									</Text>
+									<Text className="flex-1 text-body text-muted">{t("budgets.form.selectCategory")}</Text>
 								)}
 								<Text className="text-headline text-subtle">{"›"}</Text>
 							</Pressable>
@@ -291,6 +260,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 
 				<Field label={t("budgets.form.period")}>
 					<SegmentedControl
+						onChange={(next) => form.setFieldValue("period", next as Period)}
 						options={[
 							{ label: t("budgets.form.periodDay"), value: "day" },
 							{ label: t("budgets.form.periodWeek"), value: "week" },
@@ -298,7 +268,6 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							{ label: t("budgets.form.periodYear"), value: "year" },
 						]}
 						value={period}
-						onChange={(next) => form.setFieldValue("period", next as Period)}
 					/>
 				</Field>
 
@@ -328,26 +297,16 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 							<Spacer />
 						</HStack>
 					</Host>
-					<Text className="pt-1 text-footnote text-muted leading-snug">
-						{t("budgets.form.rolloverNote")}
-					</Text>
+					<Text className="pt-1 text-footnote text-muted leading-snug">{t("budgets.form.rolloverNote")}</Text>
 				</Field>
 
 				<Pressable
-					className={cn(
-						"mt-4 items-center rounded-xl py-3.5",
-						canSave ? "bg-accent active:opacity-80" : "bg-surface",
-					)}
+					accessibilityRole="button"
+					className={cn("mt-4 items-center rounded-xl py-3.5", canSave ? "bg-accent active:opacity-80" : "bg-surface")}
 					disabled={!canSave}
 					onPress={() => pressSubmit(form)}
-					accessibilityRole="button"
 				>
-					<Text
-						className={cn(
-							"font-sans-semibold text-body",
-							canSave ? "text-accent-foreground" : "text-subtle",
-						)}
-					>
+					<Text className={cn("font-sans-semibold text-body", canSave ? "text-accent-foreground" : "text-subtle")}>
 						{initial ? t("budgets.form.save") : t("budgets.form.create")}
 					</Text>
 				</Pressable>
@@ -355,23 +314,17 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 
 			<AmountEntrySheet {...amountField.sheetProps} />
 			<CategoryPickerSheet
-				ref={categoryField.ref}
 				db={db}
 				income={false}
-				selectedId={category?.id ?? null}
 				onSelect={categoryField.select}
+				ref={categoryField.ref}
+				selectedId={category?.id ?? null}
 			/>
 		</View>
 	);
 }
 
-function Field({
-	label,
-	children,
-}: {
-	label: string;
-	children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<View className="mb-4">
 			<View className="mb-2">

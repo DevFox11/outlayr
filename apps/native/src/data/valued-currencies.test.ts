@@ -30,13 +30,13 @@ function seed(db: Db): void {
 	db.insert(exchangeRates)
 		.values(
 			["AED", "EUR", "JPY"].map((quote) => ({
-				quote,
-				rateType: VALUATION_RATE_TYPE,
 				date: "2026-07-30",
-				rate: 3.67,
-				source: "frankfurter",
 				fetchedAt: NOW,
-			})),
+				quote,
+				rate: 3.67,
+				rateType: VALUATION_RATE_TYPE,
+				source: "frankfurter",
+			}))
 		)
 		.run();
 }
@@ -49,7 +49,7 @@ const valued = (db: Db): ReadonlySet<string> =>
 			.from(exchangeRates)
 			.where(eq(exchangeRates.rateType, VALUATION_RATE_TYPE))
 			.all()
-			.map((row) => row.quote),
+			.map((row) => row.quote)
 	);
 
 /** What `useValuationIn` reads — one currency, which is all a conversion needs. */
@@ -57,13 +57,13 @@ const ratesFor = (db: Db, code: string) =>
 	buildRateTable(
 		db
 			.select({
-				quote: exchangeRates.quote,
 				date: exchangeRates.date,
+				quote: exchangeRates.quote,
 				rate: exchangeRates.rate,
 			})
 			.from(exchangeRates)
 			.where(eq(exchangeRates.quote, code))
-			.all(),
+			.all()
 	);
 
 describe("what the Log's currency chip may offer", () => {
@@ -76,11 +76,11 @@ describe("what the Log's currency chip may offer", () => {
 		seed(db);
 		expect(
 			logCurrencyOptions({
-				global: "USD",
-				favourites: ["AED", "EUR"],
-				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
-			}),
+				favourites: ["AED", "EUR"],
+				global: "USD",
+				produced: [],
+			})
 		).toStrictEqual(["USD", "AED", "EUR"]);
 	});
 
@@ -91,11 +91,11 @@ describe("what the Log's currency chip may offer", () => {
 		const rates = ratesFor(db, "USD");
 		expect(
 			logCurrencyOptions({
-				global: "USD",
-				favourites: ["AED", "EUR"],
-				produced: [],
 				convertible: (code) => code === "USD" || rates.earliest(code) !== null,
-			}),
+				favourites: ["AED", "EUR"],
+				global: "USD",
+				produced: [],
+			})
 		).toStrictEqual(["USD"]);
 	});
 
@@ -104,11 +104,11 @@ describe("what the Log's currency chip may offer", () => {
 		seed(db);
 		expect(
 			logCurrencyOptions({
-				global: "USD",
-				favourites: ["AED", "XXX"],
-				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
-			}),
+				favourites: ["AED", "XXX"],
+				global: "USD",
+				produced: [],
+			})
 		).toStrictEqual(["USD", "AED"]);
 	});
 
@@ -120,11 +120,11 @@ describe("what the Log's currency chip may offer", () => {
 		expect(!valued(db).has("USD")).toBeTruthy();
 		expect(
 			logCurrencyOptions({
-				global: "AED",
-				favourites: ["USD"],
-				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
-			}),
+				favourites: ["USD"],
+				global: "AED",
+				produced: [],
+			})
 		).toStrictEqual(["AED", "USD"]);
 	});
 
@@ -136,18 +136,14 @@ describe("what the Log's currency chip may offer", () => {
 		expect(valued(db).size).toBe(0);
 		expect(
 			logCurrencyOptions({
-				global: "AED",
-				favourites: ["USD"],
-				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
-			}),
+				favourites: ["USD"],
+				global: "AED",
+				produced: [],
+			})
 		).toStrictEqual(["AED", "USD"]);
 		expect(
-			valueExactIn(
-				{ amount: 36.7, amountUsd: 10, currency: "AED", dateKey: "2026-07-30" },
-				"USD",
-				buildRateTable([]),
-			),
+			valueExactIn({ amount: 36.7, amountUsd: 10, currency: "AED", dateKey: "2026-07-30" }, "USD", buildRateTable([]))
 		).toBe(10);
 	});
 
@@ -156,11 +152,11 @@ describe("what the Log's currency chip may offer", () => {
 		expect(valued(db).size).toBe(0);
 		expect(
 			logCurrencyOptions({
-				global: "USD",
-				favourites: ["AED"],
-				produced: [],
 				convertible: (code) => code === "USD" || valued(db).has(code),
-			}),
+				favourites: ["AED"],
+				global: "USD",
+				produced: [],
+			})
 		).toStrictEqual(["USD"]);
 	});
 });

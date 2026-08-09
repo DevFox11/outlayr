@@ -47,9 +47,7 @@ const twMergeConfig = {
 const merge = extendTailwindMerge(twMergeConfig);
 
 /** Joins class values and resolves conflicts, ignoring falsy so `cond && "..."` works. */
-export function cn(
-	...classes: (string | false | null | undefined)[]
-): string | undefined {
+export function cn(...classes: (string | false | null | undefined)[]): string | undefined {
 	const joined = classes.filter(Boolean).join(" ");
 	return joined === "" ? undefined : merge(joined);
 }

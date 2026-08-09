@@ -13,19 +13,14 @@ import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 import migrationsBundle from "../../drizzle/migrations";
 
-export type LocalDataStatus =
-	| "opening"
-	| "migrating"
-	| "seeding"
-	| "ready"
-	| "error";
+export type LocalDataStatus = "opening" | "migrating" | "seeding" | "ready" | "error";
 
 export interface LocalDataContextValue {
 	db: Database | null;
-	status: LocalDataStatus;
 	error: Error | null;
 	/** Re-runs the whole open → migrate → seed sequence, not just the failed step. */
 	retry: () => void;
+	status: LocalDataStatus;
 }
 
 const LocalDataContext = createContext<LocalDataContextValue | null>(null);
@@ -46,9 +41,7 @@ export function useLocalData(): LocalDataContextValue {
 export function useDatabase(): Database {
 	const { db } = useLocalData();
 	if (db == null) {
-		throw new Error(
-			"useDatabase was called outside the root splash gate — the local database is not ready yet",
-		);
+		throw new Error("useDatabase was called outside the root splash gate — the local database is not ready yet");
 	}
 	return db;
 }
@@ -124,18 +117,14 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 	const value = useMemo<LocalDataContextValue>(
 		() => ({
 			db,
-			status,
 			error,
 			retry: () => {
 				setAttempt((n) => n + 1);
 			},
+			status,
 		}),
-		[db, status, error],
+		[db, status, error]
 	);
 
-	return (
-		<LocalDataContext.Provider value={value}>
-			{children}
-		</LocalDataContext.Provider>
-	);
+	return <LocalDataContext.Provider value={value}>{children}</LocalDataContext.Provider>;
 }

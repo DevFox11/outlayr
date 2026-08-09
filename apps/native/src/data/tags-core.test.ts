@@ -7,16 +7,14 @@ import type { Database } from "@/db/client";
 import { categories, tags, transactions, transactionTags } from "@/db/schema";
 import { liveTagsQuery, tagIdsForQuery, tagsRepo } from "./tags-core";
 
-const MIGRATIONS = join(__dirname, "../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -28,20 +26,20 @@ function migratedDb(): Database {
 async function seedTransaction(db: Database, id: string) {
 	await db.insert(categories).values({
 		id: "c1",
-		name: "Food",
 		income: false,
+		name: "Food",
 		sortOrder: 0,
 		updatedAt: new Date(1),
 	});
 	await db.insert(transactions).values({
-		id,
 		amount: 10,
-		income: false,
-		note: "",
+		categoryId: "c1",
 		date: new Date(1),
 		day: new Date(1),
+		id,
+		income: false,
 		month: new Date(1),
-		categoryId: "c1",
+		note: "",
 		updatedAt: new Date(1),
 	});
 }
@@ -77,36 +75,38 @@ describe("tagsRepo", () => {
 	it("attaches and detaches to match exactly what was asked for", async () => {
 		const work = await tagsRepo.ensureTag(db, "work");
 		const trip = await tagsRepo.ensureTag(db, "trip");
-		if (!work || !trip) throw new Error("expected two tag ids");
+		if (!(work && trip)) {
+			throw new Error("expected two tag ids");
+		}
 
 		await tagsRepo.setTagsFor(db, "t1", [work, trip]);
 		expect((await tagIdsForQuery(db, "t1")).length).toBe(2);
 
 		await tagsRepo.setTagsFor(db, "t1", [work]);
-		expect(
-			(await tagIdsForQuery(db, "t1")).map((row) => row.tagId),
-		).toStrictEqual([work]);
+		expect((await tagIdsForQuery(db, "t1")).map((row) => row.tagId)).toStrictEqual([work]);
 	});
 
 	it("writes nothing when the same set is set again", async () => {
 		const work = await tagsRepo.ensureTag(db, "work");
-		if (!work) throw new Error("expected a tag id");
+		if (!work) {
+			throw new Error("expected a tag id");
+		}
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 		const before = await db.select().from(transactionTags);
 
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 
 		const after = await db.select().from(transactionTags);
-		expect(after.map((row) => row.updatedAt.getTime())).toStrictEqual(
-			before.map((row) => row.updatedAt.getTime()),
-		);
+		expect(after.map((row) => row.updatedAt.getTime())).toStrictEqual(before.map((row) => row.updatedAt.getTime()));
 	});
 
 	it("revives a detached link rather than making a second one", async () => {
 		// The pair is unique, so a second row cannot exist — and reviving keeps the
 		// identity the other devices already know.
 		const work = await tagsRepo.ensureTag(db, "work");
-		if (!work) throw new Error("expected a tag id");
+		if (!work) {
+			throw new Error("expected a tag id");
+		}
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 		await tagsRepo.setTagsFor(db, "t1", []);
 		await tagsRepo.setTagsFor(db, "t1", [work]);
@@ -119,7 +119,9 @@ describe("tagsRepo", () => {
 	it("retires the links when the tag itself goes", async () => {
 		// A live link to a tombstoned tag reads as tagged and renders nothing.
 		const work = await tagsRepo.ensureTag(db, "work");
-		if (!work) throw new Error("expected a tag id");
+		if (!work) {
+			throw new Error("expected a tag id");
+		}
 		await tagsRepo.setTagsFor(db, "t1", [work]);
 
 		await tagsRepo.deleteTag(db, work);
@@ -130,7 +132,9 @@ describe("tagsRepo", () => {
 
 	it("leaves the tombstone replicable rather than dropping the row", async () => {
 		const work = await tagsRepo.ensureTag(db, "work");
-		if (!work) throw new Error("expected a tag id");
+		if (!work) {
+			throw new Error("expected a tag id");
+		}
 		await tagsRepo.deleteTag(db, work);
 
 		const all = await db.select().from(tags);
@@ -141,13 +145,13 @@ describe("tagsRepo", () => {
 
 	it("lets the same name be created again after a delete", async () => {
 		const first = await tagsRepo.ensureTag(db, "work");
-		if (!first) throw new Error("expected a tag id");
+		if (!first) {
+			throw new Error("expected a tag id");
+		}
 		await tagsRepo.deleteTag(db, first);
 
 		const second = await tagsRepo.ensureTag(db, "work");
 		expect(second).not.toBe(first);
-		expect(
-			(await db.select().from(tags).where(isNull(tags.deletedAt))).length,
-		).toBe(1);
+		expect((await db.select().from(tags).where(isNull(tags.deletedAt))).length).toBe(1);
 	});
 });

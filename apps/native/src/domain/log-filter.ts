@@ -6,15 +6,7 @@ import { cursorLabel } from "./log-period-cursor";
  * labels are the enum's own raw values: the Swift catalog carries no English
  * translation for them, so SwiftUI renders the key itself, lowercase and all.
  */
-export type LogFilter =
-	| "all"
-	| "type"
-	| "day"
-	| "week"
-	| "month"
-	| "category"
-	| "recurring"
-	| "upcoming";
+export type LogFilter = "all" | "type" | "day" | "week" | "month" | "category" | "recurring" | "upcoming";
 
 export const LOG_FILTER_ORDER: readonly LogFilter[] = [
 	"all",
@@ -29,13 +21,13 @@ export const LOG_FILTER_ORDER: readonly LogFilter[] = [
 
 export const LOG_FILTER_LABEL: Record<LogFilter, string> = {
 	all: "all entries",
-	type: "by type",
-	day: "by day",
-	week: "by week",
-	month: "by month",
 	category: "by category",
+	day: "by day",
+	month: "by month",
 	recurring: "recurring",
+	type: "by type",
 	upcoming: "upcoming",
+	week: "by week",
 };
 
 /** Null for the filters that name no stretch of time. */
@@ -53,29 +45,22 @@ export function filterPeriodUnit(filter: LogFilter): CursorUnit | null {
 }
 
 export function filterHasMenu(filter: LogFilter): boolean {
-	return (
-		filterPeriodUnit(filter) !== null ||
-		filter === "category" ||
-		filter === "type"
-	);
+	return filterPeriodUnit(filter) !== null || filter === "category" || filter === "type";
 }
 
 export interface FilterScopeLabels {
 	/** Null until the asynchronous category load resolves. */
 	categoryName?: string | null;
 	cursor: Date;
-	income: boolean;
 	firstWeekday?: number;
+	income: boolean;
 }
 
 /**
  * What the active filter is scoped to — a category name, a date range, an entry
  * type — or null when no filter is active.
  */
-export function filterDetail(
-	filter: LogFilter,
-	scope: FilterScopeLabels,
-): string | null {
+export function filterDetail(filter: LogFilter, scope: FilterScopeLabels): string | null {
 	const unit = filterPeriodUnit(filter);
 	if (unit) {
 		return cursorLabel(unit, scope.cursor, scope.firstWeekday ?? 1);

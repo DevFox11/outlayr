@@ -3,8 +3,8 @@ import { formatAmount } from "./money";
 
 export interface RowAmountLabelInput {
 	amount: number;
-	income: boolean;
 	code: string;
+	income: boolean;
 	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
 	showCents?: boolean;
 }
@@ -16,7 +16,7 @@ export interface RowAmountLabelInput {
  */
 export function rowAmountLabel(
 	{ amount, income, code, showCents = true }: RowAmountLabelInput,
-	t: TranslateFn,
+	t: TranslateFn
 ): string {
 	return t(income ? "log.row.amountIncome" : "log.row.amountExpense", {
 		amount: formatAmount(amount, code, showCents),

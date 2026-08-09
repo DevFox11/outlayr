@@ -1,12 +1,7 @@
 import { useCallback } from "react";
 import { Alert } from "react-native";
 import { formatDayHeader } from "@/domain/dates";
-import {
-	type CardableSection,
-	type DayCardOptions,
-	dayCardContent,
-	dayCardFileName,
-} from "@/domain/day-card-content";
+import { type CardableSection, type DayCardOptions, dayCardContent, dayCardFileName } from "@/domain/day-card-content";
 import { translateNow } from "@/i18n/runtime";
 import { TransferError } from "./data-transfer";
 import { shareDayCard } from "./day-card-image";
@@ -17,31 +12,24 @@ import { shareDayCard } from "./day-card-image";
  * photo album. The share sheet is used instead — see `shareDayCard` — so the
  * feature needs no photo-library permission.
  */
-export function useDayCardShare(
-	options: DayCardOptions,
-): (section: CardableSection) => void {
+export function useDayCardShare(options: DayCardOptions): (section: CardableSection) => void {
 	return useCallback(
 		(section: CardableSection) => {
 			Alert.alert(formatDayHeader(section.day), undefined, [
 				{
-					text: translateNow("alerts.dayCard.share"),
 					onPress: () => {
-						shareDayCard(
-							dayCardContent(section, options),
-							dayCardFileName(section.day),
-						).catch((error: unknown) => {
+						shareDayCard(dayCardContent(section, options), dayCardFileName(section.day)).catch((error: unknown) => {
 							Alert.alert(
 								translateNow("alerts.dayCard.failedTitle"),
-								error instanceof TransferError
-									? translateNow(error.key)
-									: translateNow("alerts.dayCard.failedBody"),
+								error instanceof TransferError ? translateNow(error.key) : translateNow("alerts.dayCard.failedBody")
 							);
 						});
 					},
+					text: translateNow("alerts.dayCard.share"),
 				},
-				{ text: translateNow("common.cancel"), style: "cancel" },
+				{ style: "cancel", text: translateNow("common.cancel") },
 			]);
 		},
-		[options],
+		[options]
 	);
 }

@@ -1,9 +1,5 @@
 import type { ParsedImportFile } from "@/data/transfer-core";
-import type {
-	MappingDraft,
-	MappingGap,
-	ResolvedMapping,
-} from "./import-mapping";
+import type { MappingDraft, MappingGap, ResolvedMapping } from "./import-mapping";
 import type { ImportSourceId } from "./import-sources";
 
 export type ImportStep = "source" | "file" | "resolve" | "review" | "done";
@@ -19,10 +15,10 @@ export type UnavailableReason =
 	| "unauthenticated";
 
 export interface ImportResolution {
+	fromModel: ReadonlySet<string>;
+	links: ReadonlyMap<string, string>;
 	outcome: ResolutionOutcome;
 	reason: UnavailableReason | null;
-	links: ReadonlyMap<string, string>;
-	fromModel: ReadonlySet<string>;
 }
 
 export type ImportCommitState =
@@ -37,29 +33,29 @@ export type ImportCommitState =
 	  };
 
 export interface ImportFlowState {
-	sourceId: ImportSourceId | null;
-	file: { name: string; chars: number } | null;
-	parsed: ParsedImportFile | null;
-	draft: MappingDraft | null;
-	resolved: ResolvedMapping | null;
-	mappingGaps: readonly MappingGap[];
-	resolution: ImportResolution | null;
-	excluded: ReadonlySet<number>;
-	duplicates: ReadonlySet<number>;
 	commit: ImportCommitState;
+	draft: MappingDraft | null;
+	duplicates: ReadonlySet<number>;
+	excluded: ReadonlySet<number>;
+	file: { name: string; chars: number } | null;
+	mappingGaps: readonly MappingGap[];
+	parsed: ParsedImportFile | null;
+	resolution: ImportResolution | null;
+	resolved: ResolvedMapping | null;
+	sourceId: ImportSourceId | null;
 }
 
 export const INITIAL_IMPORT_FLOW_STATE: ImportFlowState = {
-	sourceId: null,
-	file: null,
-	parsed: null,
-	draft: null,
-	resolved: null,
-	mappingGaps: [],
-	resolution: null,
-	excluded: new Set(),
-	duplicates: new Set(),
 	commit: { phase: "idle" },
+	draft: null,
+	duplicates: new Set(),
+	excluded: new Set(),
+	file: null,
+	mappingGaps: [],
+	parsed: null,
+	resolution: null,
+	resolved: null,
+	sourceId: null,
 };
 
 export type ImportFlowEvent =
@@ -90,10 +86,7 @@ export type ImportFlowEvent =
 			duplicatesSkipped: number;
 	  };
 
-export function importFlowReducer(
-	state: ImportFlowState,
-	event: ImportFlowEvent,
-): ImportFlowState {
+export function importFlowReducer(state: ImportFlowState, event: ImportFlowEvent): ImportFlowState {
 	switch (event.type) {
 		case "sourceSelected": {
 			if (state.sourceId === event.sourceId) {
@@ -108,15 +101,15 @@ export function importFlowReducer(
 			}
 			return {
 				...state,
-				file: event.file,
-				parsed: event.parsed,
-				draft: event.draft,
-				resolved: event.resolved,
-				mappingGaps: event.gaps,
-				resolution: null,
-				excluded: new Set(),
-				duplicates: new Set(),
 				commit: { phase: "idle" },
+				draft: event.draft,
+				duplicates: new Set(),
+				excluded: new Set(),
+				file: event.file,
+				mappingGaps: event.gaps,
+				parsed: event.parsed,
+				resolution: null,
+				resolved: event.resolved,
 			};
 		}
 
@@ -126,15 +119,15 @@ export function importFlowReducer(
 			}
 			return {
 				...state,
+				commit: { phase: "idle" },
+				duplicates: new Set(),
+				excluded: new Set(),
 				resolution: {
+					fromModel: event.fromModel,
+					links: event.links,
 					outcome: event.outcome,
 					reason: event.reason,
-					links: event.links,
-					fromModel: event.fromModel,
 				},
-				excluded: new Set(),
-				duplicates: new Set(),
-				commit: { phase: "idle" },
 			};
 		}
 
@@ -173,7 +166,7 @@ export function importFlowReducer(
 			if (state.resolution == null) {
 				return state;
 			}
-			return { ...state, commit: { phase: "failed", detail: event.detail } };
+			return { ...state, commit: { detail: event.detail, phase: "failed" } };
 		}
 
 		case "commitSucceeded": {
@@ -183,10 +176,10 @@ export function importFlowReducer(
 			return {
 				...state,
 				commit: {
-					phase: "success",
 					count: event.count,
-					outAmount: event.outAmount,
 					duplicatesSkipped: event.duplicatesSkipped,
+					outAmount: event.outAmount,
+					phase: "success",
 				},
 			};
 		}
@@ -196,13 +189,7 @@ export function importFlowReducer(
 	}
 }
 
-export const IMPORT_STEPS = [
-	"source",
-	"file",
-	"resolve",
-	"review",
-	"done",
-] as const;
+export const IMPORT_STEPS = ["source", "file", "resolve", "review", "done"] as const;
 
 export function canAdvance(state: ImportFlowState, step: ImportStep): boolean {
 	switch (step) {

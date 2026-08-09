@@ -1,22 +1,34 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { StackRouter } from "expo-router/react-navigation";
-import * as ts from "typescript";
-import type { RootStackGroup } from "@/domain/auth-gate";
 import {
-	CATEGORY_SHEETS,
-	ROOT_STACK_SCREEN_NAMES,
-	SETTINGS_SCREENS,
-} from "./root-stack";
+	createSourceFile,
+	forEachChild,
+	isBinaryExpression,
+	isCallExpression,
+	isIdentifier,
+	isJsxAttribute,
+	isJsxElement,
+	isJsxExpression,
+	isJsxSelfClosingElement,
+	isPropertyAccessExpression,
+	isStringLiteral,
+	type JsxAttribute,
+	type JsxElement,
+	type JsxOpeningLikeElement,
+	type JsxSelfClosingElement,
+	type Node,
+	ScriptKind,
+	ScriptTarget,
+	type SourceFile,
+	SyntaxKind,
+} from "typescript";
+import type { RootStackGroup } from "@/domain/auth-gate";
+import { CATEGORY_SHEETS, ROOT_STACK_SCREEN_NAMES, SETTINGS_SCREENS } from "./root-stack";
 
-const GROUPS: readonly RootStackGroup[] = [
-	"onboarding",
-	"sign-in",
-	"adopt",
-	"ledger",
-];
+const GROUPS: readonly RootStackGroup[] = ["onboarding", "sign-in", "adopt", "ledger"];
 
-const APP_DIR = join(__dirname, "..", "app");
+const APP_DIR = join(import.meta.dirname, "..", "app");
 const LAYOUT_PATH = join(APP_DIR, "_layout.tsx");
 
 // expo-router's route context (`expo-router/_ctx.ios.js`) registers *every*
@@ -27,19 +39,19 @@ const LAYOUT_PATH = join(APP_DIR, "_layout.tsx");
 // belong beside their screen under `src/screens/`.
 const ROUTE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 const LAYOUT_BASENAME = "_layout";
-const IGNORED_ROUTE_BASENAMES = new Set([
-	"+api",
-	"+html",
-	"+middleware",
-	"+native-intent",
-]);
+const IGNORED_ROUTE_BASENAMES = new Set(["+api", "+html", "+middleware", "+native-intent"]);
 
 const UNGUARDED_CATCH_ALL = "+not-found";
 
+function byCodeUnit(a: string, b: string): number {
+	if (a === b) {
+		return 0;
+	}
+	return a < b ? -1 : 1;
+}
+
 function routeBasename(fileName: string): string | null {
-	const extension = ROUTE_EXTENSIONS.find((candidate) =>
-		fileName.endsWith(candidate),
-	);
+	const extension = ROUTE_EXTENSIONS.find((candidate) => fileName.endsWith(candidate));
 	if (extension === undefined) {
 		return null;
 	}
@@ -51,9 +63,7 @@ function routeBasename(fileName: string): string | null {
 }
 
 function hasOwnLayout(dir: string): boolean {
-	return ROUTE_EXTENSIONS.some((extension) =>
-		existsSync(join(dir, `${LAYOUT_BASENAME}${extension}`)),
-	);
+	return ROUTE_EXTENSIONS.some((extension) => existsSync(join(dir, `${LAYOUT_BASENAME}${extension}`)));
 }
 
 function collectRouteNames(dir: string, prefix: string): string[] {
@@ -62,11 +72,7 @@ function collectRouteNames(dir: string, prefix: string): string[] {
 		if (entry.isDirectory()) {
 			const nested = prefix ? `${prefix}/${entry.name}` : entry.name;
 			const nestedDir = join(dir, entry.name);
-			names.push(
-				...(hasOwnLayout(nestedDir)
-					? [nested]
-					: collectRouteNames(nestedDir, nested)),
-			);
+			names.push(...(hasOwnLayout(nestedDir) ? [nested] : collectRouteNames(nestedDir, nested)));
 			continue;
 		}
 		const base = routeBasename(entry.name);
@@ -79,16 +85,12 @@ function collectRouteNames(dir: string, prefix: string): string[] {
 }
 
 const ROUTE_FILES_ON_DISK = collectRouteNames(APP_DIR, "");
-const PARTITIONABLE_ROUTES = ROUTE_FILES_ON_DISK.filter(
-	(name) => name !== UNGUARDED_CATCH_ALL,
-);
+const PARTITIONABLE_ROUTES = ROUTE_FILES_ON_DISK.filter((name) => name !== UNGUARDED_CATCH_ALL);
 
 describe("routes derived from the app directory", () => {
 	it("collapses a directory owning a _layout into a single route name", () => {
 		expect(ROUTE_FILES_ON_DISK).toContain("(tabs)");
-		expect(
-			ROUTE_FILES_ON_DISK.filter((name) => name.startsWith("(tabs)/")),
-		).toEqual([]);
+		expect(ROUTE_FILES_ON_DISK.filter((name) => name.startsWith("(tabs)/"))).toEqual([]);
 	});
 
 	it("finds +not-found on disk and holds it out of the partition", () => {
@@ -103,12 +105,8 @@ describe("root stack total-partition invariant", () => {
 	it("covers every route file under app/ exactly once", () => {
 		const union = groups.flat();
 		const declared = new Set(union);
-		const unpartitioned = PARTITIONABLE_ROUTES.filter(
-			(name) => !declared.has(name),
-		);
-		const phantom = union.filter(
-			(name) => !PARTITIONABLE_ROUTES.includes(name),
-		);
+		const unpartitioned = PARTITIONABLE_ROUTES.filter((name) => !declared.has(name));
+		const phantom = union.filter((name) => !PARTITIONABLE_ROUTES.includes(name));
 		expect({ phantom, unpartitioned }).toEqual({
 			phantom: [],
 			unpartitioned: [],
@@ -117,8 +115,8 @@ describe("root stack total-partition invariant", () => {
 	});
 
 	it("keeps every pair of groups pairwise disjoint", () => {
-		for (let i = 0; i < groups.length; i++) {
-			for (let j = i + 1; j < groups.length; j++) {
+		for (let i = 0; i < groups.length; i += 1) {
+			for (let j = i + 1; j < groups.length; j += 1) {
 				const overlap = groups[i].filter((name) => groups[j].includes(name));
 				expect(overlap).toEqual([]);
 			}
@@ -132,16 +130,14 @@ describe("root stack total-partition invariant", () => {
 	});
 
 	it("declares settings/categories/reorder under the ledger group", () => {
-		expect(ROOT_STACK_SCREEN_NAMES.ledger).toContain(
-			"settings/categories/reorder",
-		);
+		expect(ROOT_STACK_SCREEN_NAMES.ledger).toContain("settings/categories/reorder");
 	});
 });
 
 interface RenderedScreen {
-	name: string;
 	group: RootStackGroup | null;
 	line: number;
+	name: string;
 }
 
 type NamedList = readonly { name: string }[];
@@ -151,61 +147,56 @@ const DYNAMIC_SCREEN_LISTS: Record<string, NamedList> = {
 	SETTINGS_SCREENS,
 };
 
-type JsxTag = ts.JsxElement | ts.JsxSelfClosingElement;
+type JsxTag = JsxElement | JsxSelfClosingElement;
 
-function openingOf(node: JsxTag): ts.JsxOpeningLikeElement {
-	return ts.isJsxElement(node) ? node.openingElement : node;
+function openingOf(node: JsxTag): JsxOpeningLikeElement {
+	return isJsxElement(node) ? node.openingElement : node;
 }
 
 function jsxTagName(node: JsxTag): string {
 	return openingOf(node).tagName.getText();
 }
 
-function jsxAttribute(node: JsxTag, attribute: string): ts.JsxAttribute | null {
+function jsxAttribute(node: JsxTag, attribute: string): JsxAttribute | null {
 	const found = openingOf(node).attributes.properties.find(
-		(property): property is ts.JsxAttribute =>
-			ts.isJsxAttribute(property) && property.name.getText() === attribute,
+		(property): property is JsxAttribute => isJsxAttribute(property) && property.name.getText() === attribute
 	);
 	return found ?? null;
 }
 
-function lineOf(node: ts.Node, source: ts.SourceFile): number {
+function lineOf(node: Node, source: SourceFile): number {
 	return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
 
-function guardedGroup(node: JsxTag, source: ts.SourceFile): RootStackGroup {
+function guardedGroup(node: JsxTag, source: SourceFile): RootStackGroup {
 	const initializer = jsxAttribute(node, "guard")?.initializer;
-	const expression =
-		initializer && ts.isJsxExpression(initializer)
-			? initializer.expression
-			: undefined;
+	const expression = initializer && isJsxExpression(initializer) ? initializer.expression : undefined;
 	if (
 		expression === undefined ||
-		!ts.isBinaryExpression(expression) ||
-		expression.operatorToken.kind !== ts.SyntaxKind.EqualsEqualsEqualsToken ||
-		!ts.isIdentifier(expression.left) ||
+		!isBinaryExpression(expression) ||
+		expression.operatorToken.kind !== SyntaxKind.EqualsEqualsEqualsToken ||
+		!isIdentifier(expression.left) ||
 		expression.left.text !== "group" ||
-		!ts.isStringLiteral(expression.right)
+		!isStringLiteral(expression.right)
 	) {
 		throw new Error(
-			`app/_layout.tsx:${lineOf(node, source)} <Stack.Protected> does not carry a \`guard={group === "<name>"}\` prop. This test only understands that shape — restore it, or teach the test the new one before landing the change.`,
+			`app/_layout.tsx:${lineOf(node, source)} <Stack.Protected> does not carry a \`guard={group === "<name>"}\` prop. This test only understands that shape — restore it, or teach the test the new one before landing the change.`
 		);
 	}
 	const group = expression.right.text;
 	if (!GROUPS.includes(group as RootStackGroup)) {
 		throw new Error(
-			`app/_layout.tsx:${lineOf(node, source)} <Stack.Protected> guards on "${group}", which is not a root stack group (${GROUPS.join(", ")}). Add it to ROOT_STACK_SCREEN_NAMES and to GROUPS here.`,
+			`app/_layout.tsx:${lineOf(node, source)} <Stack.Protected> guards on "${group}", which is not a root stack group (${GROUPS.join(", ")}). Add it to ROOT_STACK_SCREEN_NAMES and to GROUPS here.`
 		);
 	}
 	return group as RootStackGroup;
 }
 
-function mappedList(node: ts.Node): NamedList | null {
+function mappedList(node: Node): NamedList | null {
 	if (
-		!ts.isCallExpression(node) ||
-		!ts.isPropertyAccessExpression(node.expression) ||
+		!(isCallExpression(node) && isPropertyAccessExpression(node.expression)) ||
 		node.expression.name.text !== "map" ||
-		!ts.isIdentifier(node.expression.expression)
+		!isIdentifier(node.expression.expression)
 	) {
 		return null;
 	}
@@ -214,67 +205,57 @@ function mappedList(node: ts.Node): NamedList | null {
 
 function renderedNames(
 	node: JsxTag,
-	source: ts.SourceFile,
+	source: SourceFile,
 	group: RootStackGroup | null,
-	list: NamedList | null,
+	list: NamedList | null
 ): RenderedScreen[] {
 	const line = lineOf(node, source);
 	const initializer = jsxAttribute(node, "name")?.initializer;
-	if (initializer && ts.isStringLiteral(initializer)) {
+	if (initializer && isStringLiteral(initializer)) {
 		return [{ group, line, name: initializer.text }];
 	}
 	if (
 		initializer &&
-		ts.isJsxExpression(initializer) &&
+		isJsxExpression(initializer) &&
 		initializer.expression &&
-		ts.isPropertyAccessExpression(initializer.expression)
+		isPropertyAccessExpression(initializer.expression)
 	) {
 		if (list === null) {
 			throw new Error(
-				`app/_layout.tsx:${line} <Stack.Screen name={…}> is computed outside any known screen list (${Object.keys(DYNAMIC_SCREEN_LISTS).join(", ")}). Move the names into one of those exported lists, or teach this test how to expand the new one.`,
+				`app/_layout.tsx:${line} <Stack.Screen name={…}> is computed outside any known screen list (${Object.keys(DYNAMIC_SCREEN_LISTS).join(", ")}). Move the names into one of those exported lists, or teach this test how to expand the new one.`
 			);
 		}
 		return list.map((entry) => ({ group, line, name: entry.name }));
 	}
 	throw new Error(
-		`app/_layout.tsx:${line} <Stack.Screen> has no \`name\` this test can read. Give it a string literal, or render it from one of the exported screen lists (${Object.keys(DYNAMIC_SCREEN_LISTS).join(", ")}).`,
+		`app/_layout.tsx:${line} <Stack.Screen> has no \`name\` this test can read. Give it a string literal, or render it from one of the exported screen lists (${Object.keys(DYNAMIC_SCREEN_LISTS).join(", ")}).`
 	);
 }
 
 function parseLayoutScreens(layoutSource: string): RenderedScreen[] {
-	const source = ts.createSourceFile(
-		"_layout.tsx",
-		layoutSource,
-		ts.ScriptTarget.Latest,
-		true,
-		ts.ScriptKind.TSX,
-	);
+	const source = createSourceFile("_layout.tsx", layoutSource, ScriptTarget.Latest, true, ScriptKind.TSX);
 	const screens: RenderedScreen[] = [];
 
-	const visit = (
-		node: ts.Node,
-		group: RootStackGroup | null,
-		list: NamedList | null,
-	) => {
+	const visit = (node: Node, group: RootStackGroup | null, list: NamedList | null) => {
 		const mapped = mappedList(node);
-		if (mapped !== null && ts.isCallExpression(node)) {
+		if (mapped !== null && isCallExpression(node)) {
 			for (const argument of node.arguments) {
 				visit(argument, group, mapped);
 			}
 			return;
 		}
-		if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+		if (isJsxElement(node) || isJsxSelfClosingElement(node)) {
 			const tag = jsxTagName(node);
 			if (tag === "Stack.Protected") {
 				const nested = guardedGroup(node, source);
-				ts.forEachChild(node, (child) => visit(child, nested, list));
+				forEachChild(node, (child) => visit(child, nested, list));
 				return;
 			}
 			if (tag === "Stack.Screen") {
 				screens.push(...renderedNames(node, source, group, list));
 			}
 		}
-		ts.forEachChild(node, (child) => visit(child, group, list));
+		forEachChild(node, (child) => visit(child, group, list));
 	};
 
 	visit(source, null, null);
@@ -286,9 +267,7 @@ describe("guard partition written in app/_layout.tsx", () => {
 
 	it("reads back the screens the layout actually renders", () => {
 		expect(rendered.map((screen) => screen.name)).toContain("(tabs)");
-		expect(rendered.length).toBe(
-			GROUPS.flatMap((group) => ROOT_STACK_SCREEN_NAMES[group]).length,
-		);
+		expect(rendered.length).toBe(GROUPS.flatMap((group) => ROOT_STACK_SCREEN_NAMES[group]).length);
 	});
 
 	it("renders no Stack.Screen outside every Stack.Protected block", () => {
@@ -296,28 +275,20 @@ describe("guard partition written in app/_layout.tsx", () => {
 			.filter((screen) => screen.group === null)
 			.map(
 				(screen) =>
-					`app/_layout.tsx:${screen.line} "${screen.name}" sits outside every <Stack.Protected> block. A guard flip filters the stack against the new routeNames and only re-seats when nothing survives, so this screen survives every flip and strands the stack on it — no tab bar, no way back. Move it inside the block for its group and list it in ROOT_STACK_SCREEN_NAMES.`,
+					`app/_layout.tsx:${screen.line} "${screen.name}" sits outside every <Stack.Protected> block. A guard flip filters the stack against the new routeNames and only re-seats when nothing survives, so this screen survives every flip and strands the stack on it — no tab bar, no way back. Move it inside the block for its group and list it in ROOT_STACK_SCREEN_NAMES.`
 			);
 		expect(stranded).toEqual([]);
 	});
 
 	it("renders exactly the name-to-group partition declared in root-stack.ts", () => {
 		const declaredGroupOf = new Map(
-			GROUPS.flatMap((group) =>
-				ROOT_STACK_SCREEN_NAMES[group].map(
-					(name) => [name, group] as [string, RootStackGroup],
-				),
-			),
+			GROUPS.flatMap((group) => ROOT_STACK_SCREEN_NAMES[group].map((name) => [name, group] as [string, RootStackGroup]))
 		);
 		const drift = rendered
-			.filter(
-				(screen) =>
-					screen.group !== null &&
-					declaredGroupOf.get(screen.name) !== screen.group,
-			)
+			.filter((screen) => screen.group !== null && declaredGroupOf.get(screen.name) !== screen.group)
 			.map(
 				(screen) =>
-					`app/_layout.tsx:${screen.line} "${screen.name}" is rendered under the "${screen.group}" guard but ROOT_STACK_SCREEN_NAMES puts it under "${declaredGroupOf.get(screen.name) ?? "no group"}". Make the two agree — the invariant test above trusts the constant, the router obeys the JSX.`,
+					`app/_layout.tsx:${screen.line} "${screen.name}" is rendered under the "${screen.group}" guard but ROOT_STACK_SCREEN_NAMES puts it under "${declaredGroupOf.get(screen.name) ?? "no group"}". Make the two agree — the invariant test above trusts the constant, the router obeys the JSX.`
 			);
 		expect(drift).toEqual([]);
 
@@ -327,14 +298,11 @@ describe("guard partition written in app/_layout.tsx", () => {
 				rendered
 					.filter((screen) => screen.group === group)
 					.map((screen) => screen.name)
-					.sort(),
-			]),
+					.sort(byCodeUnit),
+			])
 		);
 		const declaredByGroup = Object.fromEntries(
-			GROUPS.map((group) => [
-				group,
-				[...ROOT_STACK_SCREEN_NAMES[group]].sort(),
-			]),
+			GROUPS.map((group) => [group, [...ROOT_STACK_SCREEN_NAMES[group]].sort(byCodeUnit)])
 		);
 		expect(renderedByGroup).toEqual(declaredByGroup);
 	});
@@ -352,20 +320,18 @@ describe("the layout parser only accepts a strict-equality guard", () => {
 	`;
 
 	it("reads the canonical shape", () => {
-		expect(parseLayoutScreens(layout('group === "ledger"'))).toEqual([
-			{ group: "ledger", line: 5, name: "(tabs)" },
-		]);
+		expect(parseLayoutScreens(layout('group === "ledger"'))).toEqual([{ group: "ledger", line: 5, name: "(tabs)" }]);
 	});
 
 	it("rejects an inverted guard", () => {
 		expect(() => parseLayoutScreens(layout('group !== "ledger"'))).toThrow(
-			/does not carry a `guard=\{group === "<name>"\}` prop/,
+			/does not carry a `guard=\{group === "<name>"\}` prop/
 		);
 	});
 
 	it("rejects a guard on some other subject", () => {
 		expect(() => parseLayoutScreens(layout('route === "ledger"'))).toThrow(
-			/does not carry a `guard=\{group === "<name>"\}` prop/,
+			/does not carry a `guard=\{group === "<name>"\}` prop/
 		);
 	});
 });
@@ -376,13 +342,13 @@ interface TestRoute {
 }
 
 interface TestStackState {
-	stale: false;
-	type: "stack";
-	key: string;
 	index: number;
+	key: string;
+	preloadedRoutes: TestRoute[];
 	routeNames: string[];
 	routes: TestRoute[];
-	preloadedRoutes: TestRoute[];
+	stale: false;
+	type: "stack";
 }
 
 function entryScreen(group: RootStackGroup): string {
@@ -391,10 +357,8 @@ function entryScreen(group: RootStackGroup): string {
 
 function beforeStackFor(group: RootStackGroup): TestRoute[] {
 	const names = ROOT_STACK_SCREEN_NAMES[group];
-	const entry = names[0];
-	const pushed = names.includes("settings/account")
-		? "settings/account"
-		: names.at(-1);
+	const [entry] = names;
+	const pushed = names.includes("settings/account") ? "settings/account" : names.at(-1);
 	if (pushed === undefined || pushed === entry) {
 		return [{ key: `${entry}-a`, name: entry }];
 	}
@@ -405,9 +369,7 @@ function beforeStackFor(group: RootStackGroup): TestRoute[] {
 }
 
 const PAIRS: [RootStackGroup, RootStackGroup][] = GROUPS.flatMap((before) =>
-	GROUPS.filter((after) => after !== before).map(
-		(after): [RootStackGroup, RootStackGroup] => [before, after],
-	),
+	GROUPS.filter((after) => after !== before).map((after): [RootStackGroup, RootStackGroup] => [before, after])
 );
 
 const REQUIRED_PAIRS: [RootStackGroup, RootStackGroup][] = [
@@ -418,33 +380,30 @@ const REQUIRED_PAIRS: [RootStackGroup, RootStackGroup][] = [
 ];
 
 describe("stack re-seating on every mode transition", () => {
-	it.each(PAIRS)(
-		"%s -> %s empties and re-seats on the entry screen",
-		(before, after) => {
-			const router = StackRouter({});
-			const beforeRoutes = beforeStackFor(before);
-			const state: TestStackState = {
-				stale: false,
-				type: "stack",
-				key: "stack-test",
-				index: beforeRoutes.length - 1,
-				routeNames: [...ROOT_STACK_SCREEN_NAMES[before]],
-				routes: beforeRoutes,
-				preloadedRoutes: [],
-			};
+	it.each(PAIRS)("%s -> %s empties and re-seats on the entry screen", (before, after) => {
+		const router = StackRouter({});
+		const beforeRoutes = beforeStackFor(before);
+		const state: TestStackState = {
+			index: beforeRoutes.length - 1,
+			key: "stack-test",
+			preloadedRoutes: [],
+			routeNames: [...ROOT_STACK_SCREEN_NAMES[before]],
+			routes: beforeRoutes,
+			stale: false,
+			type: "stack",
+		};
 
-			const result = router.getStateForRouteNamesChange(state, {
-				routeNames: [...ROOT_STACK_SCREEN_NAMES[after]],
-				routeParamList: {},
-				routeGetIdList: {},
-				routeKeyChanges: [],
-			});
+		const result = router.getStateForRouteNamesChange(state, {
+			routeGetIdList: {},
+			routeKeyChanges: [],
+			routeNames: [...ROOT_STACK_SCREEN_NAMES[after]],
+			routeParamList: {},
+		});
 
-			expect(result.routes).toHaveLength(1);
-			expect(result.routes[0].name).toBe(entryScreen(after));
-			expect(result.index).toBe(0);
-		},
-	);
+		expect(result.routes).toHaveLength(1);
+		expect(result.routes[0].name).toBe(entryScreen(after));
+		expect(result.index).toBe(0);
+	});
 
 	it("covers the four spec-required transitions", () => {
 		for (const pair of REQUIRED_PAIRS) {

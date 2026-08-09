@@ -4,10 +4,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
 import type { PendingWrite } from "@/lib/pending-writes-core";
-import {
-	applyPendingWrites,
-	WALLET_DEDUPE_WINDOW_MS,
-} from "./pending-writes-core";
+import { applyPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
 import { transactionsRepo } from "./transactions-core";
 
 function makeDb(): Database {
@@ -80,42 +77,37 @@ async function seedCategories(db: Database): Promise<void> {
 	await db.insert(categories).values([
 		{
 			id: "cat-expense",
-			name: "Coffee",
 			income: false,
+			name: "Coffee",
 			sortOrder: 0,
 			updatedAt: NOW,
 		},
 		{
 			id: "cat-income",
-			name: "Salary",
 			income: true,
+			name: "Salary",
 			sortOrder: 0,
 			updatedAt: NOW,
 		},
 	]);
 }
 
-function walletWrite(
-	id: string,
-	overrides: Partial<PendingWrite> = {},
-): PendingWrite {
+function walletWrite(id: string, overrides: Partial<PendingWrite> = {}): PendingWrite {
 	return {
-		id,
 		amount: 6.4,
-		income: false,
-		note: "Blue Bottle",
+		amountText: "$6.40",
 		category: null,
 		date: NOW.getTime(),
-		amountText: "$6.40",
 		dedupeKey: PURCHASE,
+		id,
+		income: false,
+		note: "Blue Bottle",
 		...overrides,
 	};
 }
 
 async function liveRows(db: Database) {
-	return db
-		.select({ id: transactions.id, note: transactions.note })
-		.from(transactions);
+	return db.select({ id: transactions.id, note: transactions.note }).from(transactions);
 }
 
 describe("applyPendingWrites", () => {
@@ -139,11 +131,7 @@ describe("applyPendingWrites", () => {
 		await applyPendingWrites(db, [walletWrite("auth")], NOW);
 		const settled = new Date(NOW.getTime() + WALLET_DEDUPE_WINDOW_MS - 1);
 
-		const applied = await applyPendingWrites(
-			db,
-			[walletWrite("settle")],
-			settled,
-		);
+		const applied = await applyPendingWrites(db, [walletWrite("settle")], settled);
 
 		expect(applied).toBe(0);
 		expect((await liveRows(db)).length).toBe(1);
@@ -162,11 +150,7 @@ describe("applyPendingWrites", () => {
 	it("keeps two purchases the automation could tell apart", async () => {
 		await applyPendingWrites(db, [walletWrite("a")], NOW);
 
-		const applied = await applyPendingWrites(
-			db,
-			[walletWrite("b", { dedupeKey: "wallet:id:txn-99" })],
-			NOW,
-		);
+		const applied = await applyPendingWrites(db, [walletWrite("b", { dedupeKey: "wallet:id:txn-99" })], NOW);
 
 		expect(applied).toBe(1);
 		expect((await liveRows(db)).length).toBe(2);
@@ -202,10 +186,7 @@ describe("applyPendingWrites", () => {
 		const applied = await applyPendingWrites(db, [walletWrite("again")], NOW);
 
 		expect(applied).toBe(1);
-		const live = await db
-			.select({ id: transactions.id })
-			.from(transactions)
-			.where(eq(transactions.deletedAt, NOW));
+		const live = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.deletedAt, NOW));
 		expect(live.length).toBe(1);
 		expect((await liveRows(db)).length).toBe(2);
 	});
@@ -213,20 +194,20 @@ describe("applyPendingWrites", () => {
 	it("files a merchant where it was filed last time", async () => {
 		await db.insert(categories).values({
 			id: "cat-eating-out",
-			name: "Eating out",
 			income: false,
+			name: "Eating out",
 			sortOrder: 1,
 			updatedAt: NOW,
 		});
 		await db.insert(transactions).values({
-			id: "old",
 			amount: 5,
-			income: false,
-			note: "Blue Bottle",
+			categoryId: "cat-eating-out",
 			date: NOW,
 			day: NOW,
+			id: "old",
+			income: false,
 			month: NOW,
-			categoryId: "cat-eating-out",
+			note: "Blue Bottle",
 			updatedAt: NOW,
 		});
 
@@ -240,15 +221,9 @@ describe("applyPendingWrites", () => {
 	});
 
 	it("reads the card's currency out of the formatted amount", async () => {
-		await applyPendingWrites(
-			db,
-			[walletWrite("a", { amountText: "12,40 zł", dedupeKey: null })],
-			NOW,
-		);
+		await applyPendingWrites(db, [walletWrite("a", { amountText: "12,40 zł", dedupeKey: null })], NOW);
 
-		const [row] = await db
-			.select({ currency: transactions.currency })
-			.from(transactions);
+		const [row] = await db.select({ currency: transactions.currency }).from(transactions);
 		expect(row?.currency).toBe("PLN");
 	});
 

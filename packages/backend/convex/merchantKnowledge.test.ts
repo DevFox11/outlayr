@@ -7,14 +7,13 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 
 import { internal } from "./_generated/api";
+// biome-ignore lint/performance/noNamespaceImport: the visibility test enumerates the module with Object.entries to prove no export is public; named imports can only see the exports it already knows to ask for.
 import * as merchantKnowledge from "./merchantKnowledge";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
 
-const SOURCE_PATH = fileURLToPath(
-	new URL("./merchantKnowledge.ts", import.meta.url),
-);
+const SOURCE_PATH = fileURLToPath(new URL("./merchantKnowledge.ts", import.meta.url));
 
 describe("merchantKnowledge visibility (T5)", () => {
 	test("exports no public query or mutation", () => {
@@ -39,12 +38,8 @@ describe("merchantKnowledge visibility (T5)", () => {
 
 	test("only registers query/mutation functions through internalQuery/internalMutation", () => {
 		const source = readFileSync(SOURCE_PATH, "utf8");
-		expect(source).not.toMatch(
-			/\bimport\s*\{[^}]*\bquery\b[^}]*\}\s*from\s*"\.\/_generated\/server"/,
-		);
-		expect(source).not.toMatch(
-			/\bimport\s*\{[^}]*\bmutation\b[^}]*\}\s*from\s*"\.\/_generated\/server"/,
-		);
+		expect(source).not.toMatch(/\bimport\s*\{[^}]*\bquery\b[^}]*\}\s*from\s*"\.\/_generated\/server"/);
+		expect(source).not.toMatch(/\bimport\s*\{[^}]*\bmutation\b[^}]*\}\s*from\s*"\.\/_generated\/server"/);
 	});
 });
 
@@ -53,15 +48,15 @@ describe("lookup returns the stored metadata verbatim", () => {
 		const t = convexTest(schema, modules);
 		await t.run((ctx) =>
 			ctx.db.insert("merchantKnowledge", {
-				key: "farmatodo",
-				domain: "farmatodo.com",
 				categoryName: "Healthcare",
-				parentCategoryName: null,
+				domain: "farmatodo.com",
 				emoji: null,
-				tags: [],
-				resolvedAt: Date.now(),
+				key: "farmatodo",
 				modelId: "test-model",
-			}),
+				parentCategoryName: null,
+				resolvedAt: Date.now(),
+				tags: [],
+			})
 		);
 
 		const result = await t.query(internal.merchantKnowledge.lookup, {

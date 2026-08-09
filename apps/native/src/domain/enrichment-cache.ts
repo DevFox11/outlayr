@@ -1,18 +1,16 @@
 export interface RemoteEnrichmentResult {
 	readonly categoryName: string | null;
+	readonly domain: string | null;
+	readonly emoji?: string | null;
+	/** A grounded lookup was scheduled server-side; do not cache this as final. */
+	readonly grounding?: boolean;
 	readonly isNewCategory: boolean;
 	/** An existing top-level category this one belongs beneath, if any. */
 	readonly parentCategoryName?: string | null;
-	readonly emoji?: string | null;
 	readonly tags: readonly string[];
-	readonly domain: string | null;
-	/** A grounded lookup was scheduled server-side; do not cache this as final. */
-	readonly grounding?: boolean;
 }
 
-export type EnrichmentCacheLookup =
-	| { hit: true; value: RemoteEnrichmentResult | null }
-	| { hit: false };
+export type EnrichmentCacheLookup = { hit: true; value: RemoteEnrichmentResult | null } | { hit: false };
 
 const CACHE_LIMIT = 50;
 
@@ -25,10 +23,7 @@ export function getCachedEnrichment(key: string): EnrichmentCacheLookup {
 	return { hit: true, value: cache.get(key) ?? null };
 }
 
-export function setCachedEnrichment(
-	key: string,
-	value: RemoteEnrichmentResult | null,
-): void {
+export function setCachedEnrichment(key: string, value: RemoteEnrichmentResult | null): void {
 	if (!cache.has(key) && cache.size >= CACHE_LIMIT) {
 		const oldestKey = cache.keys().next().value;
 		if (oldestKey !== undefined) {

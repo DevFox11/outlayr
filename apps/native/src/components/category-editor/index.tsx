@@ -1,58 +1,13 @@
 import { Host } from "@expo/ui";
 import { Form, type TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
-import {
-	animation,
-	blur,
-	listStyle,
-	opacity,
-	scrollContentBackground,
-} from "@expo/ui/swift-ui/modifiers";
+import { animation, blur, listStyle, opacity, scrollContentBackground } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
-import Animated, {
-	FadeInDown,
-	FadeOutDown,
-	useDerivedValue,
-	useSharedValue,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
-import { IdentityCurtain } from "@/components/identity-curtain";
-import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
-import { Text } from "@/components/text";
-import {
-	useIdentityDraft,
-	useIdentityFlyUp,
-} from "@/contexts/identity-draft-context";
-import { useDatabase } from "@/contexts/local-data-context";
-import {
-	CATEGORY_PALETTE,
-	type Category,
-	categoriesRepo,
-	getCategoryById,
-	useCategoriesByNamespace,
-} from "@/data/categories";
-import { firstAvailableColor } from "@/domain/category-color";
-import {
-	CATEGORY_ERROR_KEYS,
-	categoryErrorCode,
-} from "@/domain/category-error";
-import { useTranslation } from "@/i18n";
-import {
-	CATEGORY_DETENT,
-	LARGE_ONLY,
-	SUBCATEGORY_DETENT,
-} from "@/lib/sheet-detents";
-import { useHaptics } from "@/lib/use-haptics";
-import { glowFromEmoji } from "@/theme/glow";
-import { withAlpha } from "@/theme/shade";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
-import { CategoryEditorCta } from "./cta";
-import { CategoryEditorDetailsSection } from "./details-section";
-import { CategoryEditorHeroBand } from "./hero-band";
 import {
 	CAPTION_CLEARANCE,
 	CTA_BOTTOM_PADDING,
@@ -63,13 +18,80 @@ import {
 	HEADER_HEIGHT,
 	HERO_BOTTOM_PADDING,
 	HERO_TOP_PADDING,
-} from "./style";
+} from "@/components/editor-style";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
+import { IdentityCurtain } from "@/components/identity-curtain";
+import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
+import { Text } from "@/components/text";
+import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { useDatabase } from "@/contexts/local-data-context";
+import { useCategoriesByNamespace } from "@/data/categories";
+import { CATEGORY_PALETTE, type Category, categoriesRepo, getCategoryById } from "@/data/categories-core";
+import { firstAvailableColor } from "@/domain/category-color";
+import { CATEGORY_ERROR_KEYS, categoryErrorCode } from "@/domain/category-error";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
+import { CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
+import { useHaptics } from "@/lib/use-haptics";
+import { glowFromEmoji } from "@/theme/glow";
+import { withAlpha } from "@/theme/shade";
+import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { CategoryEditorCta } from "./cta";
+import { CategoryEditorDetailsSection } from "./details-section";
+import { CategoryEditorHeroBand } from "./hero-band";
 
 const MAX_EXPENSE_CATEGORIES = 24;
 
 export type CategoryEditorProps =
 	| { mode: "create"; income?: boolean; parentId?: string | null }
 	| { mode: "edit"; id: string };
+
+interface CategoryEditorSubject {
+	create: boolean;
+	income: boolean;
+	isSubcategory: boolean;
+	parent: Category | null;
+}
+
+interface CategoryEditorCopy {
+	caption: string | null;
+	ctaLabel: string;
+	errorTitle: string;
+	namePlaceholder: string;
+}
+
+function categoryEditorCopy(
+	t: TranslateFn,
+	{ create, income, isSubcategory, parent }: CategoryEditorSubject
+): CategoryEditorCopy {
+	const namespacePlaceholderKey = income ? "categories.namePlaceholder.income" : "categories.namePlaceholder.expense";
+	const inheritsCaption = parent ? t("categories.inherits", { parent: parent.name }) : null;
+	const incomeCaption = income ? t("categories.incomeColorNote") : null;
+	const createCaption = isSubcategory ? inheritsCaption : incomeCaption;
+	const addLabelKey = isSubcategory ? "categories.addSubcategory" : "categories.addCategory";
+	const saveLabelKey = isSubcategory ? "categories.saveSubcategory" : "categories.saveCategory";
+	return {
+		caption: create ? createCaption : null,
+		ctaLabel: t(create ? addLabelKey : saveLabelKey),
+		errorTitle: t(create ? "categories.error.addTitle" : "categories.error.saveTitle"),
+		namePlaceholder: t(isSubcategory ? "categories.namePlaceholder.subcategory" : namespacePlaceholderKey),
+	};
+}
+
+/** An edit tolerates an empty symbol only where the stored category never carried one. */
+function categoryIsSaveable(
+	mode: CategoryEditorProps["mode"],
+	name: string,
+	symbolEmpty: boolean,
+	stored: Category | null
+): boolean {
+	if (name.trim() === "") {
+		return false;
+	}
+	if (!symbolEmpty) {
+		return true;
+	}
+	return mode === "edit" && stored != null && stored.icon == null && stored.emoji == null;
+}
 
 export default function CategoryEditor(props: CategoryEditorProps) {
 	const db = useDatabase();
@@ -82,13 +104,10 @@ export default function CategoryEditor(props: CategoryEditorProps) {
  * The hero, the CTA and the mesh curtain are RN views around the `Host`, because
  * the `Form` inside it has to be its only child.
  */
-function CategoryEditorReady(
-	props: CategoryEditorProps & { db: import("@/db/client").Database },
-) {
-	const { db } = props;
+function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/client").Database }) {
 	// Stable per-instance primitives: the parent spreads a fresh `props` object
 	// every render, so effects must key off these, never off `props` itself.
-	const mode = props.mode;
+	const { db, mode } = props;
 	const parentId = props.mode === "create" ? (props.parentId ?? null) : null;
 	const editId = props.mode === "edit" ? props.id : null;
 	const initialIncome = props.mode === "create" ? !!props.income : false;
@@ -106,91 +125,40 @@ function CategoryEditorReady(
 	// life — a re-read would re-fire the draft effects below and clobber whatever
 	// the user has since picked.
 	const [loaded] = useState<Category | null>(() =>
-		mode === "edit" && editId != null ? getCategoryById(db, editId) : null,
+		mode === "edit" && editId != null ? getCategoryById(db, editId) : null
 	);
 	const [parent] = useState<Category | null>(() =>
-		mode === "create" && parentId != null
-			? getCategoryById(db, parentId)
-			: null,
+		mode === "create" && parentId != null ? getCategoryById(db, parentId) : null
 	);
 
 	const nameState = useNativeState(loaded?.name ?? "");
 	const nameRef = useRef<TextFieldRef>(null);
 
 	const [initialValues] = useState(() => ({
-		name: loaded?.name ?? "",
 		income: parent?.income ?? initialIncome,
+		name: loaded?.name ?? "",
 	}));
 	const form = useForm({
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			try {
 				if (mode === "create") {
-					const saveColor = value.income
-						? colors.income
-						: isSubcategory
-							? (parent?.color ?? draft.color ?? CATEGORY_PALETTE[0])
-							: (draft.color ?? CATEGORY_PALETTE[0]);
-					await categoriesRepo.create(db, {
-						name: value.name,
-						icon: draft.icon ?? undefined,
-						emoji: draft.emoji ?? null,
-						color: saveColor,
-						income: value.income,
-						parentId,
-					});
-					haptics("success");
-					// A top-level add stays put for a run of them; a subcategory returns
-					// to the row it was added from.
-					if (isSubcategory) {
-						router.back();
-						return await holdSubmitting();
-					}
-					nameState.set("");
-					form.setFieldValue("name", "");
-					// Cleared rather than advanced here: with `colorTouched` released,
-					// the auto-color effect assigns the first free slot AFTER this
-					// insert has landed, where a value chosen now comes from the
-					// pre-insert set.
-					setColorTouched(false);
-					setDraft({
-						emoji: null,
-						icon: null,
-						photoUri: null,
-						photoColor: null,
-						color: null,
-					});
-					flashAdded();
-					return;
+					return await addCategory(value);
 				}
 				if (loaded == null) {
 					return;
 				}
 				await categoriesRepo.update(db, loaded.id, {
-					name: value.name,
-					icon: draft.icon ?? null,
+					color: loaded.income ? undefined : (draft.color ?? CATEGORY_PALETTE[0]),
 					emoji: draft.emoji ?? null,
-					color: loaded.income
-						? undefined
-						: (draft.color ?? CATEGORY_PALETTE[0]),
+					icon: draft.icon ?? null,
+					name: value.name,
 				});
 				haptics("success");
 				router.back();
 				return await holdSubmitting();
 			} catch (error) {
-				haptics("error");
-				const code =
-					error instanceof Error ? categoryErrorCode(error.message) : null;
-				const message = code
-					? t(CATEGORY_ERROR_KEYS[code])
-					: t("categories.error.generic");
-				const refocus = code === "missingName" || code === "duplicateName";
-				Alert.alert(errorTitle, message, [
-					{
-						text: t("categories.ok"),
-						onPress: refocus ? () => nameRef.current?.focus() : undefined,
-					},
-				]);
+				reportSaveFailure(error);
 			}
 		},
 	});
@@ -210,16 +178,11 @@ function CategoryEditorReady(
 	 * The hero band's real height, measured rather than derived: it turns on the
 	 * caption's rendered line height, and the caption itself comes and goes.
 	 */
-	const [heroBand, setHeroBand] = useState(
-		HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING,
-	);
+	const [heroBand, setHeroBand] = useState(HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING);
 
 	const expenseTree = useCategoriesByNamespace(db, false);
 
-	const allExpense = useMemo(
-		() => expenseTree.flatMap((node) => [node, ...node.children]),
-		[expenseTree],
-	);
+	const allExpense = useMemo(() => expenseTree.flatMap((node) => [node, ...node.children]), [expenseTree]);
 	const expenseCount = allExpense.length;
 	const usedColors = useMemo(() => {
 		const set = new Set<string>();
@@ -241,11 +204,11 @@ function CategoryEditorReady(
 			return;
 		}
 		setDraft({
+			color: null,
 			emoji: null,
 			icon: null,
-			photoUri: null,
 			photoColor: null,
-			color: null,
+			photoUri: null,
 		});
 	}, [mode, setDraft]);
 
@@ -258,19 +221,19 @@ function CategoryEditorReady(
 		setDraft(
 			loaded
 				? {
+						color: loaded.color ?? CATEGORY_PALETTE[0],
 						emoji: loaded.emoji ?? null,
 						icon: loaded.icon ?? null,
-						photoUri: null,
 						photoColor: null,
-						color: loaded.color ?? CATEGORY_PALETTE[0],
+						photoUri: null,
 					}
 				: {
+						color: null,
 						emoji: null,
 						icon: null,
-						photoUri: null,
 						photoColor: null,
-						color: null,
-					},
+						photoUri: null,
+					}
 		);
 	}, [mode, loaded, setDraft]);
 
@@ -279,25 +242,24 @@ function CategoryEditorReady(
 			return;
 		}
 		setDraft({
+			color: parent.color ?? CATEGORY_PALETTE[0],
 			emoji: null,
 			icon: null,
-			photoUri: null,
 			photoColor: null,
-			color: parent.color ?? CATEGORY_PALETTE[0],
+			photoUri: null,
 		});
 	}, [mode, parent, setDraft]);
 
 	useEffect(
 		() => () => {
-			if (toastTimer.current != null) {
+			if (toastTimer.current !== null) {
 				clearTimeout(toastTimer.current);
 			}
 		},
-		[],
+		[]
 	);
 
-	const isSubcategory =
-		mode === "create" ? parentId != null : (loaded?.parentId ?? null) != null;
+	const isSubcategory = mode === "create" ? parentId != null : (loaded?.parentId ?? null) != null;
 	const income = mode === "create" ? formIncome : (loaded?.income ?? false);
 	const atExpenseLimit = expenseCount >= MAX_EXPENSE_CATEGORIES;
 
@@ -309,9 +271,7 @@ function CategoryEditorReady(
 	// the route options are static, and only the editor resolves the parent.
 	useEffect(() => {
 		navigation.setOptions({
-			sheetAllowedDetents: pickerOpen
-				? LARGE_ONLY
-				: [isSubcategory ? SUBCATEGORY_DETENT : CATEGORY_DETENT, 1],
+			sheetAllowedDetents: pickerOpen ? LARGE_ONLY : [isSubcategory ? SUBCATEGORY_DETENT : CATEGORY_DETENT, 1],
 		});
 	}, [navigation, pickerOpen, isSubcategory]);
 
@@ -324,11 +284,11 @@ function CategoryEditorReady(
 			return;
 		}
 		setDraft({
+			color: next,
 			emoji: null,
 			icon: null,
-			photoUri: null,
 			photoColor: null,
-			color: next,
+			photoUri: null,
 		});
 	}, [mode, parentId, colorTouched, usedColors, draft.color, setDraft]);
 
@@ -348,69 +308,26 @@ function CategoryEditorReady(
 	useEffect(() => {
 		const changed = expenseCount !== seenExpenseCount.current;
 		seenExpenseCount.current = expenseCount;
-		if (
-			changed &&
-			mode === "create" &&
-			parentId == null &&
-			!income &&
-			expenseCount >= MAX_EXPENSE_CATEGORIES
-		) {
+		if (changed && mode === "create" && parentId == null && !income && expenseCount >= MAX_EXPENSE_CATEGORIES) {
 			router.back();
 		}
 	}, [expenseCount, mode, parentId, income, router]);
 
-	const symbolEmpty = !draft.icon && !draft.emoji;
+	const symbolEmpty = !(draft.icon || draft.emoji);
 	const captionClearance = symbolEmpty ? CAPTION_CLEARANCE : 0;
 	const tint = income ? colors.income : (draft.color ?? CATEGORY_PALETTE[0]);
-	const curtainHues = symbolEmpty
-		? null
-		: draft.emoji
-			? [...glowFromEmoji(draft.emoji).slice(0, 2), tint]
-			: [tint];
-	const typePickerVisible =
-		mode === "create" && !isSubcategory && !atExpenseLimit;
+	const symbolHues = draft.emoji ? [...glowFromEmoji(draft.emoji).slice(0, 2), tint] : [tint];
+	const curtainHues = symbolEmpty ? null : symbolHues;
+	const typePickerVisible = mode === "create" && !isSubcategory && !atExpenseLimit;
 
-	const valid =
-		mode === "create"
-			? name.trim() !== "" && !symbolEmpty
-			: name.trim() !== "" &&
-				(!symbolEmpty ||
-					(loaded != null && loaded.icon == null && loaded.emoji == null));
-	const canSave = valid && !isSubmitting;
+	const canSave = categoryIsSaveable(mode, name, symbolEmpty, loaded) && !isSubmitting;
 
-	const namePlaceholder = t(
-		isSubcategory
-			? "categories.namePlaceholder.subcategory"
-			: income
-				? "categories.namePlaceholder.income"
-				: "categories.namePlaceholder.expense",
-	);
-
-	const caption =
-		mode === "create"
-			? isSubcategory
-				? parent
-					? t("categories.inherits", { parent: parent.name })
-					: null
-				: income
-					? t("categories.incomeColorNote")
-					: null
-			: null;
-
-	const ctaLabel = t(
-		mode === "create"
-			? isSubcategory
-				? "categories.addSubcategory"
-				: "categories.addCategory"
-			: isSubcategory
-				? "categories.saveSubcategory"
-				: "categories.saveCategory",
-	);
-	const errorTitle = t(
-		mode === "create"
-			? "categories.error.addTitle"
-			: "categories.error.saveTitle",
-	);
+	const { caption, ctaLabel, errorTitle, namePlaceholder } = categoryEditorCopy(t, {
+		create: mode === "create",
+		income,
+		isSubcategory,
+		parent,
+	});
 
 	// The form and the CTA carry these themselves instead of sharing a wrapper
 	// stack: a `Form` one level deeper is proposed no height and collapses to
@@ -429,18 +346,65 @@ function CategoryEditorReady(
 		// On the tap frame, rather than waiting for the picker route to mount.
 		setPickerOpen(true);
 		router.push({
-			pathname: "/settings/category-symbol",
 			params: {
+				editId: editId ?? "",
 				income: income ? "1" : "0",
 				subcategory: isSubcategory ? "1" : "0",
-				editId: editId ?? "",
 			},
+			pathname: "/settings/category-symbol",
 		});
+	};
+
+	const addCategory = async (value: { income: boolean; name: string }) => {
+		const pickedColor = draft.color ?? CATEGORY_PALETTE[0];
+		const expenseColor = isSubcategory ? (parent?.color ?? pickedColor) : pickedColor;
+		await categoriesRepo.create(db, {
+			color: value.income ? colors.income : expenseColor,
+			emoji: draft.emoji ?? null,
+			icon: draft.icon ?? undefined,
+			income: value.income,
+			name: value.name,
+			parentId,
+		});
+		haptics("success");
+		// A top-level add stays put for a run of them; a subcategory returns
+		// to the row it was added from.
+		if (isSubcategory) {
+			router.back();
+			return await holdSubmitting();
+		}
+		nameState.set("");
+		form.setFieldValue("name", "");
+		// Cleared rather than advanced here: with `colorTouched` released, the
+		// auto-color effect assigns the first free slot AFTER this insert has
+		// landed, where a value chosen now comes from the pre-insert set.
+		setColorTouched(false);
+		setDraft({
+			color: null,
+			emoji: null,
+			icon: null,
+			photoColor: null,
+			photoUri: null,
+		});
+		flashAdded();
+	};
+
+	const reportSaveFailure = (error: unknown) => {
+		haptics("error");
+		const code = error instanceof Error ? categoryErrorCode(error.message) : null;
+		const message = code ? t(CATEGORY_ERROR_KEYS[code]) : t("categories.error.generic");
+		const refocus = code === "missingName" || code === "duplicateName";
+		Alert.alert(errorTitle, message, [
+			{
+				onPress: refocus ? () => nameRef.current?.focus() : undefined,
+				text: t("categories.ok"),
+			},
+		]);
 	};
 
 	/** Back-to-back adds must not let the first timer clear the second flash. */
 	const flashAdded = () => {
-		if (toastTimer.current != null) {
+		if (toastTimer.current !== null) {
 			clearTimeout(toastTimer.current);
 		}
 		setShowToast(true);
@@ -453,8 +417,8 @@ function CategoryEditorReady(
 				containerHeight.value = e.nativeEvent.layout.height;
 			}}
 			style={{
-				flex: 1,
 				backgroundColor: SYSTEM_COLORS.groupedBackground,
+				flex: 1,
 			}}
 		>
 			{/* FIRST in the tree so it paints under the form: the `Form`'s own
@@ -471,18 +435,12 @@ function CategoryEditorReady(
 			<View
 				style={{
 					flex: 1,
-					paddingTop: heroBand,
 					paddingBottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom,
+					paddingTop: heroBand,
 				}}
 			>
 				<Host style={{ flex: 1 }}>
-					<Form
-						modifiers={[
-							listStyle("insetGrouped"),
-							scrollContentBackground("hidden"),
-							...underPicker,
-						]}
-					>
+					<Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden"), ...underPicker]}>
 						<CategoryEditorDetailsSection
 							caption={caption}
 							expenseLabel={t("common.expense")}
@@ -516,19 +474,16 @@ function CategoryEditorReady(
 				onPress={openPicker}
 				onReset={() =>
 					setDraft({
+						color: null,
 						emoji: null,
 						icon: null,
-						photoUri: null,
 						photoColor: null,
-						color: null,
+						photoUri: null,
 					})
 				}
 			/>
 
-			<View
-				pointerEvents="box-none"
-				className="absolute right-0 bottom-safe-offset-2 left-0 px-5"
-			>
+			<View className="absolute right-0 bottom-safe-offset-2 left-0 px-5" pointerEvents="box-none">
 				<CategoryEditorCta
 					canSave={canSave}
 					label={ctaLabel}
@@ -540,30 +495,23 @@ function CategoryEditorReady(
 
 			{showToast ? (
 				<Animated.View
+					className="absolute right-0 bottom-safe-offset-5 left-0 items-center"
 					entering={FadeInDown.springify()}
 					exiting={FadeOutDown}
 					pointerEvents="none"
-					className="absolute right-0 bottom-safe-offset-5 left-0 items-center"
 				>
 					<View
 						className="flex-row items-center gap-2 rounded-full"
 						style={{
+							backgroundColor: SYSTEM_COLORS.card,
+							borderColor: withAlpha(colors.foreground, 0.12),
+							borderWidth: 1,
 							paddingHorizontal: 16,
 							paddingVertical: 10,
-							backgroundColor: SYSTEM_COLORS.card,
-							borderWidth: 1,
-							borderColor: withAlpha(colors.foreground, 0.12),
 						}}
 					>
-						<SymbolView
-							name="checkmark.circle.fill"
-							size={15}
-							tintColor={colors.income}
-							type="monochrome"
-						/>
-						<Text className="font-sans-semibold text-caption text-income">
-							{t("categories.toast.added")}
-						</Text>
+						<SymbolView name="checkmark.circle.fill" size={15} tintColor={colors.income} type="monochrome" />
+						<Text className="font-sans-semibold text-caption text-income">{t("categories.toast.added")}</Text>
 					</View>
 				</Animated.View>
 			) : null}

@@ -13,14 +13,14 @@ describe("selectDisplaySettings", () => {
 		const result = selectDisplaySettings(
 			snapshot({
 				showCents: true,
-				use24HourClock: true,
 				swapTimeLabel: false,
-			}),
+				use24HourClock: true,
+			})
 		);
 		expect(result).toStrictEqual({
 			showCents: true,
-			use24Hour: true,
 			swapTimeLabel: false,
+			use24Hour: true,
 		});
 	});
 
@@ -28,8 +28,8 @@ describe("selectDisplaySettings", () => {
 		const result = selectDisplaySettings(snapshot({}));
 		expect(result).toStrictEqual({
 			showCents: false,
-			use24Hour: false,
 			swapTimeLabel: false,
+			use24Hour: false,
 		});
 	});
 });

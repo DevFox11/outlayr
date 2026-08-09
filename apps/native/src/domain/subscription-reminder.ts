@@ -38,10 +38,7 @@ export function normalizeLead(raw: number | null): number | null {
  * `offTag` rather than a real lead count; this turns the raw selection back
  * into `null` before it reaches {@link normalizeLead}.
  */
-export function resolveLeadSelection(
-	tag: number,
-	offTag: number,
-): number | null {
+export function resolveLeadSelection(tag: number, offTag: number): number | null {
 	return tag === offTag ? null : normalizeLead(tag);
 }
 
@@ -50,11 +47,7 @@ export function resolveLeadSelection(
  * the fire date and the due date would otherwise shift the reminder an hour off
  * the time the owner picked.
  */
-export function reminderFireAt(
-	landing: Date,
-	leadDays: number,
-	time: TimeOfDay,
-): Date {
+export function reminderFireAt(landing: Date, leadDays: number, time: TimeOfDay): Date {
 	const fire = addDays(landing, -leadDays);
 	fire.setHours(time.hour, time.minute, 0, 0);
 	return fire;
@@ -68,23 +61,23 @@ export function reminderFireAt(
 export const MAX_PENDING_SUBSCRIPTION_REMINDERS = 55;
 
 export interface ReminderCandidate {
-	localId: string;
 	landing: Date;
 	/** Off, so a candidate carrying `null` arms nothing rather than firing on the day. */
 	leadDays: number | null;
+	localId: string;
 }
 
 export interface ArmedReminder {
+	fireAt: Date;
 	id: string;
 	localId: string;
-	fireAt: Date;
 }
 
 export interface ReminderPlanInput {
 	candidates: readonly ReminderCandidate[];
+	cap?: number;
 	now: Date;
 	time: TimeOfDay;
-	cap?: number;
 }
 
 export interface ReminderPlan {
@@ -119,9 +112,9 @@ export function reminderPlan({
 			}
 			return [
 				{
+					fireAt: reminderFireAt(candidate.landing, lead, time),
 					id: subscriptionReminderId(candidate.localId),
 					localId: candidate.localId,
-					fireAt: reminderFireAt(candidate.landing, lead, time),
 				},
 			];
 		})
@@ -135,14 +128,9 @@ export function reminderPlan({
  * covers. Everything outside it is left standing — cancelling
  * `outlayr.daily-reminder` here would turn the setting that owns it into a lie.
  */
-export function orphanedReminderIds(
-	armed: readonly string[],
-	pendingIds: readonly string[],
-): string[] {
+export function orphanedReminderIds(armed: readonly string[], pendingIds: readonly string[]): string[] {
 	const keep = new Set(armed);
-	return pendingIds.filter(
-		(id) => isSubscriptionReminderId(id) && !keep.has(id),
-	);
+	return pendingIds.filter((id) => isSubscriptionReminderId(id) && !keep.has(id));
 }
 
 /**

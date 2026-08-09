@@ -9,10 +9,7 @@ import { redirectLaunchPath } from "@/lib/deep-links";
  * and dev-client URLs flowing through unchanged; without it `outlayr://newExpense`
  * resolves as a literal path and lands on `+not-found`.
  */
-export function redirectSystemPath(event: {
-	path: string | null;
-	initial: boolean;
-}) {
+export function redirectSystemPath(event: { path: string | null; initial: boolean }) {
 	return redirectLaunchPath(event, drainLaunchURL);
 }
 

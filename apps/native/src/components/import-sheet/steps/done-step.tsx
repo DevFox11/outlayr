@@ -4,7 +4,7 @@ import { MeasureCellAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { MeasureStrip } from "../measure-strip";
 
@@ -12,8 +12,8 @@ const STAMP_BORDER_WIDTH = 1.5;
 const STAMP_ROTATION = "-2deg";
 
 interface DoneStepProps {
-	review: ImportReviewResult;
 	onDone: () => void;
+	review: ImportReviewResult;
 }
 
 export function DoneStep({ review, onDone }: DoneStepProps) {
@@ -25,10 +25,7 @@ export function DoneStep({ review, onDone }: DoneStepProps) {
 		return null;
 	}
 	const { count, outAmount, duplicatesSkipped } = review.commit;
-	const month =
-		review.plan.latest == null
-			? null
-			: review.plan.latest.toLocaleDateString(undefined, { month: "long" });
+	const month = review.plan.latest == null ? null : review.plan.latest.toLocaleDateString(undefined, { month: "long" });
 
 	return (
 		<View className="flex-1 gap-6 px-5 pt-4">
@@ -36,8 +33,8 @@ export function DoneStep({ review, onDone }: DoneStepProps) {
 				<View
 					className="px-4 py-2"
 					style={{
-						borderWidth: STAMP_BORDER_WIDTH,
 						borderColor: colors.income,
+						borderWidth: STAMP_BORDER_WIDTH,
 						transform: [{ rotate: STAMP_ROTATION }],
 					}}
 					testID="import-done-stamp"
@@ -84,9 +81,7 @@ export function DoneStep({ review, onDone }: DoneStepProps) {
 				onPress={onDone}
 				testID="import-done-cta"
 			>
-				<Text className="font-sans-medium text-body text-foreground">
-					{t("common.done")}
-				</Text>
+				<Text className="font-sans-medium text-body text-foreground">{t("common.done")}</Text>
 			</Pressable>
 		</View>
 	);

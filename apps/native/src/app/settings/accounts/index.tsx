@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { useToolbarIcon } from "@/components/toolbar-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { Accounts } from "@/screens/accounts";
 
 export default function AccountsScreen() {

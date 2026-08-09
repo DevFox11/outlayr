@@ -23,16 +23,16 @@ import { dirname, join, resolve } from "node:path";
 import { type IconWeight, loadIcon, type SvgElement } from "./hugeicon-raster";
 
 interface Symbol {
-	/** Asset catalog name — what `Image assetName` asks for. */
-	slug: string;
 	/** Export name in `@hugeicons-pro/core-<weight>-rounded`. */
 	icon: string;
+	/** Asset catalog name — what `Image assetName` asks for. */
+	slug: string;
 	weight?: IconWeight;
 }
 
 const SYMBOLS: Symbol[] = [
-	{ slug: "favourite", icon: "StarIcon", weight: "solid" },
-	{ slug: "unfavourite", icon: "StarOffIcon", weight: "solid" },
+	{ icon: "StarIcon", slug: "favourite", weight: "solid" },
+	{ icon: "StarOffIcon", slug: "unfavourite", weight: "solid" },
 ];
 
 /**
@@ -42,7 +42,7 @@ const SYMBOLS: Symbol[] = [
  * A slot's own origin sits on its baseline, so a glyph is drawn in NEGATIVE y —
  * upward from the baseline toward the capline.
  */
-const CANVAS = { width: 3300, height: 2200 };
+const CANVAS = { height: 2200, width: 3300 };
 
 /**
  * One row per size. `actool` rejects a template that lacks Regular-M outright —
@@ -51,9 +51,9 @@ const CANVAS = { width: 3300, height: 2200 };
  * Every row has the same 70.459 cap height, so one scale serves all nine slots.
  */
 const ROWS = [
-	{ size: "S", baseline: 696, capline: 625.541 },
-	{ size: "M", baseline: 1126, capline: 1055.54 },
-	{ size: "L", baseline: 1556, capline: 1485.54 },
+	{ baseline: 696, capline: 625.541, size: "S" },
+	{ baseline: 1126, capline: 1055.54, size: "M" },
+	{ baseline: 1556, capline: 1485.54, size: "L" },
 ] as const;
 
 /**
@@ -74,10 +74,7 @@ const GRID = 24;
 const SCALE = CAP_HEIGHT / GRID;
 
 function escapeAttribute(value: string): string {
-	return value
-		.replace(/&/g, "&amp;")
-		.replace(/"/g, "&quot;")
-		.replace(/</g, "&lt;");
+	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 function attributeName(key: string): string {
@@ -117,8 +114,8 @@ function template(elements: SvgElement[]): string {
 			(weight) =>
 				`  <g id="${weight.name}-${row.size}" transform="matrix(1 0 0 1 ${weight.x} ${row.baseline})">` +
 				`<g transform="scale(${SCALE}) translate(0 -${GRID})">${glyph}</g>` +
-				"</g>",
-		),
+				"</g>"
+		)
 	).join("\n");
 
 	return `<?xml version="1.0" encoding="UTF-8"?>
@@ -141,18 +138,21 @@ const CONTENTS = (file: string) =>
 			symbols: [{ filename: file, idiom: "universal" }],
 		},
 		null,
-		2,
+		2
 	)}\n`;
 
 const appDir = resolve(dirname(process.argv[1]), "..");
 const outDir = join(appDir, "assets", "symbols");
 
 async function main() {
-	rmSync(outDir, { recursive: true, force: true });
+	rmSync(outDir, { force: true, recursive: true });
 	mkdirSync(outDir, { recursive: true });
 
-	for (const symbol of SYMBOLS) {
-		const elements = await loadIcon(symbol.weight ?? "stroke", symbol.icon);
+	const loaded = await Promise.all(
+		SYMBOLS.map(async (symbol) => ({ elements: await loadIcon(symbol.weight ?? "stroke", symbol.icon), symbol }))
+	);
+
+	for (const { elements, symbol } of loaded) {
 		const bundle = join(outDir, `${symbol.slug}.symbolset`);
 		const file = `${symbol.slug}.svg`;
 

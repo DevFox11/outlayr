@@ -8,9 +8,9 @@ interface Subscribable<TState> {
 }
 
 interface SubscribeFieldsProps<TState, TSelected> {
-	store: Subscribable<TState>;
-	selector: (state: TState) => TSelected;
 	children: (selected: TSelected) => ReactNode;
+	selector: (state: TState) => TSelected;
+	store: Subscribable<TState>;
 }
 
 /**

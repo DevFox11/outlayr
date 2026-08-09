@@ -1,22 +1,14 @@
 import { act, renderHook } from "@testing-library/react-native";
 import { categoryKey, type ParsedImportFile } from "@/data/transfer-core";
+// biome-ignore lint/performance/noNamespaceImport: jest.spyOn installs onto the module namespace object, so setCachedEnrichment cannot be spied through a named import
 import * as enrichmentCache from "@/domain/enrichment-cache";
 import type { UnavailableReason } from "@/domain/import-flow";
 import type { MappingDraft } from "@/domain/import-mapping";
 import { reviewEntryIdentity } from "@/domain/import-review-identity";
+// biome-ignore lint/performance/noNamespaceImport: jest.spyOn installs onto the module namespace object, so resolveMerchant cannot be spied through a named import
 import * as merchantResolver from "@/domain/merchant-resolver";
-import type {
-	CsvImportFn,
-	CsvImportRequest,
-	CsvImportResult,
-	CsvImportStatus,
-} from "@/lib/convex";
-import {
-	AI_TIER_MAX_CHARS,
-	AI_TIER_MAX_ROWS,
-	type UseCsvImportArgs,
-	useCsvImport,
-} from "./use-csv-import";
+import type { CsvImportFn, CsvImportRequest, CsvImportResult, CsvImportStatus } from "@/lib/convex";
+import { AI_TIER_MAX_CHARS, AI_TIER_MAX_ROWS, type UseCsvImportArgs, useCsvImport } from "./use-csv-import";
 
 const PARSED: ParsedImportFile = {
 	header: ["date", "description", "amount"],
@@ -25,11 +17,11 @@ const PARSED: ParsedImportFile = {
 };
 
 const DRAFT: MappingDraft = {
-	category: 1,
-	note: 1,
-	date: 0,
 	amount: 2,
+	category: 1,
 	currency: null,
+	date: 0,
+	note: 1,
 	type: null,
 };
 
@@ -38,24 +30,24 @@ const OTHER_UNKNOWN = "zzq unresolvable merchant beta";
 
 function baseArgs(overrides: Partial<UseCsvImportArgs> = {}): UseCsvImportArgs {
 	return {
-		parsed: PARSED,
-		draft: DRAFT,
-		labels: [],
-		chars: 100,
-		categoryTree: [],
-		categoryIdByKey: new Map(),
 		aiEnrichment: true,
+		categoryIdByKey: new Map(),
+		categoryTree: [],
+		chars: 100,
+		draft: DRAFT,
+		fileKey: "test-file",
 		groundedLookup: true,
+		labels: [],
+		parsed: PARSED,
 		regionCode: undefined,
 		transport: null,
-		fileKey: "test-file",
 		...overrides,
 	};
 }
 
 interface DeferredCall {
-	settle: (value: CsvImportResult) => void;
 	reject: (error: unknown) => void;
+	settle: (value: CsvImportResult) => void;
 }
 
 function deferredTransport(): {
@@ -66,10 +58,10 @@ function deferredTransport(): {
 	const fn = jest.fn(
 		() =>
 			new Promise<CsvImportResult>((resolve, reject) => {
-				calls.push({ settle: resolve, reject });
-			}),
+				calls.push({ reject, settle: resolve });
+			})
 	) as CsvImportFn & jest.Mock;
-	return { fn, calls };
+	return { calls, fn };
 }
 
 beforeEach(() => {
@@ -82,11 +74,11 @@ describe("tier 1 resolves before any transport call", () => {
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["netflix"],
 					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+					labels: ["netflix"],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -109,8 +101,8 @@ describe("tier 2: exactly one call per import", () => {
 				baseArgs({
 					labels: [UNKNOWN, OTHER_UNKNOWN, `${UNKNOWN} again`],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -127,9 +119,7 @@ describe("tier 2: exactly one call per import", () => {
 
 	it("ignores a second run() call while one is already in flight", async () => {
 		const { fn } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 		await act(async () => {
 			result.current.run();
@@ -143,18 +133,14 @@ describe("tier 2: exactly one call per import", () => {
 describe("stage: the progress the resolve step can actually show", () => {
 	it("starts idle before anything runs", async () => {
 		const { fn } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 		expect(result.current.stage).toBe("idle");
 	});
 
 	it("reports asking only while the model call is in flight, then settles", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 		await act(async () => {
 			result.current.run();
@@ -172,11 +158,11 @@ describe("stage: the progress the resolve step can actually show", () => {
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["netflix"],
 					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+					labels: ["netflix"],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -190,9 +176,7 @@ describe("stage: the progress the resolve step can actually show", () => {
 
 	it("settles when the call fails, so the list never hangs mid-stage", async () => {
 		const fn: CsvImportFn = jest.fn(() => Promise.reject(new Error("offline")));
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 		await act(async () => {
 			result.current.run();
@@ -204,10 +188,9 @@ describe("stage: the progress the resolve step can actually show", () => {
 
 	it("returns to idle when a different file is selected", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result, rerender } = await renderHook(
-			(args: UseCsvImportArgs) => useCsvImport(args),
-			{ initialProps: baseArgs({ labels: [UNKNOWN], transport: fn }) },
-		);
+		const { result, rerender } = await renderHook((args: UseCsvImportArgs) => useCsvImport(args), {
+			initialProps: baseArgs({ labels: [UNKNOWN], transport: fn }),
+		});
 
 		await act(async () => {
 			result.current.run();
@@ -218,9 +201,7 @@ describe("stage: the progress the resolve step can actually show", () => {
 		expect(result.current.stage).toBe("settled");
 
 		await act(async () => {
-			rerender(
-				baseArgs({ labels: [UNKNOWN], transport: fn, fileKey: "other.csv:99" }),
-			);
+			rerender(baseArgs({ fileKey: "other.csv:99", labels: [UNKNOWN], transport: fn }));
 		});
 
 		expect(result.current.stage).toBe("idle");
@@ -233,21 +214,19 @@ describe("server-side learning for merchants the map cannot fully answer", () =>
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: [UNKNOWN],
 					groundedLookup: true,
+					labels: [UNKNOWN],
 					regionCode: "VE",
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
 			result.current.run();
 		});
 
-		expect(fn).toHaveBeenCalledWith(
-			expect.objectContaining({ groundedLookup: true, regionCode: "VE" }),
-		);
+		expect(fn).toHaveBeenCalledWith(expect.objectContaining({ groundedLookup: true, regionCode: "VE" }));
 	});
 
 	it("sends a map match that has no domain to the transport so its domain can be learned", async () => {
@@ -255,31 +234,27 @@ describe("server-side learning for merchants the map cannot fully answer", () =>
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
+					categoryIdByKey: new Map([[categoryKey("Phone & Internet"), "cat-phone"]]),
 					labels: ["cantv"],
-					categoryIdByKey: new Map([
-						[categoryKey("Phone & Internet"), "cat-phone"],
-					]),
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
 			result.current.run();
 		});
 
-		expect(fn).toHaveBeenCalledWith(
-			expect.objectContaining({ labels: ["cantv"] }),
-		);
+		expect(fn).toHaveBeenCalledWith(expect.objectContaining({ labels: ["cantv"] }));
 
 		await act(async () => {
 			calls[0].settle({
 				status: "ok",
 				suggestions: [
 					{
-						label: "cantv",
 						categoryName: "Phone & Internet",
 						domain: "cantv.com.ve",
+						label: "cantv",
 					},
 				],
 			});
@@ -294,11 +269,11 @@ describe("server-side learning for merchants the map cannot fully answer", () =>
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["Corpoelec", "Automercado Plaza's"],
 					categoryIdByKey: new Map([[categoryKey("Groceries"), "cat-groc"]]),
+					labels: ["Corpoelec", "Automercado Plaza's"],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -308,7 +283,7 @@ describe("server-side learning for merchants the map cannot fully answer", () =>
 		expect(fn).toHaveBeenCalledWith(
 			expect.objectContaining({
 				labels: expect.arrayContaining(["Corpoelec", "Automercado Plaza's"]),
-			}),
+			})
 		);
 	});
 
@@ -317,11 +292,11 @@ describe("server-side learning for merchants the map cannot fully answer", () =>
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["netflix"],
 					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+					labels: ["netflix"],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -339,11 +314,11 @@ describe("suggestion domains seed the enrichment cache", () => {
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["FARMACIA SAAS 00012345"],
 					categoryIdByKey: new Map([[categoryKey("Healthcare"), "cat-health"]]),
+					labels: ["FARMACIA SAAS 00012345"],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -354,28 +329,22 @@ describe("suggestion domains seed the enrichment cache", () => {
 				status: "ok",
 				suggestions: [
 					{
-						label: "FARMACIA SAAS",
 						categoryName: "Healthcare",
 						domain: "farmaciasaas.com",
+						label: "FARMACIA SAAS",
 					},
 				],
 			});
 		});
 
-		expect(
-			result.current.links.get(categoryKey("FARMACIA SAAS 00012345")),
-		).toBe("cat-health");
-		expect(reviewEntryIdentity("FARMACIA SAAS 00012345").domain).toBe(
-			"farmaciasaas.com",
-		);
+		expect(result.current.links.get(categoryKey("FARMACIA SAAS 00012345"))).toBe("cat-health");
+		expect(reviewEntryIdentity("FARMACIA SAAS 00012345").domain).toBe("farmaciasaas.com");
 	});
 
 	it("seeds the domain even when the suggested category is not in the tree", async () => {
 		const { fn, calls } = deferredTransport();
 		const { result } = await renderHook(() =>
-			useCsvImport(
-				baseArgs({ labels: ["FARMACIA SAAS 00012345"], transport: fn }),
-			),
+			useCsvImport(baseArgs({ labels: ["FARMACIA SAAS 00012345"], transport: fn }))
 		);
 
 		await act(async () => {
@@ -386,18 +355,16 @@ describe("suggestion domains seed the enrichment cache", () => {
 				status: "ok",
 				suggestions: [
 					{
-						label: "FARMACIA SAAS",
 						categoryName: "Healthcare",
 						domain: "farmaciasaas.com",
+						label: "FARMACIA SAAS",
 					},
 				],
 			});
 		});
 
 		expect(result.current.links.size).toBe(0);
-		expect(reviewEntryIdentity("FARMACIA SAAS 00012345").domain).toBe(
-			"farmaciasaas.com",
-		);
+		expect(reviewEntryIdentity("FARMACIA SAAS 00012345").domain).toBe("farmaciasaas.com");
 	});
 });
 
@@ -405,9 +372,7 @@ describe("aiEnrichment setting off", () => {
 	it("never calls the transport and settles declined", async () => {
 		const { fn } = deferredTransport();
 		const { result } = await renderHook(() =>
-			useCsvImport(
-				baseArgs({ labels: [UNKNOWN], aiEnrichment: false, transport: fn }),
-			),
+			useCsvImport(baseArgs({ aiEnrichment: false, labels: [UNKNOWN], transport: fn }))
 		);
 
 		await act(async () => {
@@ -426,12 +391,12 @@ describe("over cap — the AI tier is gated, not the import", () => {
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["netflix", UNKNOWN],
 					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
 					chars: AI_TIER_MAX_CHARS + 1,
+					labels: ["netflix", UNKNOWN],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -447,20 +412,16 @@ describe("over cap — the AI tier is gated, not the import", () => {
 
 	it("skips the transport when the parsed row count exceeds the AI tier cap, but a plan still reaches review", async () => {
 		const { fn } = deferredTransport();
-		const manyRows = Array.from({ length: AI_TIER_MAX_ROWS + 1 }, () => [
-			"01/08/2026",
-			"x",
-			"1,00",
-		]);
+		const manyRows = Array.from({ length: AI_TIER_MAX_ROWS + 1 }, () => ["01/08/2026", "x", "1,00"]);
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["netflix", UNKNOWN],
 					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+					labels: ["netflix", UNKNOWN],
 					parsed: { ...PARSED, rows: manyRows },
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -477,12 +438,8 @@ describe("over cap — the AI tier is gated, not the import", () => {
 
 describe("transport failure never throws", () => {
 	it("a rejecting transport settles unavailable with reason offline", async () => {
-		const fn: CsvImportFn = jest.fn(() =>
-			Promise.reject(new Error("network down")),
-		);
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-		);
+		const fn: CsvImportFn = jest.fn(() => Promise.reject(new Error("network down")));
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 		await act(async () => {
 			result.current.run();
@@ -495,9 +452,7 @@ describe("transport failure never throws", () => {
 	it("has not resolved just before 15000ms and has resolved just after", async () => {
 		jest.useFakeTimers();
 		const { fn } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 		await act(async () => {
 			result.current.run();
@@ -521,7 +476,7 @@ describe("transport failure never throws", () => {
 });
 
 describe("each server status maps to its own reason", () => {
-	const cases: Array<[CsvImportStatus, UnavailableReason]> = [
+	const cases: [CsvImportStatus, UnavailableReason][] = [
 		["notConfigured", "notConfigured"],
 		["rateLimited", "rateLimited"],
 		["invalidResponse", "invalidResponse"],
@@ -532,12 +487,8 @@ describe("each server status maps to its own reason", () => {
 
 	for (const [status, reason] of cases) {
 		it(`maps "${status}" to "${reason}"`, async () => {
-			const fn: CsvImportFn = jest.fn(() =>
-				Promise.resolve({ status, suggestions: null }),
-			);
-			const { result } = await renderHook(() =>
-				useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })),
-			);
+			const fn: CsvImportFn = jest.fn(() => Promise.resolve({ status, suggestions: null }));
+			const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
 
 			await act(async () => {
 				result.current.run();
@@ -555,17 +506,17 @@ describe("enrichment-cache boundary (A10)", () => {
 		const fn: CsvImportFn = jest.fn(() =>
 			Promise.resolve({
 				status: "ok" as const,
-				suggestions: [{ label: UNKNOWN, categoryName: "Food" }],
-			}),
+				suggestions: [{ categoryName: "Food", label: UNKNOWN }],
+			})
 		);
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: [UNKNOWN],
 					categoryIdByKey: new Map([["food", "cat-food"]]),
+					labels: [UNKNOWN],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -580,19 +531,19 @@ describe("enrichment-cache boundary (A10)", () => {
 	it("reuses a cache entry left by the single-transaction enrichment flow, skipping the transport for that label", async () => {
 		enrichmentCache.setCachedEnrichment(merchantResolver.merchantKey(UNKNOWN), {
 			categoryName: "Food",
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 		const { fn } = deferredTransport();
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: [UNKNOWN],
 					categoryIdByKey: new Map([["food", "cat-food"]]),
+					labels: [UNKNOWN],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -607,20 +558,20 @@ describe("enrichment-cache boundary (A10)", () => {
 	it("reuses a cache entry keyed by the clean name for a label carrying a store number", async () => {
 		enrichmentCache.setCachedEnrichment(merchantResolver.merchantKey(UNKNOWN), {
 			categoryName: "Food",
+			domain: null,
 			isNewCategory: false,
 			tags: [],
-			domain: null,
 		});
 		const raw = `${UNKNOWN} 1234567`;
 		const { fn } = deferredTransport();
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: [raw],
 					categoryIdByKey: new Map([["food", "cat-food"]]),
+					labels: [raw],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -640,18 +591,18 @@ describe("raw ↔ scrubbed label correspondence", () => {
 			expect(payload.labels).toEqual([UNKNOWN]);
 			return Promise.resolve({
 				status: "ok" as const,
-				suggestions: [{ label: UNKNOWN, categoryName: "Shopping" }],
+				suggestions: [{ categoryName: "Shopping", label: UNKNOWN }],
 			});
 		}) as CsvImportFn & jest.Mock;
 
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: [raw],
 					categoryIdByKey: new Map([["shopping", "cat-shopping"]]),
+					labels: [raw],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {
@@ -665,9 +616,7 @@ describe("raw ↔ scrubbed label correspondence", () => {
 
 describe("no backend configured", () => {
 	it("settles unavailable/notConfigured (non-retryable) rather than calling nothing silently", async () => {
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN], transport: null })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: null })));
 
 		await act(async () => {
 			result.current.run();
@@ -681,17 +630,14 @@ describe("no backend configured", () => {
 describe("changing the selected file resets a settled resolution", () => {
 	it("clears outcome, links, and counters so the CTA returns", async () => {
 		const { fn } = deferredTransport();
-		const { result, rerender } = await renderHook(
-			(props: UseCsvImportArgs) => useCsvImport(props),
-			{
-				initialProps: baseArgs({
-					fileKey: "file-a",
-					labels: ["netflix"],
-					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
-					transport: fn,
-				}),
-			},
-		);
+		const { result, rerender } = await renderHook((props: UseCsvImportArgs) => useCsvImport(props), {
+			initialProps: baseArgs({
+				categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
+				fileKey: "file-a",
+				labels: ["netflix"],
+				transport: fn,
+			}),
+		});
 
 		await act(async () => {
 			result.current.run();
@@ -701,9 +647,7 @@ describe("changing the selected file resets a settled resolution", () => {
 		expect(result.current.tier1Matched).toBe(1);
 		expect(result.current.links.size).toBe(1);
 
-		await rerender(
-			baseArgs({ fileKey: "file-b", labels: [UNKNOWN], transport: fn }),
-		);
+		await rerender(baseArgs({ fileKey: "file-b", labels: [UNKNOWN], transport: fn }));
 
 		expect(result.current.outcome).toBeNull();
 		expect(result.current.tier1Matched).toBe(0);
@@ -717,9 +661,9 @@ describe("resuming with the same file after a remount stays idle (design §2.3.2
 	it("never auto-runs on a fresh mount whose fileKey matches a prior, already-settled session", async () => {
 		const { fn } = deferredTransport();
 		const args = baseArgs({
+			categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
 			fileKey: "resumed-file",
 			labels: ["netflix"],
-			categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
 			transport: fn,
 		});
 
@@ -740,15 +684,11 @@ describe("resuming with the same file after a remount stays idle (design §2.3.2
 
 describe("any throw during the run settles unavailable instead of rejecting", () => {
 	it("recovers when on-device resolution throws", async () => {
-		const spy = jest
-			.spyOn(merchantResolver, "resolveMerchant")
-			.mockImplementation(() => {
-				throw new Error("boom");
-			});
+		const spy = jest.spyOn(merchantResolver, "resolveMerchant").mockImplementation(() => {
+			throw new Error("boom");
+		});
 
-		const { result } = await renderHook(() =>
-			useCsvImport(baseArgs({ labels: [UNKNOWN] })),
-		);
+		const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN] })));
 
 		await act(async () => {
 			result.current.run();
@@ -760,19 +700,17 @@ describe("any throw during the run settles unavailable instead of rejecting", ()
 	});
 
 	it("keeps on-device links and matching counters when a throw follows the tier-1 pass", async () => {
-		const spy = jest
-			.spyOn(enrichmentCache, "getCachedEnrichment")
-			.mockImplementation(() => {
-				throw new Error("boom");
-			});
+		const spy = jest.spyOn(enrichmentCache, "getCachedEnrichment").mockImplementation(() => {
+			throw new Error("boom");
+		});
 
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: ["netflix", UNKNOWN],
 					categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
-				}),
-			),
+					labels: ["netflix", UNKNOWN],
+				})
+			)
 		);
 
 		await act(async () => {
@@ -793,24 +731,23 @@ describe("any throw during the run settles unavailable instead of rejecting", ()
 				if (key === categoryKey("boom")) {
 					throw new Error("boom");
 				}
-				return undefined;
 			},
 		} as unknown as ReadonlyMap<string, string>;
 		const fn: CsvImportFn = jest.fn(() =>
 			Promise.resolve({
 				status: "ok" as const,
-				suggestions: [{ label: UNKNOWN, categoryName: "boom" }],
-			}),
+				suggestions: [{ categoryName: "boom", label: UNKNOWN }],
+			})
 		);
 
 		const { result } = await renderHook(() =>
 			useCsvImport(
 				baseArgs({
-					labels: [UNKNOWN],
 					categoryIdByKey: throwingCategoryIdByKey,
+					labels: [UNKNOWN],
 					transport: fn,
-				}),
-			),
+				})
+			)
 		);
 
 		await act(async () => {

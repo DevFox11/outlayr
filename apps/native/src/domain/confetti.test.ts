@@ -41,9 +41,7 @@ describe("confetti burst", () => {
 	});
 
 	it("uses every colour of a small palette across a wide burst", () => {
-		const used = new Set(
-			confettiBurst(60, 4, 11).map((piece) => piece.colorIndex),
-		);
+		const used = new Set(confettiBurst(60, 4, 11).map((piece) => piece.colorIndex));
 		expect([...used].sort()).toStrictEqual([0, 1, 2, 3]);
 	});
 
@@ -58,9 +56,7 @@ describe("confetti burst", () => {
 		for (const piece of confettiBurst(60, 5, 5)) {
 			expect(piece.delayMs >= 0).toBeTruthy();
 			expect(piece.durationMs > 0).toBeTruthy();
-			expect(
-				piece.delayMs + piece.durationMs <= CONFETTI_FLIGHT_MS,
-			).toBeTruthy();
+			expect(piece.delayMs + piece.durationMs <= CONFETTI_FLIGHT_MS).toBeTruthy();
 		}
 	});
 

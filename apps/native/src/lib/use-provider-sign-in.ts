@@ -1,10 +1,6 @@
 import { useState } from "react";
-import {
-	isSignInCancellation,
-	signInFailureDetail,
-	signInFailureMessage,
-} from "@/domain/account";
-import { useTranslation } from "@/i18n";
+import { isSignInCancellation, signInFailureDetail, signInFailureMessage } from "@/domain/account";
+import { useTranslation } from "@/i18n/context";
 import type { authClient } from "@/lib/auth-client";
 
 type AuthClient = NonNullable<typeof authClient>;
@@ -14,10 +10,7 @@ export type SignInProvider = "apple" | "google";
 export interface ProviderSignIn {
 	busy: SignInProvider | null;
 	error: string | null;
-	start: (
-		provider: SignInProvider,
-		getToken: () => Promise<string | null>,
-	) => void;
+	start: (provider: SignInProvider, getToken: () => Promise<string | null>) => void;
 }
 
 /**
@@ -29,10 +22,7 @@ export function useProviderSignIn(client: AuthClient): ProviderSignIn {
 	const [busy, setBusy] = useState<SignInProvider | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	const start = (
-		provider: SignInProvider,
-		getToken: () => Promise<string | null>,
-	) => {
+	const start = (provider: SignInProvider, getToken: () => Promise<string | null>) => {
 		setError(null);
 		setBusy(provider);
 		getToken()
@@ -45,10 +35,7 @@ export function useProviderSignIn(client: AuthClient): ProviderSignIn {
 					provider,
 				});
 				if (rejection) {
-					console.warn(
-						"[outlayr] sign-in rejected",
-						signInFailureDetail(rejection),
-					);
+					console.warn("[outlayr] sign-in rejected", signInFailureDetail(rejection));
 					setError(signInFailureMessage(rejection, t));
 				}
 			})

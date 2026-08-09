@@ -7,22 +7,22 @@ import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 interface BudgetDaySlotsProps {
-	contributions: readonly ExpenseContribution[];
-	limit: number;
-	window: BudgetWindow;
-	/** `Date.now()` from the screen, so the day matches the one spend is counted in. */
-	nowMs: number;
-	/** Scope to one category and its subcategories; null for the overall budget. */
-	categoryId?: string | null;
-	currency: string;
-	/** What the overflow counts — the category on a row, "purchase" for the overall budget. */
-	noun?: string;
 	/** Draw the blocks alone, for callers that place the verdict themselves. */
 	bandOnly?: boolean;
+	/** Scope to one category and its subcategories; null for the overall budget. */
+	categoryId?: string | null;
 	compact?: boolean;
+	contributions: readonly ExpenseContribution[];
+	currency: string;
+	limit: number;
+	/** What the overflow counts — the category on a row, "purchase" for the overall budget. */
+	noun?: string;
+	/** `Date.now()` from the screen, so the day matches the one spend is counted in. */
+	nowMs: number;
+	window: BudgetWindow;
 }
 
 const BLOCK_GAP = 2;
@@ -45,12 +45,12 @@ export function BudgetDaySlots({
 	const slots = useMemo(
 		() =>
 			buildDaySlots(contributions, {
-				limit,
-				window,
-				now: new Date(nowMs),
 				categoryId,
+				limit,
+				now: new Date(nowMs),
+				window,
 			}),
-		[contributions, limit, window, nowMs, categoryId],
+		[contributions, limit, window, nowMs, categoryId]
 	);
 
 	if (slots.scale <= 0 || (slots.blocks.length === 0 && slots.ghost == null)) {
@@ -68,16 +68,16 @@ export function BudgetDaySlots({
 					<View
 						key={`${block.start}-${block.amount}`}
 						style={{
-							position: "absolute",
-							top: 0,
 							bottom: 0,
 							left: span(block.start),
+							position: "absolute",
+							top: 0,
 							width: span(block.amount),
 						}}
 					>
 						<View
 							className={block.over ? "bg-over-budget" : "bg-foreground"}
-							style={{ flex: 1, marginRight: BLOCK_GAP, borderRadius: 2 }}
+							style={{ borderRadius: 2, flex: 1, marginRight: BLOCK_GAP }}
 						/>
 					</View>
 				))}
@@ -85,21 +85,21 @@ export function BudgetDaySlots({
 				{slots.ghost == null ? null : (
 					<View
 						style={{
-							position: "absolute",
-							top: 0,
 							bottom: 0,
 							left: span(slots.spent),
+							position: "absolute",
+							top: 0,
 							width: span(slots.ghost),
 						}}
 					>
 						<View
 							className="border-muted"
 							style={{
+								borderRadius: 2,
+								borderStyle: "dashed",
+								borderWidth: 1,
 								flex: 1,
 								marginRight: BLOCK_GAP,
-								borderRadius: 2,
-								borderWidth: 1,
-								borderStyle: "dashed",
 							}}
 						/>
 					</View>
@@ -108,11 +108,11 @@ export function BudgetDaySlots({
 				<View
 					className="bg-muted"
 					style={{
-						position: "absolute",
-						top: -RULE_OVERHANG,
 						bottom: -RULE_OVERHANG,
 						left: span(Math.min(slots.limit, slots.scale)),
 						marginLeft: -1,
+						position: "absolute",
+						top: -RULE_OVERHANG,
 						width: 1,
 					}}
 				/>
@@ -123,9 +123,7 @@ export function BudgetDaySlots({
 					<Text className={cn("text-foreground", sizeClass)}>{sentence}</Text>
 					<Text className={cn("text-muted", sizeClass)}>
 						{`${formatAmount(Math.abs(slots.remaining), currency, showCents)} ${
-							slots.remaining < 0
-								? t("budgets.suffix.over")
-								: t("budgets.suffix.left")
+							slots.remaining < 0 ? t("budgets.suffix.over") : t("budgets.suffix.left")
 						}`}
 					</Text>
 				</View>

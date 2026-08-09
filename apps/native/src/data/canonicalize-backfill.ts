@@ -1,4 +1,4 @@
-import { utcDateString } from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
 import { and, count, eq, isNotNull, isNull, min } from "drizzle-orm";
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
@@ -64,17 +64,12 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
 	// Budgets carry the same contract as entries: a target stored as a bare
 	// number would follow the setting rather than survive it.
 	for (const table of [transactions, budgets, mainBudget] as const) {
-		const pending = await db
-			.select({ id: table.id })
-			.from(table)
-			.where(isNull(table.currency));
+		// biome-ignore lint/performance/noAwaitInLoops: each table counts the rows it is about to stamp and then stamps them under the same predicate, and `await` on this driver only reaches the microtask queue (see yieldToUi below), so issuing the tables together would overlap no I/O while letting the two halves of that pair interleave
+		const pending = await db.select({ id: table.id }).from(table).where(isNull(table.currency));
 		if (pending.length === 0) {
 			continue;
 		}
-		await db
-			.update(table)
-			.set({ currency: display })
-			.where(isNull(table.currency));
+		await db.update(table).set({ currency: display }).where(isNull(table.currency));
 		stamped += pending.length;
 	}
 
@@ -99,11 +94,7 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
  * counting it as one reports a backlog that never drains.
  */
 function uncanonicalized() {
-	return and(
-		isNull(transactions.amountUsd),
-		isNotNull(transactions.currency),
-		isNull(transactions.deletedAt),
-	);
+	return and(isNull(transactions.amountUsd), isNotNull(transactions.currency), isNull(transactions.deletedAt));
 }
 
 export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
@@ -114,12 +105,13 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 	let cursor = 0;
 
 	for (;;) {
+		// biome-ignore lint/performance/noAwaitInLoops: the next slice's offset is `cursor`, which only the previous slice's landed count can produce, so the slices cannot be issued together
 		const pending = await db
 			.select({
-				id: transactions.id,
 				amount: transactions.amount,
 				currency: transactions.currency,
 				date: transactions.date,
+				id: transactions.id,
 			})
 			.from(transactions)
 			.where(uncanonicalized())
@@ -133,20 +125,18 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 
 		let landed = 0;
 		for (const row of pending) {
+			// biome-ignore lint/performance/noAwaitInLoops: the rate lookup and the UPDATE are both synchronous on this driver (see CANONICALIZE_BATCH above), so issuing the slice together overlaps no I/O — it only moves all 250 rows into one microtask drain, which is exactly what yieldToUi paces
 			const canonical = await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency,
-				displayCurrency: row.currency ?? DEFAULT_CURRENCY,
 				date: row.date,
+				displayCurrency: row.currency ?? DEFAULT_CURRENCY,
 			});
 			if (canonical.amountUsd === null) {
 				// Still no rate for that day; left alone so the next pass retries it.
 				continue;
 			}
-			await db
-				.update(transactions)
-				.set(canonical)
-				.where(eq(transactions.id, row.id));
+			await db.update(transactions).set(canonical).where(eq(transactions.id, row.id));
 			landed += 1;
 		}
 
@@ -169,12 +159,13 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 	let valued = 0;
 
 	for (const table of [budgets, mainBudget] as const) {
+		// biome-ignore lint/performance/noAwaitInLoops: reads and writes are synchronous on this driver (see CANONICALIZE_BATCH above), so running the two tables together would overlap no I/O while interleaving each table's read with the other's writes
 		const pending = await db
 			.select({
-				id: table.id,
 				amount: table.amount,
 				currency: table.currency,
 				dateCreated: table.dateCreated,
+				id: table.id,
 				startDate: table.startDate,
 			})
 			.from(table)
@@ -186,11 +177,12 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 				// will find it.
 				continue;
 			}
+			// biome-ignore lint/performance/noAwaitInLoops: the rate lookup and the UPDATE are both synchronous on this driver (see CANONICALIZE_BATCH above), so issuing the rows together overlaps no I/O and only lets every target's write pile into one microtask drain
 			const { amountUsd } = await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency,
-				displayCurrency: row.currency,
 				date: row.dateCreated ?? row.startDate ?? new Date(),
+				displayCurrency: row.currency,
 			});
 			if (amountUsd === null) {
 				continue;
@@ -204,11 +196,7 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 }
 
 export async function hasUncanonicalized(db: SpendDb): Promise<boolean> {
-	const rows = await db
-		.select({ id: transactions.id })
-		.from(transactions)
-		.where(uncanonicalized())
-		.limit(1);
+	const rows = await db.select({ id: transactions.id }).from(transactions).where(uncanonicalized()).limit(1);
 	return rows.length > 0;
 }
 
@@ -216,9 +204,7 @@ export async function canonicalizedCount(db: SpendDb): Promise<number> {
 	const rows = await db
 		.select({ total: count() })
 		.from(transactions)
-		.where(
-			and(isNotNull(transactions.amountUsd), isNull(transactions.deletedAt)),
-		);
+		.where(and(isNotNull(transactions.amountUsd), isNull(transactions.deletedAt)));
 	return rows[0]?.total ?? 0;
 }
 
@@ -230,17 +216,15 @@ export async function canonicalizedCount(db: SpendDb): Promise<number> {
  * A currency with no rows at all is left in `pending`: rates for it may still
  * arrive, and "never" is not something to claim without evidence.
  */
-export async function valuationCoverage(
-	db: SpendDb,
-): Promise<ValuationCoverage> {
+export async function valuationCoverage(db: SpendDb): Promise<ValuationCoverage> {
 	const converted = await canonicalizedCount(db);
 	if (!(await hasUncanonicalized(db))) {
-		return { converted, pending: 0, beyondRateHistory: 0 };
+		return { beyondRateHistory: 0, converted, pending: 0 };
 	}
 
 	const floors = new Map<string, string>();
 	const earliest = await db
-		.select({ quote: exchangeRates.quote, date: min(exchangeRates.date) })
+		.select({ date: min(exchangeRates.date), quote: exchangeRates.quote })
 		.from(exchangeRates)
 		.groupBy(exchangeRates.quote);
 	for (const row of earliest) {
@@ -257,18 +241,15 @@ export async function valuationCoverage(
 	let beyondRateHistory = 0;
 	for (const row of pending) {
 		// A USD row freezes at rate 1 without any rate being consulted.
-		const floor =
-			row.currency === null || row.currency === "USD"
-				? undefined
-				: floors.get(row.currency);
+		const floor = row.currency === null || row.currency === "USD" ? undefined : floors.get(row.currency);
 		if (floor !== undefined && utcDateString(row.date.getTime()) < floor) {
 			beyondRateHistory += 1;
 		}
 	}
 
 	return {
+		beyondRateHistory,
 		converted,
 		pending: pending.length - beyondRateHistory,
-		beyondRateHistory,
 	};
 }

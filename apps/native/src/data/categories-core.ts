@@ -9,6 +9,8 @@ import { uuidV5 } from "@/domain/uuid5";
 
 export type Category = typeof categories.$inferSelect;
 
+const WHITESPACE_RUN = /\s+/;
+
 /** `Color.colorArray` in the Swift app, identical in light and dark. */
 export const CATEGORY_PALETTE = [
 	"#279AF4",
@@ -75,10 +77,7 @@ const SEEDED_CATEGORY_NAMESPACE = "04ed4302-1c98-46af-999e-930ae1b19e0e";
  * it, both installs compute one id and the second upserts.
  */
 export function seededCategoryId(name: string, income: boolean): string {
-	return uuidV5(
-		`${income ? "income" : "expense"}:${name}`,
-		SEEDED_CATEGORY_NAMESPACE,
-	);
+	return uuidV5(`${income ? "income" : "expense"}:${name}`, SEEDED_CATEGORY_NAMESPACE);
 }
 
 /**
@@ -88,10 +87,7 @@ export function seededCategoryId(name: string, income: boolean): string {
  * launch.
  */
 export async function seedCategories(db: Database): Promise<void> {
-	const seeded = await db
-		.select({ id: categories.id })
-		.from(categories)
-		.limit(1);
+	const seeded = await db.select({ id: categories.id }).from(categories).limit(1);
 	if (seeded.length > 0) {
 		return;
 	}
@@ -102,22 +98,20 @@ export async function seedCategories(db: Database): Promise<void> {
 		return SEEDED_CATEGORY_NAMES[namespace].map((name, order) => {
 			const preset = pool.find((candidate) => candidate.name === name);
 			if (preset == null) {
-				throw new Error(
-					`Seeded category "${name}" has no ${namespace} preset to draw its icon and color from.`,
-				);
+				throw new Error(`Seeded category "${name}" has no ${namespace} preset to draw its icon and color from.`);
 			}
 			return {
-				id: seededCategoryId(preset.name, namespace === "income"),
-				name: preset.name,
-				icon: preset.icon,
-				emoji: null,
 				color: preset.color,
-				income: namespace === "income",
-				sortOrder: order,
-				parentId: null,
 				dateCreated: now,
-				updatedAt: now,
 				deletedAt: null,
+				emoji: null,
+				icon: preset.icon,
+				id: seededCategoryId(preset.name, namespace === "income"),
+				income: namespace === "income",
+				name: preset.name,
+				parentId: null,
+				sortOrder: order,
+				updatedAt: now,
 			};
 		});
 	});
@@ -144,21 +138,17 @@ export function getCategoryById(db: Database, id: string): Category | null {
 }
 
 export interface CategoryInput {
-	name: string;
+	color: string;
+	emoji?: string | null;
 	/** A symbol is an icon OR an emoji; exactly one is expected. */
 	icon?: string;
-	emoji?: string | null;
-	color: string;
 	income: boolean;
+	name: string;
 	/** Present only for a subcategory. */
 	parentId?: string | null;
 }
 
-async function nextSortOrder(
-	db: Database,
-	income: boolean,
-	parentId: string | null,
-): Promise<number> {
+async function nextSortOrder(db: Database, income: boolean, parentId: string | null): Promise<number> {
 	const rows = await db
 		.select({ sortOrder: categories.sortOrder })
 		.from(categories)
@@ -166,10 +156,8 @@ async function nextSortOrder(
 			and(
 				eq(categories.income, income),
 				isNull(categories.deletedAt),
-				parentId == null
-					? isNull(categories.parentId)
-					: eq(categories.parentId, parentId),
-			),
+				parentId == null ? isNull(categories.parentId) : eq(categories.parentId, parentId)
+			)
 		)
 		.orderBy(desc(categories.sortOrder))
 		.limit(1);
@@ -192,13 +180,13 @@ export type CategoryError =
 
 /** Kept verbatim in sync with the Swift copy. */
 export const CATEGORY_ERROR_MESSAGES: Record<CategoryError, string> = {
+	duplicate: "A category with this symbol and name already exists.",
+	duplicateEmoji: "Another category already uses this emoji.",
+	duplicateIcon: "Another category already uses this icon.",
+	duplicateName: "Another category already uses this name.",
 	incomplete: "Please choose an icon or emoji, and a name.",
 	missingIcon: "Please choose an icon or emoji for the category.",
 	missingName: "Please enter a name for this category.",
-	duplicate: "A category with this symbol and name already exists.",
-	duplicateIcon: "Another category already uses this icon.",
-	duplicateEmoji: "Another category already uses this emoji.",
-	duplicateName: "Another category already uses this name.",
 };
 
 export interface CategoryValidationResult {
@@ -214,7 +202,7 @@ export interface CategoryValidationResult {
 export function capitalizeCategoryName(raw: string): string {
 	return raw
 		.trim()
-		.split(/\s+/)
+		.split(WHITESPACE_RUN)
 		.filter((word) => word.length > 0)
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 		.join(" ");
@@ -225,18 +213,14 @@ export function capitalizeCategoryName(raw: string): string {
  * of the same glyph collide.
  */
 function emojiComparisonKey(emoji: string): string {
-	return emoji.trim().split(String.fromCharCode(0xfe0f)).join("");
+	return emoji.trim().split(String.fromCharCode(0xfe_0f)).join("");
 }
 
 /**
  * Icons and emoji collide namespace-wide, not per-parent, matching the Swift
  * collision scope.
  */
-async function namespaceSiblings(
-	db: Database,
-	income: boolean,
-	excludeId?: string,
-): Promise<Category[]> {
+async function namespaceSiblings(db: Database, income: boolean, excludeId?: string): Promise<Category[]> {
 	const rows = await db
 		.select()
 		.from(categories)
@@ -250,30 +234,26 @@ async function namespaceSiblings(
  */
 function detectCollision(
 	candidate: { name: string; icon: string; emoji: string },
-	siblings: Category[],
+	siblings: Category[]
 ): CategoryError | null {
 	const iconKeys = new Set(
-		siblings
-			.map((row) => row.icon)
-			.filter((icon): icon is string => icon != null && icon !== ""),
+		siblings.map((row) => row.icon).filter((icon): icon is string => icon != null && icon !== "")
 	);
 	const emojiKeys = new Set(
 		siblings
 			.map((row) => row.emoji)
 			.filter((emoji): emoji is string => emoji != null && emoji !== "")
-			.map(emojiComparisonKey),
+			.map(emojiComparisonKey)
 	);
 	const nameKeys = new Set(
 		siblings
 			.map((row) => row.name)
 			.filter((name): name is string => name != null)
-			.map(capitalizeCategoryName),
+			.map(capitalizeCategoryName)
 	);
 
 	const iconTaken = candidate.icon !== "" && iconKeys.has(candidate.icon);
-	const emojiTaken =
-		candidate.emoji !== "" &&
-		emojiKeys.has(emojiComparisonKey(candidate.emoji));
+	const emojiTaken = candidate.emoji !== "" && emojiKeys.has(emojiComparisonKey(candidate.emoji));
 	const nameTaken = nameKeys.has(candidate.name);
 
 	if ((iconTaken || emojiTaken) && nameTaken) {
@@ -292,22 +272,14 @@ function detectCollision(
 }
 
 /** The first entry in `siblings` not already claiming `preferred`, otherwise `preferred` itself. */
-export function pickFreeCategoryIcon(
-	siblings: readonly Category[],
-	preferred: string,
-): string {
-	const used = new Set(
-		siblings
-			.map((row) => row.icon)
-			.filter((icon): icon is string => icon != null && icon !== ""),
-	);
+export function pickFreeCategoryIcon(siblings: readonly Category[], preferred: string): string {
+	const used = new Set(siblings.map((row) => row.icon).filter((icon): icon is string => icon != null && icon !== ""));
 	if (!used.has(preferred)) {
 		return preferred;
 	}
-	const fallback = [
-		...SUGGESTED_CATEGORY_PRESETS.expense,
-		...SUGGESTED_CATEGORY_PRESETS.income,
-	].find((preset) => !used.has(preset.icon));
+	const fallback = [...SUGGESTED_CATEGORY_PRESETS.expense, ...SUGGESTED_CATEGORY_PRESETS.income].find(
+		(preset) => !used.has(preset.icon)
+	);
 	return fallback?.icon ?? preferred;
 }
 
@@ -320,7 +292,7 @@ export async function validateCategoryCreate(
 		emoji?: string | null;
 		income: boolean;
 		parentId?: string | null;
-	},
+	}
 ): Promise<CategoryValidationResult> {
 	const name = capitalizeCategoryName(input.name);
 	const icon = input.icon ?? "";
@@ -339,7 +311,7 @@ export async function validateCategoryCreate(
 	}
 
 	const siblings = await namespaceSiblings(db, input.income);
-	return { error: detectCollision({ name, icon, emoji }, siblings), order };
+	return { error: detectCollision({ emoji, icon, name }, siblings), order };
 }
 
 /**
@@ -349,7 +321,7 @@ export async function validateCategoryCreate(
 export async function validateCategoryEdit(
 	db: Database,
 	id: string,
-	input: { name: string; icon?: string | null; emoji?: string | null },
+	input: { name: string; icon?: string | null; emoji?: string | null }
 ): Promise<CategoryValidationResult> {
 	const existing = await getCategoryById(db, id);
 	if (existing == null) {
@@ -361,8 +333,7 @@ export async function validateCategoryEdit(
 	const emoji = input.emoji ?? "";
 	const symbolMissing = icon === "" && emoji === "";
 	const symbolRequired =
-		(existing.icon != null && existing.icon !== "") ||
-		(existing.emoji != null && existing.emoji !== "");
+		(existing.icon != null && existing.icon !== "") || (existing.emoji != null && existing.emoji !== "");
 	const order = await nextSortOrder(db, existing.income, existing.parentId);
 
 	if (name === "" && symbolMissing && symbolRequired) {
@@ -376,14 +347,14 @@ export async function validateCategoryEdit(
 	}
 
 	const siblings = await namespaceSiblings(db, existing.income, id);
-	return { error: detectCollision({ name, icon, emoji }, siblings), order };
+	return { error: detectCollision({ emoji, icon, name }, siblings), order };
 }
 
 export interface SuggestedCategoryPreset {
-	name: string;
+	color: string;
 	/** Icon registry key (`components/category-icon.tsx`). */
 	icon: string;
-	color: string;
+	name: string;
 }
 
 /** Ported from Swift `SuggestedCategory`. */
@@ -392,78 +363,98 @@ export const SUGGESTED_CATEGORY_PRESETS: {
 	readonly income: readonly SuggestedCategoryPreset[];
 } = {
 	expense: [
-		{ name: "Groceries", icon: "ShoppingCart01", color: "#34C759" },
-		{ name: "Dining Out", icon: "Restaurant01", color: "#FF8A00" },
-		{ name: "Coffee", icon: "Coffee02", color: "#9B6A43" },
-		{ name: "Transport", icon: "Bus01", color: "#0A84FF" },
-		{ name: "Fuel", icon: "Fuel01", color: "#E8590C" },
-		{ name: "Rent", icon: "Home01", color: "#B4530E" },
-		{ name: "Home", icon: "Sofa01", color: "#7E9B57" },
-		{ name: "Utilities", icon: "Flash", color: "#FFC400" },
-		{ name: "Phone & Internet", icon: "Wifi01", color: "#00A7C4" },
-		{ name: "Subscriptions", icon: "Repeat", color: "#5E5CE6" },
-		{ name: "Healthcare", icon: "Health", color: "#2FBFA4" },
-		{ name: "Fitness", icon: "Dumbbell01", color: "#FF5630" },
-		{ name: "Shopping", icon: "ShoppingBag01", color: "#FF4FA3" },
-		{ name: "Fashion", icon: "Dress01", color: "#C13BF0" },
-		{ name: "Entertainment", icon: "FilmRoll01", color: "#AF52DE" },
-		{ name: "Travel", icon: "Airplane01", color: "#32ADE6" },
-		{ name: "Education", icon: "Mortarboard01", color: "#3A5BD9" },
-		{ name: "Gifts", icon: "Gift", color: "#FF375F" },
-		{ name: "Pets", icon: "Bone01", color: "#E4A11B" },
-		{ name: "Family", icon: "Kid", color: "#FF7A59" },
-		{ name: "Personal Care", icon: "HairDryer", color: "#D96FA8" },
-		{ name: "Insurance", icon: "Shield01", color: "#2C4A7C" },
-		{ name: "Taxes", icon: "Taxes", color: "#6E7787" },
+		{ color: "#34C759", icon: "ShoppingCart01", name: "Groceries" },
+		{ color: "#FF8A00", icon: "Restaurant01", name: "Dining Out" },
+		{ color: "#9B6A43", icon: "Coffee02", name: "Coffee" },
+		{ color: "#0A84FF", icon: "Bus01", name: "Transport" },
+		{ color: "#E8590C", icon: "Fuel01", name: "Fuel" },
+		{ color: "#B4530E", icon: "Home01", name: "Rent" },
+		{ color: "#7E9B57", icon: "Sofa01", name: "Home" },
+		{ color: "#FFC400", icon: "Flash", name: "Utilities" },
+		{ color: "#00A7C4", icon: "Wifi01", name: "Phone & Internet" },
+		{ color: "#5E5CE6", icon: "Repeat", name: "Subscriptions" },
+		{ color: "#2FBFA4", icon: "Health", name: "Healthcare" },
+		{ color: "#FF5630", icon: "Dumbbell01", name: "Fitness" },
+		{ color: "#FF4FA3", icon: "ShoppingBag01", name: "Shopping" },
+		{ color: "#C13BF0", icon: "Dress01", name: "Fashion" },
+		{ color: "#AF52DE", icon: "FilmRoll01", name: "Entertainment" },
+		{ color: "#32ADE6", icon: "Airplane01", name: "Travel" },
+		{ color: "#3A5BD9", icon: "Mortarboard01", name: "Education" },
+		{ color: "#FF375F", icon: "Gift", name: "Gifts" },
+		{ color: "#E4A11B", icon: "Bone01", name: "Pets" },
+		{ color: "#FF7A59", icon: "Kid", name: "Family" },
+		{ color: "#D96FA8", icon: "HairDryer", name: "Personal Care" },
+		{ color: "#2C4A7C", icon: "Shield01", name: "Insurance" },
+		{ color: "#6E7787", icon: "Taxes", name: "Taxes" },
 	],
 	income: [
-		{ name: "Paycheck", icon: "MoneyBag01", color: "#34C759" },
-		{ name: "Freelance", icon: "Laptop", color: "#20C4B8" },
-		{ name: "Part-Time", icon: "Briefcase01", color: "#3AA0FF" },
-		{ name: "Business", icon: "Building01", color: "#2E8B57" },
-		{ name: "Investments", icon: "ChartUp", color: "#7CB342" },
-		{ name: "Interest", icon: "PercentCircle", color: "#4CAF88" },
-		{ name: "Bonus", icon: "Target01", color: "#FFB300" },
-		{ name: "Tips", icon: "Tips", color: "#E4A11B" },
-		{ name: "Refund", icon: "Cashback", color: "#5AC8FA" },
-		{ name: "Gifts", icon: "GiftCard", color: "#E5484D" },
+		{ color: "#34C759", icon: "MoneyBag01", name: "Paycheck" },
+		{ color: "#20C4B8", icon: "Laptop", name: "Freelance" },
+		{ color: "#3AA0FF", icon: "Briefcase01", name: "Part-Time" },
+		{ color: "#2E8B57", icon: "Building01", name: "Business" },
+		{ color: "#7CB342", icon: "ChartUp", name: "Investments" },
+		{ color: "#4CAF88", icon: "PercentCircle", name: "Interest" },
+		{ color: "#FFB300", icon: "Target01", name: "Bonus" },
+		{ color: "#E4A11B", icon: "Tips", name: "Tips" },
+		{ color: "#5AC8FA", icon: "Cashback", name: "Refund" },
+		{ color: "#E5484D", icon: "GiftCard", name: "Gifts" },
 	],
 } as const;
 
 /** Ports the `SuggestedCategoriesView` filter. */
-export async function suggestedCategoriesNotAdded(
-	db: Database,
-	income: boolean,
-): Promise<SuggestedCategoryPreset[]> {
-	const pool = income
-		? SUGGESTED_CATEGORY_PRESETS.income
-		: SUGGESTED_CATEGORY_PRESETS.expense;
+export async function suggestedCategoriesNotAdded(db: Database, income: boolean): Promise<SuggestedCategoryPreset[]> {
+	const pool = income ? SUGGESTED_CATEGORY_PRESETS.income : SUGGESTED_CATEGORY_PRESETS.expense;
 	const existing = await namespaceSiblings(db, income);
 	const usedNames = new Set(
 		existing
 			.map((row) => row.name)
 			.filter((name): name is string => name != null)
-			.map(capitalizeCategoryName),
+			.map(capitalizeCategoryName)
 	);
 	const usedIcons = new Set(
-		existing
-			.map((row) => row.icon)
-			.filter((icon): icon is string => icon != null && icon !== ""),
+		existing.map((row) => row.icon).filter((icon): icon is string => icon != null && icon !== "")
 	);
-	return pool.filter(
-		(preset) =>
-			!usedNames.has(capitalizeCategoryName(preset.name)) &&
-			!usedIcons.has(preset.icon),
-	);
+	return pool.filter((preset) => !(usedNames.has(capitalizeCategoryName(preset.name)) || usedIcons.has(preset.icon)));
 }
 
 export const categoriesRepo = {
+	/** A preset that would collide is skipped silently, returning null. */
+	async addSuggested(
+		db: Database,
+		input: { name: string; icon: string; color: string; income: boolean }
+	): Promise<string | null> {
+		const { error, order } = await validateCategoryCreate(db, {
+			emoji: null,
+			icon: input.icon,
+			income: input.income,
+			name: input.name,
+		});
+		if (error != null) {
+			return null;
+		}
+		const now = new Date();
+		const id = newId();
+		await db.insert(categories).values({
+			color: input.color,
+			dateCreated: now,
+			deletedAt: null,
+			emoji: null,
+			icon: input.icon,
+			id,
+			income: input.income,
+			name: capitalizeCategoryName(input.name),
+			parentId: null,
+			sortOrder: order,
+			updatedAt: now,
+		});
+		return id;
+	},
 	async create(db: Database, input: CategoryInput): Promise<string> {
 		const { error, order } = await validateCategoryCreate(db, {
-			name: input.name,
-			icon: input.icon ?? "",
 			emoji: input.emoji ?? null,
+			icon: input.icon ?? "",
 			income: input.income,
+			name: input.name,
 			parentId: input.parentId ?? null,
 		});
 		if (error != null) {
@@ -473,141 +464,17 @@ export const categoriesRepo = {
 		const now = new Date();
 		const id = newId();
 		await db.insert(categories).values({
-			id,
-			name: capitalizeCategoryName(input.name),
-			icon: input.icon ? input.icon : null,
+			color: input.color,
+			dateCreated: now,
+			deletedAt: null,
 			emoji: input.emoji ? input.emoji : null,
-			color: input.color,
-			income: input.income,
-			sortOrder: order,
-			parentId,
-			dateCreated: now,
-			updatedAt: now,
-			deletedAt: null,
-		});
-		return id;
-	},
-
-	/** The income namespace is fixed at creation and cannot change here. */
-	async update(
-		db: Database,
-		id: string,
-		patch: {
-			name?: string;
-			icon?: string | null;
-			emoji?: string | null;
-			color?: string;
-		},
-	): Promise<void> {
-		const existing = await getCategoryById(db, id);
-		if (existing == null) {
-			throw new Error("Category not found.");
-		}
-		const name = patch.name ?? existing.name ?? "";
-		const icon = patch.icon ?? existing.icon ?? "";
-		const emoji = patch.emoji ?? existing.emoji ?? "";
-		const { error } = await validateCategoryEdit(db, id, { name, icon, emoji });
-		if (error != null) {
-			throw new Error(CATEGORY_ERROR_MESSAGES[error]);
-		}
-
-		const updates: Partial<typeof categories.$inferInsert> = {
-			updatedAt: new Date(),
-		};
-		if (patch.name !== undefined) {
-			updates.name = capitalizeCategoryName(patch.name);
-		}
-		if (patch.icon !== undefined) {
-			updates.icon = patch.icon ? patch.icon : null;
-		}
-		if (patch.emoji !== undefined) {
-			updates.emoji = patch.emoji ? patch.emoji : null;
-		}
-		if (patch.color !== undefined) {
-			updates.color = patch.color;
-		}
-		await db.update(categories).set(updates).where(eq(categories.id, id));
-	},
-
-	/**
-	 * The caller supplies a single namespace/parent scope already in the desired
-	 * order; each id takes its array index as `sortOrder`.
-	 */
-	async reorder(db: Database, orderedIds: string[]): Promise<void> {
-		const now = new Date();
-		for (let index = 0; index < orderedIds.length; index++) {
-			await db
-				.update(categories)
-				.set({ sortOrder: index, updatedAt: now })
-				.where(eq(categories.id, orderedIds[index]));
-		}
-	},
-
-	/** A reparented category inherits its new parent's income namespace. */
-	async setParent(
-		db: Database,
-		id: string,
-		parentId: string | null,
-	): Promise<void> {
-		const existing = await getCategoryById(db, id);
-		if (existing == null) {
-			throw new Error("Category not found.");
-		}
-		const now = new Date();
-		if (parentId == null) {
-			await db
-				.update(categories)
-				.set({
-					parentId: null,
-					sortOrder: await nextSortOrder(db, existing.income, null),
-					updatedAt: now,
-				})
-				.where(eq(categories.id, id));
-			return;
-		}
-		const parent = await getCategoryById(db, parentId);
-		if (parent == null) {
-			throw new Error("Category not found.");
-		}
-		await db
-			.update(categories)
-			.set({
-				parentId,
-				income: parent.income,
-				sortOrder: await nextSortOrder(db, parent.income, parentId),
-				updatedAt: now,
-			})
-			.where(eq(categories.id, id));
-	},
-
-	/** A preset that would collide is skipped silently, returning null. */
-	async addSuggested(
-		db: Database,
-		input: { name: string; icon: string; color: string; income: boolean },
-	): Promise<string | null> {
-		const { error, order } = await validateCategoryCreate(db, {
-			name: input.name,
-			icon: input.icon,
-			emoji: null,
-			income: input.income,
-		});
-		if (error != null) {
-			return null;
-		}
-		const now = new Date();
-		const id = newId();
-		await db.insert(categories).values({
+			icon: input.icon ? input.icon : null,
 			id,
-			name: capitalizeCategoryName(input.name),
-			icon: input.icon,
-			emoji: null,
-			color: input.color,
 			income: input.income,
+			name: capitalizeCategoryName(input.name),
+			parentId,
 			sortOrder: order,
-			parentId: null,
-			dateCreated: now,
 			updatedAt: now,
-			deletedAt: null,
 		});
 		return id;
 	},
@@ -642,17 +509,15 @@ export const categoriesRepo = {
 				.update(transactions)
 				.set({
 					deletedAt: now,
-					updatedAt: now,
-					recurringType: RECURRING_TYPE.none,
-					imageUri: null,
 					imageKey: null,
+					imageUri: null,
+					recurringType: RECURRING_TYPE.none,
+					updatedAt: now,
 				})
-				.where(
-					and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)),
-				);
+				.where(and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)));
 			await db
 				.update(budgets)
-				.set({ ...TOMBSTONED_BUDGET, updatedAt: now, deletedAt: now })
+				.set({ ...TOMBSTONED_BUDGET, deletedAt: now, updatedAt: now })
 				.where(and(eq(budgets.categoryId, id), isNull(budgets.deletedAt)));
 			await db
 				.update(categories)
@@ -663,6 +528,93 @@ export const categoriesRepo = {
 				.set({ deletedAt: now, updatedAt: now })
 				.where(and(eq(categories.id, id), isNull(categories.deletedAt)));
 		});
+	},
+
+	/**
+	 * The caller supplies a single namespace/parent scope already in the desired
+	 * order; each id takes its array index as `sortOrder`.
+	 */
+	async reorder(db: Database, orderedIds: string[]): Promise<void> {
+		const now = new Date();
+		await Promise.all(
+			orderedIds.map((id, index) =>
+				db.update(categories).set({ sortOrder: index, updatedAt: now }).where(eq(categories.id, id))
+			)
+		);
+	},
+
+	/** A reparented category inherits its new parent's income namespace. */
+	async setParent(db: Database, id: string, parentId: string | null): Promise<void> {
+		const existing = await getCategoryById(db, id);
+		if (existing == null) {
+			throw new Error("Category not found.");
+		}
+		const now = new Date();
+		if (parentId == null) {
+			await db
+				.update(categories)
+				.set({
+					parentId: null,
+					sortOrder: await nextSortOrder(db, existing.income, null),
+					updatedAt: now,
+				})
+				.where(eq(categories.id, id));
+			return;
+		}
+		const parent = await getCategoryById(db, parentId);
+		if (parent == null) {
+			throw new Error("Category not found.");
+		}
+		await db
+			.update(categories)
+			.set({
+				income: parent.income,
+				parentId,
+				sortOrder: await nextSortOrder(db, parent.income, parentId),
+				updatedAt: now,
+			})
+			.where(eq(categories.id, id));
+	},
+
+	/** The income namespace is fixed at creation and cannot change here. */
+	async update(
+		db: Database,
+		id: string,
+		patch: {
+			name?: string;
+			icon?: string | null;
+			emoji?: string | null;
+			color?: string;
+		}
+	): Promise<void> {
+		const existing = await getCategoryById(db, id);
+		if (existing == null) {
+			throw new Error("Category not found.");
+		}
+		const name = patch.name ?? existing.name ?? "";
+		const icon = patch.icon ?? existing.icon ?? "";
+		const emoji = patch.emoji ?? existing.emoji ?? "";
+		const { error } = await validateCategoryEdit(db, id, { emoji, icon, name });
+		if (error != null) {
+			throw new Error(CATEGORY_ERROR_MESSAGES[error]);
+		}
+
+		const updates: Partial<typeof categories.$inferInsert> = {
+			updatedAt: new Date(),
+		};
+		if (patch.name !== undefined) {
+			updates.name = capitalizeCategoryName(patch.name);
+		}
+		if (patch.icon !== undefined) {
+			updates.icon = patch.icon ? patch.icon : null;
+		}
+		if (patch.emoji !== undefined) {
+			updates.emoji = patch.emoji ? patch.emoji : null;
+		}
+		if (patch.color !== undefined) {
+			updates.color = patch.color;
+		}
+		await db.update(categories).set(updates).where(eq(categories.id, id));
 	},
 };
 
@@ -679,13 +631,11 @@ export async function ensureCategoryByName(
 	income: boolean,
 	icon: string,
 	color: string,
-	nested?: { emoji?: string | null; parentId?: string | null },
+	nested?: { emoji?: string | null; parentId?: string | null }
 ): Promise<string> {
 	const cleanName = capitalizeCategoryName(name);
 	const siblings = await namespaceSiblings(db, income);
-	const existing = siblings.find(
-		(row) => row.name != null && capitalizeCategoryName(row.name) === cleanName,
-	);
+	const existing = siblings.find((row) => row.name != null && capitalizeCategoryName(row.name) === cleanName);
 	if (existing != null) {
 		return existing.id;
 	}
@@ -693,11 +643,11 @@ export async function ensureCategoryByName(
 	// duplicate-symbol check that `validateCategoryCreate` runs namespace-wide.
 	const emoji = nested?.emoji ?? null;
 	return categoriesRepo.create(db, {
-		name: cleanName,
-		icon: emoji == null ? pickFreeCategoryIcon(siblings, icon) : undefined,
-		emoji,
 		color,
+		emoji,
+		icon: emoji == null ? pickFreeCategoryIcon(siblings, icon) : undefined,
 		income,
+		name: cleanName,
 		parentId: nested?.parentId ?? null,
 	});
 }

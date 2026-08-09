@@ -88,10 +88,7 @@ export async function isSyncEnabled(db: Database): Promise<boolean> {
  * device is no longer replicating, and keeping them would push edits made while
  * signed out the next time somebody signs in.
  */
-export async function setSyncEnabled(
-	db: Database,
-	enabled: boolean,
-): Promise<void> {
+export async function setSyncEnabled(db: Database, enabled: boolean): Promise<void> {
 	await withTransaction(db, async () => {
 		await setMeta(db, META_KEYS.syncEnabled, enabled ? "1" : "0");
 		if (!enabled) {
@@ -124,10 +121,7 @@ export async function getSyncCursor(db: Database): Promise<number> {
 	return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
 }
 
-export async function setSyncCursor(
-	db: Database,
-	cursor: number,
-): Promise<void> {
+export async function setSyncCursor(db: Database, cursor: number): Promise<void> {
 	await setMeta(db, META_KEYS.syncCursor, String(cursor));
 }
 
@@ -158,59 +152,37 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 
 	const collect = (tableName: string, rows: { localId: string }[]) => {
 		for (const row of rows) {
-			entries.push({ tableName, localId: row.localId, enqueuedAt });
+			entries.push({ enqueuedAt, localId: row.localId, tableName });
 		}
 	};
 
-	collect(
-		"categories",
-		await db.select({ localId: categories.id }).from(categories),
-	);
-	collect(
-		"transactions",
-		await db.select({ localId: transactions.id }).from(transactions),
-	);
+	collect("categories", await db.select({ localId: categories.id }).from(categories));
+	collect("transactions", await db.select({ localId: transactions.id }).from(transactions));
 	collect("budgets", await db.select({ localId: budgets.id }).from(budgets));
-	collect(
-		"mainBudget",
-		await db.select({ localId: mainBudget.id }).from(mainBudget),
-	);
-	collect(
-		"templateTransactions",
-		await db
-			.select({ localId: templateTransactions.id })
-			.from(templateTransactions),
-	);
+	collect("mainBudget", await db.select({ localId: mainBudget.id }).from(mainBudget));
+	collect("templateTransactions", await db.select({ localId: templateTransactions.id }).from(templateTransactions));
 	collect("tags", await db.select({ localId: tags.id }).from(tags));
-	collect(
-		"transactionTags",
-		await db.select({ localId: transactionTags.id }).from(transactionTags),
-	);
-	collect(
-		"transactionPhotos",
-		await db.select({ localId: transactionPhotos.id }).from(transactionPhotos),
-	);
-	collect(
-		"transactionSplits",
-		await db.select({ localId: transactionSplits.id }).from(transactionSplits),
-	);
+	collect("transactionTags", await db.select({ localId: transactionTags.id }).from(transactionTags));
+	collect("transactionPhotos", await db.select({ localId: transactionPhotos.id }).from(transactionPhotos));
+	collect("transactionSplits", await db.select({ localId: transactionSplits.id }).from(transactionSplits));
 	collect("accounts", await db.select({ localId: accounts.id }).from(accounts));
 	collect(
 		"appMeta",
 		await db
 			.select({ localId: appMeta.key })
 			.from(appMeta)
-			.where(inArray(appMeta.key, [...SYNCED_META_KEYS])),
+			.where(inArray(appMeta.key, [...SYNCED_META_KEYS]))
 	);
 
 	await withTransaction(db, async () => {
 		for (let from = 0; from < entries.length; from += ENQUEUE_CHUNK) {
+			// biome-ignore lint/performance/noAwaitInLoops: the chunks share the one SQLite connection this transaction is open on, so issuing them together interleaves statements against that transaction
 			await db
 				.insert(outbox)
 				.values(entries.slice(from, from + ENQUEUE_CHUNK))
 				.onConflictDoUpdate({
-					target: [outbox.tableName, outbox.localId],
 					set: { enqueuedAt },
+					target: [outbox.tableName, outbox.localId],
 				});
 		}
 	});

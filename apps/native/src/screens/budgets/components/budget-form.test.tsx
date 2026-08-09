@@ -6,50 +6,48 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { budgetsRepo } from "@/data/budgets";
-import { type Category, getCategoryById } from "@/data/categories";
+import { type Category, getCategoryById } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { budgets, categories } from "@/db/schema";
 import { BudgetForm } from "./budget-form";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("react-native-keyboard-controller", () =>
-	require("react-native-keyboard-controller/jest"),
-);
-jest.mock("@/i18n", () => ({
+jest.mock("react-native-keyboard-controller", () => require("react-native-keyboard-controller/jest"));
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({
+	SYSTEM_COLORS: {
+		card: "#FFFFFF",
+		groupedBackground: "#EFEDE6",
+		separator: "#DAD6C9",
+	},
 	useColors: () => ({
+		accent: "#3D7A5C",
+		accentForeground: "#FFFFFF",
 		background: "#F2F0EA",
+		border: "#DAD6C9",
+		danger: "#B5482F",
+		expense: "#B5482F",
 		foreground: "#17150F",
+		future: "#8A8578",
+		groupedBackground: "#EFEDE6",
+		income: "#3D7A5C",
 		muted: "#8A8578",
+		overBudget: "#B5482F",
+		railTrack: "rgba(0,0,0,0.08)",
+		separator: "#DAD6C9",
 		subtle: "#B4AFA0",
 		surface: "#FFFFFF",
 		surfaceSecondary: "#F7F5EF",
-		groupedBackground: "#EFEDE6",
-		border: "#DAD6C9",
-		separator: "#DAD6C9",
-		accent: "#3D7A5C",
-		accentForeground: "#FFFFFF",
 		tint: "#3D7A5C",
-		income: "#3D7A5C",
-		expense: "#B5482F",
-		future: "#8A8578",
-		danger: "#B5482F",
-		overBudget: "#B5482F",
 		warning: "#C08A2E",
-		railTrack: "rgba(0,0,0,0.08)",
 	}),
-	SYSTEM_COLORS: {
-		groupedBackground: "#EFEDE6",
-		card: "#FFFFFF",
-		separator: "#DAD6C9",
-	},
 }));
 
 const dbHolder: { current: Database | null } = { current: null };
@@ -69,11 +67,7 @@ jest.mock("@/components/segmented-control", () => ({
 	}) => {
 		const { Pressable, Text } = require("react-native");
 		return options.map((option: { label: string; value: string }) => (
-			<Pressable
-				accessibilityRole="button"
-				key={option.value}
-				onPress={() => onChange(option.value)}
-			>
+			<Pressable accessibilityRole="button" key={option.value} onPress={() => onChange(option.value)}>
 				<Text>{option.label}</Text>
 			</Pressable>
 		));
@@ -94,28 +88,16 @@ jest.mock("@/components/amount-entry-sheet", () => ({
 	}) => {
 		const { useImperativeHandle } = require("react");
 		const { TextInput } = require("react-native");
-		useImperativeHandle(ref, () => ({ present: () => {}, dismiss: () => {} }));
-		return (
-			<TextInput
-				onChangeText={onChange}
-				testID="amount-sheet-input"
-				value={value}
-			/>
-		);
+		useImperativeHandle(ref, () => ({ dismiss: () => {}, present: () => {} }));
+		return <TextInput onChangeText={onChange} testID="amount-sheet-input" value={value} />;
 	},
 }));
 
 jest.mock("@/components/category-picker-sheet", () => ({
-	CategoryPickerSheet: ({
-		onSelect,
-		ref,
-	}: {
-		onSelect: (picked: Category) => void;
-		ref?: { current: unknown };
-	}) => {
+	CategoryPickerSheet: ({ onSelect, ref }: { onSelect: (picked: Category) => void; ref?: { current: unknown } }) => {
 		const { useImperativeHandle } = require("react");
 		const { Pressable, Text } = require("react-native");
-		useImperativeHandle(ref, () => ({ present: () => {}, dismiss: () => {} }));
+		useImperativeHandle(ref, () => ({ dismiss: () => {}, present: () => {} }));
 		return (
 			<Pressable
 				accessibilityRole="button"
@@ -132,16 +114,14 @@ jest.mock("@/components/category-picker-sheet", () => ({
 	},
 }));
 
-const MIGRATIONS = join(__dirname, "../../../../drizzle");
+const MIGRATIONS = join(import.meta.dirname, "../../../../drizzle");
 
 function migratedDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	for (const file of readdirSync(MIGRATIONS)
 		.filter((name) => name.endsWith(".sql"))
 		.sort()) {
-		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split(
-			"--> statement-breakpoint",
-		)) {
+		for (const statement of readFileSync(join(MIGRATIONS, file), "utf8").split("--> statement-breakpoint")) {
 			if (statement.trim()) {
 				sqlite.exec(statement);
 			}
@@ -152,11 +132,11 @@ function migratedDb(): Database {
 
 async function seedCategory(db: Database, id = "c1", name = "Groceries") {
 	await db.insert(categories).values({
-		id,
-		name,
 		color: "#3D7A5C",
 		emoji: "🛒",
+		id,
 		income: false,
+		name,
 		sortOrder: 0,
 		updatedAt: new Date(),
 	});
@@ -182,7 +162,7 @@ describe("BudgetForm", () => {
 		const { getByText, getByRole, getByTestId } = await render(
 			<Providers>
 				<BudgetForm db={db} onDone={onDone} />
-			</Providers>,
+			</Providers>
 		);
 
 		expect(getByText("budgets.form.kindOverall")).toBeTruthy();
@@ -194,9 +174,7 @@ describe("BudgetForm", () => {
 		await fireEvent.changeText(getByTestId("amount-sheet-input"), "25");
 		expect(cta().props.accessibilityState?.disabled).toBe(false);
 
-		await fireEvent.press(
-			getByRole("button", { name: "budgets.form.kindCategory" }),
-		);
+		await fireEvent.press(getByRole("button", { name: "budgets.form.kindCategory" }));
 		expect(cta().props.accessibilityState?.disabled).toBe(true);
 
 		await fireEvent.press(getByTestId("category-picker-select"));
@@ -216,31 +194,24 @@ describe("BudgetForm", () => {
 		const categoryId = await seedCategory(db);
 		selectedCategoryHolder.current = getCategoryById(db, categoryId);
 		const onDone = jest.fn();
-		const createSpy = jest
-			.spyOn(budgetsRepo, "createBudget")
-			.mockRejectedValueOnce(new Error("boom"));
+		const createSpy = jest.spyOn(budgetsRepo, "createBudget").mockRejectedValueOnce(new Error("boom"));
 		const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 
 		const { getByRole, getByTestId } = await render(
 			<Providers>
 				<BudgetForm db={db} onDone={onDone} />
-			</Providers>,
+			</Providers>
 		);
 
 		await fireEvent.changeText(getByTestId("amount-sheet-input"), "25");
-		await fireEvent.press(
-			getByRole("button", { name: "budgets.form.kindCategory" }),
-		);
+		await fireEvent.press(getByRole("button", { name: "budgets.form.kindCategory" }));
 		await fireEvent.press(getByTestId("category-picker-select"));
 		await fireEvent.press(getByRole("button", { name: "budgets.form.create" }));
 
 		await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1));
 		await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
 		expect(onDone).not.toHaveBeenCalled();
-		expect(
-			getByRole("button", { name: "budgets.form.create" }).props
-				.accessibilityState?.disabled,
-		).toBe(false);
+		expect(getByRole("button", { name: "budgets.form.create" }).props.accessibilityState?.disabled).toBe(false);
 
 		createSpy.mockRestore();
 		alertSpy.mockRestore();
@@ -255,13 +226,11 @@ describe("BudgetForm", () => {
 		const { getByRole, getByTestId } = await render(
 			<Providers>
 				<BudgetForm db={db} onDone={onDone} />
-			</Providers>,
+			</Providers>
 		);
 
 		await fireEvent.changeText(getByTestId("amount-sheet-input"), "25");
-		await fireEvent.press(
-			getByRole("button", { name: "budgets.form.kindCategory" }),
-		);
+		await fireEvent.press(getByRole("button", { name: "budgets.form.kindCategory" }));
 		await fireEvent.press(getByTestId("category-picker-select"));
 		await fireEvent.press(getByRole("button", { name: "budgets.form.create" }));
 
@@ -274,9 +243,6 @@ describe("BudgetForm", () => {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		});
 
-		expect(
-			getByRole("button", { name: "budgets.form.create" }).props
-				.accessibilityState?.disabled,
-		).toBe(true);
+		expect(getByRole("button", { name: "budgets.form.create" }).props.accessibilityState?.disabled).toBe(true);
 	});
 });

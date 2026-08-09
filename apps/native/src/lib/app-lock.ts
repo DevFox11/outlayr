@@ -18,17 +18,15 @@ export async function lockIsEnforceable(): Promise<boolean> {
 	}
 }
 
-export async function requestUnlock(
-	promptMessage: string,
-): Promise<LocalAuthenticationResult> {
+export async function requestUnlock(promptMessage: string): Promise<LocalAuthenticationResult> {
 	try {
 		return await authenticateAsync({
-			promptMessage,
 			// Left on so a failed or locked-out sensor still falls through to the
 			// device passcode. Turning it off is how a lock becomes unopenable.
 			disableDeviceFallback: false,
+			promptMessage,
 		});
 	} catch {
-		return { success: false, error: "unknown" };
+		return { error: "unknown", success: false };
 	}
 }

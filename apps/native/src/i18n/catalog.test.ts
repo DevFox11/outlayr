@@ -7,11 +7,7 @@ const PLACEHOLDER = /\{(\w+)\}/g;
 const PLURAL_SUFFIX = /_(one|other)$/;
 
 function placeholders(template: string): Set<string> {
-	return new Set(
-		Array.from(template.matchAll(PLACEHOLDER)).map(
-			(match) => match[1] as string,
-		),
-	);
+	return new Set(Array.from(template.matchAll(PLACEHOLDER)).map((match) => match[1] as string));
 }
 
 describe("catalog parity", () => {
@@ -57,9 +53,7 @@ describe("catalog parity", () => {
 			if (!spanish) {
 				continue;
 			}
-			expect([...placeholders(spanish)].sort()).toStrictEqual(
-				[...placeholders(english)].sort(),
-			);
+			expect([...placeholders(spanish)].sort()).toStrictEqual([...placeholders(english)].sort());
 		}
 	});
 
@@ -72,9 +66,7 @@ describe("catalog parity", () => {
 					continue;
 				}
 				const counterpart =
-					match[1] === "one"
-						? key.replace(PLURAL_SUFFIX, "_other")
-						: key.replace(PLURAL_SUFFIX, "_one");
+					match[1] === "one" ? key.replace(PLURAL_SUFFIX, "_other") : key.replace(PLURAL_SUFFIX, "_one");
 				expect(counterpart in catalog).toBeTruthy();
 			}
 		}
@@ -104,9 +96,7 @@ describe("catalog parity", () => {
 
 	it("renders every Spanish string without leaking a placeholder", () => {
 		for (const [, template] of Object.entries(ES)) {
-			const params = Object.fromEntries(
-				[...placeholders(template)].map((name) => [name, "x"]),
-			);
+			const params = Object.fromEntries([...placeholders(template)].map((name) => [name, "x"]));
 			expect(!interpolate(template, params).includes("{")).toBeTruthy();
 		}
 	});

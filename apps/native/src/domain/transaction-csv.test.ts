@@ -25,7 +25,7 @@ describe("serializeCsvAmount", () => {
 	});
 
 	it("never groups thousands", () => {
-		expect(serializeCsvAmount(1234567.89, "USD")).toBe("1234567.89");
+		expect(serializeCsvAmount(1_234_567.89, "USD")).toBe("1234567.89");
 	});
 
 	it("writes the magnitude, leaving the sign to the type column", () => {
@@ -51,7 +51,7 @@ describe("parseCsvAmount", () => {
 	});
 
 	it("strips thousands separators", () => {
-		expect(parseCsvAmount("1,234,567.89")).toBe(1234567.89);
+		expect(parseCsvAmount("1,234,567.89")).toBe(1_234_567.89);
 	});
 
 	it("reads a comma decimal when told the column uses one", () => {
@@ -127,9 +127,7 @@ describe("deduceDateFormat", () => {
 	});
 
 	it("survives a malformed value instead of failing the whole column", () => {
-		expect(deduceDateFormat(["29/07/2026", "99/99/2026", "01/02/2026"])).toBe(
-			"dd/MM/yyyy",
-		);
+		expect(deduceDateFormat(["29/07/2026", "99/99/2026", "01/02/2026"])).toBe("dd/MM/yyyy");
 	});
 
 	it("still answers null when malformed values are the majority story", () => {
@@ -137,9 +135,7 @@ describe("deduceDateFormat", () => {
 	});
 
 	it("settles ambiguity from the parseable values only", () => {
-		expect(deduceDateFormat(["07/29/2026", "99/99/2026", "01/02/2026"])).toBe(
-			"MM/dd/yyyy",
-		);
+		expect(deduceDateFormat(["07/29/2026", "99/99/2026", "01/02/2026"])).toBe("MM/dd/yyyy");
 	});
 });
 
@@ -200,27 +196,25 @@ describe("parseCsvType", () => {
 describe("transactionsToCsv", () => {
 	const rows = [
 		{
-			date: new Date(Date.UTC(2026, 6, 29, 10, 15)),
-			note: "Bakery, twice",
 			amount: 12.5,
-			currency: "EUR",
 			categoryName: "Groceries",
+			currency: "EUR",
+			date: new Date(Date.UTC(2026, 6, 29, 10, 15)),
 			income: false,
+			note: "Bakery, twice",
 		},
 		{
-			date: new Date(Date.UTC(2026, 6, 28, 9, 0)),
-			note: "Paycheck",
 			amount: 2400,
-			currency: null,
 			categoryName: null,
+			currency: null,
+			date: new Date(Date.UTC(2026, 6, 28, 9, 0)),
 			income: true,
+			note: "Paycheck",
 		},
 	];
 
 	it("leads with the header", () => {
-		expect(transactionsToCsv(rows, "USD").split("\n")[0]).toBe(
-			CSV_HEADER.join(","),
-		);
+		expect(transactionsToCsv(rows, "USD").split("\n")[0]).toBe(CSV_HEADER.join(","));
 	});
 
 	it("writes the ledger currency for a row that stated none", () => {
@@ -242,9 +236,7 @@ describe("transactionsToCsv", () => {
 		for (const [index, row] of rows.entries()) {
 			const cells = parsed[index + 1];
 			expect(cells).toBeTruthy();
-			expect(parseCsvDate(cells[0] ?? "", "ISO")?.getTime()).toBe(
-				row.date.getTime(),
-			);
+			expect(parseCsvDate(cells[0] ?? "", "ISO")?.getTime()).toBe(row.date.getTime());
 			expect(parseCsvAmount(cells[2] ?? "")).toBe(row.amount);
 			expect(cells[3]).toBe(row.currency ?? "USD");
 			expect(parseCsvType(cells[5] ?? "")).toBe(row.income);
@@ -259,8 +251,6 @@ describe("transactionsToCsv", () => {
 describe("formatCsvDate", () => {
 	it("writes an ISO instant that parses back to the same moment", () => {
 		const date = new Date(Date.UTC(2026, 6, 29, 10, 15, 30, 250));
-		expect(parseCsvDate(formatCsvDate(date), "ISO")?.getTime()).toBe(
-			date.getTime(),
-		);
+		expect(parseCsvDate(formatCsvDate(date), "ISO")?.getTime()).toBe(date.getTime());
 	});
 });

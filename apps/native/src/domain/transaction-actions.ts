@@ -2,18 +2,18 @@ import type { TranslationKey } from "@/i18n/catalog";
 import { RECURRING_TYPE } from "./recurrence";
 
 export interface TransactionRowActionContext {
-	recurringType: number;
 	/** The row's stored date, which for a carrier is its last charge, not its next. */
 	date: Date;
 	/** True when the row is painted as an upcoming occurrence. */
 	future: boolean;
 	now: Date;
+	recurringType: number;
 }
 
 export interface TransactionRowActions {
-	canStopRecurring: boolean;
 	canDelete: boolean;
 	canLogAgain: boolean;
+	canStopRecurring: boolean;
 }
 
 /** Mirrors the guards on `SingleTransactionView`'s `contextMenu` in Swift. */
@@ -25,7 +25,6 @@ export function transactionRowActions({
 }: TransactionRowActionContext): TransactionRowActions {
 	const live = recurringType > RECURRING_TYPE.none;
 	return {
-		canStopRecurring: live,
 		// A live carrier whose own date has passed is standing in Upcoming for a
 		// charge that has not been written yet, so deleting it there reads as
 		// "drop this row" while actually ending the subscription. Stop Recurring
@@ -36,6 +35,7 @@ export function transactionRowActions({
 		// qualifies, a schedule's carrier included: what the copy takes is that
 		// row's charge, and the schedule is precisely what it leaves behind.
 		canLogAgain: !future,
+		canStopRecurring: live,
 	};
 }
 
@@ -53,14 +53,14 @@ export function transactionRowActions({
  */
 export interface LogAgainDraft {
 	amount: number;
-	income: boolean;
 	categoryId: string | null;
-	note: string;
-	details: string | null;
 	currency: string | null;
-	icon: string | null;
-	emoji: string | null;
 	customColor: string | null;
+	details: string | null;
+	emoji: string | null;
+	icon: string | null;
+	income: boolean;
+	note: string;
 }
 
 /**
@@ -71,22 +71,22 @@ export interface LogAgainDraft {
 export function logAgainDraft(source: LogAgainDraft): LogAgainDraft {
 	return {
 		amount: source.amount,
-		income: source.income,
 		categoryId: source.categoryId,
-		note: source.note,
-		details: source.details,
 		currency: source.currency,
-		icon: source.icon,
-		emoji: source.emoji,
 		customColor: source.customColor,
+		details: source.details,
+		emoji: source.emoji,
+		icon: source.icon,
+		income: source.income,
+		note: source.note,
 	};
 }
 
 export interface ConfirmCopy {
-	titleKey: TranslationKey;
 	messageKey: TranslationKey;
 	/** Interpolated into `titleKey` when the row carries a note. */
 	note: string | null;
+	titleKey: TranslationKey;
 }
 
 /**
@@ -94,18 +94,11 @@ export interface ConfirmCopy {
  * next charge itself and still lands, while a past-dated one is already on the
  * ledger and only its schedule goes.
  */
-export function stopRecurringPrompt(
-	note: string,
-	pending: boolean,
-): ConfirmCopy {
+export function stopRecurringPrompt(note: string, pending: boolean): ConfirmCopy {
 	const named = note.trim();
 	return {
-		titleKey: named
-			? "alerts.transaction.stopNamed"
-			: "alerts.transaction.stopUnnamed",
-		messageKey: pending
-			? "alerts.transaction.stopPending"
-			: "alerts.transaction.stopSettled",
+		messageKey: pending ? "alerts.transaction.stopPending" : "alerts.transaction.stopSettled",
 		note: named || null,
+		titleKey: named ? "alerts.transaction.stopNamed" : "alerts.transaction.stopUnnamed",
 	};
 }

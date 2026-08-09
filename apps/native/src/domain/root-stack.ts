@@ -1,5 +1,5 @@
 import type { RootStackGroup } from "@/domain/auth-gate";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 import { CATEGORY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
 
 /**
@@ -32,37 +32,28 @@ export const CATEGORY_SHEETS: readonly {
 	detent: number;
 }[] = [
 	{
+		detent: CATEGORY_DETENT,
 		name: "settings/categories/create",
 		titleKey: "nav.newCategory",
-		detent: CATEGORY_DETENT,
 	},
 	{
+		detent: CATEGORY_DETENT,
 		name: "settings/categories/[categoryId]/index",
 		titleKey: "nav.editCategory",
-		detent: CATEGORY_DETENT,
 	},
 	{
+		detent: SUBCATEGORY_DETENT,
 		name: "settings/categories/[categoryId]/subcategories/create",
 		titleKey: "nav.newSubcategory",
-		detent: SUBCATEGORY_DETENT,
 	},
 	{
+		detent: SUBCATEGORY_DETENT,
 		name: "settings/categories/[categoryId]/subcategories/[subcategoryId]",
 		titleKey: "nav.subcategory",
-		detent: SUBCATEGORY_DETENT,
 	},
 ];
 
-export const ROOT_STACK_SCREEN_NAMES: Readonly<
-	Record<RootStackGroup, readonly string[]>
-> = {
-	onboarding: [
-		"onboarding/index",
-		"onboarding/currency",
-		"onboarding/grounding",
-		"onboarding/rhythm",
-	],
-	"sign-in": ["auth/sign-in"],
+export const ROOT_STACK_SCREEN_NAMES: Readonly<Record<RootStackGroup, readonly string[]>> = {
 	adopt: ["auth/adopt"],
 	ledger: [
 		"(tabs)",
@@ -81,4 +72,6 @@ export const ROOT_STACK_SCREEN_NAMES: Readonly<
 		"transactions/[id]",
 		"transactions/identity",
 	],
+	onboarding: ["onboarding/index", "onboarding/currency", "onboarding/grounding", "onboarding/rhythm"],
+	"sign-in": ["auth/sign-in"],
 };

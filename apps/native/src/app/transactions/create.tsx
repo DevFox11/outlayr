@@ -14,7 +14,5 @@ export default function NewTransactionScreen() {
 		from?: string;
 	}>();
 
-	return (
-		<NewTransaction amount={amount} from={from} income={income} note={note} />
-	);
+	return <NewTransaction amount={amount} from={from} income={income} note={note} />;
 }

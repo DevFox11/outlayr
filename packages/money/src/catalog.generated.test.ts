@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCatalog } from "../scripts/lib/build-catalog.mjs";
-import {
-	CURRENCY_DECIMALS,
-	CURRENCY_META,
-	PICKABLE_CURRENCY_CODES,
-} from "./catalog.generated";
+import { CURRENCY_DECIMALS, CURRENCY_META, PICKABLE_CURRENCY_CODES } from "./catalog.generated";
 
 /**
  * Drift guard: the committed `catalog.generated.ts` MUST equal the deterministic

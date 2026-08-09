@@ -1,13 +1,6 @@
 import { useState } from "react";
-import {
-	guessMapping,
-	type ParsedImportFile,
-	parseImportFile,
-} from "@/data/transfer-core";
-import {
-	classifyParseFailure,
-	HARD_PARSE_REJECT_CHARS,
-} from "@/domain/import-diagnosis";
+import { guessMapping, type ParsedImportFile, parseImportFile } from "@/data/transfer-core";
+import { classifyParseFailure, HARD_PARSE_REJECT_CHARS } from "@/domain/import-diagnosis";
 import { resolveImportMapping } from "@/domain/import-mapping";
 import { pickCsvFile, TransferError } from "@/lib/data-transfer";
 import { importDraftStore } from "@/lib/import-draft-store";
@@ -40,22 +33,22 @@ export function useChooseImportFile() {
 			const draft =
 				parsed.header == null
 					? {
-							category: null,
-							note: null,
-							date: null,
 							amount: null,
+							category: null,
 							currency: null,
+							date: null,
+							note: null,
 							type: null,
 						}
 					: guessMapping(parsed.header);
 			const resolution = resolveImportMapping(draft);
 			importDraftStore.dispatch({
-				type: "fileParsed",
-				file: { name: picked.name, chars: picked.text.length },
-				parsed,
 				draft,
-				resolved: resolution.ok ? resolution.value : null,
+				file: { chars: picked.text.length, name: picked.name },
 				gaps: resolution.ok ? [] : resolution.gaps,
+				parsed,
+				resolved: resolution.ok ? resolution.value : null,
+				type: "fileParsed",
 			});
 			setStatus("idle");
 		} catch (thrown) {
@@ -63,10 +56,10 @@ export function useChooseImportFile() {
 			importDraftStore.setFileError(
 				thrown instanceof TransferError
 					? { cause: "io", key: thrown.key }
-					: { cause: "io", key: "alerts.transfer.unreadableFile" },
+					: { cause: "io", key: "alerts.transfer.unreadableFile" }
 			);
 		}
 	};
 
-	return { status, choose };
+	return { choose, status };
 }

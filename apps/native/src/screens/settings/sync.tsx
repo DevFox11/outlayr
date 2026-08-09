@@ -3,16 +3,12 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { AccountRow } from "@/components/settings/account-row";
-import {
-	LinkRow,
-	SettingsSection,
-	ToggleRow,
-} from "@/components/settings/settings-row";
+import { LinkRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { META_KEYS } from "@/data/app-meta";
+import { META_KEYS } from "@/data/app-meta-core";
 import { runAdoption } from "@/data/ledger-adoption";
 import { useLiveQuery } from "@/data/live-query";
 import { setSyncEnabled } from "@/data/sync-outbox-core";
@@ -21,7 +17,7 @@ import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
 import { formatDayHeader, formatTime } from "@/domain/dates";
 import type { AdoptionActions } from "@/domain/ledger-adoption";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
@@ -35,8 +31,8 @@ import { useLedgerAdoption } from "@/lib/ledger-adoption";
  */
 const RESUME: AdoptionActions = {
 	pushLocal: true,
-	wipeLocal: false,
 	wipeAccount: false,
+	wipeLocal: false,
 };
 
 export function Sync() {
@@ -61,16 +57,11 @@ function SyncSettings({ db }: { db: Database }) {
 
 	const toggle = (next: boolean) => {
 		setBusy(true);
-		const work = next
-			? runAdoption(db, adoptionEngine(db), RESUME)
-			: setSyncEnabled(db, false);
+		const work = next ? runAdoption(db, adoptionEngine(db), RESUME) : setSyncEnabled(db, false);
 		work
 			.catch((error: unknown) => {
 				console.error("Sync switch failed", error);
-				Alert.alert(
-					t("settings.sync.failedTitle"),
-					t("settings.sync.failedBody"),
-				);
+				Alert.alert(t("settings.sync.failedTitle"), t("settings.sync.failedBody"));
 			})
 			.finally(() => setBusy(false));
 	};
@@ -88,34 +79,19 @@ function SyncSettings({ db }: { db: Database }) {
 			</View>
 
 			<SettingsSection
-				footer={t(
-					owned ? "settings.sync.footer" : "settings.sync.needsAccount",
-				)}
+				footer={t(owned ? "settings.sync.footer" : "settings.sync.needsAccount")}
 				title={t("settings.sync.section")}
 			>
 				<AccountRow />
 				{owned ? (
-					<ToggleRow
-						icon="Cloud"
-						onValueChange={toggle}
-						title={t("settings.sync.toggle")}
-						value={enabled}
-					/>
+					<ToggleRow icon="Cloud" onValueChange={toggle} title={t("settings.sync.toggle")} value={enabled} />
 				) : null}
 			</SettingsSection>
 
-			{busy ? (
-				<Text className="pt-2 text-muted text-subtitle">
-					{t("settings.sync.working")}
-				</Text>
-			) : null}
+			{busy ? <Text className="pt-2 text-muted text-subtitle">{t("settings.sync.working")}</Text> : null}
 
 			<SettingsSection title={t("settings.sync.statusSection")}>
-				<LinkRow
-					icon="Cloud"
-					title={t("settings.sync.waiting")}
-					value={String(pending)}
-				/>
+				<LinkRow icon="Cloud" title={t("settings.sync.waiting")} value={String(pending)} />
 				<LinkRow
 					icon="CalendarClock"
 					title={t("settings.sync.lastSynced")}
@@ -135,8 +111,6 @@ function SyncSettings({ db }: { db: Database }) {
  * write the moment it lands, and the gate is a row like any other.
  */
 function useSyncEnabled(db: Database): boolean {
-	const rows = useLiveQuery(appMeta, () =>
-		db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)),
-	);
+	const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)));
 	return rows[0]?.value === "1";
 }

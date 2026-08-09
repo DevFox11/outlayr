@@ -1,7 +1,8 @@
 import type { LogPeriod } from "@/data/log-totals";
 import type { LogFilter } from "@/domain/log-filter";
 import type { LogMeasure } from "@/domain/log-measure";
-import type { TranslateFn, TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import type { TranslateFn } from "@/i18n/context";
 
 /**
  * The domain modules keep their labels as module-level constants, which resolve
@@ -10,26 +11,26 @@ import type { TranslateFn, TranslationKey } from "@/i18n";
  */
 export const FILTER_LABEL_KEY: Record<LogFilter, TranslationKey> = {
 	all: "log.filter.all",
-	type: "log.filter.type",
-	day: "log.filter.day",
-	week: "log.filter.week",
-	month: "log.filter.month",
 	category: "log.filter.category",
+	day: "log.filter.day",
+	month: "log.filter.month",
 	recurring: "log.filter.recurring",
+	type: "log.filter.type",
 	upcoming: "log.filter.upcoming",
+	week: "log.filter.week",
 };
 
 export const PERIOD_PHRASE_KEY: Record<LogPeriod, TranslationKey> = {
-	day: "log.period.day",
-	week: "log.period.week",
-	month: "log.period.month",
-	year: "log.period.year",
 	all: "log.period.all",
+	day: "log.period.day",
+	month: "log.period.month",
+	week: "log.period.week",
+	year: "log.period.year",
 };
 
 export const MEASURE_WORD_KEY: Record<LogMeasure, TranslationKey> = {
-	net: "log.measure.net",
 	in: "log.measure.in",
+	net: "log.measure.net",
 	out: "log.measure.out",
 };
 
@@ -45,12 +46,10 @@ export function scopeMeasureLabel(
 	t: TranslateFn,
 	measure: LogMeasure,
 	shownCurrency: string,
-	displayCurrency: string,
+	displayCurrency: string
 ): string {
 	const word = t(MEASURE_WORD_KEY[measure]);
-	return shownCurrency === displayCurrency
-		? word
-		: `${word} · ${shownCurrency}`;
+	return shownCurrency === displayCurrency ? word : `${word} · ${shownCurrency}`;
 }
 
 /**
@@ -61,7 +60,7 @@ export function filterScopeLabel(
 	t: TranslateFn,
 	filter: LogFilter,
 	categoryName: string | null | undefined,
-	income: boolean,
+	income: boolean
 ): string | null {
 	switch (filter) {
 		case "category":

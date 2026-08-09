@@ -3,14 +3,14 @@ import { type LogFigures, ZERO_FIGURES } from "./log-measure";
 import type { RateTable } from "./valuation";
 
 export interface ScopeTotals {
+	/** Every other currency the scope used, dominance order. */
+	others: LogFigures[];
 	/**
 	 * The bucket the screen is being read in, or the dominant one when the scope
 	 * holds nothing that can be placed there — a figure labelled with a currency
 	 * its numbers are not in states something untrue.
 	 */
 	shown: LogFigures;
-	/** Every other currency the scope used, dominance order. */
-	others: LogFigures[];
 }
 
 /**
@@ -24,13 +24,11 @@ export interface ScopeTotals {
 export function scopeTotals(
 	entries: readonly CurrencyEntry[],
 	displayCurrency: string,
-	rates?: RateTable,
+	rates?: RateTable
 ): ScopeTotals {
 	const ordered = cellFigures(toCells(entries), displayCurrency, rates);
-	const shown = ordered.find(
-		(figures) => figures.currencyCode === displayCurrency,
-	) ??
+	const shown = ordered.find((figures) => figures.currencyCode === displayCurrency) ??
 		ordered[0] ?? { currencyCode: displayCurrency, ...ZERO_FIGURES };
 
-	return { shown, others: ordered.filter((figures) => figures !== shown) };
+	return { others: ordered.filter((figures) => figures !== shown), shown };
 }

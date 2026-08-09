@@ -17,93 +17,106 @@ import {
 export const categories = sqliteTable(
 	"categories",
 	{
-		id: text("id").primaryKey(),
-		name: text("name"),
 		color: text("color").default("#FFFFFF"),
-		icon: text("icon"),
-		emoji: text("emoji"),
-		income: integer("income", { mode: "boolean" }).notNull().default(false),
-		sortOrder: integer("sortOrder").notNull().default(0),
 		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
-		parentId: text("parentId").references(
-			(): AnySQLiteColumn => categories.id,
-			{ onDelete: "set null" },
-		),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+		emoji: text("emoji"),
+		icon: text("icon"),
+		id: text("id").primaryKey(),
+		income: integer("income", { mode: "boolean" }).notNull().default(false),
+		name: text("name"),
+		parentId: text("parentId").references((): AnySQLiteColumn => categories.id, { onDelete: "set null" }),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 	},
 	(table) => [
 		index("categories_income_idx").on(table.income),
 		index("categories_parentId_idx").on(table.parentId),
 		index("categories_deletedAt_idx").on(table.deletedAt),
-	],
+	]
 );
 
 export const accounts = sqliteTable(
 	"accounts",
 	{
-		id: text("id").primaryKey(),
-		name: text("name").notNull(),
 		currency: text("currency").notNull(),
+		customColor: text("customColor"),
+		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+		emoji: text("emoji"),
+		icon: text("icon"),
+		id: text("id").primaryKey(),
+		imageColor: text("imageColor"),
+		imageKey: text("imageKey"),
+		/** Device-local, like `transactions.imageUri`: never replicated. */
+		imageUri: text("imageUri"),
 		initialBalance: real("initialBalance").notNull().default(0),
+		initialBalanceDate: integer("initialBalanceDate", {
+			mode: "timestamp_ms",
+		}).notNull(),
 		/**
 		 * `initialBalance` canonicalized to USD at the rate of `initialBalanceDate`,
 		 * frozen at write — the same contract `transactions.amountUsd` keeps. Null
 		 * when no rate was available then.
 		 */
 		initialBalanceUsd: real("initialBalanceUsd"),
-		initialBalanceDate: integer("initialBalanceDate", {
-			mode: "timestamp_ms",
-		}).notNull(),
-		icon: text("icon"),
-		emoji: text("emoji"),
-		customColor: text("customColor"),
-		imageColor: text("imageColor"),
-		/** Device-local, like `transactions.imageUri`: never replicated. */
-		imageUri: text("imageUri"),
-		imageKey: text("imageKey"),
+		name: text("name").notNull(),
 		sortOrder: integer("sortOrder").notNull().default(0),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
-	(table) => [index("accounts_deletedAt_idx").on(table.deletedAt)],
+	(table) => [index("accounts_deletedAt_idx").on(table.deletedAt)]
 );
 
 export const transactions = sqliteTable(
 	"transactions",
 	{
-		id: text("id").primaryKey(),
+		accountId: text("accountId").references(() => accounts.id, {
+			onDelete: "set null",
+		}),
 		amount: real("amount").notNull(),
-		income: integer("income", { mode: "boolean" }).notNull(),
+		/**
+		 * `amount` canonicalized to USD at the rate of the day it happened, frozen
+		 * at write. Read only to add figures in different currencies together — a
+		 * same-currency read uses `amount` directly so it never round-trips.
+		 *
+		 * Null when it could not be computed (entry made offline before any rate was
+		 * cached); aggregation falls back to face value there rather than dropping
+		 * the row.
+		 */
+		amountUsd: real("amountUsd"),
+		categoryId: text("categoryId").references(() => categories.id, {
+			onDelete: "cascade",
+		}),
 		currency: text("currency"),
-		note: text("note").notNull().default(""),
-		details: text("details"),
+		customColor: text("customColor"),
 		date: integer("date", { mode: "timestamp_ms" }).notNull(),
 		day: integer("day", { mode: "timestamp_ms" }).notNull(),
-		month: integer("month", { mode: "timestamp_ms" }).notNull(),
-		icon: text("icon"),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+		details: text("details"),
 		emoji: text("emoji"),
-		customColor: text("customColor"),
+		/** The USD→`currency` rate used, kept so the figure can be explained. */
+		exchangeRate: real("exchangeRate"),
+		/** Which market rate it came from: official | eur_reference | custom. */
+		exchangeRateType: text("exchangeRateType"),
+		icon: text("icon"),
+		id: text("id").primaryKey(),
 		imageColor: text("imageColor"),
-		/**
-		 * Where the photo lives on THIS device. Never replicated: the path embeds a
-		 * container uuid that changes on every app update, so it is meaningless on
-		 * another handset and stale on this one after an update.
-		 */
-		imageUri: text("imageUri"),
 		/**
 		 * The photo's R2 object key, which is what replicates. Null means the bytes
 		 * are not in the account yet; a key with no `imageUri` means they are, but
 		 * this device has not fetched them.
 		 */
 		imageKey: text("imageKey"),
-		onceRecurring: integer("onceRecurring", { mode: "boolean" })
-			.notNull()
-			.default(false),
-		recurringType: integer("recurringType").notNull().default(0),
-		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
-		recurringEndDate: integer("recurringEndDate", { mode: "timestamp_ms" }),
+		/**
+		 * Where the photo lives on THIS device. Never replicated: the path embeds a
+		 * container uuid that changes on every app update, so it is meaningless on
+		 * another handset and stale on this one after an update.
+		 */
+		imageUri: text("imageUri"),
+		income: integer("income", { mode: "boolean" }).notNull(),
+		month: integer("month", { mode: "timestamp_ms" }).notNull(),
+		note: text("note").notNull().default(""),
+		onceRecurring: integer("onceRecurring", { mode: "boolean" }).notNull().default(false),
 		/**
 		 * The day of the month the schedule was written for, which a short month
 		 * can pull an individual occurrence off. Without it the clamp is lossy:
@@ -120,6 +133,9 @@ export const transactions = sqliteTable(
 		 * did before.
 		 */
 		recurringAnchorDay: integer("recurringAnchorDay"),
+		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
+		recurringEndDate: integer("recurringEndDate", { mode: "timestamp_ms" }),
+		recurringType: integer("recurringType").notNull().default(0),
 		/**
 		 * Days of notice for the next charge's reminder. Null is "no reminder" and
 		 * has to stay distinct from 0, which is "on the day itself".
@@ -137,28 +153,7 @@ export const transactions = sqliteTable(
 		 * successor arrives here with the column unset.
 		 */
 		reminderLeadDays: integer("reminderLeadDays"),
-		categoryId: text("categoryId").references(() => categories.id, {
-			onDelete: "cascade",
-		}),
-		accountId: text("accountId").references(() => accounts.id, {
-			onDelete: "set null",
-		}),
-		/**
-		 * `amount` canonicalized to USD at the rate of the day it happened, frozen
-		 * at write. Read only to add figures in different currencies together — a
-		 * same-currency read uses `amount` directly so it never round-trips.
-		 *
-		 * Null when it could not be computed (entry made offline before any rate was
-		 * cached); aggregation falls back to face value there rather than dropping
-		 * the row.
-		 */
-		amountUsd: real("amountUsd"),
-		/** The USD→`currency` rate used, kept so the figure can be explained. */
-		exchangeRate: real("exchangeRate"),
-		/** Which market rate it came from: official | eur_reference | custom. */
-		exchangeRateType: text("exchangeRateType"),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
 	(table) => [
 		index("transactions_day_idx").on(table.day),
@@ -172,7 +167,7 @@ export const transactions = sqliteTable(
 		// index.
 		index("transactions_date_idx").on(table.date),
 		index("transactions_day_date_idx").on(table.day, table.date),
-	],
+	]
 );
 
 // `isNull(deletedAt)` is the universal read predicate on every soft-deleted
@@ -180,77 +175,77 @@ export const transactions = sqliteTable(
 export const budgets = sqliteTable(
 	"budgets",
 	{
-		id: text("id").primaryKey(),
-		name: text("name"),
 		amount: real("amount").notNull(),
-		type: integer("type").notNull(),
-		startDate: integer("startDate", { mode: "timestamp_ms" }),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+		amountUsd: real("amountUsd"),
+		categoryId: text("categoryId")
+			.references(() => categories.id, { onDelete: "cascade" })
+			.unique(),
 		/**
 		 * The currency the target was set in, with its USD value frozen at that
 		 * moment — the same contract `transactions` keeps.
 		 */
 		currency: text("currency"),
-		amountUsd: real("amountUsd"),
+		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		green: integer("green", { mode: "boolean" }).notNull().default(false),
+		id: text("id").primaryKey(),
+		name: text("name"),
 		/**
 		 * Whether an unspent (or overspent) window carries into the next one.
 		 * Off by default, so an existing budget keeps meaning exactly what it did.
 		 */
 		rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
-		categoryId: text("categoryId")
-			.references(() => categories.id, { onDelete: "cascade" })
-			.unique(),
+		startDate: integer("startDate", { mode: "timestamp_ms" }),
+		type: integer("type").notNull(),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
-	(table) => [index("budgets_deletedAt_idx").on(table.deletedAt)],
+	(table) => [index("budgets_deletedAt_idx").on(table.deletedAt)]
 );
 
 export const mainBudget = sqliteTable(
 	"mainBudget",
 	{
-		id: text("id").primaryKey(),
-		name: text("name"),
 		amount: real("amount").notNull(),
-		type: integer("type").notNull(),
-		startDate: integer("startDate", { mode: "timestamp_ms" }),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+		amountUsd: real("amountUsd"),
 		/**
 		 * The currency the target was set in, with its USD value frozen at that
 		 * moment — the same contract `transactions` keeps.
 		 */
 		currency: text("currency"),
-		amountUsd: real("amountUsd"),
+		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		green: integer("green", { mode: "boolean" }).notNull().default(false),
+		id: text("id").primaryKey(),
+		name: text("name"),
 		/**
 		 * Whether an unspent (or overspent) window carries into the next one.
 		 * Off by default, so an existing budget keeps meaning exactly what it did.
 		 */
 		rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
+		startDate: integer("startDate", { mode: "timestamp_ms" }),
+		type: integer("type").notNull(),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
-	(table) => [index("mainBudget_deletedAt_idx").on(table.deletedAt)],
+	(table) => [index("mainBudget_deletedAt_idx").on(table.deletedAt)]
 );
 
 export const templateTransactions = sqliteTable(
 	"templateTransactions",
 	{
-		id: text("id").primaryKey(),
 		amount: real("amount").notNull(),
-		income: integer("income", { mode: "boolean" }).notNull(),
-		note: text("note"),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		recurringType: integer("recurringType").notNull().default(0),
-		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
 		categoryId: text("categoryId").references(() => categories.id, {
 			onDelete: "cascade",
 		}),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+		id: text("id").primaryKey(),
+		income: integer("income", { mode: "boolean" }).notNull(),
+		note: text("note"),
+		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
+		recurringType: integer("recurringType").notNull().default(0),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
 	},
-	(table) => [index("templateTransactions_deletedAt_idx").on(table.deletedAt)],
+	(table) => [index("templateTransactions_deletedAt_idx").on(table.deletedAt)]
 );
 
 /**
@@ -267,22 +262,22 @@ export const templateTransactions = sqliteTable(
 export const transactionSplits = sqliteTable(
 	"transactionSplits",
 	{
+		/** Unsigned, like the entry's own amount: direction comes from `income`. */
+		amount: real("amount").notNull(),
+		categoryId: text("categoryId").references(() => categories.id),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		id: text("id").primaryKey(),
+		sortOrder: integer("sortOrder").notNull().default(0),
 		transactionId: text("transactionId")
 			.notNull()
 			.references(() => transactions.id),
-		categoryId: text("categoryId").references(() => categories.id),
-		/** Unsigned, like the entry's own amount: direction comes from `income`. */
-		amount: real("amount").notNull(),
-		sortOrder: integer("sortOrder").notNull().default(0),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
 	(table) => [
 		index("transactionSplits_transactionId_idx").on(table.transactionId),
 		index("transactionSplits_categoryId_idx").on(table.categoryId),
 		index("transactionSplits_deletedAt_idx").on(table.deletedAt),
-	],
+	]
 );
 
 /**
@@ -299,22 +294,22 @@ export const transactionSplits = sqliteTable(
 export const transactionPhotos = sqliteTable(
 	"transactionPhotos",
 	{
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		id: text("id").primaryKey(),
+		/** The glow derived from the bytes, kept per photo rather than per entry. */
+		imageColor: text("imageColor"),
+		imageKey: text("imageKey"),
+		imageUri: text("imageUri"),
+		sortOrder: integer("sortOrder").notNull().default(0),
 		transactionId: text("transactionId")
 			.notNull()
 			.references(() => transactions.id),
-		imageUri: text("imageUri"),
-		imageKey: text("imageKey"),
-		/** The glow derived from the bytes, kept per photo rather than per entry. */
-		imageColor: text("imageColor"),
-		sortOrder: integer("sortOrder").notNull().default(0),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
 	(table) => [
 		index("transactionPhotos_transactionId_idx").on(table.transactionId),
 		index("transactionPhotos_deletedAt_idx").on(table.deletedAt),
-	],
+	]
 );
 
 /**
@@ -325,14 +320,14 @@ export const transactionPhotos = sqliteTable(
 export const tags = sqliteTable(
 	"tags",
 	{
+		color: text("color"),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
-		color: text("color"),
 		sortOrder: integer("sortOrder").notNull().default(0),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
-	(table) => [index("tags_deletedAt_idx").on(table.deletedAt)],
+	(table) => [index("tags_deletedAt_idx").on(table.deletedAt)]
 );
 
 /**
@@ -347,25 +342,22 @@ export const tags = sqliteTable(
 export const transactionTags = sqliteTable(
 	"transactionTags",
 	{
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		id: text("id").primaryKey(),
-		transactionId: text("transactionId")
-			.notNull()
-			.references(() => transactions.id),
 		tagId: text("tagId")
 			.notNull()
 			.references(() => tags.id),
+		transactionId: text("transactionId")
+			.notNull()
+			.references(() => transactions.id),
 		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 	},
 	(table) => [
 		index("transactionTags_transactionId_idx").on(table.transactionId),
 		index("transactionTags_tagId_idx").on(table.tagId),
 		index("transactionTags_deletedAt_idx").on(table.deletedAt),
-		uniqueIndex("transactionTags_pair_idx").on(
-			table.transactionId,
-			table.tagId,
-		),
-	],
+		uniqueIndex("transactionTags_pair_idx").on(table.transactionId, table.tagId),
+	]
 );
 
 export const appMeta = sqliteTable("appMeta", {
@@ -400,12 +392,12 @@ export const appMeta = sqliteTable("appMeta", {
 export const outbox = sqliteTable(
 	"outbox",
 	{
+		enqueuedAt: integer("enqueuedAt", { mode: "timestamp_ms" }).notNull(),
+		localId: text("localId").notNull(),
 		seq: integer("seq").primaryKey({ autoIncrement: true }),
 		tableName: text("tableName").notNull(),
-		localId: text("localId").notNull(),
-		enqueuedAt: integer("enqueuedAt", { mode: "timestamp_ms" }).notNull(),
 	},
-	(table) => [uniqueIndex("outbox_row_idx").on(table.tableName, table.localId)],
+	(table) => [uniqueIndex("outbox_row_idx").on(table.tableName, table.localId)]
 );
 
 /**
@@ -420,15 +412,13 @@ export const outbox = sqliteTable(
 export const exchangeRates = sqliteTable(
 	"exchangeRates",
 	{
-		quote: text("quote").notNull(),
-		rateType: text("rateType").notNull(),
 		/** UTC `YYYY-MM-DD`, matching the server so comparisons stay lexical. */
 		date: text("date").notNull(),
-		rate: real("rate").notNull(),
-		source: text("source").notNull(),
 		fetchedAt: integer("fetchedAt").notNull(),
+		quote: text("quote").notNull(),
+		rate: real("rate").notNull(),
+		rateType: text("rateType").notNull(),
+		source: text("source").notNull(),
 	},
-	(table) => [
-		primaryKey({ columns: [table.quote, table.rateType, table.date] }),
-	],
+	(table) => [primaryKey({ columns: [table.quote, table.rateType, table.date] })]
 );

@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import type { Database } from "@/db/client";
-import {
-	createDeferredDelete,
-	type DeferredDeleteController,
-} from "@/domain/deferred-delete";
+import { createDeferredDelete, type DeferredDeleteController } from "@/domain/deferred-delete";
 import { translateNow } from "@/i18n/runtime";
-import { transactionsRepo } from "./transactions";
+import { transactionsRepo } from "./transactions-core";
 
 const UNDO_WINDOW_MS = 4000;
 
@@ -45,29 +42,27 @@ export function useDeferredDelete(db: Database): DeferredDelete {
 	if (controllerRef.current === null) {
 		const created = createDeferredDelete({
 			commit: (id) => transactionsRepo.remove(dbRef.current, id),
-			windowMs: UNDO_WINDOW_MS,
-			timers: {
-				set: (run: () => void, ms: number) => setTimeout(run, ms),
-				clear: (handle: ReturnType<typeof setTimeout>) => {
-					clearTimeout(handle);
-				},
-			},
 			onChange: (next) => {
+				// biome-ignore lint/suspicious/noUnnecessaryConditions: the mount effect flips mountedRef.current to true after this closure is built, so the guard is what stops a publish arriving post-unmount from calling setState
 				if (mountedRef.current) {
 					setPendingId(next.pendingId);
 				}
 				if (next.failedId === null) {
 					return;
 				}
-				Alert.alert(
-					translateNow("log.delete.failedTitle"),
-					translateNow("log.delete.failedBody"),
-				);
+				Alert.alert(translateNow("log.delete.failedTitle"), translateNow("log.delete.failedBody"));
 				// Dropped as it is shown: the controller holds a failure until it is
 				// acknowledged, so leaving it set raises the same alert again on the
 				// next publish.
 				created.acknowledgeFailure();
 			},
+			timers: {
+				clear: (handle: ReturnType<typeof setTimeout>) => {
+					clearTimeout(handle);
+				},
+				set: (run: () => void, ms: number) => setTimeout(run, ms),
+			},
+			windowMs: UNDO_WINDOW_MS,
 		});
 		controllerRef.current = created;
 	}

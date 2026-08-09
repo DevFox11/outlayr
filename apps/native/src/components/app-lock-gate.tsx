@@ -1,22 +1,12 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SquareLock02Icon } from "@hugeicons-pro/core-solid-rounded";
-import {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
-import {
-	lockFailureMessage,
-	lockGate,
-	lockIsUnenforceable,
-	relocksOnPhase,
-} from "@/domain/app-lock";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { lockFailureMessage, lockGate, lockIsUnenforceable, relocksOnPhase } from "@/domain/app-lock";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { lockIsEnforceable, requestUnlock } from "@/lib/app-lock";
 import { useColors } from "@/theme/use-colors";
 
@@ -103,6 +93,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 			return;
 		}
 		prompted.current = true;
+		// biome-ignore lint/complexity/noVoid: the prompt is deliberately not awaited, and requestUnlock (lib/app-lock.ts:21-31) resolves a result object for every failure, so there is no rejection a .catch could handle
 		void attempt();
 	}, [gate, enforceable, attempt]);
 
@@ -114,6 +105,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 					busy={checking}
 					message={failure ? t(failure) : null}
 					onUnlock={() => {
+						// biome-ignore lint/complexity/noVoid: the prompt is deliberately not awaited, and requestUnlock (lib/app-lock.ts:21-31) resolves a result object for every failure, so there is no rejection a .catch could handle
 						void attempt();
 					}}
 				/>
@@ -122,24 +114,14 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 	);
 }
 
-function AppLockScreen({
-	busy,
-	message,
-	onUnlock,
-}: {
-	busy: boolean;
-	message: string | null;
-	onUnlock: () => void;
-}) {
+function AppLockScreen({ busy, message, onUnlock }: { busy: boolean; message: string | null; onUnlock: () => void }) {
 	const colors = useColors();
 	const t = useTranslation();
 
 	return (
 		<View className="absolute inset-0 items-center justify-center gap-4 bg-background px-8">
 			<HugeiconsIcon color={colors.subtle} icon={SquareLock02Icon} size={56} />
-			<Text className="font-sans-semibold text-foreground text-title">
-				{t("transaction.lock.title")}
-			</Text>
+			<Text className="font-sans-semibold text-foreground text-title">{t("transaction.lock.title")}</Text>
 
 			<Pressable
 				accessibilityRole="button"
@@ -152,9 +134,7 @@ function AppLockScreen({
 				</Text>
 			</Pressable>
 
-			{message ? (
-				<Text className="text-center text-label text-muted">{message}</Text>
-			) : null}
+			{message ? <Text className="text-center text-label text-muted">{message}</Text> : null}
 		</View>
 	);
 }

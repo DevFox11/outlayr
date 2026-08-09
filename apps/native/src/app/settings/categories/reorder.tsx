@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { CategoryReorder } from "@/screens/categories/reorder";
 
 export default function CategoryReorderScreen() {

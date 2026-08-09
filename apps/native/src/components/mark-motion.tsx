@@ -15,18 +15,14 @@ const SETTLE = Easing.bezier(0.22, 1, 0.36, 1);
 
 interface ArriveProps {
 	children: ReactNode;
-	style?: ViewStyle;
 	delay?: number;
-	duration?: number;
 	distance?: number;
+	duration?: number;
+	style?: ViewStyle;
 }
 
 export function Arrive(props: ArriveProps) {
-	return useReducedMotion() ? (
-		<View style={props.style}>{props.children}</View>
-	) : (
-		<Arriving {...props} />
-	);
+	return useReducedMotion() ? <View style={props.style}>{props.children}</View> : <Arriving {...props} />;
 }
 
 function Arriving({
@@ -39,10 +35,7 @@ function Arriving({
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
-		progress.value = withDelay(
-			delay,
-			withTiming(1, { duration, easing: SETTLE }),
-		);
+		progress.value = withDelay(delay, withTiming(1, { duration, easing: SETTLE }));
 	}, [progress, delay, duration]);
 
 	const travel = useAnimatedStyle(() => {
@@ -58,18 +51,14 @@ function Arriving({
 
 interface SettleProps {
 	children: ReactNode;
-	style?: ViewStyle;
 	delay?: number;
 	duration?: number;
 	from?: number;
+	style?: ViewStyle;
 }
 
 export function Settle(props: SettleProps) {
-	return useReducedMotion() ? (
-		<View style={props.style}>{props.children}</View>
-	) : (
-		<Settling {...props} />
-	);
+	return useReducedMotion() ? <View style={props.style}>{props.children}</View> : <Settling {...props} />;
 }
 
 function Settling({
@@ -82,10 +71,7 @@ function Settling({
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
-		progress.value = withDelay(
-			delay,
-			withTiming(1, { duration, easing: SETTLE }),
-		);
+		progress.value = withDelay(delay, withTiming(1, { duration, easing: SETTLE }));
 	}, [progress, delay, duration]);
 
 	const landing = useAnimatedStyle(() => {
@@ -101,11 +87,11 @@ function Settling({
 
 interface FadeProps {
 	children: ReactNode;
-	to: number;
-	from?: number;
-	style?: ViewStyle;
 	delay?: number;
 	duration?: number;
+	from?: number;
+	style?: ViewStyle;
+	to: number;
 }
 
 export function Fade(props: FadeProps) {
@@ -116,14 +102,7 @@ export function Fade(props: FadeProps) {
 	);
 }
 
-function Fading({
-	children,
-	to,
-	from = 1,
-	style,
-	delay = 0,
-	duration = MARK_MOTION.fade.duration,
-}: FadeProps) {
+function Fading({ children, to, from = 1, style, delay = 0, duration = MARK_MOTION.fade.duration }: FadeProps) {
 	const opacity = useSharedValue(from);
 
 	useEffect(() => {

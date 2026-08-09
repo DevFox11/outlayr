@@ -3,14 +3,11 @@ import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 import { scopeMeasureLabel } from "./labels";
 
-const t: TranslateFn = (key, params) =>
-	translate(key, { catalog: EN, fallback: EN, params });
+const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
 describe("scopeMeasureLabel", () => {
 	it("says only the measure when the figure is in the currency asked for", () => {
-		expect(scopeMeasureLabel(t, "out", "USD", "USD")).toBe(
-			t("log.measure.out"),
-		);
+		expect(scopeMeasureLabel(t, "out", "USD", "USD")).toBe(t("log.measure.out"));
 	});
 
 	/**

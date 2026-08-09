@@ -12,12 +12,8 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import {
-	type Account,
-	useAccountBalance,
-	useAccounts,
-	useAccountTransactions,
-} from "@/data/accounts";
+import { useAccountBalance, useAccounts, useAccountTransactions } from "@/data/accounts";
+import type { Account } from "@/data/accounts-core";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useValuationIn } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
@@ -25,7 +21,7 @@ import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function AccountDetail({ id }: { id: string }) {
 	const db = useDatabase();
@@ -50,30 +46,17 @@ function AccountDetailReady({ db, id }: { db: Database; id: string }) {
 	return <AccountDetailLoaded account={account} db={db} />;
 }
 
-function AccountDetailLoaded({
-	account,
-	db,
-}: {
-	account: Account;
-	db: Database;
-}) {
+function AccountDetailLoaded({ account, db }: { account: Account; db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const { showCents } = useDisplaySettings().state;
 	const balance = useAccountBalance(db, account);
 	const rows = useAccountTransactions(db, account.id);
 	const { rates } = useValuationIn(db, account.currency);
-	const sections = useMemo(
-		() => groupByDay(rows, account.currency, rates),
-		[rows, account.currency, rates],
-	);
+	const sections = useMemo(() => groupByDay(rows, account.currency, rates), [rows, account.currency, rates]);
 
 	const startedAt = t("accounts.detail.startedAt", {
-		amount: formatSignedAmount(
-			account.initialBalance,
-			account.currency,
-			showCents,
-		),
+		amount: formatSignedAmount(account.initialBalance, account.currency, showCents),
 		month: `${monthAbbrevTitle(account.initialBalanceDate)} ${account.initialBalanceDate.getFullYear()}`,
 	});
 
@@ -88,8 +71,8 @@ function AccountDetailLoaded({
 					accessibilityLabel={t("accounts.a11y.edit")}
 					onPress={() =>
 						router.push({
-							pathname: "/settings/accounts/[accountId]/edit",
 							params: { accountId: account.id },
+							pathname: "/settings/accounts/[accountId]/edit",
 						})
 					}
 				/>
@@ -97,12 +80,15 @@ function AccountDetailLoaded({
 			<SectionList
 				className="bg-background"
 				contentContainerStyle={{
-					paddingHorizontal: 20,
-					paddingBottom: 40,
 					flexGrow: 1,
+					paddingBottom: 40,
+					paddingHorizontal: 20,
 				}}
 				contentInsetAdjustmentBehavior="automatic"
 				keyExtractor={(item) => item.id}
+				ListEmptyComponent={
+					<EmptyState body={t("accounts.detail.empty")} className="pt-4" mark={<DetailMark />} tier="inFlow" />
+				}
 				ListHeaderComponent={
 					<View className="items-center gap-1 pt-6 pb-4">
 						<View className="flex-row items-center gap-2">
@@ -118,30 +104,14 @@ function AccountDetailLoaded({
 								</View>
 							)}
 						</View>
-						<Text className="font-sans-medium text-muted text-subtitle">
-							{startedAt}
-						</Text>
+						<Text className="font-sans-medium text-muted text-subtitle">{startedAt}</Text>
 					</View>
-				}
-				ListEmptyComponent={
-					<EmptyState
-						body={t("accounts.detail.empty")}
-						className="pt-4"
-						mark={<DetailMark />}
-						tier="inFlow"
-					/>
 				}
 				recycleItems={false}
 				renderItem={({ item }) => (
-					<AccountTransactionRow
-						currency={account.currency}
-						rates={rates}
-						transaction={item}
-					/>
+					<AccountTransactionRow currency={account.currency} rates={rates} transaction={item} />
 				)}
-				renderSectionHeader={({ section }) => (
-					<DaySectionHeader first={sections[0] === section} section={section} />
-				)}
+				renderSectionHeader={({ section }) => <DaySectionHeader first={sections[0] === section} section={section} />}
 				sections={sections}
 				stickySectionHeadersEnabled={false}
 			/>
@@ -160,7 +130,7 @@ function DetailMark() {
 	);
 }
 
-const AccountTransactionRow = memo(function AccountTransactionRow({
+const AccountTransactionRow = memo(function AccountTransactionRowBody({
 	transaction,
 	currency,
 	rates,

@@ -6,9 +6,7 @@ const colors = { muted: "#666666" } as ThemeColors;
 
 describe("Eyebrow", () => {
 	it("renders through @expo/ui/swift-ui's Text with its label and modifiers", async () => {
-		const { toJSON } = await render(
-			<Eyebrow colors={colors}>THIS MONTH</Eyebrow>,
-		);
+		const { toJSON } = await render(<Eyebrow colors={colors}>THIS MONTH</Eyebrow>);
 
 		const tree = toJSON();
 		expect(tree?.type).toBe("ViewManagerAdapter_ExpoUI");
@@ -18,10 +16,10 @@ describe("Eyebrow", () => {
 				expect.objectContaining({ $type: "textCase", value: "uppercase" }),
 				expect.objectContaining({
 					$type: "foregroundStyle",
-					styleType: "color",
 					color: "#666666",
+					styleType: "color",
 				}),
-			]),
+			])
 		);
 	});
 });

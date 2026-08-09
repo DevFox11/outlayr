@@ -23,10 +23,7 @@ describe("category icon catalog", () => {
 
 	it("curates 112 emoji across 8 groups", () => {
 		expect(CATEGORY_EMOJI_GROUPS.length).toBe(8);
-		const emojiCount = CATEGORY_EMOJI_GROUPS.reduce(
-			(total, group) => total + group.emoji.length,
-			0,
-		);
+		const emojiCount = CATEGORY_EMOJI_GROUPS.reduce((total, group) => total + group.emoji.length, 0);
 		expect(emojiCount).toBe(112);
 	});
 
@@ -43,9 +40,7 @@ describe("iconKeysMatching", () => {
 	});
 
 	it("matches on a keyword synonym", () => {
-		expect(
-			iconKeysMatching("groceries").includes("ShoppingCart01"),
-		).toBeTruthy();
+		expect(iconKeysMatching("groceries").includes("ShoppingCart01")).toBeTruthy();
 	});
 
 	it("matches on a name token", () => {

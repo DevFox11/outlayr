@@ -1,15 +1,8 @@
 import { act, renderHook } from "@testing-library/react-native";
-import {
-	clearEnrichmentCache,
-	type RemoteEnrichmentResult,
-} from "@/domain/enrichment-cache";
+import { clearEnrichmentCache, type RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import type { EnrichmentFn, EnrichmentRequest } from "@/lib/convex";
 import type { LogoOutcome } from "@/lib/logo-fetch";
-import {
-	type AccountLogo,
-	type UseAccountIdentityArgs,
-	useAccountIdentity,
-} from "./use-account-identity";
+import { type AccountLogo, type UseAccountIdentityArgs, useAccountIdentity } from "./use-account-identity";
 
 const DEBOUNCE_MS = 600;
 const GROUNDED_IDLE_MS = 1800;
@@ -17,11 +10,11 @@ const RECHECK_MS = 8000;
 const UNKNOWN = "zzq unresolvable bank alpha";
 
 const LOGO_BYTES = new Uint8Array([1, 2, 3]);
-const LOGO: LogoOutcome = { kind: "logo", bytes: LOGO_BYTES };
+const LOGO: LogoOutcome = { bytes: LOGO_BYTES, kind: "logo" };
 const NO_LOGO: LogoOutcome = { kind: "none" };
 const PERSISTED: AccountLogo = {
-	imageUri: "file:///logos/chase.png",
 	imageColor: "#0A5FFF",
+	imageUri: "file:///logos/chase.png",
 };
 
 interface DeferredCall {
@@ -41,21 +34,19 @@ function deferredTransport(): {
 					args,
 					settle: (value) => resolve(value as RemoteEnrichmentResult),
 				});
-			}),
+			})
 	) as EnrichmentFn & jest.Mock;
-	return { fn, calls };
+	return { calls, fn };
 }
 
-function baseArgs(
-	overrides: Partial<UseAccountIdentityArgs> = {},
-): UseAccountIdentityArgs {
+function baseArgs(overrides: Partial<UseAccountIdentityArgs> = {}): UseAccountIdentityArgs {
 	return {
 		enabled: true,
-		onLogo: () => {},
-		onClear: () => {},
-		transport: null,
 		fetchImage: jest.fn(async () => LOGO),
+		onClear: () => {},
+		onLogo: () => {},
 		persistLogo: jest.fn(async () => PERSISTED),
+		transport: null,
 		...overrides,
 	};
 }
@@ -63,9 +54,9 @@ function baseArgs(
 function domainResult(domain: string | null): RemoteEnrichmentResult {
 	return {
 		categoryName: "Finance",
+		domain,
 		isNewCategory: false,
 		tags: ["Bank"],
-		domain,
 	};
 }
 
@@ -83,9 +74,7 @@ describe("debounce and domain consumption", () => {
 		const { fn, calls } = deferredTransport();
 		const fetchImage = jest.fn(async () => LOGO);
 		const onLogo = jest.fn();
-		const { result } = await renderHook(() =>
-			useAccountIdentity(baseArgs({ transport: fn, fetchImage, onLogo })),
-		);
+		const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		jest.advanceTimersByTime(DEBOUNCE_MS - 1);
@@ -101,8 +90,8 @@ describe("debounce and domain consumption", () => {
 			calls[0].settle(domainResult("chase.com"));
 		});
 		expect(fetchImage).toHaveBeenCalledWith({
-			name: UNKNOWN,
 			domain: "chase.com",
+			name: UNKNOWN,
 		});
 		expect(onLogo).toHaveBeenCalledWith(PERSISTED);
 	});
@@ -110,9 +99,7 @@ describe("debounce and domain consumption", () => {
 	it("resolves a curated merchant's domain with no transport at all", async () => {
 		const fetchImage = jest.fn(async () => LOGO);
 		const onLogo = jest.fn();
-		const { result } = await renderHook(() =>
-			useAccountIdentity(baseArgs({ fetchImage, onLogo })),
-		);
+		const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo })));
 
 		result.current.onNameChange("netflix");
 		await act(async () => {
@@ -120,8 +107,8 @@ describe("debounce and domain consumption", () => {
 		});
 
 		expect(fetchImage).toHaveBeenCalledWith({
-			name: "netflix",
 			domain: "netflix.com",
+			name: "netflix",
 		});
 		expect(onLogo).toHaveBeenCalledWith(PERSISTED);
 	});
@@ -132,9 +119,7 @@ describe("debounce and domain consumption", () => {
 		const onClear = jest.fn();
 		const onLogo = jest.fn();
 		const { result } = await renderHook(() =>
-			useAccountIdentity(
-				baseArgs({ transport: fn, fetchImage, onClear, onLogo }),
-			),
+			useAccountIdentity(baseArgs({ fetchImage, onClear, onLogo, transport: fn }))
 		);
 
 		result.current.onNameChange(UNKNOWN);
@@ -156,9 +141,7 @@ describe("consent gates", () => {
 		const { fn } = deferredTransport();
 		const onClear = jest.fn();
 		const { result } = await renderHook(() =>
-			useAccountIdentity(
-				baseArgs({ transport: fn, remoteEnabled: false, onClear }),
-			),
+			useAccountIdentity(baseArgs({ onClear, remoteEnabled: false, transport: fn }))
 		);
 
 		result.current.onNameChange(UNKNOWN);
@@ -172,9 +155,7 @@ describe("consent gates", () => {
 
 	it("skips the grounded follow-up when groundedLookup is off", async () => {
 		const { fn, calls } = deferredTransport();
-		const { result } = await renderHook(() =>
-			useAccountIdentity(baseArgs({ transport: fn, groundedLookup: false })),
-		);
+		const { result } = await renderHook(() => useAccountIdentity(baseArgs({ groundedLookup: false, transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -196,9 +177,7 @@ describe("grounded follow-up", () => {
 		const { fn, calls } = deferredTransport();
 		const fetchImage = jest.fn(async () => LOGO);
 		const onLogo = jest.fn();
-		const { result } = await renderHook(() =>
-			useAccountIdentity(baseArgs({ transport: fn, fetchImage, onLogo })),
-		);
+		const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
 
 		result.current.onNameChange(UNKNOWN);
 		await act(async () => {
@@ -227,8 +206,8 @@ describe("grounded follow-up", () => {
 			calls[2].settle(domainResult("chase.com"));
 		});
 		expect(fetchImage).toHaveBeenCalledWith({
-			name: UNKNOWN,
 			domain: "chase.com",
+			name: UNKNOWN,
 		});
 		expect(onLogo).toHaveBeenCalledWith(PERSISTED);
 	});
@@ -239,9 +218,7 @@ describe("acceptance and gating", () => {
 		const fetchImage = jest.fn(async () => NO_LOGO);
 		const onLogo = jest.fn();
 		const onClear = jest.fn();
-		const { result } = await renderHook(() =>
-			useAccountIdentity(baseArgs({ fetchImage, onLogo, onClear })),
-		);
+		const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onClear, onLogo })));
 
 		result.current.onNameChange("netflix");
 		await act(async () => {
@@ -257,9 +234,7 @@ describe("acceptance and gating", () => {
 		const onLogo = jest.fn();
 		const onClear = jest.fn();
 		const { result } = await renderHook(() =>
-			useAccountIdentity(
-				baseArgs({ fetchImage, onLogo, onClear, canAttach: () => false }),
-			),
+			useAccountIdentity(baseArgs({ canAttach: () => false, fetchImage, onClear, onLogo }))
 		);
 
 		result.current.onNameChange("netflix");
@@ -278,12 +253,10 @@ describe("acceptance and gating", () => {
 			() =>
 				new Promise<LogoOutcome>((resolve) => {
 					settleFetch = resolve;
-				}),
+				})
 		);
 		const onLogo = jest.fn();
-		const { result } = await renderHook(() =>
-			useAccountIdentity(baseArgs({ fetchImage, onLogo })),
-		);
+		const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo })));
 
 		result.current.onNameChange("netflix");
 		await act(async () => {

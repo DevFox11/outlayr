@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { LinkRow } from "@/components/settings/settings-row";
 import { type AccountState, accountRowValue } from "@/domain/account";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
 
 type AuthClient = typeof authClient;

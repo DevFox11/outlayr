@@ -1,7 +1,7 @@
 import { router, Stack } from "expo-router";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export default function BudgetsLayout() {
 	const t = useTranslation();

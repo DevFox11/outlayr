@@ -6,7 +6,7 @@ import {
 	INITIAL_IMPORT_FLOW_STATE,
 	importFlowReducer,
 } from "@/domain/import-flow";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 
 export type FileStepError =
 	| { cause: "io"; key: TranslationKey }
@@ -16,10 +16,10 @@ export type FileStepError =
 	| { cause: "tooFewColumns" };
 
 export interface ImportDraftUi {
-	step: ImportStep;
 	fileError: FileStepError | null;
 	/** True only for the first render after a resumed reopen; cleared by any dispatch/setStep. */
 	resumed: boolean;
+	step: ImportStep;
 }
 
 export interface ImportDraftSnapshot {
@@ -28,22 +28,22 @@ export interface ImportDraftSnapshot {
 }
 
 export interface ImportDraftStore {
-	getSnapshot(): ImportDraftSnapshot;
-	subscribe(listener: () => void): () => void;
-	/** Committed only by `commitDismissal`/`clear`, so this rarely changes. */
-	getResumeStep(): ImportStep;
-	dispatch(event: ImportFlowEvent): void;
-	setStep(step: ImportStep): void;
-	setFileError(error: FileStepError | null): void;
+	clear: () => void;
 	/** Called from the sheet modal's onDismiss. */
-	commitDismissal(): void;
-	clear(): void;
+	commitDismissal: () => void;
+	dispatch: (event: ImportFlowEvent) => void;
+	/** Committed only by `commitDismissal`/`clear`, so this rarely changes. */
+	getResumeStep: () => ImportStep;
+	getSnapshot: () => ImportDraftSnapshot;
+	setFileError: (error: FileStepError | null) => void;
+	setStep: (step: ImportStep) => void;
+	subscribe: (listener: () => void) => () => void;
 }
 
 const INITIAL_UI: ImportDraftUi = {
-	step: "source",
 	fileError: null,
 	resumed: false,
+	step: "source",
 };
 const INITIAL_SNAPSHOT: ImportDraftSnapshot = {
 	flow: INITIAL_IMPORT_FLOW_STATE,
@@ -85,40 +85,38 @@ export function createImportDraftStore(): ImportDraftStore {
 	}
 
 	return {
-		getSnapshot() {
-			return snapshot;
-		},
-		subscribe(listener) {
-			listeners.add(listener);
-			return () => listeners.delete(listener);
-		},
-		getResumeStep() {
-			return resumeStep;
-		},
+		clear,
+		commitDismissal,
 		dispatch(event) {
 			const flow = importFlowReducer(snapshot.flow, event);
 			if (flow !== snapshot.flow || snapshot.ui.resumed) {
 				commit({ ...snapshot, flow, ui: { ...snapshot.ui, resumed: false } });
 			}
 		},
-		setStep(step) {
-			if (step === snapshot.ui.step) {
-				return;
-			}
-			commit({ ...snapshot, ui: { ...snapshot.ui, step, resumed: false } });
+		getResumeStep() {
+			return resumeStep;
+		},
+		getSnapshot() {
+			return snapshot;
 		},
 		setFileError(error) {
 			commit({ ...snapshot, ui: { ...snapshot.ui, fileError: error } });
 		},
-		commitDismissal,
-		clear,
+		setStep(step) {
+			if (step === snapshot.ui.step) {
+				return;
+			}
+			commit({ ...snapshot, ui: { ...snapshot.ui, resumed: false, step } });
+		},
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
 	};
 }
 
 export const importDraftStore = createImportDraftStore();
 
-export function useImportDraft(
-	store: ImportDraftStore = importDraftStore,
-): ImportDraftSnapshot {
+export function useImportDraft(store: ImportDraftStore = importDraftStore): ImportDraftSnapshot {
 	return useSyncExternalStore(store.subscribe, store.getSnapshot);
 }

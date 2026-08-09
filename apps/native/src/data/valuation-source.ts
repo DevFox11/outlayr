@@ -27,10 +27,7 @@ export const NO_VALUATION: Valuation = {
  * currency needs that currency's rates and nothing else, and the whole replica
  * is thousands of rows across every pair the provider carries.
  */
-export async function loadValuationIn(
-	db: SpendDb,
-	code: string,
-): Promise<Valuation> {
+export async function loadValuationIn(db: SpendDb, code: string): Promise<Valuation> {
 	// USD needs no table: a canonical value is already in it.
 	if (code === "USD") {
 		return { displayCurrency: code, rates: buildRateTable([]) };
@@ -38,8 +35,8 @@ export async function loadValuationIn(
 
 	const rows = await db
 		.select({
-			quote: exchangeRates.quote,
 			date: exchangeRates.date,
+			quote: exchangeRates.quote,
 			rate: exchangeRates.rate,
 		})
 		.from(exchangeRates)
@@ -49,8 +46,8 @@ export async function loadValuationIn(
 				// Pinned to the type entries are frozen at. VES alone carries
 				// official, eur_reference and binance, and mixing them would convert
 				// a figure out at a rate it was never valued in.
-				eq(exchangeRates.rateType, RATE_TYPE),
-			),
+				eq(exchangeRates.rateType, RATE_TYPE)
+			)
 		);
 
 	return { displayCurrency: code, rates: buildRateTable(rows) };
@@ -58,10 +55,7 @@ export async function loadValuationIn(
 
 /** {@link loadValuationIn} for the ledger's own display currency. */
 export async function loadValuation(db: SpendDb): Promise<Valuation> {
-	return await loadValuationIn(
-		db,
-		(await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY,
-	);
+	return await loadValuationIn(db, (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY);
 }
 
 export { RATE_TYPE as VALUATION_RATE_TYPE };

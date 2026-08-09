@@ -4,7 +4,7 @@ import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { TransactionFormIdentitySection } from "./identity-section";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
-	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
+	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
@@ -12,43 +12,40 @@ jest.mock("expo-sqlite", () => ({
 jest.mock("@/contexts/local-data-context", () => ({
 	useLocalData: () => ({ db: null }),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
+		accent: "#3D7A5C",
+		accentForeground: "#FFFFFF",
 		background: "#F2F0EA",
+		border: "#DAD6C9",
+		danger: "#B5482F",
+		expense: "#B5482F",
 		foreground: "#17150F",
+		future: "#8A8578",
+		groupedBackground: "#EFEDE6",
+		income: "#3D7A5C",
 		muted: "#8A8578",
+		overBudget: "#B5482F",
+		railTrack: "rgba(0,0,0,0.08)",
+		separator: "#DAD6C9",
 		subtle: "#B4AFA0",
 		surface: "#FFFFFF",
 		surfaceSecondary: "#F7F5EF",
-		groupedBackground: "#EFEDE6",
-		border: "#DAD6C9",
-		separator: "#DAD6C9",
-		accent: "#3D7A5C",
-		accentForeground: "#FFFFFF",
 		tint: "#3D7A5C",
-		income: "#3D7A5C",
-		expense: "#B5482F",
-		future: "#8A8578",
-		danger: "#B5482F",
-		overBudget: "#B5482F",
 		warning: "#C08A2E",
-		railTrack: "rgba(0,0,0,0.08)",
 	}),
 }));
 
 interface JsonNode {
-	type: string;
-	props: Record<string, unknown>;
 	children: (JsonNode | string)[] | null;
+	props: Record<string, unknown>;
+	type: string;
 }
 
-function findByStyleWidth(
-	node: JsonNode | JsonNode[] | null,
-	width: number,
-): JsonNode | null {
+function findByStyleWidth(node: JsonNode | JsonNode[] | null, width: number): JsonNode | null {
 	if (node == null) {
 		return null;
 	}
@@ -61,10 +58,7 @@ function findByStyleWidth(
 		}
 		return null;
 	}
-	const style = node.props?.style as
-		| { width?: number }
-		| { width?: number }[]
-		| undefined;
+	const style = node.props?.style as { width?: number } | { width?: number }[] | undefined;
 	const styles = Array.isArray(style) ? style : [style];
 	if (styles.some((entry) => entry?.width === width)) {
 		return node;
@@ -83,7 +77,7 @@ function findByStyleWidth(
 
 function findModifier(
 	node: JsonNode | JsonNode[] | null,
-	type: string,
+	type: string
 ): { $type: string; eventListener?: (args: unknown) => void } | null {
 	if (node == null) {
 		return null;
@@ -97,9 +91,7 @@ function findModifier(
 		}
 		return null;
 	}
-	const modifiers = node.props?.modifiers as
-		| { $type: string; eventListener?: (args: unknown) => void }[]
-		| undefined;
+	const modifiers = node.props?.modifiers as { $type: string; eventListener?: (args: unknown) => void }[] | undefined;
 	const hit = modifiers?.find((modifier) => modifier.$type === type);
 	if (hit) {
 		return hit;
@@ -164,9 +156,7 @@ describe("TransactionFormIdentitySection", () => {
 	});
 
 	it("renders without crashing once a photo is set", async () => {
-		const { toJSON } = await render(
-			<Harness photoUri="file:///tmp/receipt.jpg" />,
-		);
+		const { toJSON } = await render(<Harness photoUri="file:///tmp/receipt.jpg" />);
 		expect(toJSON()).toBeTruthy();
 	});
 
@@ -186,12 +176,8 @@ describe("TransactionFormIdentitySection", () => {
 
 	it("fires onReset when the reset badge is tapped, only once an identity is set", async () => {
 		const onReset = jest.fn();
-		const { getByLabelText, queryByLabelText } = await render(
-			<Harness emoji="🎯" onReset={onReset} />,
-		);
-		expect(
-			queryByLabelText("transaction.identity.hero.removeLogo"),
-		).not.toBeNull();
+		const { getByLabelText, queryByLabelText } = await render(<Harness emoji="🎯" onReset={onReset} />);
+		expect(queryByLabelText("transaction.identity.hero.removeLogo")).not.toBeNull();
 		fireEvent.press(getByLabelText("transaction.identity.hero.removeLogo"));
 		expect(onReset).toHaveBeenCalledTimes(1);
 	});
@@ -221,7 +207,7 @@ describe("TransactionFormIdentitySection", () => {
 		const modifier = findModifier(toJSON() as JsonNode, "onGeometryChange");
 		expect(modifier).not.toBeNull();
 
-		modifier?.eventListener?.({ x: 0, y: 42, width: 335, height: 118 });
+		modifier?.eventListener?.({ height: 118, width: 335, x: 0, y: 42 });
 		expect(heroWinY.value).toBe(42);
 	});
 
@@ -240,9 +226,7 @@ describe("TransactionFormIdentitySection", () => {
 		});
 
 		const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-			typeof message === "string"
-				? /Rendered (more|fewer) hooks/.test(message)
-				: false,
+			typeof message === "string" ? /Rendered (more|fewer) hooks/.test(message) : false
 		);
 		expect(hookOrderViolations).toHaveLength(0);
 		errorSpy.mockRestore();
@@ -260,9 +244,7 @@ describe("TransactionFormIdentitySection", () => {
 		});
 
 		const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-			typeof message === "string"
-				? /Rendered (more|fewer) hooks/.test(message)
-				: false,
+			typeof message === "string" ? /Rendered (more|fewer) hooks/.test(message) : false
 		);
 		expect(hookOrderViolations).toHaveLength(0);
 		errorSpy.mockRestore();

@@ -8,9 +8,7 @@ import { authComponent } from "../auth";
  * identity, so a revoked or expired session resolves to null here even though
  * `ctx.auth.getUserIdentity()` still decodes its unexpired token.
  */
-export async function optionalUserId(
-	ctx: MutationCtx | QueryCtx,
-): Promise<string | null> {
+export async function optionalUserId(ctx: MutationCtx | QueryCtx): Promise<string | null> {
 	const user = await authComponent.safeGetAuthUser(ctx);
 	return user ? user._id : null;
 }
@@ -19,9 +17,7 @@ export async function optionalUserId(
  * The single ownership seam for user-scoped functions: the returned id is what
  * gets stored as `userId` and is never accepted as a function argument.
  */
-export async function requireUserId(
-	ctx: MutationCtx | QueryCtx,
-): Promise<string> {
+export async function requireUserId(ctx: MutationCtx | QueryCtx): Promise<string> {
 	const userId = await optionalUserId(ctx);
 	if (userId === null) {
 		throw new ConvexError("Unauthenticated: sign in to access your data");

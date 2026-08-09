@@ -1,10 +1,4 @@
 export interface LogCurrencyOptionsInput {
-	/** The ledger's own currency. Always offered, always first. */
-	global: string;
-	/** The user's favourites, in the order they arranged them. */
-	favourites: readonly string[];
-	/** Every currency the period on screen ended up expressed in. */
-	produced: readonly string[];
 	/**
 	 * Whether a figure can actually be expressed in a code. Only favourites are
 	 * tested: `global` is how a caller leaves an override, and `produced` is
@@ -15,6 +9,12 @@ export interface LogCurrencyOptionsInput {
 	 * Absent means every favourite is offered.
 	 */
 	convertible?: (code: string) => boolean;
+	/** The user's favourites, in the order they arranged them. */
+	favourites: readonly string[];
+	/** The ledger's own currency. Always offered, always first. */
+	global: string;
+	/** Every currency the period on screen ended up expressed in. */
+	produced: readonly string[];
 }
 
 /**
@@ -31,15 +31,8 @@ export interface LogCurrencyOptionsInput {
  * period can produce a code the catalogue has since retired, and dropping it
  * would strand those entries.
  */
-export function logCurrencyOptions({
-	global,
-	favourites,
-	produced,
-	convertible,
-}: LogCurrencyOptionsInput): string[] {
-	const reachable = convertible
-		? favourites.filter((code) => convertible(code.trim()))
-		: favourites;
+export function logCurrencyOptions({ global, favourites, produced, convertible }: LogCurrencyOptionsInput): string[] {
+	const reachable = convertible ? favourites.filter((code) => convertible(code.trim())) : favourites;
 	const options: string[] = [];
 	const seen = new Set<string>();
 	for (const raw of [global, ...reachable, ...produced]) {

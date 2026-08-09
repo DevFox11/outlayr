@@ -3,13 +3,13 @@ import { BottomSheet } from "panelui-native";
 import { AmountNumpad } from "../amount-numpad";
 
 interface TransactionFormAmountPadProps {
-	open: boolean;
-	value: string;
-	minorUnits: number;
 	code: string;
 	income: boolean;
+	minorUnits: number;
 	onChange: (next: string) => void;
 	onOpenChange: (open: boolean) => void;
+	open: boolean;
+	value: string;
 }
 
 export function TransactionFormAmountPad({
@@ -22,7 +22,7 @@ export function TransactionFormAmountPad({
 	onOpenChange,
 }: TransactionFormAmountPadProps) {
 	return (
-		<BottomSheet onOpenChange={onOpenChange} open={open} native>
+		<BottomSheet native onOpenChange={onOpenChange} open={open}>
 			<BottomSheet.Content size="auto">
 				<AmountNumpad
 					code={code}

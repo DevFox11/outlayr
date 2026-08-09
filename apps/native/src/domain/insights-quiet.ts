@@ -25,12 +25,6 @@ function hasFigure(measure: InsightsMeasure, totals: InsightsTotals): boolean {
  * plain direction always beats the derived figure, and the answer never depends
  * on which measure happens to be promoted.
  */
-export function quietAlternative(
-	measure: InsightsMeasure,
-	totals: InsightsTotals,
-): InsightsMeasure | null {
-	return (
-		insightsMeasureAlternatives(measure).find((m) => hasFigure(m, totals)) ??
-		null
-	);
+export function quietAlternative(measure: InsightsMeasure, totals: InsightsTotals): InsightsMeasure | null {
+	return insightsMeasureAlternatives(measure).find((m) => hasFigure(m, totals)) ?? null;
 }

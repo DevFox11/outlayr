@@ -2,20 +2,6 @@ const preset = require("jest-expo/jest-preset");
 
 /** @type {import("jest").Config} */
 module.exports = {
-	preset: "jest-expo",
-	testMatch: ["**/*.test.ts?(x)"],
-	// panelui-native's kpi pulls in lucide-react-native, which ships ESM under
-	// .mjs — an extension jest-expo's `\.[jt]sx?$` transform never matches, so
-	// without this it reaches the runtime untranspiled.
-	transform: {
-		...preset.transform,
-		"\\.mjs$": preset.transform["\\.[jt]sx?$"],
-	},
-	setupFiles: [
-		"react-native-gesture-handler/jestSetup.js",
-		"<rootDir>/jest/expo-observe-stub.js",
-		"<rootDir>/jest/env-stub.js",
-	],
 	moduleNameMapper: {
 		// tsconfig maps `@/assets/*` outside `src/`, but jest-expo only picks up
 		// the general `@/*` -> `src/*` rule, so every asset import resolves under
@@ -25,6 +11,20 @@ module.exports = {
 		// NativeWorklets.native.ts crashes at import time under jest, before
 		// react-native-reanimated's own IS_JEST handling ever runs.
 		"^react-native-worklets$": "<rootDir>/jest/worklets-stub.js",
+	},
+	preset: "jest-expo",
+	setupFiles: [
+		"react-native-gesture-handler/jestSetup.js",
+		"<rootDir>/jest/expo-observe-stub.js",
+		"<rootDir>/jest/env-stub.js",
+	],
+	testMatch: ["**/*.test.ts?(x)"],
+	// panelui-native's kpi pulls in lucide-react-native, which ships ESM under
+	// .mjs — an extension jest-expo's `\.[jt]sx?$` transform never matches, so
+	// without this it reaches the runtime untranspiled.
+	transform: {
+		...preset.transform,
+		"\\.mjs$": preset.transform["\\.[jt]sx?$"],
 	},
 	transformIgnorePatterns: [
 		"/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|uniwind|@legendapp/list|@hugeicons/react-native|drizzle-orm|intlayer|react-native-intlayer|dinero.js|number-flow-react-native|@t3-oss|convex|panelui-native|lucide-react-native))",

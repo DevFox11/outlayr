@@ -1,16 +1,12 @@
-import {
-	type CurrencyBucket,
-	type CurrencyEntry,
-	currencyTotals,
-} from "./currency-totals";
+import { type CurrencyBucket, type CurrencyEntry, currencyTotals } from "./currency-totals";
 import { RECURRING_TYPE } from "./recurrence";
 import type { RateTable } from "./valuation";
 
 export interface ScheduleCostEntry extends CurrencyEntry {
-	recurringType: number;
 	recurringCoefficient: number;
 	/** When the owner gave the schedule an end; null means it runs indefinitely. */
 	recurringEndDate?: Date | null;
+	recurringType: number;
 }
 
 /**
@@ -21,10 +17,7 @@ export interface ScheduleCostEntry extends CurrencyEntry {
  * which is the price of a figure that holds still instead of drifting with
  * whichever month the user happens to open the app in.
  */
-export function monthlyChargeCount(
-	recurringType: number,
-	recurringCoefficient: number,
-): number {
+export function monthlyChargeCount(recurringType: number, recurringCoefficient: number): number {
 	// Normalized exactly as `nextDate` does, so the count and the dates the
 	// back-fill actually writes always describe the same schedule.
 	const every = Math.max(1, Math.round(recurringCoefficient));
@@ -43,11 +36,7 @@ export function monthlyChargeCount(
 }
 
 /** One charge of `amount` on this cadence, restated as a month of it. */
-export function monthlyEquivalent(
-	amount: number,
-	recurringType: number,
-	recurringCoefficient: number,
-): number {
+export function monthlyEquivalent(amount: number, recurringType: number, recurringCoefficient: number): number {
 	return amount * monthlyChargeCount(recurringType, recurringCoefficient);
 }
 
@@ -69,14 +58,11 @@ export function monthlySubscriptionCost(
 	schedules: readonly ScheduleCostEntry[],
 	globalCurrency: string,
 	rates?: RateTable,
-	now: Date = new Date(),
+	now: Date = new Date()
 ): CurrencyBucket[] {
 	const perMonth: CurrencyEntry[] = [];
 	for (const schedule of schedules) {
-		const charges = monthlyChargeCount(
-			schedule.recurringType,
-			schedule.recurringCoefficient,
-		);
+		const charges = monthlyChargeCount(schedule.recurringType, schedule.recurringCoefficient);
 		if (charges === 0) {
 			continue;
 		}
@@ -85,14 +71,13 @@ export function monthlySubscriptionCost(
 			continue;
 		}
 		perMonth.push({
-			currency: schedule.currency,
-			income: schedule.income,
-			date: schedule.date,
 			amount: schedule.amount * charges,
 			// Scaled alongside the face amount, or a converted bucket would hold a
 			// month of the schedule in one currency and a single charge in another.
-			amountUsd:
-				schedule.amountUsd == null ? null : schedule.amountUsd * charges,
+			amountUsd: schedule.amountUsd == null ? null : schedule.amountUsd * charges,
+			currency: schedule.currency,
+			date: schedule.date,
+			income: schedule.income,
 		});
 	}
 	return currencyTotals(perMonth, globalCurrency, rates);

@@ -14,13 +14,13 @@
 
 /** Canonical link targets. Emitted by the widgets and the App Intents. */
 export const DEEP_LINKS = {
-	log: "outlayr://log",
-	insights: "outlayr://insights",
 	budgets: "outlayr://budgets",
-	overallBudget: "outlayr://budgets/overall",
-	search: "outlayr://search",
+	insights: "outlayr://insights",
+	log: "outlayr://log",
 	newExpense: "outlayr://new",
 	newIncome: "outlayr://new?income=1",
+	overallBudget: "outlayr://budgets/overall",
+	search: "outlayr://search",
 } as const;
 
 /** One entry, as Spotlight indexes it. See `spotlight.ts`. */
@@ -39,18 +39,18 @@ export function budgetLink(id: string): string {
  * still fires them, and answering with `+not-found` would be a regression.
  */
 const LEGACY_HOSTS: Readonly<Record<string, string>> = {
+	budget: "/budgets",
 	newexpense: "/transactions/create",
 	newincome: "/transactions/create?income=1",
-	budget: "/budgets",
 	transactions: "/",
 };
 
 const HOSTS: Readonly<Record<string, string>> = {
-	log: "/",
-	insights: "/insights",
 	budgets: "/budgets",
-	search: "/search",
+	insights: "/insights",
+	log: "/",
 	new: "/transactions/create",
+	search: "/search",
 	transaction: "/transactions",
 };
 
@@ -71,17 +71,19 @@ const ID_HOST_SECTION: Readonly<Record<string, string>> = {
 	transaction: "/",
 };
 
+const SCHEME_PREFIX = /^[a-zA-Z][\w+.-]*:\/\//;
+
 /**
  * Both `outlayr://budgets/overall?x=1` and the bare `/budgets/overall` form have
  * to parse: expo-router hands `redirectSystemPath` the raw URL on a cold start
  * but an already-normalized path once the app is running.
  */
 function parts(raw: string): { segments: string[]; query: string } {
-	const withoutScheme = raw.replace(/^[a-zA-Z][\w+.-]*:\/\//, "");
+	const withoutScheme = raw.replace(SCHEME_PREFIX, "");
 	const [pathname = "", query = ""] = withoutScheme.split("?");
 	return {
-		segments: pathname.split("/").filter(Boolean),
 		query: query ? `?${query}` : "",
+		segments: pathname.split("/").filter(Boolean),
 	};
 }
 
@@ -126,7 +128,7 @@ export function resolveDeepLink(raw: string): string | null {
  */
 export function redirectLaunchPath(
 	{ path, initial }: { path: string | null; initial: boolean },
-	drainLaunchURL: () => void,
+	drainLaunchURL: () => void
 ): string | null {
 	if (!path) {
 		return path;

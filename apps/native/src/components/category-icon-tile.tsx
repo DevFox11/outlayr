@@ -11,31 +11,41 @@ import { CategoryIcon, type CategoryIconType } from "./category-icon";
  */
 const GLYPH_RAMP: Record<number, number> = { 28: 15, 34: 18, 36: 20, 90: 42 };
 
+function tileRadius(size: number): number {
+	if (size >= 72) {
+		return 20;
+	}
+	if (size >= 32) {
+		return 10;
+	}
+	return 8;
+}
+
 interface CategoryIconTileProps {
 	color: string;
-	icon: string | null | undefined;
 	/**
 	 * Storage is icon XOR emoji, so this only decides legacy rows: a stored icon
 	 * takes precedence, then the emoji, then the namespace fallback icon.
 	 */
 	emoji?: string | null;
-	/** Outer tile edge length; the glyph and radius scale from it. */
-	size?: number;
-	radius?: number;
-	type?: CategoryIconType;
 	/**
 	 * Upcoming/scheduled state: the fill drops for a dashed tint ring and the whole
 	 * tile fades.
 	 */
 	future?: boolean;
-	/** A stored photo renders as a squircle thumbnail in place of the glyph tile. */
-	imageUri?: string | null;
 	/**
 	 * Draws in place of the registry glyph, in the tile's own shade and size. The
 	 * ghost "add" slot needs a bare "+", which must not become a pickable category
 	 * icon by being added to `CategoryIcon`'s registry.
 	 */
 	glyph?: (props: { color: string; size: number }) => ReactNode;
+	icon: string | null | undefined;
+	/** A stored photo renders as a squircle thumbnail in place of the glyph tile. */
+	imageUri?: string | null;
+	radius?: number;
+	/** Outer tile edge length; the glyph and radius scale from it. */
+	size?: number;
+	type?: CategoryIconType;
 }
 
 export function CategoryIconTile({
@@ -54,7 +64,7 @@ export function CategoryIconTile({
 	// Keyed by uri rather than reset in an effect, so pointing the tile at a
 	// different photo re-arms it on the same render.
 	const [unreadable, setUnreadable] = useState<string | null>(null);
-	const radius = radiusOverride ?? (size >= 72 ? 20 : size >= 32 ? 10 : 8);
+	const radius = radiusOverride ?? tileRadius(size);
 	const glyphSize = GLYPH_RAMP[size] ?? Math.round(size * 0.52);
 	// A contrast-corrected shade of the tint, never the raw hex: a bright tint
 	// vanishes into its own wash.
@@ -66,54 +76,51 @@ export function CategoryIconTile({
 		return (
 			<Image
 				onError={() => setUnreadable(imageUri)}
+				resizeMode="cover"
 				source={{ uri: imageUri }}
 				style={{
-					width: size,
-					height: size,
+					borderColor: withAlpha(color, future ? 0.73 : 0.2),
 					borderRadius: radius,
 					borderWidth: future ? 2 : 1,
-					borderColor: withAlpha(color, future ? 0.73 : 0.2),
+					height: size,
 					opacity: future ? 0.6 : 1,
+					width: size,
 				}}
-				resizeMode="cover"
 			/>
+		);
+	}
+
+	let content: ReactNode;
+	if (glyph) {
+		content = glyph({ color: glyphColor, size: glyphSize });
+	} else if (!icon && emoji) {
+		// An emoji carries its own colors, so the tint shade does not apply.
+		content = <Text style={{ fontSize: glyphSize, lineHeight: glyphSize * 1.2 }}>{emoji}</Text>;
+	} else {
+		content = (
+			<CategoryIcon color={glyphColor} name={icon} size={glyphSize} strokeWidth={size >= 72 ? 2 : 1.9} type={type} />
 		);
 	}
 
 	return (
 		<View
 			style={{
-				width: size,
-				height: size,
-				borderRadius: radius,
-				opacity: future ? 0.6 : 1,
 				alignItems: "center",
+				borderRadius: radius,
+				height: size,
 				justifyContent: "center",
+				opacity: future ? 0.6 : 1,
+				width: size,
 				...(future
 					? {
-							borderWidth: 2,
 							borderColor: withAlpha(color, 0.73),
 							borderStyle: "dashed" as const,
+							borderWidth: 2,
 						}
 					: { backgroundColor: withAlpha(color, TILE_WASH_OPACITY) }),
 			}}
 		>
-			{glyph ? (
-				glyph({ color: glyphColor, size: glyphSize })
-			) : !icon && emoji ? (
-				// An emoji carries its own colors, so the tint shade does not apply.
-				<Text style={{ fontSize: glyphSize, lineHeight: glyphSize * 1.2 }}>
-					{emoji}
-				</Text>
-			) : (
-				<CategoryIcon
-					name={icon}
-					color={glyphColor}
-					size={glyphSize}
-					type={type}
-					strokeWidth={size >= 72 ? 2 : 1.9}
-				/>
-			)}
+			{content}
 		</View>
 	);
 }

@@ -13,11 +13,9 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
-import {
-	LAUNCH_SPRING,
-	useIdentityFlyUp,
-} from "@/contexts/identity-draft-context";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { LAUNCH_SPRING, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -35,7 +33,7 @@ export const FLOAT_TILE = 164;
 export const FLOAT_SCALE = FLOAT_TILE / TILE;
 
 /** Response 0.25, dampingFraction 0.7, converted to stiffness/damping. */
-const PRESS_SPRING = { stiffness: 631, damping: 35, mass: 1 } as const;
+const PRESS_SPRING = { damping: 35, mass: 1, stiffness: 631 } as const;
 
 /**
  * Float progress above which the floating twin owns the tile and the in-scroll
@@ -59,8 +57,8 @@ export type HeroVariant = "transaction" | "category";
 
 /** Sparkle offsets from the tile CENTRE, per variant. */
 const SPARKLES = {
-	transaction: { large: [-53, -33], small: [51, 8] },
 	category: { large: [-62, -30], small: [60, 8] },
+	transaction: { large: [-53, -33], small: [51, 8] },
 } as const;
 
 /**
@@ -68,7 +66,7 @@ const SPARKLES = {
  * is absolutely positioned, so it hangs below the hero without adding to its
  * height, and the form's `captionClearance` is what reserves the room for it.
  */
-const CAPTION_GAP = { transaction: 12, category: 8 } as const;
+const CAPTION_GAP = { category: 8, transaction: 12 } as const;
 
 const A11Y: Record<
 	HeroVariant,
@@ -78,36 +76,27 @@ const A11Y: Record<
 		readonly reset: TranslationKey;
 	}
 > = {
-	transaction: {
-		tile: "transaction.identity.hero.logo",
-		hint: "transaction.identity.hero.logoHint",
-		reset: "transaction.identity.hero.removeLogo",
-	},
 	category: {
-		tile: "transaction.identity.hero.icon",
 		hint: "transaction.identity.hero.iconHint",
 		reset: "transaction.identity.hero.removeIcon",
+		tile: "transaction.identity.hero.icon",
+	},
+	transaction: {
+		hint: "transaction.identity.hero.logoHint",
+		reset: "transaction.identity.hero.removeLogo",
+		tile: "transaction.identity.hero.logo",
 	},
 };
 
 const EMPTY_CAPTION: Record<HeroVariant, TranslationKey> = {
-	transaction: "transaction.identity.hero.logo",
 	category: "transaction.identity.hero.chooseIcon",
+	transaction: "transaction.identity.hero.logo",
 };
 
 interface IdentityHeroProps {
-	emoji: string | null;
-	icon: string | null;
-	photoUri: string | null;
 	/** Custom color override; falls back to income green / foreground. */
 	color: string | null;
-	income: boolean;
-	/**
-	 * 0 → resting in the form; 1 → floated + enlarged over the open picker. Drives
-	 * the fly-up (scale + translate) and, past {@link SWAP_EPS}, which of the two
-	 * heroes is the one being drawn.
-	 */
-	floatProgress?: SharedValue<number>;
+	emoji: string | null;
 	/**
 	 * Screen-space Y delta from the resting center to the floated center. A shared
 	 * value, not a number: it depends on measurements that land after the flight has
@@ -115,15 +104,24 @@ interface IdentityHeroProps {
 	 */
 	floatOffsetY?: SharedValue<number>;
 	/**
+	 * 0 → resting in the form; 1 → floated + enlarged over the open picker. Drives
+	 * the fly-up (scale + translate) and, past {@link SWAP_EPS}, which of the two
+	 * heroes is the one being drawn.
+	 */
+	floatProgress?: SharedValue<number>;
+	icon: string | null;
+	income: boolean;
+	/**
 	 * When true, this is the floating twin: it renders above everything, applies the
 	 * fly-up transform, drops the caption/reset, and ignores touches. It is drawn
 	 * only once `floatProgress` clears {@link SWAP_EPS}; the in-scroll hero (false)
 	 * is drawn on exactly the frames the twin is not.
 	 */
 	isFloat?: boolean;
-	variant?: HeroVariant;
 	onPress?: () => void;
 	onReset?: () => void;
+	photoUri: string | null;
+	variant?: HeroVariant;
 }
 
 /** A ~90pt app-icon squircle that opens the identity picker. */
@@ -144,7 +142,7 @@ export function IdentityHero({
 	const t = useTranslation();
 	const { pickerOpen } = useIdentityFlyUp();
 	const tint = color ?? (income ? colors.income : colors.foreground);
-	const isEmpty = !emoji && !icon && !photoUri;
+	const isEmpty = !(emoji || icon || photoUri);
 
 	const pressScale = useSharedValue(1);
 	const pressOpacity = useSharedValue(1);
@@ -174,10 +172,7 @@ export function IdentityHero({
 		if (isEmpty || !pickerOpen) {
 			return;
 		}
-		popScale.value = withSequence(
-			withSpring(POP_SCALE, PRESS_SPRING),
-			withSpring(1, PRESS_SPRING),
-		);
+		popScale.value = withSequence(withSpring(POP_SCALE, PRESS_SPRING), withSpring(1, PRESS_SPRING));
 		contentOpacity.value = 0;
 		contentOpacity.value = withTiming(1, { duration: POP_FADE_MS });
 	}, [identity]);
@@ -196,10 +191,7 @@ export function IdentityHero({
 			const grown = 1 + p * (FLOAT_SCALE - 1);
 			return {
 				opacity: contentOpacity.value,
-				transform: [
-					{ translateY: p * (floatOffsetY?.value ?? 0) },
-					{ scale: grown * popScale.value },
-				],
+				transform: [{ translateY: p * (floatOffsetY?.value ?? 0) }, { scale: grown * popScale.value }],
 			};
 		}
 		return {
@@ -209,44 +201,40 @@ export function IdentityHero({
 	});
 
 	const tile = (
-		<View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-			{isEmpty ? (
-				<EmptyTile colors={colors} variant={variant} />
-			) : photoUri ? (
-				<PhotoTile uri={photoUri} border={withAlpha(colors.foreground, 0.14)} />
-			) : icon ? (
-				<CategoryIconTile color={tint} icon={icon} size={TILE} />
-			) : (
-				<EmojiTile emoji={emoji ?? ""} tint={tint} />
-			)}
+		<View style={{ alignItems: "center", flex: 1, justifyContent: "center" }}>
+			<HeroGlyph
+				colors={colors}
+				emoji={emoji}
+				icon={icon}
+				isEmpty={isEmpty}
+				photoUri={photoUri}
+				tint={tint}
+				variant={variant}
+			/>
 		</View>
 	);
 
 	const plusBadge = (
 		<View
 			style={{
+				alignItems: "center",
+				backgroundColor: colors.foreground,
+				borderRadius: BADGE / 2,
+				bottom: -1,
+				height: BADGE,
+				justifyContent: "center",
 				position: "absolute",
 				right: -1,
-				bottom: -1,
 				width: BADGE,
-				height: BADGE,
-				borderRadius: BADGE / 2,
-				backgroundColor: colors.foreground,
-				alignItems: "center",
-				justifyContent: "center",
 			}}
 		>
-			<HugeiconsIcon
-				icon={PlusSignIcon}
-				size={14}
-				color={colors.background}
-				strokeWidth={2.4}
-			/>
+			<HugeiconsIcon color={colors.background} icon={PlusSignIcon} size={14} strokeWidth={2.4} />
 		</View>
 	);
 
 	return (
 		<Animated.View
+			pointerEvents={isFloat ? "none" : "auto"}
 			style={[
 				{
 					alignItems: "center",
@@ -254,16 +242,18 @@ export function IdentityHero({
 				},
 				rootStyle,
 			]}
-			pointerEvents={isFloat ? "none" : "auto"}
 		>
 			<Animated.View style={tileStyle}>
 				{isFloat ? (
-					<View style={{ width: HERO_RING, height: HERO_RING }}>
+					<View style={{ height: HERO_RING, width: HERO_RING }}>
 						{tile}
 						{isEmpty ? plusBadge : null}
 					</View>
 				) : (
 					<Pressable
+						accessibilityHint={t(A11Y[variant].hint)}
+						accessibilityLabel={t(A11Y[variant].tile)}
+						accessibilityRole="button"
 						onPress={onPress}
 						onPressIn={() => {
 							pressScale.value = withSpring(0.96, PRESS_SPRING);
@@ -273,38 +263,30 @@ export function IdentityHero({
 							pressScale.value = withSpring(1, PRESS_SPRING);
 							pressOpacity.value = withSpring(1, PRESS_SPRING);
 						}}
-						accessibilityRole="button"
-						accessibilityLabel={t(A11Y[variant].tile)}
-						accessibilityHint={t(A11Y[variant].hint)}
-						style={{ width: HERO_RING, height: HERO_RING }}
+						style={{ height: HERO_RING, width: HERO_RING }}
 					>
 						{tile}
 						{isEmpty ? (
 							plusBadge
 						) : (
 							<Pressable
-								onPress={onReset}
-								accessibilityRole="button"
 								accessibilityLabel={t(A11Y[variant].reset)}
+								accessibilityRole="button"
 								hitSlop={8}
+								onPress={onReset}
 								style={{
+									alignItems: "center",
+									backgroundColor: colors.danger,
+									borderRadius: BADGE / 2,
+									height: BADGE,
+									justifyContent: "center",
 									position: "absolute",
 									right: 0,
 									top: 0,
 									width: BADGE,
-									height: BADGE,
-									borderRadius: BADGE / 2,
-									backgroundColor: colors.danger,
-									alignItems: "center",
-									justifyContent: "center",
 								}}
 							>
-								<HugeiconsIcon
-									icon={Cancel01Icon}
-									size={13}
-									color="#FFFFFF"
-									strokeWidth={2.4}
-								/>
+								<HugeiconsIcon color="#FFFFFF" icon={Cancel01Icon} size={13} strokeWidth={2.4} />
 							</Pressable>
 						)}
 					</Pressable>
@@ -318,39 +300,60 @@ export function IdentityHero({
 					className="font-sans-medium text-footnote text-muted"
 					style={
 						variant === "category" && {
-							position: "absolute",
 							alignSelf: "center",
+							position: "absolute",
 							top: HERO_RING + CAPTION_GAP.category,
 						}
 					}
 				>
-					{t(
-						isEmpty
-							? EMPTY_CAPTION[variant]
-							: "transaction.identity.hero.tapToChange",
-					)}
+					{t(isEmpty ? EMPTY_CAPTION[variant] : "transaction.identity.hero.tapToChange")}
 				</Text>
 			)}
 		</Animated.View>
 	);
 }
 
+function HeroGlyph({
+	isEmpty,
+	photoUri,
+	icon,
+	emoji,
+	tint,
+	colors,
+	variant,
+}: {
+	isEmpty: boolean;
+	photoUri: string | null;
+	icon: string | null;
+	emoji: string | null;
+	tint: string;
+	colors: ReturnType<typeof useColors>;
+	variant: HeroVariant;
+}) {
+	if (isEmpty) {
+		return <EmptyTile colors={colors} variant={variant} />;
+	}
+	if (photoUri) {
+		return <PhotoTile border={withAlpha(colors.foreground, 0.14)} uri={photoUri} />;
+	}
+	if (icon) {
+		return <CategoryIconTile color={tint} icon={icon} size={TILE} />;
+	}
+	return <EmojiTile emoji={emoji ?? ""} tint={tint} />;
+}
+
 function PhotoTile({ uri, border }: { uri: string; border: string }) {
 	return (
-		<View style={{ width: TILE, height: TILE }}>
-			<Image
-				source={{ uri }}
-				style={{ width: TILE, height: TILE, borderRadius: RADIUS }}
-				contentFit="cover"
-			/>
+		<View style={{ height: TILE, width: TILE }}>
+			<Image contentFit="cover" source={{ uri }} style={{ borderRadius: RADIUS, height: TILE, width: TILE }} />
 			<View
 				style={{
-					position: "absolute",
-					width: TILE,
-					height: TILE,
+					borderColor: border,
 					borderRadius: RADIUS,
 					borderWidth: 1.5,
-					borderColor: border,
+					height: TILE,
+					position: "absolute",
+					width: TILE,
 				}}
 			/>
 		</View>
@@ -361,12 +364,12 @@ function EmojiTile({ emoji, tint }: { emoji: string; tint: string }) {
 	return (
 		<View
 			style={{
-				width: TILE,
-				height: TILE,
-				borderRadius: RADIUS,
-				backgroundColor: withAlpha(tint, 0.22),
 				alignItems: "center",
+				backgroundColor: withAlpha(tint, 0.22),
+				borderRadius: RADIUS,
+				height: TILE,
 				justifyContent: "center",
+				width: TILE,
 			}}
 		>
 			{/* Sized off `CategoryIconTile`'s large icon size, not off the tile. */}
@@ -375,45 +378,25 @@ function EmojiTile({ emoji, tint }: { emoji: string; tint: string }) {
 	);
 }
 
-function EmptyTile({
-	colors,
-	variant,
-}: {
-	colors: ReturnType<typeof useColors>;
-	variant: HeroVariant;
-}) {
+function EmptyTile({ colors, variant }: { colors: ReturnType<typeof useColors>; variant: HeroVariant }) {
 	const fillId = useId();
 	const isCategory = variant === "category";
-	const [sparkleLarge, sparkleSmall] = [
-		SPARKLES[variant].large,
-		SPARKLES[variant].small,
-	];
+	const [sparkleLarge, sparkleSmall] = [SPARKLES[variant].large, SPARKLES[variant].small];
 	return (
 		<View
 			style={{
-				width: HERO_RING,
-				height: HERO_RING,
 				alignItems: "center",
+				height: HERO_RING,
 				justifyContent: "center",
+				width: HERO_RING,
 			}}
 		>
 			{/* First, so the ring sits behind the dashed outline and the glyph. */}
-			{isCategory ? null : (
-				<SpectrumRing
-					radius={RADIUS + (HERO_RING - TILE) / 2}
-					size={HERO_RING}
-				/>
-			)}
+			{isCategory ? null : <SpectrumRing radius={RADIUS + (HERO_RING - TILE) / 2} size={HERO_RING} />}
 
-			<Svg width={TILE} height={TILE} style={{ position: "absolute" }}>
+			<Svg height={TILE} style={{ position: "absolute" }} width={TILE}>
 				<Defs>
-					<RadialGradient
-						id={fillId}
-						cx={TILE * 0.35}
-						cy={TILE * 0.28}
-						gradientUnits="userSpaceOnUse"
-						r={TILE * 0.7}
-					>
+					<RadialGradient cx={TILE * 0.35} cy={TILE * 0.28} gradientUnits="userSpaceOnUse" id={fillId} r={TILE * 0.7}>
 						<Stop offset="0" stopColor={colors.muted} stopOpacity={0.1} />
 						<Stop offset="1" stopColor={colors.muted} stopOpacity={0.04} />
 					</RadialGradient>
@@ -444,24 +427,18 @@ function EmptyTile({
 
 			{/* A category is an icon or an emoji, never a photo. */}
 			{isCategory ? null : (
-				<SymbolView
-					name="photo"
-					size={30}
-					tintColor={colors.muted}
-					type="monochrome"
-					weight="regular"
-				/>
+				<SymbolView name="photo" size={30} tintColor={colors.muted} type="monochrome" weight="regular" />
 			)}
 
 			<SymbolView
 				name="sparkle"
 				size={12}
 				style={{
-					position: "absolute",
-					width: 12,
 					height: 12,
 					left: HERO_RING / 2 + sparkleLarge[0] - 6,
+					position: "absolute",
 					top: HERO_RING / 2 + sparkleLarge[1] - 6,
+					width: 12,
 				}}
 				tintColor={colors.muted}
 				type="monochrome"
@@ -470,11 +447,11 @@ function EmptyTile({
 				name="sparkle"
 				size={9}
 				style={{
-					position: "absolute",
-					width: 9,
 					height: 9,
 					left: HERO_RING / 2 + sparkleSmall[0] - 4.5,
+					position: "absolute",
 					top: HERO_RING / 2 + sparkleSmall[1] - 4.5,
+					width: 9,
 				}}
 				tintColor={colors.muted}
 				type="monochrome"

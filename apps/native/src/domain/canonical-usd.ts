@@ -1,11 +1,6 @@
-import {
-	computeAmountUSD,
-	type EntryRateType,
-	MoneyValidationError,
-	type RateLookup,
-	resolveEntryRate,
-	utcDateString,
-} from "@outlayr/money";
+import { utcDateString } from "@outlayr/money/dates";
+import { MoneyValidationError } from "@outlayr/money/errors";
+import { computeAmountUSD, type EntryRateType, type RateLookup, resolveEntryRate } from "@outlayr/money/rates";
 
 export interface CanonicalUsd {
 	amountUsd: number | null;
@@ -45,7 +40,7 @@ export async function canonicalUsd(
 		currency: string | null;
 		displayCurrency: string;
 		date: Date;
-	},
+	}
 ): Promise<CanonicalUsd> {
 	const currency = input.currency ?? input.displayCurrency;
 
@@ -60,18 +55,12 @@ export async function canonicalUsd(
 
 	const date = utcDateString(input.date.getTime());
 	try {
-		const exchangeRate = await resolveEntryRate(
-			lookup,
-			currency,
-			DEFAULT_RATE_TYPE,
-			undefined,
-			date,
-		);
+		const exchangeRate = await resolveEntryRate(lookup, currency, DEFAULT_RATE_TYPE, undefined, date);
 		const amountUsd = await computeAmountUSD(lookup, {
 			baseAmount: input.amount,
+			date,
 			exchangeRate,
 			exchangeRateType: DEFAULT_RATE_TYPE,
-			date,
 		});
 		return { amountUsd, exchangeRate, exchangeRateType: DEFAULT_RATE_TYPE };
 	} catch (error) {

@@ -1,11 +1,7 @@
 import { type BudgetSeverity, compareBudgetSeverity } from "./budget-severity";
 
-function budget(
-	amount: number,
-	spent: number,
-	name = `${amount}/${spent}`,
-): BudgetSeverity & { name: string } {
-	return { amount, spent, overBudget: spent > amount, name };
+function budget(amount: number, spent: number, name = `${amount}/${spent}`): BudgetSeverity & { name: string } {
+	return { amount, name, overBudget: spent > amount, spent };
 }
 
 function rank(list: (BudgetSeverity & { name: string })[]): string[] {
@@ -29,11 +25,7 @@ describe("compareBudgetSeverity", () => {
 	});
 
 	it("orders healthy budgets by percent spent, deepest first", () => {
-		const list = [
-			budget(1000, 100, "10pct"),
-			budget(200, 180, "90pct"),
-			budget(500, 250, "50pct"),
-		];
+		const list = [budget(1000, 100, "10pct"), budget(200, 180, "90pct"), budget(500, 250, "50pct")];
 		expect(rank(list)).toStrictEqual(["90pct", "50pct", "10pct"]);
 	});
 
@@ -55,11 +47,7 @@ describe("compareBudgetSeverity", () => {
 		const zero = budget(0, 40, "zero-limit-spent");
 		const healthy = budget(1000, 999, "healthy");
 		const deeper = budget(1000, 1100, "deeper");
-		expect(rank([healthy, zero, deeper])).toStrictEqual([
-			"deeper",
-			"zero-limit-spent",
-			"healthy",
-		]);
+		expect(rank([healthy, zero, deeper])).toStrictEqual(["deeper", "zero-limit-spent", "healthy"]);
 	});
 
 	it("sorts a mixed list worst-first in one pass", () => {
@@ -69,11 +57,6 @@ describe("compareBudgetSeverity", () => {
 			budget(900, 800, "under-89"),
 			budget(1000, 1050, "over-50"),
 		];
-		expect(rank(list)).toStrictEqual([
-			"over-300",
-			"over-50",
-			"under-89",
-			"under-20",
-		]);
+		expect(rank(list)).toStrictEqual(["over-300", "over-50", "under-89", "under-20"]);
 	});
 });

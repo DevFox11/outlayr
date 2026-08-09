@@ -2,12 +2,7 @@ export function shallowEqual(a: unknown, b: unknown): boolean {
 	if (Object.is(a, b)) {
 		return true;
 	}
-	if (
-		typeof a !== "object" ||
-		a === null ||
-		typeof b !== "object" ||
-		b === null
-	) {
+	if (typeof a !== "object" || a === null || typeof b !== "object" || b === null) {
 		return false;
 	}
 	const aKeys = Object.keys(a);
@@ -17,10 +12,6 @@ export function shallowEqual(a: unknown, b: unknown): boolean {
 	}
 	return aKeys.every(
 		(key) =>
-			Object.hasOwn(b, key) &&
-			Object.is(
-				(a as Record<string, unknown>)[key],
-				(b as Record<string, unknown>)[key],
-			),
+			Object.hasOwn(b, key) && Object.is((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
 	);
 }

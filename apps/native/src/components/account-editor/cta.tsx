@@ -1,34 +1,16 @@
-import {
-	Button,
-	Host,
-	HStack,
-	Spacer,
-	Text as SwiftText,
-} from "@expo/ui/swift-ui";
-import {
-	buttonStyle,
-	controlSize,
-	disabled,
-	tint,
-	type ViewModifier,
-} from "@expo/ui/swift-ui/modifiers";
-import { BODY_SEMIBOLD, CTA_HEIGHT } from "./style";
+import { Button, Host, HStack, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
+import { buttonStyle, controlSize, disabled, tint, type ViewModifier } from "@expo/ui/swift-ui/modifiers";
+import { BODY_SEMIBOLD, CTA_HEIGHT } from "@/components/editor-style";
 
 interface AccountEditorCtaProps {
-	label: string;
 	canSave: boolean;
+	label: string;
+	onPress: () => void;
 	tintColor: string;
 	underPicker: ViewModifier[];
-	onPress: () => void;
 }
 
-export function AccountEditorCta({
-	label,
-	canSave,
-	tintColor,
-	underPicker,
-	onPress,
-}: AccountEditorCtaProps) {
+export function AccountEditorCta({ label, canSave, tintColor, underPicker, onPress }: AccountEditorCtaProps) {
 	return (
 		<Host style={{ height: CTA_HEIGHT }}>
 			<Button

@@ -5,21 +5,12 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import {
-	accountLedgerState,
-	discardAccountLedger,
-	replaceLocalFromAccount,
-} from "./adoption-engine-core";
+import { accountLedgerState, discardAccountLedger, replaceLocalFromAccount } from "./adoption-engine-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
-import {
-	drainOutbox,
-	type PulledRow,
-	type PushFn,
-	runSync,
-} from "./sync-engine-core";
+import { drainOutbox, type PulledRow, type PushFn, runSync } from "./sync-engine-core";
 import { enqueueAllForSync, setSyncEnabled } from "./sync-outbox-core";
 
-const MIGRATIONS = join(__dirname, "..", "..", "drizzle");
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -44,7 +35,7 @@ function makeServer() {
 
 	const wins = (
 		incoming: { updatedAt: number; deletedAt: number | null; deviceId: string },
-		existing: PulledRow | undefined,
+		existing: PulledRow | undefined
 	): boolean => {
 		if (!existing) {
 			return true;
@@ -70,80 +61,70 @@ function makeServer() {
 				skipped += 1;
 				continue;
 			}
-			rows.set(key, { ...row, seq: nextSeq, deviceId });
+			rows.set(key, { ...row, deviceId, seq: nextSeq });
 			nextSeq += 1;
 			accepted += 1;
 		}
-		return { accepted, skipped, nextSeq };
+		return { accepted, nextSeq, skipped };
 	};
 
 	const pull = async ({ cursor, limit }: { cursor: number; limit: number }) => {
-		const after = [...rows.values()]
-			.filter((row) => row.seq > cursor)
-			.sort((a, b) => a.seq - b.seq);
+		const after = [...rows.values()].filter((row) => row.seq > cursor).sort((a, b) => a.seq - b.seq);
 		const page = after.slice(0, limit);
 		return {
-			rows: page,
-			cursor: page.length > 0 ? page[page.length - 1].seq : cursor,
+			cursor: page.at(-1)?.seq ?? cursor,
 			hasMore: after.length > page.length,
+			rows: page,
 		};
 	};
 
-	return { push, pull, rows, transport: { push, pull } };
+	return { pull, push, rows, transport: { pull, push } };
 }
 
-async function addTransaction(
-	db: Database,
-	id: string,
-	updatedAt: Date,
-): Promise<void> {
+async function addTransaction(db: Database, id: string, updatedAt: Date): Promise<void> {
 	await db.insert(transactions).values({
-		id,
 		amount: 10,
-		income: false,
-		note: id,
 		date: updatedAt,
 		day: updatedAt,
+		id,
+		income: false,
 		month: updatedAt,
+		note: id,
 		updatedAt,
 	});
 }
 
-function serverRow(
-	localId: string,
-	updatedAt: number,
-	deletedAt: number | null = null,
-): PulledRow {
+function serverRow(localId: string, updatedAt: number, deletedAt: number | null = null): PulledRow {
 	return {
-		table: "transactions",
-		localId,
-		seq: 0,
-		deviceId: "peer",
-		updatedAt,
 		deletedAt,
+		deviceId: "peer",
 		fields: {
 			amount: 99,
-			income: false,
+			amountUsd: null,
+			categoryId: null,
 			currency: null,
-			note: `remote ${localId}`,
-			details: null,
+			customColor: null,
 			date: updatedAt,
 			day: updatedAt,
-			month: updatedAt,
-			icon: null,
+			details: null,
 			emoji: null,
-			customColor: null,
-			imageColor: null,
-			imageUri: null,
-			onceRecurring: false,
-			recurringType: 0,
-			recurringCoefficient: 1,
-			recurringEndDate: null,
-			categoryId: null,
-			amountUsd: null,
 			exchangeRate: null,
 			exchangeRateType: null,
+			icon: null,
+			imageColor: null,
+			imageUri: null,
+			income: false,
+			month: updatedAt,
+			note: `remote ${localId}`,
+			onceRecurring: false,
+			recurringCoefficient: 1,
+			recurringEndDate: null,
+			recurringType: 0,
 		},
+		localId,
+		seq: 0,
+		table: "transactions",
+		updatedAt,
 	};
 }
 
@@ -277,10 +258,7 @@ describe("a tombstoned account row does not come back to bite", () => {
 		// The account's row arrives as a tombstone rather than not at all: readers
 		// filter `deletedAt`, and keeping the row is what stops a later pull from
 		// resurrecting it.
-		const theirs = await db
-			.select()
-			.from(transactions)
-			.where(eq(transactions.id, "theirs"));
+		const theirs = await db.select().from(transactions).where(eq(transactions.id, "theirs"));
 		expect(theirs.length).toBe(1);
 		expect(theirs[0]?.deletedAt).not.toBe(null);
 	});

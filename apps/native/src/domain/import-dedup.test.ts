@@ -1,18 +1,14 @@
 import type { ImportEntry } from "@/data/transfer-core";
-import {
-	dedupFingerprint,
-	fingerprintsOf,
-	flagDuplicates,
-} from "./import-dedup";
+import { dedupFingerprint, fingerprintsOf, flagDuplicates } from "./import-dedup";
 
 function entry(overrides: Partial<ImportEntry> = {}): ImportEntry {
 	return {
-		note: "Coffee Shop",
-		categoryId: "cat-1",
-		income: false,
 		amount: 42.5,
+		categoryId: "cat-1",
 		currency: null,
 		date: new Date(2026, 7, 1, 9, 30),
+		income: false,
+		note: "Coffee Shop",
 		...overrides,
 	};
 }
@@ -58,8 +54,8 @@ describe("dedupFingerprint", () => {
 describe("fingerprintsOf", () => {
 	it("returns one fingerprint per existing row", () => {
 		const rows = [
-			{ date: new Date(2026, 7, 1), amount: 10, income: false, note: "A" },
-			{ date: new Date(2026, 7, 2), amount: 20, income: true, note: "B" },
+			{ amount: 10, date: new Date(2026, 7, 1), income: false, note: "A" },
+			{ amount: 20, date: new Date(2026, 7, 2), income: true, note: "B" },
 		];
 		const set = fingerprintsOf(rows);
 		expect(set.size).toBe(2);
@@ -70,15 +66,11 @@ describe("fingerprintsOf", () => {
 
 describe("flagDuplicates", () => {
 	it("flags exact indices whose fingerprint already exists", () => {
-		const entries = [
-			entry({ note: "Coffee Shop" }),
-			entry({ note: "Rent" }),
-			entry({ note: "Coffee Shop" }),
-		];
+		const entries = [entry({ note: "Coffee Shop" }), entry({ note: "Rent" }), entry({ note: "Coffee Shop" })];
 		const existing = fingerprintsOf([
 			{
-				date: entries[0].date,
 				amount: entries[0].amount,
+				date: entries[0].date,
 				income: entries[0].income,
 				note: entries[0].note,
 			},

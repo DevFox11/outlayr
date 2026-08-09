@@ -1,11 +1,6 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-	type NativeMethods,
-	type StyleProp,
-	View,
-	type ViewStyle,
-} from "react-native";
+import { type NativeMethods, type StyleProp, View, type ViewStyle } from "react-native";
 import Animated, {
 	Easing,
 	FadeIn,
@@ -15,18 +10,9 @@ import Animated, {
 	useSharedValue,
 	withTiming,
 } from "react-native-reanimated";
-import {
-	type CurrencyCode,
-	type CurrencyPickerRow,
-	currencyPickerRows,
-} from "@/domain/currency-picker-rows";
+import { type CurrencyCode, type CurrencyPickerRow, currencyPickerRows } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
-import {
-	CurrencyHint,
-	CurrencyRow,
-	CurrencyRowCopy,
-	CurrencySectionHeader,
-} from "./currency-picker-row";
+import { CurrencyHint, CurrencyRow, CurrencyRowCopy, CurrencySectionHeader } from "./currency-picker-row";
 
 const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
 
@@ -35,9 +21,7 @@ const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
  * per row. A per-row fade would also fire on every row scrolling into the
  * virtualised window, and this screen just had a per-keystroke stall removed.
  */
-const RESULTS_SETTLE = FadeIn.duration(180)
-	.easing(EASE.factory())
-	.reduceMotion(ReduceMotion.System);
+const RESULTS_SETTLE = FadeIn.duration(180).easing(EASE.factory()).reduceMotion(ReduceMotion.System);
 
 /** Ease-in-out, because the row is on screen at both ends of the journey. */
 const TRAVEL = {
@@ -56,26 +40,26 @@ const TRAVEL_ABANDON_MS = 700;
 /** Where a row was standing when it was favourited, in the wrapper's space. */
 interface Travel {
 	code: CurrencyCode;
-	selected: boolean;
 	/** The rows it left. The landing is measured when these are replaced. */
 	departed: readonly CurrencyPickerRow[];
+	height: number;
 	left: number;
+	selected: boolean;
 	top: number;
 	width: number;
-	height: number;
 	wrapperTop: number;
 }
 
 interface CurrencyPickerListProps {
+	/** The sheet needs its own padding; the settings screen takes the default. */
+	contentContainerStyle?: StyleProp<ViewStyle>;
 	favourites: readonly string[];
-	query: string;
-	selected: string;
 	onSelect: (code: string) => void;
 	/** `null` while no database is open, so favouriting is absent rather than dead. */
 	onToggleFavourite: ((code: string, favourite: boolean) => void) | null;
+	query: string;
+	selected: string;
 	style?: StyleProp<ViewStyle>;
-	/** The sheet needs its own padding; the settings screen takes the default. */
-	contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -104,10 +88,7 @@ export function CurrencyPickerList({
 	style,
 	contentContainerStyle,
 }: CurrencyPickerListProps) {
-	const rows = useMemo<readonly CurrencyPickerRow[]>(
-		() => currencyPickerRows(favourites, query),
-		[favourites, query],
-	);
+	const rows = useMemo<readonly CurrencyPickerRow[]>(() => currencyPickerRows(favourites, query), [favourites, query]);
 
 	const full = favourites.length >= FAVOURITE_CURRENCY_LIMIT;
 
@@ -123,8 +104,7 @@ export function CurrencyPickerList({
 	// Legend List keeps a ref to the container holding each rendered row, so the
 	// row itself needs no ref of its own — nothing here costs anything per row.
 	// It types those refs as `any`, and returns nothing for an unrendered index.
-	const containerAt = (index: number): NativeMethods | undefined =>
-		listRef.current?.getState().elementAtIndex(index);
+	const containerAt = (index: number): NativeMethods | undefined => listRef.current?.getState().elementAtIndex(index);
 
 	const lift = (code: CurrencyCode) => {
 		const wrapper = wrapperRef.current;
@@ -137,12 +117,12 @@ export function CurrencyPickerList({
 				travelled.value = 0;
 				setTravel({
 					code,
-					selected: code === selected,
 					departed: rows,
+					height,
 					left: left - wrapperLeft,
+					selected: code === selected,
 					top: top - wrapperTop,
 					width,
-					height,
 					wrapperTop,
 				});
 			});
@@ -176,15 +156,11 @@ export function CurrencyPickerList({
 				return;
 			}
 			container.measureInWindow((_left, top) => {
-				travelled.value = withTiming(
-					top - travel.wrapperTop - travel.top,
-					TRAVEL,
-					(finished) => {
-						if (finished) {
-							runOnJS(setTravel)(null);
-						}
-					},
-				);
+				travelled.value = withTiming(top - travel.wrapperTop - travel.top, TRAVEL, (finished) => {
+					if (finished) {
+						runOnJS(setTravel)(null);
+					}
+				});
 			});
 		});
 		return () => cancelAnimationFrame(frame);
@@ -239,11 +215,7 @@ export function CurrencyPickerList({
 								full={full}
 								last={row.last}
 								onPress={() => onSelect(row.code)}
-								onToggleFavourite={
-									toggleFavourite === null
-										? null
-										: () => toggleFavourite(row.code, row.favourite)
-								}
+								onToggleFavourite={toggleFavourite === null ? null : () => toggleFavourite(row.code, row.favourite)}
 								selected={row.code === selected}
 								travelling={row.code === travel?.code}
 							/>

@@ -1,12 +1,6 @@
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import type { SpendDb } from "./budget-spent";
-import {
-	PHOTO_TABLES,
-	type PhotoFiles,
-	type PhotoTable,
-	photoFileName,
-	photoUriFor,
-} from "./photo-store-core";
+import { PHOTO_TABLES, type PhotoFiles, type PhotoTable, photoFileName, photoUriFor } from "./photo-store-core";
 
 /**
  * The bytes half of replication.
@@ -29,24 +23,24 @@ import {
  * Both passes are idempotent and safe to interrupt at any await.
  */
 export interface PhotoTransport {
-	/** Answers a signed PUT and the key to record once the bytes are up. */
-	requestUpload(name: string): Promise<{ key: string; url: string }>;
 	/**
 	 * Records an object whose PUT completed. `storageId` is what Convex file
 	 * storage hands back from the PUT; R2 addresses by key and returns none.
 	 */
-	confirmUpload(key: string, storageId: string | null): Promise<void>;
-	/** Short-lived signed GETs. A key the account does not own is not returned. */
-	readUrls(keys: readonly string[]): Promise<{ key: string; url: string }[]>;
-	/** Frees an object no row in the account names any more. */
-	release(key: string): Promise<void>;
-	/** The storage id when the backend allocates one, null when the key is the address. */
-	put(url: string, bytes: Uint8Array): Promise<string | null>;
+	confirmUpload: (key: string, storageId: string | null) => Promise<void>;
 	/**
 	 * Null for an object that is not there. A 404 is the expected outcome of a
 	 * delete racing this fetch, not a failure — see {@link downloadPhotos}.
 	 */
-	get(url: string): Promise<Uint8Array | null>;
+	get: (url: string) => Promise<Uint8Array | null>;
+	/** The storage id when the backend allocates one, null when the key is the address. */
+	put: (url: string, bytes: Uint8Array) => Promise<string | null>;
+	/** Short-lived signed GETs. A key the account does not own is not returned. */
+	readUrls: (keys: readonly string[]) => Promise<{ key: string; url: string }[]>;
+	/** Frees an object no row in the account names any more. */
+	release: (key: string) => Promise<void>;
+	/** Answers a signed PUT and the key to record once the bytes are up. */
+	requestUpload: (name: string) => Promise<{ key: string; url: string }>;
 }
 
 /**
@@ -57,17 +51,17 @@ export interface PhotoTransport {
 export const PHOTO_SYNC_BATCH = 25;
 
 export interface PhotoSyncResult {
-	uploaded: number;
 	downloaded: number;
 	/** Objects freed because the row that named them now names a different one. */
 	released: number;
+	uploaded: number;
 }
 
 /** The device file name a key was minted from, or null if it is malformed. */
 export function photoNameFromKey(key: string): string | null {
 	const segments = key.split("/");
-	const name = segments[segments.length - 1];
-	return segments.length >= 2 && name !== "" ? name : null;
+	const name = segments.at(-1);
+	return segments.length >= 2 && name ? name : null;
 }
 
 /**
@@ -78,33 +72,31 @@ export function photoNameFromKey(key: string): string | null {
  * retried upload land on the same key instead of orphaning bytes.
  */
 function keyMatchesPhoto(imageKey: string | null, imageUri: string): boolean {
-	return (
-		imageKey !== null && photoNameFromKey(imageKey) === photoFileName(imageUri)
-	);
+	return imageKey !== null && photoNameFromKey(imageKey) === photoFileName(imageUri);
 }
 
 interface PhotoRow {
 	id: string;
-	imageUri: string | null;
 	imageKey: string | null;
+	imageUri: string | null;
 }
 
 async function photoRows(
 	db: SpendDb,
 	photoTable: PhotoTable,
-	live: "uploadable" | "downloadable",
+	live: "uploadable" | "downloadable"
 ): Promise<PhotoRow[]> {
 	return (await db
 		.select({
 			id: photoTable.id,
-			imageUri: photoTable.imageUri,
 			imageKey: photoTable.imageKey,
+			imageUri: photoTable.imageUri,
 		})
 		.from(photoTable.table)
 		.where(
 			live === "uploadable"
 				? isNotNull(photoTable.imageUri)
-				: and(isNotNull(photoTable.imageKey), isNull(photoTable.imageUri)),
+				: and(isNotNull(photoTable.imageKey), isNull(photoTable.imageUri))
 		)) as PhotoRow[];
 }
 
@@ -126,7 +118,7 @@ export async function uploadPhotos(
 	db: SpendDb,
 	files: PhotoFiles,
 	transport: PhotoTransport,
-	now: Date,
+	now: Date
 ): Promise<{ uploaded: number; released: number }> {
 	let uploaded = 0;
 	let released = 0;
@@ -134,7 +126,7 @@ export async function uploadPhotos(
 	for (const photoTable of PHOTO_TABLES) {
 		for (const row of await photoRows(db, photoTable, "uploadable")) {
 			if (uploaded >= PHOTO_SYNC_BATCH) {
-				return { uploaded, released };
+				return { released, uploaded };
 			}
 			const uri = row.imageUri;
 			if (uri === null || keyMatchesPhoto(row.imageKey, uri)) {
@@ -150,6 +142,7 @@ export async function uploadPhotos(
 			}
 
 			const superseded = row.imageKey;
+			// biome-ignore lint/performance/noAwaitInLoops: PHOTO_SYNC_BATCH caps the pass by counting uploads that have already finished, so each photo's request/put/confirm handshake has to complete before the next row is considered — running them together would send the whole ledger's photos in one pass
 			const { key, url } = await transport.requestUpload(name);
 			const storageId = await transport.put(url, bytes);
 			await transport.confirmUpload(key, storageId);
@@ -173,7 +166,7 @@ export async function uploadPhotos(
 		}
 	}
 
-	return { uploaded, released };
+	return { released, uploaded };
 }
 
 /**
@@ -189,15 +182,8 @@ export async function uploadPhotos(
  * again. Clearing the key here would turn a transient 404 into permanent data
  * loss the moment two devices disagreed about a delete.
  */
-export async function downloadPhotos(
-	db: SpendDb,
-	files: PhotoFiles,
-	transport: PhotoTransport,
-): Promise<number> {
-	const wanted = new Map<
-		string,
-		{ photoTable: PhotoTable; id: string; name: string }[]
-	>();
+export async function downloadPhotos(db: SpendDb, files: PhotoFiles, transport: PhotoTransport): Promise<number> {
+	const wanted = new Map<string, { photoTable: PhotoTable; id: string; name: string }[]>();
 	const onDisk = new Set(files.list().map((photo) => photo.name));
 	let downloaded = 0;
 
@@ -221,11 +207,12 @@ export async function downloadPhotos(
 			if (onDisk.has(name)) {
 				// Already here — the file survived while the path did not, or a sibling
 				// row shares the photo. Nothing to fetch.
+				// biome-ignore lint/performance/noAwaitInLoops: these updates share the one SQLite connection the pass is still reading its next table through, so issuing them together interleaves writes into the middle of that read
 				await repoint(photoTable, row.id, name);
 				continue;
 			}
 			const bucket = wanted.get(key) ?? [];
-			bucket.push({ photoTable, id: row.id, name });
+			bucket.push({ id: row.id, name, photoTable });
 			wanted.set(key, bucket);
 		}
 	}
@@ -236,12 +223,14 @@ export async function downloadPhotos(
 	}
 
 	for (const { key, url } of await transport.readUrls(keys)) {
+		// biome-ignore lint/performance/noAwaitInLoops: `get` holds a whole photo's bytes in memory until they are written out, so fetching the batch together would hold PHOTO_SYNC_BATCH photos at once on a handset
 		const bytes = await transport.get(url);
 		if (bytes === null) {
 			continue;
 		}
 		for (const { photoTable, id, name } of wanted.get(key) ?? []) {
 			files.write(name, bytes);
+			// biome-ignore lint/performance/noAwaitInLoops: these updates share the one SQLite connection the loop keeps downloading against, so issuing them together interleaves the writes with the next photo's fetch
 			await repoint(photoTable, id, name);
 			downloaded += 1;
 		}
@@ -259,9 +248,9 @@ export async function runPhotoSync(
 	db: SpendDb,
 	files: PhotoFiles,
 	transport: PhotoTransport,
-	now: Date = new Date(),
+	now: Date = new Date()
 ): Promise<PhotoSyncResult> {
 	const { uploaded, released } = await uploadPhotos(db, files, transport, now);
 	const downloaded = await downloadPhotos(db, files, transport);
-	return { uploaded, downloaded, released };
+	return { downloaded, released, uploaded };
 }

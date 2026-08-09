@@ -3,12 +3,7 @@ import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { cellFigures } from "@/domain/currency-totals";
-import {
-	firstOfMonth,
-	startOfDay,
-	startOfWeek,
-	startOfYear,
-} from "@/domain/dates";
+import { firstOfMonth, startOfDay, startOfWeek, startOfYear } from "@/domain/dates";
 import type { LogFigures } from "@/domain/log-measure";
 import { type RateTable, valueDatedRowsIn } from "@/domain/valuation";
 import { logCellQuery, toCurrencyCells } from "./cell-query";
@@ -20,20 +15,14 @@ import { useLiveQuery } from "./live-query";
  */
 export type LogPeriod = "day" | "week" | "month" | "year" | "all";
 
-export const LOG_PERIOD_ORDER: readonly LogPeriod[] = [
-	"day",
-	"week",
-	"month",
-	"year",
-	"all",
-];
+export const LOG_PERIOD_ORDER: readonly LogPeriod[] = ["day", "week", "month", "year", "all"];
 
 const STORED: Record<LogPeriod, number> = {
-	day: 1,
-	week: 2,
-	month: 3,
-	year: 4,
 	all: 5,
+	day: 1,
+	month: 3,
+	week: 2,
+	year: 4,
 };
 
 export function logPeriodFromStored(value: number): LogPeriod {
@@ -49,11 +38,11 @@ export function storedLogPeriod(period: LogPeriod): number {
  * menu shows them as-is.
  */
 export const LOG_PERIOD_PHRASE: Record<LogPeriod, string> = {
-	day: "today",
-	week: "this week",
-	month: "this month",
-	year: "this year",
 	all: "all time",
+	day: "today",
+	month: "this month",
+	week: "this week",
+	year: "this year",
 };
 
 export function sentenceCased(value: string): string {
@@ -71,7 +60,7 @@ function periodStart(period: LogPeriod, now: Date): Date | null {
 			return firstOfMonth(now);
 		case "year":
 			return startOfYear(now);
-		case "all":
+		default:
 			return null;
 	}
 }
@@ -92,21 +81,18 @@ export function useSparklineRows(
 	cumulative: boolean,
 	floor: Date | null,
 	displayCurrency: string,
-	rates: RateTable,
+	rates: RateTable
 ): { date: Date; amount: number; income: boolean }[] {
 	const columns = {
-		date: transactions.date,
 		amount: transactions.amount,
-		income: transactions.income,
-		currency: transactions.currency,
 		amountUsd: transactions.amountUsd,
+		currency: transactions.currency,
+		date: transactions.date,
+		income: transactions.income,
 	};
 	const rows = useLiveQuery(transactions, () => {
 		if (!enabled) {
-			return db
-				.select(columns)
-				.from(transactions)
-				.where(eq(transactions.id, ""));
+			return db.select(columns).from(transactions).where(eq(transactions.id, ""));
 		}
 		return db
 			.select(columns)
@@ -115,8 +101,8 @@ export function useSparklineRows(
 				and(
 					isNull(transactions.deletedAt),
 					lte(transactions.date, new Date(nowMs)),
-					cumulative || !floor ? undefined : gte(transactions.date, floor),
-				),
+					cumulative || !floor ? undefined : gte(transactions.date, floor)
+				)
 			)
 			.orderBy(asc(transactions.date));
 	}, [nowMs, enabled, cumulative, floor?.getTime() ?? null]);
@@ -124,9 +110,9 @@ export function useSparklineRows(
 	return useMemo(() => {
 		const valued = valueDatedRowsIn(rows, displayCurrency, rates);
 		return rows.map((row, index) => ({
+			amount: valued[index],
 			date: row.date,
 			income: row.income,
-			amount: valued[index],
 		}));
 	}, [rows, displayCurrency, rates]);
 }
@@ -155,24 +141,21 @@ export function useLogInsights(
 	nowMs: number,
 	period: LogPeriod,
 	globalCurrency: string,
-	rates?: RateTable,
+	rates?: RateTable
 ): LogInsights {
 	const now = new Date(nowMs);
 	const start = periodStart(period, now);
 
-	const rows = useLiveQuery(transactions, () => logCellQuery(db, start, now), [
-		nowMs,
-		period,
-	]);
+	const rows = useLiveQuery(transactions, () => logCellQuery(db, start, now), [nowMs, period]);
 
 	return useMemo(() => {
 		const ordered = cellFigures(toCurrencyCells(rows), globalCurrency, rates);
 
 		const dominant = ordered[0] ?? {
-			currencyCode: globalCurrency,
-			income: 0,
-			expense: 0,
 			count: 0,
+			currencyCode: globalCurrency,
+			expense: 0,
+			income: 0,
 		};
 		const others = ordered.slice(1);
 

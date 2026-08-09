@@ -9,8 +9,8 @@ export type AuthGate =
 export interface AuthProbe {
 	configured: boolean;
 	hasSession: boolean;
-	restoring: boolean;
 	restoreExpired: boolean;
+	restoring: boolean;
 }
 
 /**
@@ -50,11 +50,11 @@ export function authGate(probe: AuthProbe): AuthGate {
 export type AuthRoute = "sign-in" | "adopt" | "ledger";
 
 export interface AccountState {
+	/** The owner declined the account offer during first run. */
+	deferred: boolean;
 	gate: AuthGate;
 	/** This device's ledger has been reconciled against the account's. */
 	reconciled: boolean;
-	/** The owner declined the account offer during first run. */
-	deferred: boolean;
 }
 
 /**
@@ -87,8 +87,6 @@ export function authRoute(state: AccountState): AuthRoute {
 
 export type RootStackGroup = "onboarding" | AuthRoute;
 
-export function rootStackGroup(
-	state: AccountState & { onboarded: boolean },
-): RootStackGroup {
+export function rootStackGroup(state: AccountState & { onboarded: boolean }): RootStackGroup {
 	return state.onboarded ? authRoute(state) : "onboarding";
 }

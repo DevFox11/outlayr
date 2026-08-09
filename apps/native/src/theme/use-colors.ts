@@ -10,45 +10,45 @@ import { useCSSVariable } from "uniwind";
  * these cannot move into `global.css`.
  */
 export const SYSTEM_COLORS = {
-	/** Grouped-list base — the sheet/screen behind the cells (grey / near-black). */
-	groupedBackground: PlatformColor("systemGroupedBackground"),
 	/** A grouped cell or section — sits one step lighter on `groupedBackground`. */
 	card: PlatformColor("secondarySystemGroupedBackground"),
+	/** Grouped-list base — the sheet/screen behind the cells (grey / near-black). */
+	groupedBackground: PlatformColor("systemGroupedBackground"),
 	/** System hairline between rows inside a cell. */
 	separator: PlatformColor("separator"),
 } as const;
 
 /** `global.css` is the only declaration of these — nothing here restates a value. */
 const COLOR_VARIABLES = {
-	background: "--background",
-	foreground: "--foreground",
-	muted: "--muted",
-	subtle: "--subtle",
-	surface: "--surface",
-	surfaceSecondary: "--surface-secondary",
-	groupedBackground: "--grouped-background",
-	border: "--border",
-	separator: "--separator",
 	accent: "--accent",
 	accentForeground: "--accent-foreground",
-	tint: "--tint",
-	income: "--income",
-	expense: "--expense",
-	future: "--future",
+	background: "--background",
+	border: "--border",
 	danger: "--danger",
+	expense: "--expense",
+	foreground: "--foreground",
+	future: "--future",
+	groupedBackground: "--grouped-background",
+	income: "--income",
+	muted: "--muted",
 	overBudget: "--over-budget",
-	warning: "--warning",
 	/**
 	 * The wash behind a bar or rail. Declared as an `rgba()` rather than a hex,
 	 * so unlike its neighbours it is not safe to hand to `withAlpha` — it is here
 	 * for the charts that need the track as a string instead of a class.
 	 */
 	railTrack: "--rail-track",
+	separator: "--separator",
+	subtle: "--subtle",
+	surface: "--surface",
+	surfaceSecondary: "--surface-secondary",
+	tint: "--tint",
+	warning: "--warning",
 } as const;
 
 type ColorName = keyof typeof COLOR_VARIABLES;
 
-const COLOR_NAMES = Object.keys(COLOR_VARIABLES) as Array<ColorName>;
+const COLOR_NAMES = Object.keys(COLOR_VARIABLES) as ColorName[];
 const COLOR_VARIABLE_NAMES = COLOR_NAMES.map((name) => COLOR_VARIABLES[name]);
 
 export type ThemeColors = Record<ColorName, string>;
@@ -67,10 +67,7 @@ export function useColors(): ThemeColors {
 	const values = useCSSVariable(COLOR_VARIABLE_NAMES);
 
 	return useMemo(
-		() =>
-			Object.fromEntries(
-				COLOR_NAMES.map((name, index) => [name, values[index] as string]),
-			) as ThemeColors,
-		[values],
+		() => Object.fromEntries(COLOR_NAMES.map((name, index) => [name, values[index] as string])) as ThemeColors,
+		[values]
 	);
 }
