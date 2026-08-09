@@ -43,6 +43,8 @@ export function toggleFavouriteCurrency(db: Database, code: string): Promise<str
 		await writeFavourites(db, next);
 		return next;
 	});
-	queue = run.catch(() => {});
+	queue = run.catch(() => {
+		// Swallowed so one failed write does not poison the queue.
+	});
 	return run;
 }

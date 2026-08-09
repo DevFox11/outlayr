@@ -24,7 +24,9 @@ import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedR
  */
 export function syncSubscriptionReminders(db: Database): Promise<void> {
 	const run = queue.then(() => reconcileSubscriptionReminders(db));
-	queue = run.catch(() => {});
+	queue = run.catch(() => {
+		// Swallowed so one failed sync does not poison the queue.
+	});
 	return run;
 }
 

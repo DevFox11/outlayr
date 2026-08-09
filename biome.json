@@ -54,6 +54,16 @@
   },
   "overrides": [
     {
+      "includes": ["**/*.test.{ts,tsx}", "apps/native/jest/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noEmptyBlockStatements": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/global.css"],
       "linter": {
         "rules": {

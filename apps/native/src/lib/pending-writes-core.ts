@@ -118,7 +118,9 @@ export function parseQueue(text: string): PendingWrite[] {
 			if (isPendingWrite(parsed)) {
 				jobs.push(parsed);
 			}
-		} catch {}
+		} catch {
+			// Skip a malformed line rather than losing the rest of the log.
+		}
 	}
 	return jobs;
 }

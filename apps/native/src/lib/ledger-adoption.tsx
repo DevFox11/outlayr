@@ -18,7 +18,9 @@ export interface LedgerAdoption {
 }
 
 const SETTLED: LedgerAdoption = {
-	choose: () => {},
+	choose: () => {
+		// Nothing left to choose once adoption has settled.
+	},
 	failed: false,
 	status: "settled",
 };

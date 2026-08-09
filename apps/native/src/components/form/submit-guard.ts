@@ -35,7 +35,9 @@ export function pressSubmitWith<TMeta>(form: SubmittableFormWithMeta<TMeta>, met
 
 /** Never settles: the caller's write has committed and the CTA must not re-enable. */
 export function holdSubmitting(): Promise<never> {
-	return new Promise<never>(() => {});
+	return new Promise<never>(() => {
+		// Intentionally never settles.
+	});
 }
 
 interface ReportSaveFailureOptions {

@@ -6,6 +6,8 @@ export function useRegionCode(): string | undefined {
 		try {
 			const region = getLocales()[0]?.regionCode?.trim();
 			return region ? region : undefined;
-		} catch {}
+		} catch {
+			// No locale available; the hook reports undefined.
+		}
 	}, []);
 }
