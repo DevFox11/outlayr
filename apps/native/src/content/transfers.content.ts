@@ -22,13 +22,33 @@ const transfers = {
 			en: "Swap direction",
 			es: "Invertir la dirección",
 		}),
+		"transfers.addFee": t({
+			en: "Add fee",
+			es: "Agregar comisión",
+		}),
 		"transfers.arrives": t({
 			en: "arrives as {amount}",
 			es: "llegan como {amount}",
 		}),
+		"transfers.fee.destination": t({
+			en: "Charged on arrival",
+			es: "Cobrada al llegar",
+		}),
+		"transfers.fee.note": t({
+			en: "Fee · {from} → {to}",
+			es: "Comisión · {from} → {to}",
+		}),
+		"transfers.fee.source": t({
+			en: "Charged by sender",
+			es: "Cobrada al enviar",
+		}),
 		"transfers.field.date": t({
 			en: "Date",
 			es: "Fecha",
+		}),
+		"transfers.field.fee": t({
+			en: "Fee",
+			es: "Comisión",
 		}),
 		"transfers.field.from": t({
 			en: "From",
@@ -45,6 +65,18 @@ const transfers = {
 		"transfers.field.to": t({
 			en: "To",
 			es: "Hacia",
+		}),
+		"transfers.gap.itsAFee": t({
+			en: "It's a fee",
+			es: "Es una comisión",
+		}),
+		"transfers.gap.rateWas": t({
+			en: "Rate was {rate}",
+			es: "La tasa era {rate}",
+		}),
+		"transfers.gap.unaccounted": t({
+			en: "{amount} unaccounted",
+			es: "{amount} sin explicar",
 		}),
 		"transfers.needTwoAccounts": t({
 			en: "Transfers need two accounts. Add another one first.",

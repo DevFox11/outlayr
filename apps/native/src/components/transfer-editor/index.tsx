@@ -9,15 +9,23 @@ import { Alert, Keyboard, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
+import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { CTA_BOTTOM_PADDING, CTA_HEIGHT } from "@/components/editor-style";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { useTransferRates } from "@/data/transfer-rates";
-import { transfersRepo } from "@/data/transfers-core";
-import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
+import { lastFeeCategoryId, rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
+import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { marketRateFor, rateTypeOptions } from "@/domain/transfer-rate-options";
+import {
+	type FeeSide,
+	solveTransfer,
+	type TransferValues,
+	transferGap,
+	transferLegs,
+} from "@/domain/transfer-reconcile";
 import { useTranslation } from "@/i18n/context";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
 import { TransferEditorCta } from "./cta";
@@ -43,6 +51,9 @@ export default function TransferEditor() {
 	const [arrivedText, setArrivedText] = useState("");
 	const [arrivalPinned, setArrivalPinned] = useState(false);
 	const [rateType, setRateType] = useState<EntryRateType>("official");
+	const [feeText, setFeeText] = useState("");
+	const [feeSide, setFeeSide] = useState<FeeSide>("source");
+	const [feeCategoryId, setFeeCategoryId] = useState<string | null>(() => lastFeeCategoryId(db));
 	const [customRateText, setCustomRateText] = useState("");
 	const [date, setDate] = useState(() => new Date());
 	const noteState = useNativeState("");
@@ -53,6 +64,8 @@ export default function TransferEditor() {
 	const sentSheet = useRef<BottomSheetModal>(null);
 	const arrivedSheet = useRef<BottomSheetModal>(null);
 	const rateSheet = useRef<BottomSheetModal>(null);
+	const feeSheet = useRef<BottomSheetModal>(null);
+	const feeCategorySheet = useRef<BottomSheetModal>(null);
 
 	const from = accounts.find((account) => account.id === fromId) ?? null;
 	const to = accounts.find((account) => account.id === toId) ?? null;
@@ -75,19 +88,27 @@ export default function TransferEditor() {
 	}
 
 	const rate = selectedRate();
+	const toDecimals = minorUnitsFor(toCurrency);
+	const fromDecimals = minorUnitsFor(fromCurrency);
+	const feeDecimals = feeSide === "destination" ? toDecimals : fromDecimals;
+	const feeCurrency = feeSide === "destination" ? toCurrency : fromCurrency;
+	const fee = numpadToNumber(feeText);
 
 	const sent = numpadToNumber(sentText);
-	const derivedArrival = rate === null || rate <= 0 ? null : roundToMinorUnits(sent * rate, toCurrency);
+	const shape = { fee, feeSide, rate: rate ?? 0, sent };
+	const derivedArrival = solveTransfer({ ...shape, arrived: 0 }, "arrived", toDecimals);
 	const arrived = arrivalPinned ? numpadToNumber(arrivedText) : (derivedArrival ?? 0);
-	const effectiveRate = arrivalPinned && sent > 0 ? arrived / sent : rate;
+	const values: TransferValues = { ...shape, arrived };
+	const gapAmount = arrivalPinned ? transferGap(values, toDecimals) : 0;
+	const legs = transferLegs(values, fromDecimals, toDecimals);
+	const effectiveRate = legs === null ? rate : legs.exchangeRate;
 
 	const options = useMemo(
 		() => rateTypeOptions(crossCurrency ? toCurrency : fromCurrency),
 		[crossCurrency, toCurrency, fromCurrency]
 	);
 
-	const canSave =
-		!saving && from !== null && to !== null && from.id !== to.id && sent > 0 && arrived > 0 && effectiveRate !== null;
+	const canSave = !saving && from !== null && to !== null && from.id !== to.id && sent > 0 && legs !== null;
 
 	const chooseFrom = (account: Account | null) => {
 		if (account) {
@@ -118,7 +139,7 @@ export default function TransferEditor() {
 	};
 
 	const save = async () => {
-		if (!(canSave && from && to && effectiveRate)) {
+		if (!(canSave && from && to && effectiveRate && legs)) {
 			return;
 		}
 		setSaving(true);
@@ -127,14 +148,26 @@ export default function TransferEditor() {
 				date,
 				exchangeRate: effectiveRate,
 				exchangeRateType: crossCurrency ? rateType : null,
+				fee:
+					fee > 0
+						? {
+								amount: fee,
+								categoryId: feeCategoryId,
+								note: t("transfers.fee.note", { from: from.name, to: to.name }),
+								side: feeSide,
+							}
+						: undefined,
 				fromAccountId: from.id,
-				fromAmount: sent,
+				fromAmount: legs.fromAmount,
 				fromCurrency,
 				note: noteState.value,
 				toAccountId: to.id,
-				toAmount: arrived,
+				toAmount: legs.toAmount,
 				toCurrency,
 			});
+			if (fee > 0 && feeCategoryId) {
+				await rememberFeeCategory(db, feeCategoryId);
+			}
 			router.back();
 		} catch (error) {
 			setSaving(false);
@@ -147,19 +180,57 @@ export default function TransferEditor() {
 		ref.current?.present();
 	};
 
+	const resolveAsFee = () => {
+		const solved = solveTransfer(values, "fee", feeDecimals);
+		if (solved !== null && solved > 0) {
+			setFeeText(numberToNumpad(solved, feeDecimals));
+		}
+	};
+
+	const resolveAsRate = () => {
+		const solved = solveTransfer(values, "rate", RATE_DISPLAY_DECIMALS);
+		if (solved !== null) {
+			setRateType("custom");
+			setCustomRateText(numberToNumpad(solved, RATE_DISPLAY_DECIMALS));
+			setArrivalPinned(false);
+		}
+	};
+
+	const gapFee = solveTransfer(values, "fee", feeDecimals);
+	const gapRate = solveTransfer(values, "rate", RATE_DISPLAY_DECIMALS);
+	const gap =
+		gapAmount === 0 || gapFee === null || gapRate === null
+			? null
+			: {
+					feeLabel: t("transfers.gap.itsAFee"),
+					message: t("transfers.gap.unaccounted", { amount: formatAmount(Math.abs(gapAmount), toCurrency) }),
+					onFee: resolveAsFee,
+					onRate: resolveAsRate,
+					rateLabel: t("transfers.gap.rateWas", { rate: formatRate(gapRate) }),
+				};
+
 	return (
 		<View style={{ backgroundColor: SYSTEM_COLORS.groupedBackground, flex: 1 }}>
 			<View style={{ flex: 1, paddingBottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom }}>
 				<Host style={{ flex: 1 }}>
 					<Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden")]}>
 						<TransferEditorSlip
+							addFeeLabel={t("transfers.addFee")}
 							arrivedLabel={
 								crossCurrency ? t("transfers.arrives", { amount: formatAmount(arrived, toCurrency) }) : null
 							}
 							crossCurrency={crossCurrency}
 							dateLabel={t("transfers.field.date")}
+							feeLabel={t("transfers.field.fee")}
+							feeSide={feeSide}
+							feeSideOptions={[
+								{ label: t("transfers.fee.source"), value: "source" },
+								{ label: t("transfers.fee.destination"), value: "destination" },
+							]}
+							feeValue={fee > 0 ? formatAmount(fee, feeCurrency) : null}
 							fromLabel={t("transfers.field.from")}
 							fromName={from?.name ?? t("transfers.selectAccount")}
+							gap={gap}
 							mutedColor={colors.muted}
 							noteLabel={t("transfers.field.note")}
 							notePlaceholder={t("transfers.notePlaceholder")}
@@ -170,6 +241,11 @@ export default function TransferEditor() {
 								present(arrivedSheet);
 							}}
 							onDateChange={setDate}
+							onFeePress={() => present(feeSheet)}
+							onFeeSideChange={(side) => {
+								setFeeSide(side);
+								setArrivalPinned(false);
+							}}
 							onFromPress={() => present(fromSheet)}
 							onRatePress={() => {
 								if (rateType === "custom") {
@@ -200,6 +276,7 @@ export default function TransferEditor() {
 							tintColor={colors.foreground}
 							toLabel={t("transfers.field.to")}
 							toName={to?.name ?? t("transfers.selectAccount")}
+							warnColor={colors.expense}
 						/>
 					</Form>
 				</Host>
@@ -241,6 +318,32 @@ export default function TransferEditor() {
 				onDone={() => arrivedSheet.current?.dismiss()}
 				ref={arrivedSheet}
 				value={arrivedText}
+			/>
+			<AmountEntrySheet
+				code={feeCurrency}
+				minorUnits={feeDecimals}
+				onChange={(next) => {
+					setFeeText(next);
+					setArrivalPinned(false);
+				}}
+				onDone={() => {
+					feeSheet.current?.dismiss();
+					if (numpadToNumber(feeText) > 0 && !feeCategoryId) {
+						feeCategorySheet.current?.present();
+					}
+				}}
+				ref={feeSheet}
+				value={feeText}
+			/>
+			<CategoryPickerSheet
+				db={db}
+				income={false}
+				onSelect={(category) => {
+					setFeeCategoryId(category.id);
+					feeCategorySheet.current?.dismiss();
+				}}
+				ref={feeCategorySheet}
+				selectedId={feeCategoryId}
 			/>
 			<AmountEntrySheet
 				code={toCurrency}

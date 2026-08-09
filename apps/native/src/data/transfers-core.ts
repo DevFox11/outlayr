@@ -6,11 +6,14 @@ import { canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import type { FeeSide } from "@/domain/transfer-reconcile";
+import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
 
 export interface TransferFeeInput {
 	amount: number;
 	categoryId: string | null;
+	/** Names the transfer it was charged for, so the log row is not a bare figure. */
+	note?: string;
 	side: FeeSide;
 }
 
@@ -29,6 +32,15 @@ export interface TransferInput {
 }
 
 export type Transfer = typeof transfers.$inferSelect;
+
+/** The category the last fee was filed under, so the next one costs no question. */
+export function lastFeeCategoryId(db: Database): string | null {
+	return getMetaSync(db, META_KEYS.lastTransferFeeCategory);
+}
+
+export async function rememberFeeCategory(db: Database, categoryId: string): Promise<void> {
+	await setMeta(db, META_KEYS.lastTransferFeeCategory, categoryId);
+}
 
 async function frozenUsd(db: Database, amount: number, currency: string, date: Date): Promise<number | null> {
 	const { amountUsd } = await canonicalUsd(localRateLookup(db), {
@@ -111,6 +123,7 @@ export const transfersRepo = {
 					id: newId(),
 					income: false,
 					month: firstOfMonth(input.date),
+					note: input.fee.note ?? "",
 					transferId: id,
 					updatedAt: now,
 				});

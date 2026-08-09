@@ -10,6 +10,7 @@ import {
 	Text as SwiftText,
 	TextField,
 	type useNativeState,
+	VStack,
 } from "@expo/ui/swift-ui";
 import {
 	accessibilityLabel,
@@ -28,6 +29,7 @@ import {
 import type { EntryRateType } from "@outlayr/money/rates";
 import { FORM_TOP_MARGIN } from "@/components/editor-style";
 import { menuTint } from "@/components/native/styles";
+import type { FeeSide } from "@/domain/transfer-reconcile";
 
 const ROW_LABEL = foregroundStyle({ style: "secondary", type: "hierarchical" } as const);
 const CHEVRON = font({ design: "rounded", textStyle: "footnote", weight: "semibold" });
@@ -39,18 +41,45 @@ interface RateOption {
 	value: EntryRateType;
 }
 
+/**
+ * Present only when `sent x rate` and `arrived` disagree, which can happen only
+ * after the user deliberately typed an arrival. The two readings are
+ * numerically identical, so the app cannot pick — but it can show what each one
+ * would mean and take one tap.
+ */
+export interface TransferGapPrompt {
+	feeLabel: string;
+	message: string;
+	onFee: () => void;
+	onRate: () => void;
+	rateLabel: string;
+}
+
+interface FeeSideOption {
+	label: string;
+	value: FeeSide;
+}
+
 interface TransferEditorSlipProps {
+	addFeeLabel: string;
 	arrivedLabel: string | null;
 	crossCurrency: boolean;
 	dateLabel: string;
+	feeLabel: string;
+	feeSide: FeeSide;
+	feeSideOptions: FeeSideOption[];
+	feeValue: string | null;
 	fromLabel: string;
 	fromName: string;
+	gap: TransferGapPrompt | null;
 	mutedColor: string;
 	noteLabel: string;
 	notePlaceholder: string;
 	noteState: ReturnType<typeof useNativeState<string>>;
 	onArrivedPress: () => void;
 	onDateChange: (date: Date) => void;
+	onFeePress: () => void;
+	onFeeSideChange: (side: FeeSide) => void;
 	onFromPress: () => void;
 	onRatePress: () => void;
 	onRateTypeChange: (type: EntryRateType) => void;
@@ -68,20 +97,29 @@ interface TransferEditorSlipProps {
 	tintColor: string;
 	toLabel: string;
 	toName: string;
+	warnColor: string;
 }
 
 export function TransferEditorSlip({
+	addFeeLabel,
 	arrivedLabel,
 	crossCurrency,
 	dateLabel,
+	feeLabel,
+	feeSide,
+	feeSideOptions,
+	feeValue,
 	fromLabel,
 	fromName,
+	gap,
 	mutedColor,
 	noteLabel,
 	notePlaceholder,
 	noteState,
 	onArrivedPress,
 	onDateChange,
+	onFeePress,
+	onFeeSideChange,
 	onFromPress,
 	onRatePress,
 	onRateTypeChange,
@@ -99,6 +137,7 @@ export function TransferEditorSlip({
 	tintColor,
 	toLabel,
 	toName,
+	warnColor,
 }: TransferEditorSlipProps) {
 	return (
 		<>
@@ -136,6 +175,59 @@ export function TransferEditorSlip({
 					<SwiftText modifiers={[ROW_LABEL]}>{toLabel}</SwiftText>
 					<Spacer />
 					<SwiftText modifiers={[foregroundStyle(tintColor)]}>{toName}</SwiftText>
+					<Image color={mutedColor} modifiers={[CHEVRON]} systemName="chevron.right" />
+				</HStack>
+
+				{gap ? (
+					<VStack alignment="leading" spacing={8}>
+						<SwiftText modifiers={[CAPTION, foregroundStyle(warnColor)]}>{gap.message}</SwiftText>
+						<HStack spacing={8}>
+							<Button modifiers={[buttonStyle("bordered")]} onPress={gap.onFee}>
+								<SwiftText modifiers={[CAPTION]}>{gap.feeLabel}</SwiftText>
+							</Button>
+							<Button modifiers={[buttonStyle("bordered")]} onPress={gap.onRate}>
+								<SwiftText modifiers={[CAPTION]}>{gap.rateLabel}</SwiftText>
+							</Button>
+							<Spacer />
+						</HStack>
+					</VStack>
+				) : null}
+
+				<HStack>
+					<SwiftText modifiers={[contentShape(shapes.rectangle()), onTapGesture(onFeePress), ROW_LABEL]}>
+						{feeLabel}
+					</SwiftText>
+					<Spacer />
+					{feeValue ? (
+						<Menu
+							label={
+								<HStack spacing={4}>
+									<SwiftText modifiers={[CAPTION, foregroundStyle(mutedColor)]}>
+										{feeSideOptions.find((option) => option.value === feeSide)?.label ?? feeSide}
+									</SwiftText>
+									<Image color={mutedColor} size={10} systemName="chevron.up.chevron.down" />
+								</HStack>
+							}
+							modifiers={[menuTint]}
+						>
+							<Picker onSelectionChange={(value) => onFeeSideChange(value as FeeSide)} selection={feeSide}>
+								{feeSideOptions.map((option) => (
+									<SwiftText key={option.value} modifiers={[tag(option.value)]}>
+										{option.label}
+									</SwiftText>
+								))}
+							</Picker>
+						</Menu>
+					) : null}
+					<SwiftText
+						modifiers={[
+							contentShape(shapes.rectangle()),
+							onTapGesture(onFeePress),
+							foregroundStyle(feeValue ? tintColor : mutedColor),
+						]}
+					>
+						{feeValue ?? addFeeLabel}
+					</SwiftText>
 					<Image color={mutedColor} modifiers={[CHEVRON]} systemName="chevron.right" />
 				</HStack>
 			</Section>
