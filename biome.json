@@ -46,9 +46,15 @@
       "correctness": {
         "useExhaustiveDependencies": "info"
       },
+      "performance": {
+        "noJsxPropsBind": "off"
+      },
       "preset": "recommended",
       "style": {
         "useSingleVarDeclarator": "error"
+      },
+      "suspicious": {
+        "noEqualsToNull": "off"
       }
     }
   },
