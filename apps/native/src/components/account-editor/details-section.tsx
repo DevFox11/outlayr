@@ -15,6 +15,7 @@ import {
 	contentShape,
 	font,
 	foregroundStyle,
+	frame,
 	listSectionMargins,
 	multilineTextAlignment,
 	onSubmit,
@@ -35,6 +36,7 @@ const SIGN_FONT = font({
 	textStyle: "body",
 	weight: "medium",
 });
+const SIGN_HIT = 44;
 
 interface AccountEditorDetailsSectionProps {
 	balanceEditA11y: string;
@@ -123,7 +125,15 @@ export function AccountEditorDetailsSection({
 				<SwiftText modifiers={[ROW_LABEL]}>{balanceLabel}</SwiftText>
 				<Spacer />
 				<Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceSignA11y)]} onPress={onToggleSign}>
-					<SwiftText modifiers={[SIGN_FONT, foregroundStyle(negative ? tintColor : mutedColor)]}>
+					<SwiftText
+						modifiers={[
+							SIGN_FONT,
+							foregroundStyle(negative ? tintColor : mutedColor),
+							// A bare glyph measures ~10pt; 44 is the HIG minimum target.
+							frame({ height: SIGN_HIT, width: SIGN_HIT }),
+							contentShape(shapes.rectangle()),
+						]}
+					>
 						{negative ? "−" : "+"}
 					</SwiftText>
 				</Button>

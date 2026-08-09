@@ -12,6 +12,9 @@ import {
 	VStack,
 } from "@expo/ui/swift-ui";
 import {
+	accessibilityAddTraits,
+	accessibilityElement,
+	accessibilityLabel,
 	contentShape,
 	font,
 	foregroundStyle,
@@ -20,6 +23,7 @@ import {
 	monospacedDigit,
 	onTapGesture,
 	shapes,
+	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import { memo, useCallback } from "react";
@@ -85,7 +89,9 @@ function AccountsReady({ db }: { db: Database }) {
 				{ style: "cancel", text: t("common.cancel") },
 				{
 					onPress: () => {
-						accountsRepo.softDelete(db, account.id);
+						accountsRepo.softDelete(db, account.id).catch(() => {
+							Alert.alert(t("accounts.error.deleteTitle"), t("accounts.error.generic"));
+						});
 					},
 					style: "destructive",
 					text: t("common.delete"),
@@ -153,22 +159,35 @@ interface AccountRowProps {
 	onOpen: (id: string) => void;
 }
 
-const AccountRow = memo(function AccountRowBody({ account, colors, db, onDelete, onOpen }: AccountRowProps) {
+const AccountRow = memo(function AccountRowMemo({ account, colors, db, onDelete, onOpen }: AccountRowProps) {
 	const t = useTranslation();
 	const { showCents } = useDisplaySettings().state;
 	const balance = useAccountBalance(db, account);
 	const subtitle = isMultiCurrency(balance.composition, account.currency)
 		? t("accounts.multiCurrency")
 		: account.currency;
-	const tint = account.imageColor ?? account.customColor ?? colors.foreground;
+	const tileColor = account.imageColor ?? account.customColor ?? colors.foreground;
 
 	return (
 		<SwipeActions>
-			<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(() => onOpen(account.id))]} spacing={12}>
+			<HStack
+				modifiers={[
+					contentShape(shapes.rectangle()),
+					onTapGesture(() => onOpen(account.id)),
+					// An `onTapGesture` is invisible to VoiceOver: without these the row
+					// is four loose strings and no way to open it.
+					accessibilityElement("combine"),
+					accessibilityAddTraits(["isButton"]),
+					accessibilityLabel(
+						`${account.name}, ${subtitle}, ${formatSignedAmount(balance.total, account.currency, showCents)}`
+					),
+				]}
+				spacing={12}
+			>
 				<RNHostView matchContents>
 					<View style={{ height: PARENT_TILE, width: PARENT_TILE }}>
 						<CategoryIconTile
-							color={tint}
+							color={tileColor}
 							emoji={account.emoji}
 							icon={account.icon}
 							imageUri={account.imageUri}
@@ -191,8 +210,15 @@ const AccountRow = memo(function AccountRowBody({ account, colors, db, onDelete,
 				<Image color={colors.muted} modifiers={[CHEVRON]} systemName="chevron.right" />
 			</HStack>
 			<SwipeActions.Actions edge="trailing">
-				{/* biome-ignore lint/a11y/useValidAriaRole: @expo/ui Button `role` is a SwiftUI ButtonRole, not an ARIA role */}
-				<Button label={t("common.delete")} onPress={() => onDelete(account)} role="destructive" systemImage="trash" />
+				{/* A `destructive` role makes SwiftUI animate the row out of the List on
+				    press, before the confirmation is answered — and cancelling never
+				    puts it back. The tint buys the same red without that. */}
+				<Button
+					label={t("common.delete")}
+					modifiers={[tint(colors.danger)]}
+					onPress={() => onDelete(account)}
+					systemImage="trash"
+				/>
 			</SwipeActions.Actions>
 		</SwipeActions>
 	);

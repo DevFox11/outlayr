@@ -1,6 +1,6 @@
 import { Host } from "@expo/ui";
 import { HStack, List, RNHostView, Section, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
-import { environment, foregroundStyle, lineLimit, listStyle } from "@expo/ui/swift-ui/modifiers";
+import { deleteDisabled, environment, foregroundStyle, lineLimit, listStyle } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
@@ -28,7 +28,9 @@ function AccountReorderReady({ db }: { db: Database }) {
 			source,
 			destination
 		);
-		accountsRepo.reorder(db, ordered);
+		accountsRepo.reorder(db, ordered).catch((error) => {
+			console.error("Failed to reorder the accounts", error);
+		});
 	};
 
 	return (
@@ -54,7 +56,9 @@ function AccountReorderReady({ db }: { db: Database }) {
 
 function ReorderRow({ account, tint }: { account: Account; tint: string }) {
 	return (
-		<HStack spacing={12}>
+		// Edit mode offers a delete badge as well as the drag handle, and this
+		// screen has no `onDelete`: the row would animate away and come back.
+		<HStack modifiers={[deleteDisabled(true)]} spacing={12}>
 			<RNHostView matchContents>
 				<View style={{ height: PARENT_TILE, width: PARENT_TILE }}>
 					<CategoryIconTile

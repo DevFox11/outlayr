@@ -1,12 +1,19 @@
 import { Host } from "@expo/ui";
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { Form, type TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
-import { animation, blur, listStyle, opacity, scrollContentBackground } from "@expo/ui/swift-ui/modifiers";
+import {
+	animation,
+	blur,
+	listStyle,
+	opacity,
+	scrollContentBackground,
+	scrollDismissesKeyboard,
+} from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
-import { useDerivedValue, useSharedValue } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
@@ -23,7 +30,6 @@ import {
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
-import type { IdentitySelection } from "@/components/identity-picker-content";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -47,19 +53,6 @@ export type AccountEditorProps = { mode: "create" } | { mode: "edit"; id: string
 
 type IdentitySource = "initial" | "suggested" | "user";
 
-function curtainHuesFor(draft: IdentitySelection, tint: string): string[] | null {
-	if (!(draft.icon || draft.emoji || draft.photoUri)) {
-		return null;
-	}
-	if (draft.photoUri) {
-		return [tint];
-	}
-	if (draft.emoji) {
-		return [...glowFromEmoji(draft.emoji).slice(0, 2), tint];
-	}
-	return [tint];
-}
-
 export default function AccountEditor(props: AccountEditorProps) {
 	const db = useDatabase();
 	return <AccountEditorReady db={db} {...props} />;
@@ -71,6 +64,16 @@ export default function AccountEditor(props: AccountEditorProps) {
  * are RN views around the `Host`, because the `Form` inside it has to be its
  * only child.
  */
+function curtainHuesFor(photoUri: string | null, emoji: string | null, tint: string): string[] {
+	if (photoUri) {
+		return [tint];
+	}
+	if (emoji) {
+		return [...glowFromEmoji(emoji).slice(0, 2), tint];
+	}
+	return [tint];
+}
+
 function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/client").Database }) {
 	const { db, mode } = props;
 	const editId = props.mode === "edit" ? props.id : null;
@@ -214,6 +217,27 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 		});
 	}, [navigation, pickerOpen]);
 
+	// The balance field raises a decimal pad, which has no return key, and the CTA
+	// is pinned to the bottom — without this it is simply unreachable while typing.
+	const keyboardLift = useSharedValue(0);
+	useEffect(() => {
+		const show = Keyboard.addListener("keyboardWillShow", (event) => {
+			keyboardLift.value = withTiming(Math.max(0, event.endCoordinates.height - insets.bottom), {
+				duration: event.duration,
+			});
+		});
+		const hide = Keyboard.addListener("keyboardWillHide", (event) => {
+			keyboardLift.value = withTiming(0, { duration: event.duration });
+		});
+		return () => {
+			show.remove();
+			hide.remove();
+		};
+	}, [insets.bottom, keyboardLift]);
+	const ctaStyle = useAnimatedStyle(() => ({
+		transform: [{ translateY: -keyboardLift.value }],
+	}));
+
 	const identity = useAccountIdentity({
 		canAttach: () =>
 			identitySourceRef.current !== "user" &&
@@ -255,7 +279,8 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 	const canSave = name.trim() !== "" && !isSubmitting;
 
 	const tint = draft.photoColor ?? draft.color ?? colors.foreground;
-	const curtainHues = curtainHuesFor(draft, tint);
+	const symbolEmpty = !(draft.icon || draft.emoji || draft.photoUri);
+	const curtainHues = symbolEmpty ? null : curtainHuesFor(draft.photoUri, draft.emoji, tint);
 
 	const underPicker = [
 		opacity(pickerOpen ? 0 : 1),
@@ -299,7 +324,17 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 				}}
 			>
 				<Host style={{ flex: 1 }}>
-					<Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden"), ...underPicker]}>
+					<Form
+						modifiers={[
+							listStyle("insetGrouped"),
+							scrollContentBackground("hidden"),
+							// The decimal pad has no return key and the CTA sits under it,
+							// so a drag has to be able to put the keyboard away without
+							// collapsing the sheet out from under the form.
+							scrollDismissesKeyboard("immediately"),
+							...underPicker,
+						]}
+					>
 						<AccountEditorDetailsSection
 							balanceEditA11y={t("accounts.a11y.editBalance")}
 							balanceLabel={t("accounts.field.initialBalance")}
@@ -346,7 +381,11 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 				photoUri={draft.photoUri}
 			/>
 
-			<View className="absolute right-0 bottom-safe-offset-2 left-0 px-5" pointerEvents="box-none">
+			<Animated.View
+				className="absolute right-0 bottom-safe-offset-2 left-0 px-5"
+				pointerEvents="box-none"
+				style={ctaStyle}
+			>
 				<AccountEditorCta
 					canSave={canSave}
 					label={t(mode === "create" ? "accounts.addAccount" : "accounts.saveAccount")}
@@ -354,10 +393,13 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 					tintColor={colors.foreground}
 					underPicker={underPicker}
 				/>
-			</View>
+			</Animated.View>
 
 			<CurrencyPickerSheet
-				onSelect={(code) => form.setFieldValue("currency", code)}
+				onSelect={(code) => {
+					form.setFieldValue("currency", code);
+					currencySheetRef.current?.dismiss();
+				}}
 				ref={currencySheetRef}
 				selected={currency}
 			/>
@@ -401,7 +443,12 @@ export function confirmAccountDelete(
 		{ style: "cancel", text: t("common.cancel") },
 		{
 			onPress: async () => {
-				await accountsRepo.softDelete(db, id);
+				try {
+					await accountsRepo.softDelete(db, id);
+				} catch {
+					Alert.alert(t("accounts.error.deleteTitle"), t("accounts.error.generic"));
+					return;
+				}
 				onDeleted();
 			},
 			style: "destructive",

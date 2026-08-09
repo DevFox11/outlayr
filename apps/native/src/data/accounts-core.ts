@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
-import { accounts } from "@/db/schema";
+import { accounts, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
@@ -111,18 +111,26 @@ export const accountsRepo = {
 	async reorder(db: Database, orderedIds: string[]): Promise<void> {
 		const now = new Date();
 		await withTransaction(db, async () => {
-			for (const [index, id] of orderedIds.entries()) {
-				// biome-ignore lint/performance/noAwaitInLoops: these updates share the one connection withTransaction holds open, so statements issued together interleave with that transaction's boundary
-				await db.update(accounts).set({ sortOrder: index, updatedAt: now }).where(eq(accounts.id, id));
+			for (let index = 0; index < orderedIds.length; index += 1) {
+				// biome-ignore lint/performance/noAwaitInLoops: one expo-sqlite connection backs the surrounding withTransaction, so concurrent statements would interleave inside the same transaction
+				await db.update(accounts).set({ sortOrder: index, updatedAt: now }).where(eq(accounts.id, orderedIds[index]));
 			}
 		});
 	},
 
+	/**
+	 * `transactions.accountId` declares `onDelete: "set null"`, which never fires
+	 * for a tombstone — so the detach the delete copy promises has to happen here,
+	 * or every entry keeps pointing at a row only the `deletedAt` filters hide.
+	 */
 	async softDelete(db: Database, id: string, now: Date = new Date()): Promise<void> {
-		await db
-			.update(accounts)
-			.set({ deletedAt: now, updatedAt: now })
-			.where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
+		await withTransaction(db, async () => {
+			await db
+				.update(accounts)
+				.set({ deletedAt: now, updatedAt: now })
+				.where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
+			await db.update(transactions).set({ accountId: null, updatedAt: now }).where(eq(transactions.accountId, id));
+		});
 	},
 
 	async update(db: Database, id: string, patch: Partial<AccountInput>): Promise<void> {
