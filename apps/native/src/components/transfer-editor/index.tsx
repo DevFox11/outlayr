@@ -1,37 +1,31 @@
 import { Host } from "@expo/ui";
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { Form, useNativeState } from "@expo/ui/swift-ui";
-import { listStyle, scrollContentBackground } from "@expo/ui/swift-ui/modifiers";
-import type { EntryRateType } from "@outlayr/money/rates";
+import { ScrollView, Text as SwiftText, useNativeState, VStack } from "@expo/ui/swift-ui";
+import { background, font, foregroundStyle, kerning, overlay, padding, textCase } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
-import { Alert, Keyboard, View } from "react-native";
+import { useRef, useState } from "react";
+import { Alert, Keyboard, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { CTA_BOTTOM_PADDING, CTA_HEIGHT } from "@/components/editor-style";
+import { CARD_SHAPE } from "@/components/transaction-form/style";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
-import type { Account } from "@/data/accounts-core";
-import { useTransferRates } from "@/data/transfer-rates";
-import { lastFeeCategoryId, rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
-import { formatAmount, minorUnitsFor } from "@/domain/money";
-import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import { marketRateFor, rateTypeOptions } from "@/domain/transfer-rate-options";
-import {
-	type FeeSide,
-	solveTransfer,
-	type TransferValues,
-	transferGap,
-	transferLegs,
-} from "@/domain/transfer-reconcile";
+import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
+import { currencySymbol, formatAmount } from "@/domain/money";
+import { numpadToNumber } from "@/domain/numpad";
 import { useTranslation } from "@/i18n/context";
+import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
 import { TransferEditorCta } from "./cta";
+import { TransferEditorDetailsCard } from "./details-card";
+import { TransferEditorHero } from "./hero";
 import { TransferEditorSlip } from "./slip";
+import { RATE_DISPLAY_DECIMALS, useTransferDraft } from "./use-transfer-draft";
 
-const RATE_DISPLAY_DECIMALS = 4;
+/** `Font.custom` through CoreText, matching `Eyebrow` in category-list-chrome. */
+const KICKER = font({ family: "GeistMono-Regular", size: 11, textStyle: "caption2" });
 
 function formatRate(rate: number | null): string {
 	return rate === null ? "—" : rate.toFixed(RATE_DISPLAY_DECIMALS);
@@ -43,22 +37,8 @@ export default function TransferEditor() {
 	const t = useTranslation();
 	const colors = useColors();
 	const insets = useSafeAreaInsets();
-	const accounts = useAccounts(db);
-
-	const [fromId, setFromId] = useState<string | null>(accounts[0]?.id ?? null);
-	const [toId, setToId] = useState<string | null>(accounts[1]?.id ?? null);
-	const [sentText, setSentText] = useState("");
-	const [arrivedText, setArrivedText] = useState("");
-	const [arrivalPinned, setArrivalPinned] = useState(false);
-	const [rateType, setRateType] = useState<EntryRateType>("official");
-	const [feeText, setFeeText] = useState("");
-	const [feeSide, setFeeSide] = useState<FeeSide>("source");
-	const [feeCategoryId, setFeeCategoryId] = useState<string | null>(() => lastFeeCategoryId(db));
-	const [customRateText, setCustomRateText] = useState("");
-	// The last market type looked at, so `custom` seeds from the rate that was on
-	// screen rather than always snapping back to official.
-	const [marketType, setMarketType] = useState<EntryRateType>("official");
-	const [date, setDate] = useState(() => new Date());
+	const { width: windowWidth } = useWindowDimensions();
+	const draft = useTransferDraft(db);
 	const noteState = useNativeState("");
 	const [saving, setSaving] = useState(false);
 
@@ -70,87 +50,14 @@ export default function TransferEditor() {
 	const feeSheet = useRef<BottomSheetModal>(null);
 	const feeCategorySheet = useRef<BottomSheetModal>(null);
 
-	const from = accounts.find((account) => account.id === fromId) ?? null;
-	const to = accounts.find((account) => account.id === toId) ?? null;
-	const fromCurrency = from?.currency ?? "USD";
-	const toCurrency = to?.currency ?? "USD";
-	const crossCurrency = fromCurrency !== toCurrency;
-
-	const rates = useTransferRates(db, [fromCurrency, toCurrency], rateType === "custom" ? marketType : rateType);
-	const marketRate = useMemo(
-		() => marketRateFor(fromCurrency, toCurrency, date, rates),
-		[fromCurrency, toCurrency, date, rates]
-	);
-	// Derived rather than copied into state when the type switches: the native
-	// Picker holds the first render's `onSelectionChange`, so a `marketRate` read
-	// inside it is frozen at whatever the rate was when the screen mounted.
-	const customRate = customRateText === "" ? marketRate : numpadToNumber(customRateText);
-
-	function selectedRate(): number | null {
-		if (!crossCurrency) {
-			return 1;
-		}
-		return rateType === "custom" ? customRate : marketRate;
-	}
-
-	const rate = selectedRate();
-	const toDecimals = minorUnitsFor(toCurrency);
-	const fromDecimals = minorUnitsFor(fromCurrency);
-	const feeDecimals = feeSide === "destination" ? toDecimals : fromDecimals;
-	const feeCurrency = feeSide === "destination" ? toCurrency : fromCurrency;
-	const fee = numpadToNumber(feeText);
-
-	const sent = numpadToNumber(sentText);
-	const shape = { fee, feeSide, rate: rate ?? 0, sent };
-	const derivedArrival = solveTransfer({ ...shape, arrived: 0 }, "arrived", toDecimals);
-	const arrived = arrivalPinned ? numpadToNumber(arrivedText) : (derivedArrival ?? 0);
-	const values: TransferValues = { ...shape, arrived };
-	const gapAmount = arrivalPinned ? transferGap(values, toDecimals) : 0;
-	const legs = transferLegs(values, fromDecimals, toDecimals);
-	const effectiveRate = legs === null ? rate : legs.exchangeRate;
-
-	// The pad opens on the live market rate so a custom rate is an edit rather
-	// than a fresh entry, without ever writing that rate into state.
-	const customRatePadText =
-		customRateText === "" && marketRate !== null ? numberToNumpad(marketRate, RATE_DISPLAY_DECIMALS) : customRateText;
-
-	const options = useMemo(
-		() => rateTypeOptions(crossCurrency ? toCurrency : fromCurrency),
-		[crossCurrency, toCurrency, fromCurrency]
-	);
-
-	const canSave = !saving && from !== null && to !== null && from.id !== to.id && sent > 0 && legs !== null;
-
-	const chooseFrom = (account: Account | null) => {
-		if (account) {
-			if (account.id === toId) {
-				setToId(fromId);
-			}
-			setFromId(account.id);
-			setArrivalPinned(false);
-		}
-		fromSheet.current?.dismiss();
-	};
-
-	const chooseTo = (account: Account | null) => {
-		if (account) {
-			if (account.id === fromId) {
-				setFromId(toId);
-			}
-			setToId(account.id);
-			setArrivalPinned(false);
-		}
-		toSheet.current?.dismiss();
-	};
-
-	const swap = () => {
-		setFromId(toId);
-		setToId(fromId);
-		setArrivalPinned(false);
+	const present = (ref: React.RefObject<BottomSheetModal | null>) => {
+		Keyboard.dismiss();
+		ref.current?.present();
 	};
 
 	const save = async () => {
-		if (!(canSave && from && to && effectiveRate && legs)) {
+		const { from, to, legs, effectiveRate, fee, feeSide, feeCategoryId, crossCurrency, rateType, date } = draft;
+		if (!(draft.canSave && from && to && legs && effectiveRate) || saving) {
 			return;
 		}
 		setSaving(true);
@@ -170,11 +77,11 @@ export default function TransferEditor() {
 						: undefined,
 				fromAccountId: from.id,
 				fromAmount: legs.fromAmount,
-				fromCurrency,
+				fromCurrency: draft.fromCurrency,
 				note: noteState.value,
 				toAccountId: to.id,
 				toAmount: legs.toAmount,
-				toCurrency,
+				toCurrency: draft.toCurrency,
 			});
 			if (fee > 0 && feeCategoryId) {
 				await rememberFeeCategory(db, feeCategoryId);
@@ -186,191 +93,204 @@ export default function TransferEditor() {
 		}
 	};
 
-	const present = (ref: React.RefObject<BottomSheetModal | null>) => {
-		Keyboard.dismiss();
-		ref.current?.present();
-	};
-
-	// Resolved on the destination side whatever the current one is: the gap is a
-	// destination-currency figure, so it lands there exactly. Carrying it to the
-	// source means dividing by the rate and rounding to source cents, which
-	// leaves a residual gap the user cannot clear. The side stays switchable.
-	const resolveAsFee = () => {
-		const solved = solveTransfer({ ...values, feeSide: "destination" }, "fee", toDecimals);
-		if (solved !== null && solved > 0) {
-			setFeeSide("destination");
-			setFeeText(numberToNumpad(solved, toDecimals));
-		}
-	};
-
-	const resolveAsRate = () => {
-		const solved = solveTransfer(values, "rate", RATE_DISPLAY_DECIMALS);
-		if (solved !== null) {
-			setRateType("custom");
-			setCustomRateText(numberToNumpad(solved, RATE_DISPLAY_DECIMALS));
-			setArrivalPinned(false);
-		}
-	};
-
-	const gapFee = solveTransfer({ ...values, feeSide: "destination" }, "fee", toDecimals);
-	const gapRate = solveTransfer(values, "rate", RATE_DISPLAY_DECIMALS);
 	const gap =
-		gapAmount === 0 || gapFee === null || gapRate === null
+		draft.gapAmount === 0 || draft.gapFee === null || draft.gapRate === null
 			? null
 			: {
 					feeLabel: t("transfers.gap.itsAFee"),
-					message: t("transfers.gap.unaccounted", { amount: formatAmount(Math.abs(gapAmount), toCurrency) }),
-					onFee: resolveAsFee,
-					onRate: resolveAsRate,
-					rateLabel: t("transfers.gap.rateWas", { rate: formatRate(gapRate) }),
+					message: t("transfers.gap.unaccounted", {
+						amount: formatAmount(Math.abs(draft.gapAmount), draft.toCurrency),
+					}),
+					onFee: draft.resolveAsFee,
+					onRate: draft.resolveAsRate,
+					rateLabel: t("transfers.gap.rateWas", { rate: formatRate(draft.gapRate) }),
 				};
+
+	const card = [background(colors.background, CARD_SHAPE)];
+	const chooseLabel = t("transfers.selectAccount");
 
 	return (
 		<View style={{ backgroundColor: SYSTEM_COLORS.groupedBackground, flex: 1 }}>
-			<View style={{ flex: 1, paddingBottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom }}>
-				<Host style={{ flex: 1 }}>
-					<Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden")]}>
-						<TransferEditorSlip
-							addFeeLabel={t("transfers.addFee")}
+			<Host style={{ flex: 1 }}>
+				<ScrollView>
+					<VStack
+						modifiers={[padding({ bottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom + 24, horizontal: 20 })]}
+						spacing={16}
+					>
+						<TransferEditorHero
 							arrivedLabel={
-								crossCurrency ? t("transfers.arrives", { amount: formatAmount(arrived, toCurrency) }) : null
+								draft.crossCurrency
+									? t("transfers.arrives", { amount: formatAmount(draft.arrived, draft.toCurrency) })
+									: null
 							}
-							crossCurrency={crossCurrency}
-							dateLabel={t("transfers.field.date")}
-							feeLabel={t("transfers.field.fee")}
-							feeSide={feeSide}
-							feeSideOptions={[
-								{ label: t("transfers.fee.source"), value: "source" },
-								{ label: t("transfers.fee.destination"), value: "destination" },
-							]}
-							feeValue={fee > 0 ? formatAmount(fee, feeCurrency) : null}
-							fromLabel={t("transfers.field.from")}
-							fromName={from?.name ?? t("transfers.selectAccount")}
-							gap={gap}
+							chipColor={withAlpha(colors.transfer, 0.12)}
+							contentWidth={windowWidth - 40}
+							minorUnits={draft.fromDecimals}
 							mutedColor={colors.muted}
-							noteLabel={t("transfers.field.note")}
-							notePlaceholder={t("transfers.notePlaceholder")}
-							noteState={noteState}
 							onArrivedPress={() => {
-								setArrivedText(numberToNumpad(arrived, minorUnitsFor(toCurrency)));
-								setArrivalPinned(true);
+								draft.pinArrival();
 								present(arrivedSheet);
 							}}
-							onDateChange={setDate}
-							onFeePress={() => present(feeSheet)}
-							onFeeSideChange={(side) => {
-								setFeeSide(side);
-								setArrivalPinned(false);
-							}}
-							onFromPress={() => present(fromSheet)}
-							onRatePress={() => {
-								if (rateType === "custom") {
-									present(rateSheet);
-								}
-							}}
-							onRateTypeChange={(next) => {
-								setRateType(next);
-								if (next !== "custom") {
-									setMarketType(next);
-								}
-								setArrivalPinned(false);
-							}}
+							onRateTypeChange={draft.setRateType}
 							onSentPress={() => present(sentSheet)}
-							onSwap={swap}
-							onToPress={() => present(toSheet)}
-							rateLabel={t("transfers.field.rate")}
-							rateOptions={options.map((option) => ({
+							rateOptions={draft.rateOptions.map((option) => ({
 								label: t(`transfers.rate.${option}` as "transfers.rate.official"),
 								value: option,
 							}))}
-							rateType={rateType}
-							rateUnit={t("transfers.rate.perUnit", { base: fromCurrency, quote: toCurrency })}
-							rateValue={formatRate(effectiveRate)}
-							selectedDate={date}
-							sentLabel={formatAmount(sent, fromCurrency)}
-							swapA11y={t("transfers.a11y.swap")}
+							rateType={draft.rateType}
+							sent={draft.sent}
+							symbol={currencySymbol(draft.fromCurrency)}
 							tintColor={colors.foreground}
-							toLabel={t("transfers.field.to")}
-							toName={to?.name ?? t("transfers.selectAccount")}
-							warnColor={colors.expense}
+							transferColor={colors.transfer}
 						/>
-					</Form>
-				</Host>
-			</View>
+
+						<VStack alignment="leading" spacing={7}>
+							<SwiftText modifiers={[KICKER, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}>
+								{t("transfers.movement")}
+							</SwiftText>
+							<VStack modifiers={[...card, padding({ horizontal: 14, vertical: 6 })]} spacing={0}>
+								<TransferEditorSlip
+									addFeeLabel={t("transfers.addFee")}
+									borderColor={withAlpha(colors.foreground, 0.06)}
+									feeSideLabel={t(
+										draft.feeSide === "destination" ? "transfers.fee.destination" : "transfers.fee.source"
+									)}
+									feeValue={draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency) : null}
+									from={{
+										balance: formatAmount(draft.fromBalance, draft.fromCurrency),
+										currency: draft.fromCurrency,
+										emoji: draft.from?.emoji ?? null,
+										kicker: t("transfers.field.from"),
+										name: draft.from?.name ?? chooseLabel,
+										onPress: () => present(fromSheet),
+										tint: colors.foreground,
+									}}
+									gap={gap}
+									mutedColor={colors.muted}
+									onFeePress={() => present(feeSheet)}
+									onFeeSideToggle={draft.toggleFeeSide}
+									onRatePress={() => {
+										if (draft.rateType === "custom") {
+											present(rateSheet);
+										}
+									}}
+									onSwap={draft.swap}
+									rateValue={
+										draft.crossCurrency
+											? `${formatRate(draft.effectiveRate)} ${draft.toCurrency}/${draft.fromCurrency}`
+											: null
+									}
+									showRate={draft.crossCurrency}
+									stemColor={withAlpha(colors.transfer, 0.35)}
+									surfaceColor={colors.surface}
+									swapA11y={t("transfers.a11y.swap")}
+									tintColor={colors.foreground}
+									to={{
+										balance: formatAmount(draft.toBalance, draft.toCurrency),
+										currency: draft.toCurrency,
+										emoji: draft.to?.emoji ?? null,
+										kicker: t("transfers.field.to"),
+										name: draft.to?.name ?? chooseLabel,
+										onPress: () => present(toSheet),
+										tint: colors.foreground,
+									}}
+									transferColor={colors.transfer}
+									warnColor={colors.overBudget}
+								/>
+							</VStack>
+						</VStack>
+
+						<VStack modifiers={[...card, padding({ horizontal: 14 })]} spacing={0}>
+							<TransferEditorDetailsCard
+								dateLabel={t("transfers.field.date")}
+								hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}
+								mutedColor={colors.muted}
+								noteLabel={t("transfers.field.note")}
+								notePlaceholder={t("transfers.notePlaceholder")}
+								noteState={noteState}
+								onDateChange={draft.setDate}
+								selectedDate={draft.date}
+							/>
+						</VStack>
+					</VStack>
+				</ScrollView>
+			</Host>
 
 			<View style={{ bottom: insets.bottom + CTA_BOTTOM_PADDING, left: 16, position: "absolute", right: 16 }}>
-				<TransferEditorCta canSave={canSave} label={t("transfers.save")} onPress={save} tintColor={colors.foreground} />
+				<TransferEditorCta
+					canSave={draft.canSave && !saving}
+					label={t("transfers.save")}
+					onPress={save}
+					tintColor={colors.foreground}
+				/>
 			</View>
 
 			<AccountPickerSheet
 				db={db}
 				onCreate={() => router.push("/settings/accounts/create")}
-				onSelect={chooseFrom}
+				onSelect={(account) => {
+					draft.chooseFrom(account);
+					fromSheet.current?.dismiss();
+				}}
 				ref={fromSheet}
-				selectedId={fromId}
+				selectedId={draft.from?.id ?? null}
 			/>
 			<AccountPickerSheet
 				db={db}
 				onCreate={() => router.push("/settings/accounts/create")}
-				onSelect={chooseTo}
+				onSelect={(account) => {
+					draft.chooseTo(account);
+					toSheet.current?.dismiss();
+				}}
 				ref={toSheet}
-				selectedId={toId}
+				selectedId={draft.to?.id ?? null}
 			/>
 			<AmountEntrySheet
-				code={fromCurrency}
-				minorUnits={minorUnitsFor(fromCurrency)}
-				onChange={(next) => {
-					setSentText(next);
-					setArrivalPinned(false);
-				}}
+				code={draft.fromCurrency}
+				minorUnits={draft.fromDecimals}
+				onChange={draft.setSent}
 				onDone={() => sentSheet.current?.dismiss()}
 				ref={sentSheet}
-				value={sentText}
+				value={draft.sentText}
 			/>
 			<AmountEntrySheet
-				code={toCurrency}
-				minorUnits={minorUnitsFor(toCurrency)}
-				onChange={setArrivedText}
+				code={draft.toCurrency}
+				minorUnits={draft.toDecimals}
+				onChange={draft.setArrived}
 				onDone={() => arrivedSheet.current?.dismiss()}
 				ref={arrivedSheet}
-				value={arrivedText}
+				value={draft.arrivedText}
 			/>
 			<AmountEntrySheet
-				code={feeCurrency}
-				minorUnits={feeDecimals}
-				onChange={(next) => {
-					setFeeText(next);
-					setArrivalPinned(false);
-				}}
+				code={draft.feeCurrency}
+				minorUnits={draft.feeDecimals}
+				onChange={draft.setFee}
 				onDone={() => {
 					feeSheet.current?.dismiss();
-					if (numpadToNumber(feeText) > 0 && !feeCategoryId) {
+					if (numpadToNumber(draft.feeText) > 0 && !draft.feeCategoryId) {
 						feeCategorySheet.current?.present();
 					}
 				}}
 				ref={feeSheet}
-				value={feeText}
+				value={draft.feeText}
 			/>
 			<CategoryPickerSheet
 				db={db}
 				income={false}
 				onSelect={(category) => {
-					setFeeCategoryId(category.id);
+					draft.setFeeCategoryId(category.id);
 					feeCategorySheet.current?.dismiss();
 				}}
 				ref={feeCategorySheet}
-				selectedId={feeCategoryId}
+				selectedId={draft.feeCategoryId}
 			/>
 			<AmountEntrySheet
-				code={toCurrency}
+				code={draft.toCurrency}
 				minorUnits={RATE_DISPLAY_DECIMALS}
-				onChange={(next) => {
-					setCustomRateText(next);
-					setArrivalPinned(false);
-				}}
+				onChange={draft.setCustomRate}
 				onDone={() => rateSheet.current?.dismiss()}
 				ref={rateSheet}
-				value={customRatePadText}
+				value={draft.customRatePadText}
 			/>
 		</View>
 	);

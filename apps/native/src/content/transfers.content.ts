@@ -110,6 +110,10 @@ const transfers = {
 			en: "{amount} unaccounted",
 			es: "{amount} sin explicar",
 		}),
+		"transfers.movement": t({
+			en: "The movement",
+			es: "El movimiento",
+		}),
 		"transfers.needTwoAccounts": t({
 			en: "Transfers need two accounts. Add another one first.",
 			es: "Las transferencias necesitan dos cuentas. Agregá otra primero.",

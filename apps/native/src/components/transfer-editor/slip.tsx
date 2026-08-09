@@ -1,52 +1,29 @@
-import {
-	Button,
-	DatePicker,
-	HStack,
-	Image,
-	Menu,
-	Picker,
-	Section,
-	Spacer,
-	Text as SwiftText,
-	TextField,
-	type useNativeState,
-	VStack,
-} from "@expo/ui/swift-ui";
+import { Button, HStack, Image, Rectangle, Spacer, Text as SwiftText, VStack, ZStack } from "@expo/ui/swift-ui";
 import {
 	accessibilityLabel,
+	background,
 	buttonStyle,
 	contentShape,
-	datePickerStyle,
 	font,
 	foregroundStyle,
-	labelsHidden,
-	listSectionMargins,
-	multilineTextAlignment,
-	onTapGesture,
+	frame,
+	padding,
 	shapes,
-	tag,
 } from "@expo/ui/swift-ui/modifiers";
-import type { EntryRateType } from "@outlayr/money/rates";
-import { FORM_TOP_MARGIN } from "@/components/editor-style";
-import { menuTint } from "@/components/native/styles";
-import type { FeeSide } from "@/domain/transfer-reconcile";
 
-const ROW_LABEL = foregroundStyle({ style: "secondary", type: "hierarchical" } as const);
-const CHEVRON = font({ design: "rounded", textStyle: "footnote", weight: "semibold" });
-const HERO = font({ design: "rounded", textStyle: "largeTitle", weight: "bold" });
-const CAPTION = font({ design: "rounded", textStyle: "footnote", weight: "regular" });
+const TILE = 38;
+const NODE = 22;
+const STEM_WEIGHT = 1.5;
+const ROW_H = 36;
+/** Carries the stem the last few points into the tile, so the line is unbroken. */
+const STUB = 9;
+const CAPSULE = shapes.capsule();
 
-interface RateOption {
-	label: string;
-	value: EntryRateType;
-}
+const KICKER = font({ design: "monospaced", size: 10, weight: "regular" });
+const NAME = font({ design: "rounded", size: 16, weight: "semibold" });
+const FIGURE = font({ design: "monospaced", size: 12 });
+const PILL = font({ design: "monospaced", size: 12 });
 
-/**
- * Present only when `sent x rate` and `arrived` disagree, which can happen only
- * after the user deliberately typed an arrival. The two readings are
- * numerically identical, so the app cannot pick — but it can show what each one
- * would mean and take one tap.
- */
 export interface TransferGapPrompt {
 	feeLabel: string;
 	message: string;
@@ -55,234 +32,238 @@ export interface TransferGapPrompt {
 	rateLabel: string;
 }
 
-interface FeeSideOption {
-	label: string;
-	value: FeeSide;
+export interface TransferLegView {
+	/** Already formatted in the account's own currency. */
+	balance: string;
+	currency: string;
+	emoji: string | null;
+	kicker: string;
+	name: string;
+	onPress: () => void;
+	tint: string;
 }
 
 interface TransferEditorSlipProps {
 	addFeeLabel: string;
-	arrivedLabel: string | null;
-	crossCurrency: boolean;
-	dateLabel: string;
-	feeLabel: string;
-	feeSide: FeeSide;
-	feeSideOptions: FeeSideOption[];
+	borderColor: string;
+	feeSideLabel: string;
 	feeValue: string | null;
-	fromLabel: string;
-	fromName: string;
+	from: TransferLegView;
 	gap: TransferGapPrompt | null;
 	mutedColor: string;
-	noteLabel: string;
-	notePlaceholder: string;
-	noteState: ReturnType<typeof useNativeState<string>>;
-	onArrivedPress: () => void;
-	onDateChange: (date: Date) => void;
 	onFeePress: () => void;
-	onFeeSideChange: (side: FeeSide) => void;
-	onFromPress: () => void;
+	onFeeSideToggle: () => void;
 	onRatePress: () => void;
-	onRateTypeChange: (type: EntryRateType) => void;
-	onSentPress: () => void;
 	onSwap: () => void;
-	onToPress: () => void;
-	rateLabel: string;
-	rateOptions: RateOption[];
-	rateType: EntryRateType;
-	rateUnit: string;
-	rateValue: string;
-	selectedDate: Date;
-	sentLabel: string;
+	rateValue: string | null;
+	showRate: boolean;
+	stemColor: string;
+	surfaceColor: string;
 	swapA11y: string;
 	tintColor: string;
-	toLabel: string;
-	toName: string;
+	to: TransferLegView;
+	transferColor: string;
 	warnColor: string;
 }
 
-export function TransferEditorSlip({
-	addFeeLabel,
-	arrivedLabel,
-	crossCurrency,
-	dateLabel,
-	feeLabel,
-	feeSide,
-	feeSideOptions,
-	feeValue,
-	fromLabel,
-	fromName,
-	gap,
-	mutedColor,
-	noteLabel,
-	notePlaceholder,
-	noteState,
-	onArrivedPress,
-	onDateChange,
-	onFeePress,
-	onFeeSideChange,
-	onFromPress,
-	onRatePress,
-	onRateTypeChange,
-	onSentPress,
-	onSwap,
-	onToPress,
-	rateLabel,
-	rateOptions,
-	rateType,
-	rateUnit,
-	rateValue,
-	selectedDate,
-	sentLabel,
-	swapA11y,
-	tintColor,
-	toLabel,
-	toName,
-	warnColor,
-}: TransferEditorSlipProps) {
+/**
+ * Drawn, not spaced — the same vocabulary the category tree's `TreeConnector`
+ * uses. The height is explicit because a `ZStack` otherwise collapses to its
+ * node and the stem never reaches the rows it is meant to join.
+ */
+function Gutter({
+	children,
+	height,
+	transferColor,
+}: {
+	children?: React.ReactNode;
+	height: number;
+	transferColor: string;
+}) {
 	return (
-		<>
-			<Section modifiers={[listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN })]}>
-				<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onSentPress)]}>
-					<Spacer />
-					<SwiftText modifiers={[HERO, foregroundStyle(tintColor)]}>{sentLabel}</SwiftText>
-					<Spacer />
-				</HStack>
-				{arrivedLabel ? (
-					<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onArrivedPress)]}>
-						<Spacer />
-						<SwiftText modifiers={[CAPTION, foregroundStyle(mutedColor)]}>{arrivedLabel}</SwiftText>
-						<Spacer />
-					</HStack>
-				) : null}
-			</Section>
+		<ZStack modifiers={[frame({ height, width: TILE })]}>
+			<Rectangle modifiers={[foregroundStyle(transferColor), frame({ height, width: STEM_WEIGHT })]} />
+			{children}
+		</ZStack>
+	);
+}
 
-			<Section>
-				<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onFromPress)]}>
-					<SwiftText modifiers={[ROW_LABEL]}>{fromLabel}</SwiftText>
-					<Spacer />
-					<SwiftText modifiers={[foregroundStyle(tintColor)]}>{fromName}</SwiftText>
-					<Image color={mutedColor} modifiers={[CHEVRON]} systemName="chevron.right" />
-				</HStack>
+function Leg({
+	leg,
+	mutedColor,
+	stem,
+	stemColor,
+	surfaceColor,
+	tintColor,
+}: {
+	leg: TransferLegView;
+	mutedColor: string;
+	stem: "above" | "below";
+	stemColor: string;
+	surfaceColor: string;
+	tintColor: string;
+}) {
+	const stub = <Rectangle modifiers={[foregroundStyle(stemColor), frame({ height: STUB, width: STEM_WEIGHT })]} />;
+	return (
+		<HStack modifiers={[contentShape(shapes.rectangle())]} spacing={12}>
+			<VStack modifiers={[frame({ width: TILE })]} spacing={0}>
+				{stem === "above" ? stub : null}
+				<SwiftText
+					modifiers={[
+						font({ size: 18 }),
+						frame({ height: TILE, width: TILE }),
+						background(surfaceColor, shapes.roundedRectangle({ cornerRadius: 11, roundedCornerStyle: "continuous" })),
+					]}
+				>
+					{leg.emoji ?? "•"}
+				</SwiftText>
+				{stem === "below" ? stub : null}
+			</VStack>
+			<VStack alignment="leading" spacing={1}>
+				<SwiftText modifiers={[KICKER, foregroundStyle(mutedColor)]}>{leg.kicker}</SwiftText>
+				<SwiftText modifiers={[NAME, foregroundStyle(tintColor)]}>{leg.name}</SwiftText>
+			</VStack>
+			<Spacer />
+			<VStack alignment="trailing" spacing={1}>
+				<SwiftText modifiers={[FIGURE, foregroundStyle(mutedColor)]}>{leg.balance}</SwiftText>
+				<SwiftText modifiers={[KICKER, foregroundStyle(mutedColor)]}>{leg.currency}</SwiftText>
+			</VStack>
+		</HStack>
+	);
+}
 
-				<HStack>
-					<Button modifiers={[buttonStyle("plain"), accessibilityLabel(swapA11y)]} onPress={onSwap}>
-						<Image color={tintColor} size={16} systemName="arrow.up.arrow.down" />
+export function TransferEditorSlip({
+	from,
+	to,
+	showRate,
+	rateValue,
+	feeValue,
+	feeSideLabel,
+	addFeeLabel,
+	gap,
+	tintColor,
+	mutedColor,
+	transferColor,
+	warnColor,
+	surfaceColor,
+	stemColor,
+	borderColor,
+	swapA11y,
+	onSwap,
+	onRatePress,
+	onFeePress,
+	onFeeSideToggle,
+}: TransferEditorSlipProps) {
+	const pill = (color: string) => [
+		PILL,
+		foregroundStyle(color),
+		padding({ horizontal: 10, vertical: 4 }),
+		background(surfaceColor, CAPSULE),
+	];
+
+	return (
+		<VStack alignment="leading" spacing={0}>
+			<Button modifiers={[buttonStyle("plain")]} onPress={from.onPress}>
+				<Leg
+					leg={from}
+					mutedColor={mutedColor}
+					stem="below"
+					stemColor={stemColor}
+					surfaceColor={surfaceColor}
+					tintColor={tintColor}
+				/>
+			</Button>
+
+			<Gutter height={ROW_H} transferColor={stemColor}>
+				<Button modifiers={[buttonStyle("plain"), accessibilityLabel(swapA11y)]} onPress={onSwap}>
+					<Image
+						color="#ffffff"
+						modifiers={[
+							frame({ height: NODE, width: NODE }),
+							background(transferColor, CAPSULE),
+							contentShape(shapes.rectangle()),
+						]}
+						size={11}
+						systemName="arrow.up.arrow.down"
+					/>
+				</Button>
+			</Gutter>
+
+			{showRate && rateValue ? (
+				<HStack modifiers={[frame({ height: ROW_H })]} spacing={12}>
+					<Gutter height={ROW_H} transferColor={stemColor} />
+					<Button modifiers={[buttonStyle("plain")]} onPress={onRatePress}>
+						<SwiftText modifiers={pill(transferColor)}>{rateValue}</SwiftText>
 					</Button>
 					<Spacer />
 				</HStack>
-
-				<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onToPress)]}>
-					<SwiftText modifiers={[ROW_LABEL]}>{toLabel}</SwiftText>
-					<Spacer />
-					<SwiftText modifiers={[foregroundStyle(tintColor)]}>{toName}</SwiftText>
-					<Image color={mutedColor} modifiers={[CHEVRON]} systemName="chevron.right" />
-				</HStack>
-
-				{gap ? (
-					<VStack alignment="leading" spacing={8}>
-						<SwiftText modifiers={[CAPTION, foregroundStyle(warnColor)]}>{gap.message}</SwiftText>
-						<HStack spacing={8}>
-							<Button modifiers={[buttonStyle("bordered")]} onPress={gap.onFee}>
-								<SwiftText modifiers={[CAPTION]}>{gap.feeLabel}</SwiftText>
-							</Button>
-							<Button modifiers={[buttonStyle("bordered")]} onPress={gap.onRate}>
-								<SwiftText modifiers={[CAPTION]}>{gap.rateLabel}</SwiftText>
-							</Button>
-							<Spacer />
-						</HStack>
-					</VStack>
-				) : null}
-
-				<HStack>
-					<SwiftText modifiers={[contentShape(shapes.rectangle()), onTapGesture(onFeePress), ROW_LABEL]}>
-						{feeLabel}
-					</SwiftText>
-					<Spacer />
-					{feeValue ? (
-						<Menu
-							label={
-								<HStack spacing={4}>
-									<SwiftText modifiers={[CAPTION, foregroundStyle(mutedColor)]}>
-										{feeSideOptions.find((option) => option.value === feeSide)?.label ?? feeSide}
-									</SwiftText>
-									<Image color={mutedColor} size={10} systemName="chevron.up.chevron.down" />
-								</HStack>
-							}
-							modifiers={[menuTint]}
-						>
-							<Picker onSelectionChange={(value) => onFeeSideChange(value as FeeSide)} selection={feeSide}>
-								{feeSideOptions.map((option) => (
-									<SwiftText key={option.value} modifiers={[tag(option.value)]}>
-										{option.label}
-									</SwiftText>
-								))}
-							</Picker>
-						</Menu>
-					) : null}
-					<SwiftText
-						modifiers={[
-							contentShape(shapes.rectangle()),
-							onTapGesture(onFeePress),
-							foregroundStyle(feeValue ? tintColor : mutedColor),
-						]}
-					>
-						{feeValue ?? addFeeLabel}
-					</SwiftText>
-					<Image color={mutedColor} modifiers={[CHEVRON]} systemName="chevron.right" />
-				</HStack>
-			</Section>
-
-			{crossCurrency ? (
-				<Section footer={<SwiftText>{rateUnit}</SwiftText>}>
-					<HStack>
-						<SwiftText modifiers={[ROW_LABEL]}>{rateLabel}</SwiftText>
-						<Spacer />
-						<Menu
-							label={
-								<HStack spacing={4}>
-									<SwiftText modifiers={[foregroundStyle(tintColor)]}>
-										{rateOptions.find((option) => option.value === rateType)?.label ?? rateType}
-									</SwiftText>
-									<Image color={mutedColor} size={12} systemName="chevron.up.chevron.down" />
-								</HStack>
-							}
-							modifiers={[menuTint]}
-						>
-							<Picker onSelectionChange={(value) => onRateTypeChange(value as EntryRateType)} selection={rateType}>
-								{rateOptions.map((option) => (
-									<SwiftText key={option.value} modifiers={[tag(option.value)]}>
-										{option.label}
-									</SwiftText>
-								))}
-							</Picker>
-						</Menu>
-					</HStack>
-					<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onRatePress)]}>
-						<Spacer />
-						<SwiftText modifiers={[foregroundStyle(rateType === "custom" ? tintColor : mutedColor)]}>
-							{rateValue}
-						</SwiftText>
-					</HStack>
-				</Section>
 			) : null}
 
-			<Section>
-				<HStack>
-					<SwiftText modifiers={[ROW_LABEL]}>{dateLabel}</SwiftText>
-					<Spacer />
-					<DatePicker
-						displayedComponents={["date"]}
-						modifiers={[datePickerStyle("compact"), labelsHidden()]}
-						onDateChange={onDateChange}
-						selection={selectedDate}
-					/>
-				</HStack>
-				<HStack>
-					<SwiftText modifiers={[ROW_LABEL]}>{noteLabel}</SwiftText>
-					<Spacer />
-					<TextField modifiers={[multilineTextAlignment("trailing")]} placeholder={notePlaceholder} text={noteState} />
-				</HStack>
-			</Section>
-		</>
+			<HStack modifiers={[frame({ height: ROW_H })]} spacing={12}>
+				<Gutter height={ROW_H} transferColor={stemColor}>
+					<SwiftText
+						modifiers={[
+							font({ size: 13, weight: "semibold" }),
+							foregroundStyle(feeValue ? tintColor : mutedColor),
+							frame({ height: NODE, width: NODE }),
+							background(feeValue ? surfaceColor : borderColor, CAPSULE),
+						]}
+					>
+						{feeValue ? "−" : "+"}
+					</SwiftText>
+				</Gutter>
+				<Button modifiers={[buttonStyle("plain")]} onPress={onFeePress}>
+					<SwiftText modifiers={pill(feeValue ? tintColor : mutedColor)}>{feeValue ?? addFeeLabel}</SwiftText>
+				</Button>
+				{feeValue ? (
+					<Button modifiers={[buttonStyle("plain")]} onPress={onFeeSideToggle}>
+						<SwiftText modifiers={[KICKER, foregroundStyle(mutedColor)]}>{feeSideLabel}</SwiftText>
+					</Button>
+				) : null}
+				<Spacer />
+			</HStack>
+
+			{gap ? (
+				<VStack alignment="leading" spacing={6}>
+					<HStack modifiers={[frame({ height: ROW_H })]} spacing={12}>
+						<Gutter height={ROW_H} transferColor={stemColor}>
+							<SwiftText
+								modifiers={[
+									font({ size: 13, weight: "bold" }),
+									foregroundStyle("#ffffff"),
+									frame({ height: NODE, width: NODE }),
+									background(warnColor, CAPSULE),
+								]}
+							>
+								!
+							</SwiftText>
+						</Gutter>
+						<SwiftText modifiers={[PILL, foregroundStyle(warnColor)]}>{gap.message}</SwiftText>
+						<Spacer />
+					</HStack>
+					<HStack spacing={6}>
+						<Gutter height={ROW_H} transferColor={stemColor} />
+						<Button modifiers={[buttonStyle("plain")]} onPress={gap.onFee}>
+							<SwiftText modifiers={pill(transferColor)}>{gap.feeLabel}</SwiftText>
+						</Button>
+						<Button modifiers={[buttonStyle("plain")]} onPress={gap.onRate}>
+							<SwiftText modifiers={pill(mutedColor)}>{gap.rateLabel}</SwiftText>
+						</Button>
+						<Spacer />
+					</HStack>
+				</VStack>
+			) : null}
+
+			<Button modifiers={[buttonStyle("plain")]} onPress={to.onPress}>
+				<Leg
+					leg={to}
+					mutedColor={mutedColor}
+					stem="above"
+					stemColor={stemColor}
+					surfaceColor={surfaceColor}
+					tintColor={tintColor}
+				/>
+			</Button>
+		</VStack>
 	);
 }
