@@ -474,7 +474,7 @@ describe("transport failure never throws", () => {
 });
 
 describe("each server status maps to its own reason", () => {
-	const cases: Array<[CsvImportStatus, UnavailableReason]> = [
+	const cases: [CsvImportStatus, UnavailableReason][] = [
 		["notConfigured", "notConfigured"],
 		["rateLimited", "rateLimited"],
 		["invalidResponse", "invalidResponse"],

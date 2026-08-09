@@ -17,7 +17,7 @@ function category(id: string, name: string, parentId: string | null): Category {
 	};
 }
 
-function tree(...parents: Array<[string, string, Array<[string, string]>]>): CategoryWithChildren[] {
+function tree(...parents: [string, string, [string, string][]][]): CategoryWithChildren[] {
 	return parents.map(([id, name, children]) => ({
 		...category(id, name, null),
 		children: children.map(([childId, childName]) => category(childId, childName, id)),

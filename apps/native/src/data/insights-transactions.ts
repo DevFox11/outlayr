@@ -25,7 +25,7 @@ export interface WindowTransactionsQuery {
  * {@link useCategoryMeta} rather than a join, for both the child filter and the
  * display fields: `useLiveQuery` only invalidates on the table it watches, so a
  * joined category would leave a renamed or re-parented category stale until some
- * *transaction* was written.
+ *transaction* was written.
  */
 export function useWindowTransactions(db: Database, query: WindowTransactionsQuery | null): TransactionWithCategory[] {
 	const categoryMeta = useCategoryMeta(db);

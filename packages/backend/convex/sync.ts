@@ -115,13 +115,13 @@ const pushRow = v.union(
 	})
 );
 
-type PushRow = {
-	table: SyncedTable;
-	localId: string;
-	updatedAt: number;
+interface PushRow {
 	deletedAt: number | null;
 	fields: Record<string, unknown>;
-};
+	localId: string;
+	table: SyncedTable;
+	updatedAt: number;
+}
 
 const pulledRow = v.object({
 	deletedAt: v.union(v.number(), v.null()),

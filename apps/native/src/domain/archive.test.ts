@@ -104,7 +104,7 @@ describe("reading a file back", () => {
 	it("reads a table the file omits as empty rather than refusing it", () => {
 		// An archive written before a table existed still holds intact data.
 		const partial = emptyDocument() as unknown as Record<string, unknown>;
-		delete (partial.tables as Record<string, unknown>).templateTransactions;
+		(partial.tables as Record<string, unknown>).templateTransactions = undefined;
 		const parsed = parseArchive(JSON.stringify(partial));
 		expect(parsed?.tables.templateTransactions).toStrictEqual([]);
 	});

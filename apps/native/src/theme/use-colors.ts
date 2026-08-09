@@ -48,7 +48,7 @@ const COLOR_VARIABLES = {
 
 type ColorName = keyof typeof COLOR_VARIABLES;
 
-const COLOR_NAMES = Object.keys(COLOR_VARIABLES) as Array<ColorName>;
+const COLOR_NAMES = Object.keys(COLOR_VARIABLES) as ColorName[];
 const COLOR_VARIABLE_NAMES = COLOR_NAMES.map((name) => COLOR_VARIABLES[name]);
 
 export type ThemeColors = Record<ColorName, string>;

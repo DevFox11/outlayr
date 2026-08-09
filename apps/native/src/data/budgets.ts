@@ -78,7 +78,7 @@ function earliestDate(rows: readonly { date: Date }[]): Date | null {
 
 /**
  * `useLiveQuery` registers a fresh database listener per call, so this list is a
- * *parameter* to the budget hooks rather than something each one fetches. Call
+ *parameter* to the budget hooks rather than something each one fetches. Call
  * it once per screen and thread the result down, or a single insert re-runs the
  * same full scan N times.
  */

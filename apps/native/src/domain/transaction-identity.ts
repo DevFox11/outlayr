@@ -44,7 +44,7 @@ function symbol(
  *
  * The symbol falls through as a **pair**, not field by field: resolving icon and
  * emoji independently lets an emoji-only transaction claim its own emoji and the
- * *category's* icon at the same time, and the tile then paints the icon — an
+ *category's* icon at the same time, and the tile then paints the icon — an
  * identity the user never chose. A transaction that names either one owns the
  * whole symbol.
  */
