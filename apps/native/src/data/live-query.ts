@@ -10,7 +10,7 @@ import { subscribeToTable } from "./table-invalidation";
  * `.all()` with rows rather than with a promise.
  */
 export interface SyncQuery<TRow> {
-	all(): TRow[];
+	all: () => TRow[];
 }
 
 interface Snapshot<TValue> {

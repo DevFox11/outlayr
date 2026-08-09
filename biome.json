@@ -77,6 +77,16 @@
       }
     },
     {
+      "includes": ["packages/backend/convex/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useAtIndex": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "apps/native/src/domain/uuid5.ts",
         "apps/native/src/domain/confetti.ts"

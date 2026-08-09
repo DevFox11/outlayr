@@ -9,8 +9,8 @@ export type { EraseScope };
  * of which can load under the node test runner.
  */
 export interface EraseResidue {
-	clearSpotlight(): Promise<void>;
-	clearStoredPhotos(): void;
+	clearSpotlight: () => Promise<void>;
+	clearStoredPhotos: () => void;
 }
 
 /**

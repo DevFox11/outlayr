@@ -242,15 +242,15 @@ function clamp01(value: number): number {
 }
 
 type Contribution = Awaited<ReturnType<typeof loadContributions>>[number];
-type CategoryRow = {
-	id: string;
-	name: string | null;
+interface CategoryRow {
 	color: string | null;
-	icon: string | null;
 	emoji: string | null;
+	icon: string | null;
+	id: string;
 	income: boolean;
+	name: string | null;
 	parentId: string | null;
-};
+}
 
 /**
  * Everything the three widgets render, read out of SQLite in one pass and

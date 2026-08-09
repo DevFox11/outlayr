@@ -51,12 +51,12 @@ const CLAIM_NAME = /^claimed-(\d+)\.jsonl$/;
  */
 export interface QueueFiles {
 	/** Moves the live queue aside under `name`. False when nothing was queued. */
-	claim(name: string): boolean;
-	discard(name: string): void;
+	claim: (name: string) => boolean;
+	discard: (name: string) => void;
 	/** Every file currently in the queue directory. */
-	list(): string[];
-	read(name: string): string;
-	write(name: string, text: string): void;
+	list: () => string[];
+	read: (name: string) => string;
+	write: (name: string, text: string) => void;
 }
 
 /** Claimed files and their contents, oldest first. */

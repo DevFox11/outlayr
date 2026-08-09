@@ -32,10 +32,10 @@ export function affectsSpotlight(tableName: string): boolean {
 	return SPOTLIGHT_TABLES.has(tableName);
 }
 
-export type Debounced = {
-	schedule: () => void;
+export interface Debounced {
 	cancel: () => void;
-};
+	schedule: () => void;
+}
 
 /** Trailing-edge only: the burst has to settle before the work runs. */
 export function debounce(delayMs: number, run: () => void): Debounced {

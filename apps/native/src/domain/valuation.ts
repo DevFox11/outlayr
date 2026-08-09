@@ -23,8 +23,8 @@ export interface RateTable {
 	 * this floor is not waiting on anything — it is the line between "not valued
 	 * yet" and "never will be". A code with no floor at all is the former.
 	 */
-	earliest(code: string): string | null;
-	get(code: string, dateKey: string): number | null;
+	earliest: (code: string) => string | null;
+	get: (code: string, dateKey: string) => number | null;
 }
 
 export function buildRateTable(rows: readonly { quote: string; date: string; rate: number }[]): RateTable {
@@ -46,7 +46,7 @@ export function buildRateTable(rows: readonly { quote: string; date: string; rat
 	return {
 		earliest(code) {
 			const list = byCode.get(code);
-			return list?.length ? list[list.length - 1].date : null;
+			return list?.at(-1)?.date ?? null;
 		},
 		get(code, dateKey) {
 			const list = byCode.get(code);

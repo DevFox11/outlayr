@@ -45,8 +45,8 @@ export function resolveLegalStep(flow: ImportFlowState, step: ImportStep): Impor
 }
 
 export interface ImportSheetHandle {
-	dismiss(): void;
-	present(): void;
+	dismiss: () => void;
+	present: () => void;
 }
 
 interface StepBodyProps {

@@ -15,11 +15,11 @@ const SEEDED_CATEGORY_COUNT = SEEDED_CATEGORY_NAMES.expense.length + SEEDED_CATE
  */
 export interface AdoptionEngine {
 	/** Whether the signed-in account already holds replicated rows. */
-	accountLedger(): Promise<RemoteLedger>;
+	accountLedger: () => Promise<RemoteLedger>;
 	/** Tombstone the account's rows so this device's ledger is the survivor. */
-	discardAccountLedger(): Promise<void>;
+	discardAccountLedger: () => Promise<void>;
 	/** Discard the local replica and refill it from the account's log at seq 0. */
-	replaceFromAccount(): Promise<void>;
+	replaceFromAccount: () => Promise<void>;
 }
 
 /**

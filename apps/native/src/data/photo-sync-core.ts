@@ -27,20 +27,20 @@ export interface PhotoTransport {
 	 * Records an object whose PUT completed. `storageId` is what Convex file
 	 * storage hands back from the PUT; R2 addresses by key and returns none.
 	 */
-	confirmUpload(key: string, storageId: string | null): Promise<void>;
+	confirmUpload: (key: string, storageId: string | null) => Promise<void>;
 	/**
 	 * Null for an object that is not there. A 404 is the expected outcome of a
 	 * delete racing this fetch, not a failure — see {@link downloadPhotos}.
 	 */
-	get(url: string): Promise<Uint8Array | null>;
+	get: (url: string) => Promise<Uint8Array | null>;
 	/** The storage id when the backend allocates one, null when the key is the address. */
-	put(url: string, bytes: Uint8Array): Promise<string | null>;
+	put: (url: string, bytes: Uint8Array) => Promise<string | null>;
 	/** Short-lived signed GETs. A key the account does not own is not returned. */
-	readUrls(keys: readonly string[]): Promise<{ key: string; url: string }[]>;
+	readUrls: (keys: readonly string[]) => Promise<{ key: string; url: string }[]>;
 	/** Frees an object no row in the account names any more. */
-	release(key: string): Promise<void>;
+	release: (key: string) => Promise<void>;
 	/** Answers a signed PUT and the key to record once the bytes are up. */
-	requestUpload(name: string): Promise<{ key: string; url: string }>;
+	requestUpload: (name: string) => Promise<{ key: string; url: string }>;
 }
 
 /**
@@ -60,8 +60,8 @@ export interface PhotoSyncResult {
 /** The device file name a key was minted from, or null if it is malformed. */
 export function photoNameFromKey(key: string): string | null {
 	const segments = key.split("/");
-	const name = segments[segments.length - 1];
-	return segments.length >= 2 && name !== "" ? name : null;
+	const name = segments.at(-1);
+	return segments.length >= 2 && name ? name : null;
 }
 
 /**

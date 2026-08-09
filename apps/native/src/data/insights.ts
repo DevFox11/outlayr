@@ -186,8 +186,12 @@ export function bucketSeries(
 	if (buckets.length === 0) {
 		return buckets;
 	}
+	const last = buckets.at(-1);
+	if (!last) {
+		return buckets;
+	}
 	const start = buckets[0].start.getTime();
-	const end = buckets[buckets.length - 1].end.getTime();
+	const end = last.end.getTime();
 	for (const row of rows) {
 		const t = row.date.getTime();
 		if (t > nowMs || t < start || t >= end) {
@@ -236,8 +240,12 @@ function windowBounds(
 	if (ranges.length === 0) {
 		return null;
 	}
+	const last = ranges.at(-1);
+	if (!last) {
+		return null;
+	}
 	return {
-		end: ranges[ranges.length - 1].end.getTime(),
+		end: last.end.getTime(),
 		start: ranges[0].start.getTime(),
 	};
 }

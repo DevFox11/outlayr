@@ -33,7 +33,11 @@ function migrated(): BetterSqlite3.Database {
 	return sqlite;
 }
 
-type OutboxRow = { seq: number; tableName: string; localId: string };
+interface OutboxRow {
+	localId: string;
+	seq: number;
+	tableName: string;
+}
 
 function outbox(sqlite: BetterSqlite3.Database): OutboxRow[] {
 	return sqlite.prepare("SELECT seq, tableName, localId FROM outbox ORDER BY seq").all() as OutboxRow[];

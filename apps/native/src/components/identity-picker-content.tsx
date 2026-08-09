@@ -50,14 +50,14 @@ import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
 
-export type IdentitySelection = {
+export interface IdentitySelection {
+	color: string | null;
 	emoji: string | null;
 	icon: string | null;
-	photoUri: string | null;
 	/** Photo glow color — auto-detected from the image, overridable via the swatch. */
 	photoColor: string | null;
-	color: string | null;
-};
+	photoUri: string | null;
+}
 
 export type IdentityTab = "photo" | "emoji" | "icons";
 

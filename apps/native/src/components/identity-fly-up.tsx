@@ -196,10 +196,12 @@ export function IdentityFlyUpLayer({
 	);
 }
 
-type DismissalEvent = { data?: { closing?: boolean } };
-type DismissalNavigation = {
+interface DismissalEvent {
+	data?: { closing?: boolean };
+}
+interface DismissalNavigation {
 	addListener: (type: string, listener: (event: DismissalEvent) => void) => () => void;
-};
+}
 
 const NOOP = () => {
 	// An unsupported listener name leaves nothing to unsubscribe from.

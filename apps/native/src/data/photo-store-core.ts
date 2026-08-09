@@ -59,14 +59,14 @@ export interface PhotoFiles {
 	 * means the source is already gone — the picker's cache is reclaimable at any
 	 * time, which is the whole reason photos are copied out of it.
 	 */
-	adopt(sourceUri: string, name: string): boolean;
+	adopt: (sourceUri: string, name: string) => boolean;
 	/** Absolute uri of the photo directory, which the implementation creates. */
 	readonly directoryUri: string;
-	list(): StoredPhoto[];
+	list: () => StoredPhoto[];
 	/** Null when the file is gone, which is not an error — see {@link adopt}. */
-	read(name: string): Uint8Array | null;
-	remove(name: string): void;
-	write(name: string, bytes: Uint8Array): void;
+	read: (name: string) => Uint8Array | null;
+	remove: (name: string) => void;
+	write: (name: string, bytes: Uint8Array) => void;
 }
 
 export function photoFileName(uri: string): string {

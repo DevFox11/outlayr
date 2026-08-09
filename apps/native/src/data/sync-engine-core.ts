@@ -206,13 +206,13 @@ export function specFor(table: SyncedTable): TableSpec {
 // keyed by a name checked against `SPECS`. The alternative is six copies of each
 // helper.
 type Row = Record<string, unknown>;
-type AnyWriter = {
+interface AnyWriter {
 	select: (columns?: unknown) => {
 		from: (table: SQLiteTable) => {
 			where: (clause: unknown) => Promise<Row[]>;
 		};
 	};
-};
+}
 
 function toEpoch(value: unknown): number | null {
 	return value instanceof Date ? value.getTime() : null;

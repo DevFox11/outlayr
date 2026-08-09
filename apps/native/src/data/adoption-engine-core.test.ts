@@ -72,7 +72,7 @@ function makeServer() {
 		const after = [...rows.values()].filter((row) => row.seq > cursor).sort((a, b) => a.seq - b.seq);
 		const page = after.slice(0, limit);
 		return {
-			cursor: page.length > 0 ? page[page.length - 1].seq : cursor,
+			cursor: page.at(-1)?.seq ?? cursor,
 			hasMore: after.length > page.length,
 			rows: page,
 		};

@@ -1,8 +1,8 @@
 import { requireNativeModule } from "expo";
 
 interface GlowNativeModule {
-	fromEmoji(emoji: string): string[];
-	fromImage(uri: string): Promise<string[]>;
+	fromEmoji: (emoji: string) => string[];
+	fromImage: (uri: string) => Promise<string[]>;
 }
 
 let native: GlowNativeModule | null = null;

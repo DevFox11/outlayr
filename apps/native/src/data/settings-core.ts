@@ -99,11 +99,11 @@ export const SETTING_DEFAULTS = {
 	use24HourClock: false,
 } as const satisfies Record<BoolSettingKey | NumberSettingKey, boolean | number>;
 
-type ChoiceOption = {
-	label: TranslationKey;
+interface ChoiceOption {
 	detail: TranslationKey;
+	label: TranslationKey;
 	value: number;
-};
+}
 
 export const HAPTICS_OPTIONS: readonly ChoiceOption[] = [
 	{

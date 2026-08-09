@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-type Declaration = {
-	name: string;
-	families: string[];
+interface Declaration {
 	configured: boolean;
-};
+	families: string[];
+	name: string;
+}
 
 /**
  * `app.config.ts` is the only declaration of what a widget is offered, and it
