@@ -7,6 +7,8 @@ import { View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 import { ImportSheet, type ImportSheetHandle } from "@/components/import-sheet/import-sheet";
+import { useDatabase } from "@/contexts/local-data-context";
+import { useAccounts } from "@/data/accounts";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 
@@ -14,6 +16,9 @@ export function FloatingAddButton() {
 	const accentColor = useCSSVariable("--color-primary") as string;
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
+	// Both legs are notNull, so a transfer with one account has no meaning — the
+	// row is absent rather than present and refusing.
+	const canTransfer = useAccounts(useDatabase()).length >= 2;
 
 	return (
 		<>
@@ -31,6 +36,9 @@ export function FloatingAddButton() {
 						systemImage="plus"
 					>
 						<Button label={t("log.add.transaction")} onPress={() => router.push("/transactions/create")} />
+						{canTransfer ? (
+							<Button label={t("log.add.transfer")} onPress={() => router.push("/transfers/create")} />
+						) : null}
 						<Button
 							label={t("log.add.import")}
 							onPress={() => {

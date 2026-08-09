@@ -6,12 +6,19 @@ const mockPush = jest.fn();
 const mockGetResumeStep = jest.fn(() => "source");
 const mockSetStep = jest.fn();
 const mockPresent = jest.fn();
+const mockAccounts = jest.fn(() => [{ id: "a" }, { id: "b" }]);
 
 jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("expo-router", () => ({
 	router: { push: (...args: unknown[]) => mockPush(...args) },
+}));
+jest.mock("@/contexts/local-data-context", () => ({
+	useDatabase: () => ({}),
+}));
+jest.mock("@/data/accounts", () => ({
+	useAccounts: () => mockAccounts(),
 }));
 jest.mock("@/lib/import-draft-store", () => ({
 	importDraftStore: {
@@ -60,6 +67,7 @@ describe("FloatingAddButton", () => {
 		mockSetStep.mockClear();
 		mockPresent.mockClear();
 		mockGetResumeStep.mockReturnValue("source");
+		mockAccounts.mockReturnValue([{ id: "a" }, { id: "b" }]);
 	});
 
 	it("renders through uniwind + expo-router + @expo/ui together", async () => {
@@ -91,5 +99,27 @@ describe("FloatingAddButton", () => {
 
 		expect(mockSetStep).toHaveBeenCalledWith("source");
 		expect(mockPresent).toHaveBeenCalledTimes(1);
+	});
+
+	it("offers a transfer once there are two accounts to move between", async () => {
+		const { getByText } = await render(<FloatingAddButton />);
+
+		fireEvent.press(getByText("log.add.transfer"));
+
+		expect(mockPush).toHaveBeenCalledWith("/transfers/create");
+	});
+
+	it("hides the transfer row with only one account, since both legs are required", async () => {
+		mockAccounts.mockReturnValue([{ id: "a" }]);
+		const { queryByText } = await render(<FloatingAddButton />);
+
+		expect(queryByText("log.add.transfer")).toBeNull();
+	});
+
+	it("hides it with no accounts at all", async () => {
+		mockAccounts.mockReturnValue([]);
+		const { queryByText } = await render(<FloatingAddButton />);
+
+		expect(queryByText("log.add.transfer")).toBeNull();
 	});
 });
