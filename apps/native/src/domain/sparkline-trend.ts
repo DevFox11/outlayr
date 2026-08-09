@@ -13,7 +13,7 @@ import type { LogMeasure } from "./log-measure";
  * a total function instead of a fourth case to branch on.
  */
 export function sparklineTrendKey(amounts: readonly number[]): TranslationKey {
-	const first = amounts[0];
+	const [first] = amounts;
 	const last = amounts.at(-1);
 	if (first === undefined || last === undefined || first === last) {
 		return "insights.trend.flat";

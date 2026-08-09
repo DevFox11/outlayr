@@ -35,6 +35,7 @@ function mixHex(from: string, to: string, t: number): string {
 
 function channels(value: string): [number, number, number] {
 	const int = Number.parseInt(value.slice(1), 16);
+	// biome-ignore lint/suspicious/noBitwiseOperators: #RRGGBB packs the three channels into byte lanes of one 24-bit integer, so shifting and masking is the definition of the split
 	return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 

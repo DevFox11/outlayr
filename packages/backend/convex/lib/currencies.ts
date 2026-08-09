@@ -76,6 +76,7 @@ function toConvexError<T>(run: () => T): T {
 		return run();
 	} catch (error) {
 		if (error instanceof MoneyValidationError) {
+			// biome-ignore lint/style/useErrorCause: ConvexError declares `constructor(data: TData)` — the payload it serializes to the client is its only argument, and convex/tsconfig.json pins lib to ES2021, where Error.cause does not exist to assign afterwards.
 			throw new ConvexError(error.message);
 		}
 		throw error;
@@ -87,6 +88,7 @@ async function toConvexErrorAsync<T>(run: () => Promise<T>): Promise<T> {
 		return await run();
 	} catch (error) {
 		if (error instanceof MoneyValidationError) {
+			// biome-ignore lint/style/useErrorCause: ConvexError declares `constructor(data: TData)` — the payload it serializes to the client is its only argument, and convex/tsconfig.json pins lib to ES2021, where Error.cause does not exist to assign afterwards.
 			throw new ConvexError(error.message);
 		}
 		throw error;

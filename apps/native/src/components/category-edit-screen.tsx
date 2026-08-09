@@ -5,11 +5,21 @@ import { Alert } from "react-native";
 import CategoryEditor from "@/components/category-editor";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
-import { categoriesRepo, getCategoryById } from "@/data/categories";
+import { type Category, categoriesRepo, getCategoryById } from "@/data/categories";
 import { categories } from "@/db/schema";
-import { useTranslation } from "@/i18n";
+import { type TranslatableKey, useTranslation } from "@/i18n";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
+
+function categoryKindKey(edited: Category | null): TranslatableKey {
+	if (edited == null) {
+		return "categories.kind.category";
+	}
+	if (edited.parentId != null) {
+		return "categories.kind.subcategory";
+	}
+	return edited.income ? "categories.kind.income" : "categories.kind.expense";
+}
 
 export function CategoryEditScreen({ id }: { id: string }) {
 	const router = useRouter();
@@ -21,15 +31,7 @@ export function CategoryEditScreen({ id }: { id: string }) {
 	// Read once on mount, like the editor does — a rename must not retitle the
 	// sheet mid-edit.
 	const [edited] = useState(() => (id ? getCategoryById(db, id) : null));
-	const title = t(
-		edited == null
-			? "categories.kind.category"
-			: edited.parentId == null
-				? edited.income
-					? "categories.kind.income"
-					: "categories.kind.expense"
-				: "categories.kind.subcategory"
-	);
+	const title = t(categoryKindKey(edited));
 
 	const confirmDelete = async () => {
 		if (!id) {

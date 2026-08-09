@@ -60,7 +60,7 @@ function periodStart(period: LogPeriod, now: Date): Date | null {
 			return firstOfMonth(now);
 		case "year":
 			return startOfYear(now);
-		case "all":
+		default:
 			return null;
 	}
 }

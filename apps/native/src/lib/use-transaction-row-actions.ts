@@ -25,6 +25,7 @@ async function stopRecurring(db: Database, id: string): Promise<void> {
 				{ style: "cancel", text: translateNow("common.cancel") },
 				{
 					onPress: () => {
+						// biome-ignore lint/complexity/noVoid: stopRecurring settles its own failure into this same alert, so the retry has no rejection left to handle
 						void stopRecurring(db, id);
 					},
 					text: translateNow("common.retry"),
@@ -68,6 +69,7 @@ export function useTransactionRowActions(
 				onEdit: () => router.push(`/transactions/${id}`),
 				onLogAgain: () => router.push(`/transactions/create?from=${id}`),
 				onStopRecurring: () => {
+					// biome-ignore lint/complexity/noVoid: stopRecurring never rejects — it alerts and offers a retry — and the action sheet is already dismissed, so there is nothing to await
 					void stopRecurring(db, id);
 				},
 				pending: row.date.getTime() > now.getTime(),

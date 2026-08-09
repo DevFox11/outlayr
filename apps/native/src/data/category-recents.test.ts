@@ -24,12 +24,17 @@ function makeDb(): Database {
 
 let clock = 0;
 
+function nextTick(): number {
+	clock += 1;
+	return clock;
+}
+
 function log(
 	db: Database,
 	categoryId: string | null,
 	options: { income?: boolean; deleted?: boolean; at?: number } = {}
 ): void {
-	const at = options.at ?? ++clock;
+	const at = options.at ?? nextTick();
 	const date = new Date(at * 1000);
 	if (categoryId != null) {
 		db.insert(categories)

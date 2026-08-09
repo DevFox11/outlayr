@@ -7,6 +7,7 @@ import {
 	DEFAULT_CALENDAR,
 	monthAbbrev,
 	monthAbbrevTitle,
+	// biome-ignore lint/style/noExportedImports: the rule's own fix, `export { monthPeriodStart } from "@/domain/dates"`, is rejected here by lint/performance/noBarrelFile
 	monthPeriodStart,
 	startOfWeek,
 	startOfYear,
@@ -113,7 +114,7 @@ export function bucketRanges(
 	const start = windowStart(period, now, offset, calendar);
 	const ranges: BucketRange[] = [];
 	if (period === "year") {
-		for (let i = 0; i < 12; i++) {
+		for (let i = 0; i < 12; i += 1) {
 			const slot = addMonths(start, i);
 			ranges.push({
 				end: addMonths(slot, 1),
@@ -125,7 +126,7 @@ export function bucketRanges(
 	}
 	const end = windowEnd(period, now, offset, calendar);
 	const slots = period === "week" ? 7 : Math.round((end.getTime() - start.getTime()) / DAY_MS);
-	for (let i = 0; i < slots; i++) {
+	for (let i = 0; i < slots; i += 1) {
 		const slot = addDays(start, i);
 		ranges.push({
 			end: addDays(slot, 1),
@@ -151,7 +152,7 @@ export function elapsedSlots(
 	let elapsed = 0;
 	for (const range of ranges) {
 		if (range.start.getTime() <= nowMs) {
-			elapsed++;
+			elapsed += 1;
 		}
 	}
 	return Math.max(1, Math.min(ranges.length, elapsed));
@@ -163,7 +164,7 @@ function measureValue(income: boolean, amount: number, measure: InsightsMeasure)
 			return income ? 0 : amount;
 		case "income":
 			return income ? amount : 0;
-		case "net":
+		default:
 			return income ? amount : -amount;
 	}
 }
@@ -465,16 +466,13 @@ export function subcategoryBreakdown(
 	return subcategoryBreakdownWithin(rows, categoriesById, parentId, measure, bounds, now);
 }
 
-export function subcategoryBreakdownWithin(
+function subcategorySums(
 	rows: readonly InsightsContribution[],
-	categoriesById: ReadonlyMap<string, CategoryMeta>,
 	parentId: string,
-	measure: InsightsMeasure,
+	wantIncome: boolean,
 	bounds: { start: number; end: number },
-	now: Date
-): CategoryBreakdownEntry[] {
-	const wantIncome = measure === "income";
-	const nowMs = now.getTime();
+	nowMs: number
+): Map<string, number> {
 	const sums = new Map<string, number>();
 	for (const row of rows) {
 		if (row.income !== wantIncome) {
@@ -490,6 +488,18 @@ export function subcategoryBreakdownWithin(
 		const key = row.categoryId ?? parentId;
 		sums.set(key, (sums.get(key) ?? 0) + row.amount);
 	}
+	return sums;
+}
+
+export function subcategoryBreakdownWithin(
+	rows: readonly InsightsContribution[],
+	categoriesById: ReadonlyMap<string, CategoryMeta>,
+	parentId: string,
+	measure: InsightsMeasure,
+	bounds: { start: number; end: number },
+	now: Date
+): CategoryBreakdownEntry[] {
+	const sums = subcategorySums(rows, parentId, measure === "income", bounds, now.getTime());
 	let total = 0;
 	for (const amount of sums.values()) {
 		total += amount;

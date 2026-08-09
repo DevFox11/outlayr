@@ -88,11 +88,8 @@ export function TransactionRow({
 			rates
 		);
 
-	const subtitle = future
-		? formatUpcomingDate(landsOn ?? date)
-		: swapTimeLabel
-			? (transaction.categoryName ?? "")
-			: formatTime(date, use24Hour);
+	const timeLabel = swapTimeLabel ? (transaction.categoryName ?? "") : formatTime(date, use24Hour);
+	const subtitle = future ? formatUpcomingDate(landsOn ?? date) : timeLabel;
 
 	return (
 		<Pressable

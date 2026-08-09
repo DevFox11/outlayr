@@ -160,7 +160,7 @@ beforeEach(() => {
 });
 
 function latestOnSuggest(): (suggestion: EnrichmentSuggestion) => void {
-	const calls = mockUseTransactionEnrichment.mock.calls;
+	const { calls } = mockUseTransactionEnrichment.mock;
 	const args = calls.at(-1)?.[0] as {
 		onSuggest: (suggestion: EnrichmentSuggestion) => void;
 	};

@@ -13,6 +13,7 @@ import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
+import type { IdentitySelection } from "@/components/identity-picker-content";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -46,6 +47,19 @@ export type AccountEditorProps = { mode: "create" } | { mode: "edit"; id: string
 
 type IdentitySource = "initial" | "suggested" | "user";
 
+function curtainHuesFor(draft: IdentitySelection, tint: string): string[] | null {
+	if (!(draft.icon || draft.emoji || draft.photoUri)) {
+		return null;
+	}
+	if (draft.photoUri) {
+		return [tint];
+	}
+	if (draft.emoji) {
+		return [...glowFromEmoji(draft.emoji).slice(0, 2), tint];
+	}
+	return [tint];
+}
+
 export default function AccountEditor(props: AccountEditorProps) {
 	const db = useDatabase();
 	return <AccountEditorReady db={db} {...props} />;
@@ -58,8 +72,7 @@ export default function AccountEditor(props: AccountEditorProps) {
  * only child.
  */
 function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/client").Database }) {
-	const { db } = props;
-	const mode = props.mode;
+	const { db, mode } = props;
 	const editId = props.mode === "edit" ? props.id : null;
 	const router = useRouter();
 	const navigation = useNavigation();
@@ -242,14 +255,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 	const canSave = name.trim() !== "" && !isSubmitting;
 
 	const tint = draft.photoColor ?? draft.color ?? colors.foreground;
-	const symbolEmpty = !(draft.icon || draft.emoji || draft.photoUri);
-	const curtainHues = symbolEmpty
-		? null
-		: draft.photoUri
-			? [tint]
-			: draft.emoji
-				? [...glowFromEmoji(draft.emoji).slice(0, 2), tint]
-				: [tint];
+	const curtainHues = curtainHuesFor(draft, tint);
 
 	const underPicker = [
 		opacity(pickerOpen ? 0 : 1),

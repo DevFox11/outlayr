@@ -77,7 +77,7 @@ function findByType(node: JsonNode | JsonNode[] | null, type: string): JsonNode 
 
 /** Drives the sentence's own stepper, which fires on press-in. */
 async function step(element: Parameters<typeof fireEvent>[0], times: number) {
-	for (let i = 0; i < times; i++) {
+	for (let i = 0; i < times; i += 1) {
 		await act(async () => {
 			fireEvent(element, "pressIn");
 			fireEvent(element, "pressOut");

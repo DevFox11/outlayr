@@ -64,6 +64,7 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
 	// Budgets carry the same contract as entries: a target stored as a bare
 	// number would follow the setting rather than survive it.
 	for (const table of [transactions, budgets, mainBudget] as const) {
+		// biome-ignore lint/performance/noAwaitInLoops: each table counts the rows it is about to stamp and then stamps them under the same predicate, and `await` on this driver only reaches the microtask queue (see yieldToUi below), so issuing the tables together would overlap no I/O while letting the two halves of that pair interleave
 		const pending = await db.select({ id: table.id }).from(table).where(isNull(table.currency));
 		if (pending.length === 0) {
 			continue;
@@ -104,6 +105,7 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 	let cursor = 0;
 
 	for (;;) {
+		// biome-ignore lint/performance/noAwaitInLoops: the next slice's offset is `cursor`, which only the previous slice's landed count can produce, so the slices cannot be issued together
 		const pending = await db
 			.select({
 				amount: transactions.amount,
@@ -123,6 +125,7 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 
 		let landed = 0;
 		for (const row of pending) {
+			// biome-ignore lint/performance/noAwaitInLoops: the rate lookup and the UPDATE are both synchronous on this driver (see CANONICALIZE_BATCH above), so issuing the slice together overlaps no I/O — it only moves all 250 rows into one microtask drain, which is exactly what yieldToUi paces
 			const canonical = await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency,
@@ -156,6 +159,7 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 	let valued = 0;
 
 	for (const table of [budgets, mainBudget] as const) {
+		// biome-ignore lint/performance/noAwaitInLoops: reads and writes are synchronous on this driver (see CANONICALIZE_BATCH above), so running the two tables together would overlap no I/O while interleaving each table's read with the other's writes
 		const pending = await db
 			.select({
 				amount: table.amount,
@@ -173,6 +177,7 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
 				// will find it.
 				continue;
 			}
+			// biome-ignore lint/performance/noAwaitInLoops: the rate lookup and the UPDATE are both synchronous on this driver (see CANONICALIZE_BATCH above), so issuing the rows together overlaps no I/O and only lets every target's write pile into one microtask drain
 			const { amountUsd } = await canonicalUsd(lookup, {
 				amount: row.amount,
 				currency: row.currency,

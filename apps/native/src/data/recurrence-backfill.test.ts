@@ -333,7 +333,7 @@ describe("backfillRecurring", () => {
 		expect(times).toStrictEqual(
 			[at(2025, 6, 13), at(2025, 6, 14), at(2025, 6, 15)].map((d) => startOfDay(d).getTime())
 		);
-		for (let i = 1; i < times.length; i++) {
+		for (let i = 1; i < times.length; i += 1) {
 			expect((times[i] ?? 0) > (times[i - 1] ?? 0)).toBeTruthy();
 		}
 		const source = (await allRows(db)).find((row) => row.id === id);
@@ -763,7 +763,7 @@ describe("occurrence identity across devices", () => {
 		const solo = makeDb();
 		await seedSource(solo, { date: at(2025, 3, 15) });
 		await backfillRecurring(solo, "src", NOW);
-		const replicated = (await generatedRows(solo, "src"))[0];
+		const [replicated] = await generatedRows(solo, "src");
 
 		// The peer's copy of the first charge, pulled in before this device swept.
 		await db.insert(transactions).values({ ...replicated, note: "from-peer" });
@@ -781,7 +781,7 @@ describe("occurrence identity across devices", () => {
 		const solo = makeDb();
 		await seedSource(solo, { date: at(2025, 3, 15) });
 		await backfillRecurring(solo, "src", NOW);
-		const replicated = (await generatedRows(solo, "src"))[0];
+		const [replicated] = await generatedRows(solo, "src");
 
 		await db.insert(transactions).values({ ...replicated, deletedAt: NOW, updatedAt: NOW });
 		await backfillRecurring(db, "src", NOW);

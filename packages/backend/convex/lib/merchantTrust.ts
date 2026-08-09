@@ -1,6 +1,9 @@
+// biome-ignore-all lint/style/useFilenamingConvention: Convex keys the module by its path — `_generated/api.d.ts:53` carries "lib/merchantTrust" — and regenerating that is not a lint fix
+
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 const MAX_DOMAIN_LENGTH = 253;
 const KEY_PATTERN = /^[a-z0-9 ]{3,64}$/;
+const EMOJI_PATTERN = /\p{Extended_Pictographic}/u;
 const MAX_TAGS = 3;
 const MAX_TAG_LENGTH = 24;
 
@@ -91,7 +94,7 @@ function emojiIsSanitized(emoji: string | null): boolean {
 	if (trimmed !== emoji || trimmed.length === 0 || [...trimmed].length > 3) {
 		return false;
 	}
-	return /\p{Extended_Pictographic}/u.test(trimmed);
+	return EMOJI_PATTERN.test(trimmed);
 }
 
 /**
@@ -102,10 +105,10 @@ function emojiIsSanitized(emoji: string | null): boolean {
  * first regardless.
  */
 export function shouldPublish(candidate: KnowledgeCandidate, sources: readonly { url: string }[]): boolean {
-	if (candidate.domain === null || !isSanitizedDomain(candidate.domain)) {
+	const { domain } = candidate;
+	if (domain === null || !isSanitizedDomain(domain)) {
 		return false;
 	}
-	const domain = candidate.domain;
 	if (!sources.some((source) => corroborates(domain, source.url))) {
 		return false;
 	}

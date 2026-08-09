@@ -16,7 +16,9 @@ function declarations(): Declaration[] {
 	const source = readFileSync(join(import.meta.dirname, "..", "..", "app.config.ts"), "utf8");
 	const start = source.indexOf("const WIDGETS = [");
 	const end = source.indexOf("\n];", start);
-	expect(start !== -1 && end !== -1).toBeTruthy();
+	if (start === -1 || end === -1) {
+		throw new Error("app.config.ts: no `const WIDGETS = [` literal to parse.");
+	}
 
 	// One entry per top-level object in the literal. Splitting on the brace keeps
 	// nested `name:` keys — an enum case is one — out of the widget's own.
@@ -47,7 +49,7 @@ describe("widget declarations", () => {
 		expect(
 			declarations()
 				.map((widget) => widget.name)
-				.sort()
+				.sort((a, b) => a.localeCompare(b))
 		).toStrictEqual(["Budget", "Insights", "Ledger", "Log"]);
 	});
 
@@ -83,7 +85,11 @@ describe("widget declarations", () => {
 	 */
 	it("reads the configuration it asks the user for", () => {
 		const configured = declarations().filter((widget) => widget.configured);
-		expect(configured.map((widget) => widget.name).sort()).toStrictEqual(["Budget", "Insights", "Ledger"]);
+		expect(configured.map((widget) => widget.name).sort((a, b) => a.localeCompare(b))).toStrictEqual([
+			"Budget",
+			"Insights",
+			"Ledger",
+		]);
 		for (const widget of configured) {
 			expect(layout(widget.name).includes("environment.configuration")).toBeTruthy();
 		}

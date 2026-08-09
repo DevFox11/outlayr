@@ -58,9 +58,12 @@ function isRasterImage(bytes: Uint8Array): boolean {
 function fnv1a32(bytes: Uint8Array): number {
 	let hash = 0x81_1c_9d_c5;
 	for (const byte of bytes) {
+		// biome-ignore lint/suspicious/noBitwiseOperators: FNV-1a is defined as xor-then-multiply over a 32-bit register
 		hash ^= byte;
+		// biome-ignore lint/suspicious/noBitwiseOperators: `>>> 0` is the 32-bit unsigned wrap FNV-1a specifies; `Math.imul` alone leaves a signed result
 		hash = Math.imul(hash, 0x01_00_01_93) >>> 0;
 	}
+	// biome-ignore lint/suspicious/noBitwiseOperators: the fingerprint is the unsigned 32-bit value, so a negative register must wrap before it is stringified
 	return hash >>> 0;
 }
 

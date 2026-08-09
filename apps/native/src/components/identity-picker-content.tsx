@@ -28,9 +28,9 @@ import {
 	textInputAutocapitalization,
 } from "@expo/ui/swift-ui/modifiers";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
+import { launchImageLibraryAsync } from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Alert, PlatformColor, Pressable, useWindowDimensions } from "react-native";
 import {
 	ColorSwatch,
@@ -191,7 +191,7 @@ export function IdentityPickerContent({
 	};
 
 	const adoptPickedPhoto = async () => {
-		const result = await ImagePicker.launchImageLibraryAsync({
+		const result = await launchImageLibraryAsync({
 			allowsEditing: true,
 			aspect: [1, 1],
 			mediaTypes: ["images"],
@@ -229,6 +229,72 @@ export function IdentityPickerContent({
 			Alert.alert(t("alerts.photo.failedTitle"), t("alerts.photo.failedBody"));
 		});
 	};
+
+	let panel: ReactNode;
+	if (tab === "photo") {
+		panel = (
+			<PhotoPanel
+				onColorChange={(color) => onChange({ ...value, photoColor: color })}
+				onPick={pickPhoto}
+				photoColor={value.photoColor}
+				uri={value.photoUri}
+			/>
+		);
+	} else if (tab === "emoji") {
+		panel = (
+			<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN })]} spacing={20}>
+				{CATEGORY_EMOJI_GROUPS.map((group) => (
+					<VStack alignment="leading" key={group.titleKey} spacing={SYMBOL_GAP}>
+						<GroupHeader title={t(group.titleKey)} />
+						<EmojiRows
+							cell={cell}
+							emojis={group.emoji}
+							onSelect={pickEmoji}
+							selectedEmoji={value.emoji ?? ""}
+							tint={glyphTint}
+						/>
+					</VStack>
+				))}
+			</VStack>
+		);
+	} else if (searching && searchResults.length === 0) {
+		panel = (
+			<VStack modifiers={[padding({ top: 60 })]}>
+				<SwiftText modifiers={[EMPTY_TEXT, foregroundStyle(SECONDARY_LABEL)]}>
+					{t("transaction.identity.noIcons")}
+				</SwiftText>
+			</VStack>
+		);
+	} else if (searching) {
+		panel = (
+			<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN, top: 4 })]}>
+				<IconRows
+					cell={cell}
+					keys={searchResults}
+					onSelect={pickIcon}
+					selectedIcon={value.icon ?? ""}
+					tint={glyphTint}
+				/>
+			</VStack>
+		);
+	} else {
+		panel = (
+			<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN })]} spacing={20}>
+				{CATEGORY_ICON_GROUPS.map((group) => (
+					<VStack alignment="leading" key={group.titleKey} spacing={SYMBOL_GAP}>
+						<GroupHeader title={t(group.titleKey)} />
+						<IconRows
+							cell={cell}
+							keys={group.keys}
+							onSelect={pickIcon}
+							selectedIcon={value.icon ?? ""}
+							tint={glyphTint}
+						/>
+					</VStack>
+				))}
+			</VStack>
+		);
+	}
 
 	return (
 		<VStack modifiers={[background(SYSTEM_COLORS.groupedBackground)]} spacing={0}>
@@ -286,64 +352,7 @@ export function IdentityPickerContent({
 				<ColorRail onSelect={pickColor} selected={value.color} usedColors={usedColors} />
 			) : null}
 
-			<ScrollView showsIndicators={false}>
-				{tab === "photo" ? (
-					<PhotoPanel
-						onColorChange={(color) => onChange({ ...value, photoColor: color })}
-						onPick={pickPhoto}
-						photoColor={value.photoColor}
-						uri={value.photoUri}
-					/>
-				) : tab === "emoji" ? (
-					<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN })]} spacing={20}>
-						{CATEGORY_EMOJI_GROUPS.map((group) => (
-							<VStack alignment="leading" key={group.titleKey} spacing={SYMBOL_GAP}>
-								<GroupHeader title={t(group.titleKey)} />
-								<EmojiRows
-									cell={cell}
-									emojis={group.emoji}
-									onSelect={pickEmoji}
-									selectedEmoji={value.emoji ?? ""}
-									tint={glyphTint}
-								/>
-							</VStack>
-						))}
-					</VStack>
-				) : searching ? (
-					searchResults.length === 0 ? (
-						<VStack modifiers={[padding({ top: 60 })]}>
-							<SwiftText modifiers={[EMPTY_TEXT, foregroundStyle(SECONDARY_LABEL)]}>
-								{t("transaction.identity.noIcons")}
-							</SwiftText>
-						</VStack>
-					) : (
-						<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN, top: 4 })]}>
-							<IconRows
-								cell={cell}
-								keys={searchResults}
-								onSelect={pickIcon}
-								selectedIcon={value.icon ?? ""}
-								tint={glyphTint}
-							/>
-						</VStack>
-					)
-				) : (
-					<VStack alignment="leading" modifiers={[padding({ bottom: 24, horizontal: SYMBOL_MARGIN })]} spacing={20}>
-						{CATEGORY_ICON_GROUPS.map((group) => (
-							<VStack alignment="leading" key={group.titleKey} spacing={SYMBOL_GAP}>
-								<GroupHeader title={t(group.titleKey)} />
-								<IconRows
-									cell={cell}
-									keys={group.keys}
-									onSelect={pickIcon}
-									selectedIcon={value.icon ?? ""}
-									tint={glyphTint}
-								/>
-							</VStack>
-						))}
-					</VStack>
-				)}
-			</ScrollView>
+			<ScrollView showsIndicators={false}>{panel}</ScrollView>
 		</VStack>
 	);
 }

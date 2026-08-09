@@ -1,4 +1,5 @@
 import { EN, ES } from "@/i18n/catalog";
+// biome-ignore lint/performance/noNamespaceImport: the test below asserts over the module's whole export surface, which only a namespace binding can enumerate
 import * as budgetMath from "./budget-math";
 import {
 	advanceBudgetWindow,

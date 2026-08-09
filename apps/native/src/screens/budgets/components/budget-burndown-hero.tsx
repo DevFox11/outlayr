@@ -83,6 +83,7 @@ export function BudgetBurndownHero({
 
 	const balanceLabel = formatAmount(Math.abs(balance), currency, showCents);
 	const status = over ? t("budgets.hero.overBudget") : t("budgets.hero.leftPeriod", { period });
+	const footnote = scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status;
 
 	const chartWidth = measured > 0 ? measured + bleed * 2 : windowWidth - 24;
 
@@ -143,9 +144,7 @@ export function BudgetBurndownHero({
 								toneClass={over ? "text-over-budget" : "text-foreground"}
 							/>
 						</View>
-						<Text className="pt-0.5 text-footnote text-muted">
-							{scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status}
-						</Text>
+						<Text className="pt-0.5 text-footnote text-muted">{footnote}</Text>
 					</View>
 
 					{showChart && burndown ? (

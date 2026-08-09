@@ -62,6 +62,10 @@ export function adoptionActions(plan: AdoptionPlan): AdoptionActions | null {
 		case "ask":
 		case "defer":
 			return null;
+		default: {
+			const unhandled: never = plan;
+			throw new Error(`Unhandled adoption plan: ${String(unhandled)}`);
+		}
 	}
 }
 
@@ -73,6 +77,10 @@ export function choiceActions(choice: AdoptionChoice): AdoptionActions {
 			return { pushLocal: true, wipeAccount: true, wipeLocal: false };
 		case "keep-account":
 			return { pushLocal: false, wipeAccount: false, wipeLocal: true };
+		default: {
+			const unhandled: never = choice;
+			throw new Error(`Unhandled adoption choice: ${String(unhandled)}`);
+		}
 	}
 }
 

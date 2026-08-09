@@ -47,6 +47,7 @@ export function netTotal(figures: LogFigures): number {
 
 /** Unsigned — the sign comes from {@link measureIsPositive}. */
 export function measureMagnitude(measure: LogMeasure, figures: LogFigures): number {
+	// biome-ignore lint/style/useDefaultSwitchClause: `LogMeasure` is a closed union — a default clause would swallow the missing-return error that forces a new member to be handled here
 	switch (measure) {
 		case "net":
 			return Math.abs(netTotal(figures));
@@ -58,6 +59,7 @@ export function measureMagnitude(measure: LogMeasure, figures: LogFigures): numb
 }
 
 export function measureIsPositive(measure: LogMeasure, figures: LogFigures): boolean {
+	// biome-ignore lint/style/useDefaultSwitchClause: `LogMeasure` is a closed union — a default clause would swallow the missing-return error that forces a new member to be handled here
 	switch (measure) {
 		case "net":
 			return netTotal(figures) >= 0;

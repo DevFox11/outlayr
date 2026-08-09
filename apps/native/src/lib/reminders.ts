@@ -95,10 +95,13 @@ export async function scheduleDatedReminder({ id, title, body, fireAt }: DatedRe
 /** Sequential: `cancelScheduledNotificationAsync` mutates one shared iOS queue. */
 export async function cancelReminders(ids: readonly string[]): Promise<void> {
 	for (const id of ids) {
+		// biome-ignore lint/performance/noAwaitInLoops: cancelScheduledNotificationAsync mutates one shared iOS notification queue, so overlapping cancels race each other.
 		await cancelScheduledNotificationAsync(id);
 	}
 }
 
 export function openNotificationSettings(): void {
-	void Linking.openSettings();
+	Linking.openSettings().catch((error) => {
+		console.warn("[outlayr] opening notification settings failed", error);
+	});
 }

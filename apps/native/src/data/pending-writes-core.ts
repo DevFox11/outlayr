@@ -120,6 +120,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
 
 	for (const job of jobs) {
 		const seen = alreadyApplied(ledger, job, at);
+		// biome-ignore lint/performance/noAwaitInLoops: exactly-once depends on this job seeing the ledger row the previous job's SQLite transaction committed, so the jobs must land one at a time
 		if (seen && (await stillOnLedger(db, seen.txId))) {
 			continue;
 		}

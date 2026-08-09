@@ -92,6 +92,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 			return;
 		}
 		prompted.current = true;
+		// biome-ignore lint/complexity/noVoid: the prompt is deliberately not awaited, and requestUnlock (lib/app-lock.ts:21-31) resolves a result object for every failure, so there is no rejection a .catch could handle
 		void attempt();
 	}, [gate, enforceable, attempt]);
 
@@ -103,6 +104,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 					busy={checking}
 					message={failure ? t(failure) : null}
 					onUnlock={() => {
+						// biome-ignore lint/complexity/noVoid: the prompt is deliberately not awaited, and requestUnlock (lib/app-lock.ts:21-31) resolves a result object for every failure, so there is no rejection a .catch could handle
 						void attempt();
 					}}
 				/>

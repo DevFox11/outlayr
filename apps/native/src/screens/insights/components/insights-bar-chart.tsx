@@ -52,6 +52,23 @@ function makePlot(values: number[]): Plot {
 	return { span: Math.max(1, top), top };
 }
 
+function gapFor(period: InsightsPeriod): number {
+	if (period === "week") {
+		return 6;
+	}
+	if (period === "year") {
+		return 4;
+	}
+	return 2;
+}
+
+function barOpacity(future: boolean, dimmed: boolean): number {
+	if (future) {
+		return 0.3;
+	}
+	return dimmed ? 0.4 : 1;
+}
+
 /**
  * A tap is a zero-length drag: `minDistance(0)` claims the touch on the way in,
  * so a competing tap gesture would be unresolvable and must not be added.
@@ -83,6 +100,7 @@ export function InsightsBarChart({
 			grow.value = 1;
 			return;
 		}
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `useRef(false).current` as the literal `false` even when annotated `useRef<boolean>`; it is assigned true on the next line and survives this effect's later runs.
 		if (drawn.current) {
 			return;
 		}
@@ -93,7 +111,7 @@ export function InsightsBarChart({
 		});
 	}, [animated, grow]);
 
-	const gap = period === "week" ? 6 : period === "year" ? 4 : 2;
+	const gap = gapFor(period);
 	const values = buckets.map((bucket) => Math.abs(bucket.value));
 	const plot = useMemo(() => makePlot(values), [values]);
 
@@ -317,7 +335,7 @@ function Bar({ value, plot, color, trackColor, grow, dimmed, future, label, sele
 				borderRadius: CHART_BAR.radius,
 				flex: 1,
 				height: BAR_AREA,
-				opacity: future ? 0.3 : dimmed ? 0.4 : 1,
+				opacity: barOpacity(future, dimmed),
 			}}
 		>
 			<Animated.View

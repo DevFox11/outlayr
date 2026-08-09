@@ -151,10 +151,10 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 					// before the data had actually left.
 					let done = false;
 					while (!done) {
-						const result = await ctx.runMutation(internal.account.purgeBatch, {
+						// biome-ignore lint/performance/noAwaitInLoops: each batch must commit before the next one can see what is left to purge, and only the last one reports done
+						({ done } = await ctx.runMutation(internal.account.purgeBatch, {
 							userId: user.id,
-						});
-						done = result.done;
+						}));
 					}
 				},
 				enabled: true,

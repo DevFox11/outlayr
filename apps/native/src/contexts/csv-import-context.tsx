@@ -67,7 +67,7 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
 		aiEnrichment,
 		categoryIdByKey,
 		categoryTree,
-		chars: state.file?.chars ?? 0,
+		chars: state.file == null ? 0 : state.file.chars,
 		draft: state.draft ?? EMPTY_DRAFT,
 		fileKey: state.file == null ? null : `${state.file.name}:${state.file.chars}`,
 		groundedLookup,

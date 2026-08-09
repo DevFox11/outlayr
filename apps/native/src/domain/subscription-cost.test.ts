@@ -10,8 +10,8 @@ import { buildRateTable } from "./valuation";
 const DAYS_PER_MONTH = 365 / 12;
 const WEEKS_PER_MONTH = 52 / 12;
 
-function close(actual: number, expected: number) {
-	expect(Math.abs(actual - expected) < 1e-9).toBeTruthy();
+function isClose(actual: number, expected: number) {
+	return Math.abs(actual - expected) < 1e-9;
 }
 
 function schedule(
@@ -32,17 +32,17 @@ function schedule(
 
 describe("normalizing one schedule to a month", () => {
 	it("restates every cadence at its own rate", () => {
-		close(monthlyEquivalent(30, RECURRING_TYPE.daily, 1), 30 * DAYS_PER_MONTH);
-		close(monthlyEquivalent(30, RECURRING_TYPE.weekly, 1), 30 * WEEKS_PER_MONTH);
-		close(monthlyEquivalent(30, RECURRING_TYPE.monthly, 1), 30);
-		close(monthlyEquivalent(30, RECURRING_TYPE.yearly, 1), 2.5);
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.daily, 1), 30 * DAYS_PER_MONTH)).toBeTruthy();
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.weekly, 1), 30 * WEEKS_PER_MONTH)).toBeTruthy();
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.monthly, 1), 30)).toBeTruthy();
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.yearly, 1), 2.5)).toBeTruthy();
 	});
 
 	it("divides by the interval when the schedule skips periods", () => {
-		close(monthlyEquivalent(30, RECURRING_TYPE.daily, 2), (30 * DAYS_PER_MONTH) / 2);
-		close(monthlyEquivalent(30, RECURRING_TYPE.weekly, 3), (30 * WEEKS_PER_MONTH) / 3);
-		close(monthlyEquivalent(30, RECURRING_TYPE.monthly, 4), 7.5);
-		close(monthlyEquivalent(30, RECURRING_TYPE.yearly, 2), 1.25);
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.daily, 2), (30 * DAYS_PER_MONTH) / 2)).toBeTruthy();
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.weekly, 3), (30 * WEEKS_PER_MONTH) / 3)).toBeTruthy();
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.monthly, 4), 7.5)).toBeTruthy();
+		expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.yearly, 2), 1.25)).toBeTruthy();
 	});
 
 	it("charges a non-recurring row nothing at all", () => {
@@ -53,7 +53,9 @@ describe("normalizing one schedule to a month", () => {
 	it("reads a coefficient below one as every period, matching nextDate", () => {
 		expect(monthlyChargeCount(RECURRING_TYPE.monthly, 0)).toBe(1);
 		expect(monthlyChargeCount(RECURRING_TYPE.monthly, -3)).toBe(1);
-		close(monthlyChargeCount(RECURRING_TYPE.daily, 0.4), monthlyChargeCount(RECURRING_TYPE.daily, 1));
+		expect(
+			isClose(monthlyChargeCount(RECURRING_TYPE.daily, 0.4), monthlyChargeCount(RECURRING_TYPE.daily, 1))
+		).toBeTruthy();
 	});
 });
 
@@ -66,12 +68,12 @@ describe("monthlySubscriptionCost", () => {
 
 		const [coffeeOnly] = monthlySubscriptionCost([coffee], "USD");
 		const [renewalOnly] = monthlySubscriptionCost([renewal], "USD");
-		close(coffeeOnly.amount, -(5 * DAYS_PER_MONTH));
-		close(renewalOnly.amount, -1);
+		expect(isClose(coffeeOnly.amount, -(5 * DAYS_PER_MONTH))).toBeTruthy();
+		expect(isClose(renewalOnly.amount, -1)).toBeTruthy();
 		expect(Math.abs(coffeeOnly.amount) > Math.abs(renewalOnly.amount) * 100).toBeTruthy();
 
 		const [both] = monthlySubscriptionCost([coffee, renewal], "USD");
-		close(both.amount, -(5 * DAYS_PER_MONTH + 1));
+		expect(isClose(both.amount, -(5 * DAYS_PER_MONTH + 1))).toBeTruthy();
 		expect(both.transactionCount).toBe(2);
 	});
 

@@ -159,21 +159,18 @@ const BudgetWidget = (props: BudgetWidgetProps, environment: WidgetEnvironment<B
 		</HStack>
 	);
 
+	const overallHeading = family === "systemSmall" ? view.periodLabel : `${view.periodLabel} · ${view.rangeLabel}`;
+	// A per-category budget leads with its own name, or the tile is
+	// indistinguishable from the overall one.
+	const heading = view.isOverall ? overallHeading : `${view.name.toUpperCase()} · ${view.periodLabel}`;
+
 	return (
 		<VStack
 			alignment="leading"
 			modifiers={[widgetURL(view.url), containerBackground(palette.background, "widget")]}
 			spacing={0}
 		>
-			{/* A per-category budget leads with its own name, or the tile is
-			    indistinguishable from the overall one. */}
-			{eyebrow(
-				view.isOverall
-					? family === "systemSmall"
-						? view.periodLabel
-						: `${view.periodLabel} · ${view.rangeLabel}`
-					: `${view.name.toUpperCase()} · ${view.periodLabel}`
-			)}
+			{eyebrow(heading)}
 			<Spacer modifiers={[frame({ height: 6 })]} />
 			{hero(family === "systemSmall" ? 26 : 32)}
 			<Spacer modifiers={[frame({ height: 10 })]} />

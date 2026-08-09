@@ -1,7 +1,28 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { StackRouter } from "expo-router/react-navigation";
-import * as ts from "typescript";
+import {
+	createSourceFile,
+	forEachChild,
+	isBinaryExpression,
+	isCallExpression,
+	isIdentifier,
+	isJsxAttribute,
+	isJsxElement,
+	isJsxExpression,
+	isJsxSelfClosingElement,
+	isPropertyAccessExpression,
+	isStringLiteral,
+	type JsxAttribute,
+	type JsxElement,
+	type JsxOpeningLikeElement,
+	type JsxSelfClosingElement,
+	type Node,
+	ScriptKind,
+	ScriptTarget,
+	type SourceFile,
+	SyntaxKind,
+} from "typescript";
 import type { RootStackGroup } from "@/domain/auth-gate";
 import { CATEGORY_SHEETS, ROOT_STACK_SCREEN_NAMES, SETTINGS_SCREENS } from "./root-stack";
 
@@ -21,6 +42,13 @@ const LAYOUT_BASENAME = "_layout";
 const IGNORED_ROUTE_BASENAMES = new Set(["+api", "+html", "+middleware", "+native-intent"]);
 
 const UNGUARDED_CATCH_ALL = "+not-found";
+
+function byCodeUnit(a: string, b: string): number {
+	if (a === b) {
+		return 0;
+	}
+	return a < b ? -1 : 1;
+}
 
 function routeBasename(fileName: string): string | null {
 	const extension = ROUTE_EXTENSIONS.find((candidate) => fileName.endsWith(candidate));
@@ -87,8 +115,8 @@ describe("root stack total-partition invariant", () => {
 	});
 
 	it("keeps every pair of groups pairwise disjoint", () => {
-		for (let i = 0; i < groups.length; i++) {
-			for (let j = i + 1; j < groups.length; j++) {
+		for (let i = 0; i < groups.length; i += 1) {
+			for (let j = i + 1; j < groups.length; j += 1) {
 				const overlap = groups[i].filter((name) => groups[j].includes(name));
 				expect(overlap).toEqual([]);
 			}
@@ -119,37 +147,37 @@ const DYNAMIC_SCREEN_LISTS: Record<string, NamedList> = {
 	SETTINGS_SCREENS,
 };
 
-type JsxTag = ts.JsxElement | ts.JsxSelfClosingElement;
+type JsxTag = JsxElement | JsxSelfClosingElement;
 
-function openingOf(node: JsxTag): ts.JsxOpeningLikeElement {
-	return ts.isJsxElement(node) ? node.openingElement : node;
+function openingOf(node: JsxTag): JsxOpeningLikeElement {
+	return isJsxElement(node) ? node.openingElement : node;
 }
 
 function jsxTagName(node: JsxTag): string {
 	return openingOf(node).tagName.getText();
 }
 
-function jsxAttribute(node: JsxTag, attribute: string): ts.JsxAttribute | null {
+function jsxAttribute(node: JsxTag, attribute: string): JsxAttribute | null {
 	const found = openingOf(node).attributes.properties.find(
-		(property): property is ts.JsxAttribute => ts.isJsxAttribute(property) && property.name.getText() === attribute
+		(property): property is JsxAttribute => isJsxAttribute(property) && property.name.getText() === attribute
 	);
 	return found ?? null;
 }
 
-function lineOf(node: ts.Node, source: ts.SourceFile): number {
+function lineOf(node: Node, source: SourceFile): number {
 	return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
 
-function guardedGroup(node: JsxTag, source: ts.SourceFile): RootStackGroup {
+function guardedGroup(node: JsxTag, source: SourceFile): RootStackGroup {
 	const initializer = jsxAttribute(node, "guard")?.initializer;
-	const expression = initializer && ts.isJsxExpression(initializer) ? initializer.expression : undefined;
+	const expression = initializer && isJsxExpression(initializer) ? initializer.expression : undefined;
 	if (
 		expression === undefined ||
-		!ts.isBinaryExpression(expression) ||
-		expression.operatorToken.kind !== ts.SyntaxKind.EqualsEqualsEqualsToken ||
-		!ts.isIdentifier(expression.left) ||
+		!isBinaryExpression(expression) ||
+		expression.operatorToken.kind !== SyntaxKind.EqualsEqualsEqualsToken ||
+		!isIdentifier(expression.left) ||
 		expression.left.text !== "group" ||
-		!ts.isStringLiteral(expression.right)
+		!isStringLiteral(expression.right)
 	) {
 		throw new Error(
 			`app/_layout.tsx:${lineOf(node, source)} <Stack.Protected> does not carry a \`guard={group === "<name>"}\` prop. This test only understands that shape — restore it, or teach the test the new one before landing the change.`
@@ -164,11 +192,11 @@ function guardedGroup(node: JsxTag, source: ts.SourceFile): RootStackGroup {
 	return group as RootStackGroup;
 }
 
-function mappedList(node: ts.Node): NamedList | null {
+function mappedList(node: Node): NamedList | null {
 	if (
-		!(ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) ||
+		!(isCallExpression(node) && isPropertyAccessExpression(node.expression)) ||
 		node.expression.name.text !== "map" ||
-		!ts.isIdentifier(node.expression.expression)
+		!isIdentifier(node.expression.expression)
 	) {
 		return null;
 	}
@@ -177,20 +205,20 @@ function mappedList(node: ts.Node): NamedList | null {
 
 function renderedNames(
 	node: JsxTag,
-	source: ts.SourceFile,
+	source: SourceFile,
 	group: RootStackGroup | null,
 	list: NamedList | null
 ): RenderedScreen[] {
 	const line = lineOf(node, source);
 	const initializer = jsxAttribute(node, "name")?.initializer;
-	if (initializer && ts.isStringLiteral(initializer)) {
+	if (initializer && isStringLiteral(initializer)) {
 		return [{ group, line, name: initializer.text }];
 	}
 	if (
 		initializer &&
-		ts.isJsxExpression(initializer) &&
+		isJsxExpression(initializer) &&
 		initializer.expression &&
-		ts.isPropertyAccessExpression(initializer.expression)
+		isPropertyAccessExpression(initializer.expression)
 	) {
 		if (list === null) {
 			throw new Error(
@@ -205,29 +233,29 @@ function renderedNames(
 }
 
 function parseLayoutScreens(layoutSource: string): RenderedScreen[] {
-	const source = ts.createSourceFile("_layout.tsx", layoutSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+	const source = createSourceFile("_layout.tsx", layoutSource, ScriptTarget.Latest, true, ScriptKind.TSX);
 	const screens: RenderedScreen[] = [];
 
-	const visit = (node: ts.Node, group: RootStackGroup | null, list: NamedList | null) => {
+	const visit = (node: Node, group: RootStackGroup | null, list: NamedList | null) => {
 		const mapped = mappedList(node);
-		if (mapped !== null && ts.isCallExpression(node)) {
+		if (mapped !== null && isCallExpression(node)) {
 			for (const argument of node.arguments) {
 				visit(argument, group, mapped);
 			}
 			return;
 		}
-		if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+		if (isJsxElement(node) || isJsxSelfClosingElement(node)) {
 			const tag = jsxTagName(node);
 			if (tag === "Stack.Protected") {
 				const nested = guardedGroup(node, source);
-				ts.forEachChild(node, (child) => visit(child, nested, list));
+				forEachChild(node, (child) => visit(child, nested, list));
 				return;
 			}
 			if (tag === "Stack.Screen") {
 				screens.push(...renderedNames(node, source, group, list));
 			}
 		}
-		ts.forEachChild(node, (child) => visit(child, group, list));
+		forEachChild(node, (child) => visit(child, group, list));
 	};
 
 	visit(source, null, null);
@@ -270,11 +298,11 @@ describe("guard partition written in app/_layout.tsx", () => {
 				rendered
 					.filter((screen) => screen.group === group)
 					.map((screen) => screen.name)
-					.sort(),
+					.sort(byCodeUnit),
 			])
 		);
 		const declaredByGroup = Object.fromEntries(
-			GROUPS.map((group) => [group, [...ROOT_STACK_SCREEN_NAMES[group]].sort()])
+			GROUPS.map((group) => [group, [...ROOT_STACK_SCREEN_NAMES[group]].sort(byCodeUnit)])
 		);
 		expect(renderedByGroup).toEqual(declaredByGroup);
 	});
@@ -329,7 +357,7 @@ function entryScreen(group: RootStackGroup): string {
 
 function beforeStackFor(group: RootStackGroup): TestRoute[] {
 	const names = ROOT_STACK_SCREEN_NAMES[group];
-	const entry = names[0];
+	const [entry] = names;
 	const pushed = names.includes("settings/account") ? "settings/account" : names.at(-1);
 	if (pushed === undefined || pushed === entry) {
 		return [{ key: `${entry}-a`, name: entry }];

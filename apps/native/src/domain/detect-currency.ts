@@ -3,7 +3,7 @@ import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money";
 /** Symbol → the currencies that use it. */
 const BY_SYMBOL = new Map<string, string[]>();
 for (const code of PICKABLE_CURRENCY_CODES) {
-	const symbol = CURRENCY_META[code].symbol;
+	const { symbol } = CURRENCY_META[code];
 	const existing = BY_SYMBOL.get(symbol);
 	if (existing) {
 		existing.push(code);

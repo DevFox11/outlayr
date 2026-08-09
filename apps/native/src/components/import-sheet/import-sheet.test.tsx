@@ -145,7 +145,7 @@ describe("resolveLegalStep", () => {
 	it("lets a legal step through", () => {
 		importDraftStore.clear();
 		loadFile();
-		const flow = importDraftStore.getSnapshot().flow;
+		const { flow } = importDraftStore.getSnapshot();
 		expect(resolveLegalStep(flow, "file")).toBe("file");
 		expect(resolveLegalStep(flow, "resolve")).toBe("resolve");
 		expect(resolveLegalStep(flow, "review")).toBe("resolve");

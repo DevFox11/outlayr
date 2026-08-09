@@ -199,8 +199,8 @@ function SettingsContent({ db }: { db: Database }) {
 				/>
 				<ToggleRow
 					icon="BiometricAccess"
-					onValueChange={(next) => {
-						void toggleAppLock(db, next);
+					onValueChange={async (next) => {
+						await toggleAppLock(db, next);
 					}}
 					title={t("settings.row.authentication")}
 					value={biometricLock}

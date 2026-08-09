@@ -169,9 +169,9 @@ describe("figures over a whole result set", () => {
 			eurRates
 		);
 		expect(
-			figures.map((entry) => ({
-				code: entry.currencyCode,
-				net: entry.income - entry.expense,
+			figures.map((figure) => ({
+				code: figure.currencyCode,
+				net: figure.income - figure.expense,
 			}))
 		).toStrictEqual([
 			{ code: "USD", net: 10 },

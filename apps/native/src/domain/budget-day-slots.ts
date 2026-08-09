@@ -89,17 +89,18 @@ export function buildDaySlots(rows: readonly ExpenseContribution[], options: Day
 		blocks.push({ amount: row.amount, over, start });
 	}
 
-	const median = categoryMedian(rows, categoryId);
+	const typicalAmount = categoryMedian(rows, categoryId);
 	const remaining = limit - spent;
-	const roomFor = median != null && median > 0 && remaining > 0 ? Math.floor(remaining / median) : 0;
-	const ghost = roomFor >= 1 ? median : null;
+	const roomFor =
+		typicalAmount != null && typicalAmount > 0 && remaining > 0 ? Math.floor(remaining / typicalAmount) : 0;
+	const ghost = roomFor >= 1 ? typicalAmount : null;
 
 	let verdict: DayVerdict = null;
 	if (spent > limit) {
 		verdict = "over";
 	} else if (roomFor >= 1) {
 		verdict = "room";
-	} else if (median != null) {
+	} else if (typicalAmount != null) {
 		verdict = "tight";
 	}
 
@@ -107,7 +108,7 @@ export function buildDaySlots(rows: readonly ExpenseContribution[], options: Day
 		blocks,
 		ghost,
 		limit,
-		median,
+		median: typicalAmount,
 		overflow,
 		remaining,
 		roomFor,

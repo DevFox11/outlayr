@@ -1,3 +1,5 @@
+// biome-ignore-all lint/style/useFilenamingConvention: the Convex module name is the function path — clients call this action as api.csvImport.csvImport
+
 import { createXai } from "@ai-sdk/xai";
 import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, type LanguageModel, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
@@ -247,6 +249,7 @@ export async function scheduleImportGrounded(
 		}
 		seen.add(key);
 		attempts += 1;
+		// biome-ignore lint/performance/noAwaitInLoops: maybeScheduleGrounded spends one token of the shared groundedPerUser rate limit per call (enrichment.ts:435); running them in parallel races that counter and admits a different number of labels
 		const ok = await maybeScheduleGrounded(ctx, tokenIdentifier, {
 			groundedLookup: true,
 			income: false,
@@ -300,10 +303,13 @@ export const csvImport = action({
 		// never reaches the model.
 		const known: LabelSuggestion[] = [];
 		const remaining: string[] = [];
-		for (const label of args.labels) {
-			const row = await ctx.runQuery(internal.merchantKnowledge.lookup, {
-				key: merchantKey(label),
-			});
+		const looked = await Promise.all(
+			args.labels.map(async (label) => ({
+				label,
+				row: await ctx.runQuery(internal.merchantKnowledge.lookup, { key: merchantKey(label) }),
+			}))
+		);
+		for (const { label, row } of looked) {
 			if (row === null) {
 				remaining.push(label);
 			} else {

@@ -15,6 +15,8 @@ import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = typeof authClient;
 
+const PLACEHOLDER = /\{\w+\}/;
+
 export function SignIn() {
 	return <SignInContent client={authClient} />;
 }
@@ -26,7 +28,7 @@ export function SignIn() {
  * passed — and is split here instead of interpolated.
  */
 function FlyleafLine({ template, value, quiet }: { template: string; value: string; quiet?: boolean }) {
-	const [before, after] = template.split(/\{\w+\}/);
+	const [before, after] = template.split(PLACEHOLDER);
 	// "Bs." + the template's own full stop would print "Bs.." — the value's
 	// trailing period absorbs the sentence's.
 	const tail = value.endsWith(".") && after?.startsWith(".") ? after.slice(1) : after;

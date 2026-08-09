@@ -54,6 +54,7 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
 	);
 
 	for (const reminder of armed) {
+		// biome-ignore lint/performance/noAwaitInLoops: arming mutates the one shared iOS notification queue, which is why `cancelReminders` (lib/reminders.ts) walks it serially too
 		await scheduleDatedReminder({
 			body: translateNow("reminder.due.body", {
 				amount: formatAmount(reminder.amount, reminder.currency),

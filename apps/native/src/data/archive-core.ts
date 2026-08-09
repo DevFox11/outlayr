@@ -31,10 +31,12 @@ const TABLES: Record<ArchiveTable, SQLiteTable> = {
  */
 export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocument> {
 	const tables = {} as Record<ArchiveTable, Record<string, unknown>[]>;
-	for (const table of ARCHIVE_TABLES) {
-		const rows = await db.select().from(TABLES[table]);
-		tables[table] = rows.map((row) => encodeArchiveRow(table, row as Record<string, unknown>));
-	}
+	await Promise.all(
+		ARCHIVE_TABLES.map(async (table) => {
+			const rows = await db.select().from(TABLES[table]);
+			tables[table] = rows.map((row) => encodeArchiveRow(table, row as Record<string, unknown>));
+		})
+	);
 	return {
 		exportedAt: now.getTime(),
 		format: ARCHIVE_FORMAT,
@@ -59,6 +61,7 @@ export async function restoreArchive(db: Database, document: ArchiveDocument): P
 	let written = 0;
 	await withTransaction(db, async () => {
 		for (const table of [...ARCHIVE_TABLES].reverse()) {
+			// biome-ignore lint/performance/noAwaitInLoops: children must be deleted before their parents, so the reversed ARCHIVE_TABLES order has to be walked one table at a time
 			await db.delete(TABLES[table]);
 		}
 		for (const table of ARCHIVE_TABLES) {
@@ -70,6 +73,7 @@ export async function restoreArchive(db: Database, document: ArchiveDocument): P
 			// a single insert of one is not.
 			for (let from = 0; from < rows.length; from += ARCHIVE_INSERT_CHUNK) {
 				const slice = rows.slice(from, from + ARCHIVE_INSERT_CHUNK);
+				// biome-ignore lint/performance/noAwaitInLoops: every statement here shares the one open withTransaction connection, and forward table order writes parents before the rows referencing them
 				await db.insert(TABLES[table]).values(slice);
 				written += slice.length;
 			}

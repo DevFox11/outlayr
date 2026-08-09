@@ -258,7 +258,7 @@ describe("cotizave.fetchRates", () => {
 		await t.action(internal.cotizave.fetchRates, {});
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const firstCall = fetchMock.mock.calls[0];
+		const [firstCall] = fetchMock.mock.calls;
 		if (!firstCall) {
 			throw new Error("Expected fetch to have been called once");
 		}

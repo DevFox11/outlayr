@@ -20,9 +20,9 @@ function containsTokenSequence(haystack: readonly string[], needle: readonly str
 	if (needle.length === 0 || needle.length > haystack.length) {
 		return false;
 	}
-	for (let start = 0; start <= haystack.length - needle.length; start++) {
+	for (let start = 0; start <= haystack.length - needle.length; start += 1) {
 		let matched = true;
-		for (let offset = 0; offset < needle.length; offset++) {
+		for (let offset = 0; offset < needle.length; offset += 1) {
 			if (haystack[start + offset] !== needle[offset]) {
 				matched = false;
 				break;
@@ -58,10 +58,10 @@ function boundedLevenshtein(a: string, b: string, earlyExitAt: number): number {
 		return earlyExitAt + 1;
 	}
 	let previous = Array.from({ length: b.length + 1 }, (_, col) => col);
-	for (let row = 1; row <= a.length; row++) {
+	for (let row = 1; row <= a.length; row += 1) {
 		const current: number[] = [row];
 		let rowMin = row;
-		for (let col = 1; col <= b.length; col++) {
+		for (let col = 1; col <= b.length; col += 1) {
 			const cost = a[row - 1] === b[col - 1] ? 0 : 1;
 			const value = Math.min(previous[col] + 1, current[col - 1] + 1, previous[col - 1] + cost);
 			current.push(value);

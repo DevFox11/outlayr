@@ -98,6 +98,7 @@ export function IdentityDraftProvider({ children }: { children: React.ReactNode 
 			// The first measurement lands hard: springing off the 0 sentinel would drag
 			// the hero's target through every height in between while it is still
 			// flying up.
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is narrowed to the literal `false` it was seeded with, but the first call writes `sheetMeasured.current = true` below and every later call reads it here
 			if (sheetMeasured.current) {
 				sheetHeight.value = withSpring(height, LAUNCH_SPRING);
 				return;

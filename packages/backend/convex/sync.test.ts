@@ -522,10 +522,10 @@ describe("pullSince", () => {
 		const seen: string[] = [];
 		let cursor = 0;
 		for (let guard = 0; guard < 10; guard += 1) {
-			const page = await pullAs(t, owner, cursor, 3);
-			seen.push(...page.rows.map((row) => row.localId));
-			cursor = page.cursor;
-			if (!page.hasMore) {
+			const { cursor: nextCursor, hasMore, rows } = await pullAs(t, owner, cursor, 3);
+			seen.push(...rows.map((row) => row.localId));
+			cursor = nextCursor;
+			if (!hasMore) {
 				break;
 			}
 		}

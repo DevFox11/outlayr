@@ -8,10 +8,14 @@ const CSS = readFileSync(join(import.meta.dirname, "../../global.css"), "utf8");
 function variantBlock(variant: "light" | "dark"): string {
 	const marker = `@variant ${variant} {`;
 	const open = CSS.indexOf(marker);
-	expect(open).not.toBe(-1);
+	if (open === -1) {
+		throw new Error(`global.css declares no \`${marker}\` block`);
+	}
 	const start = open + marker.length;
 	const end = CSS.indexOf("}", start);
-	expect(end).not.toBe(-1);
+	if (end === -1) {
+		throw new Error(`global.css never closes the \`${marker}\` block`);
+	}
 	return CSS.slice(start, end);
 }
 

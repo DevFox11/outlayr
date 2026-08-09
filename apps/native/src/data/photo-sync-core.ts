@@ -142,6 +142,7 @@ export async function uploadPhotos(
 			}
 
 			const superseded = row.imageKey;
+			// biome-ignore lint/performance/noAwaitInLoops: PHOTO_SYNC_BATCH caps the pass by counting uploads that have already finished, so each photo's request/put/confirm handshake has to complete before the next row is considered — running them together would send the whole ledger's photos in one pass
 			const { key, url } = await transport.requestUpload(name);
 			const storageId = await transport.put(url, bytes);
 			await transport.confirmUpload(key, storageId);
@@ -206,6 +207,7 @@ export async function downloadPhotos(db: SpendDb, files: PhotoFiles, transport: 
 			if (onDisk.has(name)) {
 				// Already here — the file survived while the path did not, or a sibling
 				// row shares the photo. Nothing to fetch.
+				// biome-ignore lint/performance/noAwaitInLoops: these updates share the one SQLite connection the pass is still reading its next table through, so issuing them together interleaves writes into the middle of that read
 				await repoint(photoTable, row.id, name);
 				continue;
 			}
@@ -221,12 +223,14 @@ export async function downloadPhotos(db: SpendDb, files: PhotoFiles, transport: 
 	}
 
 	for (const { key, url } of await transport.readUrls(keys)) {
+		// biome-ignore lint/performance/noAwaitInLoops: `get` holds a whole photo's bytes in memory until they are written out, so fetching the batch together would hold PHOTO_SYNC_BATCH photos at once on a handset
 		const bytes = await transport.get(url);
 		if (bytes === null) {
 			continue;
 		}
 		for (const { photoTable, id, name } of wanted.get(key) ?? []) {
 			files.write(name, bytes);
+			// biome-ignore lint/performance/noAwaitInLoops: these updates share the one SQLite connection the loop keeps downloading against, so issuing them together interleaves the writes with the next photo's fetch
 			await repoint(photoTable, id, name);
 			downloaded += 1;
 		}

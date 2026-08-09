@@ -124,7 +124,7 @@ export function sparklineIsPositive(measure: LogMeasure, points: readonly Sparkl
 			return (points[0]?.amount ?? 0) < (points.at(-1)?.amount ?? 0);
 		case "in":
 			return true;
-		case "out":
+		default:
 			return false;
 	}
 }

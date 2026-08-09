@@ -149,6 +149,117 @@ interface TransactionFormProps {
 	seed?: TransactionSeed;
 }
 
+function seedAccount(db: Database, initial: Transaction | undefined) {
+	if (!initial) {
+		return getLastUsedAccount(db);
+	}
+	return initial.accountId ? getAccountById(db, initial.accountId) : null;
+}
+
+/**
+ * The suggestion names a parent, and only this ledger knows which row that is.
+ */
+async function createPendingCategory(
+	db: Database,
+	pending: PendingCategory,
+	income: boolean,
+	siblings: readonly { id: string; name: string | null; parentId: string | null }[]
+): Promise<string> {
+	const parentId =
+		pending.parentName == null
+			? null
+			: (siblings.find((candidate) => candidate.parentId == null && candidate.name === pending.parentName)?.id ?? null);
+	return await ensureCategoryByName(db, pending.name, income, pending.icon, pending.color, {
+		emoji: pending.emoji,
+		parentId,
+	});
+}
+
+async function materializeTagIds(
+	db: Database,
+	tagIds: readonly string[],
+	pendingTagNames: readonly string[]
+): Promise<string[]> {
+	const materialized = [...tagIds];
+	for (const tagName of pendingTagNames) {
+		// biome-ignore lint/performance/noAwaitInLoops: `ensureTag` matches before inserting with no unique constraint behind it, so two pending names that normalize to the same tag would each insert a row if these ran concurrently.
+		const tagId = await tagsRepo.ensureTag(db, tagName);
+		if (tagId != null && !materialized.includes(tagId)) {
+			materialized.push(tagId);
+		}
+	}
+	return materialized;
+}
+
+interface CategoryRowProps {
+	category: ReturnType<typeof getCategoryById>;
+	enriching: boolean;
+	error: boolean;
+	glyphTint: string;
+	labelTint: string;
+	onPress: () => void;
+	pendingCategory: PendingCategory | null;
+	shake: boolean;
+}
+
+function TransactionFormCategoryRow({
+	category,
+	enriching,
+	error,
+	glyphTint,
+	labelTint,
+	onPress,
+	pendingCategory,
+	shake,
+}: CategoryRowProps) {
+	const colors = useColors();
+	const t = useTranslation();
+	const errorBorder = error
+		? [strokeBorder({ color: colors.danger, cornerRadius: 12, shape: "roundedRectangle", style: { lineWidth: 1.5 } })]
+		: [];
+	const chosen = category ?? pendingCategory;
+	const label = chosen ? chosen.name : t("transaction.category.choose");
+	const pendingNote = pendingCategory?.parentName
+		? t("transaction.category.willBeCreatedUnder", { parent: pendingCategory.parentName })
+		: t("transaction.category.willBeCreated");
+
+	return (
+		<Button
+			modifiers={[buttonStyle("plain"), ...errorBorder, offset({ x: shake ? -5 : 0 }), animation(SHAKE, shake)]}
+			onPress={onPress}
+		>
+			<VStack spacing={0}>
+				<HStack modifiers={TAP_ROW} spacing={12}>
+					<TransactionFormRowIcon color={error ? colors.danger : colors.muted} icon={Tag01Icon} />
+					<SwiftText modifiers={[BODY, error ? foregroundStyle(colors.danger) : rowLabel]}>
+						{t("transaction.field.category")}
+					</SwiftText>
+					<Spacer />
+					<HStack spacing={5}>
+						{category || pendingCategory ? (
+							<RNHostView matchContents>
+								<View style={{ height: 18, width: 18 }}>
+									<CategoryIcon color={glyphTint} name={category ? category.icon : pendingCategory?.icon} size={18} />
+								</View>
+							</RNHostView>
+						) : null}
+						<SwiftText modifiers={[BODY, foregroundStyle(labelTint), animation(ENRICHING, enriching)]}>
+							{label}
+						</SwiftText>
+						<Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
+					</HStack>
+				</HStack>
+				{pendingCategory ? (
+					<HStack modifiers={[padding({ bottom: 10 })]} spacing={0}>
+						<Spacer />
+						<SwiftText modifiers={[CAPTION, foregroundStyle(colors.muted)]}>{pendingNote}</SwiftText>
+					</HStack>
+				) : null}
+			</VStack>
+		</Button>
+	);
+}
+
 /**
  * The add/edit transaction form.
  *
@@ -181,7 +292,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		const currencySeed = initial?.currency ?? copyOf?.currency ?? null;
 		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
 		return {
-			account: initial ? (initial.accountId ? getAccountById(db, initial.accountId) : null) : getLastUsedAccount(db),
+			account: seedAccount(db, initial),
 			amount: amountSeed == null ? "" : numberToNumpad(amountSeed, minorUnitsFor(currencySeed ?? globalCurrency)),
 			category: seedCategory,
 			coefficient: initial?.recurringCoefficient ?? 1,
@@ -231,17 +342,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 			} else if (value.pendingCategory) {
 				const pending = value.pendingCategory;
 				try {
-					categoryId = await ensureCategoryByName(db, pending.name, value.income, pending.icon, pending.color, {
-						emoji: pending.emoji,
-						// Resolved here rather than carried as an id: the suggestion
-						// names a parent, and only this ledger knows which row that is.
-						parentId:
-							pending.parentName == null
-								? null
-								: (categoriesRef.current.find(
-										(candidate) => candidate.parentId == null && candidate.name === pending.parentName
-									)?.id ?? null),
-					});
+					categoryId = await createPendingCategory(db, pending, value.income, categoriesRef.current);
 				} catch (error) {
 					console.error("Failed to create the pending category", error);
 					flagMissingCategory();
@@ -274,13 +375,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 				note: name.value,
 				recurringType: value.recurringType,
 			});
-			let id: string;
+			let savedId: string;
 			try {
 				if (mode === "edit" && initial) {
 					await transactionsRepo.update(db, initial.id, input);
-					id = initial.id;
+					savedId = initial.id;
 				} else {
-					id = await transactionsRepo.create(db, input);
+					savedId = await transactionsRepo.create(db, input);
 				}
 			} catch (error) {
 				console.error("Failed to save transaction", error);
@@ -306,14 +407,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 				try {
 					// Guarded by `tagsSource !== "initial"`, where the effective ids
 					// are the field's own — `savedTagIds` only stands in before that.
-					const materializedTagIds = [...value.tagIds];
-					for (const tagName of value.pendingTagNames) {
-						const tagId = await tagsRepo.ensureTag(db, tagName);
-						if (tagId != null && !materializedTagIds.includes(tagId)) {
-							materializedTagIds.push(tagId);
-						}
-					}
-					await tagsRepo.setTagsFor(db, id, materializedTagIds);
+					const materializedTagIds = await materializeTagIds(db, value.tagIds, value.pendingTagNames);
+					await tagsRepo.setTagsFor(db, savedId, materializedTagIds);
 				} catch (error) {
 					console.error("Failed to save tags", error);
 					Alert.alert(t("transaction.tags.failedTitle"), t("transaction.tags.failedBody"));
@@ -322,7 +417,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 			let scheduleFailed = false;
 			if (value.isSubscription) {
 				try {
-					await backfillRecurring(db, id);
+					await backfillRecurring(db, savedId);
 				} catch (error) {
 					console.error("Failed to back-fill the subscription", error);
 					scheduleFailed = true;
@@ -447,16 +542,16 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		setCategoryError(false);
 	});
 	const createCategoryNamed = useCallback(
-		async (name: string) => {
+		async (categoryName: string) => {
 			const siblings = categoriesRef.current;
 			const used = new Set(siblings.map((sibling) => sibling.color).filter((color): color is string => color != null));
 			const fallbackIcon = income ? FALLBACK_INCOME_ICON : FALLBACK_EXPENSE_ICON;
 			try {
 				const id = await ensureCategoryByName(
 					db,
-					name,
+					categoryName,
 					income,
-					iconKeysMatching(name)[0] ?? fallbackIcon,
+					iconKeysMatching(categoryName)[0] ?? fallbackIcon,
 					firstAvailableColor(used)
 				);
 				const created = getCategoryById(db, id);
@@ -509,13 +604,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 	}, [allTags]);
 
 	const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
-		let categoryId = suggestion.categoryId;
-		let pendingCategory = suggestion.pendingCategory;
-		if (categoryId == null && pendingCategory != null) {
-			const matchedCategory = categoriesRef.current.find((candidate) => candidate.name === pendingCategory?.name);
+		let { categoryId, pendingCategory: suggestedCategory } = suggestion;
+		if (categoryId == null && suggestedCategory != null) {
+			const matchedCategory = categoriesRef.current.find((candidate) => candidate.name === suggestedCategory?.name);
 			if (matchedCategory != null) {
 				categoryId = matchedCategory.id;
-				pendingCategory = null;
+				suggestedCategory = null;
 			}
 		}
 		const resolvedTagIds: string[] = [...suggestion.tagIds];
@@ -531,7 +625,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		return {
 			...suggestion,
 			categoryId,
-			pendingCategory,
+			pendingCategory: suggestedCategory,
 			pendingTagNames,
 			tagIds: resolvedTagIds,
 		};
@@ -564,7 +658,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 			if (blocked()) {
 				return;
 			}
-			const ticket = ++logoRequestRef.current;
+			logoRequestRef.current += 1;
+			const ticket = logoRequestRef.current;
 			const stale = () => ticket !== logoRequestRef.current || blocked();
 
 			const outcome = await fetchMerchantImage({
@@ -649,7 +744,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 					setTagsSource("initial");
 				}
 			}
-			void attachLogo(suggestion.domain);
+			attachLogo(suggestion.domain).catch(() => undefined);
 		},
 		[categorySource, tagsSource, db, form.setFieldValue, attachLogo]
 	);
@@ -674,9 +769,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
 	useEffect(
 		() => () => {
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `.current` from the `useRef` initializer and ignores the explicit `<ReturnType<typeof setTimeout> | null>` argument; both refs are assigned real timer handles elsewhere in this component.
 			if (shakeTimer.current != null) {
 				clearTimeout(shakeTimer.current);
 			}
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `.current` from the `useRef` initializer and ignores the explicit `<ReturnType<typeof setTimeout> | null>` argument; both refs are assigned real timer handles elsewhere in this component.
 			if (doneTimer.current != null) {
 				clearTimeout(doneTimer.current);
 			}
@@ -798,8 +895,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
 	const ctaLabel = t(ctaKey(mode, isSubscription));
 
-	const amountColorFor = (amountNumber: number) =>
-		amountNumber > 0 ? (income ? colors.income : colors.foreground) : colors.muted;
+	const amountColorFor = (amountNumber: number) => {
+		if (amountNumber <= 0) {
+			return colors.muted;
+		}
+		return income ? colors.income : colors.foreground;
+	};
 
 	const curtainHues = computeCurtainHues(
 		{
@@ -814,11 +915,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 	const toastLabel = t(isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added");
 
 	const hairline = [overlay({ color: withAlpha(colors.foreground, 0.08) })];
-	const categoryGlyphTint = category
-		? category.income
-			? colors.income
-			: (category.color ?? colors.foreground)
-		: (pendingCategory?.color ?? colors.muted);
+	const chosenCategoryTint = category?.income ? colors.income : (category?.color ?? colors.foreground);
+	const categoryGlyphTint = category ? chosenCategoryTint : (pendingCategory?.color ?? colors.muted);
+	const settledCategoryLabelTint = category || pendingCategory ? colors.foreground : colors.muted;
+	const categoryLabelTint = categoryEnriching ? withAlpha(colors.muted, 0.45) : settledCategoryLabelTint;
 
 	const cadenceOptions = SELECTABLE_RECURRING_TYPES.map((type) => ({
 		label: cadenceLabel(t, type),
@@ -942,78 +1042,19 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
 								<Divider modifiers={hairline} />
 
-								<Button
-									modifiers={[
-										buttonStyle("plain"),
-										...(categoryError
-											? [
-													strokeBorder({
-														color: colors.danger,
-														cornerRadius: 12,
-														shape: "roundedRectangle",
-														style: { lineWidth: 1.5 },
-													}),
-												]
-											: []),
-										offset({ x: categoryShake ? -5 : 0 }),
-										animation(SHAKE, categoryShake),
-									]}
+								<TransactionFormCategoryRow
+									category={category}
+									enriching={categoryEnriching}
+									error={categoryError}
+									glyphTint={categoryGlyphTint}
+									labelTint={categoryLabelTint}
 									onPress={() => {
 										setPadOpen(false);
 										categoryField.present();
 									}}
-								>
-									<VStack spacing={0}>
-										<HStack modifiers={TAP_ROW} spacing={12}>
-											<TransactionFormRowIcon color={categoryError ? colors.danger : colors.muted} icon={Tag01Icon} />
-											<SwiftText modifiers={[BODY, categoryError ? foregroundStyle(colors.danger) : rowLabel]}>
-												{t("transaction.field.category")}
-											</SwiftText>
-											<Spacer />
-											<HStack spacing={5}>
-												{category || pendingCategory ? (
-													<RNHostView matchContents>
-														<View style={{ height: 18, width: 18 }}>
-															<CategoryIcon
-																color={categoryGlyphTint}
-																name={category ? category.icon : pendingCategory?.icon}
-																size={18}
-															/>
-														</View>
-													</RNHostView>
-												) : null}
-												<SwiftText
-													modifiers={[
-														BODY,
-														foregroundStyle(
-															categoryEnriching
-																? withAlpha(colors.muted, 0.45)
-																: category || pendingCategory
-																	? colors.foreground
-																	: colors.muted
-														),
-														animation(ENRICHING, categoryEnriching),
-													]}
-												>
-													{category ? category.name : (pendingCategory?.name ?? t("transaction.category.choose"))}
-												</SwiftText>
-												<Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
-											</HStack>
-										</HStack>
-										{pendingCategory ? (
-											<HStack modifiers={[padding({ bottom: 10 })]} spacing={0}>
-												<Spacer />
-												<SwiftText modifiers={[CAPTION, foregroundStyle(colors.muted)]}>
-													{pendingCategory?.parentName
-														? t("transaction.category.willBeCreatedUnder", {
-																parent: pendingCategory.parentName,
-															})
-														: t("transaction.category.willBeCreated")}
-												</SwiftText>
-											</HStack>
-										) : null}
-									</VStack>
-								</Button>
+									pendingCategory={pendingCategory}
+									shake={categoryShake}
+								/>
 
 								<Divider modifiers={hairline} />
 
@@ -1038,17 +1079,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 											>
 												{({ tagIds, pendingTagNames }) => {
 													const selectedTagNames = tagLabelsOf(tagIds, pendingTagNames);
+													const settledTagsLabelTint = selectedTagNames ? colors.foreground : colors.muted;
 													return (
 														<SwiftText
 															modifiers={[
 																BODY,
-																foregroundStyle(
-																	tagsEnriching
-																		? withAlpha(colors.muted, 0.45)
-																		: selectedTagNames
-																			? colors.foreground
-																			: colors.muted
-																),
+																foregroundStyle(tagsEnriching ? withAlpha(colors.muted, 0.45) : settledTagsLabelTint),
 																animation(ENRICHING, tagsEnriching),
 															]}
 														>
@@ -1223,13 +1259,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 				>
 					{({ tagIds, pendingTagNames }) => (
 						<TagPickerSheet
-							onCreate={async (name) => {
-								const id = await tagsRepo.ensureTag(db, name);
+							onCreate={async (createdTagName) => {
+								const id = await tagsRepo.ensureTag(db, createdTagName);
 								if (id) {
 									setTagsSource("user");
 									form.setFieldValue("tagIds", [...effectiveTagIdsOf(form.state.values.tagIds), id]);
 									form.setFieldValue("pendingTagNames", (current) =>
-										current.filter((pendingName) => normalizeTagName(pendingName) !== name)
+										current.filter((pendingName) => normalizeTagName(pendingName) !== createdTagName)
 									);
 								}
 								return id;

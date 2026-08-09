@@ -96,8 +96,9 @@ function StageObject({ children, cover }: { children: ReactNode; cover: boolean 
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
+		const arrivalMs = cover ? 480 : 380;
 		progress.value = withTiming(1, {
-			duration: reduced ? FADE_MS : cover ? 480 : 380,
+			duration: reduced ? FADE_MS : arrivalMs,
 			easing: EASE,
 		});
 	}, [cover, reduced, progress]);

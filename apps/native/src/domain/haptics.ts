@@ -47,5 +47,9 @@ export function hapticPlay(level: number, event: HapticEvent): HapticPlay | null
 		case "warning":
 		case "error":
 			return { kind: "notification", type: event };
+		default: {
+			const unhandled: never = event;
+			throw new Error(`Unhandled haptic event: ${String(unhandled)}`);
+		}
 	}
 }

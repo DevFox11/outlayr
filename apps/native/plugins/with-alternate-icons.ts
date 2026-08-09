@@ -32,11 +32,13 @@ const withAlternateIcons: ConfigPlugin<{ icons: string[] }> = (config, { icons }
 			if (!projectName) {
 				throw new Error("withAlternateIcons: no iOS project name.");
 			}
-			for (const icon of icons) {
-				await cp(join(projectRoot, icon), join(platformProjectRoot, projectName, `${basename(icon)}`), {
-					recursive: true,
-				});
-			}
+			await Promise.all(
+				icons.map((icon) =>
+					cp(join(projectRoot, icon), join(platformProjectRoot, projectName, basename(icon)), {
+						recursive: true,
+					})
+				)
+			);
 			return dangerousConfig;
 		},
 	]);

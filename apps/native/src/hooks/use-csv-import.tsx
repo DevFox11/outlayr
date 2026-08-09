@@ -9,9 +9,11 @@ import { merchantKey, resolveMerchant } from "@/domain/merchant-resolver";
 import {
 	type CategoryBranch,
 	type CsvImportFn,
+	type CsvImportRequest,
 	type CsvImportResult,
 	type CsvImportStatus,
 	csvImportTransport,
+	type LabelSuggestion,
 } from "@/lib/convex";
 
 export const AI_TIER_MAX_CHARS = 2_000_000;
@@ -134,6 +136,112 @@ function reduce(state: CsvImportState, action: CsvImportAction): CsvImportState 
 			return { ...state, stage: "asking", tier2Sent: action.tier2Sent };
 		case "settled":
 			return { ...state, stage: "settled", ...action.settlement };
+		default: {
+			const unhandled: never = action;
+			throw new Error(`Unhandled csv import action: ${JSON.stringify(unhandled)}`);
+		}
+	}
+}
+
+function linkKnownMerchants(
+	labels: readonly string[],
+	categoryIdByKey: ReadonlyMap<string, string>,
+	links: Map<string, string>
+): { domainless: string[]; unresolved: string[] } {
+	const unresolved: string[] = [];
+
+	// A map match without a domain keeps its tier-1 category link but still
+	// travels to the server, so `merchantKnowledge` can supply — or a grounded
+	// lookup can learn — the domain the curated map does not carry.
+	const domainless: string[] = [];
+	for (const label of labels) {
+		const match = resolveMerchant(label);
+		const categoryId = match == null ? undefined : categoryIdByKey.get(categoryKey(match.categoryName));
+		if (categoryId == null) {
+			unresolved.push(label);
+		} else {
+			links.set(categoryKey(label), categoryId);
+			if (match?.domain == null) {
+				domainless.push(label);
+			}
+		}
+	}
+	return { domainless, unresolved };
+}
+
+function linkCachedLabels(
+	labels: readonly string[],
+	categoryIdByKey: ReadonlyMap<string, string>,
+	links: Map<string, string>,
+	fromModel: Set<string>
+): string[] {
+	const stillUnresolved: string[] = [];
+	for (const label of labels) {
+		const cached = cachedLabelEnrichment(label);
+		const categoryName = cached.hit ? (cached.value?.categoryName ?? null) : null;
+		const categoryId = categoryName == null ? undefined : categoryIdByKey.get(categoryKey(categoryName));
+		if (cached.hit && categoryId != null) {
+			links.set(categoryKey(label), categoryId);
+			fromModel.add(categoryKey(label));
+		} else {
+			stillUnresolved.push(label);
+		}
+	}
+	return stillUnresolved;
+}
+
+function groupByScrubbedLabel(labels: readonly string[]): ReadonlyMap<string, string[]> {
+	const rawByScrubbed = new Map<string, string[]>();
+	for (const label of labels) {
+		const scrubbed = scrubLabel(label);
+		const existing = rawByScrubbed.get(scrubbed);
+		if (existing == null) {
+			rawByScrubbed.set(scrubbed, [label]);
+		} else {
+			existing.push(label);
+		}
+	}
+	return rawByScrubbed;
+}
+
+async function askModel(call: CsvImportFn, request: CsvImportRequest): Promise<Settled> {
+	try {
+		const raced = await Promise.race([
+			call(request),
+			new Promise<typeof TIMED_OUT>((resolve) => {
+				setTimeout(() => resolve(TIMED_OUT), CLIENT_TIMEOUT_MS);
+			}),
+		]);
+		return raced === TIMED_OUT ? { kind: "timeout" } : { kind: "result", result: raced };
+	} catch {
+		return { kind: "rejected" };
+	}
+}
+
+function linkSuggestions(
+	suggestions: readonly LabelSuggestion[],
+	categoryIdByKey: ReadonlyMap<string, string>,
+	rawByScrubbed: ReadonlyMap<string, string[]>,
+	links: Map<string, string>,
+	fromModel: Set<string>
+): void {
+	for (const suggestion of suggestions) {
+		if (suggestion.domain != null) {
+			setCachedEnrichment(merchantKey(suggestion.label), {
+				categoryName: suggestion.categoryName,
+				domain: suggestion.domain,
+				isNewCategory: false,
+				tags: [],
+			});
+		}
+		const categoryId = categoryIdByKey.get(categoryKey(suggestion.categoryName));
+		if (categoryId == null) {
+			continue;
+		}
+		for (const raw of rawByScrubbed.get(suggestion.label) ?? []) {
+			links.set(categoryKey(raw), categoryId);
+			fromModel.add(categoryKey(raw));
+		}
 	}
 }
 
@@ -160,54 +268,15 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		const resolvedLinks = new Map<string, string>();
 		const fromModelSet = new Set<string>();
 		partialRef.current = { fromModel: fromModelSet, links: resolvedLinks };
-		const unresolved: string[] = [];
 
-		// A map match without a domain keeps its tier-1 category link but still
-		// travels to the server, so `merchantKnowledge` can supply — or a grounded
-		// lookup can learn — the domain the curated map does not carry.
-		const domainless: string[] = [];
-		for (const label of allLabels) {
-			const match = resolveMerchant(label);
-			const categoryId =
-				match == null ? undefined : argsRef.current.categoryIdByKey.get(categoryKey(match.categoryName));
-			if (categoryId == null) {
-				unresolved.push(label);
-			} else {
-				resolvedLinks.set(categoryKey(label), categoryId);
-				if (match?.domain == null) {
-					domainless.push(label);
-				}
-			}
-		}
+		const { domainless, unresolved } = linkKnownMerchants(allLabels, argsRef.current.categoryIdByKey, resolvedLinks);
 		dispatch({
 			tier1Matched: allLabels.length - unresolved.length,
 			type: "matched",
 		});
 
-		const stillUnresolved: string[] = [];
-		for (const label of unresolved) {
-			const cached = cachedLabelEnrichment(label);
-			const categoryName = cached.hit ? (cached.value?.categoryName ?? null) : null;
-			const categoryId =
-				categoryName == null ? undefined : argsRef.current.categoryIdByKey.get(categoryKey(categoryName));
-			if (cached.hit && categoryId != null) {
-				resolvedLinks.set(categoryKey(label), categoryId);
-				fromModelSet.add(categoryKey(label));
-			} else {
-				stillUnresolved.push(label);
-			}
-		}
-
-		const rawByScrubbed = new Map<string, string[]>();
-		for (const label of stillUnresolved) {
-			const scrubbed = scrubLabel(label);
-			const existing = rawByScrubbed.get(scrubbed);
-			if (existing == null) {
-				rawByScrubbed.set(scrubbed, [label]);
-			} else {
-				existing.push(label);
-			}
-		}
+		const stillUnresolved = linkCachedLabels(unresolved, argsRef.current.categoryIdByKey, resolvedLinks, fromModelSet);
+		const rawByScrubbed = groupByScrubbedLabel(stillUnresolved);
 
 		const domainUnknown = domainless.filter((label) => {
 			const cached = cachedLabelEnrichment(label);
@@ -239,22 +308,11 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 		}
 
 		dispatch({ tier2Sent: payload.labels.length, type: "asking" });
-		let settled: Settled;
-		try {
-			const raced = await Promise.race([
-				call({
-					...payload,
-					groundedLookup: argsRef.current.groundedLookup,
-					regionCode: argsRef.current.regionCode,
-				}),
-				new Promise<typeof TIMED_OUT>((resolve) => {
-					setTimeout(() => resolve(TIMED_OUT), CLIENT_TIMEOUT_MS);
-				}),
-			]);
-			settled = raced === TIMED_OUT ? { kind: "timeout" } : { kind: "result", result: raced };
-		} catch {
-			settled = { kind: "rejected" };
-		}
+		const settled = await askModel(call, {
+			...payload,
+			groundedLookup: argsRef.current.groundedLookup,
+			regionCode: argsRef.current.regionCode,
+		});
 
 		if (settled.kind !== "result") {
 			return settleWith(resolvedLinks, fromModelSet, "unavailable", settled.kind === "timeout" ? "timeout" : "offline");
@@ -264,24 +322,13 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 			return settleWith(resolvedLinks, fromModelSet, "unavailable", REASON_BY_STATUS[settled.result.status]);
 		}
 
-		for (const suggestion of settled.result.suggestions ?? []) {
-			if (suggestion.domain != null) {
-				setCachedEnrichment(merchantKey(suggestion.label), {
-					categoryName: suggestion.categoryName,
-					domain: suggestion.domain,
-					isNewCategory: false,
-					tags: [],
-				});
-			}
-			const categoryId = argsRef.current.categoryIdByKey.get(categoryKey(suggestion.categoryName));
-			if (categoryId == null) {
-				continue;
-			}
-			for (const raw of rawByScrubbed.get(suggestion.label) ?? []) {
-				resolvedLinks.set(categoryKey(raw), categoryId);
-				fromModelSet.add(categoryKey(raw));
-			}
-		}
+		linkSuggestions(
+			settled.result.suggestions ?? [],
+			argsRef.current.categoryIdByKey,
+			rawByScrubbed,
+			resolvedLinks,
+			fromModelSet
+		);
 
 		return settleWith(resolvedLinks, fromModelSet, "applied", null);
 	}, []);
@@ -312,11 +359,13 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
 	}, [resolveImport]);
 
 	const run = useCallback(() => {
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is inferred from its `false` seed, but the line below writes `true` into it for the length of a run
 		if (runningRef.current) {
 			return;
 		}
 		const generation = generationRef.current;
 		runningRef.current = true;
+		// biome-ignore lint/complexity/noVoid: execute() settles its own failure into the reducer, and `run` is a synchronous press handler with nothing to await
 		void execute().finally(() => {
 			if (generationRef.current === generation) {
 				runningRef.current = false;

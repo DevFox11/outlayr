@@ -39,7 +39,7 @@ describe("getCachedEnrichment", () => {
 
 describe("setCachedEnrichment eviction", () => {
 	it("evicts the first inserted key once the 51st entry is added", () => {
-		for (let i = 0; i < 50; i++) {
+		for (let i = 0; i < 50; i += 1) {
 			setCachedEnrichment(`merchant-${i}`, null);
 		}
 		expect(getCachedEnrichment("merchant-0")).toStrictEqual({
@@ -61,7 +61,7 @@ describe("setCachedEnrichment eviction", () => {
 	});
 
 	it("does not evict when overwriting an existing key at capacity", () => {
-		for (let i = 0; i < 50; i++) {
+		for (let i = 0; i < 50; i += 1) {
 			setCachedEnrichment(`merchant-${i}`, null);
 		}
 		setCachedEnrichment("merchant-0", {

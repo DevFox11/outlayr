@@ -132,7 +132,7 @@ export function useImportReview(): ImportReviewResult {
 			return EMPTY_PLAN;
 		}
 		const { mapping } = flow.resolved;
-		const rows = flow.parsed.rows;
+		const { rows } = flow.parsed;
 		const dateFormat = deduceDateFormat(rows.map((row) => row[mapping.date] ?? "")) ?? "";
 		const decimal = detectDecimalSeparator(rows.map((row) => row[mapping.amount] ?? ""));
 		return buildImportPlan(rows, mapping, dateFormat, decimal, flow.resolution?.links ?? new Map(), categoryIncome);

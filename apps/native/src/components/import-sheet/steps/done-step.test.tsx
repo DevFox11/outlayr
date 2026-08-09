@@ -97,7 +97,7 @@ describe("DoneStep", () => {
 
 	it("rotates the stamp slightly with an income-coloured border", async () => {
 		const { getByTestId } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
-		const style = getByTestId("import-done-stamp").props.style;
+		const { style } = getByTestId("import-done-stamp").props;
 		const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
 		expect(flat.borderWidth).toBe(1.5);
 		expect(flat.transform).toStrictEqual([{ rotate: "-2deg" }]);

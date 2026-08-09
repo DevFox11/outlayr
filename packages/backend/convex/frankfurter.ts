@@ -118,11 +118,16 @@ export const fetchRates = internalAction({
 		// Only days past the refresh margin need the test — the rest are written
 		// either way, so asking what they hold would read the window for nothing.
 		const aged = [...ratesByDate.keys()].filter((date) => date < refreshFrom);
-		const heldByDate = new Map<string, Set<string>>();
+		const coverageBatches: string[][] = [];
 		for (let start = 0; start < aged.length; start += COVERAGE_BATCH_DATES) {
-			const batch = await ctx.runQuery(internal.exchangeRates.officialQuotesByDate, {
-				dates: aged.slice(start, start + COVERAGE_BATCH_DATES),
-			});
+			coverageBatches.push(aged.slice(start, start + COVERAGE_BATCH_DATES));
+		}
+		const coverage = await Promise.all(
+			coverageBatches.map((dates) => ctx.runQuery(internal.exchangeRates.officialQuotesByDate, { dates }))
+		);
+
+		const heldByDate = new Map<string, Set<string>>();
+		for (const batch of coverage) {
 			for (const entry of batch) {
 				heldByDate.set(entry.date, new Set(entry.quotes));
 			}
@@ -137,6 +142,7 @@ export const fetchRates = internalAction({
 			if (held && rates.every((entry) => held.has(entry.quote))) {
 				continue;
 			}
+			// biome-ignore lint/performance/noAwaitInLoops: every date's upsert reads and writes the same exchangeRates table (exchangeRates.ts:150), so parallel mutations would contend on one write set and be retried under OCC
 			await ctx.runMutation(internal.exchangeRates.upsertRates, {
 				date,
 				fetchedAt,

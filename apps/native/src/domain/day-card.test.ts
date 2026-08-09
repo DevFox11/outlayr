@@ -15,7 +15,7 @@ describe("layoutDayCard", () => {
 	});
 
 	it("grows by a fixed height per transaction", () => {
-		const row = INPUT.rows[0];
+		const [row] = INPUT.rows;
 		expect(row).toBeTruthy();
 		const heightOf = (count: number) =>
 			layoutDayCard({

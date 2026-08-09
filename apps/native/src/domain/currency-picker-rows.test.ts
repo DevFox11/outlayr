@@ -101,10 +101,10 @@ describe("where a section closes", () => {
 		// The row draws its own separator, so the one closing a section has to leave
 		// it off or it stacks a hairline against the next header.
 		const rows = currencyPickerRows(["USD", "VES"], "");
-		const codes = lastCodes(rows);
-		expect(codes[0]).toBe("VES");
-		expect(codes.length).toBe(2);
-		expect(codes[1]).toBe(rows.at(-1)?.kind === "currency" ? codes[1] : null);
+		const closingCodes = lastCodes(rows);
+		expect(closingCodes[0]).toBe("VES");
+		expect(closingCodes.length).toBe(2);
+		expect(closingCodes[1]).toBe(rows.at(-1)?.kind === "currency" ? closingCodes[1] : null);
 	});
 
 	it("closes only the final row of a search", () => {

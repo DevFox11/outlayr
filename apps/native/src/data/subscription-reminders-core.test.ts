@@ -12,6 +12,10 @@ const NOW = new Date(2025, 5, 15, 10, 30);
 const NINE_AM = { hour: 9, minute: 0 };
 const at = (y: number, m: number, day: number, hour = 0, minute = 0): Date => new Date(y, m - 1, day, hour, minute);
 
+type LandingRow = (string | number)[];
+
+const byLocalId = (a: LandingRow, b: LandingRow): number => String(a[0]).localeCompare(String(b[0]));
+
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	sqlite.exec(`
@@ -246,11 +250,13 @@ describe("reminderCandidates", () => {
 
 		const candidates = await reminderCandidates(db, NOW);
 
-		expect(candidates.map((candidate) => [candidate.localId, candidate.landing.getTime()]).sort()).toStrictEqual(
+		expect(
+			candidates.map((candidate) => [candidate.localId, candidate.landing.getTime()]).sort(byLocalId)
+		).toStrictEqual(
 			[
 				["gym", at(2025, 6, 17).getTime()],
 				["netflix", at(2025, 7, 15).getTime()],
-			].sort()
+			].sort(byLocalId)
 		);
 	});
 });

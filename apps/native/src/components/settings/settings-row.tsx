@@ -67,6 +67,16 @@ function Disclosure({ value }: { value?: string }) {
 	);
 }
 
+function RowTrailing({ interactive, value }: { interactive: boolean; value?: string }) {
+	if (interactive) {
+		return <Disclosure value={value} />;
+	}
+	if (value) {
+		return <Text className="text-body text-muted">{value}</Text>;
+	}
+	return null;
+}
+
 interface LinkRowProps {
 	destructive?: boolean;
 	icon: SettingsIconName;
@@ -83,7 +93,7 @@ interface LinkRowProps {
 export function LinkRow({ icon, title, value, destructive, onPress }: LinkRowProps) {
 	const body = (
 		<RowShell destructive={destructive} icon={icon} title={title}>
-			{onPress ? <Disclosure value={value} /> : value ? <Text className="text-body text-muted">{value}</Text> : null}
+			<RowTrailing interactive={onPress != null} value={value} />
 		</RowShell>
 	);
 

@@ -128,5 +128,9 @@ export function appIconTransition(state: AppIconState, event: AppIconEvent): App
 			// iOS is the only record of which icon is on, so its readback outranks
 			// whatever the optimistic tap assumed.
 			return { active: event.reported, pending: null };
+		default: {
+			const unhandled: never = event;
+			throw new Error(`Unhandled app icon event: ${JSON.stringify(unhandled)}`);
+		}
 	}
 }

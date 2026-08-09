@@ -109,7 +109,7 @@ export function schedulePreview(
 	const charges: ScheduledCharge[] = [];
 	let holding = firstPayment;
 
-	for (let i = 0; i < count; i++) {
+	for (let i = 0; i < count; i += 1) {
 		const advanced = nextDate(holding, type, coefficient, anchorDay);
 		if (advanced == null) {
 			break;

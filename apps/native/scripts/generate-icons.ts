@@ -36,6 +36,7 @@ async function writeSet(set: IconSet): Promise<number> {
 				? undefined
 				: (entry.strokeWidth ?? (set.stroke === undefined ? undefined : (set.stroke * size) / set.size));
 
+		// biome-ignore lint/performance/noAwaitInLoops: rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
 		const elements = await loadIcon(weight, entry.icon);
 		rasterize(toSvg(elements, strokeWidth, set.ink), join(outDir, entry.slug), size);
 		written += SCALE_COUNT;
@@ -53,7 +54,7 @@ async function writeSet(set: IconSet): Promise<number> {
 }
 
 async function main() {
-	const only = process.argv[2];
+	const [, , only] = process.argv;
 	const sets = only ? SETS.filter((set) => set.dir === only) : SETS;
 
 	if (sets.length === 0) {
@@ -65,6 +66,7 @@ async function main() {
 	let total = 0;
 	for (const set of sets) {
 		console.log(`\n${set.dir}`);
+		// biome-ignore lint/performance/noAwaitInLoops: writeSet empties its output directory first, so concurrent sets would interleave their progress lines under the wrong header
 		total += await writeSet(set);
 	}
 

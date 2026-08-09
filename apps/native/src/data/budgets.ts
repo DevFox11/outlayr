@@ -13,6 +13,7 @@ import { useLiveQuery } from "./live-query";
 import type { TransactionWithCategory } from "./transactions";
 import { useValuation } from "./use-valuation";
 
+// biome-ignore lint/performance/noBarrelFile: `budgetsRepo`, `getBudgetById` and `compareBudgetSeverity` are imported from this specifier across the budgets screens; dropping the re-exports is an import-path migration of every consumer, not a lint fix
 export {
 	type BudgetSeverity,
 	compareBudgetSeverity,
@@ -294,8 +295,8 @@ export function usePerCategoryBudgets(
 
 export function useOverBudgetCount(db: Database, nowMs: number): number {
 	const contributions = useExpenseContributions(db, nowMs);
-	const budgets = usePerCategoryBudgets(db, nowMs, contributions);
-	return budgets.reduce((count, budget) => (budget.overBudget ? count + 1 : count), 0);
+	const perCategory = usePerCategoryBudgets(db, nowMs, contributions);
+	return perCategory.reduce((count, budget) => (budget.overBudget ? count + 1 : count), 0);
 }
 
 export interface CategoryBudgetDetail {
@@ -349,10 +350,10 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
 		}
 	}, [db, row, current]);
 
-	const transactions = useBudgetContributions(
+	const windowTransactions = useBudgetContributions(
 		db,
 		row?.categoryId ?? null,
-		window?.start ?? null,
+		window ? window.start : null,
 		window ? windowEndMs(window, nowMs) : nowMs
 	);
 
@@ -369,7 +370,7 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
 		}
 		// This screen queries its own rows instead of sharing
 		// `useExpenseContributions`, so the conversion has to happen here.
-		const spent = sumValuedIn(transactions, displayCurrency, rates);
+		const spent = sumValuedIn(windowTransactions, displayCurrency, rates);
 		const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
 		const limit = limitIn(row, window.start, displayCurrency, rates);
 		const carry =
@@ -399,11 +400,11 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
 			type: row.type,
 			window,
 		};
-	}, [row, window, transactions, categoryMeta, displayCurrency, rates, contributions]);
+	}, [row, window, windowTransactions, categoryMeta, displayCurrency, rates, contributions]);
 
 	const periodsBack = current && row ? periodsBackTo(current.start, row.type, earliest) : 0;
 
-	return { budget, periodsBack, transactions };
+	return { budget, periodsBack, transactions: windowTransactions };
 }
 
 /**

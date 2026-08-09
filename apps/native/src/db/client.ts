@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/expo-sqlite";
 import { openDatabaseSync } from "expo-sqlite";
+// biome-ignore lint/performance/noNamespaceImport: drizzle's relational query builder keys `db.query.*` off the whole schema module, so a table added to ./schema must register here without editing this import
 import * as schema from "./schema";
 
 const DATABASE_NAME = "outlayr.db";

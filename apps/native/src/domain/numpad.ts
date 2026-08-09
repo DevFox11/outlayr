@@ -6,6 +6,9 @@
  */
 const MAX_INTEGER_DIGITS = 13;
 
+const LEADING_ZEROS = /^0+/;
+const ZERO_FRACTION = /\.0+$/;
+
 export type NumpadKey = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "." | "back" | "clear";
 
 /** The keys a keypad draws. `clear` arrives from a long press, not from a tile. */
@@ -35,7 +38,7 @@ function toMinorDigits(current: string, minorUnits: number): string {
 
 /** Inverse of `toMinorDigits`. The empty string for digits that read as zero. */
 function fromMinorDigits(digits: string, minorUnits: number): string {
-	const trimmed = digits.replace(/^0+/, "");
+	const trimmed = digits.replace(LEADING_ZEROS, "");
 	if (trimmed === "") {
 		return "";
 	}
@@ -104,5 +107,5 @@ export function numberToNumpad(amount: number, minorUnits: number): string {
 	}
 	const fixed = amount.toFixed(minorUnits);
 	// Drop a pure ".00" tail so the entry reads like a fresh integer.
-	return fixed.replace(/\.0+$/, "");
+	return fixed.replace(ZERO_FRACTION, "");
 }

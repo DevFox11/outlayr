@@ -32,6 +32,7 @@ const MAX_KNOWN_CATEGORY_NAMES = 60;
 /** The action's own budget under the client's 4s `Promise.race` abort. */
 export const REQUEST_TIMEOUT_MS = 3500;
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
 
 /**
  * The action's only arguments — a privacy boundary, not just a shape.
@@ -278,7 +279,7 @@ export function sanitizeEmoji(emoji: string | null): string | null {
 	if (trimmed.length === 0 || [...trimmed].length > 3) {
 		return null;
 	}
-	return /\p{Extended_Pictographic}/u.test(trimmed) ? trimmed : null;
+	return PICTOGRAPHIC.test(trimmed) ? trimmed : null;
 }
 
 export interface TreeCandidate {

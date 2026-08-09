@@ -98,7 +98,7 @@ export function buildBurndown(rows: readonly ExpenseContribution[], options: Bur
 	const points: BurndownPoint[] = [];
 	let runwayDay: number | null = null;
 	let spent = 0;
-	for (let index = 0; index < elapsedDays; index++) {
+	for (let index = 0; index < elapsedDays; index += 1) {
 		spent += perDay[index];
 		const balance = limit - spent;
 		if (runwayDay === null && balance < 0) {

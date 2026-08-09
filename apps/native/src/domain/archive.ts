@@ -121,7 +121,7 @@ export function parseArchive(text: string): ArchiveDocument | null {
 	if (typeof candidate.version !== "number" || candidate.version < 1 || candidate.version > ARCHIVE_VERSION) {
 		return null;
 	}
-	const tables = candidate.tables;
+	const { tables } = candidate;
 	if (typeof tables !== "object" || tables === null) {
 		return null;
 	}

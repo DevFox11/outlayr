@@ -28,9 +28,7 @@ function fold(value: string): { folded: string; origIndex: number[] } {
 			.normalize("NFD")
 			.replace(/\p{Diacritic}/gu, "")
 			.toLowerCase();
-		for (let i = 0; i < stripped.length; i++) {
-			origIndex.push(offset);
-		}
+		origIndex.push(...Array.from({ length: stripped.length }, () => offset));
 		folded += stripped;
 		offset += char.length;
 	}

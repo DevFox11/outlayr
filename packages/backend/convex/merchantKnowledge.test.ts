@@ -7,6 +7,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 
 import { internal } from "./_generated/api";
+// biome-ignore lint/performance/noNamespaceImport: the visibility test enumerates the module with Object.entries to prove no export is public; named imports can only see the exports it already knows to ask for.
 import * as merchantKnowledge from "./merchantKnowledge";
 import schema from "./schema";
 

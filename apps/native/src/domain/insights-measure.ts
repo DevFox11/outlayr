@@ -25,23 +25,23 @@ export function netTotal(totals: InsightsTotals): number {
 /** Unsigned — the sign comes from {@link insightsMeasureIsPositive}. */
 export function insightsMeasureMagnitude(measure: InsightsMeasure, totals: InsightsTotals): number {
 	switch (measure) {
-		case "spent":
-			return totals.spent;
 		case "income":
 			return totals.income;
 		case "net":
 			return Math.abs(netTotal(totals));
+		default:
+			return totals.spent;
 	}
 }
 
 export function insightsMeasureIsPositive(measure: InsightsMeasure, totals: InsightsTotals): boolean {
 	switch (measure) {
-		case "spent":
-			return false;
 		case "income":
 			return true;
 		case "net":
 			return netTotal(totals) >= 0;
+		default:
+			return false;
 	}
 }
 

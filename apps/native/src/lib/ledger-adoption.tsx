@@ -62,33 +62,33 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 		setStatus("resolving");
 		setFailed(false);
 
-		void (async () => {
-			try {
-				const engine = adoptionEngine(db);
-				const remote = engine ? await engine.accountLedger() : "unknown";
-				const plan = adoptionPlan(await localLedgerState(db), remote);
-				if (cancelled) {
-					return;
-				}
-				if (plan === "ask") {
-					setStatus("ask");
-					return;
-				}
-				const actions = adoptionActions(plan);
-				if (actions) {
-					await runAdoption(db, engine, actions);
-					await markAdopted(db, accountId);
-				}
-				if (!cancelled) {
-					setStatus("settled");
-				}
-			} catch (error) {
-				console.warn("[outlayr] ledger adoption deferred", error);
-				if (!cancelled) {
-					setStatus("settled");
-				}
+		const reconcile = async () => {
+			const engine = adoptionEngine(db);
+			const remote = engine ? await engine.accountLedger() : "unknown";
+			const plan = adoptionPlan(await localLedgerState(db), remote);
+			if (cancelled) {
+				return;
 			}
-		})();
+			if (plan === "ask") {
+				setStatus("ask");
+				return;
+			}
+			const actions = adoptionActions(plan);
+			if (actions) {
+				await runAdoption(db, engine, actions);
+				await markAdopted(db, accountId);
+			}
+			if (!cancelled) {
+				setStatus("settled");
+			}
+		};
+
+		reconcile().catch((error: unknown) => {
+			console.warn("[outlayr] ledger adoption deferred", error);
+			if (!cancelled) {
+				setStatus("settled");
+			}
+		});
 
 		return () => {
 			cancelled = true;
@@ -102,17 +102,17 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 			}
 			setStatus("working");
 			setFailed(false);
-			void (async () => {
-				try {
-					await runAdoption(db, adoptionEngine(db), choiceActions(choice));
-					await markAdopted(db, accountId);
-					setStatus("settled");
-				} catch (error) {
-					console.warn("[outlayr] ledger adoption failed", error);
-					setFailed(true);
-					setStatus("ask");
-				}
-			})();
+			const adopt = async () => {
+				await runAdoption(db, adoptionEngine(db), choiceActions(choice));
+				await markAdopted(db, accountId);
+				setStatus("settled");
+			};
+
+			adopt().catch((error: unknown) => {
+				console.warn("[outlayr] ledger adoption failed", error);
+				setFailed(true);
+				setStatus("ask");
+			});
 		},
 		[db, accountId]
 	);

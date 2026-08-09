@@ -11,20 +11,20 @@ const HEADER = `// GENERATED FILE — DO NOT EDIT BY HAND.
 // src/catalog.generated.test.ts fails if this file diverges from the generator.
 `;
 
-function serializeCodes(codes) {
-	const lines = codes.map((code) => `  ${JSON.stringify(code)},`).join("\n");
+function serializeCodes(pickableCodes) {
+	const lines = pickableCodes.map((code) => `  ${JSON.stringify(code)},`).join("\n");
 	return `export const PICKABLE_CURRENCY_CODES = [\n${lines}\n] as const;`;
 }
 
-function serializeDecimals(codes, decimals) {
-	const lines = codes.map((code) => `  ${code}: ${decimals[code]},`).join("\n");
+function serializeDecimals(pickableCodes, decimalsByCode) {
+	const lines = pickableCodes.map((code) => `  ${code}: ${decimalsByCode[code]},`).join("\n");
 	return `export const CURRENCY_DECIMALS: Record<PickableCode, 0 | 2 | 3> = {\n${lines}\n};`;
 }
 
-function serializeMeta(codes, meta) {
-	const lines = codes
+function serializeMeta(pickableCodes, metaByCode) {
+	const lines = pickableCodes
 		.map((code) => {
-			const { name, symbol } = meta[code];
+			const { name, symbol } = metaByCode[code];
 			return `  ${code}: { name: ${JSON.stringify(name)}, symbol: ${JSON.stringify(symbol)} },`;
 		})
 		.join("\n");

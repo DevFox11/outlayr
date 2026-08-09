@@ -1,6 +1,6 @@
-import * as DocumentPicker from "expo-document-picker";
+import { getDocumentAsync } from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
-import * as Sharing from "expo-sharing";
+import { isAvailableAsync, shareAsync } from "expo-sharing";
 import type { TranslationKey } from "@/i18n";
 
 /**
@@ -19,8 +19,8 @@ const CSV_TYPES = ["text/csv", "text/comma-separated-values", "text/plain"];
 export class TransferError extends Error {
 	readonly key: TranslationKey;
 
-	constructor(key: TranslationKey) {
-		super(key);
+	constructor(key: TranslationKey, options?: ErrorOptions) {
+		super(key, options);
 		this.key = key;
 	}
 }
@@ -31,13 +31,13 @@ export class TransferError extends Error {
  * destination the user has.
  */
 export async function shareText(text: string, fileName: string, mimeType: string, dialogTitle: string): Promise<void> {
-	if (!(await Sharing.isAvailableAsync())) {
+	if (!(await isAvailableAsync())) {
 		throw new TransferError("alerts.transfer.sharingUnavailable");
 	}
 	const file = new File(Paths.cache, fileName);
 	file.create({ intermediates: true, overwrite: true });
 	file.write(text);
-	await Sharing.shareAsync(file.uri, { dialogTitle, mimeType });
+	await shareAsync(file.uri, { dialogTitle, mimeType });
 }
 
 export async function shareBytes(
@@ -46,13 +46,13 @@ export async function shareBytes(
 	mimeType: string,
 	dialogTitle: string
 ): Promise<void> {
-	if (!(await Sharing.isAvailableAsync())) {
+	if (!(await isAvailableAsync())) {
 		throw new TransferError("alerts.transfer.sharingUnavailable");
 	}
 	const file = new File(Paths.cache, fileName);
 	file.create({ intermediates: true, overwrite: true });
 	file.write(bytes);
-	await Sharing.shareAsync(file.uri, { dialogTitle, mimeType });
+	await shareAsync(file.uri, { dialogTitle, mimeType });
 }
 
 export interface PickedFile {
@@ -76,7 +76,7 @@ export async function pickArchiveFile(): Promise<PickedFile | null> {
 }
 
 async function pickTextFile(type: string[]): Promise<PickedFile | null> {
-	const result = await DocumentPicker.getDocumentAsync({
+	const result = await getDocumentAsync({
 		copyToCacheDirectory: true,
 		multiple: false,
 		type,
@@ -89,8 +89,8 @@ async function pickTextFile(type: string[]): Promise<PickedFile | null> {
 	let text: string;
 	try {
 		text = await new File(asset.uri).text();
-	} catch {
-		throw new TransferError("alerts.transfer.unreadableFile");
+	} catch (error) {
+		throw new TransferError("alerts.transfer.unreadableFile", { cause: error });
 	}
 	return { name: asset.name, text };
 }

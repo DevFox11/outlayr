@@ -64,10 +64,10 @@ export function usePhotoSync(db: Database | null): void {
 		};
 
 		const schedule = debounce(PHOTO_DEBOUNCE_MS, () => {
-			void cycle();
+			cycle();
 		});
 
-		void cycle();
+		cycle();
 
 		const listener = addDatabaseChangeListener((event) => {
 			if (PHOTO_TABLE_NAMES.includes(event.tableName)) {
@@ -77,7 +77,7 @@ export function usePhotoSync(db: Database | null): void {
 
 		const subscription = AppState.addEventListener("change", (state) => {
 			if (state === "active") {
-				void cycle();
+				cycle();
 			} else if (state === "background") {
 				schedule.cancel();
 			}

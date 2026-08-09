@@ -90,7 +90,7 @@ export async function fetchMerchantImage(
  * row on a transaction would be doing. Do not reintroduce it.
  */
 async function resolveMerchantImage(request: MerchantImageRequest, fetchImpl: typeof fetch): Promise<LogoOutcome> {
-	const domain = request.domain;
+	const { domain } = request;
 	if (domain == null || domain.length === 0) {
 		return NONE;
 	}

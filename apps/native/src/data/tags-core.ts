@@ -121,6 +121,7 @@ export const tagsRepo = {
 					.where(and(eq(transactionTags.transactionId, transactionId), inArray(transactionTags.tagId, [...detach])));
 			}
 			for (const tagId of attach) {
+				// biome-ignore lint/performance/noAwaitInLoops: expo-sqlite's withTransactionAsync shares one connection, so statements issued concurrently inside the callback interleave with the transaction boundary
 				const retired = await db
 					.select({ id: transactionTags.id })
 					.from(transactionTags)

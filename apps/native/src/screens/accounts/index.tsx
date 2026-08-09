@@ -152,7 +152,7 @@ interface AccountRowProps {
 	onOpen: (id: string) => void;
 }
 
-const AccountRow = memo(function AccountRow({ account, colors, db, onDelete, onOpen }: AccountRowProps) {
+const AccountRow = memo(function AccountRowBody({ account, colors, db, onDelete, onOpen }: AccountRowProps) {
 	const t = useTranslation();
 	const { showCents } = useDisplaySettings().state;
 	const balance = useAccountBalance(db, account);

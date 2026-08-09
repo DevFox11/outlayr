@@ -9,7 +9,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { Easing, type SharedValue, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { Burndown } from "@/domain/budget-burndown";
@@ -108,6 +108,140 @@ function actualPathD(burndown: Burndown, limit: number, plot: Plot): string {
 	return parts.join(" ");
 }
 
+function deficitPathD(burndown: Burndown, plot: Plot, last: Burndown["points"][number], crossX: number): string {
+	const tail =
+		burndown.projectedBalance == null
+			? `L ${plot.x(last.day)} ${plot.zeroY}`
+			: `L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)} L ${plot.x(burndown.totalDays)} ${plot.zeroY}`;
+	return `M ${crossX} ${plot.zeroY} L ${crossX} ${plot.y(last.balance)} L ${plot.x(last.day)} ${plot.y(last.balance)} ${tail} Z`;
+}
+
+function makeGeometry(burndown: Burndown, limit: number, width: number, height: number, domain: "auto" | "limit") {
+	const plot = makePlot(burndown, limit, width, height, domain);
+	const last = burndown.points.at(-1);
+	const actualD = actualPathD(burndown, limit, plot);
+
+	const actual = Skia.Path.MakeFromSVGString(actualD);
+	const ideal = Skia.Path.MakeFromSVGString(
+		`M ${plot.x(1)} ${plot.y(limit)} L ${plot.x(burndown.totalDays)} ${plot.y(0)}`
+	);
+
+	const projection =
+		last && burndown.projectedBalance != null
+			? Skia.Path.MakeFromSVGString(
+					`M ${plot.x(last.day)} ${plot.y(last.balance)} L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)}`
+				)
+			: null;
+
+	const surplus = Skia.Path.MakeFromSVGString(
+		`${actualD} L ${plot.x(last?.day ?? 1)} ${plot.zeroY} L ${plot.x(1)} ${plot.zeroY} Z`
+	);
+
+	const deficit =
+		burndown.runwayDay != null && last
+			? Skia.Path.MakeFromSVGString(deficitPathD(burndown, plot, last, plot.x(burndown.runwayDay)))
+			: null;
+
+	const hatch = Skia.Path.MakeFromSVGString(hatchPathD(width, height));
+
+	const axis = Skia.Path.MakeFromSVGString(`M ${plot.plotLeft} ${plot.zeroY} L ${plot.plotRight} ${plot.zeroY}`);
+
+	return {
+		actual,
+		axis,
+		deficit,
+		hatch,
+		ideal,
+		last,
+		plot,
+		projection,
+		surplus,
+	};
+}
+
+interface BurndownMarkerProps {
+	colors: ReturnType<typeof useColors>;
+	draw: SharedValue<number>;
+	marker: Burndown["points"][number];
+	markerRule: ReturnType<typeof Skia.Path.MakeFromSVGString>;
+	plot: Plot;
+	scrubbing: boolean;
+}
+
+function BurndownMarker({ colors, draw, marker, markerRule, plot, scrubbing }: BurndownMarkerProps) {
+	return (
+		<SkGroup opacity={draw}>
+			{markerRule ? (
+				<SkPath
+					color={scrubbing ? colors.foreground : withAlpha(colors.foreground, 0.55)}
+					path={markerRule}
+					strokeWidth={CHART_SCRUB.ruleWidth}
+					style="stroke"
+				/>
+			) : null}
+			<SkCircle
+				color={marker.balance < 0 ? colors.overBudget : colors.foreground}
+				cx={plot.x(marker.day)}
+				cy={plot.y(marker.balance)}
+				r={scrubbing ? CHART_SCRUB.activeDotRadius : CHART_SCRUB.dotRadius}
+			/>
+		</SkGroup>
+	);
+}
+
+interface PanGestureParams {
+	activeDay: SharedValue<number>;
+	interactive: boolean;
+	lastDay: number;
+	onScrub?: (day: number | null) => void;
+	plot: Plot;
+	scrubX: SharedValue<number>;
+	setScrubDay: (day: number | null) => void;
+}
+
+function makePanGesture({ activeDay, interactive, lastDay, onScrub, plot, scrubX, setScrubDay }: PanGestureParams) {
+	const { plotLeft, plotRight, span } = plot;
+
+	const report = (x: number) => {
+		"worklet";
+		scrubX.value = x;
+		const ratio = (x - plotLeft) / Math.max(1, plotRight - plotLeft);
+		const day = Math.round(ratio * span) + 1;
+		const clamped = Math.min(lastDay, Math.max(1, day));
+		// Only cross to JS when the snapped day actually changes, so a full
+		// swipe costs one call per day rather than one per frame.
+		if (clamped !== activeDay.value) {
+			activeDay.value = clamped;
+			scheduleOnRN(setScrubDay, clamped);
+			if (onScrub) {
+				scheduleOnRN(onScrub, clamped);
+			}
+		}
+	};
+
+	return Gesture.Pan()
+		.enabled(interactive)
+		.minDistance(0)
+		.shouldCancelWhenOutside(false)
+		.onBegin((event) => {
+			"worklet";
+			report(event.x);
+		})
+		.onChange((event) => {
+			"worklet";
+			report(event.x);
+		})
+		.onFinalize(() => {
+			"worklet";
+			scrubX.value = -1;
+			activeDay.value = -1;
+			scheduleOnRN(setScrubDay, null);
+			if (onScrub) {
+				scheduleOnRN(onScrub, null);
+			}
+		});
+}
+
 export function BudgetBurndownChart({
 	burndown,
 	limit,
@@ -133,6 +267,7 @@ export function BudgetBurndownChart({
 			draw.value = 1;
 			return;
 		}
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `useRef(false).current` as the literal `false` even when annotated `useRef<boolean>`; it is assigned true on the next line and survives this effect's later runs.
 		if (drawn.current) {
 			return;
 		}
@@ -143,54 +278,10 @@ export function BudgetBurndownChart({
 		});
 	}, [animatedCharts, draw]);
 
-	const geometry = useMemo(() => {
-		const plot = makePlot(burndown, limit, width, height, domain);
-		const last = burndown.points.at(-1);
-
-		const actual = Skia.Path.MakeFromSVGString(actualPathD(burndown, limit, plot));
-		const ideal = Skia.Path.MakeFromSVGString(
-			`M ${plot.x(1)} ${plot.y(limit)} L ${plot.x(burndown.totalDays)} ${plot.y(0)}`
-		);
-
-		const projection =
-			last && burndown.projectedBalance != null
-				? Skia.Path.MakeFromSVGString(
-						`M ${plot.x(last.day)} ${plot.y(last.balance)} L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)}`
-					)
-				: null;
-
-		const surplus = Skia.Path.MakeFromSVGString(
-			`${actualPathD(burndown, limit, plot)} L ${plot.x(last?.day ?? 1)} ${plot.zeroY} L ${plot.x(1)} ${plot.zeroY} Z`
-		);
-
-		let deficit: ReturnType<typeof Skia.Path.MakeFromSVGString> = null;
-		if (burndown.runwayDay != null && last) {
-			const crossX = plot.x(burndown.runwayDay);
-			const tail =
-				burndown.projectedBalance == null
-					? `L ${plot.x(last.day)} ${plot.zeroY}`
-					: `L ${plot.x(burndown.totalDays)} ${plot.y(burndown.projectedBalance)} L ${plot.x(burndown.totalDays)} ${plot.zeroY}`;
-			deficit = Skia.Path.MakeFromSVGString(
-				`M ${crossX} ${plot.zeroY} L ${crossX} ${plot.y(last.balance)} L ${plot.x(last.day)} ${plot.y(last.balance)} ${tail} Z`
-			);
-		}
-
-		const hatch = Skia.Path.MakeFromSVGString(hatchPathD(width, height));
-
-		const axis = Skia.Path.MakeFromSVGString(`M ${plot.plotLeft} ${plot.zeroY} L ${plot.plotRight} ${plot.zeroY}`);
-
-		return {
-			actual,
-			axis,
-			deficit,
-			hatch,
-			ideal,
-			last,
-			plot,
-			projection,
-			surplus,
-		};
-	}, [burndown, limit, width, height, domain]);
+	const geometry = useMemo(
+		() => makeGeometry(burndown, limit, width, height, domain),
+		[burndown, limit, width, height, domain]
+	);
 
 	const { plot, last } = geometry;
 
@@ -208,49 +299,19 @@ export function BudgetBurndownChart({
 		return Skia.Path.MakeFromSVGString(`M ${x} ${PAD.top - over} L ${x} ${height - PAD.bottom + over}`);
 	}, [plot, marker, height]);
 
-	const pan = useMemo(() => {
-		const { plotLeft, plotRight, span } = plot;
-		const lastDay = burndown.points.length;
-
-		const report = (x: number) => {
-			"worklet";
-			scrubX.value = x;
-			const ratio = (x - plotLeft) / Math.max(1, plotRight - plotLeft);
-			const day = Math.round(ratio * span) + 1;
-			const clamped = Math.min(lastDay, Math.max(1, day));
-			// Only cross to JS when the snapped day actually changes, so a full
-			// swipe costs one call per day rather than one per frame.
-			if (clamped !== activeDay.value) {
-				activeDay.value = clamped;
-				scheduleOnRN(setScrubDay, clamped);
-				if (onScrub) {
-					scheduleOnRN(onScrub, clamped);
-				}
-			}
-		};
-
-		return Gesture.Pan()
-			.enabled(interactive)
-			.minDistance(0)
-			.shouldCancelWhenOutside(false)
-			.onBegin((event) => {
-				"worklet";
-				report(event.x);
-			})
-			.onChange((event) => {
-				"worklet";
-				report(event.x);
-			})
-			.onFinalize(() => {
-				"worklet";
-				scrubX.value = -1;
-				activeDay.value = -1;
-				scheduleOnRN(setScrubDay, null);
-				if (onScrub) {
-					scheduleOnRN(onScrub, null);
-				}
-			});
-	}, [plot, burndown.points.length, onScrub, interactive, scrubX, activeDay]);
+	const pan = useMemo(
+		() =>
+			makePanGesture({
+				activeDay,
+				interactive,
+				lastDay: burndown.points.length,
+				onScrub,
+				plot,
+				scrubX,
+				setScrubDay,
+			}),
+		[plot, burndown.points.length, onScrub, interactive, scrubX, activeDay]
+	);
 
 	/**
 	 * A share of the limit rather than an amount: the chart is handed no currency
@@ -343,22 +404,14 @@ export function BudgetBurndownChart({
 				)}
 
 				{marker ? (
-					<SkGroup opacity={draw}>
-						{markerRule ? (
-							<SkPath
-								color={scrubbed ? colors.foreground : withAlpha(colors.foreground, 0.55)}
-								path={markerRule}
-								strokeWidth={CHART_SCRUB.ruleWidth}
-								style="stroke"
-							/>
-						) : null}
-						<SkCircle
-							color={marker.balance < 0 ? colors.overBudget : colors.foreground}
-							cx={plot.x(marker.day)}
-							cy={plot.y(marker.balance)}
-							r={scrubbed ? CHART_SCRUB.activeDotRadius : CHART_SCRUB.dotRadius}
-						/>
-					</SkGroup>
+					<BurndownMarker
+						colors={colors}
+						draw={draw}
+						marker={marker}
+						markerRule={markerRule}
+						plot={plot}
+						scrubbing={scrubbed != null}
+					/>
 				) : null}
 			</Canvas>
 		</View>

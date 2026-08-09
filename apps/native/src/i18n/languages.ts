@@ -41,12 +41,14 @@ export function resolveLanguagePreference(value: string | null | undefined): Lan
 	return DEFAULT_LANGUAGE_PREFERENCE;
 }
 
+const TAG_SUBTAG_SEPARATOR = /[-_]/;
+
 /** `es-419`, `es_419` and `es-MX` all resolve to the one Spanish catalog. */
 export function languageFromTag(tag: string | null | undefined): Language | null {
 	if (!tag) {
 		return null;
 	}
-	const primary = tag.split(/[-_]/)[0]?.toLowerCase();
+	const primary = tag.split(TAG_SUBTAG_SEPARATOR)[0]?.toLowerCase();
 	return primary && isLanguage(primary) ? primary : null;
 }
 

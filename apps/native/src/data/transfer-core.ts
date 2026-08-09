@@ -137,6 +137,8 @@ export interface ParsedImportFile {
 /** A date, an amount and a category are the least this can build a row from. */
 const MINIMUM_COLUMNS = 3;
 
+const ANY_DIGIT = /\d/;
+
 /**
  * The header test is Swift's (`ImportDataView+Logic.swift:126`): a first line
  * with no digit in it is a header, because a data row always carries at least a
@@ -147,7 +149,7 @@ export function splitHeaderAndRows(lines: string[][]): {
 	rows: string[][];
 } {
 	const first = lines[0] ?? [];
-	const looksLikeHeader = !/\d/.test(first.join(""));
+	const looksLikeHeader = !ANY_DIGIT.test(first.join(""));
 	const rows = looksLikeHeader ? lines.slice(1) : lines;
 	return { header: looksLikeHeader ? first : null, rows };
 }
@@ -196,6 +198,42 @@ export function uniqueCategoryValues(rows: readonly (readonly string[])[], index
 
 const CURRENCY_CODE = /^[A-Za-z]{3}$/;
 
+function readImportRow(
+	row: readonly string[],
+	mapping: ColumnMapping,
+	dateFormat: string,
+	decimal: DecimalSeparator,
+	links: ReadonlyMap<string, string>,
+	categoryIncome: ReadonlyMap<string, boolean>
+): ImportEntry | SkipReason {
+	const categoryId = links.get(categoryKey(row[mapping.category] ?? ""));
+	if (categoryId == null) {
+		return "category";
+	}
+
+	const date = parseCsvDate(row[mapping.date] ?? "", dateFormat);
+	if (date == null) {
+		return "date";
+	}
+
+	const amount = parseCsvAmount(row[mapping.amount] ?? "", decimal);
+	if (amount == null) {
+		return "amount";
+	}
+
+	const declaredType = mapping.type == null ? null : parseCsvType(row[mapping.type] ?? "");
+	const currencyCell = mapping.currency == null ? "" : (row[mapping.currency] ?? "").trim();
+
+	return {
+		amount: Math.abs(amount),
+		categoryId,
+		currency: CURRENCY_CODE.test(currencyCell) ? currencyCell.toUpperCase() : null,
+		date,
+		income: declaredType ?? categoryIncome.get(categoryId) ?? false,
+		note: mapping.note == null ? "" : (row[mapping.note] ?? "").trim(),
+	};
+}
+
 /**
  * Parses the whole file up front so the user can see what will land — and what
  * will not — before anything is written. A row that cannot be read is dropped
@@ -216,43 +254,19 @@ export function buildImportPlan(
 	let latest: Date | null = null;
 
 	for (const [index, row] of rows.entries()) {
-		const number = index + 1;
-
-		const categoryId = links.get(categoryKey(row[mapping.category] ?? ""));
-		if (categoryId == null) {
-			skipped.push({ reason: "category", row: number });
+		const read = readImportRow(row, mapping, dateFormat, decimal, links, categoryIncome);
+		if (typeof read === "string") {
+			skipped.push({ reason: read, row: index + 1 });
 			continue;
 		}
 
-		const date = parseCsvDate(row[mapping.date] ?? "", dateFormat);
-		if (date == null) {
-			skipped.push({ reason: "date", row: number });
-			continue;
+		entries.push(read);
+
+		if (earliest == null || read.date < earliest) {
+			earliest = read.date;
 		}
-
-		const amount = parseCsvAmount(row[mapping.amount] ?? "", decimal);
-		if (amount == null) {
-			skipped.push({ reason: "amount", row: number });
-			continue;
-		}
-
-		const declaredType = mapping.type == null ? null : parseCsvType(row[mapping.type] ?? "");
-		const currencyCell = mapping.currency == null ? "" : (row[mapping.currency] ?? "").trim();
-
-		entries.push({
-			amount: Math.abs(amount),
-			categoryId,
-			currency: CURRENCY_CODE.test(currencyCell) ? currencyCell.toUpperCase() : null,
-			date,
-			income: declaredType ?? categoryIncome.get(categoryId) ?? false,
-			note: mapping.note == null ? "" : (row[mapping.note] ?? "").trim(),
-		});
-
-		if (earliest == null || date < earliest) {
-			earliest = date;
-		}
-		if (latest == null || date > latest) {
-			latest = date;
+		if (latest == null || read.date > latest) {
+			latest = read.date;
 		}
 	}
 
@@ -271,6 +285,7 @@ export async function applyImport(db: Database, plan: ImportPlan): Promise<numbe
 
 	await withTransaction(db, async () => {
 		for (const entry of plan.entries) {
+			// biome-ignore lint/performance/noAwaitInLoops: each create reads before it inserts, and every statement shares the one connection withTransaction holds open — issuing them together interleaves those reads and writes across the transaction that makes this import all-or-nothing
 			await transactionsRepo.create(db, {
 				amount: entry.amount,
 				categoryId: entry.categoryId,

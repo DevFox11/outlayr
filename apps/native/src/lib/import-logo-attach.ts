@@ -28,6 +28,7 @@ export async function attachImportLogos(entries: readonly ImportEntry[]): Promis
 		}
 		let brand = brands.get(identity.domain);
 		if (brand === undefined) {
+			// biome-ignore lint/performance/noAwaitInLoops: the `brands` map memoises one read per domain, and the miss must land in it before the next entry sharing that domain is reached
 			const cached = await readCachedLogo(logoCacheKey(identity.domain, identity.domain));
 			brand = cached.kind === "logo" ? { bytes: cached.bytes, color: null } : null;
 			brands.set(identity.domain, brand);

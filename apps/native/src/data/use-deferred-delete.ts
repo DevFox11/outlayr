@@ -43,6 +43,7 @@ export function useDeferredDelete(db: Database): DeferredDelete {
 		const created = createDeferredDelete({
 			commit: (id) => transactionsRepo.remove(dbRef.current, id),
 			onChange: (next) => {
+				// biome-ignore lint/suspicious/noUnnecessaryConditions: the mount effect flips mountedRef.current to true after this closure is built, so the guard is what stops a publish arriving post-unmount from calling setState
 				if (mountedRef.current) {
 					setPendingId(next.pendingId);
 				}

@@ -19,14 +19,13 @@ export function accountLabel(user: AccountUser | undefined, t: TranslateFn): str
 }
 
 export function accountRowValue(state: AccountState, t: TranslateFn): string {
-	switch (state.kind) {
-		case "pending":
-			return "";
-		case "signed-out":
-			return t("settings.account.notSignedIn");
-		case "signed-in":
-			return accountLabel(state.user, t);
+	if (state.kind === "pending") {
+		return "";
 	}
+	if (state.kind === "signed-out") {
+		return t("settings.account.notSignedIn");
+	}
+	return accountLabel(state.user, t);
 }
 
 const CANCELLATION_CODES = new Set([

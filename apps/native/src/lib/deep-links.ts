@@ -71,13 +71,15 @@ const ID_HOST_SECTION: Readonly<Record<string, string>> = {
 	transaction: "/",
 };
 
+const SCHEME_PREFIX = /^[a-zA-Z][\w+.-]*:\/\//;
+
 /**
  * Both `outlayr://budgets/overall?x=1` and the bare `/budgets/overall` form have
  * to parse: expo-router hands `redirectSystemPath` the raw URL on a cold start
  * but an already-normalized path once the app is running.
  */
 function parts(raw: string): { segments: string[]; query: string } {
-	const withoutScheme = raw.replace(/^[a-zA-Z][\w+.-]*:\/\//, "");
+	const withoutScheme = raw.replace(SCHEME_PREFIX, "");
 	const [pathname = "", query = ""] = withoutScheme.split("?");
 	return {
 		query: query ? `?${query}` : "",

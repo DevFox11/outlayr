@@ -44,7 +44,7 @@ const LedgerWidget = (props: LedgerWidgetProps, environment: WidgetEnvironment<L
 	// lines. The colour dot and the ledger head carry nothing there, so both
 	// branches drop to note-and-figure rows and let the copy do the work.
 	if (family === "accessoryInline") {
-		const latest = props.entries[0];
+		const [latest] = props.entries;
 		return (
 			<Text modifiers={[widgetURL(props.url)]}>
 				{latest ? `${latest.note} · ${signed(latest)}` : "Nothing logged yet"}

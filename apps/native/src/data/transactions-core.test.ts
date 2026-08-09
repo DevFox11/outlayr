@@ -382,8 +382,8 @@ describe("restoring a tombstoned transaction", () => {
 	const RESTORED_AT = new Date(2026, 3, 2, 8, 30);
 	const LATER_STILL = new Date(2026, 3, 3, 8, 30);
 
-	async function timestamps(db: Database, id: string) {
-		const [row] = await db
+	async function timestamps(database: Database, transactionId: string) {
+		const [row] = await database
 			.select({
 				deletedAt: transactions.deletedAt,
 				recurringType: transactions.recurringType,
@@ -391,7 +391,7 @@ describe("restoring a tombstoned transaction", () => {
 				updatedAt: transactions.updatedAt,
 			})
 			.from(transactions)
-			.where(eq(transactions.id, id));
+			.where(eq(transactions.id, transactionId));
 		return row;
 	}
 

@@ -64,7 +64,7 @@ export function glyphShade(hex: string, isDark: boolean): string {
 
 	let lo = 0;
 	let hi = 1;
-	for (let index = 0; index < 10; index++) {
+	for (let index = 0; index < 10; index += 1) {
 		const mid = (lo + hi) / 2;
 		if (contrastRatio(mixRgb(tint, anchor, mid), wash) >= TARGET_CONTRAST) {
 			hi = mid;
@@ -115,8 +115,11 @@ function parseHex(hex: string): { r: number; g: number; b: number } | null {
 		return null;
 	}
 	return {
+		// biome-ignore lint/suspicious/noBitwiseOperators: `int` is the hex parsed as one packed 24-bit word; the channels are its bytes
 		b: int & 255,
+		// biome-ignore lint/suspicious/noBitwiseOperators: `int` is the hex parsed as one packed 24-bit word; the channels are its bytes
 		g: (int >> 8) & 255,
+		// biome-ignore lint/suspicious/noBitwiseOperators: `int` is the hex parsed as one packed 24-bit word; the channels are its bytes
 		r: (int >> 16) & 255,
 	};
 }

@@ -130,14 +130,18 @@ function pairKey(theme: Theme, token: string, ground: string): string {
 /** The `--token: value;` declarations inside `@variant <theme> { … }`. */
 function themeTokens(theme: Theme): Map<string, string> {
 	const open = stylesheet.indexOf(`@variant ${theme} {`);
-	expect(open).not.toBe(-1);
+	if (open === -1) {
+		throw new Error(`global.css no longer declares @variant ${theme}`);
+	}
 	return new Map([...braced(open).matchAll(/--([\w-]+):\s*([^;]+);/g)].map((match) => [match[1], match[2].trim()]));
 }
 
 /** The `@theme inline` bridge, as utility suffix -> the token it reads. */
 function exposedTokens(): Map<string, string> {
 	const open = stylesheet.indexOf("@theme inline");
-	expect(open).not.toBe(-1);
+	if (open === -1) {
+		throw new Error("global.css no longer declares @theme inline");
+	}
 	return new Map(
 		[...braced(open).matchAll(/--color-([\w-]+):\s*var\(--([\w-]+)\);/g)].map((match) => [match[1], match[2]])
 	);
@@ -146,11 +150,14 @@ function exposedTokens(): Map<string, string> {
 function braced(from: number): string {
 	const open = stylesheet.indexOf("{", from);
 	let depth = 0;
-	for (let index = open; index < stylesheet.length; index++) {
+	for (let index = open; index < stylesheet.length; index += 1) {
 		if (stylesheet[index] === "{") {
-			depth++;
-		} else if (stylesheet[index] === "}" && --depth === 0) {
-			return stylesheet.slice(open + 1, index);
+			depth += 1;
+		} else if (stylesheet[index] === "}") {
+			depth -= 1;
+			if (depth === 0) {
+				return stylesheet.slice(open + 1, index);
+			}
 		}
 	}
 	throw new Error(`unbalanced braces at offset ${from} of global.css`);
@@ -176,13 +183,20 @@ function textUtilities(): Set<string> {
 	return names;
 }
 
+function byCodeUnit(a: string, b: string): number {
+	if (a === b) {
+		return 0;
+	}
+	return a < b ? -1 : 1;
+}
+
 /** Files writing a literal `text-white`, as paths relative to `src`. */
 function whiteTextSites(): string[] {
 	const src = join(nativeRoot, "src");
 	return sourceFiles(src)
 		.filter((file) => /\btext-white\b/.test(readFileSync(file, "utf8")))
 		.map((file) => relative(src, file))
-		.sort();
+		.sort(byCodeUnit);
 }
 
 function sourceFiles(dir: string): string[] {

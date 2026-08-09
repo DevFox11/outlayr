@@ -73,6 +73,8 @@ export function compactMagnitude(value: number): string {
 	return String(Math.round(value));
 }
 
+const TRAILING_ZERO_DECIMAL = /\.0$/;
+
 function trim(value: number, whole: boolean): string {
-	return whole ? String(Math.round(value)) : value.toFixed(1).replace(/\.0$/, "");
+	return whole ? String(Math.round(value)) : value.toFixed(1).replace(TRAILING_ZERO_DECIMAL, "");
 }

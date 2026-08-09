@@ -1,9 +1,11 @@
 import { act, renderHook } from "@testing-library/react-native";
 import { categoryKey, type ParsedImportFile } from "@/data/transfer-core";
+// biome-ignore lint/performance/noNamespaceImport: jest.spyOn installs onto the module namespace object, so setCachedEnrichment cannot be spied through a named import
 import * as enrichmentCache from "@/domain/enrichment-cache";
 import type { UnavailableReason } from "@/domain/import-flow";
 import type { MappingDraft } from "@/domain/import-mapping";
 import { reviewEntryIdentity } from "@/domain/import-review-identity";
+// biome-ignore lint/performance/noNamespaceImport: jest.spyOn installs onto the module namespace object, so resolveMerchant cannot be spied through a named import
 import * as merchantResolver from "@/domain/merchant-resolver";
 import type { CsvImportFn, CsvImportRequest, CsvImportResult, CsvImportStatus } from "@/lib/convex";
 import { AI_TIER_MAX_CHARS, AI_TIER_MAX_ROWS, type UseCsvImportArgs, useCsvImport } from "./use-csv-import";

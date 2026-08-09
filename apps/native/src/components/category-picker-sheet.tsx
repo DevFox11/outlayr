@@ -8,7 +8,7 @@ import {
 	Tick02Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
 import { Button, InputGroup } from "panelui-native";
-import { memo, type Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 import { type Category, useCategoriesByNamespace } from "@/data/categories";
@@ -129,6 +129,46 @@ export function CategoryPickerSheet({
 		setExpanded(expandedForSelectedCategory(categories, selectedId));
 	}, [categories, clearQuery, selectedId]);
 
+	let searchPanel: ReactNode = null;
+	if (searching && matches.length === 0) {
+		searchPanel = (
+			<View className="items-center px-2 pt-8">
+				<Text className="text-center text-muted text-subtitle">
+					{t("transaction.category.noMatches", { query: trimmed })}
+				</Text>
+				{onCreate ? (
+					<Pressable
+						accessibilityRole="button"
+						className="mt-3.5 flex-row items-center gap-2 rounded-full bg-surface px-4 py-2 active:opacity-60"
+						onPress={create}
+						testID="category-create"
+					>
+						<HugeiconsIcon color={colors.tint} icon={PlusSignIcon} size={15} strokeWidth={2} />
+						<Text className="font-sans-medium text-callout text-foreground">
+							{t("transaction.category.createNamed", { query: trimmed })}
+						</Text>
+					</Pressable>
+				) : null}
+			</View>
+		);
+	} else if (searching) {
+		searchPanel = (
+			<View className="overflow-hidden rounded-xl bg-surface">
+				{matches.map((match, index) => (
+					<CategoryRow
+						category={match.category}
+						crumb={match.parent?.name ?? null}
+						divided={index > 0}
+						highlight={match}
+						key={match.category.id}
+						onSelect={onSelect}
+						selected={match.category.id === selectedId}
+					/>
+				))}
+			</View>
+		);
+	}
+
 	return (
 		<BottomSheetModal
 			enableDynamicSizing={false}
@@ -188,40 +228,7 @@ export function CategoryPickerSheet({
 				style={{ flex: 1 }}
 			>
 				{searching ? (
-					matches.length === 0 ? (
-						<View className="items-center px-2 pt-8">
-							<Text className="text-center text-muted text-subtitle">
-								{t("transaction.category.noMatches", { query: trimmed })}
-							</Text>
-							{onCreate ? (
-								<Pressable
-									accessibilityRole="button"
-									className="mt-3.5 flex-row items-center gap-2 rounded-full bg-surface px-4 py-2 active:opacity-60"
-									onPress={create}
-									testID="category-create"
-								>
-									<HugeiconsIcon color={colors.tint} icon={PlusSignIcon} size={15} strokeWidth={2} />
-									<Text className="font-sans-medium text-callout text-foreground">
-										{t("transaction.category.createNamed", { query: trimmed })}
-									</Text>
-								</Pressable>
-							) : null}
-						</View>
-					) : (
-						<View className="overflow-hidden rounded-xl bg-surface">
-							{matches.map((match, index) => (
-								<CategoryRow
-									category={match.category}
-									crumb={match.parent?.name ?? null}
-									divided={index > 0}
-									highlight={match}
-									key={match.category.id}
-									onSelect={onSelect}
-									selected={match.category.id === selectedId}
-								/>
-							))}
-						</View>
-					)
+					searchPanel
 				) : (
 					<>
 						{pendingCategory ? (
@@ -308,7 +315,7 @@ function tintFor(category: Category, incomeColor: string): string {
 	return category.income ? incomeColor : (category.color ?? "#767676");
 }
 
-const RecentChip = memo(function RecentChip({
+const RecentChip = memo(function RecentChipBody({
 	category,
 	onSelect,
 }: {
@@ -337,7 +344,7 @@ const RecentChip = memo(function RecentChip({
 	);
 });
 
-const CategoryRow = memo(function CategoryRow({
+const CategoryRow = memo(function CategoryRowBody({
 	category,
 	selected,
 	indented = false,

@@ -111,8 +111,9 @@ export const accountsRepo = {
 	async reorder(db: Database, orderedIds: string[]): Promise<void> {
 		const now = new Date();
 		await withTransaction(db, async () => {
-			for (let index = 0; index < orderedIds.length; index++) {
-				await db.update(accounts).set({ sortOrder: index, updatedAt: now }).where(eq(accounts.id, orderedIds[index]));
+			for (const [index, id] of orderedIds.entries()) {
+				// biome-ignore lint/performance/noAwaitInLoops: these updates share the one connection withTransaction holds open, so statements issued together interleave with that transaction's boundary
+				await db.update(accounts).set({ sortOrder: index, updatedAt: now }).where(eq(accounts.id, id));
 			}
 		});
 	},

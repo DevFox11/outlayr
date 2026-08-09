@@ -67,7 +67,7 @@ interface EntryRowProps {
 	tile: ReviewCategoryTile | undefined;
 }
 
-export const EntryRow = memo(function EntryRow({
+export const EntryRow = memo(function EntryRowInner({
 	index,
 	entry,
 	duplicate,
@@ -83,6 +83,20 @@ export const EntryRow = memo(function EntryRow({
 	const colors = useColors();
 	const { showCents } = useDisplaySettings().state;
 	const onPress = useCallback(() => onToggle(index), [onToggle, index]);
+	const tileColor = tile === undefined ? FALLBACK_IDENTITY_COLOR : tile.color;
+	const categoryCaption =
+		categoryName == null ? null : (
+			<Text className="font-sans-medium text-muted text-subtitle" numberOfLines={1}>
+				{categoryName}
+			</Text>
+		);
+	const caption = duplicate ? (
+		<Text className="text-danger text-footnote" numberOfLines={1}>
+			{t("import.reviewDuplicateCaption")}
+		</Text>
+	) : (
+		categoryCaption
+	);
 
 	return (
 		<Pressable
@@ -101,7 +115,7 @@ export const EntryRow = memo(function EntryRow({
 				/>
 			</View>
 			<CategoryIconTile
-				color={tile?.color ?? FALLBACK_IDENTITY_COLOR}
+				color={tileColor}
 				emoji={tile?.emoji}
 				icon={tile?.icon}
 				imageUri={logoUri}
@@ -116,15 +130,7 @@ export const EntryRow = memo(function EntryRow({
 				>
 					{displayName}
 				</Text>
-				{duplicate ? (
-					<Text className="text-danger text-footnote" numberOfLines={1}>
-						{t("import.reviewDuplicateCaption")}
-					</Text>
-				) : categoryName == null ? null : (
-					<Text className="font-sans-medium text-muted text-subtitle" numberOfLines={1}>
-						{categoryName}
-					</Text>
-				)}
+				{caption}
 			</View>
 			<View className="items-end gap-0.5">
 				<RowAmount
@@ -146,7 +152,7 @@ export const EntryRow = memo(function EntryRow({
 	);
 });
 
-const DayHeader = memo(function DayHeader({
+const DayHeader = memo(function DayHeaderInner({
 	day,
 	total,
 	currency,

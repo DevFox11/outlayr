@@ -26,6 +26,16 @@ export function Search() {
 	return <SearchContent db={db} />;
 }
 
+function emptyState(query: string, rowCount: number) {
+	if (query.trim() === "") {
+		return <SearchEmptyState kind="idle" />;
+	}
+	if (rowCount === 0) {
+		return <SearchEmptyState kind="noResults" query={query} />;
+	}
+	return null;
+}
+
 /**
  * A modal rather than a field on the Log: pinning the field open there forces the
  * title inline and costs the large title.
@@ -45,49 +55,43 @@ function SearchContent({ db }: { db: Database }) {
 	const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
 	const figures = useMemo(() => cellFigures(toCells(rows), currency, rates), [rows, currency, rates]);
 
-	const empty =
-		query.trim() === "" ? (
-			<SearchEmptyState kind="idle" />
-		) : rows.length === 0 ? (
-			<SearchEmptyState kind="noResults" query={query} />
-		) : null;
+	const empty = emptyState(query, rows.length);
 
 	return (
 		<>
 			<Stack.SearchBar
 				autoFocus
-				placeholder={t("search.placeholder")}
 				hideWhenScrolling={false}
-				onChangeText={(event) => setQuery(event.nativeEvent.text)}
 				// The field's Cancel closes the whole task, not just the field.
 				onCancelButtonPress={() => router.back()}
+				onChangeText={(event) => setQuery(event.nativeEvent.text)}
+				placeholder={t("search.placeholder")}
 			/>
 			{empty ? (
 				<View className="flex-1 bg-background">{empty}</View>
 			) : (
 				<SectionList
 					className="bg-background"
-					contentInsetAdjustmentBehavior="automatic"
-					sections={sections}
-					keyExtractor={(item) => item.id}
-					stickySectionHeadersEnabled={false}
-					recycleItems
-					keyboardDismissMode="on-drag"
 					contentContainerStyle={{
 						paddingBottom: 40,
 						paddingHorizontal: 20,
 					}}
+					contentInsetAdjustmentBehavior="automatic"
+					keyboardDismissMode="on-drag"
+					keyExtractor={(item) => item.id}
 					ListHeaderComponent={<SearchResultsTotal count={rows.length} figures={figures} showCents={showCents} />}
-					renderSectionHeader={({ section }) => <DaySectionHeader section={section} />}
+					recycleItems
 					renderItem={({ item }) => (
 						<TransactionRow
-							transaction={item}
 							currency={currency}
-							rates={rates}
-							onPress={(id) => router.push(`/transactions/${id}`)}
 							onLongPress={(id) => openRowActions(id, false)}
+							onPress={(id) => router.push(`/transactions/${id}`)}
+							rates={rates}
+							transaction={item}
 						/>
 					)}
+					renderSectionHeader={({ section }) => <DaySectionHeader section={section} />}
+					sections={sections}
 				/>
 			)}
 			<UndoToast onUndo={undo} visible={pendingId != null} />

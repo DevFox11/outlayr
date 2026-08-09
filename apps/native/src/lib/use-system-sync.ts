@@ -26,10 +26,10 @@ export function useSystemSync(db: Database | null): void {
 		}
 
 		const publish = debounce(PUBLISH_DEBOUNCE_MS, () => {
-			void publishWidgets(db);
+			publishWidgets(db);
 		});
 		const reindex = debounce(SPOTLIGHT_DEBOUNCE_MS, () => {
-			void indexSpotlight(db);
+			indexSpotlight(db);
 		});
 
 		// Applying the queue writes rows, which trips the change listener below and
@@ -48,14 +48,14 @@ export function useSystemSync(db: Database | null): void {
 		};
 
 		catchUp();
-		void indexSpotlight(db);
+		indexSpotlight(db);
 		// Republished explicitly, because the listener below does not cover it: a
 		// refresh opens with an unqualified `DELETE FROM exchangeRates`, and SQLite's
 		// truncate optimization exempts that statement from the update hook the
 		// listener is built on (expo-sqlite's vendored `sqlite3.h:7090-7095`). Adding
 		// exchangeRates to the watched set was tried and does not fix it; this call
 		// is what keeps the tiles honest after a refresh.
-		void refreshRates(db).then((changed) => {
+		refreshRates(db).then((changed) => {
 			if (changed) {
 				publish.schedule();
 			}
@@ -75,7 +75,7 @@ export function useSystemSync(db: Database | null): void {
 			// is current.
 			if (state === "active") {
 				catchUp();
-				void refreshRates(db).then((changed) => {
+				refreshRates(db).then((changed) => {
 					if (changed) {
 						publish.schedule();
 					}
@@ -83,8 +83,8 @@ export function useSystemSync(db: Database | null): void {
 			} else if (state === "background") {
 				publish.cancel();
 				reindex.cancel();
-				void publishWidgets(db);
-				void indexSpotlight(db);
+				publishWidgets(db);
+				indexSpotlight(db);
 			}
 		});
 

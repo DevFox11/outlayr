@@ -30,8 +30,11 @@ export interface WindowTransactionsQuery {
 export function useWindowTransactions(db: Database, query: WindowTransactionsQuery | null): TransactionWithCategory[] {
 	const categoryMeta = useCategoryMeta(db);
 
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: query really is nullable — screens/insights/index.tsx:393 passes the null windowQuery returns while no chart bucket is selected
 	const startMs = query?.start.getTime() ?? 0;
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: query is nullable — dropping the chain throws whenever no chart bucket is selected
 	const endMs = query?.end.getTime() ?? 0;
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: query is nullable — dropping the fallback yields undefined whenever no chart bucket is selected
 	const nowMs = query?.nowMs ?? 0;
 	const income = query?.income ?? null;
 	const categoryId = query?.categoryId ?? null;

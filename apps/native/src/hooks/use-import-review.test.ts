@@ -5,6 +5,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 import type { ImportPlan } from "@/data/transfer-core";
+// biome-ignore lint/performance/noNamespaceImport: jest.spyOn installs onto the module namespace object, so applyImport cannot be spied through a named import
 import * as transferCore from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";

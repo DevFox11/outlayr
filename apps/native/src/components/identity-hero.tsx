@@ -201,15 +201,15 @@ export function IdentityHero({
 
 	const tile = (
 		<View style={{ alignItems: "center", flex: 1, justifyContent: "center" }}>
-			{isEmpty ? (
-				<EmptyTile colors={colors} variant={variant} />
-			) : photoUri ? (
-				<PhotoTile border={withAlpha(colors.foreground, 0.14)} uri={photoUri} />
-			) : icon ? (
-				<CategoryIconTile color={tint} icon={icon} size={TILE} />
-			) : (
-				<EmojiTile emoji={emoji ?? ""} tint={tint} />
-			)}
+			<HeroGlyph
+				colors={colors}
+				emoji={emoji}
+				icon={icon}
+				isEmpty={isEmpty}
+				photoUri={photoUri}
+				tint={tint}
+				variant={variant}
+			/>
 		</View>
 	);
 
@@ -310,6 +310,35 @@ export function IdentityHero({
 			)}
 		</Animated.View>
 	);
+}
+
+function HeroGlyph({
+	isEmpty,
+	photoUri,
+	icon,
+	emoji,
+	tint,
+	colors,
+	variant,
+}: {
+	isEmpty: boolean;
+	photoUri: string | null;
+	icon: string | null;
+	emoji: string | null;
+	tint: string;
+	colors: ReturnType<typeof useColors>;
+	variant: HeroVariant;
+}) {
+	if (isEmpty) {
+		return <EmptyTile colors={colors} variant={variant} />;
+	}
+	if (photoUri) {
+		return <PhotoTile border={withAlpha(colors.foreground, 0.14)} uri={photoUri} />;
+	}
+	if (icon) {
+		return <CategoryIconTile color={tint} icon={icon} size={TILE} />;
+	}
+	return <EmojiTile emoji={emoji ?? ""} tint={tint} />;
 }
 
 function PhotoTile({ uri, border }: { uri: string; border: string }) {

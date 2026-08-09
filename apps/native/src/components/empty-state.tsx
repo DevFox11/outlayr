@@ -31,18 +31,18 @@ interface EmptyStateProps {
 	title?: string;
 }
 
-export function EmptyState({ tier, mark, body, title, eyebrow, action, className }: EmptyStateProps) {
-	return (
-		<MarkInk tier={tier}>
-			{tier === "takeover" ? (
-				<Takeover action={action} body={body} className={className} mark={mark} title={title} />
-			) : tier === "inFlow" ? (
-				<InFlow body={body} className={className} eyebrow={eyebrow} mark={mark} />
-			) : (
-				<InsetRow body={body} className={className} mark={mark} />
-			)}
-		</MarkInk>
-	);
+function tierContent({ tier, mark, body, title, eyebrow, action, className }: EmptyStateProps): ReactNode {
+	if (tier === "takeover") {
+		return <Takeover action={action} body={body} className={className} mark={mark} title={title} />;
+	}
+	if (tier === "inFlow") {
+		return <InFlow body={body} className={className} eyebrow={eyebrow} mark={mark} />;
+	}
+	return <InsetRow body={body} className={className} mark={mark} />;
+}
+
+export function EmptyState(props: EmptyStateProps) {
+	return <MarkInk tier={props.tier}>{tierContent(props)}</MarkInk>;
 }
 
 const LARGE_TITLE_LIFT = -14;

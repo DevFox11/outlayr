@@ -44,6 +44,7 @@ function MainBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) 
 	const transactions = useBudgetContributions(
 		db,
 		null,
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: useMainBudget is declared `MainBudgetView | null` (data/budgets.ts:128) and really is null until the live query answers — the `!budget` early return below depends on it.
 		budget?.window.start ?? null,
 		budget ? windowEndMs(budget.window, nowMs) : nowMs
 	);

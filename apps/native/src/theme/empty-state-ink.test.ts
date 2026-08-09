@@ -18,7 +18,7 @@ describe("the mark size ladder", () => {
 	});
 
 	it("descends strictly — each tier is smaller than the one above", () => {
-		for (let index = 1; index < LADDER.length; index++) {
+		for (let index = 1; index < LADDER.length; index += 1) {
 			const above = MARK_CEILING[LADDER[index - 1]];
 			const here = MARK_CEILING[LADDER[index]];
 			expect(here < above).toBeTruthy();
@@ -29,7 +29,7 @@ describe("the mark size ladder", () => {
 describe("ghost ink rises as the mark shrinks", () => {
 	for (const channel of ["wash", "fill", "rule", "edge"] as const) {
 		it(`raises ${channel} at every step down the ladder`, () => {
-			for (let index = 1; index < LADDER.length; index++) {
+			for (let index = 1; index < LADDER.length; index += 1) {
 				const above = alphaOf(ghostInk(INK, LADDER[index - 1])[channel]);
 				const here = alphaOf(ghostInk(INK, LADDER[index])[channel]);
 				expect(here > above).toBeTruthy();

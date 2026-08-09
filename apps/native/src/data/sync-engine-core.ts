@@ -227,11 +227,15 @@ function toWireFields(spec: TableSpec, row: Row): Record<string, unknown> {
 	return fields;
 }
 
+function toLocalDate(value: unknown): Date | null {
+	return typeof value === "number" ? new Date(value) : null;
+}
+
 function toLocalFields(spec: TableSpec, fields: Record<string, unknown>): Row {
 	const local: Row = {};
 	for (const name of spec.fields) {
 		const value = fields[name] ?? null;
-		local[name] = spec.dates.includes(name) ? (typeof value === "number" ? new Date(value) : null) : value;
+		local[name] = spec.dates.includes(name) ? toLocalDate(value) : value;
 	}
 	return local;
 }
@@ -246,12 +250,17 @@ function chunked<T>(values: readonly T[]): T[][] {
 
 async function rowsById(db: Database, table: SyncedTable, ids: readonly string[]): Promise<Map<string, Row>> {
 	const spec = SPECS[table];
+	const batches = await Promise.all(
+		chunked(ids).map(
+			(chunk) =>
+				(db as unknown as AnyWriter)
+					.select()
+					.from(spec.table)
+					.where(inArray(spec.id, [...chunk])) as Promise<Row[]>
+		)
+	);
 	const found = new Map<string, Row>();
-	for (const chunk of chunked(ids)) {
-		const rows = (await (db as unknown as AnyWriter)
-			.select()
-			.from(spec.table)
-			.where(inArray(spec.id, [...chunk]))) as Row[];
+	for (const rows of batches) {
 		for (const row of rows) {
 			found.set(String(row[spec.id.name]), row);
 		}
@@ -293,23 +302,28 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 	let pushed = 0;
 
 	for (;;) {
+		// biome-ignore lint/performance/noAwaitInLoops: each pass reads the outbox left behind by the previous pass's push and delete, so the batches cannot overlap
 		const queued = await db.select().from(outbox).orderBy(asc(outbox.seq)).limit(PUSH_BATCH_LIMIT);
 		if (queued.length === 0) {
 			return pushed;
 		}
 
 		const grouped = groupByTable(queued);
-		const loaded = new Map<SyncedTable, Map<string, Row>>();
-		for (const [table, entries] of grouped) {
-			loaded.set(
-				table,
-				await rowsById(
-					db,
-					table,
-					entries.map((entry) => entry.localId)
+		const loaded = new Map<SyncedTable, Map<string, Row>>(
+			await Promise.all(
+				[...grouped].map(
+					async ([table, entries]) =>
+						[
+							table,
+							await rowsById(
+								db,
+								table,
+								entries.map((entry) => entry.localId)
+							),
+						] as const
 				)
-			);
-		}
+			)
+		);
 
 		const rows: WireRow[] = [];
 		for (const entry of queued) {
@@ -336,6 +350,7 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 		}
 
 		for (const chunk of chunked(queued.map((entry) => entry.seq))) {
+			// biome-ignore lint/performance/noAwaitInLoops: chunking only exists to stay under SQLite's bound-parameter limit, and one connection serialises writers anyway, so overlapping these deletes buys contention rather than parallelism
 			await db.delete(outbox).where(inArray(outbox.seq, chunk));
 		}
 
@@ -445,17 +460,21 @@ async function applyInTransaction(
 		byTable.set(row.table, bucket);
 	}
 
-	const existing = new Map<SyncedTable, Map<string, Row>>();
-	for (const [table, rows] of byTable) {
-		existing.set(
-			table,
-			await rowsById(
-				db,
-				table,
-				rows.map((row) => row.localId)
+	const existing = new Map<SyncedTable, Map<string, Row>>(
+		await Promise.all(
+			[...byTable].map(
+				async ([table, rows]) =>
+					[
+						table,
+						await rowsById(
+							db,
+							table,
+							rows.map((row) => row.localId)
+						),
+					] as const
 			)
-		);
-	}
+		)
+	);
 
 	const winners: PulledRow[] = [];
 	for (const row of page.rows) {
@@ -483,6 +502,7 @@ async function applyInTransaction(
 		for (const row of winners) {
 			// A row R3 rewrote is NOT what the server holds, so it stays queued and
 			// this device pushes its correction rather than silently diverging.
+			// biome-ignore lint/performance/noAwaitInLoops: R3 resolution inside writeRow reads the budgets an earlier winner left live, so the winners must be written one at a time
 			if (await writeRow(db, row, now)) {
 				replicatedVerbatim.push(row);
 			}
@@ -497,6 +517,7 @@ async function applyInTransaction(
 		);
 		for (const [table, entries] of cleared) {
 			for (const chunk of chunked(entries.map((entry) => entry.localId))) {
+				// biome-ignore lint/performance/noAwaitInLoops: these deletes run inside one SQLite transaction, which admits a single writer, so they cannot overlap
 				await db.delete(outbox).where(and(eq(outbox.tableName, table), inArray(outbox.localId, chunk)));
 			}
 		}
@@ -525,7 +546,7 @@ async function applyInTransaction(
  * account converges on one live budget per category.
  */
 async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): Promise<boolean> {
-	const categoryId = row.fields.categoryId;
+	const { categoryId } = row.fields;
 	if (row.deletedAt !== null || typeof categoryId !== "string") {
 		return false;
 	}
@@ -541,6 +562,7 @@ async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): P
 			continue;
 		}
 		if (keepsCategory(row, { id: rival.id, updatedAt: rival.updatedAt.getTime() })) {
+			// biome-ignore lint/performance/noAwaitInLoops: this runs inside the apply transaction, which admits a single writer, so the rival tombstones cannot overlap
 			await db
 				.update(budgets)
 				.set({ categoryId: null, deletedAt: now, updatedAt: now })
@@ -582,7 +604,7 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
 	const values: Row = {
 		...toLocalFields(spec, row.fields),
 		[spec.id.name]: row.localId,
-		deletedAt: lostCategory ? now : row.deletedAt === null ? null : new Date(row.deletedAt),
+		deletedAt: lostCategory ? now : toLocalDate(row.deletedAt),
 		updatedAt: lostCategory ? now : new Date(row.updatedAt),
 	};
 	if (lostCategory) {
@@ -634,6 +656,7 @@ async function reconcileMainBudget(db: Database, now: Date): Promise<boolean> {
 		if (row.id === survivor.id) {
 			continue;
 		}
+		// biome-ignore lint/performance/noAwaitInLoops: this runs inside the apply transaction, which admits a single writer, so the tombstones cannot overlap
 		await db.update(mainBudget).set({ deletedAt: now, updatedAt: now }).where(eq(mainBudget.id, row.id));
 	}
 	return true;
@@ -685,6 +708,7 @@ export async function pullAndApply(db: Database, pull: PullFn, now: Date = new D
 	const tables = new Set<SyncedTable>();
 
 	for (;;) {
+		// biome-ignore lint/performance/noAwaitInLoops: each page is fetched from the cursor the previous page returned, so the walk is inherently sequential
 		const page = await pull({ cursor, limit: PULL_PAGE_LIMIT });
 		if (page.rows.length === 0) {
 			return { applied, tables: [...tables] };
@@ -697,7 +721,7 @@ export async function pullAndApply(db: Database, pull: PullFn, now: Date = new D
 		if (page.cursor <= cursor) {
 			return { applied, tables: [...tables] };
 		}
-		cursor = page.cursor;
+		({ cursor } = page);
 		if (!page.hasMore) {
 			return { applied, tables: [...tables] };
 		}

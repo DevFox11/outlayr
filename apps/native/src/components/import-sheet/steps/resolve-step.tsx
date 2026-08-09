@@ -114,6 +114,7 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
 		);
 	}
 
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: `ImportFlowState.parsed` is `ParsedImportFile | null` (domain/import-flow.ts) and stays null until the file step parses a file
 	const rowCount = flow.parsed?.rows.length ?? 0;
 	const showCta = outcome === "applied" && entryCount > 0;
 	const settledStage: CsvImportStage = outcome == null ? stage : "settled";

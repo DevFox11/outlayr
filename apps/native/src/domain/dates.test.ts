@@ -1,4 +1,5 @@
 import { runtimeLanguage, setRuntimeLanguage } from "@/i18n/runtime";
+// biome-ignore lint/performance/noNamespaceImport: "exports no date-name table" walks Object.values over the module surface, which only a namespace import can enumerate
 import * as dates from "./dates";
 import {
 	formatChargeDate,

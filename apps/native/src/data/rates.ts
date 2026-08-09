@@ -66,6 +66,7 @@ async function fetchAllRates(pull: PullRatesFn): Promise<RateWireRow[]> {
 	const all: RateWireRow[] = [];
 	let cursor: number | undefined;
 	for (;;) {
+		// biome-ignore lint/performance/noAwaitInLoops: each page's nextCursor is the only way to address the next one, so the walk cannot be parallelised
 		const page = await pull(cursor === undefined ? undefined : { cursor });
 		all.push(...page.rows);
 		const next = page.nextCursor;
@@ -116,6 +117,7 @@ export async function pullRatesIfDue(
 	await withTransaction(db, async () => {
 		await db.delete(exchangeRates);
 		for (const part of chunkRows(mapped, RATE_ROWS_PER_CHUNK)) {
+			// biome-ignore lint/performance/noAwaitInLoops: these inserts share the one open withTransaction connection, which serialises statements anyway
 			await db.insert(exchangeRates).values(part);
 		}
 		await db
@@ -146,7 +148,7 @@ export function localRateLookup(db: SpendDb): RateLookup {
 			.where(and(eq(exchangeRates.quote, quote), eq(exchangeRates.rateType, rateType), lte(exchangeRates.date, date)))
 			.orderBy(desc(exchangeRates.date))
 			.limit(1);
-		const row = rows[0];
+		const [row] = rows;
 		return row ? { date: row.date, rate: row.rate } : null;
 	};
 }

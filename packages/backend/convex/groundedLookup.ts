@@ -1,3 +1,5 @@
+// biome-ignore-all lint/style/useFilenamingConvention: the Convex module name is the function path — this file is addressed as internal.groundedLookup.run by callers and by jobs already queued in _scheduled_functions
+
 import { createXai } from "@ai-sdk/xai";
 import { generateText, isStepCount, type LanguageModel, type ToolSet } from "ai";
 import { v } from "convex/values";
@@ -26,6 +28,8 @@ const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
  * fetch that no longer exists.
  */
 const FORBIDDEN_LOGO_ORIGINS = [/(^|\.)logo\.dev$/i, /(^|\.)itunes\.apple\.com$/i, /(^|\.)mzstatic\.com$/i];
+
+const FENCED_JSON = /```(?:json)?\s*([\s\S]*?)```/i;
 
 function isForbiddenLogoOrigin(domain: string): boolean {
 	return FORBIDDEN_LOGO_ORIGINS.some((pattern) => pattern.test(domain));
@@ -99,7 +103,7 @@ function buildGroundedPrompt(
  * (a single `generateText` with `web_search` returned JSON text directly).
  */
 function extractJsonCandidate(text: string): string | null {
-	const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+	const fenced = text.match(FENCED_JSON);
 	if (fenced?.[1]) {
 		return fenced[1].trim();
 	}

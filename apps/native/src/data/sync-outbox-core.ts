@@ -176,6 +176,7 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 
 	await withTransaction(db, async () => {
 		for (let from = 0; from < entries.length; from += ENQUEUE_CHUNK) {
+			// biome-ignore lint/performance/noAwaitInLoops: the chunks share the one SQLite connection this transaction is open on, so issuing them together interleaves statements against that transaction
 			await db
 				.insert(outbox)
 				.values(entries.slice(from, from + ENQUEUE_CHUNK))

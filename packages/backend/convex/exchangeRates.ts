@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/useFilenamingConvention: a Convex module's path is its public API — this file is addressed as internal.exchangeRates.* from the crons and from apps/native
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
@@ -151,6 +152,7 @@ export const upsertRates = internalMutation({
 				continue;
 			}
 
+			// biome-ignore lint/performance/noAwaitInLoops: rates arrive from an upstream HTTP payload, so a repeated (quote, rateType) must read back the row the previous iteration wrote — running the array in parallel would insert the pair twice
 			const existing = await ctx.db
 				.query("exchangeRates")
 				.withIndex("by_quote_and_rateType_and_date", (q) =>
@@ -217,6 +219,7 @@ export const pruneStale = internalMutation({
 			// The month's end and the window's start are both exclusive-or-inclusive
 			// in different ways, so the tighter of the pair is resolved first.
 			const monthEnd = monthEndBound(row.date);
+			// biome-ignore lint/performance/noAwaitInLoops: each lookup must observe the deletes this pass already made, so parallelising the page would make the mutation's read set depend on promise scheduling
 			const newer = await ctx.db
 				.query("exchangeRates")
 				.withIndex("by_quote_and_rateType_and_date", (q) => {
@@ -252,7 +255,7 @@ export const getLatestRate = query({
 			.withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", args.quote).eq("rateType", args.rateType))
 			.order("desc")
 			.take(1);
-		const row = rows[0];
+		const [row] = rows;
 		if (!row) {
 			return null;
 		}

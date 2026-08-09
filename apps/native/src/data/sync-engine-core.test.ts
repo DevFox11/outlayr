@@ -660,7 +660,7 @@ describe("applyPulledRows", () => {
 			],
 		});
 
-		expect(result.tables.sort()).toStrictEqual(["appMeta", "transactions"]);
+		expect(result.tables.sort((a, b) => a.localeCompare(b))).toStrictEqual(["appMeta", "transactions"]);
 	});
 });
 

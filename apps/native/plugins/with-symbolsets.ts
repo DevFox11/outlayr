@@ -34,11 +34,13 @@ const withSymbolsets: ConfigPlugin<{ directory: string }> = (config, { directory
 				throw new Error(`withSymbolsets: no .symbolset bundles in ${directory} — run \`pnpm gen:symbolsets\`.`);
 			}
 
-			for (const bundle of bundles) {
-				await cp(join(source, bundle.name), join(catalog, bundle.name), {
-					recursive: true,
-				});
-			}
+			await Promise.all(
+				bundles.map((bundle) =>
+					cp(join(source, bundle.name), join(catalog, bundle.name), {
+						recursive: true,
+					})
+				)
+			);
 
 			return dangerousConfig;
 		},

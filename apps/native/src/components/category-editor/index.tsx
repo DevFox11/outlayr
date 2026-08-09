@@ -23,7 +23,7 @@ import {
 } from "@/data/categories";
 import { firstAvailableColor } from "@/domain/category-color";
 import { CATEGORY_ERROR_KEYS, categoryErrorCode } from "@/domain/category-error";
-import { useTranslation } from "@/i18n";
+import { type TranslateFn, useTranslation } from "@/i18n";
 import { CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
@@ -50,6 +50,54 @@ export type CategoryEditorProps =
 	| { mode: "create"; income?: boolean; parentId?: string | null }
 	| { mode: "edit"; id: string };
 
+interface CategoryEditorSubject {
+	create: boolean;
+	income: boolean;
+	isSubcategory: boolean;
+	parent: Category | null;
+}
+
+interface CategoryEditorCopy {
+	caption: string | null;
+	ctaLabel: string;
+	errorTitle: string;
+	namePlaceholder: string;
+}
+
+function categoryEditorCopy(
+	t: TranslateFn,
+	{ create, income, isSubcategory, parent }: CategoryEditorSubject
+): CategoryEditorCopy {
+	const namespacePlaceholderKey = income ? "categories.namePlaceholder.income" : "categories.namePlaceholder.expense";
+	const inheritsCaption = parent ? t("categories.inherits", { parent: parent.name }) : null;
+	const incomeCaption = income ? t("categories.incomeColorNote") : null;
+	const createCaption = isSubcategory ? inheritsCaption : incomeCaption;
+	const addLabelKey = isSubcategory ? "categories.addSubcategory" : "categories.addCategory";
+	const saveLabelKey = isSubcategory ? "categories.saveSubcategory" : "categories.saveCategory";
+	return {
+		caption: create ? createCaption : null,
+		ctaLabel: t(create ? addLabelKey : saveLabelKey),
+		errorTitle: t(create ? "categories.error.addTitle" : "categories.error.saveTitle"),
+		namePlaceholder: t(isSubcategory ? "categories.namePlaceholder.subcategory" : namespacePlaceholderKey),
+	};
+}
+
+/** An edit tolerates an empty symbol only where the stored category never carried one. */
+function categoryIsSaveable(
+	mode: CategoryEditorProps["mode"],
+	name: string,
+	symbolEmpty: boolean,
+	stored: Category | null
+): boolean {
+	if (name.trim() === "") {
+		return false;
+	}
+	if (!symbolEmpty) {
+		return true;
+	}
+	return mode === "edit" && stored != null && stored.icon == null && stored.emoji == null;
+}
+
 export default function CategoryEditor(props: CategoryEditorProps) {
 	const db = useDatabase();
 	return <CategoryEditorReady db={db} {...props} />;
@@ -62,10 +110,9 @@ export default function CategoryEditor(props: CategoryEditorProps) {
  * the `Form` inside it has to be its only child.
  */
 function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/client").Database }) {
-	const { db } = props;
 	// Stable per-instance primitives: the parent spreads a fresh `props` object
 	// every render, so effects must key off these, never off `props` itself.
-	const mode = props.mode;
+	const { db, mode } = props;
 	const parentId = props.mode === "create" ? (props.parentId ?? null) : null;
 	const editId = props.mode === "edit" ? props.id : null;
 	const initialIncome = props.mode === "create" ? !!props.income : false;
@@ -101,42 +148,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 		onSubmit: async ({ value }) => {
 			try {
 				if (mode === "create") {
-					const saveColor = value.income
-						? colors.income
-						: isSubcategory
-							? (parent?.color ?? draft.color ?? CATEGORY_PALETTE[0])
-							: (draft.color ?? CATEGORY_PALETTE[0]);
-					await categoriesRepo.create(db, {
-						color: saveColor,
-						emoji: draft.emoji ?? null,
-						icon: draft.icon ?? undefined,
-						income: value.income,
-						name: value.name,
-						parentId,
-					});
-					haptics("success");
-					// A top-level add stays put for a run of them; a subcategory returns
-					// to the row it was added from.
-					if (isSubcategory) {
-						router.back();
-						return await holdSubmitting();
-					}
-					nameState.set("");
-					form.setFieldValue("name", "");
-					// Cleared rather than advanced here: with `colorTouched` released,
-					// the auto-color effect assigns the first free slot AFTER this
-					// insert has landed, where a value chosen now comes from the
-					// pre-insert set.
-					setColorTouched(false);
-					setDraft({
-						color: null,
-						emoji: null,
-						icon: null,
-						photoColor: null,
-						photoUri: null,
-					});
-					flashAdded();
-					return;
+					return await addCategory(value);
 				}
 				if (loaded == null) {
 					return;
@@ -151,16 +163,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 				router.back();
 				return await holdSubmitting();
 			} catch (error) {
-				haptics("error");
-				const code = error instanceof Error ? categoryErrorCode(error.message) : null;
-				const message = code ? t(CATEGORY_ERROR_KEYS[code]) : t("categories.error.generic");
-				const refocus = code === "missingName" || code === "duplicateName";
-				Alert.alert(errorTitle, message, [
-					{
-						onPress: refocus ? () => nameRef.current?.focus() : undefined,
-						text: t("categories.ok"),
-					},
-				]);
+				reportSaveFailure(error);
 			}
 		},
 	});
@@ -254,7 +257,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 
 	useEffect(
 		() => () => {
-			if (toastTimer.current != null) {
+			if (toastTimer.current !== null) {
 				clearTimeout(toastTimer.current);
 			}
 		},
@@ -318,44 +321,18 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 	const symbolEmpty = !(draft.icon || draft.emoji);
 	const captionClearance = symbolEmpty ? CAPTION_CLEARANCE : 0;
 	const tint = income ? colors.income : (draft.color ?? CATEGORY_PALETTE[0]);
-	const curtainHues = symbolEmpty ? null : draft.emoji ? [...glowFromEmoji(draft.emoji).slice(0, 2), tint] : [tint];
+	const symbolHues = draft.emoji ? [...glowFromEmoji(draft.emoji).slice(0, 2), tint] : [tint];
+	const curtainHues = symbolEmpty ? null : symbolHues;
 	const typePickerVisible = mode === "create" && !isSubcategory && !atExpenseLimit;
 
-	const valid =
-		mode === "create"
-			? name.trim() !== "" && !symbolEmpty
-			: name.trim() !== "" && (!symbolEmpty || (loaded != null && loaded.icon == null && loaded.emoji == null));
-	const canSave = valid && !isSubmitting;
+	const canSave = categoryIsSaveable(mode, name, symbolEmpty, loaded) && !isSubmitting;
 
-	const namePlaceholder = t(
-		isSubcategory
-			? "categories.namePlaceholder.subcategory"
-			: income
-				? "categories.namePlaceholder.income"
-				: "categories.namePlaceholder.expense"
-	);
-
-	const caption =
-		mode === "create"
-			? isSubcategory
-				? parent
-					? t("categories.inherits", { parent: parent.name })
-					: null
-				: income
-					? t("categories.incomeColorNote")
-					: null
-			: null;
-
-	const ctaLabel = t(
-		mode === "create"
-			? isSubcategory
-				? "categories.addSubcategory"
-				: "categories.addCategory"
-			: isSubcategory
-				? "categories.saveSubcategory"
-				: "categories.saveCategory"
-	);
-	const errorTitle = t(mode === "create" ? "categories.error.addTitle" : "categories.error.saveTitle");
+	const { caption, ctaLabel, errorTitle, namePlaceholder } = categoryEditorCopy(t, {
+		create: mode === "create",
+		income,
+		isSubcategory,
+		parent,
+	});
 
 	// The form and the CTA carry these themselves instead of sharing a wrapper
 	// stack: a `Form` one level deeper is proposed no height and collapses to
@@ -383,9 +360,56 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 		});
 	};
 
+	const addCategory = async (value: { income: boolean; name: string }) => {
+		const pickedColor = draft.color ?? CATEGORY_PALETTE[0];
+		const expenseColor = isSubcategory ? (parent?.color ?? pickedColor) : pickedColor;
+		await categoriesRepo.create(db, {
+			color: value.income ? colors.income : expenseColor,
+			emoji: draft.emoji ?? null,
+			icon: draft.icon ?? undefined,
+			income: value.income,
+			name: value.name,
+			parentId,
+		});
+		haptics("success");
+		// A top-level add stays put for a run of them; a subcategory returns
+		// to the row it was added from.
+		if (isSubcategory) {
+			router.back();
+			return await holdSubmitting();
+		}
+		nameState.set("");
+		form.setFieldValue("name", "");
+		// Cleared rather than advanced here: with `colorTouched` released, the
+		// auto-color effect assigns the first free slot AFTER this insert has
+		// landed, where a value chosen now comes from the pre-insert set.
+		setColorTouched(false);
+		setDraft({
+			color: null,
+			emoji: null,
+			icon: null,
+			photoColor: null,
+			photoUri: null,
+		});
+		flashAdded();
+	};
+
+	const reportSaveFailure = (error: unknown) => {
+		haptics("error");
+		const code = error instanceof Error ? categoryErrorCode(error.message) : null;
+		const message = code ? t(CATEGORY_ERROR_KEYS[code]) : t("categories.error.generic");
+		const refocus = code === "missingName" || code === "duplicateName";
+		Alert.alert(errorTitle, message, [
+			{
+				onPress: refocus ? () => nameRef.current?.focus() : undefined,
+				text: t("categories.ok"),
+			},
+		]);
+	};
+
 	/** Back-to-back adds must not let the first timer clear the second flash. */
 	const flashAdded = () => {
-		if (toastTimer.current != null) {
+		if (toastTimer.current !== null) {
 			clearTimeout(toastTimer.current);
 		}
 		setShowToast(true);

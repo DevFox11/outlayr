@@ -90,8 +90,8 @@ export async function loadIcon(weight: IconWeight, name: string): Promise<SvgEle
 export function requireRsvgConvert() {
 	try {
 		execFileSync("rsvg-convert", ["--version"], { stdio: "ignore" });
-	} catch {
-		throw new Error("rsvg-convert not found on PATH — install it with `brew install librsvg`");
+	} catch (error) {
+		throw new Error("rsvg-convert not found on PATH — install it with `brew install librsvg`", { cause: error });
 	}
 }
 

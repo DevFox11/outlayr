@@ -102,10 +102,6 @@ async function addTransaction(
 	});
 }
 
-async function assertRejectsWith(fn: () => Promise<unknown>, message: string): Promise<void> {
-	await expect(fn()).rejects.toThrow(new Error(message));
-}
-
 describe("capitalizeCategoryName", () => {
 	it("trims, collapses whitespace, and title-cases", () => {
 		expect(capitalizeCategoryName("  dining   out ")).toBe("Dining Out");
@@ -122,42 +118,36 @@ describe("categoriesRepo.create validation", () => {
 	});
 
 	it("reports incomplete when both name and symbol are missing", async () => {
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					icon: "",
-					income: false,
-					name: "  ",
-				}),
-			CATEGORY_ERROR_MESSAGES.incomplete
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				icon: "",
+				income: false,
+				name: "  ",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.incomplete));
 	});
 
 	it("reports missingName when only the name is blank", async () => {
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					icon: "Coffee02",
-					income: false,
-					name: "  ",
-				}),
-			CATEGORY_ERROR_MESSAGES.missingName
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				icon: "Coffee02",
+				income: false,
+				name: "  ",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.missingName));
 	});
 
 	it("reports missingIcon when the name is set but no symbol", async () => {
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					icon: "",
-					income: false,
-					name: "Coffee",
-				}),
-			CATEGORY_ERROR_MESSAGES.missingIcon
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				icon: "",
+				income: false,
+				name: "Coffee",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.missingIcon));
 	});
 
 	it("accepts an emoji as the symbol (no icon)", async () => {
@@ -200,16 +190,14 @@ describe("categoriesRepo.create collisions", () => {
 			income: false,
 			name: "Coffee",
 		});
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					icon: "Coffee02",
-					income: false,
-					name: "Tea",
-				}),
-			CATEGORY_ERROR_MESSAGES.duplicateIcon
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				icon: "Coffee02",
+				income: false,
+				name: "Tea",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.duplicateIcon));
 	});
 
 	it("rejects a duplicate emoji, normalizing variation selectors", async () => {
@@ -221,16 +209,14 @@ describe("categoriesRepo.create collisions", () => {
 			income: false,
 			name: "Love",
 		});
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					emoji: heartVs,
-					income: false,
-					name: "Adore",
-				}),
-			CATEGORY_ERROR_MESSAGES.duplicateEmoji
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				emoji: heartVs,
+				income: false,
+				name: "Adore",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.duplicateEmoji));
 	});
 
 	it("rejects a duplicate name (case-insensitive) with a distinct icon", async () => {
@@ -240,16 +226,14 @@ describe("categoriesRepo.create collisions", () => {
 			income: false,
 			name: "Coffee",
 		});
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					icon: "Restaurant02",
-					income: false,
-					name: "coffee",
-				}),
-			CATEGORY_ERROR_MESSAGES.duplicateName
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				icon: "Restaurant02",
+				income: false,
+				name: "coffee",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.duplicateName));
 	});
 
 	it("reports the combined duplicate when both symbol and name match", async () => {
@@ -259,16 +243,14 @@ describe("categoriesRepo.create collisions", () => {
 			income: false,
 			name: "Coffee",
 		});
-		await assertRejectsWith(
-			() =>
-				categoriesRepo.create(db, {
-					color: "#279AF4",
-					icon: "Coffee02",
-					income: false,
-					name: "Coffee",
-				}),
-			CATEGORY_ERROR_MESSAGES.duplicate
-		);
+		await expect(
+			categoriesRepo.create(db, {
+				color: "#279AF4",
+				icon: "Coffee02",
+				income: false,
+				name: "Coffee",
+			})
+		).rejects.toThrow(new Error(CATEGORY_ERROR_MESSAGES.duplicate));
 	});
 
 	it("allows the same symbol and name in the other namespace", async () => {
@@ -423,9 +405,8 @@ describe("categoriesRepo.update", () => {
 			income: false,
 			name: "Tea",
 		});
-		await assertRejectsWith(
-			() => categoriesRepo.update(db, other, { name: "coffee" }),
-			CATEGORY_ERROR_MESSAGES.duplicateName
+		await expect(categoriesRepo.update(db, other, { name: "coffee" })).rejects.toThrow(
+			new Error(CATEGORY_ERROR_MESSAGES.duplicateName)
 		);
 	});
 
@@ -442,9 +423,8 @@ describe("categoriesRepo.update", () => {
 			income: false,
 			name: "Tea",
 		});
-		await assertRejectsWith(
-			() => categoriesRepo.update(db, other, { icon: "Coffee02" }),
-			CATEGORY_ERROR_MESSAGES.duplicateIcon
+		await expect(categoriesRepo.update(db, other, { icon: "Coffee02" })).rejects.toThrow(
+			new Error(CATEGORY_ERROR_MESSAGES.duplicateIcon)
 		);
 	});
 
@@ -455,7 +435,9 @@ describe("categoriesRepo.update", () => {
 			income: false,
 			name: "Coffee",
 		});
-		await assertRejectsWith(() => categoriesRepo.update(db, id, { name: "   " }), CATEGORY_ERROR_MESSAGES.missingName);
+		await expect(categoriesRepo.update(db, id, { name: "   " })).rejects.toThrow(
+			new Error(CATEGORY_ERROR_MESSAGES.missingName)
+		);
 	});
 
 	it("rejects clearing the only symbol of a symbol-bearing row", async () => {
@@ -465,7 +447,9 @@ describe("categoriesRepo.update", () => {
 			income: false,
 			name: "Coffee",
 		});
-		await assertRejectsWith(() => categoriesRepo.update(db, id, { icon: "" }), CATEGORY_ERROR_MESSAGES.missingIcon);
+		await expect(categoriesRepo.update(db, id, { icon: "" })).rejects.toThrow(
+			new Error(CATEGORY_ERROR_MESSAGES.missingIcon)
+		);
 	});
 
 	it("allows renaming a legacy symbol-less row", async () => {

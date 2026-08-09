@@ -26,12 +26,13 @@ export function LogHeroNumber({ magnitude, code, positive, showCents = true }: L
 	const sign = positive ? "+" : "-";
 	// The row's own `gap-1` spaces the symbol, so the locale's glue would double it.
 	const trailing = parts.locale.placement === "suffix";
+	const leading = !trailing;
 	// Sized down as the symbol lengthens: a one-character "$" can sit close to the
 	// figure, but a four-character "Bs.D" at the same weight reads as part of it.
 	const symbolSize = FONT_SIZE * (parts.symbol.length > 1 ? 0.44 : 0.6);
 	const symbol = (
 		<Text className="font-sans text-muted" numberOfLines={1} style={{ fontSize: symbolSize }}>
-			{trailing ? null : sign}
+			{leading ? sign : null}
 			{parts.symbol}
 		</Text>
 	);
@@ -43,7 +44,7 @@ export function LogHeroNumber({ magnitude, code, positive, showCents = true }: L
 			accessible
 			className="flex-row items-baseline gap-1"
 		>
-			{trailing ? null : symbol}
+			{leading ? symbol : null}
 			<Text
 				adjustsFontSizeToFit
 				className="shrink font-sans text-foreground"

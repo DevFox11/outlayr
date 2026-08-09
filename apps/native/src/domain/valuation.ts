@@ -27,6 +27,16 @@ export interface RateTable {
 	get: (code: string, dateKey: string) => number | null;
 }
 
+function byDateDescending(a: { date: string }, b: { date: string }): number {
+	if (a.date < b.date) {
+		return 1;
+	}
+	if (a.date > b.date) {
+		return -1;
+	}
+	return 0;
+}
+
 export function buildRateTable(rows: readonly { quote: string; date: string; rate: number }[]): RateTable {
 	const byCode = new Map<string, { date: string; rate: number }[]>();
 	for (const row of rows) {
@@ -40,7 +50,7 @@ export function buildRateTable(rows: readonly { quote: string; date: string; rat
 	// Descending, so the first entry at or before a date is the answer. Dates are
 	// `YYYY-MM-DD`, which sorts lexically exactly as it sorts chronologically.
 	for (const list of byCode.values()) {
-		list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+		list.sort(byDateDescending);
 	}
 
 	return {

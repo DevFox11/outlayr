@@ -129,7 +129,7 @@ function DetailMark() {
 	);
 }
 
-const AccountTransactionRow = memo(function AccountTransactionRow({
+const AccountTransactionRow = memo(function AccountTransactionRowBody({
 	transaction,
 	currency,
 	rates,

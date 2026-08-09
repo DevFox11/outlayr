@@ -198,6 +198,7 @@ export async function backfillAllRecurring(db: Database, now: Date = new Date())
 		.where(and(gt(transactions.recurringType, RECURRING_TYPE.none), isNull(transactions.deletedAt)));
 
 	for (const row of live) {
+		// biome-ignore lint/performance/noAwaitInLoops: every iteration writes through the one SQLite connection these rows share, so the sweep has to advance one chain at a time.
 		await backfillRecurring(db, row.id, now);
 	}
 }
@@ -285,6 +286,7 @@ export async function repairOrphanedRecurrence(db: Database, now: Date = new Dat
 
 	let reinstated = 0;
 	for (const carrier of orphaned) {
+		// biome-ignore lint/performance/noAwaitInLoops: each carrier is reinstated inside its own write transaction on the one SQLite connection, and overlapping transactions on it would interleave.
 		const successor = await scheduleSuccessor(db, carrier, now);
 		await withTransaction(db, async () => {
 			if (successor != null) {

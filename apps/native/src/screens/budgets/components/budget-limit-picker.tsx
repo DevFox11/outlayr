@@ -111,6 +111,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 	const touched = useRef(false);
 
 	useEffect(() => {
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: applyLimit writes true into this ref, so its initial false is not the only value it holds.
 		if (!touched.current) {
 			setLimit(suggested);
 		}

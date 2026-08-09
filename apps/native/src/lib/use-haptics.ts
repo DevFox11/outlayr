@@ -1,5 +1,11 @@
 import { eq } from "drizzle-orm";
-import * as Haptics from "expo-haptics";
+import {
+	ImpactFeedbackStyle,
+	impactAsync,
+	NotificationFeedbackType,
+	notificationAsync,
+	selectionAsync,
+} from "expo-haptics";
 import { useCallback } from "react";
 import { useLocalData } from "@/contexts/local-data-context";
 import { useLiveQuery } from "@/data/live-query";
@@ -8,15 +14,15 @@ import { appMeta } from "@/db/schema";
 import { type HapticEvent, hapticPlay } from "@/domain/haptics";
 
 const IMPACT = {
-	heavy: Haptics.ImpactFeedbackStyle.Heavy,
-	light: Haptics.ImpactFeedbackStyle.Light,
-	medium: Haptics.ImpactFeedbackStyle.Medium,
+	heavy: ImpactFeedbackStyle.Heavy,
+	light: ImpactFeedbackStyle.Light,
+	medium: ImpactFeedbackStyle.Medium,
 } as const;
 
 const NOTIFICATION = {
-	error: Haptics.NotificationFeedbackType.Error,
-	success: Haptics.NotificationFeedbackType.Success,
-	warning: Haptics.NotificationFeedbackType.Warning,
+	error: NotificationFeedbackType.Error,
+	success: NotificationFeedbackType.Success,
+	warning: NotificationFeedbackType.Warning,
 } as const;
 
 /**
@@ -60,13 +66,21 @@ export function useHaptics(): (event: HapticEvent) => void {
 			}
 			switch (play.kind) {
 				case "selection":
-					void Haptics.selectionAsync();
+					// biome-ignore lint/complexity/noVoid: the taptic engine is fire-and-forget here; this callback is synchronous and its caller has nothing to do with the promise
+					void selectionAsync();
 					return;
 				case "impact":
-					void Haptics.impactAsync(IMPACT[play.style]);
+					// biome-ignore lint/complexity/noVoid: the taptic engine is fire-and-forget here; this callback is synchronous and its caller has nothing to do with the promise
+					void impactAsync(IMPACT[play.style]);
 					return;
 				case "notification":
-					void Haptics.notificationAsync(NOTIFICATION[play.type]);
+					// biome-ignore lint/complexity/noVoid: the taptic engine is fire-and-forget here; this callback is synchronous and its caller has nothing to do with the promise
+					void notificationAsync(NOTIFICATION[play.type]);
+					return;
+				default: {
+					const unhandled: never = play;
+					throw new Error(`Unhandled haptic play: ${JSON.stringify(unhandled)}`);
+				}
 			}
 		},
 		[level]

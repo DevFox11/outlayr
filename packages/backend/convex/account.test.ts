@@ -54,8 +54,7 @@ async function purgeAll(t: TestClient, userId: string): Promise<number> {
 	let passes = 0;
 	let done = false;
 	while (!done) {
-		const result = await t.mutation(internal.account.purgeBatch, { userId });
-		done = result.done;
+		({ done } = await t.mutation(internal.account.purgeBatch, { userId }));
 		passes += 1;
 		if (passes > 50) {
 			throw new Error("purgeBatch never reported done");

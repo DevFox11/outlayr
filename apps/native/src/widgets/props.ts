@@ -357,8 +357,7 @@ async function buildBudget(
 		url: DEEP_LINKS.budgets,
 	};
 
-	const mainRows = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
-	const main = mainRows[0];
+	const [main] = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
 
 	let overall = empty;
 	if (main) {
@@ -381,7 +380,7 @@ async function buildBudget(
 		.orderBy(asc(budgetsTable.dateCreated));
 
 	let worst = empty;
-	const ranked = categoryRows
+	const [ranked] = categoryRows
 		.map((row) => {
 			const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
 			return {
@@ -391,7 +390,7 @@ async function buildBudget(
 				window,
 			};
 		})
-		.sort((a, b) => b.spent / b.limit - a.spent / a.limit)[0];
+		.sort((a, b) => b.spent / b.limit - a.spent / a.limit);
 	if (ranked) {
 		// Name precedence mirrors `usePerCategoryBudgets`.
 		const rankedCategory = ranked.row.categoryId ? categoriesById.get(ranked.row.categoryId) : undefined;
@@ -468,8 +467,7 @@ async function buildIntentBudgets(
 
 	const out: IntentBudgetProps[] = [];
 
-	const mainRows = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
-	const main = mainRows[0];
+	const [main] = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
 	if (main) {
 		const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
 		out.push(

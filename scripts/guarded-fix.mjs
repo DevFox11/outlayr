@@ -9,6 +9,8 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 const IDENTIFIER = /[A-Za-z_$][A-Za-z0-9_$]*/g;
 const SOURCE_FILE = /\.(?:ts|tsx|js|jsx|mjs|cjs)$/;
+const DECIMAL_DIGITS = /^\d+$/;
+const HEX_LITERAL_TAIL = /^x[0-9a-fA-F]+$/;
 const FALLBACK_CONFIG = ".biome-attr-safe.json";
 
 const REWRITTEN_BY_LINT_RULES = new Set([
@@ -34,22 +36,22 @@ function tokenize(source) {
 
 function isNumericLiteralToken(token) {
 	const bare = token.replaceAll("_", "");
-	return /^\d+$/.test(bare) || /^x[0-9a-fA-F]+$/.test(bare);
+	return DECIMAL_DIGITS.test(bare) || HEX_LITERAL_TAIL.test(bare);
 }
 
-function unexplainedDelta(before, after) {
+function unexplainedDelta(beforeCounts, afterCounts) {
 	const notable = (token) => !(REWRITTEN_BY_LINT_RULES.has(token) || isNumericLiteralToken(token));
 	const lost = [];
 	const gained = [];
 
-	for (const [token, count] of before) {
-		const missing = count - (after.get(token) ?? 0);
+	for (const [token, count] of beforeCounts) {
+		const missing = count - (afterCounts.get(token) ?? 0);
 		if (missing > 0 && notable(token)) {
 			lost.push(`${token}×${missing}`);
 		}
 	}
-	for (const [token, count] of after) {
-		const extra = count - (before.get(token) ?? 0);
+	for (const [token, count] of afterCounts) {
+		const extra = count - (beforeCounts.get(token) ?? 0);
 		if (extra > 0 && notable(token)) {
 			gained.push(`${token}×${extra}`);
 		}

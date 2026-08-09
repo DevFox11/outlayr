@@ -53,7 +53,7 @@ describe("redirectLaunchPath", () => {
 		const calls = { count: 0 };
 		return [
 			() => {
-				calls.count++;
+				calls.count += 1;
 			},
 			calls,
 		] as const;

@@ -16,6 +16,10 @@ export function cursorStart(unit: CursorUnit, date: Date, firstWeekday = 1): Dat
 			return startOfWeek(date, firstWeekday);
 		case "month":
 			return firstOfMonth(date);
+		default: {
+			const unhandled: never = unit;
+			throw new Error(`Unhandled cursor unit: ${String(unhandled)}`);
+		}
 	}
 }
 
@@ -29,6 +33,10 @@ export function cursorEnd(unit: CursorUnit, date: Date, firstWeekday = 1): Date 
 			return addDays(start, 7);
 		case "month":
 			return addMonths(start, 1);
+		default: {
+			const unhandled: never = unit;
+			throw new Error(`Unhandled cursor unit: ${String(unhandled)}`);
+		}
 	}
 }
 
@@ -60,6 +68,10 @@ export function cursorLabel(
 		case "week": {
 			const end = addDays(start, 6);
 			return `${start.getDate()} ${month} – ${end.getDate()} ${monthAbbrevTitle(end, language)}`;
+		}
+		default: {
+			const unhandled: never = unit;
+			throw new Error(`Unhandled cursor unit: ${String(unhandled)}`);
 		}
 	}
 }

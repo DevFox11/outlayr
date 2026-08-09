@@ -27,8 +27,13 @@ export type DecimalSeparator = "." | ",";
 /** Enough decimals for any money figure without reaching exponential notation. */
 const MAX_DECIMALS = 10;
 
+const TRAILING_ZEROS = /0+$/;
+const TRAILING_DOT = /\.$/;
+const PARENTHESISED = /^\(.*\)$/;
+const PLAIN_DECIMAL = /^[-+]?(\d+(\.\d*)?|\.\d+)$/;
+
 function exactDecimal(value: number): string {
-	const plain = value.toFixed(MAX_DECIMALS).replace(/0+$/, "").replace(/\.$/, "");
+	const plain = value.toFixed(MAX_DECIMALS).replace(TRAILING_ZEROS, "").replace(TRAILING_DOT, "");
 	return Number.parseFloat(plain) === value ? plain : String(value);
 }
 
@@ -50,6 +55,16 @@ export function serializeCsvAmount(amount: number, currency: string): string {
  * holding both `1.234,56` and `9,90` is not. A separator appearing twice, or
  * once with a three-digit tail, reads as grouping and casts no vote.
  */
+function soleSeparator(lastDot: number, lastComma: number): DecimalSeparator | null {
+	if (lastDot >= 0) {
+		return ".";
+	}
+	if (lastComma >= 0) {
+		return ",";
+	}
+	return null;
+}
+
 export function detectDecimalSeparator(values: readonly string[]): DecimalSeparator {
 	let comma = 0;
 	let dot = 0;
@@ -68,7 +83,7 @@ export function detectDecimalSeparator(values: readonly string[]): DecimalSepara
 			continue;
 		}
 
-		const separator = lastDot >= 0 ? "." : lastComma >= 0 ? "," : null;
+		const separator = soleSeparator(lastDot, lastComma);
 		if (separator == null) {
 			continue;
 		}
@@ -98,7 +113,7 @@ export function parseCsvAmount(text: string, separator: DecimalSeparator = "."):
 		return null;
 	}
 
-	const parenthesised = /^\(.*\)$/.test(trimmed);
+	const parenthesised = PARENTHESISED.test(trimmed);
 	const grouping = separator === "." ? "," : ".";
 	let cleaned = trimmed.replaceAll(grouping, "");
 	if (separator === ",") {
@@ -107,7 +122,7 @@ export function parseCsvAmount(text: string, separator: DecimalSeparator = "."):
 	// Currency symbols, spaces and non-breaking spaces are noise; the sign is not.
 	cleaned = cleaned.replace(/[^\d.\-+]/g, "");
 
-	if (!/^[-+]?(\d+(\.\d*)?|\.\d+)$/.test(cleaned)) {
+	if (!PLAIN_DECIMAL.test(cleaned)) {
 		return null;
 	}
 	const value = Number.parseFloat(cleaned);
@@ -208,8 +223,12 @@ export function parseCsvDate(value: string, format: string): Date | null {
 	}
 
 	const pattern = patternFor(format);
-	const match = pattern?.regex.exec(trimmed);
-	if (pattern == null || match == null) {
+	if (pattern == null) {
+		return null;
+	}
+	const match = pattern.regex.exec(trimmed);
+	// biome-ignore lint/suspicious/noUnnecessaryConditions: `RegExp.prototype.exec` returns `RegExpExecArray | null`, and `deduceDateFormat` counts formats by which values fail to match
+	if (match == null) {
 		return null;
 	}
 

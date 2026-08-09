@@ -58,6 +58,7 @@ export function InsightsNetChart({
 			draw.value = 1;
 			return;
 		}
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is set to true three lines down, so its runtime type is boolean, not the `false` literal Biome infers from useRef's initialiser
 		if (drawn.current) {
 			return;
 		}
@@ -126,9 +127,8 @@ export function InsightsNetChart({
 	}, [marker, plot, width, live.length]);
 
 	const count = live.length;
+	const { step } = plot;
 	const pan = useMemo(() => {
-		const step = plot.step;
-
 		const commit = (index: number) => {
 			onCommit(selectedIndex === index ? null : index);
 		};
@@ -167,7 +167,7 @@ export function InsightsNetChart({
 					scheduleOnRN(commit, landed);
 				}
 			});
-	}, [count, plot.step, onScrub, onCommit, selectedIndex, reported]);
+	}, [count, step, onScrub, onCommit, selectedIndex, reported]);
 
 	const onLayout = (event: LayoutChangeEvent) => {
 		setWidth(event.nativeEvent.layout.width);

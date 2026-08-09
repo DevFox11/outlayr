@@ -32,7 +32,9 @@ function declaredInAppConfig(): string[] {
 function primaryIconsInAppConfig(): string[] {
 	const source = readFileSync(join(nativeRoot, "app.config.ts"), "utf8");
 	const names = [...source.matchAll(/"\.\/assets\/(\w+)\.icon"/g)].map((match) => match[1]);
-	expect(names.length > 0).toBeTruthy();
+	if (names.length === 0) {
+		throw new Error("app.config.ts no longer names a primary icon bundle");
+	}
 	return names;
 }
 

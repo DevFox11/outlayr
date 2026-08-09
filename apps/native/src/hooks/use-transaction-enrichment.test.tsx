@@ -313,7 +313,7 @@ describe("tier 2: remote fallback", () => {
 		const { fn } = deferredTransport();
 		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
 
-		for (let index = 0; index < 20; index++) {
+		for (let index = 0; index < 20; index += 1) {
 			result.current.onNameChange(UNKNOWN.slice(0, 10 + (index % 10)));
 		}
 		await act(async () => {
@@ -796,8 +796,7 @@ describe("grounded re-check: the open form receives the domain", () => {
 	});
 
 	it("a follow-up that settles after unmount emits nothing", async () => {
-		const { fn, calls, onSuggest, result, unmount } = await reachFollowUp({});
-		void result;
+		const { fn, calls, onSuggest, unmount } = await reachFollowUp({});
 		const emitted = onSuggest.mock.calls.length;
 
 		await unmount();

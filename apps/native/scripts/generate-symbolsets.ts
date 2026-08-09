@@ -148,8 +148,11 @@ async function main() {
 	rmSync(outDir, { force: true, recursive: true });
 	mkdirSync(outDir, { recursive: true });
 
-	for (const symbol of SYMBOLS) {
-		const elements = await loadIcon(symbol.weight ?? "stroke", symbol.icon);
+	const loaded = await Promise.all(
+		SYMBOLS.map(async (symbol) => ({ elements: await loadIcon(symbol.weight ?? "stroke", symbol.icon), symbol }))
+	);
+
+	for (const { elements, symbol } of loaded) {
 		const bundle = join(outDir, `${symbol.slug}.symbolset`);
 		const file = `${symbol.slug}.svg`;
 

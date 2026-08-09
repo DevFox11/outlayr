@@ -10,9 +10,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { floatTargetY } from "@/domain/identity-flyup-geometry";
-import { FLOAT_SCALE, FLOAT_TILE, HERO_RING, type HeroVariant, IdentityHero } from "./identity-hero";
+// biome-ignore lint/style/noExportedImports: account-editor and category-editor take HERO_RING from this path, and it is read here too, so `export … from` would make this component module a barrel instead
+import { FLOAT_TILE, HERO_RING, type HeroVariant, IdentityHero } from "./identity-hero";
 
-export { FLOAT_SCALE, floatTargetY, HERO_RING };
+export { HERO_RING };
 
 /** Half the floated tile — what the clamp keeps below the top of the screen. */
 const HERO_HALF = FLOAT_TILE / 2;
@@ -209,6 +210,7 @@ const NOOP = () => {
 
 function listen(navigation: DismissalNavigation, type: string, listener: (event: DismissalEvent) => void): () => void {
 	try {
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: DismissalNavigation is our narrowing of the real navigation object, whose addListener returns nothing for an event type the navigator does not emit
 		return navigation.addListener(type, listener) ?? NOOP;
 	} catch {
 		return NOOP;

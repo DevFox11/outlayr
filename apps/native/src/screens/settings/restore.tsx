@@ -7,7 +7,7 @@ import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { restoreArchive } from "@/data/archive-core";
 import type { Database } from "@/db/client";
-import { archiveRowCount, parseArchive } from "@/domain/archive";
+import { type ArchiveDocument, archiveRowCount, parseArchive } from "@/domain/archive";
 import { useTranslation } from "@/i18n";
 import { pickArchiveFile, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
@@ -22,6 +22,16 @@ function RestoreDataContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const [busy, setBusy] = useState(false);
+
+	const applyArchive = (document: ArchiveDocument) => {
+		setBusy(true);
+		restoreArchive(db, document)
+			.then(() => router.back())
+			.catch(() => {
+				Alert.alert(t("settings.restore.failedTitle"), t("settings.restore.failedBody"));
+			})
+			.finally(() => setBusy(false));
+	};
 
 	// A restore replaces the ledger rather than adding to it, so it is confirmed
 	// against a count the user can recognise — a file that turns out to hold two
@@ -45,15 +55,7 @@ function RestoreDataContent({ db }: { db: Database }) {
 					[
 						{ style: "cancel", text: t("common.cancel") },
 						{
-							onPress: () => {
-								setBusy(true);
-								restoreArchive(db, document)
-									.then(() => router.back())
-									.catch(() => {
-										Alert.alert(t("settings.restore.failedTitle"), t("settings.restore.failedBody"));
-									})
-									.finally(() => setBusy(false));
-							},
+							onPress: () => applyArchive(document),
 							style: "destructive",
 							text: t("settings.restore.confirmAction"),
 						},

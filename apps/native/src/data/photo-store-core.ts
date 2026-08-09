@@ -69,13 +69,16 @@ export interface PhotoFiles {
 	write: (name: string, bytes: Uint8Array) => void;
 }
 
+const TRAILING_SLASHES = /\/+$/;
+
 export function photoFileName(uri: string): string {
-	const path = uri.split("?")[0].split("#")[0];
+	const [beforeQuery] = uri.split("?");
+	const [path] = beforeQuery.split("#");
 	return path.slice(path.lastIndexOf("/") + 1);
 }
 
 export function photoUriFor(directoryUri: string, name: string): string {
-	return `${directoryUri.replace(/\/+$/, "")}/${name}`;
+	return `${directoryUri.replace(TRAILING_SLASHES, "")}/${name}`;
 }
 
 const DEFAULT_EXTENSION = ".jpg";
@@ -129,6 +132,7 @@ export async function reconcilePhotos(db: SpendDb, files: PhotoFiles, nowMs: num
 	const referenced = new Set<string>();
 
 	for (const photoTable of PHOTO_TABLES) {
+		// biome-ignore lint/performance/noAwaitInLoops: every table reconciles against the `stored` and `referenced` maps the previous table already mutated, so a table's rows cannot be read before the one before it has finished adopting files
 		const rows = (await db
 			.select({ id: photoTable.id, imageUri: photoTable.imageUri })
 			.from(photoTable.table)
@@ -151,6 +155,7 @@ export async function reconcilePhotos(db: SpendDb, files: PhotoFiles, nowMs: num
 				referenced.add(name);
 				const current = photoUriFor(directoryUri, name);
 				if (uri !== current) {
+					// biome-ignore lint/performance/noAwaitInLoops: two rows can name one file, so a row's `stored`/`referenced` bookkeeping and its adopt must land before the next row asks whether that file exists
 					await repoint(row.id, current);
 					result.repointed += 1;
 				}

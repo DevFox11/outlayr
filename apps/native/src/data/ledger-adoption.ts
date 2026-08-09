@@ -37,11 +37,9 @@ export interface AdoptionEngine {
  */
 export async function localLedgerState(db: Database): Promise<LocalLedger> {
 	const moneyTables = [transactions, budgets, mainBudget, templateTransactions, accounts];
-	for (const table of moneyTables) {
-		const rows = await db.select({ total: count() }).from(table);
-		if ((rows[0]?.total ?? 0) > 0) {
-			return "populated";
-		}
+	const moneyCounts = await Promise.all(moneyTables.map((table) => db.select({ total: count() }).from(table)));
+	if (moneyCounts.some((rows) => (rows[0]?.total ?? 0) > 0)) {
+		return "populated";
 	}
 
 	const [all] = await db.select({ total: count() }).from(categories);

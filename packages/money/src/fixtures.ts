@@ -37,9 +37,9 @@ export function makeRateLookup(rows: readonly RateTableRow[]): RateLookup {
 		// `localeCompare` is a TOTAL order over the `YYYY-MM-DD` strings (returns 0
 		// on equal dates), so the sort stays deterministic even if a table ever
 		// carries duplicate (quote, rateType, date) rows.
-		const match = rows
+		const [match] = rows
 			.filter((r) => r.quote === quote && r.rateType === rateType && r.date <= date)
-			.sort((a, b) => b.date.localeCompare(a.date))[0];
+			.sort((a, b) => b.date.localeCompare(a.date));
 		return Promise.resolve(match ? { date: match.date, rate: match.rate } : null);
 	};
 }

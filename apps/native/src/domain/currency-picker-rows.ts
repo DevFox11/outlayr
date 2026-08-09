@@ -28,7 +28,7 @@ function currencyRow(code: CurrencyCode, favourite: boolean): CurrencyPickerRow 
 
 /** Marks the last currency row before each header, and the last one overall. */
 function closeSections(rows: CurrencyPickerRow[]): CurrencyPickerRow[] {
-	for (let index = 0; index < rows.length; index++) {
+	for (let index = 0; index < rows.length; index += 1) {
 		const row = rows[index];
 		if (row.kind !== "currency") {
 			continue;

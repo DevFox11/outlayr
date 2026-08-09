@@ -14,6 +14,7 @@ const BIG = 64;
 const GAP = 28;
 const LABEL_W = 300;
 const ROW = BIG + GAP;
+const SVG_OPEN_TAG = /^<svg[^>]*>/;
 
 async function main() {
 	const names = process.argv.slice(2);
@@ -33,9 +34,7 @@ async function main() {
 
 	const parts = rows.map(({ name, elements }, index) => {
 		const y = GAP + index * ROW;
-		const glyph = toSvg(elements, 1.9)
-			.replace(/^<svg[^>]*>/, "")
-			.replace("</svg>", "");
+		const glyph = toSvg(elements, 1.9).replace(SVG_OPEN_TAG, "").replace("</svg>", "");
 		return `
 			<text x="${GAP}" y="${y + BIG / 2 + 5}" font-family="ui-monospace, monospace" font-size="15" fill="#111">${name}</text>
 			<g transform="translate(${LABEL_W}, ${y}) scale(${BIG / 24})">${glyph}</g>

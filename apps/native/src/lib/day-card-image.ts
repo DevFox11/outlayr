@@ -74,7 +74,7 @@ function draw(canvas: SkCanvas, input: DayCardInput): void {
 	for (const text of layout.texts) {
 		const font = Skia.Font(typefaceFor(text.weight), text.size);
 		const paint = paintFor(text.tone);
-		const width = font.measureText(text.text).width;
+		const { width } = font.measureText(text.text);
 		const x = text.align === "right" ? text.x - width : text.x;
 		canvas.drawText(text.text, x, text.y, paint, font);
 	}

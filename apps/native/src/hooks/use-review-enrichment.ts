@@ -54,6 +54,7 @@ export function useReviewEnrichment(entries: readonly ImportEntry[]): ReadonlyMa
 					return;
 				}
 				const [key, request] = item;
+				// biome-ignore lint/performance/noAwaitInLoops: this loop IS the concurrency limit — FETCH_BATCH workers drain one shared queue, so a worker must finish its fetch before it takes the next domain, or every merchant in the file would be requested at once
 				await fetchMerchantImage(request).catch(() => null);
 				settle(key);
 			}

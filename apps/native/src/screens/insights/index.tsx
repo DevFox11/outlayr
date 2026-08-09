@@ -1,6 +1,6 @@
 import type { MenuAction } from "@expo/ui/community/menu";
 import { Stack, useRouter } from "expo-router";
-import type { ReactNode } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { HeroNumber } from "@/components/amount-text";
@@ -14,8 +14,13 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
 	bucketDateLabel,
+	type CategoryBreakdownEntry,
+	type CategoryMeta,
 	categoryBreakdownWithin,
+	type InsightsBucket,
 	type InsightsCalendar,
+	type InsightsContribution,
+	type InsightsMeasure,
 	type InsightsPeriod,
 	runningTotals,
 	subcategoryBreakdown,
@@ -24,10 +29,11 @@ import {
 import { useWindowTransactions } from "@/data/insights-transactions";
 import { setNumberSetting } from "@/data/settings";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
-import { useInsights } from "@/data/use-insights";
+import { type UseInsightsResult, useInsights } from "@/data/use-insights";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
+	type InsightsTotals,
 	insightsMeasureAlternatives,
 	insightsMeasureFromStored,
 	insightsMeasureIsIncome,
@@ -38,7 +44,7 @@ import {
 } from "@/domain/insights-measure";
 import { insightsVerdict } from "@/domain/insights-verdict";
 import { formatAmount } from "@/domain/money";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -70,13 +76,180 @@ const PERIOD_LABEL_KEY: Record<InsightsPeriod, TranslationKey> = {
 	year: "insights.period.year",
 };
 
+function heroMagnitudeFor(
+	filteredEntry: CategoryBreakdownEntry | null,
+	readBalance: number | null,
+	readBucket: InsightsBucket | null,
+	measure: InsightsMeasure,
+	totals: InsightsTotals
+): number {
+	if (filteredEntry) {
+		return filteredEntry.amount;
+	}
+	if (readBalance != null) {
+		return Math.abs(readBalance);
+	}
+	if (readBucket) {
+		return Math.abs(readBucket.value);
+	}
+	return insightsMeasureMagnitude(measure, totals);
+}
+
+function heroPositiveFor(
+	readBalance: number | null,
+	readBucket: InsightsBucket | null,
+	isNet: boolean,
+	measure: InsightsMeasure,
+	totals: InsightsTotals
+): boolean {
+	if (readBalance != null) {
+		return readBalance >= 0;
+	}
+	if (readBucket && isNet) {
+		return readBucket.value >= 0;
+	}
+	return insightsMeasureIsPositive(measure, totals);
+}
+
+function bucketAt(buckets: readonly InsightsBucket[], index: number | null): InsightsBucket | null {
+	if (index == null) {
+		return null;
+	}
+	return buckets[index] ?? null;
+}
+
+function boundsOf(bucket: InsightsBucket): { end: number; start: number } {
+	return { end: bucket.end.getTime(), start: bucket.start.getTime() };
+}
+
+function breakdownFor(
+	windowBreakdown: CategoryBreakdownEntry[],
+	rows: readonly InsightsContribution[],
+	categoriesById: ReadonlyMap<string, CategoryMeta>,
+	lockedBucket: InsightsBucket | null,
+	measure: InsightsMeasure,
+	nowMs: number
+): CategoryBreakdownEntry[] {
+	if (!lockedBucket) {
+		return windowBreakdown;
+	}
+	return categoryBreakdownWithin(rows, categoriesById, measure, boundsOf(lockedBucket), new Date(nowMs));
+}
+
+function subBreakdownFor(
+	rows: readonly InsightsContribution[],
+	categoriesById: ReadonlyMap<string, CategoryMeta>,
+	filterId: string | null,
+	lockedBucket: InsightsBucket | null,
+	period: InsightsPeriod,
+	measure: InsightsMeasure,
+	nowMs: number,
+	offset: number,
+	calendar: InsightsCalendar
+): CategoryBreakdownEntry[] {
+	if (filterId == null) {
+		return [];
+	}
+	if (lockedBucket) {
+		return subcategoryBreakdownWithin(rows, categoriesById, filterId, measure, boundsOf(lockedBucket), new Date(nowMs));
+	}
+	return subcategoryBreakdown(rows, categoriesById, filterId, period, measure, new Date(nowMs), offset, calendar);
+}
+
+/**
+ * On the net chart the scrubbed figure is the running position, so a bare date
+ * would read as that day's own net.
+ */
+function eyebrowLabel(
+	scrubBucket: InsightsBucket | null,
+	isNet: boolean,
+	period: InsightsPeriod,
+	measure: InsightsMeasure,
+	windowLabel: string,
+	t: TranslateFn
+): string {
+	if (!scrubBucket) {
+		return `${t(MEASURE_KEY[measure])} · ${windowLabel}`;
+	}
+	const prefix = isNet ? `${t("insights.balance")} · ` : "";
+	return `${prefix}${bucketDateLabel(period, scrubBucket.start)}`;
+}
+
+/** Null keeps both directions, which is what the net measure reads. */
+function listDirection(measure: InsightsMeasure): boolean | null {
+	if (measure === "income") {
+		return true;
+	}
+	if (measure === "spent") {
+		return false;
+	}
+	return null;
+}
+
+/** Null means nothing is selected, and the list below the chart stays closed. */
+function windowQuery(
+	lockedBucket: InsightsBucket | null,
+	filterId: string | null,
+	measure: InsightsMeasure,
+	nowMs: number,
+	windowStart: Date,
+	windowEnd: Date
+) {
+	if (!(lockedBucket || filterId)) {
+		return null;
+	}
+	return {
+		categoryId: filterId,
+		end: lockedBucket ? lockedBucket.end : windowEnd,
+		income: listDirection(measure),
+		nowMs,
+		start: lockedBucket ? lockedBucket.start : windowStart,
+	};
+}
+
+function verdictFor(
+	result: UseInsightsResult,
+	measure: InsightsMeasure,
+	totals: InsightsTotals,
+	code: string,
+	showCents: boolean,
+	t: TranslateFn
+) {
+	return insightsVerdict({
+		code,
+		current: measure === "net" ? netTotal(totals) : insightsMeasureMagnitude(measure, totals),
+		measure,
+		prior: measure === "net" ? result.priorNet : result.priorMeasure,
+		priorLabel: result.priorLabel,
+		showCents,
+		t,
+		topMover: result.movers[0] ?? null,
+	});
+}
+
+function applyWindowAction(event: string, step: (direction: 1 | -1) => void, toNow: () => void): void {
+	if (event === "earlier") {
+		step(-1);
+	} else if (event === "later") {
+		step(1);
+	} else if (event === "now") {
+		toNow();
+	}
+}
+
+function balanceAt(running: readonly number[], index: number | null, isNet: boolean): number | null {
+	if (!isNet || index == null) {
+		return null;
+	}
+	return running[index] ?? null;
+}
+
 export function Insights() {
 	const db = useDatabase();
 	return <InsightsContent db={db} />;
 }
 
 function InsightsContent({ db }: { db: Database }) {
-	const colors = useColors();
 	const t = useTranslation();
 	const router = useRouter();
 	const currency = useGlobalCurrency(db);
@@ -119,63 +292,43 @@ function InsightsContent({ db }: { db: Database }) {
 
 	const selectPeriod = (value: number) => {
 		setOffset(0);
-		void setNumberSetting(db, "insightsTimeFrame", value);
+		setNumberSetting(db, "insightsTimeFrame", value).catch((error: unknown) => {
+			console.error("Saving the insights period failed", error);
+		});
 	};
 
 	const promote = (next: typeof measure) => {
-		void setNumberSetting(db, "insightsMeasure", storedInsightsMeasure(next));
+		setNumberSetting(db, "insightsMeasure", storedInsightsMeasure(next)).catch((error: unknown) => {
+			console.error("Saving the insights measure failed", error);
+		});
 	};
 
-	const lockedBucket = lockedIndex == null ? null : (result.buckets[lockedIndex] ?? null);
-	const scrubBucket = scrubIndex == null ? null : (result.buckets[scrubIndex] ?? null);
+	const lockedBucket = bucketAt(result.buckets, lockedIndex);
+	const scrubBucket = bucketAt(result.buckets, scrubIndex);
 	const readBucket = scrubBucket ?? lockedBucket;
 
-	const breakdown = useMemo(() => {
-		if (!lockedBucket) {
-			return result.breakdown;
-		}
-		return categoryBreakdownWithin(
-			result.rows,
-			result.categoriesById,
-			measure,
-			{
-				end: lockedBucket.end.getTime(),
-				start: lockedBucket.start.getTime(),
-			},
-			new Date(nowMs)
-		);
-	}, [lockedBucket, result.breakdown, result.rows, result.categoriesById, measure, nowMs]);
+	const breakdown = useMemo(
+		() => breakdownFor(result.breakdown, result.rows, result.categoriesById, lockedBucket, measure, nowMs),
+		[lockedBucket, result.breakdown, result.rows, result.categoriesById, measure, nowMs]
+	);
 
 	const filteredEntry = filterId ? (breakdown.find((entry) => entry.id === filterId) ?? null) : null;
 
-	const subBreakdown = useMemo(() => {
-		if (filterId == null) {
-			return [];
-		}
-		if (lockedBucket) {
-			return subcategoryBreakdownWithin(
+	const subBreakdown = useMemo(
+		() =>
+			subBreakdownFor(
 				result.rows,
 				result.categoriesById,
 				filterId,
+				lockedBucket,
+				period,
 				measure,
-				{
-					end: lockedBucket.end.getTime(),
-					start: lockedBucket.start.getTime(),
-				},
-				new Date(nowMs)
-			);
-		}
-		return subcategoryBreakdown(
-			result.rows,
-			result.categoriesById,
-			filterId,
-			period,
-			measure,
-			new Date(nowMs),
-			offset,
-			calendar
-		);
-	}, [filterId, lockedBucket, result.rows, result.categoriesById, period, measure, nowMs, offset, calendar]);
+				nowMs,
+				offset,
+				calendar
+			),
+		[filterId, lockedBucket, result.rows, result.categoriesById, period, measure, nowMs, offset, calendar]
+	);
 
 	const totals = { income: result.income, spent: result.spent };
 	const scoped = readBucket != null || filteredEntry != null;
@@ -190,45 +343,15 @@ function InsightsContent({ db }: { db: Database }) {
 	// Net is charted as a running balance, so a slot's reading is the balance at
 	// that point, not the slot's own flow — see `runningTotals`.
 	const running = useMemo(() => (isNet ? runningTotals(result.buckets) : []), [isNet, result.buckets]);
-	const readBalance = isNet && readIndex != null ? (running[readIndex] ?? null) : null;
+	const readBalance = balanceAt(running, readIndex, isNet);
 
 	// The hero follows the narrowest thing selected.
-	let heroMagnitude: number;
-	if (filteredEntry) {
-		heroMagnitude = filteredEntry.amount;
-	} else if (readBalance != null) {
-		heroMagnitude = Math.abs(readBalance);
-	} else if (readBucket) {
-		heroMagnitude = Math.abs(readBucket.value);
-	} else {
-		heroMagnitude = insightsMeasureMagnitude(measure, totals);
-	}
+	const heroMagnitude = heroMagnitudeFor(filteredEntry, readBalance, readBucket, measure, totals);
+	const heroPositive = heroPositiveFor(readBalance, readBucket, isNet, measure, totals);
 
-	let heroPositive: boolean;
-	if (readBalance != null) {
-		heroPositive = readBalance >= 0;
-	} else if (readBucket && isNet) {
-		heroPositive = readBucket.value >= 0;
-	} else {
-		heroPositive = insightsMeasureIsPositive(measure, totals);
-	}
+	const eyebrow = eyebrowLabel(scrubBucket, isNet, period, measure, result.label, t);
 
-	// On the net chart the scrubbed figure is the running position, so a bare date
-	// would read as that day's own net.
-	const eyebrow = scrubBucket
-		? `${isNet ? `${t("insights.balance")} · ` : ""}${bucketDateLabel(period, scrubBucket.start)}`
-		: `${t(MEASURE_KEY[measure])} · ${result.label}`;
-
-	const verdict = insightsVerdict({
-		code: currency,
-		current: measure === "net" ? netTotal(totals) : insightsMeasureMagnitude(measure, totals),
-		measure,
-		prior: measure === "net" ? result.priorNet : result.priorMeasure,
-		priorLabel: result.priorLabel,
-		showCents,
-		t,
-		topMover: result.movers[0] ?? null,
-	});
+	const verdict = verdictFor(result, measure, totals, currency, showCents, t);
 
 	const windowActions: MenuAction[] = [
 		{
@@ -259,28 +382,13 @@ function InsightsContent({ db }: { db: Database }) {
 	];
 
 	const onWindowAction = (event: string) => {
-		if (event === "earlier") {
-			step(-1);
-		} else if (event === "later") {
-			step(1);
-		} else if (event === "now") {
-			setOffset(0);
-		}
+		applyWindowAction(event, step, () => setOffset(0));
 	};
 
-	const listQuery = useMemo(() => {
-		if (!(lockedBucket || filterId)) {
-			return null;
-		}
-		const direction = measure === "income" ? true : measure === "spent" ? false : null;
-		return {
-			categoryId: filterId,
-			end: lockedBucket ? lockedBucket.end : result.end,
-			income: direction,
-			nowMs,
-			start: lockedBucket ? lockedBucket.start : result.start,
-		};
-	}, [lockedBucket, filterId, measure, nowMs, result.start, result.end]);
+	const listQuery = useMemo(
+		() => windowQuery(lockedBucket, filterId, measure, nowMs, result.start, result.end),
+		[lockedBucket, filterId, measure, nowMs, result.start, result.end]
+	);
 
 	const listTransactions = useWindowTransactions(db, listQuery);
 	// Held here, not in the list: clearing the chart selection unmounts the list,
@@ -291,37 +399,22 @@ function InsightsContent({ db }: { db: Database }) {
 	// Only a single day reads better ungrouped — every row would share one header.
 	const listGrouped = !(lockedBucket && period !== "year");
 
-	let chart: ReactNode;
-	if (chartIsEmpty) {
-		chart = <InsightsQuiet alternative={quietAlt} measure={measure} period={period} />;
-	} else if (isNet) {
-		chart = (
-			<InsightsNetChart
-				buckets={result.buckets}
-				code={currency}
-				nowMs={nowMs}
-				onCommit={setLockedIndex}
-				onScrub={setScrubIndex}
-				period={period}
-				selectedIndex={lockedIndex}
-				totals={running}
-			/>
-		);
-	} else {
-		chart = (
-			<InsightsBarChart
-				average={result.measureAverage}
-				buckets={result.buckets}
-				code={currency}
-				measure={measure}
-				nowMs={nowMs}
-				onCommit={setLockedIndex}
-				onScrub={setScrubIndex}
-				period={period}
-				selectedIndex={lockedIndex}
-			/>
-		);
-	}
+	const chart = (
+		<ChartSlot
+			average={result.measureAverage}
+			buckets={result.buckets}
+			code={currency}
+			isEmpty={chartIsEmpty}
+			measure={measure}
+			nowMs={nowMs}
+			onCommit={setLockedIndex}
+			onScrub={setScrubIndex}
+			period={period}
+			quietAlt={quietAlt}
+			running={running}
+			selectedIndex={lockedIndex}
+		/>
+	);
 
 	if (!result.hasHistory) {
 		return <InsightsSample onAddTransaction={() => router.push("/transactions/create")} />;
@@ -379,25 +472,7 @@ function InsightsContent({ db }: { db: Database }) {
 
 					<View className="flex-row items-center gap-2 pt-3.5">
 						<MonoLabel numberOfLines={1}>{eyebrow}</MonoLabel>
-						{!scoped && verdict.badge ? (
-							<View
-								style={{
-									backgroundColor: withAlpha(verdict.favourable ? colors.income : colors.danger, 0.2),
-									borderRadius: 6,
-									paddingHorizontal: 5,
-									paddingVertical: 2,
-								}}
-							>
-								<Text
-									className="font-sans-semibold text-footnote"
-									style={{
-										color: verdict.favourable ? colors.income : colors.danger,
-									}}
-								>
-									{verdict.badge}
-								</Text>
-							</View>
-						) : null}
+						<VerdictBadge badge={scoped ? null : verdict.badge} favourable={verdict.favourable} />
 					</View>
 
 					<View className="pt-0.5">
@@ -442,53 +517,17 @@ function InsightsContent({ db }: { db: Database }) {
 					)}
 				</View>
 
-				{breakdown.length > 0 ? (
-					<View className="px-5 pt-6">
-						<View className="pb-3">
-							<MonoLabel>
-								{lockedBucket
-									? `${t("insights.categories")} · ${bucketDateLabel(period, lockedBucket.start)}`
-									: t("insights.categories")}
-							</MonoLabel>
-						</View>
-						<View className="pb-1">
-							<CategoryProportionBar entries={breakdown} onSelect={setFilterId} selectedId={filterId} />
-						</View>
-						<View className="pt-2">
-							{breakdown.map((entry) => (
-								<View key={entry.id}>
-									<CategoryBreakdownRow
-										code={currency}
-										dimmed={filterId != null && filterId !== entry.id}
-										entry={entry}
-										measure={measure}
-										onClear={() => setFilterId(null)}
-										onPress={() => setFilterId((current) => (current === entry.id ? null : entry.id))}
-										selected={filterId === entry.id}
-										showCents={showCents}
-									/>
-									{filterId === entry.id && subBreakdown.length > 0 ? (
-										<View className="gap-2 pt-2 pb-3 pl-4">
-											{subBreakdown.map((child) => (
-												<ChildRow
-													amount={child.amount}
-													code={currency}
-													color={child.color}
-													emoji={child.emoji}
-													fraction={child.fraction}
-													icon={child.icon}
-													key={child.id}
-													name={child.name}
-													showCents={showCents}
-												/>
-											))}
-										</View>
-									) : null}
-								</View>
-							))}
-						</View>
-					</View>
-				) : null}
+				<BreakdownSection
+					code={currency}
+					entries={breakdown}
+					filterId={filterId}
+					lockedBucket={lockedBucket}
+					measure={measure}
+					onFilter={setFilterId}
+					period={period}
+					showCents={showCents}
+					subEntries={subBreakdown}
+				/>
 
 				{listQuery ? (
 					<View className="px-5 pt-6">
@@ -505,6 +544,180 @@ function InsightsContent({ db }: { db: Database }) {
 			</ScrollView>
 			<UndoToast onUndo={undo} visible={pendingId != null} />
 		</>
+	);
+}
+
+function VerdictBadge({ badge, favourable }: { badge: string | null; favourable: boolean }) {
+	const colors = useColors();
+	if (!badge) {
+		return null;
+	}
+	const tone = favourable ? colors.income : colors.danger;
+	return (
+		<View
+			style={{
+				backgroundColor: withAlpha(tone, 0.2),
+				borderRadius: 6,
+				paddingHorizontal: 5,
+				paddingVertical: 2,
+			}}
+		>
+			<Text className="font-sans-semibold text-footnote" style={{ color: tone }}>
+				{badge}
+			</Text>
+		</View>
+	);
+}
+
+interface ChartSlotProps {
+	average: number;
+	buckets: InsightsBucket[];
+	code: string;
+	isEmpty: boolean;
+	measure: InsightsMeasure;
+	nowMs: number;
+	onCommit: Dispatch<SetStateAction<number | null>>;
+	onScrub: Dispatch<SetStateAction<number | null>>;
+	period: InsightsPeriod;
+	quietAlt: InsightsMeasure | null;
+	running: number[];
+	selectedIndex: number | null;
+}
+
+function ChartSlot({
+	average,
+	buckets,
+	code,
+	isEmpty,
+	measure,
+	nowMs,
+	onCommit,
+	onScrub,
+	period,
+	quietAlt,
+	running,
+	selectedIndex,
+}: ChartSlotProps): ReactNode {
+	if (isEmpty) {
+		return <InsightsQuiet alternative={quietAlt} measure={measure} period={period} />;
+	}
+	if (measure === "net") {
+		return (
+			<InsightsNetChart
+				buckets={buckets}
+				code={code}
+				nowMs={nowMs}
+				onCommit={onCommit}
+				onScrub={onScrub}
+				period={period}
+				selectedIndex={selectedIndex}
+				totals={running}
+			/>
+		);
+	}
+	return (
+		<InsightsBarChart
+			average={average}
+			buckets={buckets}
+			code={code}
+			measure={measure}
+			nowMs={nowMs}
+			onCommit={onCommit}
+			onScrub={onScrub}
+			period={period}
+			selectedIndex={selectedIndex}
+		/>
+	);
+}
+
+interface BreakdownSectionProps {
+	code: string;
+	entries: CategoryBreakdownEntry[];
+	filterId: string | null;
+	lockedBucket: InsightsBucket | null;
+	measure: InsightsMeasure;
+	onFilter: Dispatch<SetStateAction<string | null>>;
+	period: InsightsPeriod;
+	showCents: boolean;
+	subEntries: CategoryBreakdownEntry[];
+}
+
+function BreakdownSection({
+	code,
+	entries,
+	filterId,
+	lockedBucket,
+	measure,
+	onFilter,
+	period,
+	showCents,
+	subEntries,
+}: BreakdownSectionProps) {
+	const t = useTranslation();
+	if (entries.length === 0) {
+		return null;
+	}
+	const heading = lockedBucket
+		? `${t("insights.categories")} · ${bucketDateLabel(period, lockedBucket.start)}`
+		: t("insights.categories");
+
+	return (
+		<View className="px-5 pt-6">
+			<View className="pb-3">
+				<MonoLabel>{heading}</MonoLabel>
+			</View>
+			<View className="pb-1">
+				<CategoryProportionBar entries={entries} onSelect={onFilter} selectedId={filterId} />
+			</View>
+			<View className="pt-2">
+				{entries.map((entry) => (
+					<View key={entry.id}>
+						<CategoryBreakdownRow
+							code={code}
+							dimmed={filterId != null && filterId !== entry.id}
+							entry={entry}
+							measure={measure}
+							onClear={() => onFilter(null)}
+							onPress={() => onFilter((current) => (current === entry.id ? null : entry.id))}
+							selected={filterId === entry.id}
+							showCents={showCents}
+						/>
+						<SubBreakdown code={code} entries={filterId === entry.id ? subEntries : []} showCents={showCents} />
+					</View>
+				))}
+			</View>
+		</View>
+	);
+}
+
+function SubBreakdown({
+	code,
+	entries,
+	showCents,
+}: {
+	code: string;
+	entries: CategoryBreakdownEntry[];
+	showCents: boolean;
+}) {
+	if (entries.length === 0) {
+		return null;
+	}
+	return (
+		<View className="gap-2 pt-2 pb-3 pl-4">
+			{entries.map((child) => (
+				<ChildRow
+					amount={child.amount}
+					code={code}
+					color={child.color}
+					emoji={child.emoji}
+					fraction={child.fraction}
+					icon={child.icon}
+					key={child.id}
+					name={child.name}
+					showCents={showCents}
+				/>
+			))}
+		</View>
 	);
 }
 

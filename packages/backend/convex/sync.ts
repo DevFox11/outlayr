@@ -331,6 +331,7 @@ export const push = mutation({
 		let skipped = 0;
 
 		for (const row of args.rows as PushRow[]) {
+			// biome-ignore lint/performance/noAwaitInLoops: rows are applied in order — `seq` is handed out one per accepted row, and two rows for the same localId in one batch require the second lookup to observe the first row's upsert.
 			const existing = await findExisting(ctx, userId, row);
 			const candidate = {
 				deletedAt: row.deletedAt,

@@ -81,7 +81,8 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
 		if (blocked()) {
 			return;
 		}
-		const ticket = ++ticketRef.current;
+		ticketRef.current += 1;
+		const ticket = ticketRef.current;
 		const stale = () => ticket !== ticketRef.current || blocked();
 		if (domain == null) {
 			onClearRef.current();
@@ -114,7 +115,7 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
 
 	const onSuggest = useCallback(
 		(suggestion: EnrichmentSuggestion) => {
-			void attach(suggestion.domain);
+			attach(suggestion.domain);
 		},
 		[attach]
 	);

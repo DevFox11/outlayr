@@ -195,6 +195,13 @@ export function CurrencyRowCopy({ code, selected }: { code: CurrencyCode; select
 	);
 }
 
+function swipeLaneFill(refuses: boolean, favourite: boolean): string {
+	if (refuses) {
+		return "bg-surface-secondary";
+	}
+	return favourite ? "bg-danger-fill" : "bg-gold-fill";
+}
+
 interface CurrencyRowProps {
 	code: CurrencyCode;
 	favourite: boolean;
@@ -229,7 +236,7 @@ export function CurrencyRow({
 	const fullLabel = t("settings.currency.favouritesFull", {
 		limit: FAVOURITE_CURRENCY_LIMIT,
 	});
-	const laneFill = refuses ? "bg-surface-secondary" : favourite ? "bg-danger-fill" : "bg-gold-fill";
+	const laneFill = swipeLaneFill(refuses, favourite);
 
 	// Answers only the refusal this row can already see. `full` comes from a live
 	// query, so two rows pressed a tick apart at seven favourites both render as
@@ -299,6 +306,7 @@ export function CurrencyRow({
 			friction={1}
 			// On release rather than mid-drag — see `SwipeAction`.
 			onSwipeableWillOpen={() => {
+				// biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is inferred from its `false` seed, but `onArm` writes the live full-swipe state into it
 				if (!armedFullSwipe.current) {
 					return;
 				}

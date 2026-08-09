@@ -1,7 +1,7 @@
 import type { Database } from "@/db/client";
 import { type EraseScope, eraseLedger } from "./erase-core";
 
-export type { EraseScope };
+export type { EraseScope } from "./erase-core";
 
 /**
  * The two stores an erase has to clear outside the database. Injected so this

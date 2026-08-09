@@ -83,7 +83,8 @@ function presetForName(categoryName: string): SuggestedCategoryPreset {
 		return exact;
 	}
 	let hash = 0;
-	for (let index = 0; index < categoryName.length; index++) {
+	for (let index = 0; index < categoryName.length; index += 1) {
+		// biome-ignore lint/suspicious/noBitwiseOperators: `>>> 0` truncates the running product to uint32, which is what keeps this hash from drifting into float precision and producing a different preset on a longer name.
 		hash = (hash * 31 + categoryName.charCodeAt(index)) >>> 0;
 	}
 	return ALL_CATEGORY_PRESETS[hash % ALL_CATEGORY_PRESETS.length];
@@ -214,12 +215,12 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 	);
 
 	const buildRequest = useCallback(
-		(groundedLookup: boolean) => ({
+		(grounded: boolean) => ({
 			categoryTree: treeRef.current.map((branch) => ({
 				children: [...branch.children],
 				name: branch.name,
 			})),
-			groundedLookup,
+			groundedLookup: grounded,
 			income: incomeRef.current,
 			locale: localeRef.current,
 			name: nameRef.current.trim(),
@@ -237,6 +238,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 				setCachedEnrichment(key, result);
 			}
 			const fallback = curatedFallbackRef.current;
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the assignment in `run`.
 			if (fallback != null && fallback.key === key) {
 				emit({ ...fallback.suggestion, domain: result.domain });
 			} else {
@@ -247,13 +249,33 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 		[emit]
 	);
 
+	const emitRemoteResult = useCallback(
+		(key: string, result: RemoteEnrichmentResult | null) => {
+			const fallback = curatedFallbackRef.current;
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the assignment in `run`.
+			if (fallback != null && fallback.key === key) {
+				if (result?.domain != null) {
+					emit({ ...fallback.suggestion, domain: result.domain });
+				}
+				return;
+			}
+			if (result == null) {
+				emitNothing();
+				return;
+			}
+			emit(toRemoteSuggestion(result));
+		},
+		[emit, emitNothing]
+	);
+
 	const runRemote = useCallback(
 		async (key: string) => {
 			const call = resolveTransport();
 			if (call == null) {
 				return;
 			}
-			const id = ++requestIdRef.current;
+			requestIdRef.current += 1;
+			const id = requestIdRef.current;
 			inFlightRef.current.add(key);
 			setPending(true);
 			let result: RemoteEnrichmentResult | null = null;
@@ -278,29 +300,19 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 			if (result?.grounding !== true) {
 				setCachedEnrichment(key, result);
 			}
-			const fallback = curatedFallbackRef.current;
-			if (fallback != null && fallback.key === key) {
-				if (result?.domain != null) {
-					emit({ ...fallback.suggestion, domain: result.domain });
-				}
-				return;
-			}
-			if (result == null) {
-				emitNothing();
-				return;
-			}
-			emit(toRemoteSuggestion(result));
+			emitRemoteResult(key, result);
 		},
-		[emit, emitNothing, resolveTransport, buildRequest]
+		[emitRemoteResult, resolveTransport, buildRequest]
 	);
 
 	/** A fast result that already carried a domain suppresses this follow-up entirely. */
-	const runGroundedFollowUp = useCallback(() => {
+	const runGroundedFollowUp = useCallback(async () => {
 		if (!groundedLookupRef.current) {
 			return;
 		}
 		const key = merchantKey(nameRef.current);
 		const outcome = lastRemoteOutcomeRef.current;
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the assignment in `runRemote`.
 		if (outcome == null || outcome.key !== key || outcome.hasDomain) {
 			return;
 		}
@@ -310,45 +322,41 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 		}
 		const ticket = requestIdRef.current;
 		const stale = () => ticket !== requestIdRef.current || merchantKey(nameRef.current) !== key;
-		void (async () => {
-			let result: RemoteEnrichmentResult | null = null;
-			try {
-				result = await call(buildRequest(true));
-			} catch {
-				result = null;
-			}
-			if (stale()) {
-				return;
-			}
-			if (emitDomainResult(key, result) || result?.grounding !== true) {
-				return;
-			}
-			const scheduleRecheck = (delay: number, retriesLeft: number) => {
-				recheckTimerRef.current = setTimeout(() => {
-					void (async () => {
-						let rechecked: RemoteEnrichmentResult | null = null;
-						try {
-							rechecked = await call({
-								...buildRequest(false),
-								knowledgeOnly: true,
-							});
-						} catch {
-							rechecked = null;
-						}
-						if (stale() || emitDomainResult(key, rechecked)) {
-							return;
-						}
-						if (retriesLeft > 0) {
-							scheduleRecheck(GROUNDED_RECHECK_RETRY_MS, retriesLeft - 1);
-						}
-					})();
-				}, delay);
-			};
-			scheduleRecheck(GROUNDED_RECHECK_MS, 1);
-		})();
+		let result: RemoteEnrichmentResult | null = null;
+		try {
+			result = await call(buildRequest(true));
+		} catch {
+			result = null;
+		}
+		if (stale()) {
+			return;
+		}
+		if (emitDomainResult(key, result) || result?.grounding !== true) {
+			return;
+		}
+		const scheduleRecheck = (delay: number, retriesLeft: number) => {
+			recheckTimerRef.current = setTimeout(async () => {
+				let rechecked: RemoteEnrichmentResult | null = null;
+				try {
+					rechecked = await call({
+						...buildRequest(false),
+						knowledgeOnly: true,
+					});
+				} catch {
+					rechecked = null;
+				}
+				if (stale() || emitDomainResult(key, rechecked)) {
+					return;
+				}
+				if (retriesLeft > 0) {
+					scheduleRecheck(GROUNDED_RECHECK_RETRY_MS, retriesLeft - 1);
+				}
+			}, delay);
+		};
+		scheduleRecheck(GROUNDED_RECHECK_MS, 1);
 	}, [resolveTransport, buildRequest, emitDomainResult]);
 
-	const run = useCallback(() => {
+	const run = useCallback(async () => {
 		const key = merchantKey(nameRef.current);
 		if (key.length < MIN_KEY_LENGTH) {
 			emitNothing();
@@ -373,25 +381,14 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 		}
 		const cached = getCachedEnrichment(key);
 		if (cached.hit) {
-			const fallback = curatedFallbackRef.current;
-			if (fallback != null && fallback.key === key) {
-				if (cached.value?.domain != null) {
-					emit({ ...fallback.suggestion, domain: cached.value.domain });
-				}
-				return;
-			}
-			if (cached.value == null) {
-				emitNothing();
-				return;
-			}
-			emit(toRemoteSuggestion(cached.value));
+			emitRemoteResult(key, cached.value);
 			return;
 		}
 		if (inFlightRef.current.has(key)) {
 			return;
 		}
-		void runRemote(key);
-	}, [emit, emitNothing, runRemote]);
+		await runRemote(key);
+	}, [emit, emitNothing, emitRemoteResult, runRemote]);
 
 	const onNameChange = useCallback(
 		(next: string) => {
@@ -399,12 +396,15 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 			if (!enabledRef.current) {
 				return;
 			}
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the setTimeout handle assigned below.
 			if (timerRef.current != null) {
 				clearTimeout(timerRef.current);
 			}
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the setTimeout handle assigned below.
 			if (groundedTimerRef.current != null) {
 				clearTimeout(groundedTimerRef.current);
 			}
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the setTimeout handle assigned in `runGroundedFollowUp`.
 			if (recheckTimerRef.current != null) {
 				clearTimeout(recheckTimerRef.current);
 				recheckTimerRef.current = null;
@@ -416,14 +416,17 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 	);
 
 	const teardown = useCallback(() => {
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the setTimeout handle assigned in `onNameChange`.
 		if (timerRef.current != null) {
 			clearTimeout(timerRef.current);
 			timerRef.current = null;
 		}
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the setTimeout handle assigned in `onNameChange`.
 		if (groundedTimerRef.current != null) {
 			clearTimeout(groundedTimerRef.current);
 			groundedTimerRef.current = null;
 		}
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the setTimeout handle assigned in `runGroundedFollowUp`.
 		if (recheckTimerRef.current != null) {
 			clearTimeout(recheckTimerRef.current);
 			recheckTimerRef.current = null;

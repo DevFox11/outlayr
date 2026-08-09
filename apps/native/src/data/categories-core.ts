@@ -9,6 +9,8 @@ import { uuidV5 } from "@/domain/uuid5";
 
 export type Category = typeof categories.$inferSelect;
 
+const WHITESPACE_RUN = /\s+/;
+
 /** `Color.colorArray` in the Swift app, identical in light and dark. */
 export const CATEGORY_PALETTE = [
 	"#279AF4",
@@ -200,7 +202,7 @@ export interface CategoryValidationResult {
 export function capitalizeCategoryName(raw: string): string {
 	return raw
 		.trim()
-		.split(/\s+/)
+		.split(WHITESPACE_RUN)
 		.filter((word) => word.length > 0)
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 		.join(" ");
@@ -534,9 +536,11 @@ export const categoriesRepo = {
 	 */
 	async reorder(db: Database, orderedIds: string[]): Promise<void> {
 		const now = new Date();
-		for (let index = 0; index < orderedIds.length; index++) {
-			await db.update(categories).set({ sortOrder: index, updatedAt: now }).where(eq(categories.id, orderedIds[index]));
-		}
+		await Promise.all(
+			orderedIds.map((id, index) =>
+				db.update(categories).set({ sortOrder: index, updatedAt: now }).where(eq(categories.id, id))
+			)
+		);
 	},
 
 	/** A reparented category inherits its new parent's income namespace. */

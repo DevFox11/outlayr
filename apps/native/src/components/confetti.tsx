@@ -8,7 +8,7 @@ import Animated, {
 	withDelay,
 	withTiming,
 } from "react-native-reanimated";
-import { CONFETTI_FLIGHT_MS, type ConfettiPiece, confettiBurst } from "@/domain/confetti";
+import { type ConfettiPiece, confettiBurst } from "@/domain/confetti";
 import { useColors } from "@/theme/use-colors";
 
 const PIECE_COUNT = 36;
@@ -107,5 +107,3 @@ function Piece({
 		/>
 	);
 }
-
-export { CONFETTI_FLIGHT_MS };
