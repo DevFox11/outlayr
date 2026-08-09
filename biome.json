@@ -30,12 +30,23 @@
     "indentStyle": "tab",
     "lineWidth": 120
   },
+  "javascript": {
+    "globals": ["__DEV__", "jest"]
+  },
   "linter": {
     "rules": {
-      "preset": "recommended",
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 25
+          }
+        }
+      },
       "correctness": {
         "useExhaustiveDependencies": "info"
       },
+      "preset": "recommended",
       "style": {
         "useSingleVarDeclarator": "error"
       }
