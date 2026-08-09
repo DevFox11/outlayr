@@ -11,8 +11,8 @@ import { useLiveQuery } from "./live-query";
  * single quote — a cross-currency transfer has to cross two legs, and loading
  * them separately would let one arrive a render before the other.
  *
- * `custom` never reaches the market table: the rate is the user's own figure, so
- * there is nothing to look up.
+ * Callers pass the market type to read; `custom` has no rows of its own, so the
+ * screen substitutes the last market type it showed.
  */
 export function useTransferRates(db: Database, codes: readonly string[], rateType: EntryRateType): RateTable {
 	const quotes = useMemo(() => [...new Set(codes.filter((code) => code !== "USD"))].sort(), [codes]);
@@ -25,7 +25,7 @@ export function useTransferRates(db: Database, codes: readonly string[], rateTyp
 				.where(
 					and(
 						inArray(exchangeRates.quote, quotes.length > 0 ? [...quotes] : [""]),
-						eq(exchangeRates.rateType, rateType === "custom" ? "official" : rateType)
+						eq(exchangeRates.rateType, rateType)
 					)
 				),
 		[quotes.join(","), rateType]

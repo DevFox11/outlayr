@@ -55,6 +55,9 @@ export default function TransferEditor() {
 	const [feeSide, setFeeSide] = useState<FeeSide>("source");
 	const [feeCategoryId, setFeeCategoryId] = useState<string | null>(() => lastFeeCategoryId(db));
 	const [customRateText, setCustomRateText] = useState("");
+	// The last market type looked at, so `custom` seeds from the rate that was on
+	// screen rather than always snapping back to official.
+	const [marketType, setMarketType] = useState<EntryRateType>("official");
 	const [date, setDate] = useState(() => new Date());
 	const noteState = useNativeState("");
 	const [saving, setSaving] = useState(false);
@@ -73,12 +76,15 @@ export default function TransferEditor() {
 	const toCurrency = to?.currency ?? "USD";
 	const crossCurrency = fromCurrency !== toCurrency;
 
-	const rates = useTransferRates(db, [fromCurrency, toCurrency], rateType);
+	const rates = useTransferRates(db, [fromCurrency, toCurrency], rateType === "custom" ? marketType : rateType);
 	const marketRate = useMemo(
 		() => marketRateFor(fromCurrency, toCurrency, date, rates),
 		[fromCurrency, toCurrency, date, rates]
 	);
-	const customRate = numpadToNumber(customRateText);
+	// Derived rather than copied into state when the type switches: the native
+	// Picker holds the first render's `onSelectionChange`, so a `marketRate` read
+	// inside it is frozen at whatever the rate was when the screen mounted.
+	const customRate = customRateText === "" ? marketRate : numpadToNumber(customRateText);
 
 	function selectedRate(): number | null {
 		if (!crossCurrency) {
@@ -102,6 +108,11 @@ export default function TransferEditor() {
 	const gapAmount = arrivalPinned ? transferGap(values, toDecimals) : 0;
 	const legs = transferLegs(values, fromDecimals, toDecimals);
 	const effectiveRate = legs === null ? rate : legs.exchangeRate;
+
+	// The pad opens on the live market rate so a custom rate is an edit rather
+	// than a fresh entry, without ever writing that rate into state.
+	const customRatePadText =
+		customRateText === "" && marketRate !== null ? numberToNumpad(marketRate, RATE_DISPLAY_DECIMALS) : customRateText;
 
 	const options = useMemo(
 		() => rateTypeOptions(crossCurrency ? toCurrency : fromCurrency),
@@ -259,10 +270,10 @@ export default function TransferEditor() {
 							}}
 							onRateTypeChange={(next) => {
 								setRateType(next);
-								setArrivalPinned(false);
-								if (next === "custom" && customRateText === "") {
-									setCustomRateText(numberToNumpad(marketRate ?? 0, RATE_DISPLAY_DECIMALS));
+								if (next !== "custom") {
+									setMarketType(next);
 								}
+								setArrivalPinned(false);
 							}}
 							onSentPress={() => present(sentSheet)}
 							onSwap={swap}
@@ -359,7 +370,7 @@ export default function TransferEditor() {
 				}}
 				onDone={() => rateSheet.current?.dismiss()}
 				ref={rateSheet}
-				value={customRateText}
+				value={customRatePadText}
 			/>
 		</View>
 	);
