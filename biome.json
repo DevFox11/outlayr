@@ -63,8 +63,28 @@
       "includes": ["**/*.test.{ts,tsx}", "apps/native/jest/**"],
       "linter": {
         "rules": {
+          "performance": {
+            "noAwaitInLoops": "off",
+            "useTopLevelRegex": "off"
+          },
           "suspicious": {
-            "noEmptyBlockStatements": "off"
+            "noBitwiseOperators": "off",
+            "noEmptyBlockStatements": "off",
+            "noUnnecessaryConditions": "off",
+            "useAwait": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/native/src/domain/uuid5.ts",
+        "apps/native/src/domain/confetti.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noBitwiseOperators": "off"
           }
         }
       }
