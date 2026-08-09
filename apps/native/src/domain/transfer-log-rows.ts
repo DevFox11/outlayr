@@ -1,0 +1,115 @@
+export interface TransferLogSource {
+	date: Date;
+	day: Date;
+	fromAccountId: string;
+	fromAmount: number;
+	fromAmountUsd: number | null;
+	fromCurrency: string;
+	id: string;
+	note: string;
+	toAccountId: string;
+	toAmount: number;
+	toAmountUsd: number | null;
+	toCurrency: string;
+}
+
+export interface TransferLogRow {
+	amount: number;
+	amountUsd: number | null;
+	categoryColor: null;
+	categoryEmoji: null;
+	categoryIcon: null;
+	categoryId: null;
+	categoryName: null;
+	currency: string;
+	customColor: null;
+	date: Date;
+	day: Date;
+	emoji: null;
+	excludedFromTotals: true;
+	icon: null;
+	id: string;
+	imageColor: null;
+	imageUri: null;
+	income: boolean;
+	note: string;
+	recurringCoefficient: number;
+	recurringEndDate: null;
+	recurringType: number;
+	/** What marks the row a transfer: unsigned, transfer blue, out of every total. */
+	transferId: string;
+	/** The arriving leg, for the meta line on a cross-currency row. */
+	transferTo: { amount: number; currency: string } | null;
+}
+
+const UNKNOWN_ACCOUNT = "—";
+
+/**
+ * The outbound leg carries the figure, and `income: false` keeps every consumer
+ * on the two directions it already knows — the row is drawn unsigned from
+ * `transferId`, not from a third value nothing else understands.
+ */
+export function toTransferLogRow(
+	transfer: TransferLogSource,
+	accountNames: ReadonlyMap<string, string>
+): TransferLogRow {
+	const from = accountNames.get(transfer.fromAccountId) ?? UNKNOWN_ACCOUNT;
+	const to = accountNames.get(transfer.toAccountId) ?? UNKNOWN_ACCOUNT;
+	const crossCurrency = transfer.fromCurrency !== transfer.toCurrency;
+	return {
+		amount: transfer.fromAmount,
+		amountUsd: transfer.fromAmountUsd,
+		categoryColor: null,
+		categoryEmoji: null,
+		categoryIcon: null,
+		categoryId: null,
+		categoryName: null,
+		currency: transfer.fromCurrency,
+		customColor: null,
+		date: transfer.date,
+		day: transfer.day,
+		emoji: null,
+		excludedFromTotals: true,
+		icon: null,
+		id: transfer.id,
+		imageColor: null,
+		imageUri: null,
+		income: false,
+		note: transfer.note === "" ? `${from} → ${to}` : transfer.note,
+		recurringCoefficient: 1,
+		recurringEndDate: null,
+		recurringType: 0,
+		transferId: transfer.id,
+		transferTo: crossCurrency ? { amount: transfer.toAmount, currency: transfer.toCurrency } : null,
+	};
+}
+
+interface Recent {
+	date: Date;
+	day: Date;
+}
+
+/**
+ * Both inputs are already newest-first, so this is the merge step of a merge
+ * sort rather than a re-sort — the log's order is `(day desc, date desc)` and
+ * re-sorting the whole list would cost the windowing that produced it.
+ */
+export function mergeByRecency<T extends Recent>(left: readonly T[], right: readonly T[]): T[] {
+	const merged: T[] = [];
+	let l = 0;
+	let r = 0;
+	while (l < left.length && r < right.length) {
+		const a = left[l];
+		const b = right[r];
+		const byDay = b.day.getTime() - a.day.getTime();
+		const takeLeft = byDay === 0 ? a.date.getTime() >= b.date.getTime() : byDay < 0;
+		if (takeLeft) {
+			merged.push(a);
+			l += 1;
+		} else {
+			merged.push(b);
+			r += 1;
+		}
+	}
+	return [...merged, ...left.slice(l), ...right.slice(r)];
+}

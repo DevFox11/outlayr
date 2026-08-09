@@ -6,7 +6,7 @@ import { cursorLabel } from "./log-period-cursor";
  * labels are the enum's own raw values: the Swift catalog carries no English
  * translation for them, so SwiftUI renders the key itself, lowercase and all.
  */
-export type LogFilter = "all" | "type" | "day" | "week" | "month" | "category" | "recurring" | "upcoming";
+export type LogFilter = "all" | "type" | "day" | "week" | "month" | "category" | "recurring" | "transfers" | "upcoming";
 
 export const LOG_FILTER_ORDER: readonly LogFilter[] = [
 	"all",
@@ -16,6 +16,7 @@ export const LOG_FILTER_ORDER: readonly LogFilter[] = [
 	"month",
 	"category",
 	"recurring",
+	"transfers",
 	"upcoming",
 ];
 
@@ -25,6 +26,7 @@ export const LOG_FILTER_LABEL: Record<LogFilter, string> = {
 	day: "by day",
 	month: "by month",
 	recurring: "recurring",
+	transfers: "transfers",
 	type: "by type",
 	upcoming: "upcoming",
 	week: "by week",

@@ -92,3 +92,26 @@ describe("scopeTotals", () => {
 		expect(shown.expense).toBe(90);
 	});
 });
+
+describe("a transfer never reaches the scope header", () => {
+	const DAY = new Date(2026, 7, 9);
+	const scopeEntry = (amount: number, extra: Record<string, unknown> = {}) => ({
+		amount,
+		currency: "USD",
+		date: DAY,
+		income: false,
+		...extra,
+	});
+
+	it("leaves the header to the real entries", () => {
+		const totals = scopeTotals([scopeEntry(40), scopeEntry(500, { excludedFromTotals: true })], "USD");
+		expect(totals.shown.expense).toBe(40);
+		expect(totals.shown.count).toBe(1);
+	});
+
+	it("reports zero for a scope holding nothing but transfers", () => {
+		const totals = scopeTotals([scopeEntry(500, { excludedFromTotals: true })], "USD");
+		expect(totals.shown.expense).toBe(0);
+		expect(totals.shown.count).toBe(0);
+	});
+});

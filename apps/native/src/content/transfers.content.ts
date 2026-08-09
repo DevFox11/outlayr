@@ -30,6 +30,38 @@ const transfers = {
 			en: "arrives as {amount}",
 			es: "llegan como {amount}",
 		}),
+		"transfers.delete.confirm": t({
+			en: "Delete",
+			es: "Eliminar",
+		}),
+		"transfers.delete.message": t({
+			en: "Both balances go back to what they were. Its fee, if it had one, goes with it.",
+			es: "Ambos saldos vuelven a lo que eran. Su comisión, si tenía, se va con ella.",
+		}),
+		"transfers.delete.row": t({
+			en: "Delete Transfer",
+			es: "Eliminar transferencia",
+		}),
+		"transfers.delete.title": t({
+			en: "Delete this transfer?",
+			es: "¿Eliminar esta transferencia?",
+		}),
+		"transfers.detail.arrived": t({
+			en: "Arrived",
+			es: "Llegó",
+		}),
+		"transfers.detail.feeNote": t({
+			en: "Counted as spending, unlike the transfer itself.",
+			es: "Cuenta como gasto, a diferencia de la transferencia.",
+		}),
+		"transfers.detail.left": t({
+			en: "Left",
+			es: "Salió",
+		}),
+		"transfers.detail.rateSource": t({
+			en: "Source",
+			es: "Fuente",
+		}),
 		"transfers.fee.destination": t({
 			en: "Charged on arrival",
 			es: "Cobrada al llegar",

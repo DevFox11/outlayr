@@ -15,6 +15,7 @@ import showCategoryIcon from "@/assets/toolbar-icons/show-category.png";
 import showDayIcon from "@/assets/toolbar-icons/show-day.png";
 import showMonthIcon from "@/assets/toolbar-icons/show-month.png";
 import showRecurringIcon from "@/assets/toolbar-icons/show-recurring.png";
+import showTransfersIcon from "@/assets/toolbar-icons/show-transfers.png";
 import showTypeIcon from "@/assets/toolbar-icons/show-type.png";
 import showUpcomingIcon from "@/assets/toolbar-icons/show-upcoming.png";
 import showWeekIcon from "@/assets/toolbar-icons/show-week.png";
@@ -43,6 +44,7 @@ const SOURCE = {
 	showDay: showDayIcon,
 	showMonth: showMonthIcon,
 	showRecurring: showRecurringIcon,
+	showTransfers: showTransfersIcon,
 	showType: showTypeIcon,
 	showUpcoming: showUpcomingIcon,
 	showWeek: showWeekIcon,

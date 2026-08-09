@@ -26,7 +26,10 @@ export function scopeTotals(
 	displayCurrency: string,
 	rates?: RateTable
 ): ScopeTotals {
-	const ordered = cellFigures(toCells(entries), displayCurrency, rates);
+	// Transfers are listed in the scope but are not part of it: money moving
+	// between two accounts the user owns is neither in nor out.
+	const counted = entries.filter((entry) => !("excludedFromTotals" in entry && entry.excludedFromTotals));
+	const ordered = cellFigures(toCells(counted), displayCurrency, rates);
 	const shown = ordered.find((figures) => figures.currencyCode === displayCurrency) ??
 		ordered[0] ?? { currencyCode: displayCurrency, ...ZERO_FIGURES };
 

@@ -4,7 +4,7 @@ import { formatAmount } from "./money";
 export interface RowAmountLabelInput {
 	amount: number;
 	code: string;
-	income: boolean;
+	income: boolean | null;
 	/** Mirrors the "Display Cents" setting; false rounds to whole units. */
 	showCents?: boolean;
 }
@@ -18,7 +18,13 @@ export function rowAmountLabel(
 	{ amount, income, code, showCents = true }: RowAmountLabelInput,
 	t: TranslateFn
 ): string {
+	const amountText = formatAmount(amount, code, showCents);
+	// Null is a transfer: neither wording fits money that was only moved, and a
+	// screen reader has no colour or glyph to fall back on.
+	if (income === null) {
+		return t("log.row.amountTransfer", { amount: amountText });
+	}
 	return t(income ? "log.row.amountIncome" : "log.row.amountExpense", {
-		amount: formatAmount(amount, code, showCents),
+		amount: amountText,
 	});
 }

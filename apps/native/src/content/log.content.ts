@@ -66,6 +66,10 @@ const log = {
 			en: "recurring",
 			es: "recurrente",
 		}),
+		"log.filter.transfers": t({
+			en: "Transfers",
+			es: "Transferencias",
+		}),
 		"log.filter.type": t({
 			en: "by type",
 			es: "por tipo",
@@ -145,6 +149,10 @@ const log = {
 		"log.row.amountIncome": t({
 			en: "Income {amount}",
 			es: "Ingreso de {amount}",
+		}),
+		"log.row.amountTransfer": t({
+			en: "{amount} moved",
+			es: "{amount} movidos",
 		}),
 		"log.row.delete": t({
 			en: "Delete",

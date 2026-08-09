@@ -320,6 +320,11 @@ function RootStack() {
 					}}
 				/>
 
+				<Stack.Screen name="transfers/[id]" options={{ presentation: "modal" }}>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+				</Stack.Screen>
 				<Stack.Screen name="transfers/create" options={{ presentation: "modal" }}>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />

@@ -15,6 +15,7 @@ export const FILTER_LABEL_KEY: Record<LogFilter, TranslationKey> = {
 	day: "log.filter.day",
 	month: "log.filter.month",
 	recurring: "log.filter.recurring",
+	transfers: "log.filter.transfers",
 	type: "log.filter.type",
 	upcoming: "log.filter.upcoming",
 	week: "log.filter.week",
