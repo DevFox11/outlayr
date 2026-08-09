@@ -10,7 +10,7 @@ import type { TransactionWithCategory } from "@/data/transactions";
 import { currencyTotals } from "@/domain/currency-totals";
 import { monthlySubscriptionCost } from "@/domain/subscription-cost";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 interface LogUpcomingProps {
 	currency: string;

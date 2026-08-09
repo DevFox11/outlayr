@@ -9,7 +9,7 @@ import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 

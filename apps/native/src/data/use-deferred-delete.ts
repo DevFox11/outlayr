@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import type { Database } from "@/db/client";
 import { createDeferredDelete, type DeferredDeleteController } from "@/domain/deferred-delete";
 import { translateNow } from "@/i18n/runtime";
-import { transactionsRepo } from "./transactions";
+import { transactionsRepo } from "./transactions-core";
 
 const UNDO_WINDOW_MS = 4000;
 

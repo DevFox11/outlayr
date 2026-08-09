@@ -7,7 +7,7 @@ import { View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 import { ImportSheet, type ImportSheetHandle } from "@/components/import-sheet/import-sheet";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 
 export function FloatingAddButton() {

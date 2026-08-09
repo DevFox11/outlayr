@@ -1,5 +1,5 @@
 import { CATEGORY_ERROR_MESSAGES, type CategoryError } from "@/data/categories-core";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 
 /**
  * The repo signals a rejected save by throwing one of `CATEGORY_ERROR_MESSAGES`,

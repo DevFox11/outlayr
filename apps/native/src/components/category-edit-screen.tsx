@@ -5,9 +5,10 @@ import { Alert } from "react-native";
 import CategoryEditor from "@/components/category-editor";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type Category, categoriesRepo, getCategoryById } from "@/data/categories";
+import { type Category, categoriesRepo, getCategoryById } from "@/data/categories-core";
 import { categories } from "@/db/schema";
-import { type TranslatableKey, useTranslation } from "@/i18n";
+import type { TranslatableKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 

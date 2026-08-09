@@ -6,8 +6,6 @@ import { parseFavourites } from "@/domain/favourite-currencies";
 import { META_KEYS } from "./app-meta-core";
 import { useLiveQuery } from "./live-query";
 
-export * from "./favourite-currencies-core";
-
 /**
  * `db` is nullable because the currency picker sheet is mounted by forms whose
  * callers can sit above the root splash gate, where `useDatabase()` throws. No

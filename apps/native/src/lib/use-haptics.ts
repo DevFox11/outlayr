@@ -9,7 +9,7 @@ import {
 import { useCallback } from "react";
 import { useLocalData } from "@/contexts/local-data-context";
 import { useLiveQuery } from "@/data/live-query";
-import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings";
+import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings-core";
 import { appMeta } from "@/db/schema";
 import { type HapticEvent, hapticPlay } from "@/domain/haptics";
 

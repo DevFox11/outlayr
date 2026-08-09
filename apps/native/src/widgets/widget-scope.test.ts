@@ -52,7 +52,7 @@ describe("widget module scope", () => {
 	}
 
 	it("covers every widget file that exists", () => {
-		const index = readFileSync(join(import.meta.dirname, "index.ts"), "utf8");
+		const index = readFileSync(join(import.meta.dirname, "publish.ts"), "utf8");
 		for (const file of WIDGET_FILES) {
 			expect(index.includes(`./${file.replace(".tsx", "")}`)).toBeTruthy();
 		}

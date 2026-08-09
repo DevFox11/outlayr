@@ -7,7 +7,7 @@ const mockGetResumeStep = jest.fn(() => "source");
 const mockSetStep = jest.fn();
 const mockPresent = jest.fn();
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("expo-router", () => ({

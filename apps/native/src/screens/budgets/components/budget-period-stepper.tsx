@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { type BudgetWindow, budgetWindowLabel } from "@/domain/budget-math";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 interface BudgetPeriodStepperProps {

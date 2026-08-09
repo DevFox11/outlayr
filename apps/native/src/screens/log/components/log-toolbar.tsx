@@ -6,7 +6,7 @@ import type { LogPeriod } from "@/data/log-totals";
 import { LOG_PERIOD_ORDER } from "@/data/log-totals";
 import type { LogFilter } from "@/domain/log-filter";
 import { LOG_FILTER_ORDER } from "@/domain/log-filter";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { FILTER_LABEL_KEY, PERIOD_PHRASE_KEY } from "../labels";
 
 const FILTER_ICON: Record<LogFilter, ToolbarIconName> = {

@@ -2,7 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { RotateClockwiseIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 interface ResumeNoticeProps {

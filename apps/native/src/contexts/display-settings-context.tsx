@@ -1,15 +1,7 @@
 import { createContext, type ReactNode, use, useMemo } from "react";
 import { type DisplaySettings, selectDisplaySettings } from "@/data/display-settings";
-import {
-	type BoolSettingKey,
-	type NumberSettingKey,
-	type SettingsSnapshot,
-	setBoolSetting,
-	setNumberSetting,
-	useAllSettings,
-	useBoolSetting,
-	useNumberSetting,
-} from "@/data/settings";
+import { type SettingsSnapshot, useAllSettings, useBoolSetting, useNumberSetting } from "@/data/settings";
+import { type BoolSettingKey, type NumberSettingKey, setBoolSetting, setNumberSetting } from "@/data/settings-core";
 import { useLocalData } from "./local-data-context";
 
 interface DisplaySettingsValue {

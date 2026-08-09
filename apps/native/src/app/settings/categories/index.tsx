@@ -4,7 +4,7 @@ import { frame, pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { useToolbarIcon } from "@/components/toolbar-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { Categories } from "@/screens/categories";
 
 export default function CategoriesScreen() {

@@ -4,9 +4,9 @@ import { FirstRun } from "@/components/first-run";
 import { ToggleRow } from "@/components/settings/settings-row";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function OnboardingGrounding() {
 	const db = useDatabase();

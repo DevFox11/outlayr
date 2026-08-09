@@ -7,7 +7,7 @@ import { LinearGradient } from "@/components/styled";
 import { Text } from "@/components/text";
 import type { CategoryBreakdownEntry, CategoryMover, InsightsBucket } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
-import { type TranslateFn, useTranslation } from "@/i18n";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryBreakdownRow } from "./category-breakdown-row";

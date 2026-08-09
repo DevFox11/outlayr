@@ -1,7 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { FeatureLab } from "./feature-lab";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -10,7 +10,7 @@ jest.mock("@/contexts/local-data-context", () => ({
 }));
 
 const mockSetBoolSetting = jest.fn();
-jest.mock("@/data/settings", () => ({
+jest.mock("@/data/settings-core", () => ({
 	setBoolSetting: (...args: unknown[]) => mockSetBoolSetting(...args),
 }));
 

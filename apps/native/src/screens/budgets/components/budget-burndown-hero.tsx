@@ -12,7 +12,7 @@ import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetPeriodPhrase, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 

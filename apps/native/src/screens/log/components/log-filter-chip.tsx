@@ -19,7 +19,7 @@ import {
 } from "@/domain/log-measure";
 import { canStepForward, stepCursor } from "@/domain/log-period-cursor";
 import type { ScopeTotals } from "@/domain/log-scope-figures";
-import { type TranslateFn, useTranslation } from "@/i18n";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
 import { FILTER_LABEL_KEY, MEASURE_WORD_KEY, scopeMeasureLabel } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 

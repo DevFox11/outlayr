@@ -9,7 +9,7 @@ import { ChoiceRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Image } from "@/components/styled";
 import { APP_ICONS, type AppIconSlug, defaultRowDetail, RELEASE_PRIMARY_ICON } from "@/domain/app-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 
 const PREVIEW: Record<AppIconSlug, number> = {

@@ -1,5 +1,5 @@
 import type { RootStackGroup } from "@/domain/auth-gate";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 import { CATEGORY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
 
 /**

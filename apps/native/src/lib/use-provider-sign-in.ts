@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isSignInCancellation, signInFailureDetail, signInFailureMessage } from "@/domain/account";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import type { authClient } from "@/lib/auth-client";
 
 type AuthClient = NonNullable<typeof authClient>;

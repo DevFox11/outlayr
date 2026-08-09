@@ -8,7 +8,8 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { type EraseResidue, type EraseScope, eraseData } from "@/data/erase";
 import { useTransactionCount } from "@/data/transactions";
 import type { Database } from "@/db/client";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { clearStoredPhotos } from "@/lib/photo-storage";
 import { clearSpotlight } from "@/lib/spotlight";
 

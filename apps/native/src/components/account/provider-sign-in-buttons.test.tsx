@@ -4,7 +4,7 @@ import { appleIdToken } from "@/lib/apple-sign-in";
 import { googleIdToken } from "@/lib/google-sign-in";
 import { ProviderSignInButtons } from "./provider-sign-in-buttons";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 

@@ -10,7 +10,8 @@ import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
-import { type Language, useLanguage, useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
 import { CHART_SCRUB } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 

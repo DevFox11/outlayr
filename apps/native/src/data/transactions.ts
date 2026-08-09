@@ -12,15 +12,6 @@ import {
 	type Transaction,
 } from "./transactions-core";
 
-export { backfillRecurring } from "./recurrence-backfill";
-export {
-	getTransactionById,
-	LOG_PAGE_DAYS,
-	type Transaction,
-	type TransactionInput,
-	transactionsRepo,
-} from "./transactions-core";
-
 export function useTransactionCount(db: Database): number {
 	return useLiveQuery(transactions, () => ledgerSizeQuery(db)).length;
 }

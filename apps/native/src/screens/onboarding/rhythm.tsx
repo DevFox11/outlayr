@@ -5,10 +5,10 @@ import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
 import { finishOnboarding, markReminderChosen } from "@/data/onboarding-core";
-import { setNumberSetting } from "@/data/settings";
+import { setNumberSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { formatTimeOfDay, REMINDER_EVENING, reminderTime } from "@/domain/reminder";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 const EVENING = reminderTime(REMINDER_EVENING, { hour: 20, minute: 0 });
 

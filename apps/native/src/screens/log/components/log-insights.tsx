@@ -19,7 +19,7 @@ import {
 } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 import { LogSparkline } from "./log-sparkline";

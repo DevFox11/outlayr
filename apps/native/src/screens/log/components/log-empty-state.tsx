@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { EmptyState } from "@/components/empty-state";
 import { Bar, GhostAvatar, GhostPanel, GhostRow, Hairline, Slot } from "@/components/empty-state-parts";
 import { Arrive } from "@/components/mark-motion";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 
 const PANEL = MARK_CEILING.takeover;

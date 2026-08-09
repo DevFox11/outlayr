@@ -5,7 +5,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 const OUTLAYR_REPO = "https://github.com/danestves/outlayr";
 const DIME_REPO = "https://github.com/rafsoh/dimeApp";

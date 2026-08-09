@@ -5,10 +5,11 @@ import { View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type Account, accountsRepo, useAccounts } from "@/data/accounts";
+import { useAccounts } from "@/data/accounts";
+import { type Account, accountsRepo } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { applyMove } from "@/domain/reorder";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 export function AccountReorder() {

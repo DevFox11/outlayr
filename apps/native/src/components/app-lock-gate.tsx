@@ -5,7 +5,8 @@ import { AppState, Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { lockFailureMessage, lockGate, lockIsUnenforceable, relocksOnPhase } from "@/domain/app-lock";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { lockIsEnforceable, requestUnlock } from "@/lib/app-lock";
 import { useColors } from "@/theme/use-colors";
 

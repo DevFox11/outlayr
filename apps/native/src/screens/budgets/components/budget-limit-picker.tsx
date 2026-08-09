@@ -21,7 +21,7 @@ import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
 import { crossingDay } from "@/domain/budget-limit-crossing";
 import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
 import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";

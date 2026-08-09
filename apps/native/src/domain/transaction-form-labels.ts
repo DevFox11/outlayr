@@ -1,6 +1,7 @@
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { type LeadLabelKey, leadLabelKey } from "@/domain/subscription-reminder";
-import type { TranslateFn, TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import type { TranslateFn } from "@/i18n/context";
 
 const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
 	[RECURRING_TYPE.daily]: "transaction.cadence.daily",

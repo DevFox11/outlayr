@@ -3,7 +3,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import type { AccountsOverview } from "@/domain/account-display";
 import { formatSignedAmount } from "@/domain/account-display";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 const TABULAR = { fontVariant: ["tabular-nums" as const] };
 

@@ -4,7 +4,7 @@ import { SourceStep } from "./source-step";
 const mockDispatch = jest.fn();
 const mockSetStep = jest.fn();
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

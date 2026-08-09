@@ -6,7 +6,7 @@ import {
 	INITIAL_IMPORT_FLOW_STATE,
 	importFlowReducer,
 } from "@/domain/import-flow";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 
 export type FileStepError =
 	| { cause: "io"; key: TranslationKey }

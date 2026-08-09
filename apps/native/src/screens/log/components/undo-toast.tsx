@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 interface UndoToastProps {
 	onUndo: () => void;

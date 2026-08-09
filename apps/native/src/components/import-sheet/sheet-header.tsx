@@ -5,7 +5,7 @@ import { View } from "react-native";
 import Animated, { FadeInLeft, FadeInRight, Keyframe, ReduceMotion } from "react-native-reanimated";
 
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 const TRANSITION_MS = 200;
 

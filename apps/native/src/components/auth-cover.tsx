@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useAuthSession } from "@/lib/auth-session";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
 import { useColors } from "@/theme/use-colors";

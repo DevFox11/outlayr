@@ -1,5 +1,5 @@
 import { type RefObject, useRef } from "react";
-import type { Category } from "@/data/categories";
+import type { Category } from "@/data/categories-core";
 import type { CategoryPickerSheetRef } from "../category-picker-sheet";
 
 export interface CategoryPickerField {

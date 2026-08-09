@@ -1,7 +1,7 @@
 import { Form, Host, Section, Text } from "@expo/ui/swift-ui";
 import { Stack } from "expo-router";
 import { View } from "react-native";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { secondaryText } from "./styles";
 
 interface SettingsStubProps {

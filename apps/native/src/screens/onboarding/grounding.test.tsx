@@ -6,7 +6,7 @@ jest.mock("expo-router", () => ({
 	useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -15,7 +15,7 @@ jest.mock("@/contexts/local-data-context", () => ({
 }));
 
 const mockSetBoolSetting = jest.fn((..._args: unknown[]) => Promise.resolve());
-jest.mock("@/data/settings", () => ({
+jest.mock("@/data/settings-core", () => ({
 	setBoolSetting: (...args: unknown[]) => mockSetBoolSetting(...args),
 }));
 

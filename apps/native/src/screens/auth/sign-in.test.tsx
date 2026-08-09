@@ -24,7 +24,7 @@ jest.mock("@/lib/use-provider-sign-in", () => ({
 	}),
 }));
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string) => key,
 }));

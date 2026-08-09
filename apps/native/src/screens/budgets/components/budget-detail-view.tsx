@@ -17,7 +17,7 @@ import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { formatAmount } from "@/domain/money";
 import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { MARK_CEILING } from "@/theme/empty-state-ink";

@@ -19,12 +19,12 @@ import { cn } from "@/components/tw";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { type Budget, budgetsRepo } from "@/data/budgets";
-import { getCategoryById } from "@/data/categories";
+import { getCategoryById } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { BUDGET_TYPE, startOfPeriod } from "@/domain/budget-math";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 type Kind = "overall" | "category";

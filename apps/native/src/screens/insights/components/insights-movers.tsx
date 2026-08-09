@@ -7,7 +7,7 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { CategoryMover, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 interface InsightsMoversProps {
 	code: string;

@@ -3,7 +3,7 @@ import { Archive02Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useWindowDimensions, View } from "react-native";
 
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 /**

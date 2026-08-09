@@ -11,7 +11,7 @@ import settingsSelectedIcon from "@/assets/tab-icons/settings-selected.png";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useOverBudgetCount } from "@/data/budgets";
 import { useNow } from "@/data/use-now";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 // The ink tint barely distinguishes the selected label on its own, so the weight

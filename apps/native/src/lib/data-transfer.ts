@@ -1,7 +1,7 @@
 import { getDocumentAsync } from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 
 /**
  * `text/plain` is carried alongside the CSV types because plenty of banks hand

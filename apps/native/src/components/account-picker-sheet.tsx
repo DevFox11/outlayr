@@ -1,9 +1,10 @@
 import { BottomSheetModal, BottomSheetScrollView } from "@expo/ui/community/bottom-sheet";
 import { type Ref, useCallback, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { type Account, useAccounts } from "@/data/accounts";
+import { useAccounts } from "@/data/accounts";
+import type { Account } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryIconTile } from "./category-icon-tile";

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
 import { valueDatedRowsIn } from "@/domain/valuation";
-import { useLanguage } from "@/i18n";
+import { useLanguage } from "@/i18n/context";
 import {
 	bucketSeries,
 	type CategoryBreakdownEntry,

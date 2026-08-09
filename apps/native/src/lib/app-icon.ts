@@ -3,7 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { type AppIconEvent, type AppIconState, appIconTransition } from "@/domain/app-icons";
-import { translateNow } from "@/i18n";
+import { translateNow } from "@/i18n/runtime";
 
 export const alternateIconsSupported: boolean = supportsAlternateIcons;
 

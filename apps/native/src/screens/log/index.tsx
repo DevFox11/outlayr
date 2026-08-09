@@ -18,8 +18,9 @@ import {
 	useLogInsights,
 	useSparklineRows,
 } from "@/data/log-totals";
-import { setNumberSetting } from "@/data/settings";
-import { LOG_PAGE_DAYS, useLoggedTransactions } from "@/data/transactions";
+import { setNumberSetting } from "@/data/settings-core";
+import { useLoggedTransactions } from "@/data/transactions";
+import { LOG_PAGE_DAYS } from "@/data/transactions-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
@@ -35,7 +36,7 @@ import { cursorStart } from "@/domain/log-period-cursor";
 import { scopeTotals } from "@/domain/log-scope-figures";
 import { sparklineIsPositive, sparklineRange, sparklineSeries } from "@/domain/log-sparkline";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { AccountsOverviewCard } from "./components/accounts-overview-card";

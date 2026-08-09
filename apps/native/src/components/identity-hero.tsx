@@ -14,7 +14,8 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { LAUNCH_SPRING, useIdentityFlyUp } from "@/contexts/identity-draft-context";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryIconTile } from "./category-icon-tile";

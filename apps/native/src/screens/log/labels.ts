@@ -1,7 +1,8 @@
 import type { LogPeriod } from "@/data/log-totals";
 import type { LogFilter } from "@/domain/log-filter";
 import type { LogMeasure } from "@/domain/log-measure";
-import type { TranslateFn, TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import type { TranslateFn } from "@/i18n/context";
 
 /**
  * The domain modules keep their labels as module-level constants, which resolve

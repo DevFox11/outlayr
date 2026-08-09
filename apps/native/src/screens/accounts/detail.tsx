@@ -12,7 +12,8 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type Account, useAccountBalance, useAccounts, useAccountTransactions } from "@/data/accounts";
+import { useAccountBalance, useAccounts, useAccountTransactions } from "@/data/accounts";
+import type { Account } from "@/data/accounts-core";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useValuationIn } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
@@ -20,7 +21,7 @@ import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function AccountDetail({ id }: { id: string }) {
 	const db = useDatabase();

@@ -10,28 +10,6 @@ import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
-import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
-import { IdentityCurtain } from "@/components/identity-curtain";
-import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
-import type { IdentitySelection } from "@/components/identity-picker-content";
-import { useAppSettings } from "@/contexts/display-settings-context";
-import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
-import { useDatabase } from "@/contexts/local-data-context";
-import { type Account, accountsRepo, getAccountById } from "@/data/accounts";
-import { useGlobalCurrency } from "@/data/app-meta";
-import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
-import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import { useAccountIdentity } from "@/hooks/use-account-identity";
-import { useLocaleTag } from "@/hooks/use-locale-tag";
-import { useRegionCode } from "@/hooks/use-region-code";
-import { useTranslation } from "@/i18n";
-import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
-import { useHaptics } from "@/lib/use-haptics";
-import { glowFromEmoji } from "@/theme/glow";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
-import { AccountEditorCta } from "./cta";
-import { AccountEditorDetailsSection } from "./details-section";
-import { AccountEditorHeroBand } from "./hero-band";
 import {
 	CTA_BOTTOM_PADDING,
 	CTA_HEIGHT,
@@ -41,7 +19,29 @@ import {
 	HEADER_HEIGHT,
 	HERO_BOTTOM_PADDING,
 	HERO_TOP_PADDING,
-} from "./style";
+} from "@/components/editor-style";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
+import { IdentityCurtain } from "@/components/identity-curtain";
+import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
+import type { IdentitySelection } from "@/components/identity-picker-content";
+import { useAppSettings } from "@/contexts/display-settings-context";
+import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { useDatabase } from "@/contexts/local-data-context";
+import { type Account, accountsRepo, getAccountById } from "@/data/accounts-core";
+import { useGlobalCurrency } from "@/data/app-meta";
+import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
+import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
+import { useAccountIdentity } from "@/hooks/use-account-identity";
+import { useLocaleTag } from "@/hooks/use-locale-tag";
+import { useRegionCode } from "@/hooks/use-region-code";
+import { useTranslation } from "@/i18n/context";
+import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
+import { useHaptics } from "@/lib/use-haptics";
+import { glowFromEmoji } from "@/theme/glow";
+import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { AccountEditorCta } from "./cta";
+import { AccountEditorDetailsSection } from "./details-section";
+import { AccountEditorHeroBand } from "./hero-band";
 
 export type AccountEditorProps = { mode: "create" } | { mode: "edit"; id: string };
 

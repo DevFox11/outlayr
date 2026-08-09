@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { readBoolSetting, readNumberSetting, setBoolSetting } from "@/data/settings";
+import { readBoolSetting, readNumberSetting, setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { clampTimeOfDay, reminderReconcile, reminderTime, type TimeOfDay } from "@/domain/reminder";
 import { cancelReminder, reminderPermission, scheduleReminder } from "./reminders";

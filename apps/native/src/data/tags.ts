@@ -6,9 +6,6 @@ import { sortTags } from "@/domain/tags";
 import { useLiveQuery } from "./live-query";
 import { liveTagsQuery, type TagRow, tagIdsForQuery } from "./tags-core";
 
-export type { TagRow } from "./tags-core";
-export { tagsRepo } from "./tags-core";
-
 /** Every live tag, in the order a picker should read them. */
 export function useTags(db: Database): TagRow[] {
 	const rows = useLiveQuery(tags, () => liveTagsQuery(db));

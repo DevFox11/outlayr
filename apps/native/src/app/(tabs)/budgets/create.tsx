@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { BudgetForm } from "@/screens/budgets/components/budget-form";
 
 export default function CreateBudgetScreen() {

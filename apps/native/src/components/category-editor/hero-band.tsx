@@ -1,8 +1,8 @@
 import type { LayoutChangeEvent } from "react-native";
 import { View } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
+import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "@/components/editor-style";
 import { IdentityHero } from "@/components/identity-hero";
-import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "./style";
 
 interface CategoryEditorHeroBandProps {
 	captionClearance: number;

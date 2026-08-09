@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { readBoolSetting, setBoolSetting } from "@/data/settings";
+import { readBoolSetting, setBoolSetting } from "@/data/settings-core";
 import { pendingReminderPlan } from "@/data/subscription-reminders-core";
 import type { Database } from "@/db/client";
 import { formatUpcomingDate } from "@/domain/dates";

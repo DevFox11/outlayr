@@ -20,7 +20,7 @@ import {
 	tint as tintModifier,
 } from "@expo/ui/swift-ui/modifiers";
 import type { RefObject } from "react";
-import { FORM_TOP_MARGIN } from "./style";
+import { FORM_TOP_MARGIN } from "@/components/editor-style";
 
 interface CategoryEditorDetailsSectionProps {
 	caption: string | null;

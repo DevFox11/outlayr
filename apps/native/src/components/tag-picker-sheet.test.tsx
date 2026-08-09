@@ -3,7 +3,7 @@ import { act, render } from "@testing-library/react-native";
 import { createRef } from "react";
 import { TagPickerSheet } from "./tag-picker-sheet";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

@@ -7,7 +7,7 @@ import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 interface BudgetDaySlotsProps {
 	/** Draw the blocks alone, for callers that place the verdict themselves. */

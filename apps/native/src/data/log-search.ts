@@ -4,7 +4,8 @@ import { transactions } from "@/db/schema";
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
 import { searchedTransactionsQuery } from "./log-search-core";
-import type { Transaction, TransactionWithCategory } from "./transactions";
+import type { TransactionWithCategory } from "./transactions";
+import type { Transaction } from "./transactions-core";
 
 /**
  * A Log row plus the note's free text. Search matches on it, so a result row

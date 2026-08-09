@@ -2,9 +2,9 @@ import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function FeatureLab() {
 	const db = useDatabase();

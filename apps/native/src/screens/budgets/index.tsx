@@ -19,7 +19,7 @@ import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
 import { firstOfMonth } from "@/domain/dates";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetBurndownHero } from "./components/budget-burndown-hero";
 import { BudgetCard } from "./components/budget-card";

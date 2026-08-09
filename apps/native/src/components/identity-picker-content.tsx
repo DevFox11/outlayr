@@ -41,9 +41,10 @@ import {
 	SymbolIconCell,
 	symbolCellSize,
 } from "@/components/identity-symbol-cells";
-import { CATEGORY_PALETTE } from "@/data/categories";
+import { CATEGORY_PALETTE } from "@/data/categories-core";
 import { CATEGORY_EMOJI_GROUPS, CATEGORY_ICON_GROUPS, iconKeysMatching } from "@/domain/category-icon-catalog";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { persistPickedPhoto } from "@/lib/photo-storage";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromImage } from "@/theme/glow";

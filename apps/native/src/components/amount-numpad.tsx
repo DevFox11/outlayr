@@ -5,7 +5,7 @@ import { NumberFlow } from "number-flow-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useLocalData } from "@/contexts/local-data-context";
 import { useLiveQuery } from "@/data/live-query";
-import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings";
+import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings-core";
 import { appMeta } from "@/db/schema";
 import { currencySymbol, numberLocale } from "@/domain/money";
 import {
@@ -16,7 +16,7 @@ import {
 	numpadMode,
 	numpadToNumber,
 } from "@/domain/numpad";
-import { useLanguage, useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";

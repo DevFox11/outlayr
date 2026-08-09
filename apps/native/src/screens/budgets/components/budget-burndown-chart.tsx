@@ -13,7 +13,7 @@ import { Easing, type SharedValue, useReducedMotion, useSharedValue, withTiming 
 import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { Burndown } from "@/domain/budget-burndown";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { CHART_DASH, CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";

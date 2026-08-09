@@ -6,7 +6,8 @@ import { View } from "react-native";
 
 import { Text } from "@/components/text";
 import { deduceDateFormat } from "@/domain/transaction-csv";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { type FileStepError, importDraftStore, useImportDraft } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
 import { MeasureStrip } from "../measure-strip";

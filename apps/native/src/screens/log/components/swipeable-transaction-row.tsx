@@ -6,7 +6,7 @@ import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import type { TransactionWithCategory } from "@/data/transactions";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 interface SwipeableTransactionRowProps {
 	currency: string;

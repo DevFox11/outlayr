@@ -8,9 +8,10 @@ import { Alert } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
-import { categoriesRepo } from "@/data/categories";
-import { tagsRepo } from "@/data/tags";
-import { backfillRecurring, type Transaction } from "@/data/transactions";
+import { categoriesRepo } from "@/data/categories-core";
+import { backfillRecurring } from "@/data/recurrence-backfill";
+import { tagsRepo } from "@/data/tags-core";
+import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, tags, transactions } from "@/db/schema";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
@@ -22,7 +23,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useLanguage: () => ({
 		language: "en",
 		preference: "system",
@@ -74,8 +75,8 @@ jest.mock("@/lib/subscription-reminder-sync", () => ({
 // `backfillRecurring` defaults to the real implementation; the re-entrancy
 // suite below overrides it once to hold the pipeline open past the row
 // commit, so it can observe the CTA before `holdSubmitting()` would settle.
-jest.mock("@/data/transactions", () => {
-	const actual = jest.requireActual("@/data/transactions");
+jest.mock("@/data/recurrence-backfill", () => {
+	const actual = jest.requireActual("@/data/recurrence-backfill");
 	return {
 		...actual,
 		backfillRecurring: jest.fn(actual.backfillRecurring),

@@ -1,7 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { Account } from "./account";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 

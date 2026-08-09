@@ -2,7 +2,7 @@ import { act, fireEvent, render, within } from "@testing-library/react-native";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { CustomScheduleSheet } from "./custom-schedule-sheet";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 

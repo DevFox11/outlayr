@@ -38,7 +38,7 @@ jest.mock("@/theme/use-colors", () => ({
 		warning: "#d8a13a",
 	}),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation:
 		() =>
 		(key: string, params?: Record<string, string>): string =>

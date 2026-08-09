@@ -6,10 +6,11 @@ import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { deferAccount, useReminderChosen } from "@/data/onboarding";
+import { useReminderChosen } from "@/data/onboarding";
+import { deferAccount } from "@/data/onboarding-core";
 import { flyleafDate } from "@/domain/flyleaf";
 import { clampTimeOfDay, formatTimeOfDay, reminderTime } from "@/domain/reminder";
-import { useLanguage, useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 

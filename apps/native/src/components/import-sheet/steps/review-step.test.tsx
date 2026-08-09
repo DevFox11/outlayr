@@ -6,7 +6,7 @@ import { EntryRow, ReviewStep } from "./review-step";
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

@@ -14,7 +14,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({

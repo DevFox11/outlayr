@@ -16,7 +16,7 @@ import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { type CurrencyFigures, cellFigures, toCells } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { SearchEmptyState } from "./components/search-empty-state";

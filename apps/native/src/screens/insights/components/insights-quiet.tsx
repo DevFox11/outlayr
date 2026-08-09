@@ -4,12 +4,11 @@ import { MarkInk, useMark } from "@/components/empty-state";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import type { InsightsMeasure, InsightsPeriod } from "@/data/insights";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 import { MEASURE_KEY } from "../measure-label";
-
-export { quietAlternative } from "@/domain/insights-quiet";
 
 /** Matches the chart's plot height, so promoting a quiet measure never jumps. */
 const PLOT_HEIGHT = 150;

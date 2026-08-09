@@ -2,7 +2,7 @@ import { fireEvent, render } from "@testing-library/react-native";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
 import { DoneStep } from "./done-step";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

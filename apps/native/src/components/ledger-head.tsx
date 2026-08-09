@@ -1,6 +1,6 @@
 import { Pressable, View } from "react-native";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { MeasureCellAmount } from "./amount-text";
 import { MonoLabel } from "./mono-label";
 import { cn } from "./tw";

@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { CurrencyCode } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";

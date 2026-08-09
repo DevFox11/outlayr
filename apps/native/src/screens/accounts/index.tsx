@@ -31,10 +31,11 @@ import { Tile } from "@/components/empty-state-parts";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type Account, accountsRepo, useAccountBalance, useAccounts } from "@/data/accounts";
+import { useAccountBalance, useAccounts } from "@/data/accounts";
+import { type Account, accountsRepo } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { type ThemeColors, useColors } from "@/theme/use-colors";
 
 const SUBTITLE = font({

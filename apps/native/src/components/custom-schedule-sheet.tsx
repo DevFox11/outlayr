@@ -13,7 +13,8 @@ import {
 	SELECTABLE_RECURRING_TYPES,
 	schedulePreview,
 } from "@/domain/recurrence";
-import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";

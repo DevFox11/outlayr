@@ -2,7 +2,7 @@ import { fireEvent, render, userEvent } from "@testing-library/react-native";
 import { FadeInLeft, FadeInRight, Keyframe, ReduceMotion } from "react-native-reanimated";
 import { HEADER_BUTTON_ENTERING, SheetHeader, titleEntering } from "./sheet-header";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({

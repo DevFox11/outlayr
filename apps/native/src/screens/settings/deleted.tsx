@@ -13,7 +13,7 @@ import { type DeletedTransaction, deletedTransactionsQuery, transactionsRepo } f
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { formatDayHeader } from "@/domain/dates";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function RecentlyDeleted() {
 	const db = useDatabase();

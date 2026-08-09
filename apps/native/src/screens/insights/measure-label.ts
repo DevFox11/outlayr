@@ -1,5 +1,5 @@
 import type { InsightsMeasure } from "@/data/insights";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 
 export const MEASURE_KEY: Record<InsightsMeasure, TranslationKey> = {
 	income: "insights.measure.income",

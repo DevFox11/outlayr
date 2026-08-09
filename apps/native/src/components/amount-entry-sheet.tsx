@@ -3,7 +3,7 @@ import { SymbolView } from "expo-symbols";
 import { type Ref, useRef } from "react";
 import { Pressable, View } from "react-native";
 import { currencySymbol } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { AmountNumpad } from "./amount-numpad";
 import { CurrencyPickerSheet } from "./currency-picker-sheet";

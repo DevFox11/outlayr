@@ -7,7 +7,7 @@ import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { isExact, type RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";

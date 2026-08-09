@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { FirstRun } from "@/components/first-run";
 import { OutlayrMark } from "@/components/outlayr-mark";
 import { flyleafDate } from "@/domain/flyleaf";
-import { useLanguage, useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 export function OnboardingWelcome() {
 	const router = useRouter();

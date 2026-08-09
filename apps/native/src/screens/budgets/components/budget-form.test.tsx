@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { budgetsRepo } from "@/data/budgets";
-import { type Category, getCategoryById } from "@/data/categories";
+import { type Category, getCategoryById } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { budgets, categories } from "@/db/schema";
 import { BudgetForm } from "./budget-form";
@@ -18,7 +18,7 @@ jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
 jest.mock("react-native-keyboard-controller", () => require("react-native-keyboard-controller/jest"));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({

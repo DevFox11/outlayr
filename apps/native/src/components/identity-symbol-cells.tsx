@@ -2,7 +2,7 @@ import { useTheme } from "panelui-native";
 import { Pressable, View } from "react-native";
 import { CategoryIcon } from "@/components/category-icon";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { glyphShade, withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 

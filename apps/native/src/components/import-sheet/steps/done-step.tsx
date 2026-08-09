@@ -4,7 +4,7 @@ import { MeasureCellAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { MeasureStrip } from "../measure-strip";
 

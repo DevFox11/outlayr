@@ -7,7 +7,7 @@ import { cn } from "@/components/tw";
 import type { CategoryBreakdownEntry, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 interface CategoryBreakdownRowProps {

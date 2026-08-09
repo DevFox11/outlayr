@@ -9,7 +9,7 @@ const mockSnapToIndex = jest.fn();
 const mockSheetProps: Record<string, unknown>[] = [];
 const mockDismissHolder: { current?: () => void } = {};
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

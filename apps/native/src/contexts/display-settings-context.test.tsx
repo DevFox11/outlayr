@@ -2,7 +2,7 @@ import { act, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Text } from "react-native";
-import { setBoolSetting } from "@/data/settings";
+import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { AppSettingsProvider, useAppSettings, useDisplaySettings } from "./display-settings-context";
 

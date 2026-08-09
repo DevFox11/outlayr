@@ -1,8 +1,8 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { useSharedValue } from "react-native-reanimated";
+import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "@/components/editor-style";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { CategoryEditorHeroBand } from "./hero-band";
-import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "./style";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
@@ -13,7 +13,7 @@ jest.mock("expo-sqlite", () => ({
 jest.mock("@/contexts/local-data-context", () => ({
 	useLocalData: () => ({ db: null }),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({

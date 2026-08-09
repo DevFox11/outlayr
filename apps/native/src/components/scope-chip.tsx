@@ -3,7 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ArrowDown01Icon, Cancel01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 

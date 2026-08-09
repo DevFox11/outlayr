@@ -4,8 +4,8 @@ import { Alert } from "react-native";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
-import { getTransactionById, transactionsRepo } from "@/data/transactions";
-import { useTranslation } from "@/i18n";
+import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
+import { useTranslation } from "@/i18n/context";
 
 export function EditTransaction({ id }: { id: string }) {
 	const router = useRouter();

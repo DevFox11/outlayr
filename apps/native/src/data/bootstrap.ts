@@ -3,8 +3,8 @@ import type { Database } from "@/db/client";
 import { withTransaction } from "@/db/transaction";
 import { seedFavourites, serialiseFavourites } from "@/domain/favourite-currencies";
 import { DEFAULT_CURRENCY } from "@/domain/money";
-import { getMeta, META_KEYS, setMeta } from "./app-meta";
-import { seedCategories } from "./categories";
+import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
+import { seedCategories } from "./categories-core";
 
 /**
  * One-time first-launch setup, guarded by the `firstLaunch` meta key. Awaited by

@@ -7,7 +7,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel, type InsightsBucket, type InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";

@@ -43,12 +43,15 @@ import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
-import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts";
+import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { ensureCategoryByName, getCategoryById, useCategoriesByNamespace } from "@/data/categories";
-import { setBoolSetting } from "@/data/settings";
-import { tagsRepo, useTagIdsFor, useTags } from "@/data/tags";
-import { backfillRecurring, type Transaction, transactionsRepo } from "@/data/transactions";
+import { useCategoriesByNamespace } from "@/data/categories";
+import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
+import { backfillRecurring } from "@/data/recurrence-backfill";
+import { setBoolSetting } from "@/data/settings-core";
+import { useTagIdsFor, useTags } from "@/data/tags";
+import { tagsRepo } from "@/data/tags-core";
+import { type Transaction, transactionsRepo } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { firstAvailableColor } from "@/domain/category-color";
 import { FALLBACK_EXPENSE_ICON, FALLBACK_INCOME_ICON, iconKeysMatching } from "@/domain/category-icon-catalog";
@@ -71,7 +74,7 @@ import {
 	type PendingCategory,
 	useTransactionEnrichment,
 } from "@/hooks/use-transaction-enrichment";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";

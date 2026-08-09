@@ -10,7 +10,7 @@ import type { TransactionWithCategory } from "@/data/transactions";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { MARK_MOTION, recedeDelay } from "@/theme/mark-motion";

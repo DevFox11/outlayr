@@ -1,7 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import AccountEditor from "@/components/account-editor";
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export default function AccountCreateScreen() {
 	const router = useRouter();

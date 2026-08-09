@@ -24,7 +24,7 @@ import {
 	textInputAutocapitalization,
 } from "@expo/ui/swift-ui/modifiers";
 import type { RefObject } from "react";
-import { FORM_TOP_MARGIN } from "./style";
+import { FORM_TOP_MARGIN } from "@/components/editor-style";
 
 const ROW_LABEL = foregroundStyle({
 	style: "secondary",

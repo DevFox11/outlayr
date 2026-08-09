@@ -4,11 +4,12 @@ import { View } from "react-native";
 import { CurrencyPickerList } from "@/components/currency-picker-list";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { toggleFavouriteCurrency, useFavouriteCurrencies } from "@/data/favourite-currencies";
-import { setCurrency } from "@/data/settings";
+import { useFavouriteCurrencies } from "@/data/favourite-currencies";
+import { toggleFavouriteCurrency } from "@/data/favourite-currencies-core";
+import { setCurrency } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { isFavourite } from "@/domain/favourite-currencies";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 
 export function Currency() {

@@ -3,9 +3,9 @@ import { useState } from "react";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
-import { getTransactionById } from "@/data/transactions";
+import { getTransactionById } from "@/data/transactions-core";
 import { type LogAgainDraft, logAgainDraft } from "@/domain/transaction-actions";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export function NewTransaction({
 	income,

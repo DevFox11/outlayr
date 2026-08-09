@@ -2,9 +2,10 @@ import { ChoiceRow, PickerRow, SettingsSection } from "@/components/settings/set
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { ordinalDay, setBoolSetting, setNumberSetting } from "@/data/settings";
+import { ordinalDay, setBoolSetting, setNumberSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { type TranslationKey, useLanguage, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 const WEEKDAY_OPTIONS: readonly { label: TranslationKey; value: number }[] = [
 	{ label: "settings.time.sunday", value: 1 },

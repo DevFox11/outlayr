@@ -8,30 +8,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
-import { IdentityCurtain } from "@/components/identity-curtain";
-import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
-import { Text } from "@/components/text";
-import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
-import { useDatabase } from "@/contexts/local-data-context";
-import {
-	CATEGORY_PALETTE,
-	type Category,
-	categoriesRepo,
-	getCategoryById,
-	useCategoriesByNamespace,
-} from "@/data/categories";
-import { firstAvailableColor } from "@/domain/category-color";
-import { CATEGORY_ERROR_KEYS, categoryErrorCode } from "@/domain/category-error";
-import { type TranslateFn, useTranslation } from "@/i18n";
-import { CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
-import { useHaptics } from "@/lib/use-haptics";
-import { glowFromEmoji } from "@/theme/glow";
-import { withAlpha } from "@/theme/shade";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
-import { CategoryEditorCta } from "./cta";
-import { CategoryEditorDetailsSection } from "./details-section";
-import { CategoryEditorHeroBand } from "./hero-band";
 import {
 	CAPTION_CLEARANCE,
 	CTA_BOTTOM_PADDING,
@@ -42,7 +18,26 @@ import {
 	HEADER_HEIGHT,
 	HERO_BOTTOM_PADDING,
 	HERO_TOP_PADDING,
-} from "./style";
+} from "@/components/editor-style";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
+import { IdentityCurtain } from "@/components/identity-curtain";
+import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
+import { Text } from "@/components/text";
+import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { useDatabase } from "@/contexts/local-data-context";
+import { useCategoriesByNamespace } from "@/data/categories";
+import { CATEGORY_PALETTE, type Category, categoriesRepo, getCategoryById } from "@/data/categories-core";
+import { firstAvailableColor } from "@/domain/category-color";
+import { CATEGORY_ERROR_KEYS, categoryErrorCode } from "@/domain/category-error";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
+import { CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
+import { useHaptics } from "@/lib/use-haptics";
+import { glowFromEmoji } from "@/theme/glow";
+import { withAlpha } from "@/theme/shade";
+import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { CategoryEditorCta } from "./cta";
+import { CategoryEditorDetailsSection } from "./details-section";
+import { CategoryEditorHeroBand } from "./hero-band";
 
 const MAX_EXPENSE_CATEGORIES = 24;
 

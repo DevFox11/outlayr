@@ -4,7 +4,8 @@ import { IdentityFlyUpSheetHost } from "@/components/identity-fly-up";
 import { CATEGORY_TABS, IdentityPickerHost } from "@/components/identity-picker-content";
 import { useIdentityDraft } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { CATEGORY_PALETTE, useCategoriesByNamespace } from "@/data/categories";
+import { useCategoriesByNamespace } from "@/data/categories";
+import { CATEGORY_PALETTE } from "@/data/categories-core";
 import { useColors } from "@/theme/use-colors";
 
 /**

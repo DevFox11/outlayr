@@ -20,7 +20,7 @@ import {
 	leftPerDay,
 	shouldShowPaceMarker,
 } from "@/domain/budget-math";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";

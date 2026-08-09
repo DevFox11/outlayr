@@ -12,7 +12,7 @@ jest.mock("expo-sqlite", () => ({
 jest.mock("@/contexts/local-data-context", () => ({
 	useLocalData: () => ({ db: null }),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({

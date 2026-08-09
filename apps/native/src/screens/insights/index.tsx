@@ -27,7 +27,7 @@ import {
 	subcategoryBreakdownWithin,
 } from "@/data/insights";
 import { useWindowTransactions } from "@/data/insights-transactions";
-import { setNumberSetting } from "@/data/settings";
+import { setNumberSetting } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { type UseInsightsResult, useInsights } from "@/data/use-insights";
 import { useNow } from "@/data/use-now";
@@ -42,9 +42,11 @@ import {
 	netTotal,
 	storedInsightsMeasure,
 } from "@/domain/insights-measure";
+import { quietAlternative } from "@/domain/insights-quiet";
 import { insightsVerdict } from "@/domain/insights-verdict";
 import { formatAmount } from "@/domain/money";
-import { type TranslateFn, type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { type TranslateFn, useTranslation } from "@/i18n/context";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -53,7 +55,7 @@ import { CategoryProportionBar } from "./components/category-proportion-bar";
 import { InsightsBarChart } from "./components/insights-bar-chart";
 import { InsightsMovers } from "./components/insights-movers";
 import { InsightsNetChart } from "./components/insights-net-chart";
-import { InsightsQuiet, quietAlternative } from "./components/insights-quiet";
+import { InsightsQuiet } from "./components/insights-quiet";
 import { InsightsSample } from "./components/insights-sample";
 import { InsightsTransactionList } from "./components/insights-transaction-list";
 import { MEASURE_KEY } from "./measure-label";

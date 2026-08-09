@@ -8,7 +8,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { restoreArchive } from "@/data/archive-core";
 import type { Database } from "@/db/client";
 import { type ArchiveDocument, archiveRowCount, parseArchive } from "@/domain/archive";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { pickArchiveFile, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
 

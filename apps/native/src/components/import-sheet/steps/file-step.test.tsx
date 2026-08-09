@@ -5,7 +5,7 @@ import { FileStep } from "./file-step";
 
 const mockChoose = jest.fn();
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

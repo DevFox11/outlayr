@@ -1,7 +1,7 @@
 import { Link, Stack } from "expo-router";
 import { View } from "react-native";
 import { Text } from "@/components/text";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 /**
  * Replaces expo-router's built-in `Unmatched` screen, which links to

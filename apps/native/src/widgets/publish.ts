@@ -7,9 +7,6 @@ import LedgerWidget from "./ledger";
 import LogWidget from "./log";
 import { buildWidgetProps } from "./props";
 
-export type { WidgetProps } from "./props";
-export { buildWidgetProps } from "./props";
-
 /**
  * Reloading is not free — the system grants a widget only a few dozen timeline
  * reloads a day — so this is called on the events that actually change what a

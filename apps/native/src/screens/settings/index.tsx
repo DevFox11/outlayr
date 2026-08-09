@@ -17,7 +17,7 @@ import {
 	setBoolSetting,
 	setNumberSetting,
 	shownHiddenLabel,
-} from "@/data/settings";
+} from "@/data/settings-core";
 import { useSyncStatus } from "@/data/use-sync-status";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
@@ -25,7 +25,9 @@ import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
 import { syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
-import { LANGUAGE_OPTIONS, languageLabel, translateNow, useLanguage, useTranslation } from "@/i18n";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import { LANGUAGE_OPTIONS, languageLabel } from "@/i18n/languages";
+import { translateNow } from "@/i18n/runtime";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { importDraftStore } from "@/lib/import-draft-store";

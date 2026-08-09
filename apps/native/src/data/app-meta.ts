@@ -5,8 +5,6 @@ import { DEFAULT_CURRENCY } from "@/domain/money";
 import { META_KEYS } from "./app-meta-core";
 import { useLiveQuery } from "./live-query";
 
-export { getMeta, META_KEYS, setMeta } from "./app-meta-core";
-
 /**
  * Bootstrap writes the resolved value before the splash lifts, so the USD
  * fallback is a type-level guard, not a startup state. Transactions with a null

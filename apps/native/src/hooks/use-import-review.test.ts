@@ -24,7 +24,7 @@ jest.mock("expo-sqlite", () => ({
 jest.mock("expo-router", () => ({
 	useNavigation: (parent?: string) => mockUseNavigation(parent),
 }));
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

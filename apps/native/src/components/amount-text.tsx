@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { type RowAmountLabelInput, rowAmountLabel } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
 import { amountDigits, amountParts, splitSymbol, withCurrencySymbol } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { Text } from "./text";
 import { cn, tv } from "./tw";
 

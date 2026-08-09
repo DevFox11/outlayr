@@ -6,7 +6,7 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { setBoolSetting, setNumberSetting } from "@/data/settings";
+import { setBoolSetting, setNumberSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import {
 	clampTimeOfDay,
@@ -18,7 +18,9 @@ import {
 	reminderTime,
 	type TimeOfDay,
 } from "@/domain/reminder";
-import { type TranslationKey, translateNow, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
+import { translateNow } from "@/i18n/runtime";
 import { armReminder, useReminderSync } from "@/lib/reminder-sync";
 import {
 	cancelReminder,

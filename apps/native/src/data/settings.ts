@@ -13,8 +13,6 @@ import {
 	seedClockPreference,
 } from "./settings-core";
 
-export * from "./settings-core";
-
 export interface SettingsSnapshot {
 	bool: (key: BoolSettingKey) => boolean;
 	number: (key: NumberSettingKey) => number;

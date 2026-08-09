@@ -1,6 +1,6 @@
 import { Button, Host, HStack, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
 import { buttonStyle, controlSize, disabled, tint, type ViewModifier } from "@expo/ui/swift-ui/modifiers";
-import { BODY_SEMIBOLD, CTA_HEIGHT } from "./style";
+import { BODY_SEMIBOLD, CTA_HEIGHT } from "@/components/editor-style";
 
 interface CategoryEditorCtaProps {
 	canSave: boolean;

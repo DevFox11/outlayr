@@ -20,9 +20,9 @@ import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { finishOnboarding } from "@/data/onboarding-core";
-import { setCurrency } from "@/data/settings";
+import { setCurrency } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 type CommitKind = "continue" | "finish";
 

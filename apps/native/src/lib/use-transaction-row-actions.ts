@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { Alert } from "react-native";
-import { getTransactionById, transactionsRepo } from "@/data/transactions";
+import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { transactionRowActions } from "@/domain/transaction-actions";
 import { translateNow } from "@/i18n/runtime";

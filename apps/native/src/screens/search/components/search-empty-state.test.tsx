@@ -3,7 +3,7 @@ import { StyleSheet, type ViewStyle } from "react-native";
 
 import { SearchEmptyState } from "./search-empty-state";
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 

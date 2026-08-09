@@ -5,9 +5,10 @@ import { View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
 import { useDatabase } from "@/contexts/local-data-context";
-import { type Category, type CategoryWithChildren, categoriesRepo, useCategoriesByNamespace } from "@/data/categories";
+import { useCategoriesByNamespace } from "@/data/categories";
+import { type Category, type CategoryWithChildren, categoriesRepo } from "@/data/categories-core";
 import type { Database } from "@/db/client";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 /**

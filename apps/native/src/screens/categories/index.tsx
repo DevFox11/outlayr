@@ -46,19 +46,18 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { useCategoriesByNamespace, useCategoryTotals } from "@/data/categories";
 import {
 	type Category,
 	type CategoryWithChildren,
 	categoriesRepo,
 	type SuggestedCategoryPreset,
 	suggestedCategoriesNotAdded,
-	useCategoriesByNamespace,
-	useCategoryTotals,
-} from "@/data/categories";
-import { setBoolSetting } from "@/data/settings";
+} from "@/data/categories-core";
+import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { staggerDelay } from "@/theme/mark-motion";
 import { type ThemeColors, useColors } from "@/theme/use-colors";
 

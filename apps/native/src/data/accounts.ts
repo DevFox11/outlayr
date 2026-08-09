@@ -14,8 +14,6 @@ import { accountTransactionsQuery } from "./transactions-core";
 import { useValuation, useValuationIn } from "./use-valuation";
 import type { Valuation } from "./valuation-source";
 
-export * from "./accounts-core";
-
 /** Live accounts in manual order, tombstones excluded. */
 export function useAccounts(db: Database): Account[] {
 	return useLiveQuery(accounts, () =>

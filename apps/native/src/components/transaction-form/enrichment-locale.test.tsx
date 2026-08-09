@@ -124,7 +124,7 @@ jest.mock("@/lib/logo-fetch", () => ({
 	fetchMerchantImage: (...args: unknown[]) => mockFetchMerchantImage(...args),
 }));
 
-jest.mock("@/i18n", () => ({
+jest.mock("@/i18n/context", () => ({
 	useLanguage: () => ({ preference: "en" }),
 	useTranslation: () => (key: string) => key,
 }));

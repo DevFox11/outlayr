@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 
 export default function SettingsTabLayout() {
 	const t = useTranslation();

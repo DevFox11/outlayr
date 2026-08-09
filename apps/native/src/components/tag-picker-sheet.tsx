@@ -2,9 +2,9 @@ import { BottomSheetFlatList, BottomSheetModal, BottomSheetTextInput } from "@ex
 import { SymbolView } from "expo-symbols";
 import { type Ref, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import type { TagRow } from "@/data/tags";
+import type { TagRow } from "@/data/tags-core";
 import { findTagByName, isUsableTagName, normalizeTagName } from "@/domain/tags";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 import { EmptyState } from "./empty-state";

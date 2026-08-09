@@ -8,8 +8,6 @@ import { categoryCellQuery, toCurrencyCell } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import { useValuation } from "./use-valuation";
 
-export * from "./categories-core";
-
 export interface CategoryMetaRow {
 	color: string | null;
 	emoji: string | null;

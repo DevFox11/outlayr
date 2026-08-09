@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { EmptyState, useMark } from "@/components/empty-state";
 import { Hairline } from "@/components/empty-state-parts";
 import { Fade, Settle } from "@/components/mark-motion";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { MARK_MOTION, recedeDelay } from "@/theme/mark-motion";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";

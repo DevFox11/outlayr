@@ -4,7 +4,8 @@ import { FirstRun } from "@/components/first-run";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { ADOPTION_CHOICES, type AdoptionChoice, isDestructiveChoice } from "@/domain/ledger-adoption";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
 
 const COPY: Record<AdoptionChoice, { title: TranslationKey; body: TranslationKey; confirm: TranslationKey }> = {

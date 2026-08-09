@@ -1,5 +1,5 @@
 import type { Database } from "@/db/client";
-import type { TranslationKey } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
 import type { Language } from "@/i18n/languages";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 

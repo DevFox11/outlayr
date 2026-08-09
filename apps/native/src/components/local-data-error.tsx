@@ -1,6 +1,6 @@
 import { Pressable, View } from "react-native";
 import { useLocalData } from "@/contexts/local-data-context";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { Text } from "./text";
 
 /**

@@ -3,7 +3,7 @@ import { type LayoutChangeEvent, Pressable, View } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { CategoryBreakdownEntry } from "@/data/insights";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { CHART_BAR } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 

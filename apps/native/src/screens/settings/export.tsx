@@ -11,7 +11,8 @@ import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { archiveFileName, serializeArchive } from "@/domain/archive";
 import { CSV_HEADER } from "@/domain/transaction-csv";
-import { type TranslationKey, useTranslation } from "@/i18n";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
 import { shareText, TransferError } from "@/lib/data-transfer";
 import { useColors } from "@/theme/use-colors";
 

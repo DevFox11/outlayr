@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { IMPORT_SOURCES } from "@/domain/import-sources";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
 import { EyebrowRow } from "../eyebrow-row";

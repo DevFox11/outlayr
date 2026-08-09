@@ -5,7 +5,7 @@ import { EmptyState, useMark } from "@/components/empty-state";
 import { Arrive } from "@/components/mark-motion";
 import { Text } from "@/components/text";
 import type { Burndown } from "@/domain/budget-burndown";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 import { BudgetLimitPicker } from "./budget-limit-picker";

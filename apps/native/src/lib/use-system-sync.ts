@@ -6,7 +6,7 @@ import { applyPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
 import type { Database } from "@/db/client";
 import { ratesPuller } from "@/lib/convex";
-import { publishWidgets } from "@/widgets";
+import { publishWidgets } from "@/widgets/publish";
 import { indexSpotlight } from "./spotlight";
 import { affectsSpotlight, affectsWidgets, debounce, PUBLISH_DEBOUNCE_MS, SPOTLIGHT_DEBOUNCE_MS } from "./sync-cadence";
 import { claimPendingWrites, releasePendingWrites } from "./widget-bridge";

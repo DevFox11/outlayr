@@ -9,7 +9,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { setSyncEnabled } from "@/data/sync-outbox-core";
 import type { Database } from "@/db/client";
 import { accountLabel, signInFailureMessage } from "@/domain/account";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
