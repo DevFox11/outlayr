@@ -1,5 +1,6 @@
-import { Button, HStack, RNHostView, Spacer, Text as SwiftText, VStack } from "@expo/ui/swift-ui";
+import { Button, HStack, Image, RNHostView, Spacer, Text as SwiftText, VStack } from "@expo/ui/swift-ui";
 import {
+	accessibilityLabel,
 	background,
 	buttonStyle,
 	contentShape,
@@ -24,6 +25,7 @@ interface RateOption {
 
 interface TransferEditorHeroProps {
 	/** Already formatted; null on a same-currency transfer, which has no second figure. */
+	arrivedA11y: string;
 	arrivedLabel: string | null;
 	chipColor: string;
 	contentWidth: number;
@@ -42,6 +44,7 @@ interface TransferEditorHeroProps {
 
 export function TransferEditorHero({
 	sent,
+	arrivedA11y,
 	symbol,
 	minorUnits,
 	contentWidth,
@@ -122,13 +125,19 @@ export function TransferEditorHero({
 			</Button>
 
 			{arrivedLabel ? (
-				<Button modifiers={[buttonStyle("plain"), contentShape(shapes.rectangle())]} onPress={onArrivedPress}>
-					<HStack>
-						<Spacer />
-						<SwiftText modifiers={[ARRIVES, foregroundStyle(mutedColor)]}>{arrivedLabel}</SwiftText>
-						<Spacer />
-					</HStack>
-				</Button>
+				<HStack>
+					<Spacer />
+					<Button
+						modifiers={[buttonStyle("plain"), accessibilityLabel(arrivedA11y), contentShape(shapes.rectangle())]}
+						onPress={onArrivedPress}
+					>
+						<HStack modifiers={[padding({ horizontal: 12, vertical: 6 }), background(chipColor, CAPSULE)]} spacing={6}>
+							<SwiftText modifiers={[ARRIVES, foregroundStyle(transferColor)]}>{arrivedLabel}</SwiftText>
+							<Image color={transferColor} size={11} systemName="pencil" />
+						</HStack>
+					</Button>
+					<Spacer />
+				</HStack>
 			) : null}
 		</VStack>
 	);

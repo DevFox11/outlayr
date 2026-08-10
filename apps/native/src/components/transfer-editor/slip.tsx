@@ -45,12 +45,14 @@ export interface TransferLegView {
 
 interface TransferEditorSlipProps {
 	addFeeLabel: string;
-	borderColor: string;
+	cardColor: string;
+	feeFill: string;
 	feeSideLabel: string;
 	feeValue: string | null;
 	from: TransferLegView;
 	gap: TransferGapPrompt | null;
 	mutedColor: string;
+	mutedFill: string;
 	onFeePress: () => void;
 	onFeeSideToggle: () => void;
 	onRatePress: () => void;
@@ -147,7 +149,9 @@ export function TransferEditorSlip({
 	warnColor,
 	surfaceColor,
 	stemColor,
-	borderColor,
+	cardColor,
+	feeFill,
+	mutedFill,
 	swapA11y,
 	onSwap,
 	onRatePress,
@@ -174,30 +178,28 @@ export function TransferEditorSlip({
 				/>
 			</Button>
 
-			<Gutter height={ROW_H} transferColor={stemColor}>
-				<Button modifiers={[buttonStyle("plain"), accessibilityLabel(swapA11y)]} onPress={onSwap}>
-					<Image
-						color="#ffffff"
-						modifiers={[
-							frame({ height: NODE, width: NODE }),
-							background(transferColor, CAPSULE),
-							contentShape(shapes.rectangle()),
-						]}
-						size={11}
-						systemName="arrow.up.arrow.down"
-					/>
-				</Button>
-			</Gutter>
-
-			{showRate && rateValue ? (
-				<HStack modifiers={[frame({ height: ROW_H })]} spacing={12}>
-					<Gutter height={ROW_H} transferColor={stemColor} />
+			<HStack modifiers={[frame({ height: ROW_H })]} spacing={12}>
+				<Gutter height={ROW_H} transferColor={stemColor}>
+					<Button modifiers={[buttonStyle("plain"), accessibilityLabel(swapA11y)]} onPress={onSwap}>
+						<Image
+							color="#ffffff"
+							modifiers={[
+								frame({ height: NODE, width: NODE }),
+								background(transferColor, CAPSULE),
+								contentShape(shapes.rectangle()),
+							]}
+							size={11}
+							systemName="arrow.up.arrow.down"
+						/>
+					</Button>
+				</Gutter>
+				{showRate && rateValue ? (
 					<Button modifiers={[buttonStyle("plain")]} onPress={onRatePress}>
 						<SwiftText modifiers={pill(transferColor)}>{rateValue}</SwiftText>
 					</Button>
-					<Spacer />
-				</HStack>
-			) : null}
+				) : null}
+				<Spacer />
+			</HStack>
 
 			<HStack modifiers={[frame({ height: ROW_H })]} spacing={12}>
 				<Gutter height={ROW_H} transferColor={stemColor}>
@@ -206,7 +208,8 @@ export function TransferEditorSlip({
 							font({ size: 13, weight: "semibold" }),
 							foregroundStyle(feeValue ? tintColor : mutedColor),
 							frame({ height: NODE, width: NODE }),
-							background(feeValue ? surfaceColor : borderColor, CAPSULE),
+							background(feeValue ? feeFill : mutedFill, CAPSULE),
+							background(cardColor, CAPSULE),
 						]}
 					>
 						{feeValue ? "−" : "+"}

@@ -9,7 +9,7 @@ import {
 	VStack,
 } from "@expo/ui/swift-ui";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
-import { datePickerStyle, labelsHidden, multilineTextAlignment } from "@expo/ui/swift-ui/modifiers";
+import { datePickerStyle, foregroundStyle, labelsHidden, multilineTextAlignment } from "@expo/ui/swift-ui/modifiers";
 import { Calendar03Icon, StickyNote01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { TransactionFormRowIcon } from "@/components/transaction-form/row-icon";
 import { BODY, ROW, rowLabel } from "@/components/transaction-form/style";
@@ -23,6 +23,7 @@ interface TransferEditorDetailsCardProps {
 	noteState: ReturnType<typeof useNativeState<string>>;
 	onDateChange: (date: Date) => void;
 	selectedDate: Date;
+	tintColor: string;
 }
 
 export function TransferEditorDetailsCard({
@@ -33,6 +34,7 @@ export function TransferEditorDetailsCard({
 	mutedColor,
 	hairline,
 	selectedDate,
+	tintColor,
 	onDateChange,
 }: TransferEditorDetailsCardProps) {
 	return (
@@ -55,7 +57,11 @@ export function TransferEditorDetailsCard({
 				<TransactionFormRowIcon color={mutedColor} icon={StickyNote01Icon} />
 				<SwiftText modifiers={[BODY, rowLabel]}>{noteLabel}</SwiftText>
 				<Spacer />
-				<TextField modifiers={[multilineTextAlignment("trailing")]} placeholder={notePlaceholder} text={noteState} />
+				<TextField
+					modifiers={[BODY, foregroundStyle(tintColor), multilineTextAlignment("trailing")]}
+					placeholder={notePlaceholder}
+					text={noteState}
+				/>
 			</HStack>
 		</VStack>
 	);

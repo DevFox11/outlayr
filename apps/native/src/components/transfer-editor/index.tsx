@@ -1,30 +1,31 @@
 import { Host } from "@expo/ui";
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { ScrollView, Text as SwiftText, useNativeState, VStack } from "@expo/ui/swift-ui";
-import { background, font, foregroundStyle, kerning, overlay, padding, textCase } from "@expo/ui/swift-ui/modifiers";
+import { RNHostView, Text as SwiftText, useNativeState, VStack } from "@expo/ui/swift-ui";
+import { font, foregroundStyle, kerning, overlay, padding, textCase } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
+import { Button } from "panelui-native";
 import { useRef, useState } from "react";
 import { Alert, Keyboard, useWindowDimensions, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
-import { CTA_BOTTOM_PADDING, CTA_HEIGHT } from "@/components/editor-style";
-import { CARD_SHAPE } from "@/components/transaction-form/style";
 import { useDatabase } from "@/contexts/local-data-context";
 import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
+import { formatSignedAmount } from "@/domain/account-display";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { numpadToNumber } from "@/domain/numpad";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
-import { TransferEditorCta } from "./cta";
+import { useColors } from "@/theme/use-colors";
 import { TransferEditorDetailsCard } from "./details-card";
 import { TransferEditorHero } from "./hero";
 import { TransferEditorSlip } from "./slip";
 import { RATE_DISPLAY_DECIMALS, useTransferDraft } from "./use-transfer-draft";
 
-/** `Font.custom` through CoreText, matching `Eyebrow` in category-list-chrome. */
+const CTA_GAP = 16;
+const CTA_BLOCK_HEIGHT = CTA_GAP + 44;
+
 const KICKER = font({ family: "GeistMono-Regular", size: 11, textStyle: "caption2" });
 
 function formatRate(rate: number | null): string {
@@ -36,8 +37,8 @@ export default function TransferEditor() {
 	const router = useRouter();
 	const t = useTranslation();
 	const colors = useColors();
-	const insets = useSafeAreaInsets();
 	const { width: windowWidth } = useWindowDimensions();
+	const contentWidth = windowWidth - 40;
 	const draft = useTransferDraft(db);
 	const noteState = useNativeState("");
 	const [saving, setSaving] = useState(false);
@@ -106,124 +107,124 @@ export default function TransferEditor() {
 					rateLabel: t("transfers.gap.rateWas", { rate: formatRate(draft.gapRate) }),
 				};
 
-	const card = [background(colors.background, CARD_SHAPE)];
 	const chooseLabel = t("transfers.selectAccount");
 
 	return (
-		<View style={{ backgroundColor: SYSTEM_COLORS.groupedBackground, flex: 1 }}>
-			<Host style={{ flex: 1 }}>
-				<ScrollView>
-					<VStack
-						modifiers={[padding({ bottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom + 24, horizontal: 20 })]}
-						spacing={16}
-					>
-						<TransferEditorHero
-							arrivedLabel={
-								draft.crossCurrency
-									? t("transfers.arrives", { amount: formatAmount(draft.arrived, draft.toCurrency) })
-									: null
-							}
-							chipColor={withAlpha(colors.transfer, 0.12)}
-							contentWidth={windowWidth - 40}
-							minorUnits={draft.fromDecimals}
-							mutedColor={colors.muted}
-							onArrivedPress={() => {
-								draft.pinArrival();
-								present(arrivedSheet);
-							}}
-							onRateTypeChange={draft.setRateType}
-							onSentPress={() => present(sentSheet)}
-							rateOptions={draft.rateOptions.map((option) => ({
-								label: t(`transfers.rate.${option}` as "transfers.rate.official"),
-								value: option,
-							}))}
-							rateType={draft.rateType}
-							sent={draft.sent}
-							symbol={currencySymbol(draft.fromCurrency)}
-							tintColor={colors.foreground}
-							transferColor={colors.transfer}
-						/>
+		<View className="pt-safe" style={{ backgroundColor: colors.background }}>
+			<Host matchContents>
+				<VStack modifiers={[padding({ horizontal: 20 })]} spacing={16}>
+					<TransferEditorHero
+						arrivedA11y={t("transfers.a11y.editArrival")}
+						arrivedLabel={
+							draft.crossCurrency
+								? t("transfers.arrives", { amount: formatAmount(draft.arrived, draft.toCurrency) })
+								: null
+						}
+						chipColor={withAlpha(colors.transfer, 0.12)}
+						contentWidth={contentWidth}
+						minorUnits={draft.fromDecimals}
+						mutedColor={colors.muted}
+						onArrivedPress={() => {
+							draft.pinArrival();
+							present(arrivedSheet);
+						}}
+						onRateTypeChange={draft.setRateType}
+						onSentPress={() => present(sentSheet)}
+						rateOptions={draft.rateOptions.map((option) => ({
+							label: t(`transfers.rate.${option}` as "transfers.rate.official"),
+							value: option,
+						}))}
+						rateType={draft.rateType}
+						sent={draft.sent}
+						symbol={currencySymbol(draft.fromCurrency)}
+						tintColor={colors.foreground}
+						transferColor={colors.transfer}
+					/>
 
-						<VStack alignment="leading" spacing={7}>
-							<SwiftText modifiers={[KICKER, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}>
-								{t("transfers.movement")}
-							</SwiftText>
-							<VStack modifiers={[...card, padding({ horizontal: 14, vertical: 6 })]} spacing={0}>
-								<TransferEditorSlip
-									addFeeLabel={t("transfers.addFee")}
-									borderColor={withAlpha(colors.foreground, 0.06)}
-									feeSideLabel={t(
-										draft.feeSide === "destination" ? "transfers.fee.destination" : "transfers.fee.source"
-									)}
-									feeValue={draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency) : null}
-									from={{
-										balance: formatAmount(draft.fromBalance, draft.fromCurrency),
-										currency: draft.fromCurrency,
-										emoji: draft.from?.emoji ?? null,
-										kicker: t("transfers.field.from"),
-										name: draft.from?.name ?? chooseLabel,
-										onPress: () => present(fromSheet),
-										tint: colors.foreground,
-									}}
-									gap={gap}
-									mutedColor={colors.muted}
-									onFeePress={() => present(feeSheet)}
-									onFeeSideToggle={draft.toggleFeeSide}
-									onRatePress={() => {
-										if (draft.rateType === "custom") {
-											present(rateSheet);
-										}
-									}}
-									onSwap={draft.swap}
-									rateValue={
-										draft.crossCurrency
-											? `${formatRate(draft.effectiveRate)} ${draft.toCurrency}/${draft.fromCurrency}`
-											: null
-									}
-									showRate={draft.crossCurrency}
-									stemColor={withAlpha(colors.transfer, 0.35)}
-									surfaceColor={colors.surface}
-									swapA11y={t("transfers.a11y.swap")}
-									tintColor={colors.foreground}
-									to={{
-										balance: formatAmount(draft.toBalance, draft.toCurrency),
-										currency: draft.toCurrency,
-										emoji: draft.to?.emoji ?? null,
-										kicker: t("transfers.field.to"),
-										name: draft.to?.name ?? chooseLabel,
-										onPress: () => present(toSheet),
-										tint: colors.foreground,
-									}}
-									transferColor={colors.transfer}
-									warnColor={colors.overBudget}
-								/>
-							</VStack>
-						</VStack>
-
-						<VStack modifiers={[...card, padding({ horizontal: 14 })]} spacing={0}>
-							<TransferEditorDetailsCard
-								dateLabel={t("transfers.field.date")}
-								hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}
+					<VStack alignment="leading" spacing={7}>
+						<SwiftText modifiers={[KICKER, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}>
+							{t("transfers.movement")}
+						</SwiftText>
+						<VStack spacing={0}>
+							<TransferEditorSlip
+								addFeeLabel={t("transfers.addFee")}
+								cardColor={colors.background}
+								feeFill={withAlpha(colors.foreground, 0.07)}
+								feeSideLabel={t(draft.feeSide === "destination" ? "transfers.fee.destination" : "transfers.fee.source")}
+								feeValue={draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency) : null}
+								from={{
+									balance: formatSignedAmount(draft.fromBalance, draft.fromCurrency),
+									currency: draft.fromCurrency,
+									emoji: draft.from?.emoji ?? null,
+									kicker: t("transfers.field.from"),
+									name: draft.from?.name ?? chooseLabel,
+									onPress: () => present(fromSheet),
+									tint: colors.foreground,
+								}}
+								gap={gap}
 								mutedColor={colors.muted}
-								noteLabel={t("transfers.field.note")}
-								notePlaceholder={t("transfers.notePlaceholder")}
-								noteState={noteState}
-								onDateChange={draft.setDate}
-								selectedDate={draft.date}
+								mutedFill={withAlpha(colors.foreground, 0.05)}
+								onFeePress={() => present(feeSheet)}
+								onFeeSideToggle={draft.toggleFeeSide}
+								onRatePress={() => {
+									if (draft.rateType === "custom") {
+										present(rateSheet);
+									}
+								}}
+								onSwap={draft.swap}
+								rateValue={
+									draft.crossCurrency
+										? `${formatRate(draft.effectiveRate)} ${draft.toCurrency}/${draft.fromCurrency}`
+										: null
+								}
+								showRate={draft.crossCurrency}
+								stemColor={withAlpha(colors.transfer, 0.35)}
+								surfaceColor={colors.surface}
+								swapA11y={t("transfers.a11y.swap")}
+								tintColor={colors.foreground}
+								to={{
+									balance: formatSignedAmount(draft.toBalance, draft.toCurrency),
+									currency: draft.toCurrency,
+									emoji: draft.to?.emoji ?? null,
+									kicker: t("transfers.field.to"),
+									name: draft.to?.name ?? chooseLabel,
+									onPress: () => present(toSheet),
+									tint: colors.foreground,
+								}}
+								transferColor={colors.transfer}
+								warnColor={colors.overBudget}
 							/>
 						</VStack>
 					</VStack>
-				</ScrollView>
-			</Host>
 
-			<View style={{ bottom: insets.bottom + CTA_BOTTOM_PADDING, left: 16, position: "absolute", right: 16 }}>
-				<TransferEditorCta
-					canSave={draft.canSave && !saving}
-					label={t("transfers.save")}
-					onPress={save}
-					tintColor={colors.foreground}
-				/>
-			</View>
+					<TransferEditorDetailsCard
+						dateLabel={t("transfers.field.date")}
+						hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}
+						mutedColor={colors.muted}
+						noteLabel={t("transfers.field.note")}
+						notePlaceholder={t("transfers.notePlaceholder")}
+						noteState={noteState}
+						onDateChange={draft.setDate}
+						selectedDate={draft.date}
+						tintColor={colors.foreground}
+					/>
+
+					<RNHostView matchContents>
+						<View style={{ height: CTA_BLOCK_HEIGHT, paddingTop: CTA_GAP, width: contentWidth }}>
+							<Button
+								className="rounded-full"
+								disabled={!(draft.canSave && !saving)}
+								fullWidth
+								onPress={save}
+								size="md"
+								variant="primary"
+							>
+								{t("transfers.save")}
+							</Button>
+						</View>
+					</RNHostView>
+				</VStack>
+			</Host>
 
 			<AccountPickerSheet
 				db={db}
