@@ -27,9 +27,9 @@ export async function withTransaction(db: Database, task: () => Promise<void>): 
 		withTransactionAsync?: (t: () => Promise<void>) => Promise<void>;
 	};
 
-	// The better-sqlite3 client the tests inject has no async transaction API.
-	// Those tests assert statement order and resulting rows, not atomicity, so
-	// running the task bare keeps them meaningful rather than silently skipped.
+	// The better-sqlite3 client most tests inject has no async transaction API, and
+	// running the task bare keeps those meaningful rather than silently skipped. A
+	// test that needs real rollback injects one — see `transfers-core.test.ts`.
 	if (typeof client.withTransactionAsync !== "function") {
 		await task();
 		return;

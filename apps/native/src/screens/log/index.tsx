@@ -22,6 +22,7 @@ import {
 import { setNumberSetting } from "@/data/settings-core";
 import { useLoggedTransactions } from "@/data/transactions";
 import { LOG_PAGE_DAYS } from "@/data/transactions-core";
+import { logTransferBounds, useLogTransfers } from "@/data/transfer-log";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
@@ -34,8 +35,9 @@ import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
 import { type LogMeasure, logMeasureFromStored, storedLogMeasure } from "@/domain/log-measure";
 import { cursorStart } from "@/domain/log-period-cursor";
-import { scopeTotals } from "@/domain/log-scope-figures";
+import { scopeHasFigures, scopeTotals } from "@/domain/log-scope-figures";
 import { sparklineIsPositive, sparklineRange, sparklineSeries } from "@/domain/log-sparkline";
+import { mergeByRecency } from "@/domain/transfer-log-rows";
 import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n/context";
 import { useDayCardShare } from "@/lib/use-day-card-share";
@@ -147,6 +149,17 @@ function LogContent({ db }: { db: Database }) {
 	const cursor = cursors[cursorUnit] ?? new Date(nowMs);
 
 	const { rows: windowRows, reachedEnd } = useLoggedTransactions(db, nowMs, days);
+	const transferBounds = useMemo(
+		() =>
+			logTransferBounds({
+				cursor,
+				filter,
+				firstWeekday,
+				page: { floor: windowRows.at(-1)?.day ?? null, reachedEnd },
+			}),
+		[cursor, filter, firstWeekday, windowRows, reachedEnd]
+	);
+	const transferRows = useLogTransfers(db, nowMs, transferBounds);
 	const filteredRows = useFilteredTransactions(db, nowMs, {
 		categoryId: activeCategoryId,
 		cursor,
@@ -174,9 +187,15 @@ function LogContent({ db }: { db: Database }) {
 		[globalCurrency, favouriteCurrencies, insights, valued]
 	);
 	const sparkline = useSparkline(db, nowMs, logViewLineGraph, measure, period, firstWeekday, currency, rates);
+	const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 
-	const listRows = filter === "all" ? windowRows : filteredRows;
+	const listRows = useMemo(() => {
+		if (filter === "transfers") {
+			return transferRows;
+		}
+		return mergeByRecency(filter === "all" ? windowRows : filteredRows, transferRows);
+	}, [filter, windowRows, filteredRows, transferRows]);
 	const visibleRows = useMemo(() => listRows.filter((row) => row.id !== pendingId), [listRows, pendingId]);
 	const sections = useMemo(() => groupByDay(visibleRows, currency, rates), [visibleRows, currency, rates]);
 	// Totalled over the filtered read, which `useFilteredTransactions` leaves
@@ -184,11 +203,22 @@ function LogContent({ db }: { db: Database }) {
 	// The same rows the sections are built from, so the figure and the day
 	// subtotals under it agree to the cent.
 	const scopeFigures = useMemo(
-		() => (filter === "all" || visibleRows.length === 0 ? null : scopeTotals(visibleRows, currency, rates)),
+		() => (filter === "all" || !scopeHasFigures(visibleRows) ? null : scopeTotals(visibleRows, currency, rates)),
 		[filter, visibleRows, currency, rates]
 	);
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+	// A transfer id is not a transaction id: routing it to `transactions/[id]`
+	// opens a screen with nothing behind it.
+	const openRow = (rowId: string) =>
+		router.push(transferIds.has(rowId) ? `/transactions/transfers/${rowId}` : `/transactions/${rowId}`);
+	const openRowMenu = (rowId: string, scheduled: boolean) => {
+		if (transferIds.has(rowId)) {
+			openRow(rowId);
+			return;
+		}
+		openRowActions(rowId, scheduled);
+	};
 	const cardOptions = useMemo(
 		() => ({ currency, showCents, swapTimeLabel, use24Hour }),
 		[currency, showCents, swapTimeLabel, use24Hour]
@@ -223,7 +253,7 @@ function LogContent({ db }: { db: Database }) {
 		/>
 	);
 
-	if (windowRows.length === 0 && filter === "all") {
+	if (listRows.length === 0 && filter === "all") {
 		return (
 			<>
 				{accountsOverview ? (
@@ -334,8 +364,8 @@ function LogContent({ db }: { db: Database }) {
 								schedules={upcoming.schedules}
 								currency={currency}
 								rates={rates}
-								onPress={(id) => router.push(`/transactions/${id}`)}
-								onLongPress={(id) => openRowActions(id, true)}
+								onPress={openRow}
+								onLongPress={(id) => openRowMenu(id, true)}
 								nowMs={nowMs}
 							/>
 						) : null}
@@ -354,8 +384,8 @@ function LogContent({ db }: { db: Database }) {
 						transaction={item}
 						currency={currency}
 						rates={rates}
-						onPress={(id) => router.push(`/transactions/${id}`)}
-						onLongPress={(id) => openRowActions(id, false)}
+						onPress={openRow}
+						onLongPress={(id) => openRowMenu(id, false)}
 						onDelete={requestDelete}
 					/>
 				)}

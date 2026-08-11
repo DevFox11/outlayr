@@ -18,6 +18,8 @@ export interface DayGroupable {
 	 */
 	date?: Date;
 	day: Date;
+	/** Set on a transfer leg: money moved between the user's own accounts is neither income nor spending. */
+	excludedFromTotals?: boolean;
 	income: boolean;
 }
 
@@ -58,7 +60,11 @@ export function groupByDay<T extends DayGroupable>(
 		section.data.push(row);
 	}
 	for (const section of sections) {
-		section.totals = currencyTotals(section.data, globalCurrency, rates);
+		section.totals = currencyTotals(
+			section.data.filter((row) => !row.excludedFromTotals),
+			globalCurrency,
+			rates
+		);
 		// Derived from the buckets rather than summed again over the rows, so the
 		// one-currency case is the same number the section header prints, to the cent.
 		let total = 0;

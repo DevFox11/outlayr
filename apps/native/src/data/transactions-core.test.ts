@@ -4,7 +4,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { exchangeRates, outbox, transactions } from "@/db/schema";
+import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
 import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { setSyncEnabled } from "./sync-outbox-core";
@@ -16,6 +16,7 @@ import {
 	type TransactionInput,
 	transactionsRepo,
 } from "./transactions-core";
+import { transfersRepo } from "./transfers-core";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -60,6 +61,7 @@ function makeDb(): Database {
 			amountUsd real,
 			exchangeRate real,
 			exchangeRateType text,
+			transferId text,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);
@@ -493,6 +495,86 @@ describe("a restore the account has to hear about", () => {
 
 		// A fresh seq would mean a second write went out saying nothing at all.
 		expect((await queued(db))[0]?.seq).toBe(first);
+	});
+});
+
+describe("the fee on a transfer the user deleted", () => {
+	const WHEN = new Date(Date.UTC(2026, 5, 1, 12));
+	const DELETED_AT = new Date(Date.UTC(2026, 5, 2, 9));
+
+	async function movedWithAFee() {
+		const db = syncedDb();
+		await db.insert(accounts).values([
+			{
+				currency: "USD",
+				dateCreated: WHEN,
+				id: "acc-checking",
+				initialBalanceDate: WHEN,
+				name: "Checking",
+				updatedAt: WHEN,
+			},
+			{
+				currency: "USD",
+				dateCreated: WHEN,
+				id: "acc-savings",
+				initialBalanceDate: WHEN,
+				name: "Savings",
+				updatedAt: WHEN,
+			},
+		]);
+		const transferId = await transfersRepo.create(db, {
+			date: WHEN,
+			exchangeRate: null,
+			exchangeRateType: null,
+			fee: { amount: 3, categoryId: "cat-1", note: "Wire fee", side: "source" },
+			fromAccountId: "acc-checking",
+			fromAmount: 500,
+			fromCurrency: "USD",
+			toAccountId: "acc-savings",
+			toAmount: 500,
+			toCurrency: "USD",
+		});
+		const [fee] = await db
+			.select({ id: transactions.id })
+			.from(transactions)
+			.where(eq(transactions.transferId, transferId));
+		return { db, feeId: fee.id, transferId };
+	}
+
+	it("takes the transfer with it when the row deleted is that transfer's fee", async () => {
+		const { db, feeId, transferId } = await movedWithAFee();
+
+		await transactionsRepo.remove(db, feeId, DELETED_AT);
+
+		const [transfer] = await db
+			.select({ deletedAt: transfers.deletedAt })
+			.from(transfers)
+			.where(eq(transfers.id, transferId));
+		expect(transfer?.deletedAt).not.toBeNull();
+		expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual([]);
+	});
+
+	it("is not offered back on its own, while an ordinary expense still is", async () => {
+		const { db, transferId } = await movedWithAFee();
+		const groceries = await transactionsRepo.create(db, { ...DRAFT, currency: "USD" });
+		await transactionsRepo.remove(db, groceries, DELETED_AT);
+
+		await transfersRepo.softDelete(db, transferId, DELETED_AT);
+
+		expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual([groceries]);
+	});
+
+	it("stays tombstoned when a restore names it directly", async () => {
+		const { db, feeId, transferId } = await movedWithAFee();
+		await transfersRepo.softDelete(db, transferId, DELETED_AT);
+
+		await transactionsRepo.restore(db, feeId, new Date(Date.UTC(2026, 5, 3, 9)));
+
+		const [row] = await db
+			.select({ deletedAt: transactions.deletedAt })
+			.from(transactions)
+			.where(eq(transactions.id, feeId));
+		expect(row?.deletedAt?.getTime()).toBe(DELETED_AT.getTime());
 	});
 });
 

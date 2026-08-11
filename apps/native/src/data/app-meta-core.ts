@@ -38,6 +38,11 @@ export const META_KEYS = {
 	 */
 	lastTransactionAccount: "lastTransactionAccount",
 	/**
+	 * The category the last transfer fee was filed under; seeds the next fee's
+	 * Category row. Device-local, like every key left out of `SYNCED_META_KEYS`.
+	 */
+	lastTransferFeeCategory: "lastTransferFeeCategory",
+	/**
 	 * The account subject this device's ledger has already been reconciled with.
 	 * Holding the id rather than a flag is what makes signing into a *different*
 	 * account ask again instead of silently pairing two strangers' ledgers.

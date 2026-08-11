@@ -14,6 +14,10 @@ const log = {
 			en: "Create transaction",
 			es: "Crear transacción",
 		}),
+		"log.add.transfer": t({
+			en: "New Transfer",
+			es: "Nueva transferencia",
+		}),
 		"log.chip.earlier": t({
 			en: "Earlier",
 			es: "Anterior",
@@ -65,6 +69,10 @@ const log = {
 		"log.filter.recurring": t({
 			en: "recurring",
 			es: "recurrente",
+		}),
+		"log.filter.transfers": t({
+			en: "Transfers",
+			es: "Transferencias",
 		}),
 		"log.filter.type": t({
 			en: "by type",
@@ -145,6 +153,10 @@ const log = {
 		"log.row.amountIncome": t({
 			en: "Income {amount}",
 			es: "Ingreso de {amount}",
+		}),
+		"log.row.amountTransfer": t({
+			en: "{amount} moved",
+			es: "{amount} movidos",
 		}),
 		"log.row.delete": t({
 			en: "Delete",

@@ -11,8 +11,11 @@ import { CategoryIconTile } from "./category-icon-tile";
 import { Text } from "./text";
 
 interface AccountPickerSheetProps {
+	allowNone?: boolean;
 	db: Database;
 	onCreate: () => void;
+	/** Fires on a swipe-dismiss too, so a presenter can undo whatever it did to open this. */
+	onDismiss?: () => void;
 	onSelect: (account: Account | null) => void;
 	ref?: Ref<BottomSheetModal>;
 	selectedId: string | null;
@@ -21,7 +24,15 @@ interface AccountPickerSheetProps {
 export type AccountPickerSheetRef = BottomSheetModal;
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
-export function AccountPickerSheet({ db, selectedId, onSelect, onCreate, ref }: AccountPickerSheetProps) {
+export function AccountPickerSheet({
+	db,
+	selectedId,
+	onSelect,
+	onCreate,
+	ref,
+	allowNone = true,
+	onDismiss,
+}: AccountPickerSheetProps) {
 	const t = useTranslation();
 	const colors = useColors();
 	const accounts = useAccounts(db);
@@ -52,6 +63,7 @@ export function AccountPickerSheet({ db, selectedId, onSelect, onCreate, ref }: 
 			backgroundStyle={{ backgroundColor: colors.surfaceSecondary }}
 			enableDynamicSizing={false}
 			enablePanDownToClose
+			onDismiss={onDismiss}
 			ref={setRefs}
 			snapPoints={["50%"]}
 		>
@@ -83,21 +95,25 @@ export function AccountPickerSheet({ db, selectedId, onSelect, onCreate, ref }: 
 					style={{ flex: 1 }}
 				>
 					<View className="overflow-hidden rounded-xl bg-surface">
-						<AccountRow
-							account={null}
-							noneLabel={t("transaction.account.none")}
-							onPick={pick}
-							selected={selectedId === null}
-						/>
-						{accounts.map((account) => (
+						{allowNone ? (
+							<AccountRow
+								account={null}
+								noneLabel={t("transaction.account.none")}
+								onPick={pick}
+								selected={selectedId === null}
+							/>
+						) : null}
+						{accounts.map((account, index) => (
 							<View key={account.id}>
-								<View
-									className="ml-[58px]"
-									style={{
-										backgroundColor: withAlpha(colors.foreground, 0.07),
-										height: StyleSheet.hairlineWidth,
-									}}
-								/>
+								{allowNone || index > 0 ? (
+									<View
+										className="ml-[58px]"
+										style={{
+											backgroundColor: withAlpha(colors.foreground, 0.07),
+											height: StyleSheet.hairlineWidth,
+										}}
+									/>
+								) : null}
 								<AccountRow account={account} noneLabel="" onPick={pick} selected={account.id === selectedId} />
 							</View>
 						))}

@@ -96,6 +96,11 @@ export const SETS: IconSet[] = [
 				size: MENU_SIZE,
 				slug: "show-type",
 			},
+			{
+				icon: "ArrowDataTransferHorizontalIcon",
+				size: MENU_SIZE,
+				slug: "show-transfers",
+			},
 			{ icon: "Calendar01Icon", size: MENU_SIZE, slug: "show-day" },
 			{ icon: "Calendar02Icon", size: MENU_SIZE, slug: "show-week" },
 			{ icon: "Calendar03Icon", size: MENU_SIZE, slug: "show-month" },

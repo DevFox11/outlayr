@@ -39,6 +39,7 @@
 
 			--income: #027d51;
 			--expense: #010101;
+			--transfer: #33689e;
 			--future: #6d6d6d;
 
 			/* The favourite swipe pill, which writes literal white over it. Same value
@@ -145,6 +146,7 @@
 
 			--income: #0fffa9;
 			--expense: #ffffff;
+			--transfer: #7caedc;
 			--future: #a4a4a9;
 
 			--gold-fill: #8a6a14;

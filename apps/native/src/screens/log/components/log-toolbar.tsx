@@ -15,6 +15,7 @@ const FILTER_ICON: Record<LogFilter, ToolbarIconName> = {
 	day: "showDay",
 	month: "showMonth",
 	recurring: "showRecurring",
+	transfers: "showTransfers",
 	type: "showType",
 	upcoming: "showUpcoming",
 	week: "showWeek",

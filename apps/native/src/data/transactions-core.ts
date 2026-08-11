@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import type { Database } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { type CanonicalUsd, canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
@@ -105,12 +105,17 @@ export type DeletedTransaction = {
  * would answer "erase my data" with a list of it and a Restore button. They are
  * excluded by their {@link ERASED_DATE} stamp, which nothing the user can author
  * carries.
+ *
+ * A transfer's fee is excluded for the opposite reason: it is only ever tombstoned
+ * alongside its transfer — `transfersRepo.softDelete` from one side, `remove` from
+ * the other — and handing it back alone would put a live charge on a transfer that
+ * no longer exists, which no surface can then take off again.
  */
 export function deletedTransactionsQuery(db: SpendDb) {
 	return db
 		.select(DELETED_COLUMNS)
 		.from(transactions)
-		.where(and(isNotNull(transactions.deletedAt), gt(transactions.date, ERASED_DATE)))
+		.where(and(isNotNull(transactions.deletedAt), gt(transactions.date, ERASED_DATE), isNull(transactions.transferId)))
 		.orderBy(desc(transactions.deletedAt), desc(transactions.date));
 }
 
@@ -339,6 +344,12 @@ export const transactionsRepo = {
 					updatedAt: now,
 				})
 				.where(eq(transactions.id, id));
+			// A fee outliving its transfer would keep charging for a movement the
+			// ledger no longer holds, and nothing downstream reads `transferId` to
+			// notice. The log routes a fee's id here like any other transaction.
+			if (row?.transferId != null) {
+				await db.update(transfers).set({ deletedAt: now, updatedAt: now }).where(eq(transfers.id, row.transferId));
+			}
 		});
 	},
 
@@ -356,12 +367,16 @@ export const transactionsRepo = {
 	 *
 	 * Scoped to rows that are actually tombstoned, which makes a repeat restore a
 	 * no-op rather than a write that queues a replication carrying no change.
+	 *
+	 * A transfer's fee is out of scope for the same reason
+	 * {@link deletedTransactionsQuery} hides it, and nothing restores a transfer
+	 * today, so lifting one alone would strand a charge with no owner.
 	 */
 	async restore(db: Database, id: string, now: Date = new Date()): Promise<void> {
 		await db
 			.update(transactions)
 			.set({ deletedAt: null, updatedAt: now })
-			.where(and(eq(transactions.id, id), isNotNull(transactions.deletedAt)));
+			.where(and(eq(transactions.id, id), isNotNull(transactions.deletedAt), isNull(transactions.transferId)));
 	},
 
 	/**

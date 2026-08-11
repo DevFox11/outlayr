@@ -29,7 +29,7 @@ import { authClient } from "@/lib/auth-client";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { convex } from "@/lib/convex";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
-import { ACCOUNT_DETENT, identityPickerDetent } from "@/lib/sheet-detents";
+import { ACCOUNT_DETENT, identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 
 preventAutoHideAsync();
@@ -320,6 +320,23 @@ function RootStack() {
 					}}
 				/>
 
+				<Stack.Screen
+					name="transactions/transfers/create"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [TRANSFER_DETENT, 1],
+						sheetGrabberVisible: true,
+					}}
+				>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+				</Stack.Screen>
+				<Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "modal" }}>
+					<Stack.Header transparent />
+					<Stack.Screen.BackButton displayMode="minimal" />
+					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+				</Stack.Screen>
 				<Stack.Screen name="transactions/create" options={{ presentation: "modal" }}>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />

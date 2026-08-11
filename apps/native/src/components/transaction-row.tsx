@@ -68,6 +68,7 @@ export function TransactionRow({
 	const date = new Date(transaction.date);
 	const future = forcedFuture ?? isFuture(date);
 	const code = transaction.currency ?? currency;
+	const isTransfer = "transferId" in transaction && Boolean(transaction.transferId);
 	const identity = resolveTransactionIdentity(transaction);
 	const recurring = transaction.recurringType > 0;
 	const foreignCode = transaction.currency && transaction.currency !== currency ? transaction.currency : null;
@@ -114,7 +115,7 @@ export function TransactionRow({
 		>
 			<View>
 				<CategoryIconTile
-					color={identity.color}
+					color={isTransfer ? colors.transfer : identity.color}
 					emoji={identity.emoji}
 					future={future}
 					icon={identity.icon}
@@ -169,6 +170,7 @@ export function TransactionRow({
 				income={transaction.income}
 				isFuture={future}
 				showCents={showCents}
+				transfer={isTransfer}
 			/>
 		</Pressable>
 	);

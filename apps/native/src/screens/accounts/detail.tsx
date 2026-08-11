@@ -1,6 +1,6 @@
 import { SectionList } from "@legendapp/list/section-list";
 import { Stack, useRouter } from "expo-router";
-import { memo, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { View } from "react-native";
 import { HeroNumber } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
@@ -12,6 +12,7 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useAccountTransfers } from "@/data/account-transfers";
 import { useAccountBalance, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import type { TransactionWithCategory } from "@/data/transactions";
@@ -20,6 +21,7 @@ import type { Database } from "@/db/client";
 import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
+import { mergeByRecency } from "@/domain/transfer-log-rows";
 import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n/context";
 
@@ -51,9 +53,18 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
 	const t = useTranslation();
 	const { showCents } = useDisplaySettings().state;
 	const balance = useAccountBalance(db, account);
-	const rows = useAccountTransactions(db, account.id);
+	const transactionRows = useAccountTransactions(db, account.id);
+	const transferRows = useAccountTransfers(db, account.id);
 	const { rates } = useValuationIn(db, account.currency);
+	const rows = useMemo(() => mergeByRecency(transactionRows, transferRows), [transactionRows, transferRows]);
 	const sections = useMemo(() => groupByDay(rows, account.currency, rates), [rows, account.currency, rates]);
+	const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
+	// A transfer id is not a transaction id: `/transactions/[id]` finds nothing behind it.
+	const openRow = useCallback(
+		(rowId: string) =>
+			router.push(transferIds.has(rowId) ? `/transactions/transfers/${rowId}` : `/transactions/${rowId}`),
+		[router, transferIds]
+	);
 
 	const startedAt = t("accounts.detail.startedAt", {
 		amount: formatSignedAmount(account.initialBalance, account.currency, showCents),
@@ -109,7 +120,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
 				}
 				recycleItems={false}
 				renderItem={({ item }) => (
-					<AccountTransactionRow currency={account.currency} rates={rates} transaction={item} />
+					<AccountTransactionRow currency={account.currency} onPress={openRow} rates={rates} transaction={item} />
 				)}
 				renderSectionHeader={({ section }) => <DaySectionHeader first={sections[0] === section} section={section} />}
 				sections={sections}
@@ -133,19 +144,13 @@ function DetailMark() {
 const AccountTransactionRow = memo(function AccountTransactionRowBody({
 	transaction,
 	currency,
+	onPress,
 	rates,
 }: {
 	transaction: TransactionWithCategory;
 	currency: string;
+	onPress: (id: string) => void;
 	rates: RateTable;
 }) {
-	const router = useRouter();
-	return (
-		<TransactionRow
-			currency={currency}
-			onPress={(pressedId) => router.push(`/transactions/${pressedId}`)}
-			rates={rates}
-			transaction={transaction}
-		/>
-	);
+	return <TransactionRow currency={currency} onPress={onPress} rates={rates} transaction={transaction} />;
 });

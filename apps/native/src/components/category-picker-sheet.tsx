@@ -36,6 +36,8 @@ interface CategoryPickerSheetProps {
 	income: boolean;
 	/** Omitted by hosts that cannot mint a category, which also hides the create action. */
 	onCreate?: (name: string) => void;
+	/** Fires on a swipe-dismiss too, so a presenter can undo whatever it did to open this. */
+	onDismiss?: () => void;
 	onSelect: (category: Category) => void;
 	/** Not yet a real row — shown as the top pick, materialized only on save. */
 	pendingCategory?: PendingCategory | null;
@@ -47,6 +49,7 @@ export type CategoryPickerSheetRef = BottomSheetModal;
 
 /** Present via the forwarded ref: `ref.current?.present()`. */
 export function CategoryPickerSheet({
+	onDismiss,
 	db,
 	income,
 	selectedId,
@@ -128,7 +131,8 @@ export function CategoryPickerSheet({
 	const handleDismiss = useCallback(() => {
 		clearQuery();
 		setExpanded(expandedForSelectedCategory(categories, selectedId));
-	}, [categories, clearQuery, selectedId]);
+		onDismiss?.();
+	}, [categories, clearQuery, onDismiss, selectedId]);
 
 	let searchPanel: ReactNode = null;
 	if (searching && matches.length === 0) {

@@ -13,6 +13,7 @@ import {
 	transactionSplits,
 	transactions,
 	transactionTags,
+	transfers,
 } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
@@ -30,6 +31,7 @@ export const SYNCED_TABLES = [
 	"transactionPhotos",
 	"transactionSplits",
 	"accounts",
+	"transfers",
 	"appMeta",
 ] as const;
 
@@ -166,6 +168,7 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 	collect("transactionPhotos", await db.select({ localId: transactionPhotos.id }).from(transactionPhotos));
 	collect("transactionSplits", await db.select({ localId: transactionSplits.id }).from(transactionSplits));
 	collect("accounts", await db.select({ localId: accounts.id }).from(accounts));
+	collect("transfers", await db.select({ localId: transfers.id }).from(transfers));
 	collect(
 		"appMeta",
 		await db

@@ -1,7 +1,7 @@
 import { isNull } from "drizzle-orm";
 import { useMemo } from "react";
 import type { Database } from "@/db/client";
-import { accounts, transactions } from "@/db/schema";
+import { accounts, transactions, transfers } from "@/db/schema";
 import { type AccountBalance, accountBalance } from "@/domain/account-balance";
 import { type AccountsOverview, accountsOverview } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
@@ -11,6 +11,13 @@ import { accountCellQuery, accountsCellQuery, toCurrencyCell } from "./cell-quer
 import { useLiveQuery } from "./live-query";
 import type { TransactionWithCategory } from "./transactions";
 import { accountTransactionsQuery } from "./transactions-core";
+import {
+	toTransferCell,
+	transferInboundQuery,
+	transferOutboundQuery,
+	transfersInboundQuery,
+	transfersOutboundQuery,
+} from "./transfer-cells";
 import { useValuation, useValuationIn } from "./use-valuation";
 import type { Valuation } from "./valuation-source";
 
@@ -23,7 +30,16 @@ export function useAccounts(db: Database): Account[] {
 
 function useAccountCells(db: Database, accountId: string): CurrencyCell[] {
 	const rows = useLiveQuery(transactions, () => accountCellQuery(db, accountId), [accountId]);
-	return useMemo(() => rows.map(toCurrencyCell), [rows]);
+	const outbound = useLiveQuery(transfers, () => transferOutboundQuery(db, accountId), [accountId]);
+	const inbound = useLiveQuery(transfers, () => transferInboundQuery(db, accountId), [accountId]);
+	return useMemo(
+		() => [
+			...rows.map(toCurrencyCell),
+			...outbound.map((row) => toTransferCell(row, false)),
+			...inbound.map((row) => toTransferCell(row, true)),
+		],
+		[rows, outbound, inbound]
+	);
 }
 
 /**
@@ -47,19 +63,25 @@ export function useAccountBalance(
 export function useAccountsOverviewIn(db: Database, valuation: Valuation): AccountsOverview | null {
 	const rows = useAccounts(db);
 	const cellRows = useLiveQuery(transactions, () => accountsCellQuery(db));
+	const outbound = useLiveQuery(transfers, () => transfersOutboundQuery(db));
+	const inbound = useLiveQuery(transfers, () => transfersInboundQuery(db));
 	const { displayCurrency, rates } = valuation;
 	return useMemo(
 		() =>
 			accountsOverview(
 				rows,
-				cellRows.map((row) => ({
-					...toCurrencyCell(row),
-					accountId: row.accountId,
-				})),
+				[
+					...cellRows.map((row) => ({
+						...toCurrencyCell(row),
+						accountId: row.accountId,
+					})),
+					...outbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, false), accountId })),
+					...inbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, true), accountId })),
+				],
 				displayCurrency,
 				rates
 			),
-		[rows, cellRows, displayCurrency, rates]
+		[rows, cellRows, outbound, inbound, displayCurrency, rates]
 	);
 }
 

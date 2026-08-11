@@ -2,11 +2,11 @@ import { getTableName } from "drizzle-orm";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useSyncExternalStore } from "react";
 import { AppState } from "react-native";
-import { transactions } from "@/db/schema";
+import { transactions, transfers } from "@/db/schema";
 import { clockAdvances, nextClockTick } from "@/domain/clock";
 import { subscribeToTable } from "./table-invalidation";
 
-const TABLE_NAME = getTableName(transactions);
+const BOUNDED_TABLES: string[] = [getTableName(transactions), getTableName(transfers)];
 
 let readingMs = Date.now();
 let midnightTimer: ReturnType<typeof setTimeout> | null = null;
@@ -48,17 +48,19 @@ function start(): void {
 		}
 	});
 	const changes = addDatabaseChangeListener((event) => {
-		if (event.tableName === TABLE_NAME) {
+		if (BOUNDED_TABLES.includes(event.tableName)) {
 			publish(Date.now());
 		}
 	});
 	// A batch writer — the sync applier — says so once for the whole batch instead
 	// of leaving it to the order of a few thousand native events.
-	const invalidations = subscribeToTable(TABLE_NAME, () => {
-		publish(Date.now());
-	});
+	const invalidations = [transactions, transfers].map((table) =>
+		subscribeToTable(getTableName(table), () => {
+			publish(Date.now());
+		})
+	);
 
-	teardown = [() => phase.remove(), () => changes.remove(), invalidations];
+	teardown = [() => phase.remove(), () => changes.remove(), ...invalidations];
 }
 
 function stop(): void {
@@ -99,10 +101,11 @@ function read(): number {
  * past the ledger's `lte(date, now)` bound and under `useUpcomingTransactions`,
  * since a transaction's date is `new Date()` at *form* mount.
  *
- * It moves on a write to `transactions` (the only thing the bound is measured
- * against), on returning to the foreground, and at local midnight. Store state
- * rather than per-hook state so the listeners are installed once for the app, not
- * once per screen reading the clock.
+ * It moves on a write to `transactions` or `transfers` — both are date-bounded
+ * ledger reads — on returning to the foreground, and at local midnight. A
+ * transfer with no fee touches only `transfers`, so leaving it out hid every
+ * such row until the next tick. Store state rather than per-hook state so the
+ * listeners are installed once for the app, not once per screen reading it.
  */
 export function useNow(): number {
 	return useSyncExternalStore(subscribe, read);

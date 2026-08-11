@@ -22,6 +22,7 @@ function emptyDocument(): ArchiveDocument {
 			mainBudget: [],
 			templateTransactions: [],
 			transactions: [],
+			transfers: [],
 		},
 		version: ARCHIVE_VERSION,
 	};

@@ -43,6 +43,7 @@ const COLOR_VARIABLES = {
 	surface: "--surface",
 	surfaceSecondary: "--surface-secondary",
 	tint: "--tint",
+	transfer: "--transfer",
 	warning: "--warning",
 } as const;
 

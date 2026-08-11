@@ -78,18 +78,31 @@ interface RowAmountProps extends RowAmountLabelInput {
 	isFuture: boolean;
 	/** The import review's excluded state: still legible, visibly not counted. */
 	struck?: boolean;
+	transfer?: boolean;
 }
 
-export function RowAmount({ amount, income, isFuture, code, showCents = true, struck = false }: RowAmountProps) {
+function signFor(income: boolean | null): "+" | "-" {
+	return income ? "+" : "-";
+}
+
+export function RowAmount({
+	amount,
+	income,
+	isFuture,
+	code,
+	showCents = true,
+	struck = false,
+	transfer = false,
+}: RowAmountProps) {
 	const t = useTranslation();
 	const parts = amountParts(amount, code, showCents);
-	const sign = income ? "+" : "-";
+	const sign = transfer ? "" : signFor(income);
 	return (
 		<Text
 			// Spelled out because neither the glyph nor the colour is a cue a screen
 			// reader can read; `rowAmountLabel` owns the wording.
-			accessibilityLabel={rowAmountLabel({ amount, code, income, showCents }, t)}
-			className={rowAmount({ income, isFuture, struck })}
+			accessibilityLabel={rowAmountLabel({ amount, code, income: transfer ? null : income, showCents }, t)}
+			className={rowAmount({ income: !transfer && income === true, isFuture, struck })}
 			numberOfLines={1}
 			style={TABULAR}
 		>

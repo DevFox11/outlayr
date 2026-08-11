@@ -8,7 +8,6 @@
  * @module
  */
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as cotizave from "../cotizave.js";
@@ -33,30 +32,36 @@ import type * as merchantKnowledge from "../merchantKnowledge.js";
 import type * as photos from "../photos.js";
 import type * as sync from "../sync.js";
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
 declare const fullApi: ApiFromModules<{
-	account: typeof account;
-	auth: typeof auth;
-	cotizave: typeof cotizave;
-	crons: typeof crons;
-	csvImport: typeof csvImport;
-	enrichment: typeof enrichment;
-	exchangeRates: typeof exchangeRates;
-	frankfurter: typeof frankfurter;
-	groundedLookup: typeof groundedLookup;
-	groundedSpend: typeof groundedSpend;
-	healthCheck: typeof healthCheck;
-	http: typeof http;
-	"lib/auth": typeof lib_auth;
-	"lib/bgn": typeof lib_bgn;
-	"lib/currencies": typeof lib_currencies;
-	"lib/merchantKey": typeof lib_merchantKey;
-	"lib/merchantTrust": typeof lib_merchantTrust;
-	"lib/photoKeys": typeof lib_photoKeys;
-	"lib/spend": typeof lib_spend;
-	"lib/syncTables": typeof lib_syncTables;
-	merchantKnowledge: typeof merchantKnowledge;
-	photos: typeof photos;
-	sync: typeof sync;
+  account: typeof account;
+  auth: typeof auth;
+  cotizave: typeof cotizave;
+  crons: typeof crons;
+  csvImport: typeof csvImport;
+  enrichment: typeof enrichment;
+  exchangeRates: typeof exchangeRates;
+  frankfurter: typeof frankfurter;
+  groundedLookup: typeof groundedLookup;
+  groundedSpend: typeof groundedSpend;
+  healthCheck: typeof healthCheck;
+  http: typeof http;
+  "lib/auth": typeof lib_auth;
+  "lib/bgn": typeof lib_bgn;
+  "lib/currencies": typeof lib_currencies;
+  "lib/merchantKey": typeof lib_merchantKey;
+  "lib/merchantTrust": typeof lib_merchantTrust;
+  "lib/photoKeys": typeof lib_photoKeys;
+  "lib/spend": typeof lib_spend;
+  "lib/syncTables": typeof lib_syncTables;
+  merchantKnowledge: typeof merchantKnowledge;
+  photos: typeof photos;
+  sync: typeof sync;
 }>;
 
 /**
@@ -67,7 +72,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -77,10 +85,13 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {
-	betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
-	r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
-	rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

@@ -1,3 +1,4 @@
+import type { WithoutSystemFields } from "convex/server";
 import { ConvexError, type Validator, v } from "convex/values";
 
 import type { Doc, Id } from "./_generated/dataModel";
@@ -19,6 +20,7 @@ import {
 	transactionPhotoFields,
 	transactionSplitFields,
 	transactionTagFields,
+	transferFields,
 } from "./lib/syncTables";
 
 /**
@@ -106,6 +108,12 @@ const pushRow = v.union(
 		fields: v.object(accountFields),
 	}),
 	v.object({
+		localId: v.string(),
+		table: v.literal("transfers"),
+		...tombstone,
+		fields: v.object(transferFields),
+	}),
+	v.object({
 		/** Keys are never deleted, so this side of the union has no tombstone. */
 		deletedAt: v.null(),
 		fields: v.object(appMetaFields),
@@ -162,11 +170,24 @@ function versioned(doc: Doc<SyncedTable>) {
 	};
 }
 
+async function writeRow<T extends SyncedTable>(
+	ctx: MutationCtx,
+	table: T,
+	existing: Doc<SyncedTable> | null,
+	doc: WithoutSystemFields<Doc<T>>
+): Promise<void> {
+	if (existing) {
+		await ctx.db.patch(table, existing._id as Id<T>, doc);
+	} else {
+		await ctx.db.insert(table, doc);
+	}
+}
+
 /**
- * The write is a switch rather than one generic call because a runtime table
- * name erases the generated per-table document type, and that type is exactly
- * what catches a payload drifting from `schema.ts`. `existing` was looked up
- * through `row.table`, so its id belongs to the branch it lands in.
+ * A switch rather than one call on `row.table`, because a runtime table name
+ * erases the generated per-table document type, and that type is exactly what
+ * catches a payload drifting from `schema.ts`. `existing` was looked up through
+ * `row.table`, so its id belongs to the branch it lands in.
  */
 async function upsert(
 	ctx: MutationCtx,
@@ -184,99 +205,40 @@ async function upsert(
 	};
 
 	switch (row.table) {
-		case "categories": {
-			const doc = { ...envelope, ...(row.fields as Doc<"categories">) };
-			if (existing) {
-				await ctx.db.patch("categories", existing._id as Id<"categories">, doc);
-			} else {
-				await ctx.db.insert("categories", doc);
-			}
-			return;
-		}
-		case "transactions": {
-			const doc = { ...envelope, ...(row.fields as Doc<"transactions">) };
-			if (existing) {
-				await ctx.db.patch("transactions", existing._id as Id<"transactions">, doc);
-			} else {
-				await ctx.db.insert("transactions", doc);
-			}
-			return;
-		}
-		case "budgets": {
-			const doc = { ...envelope, ...(row.fields as Doc<"budgets">) };
-			if (existing) {
-				await ctx.db.patch("budgets", existing._id as Id<"budgets">, doc);
-			} else {
-				await ctx.db.insert("budgets", doc);
-			}
-			return;
-		}
-		case "mainBudget": {
-			const doc = { ...envelope, ...(row.fields as Doc<"mainBudget">) };
-			if (existing) {
-				await ctx.db.patch("mainBudget", existing._id as Id<"mainBudget">, doc);
-			} else {
-				await ctx.db.insert("mainBudget", doc);
-			}
-			return;
-		}
-		case "tags": {
-			const doc = { ...envelope, ...(row.fields as Doc<"tags">) };
-			if (existing) {
-				await ctx.db.patch("tags", existing._id as Id<"tags">, doc);
-			} else {
-				await ctx.db.insert("tags", doc);
-			}
-			return;
-		}
-		case "transactionTags": {
-			const doc = { ...envelope, ...(row.fields as Doc<"transactionTags">) };
-			if (existing) {
-				await ctx.db.patch("transactionTags", existing._id as Id<"transactionTags">, doc);
-			} else {
-				await ctx.db.insert("transactionTags", doc);
-			}
-			return;
-		}
-		case "transactionPhotos": {
-			const doc = { ...envelope, ...(row.fields as Doc<"transactionPhotos">) };
-			if (existing) {
-				await ctx.db.patch("transactionPhotos", existing._id as Id<"transactionPhotos">, doc);
-			} else {
-				await ctx.db.insert("transactionPhotos", doc);
-			}
-			return;
-		}
-		case "transactionSplits": {
-			const doc = { ...envelope, ...(row.fields as Doc<"transactionSplits">) };
-			if (existing) {
-				await ctx.db.patch("transactionSplits", existing._id as Id<"transactionSplits">, doc);
-			} else {
-				await ctx.db.insert("transactionSplits", doc);
-			}
-			return;
-		}
-		case "accounts": {
-			const doc = { ...envelope, ...(row.fields as Doc<"accounts">) };
-			if (existing) {
-				await ctx.db.patch("accounts", existing._id as Id<"accounts">, doc);
-			} else {
-				await ctx.db.insert("accounts", doc);
-			}
-			return;
-		}
-		case "templateTransactions": {
-			const doc = {
+		case "categories":
+			return await writeRow(ctx, "categories", existing, { ...envelope, ...(row.fields as Doc<"categories">) });
+		case "transactions":
+			return await writeRow(ctx, "transactions", existing, { ...envelope, ...(row.fields as Doc<"transactions">) });
+		case "budgets":
+			return await writeRow(ctx, "budgets", existing, { ...envelope, ...(row.fields as Doc<"budgets">) });
+		case "mainBudget":
+			return await writeRow(ctx, "mainBudget", existing, { ...envelope, ...(row.fields as Doc<"mainBudget">) });
+		case "tags":
+			return await writeRow(ctx, "tags", existing, { ...envelope, ...(row.fields as Doc<"tags">) });
+		case "transactionTags":
+			return await writeRow(ctx, "transactionTags", existing, {
+				...envelope,
+				...(row.fields as Doc<"transactionTags">),
+			});
+		case "transactionPhotos":
+			return await writeRow(ctx, "transactionPhotos", existing, {
+				...envelope,
+				...(row.fields as Doc<"transactionPhotos">),
+			});
+		case "transactionSplits":
+			return await writeRow(ctx, "transactionSplits", existing, {
+				...envelope,
+				...(row.fields as Doc<"transactionSplits">),
+			});
+		case "accounts":
+			return await writeRow(ctx, "accounts", existing, { ...envelope, ...(row.fields as Doc<"accounts">) });
+		case "transfers":
+			return await writeRow(ctx, "transfers", existing, { ...envelope, ...(row.fields as Doc<"transfers">) });
+		case "templateTransactions":
+			return await writeRow(ctx, "templateTransactions", existing, {
 				...envelope,
 				...(row.fields as Doc<"templateTransactions">),
-			};
-			if (existing) {
-				await ctx.db.patch("templateTransactions", existing._id as Id<"templateTransactions">, doc);
-			} else {
-				await ctx.db.insert("templateTransactions", doc);
-			}
-			return;
-		}
+			});
 		case "appMeta": {
 			const doc = {
 				deviceId: stamp.deviceId,

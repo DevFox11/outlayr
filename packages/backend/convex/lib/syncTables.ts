@@ -62,6 +62,29 @@ export const transactionFields = {
 	recurringCoefficient: v.number(),
 	recurringEndDate: v.union(v.number(), v.null()),
 	recurringType: v.number(),
+	/**
+	 * Optional for the same reason as `recurringAnchorDay`: a handset on the
+	 * previous build pushes rows without the key at all.
+	 */
+	transferId: v.optional(v.union(v.string(), v.null())),
+};
+
+export const transferFields = {
+	date: v.number(),
+	dateCreated: v.number(),
+	day: v.number(),
+	exchangeRate: v.union(v.number(), v.null()),
+	exchangeRateType: v.union(v.string(), v.null()),
+	fromAccountId: v.string(),
+	fromAmount: v.number(),
+	fromAmountUsd: v.union(v.number(), v.null()),
+	fromCurrency: v.string(),
+	month: v.number(),
+	note: v.string(),
+	toAccountId: v.string(),
+	toAmount: v.number(),
+	toAmountUsd: v.union(v.number(), v.null()),
+	toCurrency: v.string(),
 };
 
 /** `imageUri` is absent: it is a path into one device's container. */
@@ -181,6 +204,8 @@ export const TOMBSTONED_TABLES = [
 	"transactionPhotos",
 	"transactionSplits",
 	"accounts",
+	// After `accounts`: a transfer's two legs are account localIds.
+	"transfers",
 ] as const;
 
 /**
@@ -203,6 +228,7 @@ export const FIELDS_BY_TABLE = {
 	transactionSplits: transactionSplitFields,
 	transactions: transactionFields,
 	transactionTags: transactionTagFields,
+	transfers: transferFields,
 } as const;
 
 interface Versioned {

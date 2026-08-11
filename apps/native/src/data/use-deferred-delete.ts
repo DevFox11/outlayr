@@ -4,6 +4,7 @@ import type { Database } from "@/db/client";
 import { createDeferredDelete, type DeferredDeleteController } from "@/domain/deferred-delete";
 import { translateNow } from "@/i18n/runtime";
 import { transactionsRepo } from "./transactions-core";
+import { transfersRepo } from "./transfers-core";
 
 const UNDO_WINDOW_MS = 4000;
 
@@ -26,6 +27,11 @@ interface DeferredDelete {
  * would otherwise have to remember to say so. The commit also routinely outlives
  * the screen that asked for it: an alert is a native modal and needs no render
  * tree, so it still reaches the user.
+ *
+ * Which table an id belongs to is read at commit time rather than passed in: a
+ * caller deriving it from its own list gets it wrong the moment that list is
+ * filtered inside the undo window, and removing a transfer as a transaction
+ * updates zero rows and rejects nothing.
  */
 export function useDeferredDelete(db: Database): DeferredDelete {
 	const [pendingId, setPendingId] = useState<string | null>(null);
@@ -41,7 +47,10 @@ export function useDeferredDelete(db: Database): DeferredDelete {
 
 	if (controllerRef.current === null) {
 		const created = createDeferredDelete({
-			commit: (id) => transactionsRepo.remove(dbRef.current, id),
+			commit: async (id) => {
+				const transfer = await transfersRepo.getById(dbRef.current, id);
+				await (transfer ? transfersRepo.softDelete(dbRef.current, id) : transactionsRepo.remove(dbRef.current, id));
+			},
 			onChange: (next) => {
 				// biome-ignore lint/suspicious/noUnnecessaryConditions: the mount effect flips mountedRef.current to true after this closure is built, so the guard is what stops a publish arriving post-unmount from calling setState
 				if (mountedRef.current) {

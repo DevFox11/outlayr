@@ -13,6 +13,15 @@ export interface ScopeTotals {
 	shown: LogFigures;
 }
 
+function totalled(entries: readonly CurrencyEntry[]): CurrencyEntry[] {
+	return entries.filter((entry) => !("excludedFromTotals" in entry && entry.excludedFromTotals));
+}
+
+/** False when the scope holds nothing in and out could describe — every row a transfer, or no rows at all. */
+export function scopeHasFigures(entries: readonly CurrencyEntry[]): boolean {
+	return totalled(entries).length > 0;
+}
+
 /**
  * In, out and net for a whole filtered scope, split per currency.
  *
@@ -26,7 +35,7 @@ export function scopeTotals(
 	displayCurrency: string,
 	rates?: RateTable
 ): ScopeTotals {
-	const ordered = cellFigures(toCells(entries), displayCurrency, rates);
+	const ordered = cellFigures(toCells(totalled(entries)), displayCurrency, rates);
 	const shown = ordered.find((figures) => figures.currencyCode === displayCurrency) ??
 		ordered[0] ?? { currencyCode: displayCurrency, ...ZERO_FIGURES };
 
