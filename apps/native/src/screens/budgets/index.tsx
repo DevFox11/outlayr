@@ -24,6 +24,7 @@ import { showBudgetActions } from "@/lib/budget-actions";
 import { BudgetBurndownHero } from "./components/budget-burndown-hero";
 import { BudgetCard } from "./components/budget-card";
 import { BudgetEmptyState } from "./components/budget-empty-state";
+import { BudgetRings } from "./components/budget-rings";
 import { BudgetRow } from "./components/budget-row";
 
 export function Budgets() {
@@ -154,6 +155,8 @@ function BudgetContent({ db }: { db: Database }) {
 					onPress={() => router.push("/budgets/overall")}
 				/>
 			) : null}
+
+			<BudgetRings budgets={ranked} currency={currency} />
 
 			{budgets.length ? (
 				<View className="pt-6">

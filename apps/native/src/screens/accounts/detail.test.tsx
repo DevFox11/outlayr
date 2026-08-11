@@ -1,5 +1,6 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import type { TransactionWithCategory } from "@/data/transactions";
+import type { CurrencyCell } from "@/domain/currency-totals";
 import { AccountDetail } from "./detail";
 
 const AUG_9 = new Date(2026, 7, 9, 12);
@@ -60,6 +61,7 @@ jest.mock("@/theme/use-colors", () => ({
 }));
 
 jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string) => key,
 }));
 
@@ -71,13 +73,32 @@ jest.mock("@/contexts/display-settings-context", () => ({
 	useDisplaySettings: () => ({
 		state: { showCents: true, swapTimeLabel: false, use24Hour: false },
 	}),
+	useSettingBool: () => false,
 }));
 
 const mockTransactions = jest.fn();
 const mockTransfers = jest.fn();
+const mockUseAccountBalance = jest.fn((_db: unknown, _account: unknown) => ({ exact: true, total: 40 }));
+const mockUseAccountBalanceDetails = jest.fn((_db: unknown, _account: unknown) => ({
+	balance: { exact: true, total: 40 },
+	cells: [...mockTransactionCells, ...mockTransferCells],
+	rates: undefined,
+}));
+const mockUseAccountCells = jest.fn((_db: unknown, _accountId: string) => [
+	...mockTransactionCells,
+	...mockTransferCells,
+]);
+const mockUseValuationIn = jest.fn((_db: unknown, _currency: string) => ({
+	displayCurrency: "USD",
+	rates: undefined,
+}));
+let mockTransactionCells: CurrencyCell[] = [];
+let mockTransferCells: CurrencyCell[] = [];
 
 jest.mock("@/data/accounts", () => ({
-	useAccountBalance: () => ({ exact: true, total: 40 }),
+	useAccountBalance: (db: unknown, account: unknown) => mockUseAccountBalance(db, account),
+	useAccountBalanceDetails: (db: unknown, account: unknown) => mockUseAccountBalanceDetails(db, account),
+	useAccountCells: (db: unknown, accountId: string) => mockUseAccountCells(db, accountId),
 	useAccounts: () => [
 		{
 			currency: "USD",
@@ -95,7 +116,7 @@ jest.mock("@/data/account-transfers", () => ({
 }));
 
 jest.mock("@/data/use-valuation", () => ({
-	useValuationIn: () => ({ displayCurrency: "USD", rates: undefined }),
+	useValuationIn: (db: unknown, currency: string) => mockUseValuationIn(db, currency),
 }));
 
 function transaction(id: string, note: string, amount = 12): TransactionWithCategory {
@@ -155,15 +176,56 @@ function transfer(id: string, note: string) {
 	};
 }
 
+function setTransactions(rows: TransactionWithCategory[]) {
+	mockTransactions.mockReturnValue(rows);
+	mockTransactionCells = rows.map((row) => ({
+		amount: row.amount,
+		amountUsd: row.amountUsd ?? 0,
+		count: 1,
+		currencyCode: row.currency,
+		dateKey: "2026-08-09",
+		income: row.income,
+		unconvertedAmount: row.amountUsd === null ? row.amount : 0,
+		unconvertedCount: row.amountUsd === null ? 1 : 0,
+	}));
+}
+
+function setTransfers(rows: ReturnType<typeof transfer>[], income: boolean) {
+	mockTransfers.mockReturnValue(rows);
+	mockTransferCells = rows.map((row) => ({
+		amount: row.amount,
+		amountUsd: row.amountUsd,
+		count: 1,
+		currencyCode: row.currency,
+		dateKey: "2026-08-09",
+		income,
+		unconvertedAmount: 0,
+		unconvertedCount: 0,
+	}));
+}
+
 beforeEach(() => {
 	mockPush.mockClear();
-	mockTransactions.mockReturnValue([]);
-	mockTransfers.mockReturnValue([]);
+	mockUseAccountBalance.mockClear();
+	mockUseAccountBalanceDetails.mockClear();
+	mockUseAccountCells.mockClear();
+	mockUseValuationIn.mockClear();
+	setTransactions([]);
+	setTransfers([], false);
 });
 
 describe("an account's history", () => {
+	it("shares one cells-and-rates snapshot between the balance and chart", async () => {
+		await render(<AccountDetail id="savings" />);
+
+		expect(mockUseAccountBalanceDetails).toHaveBeenCalledTimes(1);
+		expect(mockUseAccountBalance).not.toHaveBeenCalled();
+		expect(mockUseAccountCells).not.toHaveBeenCalled();
+		expect(mockUseValuationIn).not.toHaveBeenCalled();
+	});
+
 	it("lists a transfer that moved money into the account", async () => {
-		mockTransfers.mockReturnValue([transfer("tr1", "Checking → Savings")]);
+		setTransfers([transfer("tr1", "Checking → Savings")], true);
 
 		const { getByText } = await render(<AccountDetail id="savings" />);
 
@@ -171,7 +233,7 @@ describe("an account's history", () => {
 	});
 
 	it("lists a transfer that moved money out of the account", async () => {
-		mockTransfers.mockReturnValue([transfer("tr1", "Savings → Checking")]);
+		setTransfers([transfer("tr1", "Savings → Checking")], false);
 
 		const { getByText } = await render(<AccountDetail id="savings" />);
 
@@ -179,7 +241,7 @@ describe("an account's history", () => {
 	});
 
 	it("stands the empty state down when the only history is a transfer", async () => {
-		mockTransfers.mockReturnValue([transfer("tr1", "Checking → Savings")]);
+		setTransfers([transfer("tr1", "Checking → Savings")], true);
 
 		const { queryByText } = await render(<AccountDetail id="savings" />);
 
@@ -193,8 +255,8 @@ describe("an account's history", () => {
 	});
 
 	it("leaves the day's total to the transactions around the transfer", async () => {
-		mockTransactions.mockReturnValue([transaction("t1", "Coffee"), transaction("t2", "Bus", 8)]);
-		mockTransfers.mockReturnValue([transfer("tr1", "Checking → Savings")]);
+		setTransactions([transaction("t1", "Coffee"), transaction("t2", "Bus", 8)]);
+		setTransfers([transfer("tr1", "Checking → Savings")], true);
 
 		const { getByText } = await render(<AccountDetail id="savings" />);
 
@@ -202,7 +264,7 @@ describe("an account's history", () => {
 	});
 
 	it("opens the transfer behind a transfer row, not a transaction that does not exist", async () => {
-		mockTransfers.mockReturnValue([transfer("tr1", "Checking → Savings")]);
+		setTransfers([transfer("tr1", "Checking → Savings")], true);
 
 		const { getByText } = await render(<AccountDetail id="savings" />);
 		await fireEvent.press(getByText("Checking → Savings"));
@@ -211,7 +273,7 @@ describe("an account's history", () => {
 	});
 
 	it("opens the transaction behind an ordinary row", async () => {
-		mockTransactions.mockReturnValue([transaction("t1", "Coffee")]);
+		setTransactions([transaction("t1", "Coffee")]);
 
 		const { getByText } = await render(<AccountDetail id="savings" />);
 		await fireEvent.press(getByText("Coffee"));

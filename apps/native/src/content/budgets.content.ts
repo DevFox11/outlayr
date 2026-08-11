@@ -322,6 +322,26 @@ const budgets = {
 			en: "SPENT {amount}",
 			es: "GASTADO {amount}",
 		}),
+		"budgets.rings.heading": t({
+			en: "Category progress",
+			es: "Progreso por categoría",
+		}),
+		"budgets.rings.over": t({
+			en: "{amount} over budget",
+			es: "{amount} excedido",
+		}),
+		"budgets.rings.rowA11y": t({
+			en: "{name}, {percent}% spent, {spent} of {limit}",
+			es: "{name}, {percent}% gastado, {spent} de {limit}",
+		}),
+		"budgets.rings.rowA11yOver": t({
+			en: "{name}, {percent}% spent, {amount} over budget",
+			es: "{name}, {percent}% gastado, {amount} excedido",
+		}),
+		"budgets.rings.summary": t({
+			en: "Category budgets ranked by urgency.",
+			es: "Presupuestos por categoría ordenados por urgencia.",
+		}),
 		"budgets.row.actionsHint": t({
 			en: "Double tap and hold to open actions for this budget",
 			es: "Toca dos veces y mantén para abrir las acciones de este presupuesto",

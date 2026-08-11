@@ -1,8 +1,10 @@
+import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import { accountsCellQuery, toCurrencyCell } from "./cell-query";
+import { useAccountCells } from "./accounts";
+import { accountsCellQuery, type CellRow, toCurrencyCell } from "./cell-query";
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -107,5 +109,79 @@ describe("accountsCellQuery", () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0].accountId).toBe("a1");
 		expect(toCurrencyCell(rows[0]).amount).toBe(4);
+	});
+});
+
+jest.mock("./live-query", () => ({
+	useLiveQuery: jest.fn(),
+}));
+
+const mockUseLiveQuery = jest.requireMock("./live-query").useLiveQuery as jest.Mock;
+
+function liveRow(overrides: Partial<CellRow> = {}): CellRow {
+	return {
+		currency: "USD",
+		dateKey: "2026-08-06",
+		income: true,
+		rows: 1,
+		total: 4,
+		totalUsd: 4,
+		unconverted: 0,
+		unconvertedRows: 0,
+		...overrides,
+	};
+}
+
+describe("useAccountCells", () => {
+	beforeEach(() => {
+		mockUseLiveQuery.mockReset();
+	});
+
+	it("keeps transaction cells and maps outbound and inbound transfers with opposite directions", async () => {
+		const transaction = liveRow();
+		const outbound = liveRow({ currency: "EUR", dateKey: "2026-08-07", income: false, total: 35, totalUsd: 40 });
+		const inbound = liveRow({ currency: "VES", dateKey: "2026-08-08", income: false, total: 10, totalUsd: 1 });
+		mockUseLiveQuery.mockReturnValueOnce([transaction]).mockReturnValueOnce([outbound]).mockReturnValueOnce([inbound]);
+
+		const { result } = await renderHook(() => useAccountCells({} as Database, "account-1"));
+
+		expect(result.current).toStrictEqual([
+			{
+				amount: 4,
+				amountUsd: 4,
+				count: 1,
+				currencyCode: "USD",
+				dateKey: "2026-08-06",
+				income: true,
+				rateNeededAmount: 0,
+				rateNeededCount: 0,
+				unconvertedAmount: 0,
+				unconvertedCount: 0,
+			},
+			{
+				amount: 35,
+				amountUsd: 40,
+				count: 1,
+				currencyCode: "EUR",
+				dateKey: "2026-08-07",
+				income: false,
+				rateNeededAmount: 0,
+				rateNeededCount: 0,
+				unconvertedAmount: 0,
+				unconvertedCount: 0,
+			},
+			{
+				amount: 10,
+				amountUsd: 1,
+				count: 1,
+				currencyCode: "VES",
+				dateKey: "2026-08-08",
+				income: true,
+				rateNeededAmount: 0,
+				rateNeededCount: 0,
+				unconvertedAmount: 0,
+				unconvertedCount: 0,
+			},
+		]);
 	});
 });

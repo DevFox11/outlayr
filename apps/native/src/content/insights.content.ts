@@ -14,6 +14,34 @@ const insights = {
 			en: "Burn-down chart, day {day} of {days}, {percent} percent over the limit",
 			es: "Gráfico de consumo, día {day} de {days}, {percent} por ciento por encima del límite",
 		}),
+		"insights.calendar.day": t({
+			en: "{date}, {amount} spent",
+			es: "{date}, {amount} gastados",
+		}),
+		"insights.calendar.dayApproximate": t({
+			en: "{date}, approximately {amount} spent",
+			es: "{date}, aproximadamente {amount} gastados",
+		}),
+		"insights.calendar.empty": t({
+			en: "No spending in the last six months.",
+			es: "Sin gastos en los últimos seis meses.",
+		}),
+		"insights.calendar.less": t({
+			en: "Less",
+			es: "Menos",
+		}),
+		"insights.calendar.more": t({
+			en: "More",
+			es: "Más",
+		}),
+		"insights.calendar.range": t({
+			en: "Last six months",
+			es: "Últimos seis meses",
+		}),
+		"insights.calendar.title": t({
+			en: "Spending calendar",
+			es: "Calendario de gastos",
+		}),
 		"insights.categories": t({
 			en: "Categories",
 			es: "Categorías",

@@ -28,6 +28,7 @@ import {
 } from "@/data/insights";
 import { useWindowTransactions } from "@/data/insights-transactions";
 import { setNumberSetting } from "@/data/settings-core";
+import { useSpendingCalendar } from "@/data/spending-calendar";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { type UseInsightsResult, useInsights } from "@/data/use-insights";
 import { useNow } from "@/data/use-now";
@@ -58,6 +59,7 @@ import { InsightsNetChart } from "./components/insights-net-chart";
 import { InsightsQuiet } from "./components/insights-quiet";
 import { InsightsSample } from "./components/insights-sample";
 import { InsightsTransactionList } from "./components/insights-transaction-list";
+import { SpendingCalendar } from "./components/spending-calendar";
 import { MEASURE_KEY } from "./measure-label";
 
 const PERIOD_BY_VALUE: Record<number, InsightsPeriod> = {
@@ -279,6 +281,7 @@ function InsightsContent({ db }: { db: Database }) {
 	const [filterId, setFilterId] = useState<string | null>(null);
 
 	const result = useInsights(db, nowMs, period, measure, offset, calendar);
+	const spendingCalendar = useSpendingCalendar(db, nowMs);
 
 	// Both selections name a bucket index and a category that may not survive the
 	// window, period or measure changing.
@@ -530,6 +533,16 @@ function InsightsContent({ db }: { db: Database }) {
 					showCents={showCents}
 					subEntries={subBreakdown}
 				/>
+
+				<View className="px-5 pt-6">
+					<SpendingCalendar
+						currency={currency}
+						entries={spendingCalendar}
+						firstWeekday={firstWeekday}
+						now={new Date(nowMs)}
+						showCents={showCents}
+					/>
+				</View>
 
 				{listQuery ? (
 					<View className="px-5 pt-6">

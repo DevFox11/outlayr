@@ -71,6 +71,8 @@ export function toTransferCell(row: Omit<CellRow, "income">, income: boolean): C
 		currencyCode: row.currency,
 		dateKey: row.dateKey,
 		income,
+		rateNeededAmount: Number(row.rateNeeded ?? 0),
+		rateNeededCount: Number(row.rateNeededRows ?? 0),
 		unconvertedAmount: Number(row.unconverted ?? 0),
 		unconvertedCount: Number(row.unconvertedRows ?? 0),
 	};

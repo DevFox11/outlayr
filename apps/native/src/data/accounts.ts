@@ -5,6 +5,7 @@ import { accounts, transactions, transfers } from "@/db/schema";
 import { type AccountBalance, accountBalance } from "@/domain/account-balance";
 import { type AccountsOverview, accountsOverview } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
+import type { RateTable } from "@/domain/valuation";
 import type { Account } from "./accounts-core";
 import { useCategoryMeta } from "./categories";
 import { accountCellQuery, accountsCellQuery, toCurrencyCell } from "./cell-query";
@@ -28,7 +29,7 @@ export function useAccounts(db: Database): Account[] {
 	) as Account[];
 }
 
-function useAccountCells(db: Database, accountId: string): CurrencyCell[] {
+export function useAccountCells(db: Database, accountId: string): CurrencyCell[] {
 	const rows = useLiveQuery(transactions, () => accountCellQuery(db, accountId), [accountId]);
 	const outbound = useLiveQuery(transfers, () => transferOutboundQuery(db, accountId), [accountId]);
 	const inbound = useLiveQuery(transfers, () => transferInboundQuery(db, accountId), [accountId]);
@@ -47,13 +48,22 @@ function useAccountCells(db: Database, accountId: string): CurrencyCell[] {
  * loaded for that currency, so two rows in different currencies each carry
  * their own subscription.
  */
+export function useAccountBalanceDetails(
+	db: Database,
+	account: Pick<Account, "id" | "currency" | "initialBalance">
+): { balance: AccountBalance; cells: CurrencyCell[]; rates: RateTable } {
+	const cells = useAccountCells(db, account.id);
+	const { rates } = useValuationIn(db, account.currency);
+	const balance = useMemo(() => accountBalance(account, cells, rates), [account, cells, rates]);
+	return useMemo(() => ({ balance, cells, rates }), [balance, cells, rates]);
+}
+
+/** The account's derived balance, valued into its own currency. */
 export function useAccountBalance(
 	db: Database,
 	account: Pick<Account, "id" | "currency" | "initialBalance">
 ): AccountBalance {
-	const cells = useAccountCells(db, account.id);
-	const { rates } = useValuationIn(db, account.currency);
-	return useMemo(() => accountBalance(account, cells, rates), [account, cells, rates]);
+	return useAccountBalanceDetails(db, account).balance;
 }
 
 /**

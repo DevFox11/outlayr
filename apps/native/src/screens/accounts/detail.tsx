@@ -13,10 +13,9 @@ import { TransactionRow } from "@/components/transaction-row";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountTransfers } from "@/data/account-transfers";
-import { useAccountBalance, useAccounts, useAccountTransactions } from "@/data/accounts";
+import { useAccountBalanceDetails, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import type { TransactionWithCategory } from "@/data/transactions";
-import { useValuationIn } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
@@ -24,6 +23,7 @@ import { groupByDay } from "@/domain/day-sections";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
 import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n/context";
+import { AccountBalanceChart } from "./components/account-balance-chart";
 
 export function AccountDetail({ id }: { id: string }) {
 	const db = useDatabase();
@@ -52,10 +52,9 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
 	const router = useRouter();
 	const t = useTranslation();
 	const { showCents } = useDisplaySettings().state;
-	const balance = useAccountBalance(db, account);
+	const { balance, cells, rates } = useAccountBalanceDetails(db, account);
 	const transactionRows = useAccountTransactions(db, account.id);
 	const transferRows = useAccountTransfers(db, account.id);
-	const { rates } = useValuationIn(db, account.currency);
 	const rows = useMemo(() => mergeByRecency(transactionRows, transferRows), [transactionRows, transferRows]);
 	const sections = useMemo(() => groupByDay(rows, account.currency, rates), [rows, account.currency, rates]);
 	const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
@@ -116,6 +115,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
 							)}
 						</View>
 						<Text className="font-sans-medium text-muted text-subtitle">{startedAt}</Text>
+						<AccountBalanceChart account={account} cells={cells} rates={rates} showCents={showCents} />
 					</View>
 				}
 				recycleItems={false}

@@ -34,6 +34,22 @@ const accounts = {
 			en: "{count} accounts",
 			es: "{count} cuentas",
 		}),
+		"accounts.chart.approximate": t({
+			en: "Approximate",
+			es: "Aproximado",
+		}),
+		"accounts.chart.heading": t({
+			en: "Balance history",
+			es: "Historial del saldo",
+		}),
+		"accounts.chart.summary": t({
+			en: "Balance history. {amount} on {date}.",
+			es: "Historial del saldo. {amount} el {date}.",
+		}),
+		"accounts.chart.summaryApproximate": t({
+			en: "Balance history. Approximately {amount} on {date}.",
+			es: "Historial del saldo. Aproximadamente {amount} el {date}.",
+		}),
 		"accounts.delete.message": t({
 			en: "Its transactions are kept — they just stop belonging to an account.",
 			es: "Sus transacciones se conservan; solo dejan de pertenecer a una cuenta.",
