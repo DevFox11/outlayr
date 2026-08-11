@@ -76,7 +76,20 @@ describe("logTransferBounds", () => {
 		}
 	);
 
+	/** A transfer synced from another timezone carries a `day` that is not the local
+	 * midnight of its `date`. Bounding a period on `day` would then put it in a
+	 * different month from a transaction recorded at the same instant. */
+	it("measures a period against the same column the transactions beside it use", () => {
+		for (const filter of ["week", "month"] as LogFilter[]) {
+			expect(logTransferBounds(scope(filter))?.floorOn).toBe("date");
+		}
+	});
+
+	it("pages the window on the day it was floored at, as the window itself is", () => {
+		expect(logTransferBounds(scope("all"))?.floorOn).toBe("day");
+	});
+
 	it("leaves the transfers tab every transfer ever recorded", () => {
-		expect(logTransferBounds(scope("transfers"))).toStrictEqual({ since: null, until: null });
+		expect(logTransferBounds(scope("transfers"))).toStrictEqual({ floorOn: "day", since: null, until: null });
 	});
 });

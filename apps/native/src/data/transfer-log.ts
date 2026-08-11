@@ -10,7 +10,15 @@ import { useAccounts } from "./accounts";
 import { useLiveQuery } from "./live-query";
 
 export interface TransferBounds {
-	/** Inclusive floor on `day`; null reaches back to the first transfer recorded. */
+	/**
+	 * Which column the floor is measured against, because the transaction read
+	 * beside it differs by scope: the window pages on `day`, a period filter
+	 * bounds on `date` (`log-filtered.ts`). Comparing a period against `day`
+	 * splits a transfer from a transaction at the same instant whenever the two
+	 * disagree — which is any row synced from a device in another timezone.
+	 */
+	floorOn: "date" | "day";
+	/** Inclusive floor; null reaches back to the first transfer recorded. */
 	since: Date | null;
 	/** Exclusive ceiling on `date`; null stops at now. */
 	until: Date | null;
@@ -35,15 +43,16 @@ export function logTransferBounds(scope: TransferScope): TransferBounds | null {
 	const unit = filterPeriodUnit(scope.filter);
 	if (unit) {
 		return {
+			floorOn: "date",
 			since: cursorStart(unit, scope.cursor, scope.firstWeekday),
 			until: cursorEnd(unit, scope.cursor, scope.firstWeekday),
 		};
 	}
 	switch (scope.filter) {
 		case "all":
-			return { since: scope.page.reachedEnd ? null : scope.page.floor, until: null };
+			return { floorOn: "day", since: scope.page.reachedEnd ? null : scope.page.floor, until: null };
 		case "transfers":
-			return { since: null, until: null };
+			return { floorOn: "day", since: null, until: null };
 		default:
 			return null;
 	}
@@ -64,12 +73,12 @@ export function useLogTransfers(db: Database, nowMs: number, bounds: TransferBou
 						: and(
 								isNull(transfers.deletedAt),
 								lte(transfers.date, new Date(nowMs)),
-								bounds.since ? gte(transfers.day, bounds.since) : undefined,
+								bounds.since ? gte(bounds.floorOn === "day" ? transfers.day : transfers.date, bounds.since) : undefined,
 								bounds.until ? lt(transfers.date, bounds.until) : undefined
 							)
 				)
 				.orderBy(desc(transfers.day), desc(transfers.date)),
-		[nowMs, bounds === null, bounds?.since?.getTime() ?? 0, bounds?.until?.getTime() ?? 0]
+		[nowMs, bounds === null, bounds?.floorOn, bounds?.since?.getTime() ?? 0, bounds?.until?.getTime() ?? 0]
 	);
 	const names = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
 	return useMemo(() => rows.map((row) => toTransferLogRow(row, names)), [rows, names]);
