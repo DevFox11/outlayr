@@ -1,3 +1,4 @@
+import { utcDateString } from "@outlayr/money/dates";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -8,6 +9,8 @@ import { accountsRepo } from "./accounts-core";
 import { transfersRepo } from "./transfers-core";
 
 const DAY = new Date(Date.UTC(2026, 7, 9));
+const OFFICIAL_VES_PER_USD = 55.5;
+const P2P_VES_PER_USD = 60;
 
 function makeDb(): Database {
 	const sqlite = new BetterSqlite3(":memory:");
@@ -54,8 +57,11 @@ function makeDb(): Database {
 		);
 		CREATE TABLE exchangeRates (
 			quote text NOT NULL, rateType text NOT NULL, date text NOT NULL, rate real NOT NULL,
+			fetchedAt integer NOT NULL, source text NOT NULL,
 			PRIMARY KEY (quote, rateType, date)
 		);
+		INSERT INTO exchangeRates (quote, rateType, date, rate, fetchedAt, source)
+		VALUES ('VES', 'official', '${utcDateString(DAY.getTime())}', ${OFFICIAL_VES_PER_USD}, 0, 'test');
 	`);
 	return drizzle(sqlite) as unknown as Database;
 }
@@ -105,6 +111,84 @@ describe("transfersRepo.create", () => {
 
 		expect(row.day.getTime()).toBe(startOfDay(DAY).getTime());
 		expect(row.month.getTime()).toBe(firstOfMonth(DAY).getTime());
+	});
+
+	it("freezes both legs at the same USD value when the transfer went at the official rate", async () => {
+		const db = makeDb();
+		const { from, to } = await twoAccounts(db);
+
+		const id = await transfersRepo.create(db, {
+			...baseInput(from, to),
+			exchangeRate: OFFICIAL_VES_PER_USD,
+			exchangeRateType: "official",
+			toAmount: 100 * OFFICIAL_VES_PER_USD,
+		});
+		const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
+
+		expect(row.fromAmountUsd).toBe(100);
+		expect(row.toAmountUsd).toBe(100);
+	});
+
+	/**
+	 * Deliberate: a transfer struck away from the market moves net worth by the
+	 * spread, because that is what happened. Pinning the arriving leg to what left
+	 * would deny a real gain.
+	 */
+	it("books the spread when the user transfers at a rate the market does not quote", async () => {
+		const db = makeDb();
+		const { from, to } = await twoAccounts(db);
+
+		const id = await transfersRepo.create(db, {
+			...baseInput(from, to),
+			exchangeRate: P2P_VES_PER_USD,
+			exchangeRateType: "custom",
+			toAmount: 100 * P2P_VES_PER_USD,
+		});
+		const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
+
+		expect(row.fromAmountUsd).toBe(100);
+		expect(row.toAmountUsd).toBeCloseTo((100 * P2P_VES_PER_USD) / OFFICIAL_VES_PER_USD, 5);
+		expect(row.toAmountUsd).toBeGreaterThan(row.fromAmountUsd as number);
+	});
+
+	it("values each leg in its own currency when the money moves the other way", async () => {
+		const db = makeDb();
+		const from = await accountsRepo.create(db, { currency: "VES", name: "Banesco" });
+		const to = await accountsRepo.create(db, { currency: "USD", name: "Zinli" });
+
+		const id = await transfersRepo.create(db, {
+			...baseInput(from, to),
+			exchangeRate: P2P_VES_PER_USD,
+			exchangeRateType: "custom",
+			fromAmount: 100 * P2P_VES_PER_USD,
+			fromCurrency: "VES",
+			toAmount: 100,
+			toCurrency: "USD",
+		});
+		const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
+
+		expect(row.fromAmountUsd).toBeCloseTo((100 * P2P_VES_PER_USD) / OFFICIAL_VES_PER_USD, 5);
+		expect(row.toAmountUsd).toBe(100);
+	});
+
+	it("leaves only the leg it cannot price unvalued", async () => {
+		const db = makeDb();
+		const from = await accountsRepo.create(db, { currency: "ARS", name: "Galicia" });
+		const to = await accountsRepo.create(db, { currency: "USD", name: "Zinli" });
+
+		const id = await transfersRepo.create(db, {
+			...baseInput(from, to),
+			exchangeRate: 1200,
+			exchangeRateType: "official",
+			fromAmount: 120_000,
+			fromCurrency: "ARS",
+			toAmount: 100,
+			toCurrency: "USD",
+		});
+		const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
+
+		expect(row.fromAmountUsd).toBeNull();
+		expect(row.toAmountUsd).toBe(100);
 	});
 
 	it("writes no fee transaction when there is no fee", async () => {

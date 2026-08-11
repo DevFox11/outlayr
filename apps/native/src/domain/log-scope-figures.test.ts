@@ -1,6 +1,6 @@
 import { currencyTotals } from "./currency-totals";
 import { netTotal } from "./log-measure";
-import { scopeTotals } from "./log-scope-figures";
+import { scopeHasFigures, scopeTotals } from "./log-scope-figures";
 import { buildRateTable } from "./valuation";
 
 const JULY_5 = new Date(Date.UTC(2026, 6, 5, 12));
@@ -113,5 +113,16 @@ describe("a transfer never reaches the scope header", () => {
 		const totals = scopeTotals([scopeEntry(500, { excludedFromTotals: true })], "USD");
 		expect(totals.shown.expense).toBe(0);
 		expect(totals.shown.count).toBe(0);
+	});
+
+	// Which is why the header asks first: +0.00 / -0.00 over a screen full of
+	// rows reads as a broken figure, not as "none of this is spending".
+	it("says a scope of nothing but transfers has no figures to print", () => {
+		expect(scopeHasFigures([scopeEntry(500, { excludedFromTotals: true })])).toBe(false);
+		expect(scopeHasFigures([scopeEntry(40), scopeEntry(500, { excludedFromTotals: true })])).toBe(true);
+	});
+
+	it("says an empty scope has no figures to print", () => {
+		expect(scopeHasFigures([])).toBe(false);
 	});
 });

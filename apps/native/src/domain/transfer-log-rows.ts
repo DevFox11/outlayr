@@ -36,19 +36,12 @@ export interface TransferLogRow {
 	recurringCoefficient: number;
 	recurringEndDate: null;
 	recurringType: number;
-	/** What marks the row a transfer: unsigned, transfer blue, out of every total. */
 	transferId: string;
-	/** The arriving leg, for the meta line on a cross-currency row. */
 	transferTo: { amount: number; currency: string } | null;
 }
 
 const UNKNOWN_ACCOUNT = "—";
 
-/**
- * The outbound leg carries the figure, and `income: false` keeps every consumer
- * on the two directions it already knows — the row is drawn unsigned from
- * `transferId`, not from a third value nothing else understands.
- */
 export function toTransferLogRow(
 	transfer: TransferLogSource,
 	accountNames: ReadonlyMap<string, string>

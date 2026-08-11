@@ -76,15 +76,6 @@ export function toTransferCell(row: Omit<CellRow, "income">, income: boolean): C
 	};
 }
 
-/**
- * One account's transfer legs as cells, unbounded by date and in the same shape
- * {@link accountCellQuery} returns, so `accountBalance` sums both together
- * without knowing a transfer exists.
- *
- * A fee is NOT read here. It is an ordinary transaction on one of the two
- * accounts, so the transaction query already counts it, and counting it again
- * here would debit the account twice.
- */
 export async function transferCells(db: SpendDb, accountId: string): Promise<CurrencyCell[]> {
 	const [outbound, inbound] = await Promise.all([
 		transferOutboundQuery(db, accountId),
@@ -98,7 +89,6 @@ export interface AccountTransferCell extends CurrencyCell {
 	accountId: string;
 }
 
-/** {@link transferCells} for every account at once, for the accounts overview. */
 export async function allTransferCells(db: SpendDb): Promise<AccountTransferCell[]> {
 	const [outbound, inbound] = await Promise.all([transfersOutboundQuery(db), transfersInboundQuery(db)]);
 

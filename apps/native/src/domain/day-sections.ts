@@ -18,11 +18,7 @@ export interface DayGroupable {
 	 */
 	date?: Date;
 	day: Date;
-	/**
-	 * A transfer leg: listed with the day's entries but never part of its total.
-	 * Money moving between two accounts the user owns is not income and not
-	 * spending, so a period that counted it would report a figure nobody spent.
-	 */
+	/** Set on a transfer leg: money moved between the user's own accounts is neither income nor spending. */
 	excludedFromTotals?: boolean;
 	income: boolean;
 }

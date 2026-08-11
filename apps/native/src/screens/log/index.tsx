@@ -22,7 +22,7 @@ import {
 import { setNumberSetting } from "@/data/settings-core";
 import { useLoggedTransactions } from "@/data/transactions";
 import { LOG_PAGE_DAYS } from "@/data/transactions-core";
-import { useLogTransfers } from "@/data/transfer-log";
+import { logTransferBounds, useLogTransfers } from "@/data/transfer-log";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
@@ -35,7 +35,7 @@ import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
 import { type LogMeasure, logMeasureFromStored, storedLogMeasure } from "@/domain/log-measure";
 import { cursorStart } from "@/domain/log-period-cursor";
-import { scopeTotals } from "@/domain/log-scope-figures";
+import { scopeHasFigures, scopeTotals } from "@/domain/log-scope-figures";
 import { sparklineIsPositive, sparklineRange, sparklineSeries } from "@/domain/log-sparkline";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
 import type { RateTable } from "@/domain/valuation";
@@ -149,7 +149,17 @@ function LogContent({ db }: { db: Database }) {
 	const cursor = cursors[cursorUnit] ?? new Date(nowMs);
 
 	const { rows: windowRows, reachedEnd } = useLoggedTransactions(db, nowMs, days);
-	const transferRows = useLogTransfers(db, nowMs, null);
+	const transferBounds = useMemo(
+		() =>
+			logTransferBounds({
+				cursor,
+				filter,
+				firstWeekday,
+				page: { floor: windowRows.at(-1)?.day ?? null, reachedEnd },
+			}),
+		[cursor, filter, firstWeekday, windowRows, reachedEnd]
+	);
+	const transferRows = useLogTransfers(db, nowMs, transferBounds);
 	const filteredRows = useFilteredTransactions(db, nowMs, {
 		categoryId: activeCategoryId,
 		cursor,
@@ -177,12 +187,9 @@ function LogContent({ db }: { db: Database }) {
 		[globalCurrency, favouriteCurrencies, insights, valued]
 	);
 	const sparkline = useSparkline(db, nowMs, logViewLineGraph, measure, period, firstWeekday, currency, rates);
+	const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
 	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
 
-	// Merged rather than queried together: a transfer and a transaction share no
-	// columns, and both lists already arrive newest-first.
-	// `transfers` needs no query of its own: the rows are already loaded, and a
-	// filter that shows only them is a choice about the merge, not about SQL.
 	const listRows = useMemo(() => {
 		if (filter === "transfers") {
 			return transferRows;
@@ -196,16 +203,15 @@ function LogContent({ db }: { db: Database }) {
 	// The same rows the sections are built from, so the figure and the day
 	// subtotals under it agree to the cent.
 	const scopeFigures = useMemo(
-		() => (filter === "all" || visibleRows.length === 0 ? null : scopeTotals(visibleRows, currency, rates)),
+		() => (filter === "all" || !scopeHasFigures(visibleRows) ? null : scopeTotals(visibleRows, currency, rates)),
 		[filter, visibleRows, currency, rates]
 	);
 
 	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
-	const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
 	// A transfer id is not a transaction id: routing it to `transactions/[id]`
 	// opens a screen with nothing behind it.
 	const openRow = (rowId: string) =>
-		router.push(transferIds.has(rowId) ? `/transfers/${rowId}` : `/transactions/${rowId}`);
+		router.push(transferIds.has(rowId) ? `/transactions/transfers/${rowId}` : `/transactions/${rowId}`);
 	const openRowMenu = (rowId: string, scheduled: boolean) => {
 		if (transferIds.has(rowId)) {
 			openRow(rowId);
@@ -247,9 +253,6 @@ function LogContent({ db }: { db: Database }) {
 		/>
 	);
 
-	// Counted over the merged list, not `windowRows`: a ledger holding only
-	// transfers has no transactions and would otherwise print "nothing logged"
-	// over rows that are on screen.
 	if (listRows.length === 0 && filter === "all") {
 		return (
 			<>

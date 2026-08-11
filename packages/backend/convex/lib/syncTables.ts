@@ -69,12 +69,6 @@ export const transactionFields = {
 	transferId: v.optional(v.union(v.string(), v.null())),
 };
 
-/**
- * `fromAmount` and `toAmount` are the legs — money that moved — and are always
- * a pure conversion of each other at `exchangeRate`. A fee is a `transactions`
- * row carrying `transferId`, never a column here, so nothing on this table has
- * to be reconciled against it.
- */
 export const transferFields = {
 	date: v.number(),
 	dateCreated: v.number(),

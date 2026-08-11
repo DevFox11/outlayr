@@ -69,15 +69,7 @@ const ERASED_TEMPLATE = {
 	sortOrder: 0,
 } as const;
 
-/**
- * The two account ids stay: they are `notNull`, and blanking them would point
- * the row at an account that does not exist the moment foreign keys are on.
- * Everything that says how much moved is stripped, which is what the erase is
- * for.
- *
- * Exported for the same reason as {@link ERASED_TRANSACTION}: a column added to
- * `transfers` and not to this constant survives on the tombstone.
- */
+/** The two account ids stay: both are `notNull`, so blanking them would point the row at no account. */
 export const ERASED_TRANSFER = {
 	date: ERASED_DATE,
 	dateCreated: ERASED_DATE,

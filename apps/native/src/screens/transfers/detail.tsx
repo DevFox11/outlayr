@@ -1,6 +1,15 @@
 import { Host } from "@expo/ui";
 import { HStack, List, Section, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
-import { contentShape, foregroundStyle, listStyle, onTapGesture, shapes } from "@expo/ui/swift-ui/modifiers";
+import {
+	accessibilityAddTraits,
+	accessibilityElement,
+	accessibilityLabel,
+	contentShape,
+	foregroundStyle,
+	listStyle,
+	onTapGesture,
+	shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import { eq } from "drizzle-orm";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
@@ -104,9 +113,18 @@ export default function TransferDetail({ id }: { id: string }) {
 				) : null}
 
 				<Section>
-					{/* A `Button` here does not deliver its press inside a native List;
-					    the row has to carry its own hit area. */}
-					<HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(confirmDelete)]}>
+					{/* A `Button` here does not deliver its press inside a native List, so the row
+					    carries its own hit area — and an `onTapGesture` is invisible to VoiceOver
+					    without the accessibility modifiers that follow it. */}
+					<HStack
+						modifiers={[
+							contentShape(shapes.rectangle()),
+							onTapGesture(confirmDelete),
+							accessibilityElement("combine"),
+							accessibilityAddTraits(["isButton"]),
+							accessibilityLabel(t("transfers.delete.row")),
+						]}
+					>
 						<SwiftText modifiers={[foregroundStyle(colors.danger)]}>{t("transfers.delete.row")}</SwiftText>
 						<Spacer />
 					</HStack>

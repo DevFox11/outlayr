@@ -15,7 +15,6 @@ const TILE = 38;
 const NODE = 22;
 const STEM_WEIGHT = 1.5;
 const ROW_H = 36;
-/** Carries the stem the last few points into the tile, so the line is unbroken. */
 const STUB = 9;
 const CAPSULE = shapes.capsule();
 
@@ -25,15 +24,16 @@ const FIGURE = font({ design: "monospaced", size: 12 });
 const PILL = font({ design: "monospaced", size: 12 });
 
 export interface TransferGapPrompt {
-	feeLabel: string;
+	/** Null where a fee cannot explain the gap — a negative one would be a refund. */
+	feeLabel: string | null;
 	message: string;
-	onFee: () => void;
-	onRate: () => void;
-	rateLabel: string;
+	onFee: (() => void) | null;
+	onRate: (() => void) | null;
+	/** Null once accepting it would not move the gap — the rate already is this. */
+	rateLabel: string | null;
 }
 
 export interface TransferLegView {
-	/** Already formatted in the account's own currency. */
 	balance: string;
 	currency: string;
 	emoji: string | null;
@@ -123,7 +123,10 @@ function Leg({
 			</VStack>
 			<VStack alignment="leading" spacing={1}>
 				<SwiftText modifiers={[KICKER, foregroundStyle(mutedColor)]}>{leg.kicker}</SwiftText>
-				<SwiftText modifiers={[NAME, foregroundStyle(tintColor)]}>{leg.name}</SwiftText>
+				<HStack spacing={5}>
+					<SwiftText modifiers={[NAME, foregroundStyle(tintColor)]}>{leg.name}</SwiftText>
+					<Image color={mutedColor} size={11} systemName="chevron.up.chevron.down" />
+				</HStack>
 			</VStack>
 			<Spacer />
 			<VStack alignment="trailing" spacing={1}>
@@ -246,12 +249,16 @@ export function TransferEditorSlip({
 					</HStack>
 					<HStack spacing={6}>
 						<Gutter height={ROW_H} transferColor={stemColor} />
-						<Button modifiers={[buttonStyle("plain")]} onPress={gap.onFee}>
-							<SwiftText modifiers={pill(transferColor)}>{gap.feeLabel}</SwiftText>
-						</Button>
-						<Button modifiers={[buttonStyle("plain")]} onPress={gap.onRate}>
-							<SwiftText modifiers={pill(mutedColor)}>{gap.rateLabel}</SwiftText>
-						</Button>
+						{gap.feeLabel && gap.onFee ? (
+							<Button modifiers={[buttonStyle("plain")]} onPress={gap.onFee}>
+								<SwiftText modifiers={pill(transferColor)}>{gap.feeLabel}</SwiftText>
+							</Button>
+						) : null}
+						{gap.rateLabel && gap.onRate ? (
+							<Button modifiers={[buttonStyle("plain")]} onPress={gap.onRate}>
+								<SwiftText modifiers={pill(mutedColor)}>{gap.rateLabel}</SwiftText>
+							</Button>
+						) : null}
 						<Spacer />
 					</HStack>
 				</VStack>

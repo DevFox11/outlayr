@@ -170,11 +170,6 @@ function versioned(doc: Doc<SyncedTable>) {
 	};
 }
 
-/**
- * `T` is inferred from the literal each case passes, so `doc` is still checked
- * against that table's own generated document type — the switch below keeps its
- * type safety while costing one line per table instead of six.
- */
 async function writeRow<T extends SyncedTable>(
 	ctx: MutationCtx,
 	table: T,

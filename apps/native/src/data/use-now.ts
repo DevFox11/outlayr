@@ -6,7 +6,6 @@ import { transactions, transfers } from "@/db/schema";
 import { clockAdvances, nextClockTick } from "@/domain/clock";
 import { subscribeToTable } from "./table-invalidation";
 
-/** Both tables the ledger's `lte(date, now)` bound is measured against. */
 const BOUNDED_TABLES: string[] = [getTableName(transactions), getTableName(transfers)];
 
 let readingMs = Date.now();

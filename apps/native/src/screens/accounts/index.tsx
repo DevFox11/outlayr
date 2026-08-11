@@ -137,7 +137,7 @@ function AccountsReady({ db }: { db: Database }) {
 									modifiers={[
 										contentShape(shapes.rectangle()),
 										accessibilityLabel(t("transfers.a11y.new")),
-										onTapGesture(() => router.push("/transfers/create")),
+										onTapGesture(() => router.push("/transactions/transfers/create")),
 									]}
 									spacing={12}
 								>

@@ -69,13 +69,17 @@ function solveFee(values: TransferValues, decimals: number): number | null {
 	return money(values.sent * values.rate - values.arrived, decimals);
 }
 
-function solveRate(values: TransferValues): number | null {
+function solveRate(values: TransferValues, decimals: number): number | null {
 	const divisor = convertedPortion(values);
 	if (!finitePositive(divisor)) {
 		return null;
 	}
 	const rate = preFeeArrival(values) / divisor;
-	return finitePositive(rate) ? rate : null;
+	if (!finitePositive(rate)) {
+		return null;
+	}
+	const rounded = roundMoney(rate, decimals);
+	return finitePositive(rounded) ? rounded : null;
 }
 
 export function solveTransfer(values: TransferValues, solveFor: TransferField, decimals: number): number | null {
@@ -87,7 +91,7 @@ export function solveTransfer(values: TransferValues, solveFor: TransferField, d
 		case "fee":
 			return solveFee(values, decimals);
 		default:
-			return solveRate(values);
+			return solveRate(values, decimals);
 	}
 }
 

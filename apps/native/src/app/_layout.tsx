@@ -29,9 +29,8 @@ import { authClient } from "@/lib/auth-client";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { convex } from "@/lib/convex";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
-import { ACCOUNT_DETENT, identityPickerDetent } from "@/lib/sheet-detents";
+import { ACCOUNT_DETENT, identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
-import { useColors } from "@/theme/use-colors";
 
 preventAutoHideAsync();
 
@@ -183,7 +182,6 @@ const FIRST_RUN_STEP = {
  */
 function RootStack() {
 	const db = useDatabase();
-	const colors = useColors();
 	const t = useTranslation();
 	const onboarded = useOnboardingSettled(db);
 	const deferred = useAccountDeferred(db);
@@ -322,23 +320,19 @@ function RootStack() {
 					}}
 				/>
 
-				<Stack.Screen name="transfers/[id]" options={{ presentation: "modal" }}>
+				<Stack.Screen
+					name="transactions/transfers/create"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [TRANSFER_DETENT, 1],
+						sheetGrabberVisible: true,
+					}}
+				>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />
 					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
 				</Stack.Screen>
-				<Stack.Screen
-					name="transfers/create"
-					options={{
-						/** The screen container fills the sheet; the content view only spans
-						 * its own intrinsic height, so without this the sheet's default
-						 * surface shows through under the CTA. */
-						contentStyle: { backgroundColor: colors.background },
-						presentation: "formSheet",
-						sheetAllowedDetents: "fitToContents",
-						sheetGrabberVisible: true,
-					}}
-				>
+				<Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "modal" }}>
 					<Stack.Header transparent />
 					<Stack.Screen.BackButton displayMode="minimal" />
 					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>

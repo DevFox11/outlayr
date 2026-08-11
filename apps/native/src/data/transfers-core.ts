@@ -12,7 +12,6 @@ import { localRateLookup } from "./rates";
 export interface TransferFeeInput {
 	amount: number;
 	categoryId: string | null;
-	/** Names the transfer it was charged for, so the log row is not a bare figure. */
 	note?: string;
 	side: FeeSide;
 }
@@ -33,7 +32,6 @@ export interface TransferInput {
 
 export type Transfer = typeof transfers.$inferSelect;
 
-/** The category the last fee was filed under, so the next one costs no question. */
 export function lastFeeCategoryId(db: Database): string | null {
 	return getMetaSync(db, META_KEYS.lastTransferFeeCategory);
 }
@@ -66,7 +64,6 @@ function touchesAccount(accountId: string) {
 }
 
 export const transfersRepo = {
-	/** Live transfers touching an account, for the delete confirmation's count. */
 	async countForAccount(db: Database, accountId: string): Promise<number> {
 		const [row] = await db
 			.select({ total: count() })
@@ -75,9 +72,10 @@ export const transfersRepo = {
 		return row?.total ?? 0;
 	},
 	/**
-	 * The fee is written as an ordinary expense carrying `transferId`, never as a
-	 * column here — so every spending aggregate counts it exactly as it counts any
-	 * other expense, and the legs stay a pure conversion of each other.
+	 * Each leg freezes at its own market rate, so a transfer struck away from the
+	 * market moves net worth by the spread — which is what happened. Receiving
+	 * 6000 Bs for $100 when the market pays 5550 is $8.11 earned, and pinning both
+	 * legs to the source would deny it.
 	 */
 	async create(db: Database, input: TransferInput): Promise<string> {
 		assertMovable(input);
@@ -141,11 +139,6 @@ export const transfersRepo = {
 		return await db.select().from(transfers).where(isNull(transfers.deletedAt)).orderBy(transfers.date);
 	},
 
-	/**
-	 * A fee has no meaning without the transfer that produced it, so it is
-	 * tombstoned in the same breath. Both rows are money the ledger has to stop
-	 * counting at the same instant, or a balance is briefly wrong.
-	 */
 	async softDelete(db: Database, id: string, now: Date = new Date()): Promise<void> {
 		await withTransaction(db, async () => {
 			await db
@@ -159,11 +152,6 @@ export const transfersRepo = {
 		});
 	},
 
-	/**
-	 * Unlike a transaction, a transfer cannot be detached from a deleted account:
-	 * both legs are `notNull`, and a leg pointing at an account that is gone would
-	 * silently corrupt the surviving side's balance.
-	 */
 	async softDeleteForAccount(db: Database, accountId: string, now: Date = new Date()): Promise<void> {
 		const doomed = await db
 			.select({ id: transfers.id })

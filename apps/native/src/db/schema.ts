@@ -74,10 +74,6 @@ export const transfers = sqliteTable(
 		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
 		day: integer("day", { mode: "timestamp_ms" }).notNull(),
 		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		/**
-		 * Always exactly `toAmount / fromAmount`: a fee is a separate transaction
-		 * and never a term in the legs, so nothing contaminates the stored rate.
-		 */
 		exchangeRate: real("exchangeRate"),
 		/** `EntryRateType` from `@outlayr/money/rates`: official | eur_reference | custom. */
 		exchangeRateType: text("exchangeRateType"),

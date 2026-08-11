@@ -115,14 +115,14 @@ describe("transferCells projects each leg into the shape the balance engine alre
 	it("carries each leg's own currency and frozen USD value across a conversion", async () => {
 		const db = makeDb();
 		await addTransfer(db, {
-			exchangeRate: 55.5,
+			exchangeRate: 60,
 			exchangeRateType: "custom",
 			fromAccountId: "usd",
 			fromAmount: 100,
 			fromAmountUsd: 100,
 			id: "t1",
 			toAccountId: "ves",
-			toAmount: 5550,
+			toAmount: 6000,
 			toAmountUsd: 100,
 			toCurrency: "VES",
 		});
@@ -131,7 +131,7 @@ describe("transferCells projects each leg into the shape the balance engine alre
 		const [into] = await transferCells(db, "ves");
 
 		expect(out).toMatchObject({ amount: 100, amountUsd: 100, currencyCode: "USD", income: false });
-		expect(into).toMatchObject({ amount: 5550, amountUsd: 100, currencyCode: "VES", income: true });
+		expect(into).toMatchObject({ amount: 6000, amountUsd: 100, currencyCode: "VES", income: true });
 	});
 
 	it("ignores a transfer that does not touch the account", async () => {

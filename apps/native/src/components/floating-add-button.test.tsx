@@ -106,7 +106,7 @@ describe("FloatingAddButton", () => {
 
 		fireEvent.press(getByText("log.add.transfer"));
 
-		expect(mockPush).toHaveBeenCalledWith("/transfers/create");
+		expect(mockPush).toHaveBeenCalledWith("/transactions/transfers/create");
 	});
 
 	it("hides the transfer row with only one account, since both legs are required", async () => {

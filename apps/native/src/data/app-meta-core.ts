@@ -38,9 +38,8 @@ export const META_KEYS = {
 	 */
 	lastTransactionAccount: "lastTransactionAccount",
 	/**
-	 * The category the last transfer fee was filed under. Device-local: it is a
-	 * convenience for the next fee, not a fact about the ledger, and seeding a
-	 * "Fees" category instead would touch every existing ledger on sync.
+	 * The category the last transfer fee was filed under; seeds the next fee's
+	 * Category row. Device-local, like every key left out of `SYNCED_META_KEYS`.
 	 */
 	lastTransferFeeCategory: "lastTransferFeeCategory",
 	/**

@@ -78,11 +78,6 @@ interface RowAmountProps extends RowAmountLabelInput {
 	isFuture: boolean;
 	/** The import review's excluded state: still legible, visibly not counted. */
 	struck?: boolean;
-	/**
-	 * Net-zero money, printed unsigned: a transfer is neither earned nor spent,
-	 * and a sign on it would claim a direction the ledger does not have. The
-	 * colour cue lives on the row's icon, not here.
-	 */
 	transfer?: boolean;
 }
 

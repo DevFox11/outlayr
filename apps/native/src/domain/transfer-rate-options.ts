@@ -22,10 +22,6 @@ function perUsd(currency: string, dateKey: string, rates: RateTable): number | n
 	return rate !== null && Number.isFinite(rate) && rate > 0 ? rate : null;
 }
 
-/**
- * How many units of `to` one unit of `from` buys, crossed through their USD
- * legs because the table quotes everything per USD.
- */
 export function marketRateFor(from: string, to: string, date: Date, rates: RateTable): number | null {
 	if (from === to) {
 		return 1;

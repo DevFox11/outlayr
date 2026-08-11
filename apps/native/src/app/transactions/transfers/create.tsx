@@ -1,5 +1,4 @@
 import { Stack, useRouter } from "expo-router";
-
 import { toolbarIcon } from "@/components/toolbar-icons";
 import TransferEditor from "@/components/transfer-editor";
 import { useTranslation } from "@/i18n/context";
@@ -19,7 +18,7 @@ export default function TransferCreateScreen() {
 				/>
 			</Stack.Toolbar>
 
-			<TransferEditor />
+			<TransferEditor onDone={() => router.back()} />
 		</>
 	);
 }

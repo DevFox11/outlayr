@@ -9,7 +9,7 @@ import {
 	VStack,
 } from "@expo/ui/swift-ui";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
-import { datePickerStyle, foregroundStyle, labelsHidden, multilineTextAlignment } from "@expo/ui/swift-ui/modifiers";
+import { datePickerStyle, foregroundStyle, labelsHidden, lineLimit, padding } from "@expo/ui/swift-ui/modifiers";
 import { Calendar03Icon, StickyNote01Icon } from "@hugeicons-pro/core-stroke-rounded";
 import { TransactionFormRowIcon } from "@/components/transaction-form/row-icon";
 import { BODY, ROW, rowLabel } from "@/components/transaction-form/style";
@@ -39,6 +39,8 @@ export function TransferEditorDetailsCard({
 }: TransferEditorDetailsCardProps) {
 	return (
 		<VStack spacing={0}>
+			<Divider modifiers={hairline} />
+
 			<HStack modifiers={ROW} spacing={12}>
 				<TransactionFormRowIcon color={mutedColor} icon={Calendar03Icon} />
 				<SwiftText modifiers={[BODY, rowLabel]}>{dateLabel}</SwiftText>
@@ -53,16 +55,19 @@ export function TransferEditorDetailsCard({
 
 			<Divider modifiers={hairline} />
 
-			<HStack modifiers={ROW} spacing={12}>
-				<TransactionFormRowIcon color={mutedColor} icon={StickyNote01Icon} />
-				<SwiftText modifiers={[BODY, rowLabel]}>{noteLabel}</SwiftText>
-				<Spacer />
+			<VStack alignment="leading" modifiers={[padding({ vertical: 14 })]} spacing={8}>
+				<HStack spacing={12}>
+					<TransactionFormRowIcon color={mutedColor} icon={StickyNote01Icon} />
+					<SwiftText modifiers={[BODY, rowLabel]}>{noteLabel}</SwiftText>
+					<Spacer />
+				</HStack>
 				<TextField
-					modifiers={[BODY, foregroundStyle(tintColor), multilineTextAlignment("trailing")]}
+					axis="vertical"
+					modifiers={[BODY, foregroundStyle(tintColor), lineLimit({ max: 5, min: 2 })]}
 					placeholder={notePlaceholder}
 					text={noteState}
 				/>
-			</HStack>
+			</VStack>
 		</VStack>
 	);
 }

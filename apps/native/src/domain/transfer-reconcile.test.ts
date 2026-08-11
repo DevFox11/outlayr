@@ -2,6 +2,7 @@ import { solveTransfer, type TransferValues, transferDisplay, transferGap, trans
 
 const VES_DECIMALS = 2;
 const USD_DECIMALS = 2;
+const RATE_DECIMALS = 4;
 
 function sourceFeeCase(overrides: Partial<TransferValues> = {}): TransferValues {
 	return { arrived: 5400.15, fee: 2.7, feeSide: "source", rate: 55.5, sent: 100, ...overrides };
@@ -68,6 +69,23 @@ describe("solveTransfer at rate 1", () => {
 	it("handles a same-currency wire charged on the receiving side", () => {
 		const wire: TransferValues = { arrived: 0, fee: 25, feeSide: "destination", rate: 1, sent: 500 };
 		expect(solveTransfer(wire, "arrived", USD_DECIMALS)).toBe(475);
+	});
+});
+
+describe("solveTransfer rounds a rate to the decimals it was asked for", () => {
+	const repeating: TransferValues = { arrived: 33_333.33, fee: 0, feeSide: "source", rate: 0, sent: 1000 };
+
+	it("keeps four decimals of a repeating rate", () => {
+		expect(solveTransfer(repeating, "rate", RATE_DECIMALS)).toBe(33.3333);
+	});
+
+	it("gives a coarser rate to a caller that asked for fewer decimals", () => {
+		expect(solveTransfer(repeating, "rate", USD_DECIMALS)).toBe(33.33);
+	});
+
+	it("refuses a rate too small to survive the rounding it was asked for", () => {
+		const tiny: TransferValues = { arrived: 1, fee: 0, feeSide: "source", rate: 0, sent: 1_000_000 };
+		expect(solveTransfer(tiny, "rate", RATE_DECIMALS)).toBeNull();
 	});
 });
 
@@ -172,12 +190,15 @@ describe("transferGap surfaces the unexplained difference", () => {
 		const values: TransferValues = { arrived: 5600, fee: 0, feeSide: "source", rate: 55.5, sent: 100 };
 		expect(transferGap(values, VES_DECIMALS)).toBe(-50);
 	});
+
+	it("leaves only the rate to explain more arriving than was ever converted", () => {
+		const values: TransferValues = { arrived: 5600, fee: 0, feeSide: "source", rate: 55.5, sent: 100 };
+		expect(solveTransfer({ ...values, feeSide: "destination" }, "fee", VES_DECIMALS)).toBeNull();
+		expect(solveTransfer(values, "rate", RATE_DECIMALS)).toBe(56);
+	});
 });
 
 describe("resolving a gap as a fee", () => {
-	// The gap is a destination-currency figure. Carrying it to the source side
-	// means dividing by the rate and rounding to source cents, which cannot
-	// always be exact — and the leftover shows up as a gap the user cannot clear.
 	const gapped: TransferValues = { arrived: 5400, fee: 0, feeSide: "source", rate: 55.5, sent: 100 };
 
 	it("clears the gap completely when the fee lands on the destination side", () => {

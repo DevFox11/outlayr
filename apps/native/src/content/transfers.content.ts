@@ -2,17 +2,9 @@ import { type Dictionary, t } from "intlayer";
 
 const transfers = {
 	content: {
-		"transfers.a11y.editAmount": t({
-			en: "Edit amount",
-			es: "Editar el monto",
-		}),
 		"transfers.a11y.editArrival": t({
 			en: "Edit the amount that arrived",
 			es: "Editar el monto que llegó",
-		}),
-		"transfers.a11y.editRate": t({
-			en: "Edit the exchange rate",
-			es: "Editar la tasa de cambio",
 		}),
 		"transfers.a11y.new": t({
 			en: "New transfer",

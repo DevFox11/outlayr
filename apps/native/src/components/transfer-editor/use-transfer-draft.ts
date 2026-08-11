@@ -66,12 +66,6 @@ export interface TransferDraft {
 	toggleFeeSide: () => void;
 }
 
-/**
- * Every derived figure the screen shows, so the view stays composition.
- *
- * Nothing here is read inside a native callback: @expo/ui holds the first
- * render's handler, so a value captured in one is frozen at mount.
- */
 export function useTransferDraft(db: Database): TransferDraft {
 	const accounts = useAccounts(db);
 	const [fromId, setFromId] = useState<string | null>(accounts[0]?.id ?? null);
@@ -139,7 +133,6 @@ export function useTransferDraft(db: Database): TransferDraft {
 			setArrivalPinned(false);
 		};
 
-	/** Choosing the account already on the other side swaps them rather than refusing. */
 	function pick(
 		nextId: string,
 		otherId: string | null,
@@ -209,7 +202,6 @@ export function useTransferDraft(db: Database): TransferDraft {
 			if (solved !== null) {
 				setRateTypeState("custom");
 				setCustomRateText(numberToNumpad(solved, RATE_DISPLAY_DECIMALS));
-				setArrivalPinned(false);
 			}
 		},
 		sent,

@@ -24,7 +24,6 @@ interface RateOption {
 }
 
 interface TransferEditorHeroProps {
-	/** Already formatted; null on a same-currency transfer, which has no second figure. */
 	arrivedA11y: string;
 	arrivedLabel: string | null;
 	chipColor: string;
