@@ -41,6 +41,26 @@ function formatRate(rate: number | null): string {
 
 type Draft = ReturnType<typeof useTransferDraft>;
 
+/** No resolution to offer: no fee or rate the screen could invent gives a blocked
+ * transfer legs, so the prompt only names what does not add up. */
+function blockPrompt(draft: Draft, t: ReturnType<typeof useTranslation>): TransferGapPrompt | null {
+	if (draft.block === null) {
+		return null;
+	}
+	return {
+		feeLabel: null,
+		message:
+			draft.block.kind === "rate"
+				? t("transfers.rate.unavailable")
+				: t("transfers.gap.unaccounted", {
+						amount: formatSignedAmount(draft.block.shortfall, draft.feeCurrency),
+					}),
+		onFee: null,
+		onRate: null,
+		rateLabel: null,
+	};
+}
+
 /** Only offers a resolution that would actually move the gap: a negative one is no
  * fee, and a rate the transfer already carries changes nothing. */
 function gapPrompt(draft: Draft, t: ReturnType<typeof useTranslation>): TransferGapPrompt | null {
@@ -147,7 +167,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
 		}
 	};
 
-	const gap = gapPrompt(draft, t);
+	const gap = blockPrompt(draft, t) ?? gapPrompt(draft, t);
 
 	const chooseLabel = t("transfers.selectAccount");
 
@@ -164,7 +184,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
 						<TransferEditorHero
 							arrivedA11y={t("transfers.a11y.editArrival")}
 							arrivedLabel={
-								draft.crossCurrency
+								draft.crossCurrency && draft.arrived !== null
 									? t("transfers.arrives", { amount: formatAmount(draft.arrived, draft.toCurrency) })
 									: null
 							}

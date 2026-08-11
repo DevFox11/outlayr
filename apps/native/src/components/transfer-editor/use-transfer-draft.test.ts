@@ -4,9 +4,12 @@ import type { Database } from "@/db/client";
 import { type TransferDraft, useTransferDraft } from "./use-transfer-draft";
 
 const mockAccounts = [
-	{ currency: "USD", id: "usd", initialBalance: 0, name: "Checking" } as Account,
-	{ currency: "VES", id: "ves", initialBalance: 0, name: "Bolivares" } as Account,
+	{ currency: "USD", id: "usd", initialBalance: 0, name: "Zinli" } as Account,
+	{ currency: "VES", id: "ves", initialBalance: 0, name: "Banesco" } as Account,
+	{ currency: "EUR", id: "eur", initialBalance: 0, name: "Wise" } as Account,
 ];
+
+const mockRates = new Map<string, number>();
 
 jest.mock("@/data/accounts", () => ({
 	useAccountBalance: () => ({ total: 0 }),
@@ -14,7 +17,7 @@ jest.mock("@/data/accounts", () => ({
 }));
 
 jest.mock("@/data/transfer-rates", () => ({
-	useTransferRates: () => ({ get: () => null }),
+	useTransferRates: () => ({ get: (code: string) => mockRates.get(code) ?? null }),
 }));
 
 jest.mock("@/data/transfers-core", () => ({
@@ -24,13 +27,23 @@ jest.mock("@/data/transfers-core", () => ({
 const SENT = "1000";
 const PINNED_ARRIVAL = "33333.33";
 const TYPED_RATE = "30";
+const OFFICIAL_VES_PER_USD = 55.5;
+
+beforeEach(() => {
+	mockRates.clear();
+});
+
+async function draft(): Promise<{ current: TransferDraft }> {
+	const { result } = await renderHook(() => useTransferDraft({} as Database));
+	return result;
+}
 
 /**
  * 1000 at 33.3333 lands three cents short of 33,333.33, so no rate carried at
  * four decimals reproduces this arrival — the residual a silent re-derive hides.
  */
 async function overpaidDraft(): Promise<{ current: TransferDraft }> {
-	const { result } = await renderHook(() => useTransferDraft({} as Database));
+	const result = await draft();
 	await act(async () => {
 		result.current.setRateType("custom");
 	});
@@ -45,6 +58,50 @@ async function overpaidDraft(): Promise<{ current: TransferDraft }> {
 	});
 	await act(async () => {
 		result.current.setArrived(PINNED_ARRIVAL);
+	});
+	return result;
+}
+
+/** $10 at the official 55,50 arrives as Bs 555, and the bank takes exactly all of it. */
+async function feeEatsArrivalDraft(): Promise<{ current: TransferDraft }> {
+	const result = await draft();
+	await act(async () => {
+		result.current.setSent("10");
+	});
+	await act(async () => {
+		result.current.toggleFeeSide();
+	});
+	await act(async () => {
+		result.current.setFee("555");
+	});
+	return result;
+}
+
+/** $10 at the official 55,50 arrives as Bs 555, and the bank takes Bs 600 of it. */
+async function feeOverArrivalDraft(): Promise<{ current: TransferDraft }> {
+	const result = await draft();
+	await act(async () => {
+		result.current.setSent("10");
+	});
+	await act(async () => {
+		result.current.toggleFeeSide();
+	});
+	await act(async () => {
+		result.current.setFee("600");
+	});
+	return result;
+}
+
+async function customRateDraft(): Promise<{ current: TransferDraft }> {
+	const result = await draft();
+	await act(async () => {
+		result.current.setRateType("custom");
+	});
+	await act(async () => {
+		result.current.setCustomRate("600");
+	});
+	await act(async () => {
+		result.current.setSent("100");
 	});
 	return result;
 }
@@ -83,5 +140,120 @@ describe("accepting the suggested rate", () => {
 			result.current.resolveAsRate();
 		});
 		expect(result.current.gapAmount).toBe(-0.03);
+	});
+});
+
+describe("a fee larger than what reaches the other side", () => {
+	beforeEach(() => {
+		mockRates.set("VES", OFFICIAL_VES_PER_USD);
+	});
+
+	it("cannot be saved as a transfer that credits the fee", async () => {
+		const result = await feeOverArrivalDraft();
+		expect(result.current.legs).toBeNull();
+		expect(result.current.canSave).toBe(false);
+	});
+
+	it("claims no arrival and names what the fee overshoots by", async () => {
+		const result = await feeOverArrivalDraft();
+		expect(result.current.arrived).toBeNull();
+		expect(result.current.block).toStrictEqual({ kind: "fee", shortfall: -45 });
+	});
+
+	it("keeps the official rate it was quoted at instead of one the fee implies", async () => {
+		const result = await feeOverArrivalDraft();
+		expect(result.current.effectiveRate).toBe(OFFICIAL_VES_PER_USD);
+	});
+
+	it("names the shortfall in the sender's own currency when the sender charges it", async () => {
+		const result = await draft();
+		await act(async () => {
+			result.current.setSent("10");
+		});
+		await act(async () => {
+			result.current.setFee("600");
+		});
+		expect(result.current.feeCurrency).toBe("USD");
+		expect(result.current.block).toStrictEqual({ kind: "fee", shortfall: -590 });
+	});
+
+	it("saves again once the fee fits inside the arrival", async () => {
+		const result = await feeOverArrivalDraft();
+		await act(async () => {
+			result.current.setFee("55");
+		});
+		expect(result.current.arrived).toBe(500);
+		expect(result.current.legs).toStrictEqual({ exchangeRate: 55.5, fromAmount: 10, toAmount: 555 });
+		expect(result.current.block).toBeNull();
+		expect(result.current.canSave).toBe(true);
+	});
+});
+
+describe("a pair no rate table covers", () => {
+	it("refuses a transfer whose fee takes every last unit that arrives", async () => {
+		const result = await feeEatsArrivalDraft();
+
+		expect(result.current.canSave).toBe(false);
+		expect(result.current.legs).toBeNull();
+		expect(result.current.block).not.toBeNull();
+	});
+
+	it("refuses to invent one out of the fee", async () => {
+		const result = await feeOverArrivalDraft();
+		expect(result.current.legs).toBeNull();
+		expect(result.current.effectiveRate).toBeNull();
+		expect(result.current.canSave).toBe(false);
+	});
+
+	it("asks for a rate rather than leaving the button dead", async () => {
+		const result = await feeOverArrivalDraft();
+		expect(result.current.block).toStrictEqual({ kind: "rate" });
+	});
+});
+
+describe("swapping a transfer that carries a custom rate", () => {
+	beforeEach(() => {
+		mockRates.set("VES", OFFICIAL_VES_PER_USD);
+	});
+
+	it("converts 100 USD at the typed 600 before the swap", async () => {
+		const result = await customRateDraft();
+		expect(result.current.legs).toStrictEqual({ exchangeRate: 600, fromAmount: 100, toAmount: 60_000 });
+	});
+
+	it("values the inverted pair at its own rate, never at the one typed for the other", async () => {
+		const result = await customRateDraft();
+		await act(async () => {
+			result.current.swap();
+		});
+		expect(result.current.legs).toStrictEqual({ exchangeRate: 0.018, fromAmount: 100, toAmount: 1.8 });
+		expect(result.current.customRatePadText).toBe("0.0180");
+	});
+
+	it("gives the rate back to the pair it was typed for", async () => {
+		const result = await customRateDraft();
+		await act(async () => {
+			result.current.swap();
+		});
+		await act(async () => {
+			result.current.swap();
+		});
+		expect(result.current.customRatePadText).toBe("600");
+		expect(result.current.effectiveRate).toBe(600);
+	});
+});
+
+describe("changing the destination under a custom rate", () => {
+	beforeEach(() => {
+		mockRates.set("VES", OFFICIAL_VES_PER_USD);
+		mockRates.set("EUR", 0.9);
+	});
+
+	it("values the new pair at its own rate", async () => {
+		const result = await customRateDraft();
+		await act(async () => {
+			result.current.chooseTo(mockAccounts[2] ?? null);
+		});
+		expect(result.current.legs).toStrictEqual({ exchangeRate: 0.9, fromAmount: 100, toAmount: 90 });
 	});
 });

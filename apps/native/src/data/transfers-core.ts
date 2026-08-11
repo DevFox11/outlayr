@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, or } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, or } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
@@ -61,6 +61,26 @@ function assertMovable(input: TransferInput): void {
 
 function touchesAccount(accountId: string) {
 	return or(eq(transfers.fromAccountId, accountId), eq(transfers.toAccountId, accountId));
+}
+
+/**
+ * Statements only, no transaction of its own: `withTransactionAsync` does not
+ * nest (`db/transaction.ts`), so the account delete this belongs to has to
+ * supply the transaction — one opened here splits the cascade into a commit each.
+ */
+export async function tombstoneTransfersTouchingAccount(db: Database, accountId: string, now: Date): Promise<void> {
+	const doomed = db
+		.select({ id: transfers.id })
+		.from(transfers)
+		.where(and(isNull(transfers.deletedAt), touchesAccount(accountId)));
+	await db
+		.update(transactions)
+		.set({ deletedAt: now, updatedAt: now })
+		.where(and(isNull(transactions.deletedAt), inArray(transactions.transferId, doomed)));
+	await db
+		.update(transfers)
+		.set({ deletedAt: now, updatedAt: now })
+		.where(and(isNull(transfers.deletedAt), touchesAccount(accountId)));
 }
 
 export const transfersRepo = {
@@ -150,16 +170,5 @@ export const transfersRepo = {
 				.set({ deletedAt: now, updatedAt: now })
 				.where(and(eq(transactions.transferId, id), isNull(transactions.deletedAt)));
 		});
-	},
-
-	async softDeleteForAccount(db: Database, accountId: string, now: Date = new Date()): Promise<void> {
-		const doomed = await db
-			.select({ id: transfers.id })
-			.from(transfers)
-			.where(and(isNull(transfers.deletedAt), touchesAccount(accountId)));
-		for (const { id } of doomed) {
-			// biome-ignore lint/performance/noAwaitInLoops: one expo-sqlite connection backs each withTransaction, so concurrent statements would interleave inside the same transaction
-			await transfersRepo.softDelete(db, id, now);
-		}
 	},
 };

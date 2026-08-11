@@ -63,13 +63,48 @@ function makeDb(): Database {
 		INSERT INTO exchangeRates (quote, rateType, date, rate, fetchedAt, source)
 		VALUES ('VES', 'official', '${utcDateString(DAY.getTime())}', ${OFFICIAL_VES_PER_USD}, 0, 'test');
 	`);
-	return drizzle(sqlite) as unknown as Database;
+	const db = drizzle(sqlite) as unknown as Database;
+	// withTransaction runs its task bare when the client has no async transaction
+	// API, which would make every rollback assertion below vacuously true.
+	Object.assign(db.$client as object, {
+		withTransactionAsync: async (task: () => Promise<void>) => {
+			sqlite.exec("BEGIN");
+			try {
+				await task();
+				sqlite.exec("COMMIT");
+			} catch (error) {
+				sqlite.exec("ROLLBACK");
+				throw error;
+			}
+		},
+	});
+	return db;
+}
+
+function severTheDetach(db: Database): void {
+	(db.$client as unknown as { exec: (sql: string) => void }).exec(`
+		CREATE TRIGGER jetsam BEFORE UPDATE OF accountId ON transactions
+		BEGIN SELECT RAISE(ABORT, 'the app died mid-delete'); END;
+	`);
 }
 
 async function twoAccounts(db: Database) {
 	const from = await accountsRepo.create(db, { currency: "USD", name: "Zinli" });
 	const to = await accountsRepo.create(db, { currency: "VES", name: "Banesco" });
 	return { from, to };
+}
+
+async function addEntry(db: Database, accountId: string, id: string): Promise<void> {
+	await db.insert(transactions).values({
+		accountId,
+		amount: 9,
+		date: DAY,
+		day: DAY,
+		id,
+		income: false,
+		month: DAY,
+		updatedAt: DAY,
+	});
 }
 
 const baseInput = (from: string, to: string) => ({
@@ -278,16 +313,7 @@ describe("transfersRepo.softDelete", () => {
 		const db = makeDb();
 		const { from, to } = await twoAccounts(db);
 		const id = await transfersRepo.create(db, baseInput(from, to));
-		await db.insert(transactions).values({
-			accountId: from,
-			amount: 9,
-			date: DAY,
-			day: DAY,
-			id: "other",
-			income: false,
-			month: DAY,
-			updatedAt: DAY,
-		});
+		await addEntry(db, from, "other");
 
 		await transfersRepo.softDelete(db, id, DAY);
 		const [other] = await db.select().from(transactions).where(eq(transactions.id, "other"));
@@ -340,5 +366,42 @@ describe("deleting an account takes its transfers with it", () => {
 		await transfersRepo.create(db, { ...baseInput(to, from), fromCurrency: "VES", toCurrency: "USD" });
 
 		expect(await transfersRepo.countForAccount(db, from)).toBe(2);
+	});
+});
+
+describe("an account delete that cannot finish", () => {
+	it("leaves every one of its transfers live", async () => {
+		const db = makeDb();
+		const { from, to } = await twoAccounts(db);
+		await transfersRepo.create(db, baseInput(from, to));
+		await transfersRepo.create(db, baseInput(from, to));
+		await transfersRepo.create(db, { ...baseInput(to, from), fromCurrency: "VES", toCurrency: "USD" });
+		await addEntry(db, from, "groceries");
+		severTheDetach(db);
+
+		await expect(accountsRepo.softDelete(db, from, DAY)).rejects.toThrow(/mid-delete/);
+
+		const rows = await db.select().from(transfers);
+		expect(rows).toHaveLength(3);
+		expect(rows.filter((row) => row.deletedAt === null)).toHaveLength(3);
+		expect(await transfersRepo.countForAccount(db, from)).toBe(3);
+		expect((await accountsRepo.listActive(db)).map((row) => row.id)).toContain(from);
+		const [entry] = await db.select().from(transactions).where(eq(transactions.id, "groceries"));
+		expect(entry.accountId).toBe(from);
+	});
+
+	it("leaves the fee transaction live with its transfer", async () => {
+		const db = makeDb();
+		const { from, to } = await twoAccounts(db);
+		await transfersRepo.create(db, {
+			...baseInput(from, to),
+			fee: { amount: 2.7, categoryId: null, side: "source" },
+		});
+		severTheDetach(db);
+
+		await expect(accountsRepo.softDelete(db, from, DAY)).rejects.toThrow(/mid-delete/);
+
+		const [fee] = await db.select().from(transactions);
+		expect(fee.deletedAt).toBeNull();
 	});
 });
