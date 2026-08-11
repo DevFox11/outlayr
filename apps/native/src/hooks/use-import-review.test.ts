@@ -83,6 +83,8 @@ const MAPPING = {
 	category: 0,
 	currency: null,
 	date: 2,
+	exchangeRate: null,
+	exchangeRateType: null,
 	note: 1,
 	type: null,
 };

@@ -21,6 +21,8 @@ const DRAFT: MappingDraft = {
 	category: 1,
 	currency: null,
 	date: 0,
+	exchangeRate: null,
+	exchangeRateType: null,
 	note: 1,
 	type: null,
 };

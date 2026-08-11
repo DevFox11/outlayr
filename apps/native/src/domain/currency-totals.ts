@@ -1,4 +1,5 @@
 import { utcDateString } from "@outlayr/money/dates";
+import { isTransactionRateNeeded } from "./transaction-entry-rate";
 import { convertUsdSum, type RateTable } from "./valuation";
 
 export interface CurrencyBucket {
@@ -38,6 +39,8 @@ export interface CurrencyEntry {
 	 * USD value was frozen against.
 	 */
 	date?: Date;
+	exchangeRate?: number | null;
+	exchangeRateType?: string | null;
 	income: boolean;
 }
 
@@ -62,6 +65,8 @@ export interface CurrencyCell {
 	/** UTC `YYYY-MM-DD`; the empty string when the rows carried no date. */
 	dateKey: string;
 	income: boolean;
+	rateNeededAmount?: number;
+	rateNeededCount?: number;
 	/** Unsigned total of just the rows with no frozen USD value. */
 	unconvertedAmount: number;
 	unconvertedCount: number;
@@ -82,6 +87,8 @@ export function toCells(entries: readonly CurrencyEntry[]): CurrencyCell[] {
 				currencyCode,
 				dateKey,
 				income: entry.income,
+				rateNeededAmount: 0,
+				rateNeededCount: 0,
 				unconvertedAmount: 0,
 				unconvertedCount: 0,
 			};
@@ -92,6 +99,10 @@ export function toCells(entries: readonly CurrencyEntry[]): CurrencyCell[] {
 		if (entry.amountUsd == null) {
 			cell.unconvertedAmount += entry.amount;
 			cell.unconvertedCount += 1;
+			if (isTransactionRateNeeded(entry)) {
+				cell.rateNeededAmount = (cell.rateNeededAmount ?? 0) + entry.amount;
+				cell.rateNeededCount = (cell.rateNeededCount ?? 0) + 1;
+			}
 		} else {
 			cell.amountUsd += entry.amountUsd;
 		}
@@ -99,16 +110,18 @@ export function toCells(entries: readonly CurrencyEntry[]): CurrencyCell[] {
 	return [...cells.values()];
 }
 
-/**
- * A cell's magnitude in the global currency, falling back to its face value
- * when no rate reaches it. {@link cellFigures} keeps the split instead.
- */
+/** A cell's global-currency magnitude, excluding any unresolved foreign amount. */
 export function valueCell(cell: CurrencyCell, globalCurrency: string, rates?: RateTable): number {
-	if (cell.currencyCode === globalCurrency || !rates) {
+	if (cell.currencyCode === globalCurrency) {
 		return cell.amount;
 	}
-	const converted = convertUsdSum(cell.amountUsd, cell.dateKey, globalCurrency, rates);
-	return converted === null ? cell.amount : converted + cell.unconvertedAmount;
+	if (globalCurrency === "USD") {
+		return cell.amountUsd;
+	}
+	if (!rates) {
+		return 0;
+	}
+	return convertUsdSum(cell.amountUsd, cell.dateKey, globalCurrency, rates) ?? 0;
 }
 
 export interface CurrencyFigures {

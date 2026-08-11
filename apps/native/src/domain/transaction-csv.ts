@@ -7,7 +7,16 @@ import { minorUnitsFor } from "./money";
  * trip in any zone, and `Currency` exists at all because a row now carries one —
  * dropping it would restate a €12.50 lunch as $12.50 on the way back in.
  */
-export const CSV_HEADER = ["Date", "Note", "Amount", "Currency", "Category", "Type"] as const;
+export const CSV_HEADER = [
+	"Date",
+	"Note",
+	"Amount",
+	"Currency",
+	"Category",
+	"Type",
+	"Exchange Rate Type",
+	"Exchange Rate",
+] as const;
 
 export const CSV_TYPE_INCOME = "Income";
 export const CSV_TYPE_EXPENSE = "Expense";
@@ -18,6 +27,8 @@ export interface ExportableTransaction {
 	/** Null means the row stated none and takes the ledger's code. */
 	currency: string | null;
 	date: Date;
+	exchangeRate: number | null;
+	exchangeRateType: string | null;
 	income: boolean;
 	note: string;
 }
@@ -307,6 +318,7 @@ export function transactionsToCsv(rows: readonly ExportableTransaction[], ledger
 	const lines = [formatCsvRow(CSV_HEADER)];
 	for (const row of rows) {
 		const currency = row.currency ?? ledgerCurrency;
+		const hasRateMetadata = currency !== "USD";
 		lines.push(
 			formatCsvRow([
 				formatCsvDate(row.date),
@@ -315,6 +327,8 @@ export function transactionsToCsv(rows: readonly ExportableTransaction[], ledger
 				currency,
 				row.categoryName ?? "",
 				row.income ? CSV_TYPE_INCOME : CSV_TYPE_EXPENSE,
+				hasRateMetadata ? (row.exchangeRateType ?? "") : "",
+				hasRateMetadata && row.exchangeRate != null ? exactDecimal(row.exchangeRate) : "",
 			])
 		);
 	}

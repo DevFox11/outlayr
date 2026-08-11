@@ -618,6 +618,8 @@ export async function loadContributions(
 			categoryId: transactions.categoryId,
 			currency: transactions.currency,
 			date: transactions.date,
+			exchangeRate: transactions.exchangeRate,
+			exchangeRateType: transactions.exchangeRateType,
 			income: transactions.income,
 			parentId: categories.parentId,
 		})

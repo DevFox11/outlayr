@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -9,11 +9,12 @@ import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories-core";
+import { bumpRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { tagsRepo } from "@/data/tags-core";
 import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
-import { accounts, categories, tags, transactions } from "@/db/schema";
+import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { fetchMerchantImage, type LogoOutcome } from "@/lib/logo-fetch";
 import { glowFromImage } from "@/theme/glow";
@@ -72,6 +73,18 @@ jest.mock("number-flow-react-native", () => {
 jest.mock("react-native-safe-area-context", () => ({
 	useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
+jest.mock("../currency-picker-sheet", () => {
+	const React = require("react");
+	const { Pressable } = require("react-native");
+	return {
+		CurrencyPickerSheet: ({ onSelect }: { onSelect: (currency: string) => void }) =>
+			React.createElement(Pressable, {
+				accessibilityLabel: "test.selectCurrency.EUR",
+				accessibilityRole: "button",
+				onPress: () => onSelect("EUR"),
+			}),
+	};
+});
 jest.mock("@/lib/subscription-reminder-sync", () => ({
 	syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
 }));
@@ -406,6 +419,34 @@ async function seedTag(db: Database, id: string, name: string) {
 	});
 }
 
+const RATE_DATE = new Date("2026-08-10T12:00:00.000Z");
+
+async function seedStoredTransaction(
+	db: Database,
+	overrides: Partial<typeof transactions.$inferInsert> = {}
+): Promise<Transaction> {
+	const categoryId = overrides.categoryId ?? (await seedCategory(db));
+	const id = overrides.id ?? `tx-${Math.random()}`;
+	await db.insert(transactions).values({
+		amount: 100,
+		amountUsd: 1.801_802,
+		categoryId,
+		currency: "VES",
+		date: RATE_DATE,
+		day: RATE_DATE,
+		exchangeRate: 55.5,
+		exchangeRateType: "custom",
+		id,
+		income: false,
+		month: RATE_DATE,
+		note: "Market purchase",
+		updatedAt: RATE_DATE,
+		...overrides,
+	});
+	const [row] = await db.select().from(transactions).where(eq(transactions.id, id));
+	return row;
+}
+
 function hasSwiftText(tree: JsonNode, value: string): boolean {
 	return findByProp(tree, "text", value) !== null;
 }
@@ -458,6 +499,33 @@ function findButtonWithText(
 		const found = findButtonWithText(child, text);
 		if (found) {
 			return found;
+		}
+	}
+	return null;
+}
+
+function findFunctionProp(node: JsonNode | JsonNode[] | null, key: string): ((value: unknown) => void) | null {
+	if (node == null) {
+		return null;
+	}
+	if (Array.isArray(node)) {
+		for (const child of node) {
+			const found = findFunctionProp(child, key);
+			if (found) {
+				return found;
+			}
+		}
+		return null;
+	}
+	if (typeof node.props?.[key] === "function") {
+		return node.props[key] as (value: unknown) => void;
+	}
+	for (const child of node.children ?? []) {
+		if (typeof child !== "string") {
+			const found = findFunctionProp(child, key);
+			if (found) {
+				return found;
+			}
 		}
 	}
 	return null;
@@ -1488,5 +1556,607 @@ describe("TransactionForm account attachment", () => {
 		expect(savedTx).toHaveLength(1);
 		expect(savedTx[0].accountId).toBe(accountId);
 		expect(await getMeta(db, META_KEYS.lastTransactionAccount)).toBe(accountId);
+	});
+});
+
+describe("TransactionForm entry-rate confirmation", () => {
+	it("seeds an edit from its frozen rate type and actual rate", async () => {
+		const db = dbHolder.current as Database;
+		const initial = await seedStoredTransaction(db);
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState).toEqual({
+			selected: true,
+		});
+		expect(screen.getAllByText("55.5 transaction.rate.perUsd").length).toBeGreaterThan(0);
+	});
+
+	it("opens a custom pending occurrence with the rate-needed confirmation visible", async () => {
+		const db = dbHolder.current as Database;
+		const initial = await seedStoredTransaction(db, {
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		expect(screen.getByText("transaction.rate.pendingTitle")).toBeTruthy();
+		expect(screen.getByText("transaction.rate.pendingBody").props.accessibilityLiveRegion).toBe("polite");
+	});
+
+	it("defaults a new non-USD entry to official and a USD entry to no rate type", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const vesCopy: LogAgainDraft = {
+			amount: 25,
+			categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "VES entry",
+		};
+		const ves = await render(
+			<Providers>
+				<TransactionForm copyOf={vesCopy} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+		expect(ves.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toEqual({
+			selected: true,
+		});
+		await ves.unmount();
+
+		const usd = await render(
+			<Providers>
+				<TransactionForm copyOf={{ ...vesCopy, currency: "USD" }} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+		expect(usd.queryByText("transaction.rate.title")).toBeNull();
+	});
+
+	it("removes EUR-reference when currency changes away from VES", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "VES entry",
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
+		await waitFor(() => {
+			expect(screen.getByRole("button", { name: "transaction.rate.eur_reference" }).props.accessibilityState).toEqual({
+				selected: true,
+			});
+		});
+		await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+
+		await waitFor(() => {
+			expect(screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toEqual({
+				selected: true,
+			});
+			expect(screen.queryByRole("button", { name: "transaction.rate.eur_reference" })).toBeNull();
+		});
+	});
+
+	it("clears an existing VES custom rate when the transaction currency changes to EUR", async () => {
+		const db = dbHolder.current as Database;
+		const initial = await seedStoredTransaction(db, {
+			currency: "VES",
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		expect(screen.getByRole("button", { name: "transaction.rate.editCustom" })).toHaveTextContent(/55\.5/);
+		await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+
+		await waitFor(() => {
+			expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState).toEqual({
+				selected: true,
+			});
+			expect(screen.getByRole("button", { name: "transaction.rate.editCustom" })).not.toHaveTextContent("55.5");
+		});
+	});
+
+	it("does not submit a blank custom rate", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "VES entry",
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect(await db.select().from(transactions)).toHaveLength(0);
+		expect(screen.getByText("transaction.rate.required")).toBeTruthy();
+	});
+
+	it("submits the exact positive custom rate the user confirmed", async () => {
+		const db = dbHolder.current as Database;
+		const prior = await seedStoredTransaction(db, { date: new Date("2026-08-01T12:00:00.000Z") });
+		const copyOf: LogAgainDraft = {
+			amount: 25,
+			categoryId: prior.categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "New entry",
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.5 transaction\.rate\.perUsd/));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		const saved = (await db.select().from(transactions)).find((row) => row.id !== prior.id);
+		expect(saved).toMatchObject({ exchangeRate: 55.5, exchangeRateType: "custom" });
+	});
+
+	it("submits a pressed official or EUR-reference suggestion as its selected policy without reusing prior custom", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		await db.insert(exchangeRates).values({
+			date: "2026-08-10",
+			fetchedAt: 1,
+			quote: "VES",
+			rate: 42,
+			rateType: "official",
+			source: "provider",
+		});
+		const copyOf: LogAgainDraft = {
+			amount: 84,
+			categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "Provider entry",
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			exchangeRate: 42,
+			exchangeRateType: "official",
+		});
+	});
+
+	it("submits an offered EUR-reference suggestion only when its EUR-official leg is cached", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		await db.insert(exchangeRates).values([
+			{ date: "2026-08-10", fetchedAt: 1, quote: "VES", rate: 50, rateType: "eur_reference", source: "provider" },
+			{ date: "2026-08-10", fetchedAt: 1, quote: "EUR", rate: 0.8, rateType: "official", source: "provider" },
+		]);
+		const copyOf: LogAgainDraft = {
+			amount: 100,
+			categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "EUR-reference entry",
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.eur_reference.*50 transaction\.rate\.perUsd/));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 2.5,
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
+	});
+
+	it("refreshes rate suggestions when the cache revision changes while the form remains open", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		const copyOf: LogAgainDraft = {
+			amount: 84,
+			categoryId,
+			currency: "VES",
+			customColor: null,
+			details: null,
+			emoji: null,
+			icon: null,
+			income: false,
+			note: "Open form",
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+		expect(screen.queryByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/)).toBeNull();
+
+		await act(async () => {
+			await db.insert(exchangeRates).values({
+				date: "2026-08-10",
+				fetchedAt: 1,
+				quote: "VES",
+				rate: 42,
+				rateType: "official",
+				source: "provider",
+			});
+			bumpRatesRevision();
+		});
+
+		await waitFor(() => {
+			expect(screen.getByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/)).toBeTruthy();
+		});
+	});
+
+	it("saving a pending custom edit replaces the pending triple with a frozen value", async () => {
+		const db = dbHolder.current as Database;
+		const pending = await seedStoredTransaction(db, {
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+			id: "pending",
+		});
+		await seedStoredTransaction(db, {
+			categoryId: pending.categoryId,
+			date: new Date("2026-08-01T12:00:00.000Z"),
+			id: "prior",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={pending} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.5 transaction\.rate\.perUsd/));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		const [saved] = await db.select().from(transactions).where(eq(transactions.id, pending.id));
+		expect(saved).toMatchObject({ amountUsd: 1.801_802, exchangeRate: 55.5, exchangeRateType: "custom" });
+	});
+
+	it("copy/log-again treats the old custom rate as a suggestion rather than silently copying it", async () => {
+		const db = dbHolder.current as Database;
+		const old = await seedStoredTransaction(db, { date: new Date("2026-08-01T12:00:00.000Z") });
+		const copyOf: LogAgainDraft = {
+			amount: old.amount,
+			categoryId: old.categoryId,
+			currency: old.currency,
+			customColor: old.customColor,
+			details: old.details,
+			emoji: old.emoji,
+			icon: old.icon,
+			income: old.income,
+			note: old.note,
+		};
+		const screen = await render(
+			<Providers>
+				<TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		expect(screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toEqual({
+			selected: true,
+		});
+		expect(screen.getAllByText("55.5 transaction.rate.perUsd").length).toBeGreaterThan(0);
+	});
+
+	it("re-resolves an official suggestion after the transaction currency changes", async () => {
+		const db = dbHolder.current as Database;
+		const categoryId = await seedCategory(db);
+		await db.insert(exchangeRates).values([
+			{ date: "2026-08-10", fetchedAt: 1, quote: "VES", rate: 42, rateType: "official", source: "provider" },
+			{ date: "2026-08-10", fetchedAt: 1, quote: "EUR", rate: 0.8, rateType: "official", source: "provider" },
+		]);
+		const screen = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={{
+						amount: 84,
+						categoryId,
+						currency: "VES",
+						customColor: null,
+						details: null,
+						emoji: null,
+						icon: null,
+						income: false,
+						note: "Currency change",
+					}}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/));
+		await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 105,
+			exchangeRate: 0.8,
+			exchangeRateType: "official",
+		});
+	});
+
+	it("invalidates a prior-custom suggestion when the transaction date changes", async () => {
+		const db = dbHolder.current as Database;
+		const prior = await seedStoredTransaction(db, { date: new Date("2026-08-01T12:00:00.000Z") });
+		const screen = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={{
+						amount: 25,
+						categoryId: prior.categoryId,
+						currency: "VES",
+						customColor: null,
+						details: null,
+						emoji: null,
+						icon: null,
+						income: false,
+						note: "Date change",
+					}}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>
+		);
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.5 transaction\.rate\.perUsd/));
+		const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+		await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions)).map((row) => row.id)).toStrictEqual([prior.id]);
+		expect(screen.getByText("transaction.rate.required")).toBeTruthy();
+	});
+
+	it("keeps an explicitly entered custom rate when the transaction date changes", async () => {
+		const db = dbHolder.current as Database;
+		const initial = await seedStoredTransaction(db, { date: new Date("2026-08-01T12:00:00.000Z") });
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+		const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+		await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("re-resolves an existing official rate when the transaction date changes", async () => {
+		const db = dbHolder.current as Database;
+		await db.insert(exchangeRates).values({
+			date: "2026-08-09",
+			fetchedAt: 1,
+			quote: "VES",
+			rate: 40,
+			rateType: "official",
+			source: "provider",
+		});
+		const initial = await seedStoredTransaction(db, {
+			amountUsd: 2,
+			exchangeRate: 50,
+			exchangeRateType: "official",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+		await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-08-09T12:00:00.000Z").getTime() } }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 2.5,
+			exchangeRate: 40,
+			exchangeRateType: "official",
+		});
+	});
+
+	it("re-resolves an existing official rate when the transaction currency changes", async () => {
+		const db = dbHolder.current as Database;
+		await db.insert(exchangeRates).values({
+			date: "2026-08-10",
+			fetchedAt: 1,
+			quote: "EUR",
+			rate: 0.8,
+			rateType: "official",
+			source: "provider",
+		});
+		const initial = await seedStoredTransaction(db, {
+			amountUsd: 2,
+			exchangeRate: 50,
+			exchangeRateType: "official",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 125,
+			currency: "EUR",
+			exchangeRate: 0.8,
+			exchangeRateType: "official",
+		});
+	});
+
+	it("re-resolves both legs of an existing EUR-reference rate when the date changes", async () => {
+		const db = dbHolder.current as Database;
+		await db.insert(exchangeRates).values([
+			{
+				date: "2026-08-09",
+				fetchedAt: 1,
+				quote: "VES",
+				rate: 50,
+				rateType: "eur_reference",
+				source: "provider",
+			},
+			{ date: "2026-08-09", fetchedAt: 1, quote: "EUR", rate: 0.8, rateType: "official", source: "provider" },
+		]);
+		const initial = await seedStoredTransaction(db, {
+			amountUsd: 2,
+			exchangeRate: 45,
+			exchangeRateType: "eur_reference",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+		await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-08-09T12:00:00.000Z").getTime() } }));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 2.5,
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
+	});
+
+	it("preserves a high-precision custom suggestion when saving", async () => {
+		const db = dbHolder.current as Database;
+		const prior = await seedStoredTransaction(db, {
+			date: new Date("2026-08-01T12:00:00.000Z"),
+			exchangeRate: 55.555_555,
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm
+					copyOf={{
+						amount: 100,
+						categoryId: prior.categoryId,
+						currency: "VES",
+						customColor: null,
+						details: null,
+						emoji: null,
+						icon: null,
+						income: false,
+						note: "Precise suggestion",
+					}}
+					db={db}
+					mode="create"
+					onDone={() => {}}
+				/>
+			</Providers>
+		);
+
+		await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.555555/));
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		const saved = (await db.select().from(transactions)).find((row) => row.id !== prior.id);
+		expect(saved).toMatchObject({
+			exchangeRate: 55.555_555,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("preserves the exact frozen rate when an unrelated edit is saved", async () => {
+		const db = dbHolder.current as Database;
+		const initial = await seedStoredTransaction(db, {
+			amountUsd: 1.8,
+			exchangeRate: 55.555_555,
+			exchangeRateType: "custom",
+		});
+		const screen = await render(
+			<Providers>
+				<TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+			</Providers>
+		);
+
+		const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+		await act(async () => saveButton?.props.onButtonPress());
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 1.8,
+			exchangeRate: 55.555_555,
+			exchangeRateType: "custom",
+		});
 	});
 });

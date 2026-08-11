@@ -39,6 +39,8 @@ export function resolveImportMapping(draft: MappingDraft): MappingResolution {
 				category,
 				currency: draft.currency,
 				date: draft.date,
+				exchangeRate: draft.exchangeRate,
+				exchangeRateType: draft.exchangeRateType,
 				note: draft.note,
 				type: draft.type,
 			},

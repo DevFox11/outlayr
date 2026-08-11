@@ -112,6 +112,8 @@ async function add(
 		amount: number;
 		currency: string | null;
 		amountUsd?: number | null;
+		exchangeRate?: number | null;
+		exchangeRateType?: string | null;
 		date?: Date;
 	}
 ): Promise<string> {
@@ -124,6 +126,8 @@ async function add(
 		currency: row.currency,
 		date,
 		day: date,
+		exchangeRate: row.exchangeRate ?? null,
+		exchangeRateType: row.exchangeRateType ?? null,
 		id,
 		income: false,
 		month: date,
@@ -233,6 +237,97 @@ describe("a row kept under a currency nobody stated", () => {
 });
 
 describe("backfillCanonicalUsd", () => {
+	it("completes a stored custom rate without replacing it", async () => {
+		const db = makeDb();
+		const id = await add(db, { amount: 100, currency: "EUR", exchangeRate: 0.8, exchangeRateType: "custom" });
+		expect(await backfillCanonicalUsd(db)).toBe(1);
+		const [row] = await db
+			.select({
+				amountUsd: transactions.amountUsd,
+				exchangeRate: transactions.exchangeRate,
+				exchangeRateType: transactions.exchangeRateType,
+			})
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		expect(row).toStrictEqual({ amountUsd: 125, exchangeRate: 0.8, exchangeRateType: "custom" });
+	});
+
+	it("retries EUR-reference under its stored policy", async () => {
+		const db = makeDb();
+		await db.insert(exchangeRates).values({
+			date: "2026-07-28",
+			fetchedAt: JULY_28.getTime(),
+			quote: "VES",
+			rate: 50,
+			rateType: "eur_reference",
+			source: "frankfurter",
+		});
+		await seedRate(db);
+		const id = await add(db, { amount: 100, currency: "VES", exchangeRateType: "eur_reference" });
+		expect(await backfillCanonicalUsd(db)).toBe(1);
+		const [row] = await db
+			.select({ exchangeRate: transactions.exchangeRate, exchangeRateType: transactions.exchangeRateType })
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		expect(row).toStrictEqual({ exchangeRate: 50, exchangeRateType: "eur_reference" });
+	});
+
+	it("never replaces a supplied provider rate while filling amountUsd", async () => {
+		const db = makeDb();
+		await seedRate(db);
+		const id = await add(db, {
+			amount: 100,
+			currency: "EUR",
+			exchangeRate: 0.8,
+			exchangeRateType: "official",
+		});
+
+		expect(await backfillCanonicalUsd(db)).toBe(1);
+		const [row] = await db
+			.select({
+				amountUsd: transactions.amountUsd,
+				exchangeRate: transactions.exchangeRate,
+				exchangeRateType: transactions.exchangeRateType,
+			})
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		expect(row).toStrictEqual({ amountUsd: 125, exchangeRate: 0.8, exchangeRateType: "official" });
+	});
+
+	it("does not count or rewrite a pending custom row even when an official rate exists", async () => {
+		const db = makeDb();
+		await seedRate(db);
+		const id = await add(db, { amount: 100, currency: "EUR", exchangeRate: null, exchangeRateType: "custom" });
+
+		expect(await backfillCanonicalUsd(db)).toBe(0);
+		const [row] = await db
+			.select({
+				amountUsd: transactions.amountUsd,
+				exchangeRate: transactions.exchangeRate,
+				exchangeRateType: transactions.exchangeRateType,
+			})
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		expect(row).toStrictEqual({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	it("drops an unrepresentable custom rate from the retry backlog", async () => {
+		const db = makeDb();
+		const id = await add(db, {
+			amount: Number.MAX_VALUE,
+			currency: "VES",
+			exchangeRate: Number.MIN_VALUE,
+			exchangeRateType: "custom",
+		});
+
+		expect(await backfillCanonicalUsd(db)).toBe(0);
+		const [row] = await db
+			.select({ exchangeRate: transactions.exchangeRate, exchangeRateType: transactions.exchangeRateType })
+			.from(transactions)
+			.where(eq(transactions.id, id));
+		expect(row).toStrictEqual({ exchangeRate: null, exchangeRateType: "custom" });
+		expect(await hasUncanonicalized(db)).toBe(false);
+	});
 	it("freezes a stamped foreign row at the rate of its own day", async () => {
 		const db = makeDb();
 		await seedRate(db);
@@ -272,6 +367,23 @@ describe("hasUncanonicalized", () => {
 		await add(db, { amount: 18.5, currency: null });
 
 		expect(await hasUncanonicalized(db)).toBe(false);
+	});
+
+	it("does not report pending custom as provider coverage backlog", async () => {
+		const db = makeDb();
+		await add(db, {
+			amount: 100,
+			currency: "VES",
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+
+		expect(await hasUncanonicalized(db)).toBe(false);
+		expect(await valuationCoverage(db)).toStrictEqual({
+			beyondRateHistory: 0,
+			converted: 0,
+			pending: 0,
+		});
 	});
 });
 
@@ -575,6 +687,28 @@ describe("backfillCanonicalUsd over a backlog", () => {
 		await addMany(db, total, "EUR", 0);
 
 		expect(await backfillCanonicalUsd(db)).toBe(total);
+		expect(await hasUncanonicalized(db)).toBe(false);
+	});
+
+	it("does not skip the next batch after sanitizing an invalid custom row", async () => {
+		const db = makeDb();
+		await seedRate(db);
+		await db.insert(transactions).values({
+			amount: Number.MAX_VALUE,
+			amountUsd: null,
+			currency: "VES",
+			date: JULY_28,
+			day: JULY_28,
+			exchangeRate: Number.MIN_VALUE,
+			exchangeRateType: "custom",
+			id: "r00000",
+			income: false,
+			month: JULY_28,
+			updatedAt: JULY_28,
+		});
+		await addMany(db, CANONICALIZE_BATCH, "EUR", 1);
+
+		expect(await backfillCanonicalUsd(db)).toBe(CANONICALIZE_BATCH);
 		expect(await hasUncanonicalized(db)).toBe(false);
 	});
 

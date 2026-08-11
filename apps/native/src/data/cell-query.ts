@@ -19,6 +19,10 @@ export const CELL_COLUMNS = {
 	currency: transactions.currency,
 	dateKey: UTC_DAY,
 	income: transactions.income,
+	rateNeeded: sum(
+		sql<number>`CASE WHEN ${transactions.exchangeRateType} = 'custom' AND ${transactions.exchangeRate} IS NULL AND ${transactions.amountUsd} IS NULL THEN ${transactions.amount} ELSE 0 END`
+	),
+	rateNeededRows: sql<number>`SUM(CASE WHEN ${transactions.exchangeRateType} = 'custom' AND ${transactions.exchangeRate} IS NULL AND ${transactions.amountUsd} IS NULL THEN 1 ELSE 0 END)`,
 	rows: count(),
 	total: sum(transactions.amount),
 	totalUsd: sum(transactions.amountUsd),
@@ -32,6 +36,8 @@ export interface CellRow {
 	currency: string | null;
 	dateKey: string;
 	income: boolean;
+	rateNeeded?: string | number | null;
+	rateNeededRows?: string | number | null;
 	rows: number;
 	// SQLite hands an aggregate back as a string through drizzle when the column
 	// is real, and as a number when it is integer.
@@ -50,6 +56,8 @@ export function toCurrencyCell(row: CellRow): CurrencyCell {
 		currencyCode: row.currency,
 		dateKey: row.dateKey,
 		income: row.income,
+		rateNeededAmount: Number(row.rateNeeded ?? 0),
+		rateNeededCount: Number(row.rateNeededRows ?? 0),
 		unconvertedAmount: Number(row.unconverted ?? 0),
 		unconvertedCount: Number(row.unconvertedRows ?? 0),
 	};

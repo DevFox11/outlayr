@@ -8,7 +8,19 @@ export interface CanonicalUsd {
 	exchangeRateType: string | null;
 }
 
-/** Nothing to freeze — the row aggregates at face value. */
+export interface CanonicalUsdInput {
+	amount: number;
+	/** Null means the entry is already in the ledger's display currency. */
+	currency: string | null;
+	date: Date;
+	displayCurrency: string;
+	/** An actual already-chosen rate, used verbatim after positive-finite validation. */
+	exchangeRate?: number | null;
+	/** Absent means official for a non-USD entry. */
+	exchangeRateType?: EntryRateType | null;
+}
+
+/** No honest USD value could be frozen; downstream policy decides presentation. */
 const UNRESOLVED: CanonicalUsd = {
 	amountUsd: null,
 	exchangeRate: null,
@@ -29,19 +41,11 @@ const DEFAULT_RATE_TYPE: EntryRateType = "official";
  * DIVIDED by it. `computeAmountUSD` does that division in scaled integers with
  * a single half-even rounding, which is why the arithmetic is not done here.
  *
- * Returns nulls rather than throwing when no rate is available; the row
- * aggregates at face value until a later pass fills it in.
+ * Returns nulls rather than throwing when no rate is available. Ordinary
+ * unresolved rows retain their native-currency value; a custom row awaiting
+ * its user-supplied rate is excluded from foreign scalar valuations.
  */
-export async function canonicalUsd(
-	lookup: RateLookup,
-	input: {
-		amount: number;
-		/** Null means the entry is already in the ledger's display currency. */
-		currency: string | null;
-		displayCurrency: string;
-		date: Date;
-	}
-): Promise<CanonicalUsd> {
+export async function canonicalUsd(lookup: RateLookup, input: CanonicalUsdInput): Promise<CanonicalUsd> {
 	const currency = input.currency ?? input.displayCurrency;
 
 	// A USD entry is already canonical, and its rate is 1 by definition.
@@ -53,21 +57,59 @@ export async function canonicalUsd(
 		};
 	}
 
+	const exchangeRateType = input.exchangeRateType ?? DEFAULT_RATE_TYPE;
+	if (exchangeRateType === "eur_reference" && currency !== "VES") {
+		return { amountUsd: null, exchangeRate: null, exchangeRateType };
+	}
+	if (exchangeRateType === "custom" && input.exchangeRate == null) {
+		return { amountUsd: null, exchangeRate: null, exchangeRateType };
+	}
+
 	const date = utcDateString(input.date.getTime());
+	let missingEurOfficialDependency = false;
+	const dependencyAwareLookup: RateLookup = async (quote, rateType, rateDate) => {
+		const row = await lookup(quote, rateType, rateDate);
+		if (quote === "EUR" && rateType === "official" && row === null) {
+			missingEurOfficialDependency = true;
+		}
+		return row;
+	};
 	try {
-		const exchangeRate = await resolveEntryRate(lookup, currency, DEFAULT_RATE_TYPE, undefined, date);
-		const amountUsd = await computeAmountUSD(lookup, {
+		const suppliedRate = input.exchangeRate;
+		let exchangeRate: number | null;
+		if (suppliedRate == null) {
+			exchangeRate = await resolveEntryRate(lookup, currency, exchangeRateType, undefined, date);
+		} else if (Number.isFinite(suppliedRate) && suppliedRate > 0) {
+			exchangeRate = suppliedRate;
+		} else {
+			exchangeRate = null;
+		}
+		if (exchangeRate === null) {
+			return { amountUsd: null, exchangeRate: null, exchangeRateType };
+		}
+		const amountUsd = await computeAmountUSD(dependencyAwareLookup, {
 			baseAmount: input.amount,
 			date,
 			exchangeRate,
-			exchangeRateType: DEFAULT_RATE_TYPE,
+			exchangeRateType,
 		});
-		return { amountUsd, exchangeRate, exchangeRateType: DEFAULT_RATE_TYPE };
+		return { amountUsd, exchangeRate, exchangeRateType };
 	} catch (error) {
 		// A validation failure cannot produce an honest figure — the same outcome as
 		// having no rate at all, and never a reason to refuse the write.
 		if (error instanceof MoneyValidationError) {
-			return UNRESOLVED;
+			const suppliedRate = input.exchangeRate;
+			const preserveRetryableEurReference =
+				exchangeRateType === "eur_reference" &&
+				missingEurOfficialDependency &&
+				suppliedRate != null &&
+				Number.isFinite(suppliedRate) &&
+				suppliedRate > 0;
+			return {
+				...UNRESOLVED,
+				exchangeRate: preserveRetryableEurReference ? suppliedRate : null,
+				exchangeRateType,
+			};
 		}
 		throw error;
 	}

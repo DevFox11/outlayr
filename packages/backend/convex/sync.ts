@@ -170,6 +170,52 @@ function versioned(doc: Doc<SyncedTable>) {
 	};
 }
 
+const TRANSACTION_VALUATION_FIELDS = new Set(["amountUsd", "exchangeRate", "exchangeRateType"]);
+const TRANSACTION_LEGACY_OPTIONAL_NULLABLE_FIELDS = new Set<keyof typeof transactionFields>([
+	"accountId",
+	"recurringAnchorDay",
+	"transferId",
+]);
+
+function transactionFieldsEqual(field: keyof typeof transactionFields, stored: unknown, incoming: unknown): boolean {
+	if (TRANSACTION_LEGACY_OPTIONAL_NULLABLE_FIELDS.has(field)) {
+		return Object.is(stored ?? null, incoming ?? null);
+	}
+	return Object.is(stored, incoming);
+}
+
+function transactionPolicyTieDecision(row: PushRow, existing: Doc<SyncedTable> | null): "existing" | "incoming" | null {
+	if (
+		row.table !== "transactions" ||
+		existing === null ||
+		row.deletedAt !== null ||
+		!("deletedAt" in existing) ||
+		existing.deletedAt !== null ||
+		row.updatedAt !== existing.updatedAt
+	) {
+		return null;
+	}
+	const stored = existing as Doc<"transactions">;
+	const incoming = row.fields as Doc<"transactions">;
+	for (const field of Object.keys(transactionFields) as (keyof typeof transactionFields)[]) {
+		if (!(TRANSACTION_VALUATION_FIELDS.has(field) || transactionFieldsEqual(field, stored[field], incoming[field]))) {
+			return null;
+		}
+	}
+	const storedPendingCustom =
+		stored.exchangeRateType === "custom" && stored.exchangeRate === null && stored.amountUsd === null;
+	const incomingPendingCustom =
+		incoming.exchangeRateType === "custom" && incoming.exchangeRate === null && incoming.amountUsd === null;
+	if (storedPendingCustom === incomingPendingCustom) {
+		return null;
+	}
+	const otherPolicy = storedPendingCustom ? incoming.exchangeRateType : stored.exchangeRateType;
+	if (otherPolicy !== "official") {
+		return null;
+	}
+	return incomingPendingCustom ? "incoming" : "existing";
+}
+
 async function writeRow<T extends SyncedTable>(
 	ctx: MutationCtx,
 	table: T,
@@ -288,9 +334,11 @@ export const push = mutation({
 
 		// Starts at 1 so that a cursor of 0 means "nothing read yet" rather than
 		// "read everything up to the first row".
-		let nextSeq = state?.nextSeq ?? 1;
+		const initialNextSeq = state?.nextSeq ?? 1;
+		let nextSeq = initialNextSeq;
 		let accepted = 0;
 		let skipped = 0;
+		const reEmittedPolicyWinners = new Set<string>();
 
 		for (const row of args.rows as PushRow[]) {
 			// biome-ignore lint/performance/noAwaitInLoops: rows are applied in order — `seq` is handed out one per accepted row, and two rows for the same localId in one batch require the second lookup to observe the first row's upsert.
@@ -300,7 +348,18 @@ export const push = mutation({
 				deviceId: args.deviceId,
 				updatedAt: row.updatedAt,
 			};
-			if (!incomingWins(candidate, existing ? versioned(existing) : null)) {
+			const policyTieDecision = transactionPolicyTieDecision(row, existing);
+			if (policyTieDecision === "existing") {
+				const key = `${row.table}:${row.localId}`;
+				if (!reEmittedPolicyWinners.has(key)) {
+					await ctx.db.patch("transactions", (existing as Doc<"transactions">)._id, { seq: nextSeq });
+					nextSeq += 1;
+					reEmittedPolicyWinners.add(key);
+				}
+				skipped += 1;
+				continue;
+			}
+			if (policyTieDecision === null && !incomingWins(candidate, existing ? versioned(existing) : null)) {
 				// The server keeps the winner and the pull hands it back, so a device
 				// whose offline edit lost converges without pushing again. Overwriting
 				// here instead would strand the winner's edit on a device that has
@@ -319,7 +378,7 @@ export const push = mutation({
 		}
 
 		// One counter write per batch rather than per row.
-		if (accepted > 0) {
+		if (nextSeq > initialNextSeq) {
 			if (state) {
 				await ctx.db.patch("syncState", state._id, { nextSeq });
 			} else {

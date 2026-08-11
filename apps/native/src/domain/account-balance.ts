@@ -14,9 +14,9 @@ export interface AccountCompositionEntry {
 
 export interface AccountBalance {
 	composition: AccountCompositionEntry[];
-	/** False when any cell fell back to face value instead of converting. */
+	/** False when any cell could not contribute to the scalar total. */
 	exact: boolean;
-	/** `initialBalance` plus every cell, valued in the account's currency. */
+	/** `initialBalance` plus every resolvable cell, valued in the account's currency. */
 	total: number;
 }
 

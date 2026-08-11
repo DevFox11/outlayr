@@ -37,6 +37,8 @@ export function useChooseImportFile() {
 							category: null,
 							currency: null,
 							date: null,
+							exchangeRate: null,
+							exchangeRateType: null,
 							note: null,
 							type: null,
 						}

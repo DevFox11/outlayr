@@ -1,3 +1,4 @@
+import type { EntryRateType } from "@outlayr/money/rates";
 import type { TransactionInput } from "@/data/transactions-core";
 import { RECURRING_TYPE } from "./recurrence";
 
@@ -12,6 +13,8 @@ export interface TransactionSaveDraft {
 	details: string;
 	emoji: string | null;
 	endDate: Date;
+	exchangeRate?: number | null;
+	exchangeRateType?: EntryRateType | null;
 	hasEndDate: boolean;
 	icon: string | null;
 	imageColor: string | null;
@@ -37,6 +40,8 @@ export function buildTransactionInput(draft: TransactionSaveDraft): TransactionI
 		currency: draft.currency,
 		customColor: draft.customColor,
 		date: draft.date,
+		...(draft.exchangeRate === undefined ? {} : { exchangeRate: draft.exchangeRate }),
+		...(draft.exchangeRateType === undefined ? {} : { exchangeRateType: draft.exchangeRateType }),
 		details: draft.details,
 		emoji: draft.emoji,
 		icon: draft.icon,

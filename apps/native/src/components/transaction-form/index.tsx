@@ -28,11 +28,12 @@ import {
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { RepeatIcon, Tag01Icon, TagsIcon, TextIcon } from "@hugeicons-pro/core-stroke-rounded";
+import { ENTRY_RATE_TYPES, type EntryRateType } from "@outlayr/money/rates";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
@@ -47,11 +48,13 @@ import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/d
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
+import { ratesRevision, subscribeRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { setBoolSetting } from "@/data/settings-core";
 import { useTagIdsFor, useTags } from "@/data/tags";
 import { tagsRepo } from "@/data/tags-core";
-import { type Transaction, transactionsRepo } from "@/data/transactions-core";
+import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
+import { type Transaction, type TransactionInput, transactionsRepo } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { firstAvailableColor } from "@/domain/category-color";
 import { FALLBACK_EXPENSE_ICON, FALLBACK_INCOME_ICON, iconKeysMatching } from "@/domain/category-icon-catalog";
@@ -64,6 +67,7 @@ import { enableReminderStep } from "@/domain/reminder";
 import { normalizeLead, REMINDER_LEAD_OPTIONS, resolveLeadSelection } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
+import { isTransactionRateNeeded, transactionRateError } from "@/domain/transaction-entry-rate";
 import { cadenceLabel, ctaKey, leadLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-form-validate";
@@ -97,6 +101,7 @@ import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
 import { TransactionFormDetailsSection } from "./details-section";
 import { TransactionFormIdentitySection } from "./identity-section";
+import { TransactionFormRateSection } from "./rate-section";
 import { TransactionFormRowIcon } from "./row-icon";
 import { TransactionFormScheduleSection } from "./schedule-section";
 import { BODY, CAPTION, ENRICHING, FLY_BACK, FLY_UP, FORM_BLUR_RADIUS, ROW, rowLabel, SHAKE, TAP_ROW } from "./style";
@@ -116,6 +121,16 @@ const HERO_REST_TOP_FALLBACK = 88;
  * reminder on the due day for the owner who just switched reminders off.
  */
 const LEAD_OFF_TAG = -1;
+
+const RATE_DISPLAY_DECIMALS = 4;
+
+function rateToEntryText(rate: number | null | undefined): string {
+	return rate != null && Number.isFinite(rate) && rate > 0 ? String(rate) : "";
+}
+
+function isProviderRate(rate: number | null | undefined, rateType: EntryRateType | null): boolean {
+	return rate != null && rateType != null && rateType !== "custom";
+}
 
 /** Separated from a plain "touched" flag so a later suggestion can still
  * replace an earlier one: only a human edit ("user") locks a field. */
@@ -192,6 +207,148 @@ async function materializeTagIds(
 		}
 	}
 	return materialized;
+}
+
+async function persistTransaction(
+	db: Database,
+	mode: "create" | "edit",
+	initial: Transaction | undefined,
+	input: TransactionInput
+): Promise<string> {
+	if (mode === "edit" && initial) {
+		await transactionsRepo.update(db, initial.id, input);
+		return initial.id;
+	}
+	return await transactionsRepo.create(db, input);
+}
+
+function initialEntryRateType(currency: string, rateType: string | null | undefined): EntryRateType | null {
+	if (currency === "USD") {
+		return null;
+	}
+	const normalized = ENTRY_RATE_TYPES.find((candidate) => candidate === rateType);
+	if (normalized === "eur_reference" && currency !== "VES") {
+		return "official";
+	}
+	return normalized ?? "official";
+}
+
+function selectedRateError(currency: string, exchangeRate: number | null, exchangeRateType: EntryRateType | null) {
+	if (currency === "USD" || exchangeRateType == null) {
+		return null;
+	}
+	return transactionRateError(currency, { exchangeRate, exchangeRateType });
+}
+
+function transactionRateViewState({
+	currency,
+	exchangeRateText,
+	exchangeRateType,
+	amountUsd,
+	requiredLabel,
+}: {
+	amountUsd: number | null | undefined;
+	currency: string;
+	exchangeRateText: string;
+	exchangeRateType: EntryRateType | null;
+	requiredLabel: string;
+}) {
+	const exchangeRate = exchangeRateText === "" ? null : numpadToNumber(exchangeRateText);
+	const error = selectedRateError(currency, exchangeRate, exchangeRateType) === null ? null : requiredLabel;
+	return {
+		error,
+		pending: isTransactionRateNeeded({ amountUsd, exchangeRate, exchangeRateType }),
+		selection: { exchangeRate, exchangeRateType: exchangeRateType ?? "official" },
+	};
+}
+
+interface TransactionRateControlsOptions {
+	currency: string;
+	date: Date;
+	exchangeRateType: EntryRateType | null;
+	initialRateFromProvider: boolean;
+	setAmountPadOpen: (open: boolean) => void;
+	setCurrency: (currency: string) => void;
+	setDate: (date: Date) => void;
+	setRateText: (rateText: string) => void;
+	setRateType: (rateType: EntryRateType | null) => void;
+}
+
+function useTransactionRateControls({
+	currency,
+	date,
+	exchangeRateType,
+	initialRateFromProvider,
+	setAmountPadOpen,
+	setCurrency,
+	setDate,
+	setRateText,
+	setRateType,
+}: TransactionRateControlsOptions) {
+	const rateFromSuggestion = useRef(initialRateFromProvider);
+	const [ratePadOpen, setRatePadOpen] = useState(false);
+
+	const handleRateTypeChange = (next: EntryRateType) => {
+		setAmountPadOpen(false);
+		rateFromSuggestion.current = false;
+		setRateType(next);
+		setRateText("");
+		setRatePadOpen(next === "custom");
+	};
+
+	const handleRateSuggestion = (rate: number, type: EntryRateType) => {
+		rateFromSuggestion.current = true;
+		setRateType(type);
+		setRateText(rateToEntryText(rate));
+		setRatePadOpen(false);
+	};
+
+	const handleCurrencyChange = (next: string) => {
+		if (next !== currency) {
+			rateFromSuggestion.current = false;
+			setRateText("");
+		}
+		setCurrency(next);
+		if (next === "USD") {
+			setRateType(null);
+			setRateText("");
+			setRatePadOpen(false);
+			return;
+		}
+		if (exchangeRateType == null || (exchangeRateType === "eur_reference" && next !== "VES")) {
+			setRateType("official");
+			setRateText("");
+		}
+	};
+
+	const handleDateChange = (next: Date) => {
+		if (next.getTime() !== date.getTime() && rateFromSuggestion.current) {
+			rateFromSuggestion.current = false;
+			setRateText("");
+		}
+		setDate(next);
+	};
+
+	const handleRateTextChange = (next: string) => {
+		rateFromSuggestion.current = false;
+		setRateText(next);
+	};
+
+	const openCustomRatePad = () => {
+		setAmountPadOpen(false);
+		setRatePadOpen(true);
+	};
+
+	return {
+		handleCurrencyChange,
+		handleDateChange,
+		handleRateSuggestion,
+		handleRateTextChange,
+		handleRateTypeChange,
+		openCustomRatePad,
+		ratePadOpen,
+		setRatePadOpen,
+	};
 }
 
 interface CategoryRowProps {
@@ -294,6 +451,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		const seedCategory = sourceId ? getCategoryById(db, sourceId) : null;
 		const currencySeed = initial?.currency ?? copyOf?.currency ?? null;
 		const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
+		const effectiveCurrency = currencySeed ?? globalCurrency;
 		return {
 			account: seedAccount(db, initial),
 			amount: amountSeed == null ? "" : numberToNumpad(amountSeed, minorUnitsFor(currencySeed ?? globalCurrency)),
@@ -301,6 +459,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 			coefficient: initial?.recurringCoefficient ?? 1,
 			date: initial ? new Date(initial.date) : new Date(),
 			endDate: initial?.recurringEndDate ? new Date(initial.recurringEndDate) : oneYearFrom(new Date()),
+			exchangeRateText: rateToEntryText(initial?.exchangeRate),
+			exchangeRateType: initialEntryRateType(effectiveCurrency, initial?.exchangeRateType),
 			hasEndDate: initial?.recurringEndDate != null,
 			income: seedCategory?.income ?? initial?.income ?? copyOf?.income ?? seed?.income ?? false,
 			// Seeded from the live schedule, not `onceRecurring`: that flag stays
@@ -368,6 +528,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 				details: notes.value,
 				emoji: identity.emoji,
 				endDate: value.endDate,
+				exchangeRate:
+					value.exchangeRateType == null || value.exchangeRateText === ""
+						? null
+						: numpadToNumber(value.exchangeRateText),
+				exchangeRateType: value.exchangeRateType,
 				hasEndDate: value.hasEndDate,
 				icon: identity.icon,
 				imageColor: identity.photoColor,
@@ -380,12 +545,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 			});
 			let savedId: string;
 			try {
-				if (mode === "edit" && initial) {
-					await transactionsRepo.update(db, initial.id, input);
-					savedId = initial.id;
-				} else {
-					savedId = await transactionsRepo.create(db, input);
-				}
+				savedId = await persistTransaction(db, mode, initial, input);
 			} catch (error) {
 				console.error("Failed to save transaction", error);
 				// Nothing was written, so the retry is the same tap again — but say so
@@ -465,29 +625,63 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 				flagMissingCategory();
 			}
 		},
-		validators: { onChange: ({ value }) => transactionFormErrors(value) },
+		validators: {
+			onChange: ({ value }) =>
+				transactionFormErrors({
+					...value,
+					currency: value.txCurrency ?? globalCurrency,
+					exchangeRate: value.exchangeRateText === "" ? null : numpadToNumber(value.exchangeRateText),
+				}),
+		},
 	});
 	// Names the fields rather than taking `values` wholesale: that object gets a
 	// fresh identity on every write, so selecting it re-renders this whole screen
 	// on each amount keystroke however few fields are read out of it.
-	const { txCurrency, isSubscription, category, pendingCategory, income, recurringType, coefficient, account } =
-		useSelector(
-			form.store,
-			(s) => ({
-				account: s.values.account,
-				category: s.values.category,
-				coefficient: s.values.coefficient,
-				income: s.values.income,
-				isSubscription: s.values.isSubscription,
-				pendingCategory: s.values.pendingCategory,
-				recurringType: s.values.recurringType,
-				txCurrency: s.values.txCurrency,
-			}),
-			{ compare: shallowEqual }
-		);
+	const {
+		txCurrency,
+		isSubscription,
+		category,
+		pendingCategory,
+		income,
+		recurringType,
+		coefficient,
+		account,
+		date,
+		exchangeRateText,
+		exchangeRateType,
+	} = useSelector(
+		form.store,
+		(s) => ({
+			account: s.values.account,
+			category: s.values.category,
+			coefficient: s.values.coefficient,
+			date: s.values.date,
+			exchangeRateText: s.values.exchangeRateText,
+			exchangeRateType: s.values.exchangeRateType,
+			income: s.values.income,
+			isSubscription: s.values.isSubscription,
+			pendingCategory: s.values.pendingCategory,
+			recurringType: s.values.recurringType,
+			txCurrency: s.values.txCurrency,
+		}),
+		{ compare: shallowEqual }
+	);
 
 	const currency = txCurrency ?? globalCurrency;
 	const minorUnits = minorUnitsFor(currency);
+	const ratesVersion = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: ratesVersion invalidates this SQLite read after cache replacement.
+	const rateSuggestions = useMemo(
+		() => transactionRateSuggestions(db, currency, date),
+		[db, currency, date, ratesVersion]
+	);
+	const rateViewState = transactionRateViewState({
+		amountUsd: initial?.amountUsd,
+		currency,
+		exchangeRateText,
+		exchangeRateType,
+		requiredLabel: t("transaction.rate.required"),
+	});
 
 	// A category carried in from `copyOf` is a deliberate choice, not a blank
 	// slot an enrichment suggestion is free to fill.
@@ -537,6 +731,26 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 	// Open on arrival for a new entry: the amount is the first thing a create is
 	// for. An edit already has one, so it starts closed and the rest is visible.
 	const [padOpen, setPadOpen] = useState(mode === "create");
+	const {
+		handleCurrencyChange,
+		handleDateChange,
+		handleRateSuggestion,
+		handleRateTextChange,
+		handleRateTypeChange,
+		openCustomRatePad,
+		ratePadOpen,
+		setRatePadOpen,
+	} = useTransactionRateControls({
+		currency,
+		date,
+		exchangeRateType,
+		initialRateFromProvider: isProviderRate(initial?.exchangeRate, exchangeRateType),
+		setAmountPadOpen: setPadOpen,
+		setCurrency: (next) => form.setFieldValue("txCurrency", next),
+		setDate: (next) => form.setFieldValue("date", next),
+		setRateText: (next) => form.setFieldValue("exchangeRateText", next),
+		setRateType: (next) => form.setFieldValue("exchangeRateType", next),
+	});
 	const currencySheetRef = useRef<BottomSheetModal>(null);
 	const categoryField = useCategoryPickerField((picked) => {
 		form.setFieldValue("category", picked);
@@ -772,11 +986,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
 	useEffect(
 		() => () => {
-			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `.current` from the `useRef` initializer and ignores the explicit `<ReturnType<typeof setTimeout> | null>` argument; both refs are assigned real timer handles elsewhere in this component.
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: timer refs are assigned after initialization.
 			if (shakeTimer.current != null) {
 				clearTimeout(shakeTimer.current);
 			}
-			// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `.current` from the `useRef` initializer and ignores the explicit `<ReturnType<typeof setTimeout> | null>` argument; both refs are assigned real timer handles elsewhere in this component.
+			// biome-ignore lint/suspicious/noUnnecessaryConditions: timer refs are assigned after initialization.
 			if (doneTimer.current != null) {
 				clearTimeout(doneTimer.current);
 			}
@@ -1016,6 +1230,34 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 								}}
 							</form.Subscribe>
 
+							<TransactionFormRateSection
+								currency={currency}
+								error={rateViewState.error}
+								labels={{
+									currentSuggestion: t("transaction.rate.currentSuggestion"),
+									custom: t("transaction.rate.custom"),
+									editCustom: t("transaction.rate.editCustom"),
+									eurReference: t("transaction.rate.eur_reference"),
+									official: t("transaction.rate.official"),
+									pendingBody: t("transaction.rate.pendingBody"),
+									pendingTitle: t("transaction.rate.pendingTitle"),
+									perUsd: t("transaction.rate.perUsd", { currency }),
+									priorCustomDate: (priorDate) =>
+										t("transaction.rate.priorCustomDate", { date: priorDate.toLocaleDateString() }),
+									priorCustomSuggestion: t("transaction.rate.priorCustomSuggestion"),
+									required: t("transaction.rate.required"),
+									requiredHint: t("transaction.rate.requiredHint"),
+									title: t("transaction.rate.title"),
+									useSuggestion: t("transaction.rate.useSuggestion"),
+								}}
+								onEditCustom={openCustomRatePad}
+								onSelectType={handleRateTypeChange}
+								onUseSuggestion={handleRateSuggestion}
+								pending={rateViewState.pending}
+								selection={rateViewState.selection}
+								suggestions={rateSuggestions}
+							/>
+
 							<VStack spacing={0}>
 								<HStack modifiers={ROW} spacing={12}>
 									<TransactionFormRowIcon color={colors.muted} icon={RepeatIcon} />
@@ -1112,12 +1354,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 									})}
 									store={form.store}
 								>
-									{({ date, endDate, hasEndDate, leadDays }) => (
+									{({ date: scheduleDate, endDate, hasEndDate, leadDays }) => (
 										<TransactionFormScheduleSection
 											cadenceOptions={cadenceOptions}
 											card={[]}
 											customScheduleLabel={t("transaction.schedule.customOption")}
-											date={date}
+											date={scheduleDate}
 											dateLabel={t("transaction.field.date")}
 											endDate={endDate}
 											endDateLabel={t("transaction.field.endDate")}
@@ -1133,7 +1375,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 											leadOffTag={LEAD_OFF_TAG}
 											leadOptions={leadOptions}
 											mutedColor={colors.muted}
-											onDateChange={(next) => form.setFieldValue("date", next)}
+											onDateChange={handleDateChange}
 											onEndDateChange={(next) => form.setFieldValue("endDate", next)}
 											onHasEndDateChange={(next) => form.setFieldValue("hasEndDate", next)}
 											onLeadChange={handleLeadChange}
@@ -1245,9 +1487,23 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 					)}
 				</form.Subscribe>
 
+				<form.Subscribe selector={(s) => s.values.exchangeRateText}>
+					{(rateText) => (
+						<TransactionFormAmountPad
+							code={`${currency}/USD`}
+							income={false}
+							minorUnits={RATE_DISPLAY_DECIMALS}
+							onChange={handleRateTextChange}
+							onOpenChange={setRatePadOpen}
+							open={ratePadOpen}
+							value={rateText}
+						/>
+					)}
+				</form.Subscribe>
+
 				<CurrencyPickerSheet
 					onSelect={(next) => {
-						form.setFieldValue("txCurrency", next);
+						handleCurrencyChange(next);
 						currencySheetRef.current?.dismiss();
 					}}
 					ref={currencySheetRef}
@@ -1310,9 +1566,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 					selectedId={category?.id ?? null}
 				/>
 				<SubscribeFields selector={(s) => ({ date: s.values.date })} store={form.store}>
-					{({ date }) => (
+					{({ date: firstPaymentDate }) => (
 						<CustomScheduleSheet
-							firstPayment={date}
+							firstPayment={firstPaymentDate}
 							onDone={(type, every) => {
 								form.setFieldValue("recurringType", type);
 								form.setFieldValue("coefficient", every);

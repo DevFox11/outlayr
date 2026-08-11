@@ -7,6 +7,7 @@ import type { Database } from "@/db/client";
 import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
 import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
+import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { setSyncEnabled } from "./sync-outbox-core";
 import {
 	accountTransactionsQuery,
@@ -171,7 +172,7 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 		expect(row.amount).toBe(200);
 		expect(row.amountUsd).toBe(null);
 		expect(row.exchangeRate).toBe(null);
-		expect(row.exchangeRateType).toBe(null);
+		expect(row.exchangeRateType).toBe("official");
 	});
 
 	it("re-freezes a changed amount whenever the rate is back", async () => {
@@ -189,6 +190,144 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
 		const row = await frozen(db, id);
 		expect(row.amountUsd).toBe(222.222_222);
 		expect(row.exchangeRate).toBe(0.9);
+	});
+});
+
+describe("transactionsRepo entry-rate selections", () => {
+	it("keeps a custom freeze when a real form mapper omits rate fields on an unrelated edit", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			currency: "VES",
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		const input = buildTransactionInput({
+			accountId: null,
+			amount: 100,
+			categoryId: "cat-1",
+			coefficient: 1,
+			currency: "VES",
+			customColor: null,
+			date: LONG_AGO,
+			details: "",
+			emoji: null,
+			endDate: LONG_AGO,
+			hasEndDate: false,
+			icon: null,
+			imageColor: null,
+			imageUri: null,
+			income: false,
+			isSubscription: false,
+			leadDays: null,
+			note: "Renamed",
+			recurringType: RECURRING_TYPE.none,
+		});
+		await transactionsRepo.update(db, id, input);
+		expect(await frozen(db, id)).toMatchObject({
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+	});
+	async function seedRate(
+		db: Database,
+		quote: string,
+		rateType: "official" | "eur_reference",
+		rate: number
+	): Promise<void> {
+		await db.insert(exchangeRates).values({
+			date: "2020-01-01",
+			fetchedAt: LONG_AGO.getTime(),
+			quote,
+			rate,
+			rateType,
+			source: "frankfurter",
+		});
+	}
+
+	it("freezes a custom transaction from the supplied actual rate", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			currency: "VES",
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		expect(await frozen(db, id)).toMatchObject({
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("freezes a VES transaction from the EUR-reference feed", async () => {
+		const db = makeDb();
+		await seedRate(db, "VES", "eur_reference", 50);
+		await seedRate(db, "EUR", "official", 0.8);
+		const id = await transactionsRepo.create(db, { ...DRAFT, currency: "VES", exchangeRateType: "eur_reference" });
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: 2.5, exchangeRate: 50, exchangeRateType: "eur_reference" });
+	});
+
+	it("keeps omitted metadata backward-compatible with official", async () => {
+		const db = makeDb();
+		await seedRate(db, "EUR", "official", 0.8);
+		const id = await transactionsRepo.create(db, DRAFT);
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: 125, exchangeRate: 0.8, exchangeRateType: "official" });
+	});
+
+	it("clears supplied metadata for USD", async () => {
+		const db = makeDb();
+		const id = await transactionsRepo.create(db, {
+			...DRAFT,
+			currency: "USD",
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: 100, exchangeRate: 1, exchangeRateType: null });
+	});
+
+	it("restores an imported positive provider rate without replacing it from the local feed", async () => {
+		const db = makeDb();
+		await seedRate(db, "EUR", "official", 0.9);
+		const id = await transactionsRepo.create(db, { ...DRAFT, exchangeRate: 0.8, exchangeRateType: "official" });
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: 125, exchangeRate: 0.8, exchangeRateType: "official" });
+	});
+
+	it("keeps a frozen custom value through an unrelated note edit", async () => {
+		const db = makeDb();
+		const input = { ...DRAFT, currency: "VES", exchangeRate: 55.5, exchangeRateType: "custom" } as const;
+		const id = await transactionsRepo.create(db, input);
+		await transactionsRepo.update(db, id, { ...input, note: "Updated" });
+		expect(await frozen(db, id)).toMatchObject({
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("re-freezes when an edit changes official to custom without changing amount currency or date", async () => {
+		const db = makeDb();
+		await seedRate(db, "EUR", "official", 0.8);
+		const id = await transactionsRepo.create(db, DRAFT);
+		await transactionsRepo.update(db, id, { ...DRAFT, exchangeRate: 0.5, exchangeRateType: "custom" });
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: 200, exchangeRate: 0.5, exchangeRateType: "custom" });
+	});
+
+	it("re-freezes when an edit changes only the custom actual rate", async () => {
+		const db = makeDb();
+		const input = { ...DRAFT, currency: "VES", exchangeRate: 50, exchangeRateType: "custom" } as const;
+		const id = await transactionsRepo.create(db, input);
+		await transactionsRepo.update(db, id, { ...input, exchangeRate: 40 });
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: 2.5, exchangeRate: 40, exchangeRateType: "custom" });
+	});
+
+	it("keeps a pending custom row pending through an unrelated edit", async () => {
+		const db = makeDb();
+		const input = { ...DRAFT, currency: "VES", exchangeRate: null, exchangeRateType: "custom" } as const;
+		const id = await transactionsRepo.create(db, input);
+		await transactionsRepo.update(db, id, { ...input, note: "Updated" });
+		expect(await frozen(db, id)).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
 	});
 });
 

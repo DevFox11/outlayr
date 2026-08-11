@@ -103,6 +103,8 @@ export function useInsights(
 					categoryId: transactions.categoryId,
 					currency: transactions.currency,
 					date: transactions.date,
+					exchangeRate: transactions.exchangeRate,
+					exchangeRateType: transactions.exchangeRateType,
 					income: transactions.income,
 				})
 				.from(transactions)

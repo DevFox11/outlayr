@@ -1,4 +1,4 @@
-import { cellFigures, cellTotals, currencyTotals, toCells } from "./currency-totals";
+import { cellFigures, cellTotals, currencyTotals, toCells, valueCell } from "./currency-totals";
 import { buildRateTable } from "./valuation";
 
 function entry(amount: number, income = false, currency: string | null = null) {
@@ -57,6 +57,18 @@ function priced(amount: number, currency: string, amountUsd: number | null, date
 }
 
 describe("currencyTotals with rates", () => {
+	it("excludes pending custom from valueCell in another currency", () => {
+		const [cell] = toCells([{ ...priced(40, "VES", null, JULY_5), exchangeRate: null, exchangeRateType: "custom" }]);
+		expect(valueCell(cell, "EUR", eurRates)).toBe(0);
+	});
+	it("excludes pending custom from valueCell without a rate table", () => {
+		const [cell] = toCells([{ ...priced(40, "VES", null, JULY_5), exchangeRate: null, exchangeRateType: "custom" }]);
+		expect(valueCell(cell, "EUR")).toBe(0);
+	});
+	it("excludes an unresolved official foreign row from scalar totals", () => {
+		const [cell] = toCells([{ ...priced(40, "VES", null, JULY_5), exchangeRate: null, exchangeRateType: "official" }]);
+		expect(valueCell(cell, "EUR", eurRates)).toBe(0);
+	});
 	it("folds a foreign entry into the global currency at its own day's rate", () => {
 		const buckets = currencyTotals([priced(100, "USD", 100, JULY_5)], "EUR", eurRates);
 		expect(buckets).toStrictEqual([{ amount: -90, currencyCode: "EUR", transactionCount: 1 }]);

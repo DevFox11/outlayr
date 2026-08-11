@@ -2,10 +2,16 @@ import BetterSqlite3 from "better-sqlite3";
 import { asc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { exchangeRates, transactions } from "@/db/schema";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
-import { backfillAllRecurring, backfillRecurring, repairOrphanedRecurrence } from "./recurrence-backfill";
+import {
+	backfillAllRecurring,
+	backfillRecurring,
+	recurrenceRateType,
+	repairOrphanedRecurrence,
+	scheduleSuccessor,
+} from "./recurrence-backfill";
 import { transactionsRepo } from "./transactions-core";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
@@ -66,8 +72,13 @@ function makeDb(): Database {
 }
 
 interface SourceOverrides {
+	accountId?: string | null;
+	amountUsd?: number | null;
+	currency?: string;
 	date: Date;
 	deletedAt?: Date | null;
+	exchangeRate?: number | null;
+	exchangeRateType?: string | null;
 	id?: string;
 	onceRecurring?: boolean;
 	recurringAnchorDay?: number | null;
@@ -80,15 +91,19 @@ interface SourceOverrides {
 async function seedSource(db: Database, overrides: SourceOverrides): Promise<string> {
 	const id = overrides.id ?? "src";
 	await db.insert(transactions).values({
+		accountId: overrides.accountId ?? null,
 		amount: 9.99,
+		amountUsd: overrides.amountUsd ?? null,
 		categoryId: "bills",
-		currency: "USD",
+		currency: overrides.currency ?? "USD",
 		customColor: "#FF0000",
 		date: overrides.date,
 		day: startOfDay(overrides.date),
 		deletedAt: overrides.deletedAt ?? null,
 		details: "family plan",
 		emoji: null,
+		exchangeRate: overrides.exchangeRate ?? null,
+		exchangeRateType: overrides.exchangeRateType ?? null,
 		icon: "Tv01",
 		id,
 		imageColor: null,
@@ -105,6 +120,18 @@ async function seedSource(db: Database, overrides: SourceOverrides): Promise<str
 		updatedAt: NOW,
 	});
 	return id;
+}
+
+async function seedRate(
+	db: Database,
+	quote: string,
+	rateType: "official" | "eur_reference",
+	date: string,
+	rate: number
+) {
+	await db
+		.insert(exchangeRates)
+		.values({ date, fetchedAt: NOW.getTime(), quote, rate, rateType, source: "frankfurter" });
 }
 
 function allRows(db: Database) {
@@ -130,10 +157,133 @@ async function orphanCarrier(db: Database, id: string): Promise<void> {
 	await db.update(transactions).set({ deletedAt: NOW }).where(eq(transactions.id, id));
 }
 
+describe("recurrenceRateType", () => {
+	it("defaults an omitted insert policy to official", () => {
+		expect(recurrenceRateType(undefined)).toBe("official");
+	});
+});
+
+describe("scheduleSuccessor", () => {
+	it("creates a rate-needed custom successor without copying the carrier's settled rate", async () => {
+		const db = makeDb();
+		const id = await seedSource(db, {
+			accountId: "account-1",
+			amountUsd: 0.18,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		const [carrier] = await db.select().from(transactions).where(eq(transactions.id, id));
+
+		const successor = await scheduleSuccessor(db, carrier, NOW);
+
+		expect(successor).toMatchObject({
+			accountId: "account-1",
+			amount: 9.99,
+			amountUsd: null,
+			currency: "VES",
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("resolves an official successor at the successor's occurrence date", async () => {
+		const db = makeDb();
+		const id = await seedSource(db, {
+			amountUsd: 0.2,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 50,
+			exchangeRateType: "official",
+		});
+		await seedRate(db, "VES", "official", "2025-07-01", 70);
+		const [carrier] = await db.select().from(transactions).where(eq(transactions.id, id));
+
+		const successor = await scheduleSuccessor(db, carrier, NOW);
+
+		expect(successor).toMatchObject({
+			amountUsd: 0.142_714,
+			exchangeRate: 70,
+			exchangeRateType: "official",
+		});
+		expect(successor?.date).toStrictEqual(at(2025, 7, 10));
+	});
+
+	it("resolves an EUR-reference successor at the successor's occurrence date", async () => {
+		const db = makeDb();
+		const id = await seedSource(db, {
+			amountUsd: 0.25,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
+		await seedRate(db, "VES", "eur_reference", "2025-07-01", 80);
+		await seedRate(db, "EUR", "official", "2025-07-01", 0.9);
+		const [carrier] = await db.select().from(transactions).where(eq(transactions.id, id));
+
+		const successor = await scheduleSuccessor(db, carrier, NOW);
+
+		expect(successor).toMatchObject({
+			amountUsd: 0.138_75,
+			exchangeRate: 80,
+			exchangeRateType: "eur_reference",
+		});
+		expect(successor?.date).toStrictEqual(at(2025, 7, 10));
+	});
+});
+
 describe("backfillRecurring", () => {
 	let db: Database;
 	beforeEach(() => {
 		db = makeDb();
+	});
+
+	it("materializes every custom occurrence as rate-needed instead of copying the carrier rate", async () => {
+		const id = await seedSource(db, {
+			accountId: "account-1",
+			currency: "VES",
+			date: at(2025, 3, 15),
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+
+		await backfillRecurring(db, id, NOW);
+
+		for (const row of await generatedRows(db, id)) {
+			expect(row).toMatchObject({
+				accountId: "account-1",
+				amountUsd: null,
+				exchangeRate: null,
+				exchangeRateType: "custom",
+			});
+		}
+	});
+
+	it("re-resolves official occurrences at each occurrence date instead of copying the carrier rate", async () => {
+		const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+		await seedRate(db, "VES", "official", "2025-04-01", 40);
+		await seedRate(db, "VES", "official", "2025-05-01", 50);
+		await seedRate(db, "VES", "official", "2025-06-01", 60);
+		await backfillRecurring(db, id, NOW);
+		expect((await generatedRows(db, id)).map((row) => row.exchangeRate)).toStrictEqual([40, 50, 60]);
+	});
+
+	it("re-resolves inherited EUR-reference occurrences at each occurrence date", async () => {
+		const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "eur_reference" });
+		for (const [date, rate] of [
+			["2025-04-01", 40],
+			["2025-05-01", 50],
+			["2025-06-01", 60],
+		] as const) {
+			await seedRate(db, "VES", "eur_reference", date, rate);
+			await seedRate(db, "EUR", "official", date, 0.8);
+		}
+		await backfillRecurring(db, id, NOW);
+		for (const row of await generatedRows(db, id)) {
+			expect(row.exchangeRateType).toBe("eur_reference");
+		}
 	});
 
 	it("keeps a month-end schedule on its own day across the whole walk", async () => {
@@ -432,6 +582,43 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 		db = makeDb();
 	});
 
+	it("creates a rate-needed custom successor when deleting a settled carrier", async () => {
+		const id = await seedSource(db, {
+			amountUsd: 0.18,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		expect(await liveCarrier(db)).toMatchObject({
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("re-resolves an official rate on the successor date when deleting a carrier", async () => {
+		const id = await seedSource(db, {
+			amountUsd: 0.2,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 50,
+			exchangeRateType: "official",
+		});
+		await seedRate(db, "VES", "official", "2025-07-01", 70);
+
+		await transactionsRepo.remove(db, id, NOW);
+
+		expect(await liveCarrier(db)).toMatchObject({
+			amountUsd: 0.142_714,
+			exchangeRate: 70,
+			exchangeRateType: "official",
+		});
+	});
+
 	it("re-anchors the schedule on a successor instead of ending the chain", async () => {
 		const id = await seedSource(db, { date: at(2025, 3, 15) });
 		await backfillRecurring(db, id, NOW);
@@ -630,6 +817,46 @@ describe("repairOrphanedRecurrence", () => {
 	let db: Database;
 	beforeEach(() => {
 		db = makeDb();
+	});
+
+	it("repairs an orphaned custom carrier without copying its settled rate", async () => {
+		const id = await seedSource(db, {
+			amountUsd: 0.18,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		await orphanCarrier(db, id);
+
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(1);
+
+		expect(await liveCarrier(db)).toMatchObject({
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("re-resolves an orphaned EUR-reference carrier on the revived occurrence date", async () => {
+		const id = await seedSource(db, {
+			amountUsd: 0.25,
+			currency: "VES",
+			date: at(2025, 6, 10),
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
+		await seedRate(db, "VES", "eur_reference", "2025-07-01", 80);
+		await seedRate(db, "EUR", "official", "2025-07-01", 0.9);
+		await orphanCarrier(db, id);
+
+		expect(await repairOrphanedRecurrence(db, NOW)).toBe(1);
+
+		expect(await liveCarrier(db)).toMatchObject({
+			amountUsd: 0.138_75,
+			exchangeRate: 80,
+			exchangeRateType: "eur_reference",
+		});
 	});
 
 	it("reinstates a chain whose carrier was deleted without a handover", async () => {

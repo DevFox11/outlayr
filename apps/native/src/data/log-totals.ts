@@ -88,6 +88,8 @@ export function useSparklineRows(
 		amountUsd: transactions.amountUsd,
 		currency: transactions.currency,
 		date: transactions.date,
+		exchangeRate: transactions.exchangeRate,
+		exchangeRateType: transactions.exchangeRateType,
 		income: transactions.income,
 	};
 	const rows = useLiveQuery(transactions, () => {

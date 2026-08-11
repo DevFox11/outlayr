@@ -1,3 +1,4 @@
+import type { EntryRateType } from "@outlayr/money/rates";
 import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
@@ -12,6 +13,16 @@ import { localRateLookup } from "./rates";
 
 type TransactionRow = typeof transactions.$inferSelect;
 type TransactionInsert = typeof transactions.$inferInsert;
+
+export function recurrenceRateType(rateType: string | null | undefined): EntryRateType {
+	if (rateType === "custom") {
+		return "custom";
+	}
+	if (rateType === "eur_reference") {
+		return "eur_reference";
+	}
+	return "official";
+}
 
 async function loadSource(db: Database, id: string): Promise<TransactionRow | null> {
 	const rows = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
@@ -50,6 +61,7 @@ function anchorDayOf(source: TransactionRow): number {
 
 function occurrenceRow(source: TransactionRow, holding: Date, carriesSchedule: boolean, now: Date): TransactionInsert {
 	return {
+		accountId: source.accountId,
 		amount: source.amount,
 		categoryId: source.categoryId,
 		currency: source.currency,
@@ -59,6 +71,7 @@ function occurrenceRow(source: TransactionRow, holding: Date, carriesSchedule: b
 		deletedAt: null,
 		details: source.details,
 		emoji: source.emoji,
+		exchangeRateType: source.exchangeRateType ?? "official",
 		icon: source.icon,
 		id: occurrenceId(source.id, holding),
 		imageColor: source.imageColor,
@@ -154,6 +167,8 @@ export async function backfillRecurring(db: Database, id: string, now: Date = ne
 				currency: row.currency ?? null,
 				date: row.date,
 				displayCurrency: display,
+				exchangeRate: null,
+				exchangeRateType: recurrenceRateType(row.exchangeRateType),
 			})),
 		}))
 	);
@@ -212,6 +227,8 @@ async function withCanonicalUsd(db: Database, row: TransactionInsert): Promise<T
 			currency: row.currency ?? null,
 			date: row.date,
 			displayCurrency: display,
+			exchangeRate: null,
+			exchangeRateType: recurrenceRateType(row.exchangeRateType),
 		})),
 	};
 }

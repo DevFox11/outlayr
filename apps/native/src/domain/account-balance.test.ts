@@ -71,14 +71,14 @@ describe("accountBalance", () => {
 		]);
 	});
 
-	it("falls back to face value and reports inexact when no rate reaches the cell", () => {
+	it("excludes a foreign cell from the scalar balance when no rate reaches it", () => {
 		const result = accountBalance(
 			{ currency: "EUR", initialBalance: 100 },
 			[cell({ amount: 5, amountUsd: 6, currencyCode: "GBP", income: false })],
 			NO_RATES
 		);
 
-		expect(result.total).toBe(95);
+		expect(result.total).toBe(100);
 		expect(result.exact).toBe(false);
 		expect(result.composition).toStrictEqual([{ amount: -5, currencyCode: "GBP" }]);
 	});
@@ -100,7 +100,7 @@ describe("accountBalance", () => {
 			NO_RATES
 		);
 
-		expect(result.total).toBe(-32);
+		expect(result.total).toBe(-25);
 		expect(result.exact).toBe(false);
 	});
 

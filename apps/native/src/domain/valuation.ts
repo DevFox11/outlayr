@@ -1,5 +1,6 @@
 import { utcDateString } from "@outlayr/money/dates";
 import { convertFromUsd, roundMoney } from "@outlayr/money/round";
+import { isTransactionRateNeeded } from "./transaction-entry-rate";
 
 export interface Valuable {
 	amount: number;
@@ -13,6 +14,8 @@ export interface Valuable {
 	currency: string | null;
 	/** UTC `YYYY-MM-DD` of the day the money moved. */
 	dateKey: string;
+	exchangeRate?: number | null;
+	exchangeRateType?: string | null;
 }
 
 /** USD→currency rates; `get` answers with the newest rate on or before `dateKey`. */
@@ -111,8 +114,14 @@ function canonicalOf(row: Valuable): number | null {
 	return row.currency === "USD" ? row.amount : row.amountUsd;
 }
 
-/** {@link valueExactIn}, standing in the face value when it declines. */
+/** {@link valueExactIn}, with face-value fallback except for pending custom rates. */
 export function valueIn(row: Valuable, displayCurrency: string, rates: RateTable): number {
+	if (row.currency === displayCurrency) {
+		return row.amount;
+	}
+	if (isTransactionRateNeeded(row)) {
+		return 0;
+	}
 	return valueExactIn(row, displayCurrency, rates) ?? row.amount;
 }
 
@@ -181,6 +190,8 @@ export interface DatedValuable {
 	amountUsd: number | null;
 	currency: string | null;
 	date: Date;
+	exchangeRate?: number | null;
+	exchangeRateType?: string | null;
 	income?: boolean;
 }
 
@@ -192,6 +203,8 @@ export function valueDatedRowsIn(rows: readonly DatedValuable[], displayCurrency
 			amountUsd: row.amountUsd,
 			currency: row.currency,
 			dateKey: utcDateString(row.date.getTime()),
+			exchangeRate: row.exchangeRate,
+			exchangeRateType: row.exchangeRateType,
 			income: row.income,
 		})),
 		displayCurrency,

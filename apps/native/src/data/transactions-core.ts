@@ -1,3 +1,4 @@
+import type { EntryRateType } from "@outlayr/money/rates";
 import { and, desc, eq, gt, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
@@ -8,6 +9,7 @@ import { newId } from "@/domain/ids";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { normalizeLead } from "@/domain/subscription-reminder";
+import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
 import { getCategoryById } from "./categories-core";
@@ -31,6 +33,8 @@ export const LOG_COLUMNS = {
 	date: transactions.date,
 	day: transactions.day,
 	emoji: transactions.emoji,
+	exchangeRate: transactions.exchangeRate,
+	exchangeRateType: transactions.exchangeRateType,
 	icon: transactions.icon,
 	id: transactions.id,
 	imageColor: transactions.imageColor,
@@ -146,6 +150,8 @@ export interface TransactionInput {
 	details: string | null;
 	/** Chosen logo emoji — mutually exclusive with `icon`. */
 	emoji?: string | null;
+	exchangeRate?: number | null;
+	exchangeRateType?: EntryRateType | null;
 	/** Chosen logo icon (registry key) — mutually exclusive with `emoji`. */
 	icon?: string | null;
 	/** Color derived for (or chosen for) a photo identity (hex). */
@@ -216,6 +222,8 @@ async function toRow(db: Database, id: string, input: TransactionInput): Promise
 			currency,
 			date: input.date,
 			displayCurrency: currency,
+			exchangeRate: input.exchangeRate,
+			exchangeRateType: input.exchangeRateType,
 		})),
 		deletedAt: null,
 		updatedAt: now,
@@ -233,13 +241,34 @@ async function displayCurrency(db: Database): Promise<string> {
  * unresolvable and renaming its note would erase a value that was correct. Any
  * of the three moving returns null instead, which the next backfill pass retries.
  */
-function keptCanonical(next: typeof transactions.$inferInsert, previous: Transaction | null): CanonicalUsd | null {
+function keptCanonical(
+	next: typeof transactions.$inferInsert,
+	previous: Transaction | null,
+	input: TransactionInput
+): CanonicalUsd | null {
 	if (
-		previous?.amountUsd == null ||
+		previous == null ||
 		previous.amount !== next.amount ||
 		previous.currency !== next.currency ||
 		previous.date.getTime() !== next.date.getTime()
 	) {
+		return null;
+	}
+	if (input.exchangeRate === undefined && input.exchangeRateType === undefined) {
+		return {
+			amountUsd: previous.amountUsd,
+			exchangeRate: previous.exchangeRate,
+			exchangeRateType: previous.exchangeRateType,
+		};
+	}
+	const requestedRateType = next.currency === "USD" ? null : (input.exchangeRateType ?? "official");
+	if (previous.exchangeRateType !== requestedRateType) {
+		return null;
+	}
+	if (input.exchangeRate !== undefined && previous.exchangeRate !== input.exchangeRate) {
+		return null;
+	}
+	if (previous.amountUsd === null && !isTransactionRateNeeded(previous)) {
 		return null;
 	}
 	return {
@@ -404,7 +433,7 @@ export const transactionsRepo = {
 		const previous = getTransactionById(db, id);
 		const row = await toRow(db, id, input);
 		const { id: _omit, ...rest } = row;
-		const kept = keptCanonical(row, previous);
+		const kept = keptCanonical(row, previous, input);
 		await db
 			.update(transactions)
 			.set({

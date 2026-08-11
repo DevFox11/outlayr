@@ -26,6 +26,8 @@ export interface TransferLogRow {
 	date: Date;
 	day: Date;
 	emoji: null;
+	exchangeRate: null;
+	exchangeRateType: null;
 	excludedFromTotals: true;
 	icon: null;
 	id: string;
@@ -62,6 +64,8 @@ export function toTransferLogRow(
 		date: transfer.date,
 		day: transfer.day,
 		emoji: null,
+		exchangeRate: null,
+		exchangeRateType: null,
 		excludedFromTotals: true,
 		icon: null,
 		id: transfer.id,

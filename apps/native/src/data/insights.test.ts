@@ -1,6 +1,7 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { categories, transactions } from "@/db/schema";
+import { buildRateTable } from "@/domain/valuation";
 import {
 	bucketDateLabel,
 	bucketRanges,
@@ -198,6 +199,61 @@ describe("loadContributions", () => {
 		expect(groc?.parentId).toBe("food");
 		const rent = contributions.find((c) => c.categoryId === "rent");
 		expect(rent?.parentId).toBe(null);
+	});
+
+	it("keeps a pending custom insight contribution in its native currency", async () => {
+		const db = makeDb();
+		await seed(db);
+		const pendingDate = at(2025, 7, 14, 8);
+		await db.insert(transactions).values({
+			amount: 40,
+			amountUsd: null,
+			categoryId: "food",
+			currency: "VES",
+			date: pendingDate,
+			day: pendingDate,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+			id: "pending-custom",
+			income: false,
+			month: pendingDate,
+			updatedAt: NOW,
+		});
+
+		const rows = await loadContributions(db, NOW, {
+			displayCurrency: "VES",
+			rates: buildRateTable([]),
+		});
+
+		expect(rows.find((row) => row.date.getTime() === pendingDate.getTime())?.amount).toBe(40);
+	});
+
+	it("excludes a pending custom contribution from a foreign-currency insight total", async () => {
+		const db = makeDb();
+		await seed(db);
+		const pendingDate = at(2025, 7, 14, 8);
+		await db.insert(transactions).values({
+			amount: 40,
+			amountUsd: null,
+			categoryId: "food",
+			currency: "VES",
+			date: pendingDate,
+			day: pendingDate,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+			id: "pending-custom",
+			income: false,
+			month: pendingDate,
+			updatedAt: NOW,
+		});
+
+		const rows = await loadContributions(db, NOW, {
+			displayCurrency: "EUR",
+			rates: buildRateTable([]),
+		});
+
+		expect(rows.find((row) => row.date.getTime() === pendingDate.getTime())?.amount).toBe(0);
+		expect(periodTotal(bucketSeries(rows, "month", "spent", NOW))).toBe(165);
 	});
 });
 

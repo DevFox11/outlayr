@@ -35,6 +35,20 @@ describe("resolveImportMapping", () => {
 		}
 	});
 
+	it("preserves optional rate columns without making them required", () => {
+		const draft = {
+			...guessMapping(["date", "category", "amount"]),
+			exchangeRate: 4,
+			exchangeRateType: 3,
+		};
+		const result = resolveImportMapping(draft);
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.mapping.exchangeRateType).toBe(3);
+			expect(result.value.mapping.exchangeRate).toBe(4);
+		}
+	});
+
 	it("fails before any network call when neither column exists", () => {
 		const draft = guessMapping(["date", "amount", "balance"]);
 		const result = resolveImportMapping(draft);

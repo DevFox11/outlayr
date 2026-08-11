@@ -1,8 +1,12 @@
+import type { EntryRateType } from "@outlayr/money/rates";
 import { numpadToNumber } from "./numpad";
+import { transactionRateError } from "./transaction-entry-rate";
 
 export const TRANSACTION_FORM_ERROR = {
 	amountRequired: "amountRequired",
 	categoryRequired: "categoryRequired",
+	customRateRequired: "customRateRequired",
+	eurReferenceRequiresVes: "eurReferenceRequiresVes",
 } as const;
 
 export interface TransactionFormCategoryValues {
@@ -12,11 +16,15 @@ export interface TransactionFormCategoryValues {
 
 export interface TransactionFormValidationValues extends TransactionFormCategoryValues {
 	readonly amount: string;
+	readonly currency: string;
+	readonly exchangeRate: number | null;
+	readonly exchangeRateType: EntryRateType | null;
 }
 
 export interface TransactionFormFieldErrors {
 	amount?: string;
 	category?: string;
+	exchangeRate?: string;
 }
 
 export function isMissingCategory(value: TransactionFormCategoryValues): boolean {
@@ -33,5 +41,16 @@ export function transactionFormErrors(
 	if (isMissingCategory(value)) {
 		fields.category = TRANSACTION_FORM_ERROR.categoryRequired;
 	}
-	return fields.amount === undefined && fields.category === undefined ? null : { fields };
+	if (value.currency !== "USD") {
+		const rateError = transactionRateError(value.currency, {
+			exchangeRate: value.exchangeRate,
+			exchangeRateType: value.exchangeRateType ?? "official",
+		});
+		if (rateError !== null) {
+			fields.exchangeRate = TRANSACTION_FORM_ERROR[rateError];
+		}
+	}
+	return fields.amount === undefined && fields.category === undefined && fields.exchangeRate === undefined
+		? null
+		: { fields };
 }

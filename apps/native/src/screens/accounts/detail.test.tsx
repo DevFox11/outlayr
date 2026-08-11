@@ -112,6 +112,8 @@ function transaction(id: string, note: string, amount = 12): TransactionWithCate
 		date: AUG_9,
 		day: AUG_9,
 		emoji: null,
+		exchangeRate: null,
+		exchangeRateType: null,
 		icon: null,
 		id,
 		imageColor: null,

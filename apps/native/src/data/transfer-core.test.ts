@@ -1,8 +1,9 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
+import { categories, exchangeRates, transactions } from "@/db/schema";
 import { parseCsv } from "@/domain/csv";
+import { resolveImportMapping } from "@/domain/import-mapping";
 import { CSV_HEADER, parseCsvAmount, parseCsvDate } from "@/domain/transaction-csv";
 import { transactionsRepo } from "./transactions-core";
 import {
@@ -220,6 +221,8 @@ const MAPPING = {
 	category: 0,
 	currency: null,
 	date: 2,
+	exchangeRate: null,
+	exchangeRateType: null,
 	note: 1,
 	type: null,
 };
@@ -294,9 +297,17 @@ describe("guessMapping", () => {
 			category: 4,
 			currency: 3,
 			date: 0,
+			exchangeRate: 7,
+			exchangeRateType: 6,
 			note: 1,
 			type: 5,
 		});
+	});
+
+	it("guessMapping recognises the two Outlayr rate headers", () => {
+		const guess = guessMapping(["Exchange Rate Type", "Exchange Rate"]);
+		expect(guess.exchangeRateType).toBe(0);
+		expect(guess.exchangeRate).toBe(1);
 	});
 
 	it("recognises the words a bank export uses", () => {
@@ -370,6 +381,105 @@ describe("buildImportPlan", () => {
 	it("leaves currency null when no column is mapped, so the ledger's code applies", () => {
 		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
 		expect(plan.entries[0]?.currency).toBe(null);
+	});
+
+	it("buildImportPlan preserves a valid custom rate", () => {
+		const plan = buildImportPlan(
+			[["Food", "Bakery", "2026-07-28", "100", "custom", "55,5"]],
+			{ ...MAPPING, exchangeRate: 5, exchangeRateType: 4 },
+			"yyyy-MM-dd",
+			",",
+			links,
+			income
+		);
+		expect(plan.entries[0]).toMatchObject({ exchangeRate: 55.5, exchangeRateType: "custom" });
+	});
+
+	it("buildImportPlan preserves pending custom metadata", () => {
+		const plan = buildImportPlan(
+			[["Food", "Bakery", "2026-07-28", "100", "custom", ""]],
+			{ ...MAPPING, exchangeRate: 5, exchangeRateType: 4 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		expect(plan.entries[0]).toMatchObject({ exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	it("buildImportPlan preserves an unresolved provider policy so it re-resolves on import", () => {
+		const plan = buildImportPlan(
+			[["Food", "Bakery", "2026-07-28", "100", "official", ""]],
+			{ ...MAPPING, exchangeRate: 5, exchangeRateType: 4 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		expect(plan.entries[0]).toMatchObject({ exchangeRate: null, exchangeRateType: "official" });
+	});
+
+	it("buildImportPlan defaults a legacy six-column row to official behavior", () => {
+		const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
+		expect(plan.entries[0]).toMatchObject({ exchangeRate: null, exchangeRateType: null });
+	});
+
+	it("buildImportPlan skips malformed explicit rate metadata instead of silently changing valuation", () => {
+		const malformed = [
+			["Food", "Missing type", "2026-07-28", "100", "", "55.5"],
+			["Food", "Unknown type", "2026-07-28", "100", "market", "55.5"],
+			["Food", "Zero rate", "2026-07-28", "100", "custom", "0"],
+		];
+		const plan = buildImportPlan(
+			malformed,
+			{ ...MAPPING, exchangeRate: 5, exchangeRateType: 4 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		expect(plan.entries).toHaveLength(0);
+		expect(plan.skipped).toStrictEqual([
+			{ reason: "rate", row: 1 },
+			{ reason: "rate", row: 2 },
+			{ reason: "rate", row: 3 },
+		]);
+	});
+
+	it.each([
+		["USD with a supplied official rate", ["Food", "USD official", "2026-07-28", "100", "USD", "official", "1"]],
+		["USD with an unresolved custom policy", ["Food", "USD custom", "2026-07-28", "100", "USD", "custom", ""]],
+		[
+			"a non-VES EUR-reference rate",
+			["Food", "Invalid EUR reference", "2026-07-28", "100", "EUR", "eur_reference", "50"],
+		],
+	])("skips %s as inconsistent rate metadata", (_case, row) => {
+		const plan = buildImportPlan(
+			[row],
+			{ ...MAPPING, currency: 4, exchangeRate: 6, exchangeRateType: 5 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		expect(plan.entries).toHaveLength(0);
+		expect(plan.skipped).toStrictEqual([{ reason: "rate", row: 1 }]);
+	});
+
+	it("preserves valid VES EUR-reference metadata", () => {
+		const plan = buildImportPlan(
+			[["Food", "Valid EUR reference", "2026-07-28", "100", "VES", "eur_reference", "50"]],
+			{ ...MAPPING, currency: 4, exchangeRate: 6, exchangeRateType: 5 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		expect(plan.entries[0]).toMatchObject({
+			currency: "VES",
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
 	});
 
 	it("rejects a currency cell that is not a three-letter code", () => {
@@ -508,13 +618,58 @@ describe("applyImport", () => {
 		expect(rowsOut.every((row) => row.currency === "USD")).toBeTruthy();
 	});
 
+	it("applyImport freezes the exported actual rate on the new row", async () => {
+		const plan = buildImportPlan(
+			[["Food", "Bakery", "2026-07-28", "111", "EUR", "custom", "55.5"]],
+			{ ...MAPPING, currency: 4, exchangeRate: 6, exchangeRateType: 5 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		await applyImport(db, plan);
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: 2,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+	});
+
+	it("preserves a supplied EUR-reference rate as unresolved when its EUR-official leg is unavailable", async () => {
+		const plan = buildImportPlan(
+			[["Food", "EUR-reference offline", "2026-07-28", "100", "VES", "eur_reference", "50"]],
+			{ ...MAPPING, currency: 4, exchangeRate: 6, exchangeRateType: 5 },
+			"yyyy-MM-dd",
+			".",
+			links,
+			income
+		);
+		await applyImport(db, plan);
+
+		expect((await db.select().from(transactions))[0]).toMatchObject({
+			amountUsd: null,
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
+	});
+
 	it("round-trips an export back to the same figures", async () => {
 		await seedTransactions(db);
 		const csv = await exportTransactionsCsv(db);
 		const parsed = parseCsv(csv).slice(1);
 		const plan = buildImportPlan(
 			parsed,
-			{ amount: 2, category: 4, currency: 3, date: 0, note: 1, type: 5 },
+			{
+				amount: 2,
+				category: 4,
+				currency: 3,
+				date: 0,
+				exchangeRate: 7,
+				exchangeRateType: 6,
+				note: 1,
+				type: 5,
+			},
 			"ISO",
 			".",
 			new Map([
@@ -535,5 +690,98 @@ describe("applyImport", () => {
 		const salary = plan.entries.find((entry) => entry.note === "Salary");
 		expect(salary?.amount).toBe(2400);
 		expect(salary?.income).toBe(true);
+	});
+
+	it("round-trips resolved custom, official, and EUR-reference metadata through export, plan, and apply", async () => {
+		const source = makeDb();
+		await seed(source);
+		await source.insert(transactions).values([
+			{
+				amount: 111,
+				amountUsd: 2,
+				categoryId: "cat-food",
+				currency: "EUR",
+				date: new Date(2026, 6, 28, 9),
+				day: new Date(2026, 6, 28),
+				exchangeRate: 55.5,
+				exchangeRateType: "custom",
+				id: "custom-source",
+				income: false,
+				month: new Date(2026, 6, 1),
+				note: "Custom source",
+				updatedAt: NOW,
+			},
+			{
+				amount: 84,
+				amountUsd: 2,
+				categoryId: "cat-food",
+				currency: "VES",
+				date: new Date(2026, 6, 28, 10),
+				day: new Date(2026, 6, 28),
+				exchangeRate: 42,
+				exchangeRateType: "official",
+				id: "official-source",
+				income: false,
+				month: new Date(2026, 6, 1),
+				note: "Official source",
+				updatedAt: NOW,
+			},
+			{
+				amount: 100,
+				amountUsd: 2.5,
+				categoryId: "cat-food",
+				currency: "VES",
+				date: new Date(2026, 6, 28, 11),
+				day: new Date(2026, 6, 28),
+				exchangeRate: 50,
+				exchangeRateType: "eur_reference",
+				id: "eur-reference-source",
+				income: false,
+				month: new Date(2026, 6, 1),
+				note: "EUR reference source",
+				updatedAt: NOW,
+			},
+		]);
+		await db.insert(exchangeRates).values({
+			date: "2026-07-28",
+			fetchedAt: 1,
+			quote: "EUR",
+			rate: 0.8,
+			rateType: "official",
+			source: "provider",
+		});
+
+		const parsed = parseCsv(await exportTransactionsCsv(source));
+		const mapping = resolveImportMapping(guessMapping(parsed[0] ?? []));
+		expect(mapping.ok).toBe(true);
+		if (!mapping.ok) {
+			throw new Error("Expected the exported header to resolve to an import mapping");
+		}
+		const plan = buildImportPlan(
+			parsed.slice(1),
+			mapping.value.mapping,
+			"ISO",
+			".",
+			new Map([["groceries", "cat-food"]]),
+			income
+		);
+		await applyImport(db, plan);
+
+		const imported = await db.select().from(transactions);
+		expect(imported.find((row) => row.note === "Custom source")).toMatchObject({
+			amountUsd: 2,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		expect(imported.find((row) => row.note === "Official source")).toMatchObject({
+			amountUsd: 2,
+			exchangeRate: 42,
+			exchangeRateType: "official",
+		});
+		expect(imported.find((row) => row.note === "EUR reference source")).toMatchObject({
+			amountUsd: 2.5,
+			exchangeRate: 50,
+			exchangeRateType: "eur_reference",
+		});
 	});
 });

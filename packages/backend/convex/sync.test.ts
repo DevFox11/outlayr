@@ -109,6 +109,13 @@ function pullAs(t: TestClient, who: SeededIdentity, cursor: number, limit?: numb
 	return authenticatedAs(t, who).query(api.sync.pullSince, { cursor, limit });
 }
 
+async function omitStoredTransactionAccountId(t: TestClient): Promise<void> {
+	await t.run(async (ctx) => {
+		const [stored] = await ctx.db.query("transactions").collect();
+		await ctx.db.patch(stored._id, { accountId: undefined });
+	});
+}
+
 describe("push authorization", () => {
 	test("refuses a caller with no session", async () => {
 		const t = convexTest(schema, modules);
@@ -239,6 +246,31 @@ describe("push table coverage", () => {
 		});
 		const transaction = page.rows.find((row) => row.table === "transactions");
 		expect(transaction?.fields.accountId).toBe("acct-1");
+	});
+
+	test("round-trips resolved and pending custom transaction rate triples", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("resolved-custom", 1, {
+				fields: { amountUsd: 1.801_802, exchangeRate: 55.5, exchangeRateType: "custom" },
+			}),
+			transactionRow("pending-custom", 2, {
+				fields: { amountUsd: null, exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		const page = await pullAs(t, owner, 0);
+		expect(page.rows.find((row) => row.localId === "resolved-custom")?.fields).toMatchObject({
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		expect(page.rows.find((row) => row.localId === "pending-custom")?.fields).toMatchObject({
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
 	});
 
 	test("serves a stored transaction that predates accountId as null", async () => {
@@ -431,9 +463,11 @@ describe("push conflict resolution", () => {
 		const owner = await seedAuthUser(t);
 
 		await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 500, { fields: { note: "newer" } })]);
+		const consumed = await pullAs(t, owner, 0);
 		const stale = await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { fields: { note: "older" } })]);
 
 		expect(stale.skipped).toBe(1);
+		expect(await pullAs(t, owner, consumed.cursor)).toMatchObject({ rows: [] });
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
 		expect(stored[0].note).toBe("newer");
 	});
@@ -449,6 +483,261 @@ describe("push conflict resolution", () => {
 		expect(reverse.accepted).toBe(0);
 		const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
 		expect(stored[0].note).toBe("from-b");
+	});
+
+	test("preserves pending custom policy against an equal-timestamp old-client official backfill", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		const result = await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+			}),
+		]);
+
+		expect(result.skipped).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	test("preserves pending custom policy when the equal-timestamp official backfill arrived first", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+			}),
+		]);
+
+		const result = await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		expect(result.accepted).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	test("treats omitted legacy nullable fields as null when pending custom arrives first", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		const result = await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: {
+					amountUsd: 2.5,
+					currency: "VES",
+					exchangeRate: 40,
+					exchangeRateType: "official",
+					recurringAnchorDay: null,
+					transferId: null,
+				},
+			}),
+		]);
+
+		expect(result.skipped).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	test("treats omitted legacy nullable fields as null when official arrives first", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: {
+					amountUsd: 2.5,
+					currency: "VES",
+					exchangeRate: 40,
+					exchangeRateType: "official",
+					recurringAnchorDay: null,
+					transferId: null,
+				},
+			}),
+		]);
+
+		const result = await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		expect(result.accepted).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	test("treats a legacy omitted stored accountId as null when pending custom arrives first", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+		await omitStoredTransactionAccountId(t);
+
+		const result = await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+			}),
+		]);
+
+		expect(result.skipped).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	test("treats a legacy omitted stored accountId as null when official arrives first", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+			}),
+		]);
+		await omitStoredTransactionAccountId(t);
+
+		const result = await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		expect(result.accepted).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+	});
+
+	test("re-emits pending custom after the losing device passed its original sequence", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+		const consumed = await pullAs(t, owner, 0);
+
+		const result = await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+			}),
+		]);
+		const correction = await pullAs(t, owner, consumed.cursor);
+
+		expect(result).toMatchObject({ accepted: 0, skipped: 1 });
+		expect(correction.rows).toHaveLength(1);
+		expect(correction.rows[0]).toMatchObject({
+			fields: { amountUsd: null, exchangeRate: null, exchangeRateType: "custom" },
+			localId: "t1",
+		});
+		expect(correction.cursor).toBeGreaterThan(consumed.cursor);
+	});
+
+	test("coalesces duplicate losing backfills into one correction emission", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+		const consumed = await pullAs(t, owner, 0);
+		const legacyBackfill = transactionRow("t1", 100, {
+			fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+		});
+
+		const result = await pushAs(t, owner, DEVICE_B, [legacyBackfill, legacyBackfill]);
+		const correction = await pullAs(t, owner, consumed.cursor);
+
+		expect(result).toMatchObject({ accepted: 0, skipped: 2 });
+		expect(correction.rows).toHaveLength(1);
+		expect(await pullAs(t, owner, correction.cursor)).toMatchObject({ rows: [] });
+	});
+
+	test("re-emits one correction for an identical losing backfill in a later push", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+		const consumed = await pullAs(t, owner, 0);
+		const legacyBackfill = transactionRow("t1", 100, {
+			fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+		});
+		await pushAs(t, owner, DEVICE_B, [legacyBackfill]);
+		const firstCorrection = await pullAs(t, owner, consumed.cursor);
+
+		const retry = await pushAs(t, owner, DEVICE_B, [legacyBackfill]);
+		const secondCorrection = await pullAs(t, owner, firstCorrection.cursor);
+
+		expect(retry).toMatchObject({ accepted: 0, skipped: 1 });
+		expect(secondCorrection.rows).toHaveLength(1);
+		expect(secondCorrection.rows[0]).toMatchObject({
+			fields: { amountUsd: null, exchangeRate: null, exchangeRateType: "custom" },
+		});
+		expect(await pullAs(t, owner, secondCorrection.cursor)).toMatchObject({ rows: [] });
+	});
+
+	test("keeps normal deviceId tie-breaking when an equal-timestamp official edit changes a business field", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		const result = await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 100, {
+				fields: {
+					amountUsd: 2.5,
+					currency: "VES",
+					exchangeRate: 40,
+					exchangeRateType: "official",
+					note: "intentional policy edit",
+				},
+			}),
+		]);
+
+		expect(result.accepted).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ exchangeRateType: "official", note: "intentional policy edit" });
+	});
+
+	test("accepts a genuinely newer user edit from pending custom to official", async () => {
+		const t = convexTest(schema, modules);
+		const owner = await seedAuthUser(t);
+		await pushAs(t, owner, DEVICE_A, [
+			transactionRow("t1", 100, {
+				fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
+			}),
+		]);
+
+		const result = await pushAs(t, owner, DEVICE_B, [
+			transactionRow("t1", 101, {
+				fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
+			}),
+		]);
+
+		expect(result.accepted).toBe(1);
+		const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
+		expect(stored).toMatchObject({ amountUsd: 2.5, exchangeRate: 40, exchangeRateType: "official" });
 	});
 });
 

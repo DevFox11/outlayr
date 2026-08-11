@@ -28,6 +28,7 @@ const SKIP_REASON_KEY: Record<SkipReason, TranslationKey> = {
 	amount: "import.skipReasonAmount",
 	category: "import.skipReasonCategory",
 	date: "import.skipReasonDate",
+	rate: "import.skipReasonRate",
 };
 
 /** The Log row's tile: a 20pt glyph in 8pt of padding. */

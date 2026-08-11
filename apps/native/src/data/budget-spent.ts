@@ -28,6 +28,8 @@ export function expenseContributionQuery(db: SpendDb, now: Date) {
 			categoryId: transactions.categoryId,
 			currency: transactions.currency,
 			date: transactions.date,
+			exchangeRate: transactions.exchangeRate,
+			exchangeRateType: transactions.exchangeRateType,
 		})
 		.from(transactions)
 		.where(and(eq(transactions.income, false), isNull(transactions.deletedAt), lte(transactions.date, now)));

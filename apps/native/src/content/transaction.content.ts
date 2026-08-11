@@ -350,6 +350,62 @@ const transaction = {
 			en: "Delete",
 			es: "Borrar",
 		}),
+		"transaction.rate.currentSuggestion": t({
+			en: "Current suggestion",
+			es: "Sugerencia actual",
+		}),
+		"transaction.rate.custom": t({
+			en: "Custom",
+			es: "Personalizada",
+		}),
+		"transaction.rate.editCustom": t({
+			en: "Edit custom rate",
+			es: "Editar tasa personalizada",
+		}),
+		"transaction.rate.eur_reference": t({
+			en: "EUR reference",
+			es: "Referencia EUR",
+		}),
+		"transaction.rate.official": t({
+			en: "Official",
+			es: "Oficial",
+		}),
+		"transaction.rate.pendingBody": t({
+			en: "The native amount remains recorded. Cross-currency totals wait for your confirmation.",
+			es: "El monto en su moneda original permanece registrado. Los totales entre monedas esperan tu confirmación.",
+		}),
+		"transaction.rate.pendingTitle": t({
+			en: "Rate confirmation needed",
+			es: "Se necesita confirmar la tasa",
+		}),
+		"transaction.rate.perUsd": t({
+			en: "{currency} per USD",
+			es: "{currency} por USD",
+		}),
+		"transaction.rate.priorCustomDate": t({
+			en: "Used on {date}",
+			es: "Usada el {date}",
+		}),
+		"transaction.rate.priorCustomSuggestion": t({
+			en: "Prior custom rate",
+			es: "Tasa personalizada anterior",
+		}),
+		"transaction.rate.required": t({
+			en: "Enter a positive rate",
+			es: "Ingresa una tasa positiva",
+		}),
+		"transaction.rate.requiredHint": t({
+			en: "Enter the amount of this currency equal to one US dollar.",
+			es: "Ingresa el monto de esta moneda equivalente a un dólar estadounidense.",
+		}),
+		"transaction.rate.title": t({
+			en: "Entry rate",
+			es: "Tasa de la transacción",
+		}),
+		"transaction.rate.useSuggestion": t({
+			en: "Use suggestion",
+			es: "Usar sugerencia",
+		}),
 		"transaction.remind.dayBefore": t({
 			en: "1 day before",
 			es: "1 día antes",

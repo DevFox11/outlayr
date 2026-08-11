@@ -1,3 +1,4 @@
+import { ENTRY_RATE_TYPES, type EntryRateType } from "@outlayr/money/rates";
 import { desc, eq, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
@@ -21,6 +22,8 @@ export async function exportTransactionsCsv(db: Database): Promise<string> {
 			categoryName: categories.name,
 			currency: transactions.currency,
 			date: transactions.date,
+			exchangeRate: transactions.exchangeRate,
+			exchangeRateType: transactions.exchangeRateType,
 			income: transactions.income,
 			note: transactions.note,
 		})
@@ -46,6 +49,8 @@ export interface ColumnMapping {
 	category: number;
 	currency: number | null;
 	date: number;
+	exchangeRate: number | null;
+	exchangeRateType: number | null;
 	/** Optional: an unmapped note falls back to the category's name on write. */
 	note: number | null;
 	type: number | null;
@@ -56,9 +61,24 @@ const HEADER_HINTS: Record<keyof ColumnMapping, readonly string[]> = {
 	category: ["category", "categories", "tag"],
 	currency: ["currency", "code", "ccy"],
 	date: ["date", "time", "posted", "when"],
+	exchangeRate: ["exchange rate", "rate"],
+	exchangeRateType: ["exchange rate type", "rate type"],
 	note: ["note", "description", "memo", "payee", "merchant", "name", "details"],
 	type: ["type", "direction", "kind"],
 };
+
+// Match specific overlapping labels before their general substring forms;
+// unlike object keys, this order is not changed by property-sorting formatters.
+const HEADER_MATCH_ORDER: readonly (keyof ColumnMapping)[] = [
+	"exchangeRateType",
+	"exchangeRate",
+	"amount",
+	"category",
+	"currency",
+	"date",
+	"note",
+	"type",
+];
 
 /**
  * Best guess from a header row, so a file this app exported maps itself. Fields
@@ -73,11 +93,13 @@ export function guessMapping(header: readonly string[]): Record<keyof ColumnMapp
 		category: null,
 		currency: null,
 		date: null,
+		exchangeRate: null,
+		exchangeRateType: null,
 		note: null,
 		type: null,
 	};
 
-	for (const field of Object.keys(HEADER_HINTS) as (keyof ColumnMapping)[]) {
+	for (const field of HEADER_MATCH_ORDER) {
 		const index = normalized.findIndex(
 			(cell, at) => !taken.has(at) && HEADER_HINTS[field].some((hint) => cell.includes(hint))
 		);
@@ -95,6 +117,8 @@ export interface ImportEntry {
 	/** Null adopts the ledger's code at write time. */
 	currency: string | null;
 	date: Date;
+	exchangeRate?: number | null;
+	exchangeRateType?: EntryRateType | null;
 	imageColor?: string | null;
 	/** Attached at commit time from the merchant's cached logo, if any. */
 	imageUri?: string | null;
@@ -102,7 +126,7 @@ export interface ImportEntry {
 	note: string;
 }
 
-export type SkipReason = "category" | "date" | "amount";
+export type SkipReason = "category" | "date" | "amount" | "rate";
 
 export interface SkippedRow {
 	reason: SkipReason;
@@ -198,6 +222,36 @@ export function uniqueCategoryValues(rows: readonly (readonly string[])[], index
 
 const CURRENCY_CODE = /^[A-Za-z]{3}$/;
 
+function entryRateType(value: string): EntryRateType | null {
+	const normalized = value.trim();
+	return ENTRY_RATE_TYPES.find((candidate) => candidate === normalized) ?? null;
+}
+
+function readRateMetadata(
+	row: readonly string[],
+	mapping: ColumnMapping,
+	decimal: DecimalSeparator
+): Pick<ImportEntry, "exchangeRate" | "exchangeRateType"> | "rate" {
+	const typeCell = mapping.exchangeRateType == null ? "" : (row[mapping.exchangeRateType] ?? "").trim();
+	const rateCell = mapping.exchangeRate == null ? "" : (row[mapping.exchangeRate] ?? "").trim();
+
+	if (typeCell === "" && rateCell === "") {
+		return { exchangeRate: null, exchangeRateType: null };
+	}
+	const exchangeRateType = entryRateType(typeCell);
+	if (exchangeRateType == null) {
+		return "rate";
+	}
+	if (rateCell === "") {
+		return { exchangeRate: null, exchangeRateType };
+	}
+	const exchangeRate = parseCsvAmount(rateCell, decimal);
+	if (exchangeRate == null || exchangeRate <= 0) {
+		return "rate";
+	}
+	return { exchangeRate, exchangeRateType };
+}
+
 function readImportRow(
 	row: readonly string[],
 	mapping: ColumnMapping,
@@ -220,15 +274,27 @@ function readImportRow(
 	if (amount == null) {
 		return "amount";
 	}
+	const currencyCell = mapping.currency == null ? "" : (row[mapping.currency] ?? "").trim();
+	const currency = CURRENCY_CODE.test(currencyCell) ? currencyCell.toUpperCase() : null;
+	const rateMetadata = readRateMetadata(row, mapping, decimal);
+	if (rateMetadata === "rate") {
+		return "rate";
+	}
+	if (
+		rateMetadata.exchangeRateType != null &&
+		(currency === "USD" || (rateMetadata.exchangeRateType === "eur_reference" && currency !== "VES"))
+	) {
+		return "rate";
+	}
 
 	const declaredType = mapping.type == null ? null : parseCsvType(row[mapping.type] ?? "");
-	const currencyCell = mapping.currency == null ? "" : (row[mapping.currency] ?? "").trim();
 
 	return {
 		amount: Math.abs(amount),
 		categoryId,
-		currency: CURRENCY_CODE.test(currencyCell) ? currencyCell.toUpperCase() : null,
+		currency,
 		date,
+		...rateMetadata,
 		income: declaredType ?? categoryIncome.get(categoryId) ?? false,
 		note: mapping.note == null ? "" : (row[mapping.note] ?? "").trim(),
 	};
@@ -292,6 +358,8 @@ export async function applyImport(db: Database, plan: ImportPlan): Promise<numbe
 				currency: entry.currency,
 				date: entry.date,
 				details: null,
+				exchangeRate: entry.exchangeRate,
+				exchangeRateType: entry.exchangeRateType,
 				imageColor: entry.imageColor ?? null,
 				imageUri: entry.imageUri ?? null,
 				income: entry.income,

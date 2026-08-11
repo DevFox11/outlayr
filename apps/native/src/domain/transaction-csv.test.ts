@@ -200,6 +200,8 @@ describe("transactionsToCsv", () => {
 			categoryName: "Groceries",
 			currency: "EUR",
 			date: new Date(Date.UTC(2026, 6, 29, 10, 15)),
+			exchangeRate: null,
+			exchangeRateType: null,
 			income: false,
 			note: "Bakery, twice",
 		},
@@ -208,6 +210,8 @@ describe("transactionsToCsv", () => {
 			categoryName: null,
 			currency: null,
 			date: new Date(Date.UTC(2026, 6, 28, 9, 0)),
+			exchangeRate: null,
+			exchangeRateType: null,
 			income: true,
 			note: "Paycheck",
 		},
@@ -245,6 +249,48 @@ describe("transactionsToCsv", () => {
 
 	it("emits only the header when there is nothing to export", () => {
 		expect(transactionsToCsv([], "USD")).toBe(`${CSV_HEADER.join(",")}\n`);
+	});
+
+	it("appends optional rate columns without changing the legacy column order", () => {
+		expect(CSV_HEADER).toStrictEqual([
+			"Date",
+			"Note",
+			"Amount",
+			"Currency",
+			"Category",
+			"Type",
+			"Exchange Rate Type",
+			"Exchange Rate",
+		]);
+	});
+
+	it("exports resolved custom and provider metadata exactly", () => {
+		const parsed = parseCsv(
+			transactionsToCsv(
+				[
+					{ ...rows[0], exchangeRate: 55.5, exchangeRateType: "custom" },
+					{ ...rows[0], exchangeRate: 42, exchangeRateType: "official" },
+				],
+				"USD"
+			)
+		);
+
+		expect(parsed[1]?.slice(6)).toStrictEqual(["custom", "55.5"]);
+		expect(parsed[2]?.slice(6)).toStrictEqual(["official", "42"]);
+	});
+
+	it("exports pending custom as type custom with a blank actual rate", () => {
+		const parsed = parseCsv(transactionsToCsv([{ ...rows[0], exchangeRate: null, exchangeRateType: "custom" }], "USD"));
+
+		expect(parsed[1]?.slice(6)).toStrictEqual(["custom", ""]);
+	});
+
+	it("exports USD with both metadata cells blank", () => {
+		const parsed = parseCsv(
+			transactionsToCsv([{ ...rows[0], currency: "USD", exchangeRate: 55.5, exchangeRateType: "custom" }], "USD")
+		);
+
+		expect(parsed[1]?.slice(6)).toStrictEqual(["", ""]);
 	});
 });
 

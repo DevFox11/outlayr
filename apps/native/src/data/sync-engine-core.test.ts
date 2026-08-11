@@ -299,6 +299,42 @@ describe("drainOutbox", () => {
 		expect(seen[0].fields.categoryId).toBe(null);
 	});
 
+	it("round-trips resolved and pending custom transaction rate triples", async () => {
+		await setSyncEnabled(db, true);
+		await addTransaction(db, "resolved-custom", {
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		await addTransaction(db, "pending-custom", {
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+		let wireRows: WireRow[] = [];
+		await drainOutbox(db, async ({ rows }) => {
+			wireRows = rows;
+			return { accepted: rows.length, nextSeq: rows.length, skipped: 0 };
+		});
+
+		const target = makeDb();
+		await applyPulledRows(target, {
+			cursor: wireRows.length,
+			rows: wireRows.map((row, index) => ({ ...row, deviceId: "device-a", seq: index + 1 })),
+		});
+		const replicated = await target.select().from(transactions);
+		expect(replicated.find((row) => row.id === "resolved-custom")).toMatchObject({
+			amountUsd: 1.801_802,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		expect(replicated.find((row) => row.id === "pending-custom")).toMatchObject({
+			amountUsd: null,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+		});
+	});
+
 	it("pushes a tombstone as one", async () => {
 		await addTransaction(db, "t1");
 		await setSyncEnabled(db, true);
@@ -852,6 +888,43 @@ describe("R3 — invariants Convex cannot hold", () => {
 });
 
 describe("two devices against one account", () => {
+	it("applies a re-emitted pending-custom winner after its original sequence was consumed", async () => {
+		const db = makeDb();
+		await setSyncEnabled(db, true);
+		await applyPulledRows(db, { cursor: 1, rows: [metaRow("currency", 1, 50, "VES")] });
+		await addTransaction(db, "t1", {
+			amountUsd: 2.5,
+			currency: "VES",
+			exchangeRate: 40,
+			exchangeRateType: "official",
+			updatedAt: AT(100),
+		});
+		let correctionEmitted = false;
+		const push: PushFn = async ({ rows }) => {
+			correctionEmitted = true;
+			return { accepted: 0, nextSeq: 3, skipped: rows.length };
+		};
+		const pull = async ({ cursor }: { cursor: number; limit: number }) => ({
+			cursor: correctionEmitted ? 2 : cursor,
+			hasMore: false,
+			rows: correctionEmitted
+				? [
+						txRow("t1", 2, 100, {
+							deviceId: "device-a",
+							fields: { currency: "VES", exchangeRateType: "custom" },
+						}),
+					]
+				: [],
+		});
+
+		await runSync(db, { pull, push });
+
+		const [row] = await db.select().from(transactions);
+		expect(row).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
+		expect(await getSyncCursor(db)).toBe(2);
+		expect(await outboxPendingCount(db)).toBe(0);
+	});
+
 	it("replicates a ledger from one device to the other", async () => {
 		const alpha = makeDb();
 		const beta = makeDb();

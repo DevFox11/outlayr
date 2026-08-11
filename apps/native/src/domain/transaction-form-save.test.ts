@@ -12,6 +12,8 @@ const BASE: TransactionSaveDraft = {
 	details: "",
 	emoji: null,
 	endDate: new Date(2026, 5, 10),
+	exchangeRate: null,
+	exchangeRateType: null,
 	hasEndDate: true,
 	icon: "cup.and.saucer",
 	imageColor: null,
@@ -84,5 +86,21 @@ describe("buildTransactionInput", () => {
 			leadDays: null,
 		});
 		expect(input.reminderLeadDays).toBe(null);
+	});
+
+	it("carries the selected rate type and actual rate into the transaction input", () => {
+		const input = buildTransactionInput({
+			...BASE,
+			exchangeRate: 55.5,
+			exchangeRateType: "custom",
+		});
+		expect(input).toMatchObject({ exchangeRate: 55.5, exchangeRateType: "custom" });
+	});
+
+	it("keeps omitted rate metadata absent for an unrelated edit", () => {
+		const { exchangeRate: _exchangeRate, exchangeRateType: _exchangeRateType, ...draft } = BASE;
+		const input = buildTransactionInput(draft);
+		expect(input).not.toHaveProperty("exchangeRate");
+		expect(input).not.toHaveProperty("exchangeRateType");
 	});
 });

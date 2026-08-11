@@ -166,6 +166,14 @@ const log = {
 			en: "Delete transaction",
 			es: "Eliminar transacción",
 		}),
+		"log.row.rateNeeded": t({
+			en: "Rate needed",
+			es: "Falta la tasa",
+		}),
+		"log.row.rateNeededAccessibility": t({
+			en: "Custom exchange rate confirmation needed. Open this transaction to confirm it.",
+			es: "Se necesita confirmar la tasa de cambio personalizada. Abre esta transacción para confirmarla.",
+		}),
 		"log.row.unplaced": t({
 			en: "Currency not recorded, shown as {code}",
 			es: "Moneda no registrada, se muestra como {code}",

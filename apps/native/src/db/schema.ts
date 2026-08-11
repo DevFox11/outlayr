@@ -120,9 +120,10 @@ export const transactions = sqliteTable(
 		 * at write. Read only to add figures in different currencies together — a
 		 * same-currency read uses `amount` directly so it never round-trips.
 		 *
-		 * Null when it could not be computed (entry made offline before any rate was
-		 * cached); aggregation falls back to face value there rather than dropping
-		 * the row.
+		 * A resolved row freezes this together with `exchangeRate` and
+		 * `exchangeRateType`. The intentional custom-pending triple is
+		 * `(null, null, "custom")`: the native amount remains usable while
+		 * cross-currency aggregation waits for confirmation.
 		 */
 		amountUsd: real("amountUsd"),
 		categoryId: text("categoryId").references(() => categories.id, {
@@ -135,7 +136,7 @@ export const transactions = sqliteTable(
 		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
 		details: text("details"),
 		emoji: text("emoji"),
-		/** The USD→`currency` rate used, kept so the figure can be explained. */
+		/** The frozen currency-per-USD actual rate, or null while custom is pending. */
 		exchangeRate: real("exchangeRate"),
 		/** Which market rate it came from: official | eur_reference | custom. */
 		exchangeRateType: text("exchangeRateType"),

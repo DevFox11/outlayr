@@ -234,6 +234,10 @@ const importSheet = {
 			en: "Unreadable date",
 			es: "Fecha ilegible",
 		}),
+		"import.skipReasonRate": t({
+			en: "Invalid exchange-rate metadata",
+			es: "Metadatos de tipo de cambio no válidos",
+		}),
 		"import.sourceComingSoon": t({
 			en: "Coming soon",
 			es: "Próximamente",

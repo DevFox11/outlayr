@@ -5,6 +5,7 @@ import { type AccessibilityActionEvent, Pressable, View } from "react-native";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
+import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { isExact, type RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n/context";
@@ -71,6 +72,7 @@ export function TransactionRow({
 	const isTransfer = "transferId" in transaction && Boolean(transaction.transferId);
 	const identity = resolveTransactionIdentity(transaction);
 	const recurring = transaction.recurringType > 0;
+	const rateNeeded = isTransactionRateNeeded(transaction);
 	const foreignCode = transaction.currency && transaction.currency !== currency ? transaction.currency : null;
 	// A row that stated no currency is printed under the global code. That is a
 	// fact only while something can place it; once nothing can, the code is an
@@ -155,6 +157,14 @@ export function TransactionRow({
 							className="rounded-[3px] border border-border px-[3px]"
 						>
 							<MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>
+						</View>
+					) : null}
+					{rateNeeded ? (
+						<View
+							accessibilityLabel={t("log.row.rateNeededAccessibility")}
+							className="rounded-[3px] border border-warning px-[3px]"
+						>
+							<MonoLabel className="text-foreground">{t("log.row.rateNeeded")}</MonoLabel>
 						</View>
 					) : null}
 				</View>

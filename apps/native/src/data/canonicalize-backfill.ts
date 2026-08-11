@@ -1,5 +1,5 @@
 import { utcDateString } from "@outlayr/money/dates";
-import { and, count, eq, isNotNull, isNull, min } from "drizzle-orm";
+import { and, count, eq, isNotNull, isNull, min, not, or } from "drizzle-orm";
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
@@ -77,26 +77,24 @@ export async function stampLedgerCurrency(db: SpendDb): Promise<number> {
 }
 
 /**
- * Fills in `amountUsd` for rows that never got one. Runs after a rate pull,
- * which is exactly when a previously unresolvable row becomes resolvable: rows
- * are skipped, never failed, so the backlog drains as coverage improves.
- *
- * A row naming no currency is not eligible — freezing it against the display
- * setting would claim a currency it never stated. Those are excluded in SQL
- * rather than skipped in the loop so they cannot fill the batch and starve rows
- * that are valuable.
- *
- * Idempotent by construction: it only ever selects `amountUsd IS NULL`.
- */
-/**
  * The rows a pass can act on. Shared so a coverage readout counts the same set
  * the drain works through: a row naming no currency is not a backlog item, and
  * counting it as one reports a backlog that never drains.
  */
 function uncanonicalized() {
-	return and(isNull(transactions.amountUsd), isNotNull(transactions.currency), isNull(transactions.deletedAt));
+	return and(
+		isNull(transactions.amountUsd),
+		isNotNull(transactions.currency),
+		isNull(transactions.deletedAt),
+		or(
+			isNull(transactions.exchangeRateType),
+			not(eq(transactions.exchangeRateType, "custom")),
+			isNotNull(transactions.exchangeRate)
+		)
+	);
 }
 
+/** Fills resolvable canonical-USD gaps without consuming pending custom rows. */
 export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 	const lookup = localRateLookup(db);
 	let valued = 0;
@@ -111,6 +109,8 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 				amount: transactions.amount,
 				currency: transactions.currency,
 				date: transactions.date,
+				exchangeRate: transactions.exchangeRate,
+				exchangeRateType: transactions.exchangeRateType,
 				id: transactions.id,
 			})
 			.from(transactions)
@@ -123,7 +123,8 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 			return valued;
 		}
 
-		let landed = 0;
+		let valuedInBatch = 0;
+		let removedFromBacklog = 0;
 		for (const row of pending) {
 			// biome-ignore lint/performance/noAwaitInLoops: the rate lookup and the UPDATE are both synchronous on this driver (see CANONICALIZE_BATCH above), so issuing the slice together overlaps no I/O — it only moves all 250 rows into one microtask drain, which is exactly what yieldToUi paces
 			const canonical = await canonicalUsd(lookup, {
@@ -131,17 +132,33 @@ export async function backfillCanonicalUsd(db: SpendDb): Promise<number> {
 				currency: row.currency,
 				date: row.date,
 				displayCurrency: row.currency ?? DEFAULT_CURRENCY,
+				exchangeRate: row.exchangeRate,
+				exchangeRateType:
+					row.exchangeRateType === "custom" ||
+					row.exchangeRateType === "eur_reference" ||
+					row.exchangeRateType === "official"
+						? row.exchangeRateType
+						: null,
 			});
 			if (canonical.amountUsd === null) {
-				// Still no rate for that day; left alone so the next pass retries it.
+				if (row.exchangeRate !== null && canonical.exchangeRate === null) {
+					await db
+						.update(transactions)
+						.set({ exchangeRate: null, exchangeRateType: canonical.exchangeRateType })
+						.where(eq(transactions.id, row.id));
+					if (canonical.exchangeRateType === "custom") {
+						removedFromBacklog += 1;
+					}
+				}
 				continue;
 			}
 			await db.update(transactions).set(canonical).where(eq(transactions.id, row.id));
-			landed += 1;
+			valuedInBatch += 1;
+			removedFromBacklog += 1;
 		}
 
-		valued += landed;
-		cursor += pending.length - landed;
+		valued += valuedInBatch;
+		cursor += pending.length - removedFromBacklog;
 
 		if (pending.length < CANONICALIZE_BATCH) {
 			return valued;

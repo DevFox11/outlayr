@@ -86,6 +86,40 @@ describe("valueIn", () => {
 		const noRate = valueIn({ amount: 50, amountUsd: 50, currency: "USD", dateKey: "2020-01-01" }, "EUR", rates);
 		expect(noRate).toBe(50);
 	});
+
+	it("contributes zero when a pending custom row is valued in another currency", () => {
+		expect(
+			valueIn(
+				{
+					amount: 40,
+					amountUsd: null,
+					currency: "VES",
+					dateKey: "2026-07-15",
+					exchangeRate: null,
+					exchangeRateType: "custom",
+				},
+				"EUR",
+				rates
+			)
+		).toBe(0);
+	});
+
+	it("uses a pending custom row's native amount when display currency matches", () => {
+		expect(
+			valueIn(
+				{
+					amount: 40,
+					amountUsd: null,
+					currency: "VES",
+					dateKey: "2026-07-15",
+					exchangeRate: null,
+					exchangeRateType: "custom",
+				},
+				"VES",
+				rates
+			)
+		).toBe(40);
+	});
 });
 
 describe("isExact", () => {

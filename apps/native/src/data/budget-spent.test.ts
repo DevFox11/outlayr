@@ -2,7 +2,7 @@ import { utcDateString } from "@outlayr/money/dates";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { categories, transactions } from "@/db/schema";
-import { buildRateTable, sumValuedIn, valueIn } from "@/domain/valuation";
+import { buildRateTable, sumValuedIn, valueDatedRowsIn, valueIn } from "@/domain/valuation";
 import { type ExpenseContribution, expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
 
 type TestDb = ReturnType<typeof drizzle>;
@@ -185,6 +185,46 @@ describe("expenseContributionQuery", () => {
 		for (const row of rows) {
 			expect("currency" in row && "amountUsd" in row).toBeTruthy();
 		}
+	});
+
+	it("keeps a pending custom contribution at face value in its native budget currency", async () => {
+		const pendingDb = makeDb();
+		await pendingDb.insert(transactions).values({
+			amount: 40,
+			amountUsd: null,
+			currency: "VES",
+			date: NOW,
+			day: NOW,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+			id: "pending-custom",
+			income: false,
+			month: WINDOW_START,
+			updatedAt: NOW,
+		});
+		const rows = await expenseContributionQuery(pendingDb, NOW);
+
+		expect(valueDatedRowsIn(rows, "VES", buildRateTable([]))).toStrictEqual([40]);
+	});
+
+	it("excludes a pending custom contribution from a foreign-currency budget scalar", async () => {
+		const pendingDb = makeDb();
+		await pendingDb.insert(transactions).values({
+			amount: 40,
+			amountUsd: null,
+			currency: "VES",
+			date: NOW,
+			day: NOW,
+			exchangeRate: null,
+			exchangeRateType: "custom",
+			id: "pending-custom",
+			income: false,
+			month: WINDOW_START,
+			updatedAt: NOW,
+		});
+		const rows = await expenseContributionQuery(pendingDb, NOW);
+
+		expect(valueDatedRowsIn(rows, "EUR", buildRateTable([]))).toStrictEqual([0]);
 	});
 });
 

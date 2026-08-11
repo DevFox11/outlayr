@@ -21,6 +21,8 @@ const DRAFT = {
 	category: null,
 	currency: null,
 	date: 0,
+	exchangeRate: null,
+	exchangeRateType: null,
 	note: 1,
 	type: null,
 };
@@ -32,6 +34,8 @@ const RESOLVED: ResolvedMapping = {
 		category: 1,
 		currency: null,
 		date: 0,
+		exchangeRate: null,
+		exchangeRateType: null,
 		note: 1,
 		type: null,
 	},

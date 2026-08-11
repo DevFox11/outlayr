@@ -59,6 +59,8 @@ async function add(
 		amountUsd: number | null;
 		date: Date;
 		income?: boolean;
+		exchangeRate?: number | null;
+		exchangeRateType?: string | null;
 	}
 ): Promise<void> {
 	seq += 1;
@@ -68,6 +70,8 @@ async function add(
 		currency: row.currency,
 		date: row.date,
 		day: row.date,
+		exchangeRate: row.exchangeRate ?? null,
+		exchangeRateType: row.exchangeRateType ?? null,
 		id: `t${seq}`,
 		income: row.income ?? false,
 		month: row.date,
@@ -81,6 +85,20 @@ async function figures(db: SpendDb, globalCurrency: string) {
 }
 
 describe("logCellQuery", () => {
+	it("aggregates pending custom separately without losing the native cell amount", async () => {
+		const db = makeDb();
+		const date = new Date(Date.UTC(2026, 6, 5, 12));
+		await add(db, { amount: 20, amountUsd: null, currency: "VES", date });
+		await add(db, { amount: 40, amountUsd: null, currency: "VES", date, exchangeRateType: "custom" });
+		const [cell] = toCurrencyCells(await logCellQuery(db, null, NOW));
+		expect(cell).toMatchObject({
+			amount: 60,
+			rateNeededAmount: 40,
+			rateNeededCount: 1,
+			unconvertedAmount: 60,
+			unconvertedCount: 2,
+		});
+	});
 	it("keys each group by the row's UTC day, matching what JS derives", async () => {
 		const db = makeDb();
 		// 23:00 UTC on the 5th and 01:00 UTC on the 6th are the same local day in
