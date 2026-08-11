@@ -1,12 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
-import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
+import { IdentityDraftProvider, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories-core";
 import { backfillRecurring } from "@/data/recurrence-backfill";
@@ -15,6 +15,9 @@ import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, tags, transactions } from "@/db/schema";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
+import { fetchMerchantImage, type LogoOutcome } from "@/lib/logo-fetch";
+import { glowFromImage } from "@/theme/glow";
+import { curtainGradient } from "../identity-curtain";
 import { TransactionForm } from "./index";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -72,6 +75,12 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("@/lib/subscription-reminder-sync", () => ({
 	syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
 }));
+jest.mock("@/lib/logo-fetch", () => ({ fetchMerchantImage: jest.fn() }));
+jest.mock("@/lib/photo-storage", () => ({ persistLogoBytes: jest.fn() }));
+jest.mock("@/theme/glow", () => {
+	const actual = jest.requireActual("@/theme/glow");
+	return { ...actual, glowFromImage: jest.fn() };
+});
 // `backfillRecurring` defaults to the real implementation; the re-entrancy
 // suite below overrides it once to hold the pipeline open past the row
 // commit, so it can observe the CTA before `holdSubmitting()` would settle.
@@ -100,6 +109,23 @@ jest.mock("@expo/ui/swift-ui", () => {
 	const React = require("react");
 	return {
 		...actual,
+		TextField: ({
+			onFocusChange,
+			onTextChange,
+			...props
+		}: Record<string, unknown> & {
+			onFocusChange?: (focused: boolean) => void;
+			onTextChange?: (value: string) => void;
+		}) =>
+			React.createElement("SwiftUITextField", {
+				...props,
+				onFocusChange: onFocusChange
+					? (event: { nativeEvent: { value: boolean } }) => onFocusChange(event.nativeEvent.value)
+					: undefined,
+				onTextChange: onTextChange
+					? (event: { nativeEvent: { value: string } }) => onTextChange(event.nativeEvent.value)
+					: undefined,
+			}),
 		useNativeState: (initial: unknown) => {
 			const ref = React.useRef() as { current?: ObservableStateDouble };
 			if (!ref.current) {
@@ -135,6 +161,161 @@ interface JsonNode {
 	children: (JsonNode | string)[] | null;
 	props: Record<string, unknown>;
 	type: string;
+}
+
+interface Deferred<T> {
+	promise: Promise<T>;
+	reject: (reason?: unknown) => void;
+	resolve: (value: T) => void;
+}
+
+function deferred<T>(): Deferred<T> {
+	let resolve!: Deferred<T>["resolve"];
+	let reject!: Deferred<T>["reject"];
+	const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+		resolve = resolvePromise;
+		reject = rejectPromise;
+	});
+	return { promise, reject, resolve };
+}
+
+const mockedFetchMerchantImage = jest.mocked(fetchMerchantImage);
+const mockedGlowFromImage = jest.mocked(glowFromImage);
+const mockedPersistLogoBytes = jest.mocked(
+	(require("@/lib/photo-storage") as typeof import("@/lib/photo-storage")).persistLogoBytes
+);
+
+function expoImageUri(node: JsonNode | JsonNode[] | null): string | null {
+	if (node == null) {
+		return null;
+	}
+	if (Array.isArray(node)) {
+		for (const child of node) {
+			const uri = expoImageUri(child);
+			if (uri != null) {
+				return uri;
+			}
+		}
+		return null;
+	}
+	if (node.type === "ViewManagerAdapter_ExpoImage") {
+		const source = node.props?.source;
+		if (Array.isArray(source)) {
+			for (const candidate of source) {
+				if (
+					typeof candidate === "object" &&
+					candidate != null &&
+					"uri" in candidate &&
+					typeof candidate.uri === "string"
+				) {
+					return candidate.uri;
+				}
+			}
+		}
+		if (typeof source === "object" && source != null && "uri" in source && typeof source.uri === "string") {
+			return source.uri;
+		}
+	}
+	for (const child of node.children ?? []) {
+		if (typeof child === "string") {
+			continue;
+		}
+		const uri = expoImageUri(child);
+		if (uri != null) {
+			return uri;
+		}
+	}
+	return null;
+}
+
+function renderedHeroImageUri(tree: JsonNode): string | null {
+	const hero = findByProp(tree, "accessibilityLabel", "transaction.identity.hero.logo");
+	if (hero == null || hero.props.accessibilityRole !== "button" || hero.props.accessible !== true) {
+		throw new Error("Could not find the accessible in-form identity hero.");
+	}
+	return expoImageUri(hero);
+}
+
+function renderedFormHost(node: JsonNode | JsonNode[] | null): JsonNode | null {
+	if (node == null) {
+		return null;
+	}
+	if (Array.isArray(node)) {
+		for (const child of node) {
+			const host = renderedFormHost(child);
+			if (host != null) {
+				return host;
+			}
+		}
+		return null;
+	}
+	const style = node.props?.style;
+	if (
+		node.type === "ViewManagerAdapter_ExpoUI" &&
+		typeof style === "object" &&
+		style != null &&
+		"experimental_backgroundImage" in style &&
+		"experimental_backgroundRepeat" in style &&
+		"experimental_backgroundSize" in style
+	) {
+		return node;
+	}
+	for (const child of node.children ?? []) {
+		if (typeof child === "string") {
+			continue;
+		}
+		const host = renderedFormHost(child);
+		if (host != null) {
+			return host;
+		}
+	}
+	return null;
+}
+
+function renderedCurtain(tree: JsonNode): unknown {
+	const host = renderedFormHost(tree);
+	if (host == null) {
+		throw new Error("Could not find the SwiftUI form Host.");
+	}
+	const style = host.props.style as { experimental_backgroundImage?: unknown };
+	return style.experimental_backgroundImage ?? null;
+}
+
+function renderedFormBlurRadius(tree: JsonNode): number | null {
+	const host = renderedFormHost(tree);
+	if (host == null) {
+		throw new Error("Could not find the SwiftUI form Host.");
+	}
+	for (const child of host.children ?? []) {
+		if (typeof child === "string" || !Array.isArray(child.props.modifiers)) {
+			continue;
+		}
+		const blur = child.props.modifiers.find(
+			(modifier) => typeof modifier === "object" && modifier != null && "$type" in modifier && modifier.$type === "blur"
+		);
+		if (typeof blur === "object" && blur != null && "radius" in blur && typeof blur.radius === "number") {
+			return blur.radius;
+		}
+	}
+	return null;
+}
+
+async function changeMerchant(tree: JsonNode, value: string): Promise<void> {
+	const field = findByProp(tree, "placeholder", "transaction.field.namePlaceholder") as
+		| (JsonNode & {
+				props: {
+					onTextChange: (event: { nativeEvent: { value: string } }) => void;
+					text: ObservableStateDouble;
+				};
+		  })
+		| null;
+	if (field == null || field.type !== "SwiftUITextField") {
+		throw new Error("Could not find the name TextField in the render tree.");
+	}
+	field.props.text.value = value;
+	field.props.onTextChange({ nativeEvent: { value } });
+	jest.advanceTimersByTime(600);
+	await Promise.resolve();
 }
 
 function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
@@ -297,16 +478,26 @@ function findTextChangeHandler(tree: JsonNode): (text: string) => void {
 }
 
 const dbHolder: { current: Database | null } = { current: null };
+let closePickerForTest: (() => void) | null = null;
 
 jest.mock("@/contexts/local-data-context", () => ({
 	useDatabase: () => dbHolder.current,
 	useLocalData: () => ({ db: dbHolder.current }),
 }));
 
+function PickerController() {
+	const { setPickerOpen } = useIdentityFlyUp();
+	closePickerForTest = () => setPickerOpen(false);
+	return null;
+}
+
 function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<AppSettingsProvider>
-			<IdentityDraftProvider>{children}</IdentityDraftProvider>
+			<IdentityDraftProvider>
+				{children}
+				<PickerController />
+			</IdentityDraftProvider>
 		</AppSettingsProvider>
 	);
 }
@@ -760,6 +951,289 @@ describe("TransactionForm enrichment", () => {
 		const tree = toJSON() as JsonNode;
 		expect(hasSwiftText(tree, "Groceries")).toBe(true);
 		expect(hasSwiftText(tree, "Entertainment")).toBe(false);
+	});
+});
+
+describe("TransactionForm logo attachment", () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+		closePickerForTest = null;
+		mockedFetchMerchantImage.mockReset();
+		mockedPersistLogoBytes.mockReset();
+		mockedGlowFromImage.mockReset();
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
+	it("renders the persisted logo and its extracted curtain color", async () => {
+		const bytes = new Uint8Array([1, 2, 3]);
+		mockedFetchMerchantImage.mockResolvedValue({ bytes, kind: "logo" });
+		mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
+		mockedGlowFromImage.mockResolvedValue(["#123456"]);
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(toJSON() as JsonNode, "netflix");
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(renderedHeroImageUri(tree)).toBe("file:///logos/netflix.png");
+		expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
+		expect(mockedFetchMerchantImage).toHaveBeenCalledWith({ domain: "netflix.com", name: "netflix" });
+		expect(mockedPersistLogoBytes).toHaveBeenCalledWith(bytes);
+		expect(mockedGlowFromImage).toHaveBeenCalledWith("file:///logos/netflix.png");
+	});
+
+	it("does not replace an identity after the user owns it", async () => {
+		const bytes = new Uint8Array([1, 2, 3]);
+		mockedFetchMerchantImage.mockResolvedValue({ bytes, kind: "logo" });
+		mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
+		mockedGlowFromImage.mockResolvedValue(["#123456"]);
+
+		const renderResult = await render(
+			<Providers>
+				<TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(renderResult.toJSON() as JsonNode, "netflix");
+		});
+		await act(async () => {
+			fireEvent.press(renderResult.getByLabelText("transaction.identity.hero.logo"));
+		});
+		expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBeGreaterThan(0);
+		const closePicker = closePickerForTest;
+		expect(closePicker).not.toBeNull();
+		if (closePicker == null) {
+			throw new Error("Picker controller did not register its close function.");
+		}
+		await act(async () => {
+			closePicker();
+		});
+		expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBe(0);
+		await act(async () => {
+			await changeMerchant(renderResult.toJSON() as JsonNode, "uber");
+		});
+
+		const tree = renderResult.toJSON() as JsonNode;
+		expect(renderedHeroImageUri(tree)).toBe("file:///logos/netflix.png");
+		expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
+		expect(mockedFetchMerchantImage).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([
+		{
+			emoji: null,
+			label: "initial",
+			props: {
+				initial: {
+					amount: 12,
+					categoryId: null,
+					currency: null,
+					customColor: null,
+					date: new Date("2026-08-11T00:00:00.000Z"),
+					details: null,
+					emoji: null,
+					icon: null,
+					id: "seeded-transaction",
+					imageColor: "#AABBCC",
+					imageUri: "file:///logos/initial.png",
+					income: false,
+					note: "",
+					onceRecurring: false,
+					recurringCoefficient: 1,
+					recurringEndDate: null,
+					recurringType: 0,
+					reminderLeadDays: null,
+				} as Transaction,
+			},
+			uri: "file:///logos/initial.png" as string | null,
+		},
+		{
+			emoji: "🎯",
+			label: "copyOf",
+			props: {
+				copyOf: {
+					amount: 12,
+					categoryId: null,
+					currency: null,
+					customColor: null,
+					details: null,
+					emoji: "🎯",
+					icon: null,
+					income: false,
+					note: "",
+				} as LogAgainDraft,
+			},
+			uri: null,
+		},
+	])("preserves a nonempty $label identity", async ({ emoji, props, uri }) => {
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm {...props} db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(toJSON() as JsonNode, "netflix");
+		});
+
+		const tree = toJSON() as JsonNode;
+		if (uri != null) {
+			expect(renderedHeroImageUri(tree)).toBe(uri);
+		}
+		if (emoji != null) {
+			expect(containsText(tree, emoji)).toBe(true);
+		}
+		expect(mockedFetchMerchantImage).not.toHaveBeenCalled();
+		expect(mockedPersistLogoBytes).not.toHaveBeenCalled();
+		expect(mockedGlowFromImage).not.toHaveBeenCalled();
+	});
+
+	it("invalidates an in-flight logo when the picker opens", async () => {
+		const pendingLogo = deferred<LogoOutcome>();
+		const bytes = new Uint8Array([1, 2, 3]);
+		mockedFetchMerchantImage.mockReturnValue(pendingLogo.promise);
+
+		const renderResult = await render(
+			<Providers>
+				<TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(renderResult.toJSON() as JsonNode, "netflix");
+		});
+		await act(async () => {
+			fireEvent.press(renderResult.getByLabelText("transaction.identity.hero.logo"));
+		});
+		expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBeGreaterThan(0);
+		await act(async () => {
+			pendingLogo.resolve({ bytes, kind: "logo" });
+			await Promise.resolve();
+		});
+
+		expect(renderedHeroImageUri(renderResult.toJSON() as JsonNode)).toBeNull();
+		expect(mockedPersistLogoBytes).not.toHaveBeenCalled();
+		expect(mockedGlowFromImage).not.toHaveBeenCalled();
+	});
+
+	it("clears a suggested logo when enrichment resolves to none", async () => {
+		const bytes = new Uint8Array([1, 2, 3]);
+		mockedFetchMerchantImage.mockResolvedValueOnce({ bytes, kind: "logo" }).mockResolvedValueOnce({ kind: "none" });
+		mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
+		mockedGlowFromImage.mockResolvedValue(["#123456"]);
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(toJSON() as JsonNode, "netflix");
+		});
+		expect(renderedHeroImageUri(toJSON() as JsonNode)).toBe("file:///logos/netflix.png");
+
+		await act(async () => {
+			await changeMerchant(toJSON() as JsonNode, "uber");
+		});
+
+		const tree = toJSON() as JsonNode;
+		expect(renderedHeroImageUri(tree)).toBeNull();
+		expect(renderedCurtain(tree)).toBeNull();
+	});
+
+	it("preserves a user-owned logo when later enrichment has no match", async () => {
+		const bytes = new Uint8Array([1, 2, 3]);
+		mockedFetchMerchantImage.mockResolvedValueOnce({ bytes, kind: "logo" });
+		mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
+		mockedGlowFromImage.mockResolvedValue(["#123456"]);
+
+		const renderResult = await render(
+			<Providers>
+				<TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(renderResult.toJSON() as JsonNode, "netflix");
+		});
+		await act(async () => {
+			fireEvent.press(renderResult.getByLabelText("transaction.identity.hero.logo"));
+		});
+		expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBeGreaterThan(0);
+		const closePicker = closePickerForTest;
+		expect(closePicker).not.toBeNull();
+		if (closePicker == null) {
+			throw new Error("Picker controller did not register its close function.");
+		}
+		await act(async () => {
+			closePicker();
+		});
+		expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBe(0);
+		await act(async () => {
+			await changeMerchant(renderResult.toJSON() as JsonNode, "unknown merchant");
+		});
+
+		const tree = renderResult.toJSON() as JsonNode;
+		expect(renderedHeroImageUri(tree)).toBe("file:///logos/netflix.png");
+		expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
+		expect(mockedFetchMerchantImage).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps the newest logo when an older request settles last", async () => {
+		const netflix = deferred<LogoOutcome>();
+		const uber = deferred<LogoOutcome>();
+		const netflixBytes = new Uint8Array([1, 2, 3]);
+		const uberBytes = new Uint8Array([4, 5, 6]);
+		mockedFetchMerchantImage.mockReturnValueOnce(netflix.promise).mockReturnValueOnce(uber.promise);
+		mockedPersistLogoBytes.mockImplementation((bytes) =>
+			Promise.resolve(bytes === uberBytes ? "file:///logos/uber.png" : "file:///logos/netflix.png")
+		);
+		mockedGlowFromImage.mockImplementation((uri) =>
+			Promise.resolve(uri === "file:///logos/uber.png" ? ["#654321"] : ["#123456"])
+		);
+
+		const { toJSON } = await render(
+			<Providers>
+				<TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+			</Providers>
+		);
+
+		await act(async () => {
+			await changeMerchant(toJSON() as JsonNode, "netflix");
+		});
+		await act(async () => {
+			await changeMerchant(toJSON() as JsonNode, "uber");
+		});
+		await act(async () => {
+			uber.resolve({ bytes: uberBytes, kind: "logo" });
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		expect(renderedHeroImageUri(toJSON() as JsonNode)).toBe("file:///logos/uber.png");
+		expect(renderedCurtain(toJSON() as JsonNode)).toStrictEqual(curtainGradient(["#654321"], false));
+
+		await act(async () => {
+			netflix.resolve({ bytes: netflixBytes, kind: "logo" });
+			await Promise.resolve();
+		});
+
+		expect(renderedHeroImageUri(toJSON() as JsonNode)).toBe("file:///logos/uber.png");
+		expect(renderedCurtain(toJSON() as JsonNode)).toStrictEqual(curtainGradient(["#654321"], false));
+		expect(mockedPersistLogoBytes).toHaveBeenCalledTimes(1);
+		expect(mockedPersistLogoBytes).toHaveBeenCalledWith(uberBytes);
+		expect(mockedPersistLogoBytes).not.toHaveBeenCalledWith(netflixBytes);
 	});
 });
 
