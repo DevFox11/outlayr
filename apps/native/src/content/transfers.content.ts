@@ -22,6 +22,14 @@ const transfers = {
 			en: "arrives as {amount}",
 			es: "llegan como {amount}",
 		}),
+		"transfers.block.feeOverArrival": t({
+			en: "The fee is {amount} more than arrives",
+			es: "La comisión es {amount} más de lo que llega",
+		}),
+		"transfers.block.nothingArrives": t({
+			en: "Nothing would arrive — the fee takes it all",
+			es: "No llegaría nada: la comisión se lo lleva todo",
+		}),
 		"transfers.delete.confirm": t({
 			en: "Delete",
 			es: "Eliminar",

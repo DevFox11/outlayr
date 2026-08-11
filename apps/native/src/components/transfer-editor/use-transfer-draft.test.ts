@@ -189,7 +189,11 @@ describe("a fee larger than what reaches the other side", () => {
 	});
 });
 
-describe("a pair no rate table covers", () => {
+describe("a fee that outruns what arrives", () => {
+	beforeEach(() => {
+		mockRates.set("VES", OFFICIAL_VES_PER_USD);
+	});
+
 	it("refuses a transfer whose fee takes every last unit that arrives", async () => {
 		const result = await feeEatsArrivalDraft();
 
@@ -198,15 +202,24 @@ describe("a pair no rate table covers", () => {
 		expect(result.current.block).not.toBeNull();
 	});
 
-	it("refuses to invent one out of the fee", async () => {
+	/** The rate is quoted, so the refusal has to be about the fee — an earlier
+	 * version derived a rate from the fee instead and saved. */
+	it("refuses rather than deriving a rate that makes the fee fit", async () => {
 		const result = await feeOverArrivalDraft();
-		expect(result.current.legs).toBeNull();
-		expect(result.current.effectiveRate).toBeNull();
-		expect(result.current.canSave).toBe(false);
-	});
 
-	it("asks for a rate rather than leaving the button dead", async () => {
+		expect(result.current.legs).toBeNull();
+		expect(result.current.canSave).toBe(false);
+		expect(result.current.block).toStrictEqual({ kind: "fee", shortfall: -45 });
+	});
+});
+
+describe("a pair no rate table covers", () => {
+	it("has no rate to offer, and will not invent one", async () => {
 		const result = await feeOverArrivalDraft();
+
+		expect(result.current.effectiveRate).toBeNull();
+		expect(result.current.legs).toBeNull();
+		expect(result.current.canSave).toBe(false);
 		expect(result.current.block).toStrictEqual({ kind: "rate" });
 	});
 });

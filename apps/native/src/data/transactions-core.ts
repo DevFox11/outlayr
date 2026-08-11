@@ -106,10 +106,10 @@ export type DeletedTransaction = {
  * excluded by their {@link ERASED_DATE} stamp, which nothing the user can author
  * carries.
  *
- * A transfer's fee is excluded for the opposite reason: it is only ever
- * tombstoned alongside its transfer (`transfersRepo.softDelete`), and handing it
- * back alone would put a live charge on a transfer that no longer exists, which
- * no surface can then take off again.
+ * A transfer's fee is excluded for the opposite reason: it is only ever tombstoned
+ * alongside its transfer — `transfersRepo.softDelete` from one side, `remove` from
+ * the other — and handing it back alone would put a live charge on a transfer that
+ * no longer exists, which no surface can then take off again.
  */
 export function deletedTransactionsQuery(db: SpendDb) {
 	return db
@@ -368,9 +368,9 @@ export const transactionsRepo = {
 	 * Scoped to rows that are actually tombstoned, which makes a repeat restore a
 	 * no-op rather than a write that queues a replication carrying no change.
 	 *
-	 * A transfer's fee is out of scope here for the same reason
-	 * {@link deletedTransactionsQuery} hides it: it comes back with its transfer
-	 * or not at all.
+	 * A transfer's fee is out of scope for the same reason
+	 * {@link deletedTransactionsQuery} hides it, and nothing restores a transfer
+	 * today, so lifting one alone would strand a charge with no owner.
 	 */
 	async restore(db: Database, id: string, now: Date = new Date()): Promise<void> {
 		await db

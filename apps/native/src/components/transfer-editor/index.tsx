@@ -30,54 +30,11 @@ import { useColors } from "@/theme/use-colors";
 import { TransferEditorAmountPad } from "./amount-pad";
 import { TransferEditorDetailsCard } from "./details-card";
 import { TransferEditorHero } from "./hero";
-import { TransferEditorSlip, type TransferGapPrompt } from "./slip";
+import { blockPrompt, formatRate, gapPrompt } from "./prompts";
+import { TransferEditorSlip } from "./slip";
 import { RATE_DISPLAY_DECIMALS, useTransferDraft } from "./use-transfer-draft";
 
 const KICKER = font({ family: "GeistMono-Regular", size: 11, textStyle: "caption2" });
-
-function formatRate(rate: number | null): string {
-	return rate === null ? "—" : rate.toFixed(RATE_DISPLAY_DECIMALS);
-}
-
-type Draft = ReturnType<typeof useTransferDraft>;
-
-/** No resolution to offer: no fee or rate the screen could invent gives a blocked
- * transfer legs, so the prompt only names what does not add up. */
-function blockPrompt(draft: Draft, t: ReturnType<typeof useTranslation>): TransferGapPrompt | null {
-	if (draft.block === null) {
-		return null;
-	}
-	return {
-		feeLabel: null,
-		message:
-			draft.block.kind === "rate"
-				? t("transfers.rate.unavailable")
-				: t("transfers.gap.unaccounted", {
-						amount: formatSignedAmount(draft.block.shortfall, draft.feeCurrency),
-					}),
-		onFee: null,
-		onRate: null,
-		rateLabel: null,
-	};
-}
-
-/** Only offers a resolution that would actually move the gap: a negative one is no
- * fee, and a rate the transfer already carries changes nothing. */
-function gapPrompt(draft: Draft, t: ReturnType<typeof useTranslation>): TransferGapPrompt | null {
-	if (draft.gapAmount === 0 || draft.gapRate === null) {
-		return null;
-	}
-	const rateMoves = draft.effectiveRate === null || formatRate(draft.gapRate) !== formatRate(draft.effectiveRate);
-	return {
-		feeLabel: draft.gapFee === null ? null : t("transfers.gap.itsAFee"),
-		message: t("transfers.gap.unaccounted", {
-			amount: formatSignedAmount(draft.gapAmount, draft.toCurrency),
-		}),
-		onFee: draft.gapFee === null ? null : draft.resolveAsFee,
-		onRate: rateMoves ? draft.resolveAsRate : null,
-		rateLabel: rateMoves ? t("transfers.gap.rateWas", { rate: formatRate(draft.gapRate) }) : null,
-	};
-}
 
 export default function TransferEditor({ onDone }: { onDone: () => void }) {
 	const db = useDatabase();
