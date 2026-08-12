@@ -8,23 +8,12 @@ describe("local shell readiness", () => {
 			localShellReady({
 				data: "ready",
 				fontsLoaded: false,
-				languageReady: true,
-			})
-		).toBe(false);
-	});
-
-	it("holds while the language catalog is hydrating", () => {
-		expect(
-			localShellReady({
-				data: "ready",
-				fontsLoaded: true,
-				languageReady: false,
 			})
 		).toBe(false);
 	});
 
 	it.each(["opening", "migrating", "seeding"] as const)("holds while the database is %s", (data) => {
-		expect(localShellReady({ data, fontsLoaded: true, languageReady: true })).toBe(false);
+		expect(localShellReady({ data, fontsLoaded: true })).toBe(false);
 	});
 
 	it("holds on a database that failed to open", () => {
@@ -32,17 +21,15 @@ describe("local shell readiness", () => {
 			localShellReady({
 				data: "error",
 				fontsLoaded: true,
-				languageReady: true,
 			})
 		).toBe(false);
 	});
 
-	it("opens once the fonts, the catalog and the database are all in", () => {
+	it("opens once the fonts and the database are both in", () => {
 		expect(
 			localShellReady({
 				data: "ready",
 				fontsLoaded: true,
-				languageReady: true,
 			})
 		).toBe(true);
 	});

@@ -5,7 +5,6 @@ import type { AuthGate } from "./auth-gate";
 export interface ShellProbe {
 	data: LocalDataStatus;
 	fontsLoaded: boolean;
-	languageReady: boolean;
 }
 
 /**
@@ -13,7 +12,7 @@ export interface ShellProbe {
  * purpose: it is its own surface, not a later frame of this one.
  */
 export function localShellReady(probe: ShellProbe): boolean {
-	return probe.fontsLoaded && probe.languageReady && probe.data === "ready";
+	return probe.fontsLoaded && probe.data === "ready";
 }
 
 export interface RouteProbe {

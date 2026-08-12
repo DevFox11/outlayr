@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
 import { Alert, Linking, Platform, Share } from "react-native";
@@ -26,7 +27,7 @@ import { lockFailureMessage } from "@/domain/app-lock";
 import { syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { LANGUAGE_OPTIONS, languageLabel } from "@/i18n/languages";
+import { languageLabel } from "@/i18n/languages";
 import { translateNow } from "@/i18n/runtime";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
@@ -35,6 +36,18 @@ import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { THEME_OPTIONS } from "@/theme/theme-preference";
 import { useThemePreference } from "@/theme/use-theme-preference";
+
+/**
+ * iOS owns the per-app language, so the row is a signpost rather than a control:
+ * it reports what the system resolved and hands the choice back to Settings.
+ * Doing it here as well would leave two sources of truth, and the SwiftUI date
+ * pickers would still follow the system one.
+ */
+function openLanguageSettings() {
+	openSettings().catch(() => {
+		// Nothing to recover: the row is informational either way.
+	});
+}
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
 const WEBSITE = "https://tryoutlayr.com";
@@ -66,7 +79,7 @@ function SettingsContent({ db }: { db: Database }) {
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
 	const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
-	const { preference: languagePreference, setPreference: setLanguage } = useLanguage();
+	const { language } = useLanguage();
 	useReminderSync(db);
 
 	const currency = useGlobalCurrency(db);
@@ -155,16 +168,12 @@ function SettingsContent({ db }: { db: Database }) {
 					value={themePreference}
 				/>
 				{alternateIconsSupported ? <AppIconRow /> : null}
-				<PickerRow
+				<LinkRow
 					detail={t("language.footer")}
 					icon="LanguageSkill"
-					onChange={setLanguage}
-					options={LANGUAGE_OPTIONS.map((option) => ({
-						label: option.value === "system" ? t("language.system") : languageLabel(option.value),
-						value: option.value,
-					}))}
+					onPress={openLanguageSettings}
 					title={t("settings.row.language")}
-					value={languagePreference}
+					value={languageLabel(language)}
 				/>
 				<ToggleRow
 					icon="Analytics01"

@@ -1,14 +1,21 @@
 import { act, renderHook } from "@testing-library/react-native";
 import { AppState, type AppStateStatus } from "react-native";
 
-jest.mock("./language-storage", () => ({
-	deviceLanguageTag: jest.fn(),
+jest.mock("expo-localization", () => ({
+	getLocales: jest.fn(),
 }));
 
+import { getLocales } from "expo-localization";
 import { useDeviceLanguageTag } from "./device-language";
-import { deviceLanguageTag } from "./language-storage";
 
-const mockDeviceLanguageTag = deviceLanguageTag as jest.Mock;
+const mockGetLocales = getLocales as jest.Mock;
+
+/** The hook reads only the first locale's `languageTag`. */
+const mockDeviceLanguageTag = {
+	mockImplementation: (fn: () => string) => mockGetLocales.mockImplementation(() => [{ languageTag: fn() }]),
+	mockReset: () => mockGetLocales.mockReset(),
+	mockReturnValue: (tag: string) => mockGetLocales.mockReturnValue([{ languageTag: tag }]),
+};
 
 const realAddEventListener = AppState.addEventListener;
 

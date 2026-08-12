@@ -31,24 +31,29 @@ export function SettingsSection({ title, footer, children }: { title: string; fo
 interface RowShellProps {
 	children?: ReactNode;
 	destructive?: boolean;
+	/** Second line under the title, for a row whose behaviour needs a sentence. */
+	detail?: string;
 	icon: SettingsIconName;
 	title: string;
 }
 
-function RowShell({ icon, title, destructive, children }: RowShellProps) {
+function RowShell({ icon, title, destructive, detail, children }: RowShellProps) {
 	const colors = useColors();
 	return (
-		<View className="flex-row items-center gap-3 border-border border-b py-3.5">
-			<HugeiconsIcon
-				color={destructive ? colors.danger : colors.foreground}
-				icon={settingsIcon(icon)}
-				size={GLYPH}
-				strokeWidth={1.9}
-			/>
-			<Text className={cn("flex-1 text-body", destructive ? "text-danger" : "text-foreground")} numberOfLines={1}>
-				{title}
-			</Text>
-			{children}
+		<View className="border-border border-b py-3.5">
+			<View className="flex-row items-center gap-3">
+				<HugeiconsIcon
+					color={destructive ? colors.danger : colors.foreground}
+					icon={settingsIcon(icon)}
+					size={GLYPH}
+					strokeWidth={1.9}
+				/>
+				<Text className={cn("flex-1 text-body", destructive ? "text-danger" : "text-foreground")} numberOfLines={1}>
+					{title}
+				</Text>
+				{children}
+			</View>
+			{detail ? <Text className={cn(TITLE_INSET, "text-muted text-subtitle leading-snug")}>{detail}</Text> : null}
 		</View>
 	);
 }
@@ -79,6 +84,8 @@ function RowTrailing({ interactive, value }: { interactive: boolean; value?: str
 
 interface LinkRowProps {
 	destructive?: boolean;
+	/** Second line under the title, for a row whose behaviour needs a sentence. */
+	detail?: string;
 	icon: SettingsIconName;
 	/**
 	 * Tap handler. Omitted renders the row inert with no chevron — used for
@@ -90,9 +97,9 @@ interface LinkRowProps {
 	value?: string;
 }
 
-export function LinkRow({ icon, title, value, destructive, onPress }: LinkRowProps) {
+export function LinkRow({ icon, title, value, detail, destructive, onPress }: LinkRowProps) {
 	const body = (
-		<RowShell destructive={destructive} icon={icon} title={title}>
+		<RowShell destructive={destructive} detail={detail} icon={icon} title={title}>
 			<RowTrailing interactive={onPress != null} value={value} />
 		</RowShell>
 	);

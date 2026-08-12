@@ -23,7 +23,7 @@ import { useSeededClockPreference } from "@/data/settings";
 import { rootStackGroup } from "@/domain/auth-gate";
 import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
 import { localShellReady, routeSettled } from "@/domain/splash-gate";
-import { LanguageProvider, useLanguageReady, useTranslation } from "@/i18n/context";
+import { LanguageProvider, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { cloudRuntime } from "@/lib/cloud-runtime";
@@ -89,7 +89,6 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { status } = useLocalData();
 	const { theme } = useTheme();
 	const isDark = theme === "dark";
-	const languageReady = useLanguageReady();
 	const colorScheme = useColorScheme();
 	const [splashHidden, setSplashHidden] = useState(false);
 	const [background, card, text, border] = useCSSVariable([
@@ -106,7 +105,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 
 	// An error surface beats an indefinite splash, but it is written in the
 	// owner's language, so it still waits on the catalog.
-	const failed = fontsLoaded && languageReady && status === "error";
+	const failed = fontsLoaded && status === "error";
 
 	useEffect(() => {
 		if (failed) {
@@ -116,7 +115,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 
 	const base = isDark ? DarkTheme : DefaultTheme;
 
-	if (localShellReady({ data: status, fontsLoaded, languageReady })) {
+	if (localShellReady({ data: status, fontsLoaded })) {
 		return (
 			<LedgerAdoptionProvider>
 				<DeviceResetRecovery>

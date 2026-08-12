@@ -2,26 +2,16 @@ export const SUPPORTED_LANGUAGES = ["en", "es"] as const;
 
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 
-export type LanguagePreference = Language | "system";
-
 export const DEFAULT_LANGUAGE: Language = "en";
-
-const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = "system";
-
-export const LANGUAGE_PREFERENCE_KEY = "outlayr.language-preference";
 
 /**
  * Endonyms: someone who has landed in a language they cannot read still has to
- * find their way back out of this list.
+ * recognise which one they are in.
  */
 const LANGUAGE_NAMES: Record<Language, string> = {
 	en: "English",
 	es: "Español",
 };
-
-export const LANGUAGE_OPTIONS: readonly {
-	value: LanguagePreference;
-}[] = [{ value: "system" }, ...SUPPORTED_LANGUAGES.map((value) => ({ value }) as const)];
 
 export function languageLabel(language: Language): string {
 	return LANGUAGE_NAMES[language];
@@ -29,16 +19,6 @@ export function languageLabel(language: Language): string {
 
 function isLanguage(value: string): value is Language {
 	return (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
-}
-
-export function resolveLanguagePreference(value: string | null | undefined): LanguagePreference {
-	if (value === "system") {
-		return value;
-	}
-	if (typeof value === "string" && isLanguage(value)) {
-		return value;
-	}
-	return DEFAULT_LANGUAGE_PREFERENCE;
 }
 
 const TAG_SUBTAG_SEPARATOR = /[-_]/;
@@ -52,9 +32,11 @@ export function languageFromTag(tag: string | null | undefined): Language | null
 	return primary && isLanguage(primary) ? primary : null;
 }
 
-export function resolveLanguage(preference: LanguagePreference, deviceTag: string | null | undefined): Language {
-	if (preference !== "system") {
-		return preference;
-	}
+/**
+ * There is no in-app language preference: iOS owns this choice per app, under
+ * Settings › Outlayr › Language, and writing a second one in AsyncStorage only
+ * creates a state the system pickers and the App Store listing disagree with.
+ */
+export function resolveLanguage(deviceTag: string | null | undefined): Language {
 	return languageFromTag(deviceTag) ?? DEFAULT_LANGUAGE;
 }

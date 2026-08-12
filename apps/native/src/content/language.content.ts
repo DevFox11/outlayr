@@ -2,16 +2,12 @@ import { type Dictionary, t } from "intlayer";
 
 const language = {
 	content: {
-		// The system date and time pickers are SwiftUI, so they read the device
-		// language rather than this setting; the footer has to say so, because the
-		// amounts beside them do follow it.
+		// The row opens Settings rather than changing anything, so the caption has
+		// to say where the choice actually lives. It also stops being a half-truth:
+		// with no in-app preference, the SwiftUI pickers and the ledger agree.
 		"language.footer": t({
-			en: "Amounts and dates follow this setting. System date and time pickers follow your device language.",
-			es: "Los montos y las fechas siguen este ajuste. Los selectores de fecha y hora del sistema siguen el idioma de tu dispositivo.",
-		}),
-		"language.system": t({
-			en: "System",
-			es: "Sistema",
+			en: "Outlayr follows your device language. Change it in Settings.",
+			es: "Outlayr sigue el idioma de tu dispositivo. Cámbialo en Ajustes.",
 		}),
 		"language.title": t({
 			en: "Language",

@@ -1,28 +1,46 @@
 import { act, render, screen } from "@testing-library/react-native";
+import { AppState, type AppStateStatus } from "react-native";
 
-jest.mock("./language-storage", () => ({
-	deviceLanguageTag: jest.fn(),
-	persistLanguagePreference: jest.fn(),
-	readLanguagePreference: jest.fn(),
+jest.mock("expo-localization", () => ({
+	getLocales: jest.fn(),
 }));
 
+import { getLocales } from "expo-localization";
 import { DayTotal } from "@/components/amount-text";
-import { LanguageProvider, useLanguage } from "./context";
-import { readLanguagePreference } from "./language-storage";
-import type { LanguagePreference } from "./languages";
+import { LanguageProvider } from "./context";
 
-const mockReadLanguagePreference = readLanguagePreference as jest.Mock;
+const mockGetLocales = getLocales as jest.Mock;
 
-let setPreference: (next: LanguagePreference) => void = () => {
-	throw new Error("provider not mounted");
-};
-
-/** Reaches the setter without rendering a control the assertions would match. */
-function CaptureSetter() {
-	const { setPreference: setter } = useLanguage();
-	setPreference = setter;
-	return null;
+function setDeviceLanguage(tag: string) {
+	mockGetLocales.mockReturnValue([{ languageTag: tag }]);
 }
+
+const realAddEventListener = AppState.addEventListener;
+
+/** Drives the foreground transition the provider re-reads the locale on. */
+function watchAppState() {
+	const listeners: ((status: AppStateStatus) => void)[] = [];
+	AppState.addEventListener = ((event: string, listener: unknown) => {
+		if (event === "change") {
+			listeners.push(listener as (status: AppStateStatus) => void);
+		}
+		return { remove: jest.fn() };
+	}) as typeof AppState.addEventListener;
+	return {
+		async returnToForeground() {
+			await act(async () => {
+				for (const listener of listeners) {
+					listener("active");
+				}
+			});
+		},
+	};
+}
+
+afterEach(() => {
+	AppState.addEventListener = realAddEventListener;
+	mockGetLocales.mockReset();
+});
 
 const TOTALS = [{ amount: -760.24, currencyCode: "USD", transactionCount: 1 }];
 
@@ -31,16 +49,18 @@ const TOTALS = [{ amount: -760.24, currencyCode: "USD", transactionCount: 1 }];
  * regression: language reaches the formatters through `runtimeLanguage()`, a
  * module global React cannot see, so a component that does not consume the
  * language context is bailed out of the re-render — `LanguageProvider` receives
- * `children` as an unchanged element — and keeps printing the previous locale
- * until the app is relaunched.
+ * `children` as an unchanged element — and keeps printing the previous locale.
+ *
+ * The trigger is now a device language change, which is what returning from
+ * Settings › Outlayr › Language looks like to the app.
  */
-describe("switching language mid-session", () => {
+describe("changing the device language mid-session", () => {
 	it("reformats money in a component that formats but does not translate", async () => {
-		mockReadLanguagePreference.mockResolvedValue("en");
+		setDeviceLanguage("en-US");
+		const appState = watchAppState();
 		await act(async () => {
 			render(
 				<LanguageProvider>
-					<CaptureSetter />
 					<DayTotal totals={TOTALS} />
 				</LanguageProvider>
 			);
@@ -48,10 +68,9 @@ describe("switching language mid-session", () => {
 
 		expect(screen.getByText("-$760.24")).toBeTruthy();
 
-		await act(async () => {
-			setPreference("es");
-		});
+		setDeviceLanguage("es-MX");
+		await appState.returnToForeground();
 
-		expect(screen.getByText("-760,24 $")).toBeTruthy();
+		expect(screen.getByText("-760,24 $")).toBeTruthy();
 	});
 });

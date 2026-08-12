@@ -1,61 +1,33 @@
 import type { ReactNode } from "react";
-import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, use, useCallback, useMemo } from "react";
 import { IntlayerProvider } from "react-native-intlayer";
 
 import { CATALOGS, EN, type TranslatableKey } from "./catalog";
 import { useDeviceLanguageTag } from "./device-language";
-import { persistLanguagePreference, readLanguagePreference } from "./language-storage";
-import { type Language, type LanguagePreference, resolveLanguage } from "./languages";
+import { type Language, resolveLanguage } from "./languages";
 import { setRuntimeLanguage } from "./runtime";
 import { type TranslationParams, translate } from "./translate";
 
 export type TranslateFn = (key: TranslatableKey, params?: TranslationParams) => string;
 
 interface LanguageContextValue {
-	/** False until the persisted preference has been read and applied. */
-	isHydrated: boolean;
 	language: Language;
-	preference: LanguagePreference;
-	setPreference: (preference: LanguagePreference) => void;
 	t: TranslateFn;
 }
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 /**
- * Owns the preference because Intlayer's React Native locale storage is an
- * in-memory stub — its own polyfill notes a locale set through it survives a
- * hot reload but not a restart. `IntlayerProvider` is nested below so
- * `useIntlayer`/`useLocale` stay available and read the same locale.
+ * The language is the device's, always: iOS owns it per app under
+ * Settings › Outlayr › Language, so there is nothing here to store or restore.
+ * `IntlayerProvider` is nested below so `useIntlayer`/`useLocale` stay available
+ * and read the same locale.
  */
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-	const [preference, setPreferenceState] = useState<LanguagePreference>("system");
-	const [isHydrated, setIsHydrated] = useState(false);
-	const deviceTag = useDeviceLanguageTag();
-
-	// The root layout holds the splash on `isHydrated`, so a Spanish user never
-	// sees a frame of English. `readLanguagePreference` swallows its own
-	// failures, so this always settles.
-	useEffect(() => {
-		let cancelled = false;
-		readLanguagePreference().then((stored) => {
-			if (!cancelled) {
-				setPreferenceState(stored);
-				setIsHydrated(true);
-			}
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, []);
-
-	const setPreference = useCallback((next: LanguagePreference) => {
-		setPreferenceState(next);
-		persistLanguagePreference(next);
-	}, []);
-
-	const language = resolveLanguage(preference, deviceTag);
+	// Read synchronously, so the first frame is already in the right language —
+	// there is no stored preference left to await.
+	const language = resolveLanguage(useDeviceLanguageTag());
 	// Deliberately during render, not in an effect: `runtimeLanguage()` is the
 	// default argument of the date, budget and insights formatters, so children
 	// read it while rendering and an effect would hand them the previous
@@ -73,10 +45,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 		[language]
 	);
 
-	const value = useMemo(
-		() => ({ isHydrated, language, preference, setPreference, t }),
-		[language, preference, isHydrated, setPreference, t]
-	);
+	const value = useMemo(() => ({ language, t }), [language, t]);
 
 	return (
 		<LanguageContext.Provider value={value}>
@@ -98,10 +67,6 @@ export function useTranslation(): TranslateFn {
 }
 
 export function useLanguage() {
-	const { language, preference, setPreference } = useLanguageContext();
-	return { language, preference, setPreference };
-}
-
-export function useLanguageReady(): boolean {
-	return useLanguageContext().isHydrated;
+	const { language } = useLanguageContext();
+	return { language };
 }

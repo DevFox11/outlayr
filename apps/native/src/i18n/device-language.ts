@@ -1,11 +1,15 @@
+import { getLocales } from "expo-localization";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 
-import { deviceLanguageTag } from "./language-storage";
-
-function readTag(): string | null {
+/**
+ * Only ever reaches the display catalog. Currency stays a stated choice made in
+ * onboarding (§1.7) — deriving it from the locale is the guess that defect
+ * exists to remove.
+ */
+export function deviceLanguageTag(): string | null {
 	try {
-		return deviceLanguageTag();
+		return getLocales()[0]?.languageTag ?? null;
 	} catch {
 		return null;
 	}
@@ -13,12 +17,11 @@ function readTag(): string | null {
 
 /**
  * The device language, re-read whenever the app returns to the foreground.
- * Changing the language in iOS Settings restarts nothing — it backgrounds us
- * and hands the process back with a new locale, so a tag captured once at mount
- * stays stale until the next cold start.
+ * Changing the language in iOS Settings hands the process back with a new
+ * locale, so a tag captured once at mount stays stale until the next cold start.
  */
 export function useDeviceLanguageTag(): string | null {
-	const [tag, setTag] = useState(readTag);
+	const [tag, setTag] = useState(deviceLanguageTag);
 
 	useEffect(() => {
 		const subscription = AppState.addEventListener("change", (status) => {
@@ -26,7 +29,7 @@ export function useDeviceLanguageTag(): string | null {
 				return;
 			}
 			// Same string bails out of the re-render inside React.
-			setTag(readTag());
+			setTag(deviceLanguageTag());
 		});
 		return () => subscription.remove();
 	}, []);
