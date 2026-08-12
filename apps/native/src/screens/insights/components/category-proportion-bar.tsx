@@ -8,6 +8,8 @@ import { CHART_BAR } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
 const GAP = 3;
+/** Track inset, so the rail stays visible behind a bar that is always full. */
+const TRACK_PAD = 2;
 const HEIGHT = 16;
 /** Segments thinner than this share are dropped. */
 const MIN_SHARE = 0.005;
@@ -50,41 +52,53 @@ export function CategoryProportionBar({ entries, selectedId, onSelect }: Categor
 	const usable = Math.max(0, width - GAP * (shown.length - 1));
 
 	return (
-		<View onLayout={onLayout} style={{ height: HEIGHT }}>
-			<Animated.View style={[{ flexDirection: "row", height: HEIGHT, overflow: "hidden" }, revealStyle]}>
-				<View style={{ flexDirection: "row", gap: GAP, width }}>
-					{shown.map((entry) => {
-						const active = selectedId === entry.id;
-						const dimmed = selectedId != null && !active;
-						return (
-							<Pressable
-								accessibilityLabel={t("insights.category.share", {
-									name: entry.name,
-									percent: Math.round(entry.fraction * 100),
-								})}
-								accessibilityRole="button"
-								key={entry.id}
-								onPress={() => onSelect(active ? null : entry.id)}
-								style={{
-									height: HEIGHT,
-									width: (usable * entry.fraction) / shownTotal,
-								}}
-							>
-								<View
+		// Seated in a track rather than floating on the background. The segments
+		// always sum to the full width, so a single category is a solid band with
+		// no edge to read it against and looks like a status colour; the track
+		// inset by `TRACK_PAD` is that edge, and it survives every category count.
+		<View
+			style={{
+				backgroundColor: colors.railTrack,
+				borderRadius: CHART_BAR.radius + TRACK_PAD,
+				padding: TRACK_PAD,
+			}}
+		>
+			<View onLayout={onLayout} style={{ height: HEIGHT }}>
+				<Animated.View style={[{ flexDirection: "row", height: HEIGHT, overflow: "hidden" }, revealStyle]}>
+					<View style={{ flexDirection: "row", gap: GAP, width }}>
+						{shown.map((entry) => {
+							const active = selectedId === entry.id;
+							const dimmed = selectedId != null && !active;
+							return (
+								<Pressable
+									accessibilityLabel={t("insights.category.share", {
+										name: entry.name,
+										percent: Math.round(entry.fraction * 100),
+									})}
+									accessibilityRole="button"
+									key={entry.id}
+									onPress={() => onSelect(active ? null : entry.id)}
 									style={{
-										backgroundColor: entry.color,
-										borderColor: colors.foreground,
-										borderRadius: CHART_BAR.radius,
-										borderWidth: active ? 1.5 : 0,
-										flex: 1,
-										opacity: dimmed ? 0.4 : 1,
+										height: HEIGHT,
+										width: (usable * entry.fraction) / shownTotal,
 									}}
-								/>
-							</Pressable>
-						);
-					})}
-				</View>
-			</Animated.View>
+								>
+									<View
+										style={{
+											backgroundColor: entry.color,
+											borderColor: colors.foreground,
+											borderRadius: CHART_BAR.radius,
+											borderWidth: active ? 1.5 : 0,
+											flex: 1,
+											opacity: dimmed ? 0.4 : 1,
+										}}
+									/>
+								</Pressable>
+							);
+						})}
+					</View>
+				</Animated.View>
+			</View>
 		</View>
 	);
 }
