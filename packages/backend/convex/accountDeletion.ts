@@ -1,4 +1,3 @@
-// biome-ignore-all lint/style/useFilenamingConvention: Convex function paths are public API.
 import { ConvexError, v } from "convex/values";
 
 import { components } from "./_generated/api";

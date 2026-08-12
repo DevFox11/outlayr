@@ -1,7 +1,6 @@
-// biome-ignore-all lint/style/useFilenamingConvention: this test follows the public lifecycle module name.
 import { describe, expect, test, vi } from "vitest";
 
-import { grantAppleCredential, refreshAppleCredential } from "./provider-lifecycle";
+import { grantAppleCredential, refreshAppleCredential } from "./providerLifecycle";
 
 const input = {
 	authorizationCode: "code",

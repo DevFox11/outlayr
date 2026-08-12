@@ -1,7 +1,6 @@
-// biome-ignore-all lint/style/useFilenamingConvention: this test follows the public Convex module path.
 import { describe, expect, test, vi } from "vitest";
 
-import { advanceDeletion, consumeGoogleLocalReceipt, type DeletionJob, hashResumeSecret } from "./account-deletion";
+import { advanceDeletion, consumeGoogleLocalReceipt, type DeletionJob, hashResumeSecret } from "./accountDeletion";
 
 const secret = "a".repeat(43);
 const job: DeletionJob = {

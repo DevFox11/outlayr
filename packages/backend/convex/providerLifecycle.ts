@@ -1,4 +1,3 @@
-// biome-ignore-all lint/style/useFilenamingConvention: the public endpoint name mirrors this lifecycle module.
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
 import { createRemoteJWKSet, jwtVerify } from "jose";

@@ -9,7 +9,7 @@ import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
-import { appleCredentialLifecycle } from "./provider-lifecycle";
+import { appleCredentialLifecycle } from "./providerLifecycle";
 
 /**
  * `CONVEX_SITE_URL` is a built-in Convex system variable — always populated in a
@@ -101,10 +101,7 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 						if (!("runQuery" in ctx)) {
 							throw new Error("Apple credential revocation needs a query context");
 						}
-						return await ctx.runQuery(
-							(internal as Record<string, Record<string, unknown>>).accountDeletion.resumeUserId as never,
-							{ resumeSecret } as never
-						);
+						return await ctx.runQuery(internal.accountDeletion.resumeUserId, { resumeSecret });
 					},
 				}
 			),

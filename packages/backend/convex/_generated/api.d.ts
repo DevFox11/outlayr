@@ -9,6 +9,7 @@
  */
 
 import type * as account from "../account.js";
+import type * as accountDeletion from "../accountDeletion.js";
 import type * as auth from "../auth.js";
 import type * as cotizave from "../cotizave.js";
 import type * as crons from "../crons.js";
@@ -30,6 +31,7 @@ import type * as lib_spend from "../lib/spend.js";
 import type * as lib_syncTables from "../lib/syncTables.js";
 import type * as merchantKnowledge from "../merchantKnowledge.js";
 import type * as photos from "../photos.js";
+import type * as providerLifecycle from "../providerLifecycle.js";
 import type * as sync from "../sync.js";
 
 import type {
@@ -40,6 +42,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   account: typeof account;
+  accountDeletion: typeof accountDeletion;
   auth: typeof auth;
   cotizave: typeof cotizave;
   crons: typeof crons;
@@ -61,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "lib/syncTables": typeof lib_syncTables;
   merchantKnowledge: typeof merchantKnowledge;
   photos: typeof photos;
+  providerLifecycle: typeof providerLifecycle;
   sync: typeof sync;
 }>;
 
