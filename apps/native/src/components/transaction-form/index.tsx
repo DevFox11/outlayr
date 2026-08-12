@@ -78,7 +78,7 @@ import {
 	type PendingCategory,
 	useTransactionEnrichment,
 } from "@/hooks/use-transaction-enrichment";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
@@ -431,6 +431,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 	const colors = useColors();
 	const haptics = useHaptics();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 	/** Swift's `.padding(.horizontal, 20)` content box. */
 	const contentWidth = windowWidth - 40;
@@ -1224,7 +1225,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 											onCurrencyPress={() => currencySheetRef.current?.present()}
 											onPress={() => setPadOpen(true)}
 											onTypeChange={handleTypeChange}
-											symbol={amountParts(amountNumber, currency).symbol}
+											symbol={amountParts(amountNumber, currency, true, language).symbol}
 										/>
 									);
 								}}

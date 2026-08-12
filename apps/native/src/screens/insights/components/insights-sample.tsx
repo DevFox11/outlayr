@@ -7,7 +7,7 @@ import { LinearGradient } from "@/components/styled";
 import { Text } from "@/components/text";
 import type { CategoryBreakdownEntry, CategoryMover, InsightsBucket } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
-import { type TranslateFn, useTranslation } from "@/i18n/context";
+import { type TranslateFn, useLanguage, useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryBreakdownRow } from "./category-breakdown-row";
@@ -125,6 +125,7 @@ interface InsightsSampleProps {
 export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 	const colors = useColors();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const breakdown = sampleBreakdown(t);
 
 	return (
@@ -173,8 +174,8 @@ export function InsightsSample({ onAddTransaction }: InsightsSampleProps) {
 					<Text className="pt-0.5 text-footnote text-muted">
 						{t("insights.sample.verdict", {
 							category: t("insights.sample.groceries"),
-							delta: formatAmount(251, "USD", true),
-							moved: formatAmount(95.4, "USD", true),
+							delta: formatAmount(251, "USD", true, language),
+							moved: formatAmount(95.4, "USD", true, language),
 						})}
 					</Text>
 

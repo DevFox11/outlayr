@@ -17,7 +17,7 @@ import { useValuation } from "@/data/use-valuation";
 import { groupByDay } from "@/domain/day-sections";
 import { formatAmount } from "@/domain/money";
 import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
@@ -160,6 +160,7 @@ function BudgetSummary({
 }) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const spentPct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
 	const difference = Math.abs(leftover);
 	const figureTone = overBudget ? "text-over-budget" : "text-foreground";
@@ -191,7 +192,7 @@ function BudgetSummary({
 			{leftPerDayAmount == null ? null : (
 				<Text className="pt-0.5 text-footnote text-muted" style={{ fontVariant: ["tabular-nums"] }}>
 					{t("budgets.detail.leftEachDay", {
-						amount: formatAmount(leftPerDayAmount, currency, showCents),
+						amount: formatAmount(leftPerDayAmount, currency, showCents, language),
 					})}
 				</Text>
 			)}
@@ -209,12 +210,12 @@ function BudgetSummary({
 			<View className="flex-row items-baseline justify-between pt-2.5">
 				<MonoLabel>
 					{t("budgets.detail.spent", {
-						amount: formatAmount(spent, currency, showCents),
+						amount: formatAmount(spent, currency, showCents, language),
 					})}
 				</MonoLabel>
 				<MonoLabel>
 					{t("budgets.detail.limit", {
-						amount: formatAmount(amount, currency, showCents),
+						amount: formatAmount(amount, currency, showCents, language),
 					})}
 				</MonoLabel>
 			</View>

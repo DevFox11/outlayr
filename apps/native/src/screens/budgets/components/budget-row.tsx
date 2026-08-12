@@ -12,7 +12,7 @@ import type { Burndown } from "@/domain/budget-burndown";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import { BUDGET_TYPE, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { useHaptics } from "@/lib/use-haptics";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
@@ -50,6 +50,7 @@ export function BudgetRow({
 	const { showCents } = useDisplaySettings().state;
 	const haptics = useHaptics();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const swipeRef = useRef<SwipeableMethods>(null);
 	const now = new Date(nowMs);
 	const over = budget.overBudget;
@@ -71,11 +72,11 @@ export function BudgetRow({
 	// Cents off regardless of the setting: the exact figure is already alongside.
 	const meta = [
 		t("budgets.spentOfLimit", {
-			limit: formatAmount(budget.amount, currency, false),
-			spent: formatAmount(budget.spent, currency, false),
+			limit: formatAmount(budget.amount, currency, false, language),
+			spent: formatAmount(budget.spent, currency, false, language),
 		}),
 		budgetTimeLeftLabel(budget.window, budget.type, now, t),
-		over || isDay ? null : t("budgets.perDay", { amount: formatAmount(perDay, currency, false) }),
+		over || isDay ? null : t("budgets.perDay", { amount: formatAmount(perDay, currency, false, language) }),
 	]
 		.filter(Boolean)
 		.join(" · ");
@@ -142,7 +143,7 @@ export function BudgetRow({
 								numberOfLines={1}
 								style={{ fontVariant: ["tabular-nums"] }}
 							>
-								{formatAmount(difference, currency, showCents)}
+								{formatAmount(difference, currency, showCents, language)}
 								<Text className="font-sans-medium text-label text-muted">
 									{` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
 								</Text>

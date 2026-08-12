@@ -19,7 +19,7 @@ import { formatDayHeader, formatTime } from "@/domain/dates";
 import type { AdoptionActions } from "@/domain/ledger-adoption";
 import { effectiveCapabilityStatus } from "@/domain/sync-status";
 import type { TranslatableKey } from "@/i18n/catalog";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
 import { cloudRuntime } from "@/lib/cloud-runtime";
@@ -45,6 +45,7 @@ export function Sync() {
 
 function SyncSettings({ db }: { db: Database }) {
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const { accountId } = useAuthSession();
 	const { status } = useLedgerAdoption();
 	const { pending, syncedAt } = useSyncStatus(db);
@@ -103,7 +104,7 @@ function SyncSettings({ db }: { db: Database }) {
 						value={
 							capability.syncedAt == null
 								? t("settings.sync.neverSynced")
-								: `${formatDayHeader(capability.syncedAt)} ${formatTime(capability.syncedAt, use24Hour)}`
+								: `${formatDayHeader(capability.syncedAt, undefined, language)} ${formatTime(capability.syncedAt, use24Hour, language)}`
 						}
 					/>
 				</SettingsSection>

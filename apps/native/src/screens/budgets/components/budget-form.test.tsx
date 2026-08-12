@@ -19,6 +19,7 @@ jest.mock("expo-sqlite", () => ({
 }));
 jest.mock("react-native-keyboard-controller", () => require("react-native-keyboard-controller/jest"));
 jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({

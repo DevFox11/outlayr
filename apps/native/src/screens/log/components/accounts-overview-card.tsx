@@ -3,7 +3,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import type { AccountsOverview } from "@/domain/account-display";
 import { formatSignedAmount } from "@/domain/account-display";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 const TABULAR = { fontVariant: ["tabular-nums" as const] };
 
@@ -18,6 +18,7 @@ interface AccountsOverviewCardProps {
 
 export function AccountsOverviewCard({ overview, currency, showCents, onPress }: AccountsOverviewCardProps) {
 	const t = useTranslation();
+	const { language } = useLanguage();
 	if (overview == null) {
 		return null;
 	}
@@ -34,7 +35,7 @@ export function AccountsOverviewCard({ overview, currency, showCents, onPress }:
 					<View className="flex-row items-baseline gap-1.5">
 						{overview.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
 						<Text className="font-sans-semibold text-body text-muted" numberOfLines={1} style={TABULAR}>
-							{formatSignedAmount(overview.total, currency, showCents)}
+							{formatSignedAmount(overview.total, currency, showCents, language)}
 						</Text>
 					</View>
 				</View>

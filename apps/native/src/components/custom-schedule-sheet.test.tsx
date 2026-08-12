@@ -3,6 +3,7 @@ import { RECURRING_TYPE } from "@/domain/recurrence";
 import { CustomScheduleSheet } from "./custom-schedule-sheet";
 
 jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string) => key,
 }));
 

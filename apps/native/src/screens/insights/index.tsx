@@ -47,7 +47,7 @@ import { quietAlternative } from "@/domain/insights-quiet";
 import { insightsVerdict } from "@/domain/insights-verdict";
 import { formatAmount } from "@/domain/money";
 import type { TranslationKey } from "@/i18n/catalog";
-import { type TranslateFn, useTranslation } from "@/i18n/context";
+import { type TranslateFn, useLanguage, useTranslation } from "@/i18n/context";
 import { UndoToast } from "@/screens/log/components/undo-toast";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -748,6 +748,7 @@ interface ChildRowProps {
 }
 
 function ChildRow({ name, color, icon, emoji, amount, fraction, code, showCents }: ChildRowProps) {
+	const { language } = useLanguage();
 	return (
 		<View className="flex-row items-center gap-2.5">
 			<CategoryIconTile color={color} emoji={emoji} icon={icon} size={26} />
@@ -759,7 +760,7 @@ function ChildRow({ name, color, icon, emoji, amount, fraction, code, showCents 
 				numberOfLines={1}
 				style={{ fontVariant: ["tabular-nums"] }}
 			>
-				{formatAmount(amount, code, showCents)}
+				{formatAmount(amount, code, showCents, language)}
 			</Text>
 			<Text className="font-mono text-label text-muted" style={{ minWidth: 34, textAlign: "right" }}>
 				{Math.round(fraction * 100)}%

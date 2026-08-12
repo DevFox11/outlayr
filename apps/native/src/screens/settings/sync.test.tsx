@@ -44,7 +44,10 @@ jest.mock("@/data/use-sync-status", () => ({
 	useSyncStatus: () => ({ pending: 9, syncedAt: new Date(1_700_000_000_000) }),
 }));
 jest.mock("@/db/schema", () => ({ appMeta: {} }));
-jest.mock("@/i18n/context", () => ({ useTranslation: () => (key: string) => key }));
+jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
+	useTranslation: () => (key: string) => key,
+}));
 jest.mock("@/lib/adoption-engine", () => ({ adoptionEngine: () => null }));
 jest.mock("@/lib/auth-session", () => ({ useAuthSession: () => ({ accountId: mockAccountId }) }));
 jest.mock("@/lib/cloud-runtime", () => ({

@@ -22,7 +22,7 @@ import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
 import type { RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { AccountBalanceChart } from "./components/account-balance-chart";
 
 export function AccountDetail({ id }: { id: string }) {
@@ -51,6 +51,7 @@ function AccountDetailReady({ db, id }: { db: Database; id: string }) {
 function AccountDetailLoaded({ account, db }: { account: Account; db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const { showCents } = useDisplaySettings().state;
 	const { balance, cells, rates } = useAccountBalanceDetails(db, account);
 	const transactionRows = useAccountTransactions(db, account.id);
@@ -66,8 +67,8 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
 	);
 
 	const startedAt = t("accounts.detail.startedAt", {
-		amount: formatSignedAmount(account.initialBalance, account.currency, showCents),
-		month: `${monthAbbrevTitle(account.initialBalanceDate)} ${account.initialBalanceDate.getFullYear()}`,
+		amount: formatSignedAmount(account.initialBalance, account.currency, showCents, language),
+		month: `${monthAbbrevTitle(account.initialBalanceDate, language)} ${account.initialBalanceDate.getFullYear()}`,
 	});
 
 	return (

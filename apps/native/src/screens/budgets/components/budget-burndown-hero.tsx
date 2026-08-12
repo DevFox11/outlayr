@@ -12,7 +12,8 @@ import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetPeriodPhrase, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -31,8 +32,8 @@ interface BudgetBurndownHeroProps {
 const CHART_HEIGHT = 168;
 
 /** "23 Jul". */
-function formatDayMonth(date: Date): string {
-	return `${date.getDate()} ${monthAbbrev(date)}`;
+function formatDayMonth(date: Date, language: Language): string {
+	return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
 function dayDate(start: Date, day: number): Date {
@@ -50,6 +51,7 @@ export function BudgetBurndownHero({
 }: BudgetBurndownHeroProps) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
 	const [scrubDay, setScrubDay] = useState<number | null>(null);
@@ -62,7 +64,7 @@ export function BudgetBurndownHero({
 	const scrubbed = scrubDay == null ? null : (burndown?.points[scrubDay - 1] ?? null);
 	const balance = scrubbed ? scrubbed.balance : budget.leftover;
 	const over = balance < 0;
-	const scrubLabel = scrubbed ? formatDayMonth(dayDate(budget.window.start, scrubbed.day)) : null;
+	const scrubLabel = scrubbed ? formatDayMonth(dayDate(budget.window.start, scrubbed.day), language) : null;
 
 	// Already crossed zero is not the same question as will it, so both are asked.
 	const projected = burndown?.projectedBalance ?? null;
@@ -72,16 +74,16 @@ export function BudgetBurndownHero({
 		runwayLabel = t("budgets.hero.onTrack");
 		if (burndown?.runwayDate != null) {
 			runwayLabel = t("budgets.hero.ranOut", {
-				date: formatDayMonth(burndown.runwayDate).toUpperCase(),
+				date: formatDayMonth(burndown.runwayDate, language).toUpperCase(),
 			});
 		} else if (endsShort && projected != null) {
 			runwayLabel = t("budgets.hero.endsShort", {
-				amount: formatAmount(Math.abs(projected), currency, false),
+				amount: formatAmount(Math.abs(projected), currency, false, language),
 			});
 		}
 	}
 
-	const balanceLabel = formatAmount(Math.abs(balance), currency, showCents);
+	const balanceLabel = formatAmount(Math.abs(balance), currency, showCents, language);
 	const status = over ? t("budgets.hero.overBudget") : t("budgets.hero.leftPeriod", { period });
 	const footnote = scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status;
 
@@ -170,7 +172,7 @@ export function BudgetBurndownHero({
 					) : null}
 
 					<View className="flex-row items-baseline justify-between pt-2.5">
-						<MonoLabel>{formatAmount(budget.amount, currency, false)}</MonoLabel>
+						<MonoLabel>{formatAmount(budget.amount, currency, false, language)}</MonoLabel>
 						{runwayLabel ? <MonoLabel>{runwayLabel}</MonoLabel> : null}
 					</View>
 				</View>
@@ -191,13 +193,14 @@ function HeroVerdict({
 	periodEndsShort: boolean;
 }) {
 	const t = useTranslation();
+	const { language } = useLanguage();
 	if (!burndown) {
 		return null;
 	}
 
 	let sentence: string | null = null;
 	if (burndown.runwayDate && burndown.runwayDay != null) {
-		const ranOut = formatDayMonth(burndown.runwayDate);
+		const ranOut = formatDayMonth(burndown.runwayDate, language);
 		const early = burndown.totalDays - burndown.runwayDay;
 		sentence =
 			early > 0
@@ -208,7 +211,7 @@ function HeroVerdict({
 				: t("budgets.hero.verdictRanOutFinal", { date: ranOut });
 	} else if (periodEndsShort && burndown.projectedBalance != null) {
 		sentence = t("budgets.hero.verdictEndsShort", {
-			amount: formatAmount(Math.abs(burndown.projectedBalance), currency, false),
+			amount: formatAmount(Math.abs(burndown.projectedBalance), currency, false, language),
 		});
 	}
 

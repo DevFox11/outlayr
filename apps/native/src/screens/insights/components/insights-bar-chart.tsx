@@ -13,6 +13,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel, type InsightsBucket, type InsightsMeasure, type InsightsPeriod } from "@/data/insights";
 import { currencySymbol, formatAmount } from "@/domain/money";
+import { useLanguage } from "@/i18n/context";
 import { CHART_BAR, CHART_DASH, CHART_DRAW, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -85,6 +86,7 @@ export function InsightsBarChart({
 	nowMs,
 }: InsightsBarChartProps) {
 	const colors = useColors();
+	const { language } = useLanguage();
 	const reduceMotion = useReducedMotion();
 	const animated = useSettingBool("animatedCharts") && !reduceMotion;
 
@@ -199,7 +201,7 @@ export function InsightsBarChart({
 								key={bucket.start.getTime()}
 								// The pan is a pointer gesture and reaches no one driving
 								// VoiceOver, so each bar carries its own label and activation.
-								label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(Math.abs(bucket.value), code, false)}`}
+								label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(Math.abs(bucket.value), code, false, language)}`}
 								onActivate={() => onCommit(selectedIndex === index ? null : index)}
 								plot={plot}
 								selected={selectedIndex === index}

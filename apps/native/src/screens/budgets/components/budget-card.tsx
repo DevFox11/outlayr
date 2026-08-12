@@ -9,7 +9,7 @@ import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -45,12 +45,13 @@ export function BudgetCard({
 }: BudgetCardProps) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const [chartWidth, setChartWidth] = useState(0);
 	const now = new Date(nowMs);
 	const over = budget.overBudget;
 	const isDay = budget.type === BUDGET_TYPE.day;
 	const difference = Math.abs(budget.leftover);
-	const differenceLabel = formatAmount(difference, currency, showCents);
+	const differenceLabel = formatAmount(difference, currency, showCents, language);
 
 	const onLayout = (event: LayoutChangeEvent) => {
 		setChartWidth(event.nativeEvent.layout.width);
@@ -123,8 +124,8 @@ export function BudgetCard({
 
 			<MonoLabel numberOfLines={1}>
 				{`${t("budgets.spentOfLimit", {
-					limit: formatAmount(budget.amount, currency, false),
-					spent: formatAmount(budget.spent, currency, false),
+					limit: formatAmount(budget.amount, currency, false, language),
+					spent: formatAmount(budget.spent, currency, false, language),
 				})} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
 			</MonoLabel>
 		</Pressable>

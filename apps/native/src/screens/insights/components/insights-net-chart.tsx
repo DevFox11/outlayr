@@ -7,7 +7,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel, type InsightsBucket, type InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
@@ -43,6 +43,7 @@ export function InsightsNetChart({
 }: InsightsNetChartProps) {
 	const colors = useColors();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const reduceMotion = useReducedMotion();
 	const animated = useSettingBool("animatedCharts") && !reduceMotion;
 
@@ -240,7 +241,7 @@ export function InsightsNetChart({
 						{live.map((value, index) => (
 							<View
 								accessibilityLabel={t(value < 0 ? "insights.net.slotBehind" : "insights.net.slotAhead", {
-									amount: formatAmount(Math.abs(value), code, false),
+									amount: formatAmount(Math.abs(value), code, false, language),
 									date: bucketDateLabel(period, buckets[index].start),
 								})}
 								accessibilityRole="button"

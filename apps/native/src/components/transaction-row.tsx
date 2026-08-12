@@ -8,7 +8,7 @@ import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { isExact, type RateTable } from "@/domain/valuation";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
@@ -66,6 +66,7 @@ export function TransactionRow({
 	const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
 	const colors = useColors();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const date = new Date(transaction.date);
 	const future = forcedFuture ?? isFuture(date);
 	const code = transaction.currency ?? currency;
@@ -91,8 +92,8 @@ export function TransactionRow({
 			rates
 		);
 
-	const timeLabel = swapTimeLabel ? (transaction.categoryName ?? "") : formatTime(date, use24Hour);
-	const subtitle = future ? formatUpcomingDate(landsOn ?? date) : timeLabel;
+	const timeLabel = swapTimeLabel ? (transaction.categoryName ?? "") : formatTime(date, use24Hour, language);
+	const subtitle = future ? formatUpcomingDate(landsOn ?? date, language) : timeLabel;
 
 	return (
 		<Pressable

@@ -23,7 +23,7 @@ import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { numpadToNumber } from "@/domain/numpad";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { LARGE_ONLY, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -41,6 +41,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const colors = useColors();
 	const insets = useSafeAreaInsets();
 	const { width: windowWidth } = useWindowDimensions();
@@ -142,7 +143,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
 							arrivedA11y={t("transfers.a11y.editArrival")}
 							arrivedLabel={
 								draft.crossCurrency && draft.arrived !== null
-									? t("transfers.arrives", { amount: formatAmount(draft.arrived, draft.toCurrency) })
+									? t("transfers.arrives", { amount: formatAmount(draft.arrived, draft.toCurrency, true, language) })
 									: null
 							}
 							chipColor={withAlpha(colors.transfer, 0.12)}
@@ -178,9 +179,9 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
 									feeSideLabel={t(
 										draft.feeSide === "destination" ? "transfers.fee.destination" : "transfers.fee.source"
 									)}
-									feeValue={draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency) : null}
+									feeValue={draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency, true, language) : null}
 									from={{
-										balance: formatSignedAmount(draft.fromBalance, draft.fromCurrency),
+										balance: formatSignedAmount(draft.fromBalance, draft.fromCurrency, true, language),
 										currency: draft.fromCurrency,
 										emoji: draft.from?.emoji ?? null,
 										kicker: t("transfers.field.from"),
@@ -210,7 +211,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
 									swapA11y={t("transfers.a11y.swap")}
 									tintColor={colors.foreground}
 									to={{
-										balance: formatSignedAmount(draft.toBalance, draft.toCurrency),
+										balance: formatSignedAmount(draft.toBalance, draft.toCurrency, true, language),
 										currency: draft.toCurrency,
 										emoji: draft.to?.emoji ?? null,
 										kicker: t("transfers.field.to"),

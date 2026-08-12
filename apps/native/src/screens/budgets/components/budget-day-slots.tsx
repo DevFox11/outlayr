@@ -7,7 +7,7 @@ import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 interface BudgetDaySlotsProps {
 	/** Draw the blocks alone, for callers that place the verdict themselves. */
@@ -42,6 +42,7 @@ export function BudgetDaySlots({
 }: BudgetDaySlotsProps) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const slots = useMemo(
 		() =>
 			buildDaySlots(contributions, {
@@ -122,7 +123,7 @@ export function BudgetDaySlots({
 				<View className="flex-row items-baseline gap-1.5 pt-2">
 					<Text className={cn("text-foreground", sizeClass)}>{sentence}</Text>
 					<Text className={cn("text-muted", sizeClass)}>
-						{`${formatAmount(Math.abs(slots.remaining), currency, showCents)} ${
+						{`${formatAmount(Math.abs(slots.remaining), currency, showCents, language)} ${
 							slots.remaining < 0 ? t("budgets.suffix.over") : t("budgets.suffix.left")
 						}`}
 					</Text>

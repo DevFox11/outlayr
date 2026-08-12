@@ -3,6 +3,7 @@ import type { ImportReviewResult } from "@/hooks/use-import-review";
 import { DoneStep } from "./done-step";
 
 jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string, params?: Record<string, unknown>) =>
 		params ? `${key}:${JSON.stringify(params)}` : key,
 }));

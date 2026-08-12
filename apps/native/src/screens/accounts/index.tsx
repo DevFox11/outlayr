@@ -39,7 +39,7 @@ import { useAccountBalance, useAccounts } from "@/data/accounts";
 import { type Account, accountsRepo } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { type ThemeColors, useColors } from "@/theme/use-colors";
 
 const SUBTITLE = font({
@@ -177,6 +177,7 @@ interface AccountRowProps {
 
 const AccountRow = memo(function AccountRowMemo({ account, colors, db, onDelete, onOpen }: AccountRowProps) {
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const { showCents } = useDisplaySettings().state;
 	const balance = useAccountBalance(db, account);
 	const subtitle = isMultiCurrency(balance.composition, account.currency)
@@ -195,7 +196,7 @@ const AccountRow = memo(function AccountRowMemo({ account, colors, db, onDelete,
 					accessibilityElement("combine"),
 					accessibilityAddTraits(["isButton"]),
 					accessibilityLabel(
-						`${account.name}, ${subtitle}, ${formatSignedAmount(balance.total, account.currency, showCents)}`
+						`${account.name}, ${subtitle}, ${formatSignedAmount(balance.total, account.currency, showCents, language)}`
 					),
 				]}
 				spacing={12}
@@ -221,7 +222,7 @@ const AccountRow = memo(function AccountRowMemo({ account, colors, db, onDelete,
 					<SwiftText modifiers={[APPROX, foregroundStyle(colors.subtle)]}>{`${account.currency}?`}</SwiftText>
 				)}
 				<SwiftText modifiers={[AMOUNT, monospacedDigit(), lineLimit(1), foregroundStyle(LABEL)]}>
-					{formatSignedAmount(balance.total, account.currency, showCents)}
+					{formatSignedAmount(balance.total, account.currency, showCents, language)}
 				</SwiftText>
 				<Image color={colors.muted} modifiers={[CHEVRON]} systemName="chevron.right" />
 			</HStack>

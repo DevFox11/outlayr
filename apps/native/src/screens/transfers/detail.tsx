@@ -20,7 +20,7 @@ import { useLiveQuery } from "@/data/live-query";
 import { transfersRepo } from "@/data/transfers-core";
 import { transactions, transfers } from "@/db/schema";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 const RATE_DECIMALS = 4;
@@ -30,6 +30,7 @@ export default function TransferDetail({ id }: { id: string }) {
 	const db = useDatabase();
 	const router = useRouter();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const colors = useColors();
 	const accounts = useAccounts(db);
 
@@ -73,7 +74,7 @@ export default function TransferDetail({ id }: { id: string }) {
 					<HStack>
 						<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.detail.left")}</SwiftText>
 						<Spacer />
-						<SwiftText>{formatAmount(transfer.fromAmount, transfer.fromCurrency)}</SwiftText>
+						<SwiftText>{formatAmount(transfer.fromAmount, transfer.fromCurrency, true, language)}</SwiftText>
 					</HStack>
 					<HStack>
 						<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.field.to")}</SwiftText>
@@ -83,7 +84,7 @@ export default function TransferDetail({ id }: { id: string }) {
 					<HStack>
 						<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.detail.arrived")}</SwiftText>
 						<Spacer />
-						<SwiftText>{formatAmount(transfer.toAmount, transfer.toCurrency)}</SwiftText>
+						<SwiftText>{formatAmount(transfer.toAmount, transfer.toCurrency, true, language)}</SwiftText>
 					</HStack>
 				</Section>
 
@@ -107,7 +108,7 @@ export default function TransferDetail({ id }: { id: string }) {
 						<HStack>
 							<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.field.fee")}</SwiftText>
 							<Spacer />
-							<SwiftText>{formatAmount(fee.amount, fee.currency ?? transfer.fromCurrency)}</SwiftText>
+							<SwiftText>{formatAmount(fee.amount, fee.currency ?? transfer.fromCurrency, true, language)}</SwiftText>
 						</HStack>
 					</Section>
 				) : null}

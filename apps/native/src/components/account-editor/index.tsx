@@ -40,7 +40,7 @@ import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useAccountIdentity } from "@/hooks/use-account-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useRegionCode } from "@/hooks/use-region-code";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
@@ -80,6 +80,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 	const router = useRouter();
 	const navigation = useNavigation();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const colors = useColors();
 	const haptics = useHaptics();
 	const insets = useSafeAreaInsets();
@@ -339,7 +340,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 							balanceEditA11y={t("accounts.a11y.editBalance")}
 							balanceLabel={t("accounts.field.initialBalance")}
 							balanceSignA11y={t("accounts.a11y.balanceSign")}
-							balanceValue={formatAmount(numpadToNumber(balanceText), currency)}
+							balanceValue={formatAmount(numpadToNumber(balanceText), currency, true, language)}
 							caption={mode === "edit" ? t("accounts.rebaseNote") : null}
 							currencyCode={currency}
 							currencyLabel={t("accounts.field.currency")}

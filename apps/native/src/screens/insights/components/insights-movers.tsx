@@ -7,7 +7,7 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { CategoryMover, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 interface InsightsMoversProps {
 	code: string;
@@ -50,6 +50,7 @@ function MoverRow({
 	showCents: boolean;
 }) {
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const rose = mover.delta > 0;
 	// Shared with `CategoryBreakdownRow` directly below, so the two cannot disagree.
 	const favourable = breakdownRiseIsFavourable(measure) === rose;
@@ -67,7 +68,7 @@ function MoverRow({
 				style={{ fontVariant: ["tabular-nums"] }}
 			>
 				{rose ? "+" : "-"}
-				{formatAmount(Math.abs(mover.delta), code, showCents)}
+				{formatAmount(Math.abs(mover.delta), code, showCents, language)}
 			</Text>
 			<Text className="min-w-[46px] text-right font-mono text-label text-muted">
 				{mover.fraction == null

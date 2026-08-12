@@ -18,7 +18,7 @@ import { FALLBACK_IDENTITY_COLOR } from "@/domain/transaction-identity";
 import type { ImportReviewResult, ReviewCategoryTile } from "@/hooks/use-import-review";
 import { useReviewEnrichment } from "@/hooks/use-review-enrichment";
 import type { TranslationKey } from "@/i18n/catalog";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { LARGE_SHEET_TOP_INSET } from "@/lib/sheet-detents";
 import { useColors } from "@/theme/use-colors";
 import { MeasureStrip } from "../measure-strip";
@@ -166,10 +166,11 @@ const DayHeader = memo(function DayHeaderInner({
 	first: boolean;
 }) {
 	const { showCents } = useDisplaySettings().state;
+	const { language } = useLanguage();
 	return (
 		<View className={first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7"}>
 			<View className="flex-row items-baseline justify-between gap-2">
-				<MonoLabel>{formatDayHeader(day)}</MonoLabel>
+				<MonoLabel>{formatDayHeader(day, undefined, language)}</MonoLabel>
 				<DayTotal showCents={showCents} totals={[{ amount: total, currencyCode: currency, transactionCount: 0 }]} />
 			</View>
 			{/* A 1.3 stroke with round caps, matching the Log's day rule. */}

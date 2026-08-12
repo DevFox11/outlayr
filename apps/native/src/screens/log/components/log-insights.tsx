@@ -19,7 +19,7 @@ import {
 } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 import { LogSparkline } from "./log-sparkline";
@@ -152,7 +152,8 @@ function Hairline() {
 }
 
 function AlsoPill({ figures, measure, showCents }: { figures: LogFigures; measure: LogMeasure; showCents: boolean }) {
-	const parts = amountParts(measureMagnitude(measure, figures), figures.currencyCode, showCents);
+	const { language } = useLanguage();
+	const parts = amountParts(measureMagnitude(measure, figures), figures.currencyCode, showCents, language);
 	const sign = measureIsPositive(measure, figures) ? "+" : "-";
 	const amount = `${sign}${withCurrencySymbol(parts, amountDigits(parts))}`;
 

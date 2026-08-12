@@ -2,6 +2,7 @@ import { View } from "react-native";
 
 import { Text } from "@/components/text";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
+import { useLanguage } from "@/i18n/context";
 
 const TABULAR = { fontVariant: ["tabular-nums" as const] };
 
@@ -21,7 +22,8 @@ interface LogHeroNumberProps {
 }
 
 export function LogHeroNumber({ magnitude, code, positive, showCents = true }: LogHeroNumberProps) {
-	const parts = amountParts(magnitude, code, showCents);
+	const { language } = useLanguage();
+	const parts = amountParts(magnitude, code, showCents, language);
 	const digits = amountDigits(parts);
 	const sign = positive ? "+" : "-";
 	// The row's own `gap-1` spaces the symbol, so the locale's glue would double it.

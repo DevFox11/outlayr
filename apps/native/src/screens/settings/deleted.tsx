@@ -13,7 +13,7 @@ import { type DeletedTransaction, deletedTransactionsQuery, transactionsRepo } f
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { formatDayHeader } from "@/domain/dates";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 export function RecentlyDeleted() {
 	const db = useDatabase();
@@ -73,6 +73,7 @@ function DeletedRow({
 }) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
+	const { language } = useLanguage();
 	// The query selects tombstones only, so the fallback satisfies the column's
 	// nullability rather than describing a row this list can hold.
 	const when = row.deletedAt ?? row.date;
@@ -84,7 +85,7 @@ function DeletedRow({
 					{row.note}
 				</Text>
 				<Text className="text-muted text-subtitle">
-					{t("settings.deleted.deletedOn", { date: formatDayHeader(when) })}
+					{t("settings.deleted.deletedOn", { date: formatDayHeader(when, undefined, language) })}
 				</Text>
 			</View>
 			<RowAmount

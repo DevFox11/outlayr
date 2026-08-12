@@ -3,7 +3,8 @@ import { View } from "react-native";
 import { type RowAmountLabelInput, rowAmountLabel } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
 import { amountDigits, amountParts, splitSymbol, withCurrencySymbol } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
 import { Text } from "./text";
 import { cn, tv } from "./tw";
 
@@ -30,7 +31,12 @@ export function HeroNumber({
 	size = 40,
 	showCents = true,
 }: HeroNumberProps) {
-	const parts = amountParts(amount, code, showCents);
+	// Read through the context rather than `amountParts`' `runtimeLanguage()`
+	// default: the default is a module global React cannot see, so a component
+	// that reads it without also consuming this context is bailed out of the
+	// re-render when the language changes and keeps printing the old locale.
+	const { language } = useLanguage();
+	const parts = amountParts(amount, code, showCents, language);
 	const resolvedSign = sign ?? (amount < 0 ? "-" : "+");
 	const small = Math.round(size * 0.5);
 	const { prefixSymbol, suffixSymbol } = splitSymbol(parts);
@@ -95,7 +101,8 @@ export function RowAmount({
 	transfer = false,
 }: RowAmountProps) {
 	const t = useTranslation();
-	const parts = amountParts(amount, code, showCents);
+	const { language } = useLanguage();
+	const parts = amountParts(amount, code, showCents, language);
 	const sign = transfer ? "" : signFor(income);
 	return (
 		<Text
@@ -125,7 +132,8 @@ interface MeasureCellAmountProps {
 
 /** Symbol, sign and digits share one tone, unlike the hero's muted symbol. */
 export function MeasureCellAmount({ magnitude, positive, income, code, showCents = true }: MeasureCellAmountProps) {
-	const parts = amountParts(magnitude, code, showCents);
+	const { language } = useLanguage();
+	const parts = amountParts(magnitude, code, showCents, language);
 	const toneClass = income ? "text-income" : "text-foreground";
 	const sign = positive ? "+" : "-";
 	return (
@@ -145,8 +153,8 @@ interface DayTotalProps {
 	totals: readonly CurrencyBucket[];
 }
 
-function signedAmount(amount: number, code: string, showCents: boolean): string {
-	const parts = amountParts(amount, code, showCents);
+function signedAmount(amount: number, code: string, showCents: boolean, language: Language): string {
+	const parts = amountParts(amount, code, showCents, language);
 	const sign = amount < 0 ? "-" : "+";
 	return `${sign}${withCurrencySymbol(parts, amountDigits(parts))}`;
 }
@@ -156,13 +164,14 @@ function signedAmount(amount: number, code: string, showCents: boolean): string 
  * added: there is no rate here, so a single number would be an invention.
  */
 export function DayTotal({ totals, showCents = true, sizeClass = "text-footnote" }: DayTotalProps) {
+	const { language } = useLanguage();
 	return (
 		<View className="flex-row items-baseline gap-1.5">
 			{totals.map((bucket, index) => (
 				<Fragment key={bucket.currencyCode}>
 					{index > 0 ? <Text className={cn("font-sans-semibold text-subtle", sizeClass)}>/</Text> : null}
 					<Text className={cn("font-sans-semibold text-muted", sizeClass)} numberOfLines={1} style={TABULAR}>
-						{signedAmount(bucket.amount, bucket.currencyCode, showCents)}
+						{signedAmount(bucket.amount, bucket.currencyCode, showCents, language)}
 					</Text>
 				</Fragment>
 			))}

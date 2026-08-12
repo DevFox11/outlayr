@@ -57,7 +57,7 @@ import {
 import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { staggerDelay } from "@/theme/mark-motion";
 import { type ThemeColors, useColors } from "@/theme/use-colors";
 
@@ -464,6 +464,7 @@ function CategoryRow({
 	onDelete: () => void;
 }) {
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const size = indented ? CHILD_TILE : PARENT_TILE;
 	return (
 		<SwipeActions modifiers={[indented ? FLUSH_ROW : PARENT_ROW, NO_RULE]}>
@@ -500,7 +501,7 @@ function CategoryRow({
 					<Spacer />
 					{amount > 0 ? (
 						<SwiftText modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(colors.muted)]}>
-							{formatAmount(amount, currency, false)}
+							{formatAmount(amount, currency, false, language)}
 						</SwiftText>
 					) : null}
 					<Image

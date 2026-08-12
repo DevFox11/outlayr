@@ -2,6 +2,7 @@ import { fireEvent, render } from "@testing-library/react-native";
 import { AccountsOverviewCard } from "./accounts-overview-card";
 
 jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string) => key,
 }));
 

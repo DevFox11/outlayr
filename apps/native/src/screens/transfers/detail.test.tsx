@@ -29,6 +29,7 @@ jest.mock("@/data/transfers-core", () => ({
 }));
 
 jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
 	useTranslation: () => (key: string) => key,
 }));
 

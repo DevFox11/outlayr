@@ -2,6 +2,7 @@ import { Pressable, View } from "react-native";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { formatDayHeader } from "@/domain/dates";
 import type { DaySection } from "@/domain/day-sections";
+import { useLanguage } from "@/i18n/context";
 import { DayTotal } from "./amount-text";
 import { MonoLabel } from "./mono-label";
 
@@ -19,10 +20,13 @@ interface DaySectionHeaderProps {
 
 export function DaySectionHeader({ section, first = false, onLongPress }: DaySectionHeaderProps) {
 	const { showCents } = useDisplaySettings().state;
+	// Consuming the language here is what re-renders this header when it changes;
+	// `formatDayHeader`'s `runtimeLanguage()` default is invisible to React.
+	const { language } = useLanguage();
 	const body = (
 		<>
 			<View className="flex-row items-baseline justify-between gap-2">
-				<MonoLabel>{formatDayHeader(section.day)}</MonoLabel>
+				<MonoLabel>{formatDayHeader(section.day, undefined, language)}</MonoLabel>
 				<DayTotal showCents={showCents} totals={section.totals} />
 			</View>
 			{/* A 1.3 stroke with round caps, not a 1px border. */}

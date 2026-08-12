@@ -14,7 +14,7 @@ import {
 	schedulePreview,
 } from "@/domain/recurrence";
 import type { TranslationKey } from "@/i18n/catalog";
-import { type TranslateFn, useTranslation } from "@/i18n/context";
+import { type TranslateFn, useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
@@ -488,6 +488,7 @@ interface ChargeRowProps {
 }
 
 function ChargeRow({ date, tag, first = false, last = false, tinted = false, swapping = false }: ChargeRowProps) {
+	const { language } = useLanguage();
 	// Transform and opacity only: neither reaches layout, so the row never
 	// re-measures and the platform sheet never re-settles under the motion.
 	const dateStyle = useAnimatedStyle(() => ({
@@ -515,7 +516,7 @@ function ChargeRow({ date, tag, first = false, last = false, tinted = false, swa
 			</View>
 			<Animated.View className="flex-1 flex-row items-center gap-3" style={first ? undefined : dateStyle}>
 				<Text className={tinted ? "font-sans-semibold text-foreground text-subtitle" : "text-foreground text-subtitle"}>
-					{formatChargeDate(date)}
+					{formatChargeDate(date, undefined, language)}
 				</Text>
 				{tag == null ? null : <Text className="text-label text-muted">{tag}</Text>}
 			</Animated.View>

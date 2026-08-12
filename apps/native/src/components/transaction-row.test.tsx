@@ -4,7 +4,10 @@ import { TransactionRow } from "./transaction-row";
 jest.mock("@/contexts/display-settings-context", () => ({
 	useDisplaySettings: () => ({ state: { showCents: true, swapTimeLabel: false, use24Hour: false } }),
 }));
-jest.mock("@/i18n/context", () => ({ useTranslation: () => (key: string) => key }));
+jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: "en" }),
+	useTranslation: () => (key: string) => key,
+}));
 jest.mock("@/theme/use-colors", () => ({
 	useColors: () => ({
 		foreground: "#17150F",

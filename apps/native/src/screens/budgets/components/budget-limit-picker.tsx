@@ -21,7 +21,8 @@ import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
 import { crossingDay } from "@/domain/budget-limit-crossing";
 import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
+import type { Language } from "@/i18n/languages";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
 import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";
@@ -79,8 +80,8 @@ function curvePathD(
 }
 
 /** "23 Jul". */
-function formatDayMonth(date: Date): string {
-	const month = monthAbbrev(date);
+function formatDayMonth(date: Date, language: Language): string {
+	const month = monthAbbrev(date, language);
 	return `${date.getDate()} ${month[0]}${month.slice(1).toLowerCase()}`;
 }
 
@@ -89,6 +90,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 	const colors = useColors();
 	const haptics = useHaptics();
 	const t = useTranslation();
+	const { language } = useLanguage();
 	const { width: windowWidth } = useWindowDimensions();
 	const [measured, setMeasured] = useState(0);
 	const width = measured > 0 ? measured : windowWidth - GUTTER * 2;
@@ -213,8 +215,8 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 		crossing == null
 			? null
 			: new Date(windowStart.getFullYear(), windowStart.getMonth(), windowStart.getDate() + crossing - 1);
-	const monthName = formatMonthLabel(windowStart);
-	const limitLabel = formatAmount(limit, currency, false);
+	const monthName = formatMonthLabel(windowStart, language);
+	const limitLabel = formatAmount(limit, currency, false, language);
 
 	let readout: string;
 	if (sparse) {
@@ -233,15 +235,15 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 		readout =
 			early > 0
 				? t("budgets.picker.ranOutEarly", {
-						date: formatDayMonth(crossingDate),
+						date: formatDayMonth(crossingDate, language),
 						days: t("budgets.days", { count: early }),
 					})
 				: t("budgets.picker.ranOutFinal", {
-						date: formatDayMonth(crossingDate),
+						date: formatDayMonth(crossingDate, language),
 					});
 	} else {
 		readout = t("budgets.picker.held", {
-			amount: formatAmount(limit - total, currency, showCents),
+			amount: formatAmount(limit - total, currency, showCents, language),
 			month: monthName,
 		});
 	}
@@ -367,7 +369,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 				<MonoLabel>{t("budgets.picker.drag")}</MonoLabel>
 				<MonoLabel>
 					{t("budgets.picker.spent", {
-						amount: formatAmount(total, currency, false),
+						amount: formatAmount(total, currency, false, language),
 					})}
 				</MonoLabel>
 			</View>
