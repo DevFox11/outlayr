@@ -218,6 +218,13 @@ const budgets = {
 			en: "RAN OUT {date}",
 			es: "SE ACABÓ {date}",
 		}),
+		// Appended to whichever verdict fired, so the sentence names what did it
+		// rather than only when it happened. Percent, not a worded fraction: "four
+		// fifths" does not survive translation.
+		"budgets.hero.verdictBlame": t({
+			en: "{name} took {percent}% of it.",
+			es: "{name} se llevó el {percent}%.",
+		}),
 		"budgets.hero.verdictEndsShort": t({
 			en: "Still solvent, but on this pace the period ends {amount} short.",
 			es: "Todavía te alcanza, pero a este ritmo al período le faltarán {amount}.",

@@ -28,6 +28,7 @@
     "@better-auth/expo": "catalog:",
     "@convex-dev/better-auth": "catalog:",
     "@expo-google-fonts/geist-mono": "^0.4.3",
+    "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@expo/ui": "~57.0.9",
     "@hugeicons-pro/core-solid-rounded": "^4.2.3",
     "@hugeicons-pro/core-stroke-rounded": "^4.2.3",

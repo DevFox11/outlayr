@@ -1,6 +1,7 @@
 import "../../global.css";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { GeistMono_400Regular, GeistMono_500Medium, useFonts } from "@expo-google-fonts/geist-mono";
+import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
 import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
@@ -392,6 +393,7 @@ export default function RootLayout() {
 	const [fontsLoaded] = useFonts({
 		GeistMono_400Regular,
 		GeistMono_500Medium,
+		InstrumentSerif_400Regular,
 	});
 
 	return (

@@ -5,6 +5,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
+import type { ExpenseContribution } from "@/data/budget-spent";
 import {
 	budgetsRepo,
 	compareBudgetSeverity,
@@ -14,9 +15,11 @@ import {
 	useMainBudget,
 	usePerCategoryBudgets,
 } from "@/data/budgets";
+import { useCategoryMeta } from "@/data/categories";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
+import { dominantCategory } from "@/domain/budget-dominant";
 import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
 import { firstOfMonth } from "@/domain/dates";
 import { useTranslation } from "@/i18n/context";
@@ -53,6 +56,7 @@ function BudgetContent({ db }: { db: Database }) {
 	const main = useMainBudget(db, nowMs, contributions);
 	const budgets = usePerCategoryBudgets(db, nowMs, contributions);
 	const mainBurndown = useBurndown(contributions, nowMs, main, null);
+	const dominant = useDominant(db, contributions, main, nowMs);
 	const burndowns = useBurndowns(contributions, nowMs, budgets);
 
 	const ranked = useMemo(() => [...budgets].sort(compareBudgetSeverity), [budgets]);
@@ -151,6 +155,7 @@ function BudgetContent({ db }: { db: Database }) {
 					burndown={mainBurndown}
 					contributions={contributions}
 					currency={currency}
+					dominant={dominant}
 					nowMs={nowMs}
 					onPress={() => router.push("/budgets/overall")}
 				/>
@@ -223,4 +228,26 @@ function BudgetContent({ db }: { db: Database }) {
 			) : null}
 		</ScrollView>
 	);
+}
+
+/**
+ * The category that took most of the main budget's window, named. Returns null
+ * when nothing dominates or the winner has since been deleted, so the sentence
+ * simply drops its second clause rather than naming an id.
+ */
+function useDominant(
+	db: Database,
+	contributions: readonly ExpenseContribution[],
+	main: ReturnType<typeof useMainBudget>,
+	nowMs: number
+): { name: string; share: number } | null {
+	const categoryMeta = useCategoryMeta(db);
+	return useMemo(() => {
+		if (!main) {
+			return null;
+		}
+		const top = dominantCategory(contributions, main.window, Math.min(nowMs, main.window.end.getTime()));
+		const name = top ? categoryMeta.get(top.categoryId)?.name : undefined;
+		return top && name ? { name, share: top.share } : null;
+	}, [contributions, main, nowMs, categoryMeta]);
 }

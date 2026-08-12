@@ -24,10 +24,15 @@ interface BudgetBurndownHeroProps {
 	burndown: Burndown | null;
 	contributions: readonly ExpenseContribution[];
 	currency: string;
+	/** Name and share of the category that took most of the window, when there is one. */
+	dominant?: { name: string; share: number } | null;
 	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
 	nowMs: number;
 	onPress: () => void;
 }
+
+/** The one face in the app that is neither the rounded sans nor the mono. */
+const SERIF = "InstrumentSerif_400Regular";
 
 const CHART_HEIGHT = 168;
 
@@ -44,6 +49,7 @@ export function BudgetBurndownHero({
 	budget,
 	burndown,
 	contributions,
+	dominant,
 	currency,
 	onPress,
 	nowMs,
@@ -178,7 +184,9 @@ export function BudgetBurndownHero({
 				</View>
 			</GestureDetector>
 
-			{scrubbed || isDay ? null : <HeroVerdict burndown={burndown} currency={currency} periodEndsShort={endsShort} />}
+			{scrubbed || isDay ? null : (
+				<HeroVerdict burndown={burndown} currency={currency} dominant={dominant} periodEndsShort={endsShort} />
+			)}
 		</View>
 	);
 }
@@ -186,10 +194,12 @@ export function BudgetBurndownHero({
 function HeroVerdict({
 	burndown,
 	currency,
+	dominant,
 	periodEndsShort,
 }: {
 	burndown: Burndown | null;
 	currency: string;
+	dominant?: { name: string; share: number } | null;
 	periodEndsShort: boolean;
 }) {
 	const t = useTranslation();
@@ -219,5 +229,22 @@ function HeroVerdict({
 		return null;
 	}
 
-	return <Text className="px-1 pt-2.5 text-footnote text-muted">{sentence}</Text>;
+	// The one place the app speaks rather than labels. A share under a fifth is
+	// not a culprit, so the second clause only earns its place above that.
+	const blame =
+		dominant && dominant.share >= 0.2
+			? t("budgets.hero.verdictBlame", { name: dominant.name, percent: Math.round(dominant.share * 100) })
+			: null;
+
+	return (
+		<Text
+			className="px-1 pt-4 text-foreground text-title leading-snug"
+			// Set directly rather than through a `font-serif` class: uniwind's theme
+			// already ships a `--font-serif`, and the generic stack wins over ours.
+			style={{ fontFamily: SERIF }}
+		>
+			{sentence}
+			{blame ? ` ${blame}` : null}
+		</Text>
+	);
 }
