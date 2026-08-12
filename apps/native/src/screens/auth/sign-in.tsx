@@ -84,7 +84,7 @@ function SignInContent({ client }: { client: AuthClient }) {
 	const { busy, error, start } = useProviderSignIn(client, {
 		onAppleFailure: async () => {
 			await deferAccount(db);
-			router.replace("/(tabs)");
+			router.replace("/");
 		},
 	});
 

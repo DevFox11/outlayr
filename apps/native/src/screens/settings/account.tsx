@@ -56,13 +56,13 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { busy: signingIn, error: signInError, start } = useProviderSignIn(client);
-	const openLedger = () => router.replace("/(tabs)");
+	const openLedger = () => router.replace("/");
 
 	useEffect(() => {
 		let mounted = true;
 		const resumeDeletion = async () => {
 			if ((await resumePersistedCloudDeletion()) && mounted) {
-				router.replace("/(tabs)");
+				router.replace("/");
 			}
 		};
 		resumeDeletion().catch((cause: unknown) => {
@@ -121,7 +121,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 			navigateToLedger: openLedger,
 			navigateToOnboarding: () => {
 				reopenLocalData();
-				router.replace("/onboarding/index");
+				router.replace("/onboarding");
 			},
 			persistDeletionSecret: async (preparation) =>
 				await setItemAsync(deletionResumeSecretKey, JSON.stringify(preparation)),
