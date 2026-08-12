@@ -99,6 +99,31 @@ export async function setSyncEnabled(db: Database, enabled: boolean): Promise<vo
 	});
 }
 
+export async function getSyncAccountSubject(db: Database): Promise<string | null> {
+	return await getMeta(db, META_KEYS.syncAccountSubject);
+}
+
+export async function setSyncAccountSubject(db: Database, accountId: string): Promise<void> {
+	await setMeta(db, META_KEYS.syncAccountSubject, accountId);
+}
+
+export async function enableSyncForAccount(db: Database, accountId: string): Promise<void> {
+	await withTransaction(db, async () => {
+		await setMeta(db, META_KEYS.syncAccountSubject, accountId);
+		await setMeta(db, META_KEYS.syncEnabled, "1");
+	});
+}
+
+export async function hasResidualSyncState(db: Database): Promise<boolean> {
+	if (await isSyncEnabled(db)) {
+		return true;
+	}
+	if ((await outboxPendingCount(db)) > 0) {
+		return true;
+	}
+	return (await getMeta(db, META_KEYS.syncCursor)) !== null || (await getMeta(db, META_KEYS.syncedAt)) !== null;
+}
+
 export async function getOrCreateDeviceId(db: Database): Promise<string> {
 	const existing = await getMeta(db, META_KEYS.syncDeviceId);
 	if (existing) {
@@ -200,4 +225,25 @@ export async function getSyncedAt(db: Database): Promise<Date | null> {
 
 export async function setSyncedAt(db: Database, at: Date): Promise<void> {
 	await setMeta(db, META_KEYS.syncedAt, String(at.getTime()));
+}
+
+/**
+ * Drops device-local replication state before a different account can adopt this
+ * ledger. The next account starts at sequence zero and never receives queued
+ * writes that were prepared for the prior subject.
+ */
+export async function resetSyncForAccountSwitch(db: Database): Promise<void> {
+	await withTransaction(db, async () => {
+		await db.delete(outbox);
+		await db
+			.delete(appMeta)
+			.where(
+				inArray(appMeta.key, [
+					META_KEYS.syncAccountSubject,
+					META_KEYS.syncCursor,
+					META_KEYS.syncedAt,
+					META_KEYS.syncEnabled,
+				])
+			);
+	});
 }

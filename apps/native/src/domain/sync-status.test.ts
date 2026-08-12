@@ -1,4 +1,4 @@
-import { syncStatusLabel } from "./sync-status";
+import { effectiveCapabilityStatus, syncStatusLabel } from "./sync-status";
 
 const AT = new Date(1_700_000_000_000);
 
@@ -33,5 +33,46 @@ describe("syncStatusLabel", () => {
 			count: 3,
 			key: "settings.sync.pending",
 		});
+	});
+});
+
+describe("effective capability status", () => {
+	it("unconfigured-sync-adoption-photo-status-is-unavailable-without-account", () => {
+		expect(
+			effectiveCapabilityStatus({
+				accountId: null,
+				cloud: "unconfigured",
+				local: false,
+				pending: 9,
+				syncEnabled: true,
+				syncedAt: AT,
+			})
+		).toStrictEqual({ kind: "unavailable" });
+	});
+
+	it("keeps remote capabilities account-required until sign-in", () => {
+		expect(
+			effectiveCapabilityStatus({
+				accountId: null,
+				cloud: "configured",
+				local: false,
+				pending: 0,
+				syncEnabled: false,
+				syncedAt: null,
+			})
+		).toStrictEqual({ kind: "accountRequired" });
+	});
+
+	it("same-account-sync-off-offers-enable", () => {
+		expect(
+			effectiveCapabilityStatus({
+				accountId: "account-a",
+				cloud: "configured",
+				local: false,
+				pending: 7,
+				syncEnabled: false,
+				syncedAt: AT,
+			})
+		).toStrictEqual({ enableSync: true, kind: "syncOff" });
 	});
 });

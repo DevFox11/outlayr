@@ -2,7 +2,6 @@ import { expo } from "@better-auth/expo";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { env } from "@outlayr/env/backend";
-import { APIError } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { importPKCS8, SignJWT } from "jose";
 
@@ -10,6 +9,7 @@ import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
+import { appleCredentialLifecycle } from "./provider-lifecycle";
 
 /**
  * `CONVEX_SITE_URL` is a built-in Convex system variable — always populated in a
@@ -76,12 +76,38 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 	const siteUrl = resolveSiteUrl();
 
 	return betterAuth({
+		account: { encryptOAuthTokens: true },
 		baseURL: siteUrl,
 		database: authComponent.adapter(ctx),
 		emailAndPassword: {
 			enabled: false,
 		},
 		plugins: [
+			appleCredentialLifecycle(
+				appleConfig
+					? {
+							clientId: appleConfig.clientId,
+							clientSecret: () =>
+								generateAppleClientSecret(
+									appleConfig.clientId,
+									appleConfig.teamId,
+									appleConfig.keyId,
+									appleConfig.privateKey
+								),
+						}
+					: null,
+				{
+					resumeUserId: async (resumeSecret) => {
+						if (!("runQuery" in ctx)) {
+							throw new Error("Apple credential revocation needs a query context");
+						}
+						return await ctx.runQuery(
+							(internal as Record<string, Record<string, unknown>>).accountDeletion.resumeUserId as never,
+							{ resumeSecret } as never
+						);
+					},
+				}
+			),
 			expo(),
 			crossDomain({ siteUrl }),
 			convex({
@@ -109,7 +135,7 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 						appleConfig.keyId,
 						appleConfig.privateKey
 					),
-					enabled: true,
+					enabled: false,
 				};
 			},
 			google: googleConfig
@@ -124,40 +150,8 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 		},
 		trustedOrigins: [siteUrl, nativeAppUrl, "exp://", "https://appleid.apple.com"],
 		user: {
-			/**
-			 * App Store guideline 5.1.1(v): an app that creates accounts must let the
-			 * user delete one from inside it. A support-email link does not satisfy
-			 * the rule.
-			 */
 			deleteUser: {
-				/**
-				 * The ledger is purged BEFORE the account row, so a failure leaves the
-				 * account intact and retryable. The reverse order would leave rows
-				 * belonging to a user id nothing can authenticate as — unreachable by
-				 * their owner and invisible to every later pass.
-				 *
-				 * The device's own copy is untouched by design: it is the source of
-				 * truth, and the account only ever added sync. Signing in again with a
-				 * new account adopts it.
-				 */
-				beforeDelete: async (user) => {
-					if (!("runMutation" in ctx)) {
-						throw new APIError("INTERNAL_SERVER_ERROR", {
-							message: "Account deletion needs a context that can write",
-						});
-					}
-					// Looped rather than scheduled: the caller is told the account is
-					// gone only once it is, and a scheduled drain would report success
-					// before the data had actually left.
-					let done = false;
-					while (!done) {
-						// biome-ignore lint/performance/noAwaitInLoops: each batch must commit before the next one can see what is left to purge, and only the last one reports done
-						({ done } = await ctx.runMutation(internal.account.purgeBatch, {
-							userId: user.id,
-						}));
-					}
-				},
-				enabled: true,
+				enabled: false,
 			},
 		},
 	});

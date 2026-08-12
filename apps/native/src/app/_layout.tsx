@@ -25,9 +25,9 @@ import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
 import { localShellReady, routeSettled } from "@/domain/splash-gate";
 import { LanguageProvider, useLanguageReady, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
-import { authClient } from "@/lib/auth-client";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
-import { convex } from "@/lib/convex";
+import { cloudRuntime } from "@/lib/cloud-runtime";
+import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
 import { ACCOUNT_DETENT, identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
@@ -58,6 +58,30 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 				<Text className="font-sans-semibold text-accent-foreground text-subtitle">{translateNow("common.retry")}</Text>
 			</Pressable>
 		</View>
+	);
+}
+
+function CloudRuntimeProvider({ children }: { children: ReactNode }) {
+	if (cloudRuntime === null) {
+		return <AuthSessionProvider>{children}</AuthSessionProvider>;
+	}
+
+	return (
+		<AuthSessionProvider>
+			<ActivatedCloudRuntime>{children}</ActivatedCloudRuntime>
+		</AuthSessionProvider>
+	);
+}
+
+function ActivatedCloudRuntime({ children }: { children: ReactNode }) {
+	const { accountId } = useAuthSession();
+	if (cloudRuntime === null || accountId === null) {
+		return children;
+	}
+	return (
+		<ConvexBetterAuthProvider authClient={cloudRuntime.authClient} client={cloudRuntime.convex}>
+			{children}
+		</ConvexBetterAuthProvider>
 	);
 }
 
@@ -95,23 +119,25 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	if (localShellReady({ data: status, fontsLoaded, languageReady })) {
 		return (
 			<LedgerAdoptionProvider>
-				<RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
-					<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+				<DeviceResetRecovery>
+					<RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
+						<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-					<ThemeProvider
-						value={{
-							...base,
-							colors: { ...base.colors, background, border, card, text },
-							dark: isDark,
-						}}
-					>
-						<AuthCover>
-							<AppLockGate>
-								<RootStack />
-							</AppLockGate>
-						</AuthCover>
-					</ThemeProvider>
-				</RouteGate>
+						<ThemeProvider
+							value={{
+								...base,
+								colors: { ...base.colors, background, border, card, text },
+								dark: isDark,
+							}}
+						>
+							<AuthCover>
+								<AppLockGate>
+									<RootStack />
+								</AppLockGate>
+							</AuthCover>
+						</ThemeProvider>
+					</RouteGate>
+				</DeviceResetRecovery>
 			</LedgerAdoptionProvider>
 		);
 	}
@@ -378,17 +404,15 @@ export default function RootLayout() {
 			>
 				<PanelUIProvider>
 					<LanguageProvider>
-						<ConvexBetterAuthProvider authClient={authClient} client={convex}>
-							<AuthSessionProvider>
-								<LocalDataProvider>
-									<AppSettingsProvider>
-										<IdentityDraftProvider>
-											<RootNavigator fontsLoaded={fontsLoaded} />
-										</IdentityDraftProvider>
-									</AppSettingsProvider>
-								</LocalDataProvider>
-							</AuthSessionProvider>
-						</ConvexBetterAuthProvider>
+						<CloudRuntimeProvider>
+							<LocalDataProvider>
+								<AppSettingsProvider>
+									<IdentityDraftProvider>
+										<RootNavigator fontsLoaded={fontsLoaded} />
+									</IdentityDraftProvider>
+								</AppSettingsProvider>
+							</LocalDataProvider>
+						</CloudRuntimeProvider>
 					</LanguageProvider>
 				</PanelUIProvider>
 			</SafeAreaListener>

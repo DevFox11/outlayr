@@ -6,20 +6,10 @@ const convexUrlSchema = (exampleHost: string) =>
 		message: `Replace the ${exampleHost} placeholder before running the app`,
 	});
 
-/**
- * Convex is REQUIRED: auth and sync live there, and both are mounted
- * unconditionally, so a build without a deployment cannot start. Validation
- * happens at import time, which means a missing URL fails loudly at boot rather
- * than at the first query. Everything below it stays optional and degrades.
- *
- * `EXPO_PUBLIC_CONVEX_SITE_URL` is the deployment's `.convex.site` HTTP origin,
- * not the `.convex.cloud` websocket one in `EXPO_PUBLIC_CONVEX_URL`: Better Auth
- * routes are served by `http.ts`, which only exists on the site domain.
- */
 export const env = createEnv({
 	client: {
-		EXPO_PUBLIC_CONVEX_SITE_URL: convexUrlSchema("example.convex.site"),
-		EXPO_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud"),
+		EXPO_PUBLIC_CONVEX_SITE_URL: convexUrlSchema("example.convex.site").optional(),
+		EXPO_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud").optional(),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: z.string().optional(),
 		EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: z.string().optional(),
 		// logo.dev publishable token (`pk_…`), meant to ship in the client. Absent
@@ -30,3 +20,18 @@ export const env = createEnv({
 	emptyStringAsUndefined: true,
 	runtimeEnv: process.env,
 });
+
+export type CloudConfiguration = "configured" | "misconfigured" | "unconfigured";
+
+export function cloudConfiguration({
+	convexSiteUrl = env.EXPO_PUBLIC_CONVEX_SITE_URL,
+	convexUrl = env.EXPO_PUBLIC_CONVEX_URL,
+}: {
+	convexSiteUrl?: string;
+	convexUrl?: string;
+} = {}): CloudConfiguration {
+	if (convexSiteUrl && convexUrl) {
+		return "configured";
+	}
+	return convexSiteUrl || convexUrl ? "misconfigured" : "unconfigured";
+}

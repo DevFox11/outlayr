@@ -1,6 +1,6 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { Platform } from "react-native";
-import { appleIdToken } from "@/lib/apple-sign-in";
+import { appleCredential } from "@/lib/apple-sign-in";
 import { googleIdToken } from "@/lib/google-sign-in";
 import { ProviderSignInButtons } from "./provider-sign-in-buttons";
 
@@ -9,7 +9,7 @@ jest.mock("@/i18n/context", () => ({
 }));
 
 jest.mock("@/lib/apple-sign-in", () => ({
-	appleIdToken: jest.fn(),
+	appleCredential: jest.fn(),
 }));
 
 jest.mock("@/lib/google-sign-in", () => ({
@@ -151,7 +151,7 @@ describe("ProviderSignInButtons start wiring", () => {
 			<ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
 		);
 		fireEvent.press(getByTestId("apple-sign-in-button"));
-		expect(start).toHaveBeenCalledWith("apple", appleIdToken);
+		expect(start).toHaveBeenCalledWith("apple", appleCredential);
 	});
 
 	it("starts Google with the google id token getter", async () => {

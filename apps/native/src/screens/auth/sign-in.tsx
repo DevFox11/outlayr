@@ -1,4 +1,5 @@
 import { currencyDisplayFor } from "@outlayr/money/currency";
+import { router } from "expo-router";
 import { View } from "react-native";
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
 import { FirstRun } from "@/components/first-run";
@@ -14,11 +15,14 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
-type AuthClient = typeof authClient;
+type AuthClient = NonNullable<typeof authClient>;
 
 const PLACEHOLDER = /\{\w+\}/;
 
 export function SignIn() {
+	if (authClient === null) {
+		return null;
+	}
 	return <SignInContent client={authClient} />;
 }
 
@@ -77,7 +81,12 @@ function FlyleafCard() {
 function SignInContent({ client }: { client: AuthClient }) {
 	const db = useDatabase();
 	const t = useTranslation();
-	const { busy, error, start } = useProviderSignIn(client);
+	const { busy, error, start } = useProviderSignIn(client, {
+		onAppleFailure: async () => {
+			await deferAccount(db);
+			router.replace("/(tabs)");
+		},
+	});
 
 	return (
 		<FirstRun

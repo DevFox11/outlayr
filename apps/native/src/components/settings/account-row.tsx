@@ -3,17 +3,22 @@ import { LinkRow } from "@/components/settings/settings-row";
 import { type AccountState, accountRowValue } from "@/domain/account";
 import { useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
+import { useAuthSession } from "@/lib/auth-session";
 
-type AuthClient = typeof authClient;
+type AuthClient = NonNullable<typeof authClient>;
 
 export function AccountRow() {
+	if (authClient === null) {
+		return <Row state={{ kind: "signed-out" }} />;
+	}
 	return <SessionRow client={authClient} />;
 }
 
 function SessionRow({ client }: { client: AuthClient }) {
 	const { data: session, isPending } = client.useSession();
+	const { accountId } = useAuthSession();
 
-	if (session) {
+	if (session && accountId !== null) {
 		return <Row state={{ kind: "signed-in", user: session.user }} />;
 	}
 	return <Row state={{ kind: isPending ? "pending" : "signed-out" }} />;

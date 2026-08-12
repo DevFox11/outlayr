@@ -4,7 +4,15 @@ import { accounts, budgets, categories, mainBudget, templateTransactions, transa
 import type { AdoptionActions, LocalLedger, RemoteLedger } from "@/domain/ledger-adoption";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { SEEDED_CATEGORY_NAMES } from "./categories-core";
-import { enqueueAllForSync, setSyncEnabled } from "./sync-outbox-core";
+import {
+	enableSyncForAccount,
+	enqueueAllForSync,
+	getSyncAccountSubject,
+	hasResidualSyncState,
+	isSyncEnabled,
+	resetSyncForAccountSwitch,
+	setSyncEnabled,
+} from "./sync-outbox-core";
 
 const SEEDED_CATEGORY_COUNT = SEEDED_CATEGORY_NAMES.expense.length + SEEDED_CATEGORY_NAMES.income.length;
 
@@ -68,6 +76,21 @@ export async function markAdopted(db: Database, accountId: string): Promise<void
 	await setMeta(db, META_KEYS.ledgerAdoption, accountId);
 }
 
+export async function prepareAccountAdoption(db: Database, accountId: string): Promise<void> {
+	const [marker, syncSubject, residual] = await Promise.all([
+		adoptedAccount(db),
+		getSyncAccountSubject(db),
+		hasResidualSyncState(db),
+	]);
+	const sameSubject = syncSubject === accountId;
+	if ((marker === accountId && sameSubject) || (marker === null && sameSubject && !residual)) {
+		return;
+	}
+	if (marker !== null || syncSubject !== null || residual) {
+		await resetSyncForAccountSwitch(db);
+	}
+}
+
 /**
  * Executes an adoption. The order is the whole point:
  *
@@ -85,8 +108,9 @@ export async function markAdopted(db: Database, accountId: string): Promise<void
 export async function runAdoption(
 	db: Database,
 	engine: AdoptionEngine | null,
-	actions: AdoptionActions
-): Promise<void> {
+	actions: AdoptionActions,
+	accountId?: string
+): Promise<boolean> {
 	if (actions.wipeLocal || actions.wipeAccount) {
 		if (!engine) {
 			throw new Error("Destructive adoption actions need a sync engine.");
@@ -98,8 +122,41 @@ export async function runAdoption(
 			await engine.replaceFromAccount();
 		}
 	}
-	await setSyncEnabled(db, true);
-	if (actions.pushLocal) {
-		await enqueueAllForSync(db);
+
+	const enabledForAttempt = accountId !== undefined && !(await isSyncEnabled(db));
+	if (enabledForAttempt) {
+		await enableSyncForAccount(db, accountId);
+	} else if (!accountId) {
+		await setSyncEnabled(db, true);
+	}
+
+	try {
+		if (actions.pushLocal) {
+			await enqueueAllForSync(db);
+		}
+		return enabledForAttempt;
+	} catch (error: unknown) {
+		if (enabledForAttempt) {
+			await resetSyncForAccountSwitch(db);
+		}
+		throw error;
+	}
+}
+
+export async function completeAdoption(
+	db: Database,
+	engine: AdoptionEngine | null,
+	actions: AdoptionActions,
+	accountId: string,
+	persistMarker: (target: Database, subject: string) => Promise<void> = markAdopted
+): Promise<void> {
+	const enabledForAttempt = await runAdoption(db, engine, actions, accountId);
+	try {
+		await persistMarker(db, accountId);
+	} catch (error: unknown) {
+		if (enabledForAttempt) {
+			await resetSyncForAccountSwitch(db);
+		}
+		throw error;
 	}
 }

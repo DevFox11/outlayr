@@ -166,6 +166,17 @@ describe("rootStackGroup", () => {
 		}
 	});
 
+	it("onboarding beats the local ledger", () => {
+		expect(
+			rootStackGroup({
+				deferred: true,
+				gate: "unconfigured",
+				onboarded: false,
+				reconciled: true,
+			})
+		).toBe("onboarding");
+	});
+
 	it("delegates to authRoute once onboarded", () => {
 		for (const gate of GATES) {
 			for (const reconciled of BOOLEANS) {

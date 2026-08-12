@@ -82,6 +82,8 @@ export const META_KEYS = {
 	 * permission prompt both read it. Device-local.
 	 */
 	reminderChosen: "reminderChosen",
+	/** The account subject that owns this device's local replication state. */
+	syncAccountSubject: "syncAccountSubject",
 	/** How far this device has read the account's change log. Device-local. */
 	syncCursor: "syncCursor",
 	/**

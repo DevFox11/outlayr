@@ -69,6 +69,10 @@ describe("route settlement", () => {
 		expect(routeSettled({ adoption: "settled", gate: "unconfigured" })).toBe(true);
 	});
 
+	it("local restore skips the account wait", () => {
+		expect(routeSettled({ adoption: "resolving", gate: "unconfigured" })).toBe(true);
+	});
+
 	// The adopt screen is a destination, not a waypoint: holding the splash on it
 	// would hide the only question that can move the app forward.
 	it("settles once reconciliation has a question to ask", () => {

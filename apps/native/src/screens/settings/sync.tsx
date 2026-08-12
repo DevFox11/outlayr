@@ -17,9 +17,12 @@ import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
 import { formatDayHeader, formatTime } from "@/domain/dates";
 import type { AdoptionActions } from "@/domain/ledger-adoption";
+import { effectiveCapabilityStatus } from "@/domain/sync-status";
+import type { TranslatableKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
+import { cloudRuntime } from "@/lib/cloud-runtime";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
 
 /**
@@ -49,15 +52,20 @@ function SyncSettings({ db }: { db: Database }) {
 	const { use24Hour } = useDisplaySettings().state;
 	const [busy, setBusy] = useState(false);
 
-	// The switch is the user's to hold only once the two ledgers have been
-	// reconciled; until then the adoption cover owns that decision, and offering
-	// a plain "on" here would push a local ledger over an account's without
-	// anybody having chosen it.
-	const owned = accountId != null && status === "settled";
+	const capability = effectiveCapabilityStatus({
+		accountId,
+		cloud: cloudRuntime === null ? "unconfigured" : "configured",
+		local: false,
+		pending,
+		syncEnabled: enabled,
+		syncedAt,
+	});
+	const owned = status === "settled" && (capability.kind === "active" || capability.kind === "syncOff");
+	const presentation = syncPresentation(capability.kind, enabled);
 
 	const toggle = (next: boolean) => {
 		setBusy(true);
-		const work = next ? runAdoption(db, adoptionEngine(db), RESUME) : setSyncEnabled(db, false);
+		const work = next && accountId ? runAdoption(db, adoptionEngine(db), RESUME, accountId) : setSyncEnabled(db, false);
 		work
 			.catch((error: unknown) => {
 				console.error("Sync switch failed", error);
@@ -70,12 +78,8 @@ function SyncSettings({ db }: { db: Database }) {
 		<SettingsScreen>
 			<View className="gap-1.5 pt-6">
 				<MonoLabel>{t("settings.sync.eyebrow")}</MonoLabel>
-				<Text className="font-sans-semibold text-foreground text-title">
-					{t(enabled ? "settings.sync.on" : "settings.sync.off")}
-				</Text>
-				<Text className="pt-1 text-muted text-subtitle leading-snug">
-					{t(enabled ? "settings.sync.onDetail" : "settings.sync.offDetail")}
-				</Text>
+				<Text className="font-sans-semibold text-foreground text-title">{t(presentation.title)}</Text>
+				<Text className="pt-1 text-muted text-subtitle leading-snug">{t(presentation.detail)}</Text>
 			</View>
 
 			<SettingsSection
@@ -90,18 +94,20 @@ function SyncSettings({ db }: { db: Database }) {
 
 			{busy ? <Text className="pt-2 text-muted text-subtitle">{t("settings.sync.working")}</Text> : null}
 
-			<SettingsSection title={t("settings.sync.statusSection")}>
-				<LinkRow icon="Cloud" title={t("settings.sync.waiting")} value={String(pending)} />
-				<LinkRow
-					icon="CalendarClock"
-					title={t("settings.sync.lastSynced")}
-					value={
-						syncedAt == null
-							? t("settings.sync.neverSynced")
-							: `${formatDayHeader(syncedAt)} ${formatTime(syncedAt, use24Hour)}`
-					}
-				/>
-			</SettingsSection>
+			{capability.kind === "active" ? (
+				<SettingsSection title={t("settings.sync.statusSection")}>
+					<LinkRow icon="Cloud" title={t("settings.sync.waiting")} value={String(capability.pending)} />
+					<LinkRow
+						icon="CalendarClock"
+						title={t("settings.sync.lastSynced")}
+						value={
+							capability.syncedAt == null
+								? t("settings.sync.neverSynced")
+								: `${formatDayHeader(capability.syncedAt)} ${formatTime(capability.syncedAt, use24Hour)}`
+						}
+					/>
+				</SettingsSection>
+			) : null}
 		</SettingsScreen>
 	);
 }
@@ -113,4 +119,19 @@ function SyncSettings({ db }: { db: Database }) {
 function useSyncEnabled(db: Database): boolean {
 	const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)));
 	return rows[0]?.value === "1";
+}
+
+function syncPresentation(
+	kind: ReturnType<typeof effectiveCapabilityStatus>["kind"],
+	enabled: boolean
+): { detail: TranslatableKey; title: TranslatableKey } {
+	if (kind === "unavailable") {
+		return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
+	}
+	if (kind === "accountRequired") {
+		return { detail: "settings.sync.needsAccount", title: "settings.account.notSignedIn" };
+	}
+	return enabled
+		? { detail: "settings.sync.onDetail", title: "settings.sync.on" }
+		: { detail: "settings.sync.offDetail", title: "settings.sync.off" };
 }

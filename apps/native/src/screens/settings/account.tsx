@@ -1,52 +1,145 @@
-import { useState } from "react";
+import { router } from "expo-router";
+import { deleteItemAsync, setItemAsync } from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
 import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
-import { useDatabase } from "@/contexts/local-data-context";
+import { useDatabase, useLocalData } from "@/contexts/local-data-context";
 import { setSyncEnabled } from "@/data/sync-outbox-core";
-import type { Database } from "@/db/client";
+import { closeDatabase, type Database } from "@/db/client";
 import { accountLabel, signInFailureMessage } from "@/domain/account";
 import { useTranslation } from "@/i18n/context";
+import { runAccountLifecycle } from "@/lib/account-lifecycle";
 import { authClient } from "@/lib/auth-client";
+import { useAuthSession } from "@/lib/auth-session";
+import { convex } from "@/lib/convex";
+import {
+	deletionResumeSecretKey,
+	resumePersistedCloudDeletion,
+	resumeProviderRevocation,
+	type StoredDeletionPreparation,
+} from "@/lib/deletion-resume";
+import { createDeviceResetGate, writeDeviceResetMarker } from "@/lib/device-data-reset";
+import { providerBindingFor } from "@/lib/provider-revocation";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
-type AuthClient = typeof authClient;
-
+type AuthClient = NonNullable<typeof authClient>;
 export function Account() {
 	const db = useDatabase();
+	if (authClient === null) {
+		return <AccountUnavailable />;
+	}
 	return <AccountContent client={authClient} db={db} />;
+}
+
+function AccountUnavailable() {
+	const t = useTranslation();
+	return (
+		<SettingsScreen>
+			<Header
+				detail={t("settings.account.unavailableDetail")}
+				eyebrow={t("settings.account.eyebrow")}
+				title={t("settings.account.unavailable")}
+			/>
+		</SettingsScreen>
+	);
 }
 
 function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 	const t = useTranslation();
+	const { retry: reopenLocalData } = useLocalData();
 	const { data: session, isPending: restoring } = client.useSession();
+	const { accountId } = useAuthSession();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { busy: signingIn, error: signInError, start } = useProviderSignIn(client);
+	const openLedger = () => router.replace("/(tabs)");
 
-	// The outbox is dropped first: its entries name rows this device is no longer
-	// replicating, and leaving them would push edits made while signed out to
-	// whoever signs in next.
+	useEffect(() => {
+		let mounted = true;
+		const resumeDeletion = async () => {
+			if ((await resumePersistedCloudDeletion()) && mounted) {
+				router.replace("/(tabs)");
+			}
+		};
+		resumeDeletion().catch((cause: unknown) => {
+			if (mounted) {
+				setError(signInFailureMessage(cause, t));
+			}
+		});
+		return () => {
+			mounted = false;
+		};
+	}, [t]);
+
 	const signOut = () => {
 		setError(null);
 		setBusy(true);
-		setSyncEnabled(db, false)
-			.then(() => client.signOut())
+		runAccountLifecycle("signOut", {
+			allowLocal: openLedger,
+			deleteAccount: () => client.deleteUser(),
+			navigateToLedger: openLedger,
+			quiesce: () => setSyncEnabled(db, false),
+			signOut: () => client.signOut(),
+		})
 			.catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
 			.finally(() => setBusy(false));
 	};
 
-	// The gate closes before the account goes, not after: the server drops every
-	// replicated row, and an outbox still holding entries would push them straight
-	// back into whichever account signs in next.
-	const deleteAccount = () => {
+	const deleteAccount = (action: "deleteAll" | "deleteCloud" = "deleteCloud") => {
+		if (!activeSession) {
+			return;
+		}
 		setError(null);
 		setBusy(true);
-		setSyncEnabled(db, false)
-			.then(() => client.deleteUser())
+		const resetGate =
+			action === "deleteAll"
+				? createDeviceResetGate({
+						closeDatabase: async () => await closeDatabase(db),
+						completeCloudDeletion: async () => {
+							await resumePersistedCloudDeletion({ clearOnComplete: false, required: true });
+						},
+					})
+				: null;
+		runAccountLifecycle(action, {
+			advanceDeletion: async (resumeSecret) => {
+				if (convex === null) {
+					throw new Error("Cloud deletion is unavailable");
+				}
+				return await convex.mutation("accountDeletion:advance" as never, { resumeSecret } as never);
+			},
+			allowLocal: openLedger,
+			beginDeviceReset:
+				action === "deleteAll" ? async () => await writeDeviceResetMarker({ phase: "cloud", v: 1 }) : undefined,
+			clearDeletionSecret: async () => await deleteItemAsync(deletionResumeSecretKey),
+			deleteAccount: async () => undefined,
+			markDeviceCleanupReady:
+				action === "deleteAll" ? async () => await writeDeviceResetMarker({ phase: "device", v: 1 }) : undefined,
+			navigateToLedger: openLedger,
+			navigateToOnboarding: () => {
+				reopenLocalData();
+				router.replace("/onboarding/index");
+			},
+			persistDeletionSecret: async (preparation) =>
+				await setItemAsync(deletionResumeSecretKey, JSON.stringify(preparation)),
+			prepareDeletion: async () => {
+				if (convex === null) {
+					throw new Error("Cloud deletion is unavailable");
+				}
+				const binding = await providerBindingFor(activeSession.user.id);
+				const preparation = (await convex.mutation("accountDeletion:prepare" as never, {} as never)) as {
+					receiptChallenge: string;
+					resumeSecret: string;
+				};
+				return { ...preparation, provider: binding.provider, providerSubject: binding.providerSubject };
+			},
+			quiesce: () => setSyncEnabled(db, false),
+			resetDevice: action === "deleteAll" && resetGate ? async () => await resetGate.recover() : undefined,
+			revokeProvider: async (preparation) => await resumeProviderRevocation(preparation as StoredDeletionPreparation),
+		})
 			.catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
 			.finally(() => setBusy(false));
 	};
@@ -55,14 +148,27 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 		Alert.alert(t("settings.account.deleteConfirmTitle"), t("settings.account.deleteConfirmBody"), [
 			{ style: "cancel", text: t("common.cancel") },
 			{
-				onPress: deleteAccount,
+				onPress: () => deleteAccount(),
 				style: "destructive",
 				text: t("settings.account.deleteConfirm"),
 			},
 		]);
 	};
 
-	if (!session && restoring) {
+	const confirmDeleteDevice = () => {
+		Alert.alert(t("settings.account.eraseDeviceConfirmTitle"), t("settings.account.eraseDeviceConfirmBody"), [
+			{ style: "cancel", text: t("common.cancel") },
+			{
+				onPress: () => deleteAccount("deleteAll"),
+				style: "destructive",
+				text: t("settings.account.eraseDeviceConfirm"),
+			},
+		]);
+	};
+
+	const activeSession = accountId === null ? null : session;
+
+	if (!activeSession && restoring) {
 		return (
 			<SettingsScreen>
 				<Header eyebrow={t("settings.account.eyebrow")} title={t("settings.account.checking")} />
@@ -70,7 +176,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 		);
 	}
 
-	if (!session) {
+	if (!activeSession) {
 		return (
 			<SettingsScreen>
 				<Header
@@ -94,8 +200,8 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 		);
 	}
 
-	const label = accountLabel(session.user, t);
-	const email = session.user.email?.trim();
+	const label = accountLabel(activeSession.user, t);
+	const email = activeSession.user.email?.trim();
 
 	return (
 		<SettingsScreen>
@@ -121,6 +227,19 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 					icon="UserRemove01"
 					onPress={confirmDelete}
 					title={t("settings.account.delete")}
+					value={busy ? t("settings.account.deleting") : undefined}
+				/>
+			</SettingsSection>
+
+			<SettingsSection
+				footer={t("settings.account.eraseDeviceFooter")}
+				title={t("settings.account.eraseDeviceSection")}
+			>
+				<LinkRow
+					destructive
+					icon="UserRemove01"
+					onPress={confirmDeleteDevice}
+					title={t("settings.account.eraseDevice")}
 					value={busy ? t("settings.account.deleting") : undefined}
 				/>
 			</SettingsSection>

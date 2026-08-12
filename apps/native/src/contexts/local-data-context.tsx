@@ -12,6 +12,7 @@ import { type Database, openDatabase } from "@/db/client";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 import migrationsBundle from "../../drizzle/migrations";
+import { type LocalDataState, reopenLocalData } from "./local-data-state";
 
 export type LocalDataStatus = "opening" | "migrating" | "seeding" | "ready" | "error";
 
@@ -51,10 +52,8 @@ export function useDatabase(): Database {
  * on it, so no screen ever observes a half-built database.
  */
 export function LocalDataProvider({ children }: { children: ReactNode }) {
-	const [db, setDb] = useState<Database | null>(null);
-	const [status, setStatus] = useState<LocalDataStatus>("opening");
-	const [error, setError] = useState<Error | null>(null);
-	const [attempt, setAttempt] = useState(0);
+	const [state, setState] = useState<LocalDataState>({ attempt: 0, db: null, error: null, status: "opening" });
+	const { attempt, db, error, status } = state;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the intentional re-run trigger — bumping it is what re-runs open → migrate → seed after a failure; the effect body never reads it.
 	useEffect(() => {
@@ -62,18 +61,17 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 
 		(async () => {
 			try {
-				setError(null);
-				setStatus("opening");
+				setState((current) => ({ ...current, error: null, status: "opening" }));
 				const database = openDatabase();
 				if (cancelled) {
 					return;
 				}
-				setStatus("migrating");
+				setState((current) => ({ ...current, status: "migrating" }));
 				await migrate(database, migrationsBundle);
 				if (cancelled) {
 					return;
 				}
-				setStatus("seeding");
+				setState((current) => ({ ...current, status: "seeding" }));
 				await bootstrapLocalData(database);
 				if (cancelled) {
 					return;
@@ -84,14 +82,16 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 				if (cancelled) {
 					return;
 				}
-				setDb(database);
-				setStatus("ready");
+				setState((current) => ({ ...current, db: database, status: "ready" }));
 			} catch (caught) {
 				if (cancelled) {
 					return;
 				}
-				setError(caught instanceof Error ? caught : new Error(String(caught)));
-				setStatus("error");
+				setState((current) => ({
+					...current,
+					error: caught instanceof Error ? caught : new Error(String(caught)),
+					status: "error",
+				}));
 			}
 		})();
 
@@ -119,7 +119,7 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 			db,
 			error,
 			retry: () => {
-				setAttempt((n) => n + 1);
+				setState(reopenLocalData);
 			},
 			status,
 		}),

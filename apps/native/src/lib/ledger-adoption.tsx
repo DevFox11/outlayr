@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
-import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState } from "react-native";
 import { useDatabase } from "@/contexts/local-data-context";
+import { createSingleAdoptionRetry } from "@/data/adoption-retry";
 import { META_KEYS } from "@/data/app-meta-core";
-import { localLedgerState, markAdopted, runAdoption } from "@/data/ledger-adoption";
+import { completeAdoption, localLedgerState, prepareAccountAdoption } from "@/data/ledger-adoption";
 import { useLiveQuery } from "@/data/live-query";
 import { appMeta } from "@/db/schema";
 import { type AdoptionChoice, adoptionActions, adoptionPlan, choiceActions } from "@/domain/ledger-adoption";
@@ -52,6 +54,9 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 	// app that had nothing to reconcile in the first place.
 	const [status, setStatus] = useState<AdoptionStatus>(() => (accountId == null || settled ? "settled" : "resolving"));
 	const [failed, setFailed] = useState(false);
+	const retryByAccount = useRef<{ accountId: string; retry: ReturnType<typeof createSingleAdoptionRetry> } | null>(
+		null
+	);
 
 	useEffect(() => {
 		if (accountId == null || settled) {
@@ -59,39 +64,57 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 		let cancelled = false;
+		if (retryByAccount.current?.accountId !== accountId) {
+			retryByAccount.current = { accountId, retry: createSingleAdoptionRetry() };
+		}
+		const { retry } = retryByAccount.current;
 		setStatus("resolving");
 		setFailed(false);
 
 		const reconcile = async () => {
-			const engine = adoptionEngine(db);
-			const remote = engine ? await engine.accountLedger() : "unknown";
-			const plan = adoptionPlan(await localLedgerState(db), remote);
-			if (cancelled) {
-				return;
-			}
-			if (plan === "ask") {
-				setStatus("ask");
-				return;
-			}
-			const actions = adoptionActions(plan);
-			if (actions) {
-				await runAdoption(db, engine, actions);
-				await markAdopted(db, accountId);
-			}
-			if (!cancelled) {
-				setStatus("settled");
+			try {
+				await prepareAccountAdoption(db, accountId);
+				const engine = adoptionEngine(db);
+				const remote = engine ? await engine.accountLedger() : "unknown";
+				const plan = adoptionPlan(await localLedgerState(db), remote);
+				if (cancelled) {
+					return;
+				}
+				if (plan === "ask") {
+					setStatus("ask");
+					return;
+				}
+				if (plan === "defer") {
+					retry.schedule();
+					setStatus("settled");
+					return;
+				}
+				const actions = adoptionActions(plan);
+				if (actions) {
+					await completeAdoption(db, engine, actions, accountId);
+				}
+				if (!cancelled) {
+					setStatus("settled");
+				}
+			} catch (error: unknown) {
+				console.warn("[outlayr] ledger adoption deferred", error);
+				retry.schedule();
+				if (!cancelled) {
+					setStatus("settled");
+				}
 			}
 		};
 
-		reconcile().catch((error: unknown) => {
-			console.warn("[outlayr] ledger adoption deferred", error);
-			if (!cancelled) {
-				setStatus("settled");
+		reconcile();
+		const subscription = AppState.addEventListener("change", (state) => {
+			if (state === "active") {
+				retry.run(reconcile);
 			}
 		});
 
 		return () => {
 			cancelled = true;
+			subscription.remove();
 		};
 	}, [db, accountId, settled]);
 
@@ -103,8 +126,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 			setStatus("working");
 			setFailed(false);
 			const adopt = async () => {
-				await runAdoption(db, adoptionEngine(db), choiceActions(choice));
-				await markAdopted(db, accountId);
+				await completeAdoption(db, adoptionEngine(db), choiceActions(choice), accountId);
 				setStatus("settled");
 			};
 

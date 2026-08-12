@@ -1,23 +1,24 @@
-import { env } from "@outlayr/env/native";
-import { ConvexReactClient } from "convex/react";
-
 import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
+import { type CloudRuntime, cloudRuntime } from "./cloud-runtime";
 
-/** The Convex client. Its URL is required, so this is never absent. */
-export const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
-	expectAuth: true,
-	unsavedChangesWarning: false,
-});
+export const convex = cloudRuntime?.convex ?? null;
+
+function cloudClient(): CloudRuntime["convex"] {
+	if (cloudRuntime === null) {
+		throw new Error("Cloud runtime is not configured");
+	}
+	return cloudRuntime.convex;
+}
 
 export function ratesPuller(): PullRatesFn {
 	return async (args) =>
 		// Addressed by path rather than through the generated API:
 		// `packages/backend` is not a build dependency of the app, and the wire
 		// shape is pinned by `PullRatesPage` plus the backend's own tests.
-		convex.query("exchangeRates:pullRates" as never, (args ?? {}) as never);
+		cloudClient().query("exchangeRates:pullRates" as never, (args ?? {}) as never);
 }
 
 /**
@@ -31,8 +32,8 @@ export function ratesPuller(): PullRatesFn {
  */
 export function syncTransport(): { push: PushFn; pull: PullFn } {
 	return {
-		pull: async (args) => convex.query("sync:pullSince" as never, args as never),
-		push: async (args) => convex.mutation("sync:push" as never, args as never),
+		pull: async (args) => cloudClient().query("sync:pullSince" as never, args as never),
+		push: async (args) => cloudClient().mutation("sync:push" as never, args as never),
 	};
 }
 
@@ -52,7 +53,10 @@ export function syncTransport(): { push: PushFn; pull: PullFn } {
  * next remount.
  */
 export function watchSyncWatermark(onWatermark: (watermark: number) => void): () => void {
-	const watch = convex.watchQuery("sync:currentSeq" as never, {} as never);
+	if (cloudRuntime === null) {
+		return () => undefined;
+	}
+	const watch = cloudRuntime.convex.watchQuery("sync:currentSeq" as never, {} as never);
 	return watch.onUpdate(() => {
 		let watermark: unknown;
 		try {
@@ -101,7 +105,7 @@ export type EnrichmentFn = (args: EnrichmentRequest) => Promise<RemoteEnrichment
  * for `syncTransport`.
  */
 export function enrichmentTransport(): EnrichmentFn {
-	return async (args) => convex.action("enrichment:suggest" as never, args as never);
+	return async (args) => cloudClient().action("enrichment:suggest" as never, args as never);
 }
 
 export interface LabelSuggestion {
@@ -143,7 +147,7 @@ export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
  * itself, exactly as it does for `enrichmentTransport`.
  */
 export function csvImportTransport(): CsvImportFn {
-	return async (args) => convex.action("csvImport:csvImport" as never, args as never);
+	return async (args) => cloudClient().action("csvImport:csvImport" as never, args as never);
 }
 
 /**
@@ -156,7 +160,7 @@ export function csvImportTransport(): CsvImportFn {
 export function photoTransport(): PhotoTransport {
 	return {
 		confirmUpload: async (key, storageId) => {
-			await convex.action("photos:confirmUpload" as never, (storageId ? { key, storageId } : { key }) as never);
+			await cloudClient().action("photos:confirmUpload" as never, (storageId ? { key, storageId } : { key }) as never);
 		},
 		get: async (url) => {
 			const response = await fetch(url);
@@ -189,15 +193,15 @@ export function photoTransport(): PhotoTransport {
 			}
 		},
 		readUrls: async (keys) =>
-			convex.query(
+			cloudClient().query(
 				"photos:readUrls" as never,
 				{
 					keys: [...keys],
 				} as never
 			),
 		release: async (key) => {
-			await convex.mutation("photos:releaseUnreferenced" as never, { key } as never);
+			await cloudClient().mutation("photos:releaseUnreferenced" as never, { key } as never);
 		},
-		requestUpload: async (name) => convex.mutation("photos:requestUpload" as never, { name } as never),
+		requestUpload: async (name) => cloudClient().mutation("photos:requestUpload" as never, { name } as never),
 	};
 }

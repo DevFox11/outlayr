@@ -61,6 +61,14 @@ describe("auth", () => {
 		expect(handlerType).toBe("function");
 	});
 
+	test("disables Better Auth public deletion while the resumable job owns deletion", async () => {
+		const t = convexTest(schema, modules);
+
+		const enabled = await t.run(async (ctx) => createAuth(ctx).options.user?.deleteUser?.enabled);
+
+		expect(enabled).toBe(false);
+	});
+
 	test("getCurrentUser is null when signed out", async () => {
 		const t = convexTest(schema, modules);
 

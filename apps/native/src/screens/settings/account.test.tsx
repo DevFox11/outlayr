@@ -1,12 +1,25 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { Account } from "./account";
 
+const mockRunAccountLifecycle = jest.fn();
+const mockRecoverDeviceReset = jest.fn();
+jest.mock("@/lib/account-lifecycle", () => ({
+	resumeCloudDeletion: jest.fn(),
+	runAccountLifecycle: (...args: unknown[]) => mockRunAccountLifecycle(...args),
+}));
+jest.mock("@/lib/device-data-reset", () => ({
+	createDeviceResetGate: () => ({ recover: mockRecoverDeviceReset }),
+	writeDeviceResetMarker: jest.fn(),
+}));
+jest.mock("@/db/client", () => ({ closeDatabase: jest.fn() }));
+
 jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 
 jest.mock("@/contexts/local-data-context", () => ({
 	useDatabase: () => ({}),
+	useLocalData: () => ({ retry: jest.fn() }),
 }));
 
 interface StubButtonsProps {
@@ -50,6 +63,12 @@ jest.mock("@/lib/auth-client", () => ({
 	},
 }));
 
+jest.mock("@/lib/auth-session", () => ({
+	useAuthSession: () => ({ accountId: "session-user" }),
+}));
+
+jest.mock("@/lib/convex", () => ({ convex: null }));
+
 const mockUseProviderSignIn = jest.fn();
 jest.mock("@/lib/use-provider-sign-in", () => ({
 	useProviderSignIn: (...args: unknown[]) => mockUseProviderSignIn(...args),
@@ -64,6 +83,10 @@ function calledRouterMethods(): string[] {
 }
 
 beforeEach(() => {
+	jest.clearAllMocks();
+	mockRunAccountLifecycle.mockReset();
+	mockRunAccountLifecycle.mockResolvedValue(undefined);
+	mockRecoverDeviceReset.mockResolvedValue({ failures: [] });
 	mockUseProviderSignIn.mockReturnValue({
 		busy: null,
 		error: null,
@@ -131,7 +154,36 @@ describe("Account — signed-in", () => {
 		expect(getByRole("button", { name: "settings.account.signOut" })).toBeTruthy();
 		expect(getByRole("button", { name: "settings.account.delete" })).toBeTruthy();
 		expect(queryByTestId("provider-sign-in-buttons-stub")).toBeNull();
-		expect(queryAllByRole("button")).toHaveLength(2);
+		expect(queryAllByRole("button")).toHaveLength(3);
 		expect(calledRouterMethods()).toEqual([]);
 	});
+});
+
+it("runs full-device deletion once only after its destructive confirmation", async () => {
+	mockUseSession.mockReturnValue({
+		data: { user: { email: "jane@example.com", name: "Jane" } },
+		isPending: false,
+	});
+	const alert = jest.spyOn(require("react-native").Alert, "alert");
+	const { getByRole } = await render(<Account />);
+	fireEvent.press(getByRole("button", { name: "settings.account.eraseDevice" }));
+	const actions = alert.mock.calls[0]?.[2] as { onPress?: () => void }[];
+	actions[1]?.onPress?.();
+
+	expect(mockRunAccountLifecycle).toHaveBeenCalledTimes(1);
+	expect(mockRunAccountLifecycle).toHaveBeenCalledWith("deleteAll", expect.any(Object));
+});
+
+it("keeps cloud-only deletion on its separate lifecycle action", async () => {
+	mockUseSession.mockReturnValue({
+		data: { user: { email: "jane@example.com", name: "Jane" } },
+		isPending: false,
+	});
+	const alert = jest.spyOn(require("react-native").Alert, "alert");
+	const { getByRole } = await render(<Account />);
+	fireEvent.press(getByRole("button", { name: "settings.account.delete" }));
+	const actions = alert.mock.calls[0]?.[2] as { onPress?: () => void }[];
+	actions[1]?.onPress?.();
+
+	expect(mockRunAccountLifecycle).toHaveBeenCalledWith("deleteCloud", expect.any(Object));
 });

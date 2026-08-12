@@ -30,5 +30,5 @@ export interface RouteProbe {
  * it would hide the only question that moves the app forward.
  */
 export function routeSettled(probe: RouteProbe): boolean {
-	return probe.gate !== "restoring" && probe.adoption !== "resolving";
+	return probe.gate === "unconfigured" || (probe.gate !== "restoring" && probe.adoption !== "resolving");
 }

@@ -45,6 +45,25 @@ import {
  * on this data runs against the local SQLite replica, not here.
  */
 export default defineSchema({
+	accountDeletionJobs: defineTable({
+		errorCode: v.union(v.string(), v.null()),
+		expiresAt: v.number(),
+		googleReceiptChallengeHash: v.union(v.string(), v.null()),
+		googleReceiptDigest: v.union(v.string(), v.null()),
+		phase: v.union(
+			v.literal("prepared"),
+			v.literal("providersRevoked"),
+			v.literal("purged"),
+			v.literal("authDeleting"),
+			v.literal("complete")
+		),
+		provider: v.union(v.literal("appleServerRevoked"), v.literal("googleLocalReceipt"), v.null()),
+		secretHash: v.string(),
+		userId: v.union(v.string(), v.null()),
+	})
+		.index("by_secretHash", ["secretHash"])
+		.index("by_expiresAt", ["expiresAt"]),
+
 	/**
 	 * `transactions.accountId` holds an account's `localId`, staying in local-id
 	 * space like every other foreign key the envelope carries.

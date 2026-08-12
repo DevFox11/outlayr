@@ -3,6 +3,38 @@ export interface SyncLabel {
 	key: "settings.sync.upToDate" | "settings.sync.never" | "settings.sync.pending" | "settings.sync.pendingOne";
 }
 
+export type EffectiveCapabilityStatus =
+	| { kind: "local" }
+	| { kind: "unavailable" }
+	| { kind: "accountRequired" }
+	| { enableSync: true; kind: "syncOff" }
+	| { kind: "active"; pending: number; syncedAt: Date | null };
+
+export interface CapabilityStatusProbe {
+	accountId: string | null;
+	cloud: "configured" | "misconfigured" | "unconfigured";
+	local: boolean;
+	pending: number;
+	syncEnabled: boolean;
+	syncedAt: Date | null;
+}
+
+export function effectiveCapabilityStatus(probe: CapabilityStatusProbe): EffectiveCapabilityStatus {
+	if (probe.local) {
+		return { kind: "local" };
+	}
+	if (probe.cloud !== "configured") {
+		return { kind: "unavailable" };
+	}
+	if (probe.accountId === null) {
+		return { kind: "accountRequired" };
+	}
+	if (!probe.syncEnabled) {
+		return { enableSync: true, kind: "syncOff" };
+	}
+	return { kind: "active", pending: probe.pending, syncedAt: probe.syncedAt };
+}
+
 /**
  * What the Settings sync row says.
  *

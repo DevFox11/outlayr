@@ -30,49 +30,50 @@ export const PURGE_BATCH = 200;
  * accounting row is gone is invisible to every later pass and would sit in the
  * bucket forever. Ledger rows can always be found again by index.
  */
+export async function purgeUserBatch(ctx: MutationCtx, userId: string): Promise<{ done: boolean; removed: number }> {
+	const photos = await ctx.db
+		.query("photoSizes")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.take(PURGE_BATCH);
+	if (photos.length > 0) {
+		await Promise.all(
+			photos.map(async (photo) => {
+				await releaseObject(ctx, photo.key);
+				await ctx.db.delete(photo._id);
+			})
+		);
+		return { done: false, removed: photos.length };
+	}
+
+	for (const table of SYNCED_TABLES) {
+		// biome-ignore lint/performance/noAwaitInLoops: the loop stops at the first table that still holds rows, so hoisting these queries would read every synced table on every pass — the document budget PURGE_BATCH exists to respect.
+		const rows = await ctx.db
+			.query(table)
+			.withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+			.take(PURGE_BATCH);
+		if (rows.length === 0) {
+			continue;
+		}
+		await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+		return { done: false, removed: rows.length };
+	}
+
+	// Last, and only once nothing else is left: it is the counter that stamps
+	// `seq`, so removing it while rows remain would restart numbering under
+	// records that already carry higher ones.
+	const state = await ctx.db
+		.query("syncState")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.unique();
+	if (state) {
+		await ctx.db.delete(state._id);
+		return { done: true, removed: 1 };
+	}
+	return { done: true, removed: 0 };
+}
 export const purgeBatch = internalMutation({
 	args: { userId: v.string() },
-	handler: async (ctx, args) => {
-		const photos = await ctx.db
-			.query("photoSizes")
-			.withIndex("by_user", (q) => q.eq("userId", args.userId))
-			.take(PURGE_BATCH);
-		if (photos.length > 0) {
-			await Promise.all(
-				photos.map(async (photo) => {
-					await releaseObject(ctx, photo.key);
-					await ctx.db.delete(photo._id);
-				})
-			);
-			return { done: false, removed: photos.length };
-		}
-
-		for (const table of SYNCED_TABLES) {
-			// biome-ignore lint/performance/noAwaitInLoops: the loop stops at the first table that still holds rows, so hoisting these queries would read every synced table on every pass — the document budget PURGE_BATCH exists to respect.
-			const rows = await ctx.db
-				.query(table)
-				.withIndex("by_user_and_seq", (q) => q.eq("userId", args.userId))
-				.take(PURGE_BATCH);
-			if (rows.length === 0) {
-				continue;
-			}
-			await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
-			return { done: false, removed: rows.length };
-		}
-
-		// Last, and only once nothing else is left: it is the counter that stamps
-		// `seq`, so removing it while rows remain would restart numbering under
-		// records that already carry higher ones.
-		const state = await ctx.db
-			.query("syncState")
-			.withIndex("by_user", (q) => q.eq("userId", args.userId))
-			.unique();
-		if (state) {
-			await ctx.db.delete(state._id);
-			return { done: true, removed: 1 };
-		}
-		return { done: true, removed: 0 };
-	},
+	handler: async (ctx, args) => await purgeUserBatch(ctx, args.userId),
 	returns: v.object({ done: v.boolean(), removed: v.number() }),
 });
 

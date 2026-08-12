@@ -78,6 +78,30 @@ const settings = {
 			en: "Deleting…",
 			es: "Eliminando…",
 		}),
+		"settings.account.eraseDevice": t({
+			en: "Delete account and erase this device",
+			es: "Eliminar cuenta y borrar este dispositivo",
+		}),
+		"settings.account.eraseDeviceConfirm": t({
+			en: "Erase device",
+			es: "Borrar dispositivo",
+		}),
+		"settings.account.eraseDeviceConfirmBody": t({
+			en: "This permanently removes your account and all erasable Outlayr data on this device.",
+			es: "Esto elimina de forma permanente tu cuenta y todos los datos borrables de Outlayr en este dispositivo.",
+		}),
+		"settings.account.eraseDeviceConfirmTitle": t({
+			en: "Erase this device too?",
+			es: "¿Borrar también este dispositivo?",
+		}),
+		"settings.account.eraseDeviceFooter": t({
+			en: "Erases Outlayr data on this device after your cloud account is deleted. System permissions and widget placement remain controlled by the OS.",
+			es: "Borra los datos de Outlayr de este dispositivo después de eliminar tu cuenta en la nube. Los permisos del sistema y la ubicación de los widgets siguen bajo control del sistema operativo.",
+		}),
+		"settings.account.eraseDeviceSection": t({
+			en: "Erase this device",
+			es: "Borrar este dispositivo",
+		}),
 		"settings.account.eyebrow": t({
 			en: "Account",
 			es: "Cuenta",
@@ -98,6 +122,10 @@ const settings = {
 			en: "Google Play services are unavailable on this device.",
 			es: "Los servicios de Google Play no est\u00e1n disponibles en este dispositivo.",
 		}),
+		"settings.account.resetFailedTitle": t({
+			en: "Device cleanup needs attention",
+			es: "La limpieza del dispositivo necesita atención",
+		}),
 		"settings.account.rowTitle": t({
 			en: "Account",
 			es: "Cuenta",
@@ -115,12 +143,12 @@ const settings = {
 			es: "Sesi\u00f3n iniciada",
 		}),
 		"settings.account.signedOutDetail": t({
-			en: "Outlayr keeps your ledger on this device and behaves exactly the same signed out. An account exists only so a later release can sync it to your other devices.",
-			es: "Outlayr guarda tu registro en este dispositivo y funciona igual sin sesi\u00f3n. La cuenta existe solo para que una versi\u00f3n futura pueda sincronizarlo con tus otros dispositivos.",
+			en: "Outlayr keeps your ledger on this device and behaves exactly the same signed out. An account lets you choose to sync it with your other devices.",
+			es: "Outlayr guarda tu registro en este dispositivo y funciona igual sin sesi\u00f3n. Una cuenta te permite elegir sincronizarlo con tus otros dispositivos.",
 		}),
 		"settings.account.signInFooter": t({
-			en: "Signing in doesn't change your ledger today \u2014 it only makes this account ready to sync from another device later.",
-			es: "Iniciar sesi\u00f3n no cambia tu registro por ahora \u2014 solo deja la cuenta lista para sincronizar desde otro dispositivo m\u00e1s adelante.",
+			en: "Signing in does not change your ledger. It lets you choose whether to sync this device with your account.",
+			es: "Iniciar sesi\u00f3n no cambia tu registro. Te permite elegir si sincronizar este dispositivo con tu cuenta.",
 		}),
 		"settings.account.signInSection": t({
 			en: "Sign in",
@@ -137,6 +165,14 @@ const settings = {
 		"settings.account.signOutFooter": t({
 			en: "Signing out ends the session on this iPhone. Every transaction, budget and category stays exactly where it is.",
 			es: "Cerrar sesi\u00f3n termina la sesi\u00f3n en este iPhone. Cada transacci\u00f3n, presupuesto y categor\u00eda se queda exactamente donde est\u00e1.",
+		}),
+		"settings.account.unavailable": t({
+			en: "Cloud features unavailable",
+			es: "Funciones en la nube no disponibles",
+		}),
+		"settings.account.unavailableDetail": t({
+			en: "This build is not configured for cloud features. Your ledger remains available on this device.",
+			es: "Esta compilaci\u00f3n no est\u00e1 configurada para funciones en la nube. Tu registro sigue disponible en este dispositivo.",
 		}),
 		"settings.appIcon.alertNote": t({
 			en: "iOS confirms every change with an alert of its own.",
