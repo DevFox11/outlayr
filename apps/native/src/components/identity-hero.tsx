@@ -19,7 +19,6 @@ import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { CategoryIconTile } from "./category-icon-tile";
-import { SpectrumRing } from "./spectrum-ring";
 import { Text } from "./text";
 
 const TILE = 90;
@@ -48,10 +47,10 @@ const POP_SCALE = 1.06;
 const POP_FADE_MS = 160;
 
 /**
- * `transaction`: a photo glyph, the spinning spectrum ring, a radial ghost fill,
- * and a caption in both states. `category`: no photo (a category cannot have
- * one), no ring, a flat ghost fill, sparkles set wider, and an invitation that
- * exists only while the tile is empty.
+ * `transaction`: a photo glyph, a radial ghost fill, and a caption in both
+ * states. `category`: no photo (a category cannot have one), a flat ghost fill,
+ * sparkles set wider, and an invitation that exists only while the tile is
+ * empty. Both wear the same ink dash.
  */
 export type HeroVariant = "transaction" | "category";
 
@@ -391,9 +390,6 @@ function EmptyTile({ colors, variant }: { colors: ReturnType<typeof useColors>; 
 				width: HERO_RING,
 			}}
 		>
-			{/* First, so the ring sits behind the dashed outline and the glyph. */}
-			{isCategory ? null : <SpectrumRing radius={RADIUS + (HERO_RING - TILE) / 2} size={HERO_RING} />}
-
 			<Svg height={TILE} style={{ position: "absolute" }} width={TILE}>
 				<Defs>
 					<RadialGradient cx={TILE * 0.35} cy={TILE * 0.28} gradientUnits="userSpaceOnUse" id={fillId} r={TILE * 0.7}>
@@ -411,12 +407,17 @@ function EmptyTile({ colors, variant }: { colors: ReturnType<typeof useColors>; 
 					x={0}
 					y={0}
 				/>
+				{/*
+				 * Ink rather than muted: at 0.32 grey the well read as a disabled box.
+				 * The dash is the only invitation on an otherwise empty form, so it
+				 * carries full foreground weight, and it stays monochrome.
+				 */}
 				<Rect
 					fill="none"
 					height={TILE - 1.8}
 					rx={RADIUS - 0.9}
 					ry={RADIUS - 0.9}
-					stroke={withAlpha(colors.muted, 0.32)}
+					stroke={withAlpha(colors.foreground, 0.85)}
 					strokeDasharray="5 5"
 					strokeWidth={1.8}
 					width={TILE - 1.8}
