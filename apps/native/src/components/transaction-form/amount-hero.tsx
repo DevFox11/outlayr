@@ -11,6 +11,8 @@ import {
 import { NumberFlow } from "number-flow-react-native";
 import { Text, View } from "react-native";
 import { amountHeroFontSize } from "@/domain/amount-hero-size";
+import { numberLocale } from "@/domain/money";
+import { useLanguage } from "@/i18n/context";
 
 const CHIP = font({ design: "rounded", size: 15, weight: "semibold" });
 const CURRENCY = font({ design: "rounded", size: 14, weight: "medium" });
@@ -49,8 +51,28 @@ export function TransactionFormAmountHero({
 	onPress,
 	onCurrencyPress,
 }: TransactionFormAmountHeroProps) {
+	const { language } = useLanguage();
+	const locale = numberLocale(language);
 	const digitsSize = amountHeroFontSize(amount, minorUnits, contentWidth);
 	const symbolSize = digitsSize * 0.48;
+	// The symbol is styled apart from the digits, so it stays its own `Text`
+	// rather than NumberFlow's prefix/suffix. That makes `locale.gap` — the NBSP
+	// the string formatters glue it on with — a margin here instead.
+	const symbolGap = locale.gap ? symbolSize * 0.28 : 0;
+	const symbolNode = (
+		<Text
+			style={{
+				color: mutedColor,
+				fontFamily: "SFProRounded-Medium",
+				fontSize: symbolSize,
+				marginBottom: digitsSize * 0.16,
+				marginLeft: locale.placement === "suffix" ? symbolGap : 0,
+				marginRight: locale.placement === "prefix" ? symbolGap : 0,
+			}}
+		>
+			{symbol}
+		</Text>
+	);
 
 	const chip = (selected: boolean) =>
 		selected
@@ -81,23 +103,14 @@ export function TransactionFormAmountHero({
 							width: contentWidth,
 						}}
 					>
-						<Text
-							style={{
-								color: mutedColor,
-								fontFamily: "SFProRounded-Medium",
-								fontSize: symbolSize,
-								marginBottom: digitsSize * 0.16,
-							}}
-						>
-							{symbol}
-						</Text>
+						{locale.placement === "prefix" ? symbolNode : null}
 						<NumberFlow
 							format={{
 								maximumFractionDigits: minorUnits,
 								minimumFractionDigits: minorUnits,
 								useGrouping: true,
 							}}
-							locales="en-US"
+							locales={locale.tag}
 							style={{
 								color: amountColor,
 								fontFamily: "SFProRounded-Semibold",
@@ -105,6 +118,7 @@ export function TransactionFormAmountHero({
 							}}
 							value={amount}
 						/>
+						{locale.placement === "suffix" ? symbolNode : null}
 					</View>
 				</RNHostView>
 			</Button>

@@ -1,6 +1,12 @@
 import { render } from "@testing-library/react-native";
 import { TransactionFormAmountHero } from "./amount-hero";
 
+let mockLanguage: "en" | "es" = "en";
+
+jest.mock("@/i18n/context", () => ({
+	useLanguage: () => ({ language: mockLanguage }),
+}));
+
 jest.mock("number-flow-react-native", () => {
 	const react = require("react") as typeof import("react");
 	return {
@@ -59,7 +65,68 @@ const BASE = {
 	symbol: "$",
 };
 
+/** Index of each child in the row that holds the symbol and the rolling figure. */
+function rowOrder(tree: JsonNode): string[] {
+	const row = findParentOf(tree, "NumberFlow");
+	return (row?.children ?? []).map((child) => (typeof child === "string" ? child : child.type));
+}
+
+function findParentOf(node: JsonNode | JsonNode[] | null, childType: string): JsonNode | null {
+	if (node == null) {
+		return null;
+	}
+	if (Array.isArray(node)) {
+		for (const child of node) {
+			const found = findParentOf(child, childType);
+			if (found) {
+				return found;
+			}
+		}
+		return null;
+	}
+	for (const child of node.children ?? []) {
+		if (typeof child !== "string" && child.type === childType) {
+			return node;
+		}
+	}
+	for (const child of node.children ?? []) {
+		if (typeof child === "string") {
+			continue;
+		}
+		const found = findParentOf(child, childType);
+		if (found) {
+			return found;
+		}
+	}
+	return null;
+}
+
 describe("TransactionFormAmountHero", () => {
+	beforeEach(() => {
+		mockLanguage = "en";
+	});
+
+	// The numpad under this figure renders its decimal key from the same locale
+	// table, so a hardcoded tag here makes the two disagree: the user presses ","
+	// and watches "." appear.
+	it("rolls the figure in the active language's locale", async () => {
+		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} />);
+		expect(findByProp(toJSON() as JsonNode, "value", 4503)?.props.locales).toBe("en-US");
+
+		mockLanguage = "es";
+		const { toJSON: toJSONes } = await render(<TransactionFormAmountHero {...BASE} />);
+		expect(findByProp(toJSONes() as JsonNode, "value", 4503)?.props.locales).toBe("es-ES");
+	});
+
+	it("moves the symbol after the digits in Spanish", async () => {
+		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} />);
+		expect(rowOrder(toJSON() as JsonNode)).toEqual(["Text", "NumberFlow"]);
+
+		mockLanguage = "es";
+		const { toJSON: toJSONes } = await render(<TransactionFormAmountHero {...BASE} />);
+		expect(rowOrder(toJSONes() as JsonNode)).toEqual(["NumberFlow", "Text"]);
+	});
+
 	it("renders the symbol, digits and currency code passed in", async () => {
 		const { toJSON } = await render(<TransactionFormAmountHero {...BASE} currency="EUR" symbol="€" />);
 		const tree = toJSON() as JsonNode;
