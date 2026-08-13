@@ -492,6 +492,58 @@ const transaction = {
 			en: "Unit",
 			es: "Unidad",
 		}),
+		"transaction.split.addCategory": t({
+			en: "Add category",
+			es: "Agregar categoría",
+		}),
+		"transaction.split.balanced": t({
+			en: "Balanced",
+			es: "Cuadrado",
+		}),
+		"transaction.split.chooseCategory": t({
+			en: "Choose category",
+			es: "Elegir categoría",
+		}),
+		"transaction.split.count_one": t({
+			en: "{count} category",
+			es: "{count} categoría",
+		}),
+		"transaction.split.count_other": t({
+			en: "{count} categories",
+			es: "{count} categorías",
+		}),
+		"transaction.split.editAmount": t({
+			en: "Edit amount",
+			es: "Editar monto",
+		}),
+		"transaction.split.failedBody": t({
+			en: "The entry was saved, but how it splits across categories was not.",
+			es: "La transacción se guardó, pero no cómo se divide entre categorías.",
+		}),
+		"transaction.split.failedTitle": t({
+			en: "Couldn't save the split",
+			es: "No se pudo guardar la división",
+		}),
+		"transaction.split.fillRest": t({
+			en: "Give the rest to the last category",
+			es: "Dar el resto a la última categoría",
+		}),
+		"transaction.split.remaining": t({
+			en: "Left to allocate",
+			es: "Por asignar",
+		}),
+		"transaction.split.removePart": t({
+			en: "Remove category",
+			es: "Quitar categoría",
+		}),
+		"transaction.split.row": t({
+			en: "Split",
+			es: "Dividido",
+		}),
+		"transaction.split.title": t({
+			en: "Split",
+			es: "Dividir",
+		}),
 		"transaction.stopRecurring.failedBody": t({
 			en: "The schedule couldn't be stopped, so the next charge will still be logged.",
 			es: "No se pudo detener la programación, así que el próximo cargo se registrará igual.",

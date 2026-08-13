@@ -139,6 +139,6 @@ export function totalsByCategory(
  * Every arithmetic result here goes through it, so a split's parts can be summed
  * back to the whole without a float tail turning `isBalanced` into a coin toss.
  */
-function round(value: number): number {
+export function round(value: number): number {
 	return Math.round(value * 100) / 100;
 }

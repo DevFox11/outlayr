@@ -27,7 +27,7 @@ import {
 	strokeBorder,
 	tint,
 } from "@expo/ui/swift-ui/modifiers";
-import { RepeatIcon, Tag01Icon, TagsIcon, TextIcon } from "@hugeicons-pro/core-stroke-rounded";
+import { PieChartIcon, RepeatIcon, Tag01Icon, TagsIcon, TextIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { ENTRY_RATE_TYPES, type EntryRateType } from "@outlayr/money/rates";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
@@ -52,6 +52,7 @@ import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { ratesRevision, subscribeRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { setBoolSetting } from "@/data/settings-core";
+import { splitsRepo } from "@/data/splits-core";
 import { useTagIdsFor, useTags } from "@/data/tags";
 import { tagsRepo } from "@/data/tags-core";
 import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
@@ -65,6 +66,8 @@ import { amountParts, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { ensureRecurringType, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
+import type { Allocation } from "@/domain/split";
+import { isRealSplit } from "@/domain/split-draft";
 import { normalizeLead, REMINDER_LEAD_OPTIONS, resolveLeadSelection } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
@@ -95,6 +98,7 @@ import { CurrencyPickerSheet } from "../currency-picker-sheet";
 import { CustomScheduleSheet, intervalPhrase } from "../custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
 import { IdentityFlyUpLayer } from "../identity-fly-up";
+import { SplitSheet } from "../split-sheet";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
 import { TransactionFormAmountHero } from "./amount-hero";
@@ -106,6 +110,7 @@ import { TransactionFormRateSection } from "./rate-section";
 import { TransactionFormRowIcon } from "./row-icon";
 import { TransactionFormScheduleSection } from "./schedule-section";
 import { BODY, CAPTION, ENRICHING, FLY_BACK, FLY_UP, FORM_BLUR_RADIUS, ROW, rowLabel, SHAKE, TAP_ROW } from "./style";
+import { useSplitDraft } from "./use-split-draft";
 
 /**
  * Only reached if `onGeometryChange` never fires; a real measurement always
@@ -363,6 +368,39 @@ interface CategoryRowProps {
 	shake: boolean;
 }
 
+/**
+ * Sits beside Tags rather than inside the Category row: the Category row is a
+ * SwiftUI tree, and a variable number of parts inside it would fight the Host's
+ * sizing for no gain the user can see.
+ */
+function TransactionFormSplitRow({
+	allocations,
+	onPress,
+}: {
+	allocations: readonly Allocation[];
+	onPress: () => void;
+}) {
+	const colors = useColors();
+	const t = useTranslation();
+	const split = isRealSplit(allocations);
+
+	return (
+		<Button modifiers={[buttonStyle("plain")]} onPress={onPress}>
+			<HStack modifiers={TAP_ROW} spacing={12}>
+				<TransactionFormRowIcon color={colors.muted} icon={PieChartIcon} />
+				<SwiftText modifiers={[BODY, rowLabel]}>{t("transaction.split.row")}</SwiftText>
+				<Spacer />
+				<HStack spacing={5}>
+					<SwiftText modifiers={[BODY, foregroundStyle(split ? colors.foreground : colors.muted)]}>
+						{split ? t("transaction.split.count", { count: allocations.length }) : t("transaction.tags.none")}
+					</SwiftText>
+					<Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
+				</HStack>
+			</HStack>
+		</Button>
+	);
+}
+
 function TransactionFormCategoryRow({
 	category,
 	enriching,
@@ -579,6 +617,21 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 					Alert.alert(t("transaction.tags.failedTitle"), t("transaction.tags.failedBody"));
 				}
 			}
+			// After the row exists, for the same reason tags are: the parts point at
+			// it. A single part is stored as no split at all, which is what keeps an
+			// entry attributed by its own `categoryId` rather than by an equivalent
+			// row saying the same thing.
+			try {
+				await splitsRepo.setSplit(
+					db,
+					savedId,
+					numpadToNumber(value.amount),
+					isRealSplit(splitAllocations) ? splitAllocations : []
+				);
+			} catch (error) {
+				console.error("Failed to save the split", error);
+				Alert.alert(t("transaction.split.failedTitle"), t("transaction.split.failedBody"));
+			}
 			let scheduleFailed = false;
 			if (value.isSubscription) {
 				try {
@@ -784,6 +837,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		[db, income, categoryField.select]
 	);
 	const tagSheetRef = useRef<BottomSheetModal>(null);
+	const splitSheetRef = useRef<BottomSheetModal>(null);
+	const {
+		allocations: splitAllocations,
+		openSplit,
+		setAllocations: setSplitAllocations,
+	} = useSplitDraft(db, mode, initial);
 	const accountSheetRef = useRef<BottomSheetModal>(null);
 	const allTags = useTags(db);
 	const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
@@ -1353,6 +1412,17 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
 								<Divider modifiers={hairline} />
 
+								<TransactionFormSplitRow
+									allocations={splitAllocations}
+									onPress={() => {
+										setPadOpen(false);
+										openSplit(numpadToNumber(form.store.state.values.amount), category?.id ?? null);
+										splitSheetRef.current?.present();
+									}}
+								/>
+
+								<Divider modifiers={hairline} />
+
 								<SubscribeFields
 									selector={(s) => ({
 										date: s.values.date,
@@ -1516,6 +1586,16 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 					}}
 					ref={currencySheetRef}
 					selected={currency}
+				/>
+				<SplitSheet
+					allocations={splitAllocations}
+					code={currency}
+					db={db}
+					income={income}
+					minorUnits={minorUnitsFor(currency)}
+					onChange={setSplitAllocations}
+					ref={splitSheetRef}
+					total={numpadToNumber(form.store.state.values.amount)}
 				/>
 				<SubscribeFields
 					selector={(s) => ({
