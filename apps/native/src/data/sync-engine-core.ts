@@ -89,6 +89,7 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 			"imageKey",
 			"sortOrder",
 			"dateCreated",
+			"kind",
 		],
 		id: accounts.id,
 		table: accounts,

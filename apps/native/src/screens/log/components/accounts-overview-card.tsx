@@ -39,6 +39,20 @@ export function AccountsOverviewCard({ overview, currency, showCents, onPress }:
 						</Text>
 					</View>
 				</View>
+				{/* Only once something is actually owed: on a ledger of plain accounts
+				    the split says nothing the total does not already say. */}
+				{overview.owe === 0 ? null : (
+					<View className="flex-row items-baseline justify-between gap-2">
+						<MonoLabel className="text-subtle">{t("accounts.overview.own")}</MonoLabel>
+						<Text className="text-label text-muted" numberOfLines={1} style={TABULAR}>
+							{formatSignedAmount(overview.own, currency, showCents, language)}
+						</Text>
+						<MonoLabel className="text-subtle">{t("accounts.overview.owe")}</MonoLabel>
+						<Text className="text-expense text-label" numberOfLines={1} style={TABULAR}>
+							{formatSignedAmount(overview.owe, currency, showCents, language)}
+						</Text>
+					</View>
+				)}
 				<View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
 			</View>
 		</Pressable>

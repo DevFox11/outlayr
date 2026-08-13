@@ -2,6 +2,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { accounts, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
+import { type AccountKind, DEFAULT_ACCOUNT_KIND } from "@/domain/account-kind";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
@@ -21,6 +22,8 @@ export interface AccountInput {
 	initialBalance?: number;
 	/** Defaults to now — the account starts holding this balance today. */
 	initialBalanceDate?: Date;
+	/** `asset` or `liability`; defaults to asset. See `domain/account-kind.ts`. */
+	kind?: AccountKind;
 	name: string;
 }
 
@@ -97,6 +100,7 @@ export const accountsRepo = {
 			initialBalance,
 			initialBalanceDate,
 			initialBalanceUsd: await frozenUsd(db, initialBalance, input.currency, initialBalanceDate),
+			kind: input.kind ?? DEFAULT_ACCOUNT_KIND,
 			name: input.name,
 			sortOrder: await nextSortOrder(db),
 			updatedAt: now,

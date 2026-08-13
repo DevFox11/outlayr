@@ -98,6 +98,11 @@ const accounts = {
 			en: "Initial balance",
 			es: "Saldo inicial",
 		}),
+		"accounts.field.kind": t({
+			en: "Money I owe",
+			es: "Dinero que debo",
+		}),
+
 		"accounts.field.name": t({
 			en: "Name",
 			es: "Nombre",
@@ -121,6 +126,14 @@ const accounts = {
 		"accounts.overview.heading": t({
 			en: "Accounts",
 			es: "Cuentas",
+		}),
+		"accounts.overview.owe": t({
+			en: "Owe",
+			es: "Debo",
+		}),
+		"accounts.overview.own": t({
+			en: "Own",
+			es: "Tengo",
 		}),
 		"accounts.rebaseNote": t({
 			en: "Changing the initial balance or currency re-bases this account's balance.",

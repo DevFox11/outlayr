@@ -2,6 +2,7 @@ import { utcDateString } from "@outlayr/money/dates";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 import { type AccountCompositionEntry, accountBalance } from "./account-balance";
+import { type Balanced, netWorth, toAccountKind } from "./account-kind";
 import type { CurrencyCell } from "./currency-totals";
 import { formatAmount } from "./money";
 import { convertUsdSum, type RateTable } from "./valuation";
@@ -27,12 +28,22 @@ export interface OverviewAccount {
 	initialBalance: number;
 	initialBalanceDate: Date;
 	initialBalanceUsd: number | null;
+	/** Absent on a row written before the column existed; reads as `asset`. */
+	kind?: string | null;
 }
 
 export interface AccountsOverview {
 	count: number;
 	/** False when any part fell back to face value instead of converting. */
 	exact: boolean;
+	/** What the liability accounts owe, stated positive. */
+	owe: number;
+	/** What the asset accounts hold. */
+	own: number;
+	/**
+	 * Every account together, which is `own - owe`. Unchanged by the kind split:
+	 * this is the same figure the card has always printed.
+	 */
 	total: number;
 }
 
@@ -64,8 +75,8 @@ export function accountsOverview(
 		}
 	}
 
-	let total = 0;
 	let exact = true;
+	const balances: Balanced[] = [];
 	for (const account of accounts) {
 		const start = initialInDisplay(account, displayCurrency, rates);
 		const flow = accountBalance(
@@ -73,10 +84,11 @@ export function accountsOverview(
 			byAccount.get(account.id) ?? [],
 			rates
 		);
-		total += start.value + flow.total;
+		balances.push({ balance: start.value + flow.total, kind: toAccountKind(account.kind) });
 		exact = exact && start.exact && flow.exact;
 	}
-	return { count: accounts.length, exact, total };
+	const worth = netWorth(balances);
+	return { count: accounts.length, exact, owe: worth.owe, own: worth.own, total: worth.net };
 }
 
 function initialInDisplay(

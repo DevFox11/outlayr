@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` ADD `kind` text DEFAULT 'asset' NOT NULL;

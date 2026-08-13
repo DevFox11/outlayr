@@ -99,6 +99,13 @@ export const accountFields = {
 	initialBalance: v.number(),
 	initialBalanceDate: v.number(),
 	initialBalanceUsd: v.union(v.number(), v.null()),
+	/**
+	 * Optional, not just nullable: a handset still on the previous build pushes
+	 * accounts without the key at all, and a required field would reject the
+	 * whole batch rather than the one column it cannot fill. Absent reads as
+	 * `asset` — see `domain/account-kind.ts`.
+	 */
+	kind: v.optional(v.union(v.string(), v.null())),
 	name: v.string(),
 	sortOrder: v.number(),
 };

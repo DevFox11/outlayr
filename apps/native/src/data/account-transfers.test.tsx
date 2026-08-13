@@ -29,6 +29,7 @@ function makeDb(): Database {
 			imageUri text,
 			initialBalance real NOT NULL DEFAULT 0,
 			initialBalanceDate integer NOT NULL,
+			kind text NOT NULL DEFAULT 'asset',
 			initialBalanceUsd real,
 			sortOrder integer NOT NULL DEFAULT 0,
 			dateCreated integer NOT NULL,

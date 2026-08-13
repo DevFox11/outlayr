@@ -19,7 +19,7 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 3, exact: true, total: 4210.55 }}
+				overview={{ count: 3, exact: true, owe: 0, own: 0, total: 4210.55 }}
 				showCents
 			/>
 		);
@@ -32,7 +32,7 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 1, exact: true, total: -120 }}
+				overview={{ count: 1, exact: true, owe: 0, own: 0, total: -120 }}
 				showCents
 			/>
 		);
@@ -44,7 +44,7 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 2, exact: false, total: 100 }}
+				overview={{ count: 2, exact: false, owe: 0, own: 0, total: 100 }}
 				showCents
 			/>
 		);
@@ -54,7 +54,7 @@ describe("AccountsOverviewCard", () => {
 			<AccountsOverviewCard
 				currency="USD"
 				onPress={() => {}}
-				overview={{ count: 2, exact: true, total: 100 }}
+				overview={{ count: 2, exact: true, owe: 0, own: 0, total: 100 }}
 				showCents
 			/>
 		);
@@ -64,7 +64,12 @@ describe("AccountsOverviewCard", () => {
 	it("routes the tap through onPress", async () => {
 		const onPress = jest.fn();
 		const { getByTestId } = await render(
-			<AccountsOverviewCard currency="USD" onPress={onPress} overview={{ count: 1, exact: true, total: 0 }} showCents />
+			<AccountsOverviewCard
+				currency="USD"
+				onPress={onPress}
+				overview={{ count: 1, exact: true, owe: 0, own: 0, total: 0 }}
+				showCents
+			/>
 		);
 		fireEvent.press(getByTestId("accounts-overview-card"));
 		expect(onPress).toHaveBeenCalledTimes(1);

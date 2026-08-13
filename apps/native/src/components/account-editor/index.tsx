@@ -35,6 +35,7 @@ import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-co
 import { useDatabase } from "@/contexts/local-data-context";
 import { type Account, accountsRepo, getAccountById } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { toAccountKind } from "@/domain/account-kind";
 import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useAccountIdentity } from "@/hooks/use-account-identity";
@@ -109,6 +110,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 		return {
 			balanceText: numberToNumpad(Math.abs(loaded?.initialBalance ?? 0), minorUnitsFor(startingCurrency)),
 			currency: startingCurrency,
+			liability: toAccountKind(loaded?.kind) === "liability",
 			name: loaded?.name ?? "",
 			negative: (loaded?.initialBalance ?? 0) < 0,
 		};
@@ -119,33 +121,25 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 			// A currency swapped after typing can leave more precision in the pad
 			// than the new code has minor units — JPY cannot hold "12.34".
 			const magnitude = roundToMinorUnits(numpadToNumber(value.balanceText), value.currency);
-			const initialBalance = value.negative ? -magnitude : magnitude;
+			const input = {
+				currency: value.currency,
+				customColor: draft.color ?? null,
+				emoji: draft.emoji ?? null,
+				icon: draft.icon ?? null,
+				imageColor: draft.photoColor ?? null,
+				imageUri: draft.photoUri ?? null,
+				initialBalance: value.negative ? -magnitude : magnitude,
+				kind: value.liability ? ("liability" as const) : ("asset" as const),
+				name: value.name.trim(),
+			};
 			try {
 				if (mode === "create") {
-					await accountsRepo.create(db, {
-						currency: value.currency,
-						customColor: draft.color ?? null,
-						emoji: draft.emoji ?? null,
-						icon: draft.icon ?? null,
-						imageColor: draft.photoColor ?? null,
-						imageUri: draft.photoUri ?? null,
-						initialBalance,
-						name: value.name.trim(),
-					});
+					await accountsRepo.create(db, input);
 				} else {
 					if (loaded == null) {
 						return;
 					}
-					await accountsRepo.update(db, loaded.id, {
-						currency: value.currency,
-						customColor: draft.color ?? null,
-						emoji: draft.emoji ?? null,
-						icon: draft.icon ?? null,
-						imageColor: draft.photoColor ?? null,
-						imageUri: draft.photoUri ?? null,
-						initialBalance,
-						name: value.name.trim(),
-					});
+					await accountsRepo.update(db, loaded.id, input);
 				}
 				haptics("success");
 				router.back();
@@ -159,7 +153,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 			}
 		},
 	});
-	const { name, currency, balanceText, negative } = useSelector(form.store, (s) => s.values);
+	const { name, currency, balanceText, negative, liability } = useSelector(form.store, (s) => s.values);
 	const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
 	const containerHeight = useSharedValue(0);
@@ -344,6 +338,8 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 							caption={mode === "edit" ? t("accounts.rebaseNote") : null}
 							currencyCode={currency}
 							currencyLabel={t("accounts.field.currency")}
+							kindLabel={t("accounts.field.kind")}
+							liability={liability}
 							mutedColor={colors.muted}
 							nameFieldRef={nameRef}
 							nameLabel={t("accounts.field.name")}
@@ -354,6 +350,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 							onCurrencyPress={openCurrencyPicker}
 							onNameChange={onNameChange}
 							onSubmitName={() => pressSubmit(form)}
+							onToggleLiability={(next) => form.setFieldValue("liability", next)}
 							onToggleSign={() => form.setFieldValue("negative", !negative)}
 							tintColor={colors.foreground}
 						/>

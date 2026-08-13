@@ -86,6 +86,8 @@ describe("accountsOverview", () => {
 		expect(result).toEqual({
 			count: 2,
 			exact: true,
+			owe: 0,
+			own: 100 - 25 + 50 + 10,
 			total: 100 - 25 + 50 + 10,
 		});
 	});
@@ -97,7 +99,7 @@ describe("accountsOverview", () => {
 			"USD",
 			rates
 		);
-		expect(result).toEqual({ count: 1, exact: true, total: 40 });
+		expect(result).toEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
 	});
 
 	it("falls back to face value and marks approximate when no rate reaches", () => {
@@ -113,7 +115,7 @@ describe("accountsOverview", () => {
 			"USD",
 			rates
 		);
-		expect(result).toEqual({ count: 1, exact: false, total: 80 });
+		expect(result).toEqual({ count: 1, exact: false, owe: 0, own: 80, total: 80 });
 	});
 
 	it("marks approximate when a cell cannot convert", () => {
@@ -142,7 +144,7 @@ describe("accountsOverview", () => {
 			"USD",
 			rates
 		);
-		expect(result).toEqual({ count: 1, exact: true, total: 5 });
+		expect(result).toEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
 	});
 
 	it("values a whole foreign account into the display currency", () => {
@@ -153,6 +155,37 @@ describe("accountsOverview", () => {
 			"USD",
 			rates
 		);
-		expect(result).toEqual({ count: 2, exact: true, total: 10 });
+		expect(result).toEqual({ count: 2, exact: true, owe: 0, own: 10, total: 10 });
+	});
+
+	it("tells a card apart from an overdrawn current account", () => {
+		// The distinction the ledger could not make before `kind`: both are a
+		// negative balance, and only one of them is a debt.
+		const result = accountsOverview(
+			[
+				account({ id: "a1", initialBalance: -200, initialBalanceUsd: -200, kind: "liability" }),
+				account({ id: "a2", initialBalance: -50, initialBalanceUsd: -50 }),
+			],
+			[],
+			"USD",
+			rates
+		);
+		expect(result).toEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
+	});
+
+	it("leaves the total untouched by the kind split", () => {
+		const assets = accountsOverview(
+			[account({ id: "a1", initialBalance: -200, initialBalanceUsd: -200 })],
+			[],
+			"USD",
+			rates
+		);
+		const debts = accountsOverview(
+			[account({ id: "a1", initialBalance: -200, initialBalanceUsd: -200, kind: "liability" })],
+			[],
+			"USD",
+			rates
+		);
+		expect(debts?.total).toBe(assets?.total);
 	});
 });

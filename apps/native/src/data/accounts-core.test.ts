@@ -22,6 +22,7 @@ function makeDb(): Database {
 			initialBalance real NOT NULL DEFAULT 0,
 			initialBalanceUsd real,
 			initialBalanceDate integer NOT NULL,
+			kind text NOT NULL DEFAULT 'asset',
 			icon text,
 			emoji text,
 			customColor text,

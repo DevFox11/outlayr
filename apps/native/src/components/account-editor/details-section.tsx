@@ -7,6 +7,7 @@ import {
 	Text as SwiftText,
 	TextField,
 	type TextFieldRef,
+	Toggle,
 	type useNativeState,
 } from "@expo/ui/swift-ui";
 import {
@@ -16,6 +17,7 @@ import {
 	font,
 	foregroundStyle,
 	frame,
+	labelsHidden,
 	listSectionMargins,
 	multilineTextAlignment,
 	onSubmit,
@@ -23,6 +25,7 @@ import {
 	shapes,
 	submitLabel,
 	textInputAutocapitalization,
+	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import type { RefObject } from "react";
 import { FORM_TOP_MARGIN } from "@/components/editor-style";
@@ -47,6 +50,9 @@ interface AccountEditorDetailsSectionProps {
 	caption: string | null;
 	currencyCode: string;
 	currencyLabel: string;
+	kindLabel: string;
+	/** True when this account is money owed rather than money held. */
+	liability: boolean;
 	mutedColor: string;
 	nameFieldRef: RefObject<TextFieldRef | null>;
 	nameLabel: string;
@@ -57,6 +63,7 @@ interface AccountEditorDetailsSectionProps {
 	onCurrencyPress: () => void;
 	onNameChange: (name: string) => void;
 	onSubmitName: () => void;
+	onToggleLiability: (next: boolean) => void;
 	onToggleSign: () => void;
 	tintColor: string;
 }
@@ -74,11 +81,14 @@ export function AccountEditorDetailsSection({
 	nameLabel,
 	namePlaceholder,
 	nameState,
+	kindLabel,
+	liability,
 	negative,
 	onBalancePress,
 	onCurrencyPress,
 	onNameChange,
 	onSubmitName,
+	onToggleLiability,
 	onToggleSign,
 	tintColor,
 }: AccountEditorDetailsSectionProps) {
@@ -119,6 +129,14 @@ export function AccountEditorDetailsSection({
 					]}
 					systemName="chevron.up.chevron.down"
 				/>
+			</HStack>
+
+			{/* A card and an overdrawn current account both read as a negative
+			    balance; this is the only thing that tells them apart. */}
+			<HStack>
+				<SwiftText modifiers={[ROW_LABEL]}>{kindLabel}</SwiftText>
+				<Spacer />
+				<Toggle isOn={liability} modifiers={[tint(tintColor), labelsHidden()]} onIsOnChange={onToggleLiability} />
 			</HStack>
 
 			<HStack>
