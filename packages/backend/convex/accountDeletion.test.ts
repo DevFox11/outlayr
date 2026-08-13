@@ -3,9 +3,18 @@ import { describe, expect, test, vi } from "vitest";
 import { advanceDeletion, consumeGoogleLocalReceipt, type DeletionJob, hashResumeSecret } from "./accountDeletion";
 
 const secret = "a".repeat(43);
+
+/**
+ * Relative to the run, not an absolute instant. This fixture is the *unexpired*
+ * job — the two tests that exercise expiry opt in with `expiresAt: 0` — so a
+ * hardcoded date does not stay a fixture, it becomes the expired case on the day
+ * it passes and takes every test sharing it down with it.
+ */
+const UNEXPIRED = Date.now() + 60 * 60 * 1000;
+
 const job: DeletionJob = {
 	errorCode: null,
-	expiresAt: Date.parse("2026-08-12T12:00:00.000Z"),
+	expiresAt: UNEXPIRED,
 	googleReceiptChallengeHash: null,
 	googleReceiptDigest: null,
 	phase: "prepared",
