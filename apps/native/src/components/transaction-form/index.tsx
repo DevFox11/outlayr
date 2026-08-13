@@ -48,6 +48,7 @@ import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/d
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
+import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { ratesRevision, subscribeRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { setBoolSetting } from "@/data/settings-core";
@@ -821,6 +822,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		tagsRef.current = allTags;
 	}, [allTags]);
 
+	const resolveHistory = useCallback(
+		(key: string, forIncome: boolean) => rememberedCategoryFor(db, key, forIncome),
+		[db]
+	);
+
 	const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
 		let { categoryId, pendingCategory: suggestedCategory } = suggestion;
 		if (categoryId == null && suggestedCategory != null) {
@@ -978,6 +984,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 		onSuggest: applySuggestion,
 		regionCode,
 		remoteEnabled: aiEnrichment,
+		resolveHistory,
 		resolveLocal,
 	});
 	// A field the user has already edited is theirs — it never dims, because

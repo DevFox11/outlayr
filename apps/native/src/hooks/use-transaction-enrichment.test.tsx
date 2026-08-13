@@ -866,3 +866,83 @@ describe("unmount and disable", () => {
 		expect(result.current.pending).toBe(false);
 	});
 });
+
+describe("the ledger as a source", () => {
+	async function typeName(name: string, overrides: Partial<UseTransactionEnrichmentArgs>) {
+		const onSuggest = jest.fn();
+		const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, ...overrides })));
+		result.current.onNameChange(name);
+		await act(async () => {
+			jest.advanceTimersByTime(DEBOUNCE_MS);
+		});
+		// The ledger lookup is awaited before anything is emitted, so the debounce
+		// firing is not on its own enough to have produced a suggestion.
+		await act(async () => {
+			await Promise.resolve();
+		});
+		return onSuggest;
+	}
+
+	it("answers with the remembered category for a merchant no list and no model knows", async () => {
+		const onSuggest = await typeName(UNKNOWN, { resolveHistory: async () => "cat-remembered" });
+
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({ categoryId: "cat-remembered", source: "history" })
+		);
+	});
+
+	it("overrides the curated map, because the user's own filing outranks it", async () => {
+		// Netflix is in the curated map as Entertainment; this user files it elsewhere.
+		const onSuggest = await typeName("Netflix", { resolveHistory: async () => "cat-subscriptions" });
+
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({ categoryId: "cat-subscriptions", source: "history" })
+		);
+	});
+
+	it("keeps the curated logo while overriding the curated category", async () => {
+		const onSuggest = await typeName("Netflix", { resolveHistory: async () => "cat-subscriptions" });
+
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({ categoryId: "cat-subscriptions", domain: "netflix.com" })
+		);
+	});
+
+	it("drops the pending category, so a remembered id is never shadowed by a name", async () => {
+		const onSuggest = await typeName("Netflix", { resolveHistory: async () => "cat-subscriptions" });
+
+		expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ pendingCategory: null }));
+	});
+
+	it("leaves the curated answer alone when the ledger has never seen the merchant", async () => {
+		const onSuggest = await typeName("Netflix", { resolveHistory: async () => null });
+
+		expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: "netflix.com", source: "curated" }));
+	});
+
+	it("asks the ledger about the side of the book the entry is on", async () => {
+		const resolveHistory = jest.fn(async () => null);
+		await typeName(UNKNOWN, { income: true, resolveHistory });
+
+		expect(resolveHistory).toHaveBeenCalledWith(merchantKey(UNKNOWN), true);
+	});
+
+	it("answers from the ledger with the remote tier switched off", async () => {
+		// `aiEnrichment` off keeps every lookup on-device; the user's own history
+		// is on-device, so it is exactly what should still answer.
+		const onSuggest = await typeName(UNKNOWN, {
+			remoteEnabled: false,
+			resolveHistory: async () => "cat-remembered",
+		});
+
+		expect(onSuggest).toHaveBeenLastCalledWith(
+			expect.objectContaining({ categoryId: "cat-remembered", source: "history" })
+		);
+	});
+
+	it("works when no history resolver is supplied at all", async () => {
+		const onSuggest = await typeName("Netflix", {});
+
+		expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: "netflix.com", source: "curated" }));
+	});
+});

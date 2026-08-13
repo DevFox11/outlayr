@@ -17,8 +17,33 @@ export interface EnrichmentSuggestion {
 	domain: string | null;
 	pendingCategory: PendingCategory | null;
 	pendingTagNames: readonly string[];
-	source: "curated" | "remote";
+	source: "curated" | "history" | "remote";
 	tagIds: readonly string[];
+}
+
+const NOTHING: EnrichmentSuggestion = {
+	categoryId: null,
+	domain: null,
+	pendingCategory: null,
+	pendingTagNames: [],
+	source: "curated",
+	tagIds: [],
+};
+
+/**
+ * The user's own ledger outranks the curated map and the model, including when
+ * they disagree: a merchant this user has filed before is answered by their own
+ * filing. Someone who consistently books Starbucks under Work means it, and
+ * being corrected by a list every time is the annoyance this removes.
+ *
+ * Only the category is taken. The domain and tags still come from whichever
+ * source found them, because history has no opinion about either.
+ */
+function withRemembered(suggestion: EnrichmentSuggestion, categoryId: string | null): EnrichmentSuggestion {
+	if (categoryId == null) {
+		return suggestion;
+	}
+	return { ...suggestion, categoryId, pendingCategory: null, source: "history" };
 }
 
 export interface UseTransactionEnrichmentArgs {
@@ -36,6 +61,12 @@ export interface UseTransactionEnrichmentArgs {
 	regionCode?: string;
 	/** The `aiEnrichment` setting. False keeps every lookup on-device. */
 	remoteEnabled?: boolean;
+	/**
+	 * What the ledger already knows about this merchant. Omitted in tests that
+	 * are not about history, and absent for an entry being edited rather than
+	 * created.
+	 */
+	resolveHistory?: (key: string, income: boolean) => Promise<string | null>;
 	resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
 	/** Injected in tests; production resolves the real Convex call. */
 	transport?: EnrichmentFn | null;
@@ -138,6 +169,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 		income,
 		categoryTree,
 		resolveLocal,
+		resolveHistory,
 		onSuggest,
 		remoteEnabled = true,
 		locale,
@@ -176,6 +208,15 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 	treeRef.current = categoryTree;
 	const resolveLocalRef = useRef(resolveLocal);
 	resolveLocalRef.current = resolveLocal;
+	const resolveHistoryRef = useRef(resolveHistory);
+	resolveHistoryRef.current = resolveHistory;
+	/**
+	 * Keyed, because a remote answer can land after the field has moved on to a
+	 * different merchant — the same reason `emitDomainResult` re-checks the key.
+	 */
+	const rememberedRef = useRef<{ categoryId: string | null; key: string } | null>(null);
+	/** What the tiers last said, so a late ledger answer can be merged onto it. */
+	const lastEmittedRef = useRef<{ key: string; suggestion: EnrichmentSuggestion } | null>(null);
 	const onSuggestRef = useRef(onSuggest);
 	onSuggestRef.current = onSuggest;
 	const remoteEnabledRef = useRef(remoteEnabled);
@@ -189,9 +230,23 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 	const transportRef = useRef<EnrichmentFn | null | undefined>(transport);
 	transportRef.current = transport;
 
-	const emit = useCallback((suggestion: EnrichmentSuggestion) => {
-		onSuggestRef.current(resolveLocalRef.current(suggestion));
+	/** Only while the field still holds the merchant the lookup was made for. */
+	const rememberedNow = useCallback((): string | null => {
+		const held = rememberedRef.current;
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the object assigned in `recallFromLedger`.
+		if (held == null || held.key !== merchantKey(nameRef.current)) {
+			return null;
+		}
+		return held.categoryId;
 	}, []);
+
+	const emit = useCallback(
+		(suggestion: EnrichmentSuggestion) => {
+			lastEmittedRef.current = { key: merchantKey(nameRef.current), suggestion };
+			onSuggestRef.current(resolveLocalRef.current(withRemembered(suggestion, rememberedNow())));
+		},
+		[rememberedNow]
+	);
 
 	/**
 	 * A name nobody can answer for still has to be reported. Staying silent
@@ -199,14 +254,35 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 	 * they have nothing to do with.
 	 */
 	const emitNothing = useCallback(() => {
-		onSuggestRef.current({
-			categoryId: null,
-			domain: null,
-			pendingCategory: null,
-			pendingTagNames: [],
-			source: "curated",
-			tagIds: [],
-		});
+		emit(NOTHING);
+	}, [emit]);
+
+	/**
+	 * Runs alongside the tiers rather than ahead of them, and re-emits over
+	 * whatever they last said.
+	 *
+	 * Awaiting it first would be simpler, but the curated tier is synchronous on
+	 * purpose — it is the instant on-device answer — and a local read is not a
+	 * good enough reason for that to stop being true.
+	 */
+	const recallFromLedger = useCallback(async (key: string) => {
+		const resolve = resolveHistoryRef.current;
+		if (resolve == null) {
+			rememberedRef.current = { categoryId: null, key };
+			return;
+		}
+		const categoryId = await resolve(key, incomeRef.current);
+		if (merchantKey(nameRef.current) !== key) {
+			return;
+		}
+		rememberedRef.current = { categoryId, key };
+		if (categoryId == null) {
+			return;
+		}
+		const last = lastEmittedRef.current;
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome reads `.current` off useRef's `null` initialiser and drops the explicit type argument, so it cannot see the object assigned in `emit`.
+		const base = last != null && last.key === key ? last.suggestion : NOTHING;
+		onSuggestRef.current(resolveLocalRef.current(withRemembered(base, categoryId)));
 	}, []);
 
 	const resolveTransport = useCallback(
@@ -359,9 +435,14 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 	const run = useCallback(async () => {
 		const key = merchantKey(nameRef.current);
 		if (key.length < MIN_KEY_LENGTH) {
+			rememberedRef.current = null;
 			emitNothing();
 			return;
 		}
+		// Deliberately not awaited: the curated tier below is synchronous, and a
+		// local read must not be what makes it stop being.
+		// biome-ignore lint/complexity/noVoid: marks the floating promise as intentional rather than a forgotten await.
+		void recallFromLedger(key);
 		const match = resolveMerchant(key);
 		let curatedFallback = false;
 		if (match != null) {
@@ -388,7 +469,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 			return;
 		}
 		await runRemote(key);
-	}, [emit, emitNothing, emitRemoteResult, runRemote]);
+	}, [emit, emitNothing, emitRemoteResult, recallFromLedger, runRemote]);
 
 	const onNameChange = useCallback(
 		(next: string) => {
