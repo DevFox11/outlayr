@@ -91,7 +91,7 @@ export function accountsOverview(
 	return { count: accounts.length, exact, owe: worth.owe, own: worth.own, total: worth.net };
 }
 
-function initialInDisplay(
+export function initialInDisplay(
 	account: OverviewAccount,
 	displayCurrency: string,
 	rates: RateTable

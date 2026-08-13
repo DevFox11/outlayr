@@ -90,6 +90,22 @@ const insights = {
 			en: "{date}, balance {amount} behind",
 			es: "{date}, saldo {amount} en contra",
 		}),
+		"insights.netWorth.change": t({
+			en: "{amount} over six months",
+			es: "{amount} en seis meses",
+		}),
+		"insights.netWorth.heading": t({
+			en: "Net worth",
+			es: "Patrimonio",
+		}),
+		"insights.netWorth.summary": t({
+			en: "Net worth. {amount} on {date}.",
+			es: "Patrimonio. {amount} el {date}.",
+		}),
+		"insights.netWorth.summaryApproximate": t({
+			en: "Net worth. About {amount} on {date}.",
+			es: "Patrimonio. Aproximadamente {amount} el {date}.",
+		}),
 		"insights.period.change": t({
 			en: "Change period",
 			es: "Cambiar período",

@@ -11,6 +11,7 @@ import { ScopeChip } from "@/components/scope-chip";
 import { Text } from "@/components/text";
 import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useNetWorthSeries } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
 	bucketDateLabel,
@@ -59,6 +60,7 @@ import { InsightsNetChart } from "./components/insights-net-chart";
 import { InsightsQuiet } from "./components/insights-quiet";
 import { InsightsSample } from "./components/insights-sample";
 import { InsightsTransactionList } from "./components/insights-transaction-list";
+import { NetWorthCard } from "./components/net-worth-card";
 import { SpendingCalendar } from "./components/spending-calendar";
 import { MEASURE_KEY } from "./measure-label";
 
@@ -259,6 +261,7 @@ function InsightsContent({ db }: { db: Database }) {
 	const currency = useGlobalCurrency(db);
 	const { showCents } = useDisplaySettings().state;
 	const nowMs = useNow();
+	const netWorth = useNetWorthSeries(db);
 
 	const incomeTracking = useSettingBool("incomeTracking");
 	const period = PERIOD_BY_VALUE[useSettingNumber("insightsTimeFrame")] ?? "week";
@@ -533,6 +536,8 @@ function InsightsContent({ db }: { db: Database }) {
 					showCents={showCents}
 					subEntries={subBreakdown}
 				/>
+
+				<NetWorthCard currency={currency} series={netWorth} showCents={showCents} />
 
 				<View className="px-5 pt-6">
 					<SpendingCalendar

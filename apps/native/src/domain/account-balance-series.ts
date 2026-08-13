@@ -52,8 +52,20 @@ export function accountBalanceSeries(
 	account: AccountBalanceSeriesAccount,
 	cells: readonly CurrencyCell[],
 	rates: RateTable,
-	now: Date
+	now: Date,
+	/**
+	 * Value the line in this currency instead of the account's own, with the
+	 * opening balance already converted into it.
+	 *
+	 * The single-account chart wants the account's own currency and its raw
+	 * opening; a sum across accounts cannot, or it would add bolivares to
+	 * dollars. Both readings come from one walk rather than two definitions of
+	 * "balance" that can drift apart.
+	 */
+	valuedIn?: { currency: string; opening: number }
 ): AccountBalanceSeriesPoint[] {
+	const currency = valuedIn === undefined ? account.currency : valuedIn.currency;
+	const opening = valuedIn === undefined ? account.initialBalance : valuedIn.opening;
 	const nowKey = utcDateString(now.getTime());
 	const windowStart = addUtcDays(nowKey, -(HISTORY_DAYS - 1));
 	const openingDate = utcDateString(account.initialBalanceDate.getTime());
@@ -75,12 +87,12 @@ export function accountBalanceSeries(
 	const state = { exact: true, value: 0 };
 
 	if (openingDate < windowStart) {
-		state.value += account.initialBalance;
+		state.value += opening;
 	}
 
 	for (const cell of cells) {
 		if (cell.dateKey < windowStart) {
-			applyCell(state, cell, account.currency, rates);
+			applyCell(state, cell, currency, rates);
 			continue;
 		}
 		const onDate = cellsByDate.get(cell.dateKey);
@@ -93,17 +105,17 @@ export function accountBalanceSeries(
 
 	for (let date = windowStart; date < startDate; date = addUtcDays(date, 1)) {
 		for (const cell of cellsByDate.get(date) ?? []) {
-			applyCell(state, cell, account.currency, rates);
+			applyCell(state, cell, currency, rates);
 		}
 	}
 
 	const series: AccountBalanceSeriesPoint[] = [];
 	for (let date = startDate; date <= endDate; date = addUtcDays(date, 1)) {
 		if (date === openingDate) {
-			state.value += account.initialBalance;
+			state.value += opening;
 		}
 		for (const cell of cellsByDate.get(date) ?? []) {
-			applyCell(state, cell, account.currency, rates);
+			applyCell(state, cell, currency, rates);
 		}
 		series.push({ date, exact: state.exact, value: state.value });
 	}

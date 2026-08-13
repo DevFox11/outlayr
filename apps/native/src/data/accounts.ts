@@ -5,6 +5,7 @@ import { accounts, transactions, transfers } from "@/db/schema";
 import { type AccountBalance, accountBalance } from "@/domain/account-balance";
 import { type AccountsOverview, accountsOverview } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
+import { type NetWorthSeriesPoint, netWorthSeries } from "@/domain/net-worth-series";
 import type { RateTable } from "@/domain/valuation";
 import type { Account } from "./accounts-core";
 import { useCategoryMeta } from "./categories";
@@ -93,6 +94,49 @@ export function useAccountsOverviewIn(db: Database, valuation: Valuation): Accou
 			),
 		[rows, cellRows, outbound, inbound, displayCurrency, rates]
 	);
+}
+
+/**
+ * Net worth over the recent window, valued into `valuation`'s currency.
+ *
+ * Shares the cell set `useAccountsOverviewIn` reads, so the line's last point
+ * and the accounts card agree by construction rather than by coincidence.
+ */
+export function useNetWorthSeriesIn(db: Database, valuation: Valuation): NetWorthSeriesPoint[] {
+	const rows = useAccounts(db);
+	const cellRows = useLiveQuery(transactions, () => accountsCellQuery(db));
+	const outbound = useLiveQuery(transfers, () => transfersOutboundQuery(db));
+	const inbound = useLiveQuery(transfers, () => transfersInboundQuery(db));
+	const { displayCurrency, rates } = valuation;
+	return useMemo(() => {
+		const byAccount = new Map<string, CurrencyCell[]>();
+		const push = (accountId: string | null, cell: CurrencyCell) => {
+			if (accountId == null) {
+				return;
+			}
+			const bucket = byAccount.get(accountId);
+			if (bucket) {
+				bucket.push(cell);
+			} else {
+				byAccount.set(accountId, [cell]);
+			}
+		};
+		for (const row of cellRows) {
+			push(row.accountId, toCurrencyCell(row));
+		}
+		for (const { accountId, ...row } of outbound) {
+			push(accountId, toTransferCell(row, false));
+		}
+		for (const { accountId, ...row } of inbound) {
+			push(accountId, toTransferCell(row, true));
+		}
+		return netWorthSeries(rows, byAccount, rates, new Date(), displayCurrency);
+	}, [rows, cellRows, outbound, inbound, rates, displayCurrency]);
+}
+
+/** {@link useNetWorthSeriesIn} for the ledger's own display currency. */
+export function useNetWorthSeries(db: Database): NetWorthSeriesPoint[] {
+	return useNetWorthSeriesIn(db, useValuation(db));
 }
 
 /** {@link useAccountsOverviewIn} for the ledger's own display currency. */
