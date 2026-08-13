@@ -10,7 +10,6 @@ import {
 	mainBudgetFields,
 	replicated,
 	tagFields,
-	templateTransactionFields,
 	transactionColumns,
 	transactionPhotoFields,
 	transactionSplitFields,
@@ -227,13 +226,6 @@ export default defineSchema({
 	 * what the envelope addresses rows by and what a tombstone has to name.
 	 */
 	tags: defineTable({ ...replicated, ...tagFields })
-		.index("by_user_and_seq", ["userId", "seq"])
-		.index("by_user_and_localId", ["userId", "localId"]),
-
-	templateTransactions: defineTable({
-		...replicated,
-		...templateTransactionFields,
-	})
 		.index("by_user_and_seq", ["userId", "seq"])
 		.index("by_user_and_localId", ["userId", "localId"]),
 

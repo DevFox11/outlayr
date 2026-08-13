@@ -8,7 +8,6 @@ import {
 	mainBudget,
 	outbox,
 	tags,
-	templateTransactions,
 	transactionPhotos,
 	transactionSplits,
 	transactions,
@@ -25,7 +24,6 @@ export const SYNCED_TABLES = [
 	"transactions",
 	"budgets",
 	"mainBudget",
-	"templateTransactions",
 	"tags",
 	"transactionTags",
 	"transactionPhotos",
@@ -187,7 +185,6 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
 	collect("transactions", await db.select({ localId: transactions.id }).from(transactions));
 	collect("budgets", await db.select({ localId: budgets.id }).from(budgets));
 	collect("mainBudget", await db.select({ localId: mainBudget.id }).from(mainBudget));
-	collect("templateTransactions", await db.select({ localId: templateTransactions.id }).from(templateTransactions));
 	collect("tags", await db.select({ localId: tags.id }).from(tags));
 	collect("transactionTags", await db.select({ localId: transactionTags.id }).from(transactionTags));
 	collect("transactionPhotos", await db.select({ localId: transactionPhotos.id }).from(transactionPhotos));

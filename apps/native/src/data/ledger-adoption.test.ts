@@ -4,7 +4,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { accounts, budgets, categories, mainBudget, templateTransactions, transactions } from "@/db/schema";
+import { accounts, budgets, categories, mainBudget, transactions } from "@/db/schema";
 import { getMeta, META_KEYS } from "./app-meta-core";
 import { seedCategories } from "./categories-core";
 import {
@@ -112,16 +112,6 @@ describe("local ledger state", () => {
 			initialBalanceDate: now,
 			name: "Checking",
 			updatedAt: now,
-		});
-		expect(await localLedgerState(db)).toBe("populated");
-	});
-
-	it("reads a template transaction as populated", async () => {
-		await db.insert(templateTransactions).values({
-			amount: 5,
-			id: "tt1",
-			income: false,
-			updatedAt: new Date(),
 		});
 		expect(await localLedgerState(db)).toBe("populated");
 	});

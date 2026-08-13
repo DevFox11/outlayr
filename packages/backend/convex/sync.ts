@@ -15,7 +15,6 @@ import {
 	SYNCED_TABLES,
 	type SyncedTable,
 	tagFields,
-	templateTransactionFields,
 	transactionFields,
 	transactionPhotoFields,
 	transactionSplitFields,
@@ -70,12 +69,6 @@ const pushRow = v.union(
 		table: v.literal("mainBudget"),
 		...tombstone,
 		fields: v.object(mainBudgetFields),
-	}),
-	v.object({
-		localId: v.string(),
-		table: v.literal("templateTransactions"),
-		...tombstone,
-		fields: v.object(templateTransactionFields),
 	}),
 	v.object({
 		localId: v.string(),
@@ -280,11 +273,6 @@ async function upsert(
 			return await writeRow(ctx, "accounts", existing, { ...envelope, ...(row.fields as Doc<"accounts">) });
 		case "transfers":
 			return await writeRow(ctx, "transfers", existing, { ...envelope, ...(row.fields as Doc<"transfers">) });
-		case "templateTransactions":
-			return await writeRow(ctx, "templateTransactions", existing, {
-				...envelope,
-				...(row.fields as Doc<"templateTransactions">),
-			});
 		case "appMeta": {
 			const doc = {
 				deviceId: stamp.deviceId,

@@ -149,16 +149,6 @@ export const mainBudgetFields = {
 	type: v.number(),
 };
 
-export const templateTransactionFields = {
-	amount: v.number(),
-	categoryId: v.union(v.string(), v.null()),
-	income: v.boolean(),
-	note: v.union(v.string(), v.null()),
-	recurringCoefficient: v.number(),
-	recurringType: v.number(),
-	sortOrder: v.number(),
-};
-
 export const appMetaFields = {
 	value: v.union(v.string(), v.null()),
 };
@@ -198,7 +188,6 @@ export const TOMBSTONED_TABLES = [
 	"transactions",
 	"budgets",
 	"mainBudget",
-	"templateTransactions",
 	"tags",
 	"transactionTags",
 	"transactionPhotos",
@@ -223,7 +212,6 @@ export const FIELDS_BY_TABLE = {
 	categories: categoryFields,
 	mainBudget: mainBudgetFields,
 	tags: tagFields,
-	templateTransactions: templateTransactionFields,
 	transactionPhotos: transactionPhotoFields,
 	transactionSplits: transactionSplitFields,
 	transactions: transactionFields,

@@ -60,11 +60,11 @@ describe("table invalidation", () => {
 
 	it("fires once per distinct table in a batch", () => {
 		let hits = 0;
-		const off = subscribeToTable("templateTransactions", () => {
+		const off = subscribeToTable("transactions", () => {
 			hits += 1;
 		});
 
-		invalidateAll(["templateTransactions", "templateTransactions", "appMeta"]);
+		invalidateAll(["transactions", "transactions", "appMeta"]);
 
 		expect(hits).toBe(1);
 		off();

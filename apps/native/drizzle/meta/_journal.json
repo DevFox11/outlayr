@@ -134,6 +134,13 @@
       "when": 1786313610155,
       "tag": "0018_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1786597079774,
+      "tag": "0019_drop_template_transactions",
+      "breakpoints": true
     }
   ]
 }

@@ -20,7 +20,6 @@ function emptyDocument(): ArchiveDocument {
 			budgets: [],
 			categories: [],
 			mainBudget: [],
-			templateTransactions: [],
 			transactions: [],
 			transfers: [],
 		},
@@ -105,9 +104,20 @@ describe("reading a file back", () => {
 	it("reads a table the file omits as empty rather than refusing it", () => {
 		// An archive written before a table existed still holds intact data.
 		const partial = emptyDocument() as unknown as Record<string, unknown>;
-		(partial.tables as Record<string, unknown>).templateTransactions = undefined;
+		(partial.tables as Record<string, unknown>).transfers = undefined;
 		const parsed = parseArchive(JSON.stringify(partial));
-		expect(parsed?.tables.templateTransactions).toStrictEqual([]);
+		expect(parsed?.tables.transfers).toStrictEqual([]);
+	});
+
+	it("reads a file carrying a table this build has dropped", () => {
+		// `templateTransactions` was archived until it was removed as dead. An
+		// archive written before that still restores; the extra table is ignored
+		// rather than read as a malformed file.
+		const legacy = emptyDocument() as unknown as Record<string, unknown>;
+		(legacy.tables as Record<string, unknown>).templateTransactions = [{ amount: 1, id: "p1" }];
+		const parsed = parseArchive(JSON.stringify(legacy));
+		expect(parsed).not.toBe(null);
+		expect(Object.hasOwn(parsed?.tables ?? {}, "templateTransactions")).toBe(false);
 	});
 });
 

@@ -1,15 +1,6 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Database } from "@/db/client";
-import {
-	accounts,
-	appMeta,
-	budgets,
-	categories,
-	mainBudget,
-	templateTransactions,
-	transactions,
-	transfers,
-} from "@/db/schema";
+import { accounts, appMeta, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import {
 	ARCHIVE_FORMAT,
@@ -27,7 +18,6 @@ const TABLES: Record<ArchiveTable, SQLiteTable> = {
 	budgets,
 	categories,
 	mainBudget,
-	templateTransactions,
 	transactions,
 	transfers,
 };

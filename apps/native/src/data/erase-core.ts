@@ -1,7 +1,7 @@
 import { isNull } from "drizzle-orm";
 import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
-import { budgets, mainBudget, templateTransactions, transactions, transfers } from "@/db/schema";
+import { budgets, mainBudget, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
@@ -59,16 +59,6 @@ export const ERASED_TRANSACTION = {
 	transferId: null,
 } as const;
 
-const ERASED_TEMPLATE = {
-	amount: 0,
-	categoryId: null,
-	income: false,
-	note: null,
-	recurringCoefficient: 1,
-	recurringType: RECURRING_TYPE.none,
-	sortOrder: 0,
-} as const;
-
 /** The two account ids stay: both are `notNull`, so blanking them would point the row at no account. */
 export const ERASED_TRANSFER = {
 	date: ERASED_DATE,
@@ -103,10 +93,6 @@ export async function eraseLedger(db: Database, scope: EraseScope): Promise<void
 			.update(transactions)
 			.set({ ...ERASED_TRANSACTION, deletedAt: now, updatedAt: now })
 			.where(isNull(transactions.deletedAt));
-		await db
-			.update(templateTransactions)
-			.set({ ...ERASED_TEMPLATE, deletedAt: now, updatedAt: now })
-			.where(isNull(templateTransactions.deletedAt));
 		await db
 			.update(transfers)
 			.set({ ...ERASED_TRANSFER, deletedAt: now, updatedAt: now })

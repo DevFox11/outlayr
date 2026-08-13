@@ -99,12 +99,6 @@ describe("outbox triggers", () => {
 		addTransaction(sqlite, "t1");
 		sqlite.prepare("INSERT INTO budgets (id, amount, type, green, updatedAt) VALUES ('b1', 1, 0, 0, 1)").run();
 		sqlite.prepare("INSERT INTO mainBudget (id, amount, type, green, updatedAt) VALUES ('m1', 1, 0, 0, 1)").run();
-		sqlite
-			.prepare(
-				"INSERT INTO templateTransactions (id, amount, income, sortOrder, " +
-					"recurringType, recurringCoefficient, updatedAt) VALUES ('p1', 1, 0, 0, 0, 1, 1)"
-			)
-			.run();
 		addAccount(sqlite, "a1");
 
 		expect(outbox(sqlite).map((row) => [row.tableName, row.localId])).toStrictEqual([
@@ -112,7 +106,6 @@ describe("outbox triggers", () => {
 			["transactions", "t1"],
 			["budgets", "b1"],
 			["mainBudget", "m1"],
-			["templateTransactions", "p1"],
 			["accounts", "a1"],
 		]);
 	});

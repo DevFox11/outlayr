@@ -39,19 +39,7 @@ const TRANSACTIONS_DDL = `
 	);
 `;
 
-const TEMPLATES_DDL = `
-	CREATE TABLE templateTransactions (
-		id text PRIMARY KEY NOT NULL,
-		amount real NOT NULL,
-		income integer NOT NULL,
-		note text,
-		sortOrder integer NOT NULL DEFAULT 0,
-		recurringType integer NOT NULL DEFAULT 0,
-		recurringCoefficient integer NOT NULL DEFAULT 1,
-		categoryId text,
-		updatedAt integer NOT NULL,
-		deletedAt integer
-	);
+const TRANSFERS_DDL = `
 		CREATE TABLE transfers (
 			id text PRIMARY KEY NOT NULL,
 			fromAccountId text NOT NULL,
@@ -74,13 +62,13 @@ const TEMPLATES_DDL = `
 		);
 `;
 
-function makeDb(ddl = `${TRANSACTIONS_DDL}${TEMPLATES_DDL}`): Database {
+function makeDb(ddl = `${TRANSACTIONS_DDL}${TRANSFERS_DDL}`): Database {
 	const sqlite = new BetterSqlite3(":memory:");
 	sqlite.exec(ddl);
 	return drizzle(sqlite) as unknown as Database;
 }
 
-/** Missing `templateTransactions`, so the ledger write throws part-way through. */
+/** Missing `transfers`, so the ledger write throws part-way through. */
 const makeUnwritableDb = (): Database => makeDb(TRANSACTIONS_DDL);
 
 const AUTHORED = new Date("2026-03-04T10:00:00.000Z");

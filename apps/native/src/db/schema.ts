@@ -280,25 +280,6 @@ export const mainBudget = sqliteTable(
 	(table) => [index("mainBudget_deletedAt_idx").on(table.deletedAt)]
 );
 
-export const templateTransactions = sqliteTable(
-	"templateTransactions",
-	{
-		amount: real("amount").notNull(),
-		categoryId: text("categoryId").references(() => categories.id, {
-			onDelete: "cascade",
-		}),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		id: text("id").primaryKey(),
-		income: integer("income", { mode: "boolean" }).notNull(),
-		note: text("note"),
-		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
-		recurringType: integer("recurringType").notNull().default(0),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [index("templateTransactions_deletedAt_idx").on(table.deletedAt)]
-);
-
 /**
  * One entry's amount attributed to one category.
  *

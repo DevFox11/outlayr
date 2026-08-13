@@ -2,7 +2,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { getTableColumns, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { Database } from "@/db/client";
-import { budgets, categories, mainBudget, templateTransactions, transactions } from "@/db/schema";
+import { budgets, categories, mainBudget, transactions } from "@/db/schema";
 import { ERASED_TRANSACTION, eraseLedger } from "./erase-core";
 import { deletedTransactionsQuery } from "./transactions-core";
 
@@ -82,18 +82,6 @@ function makeDb(): Database {
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);
-		CREATE TABLE templateTransactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			note text,
-			sortOrder integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			categoryId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
 		CREATE TABLE transfers (
 			id text PRIMARY KEY NOT NULL,
 			fromAccountId text NOT NULL,
@@ -155,17 +143,6 @@ async function seed(db: Database): Promise<void> {
 		recurringEndDate: AUTHORED,
 		recurringType: 2,
 		reminderLeadDays: 3,
-		updatedAt: AUTHORED,
-	});
-	await db.insert(templateTransactions).values({
-		amount: 9.99,
-		categoryId: "cat-1",
-		id: "tpl-1",
-		income: false,
-		note: "Streaming",
-		recurringCoefficient: 2,
-		recurringType: 3,
-		sortOrder: 4,
 		updatedAt: AUTHORED,
 	});
 	await db.insert(budgets).values({
@@ -272,24 +249,6 @@ describe("eraseLedger", () => {
 		expect(row.amountUsd).toBe(null);
 		expect(row.exchangeRate).toBe(null);
 		expect(row.exchangeRateType).toBe(null);
-	});
-
-	it("strips everything personal off a template tombstone", async () => {
-		await eraseLedger(db, "transactions");
-
-		const readable = await db.select().from(templateTransactions).where(isNull(templateTransactions.deletedAt));
-		expect(readable.length).toBe(0);
-
-		const [row] = await db.select().from(templateTransactions);
-		expect(row.id).toBe("tpl-1");
-		expect(row.deletedAt).not.toBe(null);
-		expect(row.amount).toBe(0);
-		expect(row.income).toBe(false);
-		expect(row.note).toBe(null);
-		expect(row.sortOrder).toBe(0);
-		expect(row.recurringType).toBe(0);
-		expect(row.recurringCoefficient).toBe(1);
-		expect(row.categoryId).toBe(null);
 	});
 
 	it("keeps budgets live under the transactions scope", async () => {

@@ -9,7 +9,6 @@ import {
 	mainBudget,
 	outbox,
 	tags,
-	templateTransactions,
 	transactionPhotos,
 	transactionSplits,
 	transactions,
@@ -134,12 +133,6 @@ const SPECS: Record<SyncedTable, TableSpec> = {
 		fields: ["name", "color", "sortOrder"],
 		id: tags.id,
 		table: tags,
-	},
-	templateTransactions: {
-		dates: [],
-		fields: ["amount", "income", "note", "sortOrder", "recurringType", "recurringCoefficient", "categoryId"],
-		id: templateTransactions.id,
-		table: templateTransactions,
 	},
 	transactionPhotos: {
 		dates: [],

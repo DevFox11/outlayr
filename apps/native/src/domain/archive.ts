@@ -24,7 +24,6 @@ export const ARCHIVE_TABLES = [
 	"transactions",
 	"budgets",
 	"mainBudget",
-	"templateTransactions",
 	"appMeta",
 ] as const;
 
@@ -44,7 +43,6 @@ export const ARCHIVE_DATE_COLUMNS: Record<ArchiveTable, readonly string[]> = {
 	budgets: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
 	categories: ["dateCreated", "updatedAt", "deletedAt"],
 	mainBudget: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
-	templateTransactions: ["updatedAt", "deletedAt"],
 	transactions: ["date", "day", "month", "recurringEndDate", "updatedAt", "deletedAt"],
 	transfers: ["date", "day", "month", "dateCreated", "updatedAt", "deletedAt"],
 };

@@ -1,6 +1,6 @@
 import { count, gt, isNotNull, isNull, or } from "drizzle-orm";
 import type { Database } from "@/db/client";
-import { accounts, budgets, categories, mainBudget, templateTransactions, transactions, transfers } from "@/db/schema";
+import { accounts, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import type { AdoptionActions, LocalLedger, RemoteLedger } from "@/domain/ledger-adoption";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { SEEDED_CATEGORY_NAMES } from "./categories-core";
@@ -44,7 +44,7 @@ export interface AdoptionEngine {
  * question, and being wrong the other way destroys a ledger.
  */
 export async function localLedgerState(db: Database): Promise<LocalLedger> {
-	const moneyTables = [transactions, budgets, mainBudget, templateTransactions, accounts, transfers];
+	const moneyTables = [transactions, budgets, mainBudget, accounts, transfers];
 	const moneyCounts = await Promise.all(moneyTables.map((table) => db.select({ total: count() }).from(table)));
 	if (moneyCounts.some((rows) => (rows[0]?.total ?? 0) > 0)) {
 		return "populated";
