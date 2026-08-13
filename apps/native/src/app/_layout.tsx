@@ -92,11 +92,12 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const isDark = theme === "dark";
 	const colorScheme = useColorScheme();
 	const [splashHidden, setSplashHidden] = useState(false);
-	const [background, card, text, border] = useCSSVariable([
+	const [background, card, text, border, primary] = useCSSVariable([
 		"--color-background",
 		"--color-card",
 		"--color-foreground",
 		"--color-border",
+		"--color-tint",
 	]) as string[];
 
 	const hideSplash = useCallback(() => {
@@ -126,7 +127,9 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 						<ThemeProvider
 							value={{
 								...base,
-								colors: { ...base.colors, background, border, card, text },
+								// `primary` too, or React Navigation keeps its own iOS blue on every
+								// native toolbar button — the CSS token never reaches native chrome.
+								colors: { ...base.colors, background, border, card, primary, text },
 								dark: isDark,
 							}}
 						>

@@ -35,7 +35,12 @@
 
 			--accent: #010101;
 			--accent-foreground: #ffffff;
-			--tint: #0069de;
+			/* The brand's own vermilion, not Apple's blue. A like-for-like exchange
+			   by weight — OKLCH L 0.543/C 0.180 against the blue's L 0.542/C 0.196 —
+			   so nothing that reads as interactive changes in prominence, only in
+			   whose colour it is. It also measures better on white: 5.45:1 vs 5.15:1.
+			   Matches `--fr-vermilion`, which had it fenced into the first-run screen. */
+			--tint: #c2371b;
 
 			--income: #027d51;
 			--expense: #010101;
@@ -142,7 +147,12 @@
 
 			--accent: #ffffff;
 			--accent-foreground: #060a07;
-			--tint: #0a84ff;
+			/* See the light-mode note. `--fr-vermilion`'s own dark value (#e0552f)
+			   was tuned against the first-run ground and lands at 4.46:1 on
+			   `--surface-secondary` and 2.98:1 on `--surface` — under both floors.
+			   Same hue and saturation, lightness raised until it clears them:
+			   4.75:1 and 3.17:1. */
+			--tint: #e25d39;
 
 			--income: #0fffa9;
 			--expense: #ffffff;
