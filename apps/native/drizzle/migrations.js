@@ -22,6 +22,7 @@ import m0017 from './0017_drop_display_sign.sql';
 import m0018 from './0018_transfers.sql';
 import m0019 from './0019_drop_template_transactions.sql';
 import m0020 from './0020_account_kind.sql';
+import m0021 from './0021_savings_goals.sql';
 
   export default {
     journal,
@@ -46,7 +47,8 @@ m0016,
 m0017,
 m0018,
 m0019,
-m0020
+m0020,
+m0021
     }
   }
   

@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
-import { useSettingBool } from "@/contexts/display-settings-context";
+import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import type { ExpenseContribution } from "@/data/budget-spent";
@@ -16,6 +16,7 @@ import {
 	usePerCategoryBudgets,
 } from "@/data/budgets";
 import { useCategoryMeta } from "@/data/categories";
+import { useSavingsGoals } from "@/data/savings-goals";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
@@ -29,6 +30,7 @@ import { BudgetCard } from "./components/budget-card";
 import { BudgetEmptyState } from "./components/budget-empty-state";
 import { BudgetRings } from "./components/budget-rings";
 import { BudgetRow } from "./components/budget-row";
+import { SavingsGoalsSection } from "./components/savings-goals-section";
 
 export function Budgets() {
 	const db = useDatabase();
@@ -48,7 +50,9 @@ function BudgetContent({ db }: { db: Database }) {
 	const t = useTranslation();
 	const currency = useGlobalCurrency(db);
 	const asRows = useSettingBool("budgetViewStyle");
+	const { showCents } = useDisplaySettings().state;
 	const nowMs = useNow();
+	const goals = useSavingsGoals(db);
 
 	// One transactions subscription for the screen: every hook below derives from
 	// this list rather than opening its own listener.
@@ -226,6 +230,14 @@ function BudgetContent({ db }: { db: Database }) {
 					)}
 				</View>
 			) : null}
+
+			<SavingsGoalsSection
+				currency={currency}
+				goals={goals}
+				onAdd={() => router.push("/(tabs)/budgets/goals/create")}
+				onPress={(id) => router.push(`/budgets/goals/${id}`)}
+				showCents={showCents}
+			/>
 		</ScrollView>
 	);
 }

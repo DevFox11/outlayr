@@ -351,6 +351,35 @@ export const transactionPhotos = sqliteTable(
  * once per row; a tag answers "which of my concerns does this touch", and a
  * dinner can be both `work` and `travel` while still being one Food entry.
  */
+/**
+ * A target on an account. Progress is that account's balance, so there is no
+ * parallel record of the same money to drift — see `domain/savings-goal.ts`.
+ */
+export const savingsGoals = sqliteTable(
+	"savingsGoals",
+	{
+		accountId: text("accountId")
+			.notNull()
+			.references(() => accounts.id, { onDelete: "cascade" }),
+		currency: text("currency").notNull(),
+		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		sortOrder: integer("sortOrder").notNull().default(0),
+		targetAmount: real("targetAmount").notNull(),
+		/** Frozen at write, like every other cross-currency figure in the ledger. */
+		targetAmountUsd: real("targetAmountUsd"),
+		/** Null is a target with no deadline, which has no pace. */
+		targetDate: integer("targetDate", { mode: "timestamp_ms" }),
+		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+	},
+	(table) => [
+		index("savingsGoals_accountId_idx").on(table.accountId),
+		index("savingsGoals_deletedAt_idx").on(table.deletedAt),
+	]
+);
+
 export const tags = sqliteTable(
 	"tags",
 	{

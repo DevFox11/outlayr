@@ -156,6 +156,17 @@ export const mainBudgetFields = {
 	type: v.number(),
 };
 
+export const savingsGoalFields = {
+	accountId: v.string(),
+	currency: v.string(),
+	dateCreated: v.number(),
+	name: v.string(),
+	sortOrder: v.number(),
+	targetAmount: v.number(),
+	targetAmountUsd: v.union(v.number(), v.null()),
+	targetDate: v.union(v.number(), v.null()),
+};
+
 export const appMetaFields = {
 	value: v.union(v.string(), v.null()),
 };
@@ -195,6 +206,7 @@ export const TOMBSTONED_TABLES = [
 	"transactions",
 	"budgets",
 	"mainBudget",
+	"savingsGoals",
 	"tags",
 	"transactionTags",
 	"transactionPhotos",
@@ -218,6 +230,7 @@ export const FIELDS_BY_TABLE = {
 	budgets: budgetFields,
 	categories: categoryFields,
 	mainBudget: mainBudgetFields,
+	savingsGoals: savingsGoalFields,
 	tags: tagFields,
 	transactionPhotos: transactionPhotoFields,
 	transactionSplits: transactionSplitFields,

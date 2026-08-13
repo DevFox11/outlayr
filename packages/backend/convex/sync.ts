@@ -14,6 +14,7 @@ import {
 	mainBudgetFields,
 	SYNCED_TABLES,
 	type SyncedTable,
+	savingsGoalFields,
 	tagFields,
 	transactionFields,
 	transactionPhotoFields,
@@ -69,6 +70,12 @@ const pushRow = v.union(
 		table: v.literal("mainBudget"),
 		...tombstone,
 		fields: v.object(mainBudgetFields),
+	}),
+	v.object({
+		localId: v.string(),
+		table: v.literal("savingsGoals"),
+		...tombstone,
+		fields: v.object(savingsGoalFields),
 	}),
 	v.object({
 		localId: v.string(),
@@ -273,6 +280,11 @@ async function upsert(
 			return await writeRow(ctx, "accounts", existing, { ...envelope, ...(row.fields as Doc<"accounts">) });
 		case "transfers":
 			return await writeRow(ctx, "transfers", existing, { ...envelope, ...(row.fields as Doc<"transfers">) });
+		case "savingsGoals":
+			return await writeRow(ctx, "savingsGoals", existing, {
+				...envelope,
+				...(row.fields as Doc<"savingsGoals">),
+			});
 		case "appMeta": {
 			const doc = {
 				deviceId: stamp.deviceId,

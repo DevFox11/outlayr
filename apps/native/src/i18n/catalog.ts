@@ -17,6 +17,7 @@ type Budgets = typeof import("@/content/budgets.content").default;
 type Categories = typeof import("@/content/categories.content").default;
 type Common = typeof import("@/content/common.content").default;
 type Domain = typeof import("@/content/domain.content").default;
+type Goals = typeof import("@/content/goals.content").default;
 type ImportSheet = typeof import("@/content/import.content").default;
 type Insights = typeof import("@/content/insights.content").default;
 type LanguageDict = typeof import("@/content/language.content").default;
@@ -40,6 +41,7 @@ export const DICTIONARY_KEYS = [
 	"categories",
 	"common",
 	"domain",
+	"goals",
 	"import",
 	"insights",
 	"language",
@@ -59,6 +61,7 @@ type Content =
 	| Categories["content"]
 	| Common["content"]
 	| Domain["content"]
+	| Goals["content"]
 	| ImportSheet["content"]
 	| Insights["content"]
 	| LanguageDict["content"]

@@ -30,6 +30,8 @@ export default function BudgetsLayout() {
 				<Stack.Screen.BackButton displayMode="minimal" />
 			</Stack.Screen>
 			<Stack.Screen name="create" options={{ presentation: "modal" }} />
+			<Stack.Screen name="goals/create" options={{ presentation: "modal" }} />
+			<Stack.Screen name="goals/[id]" options={{ presentation: "modal" }} />
 		</Stack>
 	);
 }

@@ -9,6 +9,7 @@ import {
 	categoryFields,
 	mainBudgetFields,
 	replicated,
+	savingsGoalFields,
 	tagFields,
 	transactionColumns,
 	transactionPhotoFields,
@@ -208,6 +209,11 @@ export default defineSchema({
 	})
 		.index("by_user", ["userId"])
 		.index("by_key", ["key"]),
+
+	/** A target on an account; progress is that account's balance. */
+	savingsGoals: defineTable({ ...replicated, ...savingsGoalFields })
+		.index("by_user_and_seq", ["userId", "seq"])
+		.index("by_user_and_localId", ["userId", "localId"]),
 
 	/**
 	 * One document per user, holding the counter that stamps `seq`. Bumped once
