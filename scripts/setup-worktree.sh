@@ -30,4 +30,12 @@ if [ "$main_root" != "$worktree_root" ]; then
 	seed packages/backend/.convex
 fi
 
-pnpm install
+# `vp install` delegates to the packageManager field, so this runs the same pnpm
+# install either way — it keeps one command surface across the repo. vp itself
+# lives in node_modules/.bin, which is exactly what a fresh worktree does not
+# have yet, so fetch it when it is not already on PATH.
+if command -v vp >/dev/null 2>&1; then
+	vp install
+else
+	pnpm dlx --package vite-plus vp install
+fi

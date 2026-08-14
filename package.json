@@ -7,15 +7,15 @@
     ],
     "type": "module",
     "scripts": {
-        "build": "turbo run build",
-        "check": "ultracite check",
-        "check-types": "turbo run check-types",
-        "dev": "turbo run dev",
-        "dev:server": "turbo run dev -F @outlayr/backend",
-        "dev:setup": "turbo run dev:setup -F @outlayr/backend",
-        "fix": "ultracite fix",
-        "prepare": "lefthook install",
-        "test": "turbo run test",
+        "build": "vp run -r --cache build",
+        "check": "vp check",
+        "check-types": "vp run -r --cache check-types",
+        "dev": "vp run -r --parallel dev",
+        "dev:server": "vp run --filter @outlayr/backend dev",
+        "dev:setup": "vp run --filter @outlayr/backend dev:setup",
+        "fix": "vp check --fix",
+        "prepare": "vp config --no-agent --no-editor",
+        "test": "vp run -r --cache test",
         "test:lint-plugins": "node --test \"tools/oxlint/anti-slop/rules/*.test.ts\""
     },
     "dependencies": {
@@ -27,13 +27,12 @@
         "@outlayr/config": "workspace:*",
         "@oxlint/plugins": "1.78.0",
         "@types/node": "^26.1.2",
-        "lefthook": "^2.1.10",
         "oxfmt": "^0.63.0",
         "oxlint": "^1.78.0",
         "oxlint-tailwindcss": "^1.9.0",
-        "turbo": "^2.10.8",
         "typescript": "catalog:",
-        "ultracite": "7.10.2"
+        "ultracite": "7.10.2",
+        "vite-plus": "^0.2.9"
     },
     "packageManager": "pnpm@11.20.0"
 }

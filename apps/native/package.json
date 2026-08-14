@@ -15,7 +15,6 @@
         "i18n:build": "intlayer build",
         "i18n:test": "intlayer test",
         "ios": "expo run:ios",
-        "lint": "ultracite check .",
         "prebuild": "expo prebuild",
         "sim": "serve-sim",
         "start": "intlayer build && expo start",
