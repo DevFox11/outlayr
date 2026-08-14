@@ -111,7 +111,13 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
 	};
 
 	return (
-		<BottomSheetModal enableDynamicSizing={false} enablePanDownToClose ref={setRefs} snapPoints={["65%", "92%"]}>
+		<BottomSheetModal
+			backgroundStyle={{ backgroundColor: colors.background }}
+			enableDynamicSizing={false}
+			enablePanDownToClose
+			ref={setRefs}
+			snapPoints={["65%", "92%"]}
+		>
 			<View className="mb-2 justify-center px-5 py-1">
 				<Text accessibilityRole="header" className="text-center font-medium text-foreground text-lg">
 					{t("transaction.split.title")}

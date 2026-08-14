@@ -1,9 +1,10 @@
 import { Host } from "@expo/ui";
 import { HStack, List, RNHostView, Section, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
-import { deleteDisabled, environment, foregroundStyle, lineLimit, listStyle } from "@expo/ui/swift-ui/modifiers";
+import { deleteDisabled, environment, foregroundStyle, lineLimit } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
+import { groupedList, groupedRows } from "@/components/native/styles";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { type Account, accountsRepo } from "@/data/accounts-core";
@@ -35,10 +36,10 @@ function AccountReorderReady({ db }: { db: Database }) {
 
 	return (
 		<Host style={{ flex: 1 }} useViewportSizeMeasurement>
-			<List modifiers={[listStyle("insetGrouped"), environment({ key: "editMode", value: "active" })]}>
+			<List modifiers={[...groupedList(colors), environment({ key: "editMode", value: "active" })]}>
 				{/* A non-empty `title` short-circuits the `header` slot natively, so the
 				    header passes the eyebrow instead of a plain string. */}
-				<Section header={<Eyebrow colors={colors}>{t("accounts.title")}</Eyebrow>}>
+				<Section header={<Eyebrow colors={colors}>{t("accounts.title")}</Eyebrow>} modifiers={[groupedRows(colors)]}>
 					<List.ForEach onMove={reorder}>
 						{rows.map((account) => (
 							<ReorderRow

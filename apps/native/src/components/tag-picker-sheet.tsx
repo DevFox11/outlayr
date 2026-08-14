@@ -64,7 +64,13 @@ export function TagPickerSheet({ tags, selected, pendingTagNames = [], onToggle,
 	};
 
 	return (
-		<BottomSheetModal enableDynamicSizing={false} enablePanDownToClose ref={ref} snapPoints={["55%", "100%"]}>
+		<BottomSheetModal
+			backgroundStyle={{ backgroundColor: colors.background }}
+			enableDynamicSizing={false}
+			enablePanDownToClose
+			ref={ref}
+			snapPoints={["55%", "100%"]}
+		>
 			<View className="flex-1">
 				<View className="items-center px-5 pt-3 pb-3">
 					<Text className="font-sans-semibold text-foreground text-headline">{t("transaction.tags.title")}</Text>

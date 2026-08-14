@@ -38,7 +38,12 @@ export function AmountEntrySheet({
 	const currencySheetRef = useRef<BottomSheetModal>(null);
 
 	return (
-		<BottomSheetModal enableDynamicSizing enablePanDownToClose ref={ref}>
+		<BottomSheetModal
+			backgroundStyle={{ backgroundColor: colors.background }}
+			enableDynamicSizing
+			enablePanDownToClose
+			ref={ref}
+		>
 			<BottomSheetView style={{ paddingBottom: 8 }}>
 				<View className="flex-row items-center justify-between px-4 pt-2 pb-1">
 					{onCurrencyChange ? (

@@ -6,7 +6,6 @@ import {
 	accessibilityLabel,
 	contentShape,
 	foregroundStyle,
-	listStyle,
 	onTapGesture,
 	shapes,
 } from "@expo/ui/swift-ui/modifiers";
@@ -14,6 +13,7 @@ import { eq } from "drizzle-orm";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Alert } from "react-native";
+import { groupedList, groupedRows } from "@/components/native/styles";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { useLiveQuery } from "@/data/live-query";
@@ -40,6 +40,7 @@ export default function TransferDetail({ id }: { id: string }) {
 		() => db.select().from(transactions).where(eq(transactions.transferId, id)),
 		[id]
 	);
+	const rowGround = groupedRows(colors);
 	const transfer = rows[0] ?? null;
 	const fee = feeRows.find((row) => row.deletedAt === null) ?? null;
 	const names = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
@@ -64,8 +65,8 @@ export default function TransferDetail({ id }: { id: string }) {
 
 	return (
 		<Host style={{ flex: 1 }}>
-			<List modifiers={[listStyle("insetGrouped")]}>
-				<Section>
+			<List modifiers={groupedList(colors)}>
+				<Section modifiers={[rowGround]}>
 					<HStack>
 						<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.field.from")}</SwiftText>
 						<Spacer />
@@ -89,7 +90,7 @@ export default function TransferDetail({ id }: { id: string }) {
 				</Section>
 
 				{transfer.fromCurrency === transfer.toCurrency ? null : (
-					<Section>
+					<Section modifiers={[rowGround]}>
 						<HStack>
 							<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.field.rate")}</SwiftText>
 							<Spacer />
@@ -104,7 +105,7 @@ export default function TransferDetail({ id }: { id: string }) {
 				)}
 
 				{fee ? (
-					<Section footer={<SwiftText>{t("transfers.detail.feeNote")}</SwiftText>}>
+					<Section footer={<SwiftText>{t("transfers.detail.feeNote")}</SwiftText>} modifiers={[rowGround]}>
 						<HStack>
 							<SwiftText modifiers={[ROW_LABEL]}>{t("transfers.field.fee")}</SwiftText>
 							<Spacer />
@@ -113,7 +114,7 @@ export default function TransferDetail({ id }: { id: string }) {
 					</Section>
 				) : null}
 
-				<Section>
+				<Section modifiers={[rowGround]}>
 					{/* A `Button` here does not deliver its press inside a native List, so the row
 					    carries its own hit area — and an `onTapGesture` is invisible to VoiceOver
 					    without the accessibility modifiers that follow it. */}

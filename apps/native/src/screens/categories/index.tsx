@@ -24,7 +24,6 @@ import {
 	lineLimit,
 	listRowInsets,
 	listRowSeparator,
-	listStyle,
 	multilineTextAlignment,
 	offset,
 	onTapGesture,
@@ -42,6 +41,7 @@ import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from
 import { MarkInk } from "@/components/empty-state";
 import { Slot, Tile } from "@/components/empty-state-parts";
 import { Fade, Settle } from "@/components/mark-motion";
+import { groupedList, groupedRows } from "@/components/native/styles";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -144,6 +144,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 	const showSuggestions = useAppSettings().state.bool("categorySuggestions");
 	const parents = useCategoriesByNamespace(db, income);
 	const totals = useCategoryTotals(db);
+	const rowGround = groupedRows(colors);
 
 	// The effect below keys off a primitive signature string, not the
 	// fresh-every-render `parents` array, so it only re-runs when the data changes.
@@ -246,13 +247,13 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 				/>
 			</Stack.Toolbar>
 			<Host style={{ flex: 1 }} useViewportSizeMeasurement>
-				<List modifiers={[listStyle("insetGrouped")]}>
+				<List modifiers={groupedList(colors)}>
 					{parents.length === 0 ? (
-						<Section>
+						<Section modifiers={[rowGround]}>
 							<CategoriesEmpty colors={colors} income={income} />
 						</Section>
 					) : (
-						<Section header={<CensusLine colors={colors} parents={parents} />}>
+						<Section header={<CensusLine colors={colors} parents={parents} />} modifiers={[rowGround]}>
 							{parents.map((parent, index) => (
 								<ParentGroup
 									closesTree={index === parents.length - 1}
@@ -281,6 +282,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
 									})}
 								</Eyebrow>
 							}
+							modifiers={[rowGround]}
 						>
 							{suggestions.map((preset) => (
 								<SuggestedRow

@@ -176,6 +176,7 @@ export function CategoryPickerSheet({
 
 	return (
 		<BottomSheetModal
+			backgroundStyle={{ backgroundColor: colors.background }}
 			enableDynamicSizing={false}
 			enablePanDownToClose
 			onDismiss={handleDismiss}

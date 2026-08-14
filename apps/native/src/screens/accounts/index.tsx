@@ -19,7 +19,6 @@ import {
 	font,
 	foregroundStyle,
 	lineLimit,
-	listStyle,
 	monospacedDigit,
 	onTapGesture,
 	shapes,
@@ -32,6 +31,7 @@ import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
+import { groupedList, groupedRows } from "@/components/native/styles";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -72,6 +72,7 @@ function AccountsReady({ db }: { db: Database }) {
 	const t = useTranslation();
 	const colors = useColors();
 	const rows = useAccounts(db);
+	const rowGround = groupedRows(colors);
 
 	const openDetail = useCallback(
 		(id: string) => {
@@ -118,8 +119,11 @@ function AccountsReady({ db }: { db: Database }) {
 				<EmptyState body={t("accounts.empty")} mark={<AccountsMark />} tier="takeover" />
 			) : (
 				<Host style={{ flex: 1 }} useViewportSizeMeasurement>
-					<List modifiers={[listStyle("insetGrouped")]}>
-						<Section header={<Eyebrow colors={colors}>{t("accounts.census", { count: rows.length })}</Eyebrow>}>
+					<List modifiers={groupedList(colors)}>
+						<Section
+							header={<Eyebrow colors={colors}>{t("accounts.census", { count: rows.length })}</Eyebrow>}
+							modifiers={[rowGround]}
+						>
 							{rows.map((account) => (
 								<AccountRow
 									account={account}
@@ -132,7 +136,7 @@ function AccountsReady({ db }: { db: Database }) {
 							))}
 						</Section>
 						{rows.length >= 2 ? (
-							<Section>
+							<Section modifiers={[rowGround]}>
 								<HStack
 									modifiers={[
 										contentShape(shapes.rectangle()),

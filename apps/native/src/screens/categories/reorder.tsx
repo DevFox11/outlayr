@@ -1,9 +1,10 @@
 import { Host } from "@expo/ui";
 import { HStack, List, RNHostView, Section, Spacer, Text as SwiftText } from "@expo/ui/swift-ui";
-import { environment, foregroundStyle, lineLimit, listStyle } from "@expo/ui/swift-ui/modifiers";
+import { environment, foregroundStyle, lineLimit } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
+import { groupedList, groupedRows } from "@/components/native/styles";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { type Category, type CategoryWithChildren, categoriesRepo } from "@/data/categories-core";
@@ -38,6 +39,7 @@ function CategoryReorderReady({ db, income }: { db: Database; income: boolean })
 	const t = useTranslation();
 	const colors = useColors();
 	const parents = useCategoriesByNamespace(db, income);
+	const rowGround = groupedRows(colors);
 	const accent = (parent: CategoryWithChildren) => (income ? colors.income : (parent.color ?? colors.foreground));
 
 	const reorderParents = (source: number[], destination: number) => {
@@ -60,10 +62,10 @@ function CategoryReorderReady({ db, income }: { db: Database; income: boolean })
 
 	return (
 		<Host style={{ flex: 1 }} useViewportSizeMeasurement>
-			<List modifiers={[listStyle("insetGrouped"), environment({ key: "editMode", value: "active" })]}>
+			<List modifiers={[...groupedList(colors), environment({ key: "editMode", value: "active" })]}>
 				{/* A non-empty `title` short-circuits the `header` slot natively, so every
 				    header here passes the eyebrow instead of a plain string. */}
-				<Section header={<Eyebrow colors={colors}>{t("categories.title")}</Eyebrow>}>
+				<Section header={<Eyebrow colors={colors}>{t("categories.title")}</Eyebrow>} modifiers={[rowGround]}>
 					<List.ForEach onMove={reorderParents}>
 						{parents.map((parent) => (
 							<ReorderRow category={parent} key={parent.id} tint={accent(parent)} />
@@ -74,7 +76,11 @@ function CategoryReorderReady({ db, income }: { db: Database; income: boolean })
 				{parents
 					.filter((parent) => parent.children.length > 0)
 					.map((parent) => (
-						<Section header={<Eyebrow colors={colors}>{parent.name ?? ""}</Eyebrow>} key={parent.id}>
+						<Section
+							header={<Eyebrow colors={colors}>{parent.name ?? ""}</Eyebrow>}
+							key={parent.id}
+							modifiers={[rowGround]}
+						>
 							<List.ForEach onMove={(source, destination) => reorderChildren(parent, source, destination)}>
 								{parent.children.map((child) => (
 									<ReorderRow category={child} indented key={child.id} tint={accent(parent)} />

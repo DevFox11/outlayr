@@ -6,6 +6,17 @@ public class GlowModule: Module {
   public func definition() -> ModuleDefinition {
     Name("Glow")
 
+    // Modifiers have to be in the registry before the first SwiftUI view renders,
+    // and an unregistered `$type` is dropped silently — a binary without this is
+    // the old grey list, not a crash.
+    OnCreate {
+      ListGroundModifiers.register()
+    }
+
+    OnDestroy {
+      ListGroundModifiers.unregister()
+    }
+
     Function("fromEmoji") { (emoji: String) -> [String] in
       GlowExtractor.colors(fromEmoji: emoji)
     }
