@@ -4,6 +4,7 @@ import type { TestConvex } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
+import { nextPruneStep } from "./exchangeRates";
 import type { MarketRateType, RateSource } from "./lib/currencies";
 import schema from "./schema";
 
@@ -287,7 +288,7 @@ function allRateDates(t: TestClient, quote: string): Promise<string[]> {
 }
 
 async function runPruneToCompletion(t: TestClient): Promise<void> {
-    await t.mutation(internal.exchangeRates.pruneStale, {});
+    await t.action(internal.exchangeRates.pruneStale, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
@@ -369,7 +370,7 @@ describe("pruneStale", () => {
         await seedOfficialRate(t, "VES", nearBoundaryInWindow[1]);
         await seedPreWindowBacklog(t, "VES");
 
-        const first = await t.mutation(internal.exchangeRates.pruneStale, {});
+        const first = await t.action(internal.exchangeRates.pruneStale, {});
         expect(first.isDone).toBeFalsy();
         // Advance past the original boundary before the continuation drains. A
         // per-batch windowStart recompute would now classify the near-boundary
@@ -398,13 +399,29 @@ describe("pruneStale", () => {
         await runPruneToCompletion(t);
         const survivors = await allRateDates(t, "VES");
 
-        const second = await t.mutation(internal.exchangeRates.pruneStale, {});
+        const second = await t.action(internal.exchangeRates.pruneStale, {});
         await t.finishAllScheduledFunctions(vi.runAllTimers);
 
         // The post-prune backlog fits one batch, so this pass is a single
         // invocation — `deleted: 0` is the whole pass's total.
         expect(second).toEqual({ deleted: 0, isDone: true });
         expect(await allRateDates(t, "VES")).toEqual(survivors);
+    });
+
+    test("spaces the next batch out instead of dispatching it immediately", async () => {
+        // The regression: `runAfter(0)` sprinted a whole backlog in one second and
+        // blew the deployment's write budget. Asserted on the schedule rather than
+        // on `nextPruneStep` alone, so a handler that ignores the delay is caught.
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
+        const t = convexTest(schema, modules);
+        await seedPreWindowBacklog(t, "VES");
+
+        await t.action(internal.exchangeRates.pruneStale, {});
+
+        const pending = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+        expect(pending).toHaveLength(1);
+        expect(pending[0]?.scheduledTime).toBeGreaterThan(Date.now());
     });
 
     test("pullRates still serves the anchor after GC", async () => {
@@ -426,5 +443,51 @@ describe("pruneStale", () => {
         expect(dates).toContain(daysAgoDate(10));
         expect(dates).toContain(daysAgoDate(100));
         expect(dates).toContain(daysAgoDate(200));
+    });
+});
+
+describe("nextPruneStep", () => {
+    const midPass = { cursor: "page-3", retries: 0 };
+
+    test("carries a drained batch on to the next page", () => {
+        expect(nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, midPass)).toMatchObject({
+            cursor: "page-4",
+            retries: 0,
+        });
+    });
+
+    test("waits between successful batches rather than dispatching back to back", () => {
+        const step = nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, midPass);
+        expect(step?.delayMs).toBeGreaterThan(0);
+    });
+
+    test("ends the pass once the last page is drained", () => {
+        expect(nextPruneStep({ cursor: "page-4", failed: false, isDone: true }, midPass)).toBeNull();
+    });
+
+    test("a failed batch keeps the pass alive at the same cursor", () => {
+        // The bug this replaces: the failure took the reschedule down with it, so a
+        // backlog large enough to trip the write limit never drained at all.
+        expect(nextPruneStep({ failed: true }, midPass)).toMatchObject({ cursor: "page-3", retries: 1 });
+    });
+
+    test("backs off further on each consecutive failure", () => {
+        const first = nextPruneStep({ failed: true }, midPass);
+        const second = nextPruneStep({ failed: true }, { cursor: "page-3", retries: first?.retries ?? 0 });
+        expect(second?.delayMs).toBeGreaterThan(first?.delayMs ?? 0);
+    });
+
+    test("gives up on a batch that keeps failing, leaving the rest to the daily cron", () => {
+        let step = nextPruneStep({ failed: true }, midPass);
+        for (let attempt = 0; attempt < 20 && step; attempt += 1) {
+            step = nextPruneStep({ failed: true }, { cursor: step.cursor, retries: step.retries });
+        }
+        expect(step).toBeNull();
+    });
+
+    test("a success clears the retries a stuck batch accrued", () => {
+        expect(
+            nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, { cursor: "page-3", retries: 3 })
+        ).toMatchObject({ retries: 0 });
     });
 });

@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
 import {
     marketRateType,
     PICKABLE_CURRENCY_CODES,
@@ -14,6 +14,65 @@ import {
 import type { MarketRateType } from "./lib/currencies";
 
 const PRUNE_BATCH_SIZE = 200;
+
+/**
+ * Gap between prune batches. The chain used to reschedule at `runAfter(0)`,
+ * which dispatched a whole backlog back to back — a 13k-row one is ~65 batches,
+ * and each deleted row also rewrites its two index entries, so the sustained
+ * rate crossed the deployment's per-second write budget. One batch per second
+ * holds a full drain far under that ceiling and still clears that backlog in
+ * about a minute; steady state is a single batch and never waits at all.
+ */
+const PRUNE_BATCH_INTERVAL_MS = 1000;
+
+/**
+ * Retries of one failed batch before the pass gives up and leaves the rest to
+ * the next daily cron. The delay doubles each time, so the budget spans roughly
+ * 5s to 40s — long enough to outlast a transient write-rate spike, short enough
+ * that a genuinely broken batch surfaces as a failed run the same day.
+ */
+const PRUNE_MAX_RETRIES = 4;
+const PRUNE_RETRY_BASE_MS = 5000;
+
+/** What one `pruneStaleBatch` invocation did: drained through `cursor`, or threw. */
+type PruneBatchOutcome = { cursor: string; failed: false; isDone: boolean } | { failed: true };
+
+/** The arguments the pass resumes with, and how long it waits first. */
+interface PruneStep {
+    cursor: string | null;
+    delayMs: number;
+    retries: number;
+}
+
+/**
+ * Where a pass goes after a batch, or `null` when it stops — the backlog is
+ * drained, or a batch has failed past its retry budget.
+ *
+ * Pure and exported so the chain's survival is testable: a rate-limit failure
+ * is not reproducible under `convex-test`, but the decision it feeds into is.
+ */
+export function nextPruneStep(
+    outcome: PruneBatchOutcome,
+    current: { cursor: string | null; retries: number }
+): PruneStep | null {
+    if (outcome.failed) {
+        // A failed batch rolled its own deletes back, so the retry resumes at the
+        // SAME cursor rather than skipping the page.
+        if (current.retries >= PRUNE_MAX_RETRIES) {
+            return null;
+        }
+        return {
+            cursor: current.cursor,
+            delayMs: PRUNE_RETRY_BASE_MS * 2 ** current.retries,
+            retries: current.retries + 1,
+        };
+    }
+    if (outcome.isDone) {
+        return null;
+    }
+    // Retries reset on success: the budget is per stuck batch, not per pass.
+    return { cursor: outcome.cursor, delayMs: PRUNE_BATCH_INTERVAL_MS, retries: 0 };
+}
 
 /**
  * Historical depth of the `pullRates` snapshot. An entry backdated past it falls
@@ -189,26 +248,36 @@ export const upsertRates = internalMutation({
     returns: v.null(),
 });
 
+interface PruneBatchResult {
+    cursor: string;
+    deleted: number;
+    isDone: boolean;
+}
+
 /**
- * Deletes every row older than the `pullRates` window EXCEPT each
- * `(quote, rateType)` pair's newest pre-window row — the anchor `pullRates`
- * depends on, kept for non-catalog pairs too. A row is deleted iff a NEWER
- * pre-window row exists for its pair, which is order-independent within a pass.
- * The first invocation computes `windowStart` and threads it through every
- * reschedule so one pass prunes against a single consistent boundary.
+ * One page of the prune. Deletes every row older than the `pullRates` window
+ * EXCEPT each `(quote, rateType)` pair's newest pre-window row — the anchor
+ * `pullRates` depends on, kept for non-catalog pairs too. A row is deleted iff a
+ * NEWER pre-window row exists for its pair, which is order-independent within a
+ * pass. `windowStart` is threaded in rather than recomputed so one pass prunes
+ * against a single consistent boundary.
+ *
+ * Schedules NOTHING: the chain lives in `pruneStale` because a mutation that
+ * throws rolls its own `scheduler.runAfter` back with it, which is exactly how
+ * the pass used to die on a backlog.
  */
-export const pruneStale = internalMutation({
+export const pruneStaleBatch = internalMutation({
     args: {
-        cursor: v.optional(v.union(v.string(), v.null())),
-        windowStart: v.optional(v.string()),
+        cursor: v.union(v.string(), v.null()),
+        windowStart: v.string(),
     },
     handler: async (ctx, args) => {
-        const windowStart = args.windowStart ?? ratesWindowStart();
+        const { windowStart } = args;
 
         const page = await ctx.db
             .query("exchangeRates")
             .withIndex("by_date", (q) => q.lt("date", windowStart))
-            .paginate({ cursor: args.cursor ?? null, numItems: PRUNE_BATCH_SIZE });
+            .paginate({ cursor: args.cursor, numItems: PRUNE_BATCH_SIZE });
 
         let deleted = 0;
         /* oxlint-disable no-await-in-loop -- each lookup must observe the deletes this pass already made, so parallelising the page would make the mutation's read set depend on promise scheduling */
@@ -236,13 +305,66 @@ export const pruneStale = internalMutation({
         }
         /* oxlint-enable no-await-in-loop */
 
-        if (!page.isDone) {
-            await ctx.scheduler.runAfter(0, internal.exchangeRates.pruneStale, {
-                cursor: page.continueCursor,
+        return { cursor: page.continueCursor, deleted, isDone: page.isDone };
+    },
+    returns: v.object({ cursor: v.string(), deleted: v.number(), isDone: v.boolean() }),
+});
+
+/**
+ * Drives the prune one batch at a time: the cron's entry point, and every link
+ * of the chain that follows it.
+ *
+ * An ACTION rather than a mutation because it is the only place a continuation
+ * survives a failed batch. `scheduler.runAfter` inside a mutation is part of
+ * that mutation's transaction, so a batch that hits the deployment's write-rate
+ * limit takes its own reschedule down with it and the pass stops for the day —
+ * against a backlog that means it never drains at all. Here the batch is a
+ * nested mutation whose failure rolls back only itself, leaving this handler
+ * free to reschedule the same cursor with backoff.
+ */
+export const pruneStale = internalAction({
+    args: {
+        cursor: v.optional(v.union(v.string(), v.null())),
+        retries: v.optional(v.number()),
+        windowStart: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const windowStart = args.windowStart ?? ratesWindowStart();
+        const cursor = args.cursor ?? null;
+        const retries = args.retries ?? 0;
+
+        let batch: PruneBatchResult;
+        try {
+            batch = await ctx.runMutation(internal.exchangeRates.pruneStaleBatch, { cursor, windowStart });
+        } catch (error) {
+            const retry = nextPruneStep({ failed: true }, { cursor, retries });
+            if (!retry) {
+                // Out of budget. Throwing marks the run failed so the batch that is
+                // stuck is visible; the next daily cron restarts the pass from the
+                // top, and everything earlier batches deleted has already committed.
+                throw error;
+            }
+            console.error(
+                `Prune batch failed, retry ${retry.retries} of ${PRUNE_MAX_RETRIES} in ${retry.delayMs}ms`,
+                error
+            );
+            await ctx.scheduler.runAfter(retry.delayMs, internal.exchangeRates.pruneStale, {
+                cursor: retry.cursor,
+                retries: retry.retries,
+                windowStart,
+            });
+            return { deleted: 0, isDone: false };
+        }
+
+        const step = nextPruneStep({ cursor: batch.cursor, failed: false, isDone: batch.isDone }, { cursor, retries });
+        if (step) {
+            await ctx.scheduler.runAfter(step.delayMs, internal.exchangeRates.pruneStale, {
+                cursor: step.cursor,
+                retries: step.retries,
                 windowStart,
             });
         }
-        return { deleted, isDone: page.isDone };
+        return { deleted: batch.deleted, isDone: batch.isDone };
     },
     returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
 });
