@@ -8,9 +8,9 @@ describe("measureStrip", () => {
         const { getByText } = await render(
             <MeasureStrip
                 cells={[
-                    { key: "rows", label: "Rows", value: "17" },
-                    { key: "columns", label: "Columns", value: "4" },
-                    { key: "dates", label: "Dates", value: "dd-MM-yyyy" },
+                    { figure: "17", key: "rows", label: "Rows" },
+                    { figure: "4", key: "columns", label: "Columns" },
+                    { figure: "dd-MM-yyyy", key: "dates", label: "Dates" },
                 ]}
             />
         );

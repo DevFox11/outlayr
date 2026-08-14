@@ -4,10 +4,8 @@ import {
     accessibilityAddTraits,
     accessibilityElement,
     accessibilityLabel,
-    contentShape,
     foregroundStyle,
     onTapGesture,
-    shapes,
 } from "@expo/ui/swift-ui/modifiers";
 import { eq } from "drizzle-orm";
 import { useRouter } from "expo-router";
@@ -22,6 +20,7 @@ import { transfersRepo } from "@/data/transfers-core";
 import { transactions, transfers } from "@/db/schema";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 
 const RATE_DECIMALS = 4;
@@ -125,7 +124,7 @@ export default function TransferDetail({ id }: { id: string }) {
 					    without the accessibility modifiers that follow it. */}
                     <HStack
                         modifiers={[
-                            contentShape(shapes.rectangle()),
+                            hitArea(outline.rectangle()),
                             onTapGesture(confirmDelete),
                             accessibilityElement("combine"),
                             accessibilityAddTraits(["isButton"]),

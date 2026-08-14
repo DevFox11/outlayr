@@ -2,6 +2,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { categories, transactions } from "@/db/schema";
+import * as schema from "@/db/schema";
 import { buildRateTable } from "@/domain/valuation";
 
 import {
@@ -22,7 +23,7 @@ import {
 } from "./insights";
 import type { CategoryMeta, InsightsContribution } from "./insights";
 
-type TestDb = ReturnType<typeof drizzle>;
+type TestDb = ReturnType<typeof makeDb>;
 
 const at = (y: number, m: number, d: number, h = 0, min = 0): Date => new Date(y, m - 1, d, h, min, 0, 0);
 
@@ -30,7 +31,7 @@ const at = (y: number, m: number, d: number, h = 0, min = 0): Date => new Date(y
 // default Sunday-first week: week = Jul 13–19; month = Jul 1–31; year = 2025.
 const NOW = at(2025, 7, 15, 12, 0);
 
-function makeDb(): TestDb {
+function makeDb() {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
 		CREATE TABLE categories (
@@ -78,7 +79,7 @@ function makeDb(): TestDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite);
+    return drizzle(sqlite, { schema });
 }
 
 async function seed(db: TestDb): Promise<void> {

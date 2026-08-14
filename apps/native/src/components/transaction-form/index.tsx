@@ -421,6 +421,7 @@ function TransactionFormCategoryRow({
               strokeBorder({
                   color: colors.danger,
                   cornerRadius: 12,
+                  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- the key is @expo/ui's strokeBorder option name
                   shape: "roundedRectangle",
                   style: { lineWidth: 1.5 },
               }),

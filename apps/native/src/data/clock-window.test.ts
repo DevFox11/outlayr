@@ -2,14 +2,15 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions } from "@/db/schema";
+import * as schema from "@/db/schema";
 import { clockAdvances } from "@/domain/clock";
 import { startOfDay } from "@/domain/dates";
 
 import { logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
 
-type TestDb = ReturnType<typeof drizzle>;
+type TestDb = ReturnType<typeof makeDb>;
 
-function makeDb(): TestDb {
+function makeDb() {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
 		CREATE TABLE transactions (
@@ -44,7 +45,7 @@ function makeDb(): TestDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite);
+    return drizzle(sqlite, { schema });
 }
 
 async function save(db: TestDb, id: string, date: Date): Promise<void> {

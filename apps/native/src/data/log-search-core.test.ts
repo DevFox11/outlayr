@@ -2,17 +2,18 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions } from "@/db/schema";
+import * as schema from "@/db/schema";
 
 import { searchedTransactionsQuery } from "./log-search-core";
 import { logWindowRowsQuery } from "./transactions-core";
 
-type TestDb = ReturnType<typeof drizzle>;
+type TestDb = ReturnType<typeof makeDb>;
 
 const at = (y: number, m: number, d: number, h = 0, min = 0): Date => new Date(y, m - 1, d, h, min, 0, 0);
 
 const NOW = at(2025, 7, 15, 12).getTime();
 
-function makeDb(): TestDb {
+function makeDb() {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
 		CREATE TABLE transactions (
@@ -47,7 +48,7 @@ function makeDb(): TestDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite);
+    return drizzle(sqlite, { schema });
 }
 
 interface RowSeed {

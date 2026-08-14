@@ -1,6 +1,6 @@
 import { Button, Host } from "@expo/ui";
 import { Menu } from "@expo/ui/swift-ui";
-import { buttonBorderShape, buttonStyle, controlSize, labelStyle, tint } from "@expo/ui/swift-ui/modifiers";
+import { buttonStyle, controlSize, labelStyle, tint } from "@expo/ui/swift-ui/modifiers";
 import { router } from "expo-router";
 import { useRef } from "react";
 import { View } from "react-native";
@@ -12,6 +12,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
+import { buttonBorderOutline } from "@/lib/swift-ui-geometry";
 
 export function FloatingAddButton() {
     // `--tint`, not `--color-primary`: this is the one control on the ledger that
@@ -32,7 +33,7 @@ export function FloatingAddButton() {
                         label={t("log.add.menu")}
                         modifiers={[
                             buttonStyle("glassProminent"),
-                            buttonBorderShape("circle"),
+                            buttonBorderOutline("circle"),
                             tint(accentColor),
                             labelStyle("iconOnly"),
                             controlSize("extraLarge"),

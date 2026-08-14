@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
+import { z } from "zod";
 
 import type { Database } from "@/db/client";
 import {
@@ -291,25 +292,31 @@ function toWireValue(value: LocalValue | undefined): WireValue {
 }
 
 function toWireFields(spec: TableSpec, row: Row): WireFields {
-    const fields: WireFields = {};
-    for (const name of spec.fields) {
-        const value = row[name];
-        fields[name] = spec.dates.includes(name) ? toEpoch(value) : toWireValue(value);
-    }
-    return fields;
+    return Object.fromEntries(
+        spec.fields.map((name) => {
+            const value = row[name];
+            return [name, spec.dates.includes(name) ? toEpoch(value) : toWireValue(value)];
+        })
+    );
 }
 
+/** The one wire spelling of an instant — see {@link WireValue}. */
+const wireEpoch = z.number();
+/** A localId as the server hands it back. */
+const wireId = z.string();
+
 function toLocalDate(value: WireValue): Date | null {
-    return typeof value === "number" ? new Date(value) : null;
+    const epoch = wireEpoch.safeParse(value);
+    return epoch.success ? new Date(epoch.data) : null;
 }
 
 function toLocalFields(spec: TableSpec, fields: WireFields): Row {
-    const local: Row = {};
-    for (const name of spec.fields) {
-        const value = fields[name] ?? null;
-        local[name] = spec.dates.includes(name) ? toLocalDate(value) : value;
-    }
-    return local;
+    return Object.fromEntries(
+        spec.fields.map((name) => {
+            const value = fields[name] ?? null;
+            return [name, spec.dates.includes(name) ? toLocalDate(value) : value];
+        })
+    );
 }
 
 function chunked<T>(values: readonly T[]): T[][] {
@@ -622,10 +629,11 @@ async function applyInTransaction(
  * account converges on one live budget per category.
  */
 async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): Promise<boolean> {
-    const { categoryId } = row.fields;
-    if (row.deletedAt !== null || typeof categoryId !== "string") {
+    const incoming = wireId.safeParse(row.fields.categoryId);
+    if (row.deletedAt !== null || !incoming.success) {
         return false;
     }
+    const categoryId = incoming.data;
 
     const rivals = await db
         .select({ id: budgets.id, updatedAt: budgets.updatedAt })

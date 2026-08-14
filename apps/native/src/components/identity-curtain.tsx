@@ -67,6 +67,7 @@ export function curtainGradient(hues: string[] | null, isDark: boolean) {
                 { color: withAlpha(color, 0), positions: ["100%"] },
             ],
             position: { left, top: 0 },
+            // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- the key is uniwind's radial-gradient option name
             shape: "ellipse",
             size: { x: "70%", y: CURTAIN_HEIGHT },
             type: "radial-gradient",

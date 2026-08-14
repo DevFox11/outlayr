@@ -3,7 +3,6 @@ import type { TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
 import {
     accessibilityLabel,
     buttonStyle,
-    contentShape,
     font,
     foregroundStyle,
     frame,
@@ -12,7 +11,6 @@ import {
     multilineTextAlignment,
     onSubmit,
     onTapGesture,
-    shapes,
     submitLabel,
     textInputAutocapitalization,
     tint,
@@ -20,6 +18,7 @@ import {
 import type { RefObject } from "react";
 
 import { FORM_TOP_MARGIN } from "@/components/editor-style";
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
 const ROW_LABEL = foregroundStyle({
     style: "secondary",
@@ -105,7 +104,7 @@ export function AccountEditorDetailsSection({
                 />
             </HStack>
 
-            <HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(onCurrencyPress)]}>
+            <HStack modifiers={[hitArea(outline.rectangle()), onTapGesture(onCurrencyPress)]}>
                 <SwiftText modifiers={[ROW_LABEL]}>{currencyLabel}</SwiftText>
                 <Spacer />
                 <SwiftText modifiers={[foregroundStyle(tintColor)]}>{currencyCode}</SwiftText>
@@ -144,7 +143,7 @@ export function AccountEditorDetailsSection({
                             foregroundStyle(negative ? tintColor : mutedColor),
                             // A bare glyph measures ~10pt; 44 is the HIG minimum target.
                             frame({ height: SIGN_HIT, width: SIGN_HIT }),
-                            contentShape(shapes.rectangle()),
+                            hitArea(outline.rectangle()),
                         ]}
                     >
                         {negative ? "−" : "+"}

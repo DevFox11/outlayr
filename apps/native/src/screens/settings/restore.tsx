@@ -52,7 +52,7 @@ function RestoreDataContent({ db }: { db: Database }) {
                 Alert.alert(
                     t("settings.restore.confirmTitle"),
                     t("settings.restore.confirmBody", {
-                        count: String(archiveRowCount(document)),
+                        count: archiveRowCount(document),
                     }),
                     [
                         { style: "cancel", text: t("common.cancel") },

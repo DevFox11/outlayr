@@ -9,18 +9,21 @@ const FAMILY = {
     semibold: "SFProRounded-Semibold",
 } as const;
 
+/**
+ * `fontWeight` is declared as a numeric scale plus the two names that stand for
+ * points on it, so both spellings resolve to the same axis. A name RN accepts
+ * but this does not map — "semibold", "heavy" — falls back to regular, which is
+ * what the family table below would have picked for it anyway.
+ */
 function toNumericWeight(weight: TextStyle["fontWeight"]): number {
-    if (typeof weight === "number") {
-        return weight;
-    }
     if (weight === "bold") {
         return 700;
     }
     if (weight == null || weight === "normal") {
         return 400;
     }
-    const parsed = Number.parseInt(weight, 10);
-    return Number.isNaN(parsed) ? 400 : parsed;
+    const parsed = Number(weight);
+    return Number.isFinite(parsed) ? parsed : 400;
 }
 
 function roundedFamily(weight: TextStyle["fontWeight"]): string {

@@ -119,19 +119,19 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
                 <MeasureStrip
                     cells={[
                         {
+                            figure: String(state.parsed.rows.length),
                             key: "rows",
                             label: t("import.fileRowsLabel"),
-                            value: String(state.parsed.rows.length),
                         },
                         {
+                            figure: String(state.parsed.width),
                             key: "columns",
                             label: t("import.fileColumnsLabel"),
-                            value: String(state.parsed.width),
                         },
                         {
+                            figure: dateFormat ?? "—",
                             key: "dates",
                             label: t("import.fileDatesLabel"),
-                            value: dateFormat ?? "—",
                         },
                     ]}
                 />
@@ -171,9 +171,9 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
 
             <MeasureStrip
                 cells={[
-                    { key: "rows", label: t("import.fileRowsLabel"), value: "—" },
-                    { key: "columns", label: t("import.fileColumnsLabel"), value: "—" },
-                    { key: "dates", label: t("import.fileDatesLabel"), value: "—" },
+                    { figure: "—", key: "rows", label: t("import.fileRowsLabel") },
+                    { figure: "—", key: "columns", label: t("import.fileColumnsLabel") },
+                    { figure: "—", key: "dates", label: t("import.fileDatesLabel") },
                 ]}
             />
 

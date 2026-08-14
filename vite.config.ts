@@ -1,3 +1,4 @@
+import type { OxlintOverride } from "oxlint";
 import ultraciteFmt from "ultracite/oxfmt";
 import antiSlop from "ultracite/oxlint/anti-slop";
 import core from "ultracite/oxlint/core";
@@ -83,12 +84,7 @@ const VITEST_ONLY_OPT_OUT = ["prefer-describe-function-title", "require-mock-typ
 // re-anchored to the tree that actually uses that runner. The opt-outs have to
 // be merged in here rather than added as a later override: a rule from a plugin
 // is only resolvable in a block that enables the plugin.
-const scopeTo = (
-    prefix: string,
-    plugin: string,
-    extraOptOut: string[],
-    preset: { overrides?: { files: string[]; rules?: Record<string, unknown> }[] }
-) =>
+const scopeTo = (prefix: string, plugin: string, extraOptOut: string[], preset: { overrides?: OxlintOverride[] }) =>
     (preset.overrides ?? []).map((override) => ({
         ...override,
         files: override.files.map((glob) => `${prefix}/${glob}`),
@@ -276,56 +272,11 @@ export default defineConfig({
             // anti-slop (shipped by ultracite, extended above) rejects low-evidence
             // typing: casts with no stated reason, `unknown`/`object` inputs, and
             // values that cross a boundary unparsed. Its preset sets every rule to
-            // `error`; the severities below are what the tree already satisfies and
-            // so have to be restated here. `error` means zero sites today,
-            // so the rule holds a line rather than opening a backlog; `warn` means
-            // real signal against a pre-existing count, and this change is linter
-            // wiring rather than a typing rewrite. Pre-commit lints staged files,
-            // so a warning surfaces on the file someone is already editing. The
-            // test override above drops the rules whose subject is the fixture.
+            // `error` and nothing here restates a severity — the tree satisfies all
+            // fifteen as shipped. The only carve-outs left are scoped to files:
+            // the test block above (where the cast and the widened literal ARE the
+            // fixture), and the three source files named in their own overrides.
             //
-            // The two that remain are third-party types with no overlap to assert
-            // against; both have a file override above.
-            "anti-slop/no-chained-type-assertions": "error",
-            "anti-slop/no-conditional-empty-object-spread": "error",
-            // 5 sites left. Four are a row keyed by a runtime column name
-            // (`WireFields`, `ArchiveRow`, `TableRow`) — genuinely an open
-            // dictionary, which is why the sync engine and the archive exist. The
-            // fifth is a preset table whose `satisfies` form narrows the category
-            // names past what `merchant-map.test.ts` passes in.
-            "anti-slop/no-known-value-widening": "warn",
-            // Every site but one is a test; the exception is
-            // `jest/expo-observe-stub.js`. The override covers both, which leaves
-            // this an error for source — no shipping module mocks a module.
-            "anti-slop/no-module-mocking": "error",
-            "anti-slop/no-object-parameters": "error",
-            "anti-slop/no-reflect-apply": "error",
-            "anti-slop/no-reflect-get": "error",
-            // 8 sites left, all narrowing a union TypeScript already declares — a
-            // `weight: number | string` prop, a `WireValue` column, a translation
-            // count. Every I/O boundary the rule was actually aimed at now parses
-            // with zod instead, but narrowing a declared union is what `typeof` is
-            // for, so this cannot become an error without rejecting correct code.
-            "anti-slop/no-runtime-typeof": "warn",
-            // Bans the substring "shape" in any identifier, imported ones included.
-            // Most sites here are `contentShape`, `shapes` and `buttonBorderShape`
-            // from @expo/ui/swift-ui/modifiers, which are SwiftUI's names for real
-            // geometry and cannot be renamed.
-            "anti-slop/no-shape-in-symbol-names": "off",
-            // Every caught value is now named `cause`, which is the rule's own
-            // carve-out and what the call sites already called it.
-            "anti-slop/no-unknown-parameters": "error",
-            // Every injected callback now declares `Promise<void>` where its value
-            // is ignored. The one exception has a file override above.
-            "anti-slop/no-unknown-returns": "error",
-            "anti-slop/no-unknown-type-aliases": "error",
-            // 2 sites left, both a third-party type parameter rather than a
-            // dictionary of ours: drizzle's schema generic on `SpendDb`, and the
-            // oxlint rule map in `scopeTo` below.
-            "anti-slop/no-unsafe-dictionary-type": "warn",
-            "anti-slop/no-widen-then-assert": "error",
-            // Every assertion left in the tree now states its invariant.
-            "anti-slop/require-safety-comment-for-type-assertion": "error",
             // oxlint counts cyclomatic complexity where Biome counted cognitive, so
             // the old threshold of 25 does not carry across. On the new metric the
             // cluster that is barely over sits at 26-33 and only the transaction

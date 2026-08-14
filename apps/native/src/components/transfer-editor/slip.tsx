@@ -3,20 +3,20 @@ import {
     accessibilityLabel,
     background,
     buttonStyle,
-    contentShape,
     font,
     foregroundStyle,
     frame,
     padding,
-    shapes,
 } from "@expo/ui/swift-ui/modifiers";
+
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
 const TILE = 38;
 const NODE = 22;
 const STEM_WEIGHT = 1.5;
 const ROW_H = 36;
 const STUB = 9;
-const CAPSULE = shapes.capsule();
+const CAPSULE = outline.capsule();
 
 const KICKER = font({ design: "monospaced", size: 10, weight: "regular" });
 const NAME = font({ design: "rounded", size: 16, weight: "semibold" });
@@ -107,7 +107,7 @@ function Leg({
 }) {
     const stub = <Rectangle modifiers={[foregroundStyle(stemColor), frame({ height: STUB, width: STEM_WEIGHT })]} />;
     return (
-        <HStack modifiers={[contentShape(shapes.rectangle())]} spacing={12}>
+        <HStack modifiers={[hitArea(outline.rectangle())]} spacing={12}>
             <VStack modifiers={[frame({ width: TILE })]} spacing={0}>
                 {stem === "above" ? stub : null}
                 <SwiftText
@@ -116,7 +116,7 @@ function Leg({
                         frame({ height: TILE, width: TILE }),
                         background(
                             surfaceColor,
-                            shapes.roundedRectangle({ cornerRadius: 11, roundedCornerStyle: "continuous" })
+                            outline.roundedRectangle({ cornerRadius: 11, roundedCornerStyle: "continuous" })
                         ),
                     ]}
                 >
@@ -192,7 +192,7 @@ export function TransferEditorSlip({
                             modifiers={[
                                 frame({ height: NODE, width: NODE }),
                                 background(transferColor, CAPSULE),
-                                contentShape(shapes.rectangle()),
+                                hitArea(outline.rectangle()),
                             ]}
                             size={11}
                             systemName="arrow.up.arrow.down"

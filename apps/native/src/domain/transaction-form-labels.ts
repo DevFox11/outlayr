@@ -42,5 +42,6 @@ const LEAD_LABEL_KEY = {
 } satisfies Record<LeadLabelKey, TranslationKey>;
 
 export function leadLabel(t: TranslateFn, lead: number | null): string {
-    return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
+    // A null lead resolves to `remind.off`, which carries no `{count}`.
+    return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead ?? undefined });
 }

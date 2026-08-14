@@ -3,6 +3,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions } from "@/db/schema";
+import * as schema from "@/db/schema";
 import { buildRateTable } from "@/domain/valuation";
 
 import { spendingCalendarQuery, useSpendingCalendar } from "./spending-calendar";
@@ -13,7 +14,7 @@ jest.mock("./live-query", () => ({
 }));
 jest.mock("./use-valuation", () => ({ useValuation: jest.fn() }));
 
-type TestDb = ReturnType<typeof drizzle>;
+type TestDb = ReturnType<typeof makeDb>;
 
 const at = (year: number, month: number, day: number, hour = 0, minute = 0, second = 0): Date =>
     new Date(year, month - 1, day, hour, minute, second);
@@ -21,7 +22,7 @@ const at = (year: number, month: number, day: number, hour = 0, minute = 0, seco
 const NOW = at(2026, 8, 10, 12);
 const EARLIEST = at(2026, 2, 10);
 
-function makeDb(): TestDb {
+function makeDb() {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
 		CREATE TABLE transactions (
@@ -56,7 +57,7 @@ function makeDb(): TestDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite);
+    return drizzle(sqlite, { schema });
 }
 
 async function insert(

@@ -374,11 +374,18 @@ export interface SuggestedCategoryPreset {
     name: string;
 }
 
-/** Ported from Swift `SuggestedCategory`. */
-export const SUGGESTED_CATEGORY_PRESETS: {
+/**
+ * The two lists first-run offers, split by direction. Named rather than written
+ * inline on the constant so the contract is the type, not the literal: `name`
+ * stays `string`, which is what `merchant-map` matches against.
+ */
+export interface SuggestedCategoryPresets {
     readonly expense: readonly SuggestedCategoryPreset[];
     readonly income: readonly SuggestedCategoryPreset[];
-} = {
+}
+
+/** Ported from Swift `SuggestedCategory`. */
+export const SUGGESTED_CATEGORY_PRESETS: SuggestedCategoryPresets = {
     expense: [
         { color: "#53915A", icon: "ShoppingCart01", name: "Groceries" },
         { color: "#A97332", icon: "Restaurant01", name: "Dining Out" },

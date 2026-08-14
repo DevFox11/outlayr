@@ -452,7 +452,7 @@ async function buildIntentBudgets(
     whole: Money,
     valuation: Valuation
 ): Promise<IntentBudgetProps[]> {
-    const shape = (id: string, name: string, amount: number, spent: number, type: number): IntentBudgetProps => ({
+    const view = (id: string, name: string, amount: number, spent: number, type: number): IntentBudgetProps => ({
         id,
         limit: whole(amount),
         name,
@@ -469,7 +469,7 @@ async function buildIntentBudgets(
     if (main) {
         const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
         out.push(
-            shape(
+            view(
                 OVERALL_BUDGET_ID,
                 main.name?.trim() ? main.name.trim() : translateNow("budgets.form.kindOverall"),
                 limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
@@ -488,7 +488,7 @@ async function buildIntentBudgets(
         const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
         const meta = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
         out.push(
-            shape(
+            view(
                 row.id,
                 row.name?.trim() ? row.name.trim() : (meta?.name ?? translateNow("budgets.form.defaultName")),
                 limitIn(row, window.start, valuation.displayCurrency, valuation.rates),

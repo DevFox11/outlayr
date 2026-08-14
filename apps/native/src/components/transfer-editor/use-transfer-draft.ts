@@ -18,7 +18,8 @@ export const RATE_DISPLAY_DECIMALS = 4;
 /** `shortfall` is signed, in the fee's own currency: how far the fee overruns its side. */
 export type TransferBlock = { kind: "fee"; shortfall: number } | { kind: "rate" };
 
-type TransferShape = Omit<TransferValues, "arrived">;
+/** Everything the user has entered — the arrival is solved from it, never typed. */
+type EnteredTransfer = Omit<TransferValues, "arrived">;
 
 interface Units {
     fee: number;
@@ -52,30 +53,35 @@ function selectedRate(
     return rateType === "custom" ? custom : market;
 }
 
-function transferBlock(shape: TransferShape | null, arrived: number | null, feeDecimals: number): TransferBlock | null {
-    if (shape === null) {
+function transferBlock(
+    entered: EnteredTransfer | null,
+    arrived: number | null,
+    feeDecimals: number
+): TransferBlock | null {
+    if (entered === null) {
         return { kind: "rate" };
     }
-    if ((arrived !== null && arrived > 0) || shape.sent <= 0) {
+    if ((arrived !== null && arrived > 0) || entered.sent <= 0) {
         return null;
     }
-    const affordable = solveTransfer({ ...shape, arrived: 0 }, "fee", feeDecimals);
+    const affordable = solveTransfer({ ...entered, arrived: 0 }, "fee", feeDecimals);
     return affordable === null
         ? { kind: "rate" }
-        : { kind: "fee", shortfall: roundMoney(affordable - shape.fee, feeDecimals) };
+        : { kind: "fee", shortfall: roundMoney(affordable - entered.fee, feeDecimals) };
 }
 
 /** An arrival of null or zero is `transfer-reconcile`'s verdict that the fee takes
  * everything reaching its side. Both refuse: a transfer that delivers nothing is a
- * fee wearing a transfer's shape, and the legs would credit it as money moved. */
-function reconcile(shape: TransferShape | null, pinned: number | null, units: Units): DraftMath {
-    const arrived = pinned ?? (shape === null ? null : solveTransfer({ ...shape, arrived: 0 }, "arrived", units.to));
+ * fee wearing a transfer's clothes, and the legs would credit it as money moved. */
+function reconcile(entered: EnteredTransfer | null, pinned: number | null, units: Units): DraftMath {
+    const arrived =
+        pinned ?? (entered === null ? null : solveTransfer({ ...entered, arrived: 0 }, "arrived", units.to));
     const values: TransferValues | null =
-        shape === null || arrived === null || arrived <= 0 ? null : { ...shape, arrived };
+        entered === null || arrived === null || arrived <= 0 ? null : { ...entered, arrived };
     if (values === null) {
         return {
             arrived,
-            block: transferBlock(shape, arrived, units.fee),
+            block: transferBlock(entered, arrived, units.fee),
             gap: 0,
             gapFee: null,
             gapRate: null,

@@ -65,7 +65,8 @@ const UNPARSEABLE_GROUNDED_OUTPUT: z.infer<typeof groundedOutputSchema> = {
     tags: [],
 };
 
-const JSON_SHAPE = '{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
+const JSON_CONTRACT =
+    '{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
 
 /**
  * `regionCode` beats a same-named business elsewhere without licensing a
@@ -89,7 +90,7 @@ function buildGroundedPrompt(
     return [
         `Identify this real-world ${kind} merchant or business: "${name}".`,
         "Use web search to confirm its primary website domain before answering.",
-        `Respond with ONLY one JSON object, no markdown fence, no other text, shaped exactly as: ${JSON_SHAPE}.`,
+        `Respond with ONLY one JSON object, no markdown fence, no other text, shaped exactly as: ${JSON_CONTRACT}.`,
         `Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
         "Set emoji to a single emoji that suits the category, or null.",
         "Suggest at most 3 short tags, and its primary web domain only if a search result confirms it, else null.",

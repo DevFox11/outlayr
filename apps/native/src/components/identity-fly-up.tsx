@@ -251,7 +251,7 @@ export function IdentityFlyUpSheetHost({ children }: { children: ReactNode }) {
         const unsubscribes = [
             listen(navigation, "transitionStart", (event) => {
                 const closing = event.data?.closing;
-                if (typeof closing === "boolean") {
+                if (closing !== undefined) {
                     setPickerOpen(!closing);
                 }
             }),

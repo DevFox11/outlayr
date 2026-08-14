@@ -1,6 +1,13 @@
 export type Catalog = Readonly<Record<string, string>>;
 
-export type TranslationParams = Readonly<Record<string, string | number | null | undefined>>;
+export type TranslationParams = Readonly<Record<string, string | number | null | undefined>> & {
+    /**
+     * The plural selector, declared so `translate` reads a number rather than
+     * sniffing what a caller happened to put under this key. A catalog with no
+     * `_one`/`_other` pair for the key still renders it as a plain placeholder.
+     */
+    readonly count?: number;
+};
 
 interface TranslateOptions {
     catalog: Catalog;
@@ -41,7 +48,7 @@ function lookup(key: string, catalog: Catalog, fallback: Catalog) {
 
 export function translate(key: string, { catalog, fallback, params }: TranslateOptions): string {
     const count = params?.count;
-    if (typeof count === "number") {
+    if (count !== undefined) {
         const pluralised = `${key}${pluralSuffix(count)}`;
         const form = lookup(pluralised, catalog, fallback);
         if (form !== undefined) {

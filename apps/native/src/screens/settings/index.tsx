@@ -107,8 +107,7 @@ function SettingsContent({ db }: { db: Database }) {
     const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
 
     const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt);
-    const syncValue =
-        syncLabel.count === undefined ? t(syncLabel.key) : t(syncLabel.key, { count: String(syncLabel.count) });
+    const syncValue = syncLabel.count === undefined ? t(syncLabel.key) : t(syncLabel.key, { count: syncLabel.count });
 
     return (
         <SettingsScreen footer={`Outlayr ${version} (${build})`}>

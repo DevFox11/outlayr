@@ -3,11 +3,9 @@ import {
     accessibilityLabel,
     background,
     buttonStyle,
-    contentShape,
     font,
     foregroundStyle,
     padding,
-    shapes,
 } from "@expo/ui/swift-ui/modifiers";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { NumberFlow } from "number-flow-react-native";
@@ -16,8 +14,9 @@ import { Text, View } from "react-native";
 import { amountHeroFontSize } from "@/domain/amount-hero-size";
 import { numberLocale } from "@/domain/money";
 import { useLanguage } from "@/i18n/context";
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
-const CAPSULE = shapes.capsule();
+const CAPSULE = outline.capsule();
 const CHIP = font({ design: "monospaced", size: 11, weight: "medium" });
 const ARRIVES = font({ design: "monospaced", size: 13 });
 
@@ -112,7 +111,7 @@ export function TransferEditorHero({
                 </HStack>
             ) : null}
 
-            <Button modifiers={[buttonStyle("plain"), contentShape(shapes.rectangle())]} onPress={onSentPress}>
+            <Button modifiers={[buttonStyle("plain"), hitArea(outline.rectangle())]} onPress={onSentPress}>
                 <RNHostView matchContents>
                     <View
                         style={{
@@ -150,7 +149,7 @@ export function TransferEditorHero({
                         modifiers={[
                             buttonStyle("plain"),
                             accessibilityLabel(arrivedA11y),
-                            contentShape(shapes.rectangle()),
+                            hitArea(outline.rectangle()),
                         ]}
                         onPress={onArrivedPress}
                     >

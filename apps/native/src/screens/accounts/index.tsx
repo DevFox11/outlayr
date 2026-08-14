@@ -15,13 +15,11 @@ import {
     accessibilityAddTraits,
     accessibilityElement,
     accessibilityLabel,
-    contentShape,
     font,
     foregroundStyle,
     lineLimit,
     monospacedDigit,
     onTapGesture,
-    shapes,
     tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
@@ -42,6 +40,7 @@ import type { Account } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
 
@@ -142,7 +141,7 @@ function AccountsReady({ db }: { db: Database }) {
                             <Section modifiers={[rowGround]}>
                                 <HStack
                                     modifiers={[
-                                        contentShape(shapes.rectangle()),
+                                        hitArea(outline.rectangle()),
                                         accessibilityLabel(t("transfers.a11y.new")),
                                         onTapGesture(() => router.push("/transactions/transfers/create")),
                                     ]}
@@ -198,7 +197,7 @@ const AccountRow = memo(({ account, colors, db, onDelete, onOpen }: AccountRowPr
         <SwipeActions>
             <HStack
                 modifiers={[
-                    contentShape(shapes.rectangle()),
+                    hitArea(outline.rectangle()),
                     onTapGesture(() => onOpen(account.id)),
                     // An `onTapGesture` is invisible to VoiceOver: without these the row
                     // is four loose strings and no way to open it.

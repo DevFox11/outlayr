@@ -57,9 +57,9 @@ export function DoneStep({ review, onDone }: DoneStepProps) {
             <MeasureStrip
                 cells={[
                     {
+                        figure: String(count),
                         key: "added",
                         label: t("import.doneAddedLabel"),
-                        value: String(count),
                     },
                     {
                         key: "out",

@@ -83,14 +83,12 @@ export function archiveFileName(now: Date): string {
 
 /** Instants out to epoch ms, so nothing depends on how JSON renders a Date. */
 export function encodeArchiveRow(row: TableRow): ArchiveRow {
-    const encoded: ArchiveRow = {};
-    for (const [column, value] of Object.entries(row)) {
-        // Every `Date` encodes, not just the listed ones: the list decides what
-        // decodes BACK to a Date, and letting an unlisted one fall through would
-        // hand `JSON.stringify` an ISO string that restores as text.
-        encoded[column] = value instanceof Date ? value.getTime() : value;
-    }
-    return encoded;
+    // Every `Date` encodes, not just the listed ones: the list decides what
+    // decodes BACK to a Date, and letting an unlisted one fall through would
+    // hand `JSON.stringify` an ISO string that restores as text.
+    return Object.fromEntries(
+        Object.entries(row).map(([column, value]) => [column, value instanceof Date ? value.getTime() : value])
+    );
 }
 
 /**
@@ -100,16 +98,15 @@ export function encodeArchiveRow(row: TableRow): ArchiveRow {
  */
 export function decodeArchiveRow(table: ArchiveTable, row: ArchiveRow): TableRow {
     const dateColumns = ARCHIVE_DATE_COLUMNS[table];
-    const decoded: TableRow = {};
-    for (const [column, value] of Object.entries(row)) {
-        if (!dateColumns.includes(column)) {
-            decoded[column] = value;
-            continue;
-        }
-        const instant = z.number().finite().safeParse(value);
-        decoded[column] = instant.success ? new Date(instant.data) : null;
-    }
-    return decoded;
+    return Object.fromEntries(
+        Object.entries(row).map(([column, value]) => {
+            if (!dateColumns.includes(column)) {
+                return [column, value];
+            }
+            const instant = z.number().finite().safeParse(value);
+            return [column, instant.success ? new Date(instant.data) : null];
+        })
+    );
 }
 
 export function serializeArchive(document: ArchiveDocument): string {

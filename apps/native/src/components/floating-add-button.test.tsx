@@ -54,6 +54,7 @@ jest.mock("@expo/ui/swift-ui", () => ({
     Menu: ({ children }: { children: ReactNode }) => children,
 }));
 jest.mock("@expo/ui/swift-ui/modifiers", () => ({
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- the key is the real module's export name, so a rename would stop the mock standing in for it
     buttonBorderShape: () => ({}),
     buttonStyle: () => ({}),
     controlSize: () => ({}),

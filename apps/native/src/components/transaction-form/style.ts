@@ -1,17 +1,19 @@
-import { Animation, contentShape, font, foregroundStyle, frame, shapes } from "@expo/ui/swift-ui/modifiers";
+import { Animation, font, foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
+
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
 export const ROW = [frame({ minHeight: 54 })];
 /**
  * For the rows that ARE buttons: a `.plain` Button hit-tests only its drawn
- * glyphs, so without a content shape the `Spacer` gap mid-row is dead and a tap
+ * glyphs, so without a `hitArea` the `Spacer` gap mid-row is dead and a tap
  * anywhere but directly on the label or value silently does nothing.
  *
  * Deliberately NOT applied to every row — a greedy rect over the Name,
  * date/time or toggle rows would swallow the taps meant for the control
  * living inside them.
  */
-export const TAP_ROW = [...ROW, contentShape(shapes.rectangle())];
-export const CARD_SHAPE = shapes.roundedRectangle({
+export const TAP_ROW = [...ROW, hitArea(outline.rectangle())];
+export const CARD_OUTLINE = outline.roundedRectangle({
     cornerRadius: 12,
     roundedCornerStyle: "continuous",
 });

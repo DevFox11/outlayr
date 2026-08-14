@@ -1,23 +1,16 @@
 import { Button, HStack, Image, RNHostView, Spacer, Text as SwiftText, VStack } from "@expo/ui/swift-ui";
-import {
-    background,
-    buttonStyle,
-    contentShape,
-    font,
-    foregroundStyle,
-    padding,
-    shapes,
-} from "@expo/ui/swift-ui/modifiers";
+import { background, buttonStyle, font, foregroundStyle, padding } from "@expo/ui/swift-ui/modifiers";
 import { NumberFlow } from "number-flow-react-native";
 import { Text, View } from "react-native";
 
 import { amountHeroFontSize } from "@/domain/amount-hero-size";
 import { numberLocale } from "@/domain/money";
 import { useLanguage } from "@/i18n/context";
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
 const CHIP = font({ design: "rounded", size: 15, weight: "semibold" });
 const CURRENCY = font({ design: "rounded", size: 14, weight: "medium" });
-const CAPSULE = shapes.capsule();
+const CAPSULE = outline.capsule();
 
 interface TransactionFormAmountHeroProps {
     amount: number;
@@ -98,7 +91,7 @@ export function TransactionFormAmountHero({
                 <Spacer />
             </HStack>
 
-            <Button modifiers={[buttonStyle("plain"), contentShape(shapes.rectangle())]} onPress={onPress}>
+            <Button modifiers={[buttonStyle("plain"), hitArea(outline.rectangle())]} onPress={onPress}>
                 <RNHostView matchContents>
                     <View
                         style={{

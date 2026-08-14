@@ -3,7 +3,7 @@ import { render } from "@testing-library/react-native";
 import { Text } from "react-native";
 
 import { TransactionFormDetailsSection } from "./details-section";
-import { CARD_SHAPE } from "./style";
+import { CARD_OUTLINE } from "./style";
 
 interface JsonNode {
     children: (JsonNode | string)[] | null;
@@ -114,7 +114,7 @@ describe("transactionFormDetailsSection", () => {
 
     it("applies the caller's card modifiers to the section root", async () => {
         const { toJSON } = await renderSection({
-            card: [background("#FF00FF", CARD_SHAPE)],
+            card: [background("#FF00FF", CARD_OUTLINE)],
         });
         const tree = toJSON() as JsonNode;
         const modifiers = tree.props.modifiers as { $type: string }[];

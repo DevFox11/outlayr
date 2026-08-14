@@ -16,7 +16,6 @@ import {
 import {
     accessibilityAddTraits,
     buttonStyle,
-    contentShape,
     font,
     foregroundStyle,
     frame,
@@ -29,7 +28,6 @@ import {
     onTapGesture,
     opacity,
     padding,
-    shapes,
 } from "@expo/ui/swift-ui/modifiers";
 import { PlusSignIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { HugeiconsIcon } from "@hugeicons/react-native";
@@ -54,6 +52,7 @@ import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { staggerDelay } from "@/theme/mark-motion";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
@@ -484,9 +483,9 @@ function CategoryRow({
                         // A single Section leaves VoiceOver no per-parent group boundary; the
                         // heading trait hands it back.
                         ...(indented ? [] : [accessibilityAddTraits(["isHeader"])]),
-                        // Without `contentShape`, the Spacer and amount gap are not
+                        // Without `hitArea`, the Spacer and amount gap are not
                         // hit-testable, so a row tap only lands on the label.
-                        contentShape(shapes.rectangle()),
+                        hitArea(outline.rectangle()),
                         onTapGesture(() => onEdit(category)),
                     ]}
                     spacing={indented ? 10 : 12}
@@ -547,7 +546,7 @@ function GhostAddRow({ tint, closesTree, onPress }: { tint: string; closesTree: 
                     padding({ vertical: 3 }),
                     padding({ leading: CHILD_LEADING }),
                     padding({ trailing: ROW_TRAILING }),
-                    contentShape(shapes.rectangle()),
+                    hitArea(outline.rectangle()),
                     onTapGesture(onPress),
                 ]}
                 spacing={10}

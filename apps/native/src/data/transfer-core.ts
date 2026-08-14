@@ -269,6 +269,17 @@ function readRateMetadata(
     return { exchangeRate, exchangeRateType };
 }
 
+/**
+ * Read or skipped, told apart by a field rather than by the runtime type of the
+ * return value — `ImportEntry` and `SkipReason` are both things a row can
+ * legitimately produce, so the caller branches on which one happened.
+ */
+type ReadRow = { entry: ImportEntry; skipped: null } | { entry: null; skipped: SkipReason };
+
+function skip(reason: SkipReason): ReadRow {
+    return { entry: null, skipped: reason };
+}
+
 function readImportRow(
     row: readonly string[],
     mapping: ColumnMapping,
@@ -276,44 +287,47 @@ function readImportRow(
     decimal: DecimalSeparator,
     links: ReadonlyMap<string, string>,
     categoryIncome: ReadonlyMap<string, boolean>
-): ImportEntry | SkipReason {
+): ReadRow {
     const categoryId = links.get(categoryKey(row[mapping.category] ?? ""));
     if (categoryId == null) {
-        return "category";
+        return skip("category");
     }
 
     const date = parseCsvDate(row[mapping.date] ?? "", dateFormat);
     if (date == null) {
-        return "date";
+        return skip("date");
     }
 
     const amount = parseCsvAmount(row[mapping.amount] ?? "", decimal);
     if (amount == null) {
-        return "amount";
+        return skip("amount");
     }
     const currencyCell = mapping.currency == null ? "" : (row[mapping.currency] ?? "").trim();
     const currency = CURRENCY_CODE.test(currencyCell) ? currencyCell.toUpperCase() : null;
     const rateMetadata = readRateMetadata(row, mapping, decimal);
     if (rateMetadata === "rate") {
-        return "rate";
+        return skip("rate");
     }
     if (
         rateMetadata.exchangeRateType != null &&
         (currency === "USD" || (rateMetadata.exchangeRateType === "eur_reference" && currency !== "VES"))
     ) {
-        return "rate";
+        return skip("rate");
     }
 
     const declaredType = mapping.type == null ? null : parseCsvType(row[mapping.type] ?? "");
 
     return {
-        amount: Math.abs(amount),
-        categoryId,
-        currency,
-        date,
-        ...rateMetadata,
-        income: declaredType ?? categoryIncome.get(categoryId) ?? false,
-        note: mapping.note == null ? "" : (row[mapping.note] ?? "").trim(),
+        entry: {
+            amount: Math.abs(amount),
+            categoryId,
+            currency,
+            date,
+            ...rateMetadata,
+            income: declaredType ?? categoryIncome.get(categoryId) ?? false,
+            note: mapping.note == null ? "" : (row[mapping.note] ?? "").trim(),
+        },
+        skipped: null,
     };
 }
 
@@ -338,18 +352,19 @@ export function buildImportPlan(
 
     for (const [index, row] of rows.entries()) {
         const read = readImportRow(row, mapping, dateFormat, decimal, links, categoryIncome);
-        if (typeof read === "string") {
-            skipped.push({ reason: read, row: index + 1 });
+        if (read.entry === null) {
+            skipped.push({ reason: read.skipped, row: index + 1 });
             continue;
         }
 
-        entries.push(read);
+        const { entry } = read;
+        entries.push(entry);
 
-        if (earliest == null || read.date < earliest) {
-            earliest = read.date;
+        if (earliest == null || entry.date < earliest) {
+            earliest = entry.date;
         }
-        if (latest == null || read.date > latest) {
-            latest = read.date;
+        if (latest == null || entry.date > latest) {
+            latest = entry.date;
         }
     }
 

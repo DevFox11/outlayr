@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { exchangeRates } from "@/db/schema";
+import * as schema from "@/db/schema";
 import { logCurrencyOptions } from "@/domain/log-currency-options";
 import { buildRateTable, valueExactIn } from "@/domain/valuation";
 
@@ -10,9 +11,9 @@ import { VALUATION_RATE_TYPE } from "./valuation-source";
 
 const NOW = 1_700_000_000_000;
 
-type Db = ReturnType<typeof drizzle>;
+type Db = ReturnType<typeof makeDb>;
 
-function makeDb(): Db {
+function makeDb() {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
 		CREATE TABLE exchangeRates (
@@ -25,7 +26,7 @@ function makeDb(): Db {
 			PRIMARY KEY (quote, rateType, date)
 		);
 	`);
-    return drizzle(sqlite);
+    return drizzle(sqlite, { schema });
 }
 
 function seed(db: Db): void {

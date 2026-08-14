@@ -333,12 +333,12 @@ export function ReviewStep({ review }: ReviewStepProps) {
             <MeasureStrip
                 cells={[
                     {
-                        key: "toImport",
-                        label: t("import.reviewToImportLabel"),
-                        value: t("import.reviewToImportValue", {
+                        figure: t("import.reviewToImportValue", {
                             count: review.selectedCount,
                             total: entryRows.length,
                         }),
+                        key: "toImport",
+                        label: t("import.reviewToImportLabel"),
                     },
                     {
                         key: "out",

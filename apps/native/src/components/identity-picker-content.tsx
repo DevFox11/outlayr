@@ -22,7 +22,6 @@ import {
     labelsHidden,
     padding,
     pickerStyle,
-    shapes,
     tag,
     textCase,
     textInputAutocapitalization,
@@ -48,6 +47,7 @@ import { CATEGORY_EMOJI_GROUPS, CATEGORY_ICON_GROUPS, iconKeysMatching } from "@
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { persistPickedPhoto } from "@/lib/photo-storage";
+import { outline } from "@/lib/swift-ui-geometry";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
@@ -76,11 +76,11 @@ const TAB_LABEL = {
 
 const SECONDARY_LABEL = PlatformColor("secondaryLabel");
 const SEARCH_FIELD_BACKGROUND = PlatformColor("systemGray6");
-const SEARCH_FIELD_SHAPE = shapes.roundedRectangle({
+const SEARCH_FIELD_OUTLINE = outline.roundedRectangle({
     cornerRadius: 10,
     roundedCornerStyle: "continuous",
 });
-const CARD_SHAPE = shapes.roundedRectangle({
+const CARD_OUTLINE = outline.roundedRectangle({
     cornerRadius: 14,
     roundedCornerStyle: "continuous",
 });
@@ -328,7 +328,7 @@ export function IdentityPickerContent({
                 <HStack
                     modifiers={[
                         padding({ horizontal: 10, vertical: 8 }),
-                        background(SEARCH_FIELD_BACKGROUND, SEARCH_FIELD_SHAPE),
+                        background(SEARCH_FIELD_BACKGROUND, SEARCH_FIELD_OUTLINE),
                         padding({ bottom: 12, horizontal: 20 }),
                     ]}
                     spacing={8}
@@ -510,7 +510,7 @@ function PhotoPanel({
                 </SwiftText>
 
                 <HStack
-                    modifiers={[padding({ horizontal: 15, vertical: 13 }), background(colors.surface, CARD_SHAPE)]}
+                    modifiers={[padding({ horizontal: 15, vertical: 13 }), background(colors.surface, CARD_OUTLINE)]}
                     spacing={12}
                 >
                     <SwiftImage

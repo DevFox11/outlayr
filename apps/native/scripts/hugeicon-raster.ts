@@ -45,7 +45,7 @@ function escapeAttribute(value: string): string {
  * `ink` is the colour baked into the pixels — see {@link DEFAULT_INK}.
  */
 export function toSvg(elements: SvgElement[], strokeWidth?: number, ink: string = DEFAULT_INK): string {
-    const shapes = elements
+    const markup = elements
         .map(([tag, attributes]) => {
             const serialized = Object.entries(attributes)
                 .filter(([key]) => key !== "key")
@@ -62,7 +62,7 @@ export function toSvg(elements: SvgElement[], strokeWidth?: number, ink: string 
         .join("");
 
     // Without `fill="none"` the stroke weight rasterizes as a solid blob.
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEWBOX} ${VIEWBOX}" fill="none">${shapes}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEWBOX} ${VIEWBOX}" fill="none">${markup}</svg>`;
 }
 
 /**
