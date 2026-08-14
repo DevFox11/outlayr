@@ -26,6 +26,6 @@ name: Create Transaction renders its extracted sections
 - takeScreenshot: artifacts/transaction-form
 
 - swipe:
-    start: 50%, 12%
-    end: 50%, 90%
+      start: 50%, 12%
+      end: 50%, 90%
 - assertVisible: "Log"

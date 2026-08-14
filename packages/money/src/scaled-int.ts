@@ -1,4 +1,5 @@
 import { calculator, halfEven } from "dinero.js/bigint";
+
 import { MoneyValidationError } from "./errors";
 
 export const DECIMAL_RADIX = 10n;
@@ -17,8 +18,8 @@ export const DECIMAL_RADIX = 10n;
 export const USD_SCALE = 6n;
 
 export interface ScaledInt {
-	amount: bigint;
-	scale: bigint;
+    amount: bigint;
+    scale: bigint;
 }
 
 /**
@@ -26,23 +27,23 @@ export interface ScaledInt {
  * and therefore identical on V8 and Hermes.
  */
 export function toScaledInt(value: number): ScaledInt {
-	if (!Number.isFinite(value)) {
-		throw new MoneyValidationError(`Cannot represent a non-finite number as a scaled integer: ${value}`);
-	}
-	// `Number.prototype.toString` only ever emits a lowercase `e` exponent.
-	const [mantissa = "0", exponentPart] = value.toString().split("e");
-	const exponent = exponentPart ? Number.parseInt(exponentPart, 10) : 0;
-	const negative = mantissa.startsWith("-");
-	const unsigned = negative ? mantissa.slice(1) : mantissa;
-	const [integerDigits = "", fractionDigits = ""] = unsigned.split(".");
-	const digits = `${integerDigits}${fractionDigits}`;
-	let amount = BigInt(digits === "" ? "0" : digits);
-	let scale = fractionDigits.length - exponent;
-	if (scale < 0) {
-		amount *= DECIMAL_RADIX ** BigInt(-scale);
-		scale = 0;
-	}
-	return { amount: negative ? -amount : amount, scale: BigInt(scale) };
+    if (!Number.isFinite(value)) {
+        throw new MoneyValidationError(`Cannot represent a non-finite number as a scaled integer: ${value}`);
+    }
+    // `Number.prototype.toString` only ever emits a lowercase `e` exponent.
+    const [mantissa = "0", exponentPart] = value.toString().split("e");
+    const exponent = exponentPart ? Number.parseInt(exponentPart, 10) : 0;
+    const negative = mantissa.startsWith("-");
+    const unsigned = negative ? mantissa.slice(1) : mantissa;
+    const [integerDigits = "", fractionDigits = ""] = unsigned.split(".");
+    const digits = `${integerDigits}${fractionDigits}`;
+    let amount = BigInt(digits === "" ? "0" : digits);
+    let scale = fractionDigits.length - exponent;
+    if (scale < 0) {
+        amount *= DECIMAL_RADIX ** BigInt(-scale);
+        scale = 0;
+    }
+    return { amount: negative ? -amount : amount, scale: BigInt(scale) };
 }
 
 /**
@@ -51,5 +52,5 @@ export function toScaledInt(value: number): ScaledInt {
  * the rate first (which `convert()` would require).
  */
 export function divideHalfEven(numerator: bigint, denominator: bigint): bigint {
-	return halfEven(numerator, denominator, calculator);
+    return halfEven(numerator, denominator, calculator);
 }

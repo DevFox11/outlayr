@@ -37,8 +37,8 @@ export const LARGE_SHEET_TOP_INSET = 38;
  * error lands on the animation, not just the sheet.
  */
 export function identityPickerDetent(windowHeight: number): number {
-	const maxDetent = Math.max(1, windowHeight - LARGE_SHEET_TOP_INSET);
-	return Math.min(1, PICKER_HEIGHT / maxDetent);
+    const maxDetent = Math.max(1, windowHeight - LARGE_SHEET_TOP_INSET);
+    return Math.min(1, PICKER_HEIGHT / maxDetent);
 }
 
 /**
@@ -60,9 +60,9 @@ export const LARGE_ONLY = [1];
  * sheet re-snaps when the step changes.
  */
 export const IMPORT_STEP_SNAP_FRACTION: Record<ImportStep, number> = {
-	done: 0.55,
-	file: 0.65,
-	resolve: 0.7,
-	review: 0.85,
-	source: 0.5,
+    done: 0.55,
+    file: 0.65,
+    resolve: 0.7,
+    review: 0.85,
+    source: 0.5,
 };

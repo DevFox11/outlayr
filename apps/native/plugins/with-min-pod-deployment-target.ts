@@ -1,4 +1,5 @@
-import { type ConfigPlugin, withPodfile } from "expo/config-plugins";
+import { withPodfile } from "expo/config-plugins";
+import type { ConfigPlugin } from "expo/config-plugins";
 
 const MARKER = "# @generated with-min-pod-deployment-target";
 const POST_INSTALL_ANCHOR = "post_install do |installer|";
@@ -24,18 +25,18 @@ const POST_INSTALL_PATCH = `${POST_INSTALL_ANCHOR}
     end`;
 
 const withMinPodDeploymentTarget: ConfigPlugin = (config) =>
-	withPodfile(config, (podfileConfig) => {
-		const { contents } = podfileConfig.modResults;
-		if (contents.includes(MARKER)) {
-			return podfileConfig;
-		}
-		if (!contents.includes(POST_INSTALL_ANCHOR)) {
-			throw new Error(
-				`withMinPodDeploymentTarget: could not find "${POST_INSTALL_ANCHOR}" in the generated Podfile. The Expo template may have changed; update this plugin.`
-			);
-		}
-		podfileConfig.modResults.contents = contents.replace(POST_INSTALL_ANCHOR, POST_INSTALL_PATCH);
-		return podfileConfig;
-	});
+    withPodfile(config, (podfileConfig) => {
+        const { contents } = podfileConfig.modResults;
+        if (contents.includes(MARKER)) {
+            return podfileConfig;
+        }
+        if (!contents.includes(POST_INSTALL_ANCHOR)) {
+            throw new Error(
+                `withMinPodDeploymentTarget: could not find "${POST_INSTALL_ANCHOR}" in the generated Podfile. The Expo template may have changed; update this plugin.`
+            );
+        }
+        podfileConfig.modResults.contents = contents.replace(POST_INSTALL_ANCHOR, POST_INSTALL_PATCH);
+        return podfileConfig;
+    });
 
 export default withMinPodDeploymentTarget;

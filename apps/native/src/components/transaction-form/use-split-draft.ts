@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { splitsForQuery } from "@/data/splits-core";
 import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
@@ -12,41 +13,41 @@ import { openDraft } from "@/domain/split-draft";
  * like tags, and nothing in `validators.onChange` gates on it.
  */
 export function useSplitDraft(
-	db: Database,
-	mode: "create" | "edit",
-	initial: Transaction | undefined
+    db: Database,
+    mode: "create" | "edit",
+    initial: Transaction | undefined
 ): {
-	allocations: Allocation[];
-	/** Seeds an untouched draft from what the entry already says. */
-	openSplit: (total: number, categoryId: string | null) => void;
-	setAllocations: (next: Allocation[]) => void;
+    allocations: Allocation[];
+    /** Seeds an untouched draft from what the entry already says. */
+    openSplit: (total: number, categoryId: string | null) => void;
+    setAllocations: (next: Allocation[]) => void;
 } {
-	const [allocations, setAllocations] = useState<Allocation[]>([]);
+    const [allocations, setAllocations] = useState<Allocation[]>([]);
 
-	// An entry being edited already has its parts. Without this the sheet would
-	// open empty and saving would silently clear a split the user never touched.
-	useEffect(() => {
-		if (mode !== "edit" || initial == null) {
-			return;
-		}
-		let cancelled = false;
-		splitsForQuery(db, initial.id)
-			.then((rows) => {
-				if (!cancelled && rows.length > 0) {
-					setAllocations(rows.map((row) => ({ amount: row.amount, categoryId: row.categoryId })));
-				}
-			})
-			.catch((error) => {
-				console.error("Failed to read the split", error);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [db, mode, initial]);
+    // An entry being edited already has its parts. Without this the sheet would
+    // open empty and saving would silently clear a split the user never touched.
+    useEffect(() => {
+        if (mode !== "edit" || initial == null) {
+            return;
+        }
+        let cancelled = false;
+        splitsForQuery(db, initial.id)
+            .then((rows) => {
+                if (!cancelled && rows.length > 0) {
+                    setAllocations(rows.map((row) => ({ amount: row.amount, categoryId: row.categoryId })));
+                }
+            })
+            .catch((error) => {
+                console.error("Failed to read the split", error);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [db, mode, initial]);
 
-	const openSplit = (total: number, categoryId: string | null) => {
-		setAllocations((current) => (current.length === 0 ? openDraft(total, categoryId) : current));
-	};
+    const openSplit = (total: number, categoryId: string | null) => {
+        setAllocations((current) => (current.length === 0 ? openDraft(total, categoryId) : current));
+    };
 
-	return { allocations, openSplit, setAllocations };
+    return { allocations, openSplit, setAllocations };
 }

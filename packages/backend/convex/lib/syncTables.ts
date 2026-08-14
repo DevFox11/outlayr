@@ -7,107 +7,107 @@ import { v } from "convex/values";
  * silently missing data, which no test on either side alone would catch.
  */
 export const replicated = {
-	/** Soft-delete tombstone; rows are never removed from this table. */
-	deletedAt: v.union(v.number(), v.null()),
-	deviceId: v.string(),
-	localId: v.string(),
-	seq: v.number(),
-	/** Client wall clock at the edit, mirroring the SQLite `updatedAt`. */
-	updatedAt: v.number(),
-	userId: v.string(),
+    /** Soft-delete tombstone; rows are never removed from this table. */
+    deletedAt: v.union(v.number(), v.null()),
+    deviceId: v.string(),
+    localId: v.string(),
+    seq: v.number(),
+    /** Client wall clock at the edit, mirroring the SQLite `updatedAt`. */
+    updatedAt: v.number(),
+    userId: v.string(),
 };
 
 export const categoryFields = {
-	color: v.union(v.string(), v.null()),
-	dateCreated: v.union(v.number(), v.null()),
-	emoji: v.union(v.string(), v.null()),
-	icon: v.union(v.string(), v.null()),
-	income: v.boolean(),
-	name: v.union(v.string(), v.null()),
-	parentId: v.union(v.string(), v.null()),
-	sortOrder: v.number(),
+    color: v.union(v.string(), v.null()),
+    dateCreated: v.union(v.number(), v.null()),
+    emoji: v.union(v.string(), v.null()),
+    icon: v.union(v.string(), v.null()),
+    income: v.boolean(),
+    name: v.union(v.string(), v.null()),
+    parentId: v.union(v.string(), v.null()),
+    sortOrder: v.number(),
 };
 
 export const transactionFields = {
-	accountId: v.union(v.string(), v.null()),
-	amount: v.number(),
-	amountUsd: v.union(v.number(), v.null()),
-	categoryId: v.union(v.string(), v.null()),
-	currency: v.union(v.string(), v.null()),
-	customColor: v.union(v.string(), v.null()),
-	date: v.number(),
-	day: v.number(),
-	details: v.union(v.string(), v.null()),
-	emoji: v.union(v.string(), v.null()),
-	exchangeRate: v.union(v.number(), v.null()),
-	exchangeRateType: v.union(v.string(), v.null()),
-	icon: v.union(v.string(), v.null()),
-	imageColor: v.union(v.string(), v.null()),
-	/**
-	 * The photo's R2 object key, or null. Not a url: `r2.getUrl` mints a signed
-	 * one with a 15-minute default lifetime, so a stored url is stale before the
-	 * next launch. The key is the stable half and every read re-mints from it.
-	 */
-	imageKey: v.union(v.string(), v.null()),
-	income: v.boolean(),
-	month: v.number(),
-	note: v.string(),
-	onceRecurring: v.boolean(),
-	/**
-	 * Optional, not just nullable: a handset still on the previous build pushes
-	 * rows without the key at all, and a required field would reject the whole
-	 * batch rather than the one column it cannot fill.
-	 */
-	recurringAnchorDay: v.optional(v.union(v.number(), v.null())),
-	recurringCoefficient: v.number(),
-	recurringEndDate: v.union(v.number(), v.null()),
-	recurringType: v.number(),
-	/**
-	 * Optional for the same reason as `recurringAnchorDay`: a handset on the
-	 * previous build pushes rows without the key at all.
-	 */
-	transferId: v.optional(v.union(v.string(), v.null())),
+    accountId: v.union(v.string(), v.null()),
+    amount: v.number(),
+    amountUsd: v.union(v.number(), v.null()),
+    categoryId: v.union(v.string(), v.null()),
+    currency: v.union(v.string(), v.null()),
+    customColor: v.union(v.string(), v.null()),
+    date: v.number(),
+    day: v.number(),
+    details: v.union(v.string(), v.null()),
+    emoji: v.union(v.string(), v.null()),
+    exchangeRate: v.union(v.number(), v.null()),
+    exchangeRateType: v.union(v.string(), v.null()),
+    icon: v.union(v.string(), v.null()),
+    imageColor: v.union(v.string(), v.null()),
+    /**
+     * The photo's R2 object key, or null. Not a url: `r2.getUrl` mints a signed
+     * one with a 15-minute default lifetime, so a stored url is stale before the
+     * next launch. The key is the stable half and every read re-mints from it.
+     */
+    imageKey: v.union(v.string(), v.null()),
+    income: v.boolean(),
+    month: v.number(),
+    note: v.string(),
+    onceRecurring: v.boolean(),
+    /**
+     * Optional, not just nullable: a handset still on the previous build pushes
+     * rows without the key at all, and a required field would reject the whole
+     * batch rather than the one column it cannot fill.
+     */
+    recurringAnchorDay: v.optional(v.union(v.number(), v.null())),
+    recurringCoefficient: v.number(),
+    recurringEndDate: v.union(v.number(), v.null()),
+    recurringType: v.number(),
+    /**
+     * Optional for the same reason as `recurringAnchorDay`: a handset on the
+     * previous build pushes rows without the key at all.
+     */
+    transferId: v.optional(v.union(v.string(), v.null())),
 };
 
 export const transferFields = {
-	date: v.number(),
-	dateCreated: v.number(),
-	day: v.number(),
-	exchangeRate: v.union(v.number(), v.null()),
-	exchangeRateType: v.union(v.string(), v.null()),
-	fromAccountId: v.string(),
-	fromAmount: v.number(),
-	fromAmountUsd: v.union(v.number(), v.null()),
-	fromCurrency: v.string(),
-	month: v.number(),
-	note: v.string(),
-	toAccountId: v.string(),
-	toAmount: v.number(),
-	toAmountUsd: v.union(v.number(), v.null()),
-	toCurrency: v.string(),
+    date: v.number(),
+    dateCreated: v.number(),
+    day: v.number(),
+    exchangeRate: v.union(v.number(), v.null()),
+    exchangeRateType: v.union(v.string(), v.null()),
+    fromAccountId: v.string(),
+    fromAmount: v.number(),
+    fromAmountUsd: v.union(v.number(), v.null()),
+    fromCurrency: v.string(),
+    month: v.number(),
+    note: v.string(),
+    toAccountId: v.string(),
+    toAmount: v.number(),
+    toAmountUsd: v.union(v.number(), v.null()),
+    toCurrency: v.string(),
 };
 
 /** `imageUri` is absent: it is a path into one device's container. */
 export const accountFields = {
-	currency: v.string(),
-	customColor: v.union(v.string(), v.null()),
-	dateCreated: v.number(),
-	emoji: v.union(v.string(), v.null()),
-	icon: v.union(v.string(), v.null()),
-	imageColor: v.union(v.string(), v.null()),
-	imageKey: v.union(v.string(), v.null()),
-	initialBalance: v.number(),
-	initialBalanceDate: v.number(),
-	initialBalanceUsd: v.union(v.number(), v.null()),
-	/**
-	 * Optional, not just nullable: a handset still on the previous build pushes
-	 * accounts without the key at all, and a required field would reject the
-	 * whole batch rather than the one column it cannot fill. Absent reads as
-	 * `asset` — see `domain/account-kind.ts`.
-	 */
-	kind: v.optional(v.union(v.string(), v.null())),
-	name: v.string(),
-	sortOrder: v.number(),
+    currency: v.string(),
+    customColor: v.union(v.string(), v.null()),
+    dateCreated: v.number(),
+    emoji: v.union(v.string(), v.null()),
+    icon: v.union(v.string(), v.null()),
+    imageColor: v.union(v.string(), v.null()),
+    imageKey: v.union(v.string(), v.null()),
+    initialBalance: v.number(),
+    initialBalanceDate: v.number(),
+    initialBalanceUsd: v.union(v.number(), v.null()),
+    /**
+     * Optional, not just nullable: a handset still on the previous build pushes
+     * accounts without the key at all, and a required field would reject the
+     * whole batch rather than the one column it cannot fill. Absent reads as
+     * `asset` — see `domain/account-kind.ts`.
+     */
+    kind: v.optional(v.union(v.string(), v.null())),
+    name: v.string(),
+    sortOrder: v.number(),
 };
 
 /**
@@ -123,58 +123,58 @@ export const accountFields = {
  * nothing reads or serves it.
  */
 export const transactionColumns = {
-	...transactionFields,
-	// Optional in storage only: documents written before accounts existed have no
-	// such field, and a required column would fail the schema push over them. The
-	// wire keeps it required; `toWire` serves the absent field as null.
-	accountId: v.optional(v.union(v.string(), v.null())),
-	imageUri: v.optional(v.union(v.string(), v.null())),
+    ...transactionFields,
+    // Optional in storage only: documents written before accounts existed have no
+    // such field, and a required column would fail the schema push over them. The
+    // wire keeps it required; `toWire` serves the absent field as null.
+    accountId: v.optional(v.union(v.string(), v.null())),
+    imageUri: v.optional(v.union(v.string(), v.null())),
 };
 
 export const budgetFields = {
-	amount: v.number(),
-	amountUsd: v.union(v.number(), v.null()),
-	categoryId: v.union(v.string(), v.null()),
-	currency: v.union(v.string(), v.null()),
-	dateCreated: v.union(v.number(), v.null()),
-	green: v.boolean(),
-	name: v.union(v.string(), v.null()),
-	rollover: v.boolean(),
-	startDate: v.union(v.number(), v.null()),
-	type: v.number(),
+    amount: v.number(),
+    amountUsd: v.union(v.number(), v.null()),
+    categoryId: v.union(v.string(), v.null()),
+    currency: v.union(v.string(), v.null()),
+    dateCreated: v.union(v.number(), v.null()),
+    green: v.boolean(),
+    name: v.union(v.string(), v.null()),
+    rollover: v.boolean(),
+    startDate: v.union(v.number(), v.null()),
+    type: v.number(),
 };
 
 export const mainBudgetFields = {
-	amount: v.number(),
-	amountUsd: v.union(v.number(), v.null()),
-	currency: v.union(v.string(), v.null()),
-	dateCreated: v.union(v.number(), v.null()),
-	green: v.boolean(),
-	name: v.union(v.string(), v.null()),
-	rollover: v.boolean(),
-	startDate: v.union(v.number(), v.null()),
-	type: v.number(),
+    amount: v.number(),
+    amountUsd: v.union(v.number(), v.null()),
+    currency: v.union(v.string(), v.null()),
+    dateCreated: v.union(v.number(), v.null()),
+    green: v.boolean(),
+    name: v.union(v.string(), v.null()),
+    rollover: v.boolean(),
+    startDate: v.union(v.number(), v.null()),
+    type: v.number(),
 };
 
 export const savingsGoalFields = {
-	accountId: v.string(),
-	currency: v.string(),
-	dateCreated: v.number(),
-	name: v.string(),
-	sortOrder: v.number(),
-	targetAmount: v.number(),
-	targetAmountUsd: v.union(v.number(), v.null()),
-	targetDate: v.union(v.number(), v.null()),
+    accountId: v.string(),
+    currency: v.string(),
+    dateCreated: v.number(),
+    name: v.string(),
+    sortOrder: v.number(),
+    targetAmount: v.number(),
+    targetAmountUsd: v.union(v.number(), v.null()),
+    targetDate: v.union(v.number(), v.null()),
 };
 
 export const appMetaFields = {
-	value: v.union(v.string(), v.null()),
+    value: v.union(v.string(), v.null()),
 };
 
 export const tagFields = {
-	color: v.union(v.string(), v.null()),
-	name: v.string(),
-	sortOrder: v.number(),
+    color: v.union(v.string(), v.null()),
+    name: v.string(),
+    sortOrder: v.number(),
 };
 
 /**
@@ -182,38 +182,38 @@ export const tagFields = {
  * `localId`, and a composite key has nothing for a tombstone to name.
  */
 export const transactionTagFields = {
-	tagId: v.string(),
-	transactionId: v.string(),
+    tagId: v.string(),
+    transactionId: v.string(),
 };
 
 /** `imageUri` is absent: it is a path into one device's container. */
 export const transactionPhotoFields = {
-	imageColor: v.union(v.string(), v.null()),
-	imageKey: v.union(v.string(), v.null()),
-	sortOrder: v.number(),
-	transactionId: v.string(),
+    imageColor: v.union(v.string(), v.null()),
+    imageKey: v.union(v.string(), v.null()),
+    sortOrder: v.number(),
+    transactionId: v.string(),
 };
 
 export const transactionSplitFields = {
-	amount: v.number(),
-	categoryId: v.union(v.string(), v.null()),
-	sortOrder: v.number(),
-	transactionId: v.string(),
+    amount: v.number(),
+    categoryId: v.union(v.string(), v.null()),
+    sortOrder: v.number(),
+    transactionId: v.string(),
 };
 
 export const TOMBSTONED_TABLES = [
-	"categories",
-	"transactions",
-	"budgets",
-	"mainBudget",
-	"savingsGoals",
-	"tags",
-	"transactionTags",
-	"transactionPhotos",
-	"transactionSplits",
-	"accounts",
-	// After `accounts`: a transfer's two legs are account localIds.
-	"transfers",
+    "categories",
+    "transactions",
+    "budgets",
+    "mainBudget",
+    "savingsGoals",
+    "tags",
+    "transactionTags",
+    "transactionPhotos",
+    "transactionSplits",
+    "accounts",
+    // After `accounts`: a transfer's two legs are account localIds.
+    "transfers",
 ] as const;
 
 /**
@@ -225,24 +225,24 @@ export const SYNCED_TABLES = [...TOMBSTONED_TABLES, "appMeta"] as const;
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
 export const FIELDS_BY_TABLE = {
-	accounts: accountFields,
-	appMeta: appMetaFields,
-	budgets: budgetFields,
-	categories: categoryFields,
-	mainBudget: mainBudgetFields,
-	savingsGoals: savingsGoalFields,
-	tags: tagFields,
-	transactionPhotos: transactionPhotoFields,
-	transactionSplits: transactionSplitFields,
-	transactions: transactionFields,
-	transactionTags: transactionTagFields,
-	transfers: transferFields,
+    accounts: accountFields,
+    appMeta: appMetaFields,
+    budgets: budgetFields,
+    categories: categoryFields,
+    mainBudget: mainBudgetFields,
+    savingsGoals: savingsGoalFields,
+    tags: tagFields,
+    transactionPhotos: transactionPhotoFields,
+    transactionSplits: transactionSplitFields,
+    transactionTags: transactionTagFields,
+    transactions: transactionFields,
+    transfers: transferFields,
 } as const;
 
 interface Versioned {
-	deletedAt: number | null;
-	deviceId: string;
-	updatedAt: number;
+    deletedAt: number | null;
+    deviceId: string;
+    updatedAt: number;
 }
 
 /**
@@ -261,16 +261,16 @@ interface Versioned {
  * an unchanged row a no-op and the whole drain safe to retry.
  */
 export function incomingWins(incoming: Versioned, existing: Versioned | null): boolean {
-	if (existing === null) {
-		return true;
-	}
-	const incomingDeleted = incoming.deletedAt !== null;
-	const existingDeleted = existing.deletedAt !== null;
-	if (incomingDeleted !== existingDeleted) {
-		return incomingDeleted;
-	}
-	if (incoming.updatedAt !== existing.updatedAt) {
-		return incoming.updatedAt > existing.updatedAt;
-	}
-	return incoming.deviceId > existing.deviceId;
+    if (existing === null) {
+        return true;
+    }
+    const incomingDeleted = incoming.deletedAt !== null;
+    const existingDeleted = existing.deletedAt !== null;
+    if (incomingDeleted !== existingDeleted) {
+        return incomingDeleted;
+    }
+    if (incoming.updatedAt !== existing.updatedAt) {
+        return incoming.updatedAt > existing.updatedAt;
+    }
+    return incoming.deviceId > existing.deviceId;
 }

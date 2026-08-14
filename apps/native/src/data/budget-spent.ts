@@ -1,5 +1,6 @@
 import { and, eq, isNull, lte } from "drizzle-orm";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
+
 import { transactions } from "@/db/schema";
 
 /**
@@ -21,18 +22,18 @@ export type SpendDb = BaseSQLiteDatabase<"sync", unknown, Record<string, unknown
  * re-runs the same full scan on every insert.
  */
 export function expenseContributionQuery(db: SpendDb, now: Date) {
-	return db
-		.select({
-			amount: transactions.amount,
-			amountUsd: transactions.amountUsd,
-			categoryId: transactions.categoryId,
-			currency: transactions.currency,
-			date: transactions.date,
-			exchangeRate: transactions.exchangeRate,
-			exchangeRateType: transactions.exchangeRateType,
-		})
-		.from(transactions)
-		.where(and(eq(transactions.income, false), isNull(transactions.deletedAt), lte(transactions.date, now)));
+    return db
+        .select({
+            amount: transactions.amount,
+            amountUsd: transactions.amountUsd,
+            categoryId: transactions.categoryId,
+            currency: transactions.currency,
+            date: transactions.date,
+            exchangeRate: transactions.exchangeRate,
+            exchangeRateType: transactions.exchangeRateType,
+        })
+        .from(transactions)
+        .where(and(eq(transactions.income, false), isNull(transactions.deletedAt), lte(transactions.date, now)));
 }
 
 /**
@@ -40,10 +41,10 @@ export function expenseContributionQuery(db: SpendDb, now: Date) {
  * overall budget, which every expense feeds.
  */
 export function contributesTo(row: ExpenseContribution, categoryId: string | null | undefined): boolean {
-	if (categoryId == null) {
-		return true;
-	}
-	return row.categoryId === categoryId || row.parentId === categoryId;
+    if (categoryId == null) {
+        return true;
+    }
+    return row.categoryId === categoryId || row.parentId === categoryId;
 }
 
 /**
@@ -51,10 +52,10 @@ export function contributesTo(row: ExpenseContribution, categoryId: string | nul
  * its category's `parentId`.
  */
 export interface ExpenseContribution {
-	amount: number;
-	categoryId: string | null;
-	date: Date;
-	parentId: string | null;
+    amount: number;
+    categoryId: string | null;
+    date: Date;
+    parentId: string | null;
 }
 
 /**
@@ -62,24 +63,24 @@ export interface ExpenseContribution {
  * `BudgetRepository.fetchRequestForBudgetTransactions`.
  */
 export function spentForCategory(
-	rows: readonly ExpenseContribution[],
-	categoryId: string,
-	start: Date,
-	now: Date
+    rows: readonly ExpenseContribution[],
+    categoryId: string,
+    start: Date,
+    now: Date
 ): number {
-	const startMs = start.getTime();
-	const nowMs = now.getTime();
-	let total = 0;
-	for (const row of rows) {
-		const t = row.date.getTime();
-		if (t < startMs || t > nowMs) {
-			continue;
-		}
-		if (contributesTo(row, categoryId)) {
-			total += row.amount;
-		}
-	}
-	return total;
+    const startMs = start.getTime();
+    const nowMs = now.getTime();
+    let total = 0;
+    for (const row of rows) {
+        const t = row.date.getTime();
+        if (t < startMs || t > nowMs) {
+            continue;
+        }
+        if (contributesTo(row, categoryId)) {
+            total += row.amount;
+        }
+    }
+    return total;
 }
 
 /**
@@ -87,14 +88,14 @@ export function spentForCategory(
  * `BudgetRepository.fetchRequestForMainBudgetTransactions`.
  */
 export function spentForMain(rows: readonly ExpenseContribution[], start: Date, now: Date): number {
-	const startMs = start.getTime();
-	const nowMs = now.getTime();
-	let total = 0;
-	for (const row of rows) {
-		const t = row.date.getTime();
-		if (t >= startMs && t <= nowMs) {
-			total += row.amount;
-		}
-	}
-	return total;
+    const startMs = start.getTime();
+    const nowMs = now.getTime();
+    let total = 0;
+    for (const row of rows) {
+        const t = row.date.getTime();
+        if (t >= startMs && t <= nowMs) {
+            total += row.amount;
+        }
+    }
+    return total;
 }

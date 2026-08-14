@@ -1,15 +1,11 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import { accounts, transactions } from "@/db/schema";
+
 import type { SpendDb } from "./budget-spent";
-import {
-	PHOTO_PURGE_GRACE_MS,
-	type PhotoFiles,
-	photoExtension,
-	photoFileName,
-	photoUriFor,
-	reconcilePhotos,
-} from "./photo-store-core";
+import { PHOTO_PURGE_GRACE_MS, photoExtension, photoFileName, photoUriFor, reconcilePhotos } from "./photo-store-core";
+import type { PhotoFiles } from "./photo-store-core";
 
 const DIRECTORY = "file:///container/Documents/transaction-photos";
 const NOW = Date.UTC(2026, 6, 29, 12);
@@ -17,8 +13,8 @@ const NOW = Date.UTC(2026, 6, 29, 12);
 const SETTLED = NOW - PHOTO_PURGE_GRACE_MS - 1;
 
 function makeDb(): SpendDb {
-	const sqlite = new BetterSqlite3(":memory:");
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    sqlite.exec(`
 		CREATE TABLE transactions (
 			id text PRIMARY KEY NOT NULL,
 			amount real NOT NULL,
@@ -70,263 +66,263 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-	return drizzle(sqlite) as unknown as SpendDb;
+    return drizzle(sqlite) as unknown as SpendDb;
 }
 
 async function insert(db: SpendDb, id: string, imageUri: string | null, deletedAt: Date | null = null) {
-	const date = new Date(NOW);
-	await db.insert(transactions).values({
-		amount: 10,
-		date,
-		day: date,
-		deletedAt,
-		id,
-		imageUri,
-		income: false,
-		month: date,
-		note: id,
-		updatedAt: date,
-	});
+    const date = new Date(NOW);
+    await db.insert(transactions).values({
+        amount: 10,
+        date,
+        day: date,
+        deletedAt,
+        id,
+        imageUri,
+        income: false,
+        month: date,
+        note: id,
+        updatedAt: date,
+    });
 }
 
 async function storedUri(db: SpendDb, id: string): Promise<string | null> {
-	const rows = await db.select({ id: transactions.id, imageUri: transactions.imageUri }).from(transactions);
-	return rows.find((row) => row.id === id)?.imageUri ?? null;
+    const rows = await db.select({ id: transactions.id, imageUri: transactions.imageUri }).from(transactions);
+    return rows.find((row) => row.id === id)?.imageUri ?? null;
 }
 
 async function insertAccount(db: SpendDb, id: string, imageUri: string | null) {
-	const date = new Date(NOW);
-	await db.insert(accounts).values({
-		currency: "USD",
-		dateCreated: date,
-		deletedAt: null,
-		id,
-		imageUri,
-		initialBalance: 0,
-		initialBalanceDate: date,
-		name: id,
-		updatedAt: date,
-	});
+    const date = new Date(NOW);
+    await db.insert(accounts).values({
+        currency: "USD",
+        dateCreated: date,
+        deletedAt: null,
+        id,
+        imageUri,
+        initialBalance: 0,
+        initialBalanceDate: date,
+        name: id,
+        updatedAt: date,
+    });
 }
 
 async function storedAccountUri(db: SpendDb, id: string): Promise<string | null> {
-	const rows = await db.select({ id: accounts.id, imageUri: accounts.imageUri }).from(accounts);
-	return rows.find((row) => row.id === id)?.imageUri ?? null;
+    const rows = await db.select({ id: accounts.id, imageUri: accounts.imageUri }).from(accounts);
+    return rows.find((row) => row.id === id)?.imageUri ?? null;
 }
 
 class FakeFiles implements PhotoFiles {
-	readonly directoryUri = DIRECTORY;
-	files: Map<string, number>;
-	/** Outside files that are still readable — a picker cache not yet reclaimed. */
-	sources: Set<string>;
-	removed: string[] = [];
+    readonly directoryUri = DIRECTORY;
+    files: Map<string, number>;
+    /** Outside files that are still readable — a picker cache not yet reclaimed. */
+    sources: Set<string>;
+    removed: string[] = [];
 
-	constructor(files: [string, number][] = [], sources: string[] = []) {
-		this.files = new Map(files);
-		this.sources = new Set(sources);
-	}
+    constructor(files: [string, number][] = [], sources: string[] = []) {
+        this.files = new Map(files);
+        this.sources = new Set(sources);
+    }
 
-	list() {
-		return [...this.files].map(([name, modifiedAt]) => ({ modifiedAt, name }));
-	}
+    list() {
+        return [...this.files].map(([name, modifiedAt]) => ({ modifiedAt, name }));
+    }
 
-	remove(name: string) {
-		this.files.delete(name);
-		this.removed.push(name);
-	}
+    remove(name: string) {
+        this.files.delete(name);
+        this.removed.push(name);
+    }
 
-	adopt(sourceUri: string, name: string) {
-		if (!this.sources.has(sourceUri)) {
-			return false;
-		}
-		this.files.set(name, NOW);
-		return true;
-	}
+    adopt(sourceUri: string, name: string) {
+        if (!this.sources.has(sourceUri)) {
+            return false;
+        }
+        this.files.set(name, NOW);
+        return true;
+    }
 
-	read() {
-		return null;
-	}
+    read() {
+        return null;
+    }
 
-	write(name: string) {
-		this.files.set(name, NOW);
-	}
+    write(name: string) {
+        this.files.set(name, NOW);
+    }
 }
 
 describe("photoFileName", () => {
-	it("takes the last path segment", () => {
-		expect(photoFileName(`${DIRECTORY}/abc.jpg`)).toBe("abc.jpg");
-	});
+    it("takes the last path segment", () => {
+        expect(photoFileName(`${DIRECTORY}/abc.jpg`)).toBe("abc.jpg");
+    });
 
-	it("drops a query string", () => {
-		expect(photoFileName("file:///tmp/abc.jpg?width=100")).toBe("abc.jpg");
-	});
+    it("drops a query string", () => {
+        expect(photoFileName("file:///tmp/abc.jpg?width=100")).toBe("abc.jpg");
+    });
 
-	it("is empty for a uri with no final segment", () => {
-		expect(photoFileName("file:///tmp/")).toBe("");
-	});
+    it("is empty for a uri with no final segment", () => {
+        expect(photoFileName("file:///tmp/")).toBe("");
+    });
 });
 
 describe("photoUriFor", () => {
-	it("joins without doubling the separator", () => {
-		expect(photoUriFor(`${DIRECTORY}/`, "a.jpg")).toBe(`${DIRECTORY}/a.jpg`);
-	});
+    it("joins without doubling the separator", () => {
+        expect(photoUriFor(`${DIRECTORY}/`, "a.jpg")).toBe(`${DIRECTORY}/a.jpg`);
+    });
 });
 
 describe("photoExtension", () => {
-	it("lowercases what it finds", () => {
-		expect(photoExtension("PHOTO.JPEG")).toBe(".jpeg");
-	});
+    it("lowercases what it finds", () => {
+        expect(photoExtension("PHOTO.JPEG")).toBe(".jpeg");
+    });
 
-	it("falls back when there is no extension", () => {
-		expect(photoExtension("photo")).toBe(".jpg");
-	});
+    it("falls back when there is no extension", () => {
+        expect(photoExtension("photo")).toBe(".jpg");
+    });
 
-	it("falls back when a dotted name has no plausible extension", () => {
-		expect(photoExtension("2026.07.29-groceries")).toBe(".jpg");
-	});
+    it("falls back when a dotted name has no plausible extension", () => {
+        expect(photoExtension("2026.07.29-groceries")).toBe(".jpg");
+    });
 
-	it("ignores a leading dot", () => {
-		expect(photoExtension(".hidden")).toBe(".jpg");
-	});
+    it("ignores a leading dot", () => {
+        expect(photoExtension(".hidden")).toBe(".jpg");
+    });
 });
 
 describe("reconcilePhotos", () => {
-	let db: SpendDb;
+    let db: SpendDb;
 
-	beforeEach(() => {
-		db = makeDb();
-	});
+    beforeEach(() => {
+        db = makeDb();
+    });
 
-	it("leaves a row whose file is already in place untouched", async () => {
-		const uri = `${DIRECTORY}/keep.jpg`;
-		await insert(db, "t1", uri);
-		const files = new FakeFiles([["keep.jpg", SETTLED]]);
+    it("leaves a row whose file is already in place untouched", async () => {
+        const uri = `${DIRECTORY}/keep.jpg`;
+        await insert(db, "t1", uri);
+        const files = new FakeFiles([["keep.jpg", SETTLED]]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(await storedUri(db, "t1")).toBe(uri);
-		expect(result).toStrictEqual({
-			cleared: 0,
-			purged: 0,
-			repointed: 0,
-			rescued: 0,
-		});
-	});
+        expect(await storedUri(db, "t1")).toBe(uri);
+        expect(result).toStrictEqual({
+            cleared: 0,
+            purged: 0,
+            repointed: 0,
+            rescued: 0,
+        });
+    });
 
-	it("re-points a row at the current container path", async () => {
-		await insert(db, "t1", "file:///old-container/Documents/photos/keep.jpg");
-		const files = new FakeFiles([["keep.jpg", SETTLED]]);
+    it("re-points a row at the current container path", async () => {
+        await insert(db, "t1", "file:///old-container/Documents/photos/keep.jpg");
+        const files = new FakeFiles([["keep.jpg", SETTLED]]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
-		expect(result.repointed).toBe(1);
-		expect(result.purged).toBe(0);
-	});
+        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
+        expect(result.repointed).toBe(1);
+        expect(result.purged).toBe(0);
+    });
 
-	it("adopts a cache-directory photo that is still readable", async () => {
-		const cached = "file:///tmp/ImagePicker/AB-CD.jpeg";
-		await insert(db, "t1", cached);
-		const files = new FakeFiles([], [cached]);
+    it("adopts a cache-directory photo that is still readable", async () => {
+        const cached = "file:///tmp/ImagePicker/AB-CD.jpeg";
+        await insert(db, "t1", cached);
+        const files = new FakeFiles([], [cached]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
-		expect(result.rescued).toBe(1);
-		expect(result.purged).toBe(0);
-	});
+        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
+        expect(result.rescued).toBe(1);
+        expect(result.purged).toBe(0);
+    });
 
-	it("clears a row whose photo is gone", async () => {
-		await insert(db, "t1", "file:///tmp/ImagePicker/reclaimed.jpg");
-		const files = new FakeFiles();
+    it("clears a row whose photo is gone", async () => {
+        await insert(db, "t1", "file:///tmp/ImagePicker/reclaimed.jpg");
+        const files = new FakeFiles();
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(await storedUri(db, "t1")).toBe(null);
-		expect(result.cleared).toBe(1);
-	});
+        expect(await storedUri(db, "t1")).toBeNull();
+        expect(result.cleared).toBe(1);
+    });
 
-	it("purges a file no row references", async () => {
-		await insert(db, "t1", `${DIRECTORY}/keep.jpg`);
-		const files = new FakeFiles([
-			["keep.jpg", SETTLED],
-			["orphan.jpg", SETTLED],
-		]);
+    it("purges a file no row references", async () => {
+        await insert(db, "t1", `${DIRECTORY}/keep.jpg`);
+        const files = new FakeFiles([
+            ["keep.jpg", SETTLED],
+            ["orphan.jpg", SETTLED],
+        ]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(files.removed).toStrictEqual(["orphan.jpg"]);
-		expect(result.purged).toBe(1);
-	});
+        expect(files.removed).toStrictEqual(["orphan.jpg"]);
+        expect(result.purged).toBe(1);
+    });
 
-	it("spares a file written inside the grace window", async () => {
-		const files = new FakeFiles([["just-picked.jpg", NOW - 1000]]);
+    it("spares a file written inside the grace window", async () => {
+        const files = new FakeFiles([["just-picked.jpg", NOW - 1000]]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(files.removed).toStrictEqual([]);
-		expect(result.purged).toBe(0);
-	});
+        expect(files.removed).toStrictEqual([]);
+        expect(result.purged).toBe(0);
+    });
 
-	it("keeps the photo of a soft-deleted row", async () => {
-		await insert(db, "t1", `${DIRECTORY}/keep.jpg`, new Date(NOW));
-		const files = new FakeFiles([["keep.jpg", SETTLED]]);
+    it("keeps the photo of a soft-deleted row", async () => {
+        await insert(db, "t1", `${DIRECTORY}/keep.jpg`, new Date(NOW));
+        const files = new FakeFiles([["keep.jpg", SETTLED]]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(files.removed).toStrictEqual([]);
-		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
-		expect(result.purged).toBe(0);
-	});
+        expect(files.removed).toStrictEqual([]);
+        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
+        expect(result.purged).toBe(0);
+    });
 
-	it("keeps a logo only an account references", async () => {
-		await insertAccount(db, "a1", `${DIRECTORY}/logo.jpg`);
-		const files = new FakeFiles([["logo.jpg", SETTLED]]);
+    it("keeps a logo only an account references", async () => {
+        await insertAccount(db, "a1", `${DIRECTORY}/logo.jpg`);
+        const files = new FakeFiles([["logo.jpg", SETTLED]]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(files.removed).toStrictEqual([]);
-		expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/logo.jpg`);
-		expect(result.purged).toBe(0);
-	});
+        expect(files.removed).toStrictEqual([]);
+        expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/logo.jpg`);
+        expect(result.purged).toBe(0);
+    });
 
-	it("re-points an account at the current container path", async () => {
-		await insertAccount(db, "a1", "file:///old-container/Documents/photos/l.jpg");
-		const files = new FakeFiles([["l.jpg", SETTLED]]);
+    it("re-points an account at the current container path", async () => {
+        await insertAccount(db, "a1", "file:///old-container/Documents/photos/l.jpg");
+        const files = new FakeFiles([["l.jpg", SETTLED]]);
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/l.jpg`);
-		expect(result.repointed).toBe(1);
-		expect(result.purged).toBe(0);
-	});
+        expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/l.jpg`);
+        expect(result.repointed).toBe(1);
+        expect(result.purged).toBe(0);
+    });
 
-	it("clears an account whose logo is gone", async () => {
-		await insertAccount(db, "a1", "file:///tmp/ImagePicker/reclaimed.jpg");
-		const files = new FakeFiles();
+    it("clears an account whose logo is gone", async () => {
+        await insertAccount(db, "a1", "file:///tmp/ImagePicker/reclaimed.jpg");
+        const files = new FakeFiles();
 
-		const result = await reconcilePhotos(db, files, NOW);
+        const result = await reconcilePhotos(db, files, NOW);
 
-		expect(await storedAccountUri(db, "a1")).toBe(null);
-		expect(result.cleared).toBe(1);
-	});
+        expect(await storedAccountUri(db, "a1")).toBeNull();
+        expect(result.cleared).toBe(1);
+    });
 
-	it("is idempotent", async () => {
-		const cached = "file:///tmp/ImagePicker/AB-CD.jpeg";
-		await insert(db, "t1", cached);
-		await insert(db, "t2", "file:///tmp/ImagePicker/reclaimed.jpg");
-		const files = new FakeFiles([["orphan.jpg", SETTLED]], [cached]);
+    it("is idempotent", async () => {
+        const cached = "file:///tmp/ImagePicker/AB-CD.jpeg";
+        await insert(db, "t1", cached);
+        await insert(db, "t2", "file:///tmp/ImagePicker/reclaimed.jpg");
+        const files = new FakeFiles([["orphan.jpg", SETTLED]], [cached]);
 
-		await reconcilePhotos(db, files, NOW);
-		const second = await reconcilePhotos(db, files, NOW);
+        await reconcilePhotos(db, files, NOW);
+        const second = await reconcilePhotos(db, files, NOW);
 
-		expect(second).toStrictEqual({
-			cleared: 0,
-			purged: 0,
-			repointed: 0,
-			rescued: 0,
-		});
-		expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
-		expect(await storedUri(db, "t2")).toBe(null);
-	});
+        expect(second).toStrictEqual({
+            cleared: 0,
+            purged: 0,
+            repointed: 0,
+            rescued: 0,
+        });
+        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
+        expect(await storedUri(db, "t2")).toBeNull();
+    });
 });

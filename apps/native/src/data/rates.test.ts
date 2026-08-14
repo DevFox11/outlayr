@@ -1,51 +1,46 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import type { Database } from "@/db/client";
 import { appMeta, exchangeRates } from "@/db/schema";
-import {
-	chunkRows,
-	isThrottled,
-	type PullRatesPage,
-	pullRatesIfDue,
-	RATE_ROWS_PER_CHUNK,
-	RATES_THROTTLE_MS,
-	type RateWireRow,
-} from "./rates";
+
+import { chunkRows, isThrottled, pullRatesIfDue, RATE_ROWS_PER_CHUNK, RATES_THROTTLE_MS } from "./rates";
+import type { PullRatesPage, RateWireRow } from "./rates";
 import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
 describe("chunkRows", () => {
-	it("splits into contiguous chunks with a possibly short tail", () => {
-		expect(chunkRows([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2], [3, 4], [5]]);
-	});
+    it("splits into contiguous chunks with a possibly short tail", () => {
+        expect(chunkRows([1, 2, 3, 4, 5], 2)).toStrictEqual([[1, 2], [3, 4], [5]]);
+    });
 
-	it("returns nothing for an empty input", () => {
-		expect(chunkRows([], 10)).toStrictEqual([]);
-	});
+    it("returns nothing for an empty input", () => {
+        expect(chunkRows([], 10)).toStrictEqual([]);
+    });
 
-	it("keeps a full snapshot under SQLite's bound-parameter cap", () => {
-		// 6 bound params per row against SQLite's 32,766 ceiling.
-		expect(RATE_ROWS_PER_CHUNK * 6 < 32_766).toBeTruthy();
-	});
+    it("keeps a full snapshot under SQLite's bound-parameter cap", () => {
+        // 6 bound params per row against SQLite's 32,766 ceiling.
+        expect(RATE_ROWS_PER_CHUNK * 6 < 32_766).toBeTruthy();
+    });
 });
 
 describe("isThrottled", () => {
-	const now = 1_700_000_000_000;
+    const now = 1_700_000_000_000;
 
-	it("lets the first ever pull through", () => {
-		expect(isThrottled(null, now)).toBe(false);
-	});
+    it("lets the first ever pull through", () => {
+        expect(isThrottled(null, now)).toBe(false);
+    });
 
-	it("holds inside the window and opens on its edge", () => {
-		expect(isThrottled(now - 1, now)).toBe(true);
-		expect(isThrottled(now - RATES_THROTTLE_MS + 1, now)).toBe(true);
-		expect(isThrottled(now - RATES_THROTTLE_MS, now)).toBe(false);
-	});
+    it("holds inside the window and opens on its edge", () => {
+        expect(isThrottled(now - 1, now)).toBe(true);
+        expect(isThrottled(now - RATES_THROTTLE_MS + 1, now)).toBe(true);
+        expect(isThrottled(now - RATES_THROTTLE_MS, now)).toBe(false);
+    });
 
-	it("treats a backward clock jump as expired rather than locking shut", () => {
-		// A stamp in the future would otherwise hold the throttle closed until
-		// the clock caught up — potentially hours with no rates.
-		expect(isThrottled(now + 60_000, now)).toBe(false);
-	});
+    it("treats a backward clock jump as expired rather than locking shut", () => {
+        // A stamp in the future would otherwise hold the throttle closed until
+        // the clock caught up — potentially hours with no rates.
+        expect(isThrottled(now + 60_000, now)).toBe(false);
+    });
 });
 
 /**
@@ -56,24 +51,24 @@ describe("isThrottled", () => {
  * test is the one production takes.
  */
 function withAsyncTransactions(sqlite: BetterSqlite3.Database): void {
-	Object.assign(sqlite, {
-		withTransactionAsync: async (task: () => Promise<void>) => {
-			try {
-				sqlite.exec("BEGIN");
-				await task();
-				sqlite.exec("COMMIT");
-			} catch (error) {
-				sqlite.exec("ROLLBACK");
-				throw error;
-			}
-		},
-	});
+    Object.assign(sqlite, {
+        withTransactionAsync: async (task: () => Promise<void>) => {
+            try {
+                sqlite.exec("BEGIN");
+                await task();
+                sqlite.exec("COMMIT");
+            } catch (error) {
+                sqlite.exec("ROLLBACK");
+                throw error;
+            }
+        },
+    });
 }
 
 function makeDb(): Database {
-	const sqlite = new BetterSqlite3(":memory:");
-	withAsyncTransactions(sqlite);
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    withAsyncTransactions(sqlite);
+    sqlite.exec(`
 		CREATE TABLE appMeta (
 			key text PRIMARY KEY NOT NULL,
 			value text
@@ -88,213 +83,213 @@ function makeDb(): Database {
 			PRIMARY KEY (quote, rateType, date)
 		);
 	`);
-	return drizzle(sqlite) as unknown as Database;
+    return drizzle(sqlite) as unknown as Database;
 }
 
 const NOW = 1_700_000_000_000;
 
 function wireRow(quote: string, date: string): RateWireRow {
-	return {
-		date,
-		fetchedAt: NOW,
-		quote,
-		rate: 0.9,
-		rateType: "official",
-		source: "frankfurter",
-	};
+    return {
+        date,
+        fetchedAt: NOW,
+        quote,
+        rate: 0.9,
+        rateType: "official",
+        source: "frankfurter",
+    };
 }
 
 /** Answers one page per call, walking the cursor the caller feeds back. */
 function pagedPuller(pages: RateWireRow[][]): {
-	pull: (args?: { cursor?: number }) => Promise<PullRatesPage>;
-	calls: (number | undefined)[];
+    pull: (args?: { cursor?: number }) => Promise<PullRatesPage>;
+    calls: (number | undefined)[];
 } {
-	const calls: (number | undefined)[] = [];
-	return {
-		calls,
-		pull: async (args) => {
-			const index = args?.cursor ?? 0;
-			calls.push(args?.cursor);
-			return {
-				nextCursor: index + 1 < pages.length ? index + 1 : null,
-				rows: pages[index] ?? [],
-				windowStart: "2026-01-01",
-			};
-		},
-	};
+    const calls: (number | undefined)[] = [];
+    return {
+        calls,
+        pull: async (args) => {
+            const index = args?.cursor ?? 0;
+            calls.push(args?.cursor);
+            return {
+                nextCursor: index + 1 < pages.length ? index + 1 : null,
+                rows: pages[index] ?? [],
+                windowStart: "2026-01-01",
+            };
+        },
+    };
 }
 
 async function storedRates(db: Database): Promise<{ quote: string; date: string }[]> {
-	return await db
-		.select({ date: exchangeRates.date, quote: exchangeRates.quote })
-		.from(exchangeRates)
-		.orderBy(exchangeRates.quote);
+    return await db
+        .select({ date: exchangeRates.date, quote: exchangeRates.quote })
+        .from(exchangeRates)
+        .orderBy(exchangeRates.quote);
 }
 
 async function lastPullAt(db: Database): Promise<string | null> {
-	const rows = await db.select().from(appMeta);
-	return rows[0]?.value ?? null;
+    const rows = await db.select().from(appMeta);
+    return rows[0]?.value ?? null;
 }
 
 describe("pullRatesIfDue", () => {
-	it("holds inside the throttle window without asking the backend", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
-		let asked = 0;
-		const landed = await pullRatesIfDue(
-			db,
-			async () => {
-				asked += 1;
-				return { nextCursor: null, rows: [], windowStart: "2026-01-01" };
-			},
-			{ now: NOW }
-		);
+    it("holds inside the throttle window without asking the backend", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
+        let asked = 0;
+        const landed = await pullRatesIfDue(
+            db,
+            async () => {
+                asked += 1;
+                return { nextCursor: null, rows: [], windowStart: "2026-01-01" };
+            },
+            { now: NOW }
+        );
 
-		expect(landed).toBe(false);
-		expect(asked).toBe(0);
-	});
+        expect(landed).toBe(false);
+        expect(asked).toBe(0);
+    });
 
-	it("pulls once the stamp has aged out", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({
-			key: "lastRatesPullAt",
-			value: String(NOW - RATES_THROTTLE_MS),
-		});
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+    it("pulls once the stamp has aged out", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({
+            key: "lastRatesPullAt",
+            value: String(NOW - RATES_THROTTLE_MS),
+        });
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
-		expect(await storedRates(db)).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
-	});
+        expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
+        expect(await storedRates(db)).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
+    });
 
-	it("force ignores a stamp that has not aged out", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+    it("force ignores a stamp that has not aged out", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		expect(await pullRatesIfDue(db, pull, { force: true, now: NOW })).toBe(true);
-		expect((await storedRates(db)).length).toBe(1);
-	});
+        expect(await pullRatesIfDue(db, pull, { force: true, now: NOW })).toBe(true);
+        expect(await storedRates(db)).toHaveLength(1);
+    });
 
-	it("walks every page the cursor offers", async () => {
-		const db = makeDb();
-		const { pull, calls } = pagedPuller([
-			[wireRow("EUR", "2026-07-26")],
-			[wireRow("GBP", "2026-07-27")],
-			[wireRow("JPY", "2026-07-28")],
-		]);
+    it("walks every page the cursor offers", async () => {
+        const db = makeDb();
+        const { pull, calls } = pagedPuller([
+            [wireRow("EUR", "2026-07-26")],
+            [wireRow("GBP", "2026-07-27")],
+            [wireRow("JPY", "2026-07-28")],
+        ]);
 
-		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
-		expect(calls).toStrictEqual([undefined, 1, 2]);
-		expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual(["EUR", "GBP", "JPY"]);
-	});
+        expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(true);
+        expect(calls).toStrictEqual([undefined, 1, 2]);
+        expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual(["EUR", "GBP", "JPY"]);
+    });
 
-	it("replaces the whole cache rather than merging into it", async () => {
-		// A quote the provider dropped must not survive as a rate nothing refreshes.
-		const db = makeDb();
-		await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+    it("replaces the whole cache rather than merging into it", async () => {
+        // A quote the provider dropped must not survive as a rate nothing refreshes.
+        const db = makeDb();
+        await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		await pullRatesIfDue(db, pull, { now: NOW });
-		expect(await storedRates(db)).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
-	});
+        await pullRatesIfDue(db, pull, { now: NOW });
+        expect(await storedRates(db)).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
+    });
 
-	it("stamps the pull time it was given", async () => {
-		const db = makeDb();
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+    it("stamps the pull time it was given", async () => {
+        const db = makeDb();
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		await pullRatesIfDue(db, pull, { now: NOW });
-		expect(await lastPullAt(db)).toBe(String(NOW));
-	});
+        await pullRatesIfDue(db, pull, { now: NOW });
+        expect(await lastPullAt(db)).toBe(String(NOW));
+    });
 
-	it("re-stamps over a previous pull rather than conflicting", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1) });
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+    it("re-stamps over a previous pull rather than conflicting", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1) });
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
 
-		await pullRatesIfDue(db, pull, { force: true, now: NOW });
-		expect(await lastPullAt(db)).toBe(String(NOW));
-	});
+        await pullRatesIfDue(db, pull, { force: true, now: NOW });
+        expect(await lastPullAt(db)).toBe(String(NOW));
+    });
 
-	it("keeps a stale cache rather than emptying it on an empty snapshot", async () => {
-		const db = makeDb();
-		await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
-		const { pull } = pagedPuller([[]]);
+    it("keeps a stale cache rather than emptying it on an empty snapshot", async () => {
+        const db = makeDb();
+        await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
+        const { pull } = pagedPuller([[]]);
 
-		expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(false);
-		expect((await storedRates(db)).length).toBe(1);
-		expect(await lastPullAt(db)).toBe(null);
-	});
+        expect(await pullRatesIfDue(db, pull, { now: NOW })).toBe(false);
+        expect(await storedRates(db)).toHaveLength(1);
+        expect(await lastPullAt(db)).toBeNull();
+    });
 
-	it("bumps the rates revision when a pull lands", async () => {
-		const db = makeDb();
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-		const before = ratesRevision();
+    it("bumps the rates revision when a pull lands", async () => {
+        const db = makeDb();
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+        const before = ratesRevision();
 
-		await pullRatesIfDue(db, pull, { now: NOW });
-		expect(ratesRevision()).toBe(before + 1);
-	});
+        await pullRatesIfDue(db, pull, { now: NOW });
+        expect(ratesRevision()).toBe(before + 1);
+    });
 
-	it("leaves the revision alone when throttled", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-		const before = ratesRevision();
+    it("leaves the revision alone when throttled", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+        const before = ratesRevision();
 
-		await pullRatesIfDue(db, pull, { now: NOW });
-		expect(ratesRevision()).toBe(before);
-	});
+        await pullRatesIfDue(db, pull, { now: NOW });
+        expect(ratesRevision()).toBe(before);
+    });
 
-	it("leaves the revision alone when the snapshot is empty", async () => {
-		const db = makeDb();
-		const { pull } = pagedPuller([[]]);
-		const before = ratesRevision();
+    it("leaves the revision alone when the snapshot is empty", async () => {
+        const db = makeDb();
+        const { pull } = pagedPuller([[]]);
+        const before = ratesRevision();
 
-		await pullRatesIfDue(db, pull, { now: NOW });
-		expect(ratesRevision()).toBe(before);
-	});
+        await pullRatesIfDue(db, pull, { now: NOW });
+        expect(ratesRevision()).toBe(before);
+    });
 
-	it("rolls the wipe back when the replacement fails part-way", async () => {
-		// The wipe and the refill are separate statements. Without a real boundary
-		// around them a failed refill leaves the ledger with no rates at all, and
-		// every converted total on every screen silently drops to face value until
-		// some later pull happens to succeed.
-		const db = makeDb();
-		await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
-		const duplicate = wireRow("EUR", "2026-07-28");
-		const { pull } = pagedPuller([[duplicate, duplicate]]);
-		const before = ratesRevision();
+    it("rolls the wipe back when the replacement fails part-way", async () => {
+        // The wipe and the refill are separate statements. Without a real boundary
+        // around them a failed refill leaves the ledger with no rates at all, and
+        // every converted total on every screen silently drops to face value until
+        // some later pull happens to succeed.
+        const db = makeDb();
+        await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
+        const duplicate = wireRow("EUR", "2026-07-28");
+        const { pull } = pagedPuller([[duplicate, duplicate]]);
+        const before = ratesRevision();
 
-		// `toMatchObject` rather than `.rejects.toThrow()`: the rejection is a
-		// native-addon `SqliteError`, and Jest gives each test file its own realm,
-		// so `instanceof Error` on it is not reliable across files — `toThrow()`
-		// silently reports "did not throw" when that happens.
-		await expect(pullRatesIfDue(db, pull, { now: NOW })).rejects.toMatchObject({
-			message: expect.any(String),
-		});
-		expect(await storedRates(db)).toStrictEqual([{ date: "2020-01-01", quote: "VES" }]);
-		// Unstamped, so the next foreground retries rather than waiting out the
-		// throttle on a pull that never landed.
-		expect(await lastPullAt(db)).toBe(null);
-		expect(ratesRevision()).toBe(before);
-	});
+        // `toMatchObject` rather than `.rejects.toThrow()`: the rejection is a
+        // native-addon `SqliteError`, and Jest gives each test file its own realm,
+        // so `instanceof Error` on it is not reliable across files — `toThrow()`
+        // silently reports "did not throw" when that happens.
+        await expect(pullRatesIfDue(db, pull, { now: NOW })).rejects.toMatchObject({
+            message: expect.any(String),
+        });
+        expect(await storedRates(db)).toStrictEqual([{ date: "2020-01-01", quote: "VES" }]);
+        // Unstamped, so the next foreground retries rather than waiting out the
+        // throttle on a pull that never landed.
+        expect(await lastPullAt(db)).toBeNull();
+        expect(ratesRevision()).toBe(before);
+    });
 
-	it("bumps only once the replaced cache is readable", async () => {
-		// Bumping mid-write would invalidate every screen's rate table against a
-		// cache that is still half-replaced.
-		const db = makeDb();
-		await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
-		const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-		let atBump: { quote: string; date: string }[] = [];
-		const unsubscribe = subscribeRatesRevision(() => {
-			atBump = db
-				.select({ date: exchangeRates.date, quote: exchangeRates.quote })
-				.from(exchangeRates)
-				.orderBy(exchangeRates.quote)
-				.all();
-		});
+    it("bumps only once the replaced cache is readable", async () => {
+        // Bumping mid-write would invalidate every screen's rate table against a
+        // cache that is still half-replaced.
+        const db = makeDb();
+        await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
+        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
+        let atBump: { quote: string; date: string }[] = [];
+        const unsubscribe = subscribeRatesRevision(() => {
+            atBump = db
+                .select({ date: exchangeRates.date, quote: exchangeRates.quote })
+                .from(exchangeRates)
+                .orderBy(exchangeRates.quote)
+                .all();
+        });
 
-		await pullRatesIfDue(db, pull, { now: NOW });
-		unsubscribe();
-		expect(atBump).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
-	});
+        await pullRatesIfDue(db, pull, { now: NOW });
+        unsubscribe();
+        expect(atBump).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
+    });
 });

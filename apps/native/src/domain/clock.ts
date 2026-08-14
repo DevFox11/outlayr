@@ -12,12 +12,12 @@ const DAY_MS = 86_400_000;
  * hour into the next day or an hour short of it.
  */
 export function nextClockTick(nowMs: number): number {
-	const delay = addDays(startOfDay(new Date(nowMs)), 1).getTime() - nowMs;
-	// A zone that gives an hour back exactly at 00:00 has a midnight that happens
-	// twice, and the earlier of the two can already be behind `nowMs`. A whole day
-	// is the next honest boundary; a delay of zero would fire on the instant it was
-	// armed for and re-arm for zero, which spins.
-	return delay > 0 ? delay : DAY_MS;
+    const delay = addDays(startOfDay(new Date(nowMs)), 1).getTime() - nowMs;
+    // A zone that gives an hour back exactly at 00:00 has a midnight that happens
+    // twice, and the earlier of the two can already be behind `nowMs`. A whole day
+    // is the next honest boundary; a delay of zero would fire on the instant it was
+    // armed for and re-arm for zero, which spins.
+    return delay > 0 ? delay : DAY_MS;
 }
 
 /**
@@ -45,8 +45,8 @@ const CLOCK_REGRESSION_TOLERANCE_MS = 60_000;
  * it stays stuck for the life of the process.
  */
 export function clockAdvances(currentMs: number, candidateMs: number): boolean {
-	if (candidateMs > currentMs) {
-		return true;
-	}
-	return currentMs - candidateMs > CLOCK_REGRESSION_TOLERANCE_MS;
+    if (candidateMs > currentMs) {
+        return true;
+    }
+    return currentMs - candidateMs > CLOCK_REGRESSION_TOLERANCE_MS;
 }

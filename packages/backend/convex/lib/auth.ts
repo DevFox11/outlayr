@@ -9,8 +9,8 @@ import { authComponent } from "../auth";
  * `ctx.auth.getUserIdentity()` still decodes its unexpired token.
  */
 export async function optionalUserId(ctx: MutationCtx | QueryCtx): Promise<string | null> {
-	const user = await authComponent.safeGetAuthUser(ctx);
-	return user ? user._id : null;
+    const user = await authComponent.safeGetAuthUser(ctx);
+    return user ? user._id : null;
 }
 
 /**
@@ -18,9 +18,9 @@ export async function optionalUserId(ctx: MutationCtx | QueryCtx): Promise<strin
  * gets stored as `userId` and is never accepted as a function argument.
  */
 export async function requireUserId(ctx: MutationCtx | QueryCtx): Promise<string> {
-	const userId = await optionalUserId(ctx);
-	if (userId === null) {
-		throw new ConvexError("Unauthenticated: sign in to access your data");
-	}
-	return userId;
+    const userId = await optionalUserId(ctx);
+    if (userId === null) {
+        throw new ConvexError("Unauthenticated: sign in to access your data");
+    }
+    return userId;
 }

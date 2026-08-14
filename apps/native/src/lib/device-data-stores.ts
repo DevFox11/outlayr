@@ -5,13 +5,14 @@ import Constants from "expo-constants";
 import Spotlight from "expo-core-spotlight";
 import { Directory, File, Paths } from "expo-file-system";
 import {
-	cancelAllScheduledNotificationsAsync,
-	dismissAllNotificationsAsync,
-	setBadgeCountAsync,
+    cancelAllScheduledNotificationsAsync,
+    dismissAllNotificationsAsync,
+    setBadgeCountAsync,
 } from "expo-notifications";
 import { deleteItemAsync, getItem } from "expo-secure-store";
 import { deleteDatabaseAsync } from "expo-sqlite";
 import { Platform } from "react-native";
+
 import { QUEUE_DIRECTORY } from "./pending-writes-core";
 import { clearStoredPhotos } from "./photo-storage";
 import { INTENT_SNAPSHOT_KEY, PENDING_WRITES_KEY } from "./widget-bridge";
@@ -22,121 +23,121 @@ const DELETION_SECRET_KEY = "outlayr.account-deletion-resume";
 const BETTER_AUTH_PREFIX = "outlayr";
 const BETTER_AUTH_CHUNK_MARKER = "\u0001ba-chunks:";
 const BETTER_AUTH_KEYS = [
-	`${BETTER_AUTH_PREFIX}_cookie`,
-	`${BETTER_AUTH_PREFIX}_session_data`,
-	`${BETTER_AUTH_PREFIX}_last_login_method`,
-	PROVIDER_BINDING_KEY,
-	DELETION_SECRET_KEY,
+    `${BETTER_AUTH_PREFIX}_cookie`,
+    `${BETTER_AUTH_PREFIX}_session_data`,
+    `${BETTER_AUTH_PREFIX}_last_login_method`,
+    PROVIDER_BINDING_KEY,
+    DELETION_SECRET_KEY,
 ] as const;
 const APP_GROUP = Constants.expoConfig?.extra?.appGroup as string | undefined;
 
 export const DEVICE_STORES = [
-	"notifications",
-	"widget",
-	"spotlight",
-	"sqlite",
-	"photos",
-	"cache",
-	"asyncStorage",
-	"credentials",
-	"alternateIcon",
+    "notifications",
+    "widget",
+    "spotlight",
+    "sqlite",
+    "photos",
+    "cache",
+    "asyncStorage",
+    "credentials",
+    "alternateIcon",
 ] as const;
 
 export type DeviceStore = (typeof DEVICE_STORES)[number];
 export type DeviceDataStores = Record<DeviceStore, () => Promise<void>>;
 
 export const NON_ERASABLE_DEVICE_STATE = [
-	"biometricEnrollment",
-	"notificationPermission",
-	"photoPermission",
-	"widgetPlacement",
+    "biometricEnrollment",
+    "notificationPermission",
+    "photoPermission",
+    "widgetPlacement",
 ] as const;
 
 export interface NativeDeviceDataStoreDependencies {
-	closeDatabase: () => Promise<void>;
+    closeDatabase: () => Promise<void>;
 }
 
 function deleteDirectoryIfPresent(directory: Directory): void {
-	if (directory.exists) {
-		directory.delete();
-	}
+    if (directory.exists) {
+        directory.delete();
+    }
 }
 
 async function clearBetterAuthCredentials(): Promise<void> {
-	const keys = BETTER_AUTH_KEYS.flatMap((key) => {
-		const stored = getItem(key);
-		if (!stored?.startsWith(BETTER_AUTH_CHUNK_MARKER)) {
-			return [key];
-		}
-		const count = Number(stored.slice(BETTER_AUTH_CHUNK_MARKER.length));
-		if (!Number.isSafeInteger(count) || count < 0) {
-			throw new Error("Malformed Better Auth credential chunk marker");
-		}
-		return [key, ...Array.from({ length: count }, (_, index) => `${key}.${index}`)];
-	});
-	await Promise.all(keys.map(async (key) => await deleteItemAsync(key)));
+    const keys = BETTER_AUTH_KEYS.flatMap((key) => {
+        const stored = getItem(key);
+        if (!stored?.startsWith(BETTER_AUTH_CHUNK_MARKER)) {
+            return [key];
+        }
+        const count = Number(stored.slice(BETTER_AUTH_CHUNK_MARKER.length));
+        if (!Number.isSafeInteger(count) || count < 0) {
+            throw new Error("Malformed Better Auth credential chunk marker");
+        }
+        return [key, ...Array.from({ length: count }, (_, index) => `${key}.${index}`)];
+    });
+    await Promise.all(keys.map(async (key) => await deleteItemAsync(key)));
 }
 
 function clearWidgetStorage(): void {
-	if (Platform.OS !== "ios" || !APP_GROUP) {
-		return;
-	}
-	const storage = new ExtensionStorage(APP_GROUP);
-	storage.remove(INTENT_SNAPSHOT_KEY);
-	storage.remove(PENDING_WRITES_KEY);
-	const container = Paths.appleSharedContainers[APP_GROUP];
-	if (!container) {
-		throw new Error("App Group container is unavailable");
-	}
-	deleteDirectoryIfPresent(new Directory(container, QUEUE_DIRECTORY));
+    if (Platform.OS !== "ios" || !APP_GROUP) {
+        return;
+    }
+    const storage = new ExtensionStorage(APP_GROUP);
+    storage.remove(INTENT_SNAPSHOT_KEY);
+    storage.remove(PENDING_WRITES_KEY);
+    const container = Paths.appleSharedContainers[APP_GROUP];
+    if (!container) {
+        throw new Error("App Group container is unavailable");
+    }
+    deleteDirectoryIfPresent(new Directory(container, QUEUE_DIRECTORY));
 }
 
 async function clearSpotlight(): Promise<void> {
-	if (Platform.OS !== "ios") {
-		return;
-	}
-	if (await Spotlight.isAvailable()) {
-		await Spotlight.removeAllItems();
-	}
+    if (Platform.OS !== "ios") {
+        return;
+    }
+    if (await Spotlight.isAvailable()) {
+        await Spotlight.removeAllItems();
+    }
 }
 
 async function clearSqlite(closeDatabase: () => Promise<void>): Promise<void> {
-	await closeDatabase();
-	await deleteDatabaseAsync(DATABASE_NAME);
-	const sqliteDirectory = new Directory(Paths.document, "SQLite");
-	for (const filename of [`${DATABASE_NAME}-wal`, `${DATABASE_NAME}-shm`]) {
-		const file = new File(sqliteDirectory, filename);
-		if (file.exists) {
-			file.delete();
-		}
-	}
+    await closeDatabase();
+    await deleteDatabaseAsync(DATABASE_NAME);
+    const sqliteDirectory = new Directory(Paths.document, "SQLite");
+    for (const filename of [`${DATABASE_NAME}-wal`, `${DATABASE_NAME}-shm`]) {
+        const file = new File(sqliteDirectory, filename);
+        if (file.exists) {
+            file.delete();
+        }
+    }
 }
 
 function clearCache(): void {
-	deleteDirectoryIfPresent(Paths.cache);
-	Paths.cache.create({ idempotent: true, intermediates: true });
+    deleteDirectoryIfPresent(Paths.cache);
+    Paths.cache.create({ idempotent: true, intermediates: true });
 }
 
 export function createNativeDeviceDataStores({ closeDatabase }: NativeDeviceDataStoreDependencies): DeviceDataStores {
-	return {
-		alternateIcon: async () => {
-			if (supportsAlternateIcons) {
-				await setAlternateAppIcon(null);
-			}
-		},
-		asyncStorage: async () => await AsyncStorage.clear(),
-		cache: () => Promise.resolve(clearCache()),
-		credentials: clearBetterAuthCredentials,
-		notifications: async () => {
-			await cancelAllScheduledNotificationsAsync();
-			await dismissAllNotificationsAsync();
-			if (!(await setBadgeCountAsync(0))) {
-				throw new Error("Unable to clear the application badge");
-			}
-		},
-		photos: async () => clearStoredPhotos(),
-		spotlight: clearSpotlight,
-		sqlite: async () => await clearSqlite(closeDatabase),
-		widget: async () => clearWidgetStorage(),
-	};
+    return {
+        alternateIcon: async () => {
+            if (supportsAlternateIcons) {
+                await setAlternateAppIcon(null);
+            }
+        },
+        asyncStorage: async () => await AsyncStorage.clear(),
+        cache: () => Promise.resolve(clearCache()),
+        credentials: clearBetterAuthCredentials,
+        notifications: async () => {
+            await cancelAllScheduledNotificationsAsync();
+            await dismissAllNotificationsAsync();
+            if (!(await setBadgeCountAsync(0))) {
+                throw new Error("Unable to clear the application badge");
+            }
+        },
+        photos: async () => clearStoredPhotos(),
+        spotlight: clearSpotlight,
+        sqlite: async () => await clearSqlite(closeDatabase),
+        widget: async () => clearWidgetStorage(),
+    };
 }

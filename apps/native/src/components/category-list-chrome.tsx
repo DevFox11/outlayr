@@ -1,6 +1,7 @@
 import { Text as SwiftText } from "@expo/ui/swift-ui";
 import { font, foregroundStyle, kerning, textCase } from "@expo/ui/swift-ui/modifiers";
 import { PlatformColor } from "react-native";
+
 import type { ThemeColors } from "@/theme/use-colors";
 
 /**
@@ -12,9 +13,9 @@ import type { ThemeColors } from "@/theme/use-colors";
 export const LABEL = PlatformColor("label");
 
 export const PARENT_NAME = font({
-	design: "rounded",
-	textStyle: "body",
-	weight: "semibold",
+    design: "rounded",
+    textStyle: "body",
+    weight: "semibold",
 });
 export const CHILD_NAME = font({ design: "rounded", textStyle: "subheadline" });
 
@@ -28,9 +29,9 @@ export const CHILD_TILE = 28;
  * font into Dynamic Type so the eyebrow scales with the rows beneath it.
  */
 const EYEBROW_FONT = font({
-	family: "GeistMono-Regular",
-	size: 11,
-	textStyle: "caption2",
+    family: "GeistMono-Regular",
+    size: 11,
+    textStyle: "caption2",
 });
 
 /**
@@ -43,9 +44,9 @@ const EYEBROW_FONT = font({
  * cannot be reused here. Restyle both or neither.
  */
 export function Eyebrow({ colors, children }: { colors: ThemeColors; children: string }) {
-	return (
-		<SwiftText modifiers={[EYEBROW_FONT, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}>
-			{children}
-		</SwiftText>
-	);
+    return (
+        <SwiftText modifiers={[EYEBROW_FONT, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}>
+            {children}
+        </SwiftText>
+    );
 }

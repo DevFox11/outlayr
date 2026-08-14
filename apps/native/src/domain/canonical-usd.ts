@@ -1,30 +1,31 @@
 import { utcDateString } from "@outlayr/money/dates";
 import { MoneyValidationError } from "@outlayr/money/errors";
-import { computeAmountUSD, type EntryRateType, type RateLookup, resolveEntryRate } from "@outlayr/money/rates";
+import { computeAmountUSD, resolveEntryRate } from "@outlayr/money/rates";
+import type { EntryRateType, RateLookup } from "@outlayr/money/rates";
 
 export interface CanonicalUsd {
-	amountUsd: number | null;
-	exchangeRate: number | null;
-	exchangeRateType: string | null;
+    amountUsd: number | null;
+    exchangeRate: number | null;
+    exchangeRateType: string | null;
 }
 
 export interface CanonicalUsdInput {
-	amount: number;
-	/** Null means the entry is already in the ledger's display currency. */
-	currency: string | null;
-	date: Date;
-	displayCurrency: string;
-	/** An actual already-chosen rate, used verbatim after positive-finite validation. */
-	exchangeRate?: number | null;
-	/** Absent means official for a non-USD entry. */
-	exchangeRateType?: EntryRateType | null;
+    amount: number;
+    /** Null means the entry is already in the ledger's display currency. */
+    currency: string | null;
+    date: Date;
+    displayCurrency: string;
+    /** An actual already-chosen rate, used verbatim after positive-finite validation. */
+    exchangeRate?: number | null;
+    /** Absent means official for a non-USD entry. */
+    exchangeRateType?: EntryRateType | null;
 }
 
 /** No honest USD value could be frozen; downstream policy decides presentation. */
 const UNRESOLVED: CanonicalUsd = {
-	amountUsd: null,
-	exchangeRate: null,
-	exchangeRateType: null,
+    amountUsd: null,
+    exchangeRate: null,
+    exchangeRateType: null,
 };
 
 /**
@@ -46,71 +47,71 @@ const DEFAULT_RATE_TYPE: EntryRateType = "official";
  * its user-supplied rate is excluded from foreign scalar valuations.
  */
 export async function canonicalUsd(lookup: RateLookup, input: CanonicalUsdInput): Promise<CanonicalUsd> {
-	const currency = input.currency ?? input.displayCurrency;
+    const currency = input.currency ?? input.displayCurrency;
 
-	// A USD entry is already canonical, and its rate is 1 by definition.
-	if (currency === "USD") {
-		return {
-			amountUsd: input.amount,
-			exchangeRate: 1,
-			exchangeRateType: null,
-		};
-	}
+    // A USD entry is already canonical, and its rate is 1 by definition.
+    if (currency === "USD") {
+        return {
+            amountUsd: input.amount,
+            exchangeRate: 1,
+            exchangeRateType: null,
+        };
+    }
 
-	const exchangeRateType = input.exchangeRateType ?? DEFAULT_RATE_TYPE;
-	if (exchangeRateType === "eur_reference" && currency !== "VES") {
-		return { amountUsd: null, exchangeRate: null, exchangeRateType };
-	}
-	if (exchangeRateType === "custom" && input.exchangeRate == null) {
-		return { amountUsd: null, exchangeRate: null, exchangeRateType };
-	}
+    const exchangeRateType = input.exchangeRateType ?? DEFAULT_RATE_TYPE;
+    if (exchangeRateType === "eur_reference" && currency !== "VES") {
+        return { amountUsd: null, exchangeRate: null, exchangeRateType };
+    }
+    if (exchangeRateType === "custom" && input.exchangeRate == null) {
+        return { amountUsd: null, exchangeRate: null, exchangeRateType };
+    }
 
-	const date = utcDateString(input.date.getTime());
-	let missingEurOfficialDependency = false;
-	const dependencyAwareLookup: RateLookup = async (quote, rateType, rateDate) => {
-		const row = await lookup(quote, rateType, rateDate);
-		if (quote === "EUR" && rateType === "official" && row === null) {
-			missingEurOfficialDependency = true;
-		}
-		return row;
-	};
-	try {
-		const suppliedRate = input.exchangeRate;
-		let exchangeRate: number | null;
-		if (suppliedRate == null) {
-			exchangeRate = await resolveEntryRate(lookup, currency, exchangeRateType, undefined, date);
-		} else if (Number.isFinite(suppliedRate) && suppliedRate > 0) {
-			exchangeRate = suppliedRate;
-		} else {
-			exchangeRate = null;
-		}
-		if (exchangeRate === null) {
-			return { amountUsd: null, exchangeRate: null, exchangeRateType };
-		}
-		const amountUsd = await computeAmountUSD(dependencyAwareLookup, {
-			baseAmount: input.amount,
-			date,
-			exchangeRate,
-			exchangeRateType,
-		});
-		return { amountUsd, exchangeRate, exchangeRateType };
-	} catch (error) {
-		// A validation failure cannot produce an honest figure — the same outcome as
-		// having no rate at all, and never a reason to refuse the write.
-		if (error instanceof MoneyValidationError) {
-			const suppliedRate = input.exchangeRate;
-			const preserveRetryableEurReference =
-				exchangeRateType === "eur_reference" &&
-				missingEurOfficialDependency &&
-				suppliedRate != null &&
-				Number.isFinite(suppliedRate) &&
-				suppliedRate > 0;
-			return {
-				...UNRESOLVED,
-				exchangeRate: preserveRetryableEurReference ? suppliedRate : null,
-				exchangeRateType,
-			};
-		}
-		throw error;
-	}
+    const date = utcDateString(input.date.getTime());
+    let missingEurOfficialDependency = false;
+    const dependencyAwareLookup: RateLookup = async (quote, rateType, rateDate) => {
+        const row = await lookup(quote, rateType, rateDate);
+        if (quote === "EUR" && rateType === "official" && row === null) {
+            missingEurOfficialDependency = true;
+        }
+        return row;
+    };
+    try {
+        const suppliedRate = input.exchangeRate;
+        let exchangeRate: number | null;
+        if (suppliedRate == null) {
+            exchangeRate = await resolveEntryRate(lookup, currency, exchangeRateType, undefined, date);
+        } else if (Number.isFinite(suppliedRate) && suppliedRate > 0) {
+            exchangeRate = suppliedRate;
+        } else {
+            exchangeRate = null;
+        }
+        if (exchangeRate === null) {
+            return { amountUsd: null, exchangeRate: null, exchangeRateType };
+        }
+        const amountUsd = await computeAmountUSD(dependencyAwareLookup, {
+            baseAmount: input.amount,
+            date,
+            exchangeRate,
+            exchangeRateType,
+        });
+        return { amountUsd, exchangeRate, exchangeRateType };
+    } catch (error) {
+        // A validation failure cannot produce an honest figure — the same outcome as
+        // having no rate at all, and never a reason to refuse the write.
+        if (error instanceof MoneyValidationError) {
+            const suppliedRate = input.exchangeRate;
+            const preserveRetryableEurReference =
+                exchangeRateType === "eur_reference" &&
+                missingEurOfficialDependency &&
+                suppliedRate != null &&
+                Number.isFinite(suppliedRate) &&
+                suppliedRate > 0;
+            return {
+                ...UNRESOLVED,
+                exchangeRate: preserveRetryableEurReference ? suppliedRate : null,
+                exchangeRateType,
+            };
+        }
+        throw error;
+    }
 }

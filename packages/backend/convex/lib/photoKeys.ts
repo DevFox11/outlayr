@@ -21,11 +21,11 @@ export const PHOTO_KEY_PREFIX = "transaction-photos";
 const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 export function isPhotoName(name: string): boolean {
-	return NAME_PATTERN.test(name);
+    return NAME_PATTERN.test(name);
 }
 
 export function photoKeyFor(userId: string, name: string): string {
-	return `${PHOTO_KEY_PREFIX}/${userId}/${name}`;
+    return `${PHOTO_KEY_PREFIX}/${userId}/${name}`;
 }
 
 /**
@@ -34,8 +34,8 @@ export function photoKeyFor(userId: string, name: string): string {
  * parsing the incoming one, so a key that merely looks well-formed does not pass.
  */
 export function ownsPhotoKey(userId: string, key: string): boolean {
-	const name = photoNameFromKey(key);
-	return name !== null && photoKeyFor(userId, name) === key;
+    const name = photoNameFromKey(key);
+    return name !== null && photoKeyFor(userId, name) === key;
 }
 
 /**
@@ -50,14 +50,14 @@ const MERCHANT_CACHE_KEY_PREFIX = "merchant/";
 
 /** The device-side file name a key was minted from, or null if it is malformed. */
 export function photoNameFromKey(key: string): string | null {
-	if (key.startsWith(MERCHANT_CACHE_KEY_PREFIX)) {
-		return null;
-	}
-	const segments = key.split("/");
-	if (segments.length !== 3 || segments[0] !== PHOTO_KEY_PREFIX) {
-		return null;
-	}
-	return isPhotoName(segments[2]) ? segments[2] : null;
+    if (key.startsWith(MERCHANT_CACHE_KEY_PREFIX)) {
+        return null;
+    }
+    const segments = key.split("/");
+    if (segments.length !== 3 || segments[0] !== PHOTO_KEY_PREFIX) {
+        return null;
+    }
+    return isPhotoName(segments[2]) ? segments[2] : null;
 }
 
 /**
@@ -72,10 +72,10 @@ export function photoNameFromKey(key: string): string | null {
  * segments does not pass.
  */
 export function photoOwnerFromKey(key: string): string | null {
-	const [, userId] = key.split("/");
-	const name = photoNameFromKey(key);
-	if (name === null) {
-		return null;
-	}
-	return userId !== "" && photoKeyFor(userId, name) === key ? userId : null;
+    const [, userId] = key.split("/");
+    const name = photoNameFromKey(key);
+    if (name === null) {
+        return null;
+    }
+    return userId !== "" && photoKeyFor(userId, name) === key ? userId : null;
 }

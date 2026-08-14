@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type LayoutChangeEvent, Text as RNText, View } from "react-native";
+import { Text as RNText, View } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-	Easing,
-	useAnimatedStyle,
-	useReducedMotion,
-	useSharedValue,
-	withTiming,
+    Easing,
+    useAnimatedStyle,
+    useReducedMotion,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import Svg, { Line } from "react-native-svg";
 import { scheduleOnRN } from "react-native-worklets";
+
 import { useSettingBool } from "@/contexts/display-settings-context";
-import { bucketDateLabel, type InsightsBucket, type InsightsMeasure, type InsightsPeriod } from "@/data/insights";
+import { bucketDateLabel } from "@/data/insights";
+import type { InsightsBucket, InsightsMeasure, InsightsPeriod } from "@/data/insights";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { useLanguage } from "@/i18n/context";
 import { CHART_BAR, CHART_DASH, CHART_DRAW, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
@@ -23,51 +26,51 @@ const LABEL_W = 32;
 const HEADROOM = 0.1;
 
 interface InsightsBarChartProps {
-	average: number;
-	buckets: InsightsBucket[];
-	code: string;
-	/** Flows only — `net` is drawn by `InsightsNetChart` as a running balance. */
-	measure: Exclude<InsightsMeasure, "net">;
-	nowMs: number;
-	/**
-	 * Fires once when the finger lifts, with the bucket to lock — or null to
-	 * clear, which is what releasing on the already-locked bucket means.
-	 */
-	onCommit: (index: number | null) => void;
-	/** Fires continuously while a finger is down, with the bucket under it. */
-	onScrub: (index: number | null) => void;
-	period: InsightsPeriod;
-	selectedIndex: number | null;
+    average: number;
+    buckets: InsightsBucket[];
+    code: string;
+    /** Flows only — `net` is drawn by `InsightsNetChart` as a running balance. */
+    measure: Exclude<InsightsMeasure, "net">;
+    nowMs: number;
+    /**
+     * Fires once when the finger lifts, with the bucket to lock — or null to
+     * clear, which is what releasing on the already-locked bucket means.
+     */
+    onCommit: (index: number | null) => void;
+    /** Fires continuously while a finger is down, with the bucket under it. */
+    onScrub: (index: number | null) => void;
+    period: InsightsPeriod;
+    selectedIndex: number | null;
 }
 
 interface Plot {
-	/** Money units, not points. */
-	span: number;
-	top: number;
+    /** Money units, not points. */
+    span: number;
+    top: number;
 }
 
 /** Both measures here are magnitudes, so the bars sit on a floor of zero. */
 function makePlot(values: number[]): Plot {
-	const rawTop = Math.max(0, ...values);
-	const top = rawTop > 0 ? rawTop * (1 + HEADROOM) : 0;
-	return { span: Math.max(1, top), top };
+    const rawTop = Math.max(0, ...values);
+    const top = rawTop > 0 ? rawTop * (1 + HEADROOM) : 0;
+    return { span: Math.max(1, top), top };
 }
 
 function gapFor(period: InsightsPeriod): number {
-	if (period === "week") {
-		return 6;
-	}
-	if (period === "year") {
-		return 4;
-	}
-	return 2;
+    if (period === "week") {
+        return 6;
+    }
+    if (period === "year") {
+        return 4;
+    }
+    return 2;
 }
 
 function barOpacity(future: boolean, dimmed: boolean): number {
-	if (future) {
-		return 0.3;
-	}
-	return dimmed ? 0.4 : 1;
+    if (future) {
+        return 0.3;
+    }
+    return dimmed ? 0.4 : 1;
 }
 
 /**
@@ -75,302 +78,301 @@ function barOpacity(future: boolean, dimmed: boolean): number {
  * so a competing tap gesture would be unresolvable and must not be added.
  */
 export function InsightsBarChart({
-	buckets,
-	period,
-	measure,
-	code,
-	average,
-	selectedIndex,
-	onScrub,
-	onCommit,
-	nowMs,
+    buckets,
+    period,
+    measure,
+    code,
+    average,
+    selectedIndex,
+    onScrub,
+    onCommit,
+    nowMs,
 }: InsightsBarChartProps) {
-	const colors = useColors();
-	const { language } = useLanguage();
-	const reduceMotion = useReducedMotion();
-	const animated = useSettingBool("animatedCharts") && !reduceMotion;
+    const colors = useColors();
+    const { language } = useLanguage();
+    const reduceMotion = useReducedMotion();
+    const animated = useSettingBool("animatedCharts") && !reduceMotion;
 
-	const [width, setWidth] = useState(0);
-	const [scrubIndex, setScrubIndex] = useState<number | null>(null);
+    const [width, setWidth] = useState(0);
+    const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 
-	const grow = useSharedValue(animated ? 0 : 1);
-	const reported = useSharedValue(-1);
-	const drawn = useRef(false);
+    const grow = useSharedValue(animated ? 0 : 1);
+    const reported = useSharedValue(-1);
+    const drawn = useRef(false);
 
-	useEffect(() => {
-		if (!animated) {
-			grow.value = 1;
-			return;
-		}
-		// biome-ignore lint/suspicious/noUnnecessaryConditions: Biome types `useRef(false).current` as the literal `false` even when annotated `useRef<boolean>`; it is assigned true on the next line and survives this effect's later runs.
-		if (drawn.current) {
-			return;
-		}
-		drawn.current = true;
-		grow.value = withTiming(1, {
-			duration: CHART_DRAW.durationMs,
-			easing: Easing.out(Easing.cubic),
-		});
-	}, [animated, grow]);
+    useEffect(() => {
+        if (!animated) {
+            grow.value = 1;
+            return;
+        }
+        if (drawn.current) {
+            return;
+        }
+        drawn.current = true;
+        grow.value = withTiming(1, {
+            duration: CHART_DRAW.durationMs,
+            easing: Easing.out(Easing.cubic),
+        });
+    }, [animated, grow]);
 
-	const gap = gapFor(period);
-	const values = buckets.map((bucket) => Math.abs(bucket.value));
-	const plot = useMemo(() => makePlot(values), [values]);
+    const gap = gapFor(period);
+    const values = buckets.map((bucket) => Math.abs(bucket.value));
+    const plot = useMemo(() => makePlot(values), [values]);
 
-	const lastLive = useMemo(() => {
-		let index = buckets.length - 1;
-		while (index > 0 && buckets[index].start.getTime() > nowMs) {
-			index -= 1;
-		}
-		return index;
-	}, [buckets, nowMs]);
+    const lastLive = useMemo(() => {
+        let index = buckets.length - 1;
+        while (index > 0 && buckets[index].start.getTime() > nowMs) {
+            index -= 1;
+        }
+        return index;
+    }, [buckets, nowMs]);
 
-	const count = buckets.length;
-	// The columns are `flex: 1` inside a gapped row, so the pitch is the bar plus
-	// one gap — not `width / count`, which drifts by a whole bar by the right edge
-	// of a 31-day month.
-	const barWidth = count > 0 ? Math.max(0, (width - gap * (count - 1)) / count) : 0;
-	const pitch = barWidth + gap;
+    const count = buckets.length;
+    // The columns are `flex: 1` inside a gapped row, so the pitch is the bar plus
+    // one gap — not `width / count`, which drifts by a whole bar by the right edge
+    // of a 31-day month.
+    const barWidth = count > 0 ? Math.max(0, (width - gap * (count - 1)) / count) : 0;
+    const pitch = barWidth + gap;
 
-	const pan = useMemo(() => {
-		const step = pitch;
+    const pan = useMemo(() => {
+        const step = pitch;
 
-		const commit = (index: number) => {
-			onCommit(selectedIndex === index ? null : index);
-		};
+        const commit = (index: number) => {
+            onCommit(selectedIndex === index ? null : index);
+        };
 
-		const report = (x: number) => {
-			"worklet";
-			if (step <= 0) {
-				return;
-			}
-			const raw = Math.min(count - 1, Math.floor(x / step));
-			const index = Math.min(lastLive, Math.max(0, raw));
-			if (index !== reported.value) {
-				reported.value = index;
-				scheduleOnRN(setScrubIndex, index);
-				scheduleOnRN(onScrub, index);
-			}
-		};
+        const report = (x: number) => {
+            "worklet";
+            if (step <= 0) {
+                return;
+            }
+            const raw = Math.min(count - 1, Math.floor(x / step));
+            const index = Math.min(lastLive, Math.max(0, raw));
+            if (index !== reported.value) {
+                reported.value = index;
+                scheduleOnRN(setScrubIndex, index);
+                scheduleOnRN(onScrub, index);
+            }
+        };
 
-		return Gesture.Pan()
-			.minDistance(0)
-			.shouldCancelWhenOutside(false)
-			.onBegin((event) => {
-				"worklet";
-				report(event.x);
-			})
-			.onChange((event) => {
-				"worklet";
-				report(event.x);
-			})
-			.onFinalize(() => {
-				"worklet";
-				const landed = reported.value;
-				reported.value = -1;
-				scheduleOnRN(setScrubIndex, null);
-				scheduleOnRN(onScrub, null);
-				if (landed >= 0) {
-					scheduleOnRN(commit, landed);
-				}
-			});
-	}, [count, pitch, lastLive, onScrub, onCommit, selectedIndex, reported]);
+        return Gesture.Pan()
+            .minDistance(0)
+            .shouldCancelWhenOutside(false)
+            .onBegin((event) => {
+                "worklet";
+                report(event.x);
+            })
+            .onChange((event) => {
+                "worklet";
+                report(event.x);
+            })
+            .onFinalize(() => {
+                "worklet";
+                const landed = reported.value;
+                reported.value = -1;
+                scheduleOnRN(setScrubIndex, null);
+                scheduleOnRN(onScrub, null);
+                if (landed >= 0) {
+                    scheduleOnRN(commit, landed);
+                }
+            });
+    }, [count, pitch, lastLive, onScrub, onCommit, selectedIndex, reported]);
 
-	const active = scrubIndex ?? selectedIndex;
-	const symbol = currencySymbol(code);
+    const active = scrubIndex ?? selectedIndex;
+    const symbol = currencySymbol(code);
 
-	const activeCount = values.filter((value) => value !== 0).length;
-	const avgY = ((plot.top - average) / plot.span) * BAR_AREA;
-	const showAverage = activeCount > 1 && avgY > BAR_AREA * 0.1 && avgY < BAR_AREA * 0.9;
+    const activeCount = values.filter((value) => value !== 0).length;
+    const avgY = ((plot.top - average) / plot.span) * BAR_AREA;
+    const showAverage = activeCount > 1 && avgY > BAR_AREA * 0.1 && avgY < BAR_AREA * 0.9;
 
-	const onLayout = (event: LayoutChangeEvent) => {
-		setWidth(event.nativeEvent.layout.width);
-	};
+    const onLayout = (event: LayoutChangeEvent) => {
+        setWidth(event.nativeEvent.layout.width);
+    };
 
-	return (
-		<View>
-			<GestureDetector gesture={pan}>
-				<View onLayout={onLayout}>
-					<View style={{ flexDirection: "row", gap, height: BAR_AREA }}>
-						{buckets.map((bucket, index) => (
-							<Bar
-								color={barColor(measure, colors)}
-								dimmed={active != null && active !== index}
-								future={bucket.start.getTime() > nowMs}
-								grow={grow}
-								key={bucket.start.getTime()}
-								// The pan is a pointer gesture and reaches no one driving
-								// VoiceOver, so each bar carries its own label and activation.
-								label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(Math.abs(bucket.value), code, false, language)}`}
-								onActivate={() => onCommit(selectedIndex === index ? null : index)}
-								plot={plot}
-								selected={selectedIndex === index}
-								trackColor={colors.railTrack}
-								value={values[index]}
-							/>
-						))}
-					</View>
+    return (
+        <View>
+            <GestureDetector gesture={pan}>
+                <View onLayout={onLayout}>
+                    <View style={{ flexDirection: "row", gap, height: BAR_AREA }}>
+                        {buckets.map((bucket, index) => (
+                            <Bar
+                                color={barColor(measure, colors)}
+                                dimmed={active != null && active !== index}
+                                future={bucket.start.getTime() > nowMs}
+                                grow={grow}
+                                key={bucket.start.getTime()}
+                                // The pan is a pointer gesture and reaches no one driving
+                                // VoiceOver, so each bar carries its own label and activation.
+                                label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(Math.abs(bucket.value), code, false, language)}`}
+                                onActivate={() => onCommit(selectedIndex === index ? null : index)}
+                                plot={plot}
+                                selected={selectedIndex === index}
+                                trackColor={colors.railTrack}
+                                value={values[index]}
+                            />
+                        ))}
+                    </View>
 
-					{scrubIndex != null && width > 0 ? (
-						<View
-							pointerEvents="none"
-							style={{
-								backgroundColor: colors.foreground,
-								height: BAR_AREA + CHART_SCRUB.ruleOvershoot * 2,
-								left: pitch * scrubIndex + barWidth / 2,
-								position: "absolute",
-								top: -CHART_SCRUB.ruleOvershoot,
-								width: CHART_SCRUB.ruleWidth,
-							}}
-						/>
-					) : null}
+                    {scrubIndex != null && width > 0 ? (
+                        <View
+                            pointerEvents="none"
+                            style={{
+                                backgroundColor: colors.foreground,
+                                height: BAR_AREA + CHART_SCRUB.ruleOvershoot * 2,
+                                left: pitch * scrubIndex + barWidth / 2,
+                                position: "absolute",
+                                top: -CHART_SCRUB.ruleOvershoot,
+                                width: CHART_SCRUB.ruleWidth,
+                            }}
+                        />
+                    ) : null}
 
-					{showAverage ? (
-						<View
-							pointerEvents="none"
-							style={{
-								alignItems: "center",
-								flexDirection: "row",
-								gap: 3,
-								left: 0,
-								position: "absolute",
-								right: 0,
-								top: avgY - 7,
-							}}
-						>
-							<View
-								style={{
-									backgroundColor: colors.background,
-									borderRadius: 5,
-									paddingHorizontal: 4,
-									paddingVertical: 1,
-								}}
-							>
-								<AxisLabel color={colors.muted}>{`${symbol}${compactMagnitude(average)}`}</AxisLabel>
-							</View>
-							<DashedRule color={colors.muted} />
-						</View>
-					) : null}
-				</View>
-			</GestureDetector>
+                    {showAverage ? (
+                        <View
+                            pointerEvents="none"
+                            style={{
+                                alignItems: "center",
+                                flexDirection: "row",
+                                gap: 3,
+                                left: 0,
+                                position: "absolute",
+                                right: 0,
+                                top: avgY - 7,
+                            }}
+                        >
+                            <View
+                                style={{
+                                    backgroundColor: colors.background,
+                                    borderRadius: 5,
+                                    paddingHorizontal: 4,
+                                    paddingVertical: 1,
+                                }}
+                            >
+                                <AxisLabel color={colors.muted}>{`${symbol}${compactMagnitude(average)}`}</AxisLabel>
+                            </View>
+                            <DashedRule color={colors.muted} />
+                        </View>
+                    ) : null}
+                </View>
+            </GestureDetector>
 
-			<View style={{ flexDirection: "row", gap, height: LABEL_H, marginTop: 4 }}>
-				{buckets.map((bucket, index) => (
-					<View key={bucket.start.getTime()} style={{ flex: 1 }}>
-						{/* A month column is a couple of points wide, so the label has to
+            <View style={{ flexDirection: "row", gap, height: LABEL_H, marginTop: 4 }}>
+                {buckets.map((bucket, index) => (
+                    <View key={bucket.start.getTime()} style={{ flex: 1 }}>
+                        {/* A month column is a couple of points wide, so the label has to
 						    overflow it rather than truncate. */}
-						{showXLabel(period, index, bucket.label) ? (
-							<View
-								style={{
-									alignItems: "center",
-									left: "50%",
-									marginLeft: -LABEL_W / 2,
-									position: "absolute",
-									width: LABEL_W,
-								}}
-							>
-								<AxisLabel color={colors.muted}>{bucket.label}</AxisLabel>
-							</View>
-						) : null}
-					</View>
-				))}
-			</View>
-		</View>
-	);
+                        {showXLabel(period, index, bucket.label) ? (
+                            <View
+                                style={{
+                                    alignItems: "center",
+                                    left: "50%",
+                                    marginLeft: -LABEL_W / 2,
+                                    position: "absolute",
+                                    width: LABEL_W,
+                                }}
+                            >
+                                <AxisLabel color={colors.muted}>{bucket.label}</AxisLabel>
+                            </View>
+                        ) : null}
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
 }
 
 function barColor(measure: Exclude<InsightsMeasure, "net">, colors: ReturnType<typeof useColors>): string {
-	return measure === "income" ? colors.income : colors.foreground;
+    return measure === "income" ? colors.income : colors.foreground;
 }
 
 function DashedRule({ color }: { color: string }) {
-	const [width, setWidth] = useState(0);
-	return (
-		<View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ flex: 1, height: 2 }}>
-			{width > 0 ? (
-				<Svg height={2} width={width}>
-					<Line
-						stroke={color}
-						strokeDasharray={dashArray(CHART_DASH.reference)}
-						strokeLinecap="round"
-						strokeWidth={2}
-						x1={0}
-						x2={width}
-						y1={1}
-						y2={1}
-					/>
-				</Svg>
-			) : null}
-		</View>
-	);
+    const [width, setWidth] = useState(0);
+    return (
+        <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ flex: 1, height: 2 }}>
+            {width > 0 ? (
+                <Svg height={2} width={width}>
+                    <Line
+                        stroke={color}
+                        strokeDasharray={dashArray(CHART_DASH.reference)}
+                        strokeLinecap="round"
+                        strokeWidth={2}
+                        x1={0}
+                        x2={width}
+                        y1={1}
+                        y2={1}
+                    />
+                </Svg>
+            ) : null}
+        </View>
+    );
 }
 
 interface BarProps {
-	color: string;
-	dimmed: boolean;
-	future: boolean;
-	grow: ReturnType<typeof useSharedValue<number>>;
-	label: string;
-	onActivate: () => void;
-	plot: Plot;
-	selected: boolean;
-	trackColor: string;
-	value: number;
+    color: string;
+    dimmed: boolean;
+    future: boolean;
+    grow: ReturnType<typeof useSharedValue<number>>;
+    label: string;
+    onActivate: () => void;
+    plot: Plot;
+    selected: boolean;
+    trackColor: string;
+    value: number;
 }
 
 function Bar({ value, plot, color, trackColor, grow, dimmed, future, label, selected, onActivate }: BarProps) {
-	const target = value > 0 ? Math.max(CHART_BAR.minHeight, (value / plot.span) * BAR_AREA) : 0;
+    const target = value > 0 ? Math.max(CHART_BAR.minHeight, (value / plot.span) * BAR_AREA) : 0;
 
-	const fillStyle = useAnimatedStyle(() => ({
-		height: target * grow.value,
-	}));
+    const fillStyle = useAnimatedStyle(() => ({
+        height: target * grow.value,
+    }));
 
-	return (
-		<View
-			accessibilityLabel={label}
-			accessibilityRole={future ? "image" : "button"}
-			accessibilityState={{ selected }}
-			accessible
-			onAccessibilityTap={future ? undefined : onActivate}
-			style={{
-				backgroundColor: trackColor,
-				borderRadius: CHART_BAR.radius,
-				flex: 1,
-				height: BAR_AREA,
-				opacity: barOpacity(future, dimmed),
-			}}
-		>
-			<Animated.View
-				style={[
-					{
-						backgroundColor: color,
-						borderRadius: CHART_BAR.radius,
-						bottom: 0,
-						left: 0,
-						position: "absolute",
-						right: 0,
-					},
-					fillStyle,
-				]}
-			/>
-		</View>
-	);
+    return (
+        <View
+            accessibilityLabel={label}
+            accessibilityRole={future ? "image" : "button"}
+            accessibilityState={{ selected }}
+            accessible
+            onAccessibilityTap={future ? undefined : onActivate}
+            style={{
+                backgroundColor: trackColor,
+                borderRadius: CHART_BAR.radius,
+                flex: 1,
+                height: BAR_AREA,
+                opacity: barOpacity(future, dimmed),
+            }}
+        >
+            <Animated.View
+                style={[
+                    {
+                        backgroundColor: color,
+                        borderRadius: CHART_BAR.radius,
+                        bottom: 0,
+                        left: 0,
+                        position: "absolute",
+                        right: 0,
+                    },
+                    fillStyle,
+                ]}
+            />
+        </View>
+    );
 }
 
 function AxisLabel({ children, color }: { children: string; color: string }) {
-	return (
-		<RNText className="font-mono text-micro" numberOfLines={1} style={{ color }}>
-			{children}
-		</RNText>
-	);
+    return (
+        <RNText className="text-micro font-mono" numberOfLines={1} style={{ color }}>
+            {children}
+        </RNText>
+    );
 }
 
 function showXLabel(period: InsightsPeriod, index: number, label: string): boolean {
-	if (period === "week") {
-		return true;
-	}
-	if (period === "year") {
-		return [1, 4, 7, 10].includes(index + 1);
-	}
-	return [1, 8, 15, 22, 29].includes(Number(label));
+    if (period === "week") {
+        return true;
+    }
+    if (period === "year") {
+        return [1, 4, 7, 10].includes(index + 1);
+    }
+    return [1, 8, 15, 22, 29].includes(Number(label));
 }

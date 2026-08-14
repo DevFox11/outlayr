@@ -23,145 +23,145 @@
 const IS_JEST = !!process.env.JEST_WORKER_ID;
 
 const RuntimeKind = {
-	ReactNative: 1,
-	UI: 2,
-	Worker: 3,
+    ReactNative: 1,
+    UI: 2,
+    Worker: 3,
 };
 
 if (globalThis.__RUNTIME_KIND === undefined) {
-	globalThis.__RUNTIME_KIND = RuntimeKind.ReactNative;
+    globalThis.__RUNTIME_KIND = RuntimeKind.ReactNative;
 }
 globalThis._WORKLET = false;
-globalThis._log = globalThis._log ?? console.log;
-globalThis._getAnimationTimestamp = globalThis._getAnimationTimestamp ?? (() => performance.now());
+globalThis._log ??= console.log;
+globalThis._getAnimationTimestamp ??= () => performance.now();
 
 function mockedRequestAnimationFrame(callback) {
-	return setTimeout(() => callback(performance.now()), 0);
+    return setTimeout(() => callback(performance.now()), 0);
 }
 
 if (IS_JEST) {
-	// Same override react-native-worklets' own (unreachable, `.native.ts`
-	// shadowed) safe initializer applies: RN's jest rAF polyfill calls back via
-	// `setTimeout` without a timestamp argument, which reanimated's animation
-	// driver needs.
-	globalThis.requestAnimationFrame = mockedRequestAnimationFrame;
+    // Same override react-native-worklets' own (unreachable, `.native.ts`
+    // shadowed) safe initializer applies: RN's jest rAF polyfill calls back via
+    // `setTimeout` without a timestamp argument, which reanimated's animation
+    // driver needs.
+    globalThis.requestAnimationFrame = mockedRequestAnimationFrame;
 }
 
 function isWorkletFunction(value) {
-	return typeof value === "function" && !!value.__workletHash;
+    return typeof value === "function" && !!value.__workletHash;
 }
 
 function createSerializable(value) {
-	return value;
+    return value;
 }
 const makeShareable = createSerializable;
 function isSerializableRef() {
-	return true;
+    return true;
 }
 function makeShareableCloneOnUIRecursive(value) {
-	return value;
+    return value;
 }
 function registerCustomSerializable() {}
 
 const serializableMappingCache = {
-	get() {
-		return null;
-	},
-	set() {},
+    get() {
+        return null;
+    },
+    set() {},
 };
 
 function isShareable(value) {
-	return typeof value === "object" && value !== null && !!value.__shareableRef;
+    return typeof value === "object" && value !== null && !!value.__shareableRef;
 }
 function isSynchronizable(value) {
-	return typeof value === "object" && value !== null && !!value.__synchronizableRef;
+    return typeof value === "object" && value !== null && !!value.__synchronizableRef;
 }
 
 function getStaticFeatureFlag() {
-	return false;
+    return false;
 }
 function setDynamicFeatureFlag() {}
 function getDynamicFeatureFlag() {
-	return false;
+    return false;
 }
 
 function getRuntimeKind() {
-	return globalThis.__RUNTIME_KIND;
+    return globalThis.__RUNTIME_KIND;
 }
 function isRNRuntime() {
-	return globalThis.__RUNTIME_KIND === RuntimeKind.ReactNative;
+    return globalThis.__RUNTIME_KIND === RuntimeKind.ReactNative;
 }
 function isUIRuntime() {
-	return globalThis.__RUNTIME_KIND === RuntimeKind.UI;
+    return globalThis.__RUNTIME_KIND === RuntimeKind.UI;
 }
 function isWorkletRuntime() {
-	return globalThis.__RUNTIME_KIND !== RuntimeKind.ReactNative;
+    return globalThis.__RUNTIME_KIND !== RuntimeKind.ReactNative;
 }
 function isWorkerRuntime() {
-	return globalThis.__RUNTIME_KIND === RuntimeKind.Worker;
+    return globalThis.__RUNTIME_KIND === RuntimeKind.Worker;
 }
 
 let runOnUIQueue = [];
 function flushUIQueue() {
-	queueMicrotask(() => {
-		const queue = runOnUIQueue;
-		runOnUIQueue = [];
-		mockedRequestAnimationFrame(() => {
-			for (const [worklet, args, resolve] of queue) {
-				const result = worklet(...args);
-				resolve?.(result);
-			}
-		});
-	});
+    queueMicrotask(() => {
+        const queue = runOnUIQueue;
+        runOnUIQueue = [];
+        mockedRequestAnimationFrame(() => {
+            for (const [worklet, args, resolve] of queue) {
+                const result = worklet(...args);
+                resolve?.(result);
+            }
+        });
+    });
 }
 function enqueueUI(worklet, args, resolve) {
-	if (IS_JEST) {
-		mockedRequestAnimationFrame(() => {
-			const result = worklet(...args);
-			resolve?.(result);
-		});
-		return;
-	}
-	runOnUIQueue.push([worklet, args, resolve]);
-	if (runOnUIQueue.length === 1) {
-		flushUIQueue();
-	}
+    if (IS_JEST) {
+        mockedRequestAnimationFrame(() => {
+            const result = worklet(...args);
+            resolve?.(result);
+        });
+        return;
+    }
+    runOnUIQueue.push([worklet, args, resolve]);
+    if (runOnUIQueue.length === 1) {
+        flushUIQueue();
+    }
 }
 
 function scheduleOnUI(worklet, ...args) {
-	enqueueUI(worklet, args);
+    enqueueUI(worklet, args);
 }
 function runOnUI(worklet) {
-	return (...args) => scheduleOnUI(worklet, ...args);
+    return (...args) => scheduleOnUI(worklet, ...args);
 }
 function runOnUISync() {
-	throw new Error(
-		"[worklets-stub] `runOnUISync` is not supported under jest, matching react-native-worklets' own web build. reanimated only calls it behind a `!SHOULD_BE_USE_WEB` guard."
-	);
+    throw new Error(
+        "[worklets-stub] `runOnUISync` is not supported under jest, matching react-native-worklets' own web build. reanimated only calls it behind a `!SHOULD_BE_USE_WEB` guard."
+    );
 }
 function executeOnUIRuntimeSync() {
-	throw new Error(
-		"[worklets-stub] `executeOnUIRuntimeSync` is not supported under jest, matching react-native-worklets' own web build."
-	);
+    throw new Error(
+        "[worklets-stub] `executeOnUIRuntimeSync` is not supported under jest, matching react-native-worklets' own web build."
+    );
 }
 function scheduleOnRN(fn, ...args) {
-	queueMicrotask(args.length ? () => fn(...args) : fn);
+    queueMicrotask(args.length ? () => fn(...args) : fn);
 }
 function runOnJS(fn) {
-	return (...args) => scheduleOnRN(fn, ...args);
+    return (...args) => scheduleOnRN(fn, ...args);
 }
 function runOnUIAsync(worklet, ...args) {
-	return new Promise((resolve) => {
-		enqueueUI(worklet, args, resolve);
-	});
+    return new Promise((resolve) => {
+        enqueueUI(worklet, args, resolve);
+    });
 }
 
 function notSimulated(name) {
-	return () => {
-		throw new Error(
-			`[worklets-stub] \`${name}\` is native-only and not simulated. react-native-reanimated never calls it on its SHOULD_BE_USE_WEB (jest) path — if a test reaches this, it is exercising real multi-runtime worklet behaviour that this jest stub cannot provide.`
-		);
-	};
+    return () => {
+        throw new Error(
+            `[worklets-stub] \`${name}\` is native-only and not simulated. react-native-reanimated never calls it on its SHOULD_BE_USE_WEB (jest) path — if a test reaches this, it is exercising real multi-runtime worklet behaviour that this jest stub cannot provide.`
+        );
+    };
 }
 
 const UIRuntimeId = 1;
@@ -180,59 +180,59 @@ const scheduleOnRuntimeWithId = notSimulated("scheduleOnRuntimeWithId");
 const isBundleModeEnabled = () => false;
 function callMicrotasks() {}
 function toggleSlowAnimationsOnUIRuntime() {
-	return false;
+    return false;
 }
 
 const WorkletsModule = {
-	getUIRuntimeHolder: notSimulated("WorkletsModule.getUIRuntimeHolder"),
-	getUISchedulerHolder: notSimulated("WorkletsModule.getUISchedulerHolder"),
-	loadUnpackers: notSimulated("WorkletsModule.loadUnpackers"),
-	toggleSlowAnimationsOnUIRuntime: () => false,
+    getUIRuntimeHolder: notSimulated("WorkletsModule.getUIRuntimeHolder"),
+    getUISchedulerHolder: notSimulated("WorkletsModule.getUISchedulerHolder"),
+    loadUnpackers: notSimulated("WorkletsModule.loadUnpackers"),
+    toggleSlowAnimationsOnUIRuntime: () => false,
 };
 
 module.exports = {
-	callMicrotasks,
-	createSerializable,
-	createShareable,
-	createSynchronizable,
-	createWorkletRuntime,
-	executeOnUIRuntimeSync,
-	getDynamicFeatureFlag,
-	getRuntimeKind,
-	getStaticFeatureFlag,
-	getUIRuntimeHolder,
-	getUISchedulerHolder,
-	isBundleModeEnabled,
-	isRNRuntime,
-	isSerializableRef,
-	isShareable,
-	isSynchronizable,
-	isUIRuntime,
-	isWorkerRuntime,
-	isWorkletFunction,
-	isWorkletRuntime,
-	makeShareable,
-	makeShareableCloneOnUIRecursive,
-	makeShareableCloneRecursive: createSerializable,
-	RuntimeKind,
-	registerCustomSerializable,
-	runOnJS,
-	runOnRuntime,
-	runOnRuntimeAsync,
-	runOnRuntimeAsyncWithId,
-	runOnRuntimeSync,
-	runOnRuntimeSyncWithId,
-	runOnUI,
-	runOnUIAsync,
-	runOnUISync,
-	scheduleOnRN,
-	scheduleOnRuntime,
-	scheduleOnRuntimeWithId,
-	scheduleOnUI,
-	serializableMappingCache,
-	setDynamicFeatureFlag,
-	shareableMappingCache: serializableMappingCache,
-	toggleSlowAnimationsOnUIRuntime,
-	UIRuntimeId,
-	WorkletsModule,
+    RuntimeKind,
+    UIRuntimeId,
+    WorkletsModule,
+    callMicrotasks,
+    createSerializable,
+    createShareable,
+    createSynchronizable,
+    createWorkletRuntime,
+    executeOnUIRuntimeSync,
+    getDynamicFeatureFlag,
+    getRuntimeKind,
+    getStaticFeatureFlag,
+    getUIRuntimeHolder,
+    getUISchedulerHolder,
+    isBundleModeEnabled,
+    isRNRuntime,
+    isSerializableRef,
+    isShareable,
+    isSynchronizable,
+    isUIRuntime,
+    isWorkerRuntime,
+    isWorkletFunction,
+    isWorkletRuntime,
+    makeShareable,
+    makeShareableCloneOnUIRecursive,
+    makeShareableCloneRecursive: createSerializable,
+    registerCustomSerializable,
+    runOnJS,
+    runOnRuntime,
+    runOnRuntimeAsync,
+    runOnRuntimeAsyncWithId,
+    runOnRuntimeSync,
+    runOnRuntimeSyncWithId,
+    runOnUI,
+    runOnUIAsync,
+    runOnUISync,
+    scheduleOnRN,
+    scheduleOnRuntime,
+    scheduleOnRuntimeWithId,
+    scheduleOnUI,
+    serializableMappingCache,
+    setDynamicFeatureFlag,
+    shareableMappingCache: serializableMappingCache,
+    toggleSlowAnimationsOnUIRuntime,
 };

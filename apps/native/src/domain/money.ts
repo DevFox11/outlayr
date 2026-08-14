@@ -1,6 +1,7 @@
 import { CURRENCY_DECIMALS } from "@outlayr/money/catalog";
 import { currencyDisplayFor } from "@outlayr/money/currency";
 import { roundMoney } from "@outlayr/money/round";
+
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 
@@ -9,34 +10,34 @@ export const DEFAULT_CURRENCY = "USD";
 export type SymbolPlacement = "prefix" | "suffix";
 
 export interface NumberLocale {
-	decimal: string;
-	gap: string;
-	group: string;
-	placement: SymbolPlacement;
-	/**
-	 * BCP-47 tag for the few APIs that insist on `Intl` — `NumberFlow` builds its
-	 * digit slots from `formatToParts`. The separators below must mirror what this
-	 * tag produces, or an animated figure disagrees with a static one beside it.
-	 */
-	tag: string;
+    decimal: string;
+    gap: string;
+    group: string;
+    placement: SymbolPlacement;
+    /**
+     * BCP-47 tag for the few APIs that insist on `Intl` — `NumberFlow` builds its
+     * digit slots from `formatToParts`. The separators below must mirror what this
+     * tag produces, or an animated figure disagrees with a static one beside it.
+     */
+    tag: string;
 }
 
 /** A trailing symbol must not wrap onto a line of its own, away from its figure. */
-export const NBSP = "\u00a0";
+export const NBSP = "\u00A0";
 
 const NUMBER_LOCALES: Record<Language, NumberLocale> = {
-	en: { decimal: ".", gap: "", group: ",", placement: "prefix", tag: "en-US" },
-	es: {
-		decimal: ",",
-		gap: NBSP,
-		group: ".",
-		placement: "suffix",
-		tag: "es-ES",
-	},
+    en: { decimal: ".", gap: "", group: ",", placement: "prefix", tag: "en-US" },
+    es: {
+        decimal: ",",
+        gap: NBSP,
+        group: ".",
+        placement: "suffix",
+        tag: "es-ES",
+    },
 };
 
 export function numberLocale(language: Language = runtimeLanguage()): NumberLocale {
-	return NUMBER_LOCALES[language];
+    return NUMBER_LOCALES[language];
 }
 
 /**
@@ -44,26 +45,26 @@ export function numberLocale(language: Language = runtimeLanguage()): NumberLoca
  * for most, 3 for KWD-style dinars); an unknown code falls back to 2.
  */
 export function minorUnitsFor(code: string): number {
-	return code in CURRENCY_DECIMALS ? CURRENCY_DECIMALS[code as keyof typeof CURRENCY_DECIMALS] : 2;
+    return code in CURRENCY_DECIMALS ? CURRENCY_DECIMALS[code as keyof typeof CURRENCY_DECIMALS] : 2;
 }
 
 export function currencySymbol(code: string): string {
-	return currencyDisplayFor(code).symbol;
+    return currencyDisplayFor(code).symbol;
 }
 
 /** Exact half-even rounding to whatever precision the code actually stores. */
 export function roundToMinorUnits(amount: number, code: string): number {
-	return roundMoney(amount, minorUnitsFor(code));
+    return roundMoney(amount, minorUnitsFor(code));
 }
 
 export interface AmountParts {
-	/** Zero-padded fraction of `minorUnits` length, or "" when the code has none. */
-	fraction: string;
-	/** Integer portion grouped with `locale.group`, e.g. "1,240" or "1.240". */
-	integer: string;
-	locale: NumberLocale;
-	minorUnits: number;
-	symbol: string;
+    /** Zero-padded fraction of `minorUnits` length, or "" when the code has none. */
+    fraction: string;
+    /** Integer portion grouped with `locale.group`, e.g. "1,240" or "1.240". */
+    integer: string;
+    locale: NumberLocale;
+    minorUnits: number;
+    symbol: string;
 }
 
 /**
@@ -78,29 +79,29 @@ export interface AmountParts {
  * rounded to whole units and no fraction is emitted.
  */
 export function amountParts(
-	amount: number,
-	code: string,
-	showCents = true,
-	language: Language = runtimeLanguage()
+    amount: number,
+    code: string,
+    showCents = true,
+    language: Language = runtimeLanguage()
 ): AmountParts {
-	const locale = numberLocale(language);
-	const minorUnits = showCents ? minorUnitsFor(code) : 0;
-	const rounded = roundMoney(Math.abs(amount), minorUnits);
-	const fixed = rounded.toFixed(minorUnits);
-	const [intRaw = "0", fractionRaw = ""] = fixed.split(".");
-	const integer = intRaw.replace(/\B(?=(\d{3})+(?!\d))/g, locale.group);
-	return {
-		fraction: minorUnits > 0 ? fractionRaw : "",
-		integer,
-		locale,
-		minorUnits,
-		symbol: currencySymbol(code),
-	};
+    const locale = numberLocale(language);
+    const minorUnits = showCents ? minorUnitsFor(code) : 0;
+    const rounded = roundMoney(Math.abs(amount), minorUnits);
+    const fixed = rounded.toFixed(minorUnits);
+    const [intRaw = "0", fractionRaw = ""] = fixed.split(".");
+    const integer = intRaw.replaceAll(/\B(?=(\d{3})+(?!\d))/g, locale.group);
+    return {
+        fraction: minorUnits > 0 ? fractionRaw : "",
+        integer,
+        locale,
+        minorUnits,
+        symbol: currencySymbol(code),
+    };
 }
 
 /** The figure alone: grouped integer joined to its fraction by the decimal mark. */
 export function amountDigits(parts: AmountParts): string {
-	return parts.fraction ? `${parts.integer}${parts.locale.decimal}${parts.fraction}` : parts.integer;
+    return parts.fraction ? `${parts.integer}${parts.locale.decimal}${parts.fraction}` : parts.integer;
 }
 
 /**
@@ -108,19 +109,19 @@ export function amountDigits(parts: AmountParts): string {
  * digits and so cannot use `withCurrencySymbol`. Exactly one side is non-empty.
  */
 export function splitSymbol(parts: AmountParts): {
-	prefixSymbol: string;
-	suffixSymbol: string;
+    prefixSymbol: string;
+    suffixSymbol: string;
 } {
-	const { placement, gap } = parts.locale;
-	return placement === "suffix"
-		? { prefixSymbol: "", suffixSymbol: `${gap}${parts.symbol}` }
-		: { prefixSymbol: `${parts.symbol}${gap}`, suffixSymbol: "" };
+    const { placement, gap } = parts.locale;
+    return placement === "suffix"
+        ? { prefixSymbol: "", suffixSymbol: `${gap}${parts.symbol}` }
+        : { prefixSymbol: `${parts.symbol}${gap}`, suffixSymbol: "" };
 }
 
 /** Wraps already-built digits in the symbol, on the side the language puts it. */
 export function withCurrencySymbol(parts: AmountParts, digits: string): string {
-	const { placement, gap } = parts.locale;
-	return placement === "suffix" ? `${digits}${gap}${parts.symbol}` : `${parts.symbol}${gap}${digits}`;
+    const { placement, gap } = parts.locale;
+    return placement === "suffix" ? `${digits}${gap}${parts.symbol}` : `${parts.symbol}${gap}${digits}`;
 }
 
 /**
@@ -128,11 +129,11 @@ export function withCurrencySymbol(parts: AmountParts, digits: string): string {
  * "1.240,00 €" in Spanish (or "¥1,240" for a zero-minor-unit currency).
  */
 export function formatAmount(
-	amount: number,
-	code: string,
-	showCents = true,
-	language: Language = runtimeLanguage()
+    amount: number,
+    code: string,
+    showCents = true,
+    language: Language = runtimeLanguage()
 ): string {
-	const parts = amountParts(amount, code, showCents, language);
-	return withCurrencySymbol(parts, amountDigits(parts));
+    const parts = amountParts(amount, code, showCents, language);
+    return withCurrencySymbol(parts, amountDigits(parts));
 }

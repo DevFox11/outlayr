@@ -10,13 +10,13 @@ import { syncTransport } from "@/lib/convex";
  * being silently skipped.
  */
 export function adoptionEngine(db: Database | null): AdoptionEngine | null {
-	const transport = syncTransport();
-	if (db == null) {
-		return null;
-	}
-	return {
-		accountLedger: () => accountLedgerState(transport.pull),
-		discardAccountLedger: () => discardAccountLedger(db, transport),
-		replaceFromAccount: () => replaceLocalFromAccount(db, transport.pull),
-	};
+    const transport = syncTransport();
+    if (db == null) {
+        return null;
+    }
+    return {
+        accountLedger: () => accountLedgerState(transport.pull),
+        discardAccountLedger: () => discardAccountLedger(db, transport),
+        replaceFromAccount: () => replaceLocalFromAccount(db, transport.pull),
+    };
 }

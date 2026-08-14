@@ -1,29 +1,31 @@
 import {
-	assertFiniteNumber as moneyAssertFiniteNumber,
-	assertOptionalFiniteNumber as moneyAssertOptionalFiniteNumber,
-	assertOptionalValidEpochMs as moneyAssertOptionalValidEpochMs,
-	assertValidEpochMs as moneyAssertValidEpochMs,
+    assertFiniteNumber as moneyAssertFiniteNumber,
+    assertOptionalFiniteNumber as moneyAssertOptionalFiniteNumber,
+    assertOptionalValidEpochMs as moneyAssertOptionalValidEpochMs,
+    assertValidEpochMs as moneyAssertValidEpochMs,
 } from "@outlayr/money/assert";
-import { PICKABLE_CURRENCY_CODES as MONEY_PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
-import {
-	METAL_CURRENCY_CODES as MONEY_METAL_CURRENCY_CODES,
-	isPickableCurrency as moneyIsPickableCurrency,
-} from "@outlayr/money/currency";
+import { isPickableCurrency as moneyIsPickableCurrency } from "@outlayr/money/currency";
 import { utcDateString as moneyUtcDateString } from "@outlayr/money/dates";
 import { MoneyValidationError } from "@outlayr/money/errors";
 import {
-	type ComputeAmountUSDInput,
-	type EntryRateType as MoneyEntryRateType,
-	type MarketRateType as MoneyMarketRateType,
-	computeAmountUSD as moneyComputeAmountUSD,
-	resolveEntryRate as moneyResolveEntryRate,
-	type RateLookup,
+    computeAmountUSD as moneyComputeAmountUSD,
+    resolveEntryRate as moneyResolveEntryRate,
+} from "@outlayr/money/rates";
+import type {
+    ComputeAmountUSDInput,
+    EntryRateType as MoneyEntryRateType,
+    MarketRateType as MoneyMarketRateType,
+    RateLookup,
 } from "@outlayr/money/rates";
 import { convertFromUsd as moneyConvertFromUsd, roundMoney as moneyRoundMoney } from "@outlayr/money/round";
-import { ConvexError, type Infer, v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import type { Infer } from "convex/values";
 
 import type { Doc } from "../_generated/dataModel";
 import type { DatabaseReader } from "../_generated/server";
+
+export { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
+export { METAL_CURRENCY_CODES } from "@outlayr/money/currency";
 
 /**
  * Convex boundary shim over `@outlayr/money`: rethrows `MoneyValidationError`
@@ -33,24 +35,21 @@ import type { DatabaseReader } from "../_generated/server";
 export type EntryRateType = MoneyEntryRateType;
 export type MarketRateType = MoneyMarketRateType;
 
-export const METAL_CURRENCY_CODES = MONEY_METAL_CURRENCY_CODES;
-export const PICKABLE_CURRENCY_CODES = MONEY_PICKABLE_CURRENCY_CODES;
-
 export function isPickableCurrency(code: string): boolean {
-	return moneyIsPickableCurrency(code);
+    return moneyIsPickableCurrency(code);
 }
 
 export function roundMoney(value: number, decimals?: number): number {
-	return moneyRoundMoney(value, decimals);
+    return moneyRoundMoney(value, decimals);
 }
 
 /** Rounds once half-even at the target currency's exponent (0|2|3). */
 export function convertFromUsd(amountUsd: number, rate: number, code: string): number {
-	return moneyConvertFromUsd(amountUsd, rate, code);
+    return moneyConvertFromUsd(amountUsd, rate, code);
 }
 
 export function utcDateString(epochMs: number): string {
-	return moneyUtcDateString(epochMs);
+    return moneyUtcDateString(epochMs);
 }
 
 /**
@@ -75,43 +74,41 @@ export const rateSource = v.union(v.literal("frankfurter"), v.literal("cotizave"
 export type RateSource = Infer<typeof rateSource>;
 
 function toConvexError<T>(run: () => T): T {
-	try {
-		return run();
-	} catch (error) {
-		if (error instanceof MoneyValidationError) {
-			// biome-ignore lint/style/useErrorCause: ConvexError declares `constructor(data: TData)` — the payload it serializes to the client is its only argument, and convex/tsconfig.json pins lib to ES2021, where Error.cause does not exist to assign afterwards.
-			throw new ConvexError(error.message);
-		}
-		throw error;
-	}
+    try {
+        return run();
+    } catch (error) {
+        if (error instanceof MoneyValidationError) {
+            throw new ConvexError(error.message);
+        }
+        throw error;
+    }
 }
 
 async function toConvexErrorAsync<T>(run: () => Promise<T>): Promise<T> {
-	try {
-		return await run();
-	} catch (error) {
-		if (error instanceof MoneyValidationError) {
-			// biome-ignore lint/style/useErrorCause: ConvexError declares `constructor(data: TData)` — the payload it serializes to the client is its only argument, and convex/tsconfig.json pins lib to ES2021, where Error.cause does not exist to assign afterwards.
-			throw new ConvexError(error.message);
-		}
-		throw error;
-	}
+    try {
+        return await run();
+    } catch (error) {
+        if (error instanceof MoneyValidationError) {
+            throw new ConvexError(error.message);
+        }
+        throw error;
+    }
 }
 
 export function assertFiniteNumber(value: number, label: string): void {
-	toConvexError(() => moneyAssertFiniteNumber(value, label));
+    toConvexError(() => moneyAssertFiniteNumber(value, label));
 }
 
 export function assertOptionalFiniteNumber(value: number | undefined, label: string): void {
-	toConvexError(() => moneyAssertOptionalFiniteNumber(value, label));
+    toConvexError(() => moneyAssertOptionalFiniteNumber(value, label));
 }
 
 export function assertValidEpochMs(value: number, label: string): void {
-	toConvexError(() => moneyAssertValidEpochMs(value, label));
+    toConvexError(() => moneyAssertValidEpochMs(value, label));
 }
 
 export function assertOptionalValidEpochMs(value: number | undefined, label: string): void {
-	toConvexError(() => moneyAssertOptionalValidEpochMs(value, label));
+    toConvexError(() => moneyAssertOptionalValidEpochMs(value, label));
 }
 
 /**
@@ -119,37 +116,39 @@ export function assertOptionalValidEpochMs(value: number | undefined, label: str
  * what covers Frankfurter weekend and holiday gaps.
  */
 export async function resolveRateOnDate(
-	db: DatabaseReader,
-	quote: string,
-	rateType: MarketRateType,
-	date: string
+    db: DatabaseReader,
+    quote: string,
+    rateType: MarketRateType,
+    date: string
 ): Promise<Doc<"exchangeRates"> | null> {
-	const rows = await db
-		.query("exchangeRates")
-		.withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", quote).eq("rateType", rateType).lte("date", date))
-		.order("desc")
-		.take(1);
-	return rows[0] ?? null;
+    const rows = await db
+        .query("exchangeRates")
+        .withIndex("by_quote_and_rateType_and_date", (q) =>
+            q.eq("quote", quote).eq("rateType", rateType).lte("date", date)
+        )
+        .order("desc")
+        .take(1);
+    return rows[0] ?? null;
 }
 
 function dbRateLookup(db: DatabaseReader): RateLookup {
-	return async (quote, rateType, date) => {
-		const row = await resolveRateOnDate(db, quote, rateType, date);
-		return row ? { date: row.date, rate: row.rate } : null;
-	};
+    return async (quote, rateType, date) => {
+        const row = await resolveRateOnDate(db, quote, rateType, date);
+        return row ? { date: row.date, rate: row.rate } : null;
+    };
 }
 
 export function resolveEntryRate(
-	db: DatabaseReader,
-	currency: string,
-	rateType: EntryRateType,
-	customRate: number | undefined,
-	date: string
+    db: DatabaseReader,
+    currency: string,
+    rateType: EntryRateType,
+    customRate: number | undefined,
+    date: string
 ): Promise<number> {
-	return toConvexErrorAsync(() => moneyResolveEntryRate(dbRateLookup(db), currency, rateType, customRate, date));
+    return toConvexErrorAsync(() => moneyResolveEntryRate(dbRateLookup(db), currency, rateType, customRate, date));
 }
 
 /** THE single canonical-USD entry point for Convex callers. */
 export function computeAmountUSD(db: DatabaseReader, input: ComputeAmountUSDInput): Promise<number> {
-	return toConvexErrorAsync(() => moneyComputeAmountUSD(dbRateLookup(db), input));
+    return toConvexErrorAsync(() => moneyComputeAmountUSD(dbRateLookup(db), input));
 }

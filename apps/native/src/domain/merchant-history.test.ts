@@ -1,55 +1,56 @@
-import { type HistoricalEntry, rememberedCategory } from "./merchant-history";
+import { rememberedCategory } from "./merchant-history";
+import type { HistoricalEntry } from "./merchant-history";
 import { merchantKey } from "./merchant-resolver";
 
 function entry(note: string, categoryId: string, day: number): HistoricalEntry {
-	return { categoryId, date: Date.UTC(2026, 0, day), note };
+    return { categoryId, date: Date.UTC(2026, 0, day), note };
 }
 
 describe("what the ledger remembers about a merchant", () => {
-	it("answers with the category the user has filed it under", () => {
-		const entries = [entry("Rio Supermercado", "groceries", 1)];
-		expect(rememberedCategory(entries, merchantKey("Rio Supermercado"))).toBe("groceries");
-	});
+    it("answers with the category the user has filed it under", () => {
+        const entries = [entry("Rio Supermercado", "groceries", 1)];
+        expect(rememberedCategory(entries, merchantKey("Rio Supermercado"))).toBe("groceries");
+    });
 
-	it("knows nothing about a merchant that was never filed", () => {
-		const entries = [entry("Rio Supermercado", "groceries", 1)];
-		expect(rememberedCategory(entries, merchantKey("Panaderia La Mejor"))).toBe(null);
-	});
+    it("knows nothing about a merchant that was never filed", () => {
+        const entries = [entry("Rio Supermercado", "groceries", 1)];
+        expect(rememberedCategory(entries, merchantKey("Panaderia La Mejor"))).toBeNull();
+    });
 
-	it("reads spellings that differ only in case, spacing or accents as one merchant", () => {
-		const entries = [
-			entry("Panadería La Mejor", "food", 1),
-			entry("PANADERIA LA MEJOR", "food", 2),
-			entry("panaderia  la mejor ", "food", 3),
-		];
-		expect(rememberedCategory(entries, merchantKey("Panaderia la Mejor"))).toBe("food");
-	});
+    it("reads spellings that differ only in case, spacing or accents as one merchant", () => {
+        const entries = [
+            entry("Panadería La Mejor", "food", 1),
+            entry("PANADERIA LA MEJOR", "food", 2),
+            entry("panaderia  la mejor ", "food", 3),
+        ];
+        expect(rememberedCategory(entries, merchantKey("Panaderia la Mejor"))).toBe("food");
+    });
 
-	it("lets the majority outvote a single miscategorised entry", () => {
-		// The stray row is the newest, so a most-recent rule would return it.
-		const entries = [
-			entry("Netflix", "entertainment", 1),
-			entry("Netflix", "entertainment", 2),
-			entry("Netflix", "groceries", 9),
-		];
-		expect(rememberedCategory(entries, merchantKey("Netflix"))).toBe("entertainment");
-	});
+    it("lets the majority outvote a single miscategorised entry", () => {
+        // The stray row is the newest, so a most-recent rule would return it.
+        const entries = [
+            entry("Netflix", "entertainment", 1),
+            entry("Netflix", "entertainment", 2),
+            entry("Netflix", "groceries", 9),
+        ];
+        expect(rememberedCategory(entries, merchantKey("Netflix"))).toBe("entertainment");
+    });
 
-	it("breaks a tie on recency", () => {
-		const entries = [entry("Uber", "transport", 1), entry("Uber", "travel", 5)];
-		expect(rememberedCategory(entries, merchantKey("Uber"))).toBe("travel");
-	});
+    it("breaks a tie on recency", () => {
+        const entries = [entry("Uber", "transport", 1), entry("Uber", "travel", 5)];
+        expect(rememberedCategory(entries, merchantKey("Uber"))).toBe("travel");
+    });
 
-	it("ignores entries for other merchants when counting", () => {
-		const entries = [
-			entry("Spotify", "music", 1),
-			entry("Netflix", "entertainment", 2),
-			entry("Netflix", "entertainment", 3),
-		];
-		expect(rememberedCategory(entries, merchantKey("Spotify"))).toBe("music");
-	});
+    it("ignores entries for other merchants when counting", () => {
+        const entries = [
+            entry("Spotify", "music", 1),
+            entry("Netflix", "entertainment", 2),
+            entry("Netflix", "entertainment", 3),
+        ];
+        expect(rememberedCategory(entries, merchantKey("Spotify"))).toBe("music");
+    });
 
-	it("answers nothing for an empty key rather than matching every blank note", () => {
-		expect(rememberedCategory([entry("", "groceries", 1)], "")).toBe(null);
-	});
+    it("answers nothing for an empty key rather than matching every blank note", () => {
+        expect(rememberedCategory([entry("", "groceries", 1)], "")).toBeNull();
+    });
 });

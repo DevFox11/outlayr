@@ -4,27 +4,27 @@ import { crossingDay } from "./budget-limit-crossing";
 const SERIES = [15, 15, 115, 115, 115, 2715, 2715];
 
 describe("crossingDay", () => {
-	it("returns the first day the cumulative spend passes the limit", () => {
-		expect(crossingDay(SERIES, 200)).toBe(6);
-	});
+    it("returns the first day the cumulative spend passes the limit", () => {
+        expect(crossingDay(SERIES, 200)).toBe(6);
+    });
 
-	it("counts a limit equal to a day's cumulative as spent on that day", () => {
-		expect(crossingDay(SERIES, 115)).toBe(3);
-	});
+    it("counts a limit equal to a day's cumulative as spent on that day", () => {
+        expect(crossingDay(SERIES, 115)).toBe(3);
+    });
 
-	it("returns null for a limit above the month's total", () => {
-		expect(crossingDay(SERIES, 2715.01)).toBe(null);
-	});
+    it("returns null for a limit above the month's total", () => {
+        expect(crossingDay(SERIES, 2715.01)).toBeNull();
+    });
 
-	it("returns day one for a limit below the first transaction", () => {
-		expect(crossingDay(SERIES, 10)).toBe(1);
-	});
+    it("returns day one for a limit below the first transaction", () => {
+        expect(crossingDay(SERIES, 10)).toBe(1);
+    });
 
-	it("returns null for an empty series", () => {
-		expect(crossingDay([], 500)).toBe(null);
-	});
+    it("returns null for an empty series", () => {
+        expect(crossingDay([], 500)).toBeNull();
+    });
 
-	it("holds at exactly the total rather than clearing it", () => {
-		expect(crossingDay(SERIES, 2715)).toBe(6);
-	});
+    it("holds at exactly the total rather than clearing it", () => {
+        expect(crossingDay(SERIES, 2715)).toBe(6);
+    });
 });

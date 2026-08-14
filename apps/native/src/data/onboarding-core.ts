@@ -1,5 +1,6 @@
 import type { Database } from "@/db/client";
 import { withTransaction } from "@/db/transaction";
+
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 
 /**
@@ -10,7 +11,7 @@ import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
  * stating a currency alone is only step one, not completion.
  */
 export function isOnboardingSettled(completed: string | null): boolean {
-	return completed === "true";
+    return completed === "true";
 }
 
 /**
@@ -19,27 +20,27 @@ export function isOnboardingSettled(completed: string | null): boolean {
  * account" shortcut.
  */
 export async function finishOnboarding(db: Database): Promise<void> {
-	await setMeta(db, META_KEYS.onboardingComplete, "true");
+    await setMeta(db, META_KEYS.onboardingComplete, "true");
 }
 
 /** Whether the rhythm step's reminder offer was taken on this device. */
 export function isReminderChosen(chosen: string | null): boolean {
-	return chosen === "true";
+    return chosen === "true";
 }
 
 /** Writer for the rhythm step's reminder offer. Skipping writes nothing. */
 export async function markReminderChosen(db: Database): Promise<void> {
-	await setMeta(db, META_KEYS.reminderChosen, "true");
+    await setMeta(db, META_KEYS.reminderChosen, "true");
 }
 
 /** Whether the gate's "Not now" has been taken on this device. */
 export function isAccountDeferred(deferred: string | null): boolean {
-	return deferred === "true";
+    return deferred === "true";
 }
 
 /** Writer for the gate's "Not now" — opens the ledger without an account. */
 export async function deferAccount(db: Database): Promise<void> {
-	await setMeta(db, META_KEYS.accountDeferred, "true");
+    await setMeta(db, META_KEYS.accountDeferred, "true");
 }
 
 /**
@@ -52,11 +53,11 @@ export async function deferAccount(db: Database): Promise<void> {
  * (and skip a flow it was already mid-way through) on every later launch.
  */
 export function shouldSettleLegacyLedger(
-	completed: string | null,
-	currencyChosen: string | null,
-	migrated: string | null
+    completed: string | null,
+    currencyChosen: string | null,
+    migrated: string | null
 ): boolean {
-	return migrated !== "true" && completed !== "true" && currencyChosen === "true";
+    return migrated !== "true" && completed !== "true" && currencyChosen === "true";
 }
 
 /**
@@ -67,20 +68,20 @@ export function shouldSettleLegacyLedger(
  * stranding it outside both the flow and the gate.
  */
 export async function settleLegacyOnboarding(db: Database): Promise<void> {
-	const [completed, currencyChosen, migrated] = await Promise.all([
-		getMeta(db, META_KEYS.onboardingComplete),
-		getMeta(db, META_KEYS.currencyChosen),
-		getMeta(db, META_KEYS.onboardingGateMigrated),
-	]);
+    const [completed, currencyChosen, migrated] = await Promise.all([
+        getMeta(db, META_KEYS.onboardingComplete),
+        getMeta(db, META_KEYS.currencyChosen),
+        getMeta(db, META_KEYS.onboardingGateMigrated),
+    ]);
 
-	if (migrated === "true") {
-		return;
-	}
+    if (migrated === "true") {
+        return;
+    }
 
-	await withTransaction(db, async () => {
-		if (shouldSettleLegacyLedger(completed, currencyChosen, migrated)) {
-			await setMeta(db, META_KEYS.onboardingComplete, "true");
-		}
-		await setMeta(db, META_KEYS.onboardingGateMigrated, "true");
-	});
+    await withTransaction(db, async () => {
+        if (shouldSettleLegacyLedger(completed, currencyChosen, migrated)) {
+            await setMeta(db, META_KEYS.onboardingComplete, "true");
+        }
+        await setMeta(db, META_KEYS.onboardingGateMigrated, "true");
+    });
 }

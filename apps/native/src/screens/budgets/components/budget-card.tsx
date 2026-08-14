@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { type LayoutChangeEvent, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
+
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -10,18 +12,19 @@ import type { Burndown } from "@/domain/budget-burndown";
 import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
+
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
 interface BudgetCardProps {
-	budget: CategoryBudgetView;
-	burndown?: Burndown | null;
-	contributions: readonly ExpenseContribution[];
-	currency: string;
-	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
-	nowMs: number;
-	onLongPress: (id: string) => void;
-	onPress: (id: string) => void;
+    budget: CategoryBudgetView;
+    burndown?: Burndown | null;
+    contributions: readonly ExpenseContribution[];
+    currency: string;
+    /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
+    nowMs: number;
+    onLongPress: (id: string) => void;
+    onPress: (id: string) => void;
 }
 
 const THUMB_HEIGHT = 40;
@@ -35,99 +38,99 @@ const THUMB_HEIGHT = 40;
  * half a screen wide. Long press opens the same actions the row's swipe does.
  */
 export function BudgetCard({
-	budget,
-	currency,
-	onPress,
-	onLongPress,
-	burndown,
-	contributions,
-	nowMs,
+    budget,
+    currency,
+    onPress,
+    onLongPress,
+    burndown,
+    contributions,
+    nowMs,
 }: BudgetCardProps) {
-	const { showCents } = useDisplaySettings().state;
-	const t = useTranslation();
-	const { language } = useLanguage();
-	const [chartWidth, setChartWidth] = useState(0);
-	const now = new Date(nowMs);
-	const over = budget.overBudget;
-	const isDay = budget.type === BUDGET_TYPE.day;
-	const difference = Math.abs(budget.leftover);
-	const differenceLabel = formatAmount(difference, currency, showCents, language);
+    const { showCents } = useDisplaySettings().state;
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const [chartWidth, setChartWidth] = useState(0);
+    const now = new Date(nowMs);
+    const over = budget.overBudget;
+    const isDay = budget.type === BUDGET_TYPE.day;
+    const difference = Math.abs(budget.leftover);
+    const differenceLabel = formatAmount(difference, currency, showCents, language);
 
-	const onLayout = (event: LayoutChangeEvent) => {
-		setChartWidth(event.nativeEvent.layout.width);
-	};
+    const onLayout = (event: LayoutChangeEvent) => {
+        setChartWidth(event.nativeEvent.layout.width);
+    };
 
-	return (
-		<Pressable
-			accessibilityLabel={
-				over
-					? t("budgets.card.a11yOver", {
-							amount: differenceLabel,
-							name: budget.name,
-						})
-					: t("budgets.card.a11yLeft", {
-							amount: differenceLabel,
-							name: budget.name,
-						})
-			}
-			accessibilityRole="button"
-			className="flex-1 gap-2 rounded-xl border border-border p-3 active:opacity-70"
-			onLongPress={() => onLongPress(budget.id)}
-			onPress={() => onPress(budget.id)}
-		>
-			<View className="flex-row items-center gap-2">
-				<View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
-				<Text className="flex-1 font-sans-semibold text-foreground text-subtitle" numberOfLines={1}>
-					{budget.name}
-				</Text>
-			</View>
+    return (
+        <Pressable
+            accessibilityLabel={
+                over
+                    ? t("budgets.card.a11yOver", {
+                          amount: differenceLabel,
+                          name: budget.name,
+                      })
+                    : t("budgets.card.a11yLeft", {
+                          amount: differenceLabel,
+                          name: budget.name,
+                      })
+            }
+            accessibilityRole="button"
+            className="border-border flex-1 gap-2 rounded-xl border p-3 active:opacity-70"
+            onLongPress={() => onLongPress(budget.id)}
+            onPress={() => onPress(budget.id)}
+        >
+            <View className="flex-row items-center gap-2">
+                <View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
+                <Text className="font-sans-semibold text-foreground text-subtitle flex-1" numberOfLines={1}>
+                    {budget.name}
+                </Text>
+            </View>
 
-			<Text
-				className={cn("font-sans-semibold text-body", over ? "text-over-budget" : "text-foreground")}
-				numberOfLines={1}
-				style={{ fontVariant: ["tabular-nums"] }}
-			>
-				{differenceLabel}
-				<Text className="font-sans-medium text-label text-muted">
-					{` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
-				</Text>
-			</Text>
+            <Text
+                className={cn("font-sans-semibold text-body", over ? "text-over-budget" : "text-foreground")}
+                numberOfLines={1}
+                style={{ fontVariant: ["tabular-nums"] }}
+            >
+                {differenceLabel}
+                <Text className="font-sans-medium text-label text-muted">
+                    {` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
+                </Text>
+            </Text>
 
-			{isDay ? (
-				<BudgetDaySlots
-					bandOnly
-					categoryId={budget.categoryId}
-					compact
-					contributions={contributions}
-					currency={currency}
-					limit={budget.amount}
-					noun={budget.name}
-					nowMs={nowMs}
-					window={budget.window}
-				/>
-			) : null}
+            {isDay ? (
+                <BudgetDaySlots
+                    bandOnly
+                    categoryId={budget.categoryId}
+                    compact
+                    contributions={contributions}
+                    currency={currency}
+                    limit={budget.amount}
+                    noun={budget.name}
+                    nowMs={nowMs}
+                    window={budget.window}
+                />
+            ) : null}
 
-			{isDay || !burndown ? null : (
-				<View onLayout={onLayout} style={{ height: THUMB_HEIGHT }}>
-					{chartWidth > 0 ? (
-						<BudgetBurndownChart
-							burndown={burndown}
-							domain="limit"
-							height={THUMB_HEIGHT}
-							interactive={false}
-							limit={budget.amount}
-							width={chartWidth}
-						/>
-					) : null}
-				</View>
-			)}
+            {isDay || !burndown ? null : (
+                <View onLayout={onLayout} style={{ height: THUMB_HEIGHT }}>
+                    {chartWidth > 0 ? (
+                        <BudgetBurndownChart
+                            burndown={burndown}
+                            domain="limit"
+                            height={THUMB_HEIGHT}
+                            interactive={false}
+                            limit={budget.amount}
+                            width={chartWidth}
+                        />
+                    ) : null}
+                </View>
+            )}
 
-			<MonoLabel numberOfLines={1}>
-				{`${t("budgets.spentOfLimit", {
-					limit: formatAmount(budget.amount, currency, false, language),
-					spent: formatAmount(budget.spent, currency, false, language),
-				})} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
-			</MonoLabel>
-		</Pressable>
-	);
+            <MonoLabel numberOfLines={1}>
+                {`${t("budgets.spentOfLimit", {
+                    limit: formatAmount(budget.amount, currency, false, language),
+                    spent: formatAmount(budget.spent, currency, false, language),
+                })} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
+            </MonoLabel>
+        </Pressable>
+    );
 }

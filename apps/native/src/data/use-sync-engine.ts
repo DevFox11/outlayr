@@ -1,10 +1,12 @@
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
+
 import type { Database } from "@/db/client";
 import { isBehindWatermark } from "@/domain/sync-wakeup";
 import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
+
 import { runSync } from "./sync-engine-core";
 import { getSyncCursor, isSyncEnabled, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
@@ -37,124 +39,124 @@ const REPLICATED = new Set<string>(SYNCED_TABLES);
  * is not a failed save.
  */
 export function useSyncEngine(db: Database | null): void {
-	useEffect(() => {
-		if (db == null) {
-			return;
-		}
-		const transport = syncTransport();
+    useEffect(() => {
+        if (db == null) {
+            return;
+        }
+        const transport = syncTransport();
 
-		let running = false;
-		let queued = false;
+        let running = false;
+        let queued = false;
 
-		const cycle = async () => {
-			if (running) {
-				// A write that lands mid-cycle is not lost: it is queued in the outbox
-				// and this re-runs once for however many arrived.
-				queued = true;
-				return;
-			}
-			running = true;
-			try {
-				do {
-					queued = false;
-					// biome-ignore lint/performance/noAwaitInLoops: each pass drains the outbox the previous one left behind, so a second push must not start until the first has been acknowledged.
-					const { tables } = await runSync(db, transport);
-					// Outside the write transaction, so nothing repaints against rows a
-					// rollback is about to remove.
-					invalidateAll(tables);
-				} while (queued);
-				// Only on a clean pass. A cycle that threw reached the server or did
-				// not, and claiming a time for it would date a sync that never landed.
-				await setSyncedAt(db, new Date());
-				invalidateAll(["appMeta"]);
-			} catch (error) {
-				console.warn("[outlayr] sync failed", error);
-			} finally {
-				running = false;
-			}
-		};
+        const cycle = async () => {
+            if (running) {
+                // A write that lands mid-cycle is not lost: it is queued in the outbox
+                // and this re-runs once for however many arrived.
+                queued = true;
+                return;
+            }
+            running = true;
+            try {
+                do {
+                    queued = false;
+                    // oxlint-disable-next-line no-await-in-loop -- each pass drains the outbox the previous one left behind, so a second push must not start until the first has been acknowledged.
+                    const { tables } = await runSync(db, transport);
+                    // Outside the write transaction, so nothing repaints against rows a
+                    // rollback is about to remove.
+                    invalidateAll(tables);
+                } while (queued);
+                // Only on a clean pass. A cycle that threw reached the server or did
+                // not, and claiming a time for it would date a sync that never landed.
+                await setSyncedAt(db, new Date());
+                invalidateAll(["appMeta"]);
+            } catch (error) {
+                console.warn("[outlayr] sync failed", error);
+            } finally {
+                running = false;
+            }
+        };
 
-		const schedule = debounce(SYNC_DEBOUNCE_MS, () => {
-			cycle();
-		});
+        const schedule = debounce(SYNC_DEBOUNCE_MS, () => {
+            cycle();
+        });
 
-		cycle();
+        cycle();
 
-		const listener = addDatabaseChangeListener((event) => {
-			if (REPLICATED.has(event.tableName)) {
-				schedule.schedule();
-			}
-		});
+        const listener = addDatabaseChangeListener((event) => {
+            if (REPLICATED.has(event.tableName)) {
+                schedule.schedule();
+            }
+        });
 
-		const subscription = AppState.addEventListener("change", (state) => {
-			if (state === "active") {
-				cycle();
-			} else if (state === "background") {
-				schedule.cancel();
-			}
-		});
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state === "active") {
+                cycle();
+            } else if (state === "background") {
+                schedule.cancel();
+            }
+        });
 
-		// The cursor is read at wake-up rather than remembered, because this
-		// device's own push moves the watermark too: by the time the value arrives
-		// the cycle that caused it may already have caught this handset up, and a
-		// stale cursor would turn every local write into a second round trip.
-		const wake = async (watermark: number) => {
-			if (isBehindWatermark(watermark, await getSyncCursor(db))) {
-				await cycle();
-			}
-		};
+        // The cursor is read at wake-up rather than remembered, because this
+        // device's own push moves the watermark too: by the time the value arrives
+        // the cycle that caused it may already have caught this handset up, and a
+        // stale cursor would turn every local write into a second round trip.
+        const wake = async (watermark: number) => {
+            if (isBehindWatermark(watermark, await getSyncCursor(db))) {
+                await cycle();
+            }
+        };
 
-		// Held open only while the gate is on. Every other trigger here is local and
-		// costs nothing when replication is off, but this one opens a live
-		// subscription to the backend — a signed-out install would be talking to a
-		// server it has no account on, which is the opposite of what local-first
-		// promises. The gate is device-local and the sign-in flow flips it, so the
-		// subscription is established and torn down as that value changes rather
-		// than once at mount.
-		let unwatch: (() => void) | null = null;
-		let disposed = false;
+        // Held open only while the gate is on. Every other trigger here is local and
+        // costs nothing when replication is off, but this one opens a live
+        // subscription to the backend — a signed-out install would be talking to a
+        // server it has no account on, which is the opposite of what local-first
+        // promises. The gate is device-local and the sign-in flow flips it, so the
+        // subscription is established and torn down as that value changes rather
+        // than once at mount.
+        let unwatch: (() => void) | null = null;
+        let disposed = false;
 
-		const reconcileWatch = async () => {
-			const wanted = await isSyncEnabled(db);
-			if (disposed || wanted === (unwatch != null)) {
-				return;
-			}
-			if (wanted) {
-				unwatch = watchSyncWatermark((watermark) => {
-					wake(watermark).catch((error) => {
-						console.warn("[outlayr] sync wake-up failed", error);
-					});
-				});
-				return;
-			}
-			unwatch?.();
-			unwatch = null;
-		};
+        const reconcileWatch = async () => {
+            const wanted = await isSyncEnabled(db);
+            if (disposed || wanted === (unwatch != null)) {
+                return;
+            }
+            if (wanted) {
+                unwatch = watchSyncWatermark((watermark) => {
+                    wake(watermark).catch((error) => {
+                        console.warn("[outlayr] sync wake-up failed", error);
+                    });
+                });
+                return;
+            }
+            unwatch?.();
+            unwatch = null;
+        };
 
-		const watchGate = () => {
-			reconcileWatch().catch((error) => {
-				console.warn("[outlayr] sync watch reconcile failed", error);
-			});
-		};
+        const watchGate = () => {
+            reconcileWatch().catch((error) => {
+                console.warn("[outlayr] sync watch reconcile failed", error);
+            });
+        };
 
-		watchGate();
+        watchGate();
 
-		// Registered after `watchGate` exists rather than beside the other listener:
-		// the callback only fires on a later write, but reading a `const` declared
-		// below would be a dead-zone throw if that ever stopped being true.
-		const gateListener = addDatabaseChangeListener((event) => {
-			if (event.tableName === "appMeta") {
-				watchGate();
-			}
-		});
+        // Registered after `watchGate` exists rather than beside the other listener:
+        // the callback only fires on a later write, but reading a `const` declared
+        // below would be a dead-zone throw if that ever stopped being true.
+        const gateListener = addDatabaseChangeListener((event) => {
+            if (event.tableName === "appMeta") {
+                watchGate();
+            }
+        });
 
-		return () => {
-			disposed = true;
-			schedule.cancel();
-			listener.remove();
-			gateListener.remove();
-			subscription.remove();
-			unwatch?.();
-		};
-	}, [db]);
+        return () => {
+            disposed = true;
+            schedule.cancel();
+            listener.remove();
+            gateListener.remove();
+            subscription.remove();
+            unwatch?.();
+        };
+    }, [db]);
 }

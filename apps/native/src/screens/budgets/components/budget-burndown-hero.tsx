@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { type LayoutChangeEvent, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
+
 import { HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
@@ -14,21 +16,22 @@ import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
+
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
 interface BudgetBurndownHeroProps {
-	/** How far the chart reaches past the screen's text gutter. */
-	bleed?: number;
-	budget: MainBudgetView;
-	burndown: Burndown | null;
-	contributions: readonly ExpenseContribution[];
-	currency: string;
-	/** Name and share of the category that took most of the window, when there is one. */
-	dominant?: { name: string; share: number } | null;
-	/** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
-	nowMs: number;
-	onPress: () => void;
+    /** How far the chart reaches past the screen's text gutter. */
+    bleed?: number;
+    budget: MainBudgetView;
+    burndown: Burndown | null;
+    contributions: readonly ExpenseContribution[];
+    currency: string;
+    /** Name and share of the category that took most of the window, when there is one. */
+    dominant?: { name: string; share: number } | null;
+    /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
+    nowMs: number;
+    onPress: () => void;
 }
 
 /** The one face in the app that is neither the rounded sans nor the mono. */
@@ -38,213 +41,213 @@ const CHART_HEIGHT = 168;
 
 /** "23 Jul". */
 function formatDayMonth(date: Date, language: Language): string {
-	return `${date.getDate()} ${monthAbbrev(date, language)}`;
+    return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
 function dayDate(start: Date, day: number): Date {
-	return new Date(start.getFullYear(), start.getMonth(), start.getDate() + day - 1);
+    return new Date(start.getFullYear(), start.getMonth(), start.getDate() + day - 1);
 }
 
 export function BudgetBurndownHero({
-	budget,
-	burndown,
-	contributions,
-	dominant,
-	currency,
-	onPress,
-	nowMs,
-	bleed = 8,
+    budget,
+    burndown,
+    contributions,
+    dominant,
+    currency,
+    onPress,
+    nowMs,
+    bleed = 8,
 }: BudgetBurndownHeroProps) {
-	const { showCents } = useDisplaySettings().state;
-	const t = useTranslation();
-	const { language } = useLanguage();
-	const { width: windowWidth } = useWindowDimensions();
-	const [measured, setMeasured] = useState(0);
-	const [scrubDay, setScrubDay] = useState<number | null>(null);
+    const { showCents } = useDisplaySettings().state;
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const { width: windowWidth } = useWindowDimensions();
+    const [measured, setMeasured] = useState(0);
+    const [scrubDay, setScrubDay] = useState<number | null>(null);
 
-	const now = new Date(nowMs);
-	const period = t(budgetPeriodPhrase(budget.type));
-	const isDay = budget.type === BUDGET_TYPE.day;
-	const showChart = burndown != null && !isDay;
+    const now = new Date(nowMs);
+    const period = t(budgetPeriodPhrase(budget.type));
+    const isDay = budget.type === BUDGET_TYPE.day;
+    const showChart = burndown != null && !isDay;
 
-	const scrubbed = scrubDay == null ? null : (burndown?.points[scrubDay - 1] ?? null);
-	const balance = scrubbed ? scrubbed.balance : budget.leftover;
-	const over = balance < 0;
-	const scrubLabel = scrubbed ? formatDayMonth(dayDate(budget.window.start, scrubbed.day), language) : null;
+    const scrubbed = scrubDay == null ? null : (burndown?.points[scrubDay - 1] ?? null);
+    const balance = scrubbed ? scrubbed.balance : budget.leftover;
+    const over = balance < 0;
+    const scrubLabel = scrubbed ? formatDayMonth(dayDate(budget.window.start, scrubbed.day), language) : null;
 
-	// Already crossed zero is not the same question as will it, so both are asked.
-	const projected = burndown?.projectedBalance ?? null;
-	const endsShort = projected != null && projected < 0;
-	let runwayLabel: string | null = null;
-	if (!isDay) {
-		runwayLabel = t("budgets.hero.onTrack");
-		if (burndown?.runwayDate != null) {
-			runwayLabel = t("budgets.hero.ranOut", {
-				date: formatDayMonth(burndown.runwayDate, language).toUpperCase(),
-			});
-		} else if (endsShort && projected != null) {
-			runwayLabel = t("budgets.hero.endsShort", {
-				amount: formatAmount(Math.abs(projected), currency, false, language),
-			});
-		}
-	}
+    // Already crossed zero is not the same question as will it, so both are asked.
+    const projected = burndown?.projectedBalance ?? null;
+    const endsShort = projected != null && projected < 0;
+    let runwayLabel: string | null = null;
+    if (!isDay) {
+        runwayLabel = t("budgets.hero.onTrack");
+        if (burndown?.runwayDate != null) {
+            runwayLabel = t("budgets.hero.ranOut", {
+                date: formatDayMonth(burndown.runwayDate, language).toUpperCase(),
+            });
+        } else if (endsShort && projected != null) {
+            runwayLabel = t("budgets.hero.endsShort", {
+                amount: formatAmount(Math.abs(projected), currency, false, language),
+            });
+        }
+    }
 
-	const balanceLabel = formatAmount(Math.abs(balance), currency, showCents, language);
-	const status = over ? t("budgets.hero.overBudget") : t("budgets.hero.leftPeriod", { period });
-	const footnote = scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status;
+    const balanceLabel = formatAmount(Math.abs(balance), currency, showCents, language);
+    const status = over ? t("budgets.hero.overBudget") : t("budgets.hero.leftPeriod", { period });
+    const footnote = scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status;
 
-	const chartWidth = measured > 0 ? measured + bleed * 2 : windowWidth - 24;
+    const chartWidth = measured > 0 ? measured + bleed * 2 : windowWidth - 24;
 
-	const openDetail = useMemo(
-		() =>
-			Gesture.Tap().onEnd((_event, success) => {
-				"worklet";
-				if (success) {
-					scheduleOnRN(onPress);
-				}
-			}),
-		[onPress]
-	);
+    const openDetail = useMemo(
+        () =>
+            Gesture.Tap().onEnd((_event, success) => {
+                "worklet";
+                if (success) {
+                    scheduleOnRN(onPress);
+                }
+            }),
+        [onPress]
+    );
 
-	const onLayout = (event: LayoutChangeEvent) => {
-		setMeasured(event.nativeEvent.layout.width);
-	};
+    const onLayout = (event: LayoutChangeEvent) => {
+        setMeasured(event.nativeEvent.layout.width);
+    };
 
-	return (
-		<View>
-			{/* A tap gesture rather than a Pressable: the chart inside runs its own
+    return (
+        <View>
+            {/* A tap gesture rather than a Pressable: the chart inside runs its own
 			    pan, and RN's touch responder and RNGH cannot arbitrate between them —
 			    the pan claims every touch and the card stops opening. Two gestures in
 			    one system sort themselves out, pan on movement, tap on stillness. */}
-			<GestureDetector gesture={openDetail}>
-				<View
-					accessibilityLabel={
-						over
-							? t("budgets.hero.a11yOver", {
-									amount: balanceLabel,
-									name: budget.name,
-								})
-							: t("budgets.hero.a11yLeft", {
-									amount: balanceLabel,
-									name: budget.name,
-									period,
-								})
-					}
-					accessibilityRole="button"
-				>
-					<View onLayout={onLayout}>
-						<View className="flex-row items-baseline justify-between">
-							<MonoLabel>{t("budgets.hero.eyebrow", { period: period.toUpperCase() })}</MonoLabel>
-							<MonoLabel>
-								{scrubLabel
-									? scrubLabel.toUpperCase()
-									: budgetTimeLeftLabel(budget.window, budget.type, now, t).toUpperCase()}
-							</MonoLabel>
-						</View>
+            <GestureDetector gesture={openDetail}>
+                <View
+                    accessibilityLabel={
+                        over
+                            ? t("budgets.hero.a11yOver", {
+                                  amount: balanceLabel,
+                                  name: budget.name,
+                              })
+                            : t("budgets.hero.a11yLeft", {
+                                  amount: balanceLabel,
+                                  name: budget.name,
+                                  period,
+                              })
+                    }
+                    accessibilityRole="button"
+                >
+                    <View onLayout={onLayout}>
+                        <View className="flex-row items-baseline justify-between">
+                            <MonoLabel>{t("budgets.hero.eyebrow", { period: period.toUpperCase() })}</MonoLabel>
+                            <MonoLabel>
+                                {scrubLabel
+                                    ? scrubLabel.toUpperCase()
+                                    : budgetTimeLeftLabel(budget.window, budget.type, now, t).toUpperCase()}
+                            </MonoLabel>
+                        </View>
 
-						<View className="pt-2">
-							<HeroNumber
-								amount={Math.abs(balance)}
-								code={currency}
-								showCents={showCents}
-								sign=""
-								size={40}
-								toneClass={over ? "text-over-budget" : "text-foreground"}
-							/>
-						</View>
-						<Text className="pt-0.5 text-footnote text-muted">{footnote}</Text>
-					</View>
+                        <View className="pt-2">
+                            <HeroNumber
+                                amount={Math.abs(balance)}
+                                code={currency}
+                                showCents={showCents}
+                                sign=""
+                                size={40}
+                                toneClass={over ? "text-over-budget" : "text-foreground"}
+                            />
+                        </View>
+                        <Text className="text-footnote text-muted pt-0.5">{footnote}</Text>
+                    </View>
 
-					{showChart && burndown ? (
-						<View className="pt-4" style={{ marginHorizontal: -bleed }}>
-							<BudgetBurndownChart
-								burndown={burndown}
-								height={CHART_HEIGHT}
-								limit={budget.amount}
-								onScrub={setScrubDay}
-								width={chartWidth}
-							/>
-						</View>
-					) : null}
+                    {showChart && burndown ? (
+                        <View className="pt-4" style={{ marginHorizontal: -bleed }}>
+                            <BudgetBurndownChart
+                                burndown={burndown}
+                                height={CHART_HEIGHT}
+                                limit={budget.amount}
+                                onScrub={setScrubDay}
+                                width={chartWidth}
+                            />
+                        </View>
+                    ) : null}
 
-					{isDay ? (
-						<BudgetDaySlots
-							contributions={contributions}
-							currency={currency}
-							limit={budget.amount}
-							nowMs={nowMs}
-							window={budget.window}
-						/>
-					) : null}
+                    {isDay ? (
+                        <BudgetDaySlots
+                            contributions={contributions}
+                            currency={currency}
+                            limit={budget.amount}
+                            nowMs={nowMs}
+                            window={budget.window}
+                        />
+                    ) : null}
 
-					<View className="flex-row items-baseline justify-between pt-2.5">
-						<MonoLabel>{formatAmount(budget.amount, currency, false, language)}</MonoLabel>
-						{runwayLabel ? <MonoLabel>{runwayLabel}</MonoLabel> : null}
-					</View>
-				</View>
-			</GestureDetector>
+                    <View className="flex-row items-baseline justify-between pt-2.5">
+                        <MonoLabel>{formatAmount(budget.amount, currency, false, language)}</MonoLabel>
+                        {runwayLabel ? <MonoLabel>{runwayLabel}</MonoLabel> : null}
+                    </View>
+                </View>
+            </GestureDetector>
 
-			{scrubbed || isDay ? null : (
-				<HeroVerdict burndown={burndown} currency={currency} dominant={dominant} periodEndsShort={endsShort} />
-			)}
-		</View>
-	);
+            {scrubbed || isDay ? null : (
+                <HeroVerdict burndown={burndown} currency={currency} dominant={dominant} periodEndsShort={endsShort} />
+            )}
+        </View>
+    );
 }
 
 function HeroVerdict({
-	burndown,
-	currency,
-	dominant,
-	periodEndsShort,
+    burndown,
+    currency,
+    dominant,
+    periodEndsShort,
 }: {
-	burndown: Burndown | null;
-	currency: string;
-	dominant?: { name: string; share: number } | null;
-	periodEndsShort: boolean;
+    burndown: Burndown | null;
+    currency: string;
+    dominant?: { name: string; share: number } | null;
+    periodEndsShort: boolean;
 }) {
-	const t = useTranslation();
-	const { language } = useLanguage();
-	if (!burndown) {
-		return null;
-	}
+    const t = useTranslation();
+    const { language } = useLanguage();
+    if (!burndown) {
+        return null;
+    }
 
-	let sentence: string | null = null;
-	if (burndown.runwayDate && burndown.runwayDay != null) {
-		const ranOut = formatDayMonth(burndown.runwayDate, language);
-		const early = burndown.totalDays - burndown.runwayDay;
-		sentence =
-			early > 0
-				? t("budgets.hero.verdictRanOutEarly", {
-						date: ranOut,
-						days: t("budgets.days", { count: early }),
-					})
-				: t("budgets.hero.verdictRanOutFinal", { date: ranOut });
-	} else if (periodEndsShort && burndown.projectedBalance != null) {
-		sentence = t("budgets.hero.verdictEndsShort", {
-			amount: formatAmount(Math.abs(burndown.projectedBalance), currency, false, language),
-		});
-	}
+    let sentence: string | null = null;
+    if (burndown.runwayDate && burndown.runwayDay != null) {
+        const ranOut = formatDayMonth(burndown.runwayDate, language);
+        const early = burndown.totalDays - burndown.runwayDay;
+        sentence =
+            early > 0
+                ? t("budgets.hero.verdictRanOutEarly", {
+                      date: ranOut,
+                      days: t("budgets.days", { count: early }),
+                  })
+                : t("budgets.hero.verdictRanOutFinal", { date: ranOut });
+    } else if (periodEndsShort && burndown.projectedBalance != null) {
+        sentence = t("budgets.hero.verdictEndsShort", {
+            amount: formatAmount(Math.abs(burndown.projectedBalance), currency, false, language),
+        });
+    }
 
-	if (!sentence) {
-		return null;
-	}
+    if (!sentence) {
+        return null;
+    }
 
-	// The one place the app speaks rather than labels. A share under a fifth is
-	// not a culprit, so the second clause only earns its place above that.
-	const blame =
-		dominant && dominant.share >= 0.2
-			? t("budgets.hero.verdictBlame", { name: dominant.name, percent: Math.round(dominant.share * 100) })
-			: null;
+    // The one place the app speaks rather than labels. A share under a fifth is
+    // not a culprit, so the second clause only earns its place above that.
+    const blame =
+        dominant && dominant.share >= 0.2
+            ? t("budgets.hero.verdictBlame", { name: dominant.name, percent: Math.round(dominant.share * 100) })
+            : null;
 
-	return (
-		<Text
-			className="px-1 pt-4 text-foreground text-title leading-snug"
-			// Set directly rather than through a `font-serif` class: uniwind's theme
-			// already ships a `--font-serif`, and the generic stack wins over ours.
-			style={{ fontFamily: SERIF }}
-		>
-			{sentence}
-			{blame ? ` ${blame}` : null}
-		</Text>
-	);
+    return (
+        <Text
+            className="text-foreground text-title px-1 pt-4 leading-snug"
+            // Set directly rather than through a `font-serif` class: uniwind's theme
+            // already ships a `--font-serif`, and the generic stack wins over ours.
+            style={{ fontFamily: SERIF }}
+        >
+            {sentence}
+            {blame ? ` ${blame}` : null}
+        </Text>
+    );
 }

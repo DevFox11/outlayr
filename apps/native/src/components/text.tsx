@@ -1,44 +1,45 @@
 import type { ComponentRef, Ref } from "react";
-import { Text as RNText, StyleSheet, type TextProps, type TextStyle } from "react-native";
+import { Text as RNText, StyleSheet } from "react-native";
+import type { TextProps, TextStyle } from "react-native";
 
 const FAMILY = {
-	bold: "SFProRounded-Bold",
-	medium: "SFProRounded-Medium",
-	regular: "SFProRounded-Regular",
-	semibold: "SFProRounded-Semibold",
+    bold: "SFProRounded-Bold",
+    medium: "SFProRounded-Medium",
+    regular: "SFProRounded-Regular",
+    semibold: "SFProRounded-Semibold",
 } as const;
 
 function toNumericWeight(weight: TextStyle["fontWeight"]): number {
-	if (typeof weight === "number") {
-		return weight;
-	}
-	if (weight === "bold") {
-		return 700;
-	}
-	if (weight == null || weight === "normal") {
-		return 400;
-	}
-	const parsed = Number.parseInt(weight, 10);
-	return Number.isNaN(parsed) ? 400 : parsed;
+    if (typeof weight === "number") {
+        return weight;
+    }
+    if (weight === "bold") {
+        return 700;
+    }
+    if (weight == null || weight === "normal") {
+        return 400;
+    }
+    const parsed = Number.parseInt(weight, 10);
+    return Number.isNaN(parsed) ? 400 : parsed;
 }
 
 function roundedFamily(weight: TextStyle["fontWeight"]): string {
-	const value = toNumericWeight(weight);
-	if (value >= 700) {
-		return FAMILY.bold;
-	}
-	if (value >= 600) {
-		return FAMILY.semibold;
-	}
-	if (value >= 500) {
-		return FAMILY.medium;
-	}
-	return FAMILY.regular;
+    const value = toNumericWeight(weight);
+    if (value >= 700) {
+        return FAMILY.bold;
+    }
+    if (value >= 600) {
+        return FAMILY.semibold;
+    }
+    if (value >= 500) {
+        return FAMILY.medium;
+    }
+    return FAMILY.regular;
 }
 
 type ThemedTextProps = TextProps & {
-	className?: string;
-	ref?: Ref<ComponentRef<typeof RNText>>;
+    className?: string;
+    ref?: Ref<ComponentRef<typeof RNText>>;
 };
 
 /**
@@ -62,8 +63,8 @@ const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
  * named faces, so both paths agree.
  */
 export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
-	const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
-	const keepFamily = flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
-	const fontFamily = keepFamily ? undefined : roundedFamily(flattened?.fontWeight);
-	return <RNText className={className} ref={ref} style={fontFamily ? [style, { fontFamily }] : style} {...rest} />;
+    const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
+    const keepFamily = flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
+    const fontFamily = keepFamily ? undefined : roundedFamily(flattened?.fontWeight);
+    return <RNText className={className} ref={ref} style={fontFamily ? [style, { fontFamily }] : style} {...rest} />;
 }

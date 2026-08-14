@@ -16,7 +16,7 @@ const config = getDefaultConfig(__dirname);
 // includes it, so this asserts the invariant rather than re-adding it.
 const pnpmStore = path.resolve(__dirname, "../../node_modules");
 if (!config.watchFolders.includes(pnpmStore)) {
-	config.watchFolders.push(pnpmStore);
+    config.watchFolders.push(pnpmStore);
 }
 
 // Let Metro resolve the `.sql` files that drizzle's generated migrations
@@ -30,10 +30,10 @@ config.resolver.sourceExts.push("sql");
 // dictionaries on server start — `pnpm i18n:build` owns that, so a clean clone
 // and CI produce them the same way rather than only whoever ran Metro.
 const finalConfig = configMetroIntlayerSync(
-	withUniwindConfig(wrapWithReanimatedMetroConfig(config), {
-		cssEntryFile: "./global.css",
-		dtsFile: "./uniwind-types.d.ts",
-	})
+    withUniwindConfig(wrapWithReanimatedMetroConfig(config), {
+        cssEntryFile: "./global.css",
+        dtsFile: "./uniwind-types.d.ts",
+    })
 );
 
 const SIM_PREVIEW_PATH = "/.sim";
@@ -50,44 +50,44 @@ const SIM_PREVIEW_PATH = "/.sim";
  * this stops claiming upgrades and input degrades — it never breaks Metro.
  */
 function claimSimUpgrades(server, sim) {
-	const inherited = server.listeners("upgrade");
-	server.removeAllListeners("upgrade");
+    const inherited = server.listeners("upgrade");
+    server.removeAllListeners("upgrade");
 
-	server.on("upgrade", (req, socket, head) => {
-		if (req.url?.startsWith(SIM_PREVIEW_PATH)) {
-			sim.handleUpgrade(req, socket, head);
-			return;
-		}
-		if (inherited.length === 0) {
-			socket.destroy();
-			return;
-		}
-		for (const listener of inherited) {
-			listener.call(server, req, socket, head);
-		}
-	});
+    server.on("upgrade", (req, socket, head) => {
+        if (req.url?.startsWith(SIM_PREVIEW_PATH)) {
+            sim.handleUpgrade(req, socket, head);
+            return;
+        }
+        if (inherited.length === 0) {
+            socket.destroy();
+            return;
+        }
+        for (const listener of inherited) {
+            listener.call(server, req, socket, head);
+        }
+    });
 }
 
 // Serve the simulator preview from the Metro server so QA has one URL to target.
 // Assigned after the wrappers because each returns a fresh config object.
 finalConfig.server = {
-	...finalConfig.server,
-	enhanceMiddleware: (metroMiddleware) => {
-		const { simMiddleware } = require("serve-sim/middleware");
-		const sim = simMiddleware({ basePath: SIM_PREVIEW_PATH });
-		let claimed = false;
+    ...finalConfig.server,
+    enhanceMiddleware: (metroMiddleware) => {
+        const { simMiddleware } = require("serve-sim/middleware");
+        const sim = simMiddleware({ basePath: SIM_PREVIEW_PATH });
+        let claimed = false;
 
-		return (req, res, next) => {
-			if (!claimed && req.socket?.server) {
-				claimed = true;
-				claimSimUpgrades(req.socket.server, sim);
-			}
-			if (req.url?.startsWith(SIM_PREVIEW_PATH)) {
-				return sim(req, res, () => metroMiddleware(req, res, next));
-			}
-			return metroMiddleware(req, res, next);
-		};
-	},
+        return (req, res, next) => {
+            if (!claimed && req.socket?.server) {
+                claimed = true;
+                claimSimUpgrades(req.socket.server, sim);
+            }
+            if (req.url?.startsWith(SIM_PREVIEW_PATH)) {
+                return sim(req, res, () => metroMiddleware(req, res, next));
+            }
+            return metroMiddleware(req, res, next);
+        };
+    },
 };
 
 module.exports = finalConfig;

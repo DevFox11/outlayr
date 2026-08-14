@@ -25,12 +25,12 @@ requireRsvgConvert();
 resetDirectory(outputDir);
 
 const sources = readdirSync(sourceDir)
-	.filter((file) => file.endsWith(".svg"))
-	.sort();
+    .filter((file) => file.endsWith(".svg"))
+    .sort();
 
 for (const file of sources) {
-	const slug = file.replace(/\.svg$/, "");
-	rasterize(readFileSync(join(sourceDir, file), "utf8"), join(outputDir, slug), TILE_SIZE);
+    const slug = file.replace(/\.svg$/, "");
+    rasterize(readFileSync(join(sourceDir, file), "utf-8"), join(outputDir, slug), TILE_SIZE);
 }
 
 console.log(`Wrote ${sources.length} app icon previews to ${outputDir}`);

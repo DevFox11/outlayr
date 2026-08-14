@@ -1,5 +1,6 @@
 import { getIntlayer } from "intlayer";
 import { intlayerPolyfill } from "react-native-intlayer";
+
 import type { Language } from "./languages";
 import type { Catalog } from "./translate";
 
@@ -34,43 +35,43 @@ type Transfers = typeof import("@/content/transfers.content").default;
  * here.
  */
 export const DICTIONARY_KEYS = [
-	"accounts",
-	"alerts",
-	"auth",
-	"budgets",
-	"categories",
-	"common",
-	"domain",
-	"goals",
-	"import",
-	"insights",
-	"language",
-	"log",
-	"onboarding",
-	"search",
-	"settings",
-	"transaction",
-	"transfers",
+    "accounts",
+    "alerts",
+    "auth",
+    "budgets",
+    "categories",
+    "common",
+    "domain",
+    "goals",
+    "import",
+    "insights",
+    "language",
+    "log",
+    "onboarding",
+    "search",
+    "settings",
+    "transaction",
+    "transfers",
 ] as const;
 
 type Content =
-	| Accounts["content"]
-	| Alerts["content"]
-	| Auth["content"]
-	| Budgets["content"]
-	| Categories["content"]
-	| Common["content"]
-	| Domain["content"]
-	| Goals["content"]
-	| ImportSheet["content"]
-	| Insights["content"]
-	| LanguageDict["content"]
-	| Log["content"]
-	| Onboarding["content"]
-	| Search["content"]
-	| Settings["content"]
-	| Transaction["content"]
-	| Transfers["content"];
+    | Accounts["content"]
+    | Alerts["content"]
+    | Auth["content"]
+    | Budgets["content"]
+    | Categories["content"]
+    | Common["content"]
+    | Domain["content"]
+    | Goals["content"]
+    | ImportSheet["content"]
+    | Insights["content"]
+    | LanguageDict["content"]
+    | Log["content"]
+    | Onboarding["content"]
+    | Search["content"]
+    | Settings["content"]
+    | Transaction["content"]
+    | Transfers["content"];
 
 /**
  * Keys stay fully qualified inside their dictionary (`log.empty.title` lives in
@@ -100,11 +101,11 @@ intlayerPolyfill();
 
 /** Flattens Intlayer's per-dictionary resolution into one lookup. */
 export function catalogFor(locale: Language): Catalog {
-	const flat: Record<string, string> = {};
-	for (const key of DICTIONARY_KEYS) {
-		Object.assign(flat, getIntlayer(key, locale));
-	}
-	return flat;
+    const flat: Record<string, string> = {};
+    for (const key of DICTIONARY_KEYS) {
+        Object.assign(flat, getIntlayer(key, locale));
+    }
+    return flat;
 }
 
 export const EN = catalogFor("en");

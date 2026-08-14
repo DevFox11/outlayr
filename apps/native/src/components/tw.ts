@@ -13,28 +13,28 @@ import { createTV } from "tailwind-variants";
  * where a colour belongs.
  */
 const twMergeConfig = {
-	extend: {
-		classGroups: {
-			"font-size": [
-				{
-					text: [
-						"micro",
-						"eyebrow",
-						"label",
-						"footnote",
-						"caption",
-						"subtitle",
-						"body",
-						"callout",
-						"headline",
-						"title",
-						"hero",
-					],
-				},
-			],
-			tracking: [{ tracking: ["eyebrow", "label", "hero"] }],
-		},
-	},
+    extend: {
+        classGroups: {
+            "font-size": [
+                {
+                    text: [
+                        "micro",
+                        "eyebrow",
+                        "label",
+                        "footnote",
+                        "caption",
+                        "subtitle",
+                        "body",
+                        "callout",
+                        "headline",
+                        "title",
+                        "hero",
+                    ],
+                },
+            ],
+            tracking: [{ tracking: ["eyebrow", "label", "hero"] }],
+        },
+    },
 } as const;
 
 /**
@@ -48,8 +48,8 @@ const merge = extendTailwindMerge(twMergeConfig);
 
 /** Joins class values and resolves conflicts, ignoring falsy so `cond && "..."` works. */
 export function cn(...classes: (string | false | null | undefined)[]): string | undefined {
-	const joined = classes.filter(Boolean).join(" ");
-	return joined === "" ? undefined : merge(joined);
+    const joined = classes.filter(Boolean).join(" ");
+    return joined === "" ? undefined : merge(joined);
 }
 
 export const tv = createTV({ twMergeConfig });

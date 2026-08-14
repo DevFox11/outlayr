@@ -1,4 +1,5 @@
-import { type ConfigPlugin, withAppDelegate, withInfoPlist } from "expo/config-plugins";
+import { withAppDelegate, withInfoPlist } from "expo/config-plugins";
+import type { ConfigPlugin } from "expo/config-plugins";
 
 const MARKER = "// @generated with-ui-scene";
 
@@ -133,50 +134,50 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 `;
 
 const withSceneManifest: ConfigPlugin = (config) =>
-	withInfoPlist(config, (plistConfig) => {
-		plistConfig.modResults.UIApplicationSceneManifest = {
-			UIApplicationSupportsMultipleScenes: false,
-			UISceneConfigurations: {
-				UIWindowSceneSessionRoleApplication: [
-					{
-						UISceneConfigurationName: "Default Configuration",
-						UISceneDelegateClassName: "$(PRODUCT_MODULE_NAME).SceneDelegate",
-					},
-				],
-			},
-		};
-		return plistConfig;
-	});
+    withInfoPlist(config, (plistConfig) => {
+        plistConfig.modResults.UIApplicationSceneManifest = {
+            UIApplicationSupportsMultipleScenes: false,
+            UISceneConfigurations: {
+                UIWindowSceneSessionRoleApplication: [
+                    {
+                        UISceneConfigurationName: "Default Configuration",
+                        UISceneDelegateClassName: "$(PRODUCT_MODULE_NAME).SceneDelegate",
+                    },
+                ],
+            },
+        };
+        return plistConfig;
+    });
 
 const withSceneDelegate: ConfigPlugin = (config) =>
-	withAppDelegate(config, (appDelegateConfig) => {
-		const { contents, language } = appDelegateConfig.modResults;
-		if (language !== "swift") {
-			throw new Error(
-				`withUIScene: expected a Swift AppDelegate, got "${language}". The Expo template may have changed; update this plugin.`
-			);
-		}
-		if (contents.includes(MARKER)) {
-			return appDelegateConfig;
-		}
-		if (!(contents.includes(WINDOW_BLOCK_ANCHOR) && contents.includes(WINDOW_PROPERTY_ANCHOR))) {
-			throw new Error(
-				"withUIScene: could not find the window creation block in AppDelegate.swift. The Expo template may have changed; update this plugin."
-			);
-		}
-		// `handleSpotlight` needs the CoreSpotlight constants. `expo-core-spotlight`
-		// adds this import too, so it is added only when absent — and adding it
-		// here rather than relying on that plugin keeps the SceneDelegate
-		// compiling if it is ever removed.
-		const withImport = contents.includes("import CoreSpotlight")
-			? contents
-			: contents.replace("import Expo", "import Expo\nimport CoreSpotlight");
+    withAppDelegate(config, (appDelegateConfig) => {
+        const { contents, language } = appDelegateConfig.modResults;
+        if (language !== "swift") {
+            throw new Error(
+                `withUIScene: expected a Swift AppDelegate, got "${language}". The Expo template may have changed; update this plugin.`
+            );
+        }
+        if (contents.includes(MARKER)) {
+            return appDelegateConfig;
+        }
+        if (!(contents.includes(WINDOW_BLOCK_ANCHOR) && contents.includes(WINDOW_PROPERTY_ANCHOR))) {
+            throw new Error(
+                "withUIScene: could not find the window creation block in AppDelegate.swift. The Expo template may have changed; update this plugin."
+            );
+        }
+        // `handleSpotlight` needs the CoreSpotlight constants. `expo-core-spotlight`
+        // adds this import too, so it is added only when absent — and adding it
+        // here rather than relying on that plugin keeps the SceneDelegate
+        // compiling if it is ever removed.
+        const withImport = contents.includes("import CoreSpotlight")
+            ? contents
+            : contents.replace("import Expo", "import Expo\nimport CoreSpotlight");
 
-		appDelegateConfig.modResults.contents = `${withImport
-			.replace(WINDOW_BLOCK_ANCHOR, WINDOW_BLOCK_REPLACEMENT)
-			.replace(WINDOW_PROPERTY_ANCHOR, WINDOW_PROPERTY_REPLACEMENT)}${SCENE_DELEGATE}`;
-		return appDelegateConfig;
-	});
+        appDelegateConfig.modResults.contents = `${withImport
+            .replace(WINDOW_BLOCK_ANCHOR, WINDOW_BLOCK_REPLACEMENT)
+            .replace(WINDOW_PROPERTY_ANCHOR, WINDOW_PROPERTY_REPLACEMENT)}${SCENE_DELEGATE}`;
+        return appDelegateConfig;
+    });
 
 const withUIScene: ConfigPlugin = (config) => withSceneDelegate(withSceneManifest(config));
 

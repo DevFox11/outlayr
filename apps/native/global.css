@@ -12,78 +12,78 @@
 @source not "./docs/**";
 
 @layer theme {
-	:root {
-		@variant light {
-			/* Paper and ink, verbatim from the app icon's light face. The ground is
+    :root {
+        @variant light {
+            /* Paper and ink, verbatim from the app icon's light face. The ground is
 			   the darkest plane the light theme paints: on paper a raised surface
 			   floats *lighter*, which inverts the iOS grey ladder on purpose. Every
 			   pairing below is proven by `src/theme/token-contrast.test.ts`. */
-			--background: #f2f0ea;
-			--foreground: #17150f;
-			--muted: #6b6557;
-			--subtle: #6d6657;
+            --background: #f2f0ea;
+            --foreground: #17150f;
+            --muted: #6b6557;
+            --subtle: #6d6657;
 
-			--surface: #f8f6f1;
-			--surface-foreground: #17150f;
-			/* The one plane that goes darker than paper, and only as far as the
+            --surface: #f8f6f1;
+            --surface-foreground: #17150f;
+            /* The one plane that goes darker than paper, and only as far as the
 			   vermilion can still be read on it — 4.5:1 lands at luminance 0.8215,
 			   and this sits at 0.8403. */
-			--surface-secondary: #efece4;
-			--surface-secondary-foreground: #17150f;
+            --surface-secondary: #efece4;
+            --surface-secondary-foreground: #17150f;
 
-			--border: #dcd8cc;
-			--separator: #dcd8cc;
+            --border: #dcd8cc;
+            --separator: #dcd8cc;
 
-			/* Was a hex mirror of iOS `systemGroupedBackground`. A grouped list on
+            /* Was a hex mirror of iOS `systemGroupedBackground`. A grouped list on
 			   paper takes the paper itself and lets its cells float lighter on
 			   `--surface`, so this is no longer a separate grey. It stays a
 			   parseable hex because gradient stops and `withAlpha` cannot consume
 			   the opaque object `PlatformColor` returns. */
-			--grouped-background: #f2f0ea;
+            --grouped-background: #f2f0ea;
 
-			--accent: #17150f;
-			--accent-foreground: #f2f0ea;
-			/* The brand's own vermilion, not Apple's blue. A like-for-like exchange
+            --accent: #17150f;
+            --accent-foreground: #f2f0ea;
+            /* The brand's own vermilion, not Apple's blue. A like-for-like exchange
 			   by weight — OKLCH L 0.543/C 0.180 against the blue's L 0.542/C 0.196 —
 			   so nothing that reads as interactive changes in prominence, only in
 			   whose colour it is. Matches `--fr-vermilion`, which had it fenced into
 			   the first-run screen. It is also the default of a choice now: see
 			   `domain/accent.ts`, which writes this same value at boot. */
-			--tint: #c2371b;
+            --tint: #c2371b;
 
-			/* Re-fitted for paper. The old #027d51 was chosen against white and
+            /* Re-fitted for paper. The old #027d51 was chosen against white and
 			   falls to 4.54:1 here, which leaves nothing for the inset plane. */
-			--income: #00714a;
-			--expense: #17150f;
-			--transfer: #4187ba;
-			--future: #6b6557;
+            --income: #00714a;
+            --expense: #17150f;
+            --transfer: #4187ba;
+            --future: #6b6557;
 
-			/* The favourite swipe pill, which writes literal white over it. Same value
+            /* The favourite swipe pill, which writes literal white over it. Same value
 			   in both themes for the reason `--danger-fill` is: white is the text in
 			   both, and #8a6a14 at 5.06:1 is about as bright as gold gets before white
 			   stops clearing 4.5:1. */
-			--gold-fill: #8a6a14;
+            --gold-fill: #8a6a14;
 
-			/* Both re-fitted for paper alongside `--income`; the old values were
+            /* Both re-fitted for paper alongside `--income`; the old values were
 			   picked against white and do not clear the inset plane here. */
-			--danger: #c01005;
-			--over-budget: #bd1c1e;
+            --danger: #c01005;
+            --over-budget: #bd1c1e;
 
-			/* The destructive swipe pill, which writes literal white over it. It
+            /* The destructive swipe pill, which writes literal white over it. It
 			   cannot be `--danger`: in dark that token has to stay light enough to
 			   read as `text-danger` on a near-black ground, and white text over it
 			   needs the opposite — no single red clears 4.5:1 on both sides. Same
 			   value in both themes because white is the text in both. */
-			--danger-fill: #da0f01;
+            --danger-fill: #da0f01;
 
-			/* Reads like a contrast miss and is not: 1.51:1 on paper. It is a rail
+            /* Reads like a contrast miss and is not: 1.51:1 on paper. It is a rail
 			   and chart fill only — src/theme/token-contrast.test.ts fails the
 			   moment a `text-warning` appears and makes that untrue. */
-			--warning: #fdcc41;
+            --warning: #fdcc41;
 
-			--chip: #201d15;
+            --chip: #201d15;
 
-			/* The budget rail's washes. Declared outright rather than written as
+            /* The budget rail's washes. Declared outright rather than written as
 			   `bg-over-budget/22`: Tailwind compiles that modifier to
 			   `color-mix(in srgb, unset 22%, transparent)`, and uniwind's function
 			   processor rejects it at runtime with "Invalid calc, you can't mix %
@@ -95,240 +95,240 @@
 			   Both re-hued warm with the ground: a cool grey track is the single
 			   most visible thing left over from a white theme once the page is
 			   paper. */
-			--rail-over: rgba(189, 28, 30, 0.2);
-			--rail-track: rgba(23, 21, 15, 0.13);
+            --rail-over: rgba(189, 28, 30, 0.2);
+            --rail-track: rgba(23, 21, 15, 0.13);
 
-			--color-card: #f8f6f1;
-			--color-card-foreground: #17150f;
-			--color-popover: #f8f6f1;
-			--color-popover-foreground: #17150f;
-			--color-overlay: #f8f6f1;
-			--color-overlay-foreground: #17150f;
-			--color-primary: #17150f;
-			--color-primary-foreground: #f2f0ea;
-			--color-muted-foreground: #6b6557;
-			--color-destructive: #c01005;
-			--color-destructive-foreground: #c01005;
-			/* Informational, not the brand: `--tint` is the accent and this is the
+            --color-card: #f8f6f1;
+            --color-card-foreground: #17150f;
+            --color-popover: #f8f6f1;
+            --color-popover-foreground: #17150f;
+            --color-overlay: #f8f6f1;
+            --color-overlay-foreground: #17150f;
+            --color-primary: #17150f;
+            --color-primary-foreground: #f2f0ea;
+            --color-muted-foreground: #6b6557;
+            --color-destructive: #c01005;
+            --color-destructive-foreground: #c01005;
+            /* Informational, not the brand: `--tint` is the accent and this is the
 			   "here is a fact" blue. Taken from the category ramp so the two
 			   families cannot drift apart. */
-			--color-info: #2f6d99;
-			--color-info-foreground: #2f6d99;
-			--color-success: #00714a;
-			--color-success-foreground: #00714a;
-			--color-warning-foreground: #8a6a14;
-			--color-input: #dcd8cc;
-			--color-ring: #c2371b;
-			--color-surface-tertiary: #ebe8e0;
-			--color-skeleton: rgba(23, 21, 15, 0.09);
-			--color-info-soft: rgba(47, 109, 153, 0.1);
-			--color-info-subtle: rgba(47, 109, 153, 0.08);
-			--color-success-soft: rgba(0, 113, 74, 0.1);
-			--color-success-subtle: rgba(0, 113, 74, 0.08);
-			--color-warning-soft: rgba(253, 204, 65, 0.1);
-			--color-warning-subtle: rgba(253, 204, 65, 0.08);
-			--color-destructive-soft: rgba(192, 16, 5, 0.1);
-			--color-destructive-subtle: rgba(192, 16, 5, 0.08);
-			/* Charts read as one family with the category ramp rather than as a
+            --color-info: #2f6d99;
+            --color-info-foreground: #2f6d99;
+            --color-success: #00714a;
+            --color-success-foreground: #00714a;
+            --color-warning-foreground: #8a6a14;
+            --color-input: #dcd8cc;
+            --color-ring: #c2371b;
+            --color-surface-tertiary: #ebe8e0;
+            --color-skeleton: rgba(23, 21, 15, 0.09);
+            --color-info-soft: rgba(47, 109, 153, 0.1);
+            --color-info-subtle: rgba(47, 109, 153, 0.08);
+            --color-success-soft: rgba(0, 113, 74, 0.1);
+            --color-success-subtle: rgba(0, 113, 74, 0.08);
+            --color-warning-soft: rgba(253, 204, 65, 0.1);
+            --color-warning-subtle: rgba(253, 204, 65, 0.08);
+            --color-destructive-soft: rgba(192, 16, 5, 0.1);
+            --color-destructive-subtle: rgba(192, 16, 5, 0.08);
+            /* Charts read as one family with the category ramp rather than as a
 			   separate set of primaries: ink leads, then ramp entries. */
-			--color-chart-1: #17150f;
-			--color-chart-2: #4187ba;
-			--color-chart-3: #499262;
-			--color-chart-4: #ac7137;
-			--color-chart-5: #b4647a;
+            --color-chart-1: #17150f;
+            --color-chart-2: #4187ba;
+            --color-chart-3: #499262;
+            --color-chart-4: #ac7137;
+            --color-chart-5: #b4647a;
 
-			/* No longer first-run only: the whole light theme is now the icon's
+            /* No longer first-run only: the whole light theme is now the icon's
 			   light face, so these are the same paper and ink the app paints.
 			   They are kept as their own tokens because the first-run flow is the
 			   one surface that must not follow a future theme change, and because
 			   `--fr-vermilion` speaks only in the eyebrow and never carries a
 			   value — which `--tint` now does. Measured on this ground: ink
 			   16.02:1, muted 5.08:1, vermilion 4.78:1. */
-			--fr-ground: #f2f0ea;
-			--fr-ink: #17150f;
-			--fr-muted: #6b6557;
-			--fr-rule: #dcd8cc;
-			--fr-vermilion: #c2371b;
-			--fr-card: #faf8f3;
-		}
+            --fr-ground: #f2f0ea;
+            --fr-ink: #17150f;
+            --fr-muted: #6b6557;
+            --fr-rule: #dcd8cc;
+            --fr-vermilion: #c2371b;
+            --fr-card: #faf8f3;
+        }
 
-		@variant dark {
-			/* The icon's dark face, which is a designed warm near-black rather than
+        @variant dark {
+            /* The icon's dark face, which is a designed warm near-black rather than
 			   an inverted paper. `--surface` used to be #3a3a3c, an iOS elevated
 			   grey 3.6x the luminance of every other dark plane, and it was the
 			   sole reason four tokens carried AA exemptions. Re-derived warm and
 			   dark, it clears the floor and the exemption list is gone. */
-			--background: #17150f;
-			--foreground: #f2efe8;
-			--muted: #a8a093;
-			--subtle: #968e80;
+            --background: #17150f;
+            --foreground: #f2efe8;
+            --muted: #a8a093;
+            --subtle: #968e80;
 
-			--surface: #2a251b;
-			--surface-foreground: #f2efe8;
-			--surface-secondary: #201d15;
-			--surface-secondary-foreground: #f2efe8;
+            --surface: #2a251b;
+            --surface-foreground: #f2efe8;
+            --surface-secondary: #201d15;
+            --surface-secondary-foreground: #f2efe8;
 
-			--border: #353026;
-			--separator: #353026;
+            --border: #353026;
+            --separator: #353026;
 
-			/* See the light-mode note. */
-			--grouped-background: #0e0c08;
+            /* See the light-mode note. */
+            --grouped-background: #0e0c08;
 
-			--accent: #f2efe8;
-			--accent-foreground: #17150f;
-			/* See the light-mode note. Neither `--fr-vermilion`'s #e0552f nor the
+            --accent: #f2efe8;
+            --accent-foreground: #17150f;
+            /* See the light-mode note. Neither `--fr-vermilion`'s #e0552f nor the
 			   #e25d39 fitted for the old iOS-grey dark surfaces survives this
 			   ground: they read 4.00:1 and 4.25:1 on `--surface`, both under the
 			   floor. Same hue, lightness raised until it clears at 4.57:1. */
-			--tint: #ec603b;
+            --tint: #ec603b;
 
-			/* Was #0fffa9, a neon mint inherited from no particular decision. It
+            /* Was #0fffa9, a neon mint inherited from no particular decision. It
 			   reads as a different product from everything around it, and on a warm
 			   ground it fluoresces; this is the same green pulled toward the face. */
-			--income: #3fd99b;
-			--expense: #f2efe8;
-			--transfer: #65b3ee;
-			--future: #a8a093;
+            --income: #3fd99b;
+            --expense: #f2efe8;
+            --transfer: #65b3ee;
+            --future: #a8a093;
 
-			--gold-fill: #8a6a14;
+            --gold-fill: #8a6a14;
 
-			--danger: #ff493c;
-			--over-budget: #f17879;
+            --danger: #ff493c;
+            --over-budget: #f17879;
 
-			/* See the light-mode note. */
-			--danger-fill: #da0f01;
+            /* See the light-mode note. */
+            --danger-fill: #da0f01;
 
-			--warning: #fdcc41;
+            --warning: #fdcc41;
 
-			--chip: #2a251b;
+            --chip: #2a251b;
 
-			/* See the light-mode note. */
-			--rail-over: rgba(241, 120, 121, 0.22);
-			--rail-track: rgba(242, 239, 232, 0.14);
+            /* See the light-mode note. */
+            --rail-over: rgba(241, 120, 121, 0.22);
+            --rail-track: rgba(242, 239, 232, 0.14);
 
-			--color-card: #201d15;
-			--color-card-foreground: #f2efe8;
-			--color-popover: #2a251b;
-			--color-popover-foreground: #f2efe8;
-			--color-overlay: #2a251b;
-			--color-overlay-foreground: #f2efe8;
-			--color-primary: #f2efe8;
-			--color-primary-foreground: #17150f;
-			--color-muted-foreground: #a8a093;
-			--color-destructive: #ff493c;
-			--color-destructive-foreground: #ff493c;
-			/* See the light-mode note on `--color-info`. */
-			--color-info: #7bb4dd;
-			--color-info-foreground: #7bb4dd;
-			--color-success: #3fd99b;
-			--color-success-foreground: #3fd99b;
-			--color-warning-foreground: #fdcc41;
-			--color-input: #353026;
-			--color-ring: #ec603b;
-			--color-surface-tertiary: #2a251b;
-			--color-skeleton: rgba(242, 239, 232, 0.11);
-			--color-info-soft: rgba(123, 180, 221, 0.06);
-			--color-info-subtle: rgba(123, 180, 221, 0.16);
-			--color-success-soft: rgba(63, 217, 155, 0.06);
-			--color-success-subtle: rgba(63, 217, 155, 0.16);
-			--color-warning-soft: rgba(253, 204, 65, 0.06);
-			--color-warning-subtle: rgba(253, 204, 65, 0.16);
-			--color-destructive-soft: rgba(255, 73, 60, 0.06);
-			--color-destructive-subtle: rgba(255, 73, 60, 0.16);
-			/* See the light-mode note; these are the ramp's dark face. */
-			--color-chart-1: #f2efe8;
-			--color-chart-2: #65b3ee;
-			--color-chart-3: #6dc088;
-			--color-chart-4: #de9a59;
-			--color-chart-5: #e78ba4;
+            --color-card: #201d15;
+            --color-card-foreground: #f2efe8;
+            --color-popover: #2a251b;
+            --color-popover-foreground: #f2efe8;
+            --color-overlay: #2a251b;
+            --color-overlay-foreground: #f2efe8;
+            --color-primary: #f2efe8;
+            --color-primary-foreground: #17150f;
+            --color-muted-foreground: #a8a093;
+            --color-destructive: #ff493c;
+            --color-destructive-foreground: #ff493c;
+            /* See the light-mode note on `--color-info`. */
+            --color-info: #7bb4dd;
+            --color-info-foreground: #7bb4dd;
+            --color-success: #3fd99b;
+            --color-success-foreground: #3fd99b;
+            --color-warning-foreground: #fdcc41;
+            --color-input: #353026;
+            --color-ring: #ec603b;
+            --color-surface-tertiary: #2a251b;
+            --color-skeleton: rgba(242, 239, 232, 0.11);
+            --color-info-soft: rgba(123, 180, 221, 0.06);
+            --color-info-subtle: rgba(123, 180, 221, 0.16);
+            --color-success-soft: rgba(63, 217, 155, 0.06);
+            --color-success-subtle: rgba(63, 217, 155, 0.16);
+            --color-warning-soft: rgba(253, 204, 65, 0.06);
+            --color-warning-subtle: rgba(253, 204, 65, 0.16);
+            --color-destructive-soft: rgba(255, 73, 60, 0.06);
+            --color-destructive-subtle: rgba(255, 73, 60, 0.16);
+            /* See the light-mode note; these are the ramp's dark face. */
+            --color-chart-1: #f2efe8;
+            --color-chart-2: #65b3ee;
+            --color-chart-3: #6dc088;
+            --color-chart-4: #de9a59;
+            --color-chart-5: #e78ba4;
 
-			/* The icon's dark face. No longer "a warmer ground than the app's
+            /* The icon's dark face. No longer "a warmer ground than the app's
 			   `--background`" — the app's ground is now this same value; the set
 			   stays separate for the reason given on the light face. Measured on
 			   #17150F: ink 15.89:1, muted 7.05:1, vermilion 4.79:1 (mirroring
 			   the light face's 4.78:1 by construction). */
-			--fr-ground: #17150f;
-			--fr-ink: #f2efe8;
-			--fr-muted: #a8a093;
-			--fr-rule: #353026;
-			--fr-vermilion: #e0552f;
-			--fr-card: #201d15;
-		}
-	}
+            --fr-ground: #17150f;
+            --fr-ink: #f2efe8;
+            --fr-muted: #a8a093;
+            --fr-rule: #353026;
+            --fr-vermilion: #e0552f;
+            --fr-card: #201d15;
+        }
+    }
 }
 
 @theme inline {
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--color-muted: var(--muted);
-	--color-subtle: var(--subtle);
-	--color-surface: var(--surface);
-	--color-surface-foreground: var(--surface-foreground);
-	--color-surface-secondary: var(--surface-secondary);
-	--color-surface-secondary-foreground: var(--surface-secondary-foreground);
-	--color-border: var(--border);
-	--color-separator: var(--separator);
-	--color-grouped-background: var(--grouped-background);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-tint: var(--tint);
-	--color-income: var(--income);
-	--color-expense: var(--expense);
-	--color-future: var(--future);
-	--color-gold-fill: var(--gold-fill);
-	--color-danger: var(--danger);
-	--color-danger-fill: var(--danger-fill);
-	--color-over-budget: var(--over-budget);
-	--color-warning: var(--warning);
-	--color-chip: var(--chip);
-	--color-rail-over: var(--rail-over);
-	--color-rail-track: var(--rail-track);
-	--color-fr-ground: var(--fr-ground);
-	--color-fr-ink: var(--fr-ink);
-	--color-fr-muted: var(--fr-muted);
-	--color-fr-rule: var(--fr-rule);
-	--color-fr-vermilion: var(--fr-vermilion);
-	--color-fr-card: var(--fr-card);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-muted: var(--muted);
+    --color-subtle: var(--subtle);
+    --color-surface: var(--surface);
+    --color-surface-foreground: var(--surface-foreground);
+    --color-surface-secondary: var(--surface-secondary);
+    --color-surface-secondary-foreground: var(--surface-secondary-foreground);
+    --color-border: var(--border);
+    --color-separator: var(--separator);
+    --color-grouped-background: var(--grouped-background);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-tint: var(--tint);
+    --color-income: var(--income);
+    --color-expense: var(--expense);
+    --color-future: var(--future);
+    --color-gold-fill: var(--gold-fill);
+    --color-danger: var(--danger);
+    --color-danger-fill: var(--danger-fill);
+    --color-over-budget: var(--over-budget);
+    --color-warning: var(--warning);
+    --color-chip: var(--chip);
+    --color-rail-over: var(--rail-over);
+    --color-rail-track: var(--rail-track);
+    --color-fr-ground: var(--fr-ground);
+    --color-fr-ink: var(--fr-ink);
+    --color-fr-muted: var(--fr-muted);
+    --color-fr-rule: var(--fr-rule);
+    --color-fr-vermilion: var(--fr-vermilion);
+    --color-fr-card: var(--fr-card);
 }
 
 @theme {
-	--font-sans: "SFProRounded-Regular";
-	--font-sans-medium: "SFProRounded-Medium";
-	--font-sans-semibold: "SFProRounded-Semibold";
-	--font-sans-bold: "SFProRounded-Bold";
+    --font-sans: "SFProRounded-Regular";
+    --font-sans-medium: "SFProRounded-Medium";
+    --font-sans-semibold: "SFProRounded-Semibold";
+    --font-sans-bold: "SFProRounded-Bold";
 
-	--font-mono: "GeistMono_400Regular";
-	--font-mono-medium: "GeistMono_500Medium";
+    --font-mono: "GeistMono_400Regular";
+    --font-mono-medium: "GeistMono_500Medium";
 
-	/* Sizes the app actually uses, counted across src. Anything appearing once is
+    /* Sizes the app actually uses, counted across src. Anything appearing once is
 	   deliberately left to an arbitrary value (text-[34px]) rather than minted a
 	   token it would not earn. */
-	--text-micro: 10px;
-	--text-eyebrow: 11px;
-	--text-label: 12px;
-	--text-footnote: 13px;
-	--text-caption: 14px;
-	--text-subtitle: 15px;
-	--text-body: 16px;
-	--text-callout: 17px;
-	--text-headline: 18px;
-	--text-title: 20px;
-	--text-hero: 40px;
+    --text-micro: 10px;
+    --text-eyebrow: 11px;
+    --text-label: 12px;
+    --text-footnote: 13px;
+    --text-caption: 14px;
+    --text-subtitle: 15px;
+    --text-body: 16px;
+    --text-callout: 17px;
+    --text-headline: 18px;
+    --text-title: 20px;
+    --text-hero: 40px;
 
-	--text-micro--line-height: 14px;
-	--text-eyebrow--line-height: 15px;
-	--text-label--line-height: 16px;
-	--text-footnote--line-height: 18px;
-	--text-caption--line-height: 19px;
-	--text-subtitle--line-height: 21px;
-	--text-body--line-height: 22px;
-	--text-callout--line-height: 23px;
-	--text-headline--line-height: 24px;
-	--text-title--line-height: 26px;
-	--text-hero--line-height: 44px;
+    --text-micro--line-height: 14px;
+    --text-eyebrow--line-height: 15px;
+    --text-label--line-height: 16px;
+    --text-footnote--line-height: 18px;
+    --text-caption--line-height: 19px;
+    --text-subtitle--line-height: 21px;
+    --text-body--line-height: 22px;
+    --text-callout--line-height: 23px;
+    --text-headline--line-height: 24px;
+    --text-title--line-height: 26px;
+    --text-hero--line-height: 44px;
 
-	--tracking-eyebrow: 1.2px;
-	--tracking-label: 0.3px;
-	--tracking-tight: -0.3px;
-	--tracking-hero: -1px;
+    --tracking-eyebrow: 1.2px;
+    --tracking-label: 0.3px;
+    --tracking-tight: -0.3px;
+    --tracking-hero: -1px;
 }

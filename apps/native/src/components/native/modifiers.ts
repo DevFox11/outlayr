@@ -13,7 +13,7 @@ import { createModifier } from "@expo/ui/swift-ui/modifiers";
  * @see Official [SwiftUI documentation](https://developer.apple.com/documentation/swiftui/view/scrollcontentbackground(_:)).
  */
 export const scrollContentBackground = (visibility: "automatic" | "hidden" | "visible") =>
-	createModifier("scrollContentBackground", { visibility });
+    createModifier("scrollContentBackground", { visibility });
 
 /**
  * Fills the rows of a `List`, replacing `secondarySystemGroupedBackground`. Applied to

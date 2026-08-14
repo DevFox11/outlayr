@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
+
 import { readBoolSetting, setBoolSetting } from "@/data/settings-core";
 import { pendingReminderPlan } from "@/data/subscription-reminders-core";
 import type { Database } from "@/db/client";
@@ -8,6 +9,7 @@ import { formatAmount } from "@/domain/money";
 import { reminderReconcile } from "@/domain/reminder";
 import { orphanedReminderIds } from "@/domain/subscription-reminder";
 import { translateNow } from "@/i18n/runtime";
+
 import { readReminderTime } from "./reminder-sync";
 import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
 
@@ -23,11 +25,11 @@ import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedR
  * is a different setting's promise.
  */
 export function syncSubscriptionReminders(db: Database): Promise<void> {
-	const run = queue.then(() => reconcileSubscriptionReminders(db));
-	queue = run.catch(() => {
-		// Swallowed so one failed sync does not poison the queue.
-	});
-	return run;
+    const run = queue.then(() => reconcileSubscriptionReminders(db));
+    queue = run.catch(() => {
+        // Swallowed so one failed sync does not poison the queue.
+    });
+    return run;
 }
 
 /**
@@ -42,33 +44,36 @@ export function syncSubscriptionReminders(db: Database): Promise<void> {
 let queue: Promise<unknown> = Promise.resolve();
 
 async function reconcileSubscriptionReminders(db: Database): Promise<void> {
-	const [enabled, permission] = await Promise.all([readBoolSetting(db, "subscriptionReminders"), reminderPermission()]);
-	const decision = reminderReconcile(enabled, permission);
-	const armed = decision === "schedule" ? await pendingReminderPlan(db, new Date(), await readReminderTime(db)) : [];
+    const [enabled, permission] = await Promise.all([
+        readBoolSetting(db, "subscriptionReminders"),
+        reminderPermission(),
+    ]);
+    const decision = reminderReconcile(enabled, permission);
+    const armed = decision === "schedule" ? await pendingReminderPlan(db, new Date(), await readReminderTime(db)) : [];
 
-	await cancelReminders(
-		orphanedReminderIds(
-			armed.map((reminder) => reminder.id),
-			await pendingReminderIds()
-		)
-	);
+    await cancelReminders(
+        orphanedReminderIds(
+            armed.map((reminder) => reminder.id),
+            await pendingReminderIds()
+        )
+    );
 
-	for (const reminder of armed) {
-		// biome-ignore lint/performance/noAwaitInLoops: arming mutates the one shared iOS notification queue, which is why `cancelReminders` (lib/reminders.ts) walks it serially too
-		await scheduleDatedReminder({
-			body: translateNow("reminder.due.body", {
-				amount: formatAmount(reminder.amount, reminder.currency),
-				date: formatUpcomingDate(reminder.landing),
-			}),
-			fireAt: reminder.fireAt,
-			id: reminder.id,
-			title: reminder.note.trim() || translateNow("reminder.due.untitled"),
-		});
-	}
+    for (const reminder of armed) {
+        // oxlint-disable-next-line no-await-in-loop -- arming mutates the one shared iOS notification queue, which is why `cancelReminders` (lib/reminders.ts) walks it serially too
+        await scheduleDatedReminder({
+            body: translateNow("reminder.due.body", {
+                amount: formatAmount(reminder.amount, reminder.currency),
+                date: formatUpcomingDate(reminder.landing),
+            }),
+            fireAt: reminder.fireAt,
+            id: reminder.id,
+            title: reminder.note.trim() || translateNow("reminder.due.untitled"),
+        });
+    }
 
-	if (decision === "disable") {
-		await setBoolSetting(db, "subscriptionReminders", false);
-	}
+    if (decision === "disable") {
+        await setBoolSetting(db, "subscriptionReminders", false);
+    }
 }
 
 /**
@@ -77,23 +82,23 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
  * have already been taken.
  */
 export function useSubscriptionReminderSync(db: Database): void {
-	useEffect(() => {
-		const sweep = () => {
-			syncSubscriptionReminders(db).catch((error) => {
-				console.error("Subscription reminder sync failed", error);
-			});
-		};
+    useEffect(() => {
+        const sweep = () => {
+            syncSubscriptionReminders(db).catch((error) => {
+                console.error("Subscription reminder sync failed", error);
+            });
+        };
 
-		sweep();
+        sweep();
 
-		const subscription = AppState.addEventListener("change", (state) => {
-			if (state === "active") {
-				sweep();
-			}
-		});
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state === "active") {
+                sweep();
+            }
+        });
 
-		return () => {
-			subscription.remove();
-		};
-	}, [db]);
+        return () => {
+            subscription.remove();
+        };
+    }, [db]);
 }

@@ -10,11 +10,11 @@ export const SUBSCRIPTION_REMINDER_PREFIX = "outlayr.sub-due.";
 
 /** Derived from the local id so a re-arm replaces its request instead of stacking. */
 export function subscriptionReminderId(localId: string): string {
-	return `${SUBSCRIPTION_REMINDER_PREFIX}${localId}`;
+    return `${SUBSCRIPTION_REMINDER_PREFIX}${localId}`;
 }
 
 export function isSubscriptionReminderId(id: string): boolean {
-	return id.startsWith(SUBSCRIPTION_REMINDER_PREFIX);
+    return id.startsWith(SUBSCRIPTION_REMINDER_PREFIX);
 }
 
 /** In the order the picker renders them. */
@@ -27,10 +27,10 @@ const MAX_LEAD_DAYS = 30;
  * "on the due day itself" — a lead the picker actually offers.
  */
 export function normalizeLead(raw: number | null): number | null {
-	if (raw == null || !Number.isFinite(raw)) {
-		return null;
-	}
-	return Math.min(MAX_LEAD_DAYS, Math.max(0, Math.floor(raw)));
+    if (raw == null || !Number.isFinite(raw)) {
+        return null;
+    }
+    return Math.min(MAX_LEAD_DAYS, Math.max(0, Math.floor(raw)));
 }
 
 /**
@@ -39,7 +39,7 @@ export function normalizeLead(raw: number | null): number | null {
  * into `null` before it reaches {@link normalizeLead}.
  */
 export function resolveLeadSelection(tag: number, offTag: number): number | null {
-	return tag === offTag ? null : normalizeLead(tag);
+    return tag === offTag ? null : normalizeLead(tag);
 }
 
 /**
@@ -48,9 +48,9 @@ export function resolveLeadSelection(tag: number, offTag: number): number | null
  * the time the owner picked.
  */
 export function reminderFireAt(landing: Date, leadDays: number, time: TimeOfDay): Date {
-	const fire = addDays(landing, -leadDays);
-	fire.setHours(time.hour, time.minute, 0, 0);
-	return fire;
+    const fire = addDays(landing, -leadDays);
+    fire.setHours(time.hour, time.minute, 0, 0);
+    return fire;
 }
 
 /**
@@ -61,27 +61,27 @@ export function reminderFireAt(landing: Date, leadDays: number, time: TimeOfDay)
 export const MAX_PENDING_SUBSCRIPTION_REMINDERS = 55;
 
 export interface ReminderCandidate {
-	landing: Date;
-	/** Off, so a candidate carrying `null` arms nothing rather than firing on the day. */
-	leadDays: number | null;
-	localId: string;
+    landing: Date;
+    /** Off, so a candidate carrying `null` arms nothing rather than firing on the day. */
+    leadDays: number | null;
+    localId: string;
 }
 
 export interface ArmedReminder {
-	fireAt: Date;
-	id: string;
-	localId: string;
+    fireAt: Date;
+    id: string;
+    localId: string;
 }
 
 export interface ReminderPlanInput {
-	candidates: readonly ReminderCandidate[];
-	cap?: number;
-	now: Date;
-	time: TimeOfDay;
+    candidates: readonly ReminderCandidate[];
+    cap?: number;
+    now: Date;
+    time: TimeOfDay;
 }
 
 export interface ReminderPlan {
-	arm: ArmedReminder[];
+    arm: ArmedReminder[];
 }
 
 /**
@@ -99,28 +99,28 @@ export interface ReminderPlan {
  * exists to prevent.
  */
 export function reminderPlan({
-	candidates,
-	now,
-	time,
-	cap = MAX_PENDING_SUBSCRIPTION_REMINDERS,
+    candidates,
+    now,
+    time,
+    cap = MAX_PENDING_SUBSCRIPTION_REMINDERS,
 }: ReminderPlanInput): ReminderPlan {
-	const arm = candidates
-		.flatMap((candidate) => {
-			const lead = normalizeLead(candidate.leadDays);
-			if (lead === null) {
-				return [];
-			}
-			return [
-				{
-					fireAt: reminderFireAt(candidate.landing, lead, time),
-					id: subscriptionReminderId(candidate.localId),
-					localId: candidate.localId,
-				},
-			];
-		})
-		.filter((armed) => armed.fireAt.getTime() > now.getTime())
-		.sort((a, b) => a.fireAt.getTime() - b.fireAt.getTime());
-	return { arm: arm.slice(0, Math.max(0, cap)) };
+    const arm = candidates
+        .flatMap((candidate) => {
+            const lead = normalizeLead(candidate.leadDays);
+            if (lead === null) {
+                return [];
+            }
+            return [
+                {
+                    fireAt: reminderFireAt(candidate.landing, lead, time),
+                    id: subscriptionReminderId(candidate.localId),
+                    localId: candidate.localId,
+                },
+            ];
+        })
+        .filter((armed) => armed.fireAt.getTime() > now.getTime())
+        .sort((a, b) => a.fireAt.getTime() - b.fireAt.getTime());
+    return { arm: arm.slice(0, Math.max(0, cap)) };
 }
 
 /**
@@ -129,8 +129,8 @@ export function reminderPlan({
  * `outlayr.daily-reminder` here would turn the setting that owns it into a lie.
  */
 export function orphanedReminderIds(armed: readonly string[], pendingIds: readonly string[]): string[] {
-	const keep = new Set(armed);
-	return pendingIds.filter((id) => isSubscriptionReminderId(id) && !keep.has(id));
+    const keep = new Set(armed);
+    return pendingIds.filter((id) => isSubscriptionReminderId(id) && !keep.has(id));
 }
 
 /**
@@ -140,33 +140,40 @@ export function orphanedReminderIds(armed: readonly string[], pendingIds: readon
  * catalogue, so the guarantee is not lost, only deferred to the call site.
  */
 export type LeadLabelKey =
-	| "settings.notifications.leadOff"
-	| "settings.notifications.leadSameDay"
-	| "settings.notifications.leadOneDay"
-	| "settings.notifications.leadTwoDays"
-	| "settings.notifications.leadThreeDays"
-	| "settings.notifications.leadOneWeek"
-	| "settings.notifications.leadDaysBefore";
+    | "settings.notifications.leadOff"
+    | "settings.notifications.leadSameDay"
+    | "settings.notifications.leadOneDay"
+    | "settings.notifications.leadTwoDays"
+    | "settings.notifications.leadThreeDays"
+    | "settings.notifications.leadOneWeek"
+    | "settings.notifications.leadDaysBefore";
 
 /**
  * Anything off the offered set reads through the counted form: a lead restored
  * from a synced device the picker never offered still has to name itself.
  */
 export function leadLabelKey(lead: number | null): LeadLabelKey {
-	switch (normalizeLead(lead)) {
-		case null:
-			return "settings.notifications.leadOff";
-		case 0:
-			return "settings.notifications.leadSameDay";
-		case 1:
-			return "settings.notifications.leadOneDay";
-		case 2:
-			return "settings.notifications.leadTwoDays";
-		case 3:
-			return "settings.notifications.leadThreeDays";
-		case 7:
-			return "settings.notifications.leadOneWeek";
-		default:
-			return "settings.notifications.leadDaysBefore";
-	}
+    switch (normalizeLead(lead)) {
+        case null: {
+            return "settings.notifications.leadOff";
+        }
+        case 0: {
+            return "settings.notifications.leadSameDay";
+        }
+        case 1: {
+            return "settings.notifications.leadOneDay";
+        }
+        case 2: {
+            return "settings.notifications.leadTwoDays";
+        }
+        case 3: {
+            return "settings.notifications.leadThreeDays";
+        }
+        case 7: {
+            return "settings.notifications.leadOneWeek";
+        }
+        default: {
+            return "settings.notifications.leadDaysBefore";
+        }
+    }
 }

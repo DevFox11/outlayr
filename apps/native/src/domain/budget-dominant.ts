@@ -1,10 +1,11 @@
 import type { ExpenseContribution } from "@/data/budget-spent";
+
 import type { BudgetWindow } from "./budget-math";
 
 export interface DominantCategory {
-	categoryId: string;
-	/** Share of the window's total spend, 0–1. */
-	share: number;
+    categoryId: string;
+    /** Share of the window's total spend, 0–1. */
+    share: number;
 }
 
 /**
@@ -17,35 +18,35 @@ export interface DominantCategory {
  * put in the sentence.
  */
 export function dominantCategory(
-	contributions: readonly ExpenseContribution[],
-	window: BudgetWindow,
-	endMs: number
+    contributions: readonly ExpenseContribution[],
+    window: BudgetWindow,
+    endMs: number
 ): DominantCategory | null {
-	const startMs = window.start.getTime();
-	const byCategory = new Map<string, number>();
-	let total = 0;
+    const startMs = window.start.getTime();
+    const byCategory = new Map<string, number>();
+    let total = 0;
 
-	for (const row of contributions) {
-		const at = row.date.getTime();
-		if (at < startMs || at > endMs) {
-			continue;
-		}
-		total += row.amount;
-		const key = row.parentId ?? row.categoryId;
-		if (key) {
-			byCategory.set(key, (byCategory.get(key) ?? 0) + row.amount);
-		}
-	}
+    for (const row of contributions) {
+        const at = row.date.getTime();
+        if (at < startMs || at > endMs) {
+            continue;
+        }
+        total += row.amount;
+        const key = row.parentId ?? row.categoryId;
+        if (key) {
+            byCategory.set(key, (byCategory.get(key) ?? 0) + row.amount);
+        }
+    }
 
-	if (total <= 0) {
-		return null;
-	}
+    if (total <= 0) {
+        return null;
+    }
 
-	let top: DominantCategory | null = null;
-	for (const [categoryId, amount] of byCategory) {
-		if (!top || amount > top.share * total) {
-			top = { categoryId, share: amount / total };
-		}
-	}
-	return top;
+    let top: DominantCategory | null = null;
+    for (const [categoryId, amount] of byCategory) {
+        if (!top || amount > top.share * total) {
+            top = { categoryId, share: amount / total };
+        }
+    }
+    return top;
 }

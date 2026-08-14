@@ -1,24 +1,25 @@
 import { RECURRING_TYPE } from "@/domain/recurrence";
-import { type LeadLabelKey, leadLabelKey } from "@/domain/subscription-reminder";
+import { leadLabelKey } from "@/domain/subscription-reminder";
+import type { LeadLabelKey } from "@/domain/subscription-reminder";
 import type { TranslationKey } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 
 const CADENCE_LABEL_KEY: Record<number, TranslationKey> = {
-	[RECURRING_TYPE.daily]: "transaction.cadence.daily",
-	[RECURRING_TYPE.weekly]: "transaction.cadence.weekly",
-	[RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
-	[RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
+    [RECURRING_TYPE.daily]: "transaction.cadence.daily",
+    [RECURRING_TYPE.weekly]: "transaction.cadence.weekly",
+    [RECURRING_TYPE.monthly]: "transaction.cadence.monthly",
+    [RECURRING_TYPE.yearly]: "transaction.cadence.yearly",
 };
 
 export function cadenceLabel(t: TranslateFn, type: number): string {
-	return t(CADENCE_LABEL_KEY[type] ?? "transaction.cadence.monthly");
+    return t(CADENCE_LABEL_KEY[type] ?? "transaction.cadence.monthly");
 }
 
 export function ctaKey(mode: "create" | "edit", isSubscription: boolean): TranslationKey {
-	if (mode === "edit") {
-		return "transaction.cta.save";
-	}
-	return isSubscription ? "transaction.cta.addSubscription" : "transaction.cta.add";
+    if (mode === "edit") {
+        return "transaction.cta.save";
+    }
+    return isSubscription ? "transaction.cta.addSubscription" : "transaction.cta.add";
 }
 
 /**
@@ -29,15 +30,15 @@ export function ctaKey(mode: "create" | "edit", isSubscription: boolean): Transl
  * same counted form.
  */
 const LEAD_LABEL_KEY: Record<LeadLabelKey, TranslationKey> = {
-	"settings.notifications.leadDaysBefore": "transaction.remind.daysBefore",
-	"settings.notifications.leadOff": "transaction.remind.off",
-	"settings.notifications.leadOneDay": "transaction.remind.dayBefore",
-	"settings.notifications.leadOneWeek": "transaction.remind.weekBefore",
-	"settings.notifications.leadSameDay": "transaction.remind.sameDay",
-	"settings.notifications.leadThreeDays": "transaction.remind.daysBefore",
-	"settings.notifications.leadTwoDays": "transaction.remind.daysBefore",
+    "settings.notifications.leadDaysBefore": "transaction.remind.daysBefore",
+    "settings.notifications.leadOff": "transaction.remind.off",
+    "settings.notifications.leadOneDay": "transaction.remind.dayBefore",
+    "settings.notifications.leadOneWeek": "transaction.remind.weekBefore",
+    "settings.notifications.leadSameDay": "transaction.remind.sameDay",
+    "settings.notifications.leadThreeDays": "transaction.remind.daysBefore",
+    "settings.notifications.leadTwoDays": "transaction.remind.daysBefore",
 };
 
 export function leadLabel(t: TranslateFn, lead: number | null): string {
-	return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
+    return t(LEAD_LABEL_KEY[leadLabelKey(lead)], { count: lead });
 }

@@ -10,7 +10,7 @@ const Toolbar = ({ children }) => react.createElement(react.Fragment, null, chil
 Toolbar.Button = ({ onPress, ...rest }) => react.createElement("ToolbarButton", { ...rest, onButtonPress: onPress });
 
 module.exports = {
-	Stack: { Toolbar },
-	useNavigation: () => ({ setOptions: jest.fn() }),
-	useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+    Stack: { Toolbar },
+    useNavigation: () => ({ setOptions: jest.fn() }),
+    useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
 };

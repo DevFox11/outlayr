@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import { useMemo, useSyncExternalStore } from "react";
+
 import type { Database } from "@/db/client";
 import { exchangeRates } from "@/db/schema";
+
 import { useLiveQuery } from "./live-query";
 import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
 import { VALUATION_RATE_TYPE } from "./valuation-source";
@@ -23,17 +25,17 @@ import { VALUATION_RATE_TYPE } from "./valuation-source";
  * have this claim a row exists that does not.
  */
 export function useValuedCurrencies(db: Database): ReadonlySet<string> {
-	const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
+    const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
 
-	const rows = useLiveQuery(
-		exchangeRates,
-		() =>
-			db
-				.selectDistinct({ quote: exchangeRates.quote })
-				.from(exchangeRates)
-				.where(eq(exchangeRates.rateType, VALUATION_RATE_TYPE)),
-		[revision]
-	);
+    const rows = useLiveQuery(
+        exchangeRates,
+        () =>
+            db
+                .selectDistinct({ quote: exchangeRates.quote })
+                .from(exchangeRates)
+                .where(eq(exchangeRates.rateType, VALUATION_RATE_TYPE)),
+        [revision]
+    );
 
-	return useMemo(() => new Set(rows.map((row) => row.quote)), [rows]);
+    return useMemo(() => new Set(rows.map((row) => row.quote)), [rows]);
 }

@@ -5,5 +5,5 @@ const DATE_STRING_LENGTH = 10;
  * local-midnight boundaries.
  */
 export function utcDateString(epochMs: number): string {
-	return new Date(epochMs).toISOString().slice(0, DATE_STRING_LENGTH);
+    return new Date(epochMs).toISOString().slice(0, DATE_STRING_LENGTH);
 }

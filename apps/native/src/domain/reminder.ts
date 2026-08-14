@@ -3,32 +3,35 @@ export const REMINDER_EVENING = 2;
 export const REMINDER_CUSTOM = 3;
 
 export interface TimeOfDay {
-	hour: number;
-	minute: number;
+    hour: number;
+    minute: number;
 }
 
 const MORNING: TimeOfDay = { hour: 8, minute: 0 };
 const EVENING: TimeOfDay = { hour: 20, minute: 0 };
 
 export function clampTimeOfDay(hour: number, minute: number): TimeOfDay {
-	if (!(Number.isFinite(hour) && Number.isFinite(minute))) {
-		return MORNING;
-	}
-	return {
-		hour: Math.min(23, Math.max(0, Math.floor(hour))),
-		minute: Math.min(59, Math.max(0, Math.floor(minute))),
-	};
+    if (!(Number.isFinite(hour) && Number.isFinite(minute))) {
+        return MORNING;
+    }
+    return {
+        hour: Math.min(23, Math.max(0, Math.floor(hour))),
+        minute: Math.min(59, Math.max(0, Math.floor(minute))),
+    };
 }
 
 export function reminderTime(option: number, custom: TimeOfDay): TimeOfDay {
-	switch (option) {
-		case REMINDER_EVENING:
-			return EVENING;
-		case REMINDER_CUSTOM:
-			return custom;
-		default:
-			return MORNING;
-	}
+    switch (option) {
+        case REMINDER_EVENING: {
+            return EVENING;
+        }
+        case REMINDER_CUSTOM: {
+            return custom;
+        }
+        default: {
+            return MORNING;
+        }
+    }
 }
 
 /**
@@ -36,9 +39,9 @@ export function reminderTime(option: number, custom: TimeOfDay): TimeOfDay {
  * every locale would read back as the en-US default anyway.
  */
 export function formatTimeOfDay({ hour, minute }: TimeOfDay): string {
-	const suffix = hour < 12 ? "AM" : "PM";
-	const twelve = hour % 12 === 0 ? 12 : hour % 12;
-	return `${twelve}:${String(minute).padStart(2, "0")} ${suffix}`;
+    const suffix = hour < 12 ? "AM" : "PM";
+    const twelve = hour % 12 === 0 ? 12 : hour % 12;
+    return `${twelve}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
 export type ReminderPermission = "granted" | "denied" | "undetermined";
@@ -51,14 +54,17 @@ export type EnableReminderStep = "schedule" | "request" | "open-settings";
  * instead of silently doing nothing.
  */
 export function enableReminderStep(permission: ReminderPermission): EnableReminderStep {
-	switch (permission) {
-		case "granted":
-			return "schedule";
-		case "denied":
-			return "open-settings";
-		default:
-			return "request";
-	}
+    switch (permission) {
+        case "granted": {
+            return "schedule";
+        }
+        case "denied": {
+            return "open-settings";
+        }
+        default: {
+            return "request";
+        }
+    }
 }
 
 export type ReminderReconcile = "schedule" | "disable" | "none";
@@ -72,17 +78,17 @@ export type ReminderReconcile = "schedule" | "disable" | "none";
  * new device carries the setting across but not the pending request.
  */
 export function reminderReconcile(enabled: boolean, permission: ReminderPermission): ReminderReconcile {
-	if (!enabled) {
-		return "none";
-	}
-	return permission === "granted" ? "schedule" : "disable";
+    if (!enabled) {
+        return "none";
+    }
+    return permission === "granted" ? "schedule" : "disable";
 }
 
 export interface ReminderChoiceWrites {
-	option: number;
-	/** Only the custom option needs an explicit time — the fixed options are
-	 * already pinned by `reminderTime`. */
-	time: TimeOfDay | null;
+    option: number;
+    /** Only the custom option needs an explicit time — the fixed options are
+     * already pinned by `reminderTime`. */
+    time: TimeOfDay | null;
 }
 
 /**
@@ -91,11 +97,11 @@ export interface ReminderChoiceWrites {
  * indistinguishable, matching how skipping step 04 leaves no budget row.
  */
 export function reminderChoiceWrites(option: number | null, custom: TimeOfDay): ReminderChoiceWrites | null {
-	if (option === null) {
-		return null;
-	}
-	return {
-		option,
-		time: option === REMINDER_CUSTOM ? custom : null,
-	};
+    if (option === null) {
+        return null;
+    }
+    return {
+        option,
+        time: option === REMINDER_CUSTOM ? custom : null,
+    };
 }

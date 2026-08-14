@@ -1,8 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { useMemo, useSyncExternalStore } from "react";
+
 import type { Database } from "@/db/client";
 import { exchangeRates } from "@/db/schema";
 import { buildRateTable } from "@/domain/valuation";
+
 import { useGlobalCurrency } from "./app-meta";
 import { useLiveQuery } from "./live-query";
 import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
@@ -19,26 +21,26 @@ import { VALUATION_RATE_TYPE } from "./valuation-source";
  * (see `rates-revision.ts`), so the revision counter carries that half instead.
  */
 export function useValuationIn(db: Database, code: string): Valuation {
-	const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
+    const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
 
-	const rows = useLiveQuery(
-		exchangeRates,
-		() =>
-			db
-				.select({
-					date: exchangeRates.date,
-					quote: exchangeRates.quote,
-					rate: exchangeRates.rate,
-				})
-				.from(exchangeRates)
-				.where(and(eq(exchangeRates.quote, code), eq(exchangeRates.rateType, VALUATION_RATE_TYPE))),
-		[code, revision]
-	);
+    const rows = useLiveQuery(
+        exchangeRates,
+        () =>
+            db
+                .select({
+                    date: exchangeRates.date,
+                    quote: exchangeRates.quote,
+                    rate: exchangeRates.rate,
+                })
+                .from(exchangeRates)
+                .where(and(eq(exchangeRates.quote, code), eq(exchangeRates.rateType, VALUATION_RATE_TYPE))),
+        [code, revision]
+    );
 
-	return useMemo(() => ({ displayCurrency: code, rates: buildRateTable(rows) }), [code, rows]);
+    return useMemo(() => ({ displayCurrency: code, rates: buildRateTable(rows) }), [code, rows]);
 }
 
 /** {@link useValuationIn} for the ledger's own display currency. */
 export function useValuation(db: Database): Valuation {
-	return useValuationIn(db, useGlobalCurrency(db));
+    return useValuationIn(db, useGlobalCurrency(db));
 }

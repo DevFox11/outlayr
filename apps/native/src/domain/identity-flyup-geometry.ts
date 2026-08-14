@@ -14,15 +14,15 @@ const TOP_MARGIN = 16;
  * instead of clipping it.
  */
 export function floatTargetY({
-	containerHeight,
-	sheetHeight,
-	heroHalf,
+    containerHeight,
+    sheetHeight,
+    heroHalf,
 }: {
-	containerHeight: number;
-	sheetHeight: number;
-	heroHalf: number;
+    containerHeight: number;
+    sheetHeight: number;
+    heroHalf: number;
 }): number {
-	"worklet";
+    "worklet";
 
-	return Math.max((containerHeight - sheetHeight) / 2, TOP_MARGIN + heroHalf);
+    return Math.max((containerHeight - sheetHeight) / 2, TOP_MARGIN + heroHalf);
 }

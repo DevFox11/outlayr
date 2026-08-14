@@ -32,20 +32,20 @@ const ALIASES: Readonly<Record<string, string>> = { VED: "VES" };
  * catalogue does not know — or no locale at all — leaves the pair untouched.
  */
 export function seedFavourites(detected: string | null): string[] {
-	const seeded: string[] = [...SEEDED];
-	if (detected === null) {
-		return seeded;
-	}
-	const named = normalise(detected);
-	const code = ALIASES[named] ?? named;
-	if (CATALOGUE.has(code) && !seeded.includes(code)) {
-		seeded.push(code);
-	}
-	return seeded;
+    const seeded: string[] = [...SEEDED];
+    if (detected === null) {
+        return seeded;
+    }
+    const named = normalise(detected);
+    const code = ALIASES[named] ?? named;
+    if (CATALOGUE.has(code) && !seeded.includes(code)) {
+        seeded.push(code);
+    }
+    return seeded;
 }
 
 function normalise(code: string): string {
-	return code.trim().toUpperCase();
+    return code.trim().toUpperCase();
 }
 
 /**
@@ -58,31 +58,31 @@ function normalise(code: string): string {
  * that would then have no name or symbol to draw for it.
  */
 export function parseFavourites(raw: string | null): string[] {
-	if (!raw) {
-		return [];
-	}
+    if (!raw) {
+        return [];
+    }
 
-	const favourites: string[] = [];
-	for (const part of raw.split(",")) {
-		const code = normalise(part);
-		if (!CATALOGUE.has(code) || favourites.includes(code)) {
-			continue;
-		}
-		favourites.push(code);
-		if (favourites.length === FAVOURITE_CURRENCY_LIMIT) {
-			break;
-		}
-	}
-	return favourites;
+    const favourites: string[] = [];
+    for (const part of raw.split(",")) {
+        const code = normalise(part);
+        if (!CATALOGUE.has(code) || favourites.includes(code)) {
+            continue;
+        }
+        favourites.push(code);
+        if (favourites.length === FAVOURITE_CURRENCY_LIMIT) {
+            break;
+        }
+    }
+    return favourites;
 }
 
 export function serialiseFavourites(codes: readonly string[]): string {
-	return codes.join(",");
+    return codes.join(",");
 }
 
 export function isFavourite(codes: readonly string[], code: string): boolean {
-	const wanted = normalise(code);
-	return codes.some((favourite) => normalise(favourite) === wanted);
+    const wanted = normalise(code);
+    return codes.some((favourite) => normalise(favourite) === wanted);
 }
 
 /**
@@ -91,12 +91,12 @@ export function isFavourite(codes: readonly string[], code: string): boolean {
  * the surprising move. Removal is never refused — that is the way out.
  */
 export function toggleFavourite(codes: readonly string[], code: string): string[] {
-	const wanted = normalise(code);
-	if (isFavourite(codes, wanted)) {
-		return codes.filter((favourite) => normalise(favourite) !== wanted);
-	}
-	if (codes.length >= FAVOURITE_CURRENCY_LIMIT || !CATALOGUE.has(wanted)) {
-		return [...codes];
-	}
-	return [...codes, wanted];
+    const wanted = normalise(code);
+    if (isFavourite(codes, wanted)) {
+        return codes.filter((favourite) => normalise(favourite) !== wanted);
+    }
+    if (codes.length >= FAVOURITE_CURRENCY_LIMIT || !CATALOGUE.has(wanted)) {
+        return [...codes];
+    }
+    return [...codes, wanted];
 }

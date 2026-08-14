@@ -1,16 +1,17 @@
 import { useSelector } from "@tanstack/react-form";
 import type { ReactNode } from "react";
+
 import { shallowEqual } from "./shallow-equal";
 
 interface Subscribable<TState> {
-	get: () => TState;
-	subscribe: (listener: (value: TState) => void) => { unsubscribe: () => void };
+    get: () => TState;
+    subscribe: (listener: (value: TState) => void) => { unsubscribe: () => void };
 }
 
 interface SubscribeFieldsProps<TState, TSelected> {
-	children: (selected: TSelected) => ReactNode;
-	selector: (state: TState) => TSelected;
-	store: Subscribable<TState>;
+    children: (selected: TSelected) => ReactNode;
+    selector: (state: TState) => TSelected;
+    store: Subscribable<TState>;
 }
 
 /**
@@ -20,10 +21,10 @@ interface SubscribeFieldsProps<TState, TSelected> {
  * than one field. Prefer plain `form.Subscribe` when a single primitive will do.
  */
 export function SubscribeFields<TState, TSelected>({
-	store,
-	selector,
-	children,
+    store,
+    selector,
+    children,
 }: SubscribeFieldsProps<TState, TSelected>) {
-	const selected = useSelector(store, selector, { compare: shallowEqual });
-	return <>{children(selected)}</>;
+    const selected = useSelector(store, selector, { compare: shallowEqual });
+    return <>{children(selected)}</>;
 }

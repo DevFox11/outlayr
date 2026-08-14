@@ -1,13 +1,5 @@
-import {
-	type AnySQLiteColumn,
-	index,
-	integer,
-	primaryKey,
-	real,
-	sqliteTable,
-	text,
-	uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
 /**
  * Local-first mirror of the Swift Core Data model. `updatedAt` (wall-clock) and
@@ -15,271 +7,271 @@ import {
  * layer can reconcile without a schema migration.
  */
 export const categories = sqliteTable(
-	"categories",
-	{
-		color: text("color").default("#FFFFFF"),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		emoji: text("emoji"),
-		icon: text("icon"),
-		id: text("id").primaryKey(),
-		income: integer("income", { mode: "boolean" }).notNull().default(false),
-		name: text("name"),
-		parentId: text("parentId").references((): AnySQLiteColumn => categories.id, { onDelete: "set null" }),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("categories_income_idx").on(table.income),
-		index("categories_parentId_idx").on(table.parentId),
-		index("categories_deletedAt_idx").on(table.deletedAt),
-	]
+    "categories",
+    {
+        color: text("color").default("#FFFFFF"),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        emoji: text("emoji"),
+        icon: text("icon"),
+        id: text("id").primaryKey(),
+        income: integer("income", { mode: "boolean" }).notNull().default(false),
+        name: text("name"),
+        parentId: text("parentId").references((): AnySQLiteColumn => categories.id, { onDelete: "set null" }),
+        sortOrder: integer("sortOrder").notNull().default(0),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("categories_income_idx").on(table.income),
+        index("categories_parentId_idx").on(table.parentId),
+        index("categories_deletedAt_idx").on(table.deletedAt),
+    ]
 );
 
 export const accounts = sqliteTable(
-	"accounts",
-	{
-		currency: text("currency").notNull(),
-		customColor: text("customColor"),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		emoji: text("emoji"),
-		icon: text("icon"),
-		id: text("id").primaryKey(),
-		imageColor: text("imageColor"),
-		imageKey: text("imageKey"),
-		/** Device-local, like `transactions.imageUri`: never replicated. */
-		imageUri: text("imageUri"),
-		initialBalance: real("initialBalance").notNull().default(0),
-		initialBalanceDate: integer("initialBalanceDate", {
-			mode: "timestamp_ms",
-		}).notNull(),
-		/**
-		 * `initialBalance` canonicalized to USD at the rate of `initialBalanceDate`,
-		 * frozen at write — the same contract `transactions.amountUsd` keeps. Null
-		 * when no rate was available then.
-		 */
-		initialBalanceUsd: real("initialBalanceUsd"),
-		/** `asset` or `liability` — see `domain/account-kind.ts`. */
-		kind: text("kind").notNull().default("asset"),
-		name: text("name").notNull(),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [index("accounts_deletedAt_idx").on(table.deletedAt)]
+    "accounts",
+    {
+        currency: text("currency").notNull(),
+        customColor: text("customColor"),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        emoji: text("emoji"),
+        icon: text("icon"),
+        id: text("id").primaryKey(),
+        imageColor: text("imageColor"),
+        imageKey: text("imageKey"),
+        /** Device-local, like `transactions.imageUri`: never replicated. */
+        imageUri: text("imageUri"),
+        initialBalance: real("initialBalance").notNull().default(0),
+        initialBalanceDate: integer("initialBalanceDate", {
+            mode: "timestamp_ms",
+        }).notNull(),
+        /**
+         * `initialBalance` canonicalized to USD at the rate of `initialBalanceDate`,
+         * frozen at write — the same contract `transactions.amountUsd` keeps. Null
+         * when no rate was available then.
+         */
+        initialBalanceUsd: real("initialBalanceUsd"),
+        /** `asset` or `liability` — see `domain/account-kind.ts`. */
+        kind: text("kind").notNull().default("asset"),
+        name: text("name").notNull(),
+        sortOrder: integer("sortOrder").notNull().default(0),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [index("accounts_deletedAt_idx").on(table.deletedAt)]
 );
 
 export const transfers = sqliteTable(
-	"transfers",
-	{
-		date: integer("date", { mode: "timestamp_ms" }).notNull(),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
-		day: integer("day", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		exchangeRate: real("exchangeRate"),
-		/** `EntryRateType` from `@outlayr/money/rates`: official | eur_reference | custom. */
-		exchangeRateType: text("exchangeRateType"),
-		fromAccountId: text("fromAccountId")
-			.notNull()
-			.references(() => accounts.id, { onDelete: "cascade" }),
-		/**
-		 * The outbound leg — money that moved. A source-side fee is charged by its
-		 * own transaction and is NOT included here, or the source account would be
-		 * debited twice.
-		 */
-		fromAmount: real("fromAmount").notNull(),
-		fromAmountUsd: real("fromAmountUsd"),
-		fromCurrency: text("fromCurrency").notNull(),
-		id: text("id").primaryKey(),
-		month: integer("month", { mode: "timestamp_ms" }).notNull(),
-		note: text("note").notNull().default(""),
-		toAccountId: text("toAccountId")
-			.notNull()
-			.references(() => accounts.id, { onDelete: "cascade" }),
-		toAmount: real("toAmount").notNull(),
-		toAmountUsd: real("toAmountUsd"),
-		toCurrency: text("toCurrency").notNull(),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("transfers_day_idx").on(table.day),
-		index("transfers_fromAccountId_idx").on(table.fromAccountId),
-		index("transfers_toAccountId_idx").on(table.toAccountId),
-		index("transfers_deletedAt_idx").on(table.deletedAt),
-		index("transfers_day_date_idx").on(table.day, table.date),
-	]
+    "transfers",
+    {
+        date: integer("date", { mode: "timestamp_ms" }).notNull(),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+        day: integer("day", { mode: "timestamp_ms" }).notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        exchangeRate: real("exchangeRate"),
+        /** `EntryRateType` from `@outlayr/money/rates`: official | eur_reference | custom. */
+        exchangeRateType: text("exchangeRateType"),
+        fromAccountId: text("fromAccountId")
+            .notNull()
+            .references(() => accounts.id, { onDelete: "cascade" }),
+        /**
+         * The outbound leg — money that moved. A source-side fee is charged by its
+         * own transaction and is NOT included here, or the source account would be
+         * debited twice.
+         */
+        fromAmount: real("fromAmount").notNull(),
+        fromAmountUsd: real("fromAmountUsd"),
+        fromCurrency: text("fromCurrency").notNull(),
+        id: text("id").primaryKey(),
+        month: integer("month", { mode: "timestamp_ms" }).notNull(),
+        note: text("note").notNull().default(""),
+        toAccountId: text("toAccountId")
+            .notNull()
+            .references(() => accounts.id, { onDelete: "cascade" }),
+        toAmount: real("toAmount").notNull(),
+        toAmountUsd: real("toAmountUsd"),
+        toCurrency: text("toCurrency").notNull(),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("transfers_day_idx").on(table.day),
+        index("transfers_fromAccountId_idx").on(table.fromAccountId),
+        index("transfers_toAccountId_idx").on(table.toAccountId),
+        index("transfers_deletedAt_idx").on(table.deletedAt),
+        index("transfers_day_date_idx").on(table.day, table.date),
+    ]
 );
 
 export const transactions = sqliteTable(
-	"transactions",
-	{
-		accountId: text("accountId").references(() => accounts.id, {
-			onDelete: "set null",
-		}),
-		amount: real("amount").notNull(),
-		/**
-		 * `amount` canonicalized to USD at the rate of the day it happened, frozen
-		 * at write. Read only to add figures in different currencies together — a
-		 * same-currency read uses `amount` directly so it never round-trips.
-		 *
-		 * A resolved row freezes this together with `exchangeRate` and
-		 * `exchangeRateType`. The intentional custom-pending triple is
-		 * `(null, null, "custom")`: the native amount remains usable while
-		 * cross-currency aggregation waits for confirmation.
-		 */
-		amountUsd: real("amountUsd"),
-		categoryId: text("categoryId").references(() => categories.id, {
-			onDelete: "cascade",
-		}),
-		currency: text("currency"),
-		customColor: text("customColor"),
-		date: integer("date", { mode: "timestamp_ms" }).notNull(),
-		day: integer("day", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		details: text("details"),
-		emoji: text("emoji"),
-		/** The frozen currency-per-USD actual rate, or null while custom is pending. */
-		exchangeRate: real("exchangeRate"),
-		/** Which market rate it came from: official | eur_reference | custom. */
-		exchangeRateType: text("exchangeRateType"),
-		icon: text("icon"),
-		id: text("id").primaryKey(),
-		imageColor: text("imageColor"),
-		/**
-		 * The photo's R2 object key, which is what replicates. Null means the bytes
-		 * are not in the account yet; a key with no `imageUri` means they are, but
-		 * this device has not fetched them.
-		 */
-		imageKey: text("imageKey"),
-		/**
-		 * Where the photo lives on THIS device. Never replicated: the path embeds a
-		 * container uuid that changes on every app update, so it is meaningless on
-		 * another handset and stale on this one after an update.
-		 */
-		imageUri: text("imageUri"),
-		income: integer("income", { mode: "boolean" }).notNull(),
-		month: integer("month", { mode: "timestamp_ms" }).notNull(),
-		note: text("note").notNull().default(""),
-		onceRecurring: integer("onceRecurring", { mode: "boolean" }).notNull().default(false),
-		/**
-		 * The day of the month the schedule was written for, which a short month
-		 * can pull an individual occurrence off. Without it the clamp is lossy:
-		 * February drags a 31st schedule to the 28th and the carrier's own `date`
-		 * is then the only anchor left, so March lands on the 28th too and the
-		 * 31st never comes back.
-		 *
-		 * Replicated, unlike `reminderLeadDays` — two devices sweeping the same
-		 * chain must derive the same occurrence days, or `occurrenceId` differs
-		 * and the ledger doubles the subscription.
-		 *
-		 * Null on a row from before this column existed, and on every retired row.
-		 * Readers fall back to the row's own day-of-month, which is what the walk
-		 * did before.
-		 */
-		recurringAnchorDay: integer("recurringAnchorDay"),
-		recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
-		recurringEndDate: integer("recurringEndDate", { mode: "timestamp_ms" }),
-		recurringType: integer("recurringType").notNull().default(0),
-		/**
-		 * Days of notice for the next charge's reminder. Null is "no reminder" and
-		 * has to stay distinct from 0, which is "on the day itself".
-		 *
-		 * A chain holds the value on whichever row currently carries
-		 * `recurringType > 0`. Every path that retires a row clears it, the pull
-		 * applier included, so a notice can never outlive its schedule — but a
-		 * reader must still key off `recurringType > 0` and a null `deletedAt`
-		 * rather than off this column alone.
-		 *
-		 * Device-local, like `imageUri`: each handset schedules its own local
-		 * notification, so replicating the preference would buy nothing. The cost is
-		 * that a hand-off performed by a *peer* — its sweep retires the carrier and
-		 * inserts the successor — drops the notice instead of moving it, since the
-		 * successor arrives here with the column unset.
-		 */
-		reminderLeadDays: integer("reminderLeadDays"),
-		/**
-		 * Set only on a transfer's fee. A lifecycle link, never an exclusion flag:
-		 * a fee is ordinary spending and every aggregate must keep counting it, so
-		 * nothing filters on this column.
-		 */
-		transferId: text("transferId").references(() => transfers.id, {
-			onDelete: "cascade",
-		}),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("transactions_transferId_idx").on(table.transferId),
-		index("transactions_day_idx").on(table.day),
-		index("transactions_month_idx").on(table.month),
-		index("transactions_categoryId_idx").on(table.categoryId),
-		index("transactions_accountId_idx").on(table.accountId),
-		index("transactions_deletedAt_idx").on(table.deletedAt),
-		// `date` carries almost every range predicate in the app (the log window,
-		// budget periods, insight buckets). The composite serves the log's exact
-		// sort, `orderBy(desc(day), desc(date))`, which otherwise cannot walk an
-		// index.
-		index("transactions_date_idx").on(table.date),
-		index("transactions_day_date_idx").on(table.day, table.date),
-	]
+    "transactions",
+    {
+        accountId: text("accountId").references(() => accounts.id, {
+            onDelete: "set null",
+        }),
+        amount: real("amount").notNull(),
+        /**
+         * `amount` canonicalized to USD at the rate of the day it happened, frozen
+         * at write. Read only to add figures in different currencies together — a
+         * same-currency read uses `amount` directly so it never round-trips.
+         *
+         * A resolved row freezes this together with `exchangeRate` and
+         * `exchangeRateType`. The intentional custom-pending triple is
+         * `(null, null, "custom")`: the native amount remains usable while
+         * cross-currency aggregation waits for confirmation.
+         */
+        amountUsd: real("amountUsd"),
+        categoryId: text("categoryId").references(() => categories.id, {
+            onDelete: "cascade",
+        }),
+        currency: text("currency"),
+        customColor: text("customColor"),
+        date: integer("date", { mode: "timestamp_ms" }).notNull(),
+        day: integer("day", { mode: "timestamp_ms" }).notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        details: text("details"),
+        emoji: text("emoji"),
+        /** The frozen currency-per-USD actual rate, or null while custom is pending. */
+        exchangeRate: real("exchangeRate"),
+        /** Which market rate it came from: official | eur_reference | custom. */
+        exchangeRateType: text("exchangeRateType"),
+        icon: text("icon"),
+        id: text("id").primaryKey(),
+        imageColor: text("imageColor"),
+        /**
+         * The photo's R2 object key, which is what replicates. Null means the bytes
+         * are not in the account yet; a key with no `imageUri` means they are, but
+         * this device has not fetched them.
+         */
+        imageKey: text("imageKey"),
+        /**
+         * Where the photo lives on THIS device. Never replicated: the path embeds a
+         * container uuid that changes on every app update, so it is meaningless on
+         * another handset and stale on this one after an update.
+         */
+        imageUri: text("imageUri"),
+        income: integer("income", { mode: "boolean" }).notNull(),
+        month: integer("month", { mode: "timestamp_ms" }).notNull(),
+        note: text("note").notNull().default(""),
+        onceRecurring: integer("onceRecurring", { mode: "boolean" }).notNull().default(false),
+        /**
+         * The day of the month the schedule was written for, which a short month
+         * can pull an individual occurrence off. Without it the clamp is lossy:
+         * February drags a 31st schedule to the 28th and the carrier's own `date`
+         * is then the only anchor left, so March lands on the 28th too and the
+         * 31st never comes back.
+         *
+         * Replicated, unlike `reminderLeadDays` — two devices sweeping the same
+         * chain must derive the same occurrence days, or `occurrenceId` differs
+         * and the ledger doubles the subscription.
+         *
+         * Null on a row from before this column existed, and on every retired row.
+         * Readers fall back to the row's own day-of-month, which is what the walk
+         * did before.
+         */
+        recurringAnchorDay: integer("recurringAnchorDay"),
+        recurringCoefficient: integer("recurringCoefficient").notNull().default(1),
+        recurringEndDate: integer("recurringEndDate", { mode: "timestamp_ms" }),
+        recurringType: integer("recurringType").notNull().default(0),
+        /**
+         * Days of notice for the next charge's reminder. Null is "no reminder" and
+         * has to stay distinct from 0, which is "on the day itself".
+         *
+         * A chain holds the value on whichever row currently carries
+         * `recurringType > 0`. Every path that retires a row clears it, the pull
+         * applier included, so a notice can never outlive its schedule — but a
+         * reader must still key off `recurringType > 0` and a null `deletedAt`
+         * rather than off this column alone.
+         *
+         * Device-local, like `imageUri`: each handset schedules its own local
+         * notification, so replicating the preference would buy nothing. The cost is
+         * that a hand-off performed by a *peer* — its sweep retires the carrier and
+         * inserts the successor — drops the notice instead of moving it, since the
+         * successor arrives here with the column unset.
+         */
+        reminderLeadDays: integer("reminderLeadDays"),
+        /**
+         * Set only on a transfer's fee. A lifecycle link, never an exclusion flag:
+         * a fee is ordinary spending and every aggregate must keep counting it, so
+         * nothing filters on this column.
+         */
+        transferId: text("transferId").references(() => transfers.id, {
+            onDelete: "cascade",
+        }),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("transactions_transferId_idx").on(table.transferId),
+        index("transactions_day_idx").on(table.day),
+        index("transactions_month_idx").on(table.month),
+        index("transactions_categoryId_idx").on(table.categoryId),
+        index("transactions_accountId_idx").on(table.accountId),
+        index("transactions_deletedAt_idx").on(table.deletedAt),
+        // `date` carries almost every range predicate in the app (the log window,
+        // budget periods, insight buckets). The composite serves the log's exact
+        // sort, `orderBy(desc(day), desc(date))`, which otherwise cannot walk an
+        // index.
+        index("transactions_date_idx").on(table.date),
+        index("transactions_day_date_idx").on(table.day, table.date),
+    ]
 );
 
 // `isNull(deletedAt)` is the universal read predicate on every soft-deleted
 // table, and tombstones only accumulate, so each one carries its own index.
 export const budgets = sqliteTable(
-	"budgets",
-	{
-		amount: real("amount").notNull(),
-		amountUsd: real("amountUsd"),
-		categoryId: text("categoryId")
-			.references(() => categories.id, { onDelete: "cascade" })
-			.unique(),
-		/**
-		 * The currency the target was set in, with its USD value frozen at that
-		 * moment — the same contract `transactions` keeps.
-		 */
-		currency: text("currency"),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		green: integer("green", { mode: "boolean" }).notNull().default(false),
-		id: text("id").primaryKey(),
-		name: text("name"),
-		/**
-		 * Whether an unspent (or overspent) window carries into the next one.
-		 * Off by default, so an existing budget keeps meaning exactly what it did.
-		 */
-		rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
-		startDate: integer("startDate", { mode: "timestamp_ms" }),
-		type: integer("type").notNull(),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [index("budgets_deletedAt_idx").on(table.deletedAt)]
+    "budgets",
+    {
+        amount: real("amount").notNull(),
+        amountUsd: real("amountUsd"),
+        categoryId: text("categoryId")
+            .references(() => categories.id, { onDelete: "cascade" })
+            .unique(),
+        /**
+         * The currency the target was set in, with its USD value frozen at that
+         * moment — the same contract `transactions` keeps.
+         */
+        currency: text("currency"),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        green: integer("green", { mode: "boolean" }).notNull().default(false),
+        id: text("id").primaryKey(),
+        name: text("name"),
+        /**
+         * Whether an unspent (or overspent) window carries into the next one.
+         * Off by default, so an existing budget keeps meaning exactly what it did.
+         */
+        rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
+        startDate: integer("startDate", { mode: "timestamp_ms" }),
+        type: integer("type").notNull(),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [index("budgets_deletedAt_idx").on(table.deletedAt)]
 );
 
 export const mainBudget = sqliteTable(
-	"mainBudget",
-	{
-		amount: real("amount").notNull(),
-		amountUsd: real("amountUsd"),
-		/**
-		 * The currency the target was set in, with its USD value frozen at that
-		 * moment — the same contract `transactions` keeps.
-		 */
-		currency: text("currency"),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		green: integer("green", { mode: "boolean" }).notNull().default(false),
-		id: text("id").primaryKey(),
-		name: text("name"),
-		/**
-		 * Whether an unspent (or overspent) window carries into the next one.
-		 * Off by default, so an existing budget keeps meaning exactly what it did.
-		 */
-		rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
-		startDate: integer("startDate", { mode: "timestamp_ms" }),
-		type: integer("type").notNull(),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [index("mainBudget_deletedAt_idx").on(table.deletedAt)]
+    "mainBudget",
+    {
+        amount: real("amount").notNull(),
+        amountUsd: real("amountUsd"),
+        /**
+         * The currency the target was set in, with its USD value frozen at that
+         * moment — the same contract `transactions` keeps.
+         */
+        currency: text("currency"),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        green: integer("green", { mode: "boolean" }).notNull().default(false),
+        id: text("id").primaryKey(),
+        name: text("name"),
+        /**
+         * Whether an unspent (or overspent) window carries into the next one.
+         * Off by default, so an existing budget keeps meaning exactly what it did.
+         */
+        rollover: integer("rollover", { mode: "boolean" }).notNull().default(false),
+        startDate: integer("startDate", { mode: "timestamp_ms" }),
+        type: integer("type").notNull(),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [index("mainBudget_deletedAt_idx").on(table.deletedAt)]
 );
 
 /**
@@ -294,24 +286,24 @@ export const mainBudget = sqliteTable(
  * so the write path is the only guard and `isBalanced` is what it asks.
  */
 export const transactionSplits = sqliteTable(
-	"transactionSplits",
-	{
-		/** Unsigned, like the entry's own amount: direction comes from `income`. */
-		amount: real("amount").notNull(),
-		categoryId: text("categoryId").references(() => categories.id),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		id: text("id").primaryKey(),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		transactionId: text("transactionId")
-			.notNull()
-			.references(() => transactions.id),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("transactionSplits_transactionId_idx").on(table.transactionId),
-		index("transactionSplits_categoryId_idx").on(table.categoryId),
-		index("transactionSplits_deletedAt_idx").on(table.deletedAt),
-	]
+    "transactionSplits",
+    {
+        /** Unsigned, like the entry's own amount: direction comes from `income`. */
+        amount: real("amount").notNull(),
+        categoryId: text("categoryId").references(() => categories.id),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        sortOrder: integer("sortOrder").notNull().default(0),
+        transactionId: text("transactionId")
+            .notNull()
+            .references(() => transactions.id),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("transactionSplits_transactionId_idx").on(table.transactionId),
+        index("transactionSplits_categoryId_idx").on(table.categoryId),
+        index("transactionSplits_deletedAt_idx").on(table.deletedAt),
+    ]
 );
 
 /**
@@ -326,24 +318,24 @@ export const transactionSplits = sqliteTable(
  * meaningless on another handset and stale on this one after an update.
  */
 export const transactionPhotos = sqliteTable(
-	"transactionPhotos",
-	{
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		id: text("id").primaryKey(),
-		/** The glow derived from the bytes, kept per photo rather than per entry. */
-		imageColor: text("imageColor"),
-		imageKey: text("imageKey"),
-		imageUri: text("imageUri"),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		transactionId: text("transactionId")
-			.notNull()
-			.references(() => transactions.id),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("transactionPhotos_transactionId_idx").on(table.transactionId),
-		index("transactionPhotos_deletedAt_idx").on(table.deletedAt),
-	]
+    "transactionPhotos",
+    {
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        /** The glow derived from the bytes, kept per photo rather than per entry. */
+        imageColor: text("imageColor"),
+        imageKey: text("imageKey"),
+        imageUri: text("imageUri"),
+        sortOrder: integer("sortOrder").notNull().default(0),
+        transactionId: text("transactionId")
+            .notNull()
+            .references(() => transactions.id),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("transactionPhotos_transactionId_idx").on(table.transactionId),
+        index("transactionPhotos_deletedAt_idx").on(table.deletedAt),
+    ]
 );
 
 /**
@@ -356,41 +348,41 @@ export const transactionPhotos = sqliteTable(
  * parallel record of the same money to drift — see `domain/savings-goal.ts`.
  */
 export const savingsGoals = sqliteTable(
-	"savingsGoals",
-	{
-		accountId: text("accountId")
-			.notNull()
-			.references(() => accounts.id, { onDelete: "cascade" }),
-		currency: text("currency").notNull(),
-		dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		id: text("id").primaryKey(),
-		name: text("name").notNull(),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		targetAmount: real("targetAmount").notNull(),
-		/** Frozen at write, like every other cross-currency figure in the ledger. */
-		targetAmountUsd: real("targetAmountUsd"),
-		/** Null is a target with no deadline, which has no pace. */
-		targetDate: integer("targetDate", { mode: "timestamp_ms" }),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("savingsGoals_accountId_idx").on(table.accountId),
-		index("savingsGoals_deletedAt_idx").on(table.deletedAt),
-	]
+    "savingsGoals",
+    {
+        accountId: text("accountId")
+            .notNull()
+            .references(() => accounts.id, { onDelete: "cascade" }),
+        currency: text("currency").notNull(),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        name: text("name").notNull(),
+        sortOrder: integer("sortOrder").notNull().default(0),
+        targetAmount: real("targetAmount").notNull(),
+        /** Frozen at write, like every other cross-currency figure in the ledger. */
+        targetAmountUsd: real("targetAmountUsd"),
+        /** Null is a target with no deadline, which has no pace. */
+        targetDate: integer("targetDate", { mode: "timestamp_ms" }),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("savingsGoals_accountId_idx").on(table.accountId),
+        index("savingsGoals_deletedAt_idx").on(table.deletedAt),
+    ]
 );
 
 export const tags = sqliteTable(
-	"tags",
-	{
-		color: text("color"),
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		id: text("id").primaryKey(),
-		name: text("name").notNull(),
-		sortOrder: integer("sortOrder").notNull().default(0),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [index("tags_deletedAt_idx").on(table.deletedAt)]
+    "tags",
+    {
+        color: text("color"),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        name: text("name").notNull(),
+        sortOrder: integer("sortOrder").notNull().default(0),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [index("tags_deletedAt_idx").on(table.deletedAt)]
 );
 
 /**
@@ -403,29 +395,29 @@ export const tags = sqliteTable(
  * delete that never happens, while hiding that the link needs tombstoning too.
  */
 export const transactionTags = sqliteTable(
-	"transactionTags",
-	{
-		deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
-		id: text("id").primaryKey(),
-		tagId: text("tagId")
-			.notNull()
-			.references(() => tags.id),
-		transactionId: text("transactionId")
-			.notNull()
-			.references(() => transactions.id),
-		updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
-	},
-	(table) => [
-		index("transactionTags_transactionId_idx").on(table.transactionId),
-		index("transactionTags_tagId_idx").on(table.tagId),
-		index("transactionTags_deletedAt_idx").on(table.deletedAt),
-		uniqueIndex("transactionTags_pair_idx").on(table.transactionId, table.tagId),
-	]
+    "transactionTags",
+    {
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        tagId: text("tagId")
+            .notNull()
+            .references(() => tags.id),
+        transactionId: text("transactionId")
+            .notNull()
+            .references(() => transactions.id),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("transactionTags_transactionId_idx").on(table.transactionId),
+        index("transactionTags_tagId_idx").on(table.tagId),
+        index("transactionTags_deletedAt_idx").on(table.deletedAt),
+        uniqueIndex("transactionTags_pair_idx").on(table.transactionId, table.tagId),
+    ]
 );
 
 export const appMeta = sqliteTable("appMeta", {
-	key: text("key").primaryKey(),
-	value: text("value"),
+    key: text("key").primaryKey(),
+    value: text("value"),
 });
 
 /**
@@ -453,14 +445,14 @@ export const appMeta = sqliteTable("appMeta", {
  * re-declare its triggers by hand.
  */
 export const outbox = sqliteTable(
-	"outbox",
-	{
-		enqueuedAt: integer("enqueuedAt", { mode: "timestamp_ms" }).notNull(),
-		localId: text("localId").notNull(),
-		seq: integer("seq").primaryKey({ autoIncrement: true }),
-		tableName: text("tableName").notNull(),
-	},
-	(table) => [uniqueIndex("outbox_row_idx").on(table.tableName, table.localId)]
+    "outbox",
+    {
+        enqueuedAt: integer("enqueuedAt", { mode: "timestamp_ms" }).notNull(),
+        localId: text("localId").notNull(),
+        seq: integer("seq").primaryKey({ autoIncrement: true }),
+        tableName: text("tableName").notNull(),
+    },
+    (table) => [uniqueIndex("outbox_row_idx").on(table.tableName, table.localId)]
 );
 
 /**
@@ -473,15 +465,15 @@ export const outbox = sqliteTable(
  * upsert cleanly.
  */
 export const exchangeRates = sqliteTable(
-	"exchangeRates",
-	{
-		/** UTC `YYYY-MM-DD`, matching the server so comparisons stay lexical. */
-		date: text("date").notNull(),
-		fetchedAt: integer("fetchedAt").notNull(),
-		quote: text("quote").notNull(),
-		rate: real("rate").notNull(),
-		rateType: text("rateType").notNull(),
-		source: text("source").notNull(),
-	},
-	(table) => [primaryKey({ columns: [table.quote, table.rateType, table.date] })]
+    "exchangeRates",
+    {
+        /** UTC `YYYY-MM-DD`, matching the server so comparisons stay lexical. */
+        date: text("date").notNull(),
+        fetchedAt: integer("fetchedAt").notNull(),
+        quote: text("quote").notNull(),
+        rate: real("rate").notNull(),
+        rateType: text("rateType").notNull(),
+        source: text("source").notNull(),
+    },
+    (table) => [primaryKey({ columns: [table.quote, table.rateType, table.date] })]
 );

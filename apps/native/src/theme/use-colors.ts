@@ -12,31 +12,31 @@ import { useCSSVariable } from "uniwind";
 
 /** `global.css` is the only declaration of these — nothing here restates a value. */
 const COLOR_VARIABLES = {
-	accent: "--accent",
-	accentForeground: "--accent-foreground",
-	background: "--background",
-	border: "--border",
-	danger: "--danger",
-	expense: "--expense",
-	foreground: "--foreground",
-	future: "--future",
-	groupedBackground: "--grouped-background",
-	income: "--income",
-	muted: "--muted",
-	overBudget: "--over-budget",
-	/**
-	 * The wash behind a bar or rail. Declared as an `rgba()` rather than a hex,
-	 * so unlike its neighbours it is not safe to hand to `withAlpha` — it is here
-	 * for the charts that need the track as a string instead of a class.
-	 */
-	railTrack: "--rail-track",
-	separator: "--separator",
-	subtle: "--subtle",
-	surface: "--surface",
-	surfaceSecondary: "--surface-secondary",
-	tint: "--tint",
-	transfer: "--transfer",
-	warning: "--warning",
+    accent: "--accent",
+    accentForeground: "--accent-foreground",
+    background: "--background",
+    border: "--border",
+    danger: "--danger",
+    expense: "--expense",
+    foreground: "--foreground",
+    future: "--future",
+    groupedBackground: "--grouped-background",
+    income: "--income",
+    muted: "--muted",
+    overBudget: "--over-budget",
+    /**
+     * The wash behind a bar or rail. Declared as an `rgba()` rather than a hex,
+     * so unlike its neighbours it is not safe to hand to `withAlpha` — it is here
+     * for the charts that need the track as a string instead of a class.
+     */
+    railTrack: "--rail-track",
+    separator: "--separator",
+    subtle: "--subtle",
+    surface: "--surface",
+    surfaceSecondary: "--surface-secondary",
+    tint: "--tint",
+    transfer: "--transfer",
+    warning: "--warning",
 } as const;
 
 type ColorName = keyof typeof COLOR_VARIABLES;
@@ -57,10 +57,10 @@ export type ThemeColors = Record<ColorName, string>;
  * safe to pass to {@link import("@/theme/shade").withAlpha}.
  */
 export function useColors(): ThemeColors {
-	const values = useCSSVariable(COLOR_VARIABLE_NAMES);
+    const values = useCSSVariable(COLOR_VARIABLE_NAMES);
 
-	return useMemo(
-		() => Object.fromEntries(COLOR_NAMES.map((name, index) => [name, values[index] as string])) as ThemeColors,
-		[values]
-	);
+    return useMemo(
+        () => Object.fromEntries(COLOR_NAMES.map((name, index) => [name, values[index] as string])) as ThemeColors,
+        [values]
+    );
 }

@@ -7,23 +7,23 @@ name: Creating a transaction writes it to the Log
 - tapOn: "Add"
 - tapOn: "Create transaction"
 - extendedWaitUntil:
-    visible: "Create Transaction"
-    timeout: 30000
+      visible: "Create Transaction"
+      timeout: 30000
 
 # canSave gates on amountNumber > 0, so nothing else enables the CTA. The numpad
 # is a sheet and the form stays in the hierarchy behind it, so wait for it to go
 # before touching anything else.
 - tapOn:
-    text: "Amount.*"
+      text: "Amount.*"
 - extendedWaitUntil:
-    visible: "Done"
-    timeout: 15000
+      visible: "Done"
+      timeout: 15000
 - tapOn: "7"
 - tapOn: "5"
 - tapOn: "Done"
 - extendedWaitUntil:
-    notVisible: "Done"
-    timeout: 15000
+      notVisible: "Done"
+      timeout: 15000
 
 # The row label and the field are separate elements; the field carries the
 # placeholder as its value, which is the only handle that reaches it.
@@ -33,16 +33,16 @@ name: Creating a transaction writes it to the Log
 # the keyboard, so tapping it while up lands on the space bar instead.
 - pressKey: Enter
 - extendedWaitUntil:
-    notVisible: "space"
-    timeout: 10000
+      notVisible: "space"
+      timeout: 10000
 
 # An enabled CTA is not sufficient: the save also requires a category, and
 # without one it rejects and the sheet stays open.
 - tapOn:
-    text: "Category.*"
+      text: "Category.*"
 - extendedWaitUntil:
-    visible: "Groceries"
-    timeout: 15000
+      visible: "Groceries"
+      timeout: 15000
 - tapOn: "Groceries"
 
 - tapOn: "Add Transaction"
@@ -51,18 +51,18 @@ name: Creating a transaction writes it to the Log
 # also reads "Maestro Probe", so asserting that text alone passes on a REJECTED
 # save and proves nothing.
 - extendedWaitUntil:
-    notVisible: "Create Transaction"
-    timeout: 20000
+      notVisible: "Create Transaction"
+      timeout: 20000
 - extendedWaitUntil:
-    visible: ".*Maestro Probe.*"
-    timeout: 20000
+      visible: ".*Maestro Probe.*"
+      timeout: 20000
 - takeScreenshot: artifacts/create-transaction-saved
 
 # Leave the dev database as we found it.
 - swipe:
-    from: ".*Maestro Probe.*"
-    direction: LEFT
+      from: ".*Maestro Probe.*"
+      direction: LEFT
 - tapOn: "Delete transaction"
 - extendedWaitUntil:
-    notVisible: ".*Maestro Probe.*"
-    timeout: 15000
+      notVisible: ".*Maestro Probe.*"
+      timeout: 15000

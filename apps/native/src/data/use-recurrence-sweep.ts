@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
+
 import type { Database } from "@/db/client";
+
 import { backfillAllRecurring, repairOrphanedRecurrence } from "./recurrence-backfill";
 
 const SWEEP_COOLDOWN_MS = 60_000;
@@ -23,45 +25,45 @@ const SWEEP_COOLDOWN_MS = 60_000;
  * and sees a landing the sweep is about to invalidate.
  */
 export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database) => void): void {
-	const lastSweepAt = useRef(0);
-	// Read through a ref so a caller passing an inline closure does not re-arm the
-	// AppState listener on every render.
-	const swept = useRef(onSwept);
-	swept.current = onSwept;
+    const lastSweepAt = useRef(0);
+    // Read through a ref so a caller passing an inline closure does not re-arm the
+    // AppState listener on every render.
+    const swept = useRef(onSwept);
+    swept.current = onSwept;
 
-	useEffect(() => {
-		if (db == null) {
-			return;
-		}
+    useEffect(() => {
+        if (db == null) {
+            return;
+        }
 
-		const sweep = () => {
-			const startedAt = Date.now();
-			if (startedAt - lastSweepAt.current < SWEEP_COOLDOWN_MS) {
-				return;
-			}
-			lastSweepAt.current = startedAt;
-			// Repair first so a chain reinstated on this launch is swept on it too.
-			repairOrphanedRecurrence(db)
-				.then(() => backfillAllRecurring(db))
-				.then(() => {
-					swept.current?.(db);
-				})
-				.catch((error) => {
-					lastSweepAt.current = 0;
-					console.error("Recurrence sweep failed", error);
-				});
-		};
+        const sweep = () => {
+            const startedAt = Date.now();
+            if (startedAt - lastSweepAt.current < SWEEP_COOLDOWN_MS) {
+                return;
+            }
+            lastSweepAt.current = startedAt;
+            // Repair first so a chain reinstated on this launch is swept on it too.
+            repairOrphanedRecurrence(db)
+                .then(() => backfillAllRecurring(db))
+                .then(() => {
+                    swept.current?.(db);
+                })
+                .catch((error) => {
+                    lastSweepAt.current = 0;
+                    console.error("Recurrence sweep failed", error);
+                });
+        };
 
-		sweep();
+        sweep();
 
-		const subscription = AppState.addEventListener("change", (state) => {
-			if (state === "active") {
-				sweep();
-			}
-		});
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state === "active") {
+                sweep();
+            }
+        });
 
-		return () => {
-			subscription.remove();
-		};
-	}, [db]);
+        return () => {
+            subscription.remove();
+        };
+    }, [db]);
 }

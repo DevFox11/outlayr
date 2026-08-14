@@ -1,6 +1,8 @@
 import { cp, readdir } from "node:fs/promises";
-import { basename, extname, join } from "node:path";
-import { type ConfigPlugin, withDangerousMod } from "expo/config-plugins";
+import path from "node:path";
+
+import { withDangerousMod } from "expo/config-plugins";
+import type { ConfigPlugin } from "expo/config-plugins";
 
 /**
  * Copies every `.symbolset` bundle into the app's asset catalog so
@@ -16,37 +18,37 @@ import { type ConfigPlugin, withDangerousMod } from "expo/config-plugins";
  * alternate app icon, which also needs build settings (`with-alternate-icons`).
  */
 const withSymbolsets: ConfigPlugin<{ directory: string }> = (config, { directory }) =>
-	withDangerousMod(config, [
-		"ios",
-		async (dangerousConfig) => {
-			const { platformProjectRoot, projectName, projectRoot } = dangerousConfig.modRequest;
-			if (!projectName) {
-				throw new Error("withSymbolsets: no iOS project name.");
-			}
+    withDangerousMod(config, [
+        "ios",
+        async (dangerousConfig) => {
+            const { platformProjectRoot, projectName, projectRoot } = dangerousConfig.modRequest;
+            if (!projectName) {
+                throw new Error("withSymbolsets: no iOS project name.");
+            }
 
-			const source = join(projectRoot, directory);
-			const catalog = join(platformProjectRoot, projectName, "Images.xcassets");
+            const source = path.join(projectRoot, directory);
+            const catalog = path.join(platformProjectRoot, projectName, "Images.xcassets");
 
-			const entries = await readdir(source, { withFileTypes: true });
-			const bundles = entries.filter((entry) => entry.isDirectory() && extname(entry.name) === ".symbolset");
+            const entries = await readdir(source, { withFileTypes: true });
+            const bundles = entries.filter((entry) => entry.isDirectory() && path.extname(entry.name) === ".symbolset");
 
-			if (bundles.length === 0) {
-				throw new Error(`withSymbolsets: no .symbolset bundles in ${directory} — run \`pnpm gen:symbolsets\`.`);
-			}
+            if (bundles.length === 0) {
+                throw new Error(`withSymbolsets: no .symbolset bundles in ${directory} — run \`pnpm gen:symbolsets\`.`);
+            }
 
-			await Promise.all(
-				bundles.map((bundle) =>
-					cp(join(source, bundle.name), join(catalog, bundle.name), {
-						recursive: true,
-					})
-				)
-			);
+            await Promise.all(
+                bundles.map((bundle) =>
+                    cp(path.join(source, bundle.name), path.join(catalog, bundle.name), {
+                        recursive: true,
+                    })
+                )
+            );
 
-			return dangerousConfig;
-		},
-	]);
+            return dangerousConfig;
+        },
+    ]);
 
 export default withSymbolsets;
 
 /** The names this plugin makes available to `Image assetName`. */
-export const symbolName = (bundle: string) => basename(bundle, ".symbolset");
+export const symbolName = (bundle: string) => path.basename(bundle, ".symbolset");

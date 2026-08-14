@@ -1,6 +1,8 @@
 import { Platform } from "react-native";
+
 import type { SpendDb } from "@/data/budget-spent";
 import { publishIntentSnapshot } from "@/lib/widget-bridge";
+
 import BudgetWidget from "./budget";
 import InsightsWidget from "./insights";
 import LedgerWidget from "./ledger";
@@ -23,55 +25,55 @@ import { buildWidgetProps } from "./props";
  * throw here would take down whatever app-side action triggered it.
  */
 export async function publishWidgets(db: SpendDb): Promise<void> {
-	if (Platform.OS !== "ios") {
-		return;
-	}
-	try {
-		const now = new Date();
-		const props = await buildWidgetProps(db, now);
+    if (Platform.OS !== "ios") {
+        return;
+    }
+    try {
+        const now = new Date();
+        const props = await buildWidgetProps(db, now);
 
-		// An entry dated in the past is dropped, so the rollover is only scheduled
-		// while it is genuinely ahead of us. Any of the published views can be the
-		// one a tile is configured to, so the earliest end wins — a later one would
-		// leave a differently-configured tile stale for a whole period.
-		const rollover = Object.values(props.Budget.views)
-			.filter((view) => view.present && view.endsAt > now.getTime())
-			.reduce((soonest, view) => Math.min(soonest, view.endsAt), Number.POSITIVE_INFINITY);
-		BudgetWidget.updateTimeline([
-			{ date: now, props: props.Budget },
-			...(Number.isFinite(rollover) ? [{ date: new Date(rollover), props: props.Budget }] : []),
-		]);
-		LedgerWidget.updateSnapshot(props.Ledger);
-		InsightsWidget.updateSnapshot(props.Insights);
-		LogWidget.updateSnapshot(props.Log);
+        // An entry dated in the past is dropped, so the rollover is only scheduled
+        // while it is genuinely ahead of us. Any of the published views can be the
+        // one a tile is configured to, so the earliest end wins — a later one would
+        // leave a differently-configured tile stale for a whole period.
+        const rollover = Object.values(props.Budget.views)
+            .filter((view) => view.present && view.endsAt > now.getTime())
+            .reduce((soonest, view) => Math.min(soonest, view.endsAt), Number.POSITIVE_INFINITY);
+        BudgetWidget.updateTimeline([
+            { date: now, props: props.Budget },
+            ...(Number.isFinite(rollover) ? [{ date: new Date(rollover), props: props.Budget }] : []),
+        ]);
+        LedgerWidget.updateSnapshot(props.Ledger);
+        InsightsWidget.updateSnapshot(props.Insights);
+        LogWidget.updateSnapshot(props.Log);
 
-		// Siri reads from the App Group, not from WidgetKit, but off the same
-		// derivation — see `publishIntentSnapshot`. It has no configuration of its
-		// own, so it gets what an unconfigured tile shows.
-		const budget = props.Budget.views.auto;
-		const insights = props.Insights.windows[props.Insights.defaultPeriod];
-		publishIntentSnapshot({
-			budget: {
-				limit: budget.limit,
-				name: budget.name,
-				percent: budget.percent,
-				periodLabel: budget.periodLabel,
-				present: budget.present,
-				remaining: budget.remaining,
-				remainingCaption: budget.remainingCaption,
-				spent: budget.spent,
-			},
-			budgets: props.intentBudgets,
-			insights: {
-				income: insights.income,
-				net: insights.net,
-				netPositive: insights.netPositive,
-				periodLabel: insights.periodLabel,
-				rangeLabel: insights.rangeLabel,
-				spent: insights.spent,
-			},
-		});
-	} catch (error) {
-		console.warn("[outlayr] widget publish failed", error);
-	}
+        // Siri reads from the App Group, not from WidgetKit, but off the same
+        // derivation — see `publishIntentSnapshot`. It has no configuration of its
+        // own, so it gets what an unconfigured tile shows.
+        const budget = props.Budget.views.auto;
+        const insights = props.Insights.windows[props.Insights.defaultPeriod];
+        publishIntentSnapshot({
+            budget: {
+                limit: budget.limit,
+                name: budget.name,
+                percent: budget.percent,
+                periodLabel: budget.periodLabel,
+                present: budget.present,
+                remaining: budget.remaining,
+                remainingCaption: budget.remainingCaption,
+                spent: budget.spent,
+            },
+            budgets: props.intentBudgets,
+            insights: {
+                income: insights.income,
+                net: insights.net,
+                netPositive: insights.netPositive,
+                periodLabel: insights.periodLabel,
+                rangeLabel: insights.rangeLabel,
+                spent: insights.spent,
+            },
+        });
+    } catch (error) {
+        console.warn("[outlayr] widget publish failed", error);
+    }
 }

@@ -1,12 +1,14 @@
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
+
 import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
 import { applyPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
 import type { Database } from "@/db/client";
 import { ratesPuller } from "@/lib/convex";
 import { publishWidgets } from "@/widgets/publish";
+
 import { indexSpotlight } from "./spotlight";
 import { affectsSpotlight, affectsWidgets, debounce, PUBLISH_DEBOUNCE_MS, SPOTLIGHT_DEBOUNCE_MS } from "./sync-cadence";
 import { claimPendingWrites, releasePendingWrites } from "./widget-bridge";
@@ -20,81 +22,81 @@ import { claimPendingWrites, releasePendingWrites } from "./widget-bridge";
  * `useRecurrenceSweep`.
  */
 export function useSystemSync(db: Database | null): void {
-	useEffect(() => {
-		if (db == null) {
-			return;
-		}
+    useEffect(() => {
+        if (db == null) {
+            return;
+        }
 
-		const publish = debounce(PUBLISH_DEBOUNCE_MS, () => {
-			publishWidgets(db);
-		});
-		const reindex = debounce(SPOTLIGHT_DEBOUNCE_MS, () => {
-			indexSpotlight(db);
-		});
+        const publish = debounce(PUBLISH_DEBOUNCE_MS, () => {
+            publishWidgets(db);
+        });
+        const reindex = debounce(SPOTLIGHT_DEBOUNCE_MS, () => {
+            indexSpotlight(db);
+        });
 
-		// Applying the queue writes rows, which trips the change listener below and
-		// publishes on its own — so this deliberately does not publish itself.
-		const catchUp = () => {
-			drainQueue(db)
-				.then((applied) => {
-					if (applied === 0) {
-						publish.schedule();
-					}
-				})
-				.catch((error) => {
-					console.warn("[outlayr] pending writes failed to apply", error);
-					publish.schedule();
-				});
-		};
+        // Applying the queue writes rows, which trips the change listener below and
+        // publishes on its own — so this deliberately does not publish itself.
+        const catchUp = () => {
+            drainQueue(db)
+                .then((applied) => {
+                    if (applied === 0) {
+                        publish.schedule();
+                    }
+                })
+                .catch((error) => {
+                    console.warn("[outlayr] pending writes failed to apply", error);
+                    publish.schedule();
+                });
+        };
 
-		catchUp();
-		indexSpotlight(db);
-		// Republished explicitly, because the listener below does not cover it: a
-		// refresh opens with an unqualified `DELETE FROM exchangeRates`, and SQLite's
-		// truncate optimization exempts that statement from the update hook the
-		// listener is built on (expo-sqlite's vendored `sqlite3.h:7090-7095`). Adding
-		// exchangeRates to the watched set was tried and does not fix it; this call
-		// is what keeps the tiles honest after a refresh.
-		refreshRates(db).then((changed) => {
-			if (changed) {
-				publish.schedule();
-			}
-		});
+        catchUp();
+        indexSpotlight(db);
+        // Republished explicitly, because the listener below does not cover it: a
+        // refresh opens with an unqualified `DELETE FROM exchangeRates`, and SQLite's
+        // truncate optimization exempts that statement from the update hook the
+        // listener is built on (expo-sqlite's vendored `sqlite3.h:7090-7095`). Adding
+        // exchangeRates to the watched set was tried and does not fix it; this call
+        // is what keeps the tiles honest after a refresh.
+        refreshRates(db).then((changed) => {
+            if (changed) {
+                publish.schedule();
+            }
+        });
 
-		const listener = addDatabaseChangeListener((event) => {
-			if (affectsWidgets(event.tableName)) {
-				publish.schedule();
-			}
-			if (affectsSpotlight(event.tableName)) {
-				reindex.schedule();
-			}
-		});
+        const listener = addDatabaseChangeListener((event) => {
+            if (affectsWidgets(event.tableName)) {
+                publish.schedule();
+            }
+            if (affectsSpotlight(event.tableName)) {
+                reindex.schedule();
+            }
+        });
 
-		const subscription = AppState.addEventListener("change", (state) => {
-			// Background is the last moment the app can guarantee the tile behind it
-			// is current.
-			if (state === "active") {
-				catchUp();
-				refreshRates(db).then((changed) => {
-					if (changed) {
-						publish.schedule();
-					}
-				});
-			} else if (state === "background") {
-				publish.cancel();
-				reindex.cancel();
-				publishWidgets(db);
-				indexSpotlight(db);
-			}
-		});
+        const subscription = AppState.addEventListener("change", (state) => {
+            // Background is the last moment the app can guarantee the tile behind it
+            // is current.
+            if (state === "active") {
+                catchUp();
+                refreshRates(db).then((changed) => {
+                    if (changed) {
+                        publish.schedule();
+                    }
+                });
+            } else if (state === "background") {
+                publish.cancel();
+                reindex.cancel();
+                publishWidgets(db);
+                indexSpotlight(db);
+            }
+        });
 
-		return () => {
-			publish.cancel();
-			reindex.cancel();
-			listener.remove();
-			subscription.remove();
-		};
-	}, [db]);
+        return () => {
+            publish.cancel();
+            reindex.cancel();
+            listener.remove();
+            subscription.remove();
+        };
+    }, [db]);
 }
 
 /**
@@ -108,13 +110,13 @@ export function useSystemSync(db: Database | null): void {
  * ever writes again.
  */
 async function drainQueue(db: Database): Promise<number> {
-	const claimed = claimPendingWrites();
-	if (claimed.names.length === 0) {
-		return 0;
-	}
-	const applied = await applyPendingWrites(db, claimed.jobs);
-	releasePendingWrites(claimed);
-	return applied;
+    const claimed = claimPendingWrites();
+    if (claimed.names.length === 0) {
+        return 0;
+    }
+    const applied = await applyPendingWrites(db, claimed.jobs);
+    releasePendingWrites(claimed);
+    return applied;
 }
 
 /**
@@ -123,28 +125,28 @@ async function drainQueue(db: Database): Promise<number> {
  * a failed or absent backend must cost nothing here.
  */
 async function refreshRates(db: Database): Promise<boolean> {
-	const pull = ratesPuller();
-	let changed = false;
-	try {
-		changed = await pullRatesIfDue(db, pull);
-	} catch (error) {
-		console.warn("[outlayr] rate refresh failed", error);
-	}
-	// Before canonicalizing, so a row about to be valued already names what it
-	// was kept in — canonicalization skips the ones that still do not.
-	try {
-		changed = (await stampLedgerCurrency(db)) > 0 || changed;
-	} catch (error) {
-		console.warn("[outlayr] currency stamp failed", error);
-	}
-	// Always, not only after a successful pull: rows can be left unvalued by an
-	// entry made offline even when the cache was already fresh, and the pass is
-	// a no-op when there is nothing to do.
-	try {
-		changed = (await backfillCanonicalUsd(db)) > 0 || changed;
-		changed = (await backfillBudgetUsd(db)) > 0 || changed;
-	} catch (error) {
-		console.warn("[outlayr] canonicalization backfill failed", error);
-	}
-	return changed;
+    const pull = ratesPuller();
+    let changed = false;
+    try {
+        changed = await pullRatesIfDue(db, pull);
+    } catch (error) {
+        console.warn("[outlayr] rate refresh failed", error);
+    }
+    // Before canonicalizing, so a row about to be valued already names what it
+    // was kept in — canonicalization skips the ones that still do not.
+    try {
+        changed = (await stampLedgerCurrency(db)) > 0 || changed;
+    } catch (error) {
+        console.warn("[outlayr] currency stamp failed", error);
+    }
+    // Always, not only after a successful pull: rows can be left unvalued by an
+    // entry made offline even when the cache was already fresh, and the pass is
+    // a no-op when there is nothing to do.
+    try {
+        changed = (await backfillCanonicalUsd(db)) > 0 || changed;
+        changed = (await backfillBudgetUsd(db)) > 0 || changed;
+    } catch (error) {
+        console.warn("[outlayr] canonicalization backfill failed", error);
+    }
+    return changed;
 }

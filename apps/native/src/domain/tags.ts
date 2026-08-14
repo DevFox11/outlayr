@@ -6,7 +6,7 @@ export const TAG_NAME_LIMIT = 24;
  * "work trip" are one tag rather than two that look identical in a list.
  */
 export function normalizeTagName(raw: string): string {
-	return raw.trim().replace(/\s+/g, " ").slice(0, TAG_NAME_LIMIT);
+    return raw.trim().replaceAll(/\s+/g, " ").slice(0, TAG_NAME_LIMIT);
 }
 
 /**
@@ -17,22 +17,22 @@ export function normalizeTagName(raw: string): string {
  * capitalisation is not this feature's job.
  */
 export function tagKey(name: string): string {
-	return normalizeTagName(name).toLocaleLowerCase();
+    return normalizeTagName(name).toLocaleLowerCase();
 }
 
 export function isUsableTagName(raw: string): boolean {
-	return normalizeTagName(raw).length > 0;
+    return normalizeTagName(raw).length > 0;
 }
 
 export interface NamedTag {
-	id: string;
-	name: string;
+    id: string;
+    name: string;
 }
 
 /** The tag already answering to `name`, or null. */
 export function findTagByName<T extends NamedTag>(tags: readonly T[], name: string): T | null {
-	const key = tagKey(name);
-	return tags.find((tag) => tagKey(tag.name) === key) ?? null;
+    const key = tagKey(name);
+    return tags.find((tag) => tagKey(tag.name) === key) ?? null;
 }
 
 /**
@@ -43,7 +43,7 @@ export function findTagByName<T extends NamedTag>(tags: readonly T[], name: stri
  * under a rename that only changed case.
  */
 export function sortTags<T extends NamedTag>(tags: readonly T[]): T[] {
-	return [...tags].sort((a, b) => tagKey(a.name).localeCompare(tagKey(b.name)));
+    return [...tags].sort((a, b) => tagKey(a.name).localeCompare(tagKey(b.name)));
 }
 
 /**
@@ -56,13 +56,13 @@ export function sortTags<T extends NamedTag>(tags: readonly T[]): T[] {
  * untagged on the far side.
  */
 export function tagLinkDiff(
-	current: readonly string[],
-	next: readonly string[]
+    current: readonly string[],
+    next: readonly string[]
 ): { attach: string[]; detach: string[] } {
-	const before = new Set(current);
-	const after = new Set(next);
-	return {
-		attach: [...after].filter((id) => !before.has(id)),
-		detach: [...before].filter((id) => !after.has(id)),
-	};
+    const before = new Set(current);
+    const after = new Set(next);
+    return {
+        attach: [...after].filter((id) => !before.has(id)),
+        detach: [...before].filter((id) => !after.has(id)),
+    };
 }

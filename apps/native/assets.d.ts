@@ -5,6 +5,6 @@
  * asset kinds.
  */
 declare module "*.png" {
-	const asset: import("react-native").ImageRequireSource;
-	export default asset;
+    const asset: import("react-native").ImageRequireSource;
+    export default asset;
 }

@@ -1,20 +1,17 @@
 import type { InsightsMeasure } from "@/data/insights";
-import {
-	type InsightsTotals,
-	insightsMeasureAlternatives,
-	insightsMeasureMagnitude,
-	netTotal,
-} from "./insights-measure";
+
+import { insightsMeasureAlternatives, insightsMeasureMagnitude, netTotal } from "./insights-measure";
+import type { InsightsTotals } from "./insights-measure";
 
 /**
  * `net` needs money in both directions: with one of them empty the net is only
  * the other direction restated with a sign.
  */
 function hasFigure(measure: InsightsMeasure, totals: InsightsTotals): boolean {
-	if (measure === "net") {
-		return totals.income !== 0 && totals.spent !== 0 && netTotal(totals) !== 0;
-	}
-	return insightsMeasureMagnitude(measure, totals) !== 0;
+    if (measure === "net") {
+        return totals.income !== 0 && totals.spent !== 0 && netTotal(totals) !== 0;
+    }
+    return insightsMeasureMagnitude(measure, totals) !== 0;
 }
 
 /**
@@ -26,5 +23,5 @@ function hasFigure(measure: InsightsMeasure, totals: InsightsTotals): boolean {
  * on which measure happens to be promoted.
  */
 export function quietAlternative(measure: InsightsMeasure, totals: InsightsTotals): InsightsMeasure | null {
-	return insightsMeasureAlternatives(measure).find((m) => hasFigure(m, totals)) ?? null;
+    return insightsMeasureAlternatives(measure).find((m) => hasFigure(m, totals)) ?? null;
 }

@@ -1,10 +1,11 @@
 import type { LocalDataStatus } from "@/contexts/local-data-context";
 import type { AdoptionStatus } from "@/lib/ledger-adoption";
+
 import type { AuthGate } from "./auth-gate";
 
 export interface ShellProbe {
-	data: LocalDataStatus;
-	fontsLoaded: boolean;
+    data: LocalDataStatus;
+    fontsLoaded: boolean;
 }
 
 /**
@@ -12,12 +13,12 @@ export interface ShellProbe {
  * purpose: it is its own surface, not a later frame of this one.
  */
 export function localShellReady(probe: ShellProbe): boolean {
-	return probe.fontsLoaded && probe.data === "ready";
+    return probe.fontsLoaded && probe.data === "ready";
 }
 
 export interface RouteProbe {
-	adoption: AdoptionStatus;
-	gate: AuthGate;
+    adoption: AdoptionStatus;
+    gate: AuthGate;
 }
 
 /**
@@ -29,5 +30,5 @@ export interface RouteProbe {
  * it would hide the only question that moves the app forward.
  */
 export function routeSettled(probe: RouteProbe): boolean {
-	return probe.gate === "unconfigured" || (probe.gate !== "restoring" && probe.adoption !== "resolving");
+    return probe.gate === "unconfigured" || (probe.gate !== "restoring" && probe.adoption !== "resolving");
 }

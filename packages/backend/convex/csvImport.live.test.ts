@@ -38,48 +38,48 @@ const MODEL_ID = process.env.XAI_MODEL_ID ?? "grok-4.20-0309-non-reasoning";
 const LABELS = ["Panaderia La Espiga SC", "Ferreteria Don Pepe", "Cafe Tostado Rincon"];
 
 const CATEGORY_TREE = [
-	{ children: ["Groceries", "Restaurants"], name: "Food" },
-	{ children: ["Maintenance"], name: "Home" },
+    { children: ["Groceries", "Restaurants"], name: "Food" },
+    { children: ["Maintenance"], name: "Home" },
 ];
 
 const OFFERED = new Set(CATEGORY_TREE.flatMap((branch) => [branch.name, ...branch.children]));
 
 describe.skipIf(!enabled)("csvImport against the live model", () => {
-	test("classify maps unfamiliar merchants into categories the caller offered", async () => {
-		const xai = createXai({ apiKey });
+    test("classify maps unfamiliar merchants into categories the caller offered", async () => {
+        const xai = createXai({ apiKey });
 
-		const result = await classify(xai(MODEL_ID), {
-			categoryTree: CATEGORY_TREE,
-			labels: LABELS,
-		});
+        const result = await classify(xai(MODEL_ID), {
+            categoryTree: CATEGORY_TREE,
+            labels: LABELS,
+        });
 
-		expect(result.status).toBe("ok");
-		expect(result.suggestions?.length).toBeGreaterThan(0);
+        expect(result.status).toBe("ok");
+        expect(result.suggestions?.length).toBeGreaterThan(0);
 
-		for (const suggestion of result.suggestions ?? []) {
-			expect(LABELS).toContain(suggestion.label);
-			expect(OFFERED.has(suggestion.categoryName)).toBe(true);
-			// The model tier never sources a domain; only merchantKnowledge does.
-			expect(suggestion.domain).toBeNull();
-		}
-	}, 30_000);
+        for (const suggestion of result.suggestions ?? []) {
+            expect(LABELS).toContain(suggestion.label);
+            expect(OFFERED.has(suggestion.categoryName)).toBeTruthy();
+            // The model tier never sources a domain; only merchantKnowledge does.
+            expect(suggestion.domain).toBeNull();
+        }
+    }, 30_000);
 
-	test("the action returns ok end to end for an authenticated caller", async () => {
-		vi.stubEnv("XAI_API_KEY", apiKey);
-		const t = convexTest(schema, modules);
-		rateLimiterTest.register(t);
-		const identity = await seedAuthUser(t);
+    test("the action returns ok end to end for an authenticated caller", async () => {
+        vi.stubEnv("XAI_API_KEY", apiKey);
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        const identity = await seedAuthUser(t);
 
-		const result = await authenticatedAs(t, identity).action(api.csvImport.csvImport, {
-			categoryTree: CATEGORY_TREE,
-			groundedLookup: false,
-			labels: LABELS,
-		});
+        const result = await authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+            categoryTree: CATEGORY_TREE,
+            groundedLookup: false,
+            labels: LABELS,
+        });
 
-		expect(result.status).toBe("ok");
-		expect(result.suggestions?.length).toBeGreaterThan(0);
-		for (const suggestion of result.suggestions ?? []) {
-			expect(OFFERED.has(suggestion.categoryName)).toBe(true);
-		}
-	}, 30_000);
+        expect(result.status).toBe("ok");
+        expect(result.suggestions?.length).toBeGreaterThan(0);
+        for (const suggestion of result.suggestions ?? []) {
+            expect(OFFERED.has(suggestion.categoryName)).toBeTruthy();
+        }
+    }, 30_000);
 });

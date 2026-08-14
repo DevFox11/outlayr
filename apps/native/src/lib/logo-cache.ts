@@ -7,11 +7,11 @@ const MISS_MARKER = ".miss";
 export type CachedLogo = { kind: "logo"; bytes: Uint8Array } | { kind: "miss" } | { kind: "unknown" };
 
 function directory(): Directory {
-	const dir = new Directory(Paths.cache, CACHE_DIRECTORY);
-	if (!dir.exists) {
-		dir.create({ intermediates: true });
-	}
-	return dir;
+    const dir = new Directory(Paths.cache, CACHE_DIRECTORY);
+    if (!dir.exists) {
+        dir.create({ intermediates: true });
+    }
+    return dir;
 }
 
 /**
@@ -20,12 +20,12 @@ function directory(): Directory {
  * nothing can escape the directory.
  */
 export function logoCacheKey(name: string, domain: string | null): string {
-	const folded = `${name}|${domain ?? ""}`
-		.normalize("NFD")
-		.replace(/\p{Diacritic}/gu, "")
-		.toLocaleLowerCase()
-		.replace(/[^\p{L}\p{N}]+/gu, "");
-	return folded.slice(0, 80);
+    const folded = `${name}|${domain ?? ""}`
+        .normalize("NFD")
+        .replaceAll(/\p{Diacritic}/gu, "")
+        .toLocaleLowerCase()
+        .replaceAll(/[^\p{L}\p{N}]+/gu, "");
+    return folded.slice(0, 80);
 }
 
 /**
@@ -35,22 +35,22 @@ export function logoCacheKey(name: string, domain: string | null): string {
  * only ever an optimisation — a cleared cache costs one request.
  */
 export async function readCachedLogo(key: string): Promise<CachedLogo> {
-	if (key.length === 0) {
-		return { kind: "unknown" };
-	}
-	try {
-		const miss = new File(directory(), `${key}${MISS_MARKER}`);
-		if (miss.exists) {
-			return { kind: "miss" };
-		}
-		const hit = new File(directory(), key);
-		if (hit.exists) {
-			return { bytes: await hit.bytes(), kind: "logo" };
-		}
-	} catch {
-		return { kind: "unknown" };
-	}
-	return { kind: "unknown" };
+    if (key.length === 0) {
+        return { kind: "unknown" };
+    }
+    try {
+        const miss = new File(directory(), `${key}${MISS_MARKER}`);
+        if (miss.exists) {
+            return { kind: "miss" };
+        }
+        const hit = new File(directory(), key);
+        if (hit.exists) {
+            return { bytes: await hit.bytes(), kind: "logo" };
+        }
+    } catch {
+        return { kind: "unknown" };
+    }
+    return { kind: "unknown" };
 }
 
 /**
@@ -59,37 +59,37 @@ export async function readCachedLogo(key: string): Promise<CachedLogo> {
  * rather than triggering a fetch.
  */
 export function cachedLogoUri(key: string): string | null {
-	if (key.length === 0) {
-		return null;
-	}
-	try {
-		const dir = directory();
-		if (new File(dir, `${key}${MISS_MARKER}`).exists) {
-			return null;
-		}
-		const hit = new File(dir, key);
-		return hit.exists ? hit.uri : null;
-	} catch {
-		return null;
-	}
+    if (key.length === 0) {
+        return null;
+    }
+    try {
+        const dir = directory();
+        if (new File(dir, `${key}${MISS_MARKER}`).exists) {
+            return null;
+        }
+        const hit = new File(dir, key);
+        return hit.exists ? hit.uri : null;
+    } catch {
+        return null;
+    }
 }
 
 export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
-	if (key.length === 0) {
-		return;
-	}
-	try {
-		const target = new File(directory(), bytes == null ? `${key}${MISS_MARKER}` : key);
-		target.create({ overwrite: true });
-		target.write(bytes ?? new Uint8Array(0));
-	} catch {
-		// A cache that cannot be written is still a working feature.
-	}
+    if (key.length === 0) {
+        return;
+    }
+    try {
+        const target = new File(directory(), bytes == null ? `${key}${MISS_MARKER}` : key);
+        target.create({ overwrite: true });
+        target.write(bytes ?? new Uint8Array(0));
+    } catch {
+        // A cache that cannot be written is still a working feature.
+    }
 }
 
 export function clearLogoCache(): void {
-	const dir = new Directory(Paths.cache, CACHE_DIRECTORY);
-	if (dir.exists) {
-		dir.delete();
-	}
+    const dir = new Directory(Paths.cache, CACHE_DIRECTORY);
+    if (dir.exists) {
+        dir.delete();
+    }
 }

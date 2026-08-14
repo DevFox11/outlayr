@@ -1,25 +1,19 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
+
 import type { Database } from "@/db/client";
 import { accounts, appMeta, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
-import {
-	ARCHIVE_FORMAT,
-	ARCHIVE_TABLES,
-	ARCHIVE_VERSION,
-	type ArchiveDocument,
-	type ArchiveTable,
-	decodeArchiveRow,
-	encodeArchiveRow,
-} from "@/domain/archive";
+import { ARCHIVE_FORMAT, ARCHIVE_TABLES, ARCHIVE_VERSION, decodeArchiveRow, encodeArchiveRow } from "@/domain/archive";
+import type { ArchiveDocument, ArchiveTable } from "@/domain/archive";
 
 const TABLES: Record<ArchiveTable, SQLiteTable> = {
-	accounts,
-	appMeta,
-	budgets,
-	categories,
-	mainBudget,
-	transactions,
-	transfers,
+    accounts,
+    appMeta,
+    budgets,
+    categories,
+    mainBudget,
+    transactions,
+    transfers,
 };
 
 /**
@@ -30,19 +24,19 @@ const TABLES: Record<ArchiveTable, SQLiteTable> = {
  * the undo window restores from them too.
  */
 export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocument> {
-	const tables = {} as Record<ArchiveTable, Record<string, unknown>[]>;
-	await Promise.all(
-		ARCHIVE_TABLES.map(async (table) => {
-			const rows = await db.select().from(TABLES[table]);
-			tables[table] = rows.map((row) => encodeArchiveRow(table, row as Record<string, unknown>));
-		})
-	);
-	return {
-		exportedAt: now.getTime(),
-		format: ARCHIVE_FORMAT,
-		tables,
-		version: ARCHIVE_VERSION,
-	};
+    const tables = {} as Record<ArchiveTable, Record<string, unknown>[]>;
+    await Promise.all(
+        ARCHIVE_TABLES.map(async (table) => {
+            const rows = await db.select().from(TABLES[table]);
+            tables[table] = rows.map((row) => encodeArchiveRow(table, row as Record<string, unknown>));
+        })
+    );
+    return {
+        exportedAt: now.getTime(),
+        format: ARCHIVE_FORMAT,
+        tables,
+        version: ARCHIVE_VERSION,
+    };
 }
 
 /**
@@ -58,28 +52,28 @@ export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocu
  * `ARCHIVE_TABLES` is ordered rather than alphabetical.
  */
 export async function restoreArchive(db: Database, document: ArchiveDocument): Promise<number> {
-	let written = 0;
-	await withTransaction(db, async () => {
-		for (const table of [...ARCHIVE_TABLES].reverse()) {
-			// biome-ignore lint/performance/noAwaitInLoops: children must be deleted before their parents, so the reversed ARCHIVE_TABLES order has to be walked one table at a time
-			await db.delete(TABLES[table]);
-		}
-		for (const table of ARCHIVE_TABLES) {
-			const rows = document.tables[table].map((row) => decodeArchiveRow(table, row));
-			if (rows.length === 0) {
-				continue;
-			}
-			// Chunked against SQLite's 999 bound variables. A ledger is unbounded and
-			// a single insert of one is not.
-			for (let from = 0; from < rows.length; from += ARCHIVE_INSERT_CHUNK) {
-				const slice = rows.slice(from, from + ARCHIVE_INSERT_CHUNK);
-				// biome-ignore lint/performance/noAwaitInLoops: every statement here shares the one open withTransaction connection, and forward table order writes parents before the rows referencing them
-				await db.insert(TABLES[table]).values(slice);
-				written += slice.length;
-			}
-		}
-	});
-	return written;
+    let written = 0;
+    await withTransaction(db, async () => {
+        for (const table of [...ARCHIVE_TABLES].reverse()) {
+            // oxlint-disable-next-line no-await-in-loop -- children must be deleted before their parents, so the reversed ARCHIVE_TABLES order has to be walked one table at a time
+            await db.delete(TABLES[table]);
+        }
+        for (const table of ARCHIVE_TABLES) {
+            const rows = document.tables[table].map((row) => decodeArchiveRow(table, row));
+            if (rows.length === 0) {
+                continue;
+            }
+            // Chunked against SQLite's 999 bound variables. A ledger is unbounded and
+            // a single insert of one is not.
+            for (let from = 0; from < rows.length; from += ARCHIVE_INSERT_CHUNK) {
+                const slice = rows.slice(from, from + ARCHIVE_INSERT_CHUNK);
+                // oxlint-disable-next-line no-await-in-loop -- every statement here shares the one open withTransaction connection, and forward table order writes parents before the rows referencing them
+                await db.insert(TABLES[table]).values(slice);
+                written += slice.length;
+            }
+        }
+    });
+    return written;
 }
 
 /**

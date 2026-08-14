@@ -25,35 +25,35 @@ const WIDGET_TABLES = new Set(["transactions", "budgets", "mainBudget", "categor
 const SPOTLIGHT_TABLES = new Set(["transactions", "budgets", "categories", "appMeta"]);
 
 export function affectsWidgets(tableName: string): boolean {
-	return WIDGET_TABLES.has(tableName);
+    return WIDGET_TABLES.has(tableName);
 }
 
 export function affectsSpotlight(tableName: string): boolean {
-	return SPOTLIGHT_TABLES.has(tableName);
+    return SPOTLIGHT_TABLES.has(tableName);
 }
 
 export interface Debounced {
-	cancel: () => void;
-	schedule: () => void;
+    cancel: () => void;
+    schedule: () => void;
 }
 
 /** Trailing-edge only: the burst has to settle before the work runs. */
 export function debounce(delayMs: number, run: () => void): Debounced {
-	let timer: ReturnType<typeof setTimeout> | null = null;
-	const cancel = () => {
-		if (timer) {
-			clearTimeout(timer);
-			timer = null;
-		}
-	};
-	return {
-		cancel,
-		schedule: () => {
-			cancel();
-			timer = setTimeout(() => {
-				timer = null;
-				run();
-			}, delayMs);
-		},
-	};
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const cancel = () => {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    };
+    return {
+        cancel,
+        schedule: () => {
+            cancel();
+            timer = setTimeout(() => {
+                timer = null;
+                run();
+            }, delayMs);
+        },
+    };
 }

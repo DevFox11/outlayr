@@ -27,143 +27,145 @@ export type CardWeight = "mono" | "regular" | "medium" | "semibold";
 export type CardTone = "ink" | "muted";
 
 export interface CardText {
-	align: "left" | "right";
-	size: number;
-	text: string;
-	tone: CardTone;
-	weight: CardWeight;
-	x: number;
-	/** Baseline, not the top of the box. */
-	y: number;
+    align: "left" | "right";
+    size: number;
+    text: string;
+    tone: CardTone;
+    weight: CardWeight;
+    x: number;
+    /** Baseline, not the top of the box. */
+    y: number;
 }
 
 export interface CardRule {
-	height: number;
-	width: number;
-	x: number;
-	y: number;
+    height: number;
+    width: number;
+    x: number;
+    y: number;
 }
 
 export interface DayCardRow {
-	amount: string;
-	/** Time, or the category name when "Swap Time Label" is on. */
-	meta: string;
-	note: string;
+    amount: string;
+    /** Time, or the category name when "Swap Time Label" is on. */
+    meta: string;
+    note: string;
 }
 
 export interface DayCardInput {
-	dayLabel: string;
-	rows: readonly DayCardRow[];
-	total: string;
+    dayLabel: string;
+    rows: readonly DayCardRow[];
+    total: string;
 }
 
 export interface DayCardLayout {
-	height: number;
-	rules: CardRule[];
-	texts: CardText[];
-	width: number;
+    height: number;
+    rules: CardRule[];
+    texts: CardText[];
+    width: number;
 }
 
 export function truncateToWidth(text: string, size: number, maxWidth: number): string {
-	const budget = Math.floor(maxWidth / (size * AVERAGE_GLYPH));
-	if (budget >= text.length) {
-		return text;
-	}
-	if (budget < 1) {
-		return "…";
-	}
-	return `${text.slice(0, budget - 1).trimEnd()}…`;
+    const budget = Math.floor(maxWidth / (size * AVERAGE_GLYPH));
+    if (budget >= text.length) {
+        return text;
+    }
+    if (budget < 1) {
+        return "…";
+    }
+    return `${text.slice(0, budget - 1).trimEnd()}…`;
 }
 
 export function layoutDayCard(input: DayCardInput): DayCardLayout {
-	const texts: CardText[] = [];
-	const rules: CardRule[] = [];
-	const left = PADDING;
-	const right = DAY_CARD_WIDTH - PADDING;
-	const contentWidth = right - left;
+    const texts: CardText[] = [];
+    const rules: CardRule[] = [];
+    const left = PADDING;
+    const right = DAY_CARD_WIDTH - PADDING;
+    const contentWidth = right - left;
 
-	let y = PADDING + LABEL_SIZE;
-	texts.push({
-		align: "left",
-		size: LABEL_SIZE,
-		text: input.dayLabel,
-		tone: "muted",
-		weight: "mono",
-		x: left,
-		y,
-	});
+    let y = PADDING + LABEL_SIZE;
+    texts.push({
+        align: "left",
+        size: LABEL_SIZE,
+        text: input.dayLabel,
+        tone: "muted",
+        weight: "mono",
+        x: left,
+        y,
+    });
 
-	y += TOTAL_SIZE + 6;
-	texts.push({
-		align: "left",
-		size: TOTAL_SIZE,
-		text: input.total,
-		tone: "ink",
-		weight: "semibold",
-		x: left,
-		y,
-	});
+    y += TOTAL_SIZE + 6;
+    texts.push({
+        align: "left",
+        size: TOTAL_SIZE,
+        text: input.total,
+        tone: "ink",
+        weight: "semibold",
+        x: left,
+        y,
+    });
 
-	y += 18;
-	rules.push({ height: RULE_HEIGHT, width: contentWidth, x: left, y });
+    y += 18;
+    rules.push({ height: RULE_HEIGHT, width: contentWidth, x: left, y });
 
-	// The amount takes the trailing third; the note is truncated against what is
-	// left so the two never overlap on a long merchant name.
-	const amountWidth = contentWidth * 0.36;
-	const noteWidth = contentWidth - amountWidth - 12;
+    // The amount takes the trailing third; the note is truncated against what is
+    // left so the two never overlap on a long merchant name.
+    const amountWidth = contentWidth * 0.36;
+    const noteWidth = contentWidth - amountWidth - 12;
 
-	for (const row of input.rows) {
-		y += ROW_HEIGHT;
-		texts.push({
-			align: "left",
-			size: NOTE_SIZE,
-			text: truncateToWidth(row.note, NOTE_SIZE, noteWidth),
-			tone: "ink",
-			weight: "medium",
-			x: left,
-			y,
-		});
-		texts.push({
-			align: "right",
-			size: NOTE_SIZE,
-			text: row.amount,
-			tone: "ink",
-			weight: "medium",
-			x: right,
-			y,
-		});
-		if (row.meta !== "") {
-			y += META_SIZE + 3;
-			texts.push({
-				align: "left",
-				size: META_SIZE,
-				text: truncateToWidth(row.meta, META_SIZE, noteWidth),
-				tone: "muted",
-				weight: "regular",
-				x: left,
-				y,
-			});
-		}
-	}
+    for (const row of input.rows) {
+        y += ROW_HEIGHT;
+        texts.push(
+            {
+                align: "left",
+                size: NOTE_SIZE,
+                text: truncateToWidth(row.note, NOTE_SIZE, noteWidth),
+                tone: "ink",
+                weight: "medium",
+                x: left,
+                y,
+            },
+            {
+                align: "right",
+                size: NOTE_SIZE,
+                text: row.amount,
+                tone: "ink",
+                weight: "medium",
+                x: right,
+                y,
+            }
+        );
+        if (row.meta !== "") {
+            y += META_SIZE + 3;
+            texts.push({
+                align: "left",
+                size: META_SIZE,
+                text: truncateToWidth(row.meta, META_SIZE, noteWidth),
+                tone: "muted",
+                weight: "regular",
+                x: left,
+                y,
+            });
+        }
+    }
 
-	y += 22;
-	rules.push({ height: RULE_HEIGHT, width: contentWidth, x: left, y });
+    y += 22;
+    rules.push({ height: RULE_HEIGHT, width: contentWidth, x: left, y });
 
-	y += SIGNATURE_SIZE + 14;
-	texts.push({
-		align: "left",
-		size: SIGNATURE_SIZE,
-		text: "OUTLAYR",
-		tone: "muted",
-		weight: "mono",
-		x: left,
-		y,
-	});
+    y += SIGNATURE_SIZE + 14;
+    texts.push({
+        align: "left",
+        size: SIGNATURE_SIZE,
+        text: "OUTLAYR",
+        tone: "muted",
+        weight: "mono",
+        x: left,
+        y,
+    });
 
-	return {
-		height: y + PADDING,
-		rules,
-		texts,
-		width: DAY_CARD_WIDTH,
-	};
+    return {
+        height: y + PADDING,
+        rules,
+        texts,
+        width: DAY_CARD_WIDTH,
+    };
 }

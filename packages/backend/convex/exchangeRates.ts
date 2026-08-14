@@ -1,16 +1,17 @@
-// biome-ignore-all lint/style/useFilenamingConvention: a Convex module's path is its public API — this file is addressed as internal.exchangeRates.* from the crons and from apps/native
+// oxlint-disable unicorn/filename-case -- a Convex module's path is its public API — this file is addressed as internal.exchangeRates.* from the crons and from apps/native
 import { v } from "convex/values";
+
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import {
-	type MarketRateType,
-	marketRateType,
-	PICKABLE_CURRENCY_CODES,
-	rateSource,
-	resolveRateOnDate,
-	utcDateString,
+    marketRateType,
+    PICKABLE_CURRENCY_CODES,
+    rateSource,
+    resolveRateOnDate,
+    utcDateString,
 } from "./lib/currencies";
+import type { MarketRateType } from "./lib/currencies";
 
 const PRUNE_BATCH_SIZE = 200;
 
@@ -29,7 +30,7 @@ const MS_PER_DAY = 86_400_000;
  * that only holds while both derive the boundary HERE. Never inline it.
  */
 export function ratesWindowStart(): string {
-	return utcDateString(Date.now() - RATES_WINDOW_DAYS * MS_PER_DAY);
+    return utcDateString(Date.now() - RATES_WINDOW_DAYS * MS_PER_DAY);
 }
 
 /**
@@ -41,12 +42,12 @@ export function ratesWindowStart(): string {
  * would be more code for the same set.
  */
 function monthEndBound(date: string): string {
-	return `${date.slice(0, 8)}31`;
+    return `${date.slice(0, 8)}31`;
 }
 
 interface RatePair {
-	quote: string;
-	rateType: MarketRateType;
+    quote: string;
+    rateType: MarketRateType;
 }
 
 /**
@@ -55,12 +56,12 @@ interface RatePair {
  * newest pre-window row still serves.
  */
 const ANCHOR_PAIR_CATALOG: readonly RatePair[] = [
-	...PICKABLE_CURRENCY_CODES.filter((code) => code !== "USD").map((code) => ({
-		quote: code,
-		rateType: "official" as const,
-	})),
-	{ quote: "VES", rateType: "eur_reference" },
-	{ quote: "VES", rateType: "binance" },
+    ...PICKABLE_CURRENCY_CODES.filter((code) => code !== "USD").map((code) => ({
+        quote: code,
+        rateType: "official" as const,
+    })),
+    { quote: "VES", rateType: "eur_reference" },
+    { quote: "VES", rateType: "binance" },
 ];
 
 /**
@@ -86,23 +87,23 @@ export const MONTHLY_ANCHOR_LIMIT = 240;
 export const PAIRS_PER_PAGE = 12;
 
 function toRateWire(doc: Doc<"exchangeRates">) {
-	return {
-		date: doc.date,
-		fetchedAt: doc.fetchedAt,
-		quote: doc.quote,
-		rate: doc.rate,
-		rateType: doc.rateType,
-		source: doc.source,
-	};
+    return {
+        date: doc.date,
+        fetchedAt: doc.fetchedAt,
+        quote: doc.quote,
+        rate: doc.rate,
+        rateType: doc.rateType,
+        source: doc.source,
+    };
 }
 
 const rateResult = v.union(
-	v.object({
-		date: v.string(),
-		fetchedAt: v.number(),
-		rate: v.number(),
-	}),
-	v.null()
+    v.object({
+        date: v.string(),
+        fetchedAt: v.number(),
+        rate: v.number(),
+    }),
+    v.null()
 );
 
 /**
@@ -116,75 +117,76 @@ const rateResult = v.union(
  * per-transaction document ceiling.
  */
 export const officialQuotesByDate = internalQuery({
-	args: { dates: v.array(v.string()) },
-	handler: async (ctx, args) =>
-		await Promise.all(
-			args.dates.map(async (date) => {
-				const rows = await ctx.db
-					.query("exchangeRates")
-					.withIndex("by_date", (q) => q.eq("date", date))
-					.collect();
-				return {
-					date,
-					quotes: rows.filter((row) => row.rateType === "official").map((row) => row.quote),
-				};
-			})
-		),
-	returns: v.array(v.object({ date: v.string(), quotes: v.array(v.string()) })),
+    args: { dates: v.array(v.string()) },
+    handler: async (ctx, args) =>
+        await Promise.all(
+            args.dates.map(async (date) => {
+                const rows = await ctx.db
+                    .query("exchangeRates")
+                    .withIndex("by_date", (q) => q.eq("date", date))
+                    .collect();
+                return {
+                    date,
+                    quotes: rows.filter((row) => row.rateType === "official").map((row) => row.quote),
+                };
+            })
+        ),
+    returns: v.array(v.object({ date: v.string(), quotes: v.array(v.string()) })),
 });
 
 export const upsertRates = internalMutation({
-	args: {
-		date: v.string(),
-		fetchedAt: v.number(),
-		rates: v.array(
-			v.object({
-				quote: v.string(),
-				rate: v.number(),
-				rateType: marketRateType,
-			})
-		),
-		source: rateSource,
-	},
-	handler: async (ctx, args) => {
-		for (const entry of args.rates) {
-			if (!Number.isFinite(entry.rate) || entry.rate <= 0) {
-				continue;
-			}
+    args: {
+        date: v.string(),
+        fetchedAt: v.number(),
+        rates: v.array(
+            v.object({
+                quote: v.string(),
+                rate: v.number(),
+                rateType: marketRateType,
+            })
+        ),
+        source: rateSource,
+    },
+    handler: async (ctx, args) => {
+        /* oxlint-disable no-await-in-loop -- rates arrive from an upstream HTTP payload, so a repeated (quote, rateType) must read back the row the previous iteration wrote — running the array in parallel would insert the pair twice */
+        for (const entry of args.rates) {
+            if (!Number.isFinite(entry.rate) || entry.rate <= 0) {
+                continue;
+            }
 
-			// biome-ignore lint/performance/noAwaitInLoops: rates arrive from an upstream HTTP payload, so a repeated (quote, rateType) must read back the row the previous iteration wrote — running the array in parallel would insert the pair twice
-			const existing = await ctx.db
-				.query("exchangeRates")
-				.withIndex("by_quote_and_rateType_and_date", (q) =>
-					q.eq("quote", entry.quote).eq("rateType", entry.rateType).eq("date", args.date)
-				)
-				.unique();
+            const existing = await ctx.db
+                .query("exchangeRates")
+                .withIndex("by_quote_and_rateType_and_date", (q) =>
+                    q.eq("quote", entry.quote).eq("rateType", entry.rateType).eq("date", args.date)
+                )
+                .unique();
 
-			if (existing) {
-				// Source priority: a cotizave row (BCV official / live market mids) is
-				// authoritative and must not be clobbered by a Frankfurter refresh.
-				if (args.source === "frankfurter" && existing.source === "cotizave") {
-					continue;
-				}
-				await ctx.db.patch("exchangeRates", existing._id, {
-					fetchedAt: args.fetchedAt,
-					rate: entry.rate,
-					source: args.source,
-				});
-			} else {
-				await ctx.db.insert("exchangeRates", {
-					date: args.date,
-					fetchedAt: args.fetchedAt,
-					quote: entry.quote,
-					rate: entry.rate,
-					rateType: entry.rateType,
-					source: args.source,
-				});
-			}
-		}
-		return null;
-	},
-	returns: v.null(),
+            if (existing) {
+                // Source priority: a cotizave row (BCV official / live market mids) is
+                // authoritative and must not be clobbered by a Frankfurter refresh.
+                if (args.source === "frankfurter" && existing.source === "cotizave") {
+                    continue;
+                }
+                await ctx.db.patch("exchangeRates", existing._id, {
+                    fetchedAt: args.fetchedAt,
+                    rate: entry.rate,
+                    source: args.source,
+                });
+            } else {
+                await ctx.db.insert("exchangeRates", {
+                    date: args.date,
+                    fetchedAt: args.fetchedAt,
+                    quote: entry.quote,
+                    rate: entry.rate,
+                    rateType: entry.rateType,
+                    source: args.source,
+                });
+            }
+        }
+        /* oxlint-enable no-await-in-loop */
+        return null;
+    },
+    returns: v.null(),
 });
 
 /**
@@ -196,88 +198,89 @@ export const upsertRates = internalMutation({
  * reschedule so one pass prunes against a single consistent boundary.
  */
 export const pruneStale = internalMutation({
-	args: {
-		cursor: v.optional(v.union(v.string(), v.null())),
-		windowStart: v.optional(v.string()),
-	},
-	handler: async (ctx, args) => {
-		const windowStart = args.windowStart ?? ratesWindowStart();
+    args: {
+        cursor: v.optional(v.union(v.string(), v.null())),
+        windowStart: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const windowStart = args.windowStart ?? ratesWindowStart();
 
-		const page = await ctx.db
-			.query("exchangeRates")
-			.withIndex("by_date", (q) => q.lt("date", windowStart))
-			.paginate({ cursor: args.cursor ?? null, numItems: PRUNE_BATCH_SIZE });
+        const page = await ctx.db
+            .query("exchangeRates")
+            .withIndex("by_date", (q) => q.lt("date", windowStart))
+            .paginate({ cursor: args.cursor ?? null, numItems: PRUNE_BATCH_SIZE });
 
-		let deleted = 0;
-		for (const row of page.page) {
-			// Scoped to the row's own calendar month, so what survives is the newest
-			// row per pair per month rather than one row per pair overall. A single
-			// anchor ages forward with the window and is therefore only ever a
-			// boundary guard: an entry older than it resolves to no rate at all and
-			// falls back to face value for good.
-			// One upper bound, not two: an index range takes a single one per field.
-			// The month's end and the window's start are both exclusive-or-inclusive
-			// in different ways, so the tighter of the pair is resolved first.
-			const monthEnd = monthEndBound(row.date);
-			// biome-ignore lint/performance/noAwaitInLoops: each lookup must observe the deletes this pass already made, so parallelising the page would make the mutation's read set depend on promise scheduling
-			const newer = await ctx.db
-				.query("exchangeRates")
-				.withIndex("by_quote_and_rateType_and_date", (q) => {
-					const from = q.eq("quote", row.quote).eq("rateType", row.rateType).gt("date", row.date);
-					return monthEnd < windowStart ? from.lte("date", monthEnd) : from.lt("date", windowStart);
-				})
-				.take(1);
-			if (newer.length > 0) {
-				await ctx.db.delete("exchangeRates", row._id);
-				deleted += 1;
-			}
-		}
+        let deleted = 0;
+        /* oxlint-disable no-await-in-loop -- each lookup must observe the deletes this pass already made, so parallelising the page would make the mutation's read set depend on promise scheduling */
+        for (const row of page.page) {
+            // Scoped to the row's own calendar month, so what survives is the newest
+            // row per pair per month rather than one row per pair overall. A single
+            // anchor ages forward with the window and is therefore only ever a
+            // boundary guard: an entry older than it resolves to no rate at all and
+            // falls back to face value for good.
+            // One upper bound, not two: an index range takes a single one per field.
+            // The month's end and the window's start are both exclusive-or-inclusive
+            // in different ways, so the tighter of the pair is resolved first.
+            const monthEnd = monthEndBound(row.date);
+            const newer = await ctx.db
+                .query("exchangeRates")
+                .withIndex("by_quote_and_rateType_and_date", (q) => {
+                    const from = q.eq("quote", row.quote).eq("rateType", row.rateType).gt("date", row.date);
+                    return monthEnd < windowStart ? from.lte("date", monthEnd) : from.lt("date", windowStart);
+                })
+                .take(1);
+            if (newer.length > 0) {
+                await ctx.db.delete("exchangeRates", row._id);
+                deleted += 1;
+            }
+        }
+        /* oxlint-enable no-await-in-loop */
 
-		if (!page.isDone) {
-			await ctx.scheduler.runAfter(0, internal.exchangeRates.pruneStale, {
-				cursor: page.continueCursor,
-				windowStart,
-			});
-		}
-		return { deleted, isDone: page.isDone };
-	},
-	returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
+        if (!page.isDone) {
+            await ctx.scheduler.runAfter(0, internal.exchangeRates.pruneStale, {
+                cursor: page.continueCursor,
+                windowStart,
+            });
+        }
+        return { deleted, isDone: page.isDone };
+    },
+    returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
 });
 
 export const getLatestRate = query({
-	args: {
-		quote: v.string(),
-		rateType: marketRateType,
-	},
-	handler: async (ctx, args) => {
-		const rows = await ctx.db
-			.query("exchangeRates")
-			.withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", args.quote).eq("rateType", args.rateType))
-			.order("desc")
-			.take(1);
-		const [row] = rows;
-		if (!row) {
-			return null;
-		}
-		return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
-	},
-	returns: rateResult,
+    args: {
+        quote: v.string(),
+        rateType: marketRateType,
+    },
+    handler: async (ctx, args) => {
+        const rows = await ctx.db
+            .query("exchangeRates")
+            .withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", args.quote).eq("rateType", args.rateType))
+            .order("desc")
+            .take(1);
+        const [row] = rows;
+        if (!row) {
+            return null;
+        }
+        return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
+    },
+    returns: rateResult,
 });
 
 export const getRateOnDate = query({
-	args: {
-		date: v.string(),
-		quote: v.string(),
-		rateType: marketRateType,
-	},
-	handler: async (ctx, args) => {
-		const row = await resolveRateOnDate(ctx.db, args.quote, args.rateType, args.date);
-		if (!row) {
-			return null;
-		}
-		return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
-	},
-	returns: rateResult,
+    args: {
+        date: v.string(),
+        quote: v.string(),
+        rateType: marketRateType,
+    },
+    handler: async (ctx, args) => {
+        const row = await resolveRateOnDate(ctx.db, args.quote, args.rateType, args.date);
+        if (!row) {
+            return null;
+        }
+        return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
+    },
+    returns: rateResult,
 });
 
 /**
@@ -288,39 +291,39 @@ export const getRateOnDate = query({
  * (absent = page 0), not a Convex pagination cursor.
  */
 export const pullRates = query({
-	args: { cursor: v.optional(v.number()) },
-	handler: async (ctx, args) => {
-		const windowStart = ratesWindowStart();
-		const start = args.cursor ?? 0;
-		const pagePairs = ANCHOR_PAIR_CATALOG.slice(start, start + PAIRS_PER_PAGE);
+    args: { cursor: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const windowStart = ratesWindowStart();
+        const start = args.cursor ?? 0;
+        const pagePairs = ANCHOR_PAIR_CATALOG.slice(start, start + PAIRS_PER_PAGE);
 
-		// Per pair: anchors sit strictly before `windowStart` while window rows sit
-		// on or after it, so the two reads never overlap and need no dedupe.
-		const pairPages = await Promise.all(
-			pagePairs.flatMap(({ quote, rateType }) => [
-				ctx.db
-					.query("exchangeRates")
-					.withIndex("by_quote_and_rateType_and_date", (q) =>
-						q.eq("quote", quote).eq("rateType", rateType).gte("date", windowStart)
-					)
-					.collect(),
-				// Every surviving pre-window row, not just the newest. Pruning leaves
-				// one per calendar month, so this is the pair's monthly history and
-				// what lets an entry older than the window value at a rate from its
-				// own time instead of falling back to face value.
-				ctx.db
-					.query("exchangeRates")
-					.withIndex("by_quote_and_rateType_and_date", (q) =>
-						q.eq("quote", quote).eq("rateType", rateType).lt("date", windowStart)
-					)
-					.order("desc")
-					.take(MONTHLY_ANCHOR_LIMIT),
-			])
-		);
+        // Per pair: anchors sit strictly before `windowStart` while window rows sit
+        // on or after it, so the two reads never overlap and need no dedupe.
+        const pairPages = await Promise.all(
+            pagePairs.flatMap(({ quote, rateType }) => [
+                ctx.db
+                    .query("exchangeRates")
+                    .withIndex("by_quote_and_rateType_and_date", (q) =>
+                        q.eq("quote", quote).eq("rateType", rateType).gte("date", windowStart)
+                    )
+                    .collect(),
+                // Every surviving pre-window row, not just the newest. Pruning leaves
+                // one per calendar month, so this is the pair's monthly history and
+                // what lets an entry older than the window value at a rate from its
+                // own time instead of falling back to face value.
+                ctx.db
+                    .query("exchangeRates")
+                    .withIndex("by_quote_and_rateType_and_date", (q) =>
+                        q.eq("quote", quote).eq("rateType", rateType).lt("date", windowStart)
+                    )
+                    .order("desc")
+                    .take(MONTHLY_ANCHOR_LIMIT),
+            ])
+        );
 
-		const rows = pairPages.flat().map(toRateWire);
-		const nextIndex = start + PAIRS_PER_PAGE;
-		const nextCursor = nextIndex < ANCHOR_PAIR_CATALOG.length ? nextIndex : null;
-		return { nextCursor, rows, windowStart };
-	},
+        const rows = pairPages.flat().map(toRateWire);
+        const nextIndex = start + PAIRS_PER_PAGE;
+        const nextCursor = nextIndex < ANCHOR_PAIR_CATALOG.length ? nextIndex : null;
+        return { nextCursor, rows, windowStart };
+    },
 });

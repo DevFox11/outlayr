@@ -1,13 +1,14 @@
 import {
-	cancelScheduledNotificationAsync,
-	getAllScheduledNotificationsAsync,
-	getPermissionsAsync,
-	type NotificationPermissionsStatus,
-	requestPermissionsAsync,
-	SchedulableTriggerInputTypes,
-	scheduleNotificationAsync,
+    cancelScheduledNotificationAsync,
+    getAllScheduledNotificationsAsync,
+    getPermissionsAsync,
+    requestPermissionsAsync,
+    SchedulableTriggerInputTypes,
+    scheduleNotificationAsync,
 } from "expo-notifications";
+import type { NotificationPermissionsStatus } from "expo-notifications";
 import { Linking } from "react-native";
+
 import type { ReminderPermission, TimeOfDay } from "@/domain/reminder";
 import { translateNow } from "@/i18n/runtime";
 
@@ -20,63 +21,63 @@ const REMINDER_ID = "outlayr.daily-reminder";
 
 /** On iOS `canAskAgain` is true only while the prompt has never been shown. */
 function toPermission(result: NotificationPermissionsStatus): ReminderPermission {
-	if (result.granted) {
-		return "granted";
-	}
-	return result.canAskAgain ? "undetermined" : "denied";
+    if (result.granted) {
+        return "granted";
+    }
+    return result.canAskAgain ? "undetermined" : "denied";
 }
 
 export async function reminderPermission(): Promise<ReminderPermission> {
-	try {
-		return toPermission(await getPermissionsAsync());
-	} catch {
-		return "denied";
-	}
+    try {
+        return toPermission(await getPermissionsAsync());
+    } catch {
+        return "denied";
+    }
 }
 
 export async function requestReminderPermission(): Promise<ReminderPermission> {
-	try {
-		return toPermission(
-			await requestPermissionsAsync({
-				ios: { allowAlert: true, allowBadge: true, allowSound: true },
-			})
-		);
-	} catch {
-		return "denied";
-	}
+    try {
+        return toPermission(
+            await requestPermissionsAsync({
+                ios: { allowAlert: true, allowBadge: true, allowSound: true },
+            })
+        );
+    } catch {
+        return "denied";
+    }
 }
 
 export async function scheduleReminder({ hour, minute }: TimeOfDay): Promise<void> {
-	await scheduleNotificationAsync({
-		content: {
-			body: translateNow("reminder.body"),
-			sound: "default",
-			title: translateNow("reminder.title"),
-		},
-		identifier: REMINDER_ID,
-		trigger: { hour, minute, type: SchedulableTriggerInputTypes.DAILY },
-	});
+    await scheduleNotificationAsync({
+        content: {
+            body: translateNow("reminder.body"),
+            sound: "default",
+            title: translateNow("reminder.title"),
+        },
+        identifier: REMINDER_ID,
+        trigger: { hour, minute, type: SchedulableTriggerInputTypes.DAILY },
+    });
 }
 
 export async function cancelReminder(): Promise<void> {
-	await cancelScheduledNotificationAsync(REMINDER_ID);
+    await cancelScheduledNotificationAsync(REMINDER_ID);
 }
 
 /** Identifiers iOS currently holds, the daily reminder's among them. */
 export async function pendingReminderIds(): Promise<string[]> {
-	try {
-		const requests = await getAllScheduledNotificationsAsync();
-		return requests.map((request) => request.identifier);
-	} catch {
-		return [];
-	}
+    try {
+        const requests = await getAllScheduledNotificationsAsync();
+        return requests.map((request) => request.identifier);
+    } catch {
+        return [];
+    }
 }
 
 export interface DatedReminder {
-	body: string;
-	fireAt: Date;
-	id: string;
-	title: string;
+    body: string;
+    fireAt: Date;
+    id: string;
+    title: string;
 }
 
 /**
@@ -85,23 +86,23 @@ export interface DatedReminder {
  * afresh under the same identifier.
  */
 export async function scheduleDatedReminder({ id, title, body, fireAt }: DatedReminder): Promise<void> {
-	await scheduleNotificationAsync({
-		content: { body, sound: "default", title },
-		identifier: id,
-		trigger: { date: fireAt, type: SchedulableTriggerInputTypes.DATE },
-	});
+    await scheduleNotificationAsync({
+        content: { body, sound: "default", title },
+        identifier: id,
+        trigger: { date: fireAt, type: SchedulableTriggerInputTypes.DATE },
+    });
 }
 
 /** Sequential: `cancelScheduledNotificationAsync` mutates one shared iOS queue. */
 export async function cancelReminders(ids: readonly string[]): Promise<void> {
-	for (const id of ids) {
-		// biome-ignore lint/performance/noAwaitInLoops: cancelScheduledNotificationAsync mutates one shared iOS notification queue, so overlapping cancels race each other.
-		await cancelScheduledNotificationAsync(id);
-	}
+    for (const id of ids) {
+        // oxlint-disable-next-line no-await-in-loop -- cancelScheduledNotificationAsync mutates one shared iOS notification queue, so overlapping cancels race each other.
+        await cancelScheduledNotificationAsync(id);
+    }
 }
 
 export function openNotificationSettings(): void {
-	Linking.openSettings().catch((error) => {
-		console.warn("[outlayr] opening notification settings failed", error);
-	});
+    Linking.openSettings().catch((error) => {
+        console.warn("[outlayr] opening notification settings failed", error);
+    });
 }

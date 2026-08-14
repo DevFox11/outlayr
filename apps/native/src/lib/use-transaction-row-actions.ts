@@ -1,10 +1,12 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { Alert } from "react-native";
+
 import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { transactionRowActions } from "@/domain/transaction-actions";
 import { translateNow } from "@/i18n/runtime";
+
 import { showTransactionActions } from "./transaction-actions";
 
 /**
@@ -14,25 +16,25 @@ import { showTransactionActions } from "./transaction-actions";
  * user asked to end. Say so instead, and keep the retry one tap away.
  */
 async function stopRecurring(db: Database, id: string): Promise<void> {
-	try {
-		await transactionsRepo.stopRecurring(db, id);
-	} catch (error) {
-		console.error("Stop recurring failed", error);
-		Alert.alert(
-			translateNow("transaction.stopRecurring.failedTitle"),
-			translateNow("transaction.stopRecurring.failedBody"),
-			[
-				{ style: "cancel", text: translateNow("common.cancel") },
-				{
-					onPress: () => {
-						// biome-ignore lint/complexity/noVoid: stopRecurring settles its own failure into this same alert, so the retry has no rejection left to handle
-						void stopRecurring(db, id);
-					},
-					text: translateNow("common.retry"),
-				},
-			]
-		);
-	}
+    try {
+        await transactionsRepo.stopRecurring(db, id);
+    } catch (error) {
+        console.error("Stop recurring failed", error);
+        Alert.alert(
+            translateNow("transaction.stopRecurring.failedTitle"),
+            translateNow("transaction.stopRecurring.failedBody"),
+            [
+                { style: "cancel", text: translateNow("common.cancel") },
+                {
+                    onPress: () => {
+                        // oxlint-disable-next-line no-void -- stopRecurring settles its own failure into this same alert, so the retry has no rejection left to handle
+                        void stopRecurring(db, id);
+                    },
+                    text: translateNow("common.retry"),
+                },
+            ]
+        );
+    }
 }
 
 /**
@@ -44,37 +46,37 @@ async function stopRecurring(db: Database, id: string): Promise<void> {
  * narrow projection and the driver hands the whole row over synchronously.
  */
 export function useTransactionRowActions(
-	db: Database,
-	nowMs: number,
-	onDelete: (id: string) => void
+    db: Database,
+    nowMs: number,
+    onDelete: (id: string) => void
 ): (id: string, future: boolean) => void {
-	const router = useRouter();
+    const router = useRouter();
 
-	return useCallback(
-		(id: string, future: boolean) => {
-			const row = getTransactionById(db, id);
-			if (row == null) {
-				return;
-			}
-			const now = new Date(nowMs);
-			showTransactionActions({
-				actions: transactionRowActions({
-					date: row.date,
-					future,
-					now,
-					recurringType: row.recurringType,
-				}),
-				note: row.note,
-				onDelete: () => onDelete(id),
-				onEdit: () => router.push(`/transactions/${id}`),
-				onLogAgain: () => router.push(`/transactions/create?from=${id}`),
-				onStopRecurring: () => {
-					// biome-ignore lint/complexity/noVoid: stopRecurring never rejects — it alerts and offers a retry — and the action sheet is already dismissed, so there is nothing to await
-					void stopRecurring(db, id);
-				},
-				pending: row.date.getTime() > now.getTime(),
-			});
-		},
-		[db, nowMs, onDelete, router]
-	);
+    return useCallback(
+        (id: string, future: boolean) => {
+            const row = getTransactionById(db, id);
+            if (row == null) {
+                return;
+            }
+            const now = new Date(nowMs);
+            showTransactionActions({
+                actions: transactionRowActions({
+                    date: row.date,
+                    future,
+                    now,
+                    recurringType: row.recurringType,
+                }),
+                note: row.note,
+                onDelete: () => onDelete(id),
+                onEdit: () => router.push(`/transactions/${id}`),
+                onLogAgain: () => router.push(`/transactions/create?from=${id}`),
+                onStopRecurring: () => {
+                    // oxlint-disable-next-line no-void -- stopRecurring never rejects — it alerts and offers a retry — and the action sheet is already dismissed, so there is nothing to await
+                    void stopRecurring(db, id);
+                },
+                pending: row.date.getTime() > now.getTime(),
+            });
+        },
+        [db, nowMs, onDelete, router]
+    );
 }

@@ -1,23 +1,20 @@
-import {
-	type AccountBalanceSeriesAccount,
-	type AccountBalanceSeriesPoint,
-	accountBalanceSeries,
-} from "./account-balance-series";
+import { accountBalanceSeries } from "./account-balance-series";
+import type { AccountBalanceSeriesAccount, AccountBalanceSeriesPoint } from "./account-balance-series";
 import { initialInDisplay } from "./account-display";
 import type { CurrencyCell } from "./currency-totals";
 import type { RateTable } from "./valuation";
 
 export interface NetWorthSeriesAccount extends AccountBalanceSeriesAccount {
-	id: string;
-	/** Frozen at write, and what makes a foreign opening balance convertible. */
-	initialBalanceUsd: number | null;
+    id: string;
+    /** Frozen at write, and what makes a foreign opening balance convertible. */
+    initialBalanceUsd: number | null;
 }
 
 export interface NetWorthSeriesPoint {
-	date: string;
-	/** False once any account's value on that day fell back to face value. */
-	exact: boolean;
-	value: number;
+    date: string;
+    /** False once any account's value on that day fell back to face value. */
+    exact: boolean;
+    value: number;
 }
 
 /**
@@ -36,71 +33,71 @@ export interface NetWorthSeriesPoint {
  * rather than dropping every time one account's series runs out.
  */
 export function netWorthSeries(
-	accounts: readonly NetWorthSeriesAccount[],
-	cellsByAccount: ReadonlyMap<string, readonly CurrencyCell[]>,
-	rates: RateTable,
-	now: Date,
-	displayCurrency: string
+    accounts: readonly NetWorthSeriesAccount[],
+    cellsByAccount: ReadonlyMap<string, readonly CurrencyCell[]>,
+    rates: RateTable,
+    now: Date,
+    displayCurrency: string
 ): NetWorthSeriesPoint[] {
-	if (accounts.length === 0) {
-		return [];
-	}
+    if (accounts.length === 0) {
+        return [];
+    }
 
-	// Valued into the display currency rather than each account's own, or the sum
-	// would add bolivares to dollars. The opening balance converts through the
-	// same frozen `initialBalanceUsd` the accounts card uses.
-	const perAccount = accounts.map((account) => {
-		const opening = initialInDisplay(account, displayCurrency, rates);
-		const series = accountBalanceSeries(account, cellsByAccount.get(account.id) ?? [], rates, now, {
-			currency: displayCurrency,
-			opening: opening.value,
-		});
-		return {
-			byDate: indexByDate(series),
-			openingExact: opening.exact,
-		};
-	});
+    // Valued into the display currency rather than each account's own, or the sum
+    // would add bolivares to dollars. The opening balance converts through the
+    // same frozen `initialBalanceUsd` the accounts card uses.
+    const perAccount = accounts.map((account) => {
+        const opening = initialInDisplay(account, displayCurrency, rates);
+        const series = accountBalanceSeries(account, cellsByAccount.get(account.id) ?? [], rates, now, {
+            currency: displayCurrency,
+            opening: opening.value,
+        });
+        return {
+            byDate: indexByDate(series),
+            openingExact: opening.exact,
+        };
+    });
 
-	const dates = new Set<string>();
-	for (const { byDate } of perAccount) {
-		for (const date of byDate.keys()) {
-			dates.add(date);
-		}
-	}
+    const dates = new Set<string>();
+    for (const { byDate } of perAccount) {
+        for (const date of byDate.keys()) {
+            dates.add(date);
+        }
+    }
 
-	const points: NetWorthSeriesPoint[] = [];
-	// One cursor per account rather than a lookup per day: the series are already
-	// sorted, so carrying forward is a walk, not a search.
-	const carried = perAccount.map(() => ({ exact: true, seen: false, value: 0 }));
-	for (const date of [...dates].sort()) {
-		let value = 0;
-		let exact = true;
-		for (const [index, { byDate }] of perAccount.entries()) {
-			const point = byDate.get(date);
-			if (point != null) {
-				carried[index] = {
-					exact: point.exact && perAccount[index].openingExact,
-					seen: true,
-					value: point.value,
-				};
-			}
-			const held = carried[index];
-			// An account that has not opened yet holds nothing, and is not a reason
-			// to call the day approximate.
-			if (held.seen) {
-				value += held.value;
-				exact = exact && held.exact;
-			}
-		}
-		points.push({ date, exact, value });
-	}
-	return points;
+    const points: NetWorthSeriesPoint[] = [];
+    // One cursor per account rather than a lookup per day: the series are already
+    // sorted, so carrying forward is a walk, not a search.
+    const carried = perAccount.map(() => ({ exact: true, seen: false, value: 0 }));
+    for (const date of [...dates].sort()) {
+        let value = 0;
+        let exact = true;
+        for (const [index, { byDate }] of perAccount.entries()) {
+            const point = byDate.get(date);
+            if (point != null) {
+                carried[index] = {
+                    exact: point.exact && perAccount[index].openingExact,
+                    seen: true,
+                    value: point.value,
+                };
+            }
+            const held = carried[index];
+            // An account that has not opened yet holds nothing, and is not a reason
+            // to call the day approximate.
+            if (held.seen) {
+                value += held.value;
+                exact &&= held.exact;
+            }
+        }
+        points.push({ date, exact, value });
+    }
+    return points;
 }
 
 function indexByDate(series: readonly AccountBalanceSeriesPoint[]): Map<string, AccountBalanceSeriesPoint> {
-	const byDate = new Map<string, AccountBalanceSeriesPoint>();
-	for (const point of series) {
-		byDate.set(point.date, point);
-	}
-	return byDate;
+    const byDate = new Map<string, AccountBalanceSeriesPoint>();
+    for (const point of series) {
+        byDate.set(point.date, point);
+    }
+    return byDate;
 }

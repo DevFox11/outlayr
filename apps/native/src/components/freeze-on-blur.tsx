@@ -1,5 +1,6 @@
 import { useIsFocused } from "expo-router";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Freeze } from "react-freeze";
 
 /**
@@ -15,22 +16,22 @@ import { Freeze } from "react-freeze";
  * and the screen renders once on return with the current values.
  */
 export function FreezeOnBlur({ children }: { children: ReactNode }) {
-	const isFocused = useIsFocused();
-	const [frozen, setFrozen] = useState(false);
+    const isFocused = useIsFocused();
+    const [frozen, setFrozen] = useState(false);
 
-	// Deferred a macrotask, the way `react-native-screens` defers its own
-	// `freezeOnBlur` (components/helpers/DelayedFreeze.tsx): focus flips when the
-	// navigation state changes, which is before the transition has run, and
-	// suspending mid-push swaps the outgoing screen for the empty fallback in
-	// front of the user.
-	useEffect(() => {
-		const handle = setTimeout(() => {
-			setFrozen(!isFocused);
-		}, 0);
-		return () => {
-			clearTimeout(handle);
-		};
-	}, [isFocused]);
+    // Deferred a macrotask, the way `react-native-screens` defers its own
+    // `freezeOnBlur` (components/helpers/DelayedFreeze.tsx): focus flips when the
+    // navigation state changes, which is before the transition has run, and
+    // suspending mid-push swaps the outgoing screen for the empty fallback in
+    // front of the user.
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setFrozen(!isFocused);
+        }, 0);
+        return () => {
+            clearTimeout(handle);
+        };
+    }, [isFocused]);
 
-	return <Freeze freeze={frozen}>{children}</Freeze>;
+    return <Freeze freeze={frozen}>{children}</Freeze>;
 }

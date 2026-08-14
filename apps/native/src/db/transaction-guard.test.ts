@@ -9,19 +9,19 @@ const EXEMPT = join(SRC, "db", "transaction.ts");
 const DRIZZLE_TRANSACTION = /\.transaction\(/;
 
 function sourceFiles(dir: string): string[] {
-	const found: string[] = [];
-	for (const entry of readdirSync(dir, { withFileTypes: true })) {
-		const path = join(dir, entry.name);
-		if (entry.isDirectory()) {
-			found.push(...sourceFiles(path));
-			continue;
-		}
-		if (!/\.tsx?$/.test(entry.name) || /\.test\.tsx?$/.test(entry.name)) {
-			continue;
-		}
-		found.push(path);
-	}
-	return found;
+    const found: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) {
+            found.push(...sourceFiles(path));
+            continue;
+        }
+        if (!/\.tsx?$/.test(entry.name) || /\.test\.tsx?$/.test(entry.name)) {
+            continue;
+        }
+        found.push(path);
+    }
+    return found;
 }
 
 /**
@@ -38,17 +38,17 @@ function sourceFiles(dir: string): string[] {
  * source guard is what makes it unrepresentable.
  */
 describe("drizzle transaction ban", () => {
-	it("no source file calls drizzle's own transaction()", () => {
-		const offenders = sourceFiles(SRC)
-			.filter((path) => path !== EXEMPT)
-			.filter((path) => DRIZZLE_TRANSACTION.test(readFileSync(path, "utf8")))
-			.map((path) => relative(SRC, path));
+    it("no source file calls drizzle's own transaction()", () => {
+        const offenders = sourceFiles(SRC)
+            .filter((path) => path !== EXEMPT)
+            .filter((path) => DRIZZLE_TRANSACTION.test(readFileSync(path, "utf-8")))
+            .map((path) => relative(SRC, path));
 
-		expect(offenders).toStrictEqual([]);
-	});
+        expect(offenders).toStrictEqual([]);
+    });
 
-	it("the exempt file still carries the helper the ban points at", () => {
-		const source = readFileSync(EXEMPT, "utf8");
-		expect(source.includes("export async function withTransaction")).toBeTruthy();
-	});
+    it("the exempt file still carries the helper the ban points at", () => {
+        const source = readFileSync(EXEMPT, "utf-8");
+        expect(source.includes("export async function withTransaction")).toBeTruthy();
+    });
 });

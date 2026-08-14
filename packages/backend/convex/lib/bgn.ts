@@ -5,14 +5,14 @@ import { roundMoney } from "@outlayr/money/round";
  * EUR. BGN is not in the catalog, so existing BGN entries re-currency to EUR at
  * exactly this rate, with no market drift.
  */
-export const BGN_PER_EUR = 1.955_83;
+export const BGN_PER_EUR = 1.95583;
 
 const EUR_EXPONENT = 2;
 
 export interface EurBaseLeg {
-	baseAmount: number;
-	baseCurrency: "EUR";
-	exchangeRate: number;
+    baseAmount: number;
+    baseCurrency: "EUR";
+    exchangeRate: number;
 }
 
 /**
@@ -21,9 +21,9 @@ export interface EurBaseLeg {
  * invariant, so stored USD canonicals stay correct without being recomputed.
  */
 export function bgnBaseLegToEur(baseAmount: number, exchangeRate: number): EurBaseLeg {
-	return {
-		baseAmount: roundMoney(baseAmount / BGN_PER_EUR, EUR_EXPONENT),
-		baseCurrency: "EUR",
-		exchangeRate: exchangeRate / BGN_PER_EUR,
-	};
+    return {
+        baseAmount: roundMoney(baseAmount / BGN_PER_EUR, EUR_EXPONENT),
+        baseCurrency: "EUR",
+        exchangeRate: exchangeRate / BGN_PER_EUR,
+    };
 }

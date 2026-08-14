@@ -1,17 +1,19 @@
 import { count, gt, isNotNull, isNull, or } from "drizzle-orm";
+
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import type { AdoptionActions, LocalLedger, RemoteLedger } from "@/domain/ledger-adoption";
+
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { SEEDED_CATEGORY_NAMES } from "./categories-core";
 import {
-	enableSyncForAccount,
-	enqueueAllForSync,
-	getSyncAccountSubject,
-	hasResidualSyncState,
-	isSyncEnabled,
-	resetSyncForAccountSwitch,
-	setSyncEnabled,
+    enableSyncForAccount,
+    enqueueAllForSync,
+    getSyncAccountSubject,
+    hasResidualSyncState,
+    isSyncEnabled,
+    resetSyncForAccountSwitch,
+    setSyncEnabled,
 } from "./sync-outbox-core";
 
 const SEEDED_CATEGORY_COUNT = SEEDED_CATEGORY_NAMES.expense.length + SEEDED_CATEGORY_NAMES.income.length;
@@ -22,12 +24,12 @@ const SEEDED_CATEGORY_COUNT = SEEDED_CATEGORY_NAMES.expense.length + SEEDED_CATE
  * leaves both ledgers untouched.
  */
 export interface AdoptionEngine {
-	/** Whether the signed-in account already holds replicated rows. */
-	accountLedger: () => Promise<RemoteLedger>;
-	/** Tombstone the account's rows so this device's ledger is the survivor. */
-	discardAccountLedger: () => Promise<void>;
-	/** Discard the local replica and refill it from the account's log at seq 0. */
-	replaceFromAccount: () => Promise<void>;
+    /** Whether the signed-in account already holds replicated rows. */
+    accountLedger: () => Promise<RemoteLedger>;
+    /** Tombstone the account's rows so this device's ledger is the survivor. */
+    discardAccountLedger: () => Promise<void>;
+    /** Discard the local replica and refill it from the account's log at seq 0. */
+    replaceFromAccount: () => Promise<void>;
 }
 
 /**
@@ -44,51 +46,51 @@ export interface AdoptionEngine {
  * question, and being wrong the other way destroys a ledger.
  */
 export async function localLedgerState(db: Database): Promise<LocalLedger> {
-	const moneyTables = [transactions, budgets, mainBudget, accounts, transfers];
-	const moneyCounts = await Promise.all(moneyTables.map((table) => db.select({ total: count() }).from(table)));
-	if (moneyCounts.some((rows) => (rows[0]?.total ?? 0) > 0)) {
-		return "populated";
-	}
+    const moneyTables = [transactions, budgets, mainBudget, accounts, transfers];
+    const moneyCounts = await Promise.all(moneyTables.map((table) => db.select({ total: count() }).from(table)));
+    if (moneyCounts.some((rows) => (rows[0]?.total ?? 0) > 0)) {
+        return "populated";
+    }
 
-	const [all] = await db.select({ total: count() }).from(categories);
-	if ((all?.total ?? 0) !== SEEDED_CATEGORY_COUNT) {
-		return "populated";
-	}
-	const [touched] = await db
-		.select({ total: count() })
-		.from(categories)
-		.where(
-			or(
-				isNotNull(categories.deletedAt),
-				isNull(categories.dateCreated),
-				gt(categories.updatedAt, categories.dateCreated)
-			)
-		);
-	return (touched?.total ?? 0) > 0 ? "populated" : "empty";
+    const [all] = await db.select({ total: count() }).from(categories);
+    if ((all?.total ?? 0) !== SEEDED_CATEGORY_COUNT) {
+        return "populated";
+    }
+    const [touched] = await db
+        .select({ total: count() })
+        .from(categories)
+        .where(
+            or(
+                isNotNull(categories.deletedAt),
+                isNull(categories.dateCreated),
+                gt(categories.updatedAt, categories.dateCreated)
+            )
+        );
+    return (touched?.total ?? 0) > 0 ? "populated" : "empty";
 }
 
 /** The account this device's ledger has already been reconciled with, if any. */
 export async function adoptedAccount(db: Database): Promise<string | null> {
-	return await getMeta(db, META_KEYS.ledgerAdoption);
+    return await getMeta(db, META_KEYS.ledgerAdoption);
 }
 
 export async function markAdopted(db: Database, accountId: string): Promise<void> {
-	await setMeta(db, META_KEYS.ledgerAdoption, accountId);
+    await setMeta(db, META_KEYS.ledgerAdoption, accountId);
 }
 
 export async function prepareAccountAdoption(db: Database, accountId: string): Promise<void> {
-	const [marker, syncSubject, residual] = await Promise.all([
-		adoptedAccount(db),
-		getSyncAccountSubject(db),
-		hasResidualSyncState(db),
-	]);
-	const sameSubject = syncSubject === accountId;
-	if ((marker === accountId && sameSubject) || (marker === null && sameSubject && !residual)) {
-		return;
-	}
-	if (marker !== null || syncSubject !== null || residual) {
-		await resetSyncForAccountSwitch(db);
-	}
+    const [marker, syncSubject, residual] = await Promise.all([
+        adoptedAccount(db),
+        getSyncAccountSubject(db),
+        hasResidualSyncState(db),
+    ]);
+    const sameSubject = syncSubject === accountId;
+    if ((marker === accountId && sameSubject) || (marker === null && sameSubject && !residual)) {
+        return;
+    }
+    if (marker !== null || syncSubject !== null || residual) {
+        await resetSyncForAccountSwitch(db);
+    }
 }
 
 /**
@@ -106,57 +108,57 @@ export async function prepareAccountAdoption(db: Database, accountId: string): P
  * engine to run it through.
  */
 export async function runAdoption(
-	db: Database,
-	engine: AdoptionEngine | null,
-	actions: AdoptionActions,
-	accountId?: string
+    db: Database,
+    engine: AdoptionEngine | null,
+    actions: AdoptionActions,
+    accountId?: string
 ): Promise<boolean> {
-	if (actions.wipeLocal || actions.wipeAccount) {
-		if (!engine) {
-			throw new Error("Destructive adoption actions need a sync engine.");
-		}
-		if (actions.wipeAccount) {
-			await engine.discardAccountLedger();
-		}
-		if (actions.wipeLocal) {
-			await engine.replaceFromAccount();
-		}
-	}
+    if (actions.wipeLocal || actions.wipeAccount) {
+        if (!engine) {
+            throw new Error("Destructive adoption actions need a sync engine.");
+        }
+        if (actions.wipeAccount) {
+            await engine.discardAccountLedger();
+        }
+        if (actions.wipeLocal) {
+            await engine.replaceFromAccount();
+        }
+    }
 
-	const enabledForAttempt = accountId !== undefined && !(await isSyncEnabled(db));
-	if (enabledForAttempt) {
-		await enableSyncForAccount(db, accountId);
-	} else if (!accountId) {
-		await setSyncEnabled(db, true);
-	}
+    const enabledForAttempt = accountId !== undefined && !(await isSyncEnabled(db));
+    if (enabledForAttempt) {
+        await enableSyncForAccount(db, accountId);
+    } else if (!accountId) {
+        await setSyncEnabled(db, true);
+    }
 
-	try {
-		if (actions.pushLocal) {
-			await enqueueAllForSync(db);
-		}
-		return enabledForAttempt;
-	} catch (error: unknown) {
-		if (enabledForAttempt) {
-			await resetSyncForAccountSwitch(db);
-		}
-		throw error;
-	}
+    try {
+        if (actions.pushLocal) {
+            await enqueueAllForSync(db);
+        }
+        return enabledForAttempt;
+    } catch (error: unknown) {
+        if (enabledForAttempt) {
+            await resetSyncForAccountSwitch(db);
+        }
+        throw error;
+    }
 }
 
 export async function completeAdoption(
-	db: Database,
-	engine: AdoptionEngine | null,
-	actions: AdoptionActions,
-	accountId: string,
-	persistMarker: (target: Database, subject: string) => Promise<void> = markAdopted
+    db: Database,
+    engine: AdoptionEngine | null,
+    actions: AdoptionActions,
+    accountId: string,
+    persistMarker: (target: Database, subject: string) => Promise<void> = markAdopted
 ): Promise<void> {
-	const enabledForAttempt = await runAdoption(db, engine, actions, accountId);
-	try {
-		await persistMarker(db, accountId);
-	} catch (error: unknown) {
-		if (enabledForAttempt) {
-			await resetSyncForAccountSwitch(db);
-		}
-		throw error;
-	}
+    const enabledForAttempt = await runAdoption(db, engine, actions, accountId);
+    try {
+        await persistMarker(db, accountId);
+    } catch (error: unknown) {
+        if (enabledForAttempt) {
+            await resetSyncForAccountSwitch(db);
+        }
+        throw error;
+    }
 }

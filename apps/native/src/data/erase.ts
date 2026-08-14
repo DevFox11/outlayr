@@ -1,5 +1,7 @@
 import type { Database } from "@/db/client";
-import { type EraseScope, eraseLedger } from "./erase-core";
+
+import { eraseLedger } from "./erase-core";
+import type { EraseScope } from "./erase-core";
 
 export type { EraseScope } from "./erase-core";
 
@@ -9,8 +11,8 @@ export type { EraseScope } from "./erase-core";
  * of which can load under the node test runner.
  */
 export interface EraseResidue {
-	clearSpotlight: () => Promise<void>;
-	clearStoredPhotos: () => void;
+    clearSpotlight: () => Promise<void>;
+    clearStoredPhotos: () => void;
 }
 
 /**
@@ -27,19 +29,19 @@ export interface EraseResidue {
  * partial erase rather than confirming a clean one.
  */
 export async function eraseData(db: Database, scope: EraseScope, residue: EraseResidue): Promise<void> {
-	await eraseLedger(db, scope);
+    await eraseLedger(db, scope);
 
-	// Boxed rather than kept as `unknown`: a thrown `undefined` is still a failure.
-	let photoFailure: { cause: unknown } | null = null;
-	try {
-		residue.clearStoredPhotos();
-	} catch (cause) {
-		photoFailure = { cause };
-	}
+    // Boxed rather than kept as `unknown`: a thrown `undefined` is still a failure.
+    let photoFailure: { cause: unknown } | null = null;
+    try {
+        residue.clearStoredPhotos();
+    } catch (cause) {
+        photoFailure = { cause };
+    }
 
-	await residue.clearSpotlight();
+    await residue.clearSpotlight();
 
-	if (photoFailure) {
-		throw photoFailure.cause;
-	}
+    if (photoFailure) {
+        throw photoFailure.cause;
+    }
 }

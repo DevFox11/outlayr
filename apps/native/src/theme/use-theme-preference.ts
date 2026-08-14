@@ -2,7 +2,9 @@ import { useTheme } from "panelui-native";
 import { useLayoutEffect } from "react";
 
 import { useSettingNumber } from "@/contexts/display-settings-context";
-import { type ThemePreference, themePreferenceForValue } from "./theme-preference";
+
+import { themePreferenceForValue } from "./theme-preference";
+import type { ThemePreference } from "./theme-preference";
 
 /**
  * Pushes the stored colour scheme into uniwind, once and on every change.
@@ -17,12 +19,12 @@ import { type ThemePreference, themePreferenceForValue } from "./theme-preferenc
  * "Dark" stored, a passive effect paints one light frame first.
  */
 export function useApplyThemePreference(): ThemePreference {
-	const preference = themePreferenceForValue(useSettingNumber("colorScheme"));
-	const { setTheme } = useTheme();
+    const preference = themePreferenceForValue(useSettingNumber("colorScheme"));
+    const { setTheme } = useTheme();
 
-	useLayoutEffect(() => {
-		setTheme(preference);
-	}, [preference, setTheme]);
+    useLayoutEffect(() => {
+        setTheme(preference);
+    }, [preference, setTheme]);
 
-	return preference;
+    return preference;
 }

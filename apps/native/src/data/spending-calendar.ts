@@ -1,13 +1,12 @@
 import { and, eq, gte, isNull, lte, sum } from "drizzle-orm";
 import { useMemo } from "react";
+
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { addDays, startOfDay } from "@/domain/dates";
-import {
-	type SpendingCalendarEntry,
-	type SpendingCalendarRow,
-	spendingCalendarEntries,
-} from "@/domain/spending-calendar";
+import { spendingCalendarEntries } from "@/domain/spending-calendar";
+import type { SpendingCalendarEntry, SpendingCalendarRow } from "@/domain/spending-calendar";
+
 import type { SpendDb } from "./budget-spent";
 import { UTC_DAY } from "./cell-query";
 import { useLiveQuery } from "./live-query";
@@ -16,62 +15,62 @@ import { useValuation } from "./use-valuation";
 export const SPENDING_CALENDAR_DAYS = 182;
 
 export function spendingCalendarStart(now: Date): Date {
-	return addDays(startOfDay(now), -(SPENDING_CALENDAR_DAYS - 1));
+    return addDays(startOfDay(now), -(SPENDING_CALENDAR_DAYS - 1));
 }
 
 export function spendingCalendarQuery(db: SpendDb, now: Date) {
-	return db
-		.select({
-			amount: sum(transactions.amount),
-			amountUsd: sum(transactions.amountUsd),
-			currency: transactions.currency,
-			date: transactions.day,
-			dateKey: UTC_DAY,
-			exchangeRate: transactions.exchangeRate,
-			exchangeRateType: transactions.exchangeRateType,
-			income: transactions.income,
-		})
-		.from(transactions)
-		.where(
-			and(
-				eq(transactions.income, false),
-				isNull(transactions.deletedAt),
-				gte(transactions.date, spendingCalendarStart(now)),
-				lte(transactions.date, now)
-			)
-		)
-		.groupBy(
-			transactions.currency,
-			transactions.income,
-			transactions.day,
-			UTC_DAY,
-			transactions.exchangeRate,
-			transactions.exchangeRateType,
-			isNull(transactions.amountUsd)
-		);
+    return db
+        .select({
+            amount: sum(transactions.amount),
+            amountUsd: sum(transactions.amountUsd),
+            currency: transactions.currency,
+            date: transactions.day,
+            dateKey: UTC_DAY,
+            exchangeRate: transactions.exchangeRate,
+            exchangeRateType: transactions.exchangeRateType,
+            income: transactions.income,
+        })
+        .from(transactions)
+        .where(
+            and(
+                eq(transactions.income, false),
+                isNull(transactions.deletedAt),
+                gte(transactions.date, spendingCalendarStart(now)),
+                lte(transactions.date, now)
+            )
+        )
+        .groupBy(
+            transactions.currency,
+            transactions.income,
+            transactions.day,
+            UTC_DAY,
+            transactions.exchangeRate,
+            transactions.exchangeRateType,
+            isNull(transactions.amountUsd)
+        );
 }
 
 function normalizeRows(
-	rows: Awaited<ReturnType<ReturnType<typeof spendingCalendarQuery>["execute"]>>
+    rows: Awaited<ReturnType<ReturnType<typeof spendingCalendarQuery>["execute"]>>
 ): SpendingCalendarRow[] {
-	return rows.map((row) => ({
-		amount: Number(row.amount ?? 0),
-		amountUsd: row.amountUsd === null ? null : Number(row.amountUsd),
-		currency: row.currency,
-		date: row.date,
-		exchangeRate: row.exchangeRate,
-		exchangeRateType: row.exchangeRateType,
-		income: row.income,
-		valuationDate: new Date(`${row.dateKey}T00:00:00.000Z`),
-	}));
+    return rows.map((row) => ({
+        amount: Number(row.amount ?? 0),
+        amountUsd: row.amountUsd === null ? null : Number(row.amountUsd),
+        currency: row.currency,
+        date: row.date,
+        exchangeRate: row.exchangeRate,
+        exchangeRateType: row.exchangeRateType,
+        income: row.income,
+        valuationDate: new Date(`${row.dateKey}T00:00:00.000Z`),
+    }));
 }
 
 export function useSpendingCalendar(db: Database, nowMs: number): SpendingCalendarEntry[] {
-	const rows = useLiveQuery(transactions, () => spendingCalendarQuery(db, new Date(nowMs)), [nowMs]);
-	const valuation = useValuation(db);
+    const rows = useLiveQuery(transactions, () => spendingCalendarQuery(db, new Date(nowMs)), [nowMs]);
+    const valuation = useValuation(db);
 
-	return useMemo(
-		() => spendingCalendarEntries(normalizeRows(rows), valuation, new Date(nowMs)),
-		[rows, valuation, nowMs]
-	);
+    return useMemo(
+        () => spendingCalendarEntries(normalizeRows(rows), valuation, new Date(nowMs)),
+        [rows, valuation, nowMs]
+    );
 }

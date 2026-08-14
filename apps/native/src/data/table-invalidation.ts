@@ -16,20 +16,20 @@ const listeners = new Map<string, Set<Listener>>();
  * it under the node test runner.
  */
 export function subscribeToTable(tableName: string, listener: Listener): () => void {
-	const existing = listeners.get(tableName) ?? new Set<Listener>();
-	existing.add(listener);
-	listeners.set(tableName, existing);
+    const existing = listeners.get(tableName) ?? new Set<Listener>();
+    existing.add(listener);
+    listeners.set(tableName, existing);
 
-	return () => {
-		const current = listeners.get(tableName);
-		if (!current) {
-			return;
-		}
-		current.delete(listener);
-		if (current.size === 0) {
-			listeners.delete(tableName);
-		}
-	};
+    return () => {
+        const current = listeners.get(tableName);
+        if (!current) {
+            return;
+        }
+        current.delete(listener);
+        if (current.size === 0) {
+            listeners.delete(tableName);
+        }
+    };
 }
 
 /**
@@ -37,17 +37,18 @@ export function subscribeToTable(tableName: string, listener: Listener): () => v
  * notified cannot skip the one after it.
  */
 export function invalidate(tableName: string): void {
-	const current = listeners.get(tableName);
-	if (!current) {
-		return;
-	}
-	for (const listener of [...current]) {
-		listener();
-	}
+    const current = listeners.get(tableName);
+    if (!current) {
+        return;
+    }
+    // oxlint-disable-next-line unicorn/no-useless-spread -- a listener can detach while being notified, which would skip the one after it
+    for (const listener of [...current]) {
+        listener();
+    }
 }
 
 export function invalidateAll(tableNames: Iterable<string>): void {
-	for (const tableName of new Set(tableNames)) {
-		invalidate(tableName);
-	}
+    for (const tableName of new Set(tableNames)) {
+        invalidate(tableName);
+    }
 }

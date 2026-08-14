@@ -1,9 +1,10 @@
 import type { Database } from "@/db/client";
 import { parseFavourites, serialiseFavourites, toggleFavourite } from "@/domain/favourite-currencies";
+
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 
 export async function readFavourites(db: Database): Promise<string[]> {
-	return parseFavourites(await getMeta(db, META_KEYS.favouriteCurrencies));
+    return parseFavourites(await getMeta(db, META_KEYS.favouriteCurrencies));
 }
 
 /**
@@ -14,7 +15,7 @@ export async function readFavourites(db: Database): Promise<string[]> {
  * as a scroll — stays in screen state and never comes through here.
  */
 export async function writeFavourites(db: Database, codes: readonly string[]): Promise<void> {
-	await setMeta(db, META_KEYS.favouriteCurrencies, serialiseFavourites(codes));
+    await setMeta(db, META_KEYS.favouriteCurrencies, serialiseFavourites(codes));
 }
 
 /**
@@ -38,13 +39,13 @@ let queue: Promise<unknown> = Promise.resolve();
  * but leaves stored.
  */
 export function toggleFavouriteCurrency(db: Database, code: string): Promise<string[]> {
-	const run = queue.then(async () => {
-		const next = toggleFavourite(await readFavourites(db), code);
-		await writeFavourites(db, next);
-		return next;
-	});
-	queue = run.catch(() => {
-		// Swallowed so one failed write does not poison the queue.
-	});
-	return run;
+    const run = queue.then(async () => {
+        const next = toggleFavourite(await readFavourites(db), code);
+        await writeFavourites(db, next);
+        return next;
+    });
+    queue = run.catch(() => {
+        // Swallowed so one failed write does not poison the queue.
+    });
+    return run;
 }

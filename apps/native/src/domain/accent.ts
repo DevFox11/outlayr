@@ -15,12 +15,12 @@ import type { TranslationKey } from "@/i18n/catalog";
  * and it is the reason three of these are not the hue's "obvious" value.
  */
 export interface Accent {
-	dark: string;
-	key: AccentKey;
-	label: TranslationKey;
-	light: string;
-	/** Stored in the `accentColor` setting. Append only; never renumber. */
-	value: number;
+    dark: string;
+    key: AccentKey;
+    label: TranslationKey;
+    light: string;
+    /** Stored in the `accentColor` setting. Append only; never renumber. */
+    value: number;
 }
 
 export type AccentKey = "vermilion" | "plum" | "ochre" | "prussian" | "pine";
@@ -36,18 +36,18 @@ export type AccentKey = "vermilion" | "plum" | "ochre" | "prussian" | "pine";
  * the darkest plane the light theme paints.
  */
 export const ACCENTS: readonly Accent[] = [
-	{ dark: "#ec603b", key: "vermilion", label: "settings.theme.vermilion", light: "#c2371b", value: 0 },
-	{ dark: "#be68e1", key: "plum", label: "settings.theme.plum", light: "#9742b9", value: 1 },
-	{ dark: "#c57d00", key: "ochre", label: "settings.theme.ochre", light: "#965e00", value: 2 },
-	{ dark: "#0092e6", key: "prussian", label: "settings.theme.prussian", light: "#006fb0", value: 3 },
-	{ dark: "#00a15c", key: "pine", label: "settings.theme.pine", light: "#007b45", value: 4 },
+    { dark: "#ec603b", key: "vermilion", label: "settings.theme.vermilion", light: "#c2371b", value: 0 },
+    { dark: "#be68e1", key: "plum", label: "settings.theme.plum", light: "#9742b9", value: 1 },
+    { dark: "#c57d00", key: "ochre", label: "settings.theme.ochre", light: "#965e00", value: 2 },
+    { dark: "#0092e6", key: "prussian", label: "settings.theme.prussian", light: "#006fb0", value: 3 },
+    { dark: "#00a15c", key: "pine", label: "settings.theme.pine", light: "#007b45", value: 4 },
 ];
 
 export const [DEFAULT_ACCENT] = ACCENTS;
 
 /** Falls back to the default rather than throwing: the value comes from storage. */
 export function accentForValue(value: number): Accent {
-	return ACCENTS.find((accent) => accent.value === value) ?? DEFAULT_ACCENT;
+    return ACCENTS.find((accent) => accent.value === value) ?? DEFAULT_ACCENT;
 }
 
 /**
@@ -62,6 +62,6 @@ export function accentForValue(value: number): Accent {
  * user already has, and the accent is chrome where the ramp is taxonomy.
  */
 export function accentVariables(accent: Accent, theme: "light" | "dark"): Record<string, string> {
-	const value = theme === "dark" ? accent.dark : accent.light;
-	return { "--color-ring": value, "--tint": value };
+    const value = theme === "dark" ? accent.dark : accent.light;
+    return { "--color-ring": value, "--tint": value };
 }

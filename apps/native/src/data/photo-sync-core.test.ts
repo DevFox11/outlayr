@@ -1,17 +1,13 @@
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import { accounts, transactions } from "@/db/schema";
+
 import type { SpendDb } from "./budget-spent";
 import type { PhotoFiles } from "./photo-store-core";
-import {
-	downloadPhotos,
-	PHOTO_SYNC_BATCH,
-	type PhotoTransport,
-	photoNameFromKey,
-	runPhotoSync,
-	uploadPhotos,
-} from "./photo-sync-core";
+import { downloadPhotos, PHOTO_SYNC_BATCH, photoNameFromKey, runPhotoSync, uploadPhotos } from "./photo-sync-core";
+import type { PhotoTransport } from "./photo-sync-core";
 
 const DIRECTORY = "file:///container-a/Documents/transaction-photos";
 const PEER_DIRECTORY = "file:///container-b/Documents/transaction-photos";
@@ -19,8 +15,8 @@ const NOW = new Date(Date.UTC(2026, 6, 29, 12));
 const USER = "user-aaaa";
 
 function makeDb(): SpendDb {
-	const sqlite = new BetterSqlite3(":memory:");
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    sqlite.exec(`
 		CREATE TABLE transactions (
 			id text PRIMARY KEY NOT NULL,
 			amount real NOT NULL,
@@ -72,106 +68,106 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-	return drizzle(sqlite) as unknown as SpendDb;
+    return drizzle(sqlite) as unknown as SpendDb;
 }
 
 const EARLIER = new Date(Date.UTC(2026, 6, 1));
 
 async function insert(db: SpendDb, id: string, values: { imageUri?: string | null; imageKey?: string | null } = {}) {
-	await db.insert(transactions).values({
-		amount: 10,
-		date: NOW,
-		day: NOW,
-		deletedAt: null,
-		id,
-		imageKey: values.imageKey ?? null,
-		imageUri: values.imageUri ?? null,
-		income: false,
-		month: NOW,
-		note: id,
-		updatedAt: EARLIER,
-	});
+    await db.insert(transactions).values({
+        amount: 10,
+        date: NOW,
+        day: NOW,
+        deletedAt: null,
+        id,
+        imageKey: values.imageKey ?? null,
+        imageUri: values.imageUri ?? null,
+        income: false,
+        month: NOW,
+        note: id,
+        updatedAt: EARLIER,
+    });
 }
 
 async function readRow(db: SpendDb, id: string) {
-	const rows = await db
-		.select({
-			imageKey: transactions.imageKey,
-			imageUri: transactions.imageUri,
-			updatedAt: transactions.updatedAt,
-		})
-		.from(transactions)
-		.where(eq(transactions.id, id));
-	return rows[0];
+    const rows = await db
+        .select({
+            imageKey: transactions.imageKey,
+            imageUri: transactions.imageUri,
+            updatedAt: transactions.updatedAt,
+        })
+        .from(transactions)
+        .where(eq(transactions.id, id));
+    return rows[0];
 }
 
 async function insertAccount(
-	db: SpendDb,
-	id: string,
-	values: { imageUri?: string | null; imageKey?: string | null } = {}
+    db: SpendDb,
+    id: string,
+    values: { imageUri?: string | null; imageKey?: string | null } = {}
 ) {
-	await db.insert(accounts).values({
-		currency: "USD",
-		dateCreated: NOW,
-		deletedAt: null,
-		id,
-		imageKey: values.imageKey ?? null,
-		imageUri: values.imageUri ?? null,
-		initialBalance: 0,
-		initialBalanceDate: NOW,
-		name: id,
-		updatedAt: EARLIER,
-	});
+    await db.insert(accounts).values({
+        currency: "USD",
+        dateCreated: NOW,
+        deletedAt: null,
+        id,
+        imageKey: values.imageKey ?? null,
+        imageUri: values.imageUri ?? null,
+        initialBalance: 0,
+        initialBalanceDate: NOW,
+        name: id,
+        updatedAt: EARLIER,
+    });
 }
 
 async function readAccount(db: SpendDb, id: string) {
-	const rows = await db
-		.select({
-			imageKey: accounts.imageKey,
-			imageUri: accounts.imageUri,
-			updatedAt: accounts.updatedAt,
-		})
-		.from(accounts)
-		.where(eq(accounts.id, id));
-	return rows[0];
+    const rows = await db
+        .select({
+            imageKey: accounts.imageKey,
+            imageUri: accounts.imageUri,
+            updatedAt: accounts.updatedAt,
+        })
+        .from(accounts)
+        .where(eq(accounts.id, id));
+    return rows[0];
 }
 
 class FakeFiles implements PhotoFiles {
-	readonly directoryUri: string;
-	bytes = new Map<string, Uint8Array>();
+    readonly directoryUri: string;
+    bytes = new Map<string, Uint8Array>();
 
-	constructor(directoryUri = DIRECTORY, seeded: [string, string][] = []) {
-		this.directoryUri = directoryUri;
-		for (const [name, body] of seeded) {
-			this.bytes.set(name, new TextEncoder().encode(body));
-		}
-	}
+    constructor(directoryUri = DIRECTORY, seeded: [string, string][] = []) {
+        this.directoryUri = directoryUri;
+        for (const [name, body] of seeded) {
+            this.bytes.set(name, new TextEncoder().encode(body));
+        }
+    }
 
-	list() {
-		return [...this.bytes.keys()].map((name) => ({ modifiedAt: 0, name }));
-	}
+    list() {
+        return [...this.bytes.keys()].map((name) => ({ modifiedAt: 0, name }));
+    }
 
-	remove(name: string) {
-		this.bytes.delete(name);
-	}
+    remove(name: string) {
+        this.bytes.delete(name);
+    }
 
-	adopt() {
-		return false;
-	}
+    adopt() {
+        return false;
+    }
 
-	read(name: string) {
-		return this.bytes.get(name) ?? null;
-	}
+    read(name: string) {
+        return this.bytes.get(name) ?? null;
+    }
 
-	write(name: string, bytes: Uint8Array) {
-		this.bytes.set(name, bytes);
-	}
+    write(name: string, bytes: Uint8Array) {
+        this.bytes.set(name, bytes);
+    }
 }
 
 interface FakeBucket {
-	confirmed: string[];
-	objects: Map<string, Uint8Array>;
-	released: string[];
+    confirmed: string[];
+    objects: Map<string, Uint8Array>;
+    released: string[];
 }
 
 /**
@@ -180,360 +176,362 @@ interface FakeBucket {
  * string that is only meaningful to this bucket.
  */
 function fakeTransport(
-	bucket: FakeBucket = { confirmed: [], objects: new Map(), released: [] },
-	overrides: Partial<PhotoTransport> = {}
+    bucket: FakeBucket = { confirmed: [], objects: new Map(), released: [] },
+    overrides: Partial<PhotoTransport> = {}
 ): { bucket: FakeBucket; transport: PhotoTransport } {
-	const transport: PhotoTransport = {
-		async confirmUpload(key) {
-			bucket.confirmed.push(key);
-		},
-		async get(url) {
-			return bucket.objects.get(url.replace("https://r2.test/get/", "")) ?? null;
-		},
-		async put(url, bytes) {
-			bucket.objects.set(url.replace("https://r2.test/put/", ""), bytes);
-			// R2 addresses by key, so its PUT allocates nothing to report back.
-			return null;
-		},
-		async readUrls(keys) {
-			return keys.map((key) => ({ key, url: `https://r2.test/get/${key}` }));
-		},
-		async release(key) {
-			bucket.released.push(key);
-			bucket.objects.delete(key);
-		},
-		async requestUpload(name) {
-			const key = `transaction-photos/${USER}/${name}`;
-			return { key, url: `https://r2.test/put/${key}` };
-		},
-		...overrides,
-	};
-	return { bucket, transport };
+    const transport: PhotoTransport = {
+        async confirmUpload(key) {
+            bucket.confirmed.push(key);
+        },
+        async get(url) {
+            return bucket.objects.get(url.replace("https://r2.test/get/", "")) ?? null;
+        },
+        async put(url, bytes) {
+            bucket.objects.set(url.replace("https://r2.test/put/", ""), bytes);
+            // R2 addresses by key, so its PUT allocates nothing to report back.
+            return null;
+        },
+        async readUrls(keys) {
+            return keys.map((key) => ({ key, url: `https://r2.test/get/${key}` }));
+        },
+        async release(key) {
+            bucket.released.push(key);
+            bucket.objects.delete(key);
+        },
+        async requestUpload(name) {
+            const key = `transaction-photos/${USER}/${name}`;
+            return { key, url: `https://r2.test/put/${key}` };
+        },
+        ...overrides,
+    };
+    return { bucket, transport };
 }
 
 describe("photoNameFromKey", () => {
-	it("takes the name half the key was minted from", () => {
-		expect(photoNameFromKey(`transaction-photos/${USER}/abc.jpg`)).toBe("abc.jpg");
-	});
+    it("takes the name half the key was minted from", () => {
+        expect(photoNameFromKey(`transaction-photos/${USER}/abc.jpg`)).toBe("abc.jpg");
+    });
 
-	it("answers null for something that is not a key", () => {
-		expect(photoNameFromKey("abc.jpg")).toBe(null);
-		expect(photoNameFromKey("a/")).toBe(null);
-	});
+    it("answers null for something that is not a key", () => {
+        expect(photoNameFromKey("abc.jpg")).toBeNull();
+        expect(photoNameFromKey("a/")).toBeNull();
+    });
 });
 
 describe("uploadPhotos", () => {
-	it("sends the bytes and records the key", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		const { bucket, transport } = fakeTransport();
-		await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
+    it("sends the bytes and records the key", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        const { bucket, transport } = fakeTransport();
+        await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
 
-		const result = await uploadPhotos(db, files, transport, NOW);
+        const result = await uploadPhotos(db, files, transport, NOW);
 
-		expect(result.uploaded).toBe(1);
-		const row = await readRow(db, "t1");
-		expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
-		expect(bucket.objects.get(`transaction-photos/${USER}/a.jpg`)).toStrictEqual(new TextEncoder().encode("PHOTO"));
-		expect(bucket.confirmed).toStrictEqual([`transaction-photos/${USER}/a.jpg`]);
-	});
+        expect(result.uploaded).toBe(1);
+        const row = await readRow(db, "t1");
+        expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
+        expect(bucket.objects.get(`transaction-photos/${USER}/a.jpg`)).toStrictEqual(new TextEncoder().encode("PHOTO"));
+        expect(bucket.confirmed).toStrictEqual([`transaction-photos/${USER}/a.jpg`]);
+    });
 
-	it("bumps updatedAt so the key is not outranked by an older peer edit", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		const { transport } = fakeTransport();
-		await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
+    it("bumps updatedAt so the key is not outranked by an older peer edit", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        const { transport } = fakeTransport();
+        await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
 
-		await uploadPhotos(db, files, transport, NOW);
+        await uploadPhotos(db, files, transport, NOW);
 
-		expect((await readRow(db, "t1")).updatedAt.getTime()).toBe(NOW.getTime());
-	});
+        expect((await readRow(db, "t1")).updatedAt.getTime()).toBe(NOW.getTime());
+    });
 
-	it("is a no-op once the key already names the photo", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		const { bucket, transport } = fakeTransport();
-		await insert(db, "t1", {
-			imageKey: `transaction-photos/${USER}/a.jpg`,
-			imageUri: `${DIRECTORY}/a.jpg`,
-		});
+    it("is a no-op once the key already names the photo", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        const { bucket, transport } = fakeTransport();
+        await insert(db, "t1", {
+            imageKey: `transaction-photos/${USER}/a.jpg`,
+            imageUri: `${DIRECTORY}/a.jpg`,
+        });
 
-		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
-		expect(bucket.confirmed.length).toBe(0);
-	});
+        expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
+        expect(bucket.confirmed).toHaveLength(0);
+    });
 
-	it("re-uses the same key when a previous attempt died mid-PUT", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		const bucket: FakeBucket = {
-			confirmed: [],
-			objects: new Map(),
-			released: [],
-		};
-		const failing = fakeTransport(bucket, {
-			put() {
-				return Promise.reject(new Error("connection lost"));
-			},
-		});
-		await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
+    it("re-uses the same key when a previous attempt died mid-PUT", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        const bucket: FakeBucket = {
+            confirmed: [],
+            objects: new Map(),
+            released: [],
+        };
+        const failing = fakeTransport(bucket, {
+            put() {
+                return Promise.reject(new Error("connection lost"));
+            },
+        });
+        await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
 
-		await expect(uploadPhotos(db, files, failing.transport, NOW)).rejects.toThrow();
-		// Nothing recorded, so the row is still owed an upload.
-		expect((await readRow(db, "t1")).imageKey).toBe(null);
+        await expect(uploadPhotos(db, files, failing.transport, NOW)).rejects.toThrow();
+        // Nothing recorded, so the row is still owed an upload.
+        expect((await readRow(db, "t1")).imageKey).toBeNull();
 
-		const retry = fakeTransport(bucket);
-		expect((await uploadPhotos(db, files, retry.transport, NOW)).uploaded).toBe(1);
-		// One key, one object: the retry overwrote rather than orphaning.
-		expect([...bucket.objects.keys()]).toStrictEqual([`transaction-photos/${USER}/a.jpg`]);
-		expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
-	});
+        const retry = fakeTransport(bucket);
+        expect((await uploadPhotos(db, files, retry.transport, NOW)).uploaded).toBe(1);
+        // One key, one object: the retry overwrote rather than orphaning.
+        expect([...bucket.objects.keys()]).toStrictEqual([`transaction-photos/${USER}/a.jpg`]);
+        expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
+    });
 
-	it("releases the superseded object when the photo is replaced", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [
-			["old.jpg", "OLD"],
-			["new.jpg", "NEW"],
-		]);
-		const { bucket, transport } = fakeTransport();
-		bucket.objects.set(`transaction-photos/${USER}/old.jpg`, new TextEncoder().encode("OLD"));
-		await insert(db, "t1", {
-			imageKey: `transaction-photos/${USER}/old.jpg`,
-			imageUri: `${DIRECTORY}/new.jpg`,
-		});
+    it("releases the superseded object when the photo is replaced", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [
+            ["old.jpg", "OLD"],
+            ["new.jpg", "NEW"],
+        ]);
+        const { bucket, transport } = fakeTransport();
+        bucket.objects.set(`transaction-photos/${USER}/old.jpg`, new TextEncoder().encode("OLD"));
+        await insert(db, "t1", {
+            imageKey: `transaction-photos/${USER}/old.jpg`,
+            imageUri: `${DIRECTORY}/new.jpg`,
+        });
 
-		const result = await uploadPhotos(db, files, transport, NOW);
+        const result = await uploadPhotos(db, files, transport, NOW);
 
-		expect(result.released).toBe(1);
-		expect(bucket.released).toStrictEqual([`transaction-photos/${USER}/old.jpg`]);
-		expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/new.jpg`);
-	});
+        expect(result.released).toBe(1);
+        expect(bucket.released).toStrictEqual([`transaction-photos/${USER}/old.jpg`]);
+        expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/new.jpg`);
+    });
 
-	it("keeps the new key when releasing the old object fails", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["new.jpg", "NEW"]]);
-		const { transport } = fakeTransport(undefined, {
-			release() {
-				return Promise.reject(new Error("offline"));
-			},
-		});
-		await insert(db, "t1", {
-			imageKey: `transaction-photos/${USER}/old.jpg`,
-			imageUri: `${DIRECTORY}/new.jpg`,
-		});
+    it("keeps the new key when releasing the old object fails", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["new.jpg", "NEW"]]);
+        const { transport } = fakeTransport(undefined, {
+            release() {
+                return Promise.reject(new Error("offline"));
+            },
+        });
+        await insert(db, "t1", {
+            imageKey: `transaction-photos/${USER}/old.jpg`,
+            imageUri: `${DIRECTORY}/new.jpg`,
+        });
 
-		const result = await uploadPhotos(db, files, transport, NOW);
+        const result = await uploadPhotos(db, files, transport, NOW);
 
-		expect(result.uploaded).toBe(1);
-		expect(result.released).toBe(0);
-		expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/new.jpg`);
-	});
+        expect(result.uploaded).toBe(1);
+        expect(result.released).toBe(0);
+        expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/new.jpg`);
+    });
 
-	it("skips a row whose file the reconciliation has yet to repair", async () => {
-		const db = makeDb();
-		const files = new FakeFiles();
-		const { bucket, transport } = fakeTransport();
-		await insert(db, "t1", { imageUri: `${DIRECTORY}/gone.jpg` });
+    it("skips a row whose file the reconciliation has yet to repair", async () => {
+        const db = makeDb();
+        const files = new FakeFiles();
+        const { bucket, transport } = fakeTransport();
+        await insert(db, "t1", { imageUri: `${DIRECTORY}/gone.jpg` });
 
-		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
-		expect(bucket.confirmed.length).toBe(0);
-		expect((await readRow(db, "t1")).imageKey).toBe(null);
-	});
+        expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
+        expect(bucket.confirmed).toHaveLength(0);
+        expect((await readRow(db, "t1")).imageKey).toBeNull();
+    });
 
-	it("stops at the batch size", async () => {
-		const db = makeDb();
-		const seeded: [string, string][] = [];
-		for (let i = 0; i < PHOTO_SYNC_BATCH + 3; i += 1) {
-			seeded.push([`p${i}.jpg`, `BODY${i}`]);
-		}
-		const files = new FakeFiles(DIRECTORY, seeded);
-		const { transport } = fakeTransport();
-		for (let i = 0; i < PHOTO_SYNC_BATCH + 3; i += 1) {
-			await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
-		}
+    it("stops at the batch size", async () => {
+        const db = makeDb();
+        const seeded: [string, string][] = [];
+        for (let i = 0; i < PHOTO_SYNC_BATCH + 3; i += 1) {
+            seeded.push([`p${i}.jpg`, `BODY${i}`]);
+        }
+        const files = new FakeFiles(DIRECTORY, seeded);
+        const { transport } = fakeTransport();
+        for (let i = 0; i < PHOTO_SYNC_BATCH + 3; i += 1) {
+            await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
+        }
 
-		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(PHOTO_SYNC_BATCH);
-	});
+        expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(PHOTO_SYNC_BATCH);
+    });
 
-	it("sends an account logo and records its key", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["logo.jpg", "LOGO"]]);
-		const { bucket, transport } = fakeTransport();
-		await insertAccount(db, "a1", { imageUri: `${DIRECTORY}/logo.jpg` });
+    it("sends an account logo and records its key", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["logo.jpg", "LOGO"]]);
+        const { bucket, transport } = fakeTransport();
+        await insertAccount(db, "a1", { imageUri: `${DIRECTORY}/logo.jpg` });
 
-		const result = await uploadPhotos(db, files, transport, NOW);
+        const result = await uploadPhotos(db, files, transport, NOW);
 
-		expect(result.uploaded).toBe(1);
-		const row = await readAccount(db, "a1");
-		expect(row.imageKey).toBe(`transaction-photos/${USER}/logo.jpg`);
-		expect(row.updatedAt.getTime()).toBe(NOW.getTime());
-		expect(bucket.objects.get(`transaction-photos/${USER}/logo.jpg`)).toStrictEqual(new TextEncoder().encode("LOGO"));
-	});
+        expect(result.uploaded).toBe(1);
+        const row = await readAccount(db, "a1");
+        expect(row.imageKey).toBe(`transaction-photos/${USER}/logo.jpg`);
+        expect(row.updatedAt.getTime()).toBe(NOW.getTime());
+        expect(bucket.objects.get(`transaction-photos/${USER}/logo.jpg`)).toStrictEqual(
+            new TextEncoder().encode("LOGO")
+        );
+    });
 
-	it("spends one batch across every table rather than one each", async () => {
-		const db = makeDb();
-		const seeded: [string, string][] = [["logo.jpg", "LOGO"]];
-		for (let i = 0; i < PHOTO_SYNC_BATCH; i += 1) {
-			seeded.push([`p${i}.jpg`, `BODY${i}`]);
-		}
-		const files = new FakeFiles(DIRECTORY, seeded);
-		const { transport } = fakeTransport();
-		for (let i = 0; i < PHOTO_SYNC_BATCH; i += 1) {
-			await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
-		}
-		await insertAccount(db, "a1", { imageUri: `${DIRECTORY}/logo.jpg` });
+    it("spends one batch across every table rather than one each", async () => {
+        const db = makeDb();
+        const seeded: [string, string][] = [["logo.jpg", "LOGO"]];
+        for (let i = 0; i < PHOTO_SYNC_BATCH; i += 1) {
+            seeded.push([`p${i}.jpg`, `BODY${i}`]);
+        }
+        const files = new FakeFiles(DIRECTORY, seeded);
+        const { transport } = fakeTransport();
+        for (let i = 0; i < PHOTO_SYNC_BATCH; i += 1) {
+            await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
+        }
+        await insertAccount(db, "a1", { imageUri: `${DIRECTORY}/logo.jpg` });
 
-		expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(PHOTO_SYNC_BATCH);
-		// Left for the next pass, not silently skipped.
-		expect((await readAccount(db, "a1")).imageKey).toBe(null);
-	});
+        expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(PHOTO_SYNC_BATCH);
+        // Left for the next pass, not silently skipped.
+        expect((await readAccount(db, "a1")).imageKey).toBeNull();
+    });
 });
 
 describe("downloadPhotos", () => {
-	it("fetches a photo whose row arrived first", async () => {
-		const db = makeDb();
-		const peer = new FakeFiles(PEER_DIRECTORY);
-		const { bucket, transport } = fakeTransport();
-		bucket.objects.set(`transaction-photos/${USER}/a.jpg`, new TextEncoder().encode("PHOTO"));
-		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
+    it("fetches a photo whose row arrived first", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { bucket, transport } = fakeTransport();
+        bucket.objects.set(`transaction-photos/${USER}/a.jpg`, new TextEncoder().encode("PHOTO"));
+        await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-		expect(await downloadPhotos(db, peer, transport)).toBe(1);
-		expect(peer.read("a.jpg")).toStrictEqual(new TextEncoder().encode("PHOTO"));
-		expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
-	});
+        expect(await downloadPhotos(db, peer, transport)).toBe(1);
+        expect(peer.read("a.jpg")).toStrictEqual(new TextEncoder().encode("PHOTO"));
+        expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
+    });
 
-	it("leaves the row renderable through the existing fallback until the bytes land", async () => {
-		const db = makeDb();
-		const peer = new FakeFiles(PEER_DIRECTORY);
-		const { transport } = fakeTransport();
-		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
+    it("leaves the row renderable through the existing fallback until the bytes land", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { transport } = fakeTransport();
+        await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-		// The object is not in the bucket yet — the row got here first.
-		expect(await downloadPhotos(db, peer, transport)).toBe(0);
-		const row = await readRow(db, "t1");
-		expect(row.imageUri).toBe(null);
-		// The key survives, so the next pass retries rather than giving up.
-		expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
-	});
+        // The object is not in the bucket yet — the row got here first.
+        expect(await downloadPhotos(db, peer, transport)).toBe(0);
+        const row = await readRow(db, "t1");
+        expect(row.imageUri).toBeNull();
+        // The key survives, so the next pass retries rather than giving up.
+        expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
+    });
 
-	it("keeps the key when the object was deleted out from under the fetch", async () => {
-		const db = makeDb();
-		const peer = new FakeFiles(PEER_DIRECTORY);
-		const { transport } = fakeTransport(undefined, {
-			// The url was minted, then the delete landed.
-			get: async () => null,
-		});
-		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
+    it("keeps the key when the object was deleted out from under the fetch", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { transport } = fakeTransport(undefined, {
+            // The url was minted, then the delete landed.
+            get: async () => null,
+        });
+        await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-		expect(await downloadPhotos(db, peer, transport)).toBe(0);
-		expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
-	});
+        expect(await downloadPhotos(db, peer, transport)).toBe(0);
+        expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
+    });
 
-	it("re-points to a file already on disk without fetching", async () => {
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		let fetched = 0;
-		const { transport } = fakeTransport(undefined, {
-			async readUrls(keys) {
-				fetched += keys.length;
-				return keys.map((key) => ({ key, url: `https://r2.test/get/${key}` }));
-			},
-		});
-		await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
+    it("re-points to a file already on disk without fetching", async () => {
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        let fetched = 0;
+        const { transport } = fakeTransport(undefined, {
+            async readUrls(keys) {
+                fetched += keys.length;
+                return keys.map((key) => ({ key, url: `https://r2.test/get/${key}` }));
+            },
+        });
+        await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-		await downloadPhotos(db, files, transport);
+        await downloadPhotos(db, files, transport);
 
-		expect(fetched).toBe(0);
-		expect((await readRow(db, "t1")).imageUri).toBe(`${DIRECTORY}/a.jpg`);
-	});
+        expect(fetched).toBe(0);
+        expect((await readRow(db, "t1")).imageUri).toBe(`${DIRECTORY}/a.jpg`);
+    });
 
-	it("does not touch a row the user cleared the photo from", async () => {
-		const db = makeDb();
-		const peer = new FakeFiles(PEER_DIRECTORY);
-		const { bucket, transport } = fakeTransport();
-		bucket.objects.set(`transaction-photos/${USER}/a.jpg`, new TextEncoder().encode("PHOTO"));
-		// Removing a photo clears both halves, so there is nothing to resurrect.
-		await insert(db, "t1", { imageKey: null, imageUri: null });
+    it("does not touch a row the user cleared the photo from", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { bucket, transport } = fakeTransport();
+        bucket.objects.set(`transaction-photos/${USER}/a.jpg`, new TextEncoder().encode("PHOTO"));
+        // Removing a photo clears both halves, so there is nothing to resurrect.
+        await insert(db, "t1", { imageKey: null, imageUri: null });
 
-		expect(await downloadPhotos(db, peer, transport)).toBe(0);
-		expect((await readRow(db, "t1")).imageUri).toBe(null);
-	});
+        expect(await downloadPhotos(db, peer, transport)).toBe(0);
+        expect((await readRow(db, "t1")).imageUri).toBeNull();
+    });
 
-	it("serves two rows sharing one photo from a single fetch", async () => {
-		const db = makeDb();
-		const peer = new FakeFiles(PEER_DIRECTORY);
-		const { bucket, transport } = fakeTransport();
-		const key = `transaction-photos/${USER}/a.jpg`;
-		bucket.objects.set(key, new TextEncoder().encode("PHOTO"));
-		await insert(db, "t1", { imageKey: key });
-		await insert(db, "t2", { imageKey: key });
+    it("serves two rows sharing one photo from a single fetch", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { bucket, transport } = fakeTransport();
+        const key = `transaction-photos/${USER}/a.jpg`;
+        bucket.objects.set(key, new TextEncoder().encode("PHOTO"));
+        await insert(db, "t1", { imageKey: key });
+        await insert(db, "t2", { imageKey: key });
 
-		expect(await downloadPhotos(db, peer, transport)).toBe(2);
-		expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
-		expect((await readRow(db, "t2")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
-	});
+        expect(await downloadPhotos(db, peer, transport)).toBe(2);
+        expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
+        expect((await readRow(db, "t2")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
+    });
 
-	it("fetches an account logo whose row arrived first", async () => {
-		const db = makeDb();
-		const peer = new FakeFiles(PEER_DIRECTORY);
-		const { bucket, transport } = fakeTransport();
-		bucket.objects.set(`transaction-photos/${USER}/logo.jpg`, new TextEncoder().encode("LOGO"));
-		await insertAccount(db, "a1", {
-			imageKey: `transaction-photos/${USER}/logo.jpg`,
-		});
+    it("fetches an account logo whose row arrived first", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { bucket, transport } = fakeTransport();
+        bucket.objects.set(`transaction-photos/${USER}/logo.jpg`, new TextEncoder().encode("LOGO"));
+        await insertAccount(db, "a1", {
+            imageKey: `transaction-photos/${USER}/logo.jpg`,
+        });
 
-		expect(await downloadPhotos(db, peer, transport)).toBe(1);
-		expect(peer.read("logo.jpg")).toStrictEqual(new TextEncoder().encode("LOGO"));
-		const row = await readAccount(db, "a1");
-		expect(row.imageUri).toBe(`${PEER_DIRECTORY}/logo.jpg`);
-		// The path is this handset's business; presenting it as an edit would burn
-		// a sequence number on every other device.
-		expect(row.updatedAt.getTime()).toBe(EARLIER.getTime());
-	});
+        expect(await downloadPhotos(db, peer, transport)).toBe(1);
+        expect(peer.read("logo.jpg")).toStrictEqual(new TextEncoder().encode("LOGO"));
+        const row = await readAccount(db, "a1");
+        expect(row.imageUri).toBe(`${PEER_DIRECTORY}/logo.jpg`);
+        // The path is this handset's business; presenting it as an edit would burn
+        // a sequence number on every other device.
+        expect(row.updatedAt.getTime()).toBe(EARLIER.getTime());
+    });
 });
 
 describe("runPhotoSync", () => {
-	it("carries a photo from one device to another through the bucket", async () => {
-		const bucket: FakeBucket = {
-			confirmed: [],
-			objects: new Map(),
-			released: [],
-		};
+    it("carries a photo from one device to another through the bucket", async () => {
+        const bucket: FakeBucket = {
+            confirmed: [],
+            objects: new Map(),
+            released: [],
+        };
 
-		const deviceA = makeDb();
-		const filesA = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		await insert(deviceA, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
-		await runPhotoSync(deviceA, filesA, fakeTransport(bucket).transport, NOW);
+        const deviceA = makeDb();
+        const filesA = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        await insert(deviceA, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
+        await runPhotoSync(deviceA, filesA, fakeTransport(bucket).transport, NOW);
 
-		const key = (await readRow(deviceA, "t1")).imageKey;
-		expect(key).toBe(`transaction-photos/${USER}/a.jpg`);
+        const key = (await readRow(deviceA, "t1")).imageKey;
+        expect(key).toBe(`transaction-photos/${USER}/a.jpg`);
 
-		// The replicated row reaches B carrying the key and nothing else about the
-		// photo — the path is A's and would not resolve here.
-		const deviceB = makeDb();
-		const filesB = new FakeFiles(PEER_DIRECTORY);
-		await insert(deviceB, "t1", { imageKey: key });
+        // The replicated row reaches B carrying the key and nothing else about the
+        // photo — the path is A's and would not resolve here.
+        const deviceB = makeDb();
+        const filesB = new FakeFiles(PEER_DIRECTORY);
+        await insert(deviceB, "t1", { imageKey: key });
 
-		const result = await runPhotoSync(deviceB, filesB, fakeTransport(bucket).transport, NOW);
+        const result = await runPhotoSync(deviceB, filesB, fakeTransport(bucket).transport, NOW);
 
-		expect(result.downloaded).toBe(1);
-		expect(filesB.read("a.jpg")).toStrictEqual(new TextEncoder().encode("PHOTO"));
-		expect((await readRow(deviceB, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
-	});
+        expect(result.downloaded).toBe(1);
+        expect(filesB.read("a.jpg")).toStrictEqual(new TextEncoder().encode("PHOTO"));
+        expect((await readRow(deviceB, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
+    });
 
-	it("is idempotent", async () => {
-		const bucket: FakeBucket = {
-			confirmed: [],
-			objects: new Map(),
-			released: [],
-		};
-		const db = makeDb();
-		const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
-		await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
+    it("is idempotent", async () => {
+        const bucket: FakeBucket = {
+            confirmed: [],
+            objects: new Map(),
+            released: [],
+        };
+        const db = makeDb();
+        const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);
+        await insert(db, "t1", { imageUri: `${DIRECTORY}/a.jpg` });
 
-		await runPhotoSync(db, files, fakeTransport(bucket).transport, NOW);
-		const second = await runPhotoSync(db, files, fakeTransport(bucket).transport, NOW);
+        await runPhotoSync(db, files, fakeTransport(bucket).transport, NOW);
+        const second = await runPhotoSync(db, files, fakeTransport(bucket).transport, NOW);
 
-		expect(second).toStrictEqual({ downloaded: 0, released: 0, uploaded: 0 });
-		expect(bucket.confirmed.length).toBe(1);
-	});
+        expect(second).toStrictEqual({ downloaded: 0, released: 0, uploaded: 0 });
+        expect(bucket.confirmed).toHaveLength(1);
+    });
 });

@@ -4,8 +4,8 @@ import addIcon from "@/assets/toolbar-icons/add.png";
 import closeIcon from "@/assets/toolbar-icons/close.png";
 import deleteIcon from "@/assets/toolbar-icons/delete.png";
 import doneIcon from "@/assets/toolbar-icons/done.png";
-import filterIcon from "@/assets/toolbar-icons/filter.png";
 import filterActiveIcon from "@/assets/toolbar-icons/filter-active.png";
+import filterIcon from "@/assets/toolbar-icons/filter.png";
 import moreIcon from "@/assets/toolbar-icons/more.png";
 import periodIcon from "@/assets/toolbar-icons/period.png";
 import reorderIcon from "@/assets/toolbar-icons/reorder.png";
@@ -29,27 +29,27 @@ import suggestionsOnIcon from "@/assets/toolbar-icons/suggestions-on.png";
  * bitmap.
  */
 const SOURCE = {
-	add: addIcon,
-	close: closeIcon,
-	delete: deleteIcon,
-	done: doneIcon,
-	filter: filterIcon,
-	filterActive: filterActiveIcon,
-	more: moreIcon,
-	period: periodIcon,
-	reorder: reorderIcon,
-	search: searchIcon,
-	showAll: showAllIcon,
-	showCategory: showCategoryIcon,
-	showDay: showDayIcon,
-	showMonth: showMonthIcon,
-	showRecurring: showRecurringIcon,
-	showTransfers: showTransfersIcon,
-	showType: showTypeIcon,
-	showUpcoming: showUpcomingIcon,
-	showWeek: showWeekIcon,
-	suggestionsOff: suggestionsOffIcon,
-	suggestionsOn: suggestionsOnIcon,
+    add: addIcon,
+    close: closeIcon,
+    delete: deleteIcon,
+    done: doneIcon,
+    filter: filterIcon,
+    filterActive: filterActiveIcon,
+    more: moreIcon,
+    period: periodIcon,
+    reorder: reorderIcon,
+    search: searchIcon,
+    showAll: showAllIcon,
+    showCategory: showCategoryIcon,
+    showDay: showDayIcon,
+    showMonth: showMonthIcon,
+    showRecurring: showRecurringIcon,
+    showTransfers: showTransfersIcon,
+    showType: showTypeIcon,
+    showUpcoming: showUpcomingIcon,
+    showWeek: showWeekIcon,
+    suggestionsOff: suggestionsOffIcon,
+    suggestionsOn: suggestionsOnIcon,
 } as const;
 
 export type ToolbarIconName = keyof typeof SOURCE;
@@ -60,7 +60,7 @@ export type ToolbarIconName = keyof typeof SOURCE;
  * without it iOS never tints them.
  */
 export function toolbarIcon(name: ToolbarIconName) {
-	return { icon: SOURCE[name], iconRenderingMode: "template" } as const;
+    return { icon: SOURCE[name], iconRenderingMode: "template" } as const;
 }
 
 /**
@@ -68,6 +68,6 @@ export function toolbarIcon(name: ToolbarIconName) {
  * reads only `image`, which wants a loaded image rather than a source.
  */
 export function useToolbarIcon(name: ToolbarIconName) {
-	const image = useImage(SOURCE[name]);
-	return { iconRenderingMode: "template", image } as const;
+    const image = useImage(SOURCE[name]);
+    return { iconRenderingMode: "template", image } as const;
 }

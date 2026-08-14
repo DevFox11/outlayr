@@ -1,8 +1,8 @@
 import { env } from "@outlayr/env/native";
 import {
-	GoogleOneTapSignIn,
-	isNoSavedCredentialFoundResponse,
-	isSuccessResponse,
+    GoogleOneTapSignIn,
+    isNoSavedCredentialFoundResponse,
+    isSuccessResponse,
 } from "react-native-nitro-google-signin";
 
 const webClientId = env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
@@ -20,24 +20,24 @@ export const isGoogleSignInAvailable = Boolean(webClientId);
  * credential to offer.
  */
 export async function googleIdToken(): Promise<string | null> {
-	if (!webClientId) {
-		return null;
-	}
+    if (!webClientId) {
+        return null;
+    }
 
-	GoogleOneTapSignIn.configure({
-		iosClientId: env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS ?? null,
-		webClientId,
-	});
+    GoogleOneTapSignIn.configure({
+        iosClientId: env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS ?? null,
+        webClientId,
+    });
 
-	await GoogleOneTapSignIn.checkPlayServices();
+    await GoogleOneTapSignIn.checkPlayServices();
 
-	let response = await GoogleOneTapSignIn.signIn();
-	if (isNoSavedCredentialFoundResponse(response)) {
-		response = await GoogleOneTapSignIn.createAccount();
-	}
-	if (isNoSavedCredentialFoundResponse(response)) {
-		response = await GoogleOneTapSignIn.presentExplicitSignIn();
-	}
+    let response = await GoogleOneTapSignIn.signIn();
+    if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.createAccount();
+    }
+    if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.presentExplicitSignIn();
+    }
 
-	return isSuccessResponse(response) ? response.data.idToken : null;
+    return isSuccessResponse(response) ? response.data.idToken : null;
 }

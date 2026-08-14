@@ -2,10 +2,12 @@ import { getTableName } from "drizzle-orm";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
+
 import type { Database } from "@/db/client";
 import { photoTransport } from "@/lib/convex";
 import { photoFiles } from "@/lib/photo-storage";
 import { debounce } from "@/lib/sync-cadence";
+
 import { PHOTO_TABLES } from "./photo-store-core";
 import { runPhotoSync } from "./photo-sync-core";
 import { isSyncEnabled } from "./sync-outbox-core";
@@ -33,60 +35,60 @@ const PHOTO_DEBOUNCE_MS = 5000;
  * the photo is already durable on the device that took it.
  */
 export function usePhotoSync(db: Database | null): void {
-	useEffect(() => {
-		if (db == null) {
-			return;
-		}
-		const transport = photoTransport();
+    useEffect(() => {
+        if (db == null) {
+            return;
+        }
+        const transport = photoTransport();
 
-		let running = false;
+        let running = false;
 
-		const cycle = async () => {
-			if (running) {
-				return;
-			}
-			running = true;
-			try {
-				if (!(await isSyncEnabled(db))) {
-					return;
-				}
-				const { downloaded } = await runPhotoSync(db, photoFiles, transport);
-				if (downloaded > 0) {
-					// Only a download changes what a screen can draw; an upload records
-					// a key nothing renders.
-					invalidateAll(PHOTO_TABLE_NAMES);
-				}
-			} catch (error) {
-				console.warn("[outlayr] photo sync failed", error);
-			} finally {
-				running = false;
-			}
-		};
+        const cycle = async () => {
+            if (running) {
+                return;
+            }
+            running = true;
+            try {
+                if (!(await isSyncEnabled(db))) {
+                    return;
+                }
+                const { downloaded } = await runPhotoSync(db, photoFiles, transport);
+                if (downloaded > 0) {
+                    // Only a download changes what a screen can draw; an upload records
+                    // a key nothing renders.
+                    invalidateAll(PHOTO_TABLE_NAMES);
+                }
+            } catch (error) {
+                console.warn("[outlayr] photo sync failed", error);
+            } finally {
+                running = false;
+            }
+        };
 
-		const schedule = debounce(PHOTO_DEBOUNCE_MS, () => {
-			cycle();
-		});
+        const schedule = debounce(PHOTO_DEBOUNCE_MS, () => {
+            cycle();
+        });
 
-		cycle();
+        cycle();
 
-		const listener = addDatabaseChangeListener((event) => {
-			if (PHOTO_TABLE_NAMES.includes(event.tableName)) {
-				schedule.schedule();
-			}
-		});
+        const listener = addDatabaseChangeListener((event) => {
+            if (PHOTO_TABLE_NAMES.includes(event.tableName)) {
+                schedule.schedule();
+            }
+        });
 
-		const subscription = AppState.addEventListener("change", (state) => {
-			if (state === "active") {
-				cycle();
-			} else if (state === "background") {
-				schedule.cancel();
-			}
-		});
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state === "active") {
+                cycle();
+            } else if (state === "background") {
+                schedule.cancel();
+            }
+        });
 
-		return () => {
-			schedule.cancel();
-			listener.remove();
-			subscription.remove();
-		};
-	}, [db]);
+        return () => {
+            schedule.cancel();
+            listener.remove();
+            subscription.remove();
+        };
+    }, [db]);
 }

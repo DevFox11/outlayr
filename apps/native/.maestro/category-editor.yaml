@@ -6,8 +6,8 @@ name: Category editor Form section survives extraction
 - openLink: outlayr://settings/categories/create
 
 - extendedWaitUntil:
-    visible: "New Category"
-    timeout: 30000
+      visible: "New Category"
+      timeout: 30000
 
 # The rows live inside a Section returned by a function component. A Form child
 # that @expo/ui refuses to lay out is proposed no height and collapses silently,

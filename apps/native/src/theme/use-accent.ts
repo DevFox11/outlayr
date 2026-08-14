@@ -1,7 +1,9 @@
 import { useLayoutEffect } from "react";
 import { Uniwind } from "uniwind";
+
 import { useSettingNumber } from "@/contexts/display-settings-context";
-import { type Accent, accentForValue, accentVariables } from "@/domain/accent";
+import { accentForValue, accentVariables } from "@/domain/accent";
+import type { Accent } from "@/domain/accent";
 
 /**
  * Applies the chosen accent to both themes and returns it.
@@ -19,12 +21,12 @@ import { type Accent, accentForValue, accentVariables } from "@/domain/accent";
  * an effect would paint one frame of vermilion first.
  */
 export function useAccent(): Accent {
-	const accent = accentForValue(useSettingNumber("accentColor"));
+    const accent = accentForValue(useSettingNumber("accentColor"));
 
-	useLayoutEffect(() => {
-		Uniwind.updateCSSVariables("light", accentVariables(accent, "light"));
-		Uniwind.updateCSSVariables("dark", accentVariables(accent, "dark"));
-	}, [accent]);
+    useLayoutEffect(() => {
+        Uniwind.updateCSSVariables("light", accentVariables(accent, "light"));
+        Uniwind.updateCSSVariables("dark", accentVariables(accent, "dark"));
+    }, [accent]);
 
-	return accent;
+    return accent;
 }

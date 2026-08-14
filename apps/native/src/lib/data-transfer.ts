@@ -1,6 +1,7 @@
 import { getDocumentAsync } from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
+
 import type { TranslationKey } from "@/i18n/catalog";
 
 /**
@@ -17,12 +18,13 @@ const CSV_TYPES = ["text/csv", "text/comma-separated-values", "text/plain"];
  * the failure.
  */
 export class TransferError extends Error {
-	readonly key: TranslationKey;
+    readonly key: TranslationKey;
 
-	constructor(key: TranslationKey, options?: ErrorOptions) {
-		super(key, options);
-		this.key = key;
-	}
+    constructor(key: TranslationKey, options?: ErrorOptions) {
+        super(key, options);
+        this.name = "TransferError";
+        this.key = key;
+    }
 }
 
 /**
@@ -31,38 +33,38 @@ export class TransferError extends Error {
  * destination the user has.
  */
 export async function shareText(text: string, fileName: string, mimeType: string, dialogTitle: string): Promise<void> {
-	if (!(await isAvailableAsync())) {
-		throw new TransferError("alerts.transfer.sharingUnavailable");
-	}
-	const file = new File(Paths.cache, fileName);
-	file.create({ intermediates: true, overwrite: true });
-	file.write(text);
-	await shareAsync(file.uri, { dialogTitle, mimeType });
+    if (!(await isAvailableAsync())) {
+        throw new TransferError("alerts.transfer.sharingUnavailable");
+    }
+    const file = new File(Paths.cache, fileName);
+    file.create({ intermediates: true, overwrite: true });
+    file.write(text);
+    await shareAsync(file.uri, { dialogTitle, mimeType });
 }
 
 export async function shareBytes(
-	bytes: Uint8Array,
-	fileName: string,
-	mimeType: string,
-	dialogTitle: string
+    bytes: Uint8Array,
+    fileName: string,
+    mimeType: string,
+    dialogTitle: string
 ): Promise<void> {
-	if (!(await isAvailableAsync())) {
-		throw new TransferError("alerts.transfer.sharingUnavailable");
-	}
-	const file = new File(Paths.cache, fileName);
-	file.create({ intermediates: true, overwrite: true });
-	file.write(bytes);
-	await shareAsync(file.uri, { dialogTitle, mimeType });
+    if (!(await isAvailableAsync())) {
+        throw new TransferError("alerts.transfer.sharingUnavailable");
+    }
+    const file = new File(Paths.cache, fileName);
+    file.create({ intermediates: true, overwrite: true });
+    file.write(bytes);
+    await shareAsync(file.uri, { dialogTitle, mimeType });
 }
 
 export interface PickedFile {
-	name: string;
-	text: string;
+    name: string;
+    text: string;
 }
 
 /** Null means the user backed out, which is not an error. */
 export async function pickCsvFile(): Promise<PickedFile | null> {
-	return await pickTextFile(CSV_TYPES);
+    return await pickTextFile(CSV_TYPES);
 }
 
 /**
@@ -72,25 +74,25 @@ export async function pickCsvFile(): Promise<PickedFile | null> {
  * `parseArchive` refuses anything it cannot vouch for.
  */
 export async function pickArchiveFile(): Promise<PickedFile | null> {
-	return await pickTextFile(["application/json", "public.json", "public.text"]);
+    return await pickTextFile(["application/json", "public.json", "public.text"]);
 }
 
 async function pickTextFile(type: string[]): Promise<PickedFile | null> {
-	const result = await getDocumentAsync({
-		copyToCacheDirectory: true,
-		multiple: false,
-		type,
-	});
-	const asset = result.canceled ? null : result.assets[0];
-	if (asset == null) {
-		return null;
-	}
+    const result = await getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+        type,
+    });
+    const asset = result.canceled ? null : result.assets[0];
+    if (asset == null) {
+        return null;
+    }
 
-	let text: string;
-	try {
-		text = await new File(asset.uri).text();
-	} catch (error) {
-		throw new TransferError("alerts.transfer.unreadableFile", { cause: error });
-	}
-	return { name: asset.name, text };
+    let text: string;
+    try {
+        text = await new File(asset.uri).text();
+    } catch (error) {
+        throw new TransferError("alerts.transfer.unreadableFile", { cause: error });
+    }
+    return { name: asset.name, text };
 }

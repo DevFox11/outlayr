@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+
 import type { Database } from "@/db/client";
-import { createDeferredDelete, type DeferredDeleteController } from "@/domain/deferred-delete";
+import { createDeferredDelete } from "@/domain/deferred-delete";
+import type { DeferredDeleteController } from "@/domain/deferred-delete";
 import { translateNow } from "@/i18n/runtime";
+
 import { transactionsRepo } from "./transactions-core";
 import { transfersRepo } from "./transfers-core";
 
 const UNDO_WINDOW_MS = 4000;
 
 interface DeferredDelete {
-	/** Id currently hidden from the list while its undo window is open, or null. */
-	pendingId: string | null;
-	/** Hides the row now and schedules the write for after the undo window. */
-	requestDelete: (id: string) => void;
-	undo: () => void;
+    /** Id currently hidden from the list while its undo window is open, or null. */
+    pendingId: string | null;
+    /** Hides the row now and schedules the write for after the undo window. */
+    requestDelete: (id: string) => void;
+    undo: () => void;
 }
 
 /**
@@ -34,60 +37,61 @@ interface DeferredDelete {
  * updates zero rows and rejects nothing.
  */
 export function useDeferredDelete(db: Database): DeferredDelete {
-	const [pendingId, setPendingId] = useState<string | null>(null);
-	const mountedRef = useRef(false);
-	// Read at commit time rather than captured: the controller outlives any one
-	// handle, and a delete must land in the database the screen is on now.
-	const dbRef = useRef(db);
-	const controllerRef = useRef<DeferredDeleteController | null>(null);
+    const [pendingId, setPendingId] = useState<string | null>(null);
+    const mountedRef = useRef(false);
+    // Read at commit time rather than captured: the controller outlives any one
+    // handle, and a delete must land in the database the screen is on now.
+    const dbRef = useRef(db);
+    const controllerRef = useRef<DeferredDeleteController | null>(null);
 
-	useEffect(() => {
-		dbRef.current = db;
-	}, [db]);
+    useEffect(() => {
+        dbRef.current = db;
+    }, [db]);
 
-	if (controllerRef.current === null) {
-		const created = createDeferredDelete({
-			commit: async (id) => {
-				const transfer = await transfersRepo.getById(dbRef.current, id);
-				await (transfer ? transfersRepo.softDelete(dbRef.current, id) : transactionsRepo.remove(dbRef.current, id));
-			},
-			onChange: (next) => {
-				// biome-ignore lint/suspicious/noUnnecessaryConditions: the mount effect flips mountedRef.current to true after this closure is built, so the guard is what stops a publish arriving post-unmount from calling setState
-				if (mountedRef.current) {
-					setPendingId(next.pendingId);
-				}
-				if (next.failedId === null) {
-					return;
-				}
-				Alert.alert(translateNow("log.delete.failedTitle"), translateNow("log.delete.failedBody"));
-				// Dropped as it is shown: the controller holds a failure until it is
-				// acknowledged, so leaving it set raises the same alert again on the
-				// next publish.
-				created.acknowledgeFailure();
-			},
-			timers: {
-				clear: (handle: ReturnType<typeof setTimeout>) => {
-					clearTimeout(handle);
-				},
-				set: (run: () => void, ms: number) => setTimeout(run, ms),
-			},
-			windowMs: UNDO_WINDOW_MS,
-		});
-		controllerRef.current = created;
-	}
-	const controller = controllerRef.current;
+    if (controllerRef.current === null) {
+        const created = createDeferredDelete({
+            commit: async (id) => {
+                const transfer = await transfersRepo.getById(dbRef.current, id);
+                await (transfer
+                    ? transfersRepo.softDelete(dbRef.current, id)
+                    : transactionsRepo.remove(dbRef.current, id));
+            },
+            onChange: (next) => {
+                if (mountedRef.current) {
+                    setPendingId(next.pendingId);
+                }
+                if (next.failedId === null) {
+                    return;
+                }
+                Alert.alert(translateNow("log.delete.failedTitle"), translateNow("log.delete.failedBody"));
+                // Dropped as it is shown: the controller holds a failure until it is
+                // acknowledged, so leaving it set raises the same alert again on the
+                // next publish.
+                created.acknowledgeFailure();
+            },
+            timers: {
+                clear: (handle: ReturnType<typeof setTimeout>) => {
+                    clearTimeout(handle);
+                },
+                set: (run: () => void, ms: number) => setTimeout(run, ms),
+            },
+            windowMs: UNDO_WINDOW_MS,
+        });
+        controllerRef.current = created;
+    }
+    const controller = controllerRef.current;
 
-	useEffect(() => {
-		mountedRef.current = true;
-		return () => {
-			mountedRef.current = false;
-			controller.flush();
-		};
-	}, [controller]);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            controller.flush();
+        };
+    }, [controller]);
 
-	return {
-		pendingId,
-		requestDelete: controller.requestDelete,
-		undo: controller.undo,
-	};
+    return {
+        pendingId,
+        requestDelete: controller.requestDelete,
+        undo: controller.undo,
+    };
 }

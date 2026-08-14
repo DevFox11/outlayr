@@ -19,89 +19,89 @@ import { Text, View } from "react-native";
 const LanguageContext = createContext("en");
 
 function Shallow() {
-	const language = useContext(LanguageContext);
-	return <Text testID="shallow">{language}</Text>;
+    const language = useContext(LanguageContext);
+    return <Text testID="shallow">{language}</Text>;
 }
 
 function Deep() {
-	const language = useContext(LanguageContext);
-	return <Text testID="deep">{language}</Text>;
+    const language = useContext(LanguageContext);
+    return <Text testID="deep">{language}</Text>;
 }
 
 function Parent() {
-	// Reads the context itself, like `BudgetBurndownHero`, and renders a child
-	// that reads it independently, like `HeroNumber`.
-	const language = useContext(LanguageContext);
-	return (
-		<View>
-			<Text testID="parent">{language}</Text>
-			<Shallow />
-			<View>
-				<View>
-					<Deep />
-				</View>
-			</View>
-		</View>
-	);
+    // Reads the context itself, like `BudgetBurndownHero`, and renders a child
+    // that reads it independently, like `HeroNumber`.
+    const language = useContext(LanguageContext);
+    return (
+        <View>
+            <Text testID="parent">{language}</Text>
+            <Shallow />
+            <View>
+                <View>
+                    <Deep />
+                </View>
+            </View>
+        </View>
+    );
 }
 
 function Harness() {
-	const [language, setLanguage] = useState("en");
-	const [frozen, setFrozen] = useState(false);
-	return (
-		<LanguageContext.Provider value={language}>
-			<Text
-				onPress={() => {
-					setFrozen(true);
-				}}
-				testID="freeze"
-			>
-				freeze
-			</Text>
-			<Text
-				onPress={() => {
-					setLanguage("es");
-				}}
-				testID="switch"
-			>
-				switch
-			</Text>
-			<Text
-				onPress={() => {
-					setFrozen(false);
-				}}
-				testID="thaw"
-			>
-				thaw
-			</Text>
-			<Freeze freeze={frozen}>
-				<Parent />
-			</Freeze>
-		</LanguageContext.Provider>
-	);
+    const [language, setLanguage] = useState("en");
+    const [frozen, setFrozen] = useState(false);
+    return (
+        <LanguageContext.Provider value={language}>
+            <Text
+                onPress={() => {
+                    setFrozen(true);
+                }}
+                testID="freeze"
+            >
+                freeze
+            </Text>
+            <Text
+                onPress={() => {
+                    setLanguage("es");
+                }}
+                testID="switch"
+            >
+                switch
+            </Text>
+            <Text
+                onPress={() => {
+                    setFrozen(false);
+                }}
+                testID="thaw"
+            >
+                thaw
+            </Text>
+            <Freeze freeze={frozen}>
+                <Parent />
+            </Freeze>
+        </LanguageContext.Provider>
+    );
 }
 
 describe("a context change that lands while the subtree is frozen", () => {
-	it("reaches every consumer once the subtree thaws", async () => {
-		await act(async () => {
-			render(<Harness />);
-		});
-		expect(screen.getByTestId("deep")).toHaveTextContent("en");
+    it("reaches every consumer once the subtree thaws", async () => {
+        await act(async () => {
+            render(<Harness />);
+        });
+        expect(screen.getByTestId("deep")).toHaveTextContent("en");
 
-		// Freeze, change the language behind it, then come back — the Budgets tab
-		// flow exactly.
-		await act(async () => {
-			screen.getByTestId("freeze").props.onPress();
-		});
-		await act(async () => {
-			screen.getByTestId("switch").props.onPress();
-		});
-		await act(async () => {
-			screen.getByTestId("thaw").props.onPress();
-		});
+        // Freeze, change the language behind it, then come back — the Budgets tab
+        // flow exactly.
+        await act(async () => {
+            screen.getByTestId("freeze").props.onPress();
+        });
+        await act(async () => {
+            screen.getByTestId("switch").props.onPress();
+        });
+        await act(async () => {
+            screen.getByTestId("thaw").props.onPress();
+        });
 
-		expect(screen.getByTestId("parent")).toHaveTextContent("es");
-		expect(screen.getByTestId("shallow")).toHaveTextContent("es");
-		expect(screen.getByTestId("deep")).toHaveTextContent("es");
-	});
+        expect(screen.getByTestId("parent")).toHaveTextContent("es");
+        expect(screen.getByTestId("shallow")).toHaveTextContent("es");
+        expect(screen.getByTestId("deep")).toHaveTextContent("es");
+    });
 });

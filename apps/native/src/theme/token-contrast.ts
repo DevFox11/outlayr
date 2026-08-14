@@ -21,23 +21,23 @@ const SIX_HEX_DIGITS = /^[0-9a-f]{6}$/i;
  * takes the strings a stylesheet declares.
  */
 export function relativeLuminance(hex: string): number {
-	const value = hex.trim().replace(LEADING_HASH, "");
-	if (!SIX_HEX_DIGITS.test(value)) {
-		throw new Error(`not a #RRGGBB hex: ${hex}`);
-	}
-	const int = Number.parseInt(value, 16);
-	// biome-ignore lint/suspicious/noBitwiseOperators: #RRGGBB parses to one packed 24-bit integer, and R/G/B are the byte lanes of that integer
-	const channels = [(int >> 16) & 255, (int >> 8) & 255, int & 255];
-	return channels.reduce((sum, channel, index) => {
-		const v = channel / 255;
-		const linear = v <= 0.039_28 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-		return sum + CHANNEL_WEIGHTS[index] * linear;
-	}, 0);
+    const value = hex.trim().replace(LEADING_HASH, "");
+    if (!SIX_HEX_DIGITS.test(value)) {
+        throw new Error(`not a #RRGGBB hex: ${hex}`);
+    }
+    const int = Number.parseInt(value, 16);
+    // oxlint-disable-next-line no-bitwise -- #RRGGBB parses to one packed 24-bit integer, and R/G/B are the byte lanes of that integer
+    const channels = [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+    return channels.reduce((sum, channel, index) => {
+        const v = channel / 255;
+        const linear = v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        return sum + CHANNEL_WEIGHTS[index] * linear;
+    }, 0);
 }
 
 /** WCAG 2.x contrast ratio between two `#RRGGBB` hexes, from 1 to 21. */
 export function contrastRatio(a: string, b: string): number {
-	const first = relativeLuminance(a);
-	const second = relativeLuminance(b);
-	return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+    const first = relativeLuminance(a);
+    const second = relativeLuminance(b);
+    return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 }

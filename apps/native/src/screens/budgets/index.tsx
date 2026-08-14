@@ -1,19 +1,20 @@
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Alert, ScrollView, View } from "react-native";
+
 import { MonoLabel } from "@/components/mono-label";
 import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import {
-	budgetsRepo,
-	compareBudgetSeverity,
-	useBurndown,
-	useBurndowns,
-	useExpenseContributions,
-	useMainBudget,
-	usePerCategoryBudgets,
+    budgetsRepo,
+    compareBudgetSeverity,
+    useBurndown,
+    useBurndowns,
+    useExpenseContributions,
+    useMainBudget,
+    usePerCategoryBudgets,
 } from "@/data/budgets";
 import { useCategoryMeta } from "@/data/categories";
 import { useSavingsGoals } from "@/data/savings-goals";
@@ -25,6 +26,7 @@ import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
 import { firstOfMonth } from "@/domain/dates";
 import { useTranslation } from "@/i18n/context";
 import { showBudgetActions } from "@/lib/budget-actions";
+
 import { BudgetBurndownHero } from "./components/budget-burndown-hero";
 import { BudgetCard } from "./components/budget-card";
 import { BudgetEmptyState } from "./components/budget-empty-state";
@@ -33,213 +35,213 @@ import { BudgetRow } from "./components/budget-row";
 import { SavingsGoalsSection } from "./components/savings-goals-section";
 
 export function Budgets() {
-	const db = useDatabase();
-	return <BudgetContent db={db} />;
+    const db = useDatabase();
+    return <BudgetContent db={db} />;
 }
 
 function pairs<T>(items: readonly T[]): [T, T | undefined][] {
-	const rows: [T, T | undefined][] = [];
-	for (let index = 0; index < items.length; index += 2) {
-		rows.push([items[index], items[index + 1]]);
-	}
-	return rows;
+    const rows: [T, T | undefined][] = [];
+    for (let index = 0; index < items.length; index += 2) {
+        rows.push([items[index], items[index + 1]]);
+    }
+    return rows;
 }
 
 function BudgetContent({ db }: { db: Database }) {
-	const router = useRouter();
-	const t = useTranslation();
-	const currency = useGlobalCurrency(db);
-	const asRows = useSettingBool("budgetViewStyle");
-	const { showCents } = useDisplaySettings().state;
-	const nowMs = useNow();
-	const goals = useSavingsGoals(db);
+    const router = useRouter();
+    const t = useTranslation();
+    const currency = useGlobalCurrency(db);
+    const asRows = useSettingBool("budgetViewStyle");
+    const { showCents } = useDisplaySettings().state;
+    const nowMs = useNow();
+    const goals = useSavingsGoals(db);
 
-	// One transactions subscription for the screen: every hook below derives from
-	// this list rather than opening its own listener.
-	const contributions = useExpenseContributions(db, nowMs);
-	const main = useMainBudget(db, nowMs, contributions);
-	const budgets = usePerCategoryBudgets(db, nowMs, contributions);
-	const mainBurndown = useBurndown(contributions, nowMs, main, null);
-	const dominant = useDominant(db, contributions, main, nowMs);
-	const burndowns = useBurndowns(contributions, nowMs, budgets);
+    // One transactions subscription for the screen: every hook below derives from
+    // this list rather than opening its own listener.
+    const contributions = useExpenseContributions(db, nowMs);
+    const main = useMainBudget(db, nowMs, contributions);
+    const budgets = usePerCategoryBudgets(db, nowMs, contributions);
+    const mainBurndown = useBurndown(contributions, nowMs, main, null);
+    const dominant = useDominant(db, contributions, main, nowMs);
+    const burndowns = useBurndowns(contributions, nowMs, budgets);
 
-	const ranked = useMemo(() => [...budgets].sort(compareBudgetSeverity), [budgets]);
-	const overCount = budgets.filter((budget) => budget.overBudget).length;
+    const ranked = useMemo(() => [...budgets].sort(compareBudgetSeverity), [budgets]);
+    const overCount = budgets.filter((budget) => budget.overBudget).length;
 
-	// Both reads run in render, so null/[] here means the user genuinely has no
-	// budgets — the pitch screen can be shown on it without flashing.
-	const isEmpty = main === null && budgets.length === 0;
+    // Both reads run in render, so null/[] here means the user genuinely has no
+    // budgets — the pitch screen can be shown on it without flashing.
+    const isEmpty = main === null && budgets.length === 0;
 
-	const monthWindow = useMemo(() => {
-		const start = firstOfMonth(new Date(nowMs));
-		return { end: periodEnd(start, BUDGET_TYPE.month), start };
-	}, [nowMs]);
+    const monthWindow = useMemo(() => {
+        const start = firstOfMonth(new Date(nowMs));
+        return { end: periodEnd(start, BUDGET_TYPE.month), start };
+    }, [nowMs]);
 
-	const monthToDate = useMemo(
-		() =>
-			isEmpty
-				? buildBurndown(contributions, {
-						limit: 0,
-						now: new Date(nowMs),
-						window: monthWindow,
-					})
-				: null,
-		[isEmpty, contributions, monthWindow, nowMs]
-	);
+    const monthToDate = useMemo(
+        () =>
+            isEmpty
+                ? buildBurndown(contributions, {
+                      limit: 0,
+                      now: new Date(nowMs),
+                      window: monthWindow,
+                  })
+                : null,
+        [isEmpty, contributions, monthWindow, nowMs]
+    );
 
-	const monthExpenseCount = useMemo(
-		() => contributions.filter((row) => row.date.getTime() >= monthWindow.start.getTime()).length,
-		[contributions, monthWindow]
-	);
+    const monthExpenseCount = useMemo(
+        () => contributions.filter((row) => row.date.getTime() >= monthWindow.start.getTime()).length,
+        [contributions, monthWindow]
+    );
 
-	// The write is async and the action sheet is already gone by the time it lands,
-	// so an unhandled rejection would leave the budget sitting in the list with
-	// nothing said about why the delete did not take.
-	const deleteBudget = (id: string) => {
-		budgetsRepo.deleteBudget(db, id).catch((error: unknown) => {
-			console.error("Failed to delete the budget", error);
-			Alert.alert(t("budgets.delete.failedTitle"), t("budgets.delete.failedBody"));
-		});
-	};
+    // The write is async and the action sheet is already gone by the time it lands,
+    // so an unhandled rejection would leave the budget sitting in the list with
+    // nothing said about why the delete did not take.
+    const deleteBudget = (id: string) => {
+        budgetsRepo.deleteBudget(db, id).catch((error: unknown) => {
+            console.error("Failed to delete the budget", error);
+            Alert.alert(t("budgets.delete.failedTitle"), t("budgets.delete.failedBody"));
+        });
+    };
 
-	const createMainBudget = async (amount: number) => {
-		try {
-			await budgetsRepo.createMainBudget(db, {
-				amount,
-				type: BUDGET_TYPE.month,
-			});
-		} catch (error) {
-			console.error("Failed to create the overall budget", error);
-			Alert.alert(t("budgets.save.failedTitle"), t("budgets.save.failedBody"));
-		}
-	};
+    const createMainBudget = async (amount: number) => {
+        try {
+            await budgetsRepo.createMainBudget(db, {
+                amount,
+                type: BUDGET_TYPE.month,
+            });
+        } catch (error) {
+            console.error("Failed to create the overall budget", error);
+            Alert.alert(t("budgets.save.failedTitle"), t("budgets.save.failedBody"));
+        }
+    };
 
-	const openActions = (id: string) => {
-		const budget = budgets.find((candidate) => candidate.id === id);
-		if (!budget) {
-			return;
-		}
-		showBudgetActions({
-			name: budget.name,
-			onDelete: () => deleteBudget(id),
-			onEdit: () => router.push(`/budgets/edit/${id}`),
-		});
-	};
+    const openActions = (id: string) => {
+        const budget = budgets.find((candidate) => candidate.id === id);
+        if (!budget) {
+            return;
+        }
+        showBudgetActions({
+            name: budget.name,
+            onDelete: () => deleteBudget(id),
+            onEdit: () => router.push(`/budgets/edit/${id}`),
+        });
+    };
 
-	if (isEmpty && monthToDate) {
-		return (
-			<View className="flex-1 items-center justify-center bg-background">
-				<BudgetEmptyState
-					burndown={monthToDate}
-					currency={currency}
-					onAddTransaction={() => router.push("/transactions/create")}
-					onCommit={createMainBudget}
-					sampleSize={monthExpenseCount}
-					windowStart={monthWindow.start}
-				/>
-			</View>
-		);
-	}
+    if (isEmpty && monthToDate) {
+        return (
+            <View className="bg-background flex-1 items-center justify-center">
+                <BudgetEmptyState
+                    burndown={monthToDate}
+                    currency={currency}
+                    onAddTransaction={() => router.push("/transactions/create")}
+                    onCommit={createMainBudget}
+                    sampleSize={monthExpenseCount}
+                    windowStart={monthWindow.start}
+                />
+            </View>
+        );
+    }
 
-	return (
-		<ScrollView
-			className="bg-background"
-			contentContainerStyle={{
-				// `NativeTabs` supplies the bar + safe-area inset; this only clears
-				// the floating add button.
-				paddingBottom: 100,
-				paddingHorizontal: 20,
-			}}
-			contentInsetAdjustmentBehavior="automatic"
-			style={{ flex: 1 }}
-		>
-			{main ? (
-				<BudgetBurndownHero
-					budget={main}
-					burndown={mainBurndown}
-					contributions={contributions}
-					currency={currency}
-					dominant={dominant}
-					nowMs={nowMs}
-					onPress={() => router.push("/budgets/overall")}
-				/>
-			) : null}
+    return (
+        <ScrollView
+            className="bg-background"
+            contentContainerStyle={{
+                // `NativeTabs` supplies the bar + safe-area inset; this only clears
+                // the floating add button.
+                paddingBottom: 100,
+                paddingHorizontal: 20,
+            }}
+            contentInsetAdjustmentBehavior="automatic"
+            style={{ flex: 1 }}
+        >
+            {main ? (
+                <BudgetBurndownHero
+                    budget={main}
+                    burndown={mainBurndown}
+                    contributions={contributions}
+                    currency={currency}
+                    dominant={dominant}
+                    nowMs={nowMs}
+                    onPress={() => router.push("/budgets/overall")}
+                />
+            ) : null}
 
-			<BudgetRings budgets={ranked} currency={currency} />
+            <BudgetRings budgets={ranked} currency={currency} />
 
-			{budgets.length ? (
-				<View className="pt-6">
-					<View className="flex-row items-baseline justify-between pb-2">
-						<MonoLabel>{main ? t("budgets.list.categories") : t("budgets.list.budgets")}</MonoLabel>
-						{overCount ? (
-							<MonoLabel>
-								{t("budgets.list.overCount", {
-									over: overCount,
-									total: budgets.length,
-								})}
-							</MonoLabel>
-						) : null}
-					</View>
-					{asRows ? (
-						<View className="divide-y divide-border">
-							{ranked.map((budget) => (
-								<BudgetRow
-									budget={budget}
-									burndown={burndowns.get(budget.id) ?? null}
-									contributions={contributions}
-									currency={currency}
-									key={budget.id}
-									nowMs={nowMs}
-									onDelete={deleteBudget}
-									onLongPress={openActions}
-									onPress={(id) => router.push(`/budgets/${id}`)}
-								/>
-							))}
-						</View>
-					) : (
-						<View className="gap-3">
-							{pairs(ranked).map(([left, right]) => (
-								<View className="flex-row gap-3" key={left.id}>
-									<BudgetCard
-										budget={left}
-										burndown={burndowns.get(left.id) ?? null}
-										contributions={contributions}
-										currency={currency}
-										nowMs={nowMs}
-										onLongPress={openActions}
-										onPress={(id) => router.push(`/budgets/${id}`)}
-									/>
-									{right ? (
-										<BudgetCard
-											budget={right}
-											burndown={burndowns.get(right.id) ?? null}
-											contributions={contributions}
-											currency={currency}
-											nowMs={nowMs}
-											onLongPress={openActions}
-											onPress={(id) => router.push(`/budgets/${id}`)}
-										/>
-									) : (
-										// Holds the odd budget out to one column instead of
-										// letting it stretch across the grid.
-										<View className="flex-1" />
-									)}
-								</View>
-							))}
-						</View>
-					)}
-				</View>
-			) : null}
+            {budgets.length ? (
+                <View className="pt-6">
+                    <View className="flex-row items-baseline justify-between pb-2">
+                        <MonoLabel>{main ? t("budgets.list.categories") : t("budgets.list.budgets")}</MonoLabel>
+                        {overCount ? (
+                            <MonoLabel>
+                                {t("budgets.list.overCount", {
+                                    over: overCount,
+                                    total: budgets.length,
+                                })}
+                            </MonoLabel>
+                        ) : null}
+                    </View>
+                    {asRows ? (
+                        <View className="divide-border divide-y">
+                            {ranked.map((budget) => (
+                                <BudgetRow
+                                    budget={budget}
+                                    burndown={burndowns.get(budget.id) ?? null}
+                                    contributions={contributions}
+                                    currency={currency}
+                                    key={budget.id}
+                                    nowMs={nowMs}
+                                    onDelete={deleteBudget}
+                                    onLongPress={openActions}
+                                    onPress={(id) => router.push(`/budgets/${id}`)}
+                                />
+                            ))}
+                        </View>
+                    ) : (
+                        <View className="gap-3">
+                            {pairs(ranked).map(([left, right]) => (
+                                <View className="flex-row gap-3" key={left.id}>
+                                    <BudgetCard
+                                        budget={left}
+                                        burndown={burndowns.get(left.id) ?? null}
+                                        contributions={contributions}
+                                        currency={currency}
+                                        nowMs={nowMs}
+                                        onLongPress={openActions}
+                                        onPress={(id) => router.push(`/budgets/${id}`)}
+                                    />
+                                    {right ? (
+                                        <BudgetCard
+                                            budget={right}
+                                            burndown={burndowns.get(right.id) ?? null}
+                                            contributions={contributions}
+                                            currency={currency}
+                                            nowMs={nowMs}
+                                            onLongPress={openActions}
+                                            onPress={(id) => router.push(`/budgets/${id}`)}
+                                        />
+                                    ) : (
+                                        // Holds the odd budget out to one column instead of
+                                        // letting it stretch across the grid.
+                                        <View className="flex-1" />
+                                    )}
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            ) : null}
 
-			<SavingsGoalsSection
-				currency={currency}
-				goals={goals}
-				onAdd={() => router.push("/(tabs)/budgets/goals/create")}
-				onPress={(id) => router.push(`/budgets/goals/${id}`)}
-				showCents={showCents}
-			/>
-		</ScrollView>
-	);
+            <SavingsGoalsSection
+                currency={currency}
+                goals={goals}
+                onAdd={() => router.push("/(tabs)/budgets/goals/create")}
+                onPress={(id) => router.push(`/budgets/goals/${id}`)}
+                showCents={showCents}
+            />
+        </ScrollView>
+    );
 }
 
 /**
@@ -248,18 +250,18 @@ function BudgetContent({ db }: { db: Database }) {
  * simply drops its second clause rather than naming an id.
  */
 function useDominant(
-	db: Database,
-	contributions: readonly ExpenseContribution[],
-	main: ReturnType<typeof useMainBudget>,
-	nowMs: number
+    db: Database,
+    contributions: readonly ExpenseContribution[],
+    main: ReturnType<typeof useMainBudget>,
+    nowMs: number
 ): { name: string; share: number } | null {
-	const categoryMeta = useCategoryMeta(db);
-	return useMemo(() => {
-		if (!main) {
-			return null;
-		}
-		const top = dominantCategory(contributions, main.window, Math.min(nowMs, main.window.end.getTime()));
-		const name = top ? categoryMeta.get(top.categoryId)?.name : undefined;
-		return top && name ? { name, share: top.share } : null;
-	}, [contributions, main, nowMs, categoryMeta]);
+    const categoryMeta = useCategoryMeta(db);
+    return useMemo(() => {
+        if (!main) {
+            return null;
+        }
+        const top = dominantCategory(contributions, main.window, Math.min(nowMs, main.window.end.getTime()));
+        const name = top ? categoryMeta.get(top.categoryId)?.name : undefined;
+        return top && name ? { name, share: top.share } : null;
+    }, [contributions, main, nowMs, categoryMeta]);
 }

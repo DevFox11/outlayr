@@ -14,26 +14,28 @@ import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
-import { type CurrencyFigures, cellFigures, toCells } from "@/domain/currency-totals";
+import { cellFigures, toCells } from "@/domain/currency-totals";
+import type { CurrencyFigures } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { UndoToast } from "@/screens/log/components/undo-toast";
+
 import { SearchEmptyState } from "./components/search-empty-state";
 
 export function Search() {
-	const db = useDatabase();
-	return <SearchContent db={db} />;
+    const db = useDatabase();
+    return <SearchContent db={db} />;
 }
 
 function emptyState(query: string, rowCount: number) {
-	if (query.trim() === "") {
-		return <SearchEmptyState kind="idle" />;
-	}
-	if (rowCount === 0) {
-		return <SearchEmptyState kind="noResults" query={query} />;
-	}
-	return null;
+    if (query.trim() === "") {
+        return <SearchEmptyState kind="idle" />;
+    }
+    if (rowCount === 0) {
+        return <SearchEmptyState kind="noResults" query={query} />;
+    }
+    return null;
 }
 
 /**
@@ -41,70 +43,72 @@ function emptyState(query: string, rowCount: number) {
  * title inline and costs the large title.
  */
 function SearchContent({ db }: { db: Database }) {
-	const router = useRouter();
-	const t = useTranslation();
-	const { displayCurrency: currency, rates } = useValuation(db);
-	const { showCents } = useDisplaySettings().state;
-	const [query, setQuery] = useState("");
-	const nowMs = useNow();
-	const { pendingId, requestDelete, undo } = useDeferredDelete(db);
-	const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+    const router = useRouter();
+    const t = useTranslation();
+    const { displayCurrency: currency, rates } = useValuation(db);
+    const { showCents } = useDisplaySettings().state;
+    const [query, setQuery] = useState("");
+    const nowMs = useNow();
+    const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+    const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 
-	const found = useSearchedTransactions(db, query, nowMs);
-	const rows = useMemo(() => found.filter((row) => row.id !== pendingId), [found, pendingId]);
-	const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
-	const figures = useMemo(() => cellFigures(toCells(rows), currency, rates), [rows, currency, rates]);
+    const found = useSearchedTransactions(db, query, nowMs);
+    const rows = useMemo(() => found.filter((row) => row.id !== pendingId), [found, pendingId]);
+    const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
+    const figures = useMemo(() => cellFigures(toCells(rows), currency, rates), [rows, currency, rates]);
 
-	const empty = emptyState(query, rows.length);
+    const empty = emptyState(query, rows.length);
 
-	return (
-		<>
-			<Stack.SearchBar
-				autoFocus
-				hideWhenScrolling={false}
-				// The field's Cancel closes the whole task, not just the field.
-				onCancelButtonPress={() => router.back()}
-				onChangeText={(event) => setQuery(event.nativeEvent.text)}
-				placeholder={t("search.placeholder")}
-			/>
-			{empty ? (
-				<View className="flex-1 bg-background">{empty}</View>
-			) : (
-				<SectionList
-					className="bg-background"
-					contentContainerStyle={{
-						paddingBottom: 40,
-						paddingHorizontal: 20,
-					}}
-					contentInsetAdjustmentBehavior="automatic"
-					keyboardDismissMode="on-drag"
-					keyExtractor={(item) => item.id}
-					ListHeaderComponent={<SearchResultsTotal count={rows.length} figures={figures} showCents={showCents} />}
-					recycleItems
-					renderItem={({ item }) => (
-						<TransactionRow
-							currency={currency}
-							onLongPress={(id) => openRowActions(id, false)}
-							onPress={(id) => router.push(`/transactions/${id}`)}
-							rates={rates}
-							transaction={item}
-						/>
-					)}
-					renderSectionHeader={({ section }) => <DaySectionHeader section={section} />}
-					sections={sections}
-				/>
-			)}
-			<UndoToast onUndo={undo} visible={pendingId != null} />
-		</>
-	);
+    return (
+        <>
+            <Stack.SearchBar
+                autoFocus
+                hideWhenScrolling={false}
+                // The field's Cancel closes the whole task, not just the field.
+                onCancelButtonPress={() => router.back()}
+                onChangeText={(event) => setQuery(event.nativeEvent.text)}
+                placeholder={t("search.placeholder")}
+            />
+            {empty ? (
+                <View className="bg-background flex-1">{empty}</View>
+            ) : (
+                <SectionList
+                    className="bg-background"
+                    contentContainerStyle={{
+                        paddingBottom: 40,
+                        paddingHorizontal: 20,
+                    }}
+                    contentInsetAdjustmentBehavior="automatic"
+                    keyboardDismissMode="on-drag"
+                    keyExtractor={(item) => item.id}
+                    ListHeaderComponent={
+                        <SearchResultsTotal count={rows.length} figures={figures} showCents={showCents} />
+                    }
+                    recycleItems
+                    renderItem={({ item }) => (
+                        <TransactionRow
+                            currency={currency}
+                            onLongPress={(id) => openRowActions(id, false)}
+                            onPress={(id) => router.push(`/transactions/${id}`)}
+                            rates={rates}
+                            transaction={item}
+                        />
+                    )}
+                    renderSectionHeader={({ section }) => <DaySectionHeader section={section} />}
+                    sections={sections}
+                />
+            )}
+            <UndoToast onUndo={undo} visible={pendingId != null} />
+        </>
+    );
 }
 
 interface SearchResultsTotalProps {
-	/** Rows matched, across every currency. */
-	count: number;
-	/** One block per currency the results ended up expressed in, dominant first. */
-	figures: readonly CurrencyFigures[];
-	showCents: boolean;
+    /** Rows matched, across every currency. */
+    count: number;
+    /** One block per currency the results ended up expressed in, dominant first. */
+    figures: readonly CurrencyFigures[];
+    showCents: boolean;
 }
 
 /**
@@ -114,61 +118,61 @@ interface SearchResultsTotalProps {
  * and one combined figure would be an invention.
  */
 function SearchResultsTotal({ figures, count, showCents }: SearchResultsTotalProps) {
-	const t = useTranslation();
-	const named = figures.length > 1;
+    const t = useTranslation();
+    const named = figures.length > 1;
 
-	return (
-		<View className="gap-2.5 pt-3.5 pb-1.5">
-			<MonoLabel>{t("search.results.count", { count })}</MonoLabel>
-			{figures.map((entry) => {
-				const net = entry.income - entry.expense;
-				const cells = [
-					{
-						// Only money actually coming in earns the income colour; a positive
-						// net is still just a net.
-						income: true,
-						key: "in",
-						label: t("search.results.in"),
-						magnitude: entry.income,
-						positive: true,
-					},
-					{
-						income: false,
-						key: "out",
-						label: t("search.results.out"),
-						magnitude: entry.expense,
-						positive: false,
-					},
-					{
-						income: false,
-						key: "net",
-						label: t("search.results.net"),
-						magnitude: Math.abs(net),
-						positive: net >= 0,
-					},
-				];
+    return (
+        <View className="gap-2.5 pt-3.5 pb-1.5">
+            <MonoLabel>{t("search.results.count", { count })}</MonoLabel>
+            {figures.map((entry) => {
+                const net = entry.income - entry.expense;
+                const cells = [
+                    {
+                        // Only money actually coming in earns the income colour; a positive
+                        // net is still just a net.
+                        income: true,
+                        key: "in",
+                        label: t("search.results.in"),
+                        magnitude: entry.income,
+                        positive: true,
+                    },
+                    {
+                        income: false,
+                        key: "out",
+                        label: t("search.results.out"),
+                        magnitude: entry.expense,
+                        positive: false,
+                    },
+                    {
+                        income: false,
+                        key: "net",
+                        label: t("search.results.net"),
+                        magnitude: Math.abs(net),
+                        positive: net >= 0,
+                    },
+                ];
 
-				return (
-					<View className="gap-1.25" key={entry.currencyCode}>
-						{named ? <MonoLabel>{entry.currencyCode}</MonoLabel> : null}
-						<View className="h-px w-full bg-border" />
-						<View className="flex-row">
-							{cells.map((cell) => (
-								<View className="flex-1 gap-0.75 py-2.5" key={cell.key}>
-									<MonoLabel>{cell.label}</MonoLabel>
-									<MeasureCellAmount
-										code={entry.currencyCode}
-										income={cell.income}
-										magnitude={cell.magnitude}
-										positive={cell.positive}
-										showCents={showCents}
-									/>
-								</View>
-							))}
-						</View>
-					</View>
-				);
-			})}
-		</View>
-	);
+                return (
+                    <View className="gap-1.25" key={entry.currencyCode}>
+                        {named ? <MonoLabel>{entry.currencyCode}</MonoLabel> : null}
+                        <View className="bg-border h-px w-full" />
+                        <View className="flex-row">
+                            {cells.map((cell) => (
+                                <View className="flex-1 gap-0.75 py-2.5" key={cell.key}>
+                                    <MonoLabel>{cell.label}</MonoLabel>
+                                    <MeasureCellAmount
+                                        code={entry.currencyCode}
+                                        income={cell.income}
+                                        magnitude={cell.magnitude}
+                                        positive={cell.positive}
+                                        showCents={showCents}
+                                    />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                );
+            })}
+        </View>
+    );
 }

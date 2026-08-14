@@ -9,6 +9,6 @@ import { CATEGORY_PALETTE } from "@/data/categories-core";
  * more categories than the palette has entries.
  */
 export function firstAvailableColor(used: ReadonlySet<string>): string {
-	const free = CATEGORY_PALETTE.find((hex) => !used.has(hex));
-	return free ?? CATEGORY_PALETTE[used.size % CATEGORY_PALETTE.length];
+    const free = CATEGORY_PALETTE.find((hex) => !used.has(hex));
+    return free ?? CATEGORY_PALETTE[used.size % CATEGORY_PALETTE.length];
 }

@@ -1,4 +1,5 @@
-import { type BudgetWindow, previousPeriodStart } from "./budget-math";
+import { previousPeriodStart } from "./budget-math";
+import type { BudgetWindow } from "./budget-math";
 
 /**
  * The most closed windows a carry is computed over.
@@ -11,28 +12,28 @@ import { type BudgetWindow, previousPeriodStart } from "./budget-math";
 export const MAX_CARRY_PERIODS = 120;
 
 export interface RolloverCarry {
-	/** Whether the walk stopped at {@link MAX_CARRY_PERIODS} before the anchor. */
-	clamped: boolean;
-	/**
-	 * Signed. Positive is unspent allowance the current window inherits; negative
-	 * is an overspend still being paid off. Both directions carry, or the figure
-	 * would reward overspending by forgetting it.
-	 */
-	credit: number;
-	/** How many closed windows it was summed over. */
-	periods: number;
+    /** Whether the walk stopped at {@link MAX_CARRY_PERIODS} before the anchor. */
+    clamped: boolean;
+    /**
+     * Signed. Positive is unspent allowance the current window inherits; negative
+     * is an overspend still being paid off. Both directions carry, or the figure
+     * would reward overspending by forgetting it.
+     */
+    credit: number;
+    /** How many closed windows it was summed over. */
+    periods: number;
 }
 
 export interface CarryInput {
-	/** Where the budget started counting. */
-	anchor: Date;
-	/** The window currently on screen; everything before it is closed. */
-	current: BudgetWindow;
-	/** The target for one window. */
-	limit: number;
-	/** What was spent in `[start, end)` of a closed window. */
-	spentIn: (start: Date, end: Date) => number;
-	type: number;
+    /** Where the budget started counting. */
+    anchor: Date;
+    /** The window currently on screen; everything before it is closed. */
+    current: BudgetWindow;
+    /** The target for one window. */
+    limit: number;
+    /** What was spent in `[start, end)` of a closed window. */
+    spentIn: (start: Date, end: Date) => number;
+    type: number;
 }
 
 /**
@@ -48,23 +49,23 @@ export interface CarryInput {
  * twice.
  */
 export function rolloverCarry({ anchor, current, type, limit, spentIn }: CarryInput): RolloverCarry {
-	let credit = 0;
-	let periods = 0;
-	let end = current.start;
-	while (periods < MAX_CARRY_PERIODS) {
-		const start = previousPeriodStart(end, type);
-		// A type whose period cannot step backwards would loop forever.
-		if (start.getTime() >= end.getTime()) {
-			return { clamped: false, credit, periods };
-		}
-		if (end.getTime() <= anchor.getTime()) {
-			return { clamped: false, credit, periods };
-		}
-		credit += limit - spentIn(start, end);
-		periods += 1;
-		end = start;
-	}
-	return { clamped: true, credit, periods };
+    let credit = 0;
+    let periods = 0;
+    let end = current.start;
+    while (periods < MAX_CARRY_PERIODS) {
+        const start = previousPeriodStart(end, type);
+        // A type whose period cannot step backwards would loop forever.
+        if (start.getTime() >= end.getTime()) {
+            return { clamped: false, credit, periods };
+        }
+        if (end.getTime() <= anchor.getTime()) {
+            return { clamped: false, credit, periods };
+        }
+        credit += limit - spentIn(start, end);
+        periods += 1;
+        end = start;
+    }
+    return { clamped: true, credit, periods };
 }
 
 /**
@@ -77,5 +78,5 @@ export function rolloverCarry({ anchor, current, type, limit, spentIn }: CarryIn
  * which is what the screen shows.
  */
 export function effectiveLimit(limit: number, carry: number): number {
-	return Math.max(0, limit + carry);
+    return Math.max(0, limit + carry);
 }

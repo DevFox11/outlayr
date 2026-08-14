@@ -1,30 +1,23 @@
 # Lefthook configuration
 # https://github.com/evilmartians/lefthook
 
-# Must go through `pnpm run fix`, never `ultracite fix` or `biome check --write`
-# directly: those are what scripts/guarded-fix.mjs wraps, and `stage_fixed` would
-# commit the JSX props Biome's attribute sorter deletes.
 pre-commit:
-  jobs:
-    - name: ultracite
-      glob:
-        - "**/*.js"
-        - "**/*.jsx"
-        - "**/*.ts"
-        - "**/*.tsx"
-        - "**/*.json"
-        - "**/*.jsonc"
-        - "**/*.css"
-      run: pnpm run fix {staged_files}
-      stage_fixed: true
+    parallel: true
+    jobs:
+        - name: oxlint
+          run: pnpm exec oxlint --fix {staged_files}
+          stage_fixed: true
+        - name: oxfmt
+          run: pnpm exec oxfmt --write {staged_files}
+          stage_fixed: true
 
 # Kept off pre-commit deliberately: these run on the whole graph, not staged
 # files, so they are too slow to sit between "git commit" and a prompt. Pushing
 # is the right gate — it is the last point before anyone else sees the code.
 pre-push:
-  parallel: true
-  jobs:
-    - name: types
-      run: pnpm turbo run check-types
-    - name: tests
-      run: pnpm turbo run test
+    parallel: true
+    jobs:
+        - name: types
+          run: pnpm turbo run check-types
+        - name: tests
+          run: pnpm turbo run test

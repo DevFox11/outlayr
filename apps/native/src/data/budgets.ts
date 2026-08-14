@@ -1,80 +1,81 @@
 import { and, asc, desc, eq, getTableColumns, gte, inArray, isNull, lte } from "drizzle-orm";
 import { useEffect, useMemo } from "react";
+
 import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions } from "@/db/schema";
-import { type Burndown, buildBurndown } from "@/domain/budget-burndown";
-import { advanceBudgetWindow, type BudgetWindow, periodsBackTo, shiftWindow } from "@/domain/budget-math";
+import { buildBurndown } from "@/domain/budget-burndown";
+import type { Burndown } from "@/domain/budget-burndown";
+import { advanceBudgetWindow, periodsBackTo, shiftWindow } from "@/domain/budget-math";
+import type { BudgetWindow } from "@/domain/budget-math";
 import { effectiveLimit, rolloverCarry } from "@/domain/budget-rollover";
 import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
-import { type ExpenseContribution, expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
+
+import { expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
+import type { ExpenseContribution } from "./budget-spent";
 import { budgetsRepo } from "./budgets-core";
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
 import type { TransactionWithCategory } from "./transactions";
 import { useValuation } from "./use-valuation";
 
-// biome-ignore lint/performance/noBarrelFile: `budgetsRepo`, `getBudgetById` and `compareBudgetSeverity` are imported from this specifier across the budgets screens; dropping the re-exports is an import-path migration of every consumer, not a lint fix
-export {
-	type BudgetSeverity,
-	compareBudgetSeverity,
-} from "@/domain/budget-severity";
+export { type BudgetSeverity, compareBudgetSeverity } from "@/domain/budget-severity";
 export * from "./budgets-core";
 
 export type Budget = typeof budgets.$inferSelect;
 export type MainBudget = typeof mainBudget.$inferSelect;
 
 export interface CategoryBudgetView {
-	/** The target this window actually runs on: `limit` plus any carry, floored at zero. */
-	amount: number;
-	/** Signed: unspent allowance inherited, or an overspend still being paid off. */
-	carry: number;
-	categoryId: string | null;
-	color: string;
-	icon: string | null;
-	id: string;
-	leftover: number;
-	/** The target as set, before anything carried into it. */
-	limit: number;
-	name: string;
-	overBudget: boolean;
-	rollover: boolean;
-	spent: number;
-	type: number;
-	window: BudgetWindow;
+    /** The target this window actually runs on: `limit` plus any carry, floored at zero. */
+    amount: number;
+    /** Signed: unspent allowance inherited, or an overspend still being paid off. */
+    carry: number;
+    categoryId: string | null;
+    color: string;
+    icon: string | null;
+    id: string;
+    leftover: number;
+    /** The target as set, before anything carried into it. */
+    limit: number;
+    name: string;
+    overBudget: boolean;
+    rollover: boolean;
+    spent: number;
+    type: number;
+    window: BudgetWindow;
 }
 
 export interface MainBudgetView {
-	/** The target this window runs on: `limit` plus any carry, floored at zero. */
-	amount: number;
-	/** Signed: unspent allowance inherited, or an overspend still being paid off. */
-	carry: number;
-	id: string;
-	leftover: number;
-	/** The target as set, before anything carried into it. */
-	limit: number;
-	name: string;
-	overBudget: boolean;
-	/** Whole closed periods behind the current window that hold spending. */
-	periodsBack: number;
-	rollover: boolean;
-	spent: number;
-	type: number;
-	window: BudgetWindow;
+    /** The target this window runs on: `limit` plus any carry, floored at zero. */
+    amount: number;
+    /** Signed: unspent allowance inherited, or an overspend still being paid off. */
+    carry: number;
+    id: string;
+    leftover: number;
+    /** The target as set, before anything carried into it. */
+    limit: number;
+    name: string;
+    overBudget: boolean;
+    /** Whole closed periods behind the current window that hold spending. */
+    periodsBack: number;
+    rollover: boolean;
+    spent: number;
+    type: number;
+    window: BudgetWindow;
 }
 
 /** The upper bound on a window's rows: its own end, or now if it has not closed. */
 export function windowEndMs(window: BudgetWindow, nowMs: number): number {
-	return Math.min(window.end.getTime() - 1, nowMs);
+    return Math.min(window.end.getTime() - 1, nowMs);
 }
 
 function earliestDate(rows: readonly { date: Date }[]): Date | null {
-	let earliest: Date | null = null;
-	for (const row of rows) {
-		if (earliest === null || row.date.getTime() < earliest.getTime()) {
-			earliest = row.date;
-		}
-	}
-	return earliest;
+    let earliest: Date | null = null;
+    for (const row of rows) {
+        if (earliest === null || row.date.getTime() < earliest.getTime()) {
+            earliest = row.date;
+        }
+    }
+    return earliest;
 }
 
 /**
@@ -84,21 +85,21 @@ function earliestDate(rows: readonly { date: Date }[]): Date | null {
  * same full scan N times.
  */
 export function useExpenseContributions(db: Database, nowMs: number): ExpenseContribution[] {
-	const data = useLiveQuery(transactions, () => expenseContributionQuery(db, new Date(nowMs)), [nowMs]);
+    const data = useLiveQuery(transactions, () => expenseContributionQuery(db, new Date(nowMs)), [nowMs]);
 
-	const categoryMeta = useCategoryMeta(db);
-	const valuation = useValuation(db);
+    const categoryMeta = useCategoryMeta(db);
+    const valuation = useValuation(db);
 
-	return useMemo(() => {
-		const valued = valueDatedRowsIn(data, valuation.displayCurrency, valuation.rates);
-		return data.map((row, index) => ({
-			// `amount` is the valued amount from here down, not the row's stored one.
-			amount: valued[index],
-			categoryId: row.categoryId,
-			date: row.date,
-			parentId: row.categoryId ? (categoryMeta.get(row.categoryId)?.parentId ?? null) : null,
-		}));
-	}, [data, categoryMeta, valuation]);
+    return useMemo(() => {
+        const valued = valueDatedRowsIn(data, valuation.displayCurrency, valuation.rates);
+        return data.map((row, index) => ({
+            // `amount` is the valued amount from here down, not the row's stored one.
+            amount: valued[index],
+            categoryId: row.categoryId,
+            date: row.date,
+            parentId: row.categoryId ? (categoryMeta.get(row.categoryId)?.parentId ?? null) : null,
+        }));
+    }, [data, categoryMeta, valuation]);
 }
 
 /**
@@ -115,113 +116,113 @@ export function useExpenseContributions(db: Database, nowMs: number): ExpenseCon
  * just drew on the page.
  */
 export function useMainBudgetAmount(db: Database): number | null {
-	const rows = useLiveQuery(mainBudget, () =>
-		db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1)
-	);
-	return rows[0]?.amount ?? null;
+    const rows = useLiveQuery(mainBudget, () =>
+        db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1)
+    );
+    return rows[0]?.amount ?? null;
 }
 
 export function useMainBudget(
-	db: Database,
-	nowMs: number,
-	contributions: readonly ExpenseContribution[],
-	periodOffset = 0
+    db: Database,
+    nowMs: number,
+    contributions: readonly ExpenseContribution[],
+    periodOffset = 0
 ): MainBudgetView | null {
-	const data = useLiveQuery(mainBudget, () =>
-		db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1)
-	);
-	const row = data[0] ?? null;
-	const { displayCurrency, rates } = useValuation(db);
+    const data = useLiveQuery(mainBudget, () =>
+        db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1)
+    );
+    const row = data[0] ?? null;
+    const { displayCurrency, rates } = useValuation(db);
 
-	useEffect(() => {
-		if (!row?.startDate) {
-			return;
-		}
-		const win = advanceBudgetWindow(row.startDate, row.type, new Date(nowMs));
-		if (win.start.getTime() !== row.startDate.getTime()) {
-			budgetsRepo.advanceMainStart(db, row.id, win.start);
-		}
-	}, [db, row, nowMs]);
+    useEffect(() => {
+        if (!row?.startDate) {
+            return;
+        }
+        const win = advanceBudgetWindow(row.startDate, row.type, new Date(nowMs));
+        if (win.start.getTime() !== row.startDate.getTime()) {
+            budgetsRepo.advanceMainStart(db, row.id, win.start);
+        }
+    }, [db, row, nowMs]);
 
-	return useMemo(() => {
-		if (!row) {
-			return null;
-		}
-		const now = new Date(nowMs);
-		const current = advanceBudgetWindow(row.startDate ?? now, row.type, now);
-		const window = shiftWindow(current.start, row.type, periodOffset);
-		const spent = spentForMain(contributions, window.start, new Date(windowEndMs(window, nowMs)));
-		const limit = limitIn(row, window.start, displayCurrency, rates);
-		// Anchored on the window being VIEWED, not on today's: stepping back to
-		// March must show what March actually inherited, not what this month did.
-		const carry = row.rollover
-			? rolloverCarry({
-					anchor: row.dateCreated ?? window.start,
-					current: window,
-					limit,
-					spentIn: (start, end) => spentForMain(contributions, start, end),
-					type: row.type,
-				}).credit
-			: 0;
-		const amount = effectiveLimit(limit, carry);
-		return {
-			amount,
-			carry,
-			id: row.id,
-			leftover: amount - spent,
-			limit,
-			name: row.name?.trim() ? row.name.trim() : "Overall Budget",
-			overBudget: spent > amount,
-			periodsBack: periodsBackTo(current.start, row.type, earliestDate(contributions)),
-			rollover: row.rollover,
-			spent,
-			type: row.type,
-			window,
-		};
-	}, [row, contributions, nowMs, periodOffset, displayCurrency, rates]);
+    return useMemo(() => {
+        if (!row) {
+            return null;
+        }
+        const now = new Date(nowMs);
+        const current = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+        const window = shiftWindow(current.start, row.type, periodOffset);
+        const spent = spentForMain(contributions, window.start, new Date(windowEndMs(window, nowMs)));
+        const limit = limitIn(row, window.start, displayCurrency, rates);
+        // Anchored on the window being VIEWED, not on today's: stepping back to
+        // March must show what March actually inherited, not what this month did.
+        const carry = row.rollover
+            ? rolloverCarry({
+                  anchor: row.dateCreated ?? window.start,
+                  current: window,
+                  limit,
+                  spentIn: (start, end) => spentForMain(contributions, start, end),
+                  type: row.type,
+              }).credit
+            : 0;
+        const amount = effectiveLimit(limit, carry);
+        return {
+            amount,
+            carry,
+            id: row.id,
+            leftover: amount - spent,
+            limit,
+            name: row.name?.trim() ? row.name.trim() : "Overall Budget",
+            overBudget: spent > amount,
+            periodsBack: periodsBackTo(current.start, row.type, earliestDate(contributions)),
+            rollover: row.rollover,
+            spent,
+            type: row.type,
+            window,
+        };
+    }, [row, contributions, nowMs, periodOffset, displayCurrency, rates]);
 }
 
 /** A null `categoryId` scopes the series to the overall budget. */
 export function useBurndown(
-	contributions: readonly ExpenseContribution[],
-	nowMs: number,
-	budget: { amount: number; window: BudgetWindow } | null,
-	categoryId: string | null = null
+    contributions: readonly ExpenseContribution[],
+    nowMs: number,
+    budget: { amount: number; window: BudgetWindow } | null,
+    categoryId: string | null = null
 ): Burndown | null {
-	return useMemo(() => {
-		if (!budget) {
-			return null;
-		}
-		return buildBurndown(contributions, {
-			categoryId,
-			limit: budget.amount,
-			now: new Date(nowMs),
-			window: budget.window,
-		});
-	}, [contributions, budget, nowMs, categoryId]);
+    return useMemo(() => {
+        if (!budget) {
+            return null;
+        }
+        return buildBurndown(contributions, {
+            categoryId,
+            limit: budget.amount,
+            now: new Date(nowMs),
+            window: budget.window,
+        });
+    }, [contributions, budget, nowMs, categoryId]);
 }
 
 export function useBurndowns(
-	contributions: readonly ExpenseContribution[],
-	nowMs: number,
-	budgetList: readonly CategoryBudgetView[]
+    contributions: readonly ExpenseContribution[],
+    nowMs: number,
+    budgetList: readonly CategoryBudgetView[]
 ): Map<string, Burndown> {
-	return useMemo(() => {
-		const now = new Date(nowMs);
-		const series = new Map<string, Burndown>();
-		for (const budget of budgetList) {
-			series.set(
-				budget.id,
-				buildBurndown(contributions, {
-					categoryId: budget.categoryId,
-					limit: budget.amount,
-					now,
-					window: budget.window,
-				})
-			);
-		}
-		return series;
-	}, [contributions, budgetList, nowMs]);
+    return useMemo(() => {
+        const now = new Date(nowMs);
+        const series = new Map<string, Burndown>();
+        for (const budget of budgetList) {
+            series.set(
+                budget.id,
+                buildBurndown(contributions, {
+                    categoryId: budget.categoryId,
+                    limit: budget.amount,
+                    now,
+                    window: budget.window,
+                })
+            );
+        }
+        return series;
+    }, [contributions, budgetList, nowMs]);
 }
 
 /**
@@ -229,83 +230,88 @@ export function useBurndowns(
  * has no budgets — it is never "not read yet".
  */
 export function usePerCategoryBudgets(
-	db: Database,
-	nowMs: number,
-	contributions: readonly ExpenseContribution[]
+    db: Database,
+    nowMs: number,
+    contributions: readonly ExpenseContribution[]
 ): CategoryBudgetView[] {
-	const rows = useLiveQuery(budgets, () =>
-		db.select(getTableColumns(budgets)).from(budgets).where(isNull(budgets.deletedAt)).orderBy(asc(budgets.dateCreated))
-	);
-	const categoryMeta = useCategoryMeta(db);
-	const { displayCurrency, rates } = useValuation(db);
+    const rows = useLiveQuery(budgets, () =>
+        db
+            .select(getTableColumns(budgets))
+            .from(budgets)
+            .where(isNull(budgets.deletedAt))
+            .orderBy(asc(budgets.dateCreated))
+    );
+    const categoryMeta = useCategoryMeta(db);
+    const { displayCurrency, rates } = useValuation(db);
 
-	useEffect(() => {
-		const now = new Date(nowMs);
-		for (const row of rows) {
-			if (!row.startDate) {
-				continue;
-			}
-			const win = advanceBudgetWindow(row.startDate, row.type, now);
-			if (win.start.getTime() !== row.startDate.getTime()) {
-				budgetsRepo.advanceBudgetStart(db, row.id, win.start);
-			}
-		}
-	}, [db, rows, nowMs]);
+    useEffect(() => {
+        const now = new Date(nowMs);
+        for (const row of rows) {
+            if (!row.startDate) {
+                continue;
+            }
+            const win = advanceBudgetWindow(row.startDate, row.type, now);
+            if (win.start.getTime() !== row.startDate.getTime()) {
+                budgetsRepo.advanceBudgetStart(db, row.id, win.start);
+            }
+        }
+    }, [db, rows, nowMs]);
 
-	return useMemo(() => {
-		const now = new Date(nowMs);
-		return rows.map((row) => {
-			const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
-			const spent = row.categoryId ? spentForCategory(contributions, row.categoryId, window.start, now) : 0;
-			const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-			const limit = limitIn(row, window.start, displayCurrency, rates);
-			// Every closed window since the anchor, but only when the budget asked
-			// for it: the walk costs one spend pass per window, and a budget that
-			// does not roll over must not pay for one.
-			const carry =
-				row.rollover && row.categoryId
-					? rolloverCarry({
-							anchor: row.dateCreated ?? window.start,
-							current: window,
-							limit,
-							spentIn: (start, end) => spentForCategory(contributions, row.categoryId as string, start, end),
-							type: row.type,
-						}).credit
-					: 0;
-			const amount = effectiveLimit(limit, carry);
-			return {
-				amount,
-				carry,
-				categoryId: row.categoryId,
-				color: meta?.color ?? "#767676",
-				icon: meta?.icon ?? null,
-				id: row.id,
-				leftover: amount - spent,
-				limit,
-				name: row.name?.trim() ? row.name.trim() : (meta?.name ?? "Budget"),
-				overBudget: spent > amount,
-				rollover: row.rollover,
-				spent,
-				type: row.type,
-				window,
-			};
-		});
-	}, [rows, contributions, categoryMeta, nowMs, displayCurrency, rates]);
+    return useMemo(() => {
+        const now = new Date(nowMs);
+        return rows.map((row) => {
+            const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+            const spent = row.categoryId ? spentForCategory(contributions, row.categoryId, window.start, now) : 0;
+            const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
+            const limit = limitIn(row, window.start, displayCurrency, rates);
+            // Every closed window since the anchor, but only when the budget asked
+            // for it: the walk costs one spend pass per window, and a budget that
+            // does not roll over must not pay for one.
+            const carry =
+                row.rollover && row.categoryId
+                    ? rolloverCarry({
+                          anchor: row.dateCreated ?? window.start,
+                          current: window,
+                          limit,
+                          spentIn: (start, end) =>
+                              spentForCategory(contributions, row.categoryId as string, start, end),
+                          type: row.type,
+                      }).credit
+                    : 0;
+            const amount = effectiveLimit(limit, carry);
+            return {
+                amount,
+                carry,
+                categoryId: row.categoryId,
+                color: meta?.color ?? "#767676",
+                icon: meta?.icon ?? null,
+                id: row.id,
+                leftover: amount - spent,
+                limit,
+                name: row.name?.trim() ? row.name.trim() : (meta?.name ?? "Budget"),
+                overBudget: spent > amount,
+                rollover: row.rollover,
+                spent,
+                type: row.type,
+                window,
+            };
+        });
+    }, [rows, contributions, categoryMeta, nowMs, displayCurrency, rates]);
 }
 
 export function useOverBudgetCount(db: Database, nowMs: number): number {
-	const contributions = useExpenseContributions(db, nowMs);
-	const perCategory = usePerCategoryBudgets(db, nowMs, contributions);
-	return perCategory.reduce((count, budget) => (budget.overBudget ? count + 1 : count), 0);
+    const contributions = useExpenseContributions(db, nowMs);
+    const perCategory = usePerCategoryBudgets(db, nowMs, contributions);
+    return perCategory.reduce((count, budget) => (budget.overBudget ? count + 1 : count), 0);
 }
 
 export interface CategoryBudgetDetail {
-	/** `null` once the budget is gone. */
-	budget: CategoryBudgetView | null;
-	/** Whole closed periods behind the current window that hold spending. */
-	periodsBack: number;
-	/** Newest first. */
-	transactions: TransactionWithCategory[];
+    /** `null` once the budget is gone. */
+    budget: CategoryBudgetView | null;
+    /** Whole closed periods behind the current window that hold spending. */
+    periodsBack: number;
+    /** Newest first. */
+    transactions: TransactionWithCategory[];
 }
 
 /**
@@ -314,97 +320,97 @@ export interface CategoryBudgetDetail {
  * anchor the budget is actually running on.
  */
 export function useCategoryBudget(db: Database, id: string, nowMs: number, periodOffset = 0): CategoryBudgetDetail {
-	const data = useLiveQuery(
-		budgets,
-		() =>
-			db
-				.select(getTableColumns(budgets))
-				.from(budgets)
-				.where(and(eq(budgets.id, id), isNull(budgets.deletedAt)))
-				.limit(1),
-		[id]
-	);
-	const row = data[0] ?? null;
-	const categoryMeta = useCategoryMeta(db);
-	const { displayCurrency, rates } = useValuation(db);
+    const data = useLiveQuery(
+        budgets,
+        () =>
+            db
+                .select(getTableColumns(budgets))
+                .from(budgets)
+                .where(and(eq(budgets.id, id), isNull(budgets.deletedAt)))
+                .limit(1),
+        [id]
+    );
+    const row = data[0] ?? null;
+    const categoryMeta = useCategoryMeta(db);
+    const { displayCurrency, rates } = useValuation(db);
 
-	const current = useMemo(() => {
-		if (!row) {
-			return null;
-		}
-		const now = new Date(nowMs);
-		return advanceBudgetWindow(row.startDate ?? now, row.type, now);
-	}, [row, nowMs]);
+    const current = useMemo(() => {
+        if (!row) {
+            return null;
+        }
+        const now = new Date(nowMs);
+        return advanceBudgetWindow(row.startDate ?? now, row.type, now);
+    }, [row, nowMs]);
 
-	const window = useMemo(
-		() => (current && row ? shiftWindow(current.start, row.type, periodOffset) : null),
-		[current, row, periodOffset]
-	);
+    const window = useMemo(
+        () => (current && row ? shiftWindow(current.start, row.type, periodOffset) : null),
+        [current, row, periodOffset]
+    );
 
-	useEffect(() => {
-		if (!(row?.startDate && current)) {
-			return;
-		}
-		if (current.start.getTime() !== row.startDate.getTime()) {
-			budgetsRepo.advanceBudgetStart(db, row.id, current.start);
-		}
-	}, [db, row, current]);
+    useEffect(() => {
+        if (!(row?.startDate && current)) {
+            return;
+        }
+        if (current.start.getTime() !== row.startDate.getTime()) {
+            budgetsRepo.advanceBudgetStart(db, row.id, current.start);
+        }
+    }, [db, row, current]);
 
-	const windowTransactions = useBudgetContributions(
-		db,
-		row?.categoryId ?? null,
-		window ? window.start : null,
-		window ? windowEndMs(window, nowMs) : nowMs
-	);
+    const windowTransactions = useBudgetContributions(
+        db,
+        row?.categoryId ?? null,
+        window ? window.start : null,
+        window ? windowEndMs(window, nowMs) : nowMs
+    );
 
-	const earliest = useEarliestContribution(db, row?.categoryId ?? null);
-	// Only the carry needs history beyond this window, and only when the budget
-	// rolls over. It is the same read the list uses, so the two screens cannot
-	// disagree about what a window inherited — a list saying one figure and the
-	// detail behind it saying another is worse than not carrying at all.
-	const contributions = useExpenseContributions(db, nowMs);
+    const earliest = useEarliestContribution(db, row?.categoryId ?? null);
+    // Only the carry needs history beyond this window, and only when the budget
+    // rolls over. It is the same read the list uses, so the two screens cannot
+    // disagree about what a window inherited — a list saying one figure and the
+    // detail behind it saying another is worse than not carrying at all.
+    const contributions = useExpenseContributions(db, nowMs);
 
-	const budget = useMemo(() => {
-		if (!(row && window)) {
-			return null;
-		}
-		// This screen queries its own rows instead of sharing
-		// `useExpenseContributions`, so the conversion has to happen here.
-		const spent = sumValuedIn(windowTransactions, displayCurrency, rates);
-		const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-		const limit = limitIn(row, window.start, displayCurrency, rates);
-		const carry =
-			row.rollover && row.categoryId
-				? rolloverCarry({
-						anchor: row.dateCreated ?? window.start,
-						current: window,
-						limit,
-						spentIn: (start, end) => spentForCategory(contributions, row.categoryId as string, start, end),
-						type: row.type,
-					}).credit
-				: 0;
-		const amount = effectiveLimit(limit, carry);
-		return {
-			amount,
-			carry,
-			categoryId: row.categoryId,
-			color: meta?.color ?? "#767676",
-			icon: meta?.icon ?? null,
-			id: row.id,
-			leftover: amount - spent,
-			limit,
-			name: row.name?.trim() ? row.name.trim() : (meta?.name ?? "Budget"),
-			overBudget: spent > amount,
-			rollover: row.rollover,
-			spent,
-			type: row.type,
-			window,
-		};
-	}, [row, window, windowTransactions, categoryMeta, displayCurrency, rates, contributions]);
+    const budget = useMemo(() => {
+        if (!(row && window)) {
+            return null;
+        }
+        // This screen queries its own rows instead of sharing
+        // `useExpenseContributions`, so the conversion has to happen here.
+        const spent = sumValuedIn(windowTransactions, displayCurrency, rates);
+        const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
+        const limit = limitIn(row, window.start, displayCurrency, rates);
+        const carry =
+            row.rollover && row.categoryId
+                ? rolloverCarry({
+                      anchor: row.dateCreated ?? window.start,
+                      current: window,
+                      limit,
+                      spentIn: (start, end) => spentForCategory(contributions, row.categoryId as string, start, end),
+                      type: row.type,
+                  }).credit
+                : 0;
+        const amount = effectiveLimit(limit, carry);
+        return {
+            amount,
+            carry,
+            categoryId: row.categoryId,
+            color: meta?.color ?? "#767676",
+            icon: meta?.icon ?? null,
+            id: row.id,
+            leftover: amount - spent,
+            limit,
+            name: row.name?.trim() ? row.name.trim() : (meta?.name ?? "Budget"),
+            overBudget: spent > amount,
+            rollover: row.rollover,
+            spent,
+            type: row.type,
+            window,
+        };
+    }, [row, window, windowTransactions, categoryMeta, displayCurrency, rates, contributions]);
 
-	const periodsBack = current && row ? periodsBackTo(current.start, row.type, earliest) : 0;
+    const periodsBack = current && row ? periodsBackTo(current.start, row.type, earliest) : 0;
 
-	return { budget, periodsBack, transactions: windowTransactions };
+    return { budget, periodsBack, transactions: windowTransactions };
 }
 
 /**
@@ -416,47 +422,50 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
  * not map to a Date.
  */
 export function useEarliestContribution(db: Database, categoryId: string | null): Date | null {
-	const categoryMeta = useCategoryMeta(db);
+    const categoryMeta = useCategoryMeta(db);
 
-	const contributingIds = useMemo(() => contributingCategoryIds(categoryId, categoryMeta), [categoryId, categoryMeta]);
-	const contributingKey = contributingIds?.join(",") ?? "";
+    const contributingIds = useMemo(
+        () => contributingCategoryIds(categoryId, categoryMeta),
+        [categoryId, categoryMeta]
+    );
+    const contributingKey = contributingIds?.join(",") ?? "";
 
-	const rows = useLiveQuery(
-		transactions,
-		() =>
-			db
-				.select({ date: transactions.date })
-				.from(transactions)
-				.where(
-					and(
-						eq(transactions.income, false),
-						isNull(transactions.deletedAt),
-						contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
-					)
-				)
-				.orderBy(asc(transactions.date))
-				.limit(1),
-		[contributingKey]
-	);
+    const rows = useLiveQuery(
+        transactions,
+        () =>
+            db
+                .select({ date: transactions.date })
+                .from(transactions)
+                .where(
+                    and(
+                        eq(transactions.income, false),
+                        isNull(transactions.deletedAt),
+                        contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
+                    )
+                )
+                .orderBy(asc(transactions.date))
+                .limit(1),
+        [contributingKey]
+    );
 
-	return rows[0]?.date ?? null;
+    return rows[0]?.date ?? null;
 }
 
 /** Null means "every category" — the overall budget's scope. */
 function contributingCategoryIds(
-	categoryId: string | null,
-	categoryMeta: ReadonlyMap<string, { parentId: string | null }>
+    categoryId: string | null,
+    categoryMeta: ReadonlyMap<string, { parentId: string | null }>
 ): string[] | null {
-	if (!categoryId) {
-		return null;
-	}
-	const ids = [categoryId];
-	for (const [id, meta] of categoryMeta) {
-		if (meta.parentId === categoryId) {
-			ids.push(id);
-		}
-	}
-	return ids;
+    if (!categoryId) {
+        return null;
+    }
+    const ids = [categoryId];
+    for (const [id, meta] of categoryMeta) {
+        if (meta.parentId === categoryId) {
+            ids.push(id);
+        }
+    }
+    return ids;
 }
 
 /**
@@ -472,52 +481,55 @@ function contributingCategoryIds(
  * Resolving the id set in JS and matching with `inArray` keeps it reactive.
  */
 export function useBudgetContributions(
-	db: Database,
-	categoryId: string | null,
-	start: Date | null,
-	endMs: number
+    db: Database,
+    categoryId: string | null,
+    start: Date | null,
+    endMs: number
 ): TransactionWithCategory[] {
-	// A null start (budget not loaded yet) must match nothing, not everything.
-	const startMs = start ? start.getTime() : endMs + 1;
-	const categoryMeta = useCategoryMeta(db);
+    // A null start (budget not loaded yet) must match nothing, not everything.
+    const startMs = start ? start.getTime() : endMs + 1;
+    const categoryMeta = useCategoryMeta(db);
 
-	const contributingIds = useMemo(() => contributingCategoryIds(categoryId, categoryMeta), [categoryId, categoryMeta]);
+    const contributingIds = useMemo(
+        () => contributingCategoryIds(categoryId, categoryMeta),
+        [categoryId, categoryMeta]
+    );
 
-	// A primitive so the subscription re-runs when the contributing set changes
-	// without re-subscribing on every render's fresh array identity.
-	const contributingKey = contributingIds?.join(",") ?? "";
+    // A primitive so the subscription re-runs when the contributing set changes
+    // without re-subscribing on every render's fresh array identity.
+    const contributingKey = contributingIds?.join(",") ?? "";
 
-	const data = useLiveQuery(
-		transactions,
-		() =>
-			db
-				.select(getTableColumns(transactions))
-				.from(transactions)
-				.where(
-					and(
-						eq(transactions.income, false),
-						isNull(transactions.deletedAt),
-						gte(transactions.date, new Date(startMs)),
-						lte(transactions.date, new Date(endMs)),
-						contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
-					)
-				)
-				.orderBy(desc(transactions.date)),
-		[contributingKey, startMs, endMs]
-	);
+    const data = useLiveQuery(
+        transactions,
+        () =>
+            db
+                .select(getTableColumns(transactions))
+                .from(transactions)
+                .where(
+                    and(
+                        eq(transactions.income, false),
+                        isNull(transactions.deletedAt),
+                        gte(transactions.date, new Date(startMs)),
+                        lte(transactions.date, new Date(endMs)),
+                        contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
+                    )
+                )
+                .orderBy(desc(transactions.date)),
+        [contributingKey, startMs, endMs]
+    );
 
-	return useMemo(
-		() =>
-			data.map((row) => {
-				const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-				return {
-					...row,
-					categoryColor: meta?.color ?? null,
-					categoryEmoji: meta?.emoji ?? null,
-					categoryIcon: meta?.icon ?? null,
-					categoryName: meta?.name ?? null,
-				};
-			}),
-		[data, categoryMeta]
-	);
+    return useMemo(
+        () =>
+            data.map((row) => {
+                const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
+                return {
+                    ...row,
+                    categoryColor: meta?.color ?? null,
+                    categoryEmoji: meta?.emoji ?? null,
+                    categoryIcon: meta?.icon ?? null,
+                    categoryName: meta?.name ?? null,
+                };
+            }),
+        [data, categoryMeta]
+    );
 }

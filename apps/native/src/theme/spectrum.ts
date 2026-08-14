@@ -15,30 +15,30 @@ export const SPECTRUM_STOPS = ["#FF4444", "#FFBB00", "#33CC66", "#0099FF", "#AA4
  * more visible than any other boundary.
  */
 export function spectrumRamp(count: number): string[] {
-	if (count < 1) {
-		return [];
-	}
-	const spans = SPECTRUM_STOPS.length - 1;
-	return Array.from({ length: count }, (_, index) => {
-		const position = ((index + 0.5) / count) * spans;
-		const from = Math.min(Math.floor(position), spans - 1);
-		return mixHex(SPECTRUM_STOPS[from], SPECTRUM_STOPS[from + 1], position - from);
-	});
+    if (count < 1) {
+        return [];
+    }
+    const spans = SPECTRUM_STOPS.length - 1;
+    return Array.from({ length: count }, (_, index) => {
+        const position = ((index + 0.5) / count) * spans;
+        const from = Math.min(Math.floor(position), spans - 1);
+        return mixHex(SPECTRUM_STOPS[from], SPECTRUM_STOPS[from + 1], position - from);
+    });
 }
 
 function mixHex(from: string, to: string, t: number): string {
-	const a = channels(from);
-	const b = channels(to);
-	const lerp = (index: number) => Math.round(a[index] + (b[index] - a[index]) * t);
-	return `#${hex(lerp(0))}${hex(lerp(1))}${hex(lerp(2))}`;
+    const a = channels(from);
+    const b = channels(to);
+    const lerp = (index: number) => Math.round(a[index] + (b[index] - a[index]) * t);
+    return `#${hex(lerp(0))}${hex(lerp(1))}${hex(lerp(2))}`;
 }
 
 function channels(value: string): [number, number, number] {
-	const int = Number.parseInt(value.slice(1), 16);
-	// biome-ignore lint/suspicious/noBitwiseOperators: #RRGGBB packs the three channels into byte lanes of one 24-bit integer, so shifting and masking is the definition of the split
-	return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+    const int = Number.parseInt(value.slice(1), 16);
+    // oxlint-disable-next-line no-bitwise -- #RRGGBB packs the three channels into byte lanes of one 24-bit integer, so shifting and masking is the definition of the split
+    return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
 
 function hex(value: number): string {
-	return Math.max(0, Math.min(255, value)).toString(16).padStart(2, "0");
+    return Math.max(0, Math.min(255, value)).toString(16).padStart(2, "0");
 }

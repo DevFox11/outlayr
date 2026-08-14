@@ -1,12 +1,14 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import type { SpendDb } from "@/data/budget-spent";
 import { appMeta, budgets, categories, mainBudget, transactions } from "@/db/schema";
+
 import { buildWidgetProps } from "./props";
 
 function makeDb(): SpendDb {
-	const sqlite = new BetterSqlite3(":memory:");
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    sqlite.exec(`
 		CREATE TABLE appMeta (
 			key text PRIMARY KEY NOT NULL,
 			value text
@@ -94,79 +96,79 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-	return drizzle(sqlite) as unknown as SpendDb;
+    return drizzle(sqlite) as unknown as SpendDb;
 }
 
 const NOW = new Date(Date.UTC(2026, 6, 28, 12));
 
 describe("the Ledger widget's entries", () => {
-	it("quotes each entry in the currency it was kept in", async () => {
-		// Pinning every row to the display currency would turn 12,000 yen into
-		// twelve thousand dollars on the home screen.
-		const db = makeDb();
-		await db.insert(categories).values({
-			color: "#FF0000",
-			id: "cat-1",
-			income: false,
-			name: "Food",
-			updatedAt: NOW,
-		});
-		await db.insert(transactions).values({
-			amount: 12_000,
-			categoryId: "cat-1",
-			currency: "JPY",
-			date: NOW,
-			day: NOW,
-			id: "t1",
-			income: false,
-			month: NOW,
-			note: "Ramen",
-			updatedAt: NOW,
-		});
+    it("quotes each entry in the currency it was kept in", async () => {
+        // Pinning every row to the display currency would turn 12,000 yen into
+        // twelve thousand dollars on the home screen.
+        const db = makeDb();
+        await db.insert(categories).values({
+            color: "#FF0000",
+            id: "cat-1",
+            income: false,
+            name: "Food",
+            updatedAt: NOW,
+        });
+        await db.insert(transactions).values({
+            amount: 12_000,
+            categoryId: "cat-1",
+            currency: "JPY",
+            date: NOW,
+            day: NOW,
+            id: "t1",
+            income: false,
+            month: NOW,
+            note: "Ramen",
+            updatedAt: NOW,
+        });
 
-		const props = await buildWidgetProps(db, NOW);
+        const props = await buildWidgetProps(db, NOW);
 
-		expect(props.Ledger.entries.length).toBe(1);
-		expect(props.Ledger.entries[0]?.amount).toBe("¥12,000");
-	});
+        expect(props.Ledger.entries).toHaveLength(1);
+        expect(props.Ledger.entries[0]?.amount).toBe("¥12,000");
+    });
 
-	it("leaves an entry in the ledger's own currency alone", async () => {
-		const db = makeDb();
-		await db.insert(transactions).values({
-			amount: 18.5,
-			currency: "USD",
-			date: NOW,
-			day: NOW,
-			id: "t1",
-			income: false,
-			month: NOW,
-			note: "Coffee",
-			updatedAt: NOW,
-		});
+    it("leaves an entry in the ledger's own currency alone", async () => {
+        const db = makeDb();
+        await db.insert(transactions).values({
+            amount: 18.5,
+            currency: "USD",
+            date: NOW,
+            day: NOW,
+            id: "t1",
+            income: false,
+            month: NOW,
+            note: "Coffee",
+            updatedAt: NOW,
+        });
 
-		const props = await buildWidgetProps(db, NOW);
+        const props = await buildWidgetProps(db, NOW);
 
-		expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
-	});
+        expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
+    });
 
-	it("falls back to the ledger's currency when the entry named none", async () => {
-		const db = makeDb();
-		await db.insert(transactions).values({
-			amount: 18.5,
-			currency: null,
-			date: NOW,
-			day: NOW,
-			id: "t1",
-			income: false,
-			month: NOW,
-			note: "Coffee",
-			updatedAt: NOW,
-		});
+    it("falls back to the ledger's currency when the entry named none", async () => {
+        const db = makeDb();
+        await db.insert(transactions).values({
+            amount: 18.5,
+            currency: null,
+            date: NOW,
+            day: NOW,
+            id: "t1",
+            income: false,
+            month: NOW,
+            note: "Coffee",
+            updatedAt: NOW,
+        });
 
-		const props = await buildWidgetProps(db, NOW);
+        const props = await buildWidgetProps(db, NOW);
 
-		expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
-	});
+        expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
+    });
 });
 
 /**
@@ -175,102 +177,102 @@ describe("the Ledger widget's entries", () => {
  * this install ever configures the tile.
  */
 describe("the Budget widget's selections", () => {
-	async function withBudgets(overall: boolean): Promise<SpendDb> {
-		const db = makeDb();
-		await db.insert(categories).values([
-			{ id: "cat-1", income: false, name: "Food", updatedAt: NOW },
-			{ id: "cat-2", income: false, name: "Transit", updatedAt: NOW },
-		]);
-		if (overall) {
-			await db.insert(mainBudget).values({
-				amount: 1000,
-				id: "main",
-				name: "Overall Budget",
-				startDate: new Date(Date.UTC(2026, 6, 1)),
-				type: 3,
-				updatedAt: NOW,
-			});
-		}
-		await db.insert(budgets).values([
-			{
-				amount: 100,
-				categoryId: "cat-1",
-				id: "b-food",
-				startDate: new Date(Date.UTC(2026, 6, 1)),
-				type: 3,
-				updatedAt: NOW,
-			},
-			{
-				amount: 100,
-				categoryId: "cat-2",
-				id: "b-transit",
-				startDate: new Date(Date.UTC(2026, 6, 1)),
-				type: 3,
-				updatedAt: NOW,
-			},
-		]);
-		await db.insert(transactions).values([
-			{
-				amount: 90,
-				categoryId: "cat-1",
-				date: NOW,
-				day: NOW,
-				id: "t1",
-				income: false,
-				month: NOW,
-				note: "Groceries",
-				updatedAt: NOW,
-			},
-			{
-				amount: 10,
-				categoryId: "cat-2",
-				date: NOW,
-				day: NOW,
-				id: "t2",
-				income: false,
-				month: NOW,
-				note: "Bus",
-				updatedAt: NOW,
-			},
-		]);
-		return db;
-	}
+    async function withBudgets(overall: boolean): Promise<SpendDb> {
+        const db = makeDb();
+        await db.insert(categories).values([
+            { id: "cat-1", income: false, name: "Food", updatedAt: NOW },
+            { id: "cat-2", income: false, name: "Transit", updatedAt: NOW },
+        ]);
+        if (overall) {
+            await db.insert(mainBudget).values({
+                amount: 1000,
+                id: "main",
+                name: "Overall Budget",
+                startDate: new Date(Date.UTC(2026, 6, 1)),
+                type: 3,
+                updatedAt: NOW,
+            });
+        }
+        await db.insert(budgets).values([
+            {
+                amount: 100,
+                categoryId: "cat-1",
+                id: "b-food",
+                startDate: new Date(Date.UTC(2026, 6, 1)),
+                type: 3,
+                updatedAt: NOW,
+            },
+            {
+                amount: 100,
+                categoryId: "cat-2",
+                id: "b-transit",
+                startDate: new Date(Date.UTC(2026, 6, 1)),
+                type: 3,
+                updatedAt: NOW,
+            },
+        ]);
+        await db.insert(transactions).values([
+            {
+                amount: 90,
+                categoryId: "cat-1",
+                date: NOW,
+                day: NOW,
+                id: "t1",
+                income: false,
+                month: NOW,
+                note: "Groceries",
+                updatedAt: NOW,
+            },
+            {
+                amount: 10,
+                categoryId: "cat-2",
+                date: NOW,
+                day: NOW,
+                id: "t2",
+                income: false,
+                month: NOW,
+                note: "Bus",
+                updatedAt: NOW,
+            },
+        ]);
+        return db;
+    }
 
-	it("publishes the overall and the closest-to-its-limit budget side by side", async () => {
-		const props = await buildWidgetProps(await withBudgets(true), NOW);
+    it("publishes the overall and the closest-to-its-limit budget side by side", async () => {
+        const props = await buildWidgetProps(await withBudgets(true), NOW);
 
-		expect(props.Budget.views.overall.name).toBe("Overall Budget");
-		expect(props.Budget.views.worst.name).toBe("Food");
-		// Unconfigured, the tile keeps showing what it always did.
-		expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.overall);
-	});
+        expect(props.Budget.views.overall.name).toBe("Overall Budget");
+        expect(props.Budget.views.worst.name).toBe("Food");
+        // Unconfigured, the tile keeps showing what it always did.
+        expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.overall);
+    });
 
-	it("leaves the automatic view on the worst budget when there is no overall one", async () => {
-		const props = await buildWidgetProps(await withBudgets(false), NOW);
+    it("leaves the automatic view on the worst budget when there is no overall one", async () => {
+        const props = await buildWidgetProps(await withBudgets(false), NOW);
 
-		expect(props.Budget.views.overall.present).toBe(false);
-		expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.worst);
-	});
+        expect(props.Budget.views.overall.present).toBe(false);
+        expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.worst);
+    });
 });
 
 describe("the Insights widget's windows", () => {
-	it("publishes every period so a tile can be configured to one", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({ key: "insightsTimeFrame", value: "2" });
+    it("publishes every period so a tile can be configured to one", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "insightsTimeFrame", value: "2" });
 
-		const props = await buildWidgetProps(db, NOW);
+        const props = await buildWidgetProps(db, NOW);
 
-		expect(Object.keys(props.Insights.windows).sort()).toStrictEqual(["month", "week", "year"]);
-		expect(props.Insights.windows.week.periodLabel).toBe("THIS WEEK");
-		expect(props.Insights.windows.year.periodLabel).toBe("THIS YEAR");
-	});
+        expect(Object.keys(props.Insights.windows).sort()).toStrictEqual(["month", "week", "year"]);
+        expect(props.Insights.windows.week.periodLabel).toBe("THIS WEEK");
+        expect(props.Insights.windows.year.periodLabel).toBe("THIS YEAR");
+    });
 
-	it("keeps the app's own period as what an unconfigured tile shows", async () => {
-		const db = makeDb();
-		await db.insert(appMeta).values({ key: "insightsTimeFrame", value: "3" });
+    it("keeps the app's own period as what an unconfigured tile shows", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "insightsTimeFrame", value: "3" });
 
-		const props = await buildWidgetProps(db, NOW);
+        const props = await buildWidgetProps(db, NOW);
 
-		expect(props.Insights.defaultPeriod).toBe("year");
-	});
+        expect(props.Insights.defaultPeriod).toBe("year");
+    });
 });

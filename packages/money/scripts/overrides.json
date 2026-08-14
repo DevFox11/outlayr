@@ -1,12 +1,12 @@
 {
-  "GGP": { "name": "Guernsey Pound", "symbol": "£" },
-  "IMP": { "name": "Isle of Man Pound", "symbol": "£" },
-  "JEP": { "name": "Jersey Pound", "symbol": "£" },
-  "XDR": { "name": "Special Drawing Rights", "symbol": "SDR" },
-  "XAU": { "name": "Gold (troy oz)", "symbol": "XAU" },
-  "XAG": { "name": "Silver (troy oz)", "symbol": "XAG" },
-  "XPT": { "name": "Platinum (troy oz)", "symbol": "XPT" },
-  "XPD": { "name": "Palladium (troy oz)", "symbol": "XPD" },
-  "VES": { "symbol": "Bs." },
-  "ZWG": { "name": "Zimbabwe Gold" }
+    "GGP": { "name": "Guernsey Pound", "symbol": "£" },
+    "IMP": { "name": "Isle of Man Pound", "symbol": "£" },
+    "JEP": { "name": "Jersey Pound", "symbol": "£" },
+    "XDR": { "name": "Special Drawing Rights", "symbol": "SDR" },
+    "XAU": { "name": "Gold (troy oz)", "symbol": "XAU" },
+    "XAG": { "name": "Silver (troy oz)", "symbol": "XAG" },
+    "XPT": { "name": "Platinum (troy oz)", "symbol": "XPT" },
+    "XPD": { "name": "Palladium (troy oz)", "symbol": "XPD" },
+    "VES": { "symbol": "Bs." },
+    "ZWG": { "name": "Zimbabwe Gold" }
 }

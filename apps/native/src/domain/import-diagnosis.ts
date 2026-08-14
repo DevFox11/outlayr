@@ -7,15 +7,15 @@ export type ParseFailureReason = "empty" | "noDataRows" | "tooFewColumns";
 export const HARD_PARSE_REJECT_CHARS = 20_000_000;
 
 export function classifyParseFailure(text: string): ParseFailureReason {
-	const lines = parseCsv(text);
-	if (lines.length === 0) {
-		return "empty";
-	}
+    const lines = parseCsv(text);
+    if (lines.length === 0) {
+        return "empty";
+    }
 
-	const { rows } = splitHeaderAndRows(lines);
-	if (rows.length === 0) {
-		return "noDataRows";
-	}
+    const { rows } = splitHeaderAndRows(lines);
+    if (rows.length === 0) {
+        return "noDataRows";
+    }
 
-	return "tooFewColumns";
+    return "tooFewColumns";
 }

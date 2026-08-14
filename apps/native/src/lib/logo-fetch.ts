@@ -1,4 +1,5 @@
 import { env } from "@outlayr/env/native";
+
 import { isRealLogo } from "@/domain/logo-acceptance";
 
 const REQUEST_TIMEOUT_MS = 3000;
@@ -17,34 +18,34 @@ const NONE: LogoOutcome = { kind: "none" };
  * and it would arrive looking like a success.
  */
 export function logoDevUrl(domain: string, token: string): string {
-	return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(token)}&size=512&format=png&fallback=404`;
+    return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(token)}&size=512&format=png&fallback=404`;
 }
 
 /** The browser favicon. Last resort — small, and often a tight crop. */
 export function faviconUrl(domain: string): string {
-	return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }
 
 async function fetchAccepted(url: string, fetchImpl: typeof fetch): Promise<LogoOutcome> {
-	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-	try {
-		const response = await fetchImpl(url, { signal: controller.signal });
-		const bytes = new Uint8Array(await response.arrayBuffer());
-		const verdict = isRealLogo(response.status, response.headers.get("content-type"), bytes);
-		return verdict.ok ? { bytes, kind: "logo" } : NONE;
-	} catch {
-		return NONE;
-	} finally {
-		clearTimeout(timer);
-	}
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+        const response = await fetchImpl(url, { signal: controller.signal });
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        const verdict = isRealLogo(response.status, response.headers.get("content-type"), bytes);
+        return verdict.ok ? { bytes, kind: "logo" } : NONE;
+    } catch {
+        return NONE;
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 export interface MerchantImageRequest {
-	/** The resolved domain, used by the logo and favicon tiers. */
-	domain: string | null;
-	/** What the user typed; folded into the on-device cache key. */
-	name: string;
+    /** The resolved domain, used by the logo and favicon tiers. */
+    domain: string | null;
+    /** What the user typed; folded into the on-device cache key. */
+    name: string;
 }
 
 /**
@@ -53,34 +54,34 @@ export interface MerchantImageRequest {
  * to no image — never a letter avatar, never a broken frame.
  */
 export async function fetchMerchantImage(
-	request: MerchantImageRequest,
-	fetchImpl: typeof fetch = fetch
+    request: MerchantImageRequest,
+    fetchImpl: typeof fetch = fetch
 ): Promise<LogoOutcome> {
-	// Required lazily so importing this module does not pull expo-file-system
-	// into every consumer's graph, matching `domain/ids.ts`. A cache that will
-	// not load is not a failure — it costs one request.
-	let cache: typeof import("@/lib/logo-cache") | null = null;
-	try {
-		cache = require("@/lib/logo-cache") as typeof import("@/lib/logo-cache");
-	} catch {
-		cache = null;
-	}
-	const key = cache?.logoCacheKey(request.name.trim(), request.domain) ?? "";
-	const cached = (await cache?.readCachedLogo(key)) ?? {
-		kind: "unknown" as const,
-	};
-	if (cached.kind === "logo") {
-		return { bytes: cached.bytes, kind: "logo" };
-	}
-	if (cached.kind === "miss") {
-		return NONE;
-	}
+    // Required lazily so importing this module does not pull expo-file-system
+    // into every consumer's graph, matching `domain/ids.ts`. A cache that will
+    // not load is not a failure — it costs one request.
+    let cache: typeof import("@/lib/logo-cache") | null = null;
+    try {
+        cache = require("@/lib/logo-cache") as typeof import("@/lib/logo-cache");
+    } catch {
+        cache = null;
+    }
+    const key = cache?.logoCacheKey(request.name.trim(), request.domain) ?? "";
+    const cached = (await cache?.readCachedLogo(key)) ?? {
+        kind: "unknown" as const,
+    };
+    if (cached.kind === "logo") {
+        return { bytes: cached.bytes, kind: "logo" };
+    }
+    if (cached.kind === "miss") {
+        return NONE;
+    }
 
-	const outcome = await resolveMerchantImage(request, fetchImpl);
-	// Misses are remembered too: without that, every merchant these three tiers
-	// cannot answer for is re-queried on every form, forever.
-	cache?.writeCachedLogo(key, outcome.kind === "logo" ? outcome.bytes : null);
-	return outcome;
+    const outcome = await resolveMerchantImage(request, fetchImpl);
+    // Misses are remembered too: without that, every merchant these three tiers
+    // cannot answer for is re-queried on every form, forever.
+    cache?.writeCachedLogo(key, outcome.kind === "logo" ? outcome.bytes : null);
+    return outcome;
 }
 
 /**
@@ -90,18 +91,18 @@ export async function fetchMerchantImage(
  * row on a transaction would be doing. Do not reintroduce it.
  */
 async function resolveMerchantImage(request: MerchantImageRequest, fetchImpl: typeof fetch): Promise<LogoOutcome> {
-	const { domain } = request;
-	if (domain == null || domain.length === 0) {
-		return NONE;
-	}
+    const { domain } = request;
+    if (domain == null || domain.length === 0) {
+        return NONE;
+    }
 
-	const token = env.EXPO_PUBLIC_LOGO_DEV_TOKEN;
-	if (token) {
-		const branded = await fetchAccepted(logoDevUrl(domain, token), fetchImpl);
-		if (branded.kind === "logo") {
-			return branded;
-		}
-	}
+    const token = env.EXPO_PUBLIC_LOGO_DEV_TOKEN;
+    if (token) {
+        const branded = await fetchAccepted(logoDevUrl(domain, token), fetchImpl);
+        if (branded.kind === "logo") {
+            return branded;
+        }
+    }
 
-	return fetchAccepted(faviconUrl(domain), fetchImpl);
+    return fetchAccepted(faviconUrl(domain), fetchImpl);
 }

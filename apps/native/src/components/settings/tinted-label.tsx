@@ -3,8 +3,8 @@ import { requireNativeView } from "expo";
 import type { ComponentType } from "react";
 
 export interface TintedLabelProps extends CommonViewModifierProps {
-	color: string;
-	title: string;
+    color: string;
+    title: string;
 }
 
 type NativeTintedLabel = ComponentType<TintedLabelProps>;
@@ -17,16 +17,16 @@ type NativeTintedLabel = ComponentType<TintedLabelProps>;
  */
 let Native: NativeTintedLabel | null = null;
 try {
-	Native = requireNativeView<TintedLabelProps>("Glow", "TintedLabelView");
+    Native = requireNativeView<TintedLabelProps>("Glow", "TintedLabelView");
 } catch {
-	Native = null;
+    Native = null;
 }
 
 export function TintedLabel(props: TintedLabelProps) {
-	if (!Native) {
-		return null;
-	}
-	return <Native {...props} />;
+    if (!Native) {
+        return null;
+    }
+    return <Native {...props} />;
 }
 
 export const tintedLabelAvailable = Native != null;

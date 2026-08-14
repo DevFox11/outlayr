@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
+
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 import { useAuthSession } from "@/lib/auth-session";
@@ -17,25 +18,25 @@ import { useColors } from "@/theme/use-colors";
  * reconciled with this device's yet.
  */
 export function AuthCover({ children }: { children: ReactNode }) {
-	const { gate } = useAuthSession();
-	const { status } = useLedgerAdoption();
-	const covered = gate === "restoring" || status === "resolving";
+    const { gate } = useAuthSession();
+    const { status } = useLedgerAdoption();
+    const covered = gate === "restoring" || status === "resolving";
 
-	return (
-		<View className="flex-1">
-			{children}
-			{covered ? <RestoringScreen /> : null}
-		</View>
-	);
+    return (
+        <View className="flex-1">
+            {children}
+            {covered ? <RestoringScreen /> : null}
+        </View>
+    );
 }
 
 function RestoringScreen() {
-	const colors = useColors();
-	const t = useTranslation();
-	return (
-		<View className="absolute inset-0 items-center justify-center gap-4 bg-background px-8">
-			<ActivityIndicator color={colors.subtle} />
-			<Text className="text-muted text-subtitle">{t("auth.restoring.title")}</Text>
-		</View>
-	);
+    const colors = useColors();
+    const t = useTranslation();
+    return (
+        <View className="bg-background absolute inset-0 items-center justify-center gap-4 px-8">
+            <ActivityIndicator color={colors.subtle} />
+            <Text className="text-muted text-subtitle">{t("auth.restoring.title")}</Text>
+        </View>
+    );
 }

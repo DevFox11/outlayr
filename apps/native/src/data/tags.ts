@@ -1,15 +1,18 @@
 import { isNull } from "drizzle-orm";
 import { useMemo } from "react";
+
 import type { Database } from "@/db/client";
 import { tags, transactionTags } from "@/db/schema";
 import { sortTags } from "@/domain/tags";
+
 import { useLiveQuery } from "./live-query";
-import { liveTagsQuery, type TagRow, tagIdsForQuery } from "./tags-core";
+import { liveTagsQuery, tagIdsForQuery } from "./tags-core";
+import type { TagRow } from "./tags-core";
 
 /** Every live tag, in the order a picker should read them. */
 export function useTags(db: Database): TagRow[] {
-	const rows = useLiveQuery(tags, () => liveTagsQuery(db));
-	return useMemo(() => sortTags(rows), [rows]);
+    const rows = useLiveQuery(tags, () => liveTagsQuery(db));
+    return useMemo(() => sortTags(rows), [rows]);
 }
 
 /**
@@ -17,8 +20,8 @@ export function useTags(db: Database): TagRow[] {
  * different entry re-reads rather than showing the last one's tags.
  */
 export function useTagIdsFor(db: Database, transactionId: string | null): string[] {
-	const rows = useLiveQuery(transactionTags, () => tagIdsForQuery(db, transactionId ?? ""), [transactionId]);
-	return useMemo(() => (transactionId ? rows.map((row) => row.tagId) : []), [rows, transactionId]);
+    const rows = useLiveQuery(transactionTags, () => tagIdsForQuery(db, transactionId ?? ""), [transactionId]);
+    return useMemo(() => (transactionId ? rows.map((row) => row.tagId) : []), [rows, transactionId]);
 }
 
 /**
@@ -29,27 +32,27 @@ export function useTagIdsFor(db: Database, transactionId: string | null): string
  * row against the same table.
  */
 export function useTagIdsByTransaction(db: Database): Map<string, string[]> {
-	const rows = useLiveQuery(transactionTags, () =>
-		db
-			.select({
-				tagId: transactionTags.tagId,
-				transactionId: transactionTags.transactionId,
-			})
-			.from(transactionTags)
-			// Tombstones stay in the table so the deletion replicates; painting one
-			// would show a tag the owner removed.
-			.where(isNull(transactionTags.deletedAt))
-	);
-	return useMemo(() => {
-		const byTransaction = new Map<string, string[]>();
-		for (const row of rows) {
-			const existing = byTransaction.get(row.transactionId);
-			if (existing) {
-				existing.push(row.tagId);
-			} else {
-				byTransaction.set(row.transactionId, [row.tagId]);
-			}
-		}
-		return byTransaction;
-	}, [rows]);
+    const rows = useLiveQuery(transactionTags, () =>
+        db
+            .select({
+                tagId: transactionTags.tagId,
+                transactionId: transactionTags.transactionId,
+            })
+            .from(transactionTags)
+            // Tombstones stay in the table so the deletion replicates; painting one
+            // would show a tag the owner removed.
+            .where(isNull(transactionTags.deletedAt))
+    );
+    return useMemo(() => {
+        const byTransaction = new Map<string, string[]>();
+        for (const row of rows) {
+            const existing = byTransaction.get(row.transactionId);
+            if (existing) {
+                existing.push(row.tagId);
+            } else {
+                byTransaction.set(row.transactionId, [row.tagId]);
+            }
+        }
+        return byTransaction;
+    }, [rows]);
 }

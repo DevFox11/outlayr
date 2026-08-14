@@ -7,15 +7,15 @@ const MAX_EPOCH_MS = 8.64e15;
  * number must pass this guard before it is stored or fed into date/rate math.
  */
 export function assertFiniteNumber(value: number, label: string): void {
-	if (!Number.isFinite(value)) {
-		throw new MoneyValidationError(`${label} must be a finite number, got: ${value}`);
-	}
+    if (!Number.isFinite(value)) {
+        throw new MoneyValidationError(`${label} must be a finite number, got: ${value}`);
+    }
 }
 
 export function assertOptionalFiniteNumber(value: number | undefined, label: string): void {
-	if (value !== undefined) {
-		assertFiniteNumber(value, label);
-	}
+    if (value !== undefined) {
+        assertFiniteNumber(value, label);
+    }
 }
 
 /**
@@ -23,14 +23,14 @@ export function assertOptionalFiniteNumber(value: number | undefined, label: str
  * `assertFiniteNumber` — but would make `utcDateString` throw a raw RangeError.
  */
 export function assertValidEpochMs(value: number, label: string): void {
-	assertFiniteNumber(value, label);
-	if (Math.abs(value) > MAX_EPOCH_MS) {
-		throw new MoneyValidationError(`${label} must be a valid epoch-milliseconds timestamp, got: ${value}`);
-	}
+    assertFiniteNumber(value, label);
+    if (Math.abs(value) > MAX_EPOCH_MS) {
+        throw new MoneyValidationError(`${label} must be a valid epoch-milliseconds timestamp, got: ${value}`);
+    }
 }
 
 export function assertOptionalValidEpochMs(value: number | undefined, label: string): void {
-	if (value !== undefined) {
-		assertValidEpochMs(value, label);
-	}
+    if (value !== undefined) {
+        assertValidEpochMs(value, label);
+    }
 }

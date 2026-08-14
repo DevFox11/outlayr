@@ -7,13 +7,13 @@ name: Launch into the app, dev client or release
 - launchApp
 
 - runFlow:
-    when:
-      visible: "Development Build"
-    commands:
-      - tapOn: "http://localhost:8081"
+      when:
+          visible: "Development Build"
+      commands:
+          - tapOn: "http://localhost:8081"
 
 # Splash is held until the database is open, migrated and seeded, and a cold
 # start also pays for the JS bundle — both outlast the default 7s wait.
 - extendedWaitUntil:
-    visible: "Insights"
-    timeout: 180000
+      visible: "Insights"
+      timeout: 180000

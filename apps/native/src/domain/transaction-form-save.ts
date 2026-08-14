@@ -1,29 +1,31 @@
 import type { EntryRateType } from "@outlayr/money/rates";
+
 import type { TransactionInput } from "@/data/transactions-core";
+
 import { RECURRING_TYPE } from "./recurrence";
 
 export interface TransactionSaveDraft {
-	accountId: string | null;
-	amount: number;
-	categoryId: string;
-	coefficient: number;
-	currency: string | null;
-	customColor: string | null;
-	date: Date;
-	details: string;
-	emoji: string | null;
-	endDate: Date;
-	exchangeRate?: number | null;
-	exchangeRateType?: EntryRateType | null;
-	hasEndDate: boolean;
-	icon: string | null;
-	imageColor: string | null;
-	imageUri: string | null;
-	income: boolean;
-	isSubscription: boolean;
-	leadDays: number | null;
-	note: string;
-	recurringType: number;
+    accountId: string | null;
+    amount: number;
+    categoryId: string;
+    coefficient: number;
+    currency: string | null;
+    customColor: string | null;
+    date: Date;
+    details: string;
+    emoji: string | null;
+    endDate: Date;
+    exchangeRate?: number | null;
+    exchangeRateType?: EntryRateType | null;
+    hasEndDate: boolean;
+    icon: string | null;
+    imageColor: string | null;
+    imageUri: string | null;
+    income: boolean;
+    isSubscription: boolean;
+    leadDays: number | null;
+    note: string;
+    recurringType: number;
 }
 
 /**
@@ -33,26 +35,26 @@ export interface TransactionSaveDraft {
  * lead or end date left over from before the toggle.
  */
 export function buildTransactionInput(draft: TransactionSaveDraft): TransactionInput {
-	return {
-		accountId: draft.accountId,
-		amount: draft.amount,
-		categoryId: draft.categoryId,
-		currency: draft.currency,
-		customColor: draft.customColor,
-		date: draft.date,
-		...(draft.exchangeRate === undefined ? {} : { exchangeRate: draft.exchangeRate }),
-		...(draft.exchangeRateType === undefined ? {} : { exchangeRateType: draft.exchangeRateType }),
-		details: draft.details,
-		emoji: draft.emoji,
-		icon: draft.icon,
-		imageColor: draft.imageColor,
-		imageUri: draft.imageUri,
-		income: draft.income,
-		note: draft.note,
-		onceRecurring: draft.isSubscription,
-		recurringCoefficient: draft.isSubscription ? Math.max(1, draft.coefficient) : 1,
-		recurringEndDate: draft.isSubscription && draft.hasEndDate ? draft.endDate : null,
-		recurringType: draft.isSubscription ? draft.recurringType : RECURRING_TYPE.none,
-		reminderLeadDays: draft.isSubscription ? draft.leadDays : null,
-	};
+    return {
+        accountId: draft.accountId,
+        amount: draft.amount,
+        categoryId: draft.categoryId,
+        currency: draft.currency,
+        customColor: draft.customColor,
+        date: draft.date,
+        ...(draft.exchangeRate === undefined ? {} : { exchangeRate: draft.exchangeRate }),
+        ...(draft.exchangeRateType === undefined ? {} : { exchangeRateType: draft.exchangeRateType }),
+        details: draft.details,
+        emoji: draft.emoji,
+        icon: draft.icon,
+        imageColor: draft.imageColor,
+        imageUri: draft.imageUri,
+        income: draft.income,
+        note: draft.note,
+        onceRecurring: draft.isSubscription,
+        recurringCoefficient: draft.isSubscription ? Math.max(1, draft.coefficient) : 1,
+        recurringEndDate: draft.isSubscription && draft.hasEndDate ? draft.endDate : null,
+        recurringType: draft.isSubscription ? draft.recurringType : RECURRING_TYPE.none,
+        reminderLeadDays: draft.isSubscription ? draft.leadDays : null,
+    };
 }

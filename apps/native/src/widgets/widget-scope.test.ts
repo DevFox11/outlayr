@@ -18,7 +18,7 @@ const TOP_LEVEL_DECLARATION = /^(?:export\s+)?(?:const|let|var|function|class)\s
  * extension's own bare `JSContext`, where nothing from this module's scope
  * exists. A module-level constant referenced from the body therefore resolves to
  * nothing — and it fails as a `ReferenceError` painted on the tile at render
- * time, which neither `tsc` nor Biome nor the iOS build can see. This shipped
+ * time, which neither `tsc` nor the linter nor the iOS build can see. This shipped
  * once already (`MEDIUM_ROWS` in the ledger, caught only by looking at the
  * widget gallery on a simulator).
  *
@@ -28,33 +28,33 @@ const TOP_LEVEL_DECLARATION = /^(?:export\s+)?(?:const|let|var|function|class)\s
  * values arrive as props.
  */
 describe("widget module scope", () => {
-	for (const file of WIDGET_FILES) {
-		it(`${file} declares nothing at module scope but its component`, () => {
-			const source = readFileSync(join(import.meta.dirname, file), "utf8");
-			const component = file.replace(".tsx", "");
-			const offenders: string[] = [];
+    for (const file of WIDGET_FILES) {
+        it(`${file} declares nothing at module scope but its component`, () => {
+            const source = readFileSync(join(import.meta.dirname, file), "utf-8");
+            const component = file.replace(".tsx", "");
+            const offenders: string[] = [];
 
-			for (const line of source.split("\n")) {
-				const match = line.match(TOP_LEVEL_DECLARATION);
-				if (!match) {
-					continue;
-				}
-				// The component itself is the one permitted declaration; it is what
-				// gets stringified, so its own name is never resolved at runtime.
-				if (match[1].toLowerCase() === `${component}widget`) {
-					continue;
-				}
-				offenders.push(match[1]);
-			}
+            for (const line of source.split("\n")) {
+                const match = line.match(TOP_LEVEL_DECLARATION);
+                if (!match) {
+                    continue;
+                }
+                // The component itself is the one permitted declaration; it is what
+                // gets stringified, so its own name is never resolved at runtime.
+                if (match[1].toLowerCase() === `${component}widget`) {
+                    continue;
+                }
+                offenders.push(match[1]);
+            }
 
-			expect(offenders).toStrictEqual([]);
-		});
-	}
+            expect(offenders).toStrictEqual([]);
+        });
+    }
 
-	it("covers every widget file that exists", () => {
-		const index = readFileSync(join(import.meta.dirname, "publish.ts"), "utf8");
-		for (const file of WIDGET_FILES) {
-			expect(index.includes(`./${file.replace(".tsx", "")}`)).toBeTruthy();
-		}
-	});
+    it("covers every widget file that exists", () => {
+        const index = readFileSync(join(import.meta.dirname, "publish.ts"), "utf-8");
+        for (const file of WIDGET_FILES) {
+            expect(index.includes(`./${file.replace(".tsx", "")}`)).toBeTruthy();
+        }
+    });
 });

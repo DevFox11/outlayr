@@ -1,299 +1,300 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
+
 import {
-	isSubscriptionReminderId,
-	leadLabelKey,
-	MAX_PENDING_SUBSCRIPTION_REMINDERS,
-	normalizeLead,
-	orphanedReminderIds,
-	REMINDER_LEAD_OPTIONS,
-	reminderFireAt,
-	reminderPlan,
-	resolveLeadSelection,
-	SUBSCRIPTION_REMINDER_PREFIX,
-	subscriptionReminderId,
+    isSubscriptionReminderId,
+    leadLabelKey,
+    MAX_PENDING_SUBSCRIPTION_REMINDERS,
+    normalizeLead,
+    orphanedReminderIds,
+    REMINDER_LEAD_OPTIONS,
+    reminderFireAt,
+    reminderPlan,
+    resolveLeadSelection,
+    SUBSCRIPTION_REMINDER_PREFIX,
+    subscriptionReminderId,
 } from "./subscription-reminder";
 
 const NINE_AM = { hour: 9, minute: 0 };
 
 const wallClock = (d: Date): [number, number, number, number, number, number] => [
-	d.getFullYear(),
-	d.getMonth() + 1,
-	d.getDate(),
-	d.getHours(),
-	d.getMinutes(),
-	d.getSeconds(),
+    d.getFullYear(),
+    d.getMonth() + 1,
+    d.getDate(),
+    d.getHours(),
+    d.getMinutes(),
+    d.getSeconds(),
 ];
 
 describe("subscription reminder identity", () => {
-	it("namespaces the request under the local id", () => {
-		expect(subscriptionReminderId("abc-123")).toBe(`${SUBSCRIPTION_REMINDER_PREFIX}abc-123`);
-	});
+    it("namespaces the request under the local id", () => {
+        expect(subscriptionReminderId("abc-123")).toBe(`${SUBSCRIPTION_REMINDER_PREFIX}abc-123`);
+    });
 
-	it("claims its own requests and nothing else", () => {
-		expect(isSubscriptionReminderId(subscriptionReminderId("abc"))).toBe(true);
-		expect(isSubscriptionReminderId("outlayr.daily-reminder")).toBe(false);
-		expect(isSubscriptionReminderId("outlayr.sub-due")).toBe(false);
-		expect(isSubscriptionReminderId("")).toBe(false);
-	});
+    it("claims its own requests and nothing else", () => {
+        expect(isSubscriptionReminderId(subscriptionReminderId("abc"))).toBe(true);
+        expect(isSubscriptionReminderId("outlayr.daily-reminder")).toBe(false);
+        expect(isSubscriptionReminderId("outlayr.sub-due")).toBe(false);
+        expect(isSubscriptionReminderId("")).toBe(false);
+    });
 });
 
 describe("lead options", () => {
-	it("offers the picker's order, on the day first", () => {
-		expect([...REMINDER_LEAD_OPTIONS]).toStrictEqual([0, 1, 2, 3, 7]);
-	});
+    it("offers the picker's order, on the day first", () => {
+        expect([...REMINDER_LEAD_OPTIONS]).toStrictEqual([0, 1, 2, 3, 7]);
+    });
 });
 
 describe("normalizing a stored lead", () => {
-	it("reads a missing lead as off rather than as the due day", () => {
-		expect(normalizeLead(null)).toBe(null);
-	});
+    it("reads a missing lead as off rather than as the due day", () => {
+        expect(normalizeLead(null)).toBeNull();
+    });
 
-	it("keeps every offered option untouched", () => {
-		for (const lead of REMINDER_LEAD_OPTIONS) {
-			expect(normalizeLead(lead)).toBe(lead);
-		}
-	});
+    it("keeps every offered option untouched", () => {
+        for (const lead of REMINDER_LEAD_OPTIONS) {
+            expect(normalizeLead(lead)).toBe(lead);
+        }
+    });
 
-	it("refuses a lead that is not a real number", () => {
-		expect(normalizeLead(Number.NaN)).toBe(null);
-		expect(normalizeLead(Number.POSITIVE_INFINITY)).toBe(null);
-		expect(normalizeLead(Number.NEGATIVE_INFINITY)).toBe(null);
-	});
+    it("refuses a lead that is not a real number", () => {
+        expect(normalizeLead(Number.NaN)).toBeNull();
+        expect(normalizeLead(Number.POSITIVE_INFINITY)).toBeNull();
+        expect(normalizeLead(Number.NEGATIVE_INFINITY)).toBeNull();
+    });
 
-	it("clamps both ends instead of turning the reminder off", () => {
-		expect(normalizeLead(-3)).toBe(0);
-		expect(normalizeLead(99)).toBe(30);
-		expect(normalizeLead(30)).toBe(30);
-	});
+    it("clamps both ends instead of turning the reminder off", () => {
+        expect(normalizeLead(-3)).toBe(0);
+        expect(normalizeLead(99)).toBe(30);
+        expect(normalizeLead(30)).toBe(30);
+    });
 
-	it("floors a fractional lead", () => {
-		expect(normalizeLead(2.9)).toBe(2);
-	});
+    it("floors a fractional lead", () => {
+        expect(normalizeLead(2.9)).toBe(2);
+    });
 });
 
 describe("when a reminder fires", () => {
-	it("lands on the due day at the configured hour with no lead", () => {
-		const fire = reminderFireAt(new Date(2026, 4, 14, 23, 12), 0, NINE_AM);
-		expect(wallClock(fire)).toStrictEqual([2026, 5, 14, 9, 0, 0]);
-	});
+    it("lands on the due day at the configured hour with no lead", () => {
+        const fire = reminderFireAt(new Date(2026, 4, 14, 23, 12), 0, NINE_AM);
+        expect(wallClock(fire)).toStrictEqual([2026, 5, 14, 9, 0, 0]);
+    });
 
-	it("lands a week earlier at a week's lead", () => {
-		const fire = reminderFireAt(new Date(2026, 4, 14), 7, NINE_AM);
-		expect(wallClock(fire)).toStrictEqual([2026, 5, 7, 9, 0, 0]);
-	});
+    it("lands a week earlier at a week's lead", () => {
+        const fire = reminderFireAt(new Date(2026, 4, 14), 7, NINE_AM);
+        expect(wallClock(fire)).toStrictEqual([2026, 5, 7, 9, 0, 0]);
+    });
 
-	it("carries the chosen minute through", () => {
-		const fire = reminderFireAt(new Date(2026, 4, 14), 1, {
-			hour: 20,
-			minute: 45,
-		});
-		expect(wallClock(fire)).toStrictEqual([2026, 5, 13, 20, 45, 0]);
-	});
+    it("carries the chosen minute through", () => {
+        const fire = reminderFireAt(new Date(2026, 4, 14), 1, {
+            hour: 20,
+            minute: 45,
+        });
+        expect(wallClock(fire)).toStrictEqual([2026, 5, 13, 20, 45, 0]);
+    });
 
-	it("crosses a month boundary onto the right day", () => {
-		const fire = reminderFireAt(new Date(2026, 2, 3), 7, NINE_AM);
-		expect(wallClock(fire)).toStrictEqual([2026, 2, 24, 9, 0, 0]);
-	});
+    it("crosses a month boundary onto the right day", () => {
+        const fire = reminderFireAt(new Date(2026, 2, 3), 7, NINE_AM);
+        expect(wallClock(fire)).toStrictEqual([2026, 2, 24, 9, 0, 0]);
+    });
 
-	it("crosses a year boundary onto the right day", () => {
-		const fire = reminderFireAt(new Date(2026, 0, 2), 3, NINE_AM);
-		expect(wallClock(fire)).toStrictEqual([2025, 12, 30, 9, 0, 0]);
-	});
+    it("crosses a year boundary onto the right day", () => {
+        const fire = reminderFireAt(new Date(2026, 0, 2), 3, NINE_AM);
+        expect(wallClock(fire)).toStrictEqual([2025, 12, 30, 9, 0, 0]);
+    });
 
-	// The zone is forced because the host's own may have no DST at all, in which
-	// case the case under test could not arise. A subprocess is required rather
-	// than mutating `process.env.TZ` in-place: Jest caches the host's own zone
-	// the first time any `Date` is touched (before this file's own code ever
-	// runs), so a later mutation of `process.env.TZ` is silently ignored — only
-	// a fresh process started with `TZ` already set picks up a different zone.
-	it("keeps the chosen hour across a DST change", () => {
-		const probe = join(import.meta.dirname, "subscription-reminder-dst-probe.ts");
-		const out = execFileSync(
-			process.execPath,
-			[
-				"--import",
-				"tsx",
-				probe,
-				JSON.stringify([
-					[2026, 2, 15],
-					[2026, 2, 1],
-				]),
-			],
-			{ encoding: "utf8", env: { ...process.env, TZ: "America/New_York" } }
-		);
-		const { landingOffset, earlierOffset, fire } = JSON.parse(out) as {
-			landingOffset: number;
-			earlierOffset: number;
-			fire: [number, number, number, number, number, number];
-		};
+    // The zone is forced because the host's own may have no DST at all, in which
+    // case the case under test could not arise. A subprocess is required rather
+    // than mutating `process.env.TZ` in-place: Jest caches the host's own zone
+    // the first time any `Date` is touched (before this file's own code ever
+    // runs), so a later mutation of `process.env.TZ` is silently ignored — only
+    // a fresh process started with `TZ` already set picks up a different zone.
+    it("keeps the chosen hour across a DST change", () => {
+        const probe = join(import.meta.dirname, "subscription-reminder-dst-probe.ts");
+        const out = execFileSync(
+            process.execPath,
+            [
+                "--import",
+                "tsx",
+                probe,
+                JSON.stringify([
+                    [2026, 2, 15],
+                    [2026, 2, 1],
+                ]),
+            ],
+            { encoding: "utf-8", env: { ...process.env, TZ: "America/New_York" } }
+        );
+        const { landingOffset, earlierOffset, fire } = JSON.parse(out) as {
+            landingOffset: number;
+            earlierOffset: number;
+            fire: [number, number, number, number, number, number];
+        };
 
-		expect(landingOffset).not.toBe(earlierOffset);
-		expect(fire).toStrictEqual([2026, 3, 8, 9, 0, 0]);
-	});
+        expect(landingOffset).not.toBe(earlierOffset);
+        expect(fire).toStrictEqual([2026, 3, 8, 9, 0, 0]);
+    });
 });
 
 describe("planning what to arm", () => {
-	const now = new Date(2026, 2, 10, 12, 0);
+    const now = new Date(2026, 2, 10, 12, 0);
 
-	it("drops a charge whose reminder hour has already gone by", () => {
-		const plan = reminderPlan({
-			candidates: [
-				{ landing: new Date(2026, 2, 10), leadDays: 0, localId: "past" },
-				{ landing: new Date(2026, 2, 12), leadDays: 0, localId: "ahead" },
-			],
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["ahead"]);
-	});
+    it("drops a charge whose reminder hour has already gone by", () => {
+        const plan = reminderPlan({
+            candidates: [
+                { landing: new Date(2026, 2, 10), leadDays: 0, localId: "past" },
+                { landing: new Date(2026, 2, 12), leadDays: 0, localId: "ahead" },
+            ],
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["ahead"]);
+    });
 
-	it("drops a lead that pulls the reminder back before now", () => {
-		const plan = reminderPlan({
-			candidates: [{ landing: new Date(2026, 2, 12), leadDays: 7, localId: "led-past" }],
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm).toStrictEqual([]);
-	});
+    it("drops a lead that pulls the reminder back before now", () => {
+        const plan = reminderPlan({
+            candidates: [{ landing: new Date(2026, 2, 12), leadDays: 7, localId: "led-past" }],
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm).toStrictEqual([]);
+    });
 
-	it("arms nothing for a candidate whose lead is off", () => {
-		const plan = reminderPlan({
-			candidates: [{ landing: new Date(2026, 2, 12), leadDays: null, localId: "off" }],
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm).toStrictEqual([]);
-	});
+    it("arms nothing for a candidate whose lead is off", () => {
+        const plan = reminderPlan({
+            candidates: [{ landing: new Date(2026, 2, 12), leadDays: null, localId: "off" }],
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm).toStrictEqual([]);
+    });
 
-	it("clamps a negative lead instead of firing after the charge", () => {
-		const landing = new Date(2026, 2, 12);
-		const plan = reminderPlan({
-			candidates: [{ landing, leadDays: -3, localId: "backwards" }],
-			now,
-			time: NINE_AM,
-		});
-		// -3 counted forward would land on the 15th, three days after the money
-		// left — and it would survive the `now` filter, so nothing else catches it.
-		expect(plan.arm.length).toBe(1);
-		expect(plan.arm[0].fireAt).toStrictEqual(new Date(2026, 2, 12, 9, 0));
-	});
+    it("clamps a negative lead instead of firing after the charge", () => {
+        const landing = new Date(2026, 2, 12);
+        const plan = reminderPlan({
+            candidates: [{ landing, leadDays: -3, localId: "backwards" }],
+            now,
+            time: NINE_AM,
+        });
+        // -3 counted forward would land on the 15th, three days after the money
+        // left — and it would survive the `now` filter, so nothing else catches it.
+        expect(plan.arm).toHaveLength(1);
+        expect(plan.arm[0].fireAt).toStrictEqual(new Date(2026, 2, 12, 9, 0));
+    });
 
-	it("orders by fire time, not by the order the rows arrived", () => {
-		const plan = reminderPlan({
-			candidates: [
-				{ landing: new Date(2026, 5, 1), leadDays: 0, localId: "june" },
-				{ landing: new Date(2026, 3, 1), leadDays: 0, localId: "april" },
-				{ landing: new Date(2026, 4, 1), leadDays: 3, localId: "may-led" },
-			],
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["april", "may-led", "june"]);
-	});
+    it("orders by fire time, not by the order the rows arrived", () => {
+        const plan = reminderPlan({
+            candidates: [
+                { landing: new Date(2026, 5, 1), leadDays: 0, localId: "june" },
+                { landing: new Date(2026, 3, 1), leadDays: 0, localId: "april" },
+                { landing: new Date(2026, 4, 1), leadDays: 3, localId: "may-led" },
+            ],
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["april", "may-led", "june"]);
+    });
 
-	it("keeps the soonest charges when it has to truncate", () => {
-		const plan = reminderPlan({
-			candidates: [
-				{ landing: new Date(2026, 2, 20), leadDays: 0, localId: "third" },
-				{ landing: new Date(2026, 2, 11), leadDays: 0, localId: "first" },
-				{ landing: new Date(2026, 2, 15), leadDays: 0, localId: "second" },
-			],
-			cap: 2,
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["first", "second"]);
-	});
+    it("keeps the soonest charges when it has to truncate", () => {
+        const plan = reminderPlan({
+            candidates: [
+                { landing: new Date(2026, 2, 20), leadDays: 0, localId: "third" },
+                { landing: new Date(2026, 2, 11), leadDays: 0, localId: "first" },
+                { landing: new Date(2026, 2, 15), leadDays: 0, localId: "second" },
+            ],
+            cap: 2,
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["first", "second"]);
+    });
 
-	it("arms nothing at all rather than one request at a cap of zero", () => {
-		const plan = reminderPlan({
-			candidates: [{ landing: new Date(2026, 2, 12), leadDays: 0, localId: "ahead" }],
-			cap: 0,
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm).toStrictEqual([]);
-	});
+    it("arms nothing at all rather than one request at a cap of zero", () => {
+        const plan = reminderPlan({
+            candidates: [{ landing: new Date(2026, 2, 12), leadDays: 0, localId: "ahead" }],
+            cap: 0,
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm).toStrictEqual([]);
+    });
 
-	it("caps at the iOS budget when no cap is given", () => {
-		const candidates = Array.from({ length: 80 }, (_, index) => ({
-			landing: new Date(2026, 2, 11 + index),
-			leadDays: 0,
-			localId: `sub-${index}`,
-		}));
-		const plan = reminderPlan({ candidates, now, time: NINE_AM });
-		expect(plan.arm.length).toBe(MAX_PENDING_SUBSCRIPTION_REMINDERS);
-		expect(plan.arm[0].localId).toBe("sub-0");
-	});
+    it("caps at the iOS budget when no cap is given", () => {
+        const candidates = Array.from({ length: 80 }, (_, index) => ({
+            landing: new Date(2026, 2, 11 + index),
+            leadDays: 0,
+            localId: `sub-${index}`,
+        }));
+        const plan = reminderPlan({ candidates, now, time: NINE_AM });
+        expect(plan.arm).toHaveLength(MAX_PENDING_SUBSCRIPTION_REMINDERS);
+        expect(plan.arm[0].localId).toBe("sub-0");
+    });
 
-	it("names each request by its own local id", () => {
-		const plan = reminderPlan({
-			candidates: [{ landing: new Date(2026, 2, 12), leadDays: 0, localId: "abc" }],
-			now,
-			time: NINE_AM,
-		});
-		expect(plan.arm[0].id).toBe(subscriptionReminderId("abc"));
-		expect(wallClock(plan.arm[0].fireAt)).toStrictEqual([2026, 3, 12, 9, 0, 0]);
-	});
+    it("names each request by its own local id", () => {
+        const plan = reminderPlan({
+            candidates: [{ landing: new Date(2026, 2, 12), leadDays: 0, localId: "abc" }],
+            now,
+            time: NINE_AM,
+        });
+        expect(plan.arm[0].id).toBe(subscriptionReminderId("abc"));
+        expect(wallClock(plan.arm[0].fireAt)).toStrictEqual([2026, 3, 12, 9, 0, 0]);
+    });
 });
 
 describe("reconciling what iOS still holds", () => {
-	it("returns a subscription request the plan no longer covers", () => {
-		const armed = [subscriptionReminderId("keep")];
-		const pending = [subscriptionReminderId("keep"), subscriptionReminderId("stale")];
-		expect(orphanedReminderIds(armed, pending)).toStrictEqual([subscriptionReminderId("stale")]);
-	});
+    it("returns a subscription request the plan no longer covers", () => {
+        const armed = [subscriptionReminderId("keep")];
+        const pending = [subscriptionReminderId("keep"), subscriptionReminderId("stale")];
+        expect(orphanedReminderIds(armed, pending)).toStrictEqual([subscriptionReminderId("stale")]);
+    });
 
-	it("never touches the daily reminder", () => {
-		const pending = ["outlayr.daily-reminder", subscriptionReminderId("stale"), "some.other.app.request"];
-		expect(orphanedReminderIds([], pending)).toStrictEqual([subscriptionReminderId("stale")]);
-		expect(orphanedReminderIds([subscriptionReminderId("stale")], pending)).toStrictEqual([]);
-	});
+    it("never touches the daily reminder", () => {
+        const pending = ["outlayr.daily-reminder", subscriptionReminderId("stale"), "some.other.app.request"];
+        expect(orphanedReminderIds([], pending)).toStrictEqual([subscriptionReminderId("stale")]);
+        expect(orphanedReminderIds([subscriptionReminderId("stale")], pending)).toStrictEqual([]);
+    });
 
-	it("cancels nothing when iOS holds nothing", () => {
-		expect(orphanedReminderIds([subscriptionReminderId("keep")], [])).toStrictEqual([]);
-	});
+    it("cancels nothing when iOS holds nothing", () => {
+        expect(orphanedReminderIds([subscriptionReminderId("keep")], [])).toStrictEqual([]);
+    });
 });
 
 describe("labelling a lead", () => {
-	it("names every option the picker offers", () => {
-		expect(leadLabelKey(null)).toBe("settings.notifications.leadOff");
-		expect(leadLabelKey(0)).toBe("settings.notifications.leadSameDay");
-		expect(leadLabelKey(1)).toBe("settings.notifications.leadOneDay");
-		expect(leadLabelKey(2)).toBe("settings.notifications.leadTwoDays");
-		expect(leadLabelKey(3)).toBe("settings.notifications.leadThreeDays");
-		expect(leadLabelKey(7)).toBe("settings.notifications.leadOneWeek");
-	});
+    it("names every option the picker offers", () => {
+        expect(leadLabelKey(null)).toBe("settings.notifications.leadOff");
+        expect(leadLabelKey(0)).toBe("settings.notifications.leadSameDay");
+        expect(leadLabelKey(1)).toBe("settings.notifications.leadOneDay");
+        expect(leadLabelKey(2)).toBe("settings.notifications.leadTwoDays");
+        expect(leadLabelKey(3)).toBe("settings.notifications.leadThreeDays");
+        expect(leadLabelKey(7)).toBe("settings.notifications.leadOneWeek");
+    });
 
-	it("falls back to the counted form for a lead nothing offers", () => {
-		expect(leadLabelKey(5)).toBe("settings.notifications.leadDaysBefore");
-		expect(leadLabelKey(30)).toBe("settings.notifications.leadDaysBefore");
-	});
+    it("falls back to the counted form for a lead nothing offers", () => {
+        expect(leadLabelKey(5)).toBe("settings.notifications.leadDaysBefore");
+        expect(leadLabelKey(30)).toBe("settings.notifications.leadDaysBefore");
+    });
 
-	it("reads a nonsense lead as off, matching what is stored back", () => {
-		expect(leadLabelKey(Number.NaN)).toBe("settings.notifications.leadOff");
-	});
+    it("reads a nonsense lead as off, matching what is stored back", () => {
+        expect(leadLabelKey(Number.NaN)).toBe("settings.notifications.leadOff");
+    });
 
-	it("labels a clamped lead by the value that will actually be used", () => {
-		expect(leadLabelKey(-3)).toBe("settings.notifications.leadSameDay");
-		expect(leadLabelKey(1.5)).toBe("settings.notifications.leadOneDay");
-	});
+    it("labels a clamped lead by the value that will actually be used", () => {
+        expect(leadLabelKey(-3)).toBe("settings.notifications.leadSameDay");
+        expect(leadLabelKey(1.5)).toBe("settings.notifications.leadOneDay");
+    });
 });
 
 describe("resolveLeadSelection", () => {
-	const OFF_TAG = -1;
+    const OFF_TAG = -1;
 
-	it("reads the off sentinel as no reminder", () => {
-		expect(resolveLeadSelection(OFF_TAG, OFF_TAG)).toBe(null);
-	});
+    it("reads the off sentinel as no reminder", () => {
+        expect(resolveLeadSelection(OFF_TAG, OFF_TAG)).toBeNull();
+    });
 
-	it("normalizes any other tag as a lead count", () => {
-		expect(resolveLeadSelection(0, OFF_TAG)).toBe(0);
-		expect(resolveLeadSelection(7, OFF_TAG)).toBe(7);
-	});
+    it("normalizes any other tag as a lead count", () => {
+        expect(resolveLeadSelection(0, OFF_TAG)).toBe(0);
+        expect(resolveLeadSelection(7, OFF_TAG)).toBe(7);
+    });
 
-	it("never mistakes a real lead for the sentinel", () => {
-		expect(resolveLeadSelection(3, OFF_TAG)).toBe(3);
-	});
+    it("never mistakes a real lead for the sentinel", () => {
+        expect(resolveLeadSelection(3, OFF_TAG)).toBe(3);
+    });
 });

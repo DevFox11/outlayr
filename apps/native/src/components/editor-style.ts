@@ -9,18 +9,18 @@ export const FORM_BLUR_RADIUS = 8;
  * landed and the sheet has gone.
  */
 export const FLY_UP = Animation.spring({
-	dampingFraction: 0.85,
-	response: 0.4,
+    dampingFraction: 0.85,
+    response: 0.4,
 });
 export const FLY_BACK = Animation.spring({
-	dampingFraction: 0.98,
-	response: 0.29,
+    dampingFraction: 0.98,
+    response: 0.29,
 });
 
 export const BODY_SEMIBOLD = font({
-	design: "rounded",
-	textStyle: "body",
-	weight: "semibold",
+    design: "rounded",
+    textStyle: "body",
+    weight: "semibold",
 });
 
 /**

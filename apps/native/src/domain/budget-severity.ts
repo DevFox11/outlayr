@@ -1,16 +1,16 @@
 export interface BudgetSeverity {
-	amount: number;
-	overBudget: boolean;
-	spent: number;
+    amount: number;
+    overBudget: boolean;
+    spent: number;
 }
 
 function overage(budget: BudgetSeverity): number {
-	return budget.spent - budget.amount;
+    return budget.spent - budget.amount;
 }
 
 /** A zero limit has no fraction to spend — it is over the moment anything lands. */
 function spentFraction(budget: BudgetSeverity): number {
-	return budget.amount > 0 ? budget.spent / budget.amount : 0;
+    return budget.amount > 0 ? budget.spent / budget.amount : 0;
 }
 
 /**
@@ -21,11 +21,11 @@ function spentFraction(budget: BudgetSeverity): number {
  * module pulls in Drizzle's expo-sqlite driver, which needs a native runtime.
  */
 export function compareBudgetSeverity(a: BudgetSeverity, b: BudgetSeverity): number {
-	if (a.overBudget !== b.overBudget) {
-		return a.overBudget ? -1 : 1;
-	}
-	if (a.overBudget) {
-		return overage(b) - overage(a);
-	}
-	return spentFraction(b) - spentFraction(a);
+    if (a.overBudget !== b.overBudget) {
+        return a.overBudget ? -1 : 1;
+    }
+    if (a.overBudget) {
+        return overage(b) - overage(a);
+    }
+    return spentFraction(b) - spentFraction(a);
 }

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
+
 import type { Database } from "@/db/client";
 import type { ValuationCoverage } from "@/domain/valuation-coverage";
+
 import { valuationCoverage } from "./canonicalize-backfill";
 
 const NOTHING: ValuationCoverage = {
-	beyondRateHistory: 0,
-	converted: 0,
-	pending: 0,
+    beyondRateHistory: 0,
+    converted: 0,
+    pending: 0,
 };
 
 /**
@@ -18,19 +20,20 @@ const NOTHING: ValuationCoverage = {
  * the scan has answered.
  */
 export function useValuationCoverage(db: Database): ValuationCoverage {
-	const [coverage, setCoverage] = useState<ValuationCoverage>(NOTHING);
+    const [coverage, setCoverage] = useState<ValuationCoverage>(NOTHING);
 
-	useEffect(() => {
-		let cancelled = false;
-		valuationCoverage(db).then((next) => {
-			if (!cancelled) {
-				setCoverage(next);
-			}
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [db]);
+    useEffect(() => {
+        let cancelled = false;
+        valuationCoverage(db).then((next) => {
+            if (!cancelled) {
+                // oxlint-disable-next-line promise/no-callback-in-promise -- an effect body cannot be async, so the setState has nowhere else to be sequenced from
+                setCoverage(next);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [db]);
 
-	return coverage;
+    return coverage;
 }

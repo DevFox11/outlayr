@@ -1,4 +1,5 @@
 import type { TranslationKey } from "@/i18n/catalog";
+
 import type { LogMeasure } from "./log-measure";
 
 /**
@@ -13,12 +14,12 @@ import type { LogMeasure } from "./log-measure";
  * a total function instead of a fourth case to branch on.
  */
 export function sparklineTrendKey(amounts: readonly number[]): TranslationKey {
-	const [first] = amounts;
-	const last = amounts.at(-1);
-	if (first === undefined || last === undefined || first === last) {
-		return "insights.trend.flat";
-	}
-	return last > first ? "insights.trend.rising" : "insights.trend.falling";
+    const [first] = amounts;
+    const last = amounts.at(-1);
+    if (first === undefined || last === undefined || first === last) {
+        return "insights.trend.flat";
+    }
+    return last > first ? "insights.trend.rising" : "insights.trend.falling";
 }
 
 /**
@@ -34,8 +35,8 @@ export function sparklineTrendKey(amounts: readonly number[]): TranslationKey {
  * instead of inventing a movement.
  */
 export function sparklineLabelKey(measure: LogMeasure, amounts: readonly number[], byMonth: boolean): TranslationKey {
-	if (measure === "net") {
-		return sparklineTrendKey(amounts);
-	}
-	return byMonth ? "insights.trend.monthlyTotals" : "insights.trend.dailyTotals";
+    if (measure === "net") {
+        return sparklineTrendKey(amounts);
+    }
+    return byMonth ? "insights.trend.monthlyTotals" : "insights.trend.dailyTotals";
 }

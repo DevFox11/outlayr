@@ -10,7 +10,7 @@ import { redirectLaunchPath } from "@/lib/deep-links";
  * resolves as a literal path and lands on `+not-found`.
  */
 export function redirectSystemPath(event: { path: string | null; initial: boolean }) {
-	return redirectLaunchPath(event, drainLaunchURL);
+    return redirectLaunchPath(event, drainLaunchURL);
 }
 
 /**
@@ -19,7 +19,7 @@ export function redirectSystemPath(event: { path: string | null; initial: boolea
  * ever reads the launch URL later than it does today.
  */
 function drainLaunchURL() {
-	if (__DEV__) {
-		clearInitialURL();
-	}
+    if (__DEV__) {
+        clearInitialURL();
+    }
 }

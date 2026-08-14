@@ -1,42 +1,43 @@
 import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
+
 import { isFavourite } from "./favourite-currencies";
 
 export type CurrencyCode = (typeof PICKABLE_CURRENCY_CODES)[number];
 
 export type CurrencyPickerRow =
-	| { kind: "header"; key: string; section: "favourites" | "all" }
-	| { kind: "hint"; key: string }
-	| {
-			kind: "currency";
-			key: string;
-			code: CurrencyCode;
-			favourite: boolean;
-			/**
-			 * Last of its section. The row draws its own separator, so without this
-			 * the final one in a section stacks a hairline against the next header.
-			 */
-			last: boolean;
-	  };
+    | { kind: "header"; key: string; section: "favourites" | "all" }
+    | { kind: "hint"; key: string }
+    | {
+          kind: "currency";
+          key: string;
+          code: CurrencyCode;
+          favourite: boolean;
+          /**
+           * Last of its section. The row draws its own separator, so without this
+           * the final one in a section stacks a hairline against the next header.
+           */
+          last: boolean;
+      };
 
 const BY_CODE: ReadonlyMap<string, CurrencyCode> = new Map(
-	PICKABLE_CURRENCY_CODES.map((code): [string, CurrencyCode] => [code, code])
+    PICKABLE_CURRENCY_CODES.map((code): [string, CurrencyCode] => [code, code])
 );
 
 function currencyRow(code: CurrencyCode, favourite: boolean): CurrencyPickerRow {
-	return { code, favourite, key: code, kind: "currency", last: false };
+    return { code, favourite, key: code, kind: "currency", last: false };
 }
 
 /** Marks the last currency row before each header, and the last one overall. */
 function closeSections(rows: CurrencyPickerRow[]): CurrencyPickerRow[] {
-	for (let index = 0; index < rows.length; index += 1) {
-		const row = rows[index];
-		if (row.kind !== "currency") {
-			continue;
-		}
-		const next = rows[index + 1];
-		row.last = next === undefined || next.kind === "header";
-	}
-	return rows;
+    for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index];
+        if (row.kind !== "currency") {
+            continue;
+        }
+        const next = rows[index + 1];
+        row.last = next === undefined || next.kind === "header";
+    }
+    return rows;
 }
 
 /**
@@ -54,37 +55,38 @@ function closeSections(rows: CurrencyPickerRow[]): CurrencyPickerRow[] {
  * press, which nothing on a row advertises.
  */
 export function currencyPickerRows(favourites: readonly string[], query: string): CurrencyPickerRow[] {
-	const needle = query.trim().toLowerCase();
-	const matches =
-		needle === ""
-			? PICKABLE_CURRENCY_CODES
-			: PICKABLE_CURRENCY_CODES.filter(
-					(code) => code.toLowerCase().includes(needle) || CURRENCY_META[code].name.toLowerCase().includes(needle)
-				);
+    const needle = query.trim().toLowerCase();
+    const matches =
+        needle === ""
+            ? PICKABLE_CURRENCY_CODES
+            : PICKABLE_CURRENCY_CODES.filter(
+                  (code) =>
+                      code.toLowerCase().includes(needle) || CURRENCY_META[code].name.toLowerCase().includes(needle)
+              );
 
-	if (needle !== "") {
-		return closeSections(matches.map((code) => currencyRow(code, isFavourite(favourites, code))));
-	}
+    if (needle !== "") {
+        return closeSections(matches.map((code) => currencyRow(code, isFavourite(favourites, code))));
+    }
 
-	const cluster = favourites.flatMap((favourite) => {
-		const code = BY_CODE.get(favourite);
-		return code === undefined ? [] : [currencyRow(code, true)];
-	});
-	if (cluster.length === 0) {
-		return closeSections([
-			{ key: "header:favourites", kind: "header", section: "favourites" },
-			{ key: "hint:favourites", kind: "hint" },
-			{ key: "header:all", kind: "header", section: "all" },
-			...matches.map((code) => currencyRow(code, false)),
-		]);
-	}
+    const cluster = favourites.flatMap((favourite) => {
+        const code = BY_CODE.get(favourite);
+        return code === undefined ? [] : [currencyRow(code, true)];
+    });
+    if (cluster.length === 0) {
+        return closeSections([
+            { key: "header:favourites", kind: "header", section: "favourites" },
+            { key: "hint:favourites", kind: "hint" },
+            { key: "header:all", kind: "header", section: "all" },
+            ...matches.map((code) => currencyRow(code, false)),
+        ]);
+    }
 
-	const rest = matches.filter((code) => !isFavourite(favourites, code)).map((code) => currencyRow(code, false));
+    const rest = matches.filter((code) => !isFavourite(favourites, code)).map((code) => currencyRow(code, false));
 
-	return closeSections([
-		{ key: "header:favourites", kind: "header", section: "favourites" },
-		...cluster,
-		{ key: "header:all", kind: "header", section: "all" },
-		...rest,
-	]);
+    return closeSections([
+        { key: "header:favourites", kind: "header", section: "favourites" },
+        ...cluster,
+        { key: "header:all", kind: "header", section: "all" },
+        ...rest,
+    ]);
 }

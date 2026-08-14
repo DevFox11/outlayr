@@ -2,12 +2,12 @@ import { getLocales } from "expo-localization";
 import { useMemo } from "react";
 
 export function useRegionCode(): string | undefined {
-	return useMemo(() => {
-		try {
-			const region = getLocales()[0]?.regionCode?.trim();
-			return region ? region : undefined;
-		} catch {
-			// No locale available; the hook reports undefined.
-		}
-	}, []);
+    return useMemo(() => {
+        try {
+            const region = getLocales()[0]?.regionCode?.trim();
+            return region || undefined;
+        } catch {
+            // No locale available; the hook reports undefined.
+        }
+    }, []);
 }

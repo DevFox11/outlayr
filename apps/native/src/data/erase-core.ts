@@ -1,4 +1,5 @@
 import { isNull } from "drizzle-orm";
+
 import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions, transfers } from "@/db/schema";
@@ -31,49 +32,49 @@ export const ERASED_DATE = new Date(0);
  * which is exactly the failure this constant exists to prevent.
  */
 export const ERASED_TRANSACTION = {
-	accountId: null,
-	amount: 0,
-	amountUsd: null,
-	categoryId: null,
-	currency: null,
-	customColor: null,
-	date: ERASED_DATE,
-	day: ERASED_DATE,
-	details: null,
-	emoji: null,
-	exchangeRate: null,
-	exchangeRateType: null,
-	icon: null,
-	imageColor: null,
-	imageKey: null,
-	imageUri: null,
-	income: false,
-	month: ERASED_DATE,
-	note: "",
-	onceRecurring: false,
-	recurringAnchorDay: null,
-	recurringCoefficient: 1,
-	recurringEndDate: null,
-	recurringType: RECURRING_TYPE.none,
-	reminderLeadDays: null,
-	transferId: null,
+    accountId: null,
+    amount: 0,
+    amountUsd: null,
+    categoryId: null,
+    currency: null,
+    customColor: null,
+    date: ERASED_DATE,
+    day: ERASED_DATE,
+    details: null,
+    emoji: null,
+    exchangeRate: null,
+    exchangeRateType: null,
+    icon: null,
+    imageColor: null,
+    imageKey: null,
+    imageUri: null,
+    income: false,
+    month: ERASED_DATE,
+    note: "",
+    onceRecurring: false,
+    recurringAnchorDay: null,
+    recurringCoefficient: 1,
+    recurringEndDate: null,
+    recurringType: RECURRING_TYPE.none,
+    reminderLeadDays: null,
+    transferId: null,
 } as const;
 
 /** The two account ids stay: both are `notNull`, so blanking them would point the row at no account. */
 export const ERASED_TRANSFER = {
-	date: ERASED_DATE,
-	dateCreated: ERASED_DATE,
-	day: ERASED_DATE,
-	exchangeRate: null,
-	exchangeRateType: null,
-	fromAmount: 0,
-	fromAmountUsd: null,
-	fromCurrency: "",
-	month: ERASED_DATE,
-	note: "",
-	toAmount: 0,
-	toAmountUsd: null,
-	toCurrency: "",
+    date: ERASED_DATE,
+    dateCreated: ERASED_DATE,
+    day: ERASED_DATE,
+    exchangeRate: null,
+    exchangeRateType: null,
+    fromAmount: 0,
+    fromAmountUsd: null,
+    fromCurrency: "",
+    month: ERASED_DATE,
+    note: "",
+    toAmount: 0,
+    toAmountUsd: null,
+    toCurrency: "",
 } as const;
 
 /**
@@ -86,28 +87,28 @@ export const ERASED_TRANSFER = {
  * changed.
  */
 export async function eraseLedger(db: Database, scope: EraseScope): Promise<void> {
-	const now = new Date();
+    const now = new Date();
 
-	await withTransaction(db, async () => {
-		await db
-			.update(transactions)
-			.set({ ...ERASED_TRANSACTION, deletedAt: now, updatedAt: now })
-			.where(isNull(transactions.deletedAt));
-		await db
-			.update(transfers)
-			.set({ ...ERASED_TRANSFER, deletedAt: now, updatedAt: now })
-			.where(isNull(transfers.deletedAt));
+    await withTransaction(db, async () => {
+        await db
+            .update(transactions)
+            .set({ ...ERASED_TRANSACTION, deletedAt: now, updatedAt: now })
+            .where(isNull(transactions.deletedAt));
+        await db
+            .update(transfers)
+            .set({ ...ERASED_TRANSFER, deletedAt: now, updatedAt: now })
+            .where(isNull(transfers.deletedAt));
 
-		if (scope !== "everything") {
-			return;
-		}
-		await db
-			.update(budgets)
-			.set({ ...TOMBSTONED_BUDGET, deletedAt: now, updatedAt: now })
-			.where(isNull(budgets.deletedAt));
-		await db
-			.update(mainBudget)
-			.set({ ...TOMBSTONED_MAIN_BUDGET, deletedAt: now, updatedAt: now })
-			.where(isNull(mainBudget.deletedAt));
-	});
+        if (scope !== "everything") {
+            return;
+        }
+        await db
+            .update(budgets)
+            .set({ ...TOMBSTONED_BUDGET, deletedAt: now, updatedAt: now })
+            .where(isNull(budgets.deletedAt));
+        await db
+            .update(mainBudget)
+            .set({ ...TOMBSTONED_MAIN_BUDGET, deletedAt: now, updatedAt: now })
+            .where(isNull(mainBudget.deletedAt));
+    });
 }

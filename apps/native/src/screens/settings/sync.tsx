@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { useState } from "react";
 import { Alert, View } from "react-native";
+
 import { MonoLabel } from "@/components/mono-label";
 import { AccountRow } from "@/components/settings/account-row";
 import { LinkRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
@@ -33,84 +34,83 @@ import { useLedgerAdoption } from "@/lib/ledger-adoption";
  * the ordering `enqueueAllForSync` warns about.
  */
 const RESUME: AdoptionActions = {
-	pushLocal: true,
-	wipeAccount: false,
-	wipeLocal: false,
+    pushLocal: true,
+    wipeAccount: false,
+    wipeLocal: false,
 };
 
 export function Sync() {
-	const db = useDatabase();
-	return <SyncSettings db={db} />;
+    const db = useDatabase();
+    return <SyncSettings db={db} />;
 }
 
 function SyncSettings({ db }: { db: Database }) {
-	const t = useTranslation();
-	const { language } = useLanguage();
-	const { accountId } = useAuthSession();
-	const { status } = useLedgerAdoption();
-	const { pending, syncedAt } = useSyncStatus(db);
-	const enabled = useSyncEnabled(db);
-	const { use24Hour } = useDisplaySettings().state;
-	const [busy, setBusy] = useState(false);
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const { accountId } = useAuthSession();
+    const { status } = useLedgerAdoption();
+    const { pending, syncedAt } = useSyncStatus(db);
+    const enabled = useSyncEnabled(db);
+    const { use24Hour } = useDisplaySettings().state;
+    const [busy, setBusy] = useState(false);
 
-	const capability = effectiveCapabilityStatus({
-		accountId,
-		cloud: cloudRuntime === null ? "unconfigured" : "configured",
-		local: false,
-		pending,
-		syncEnabled: enabled,
-		syncedAt,
-	});
-	const owned = status === "settled" && (capability.kind === "active" || capability.kind === "syncOff");
-	const presentation = syncPresentation(capability.kind, enabled);
+    const capability = effectiveCapabilityStatus({
+        accountId,
+        cloud: cloudRuntime === null ? "unconfigured" : "configured",
+        local: false,
+        pending,
+        syncEnabled: enabled,
+        syncedAt,
+    });
+    const owned = status === "settled" && (capability.kind === "active" || capability.kind === "syncOff");
+    const presentation = syncPresentation(capability.kind, enabled);
 
-	const toggle = (next: boolean) => {
-		setBusy(true);
-		const work = next && accountId ? runAdoption(db, adoptionEngine(db), RESUME, accountId) : setSyncEnabled(db, false);
-		work
-			.catch((error: unknown) => {
-				console.error("Sync switch failed", error);
-				Alert.alert(t("settings.sync.failedTitle"), t("settings.sync.failedBody"));
-			})
-			.finally(() => setBusy(false));
-	};
+    const toggle = (next: boolean) => {
+        setBusy(true);
+        const work =
+            next && accountId ? runAdoption(db, adoptionEngine(db), RESUME, accountId) : setSyncEnabled(db, false);
+        work.catch((error: unknown) => {
+            console.error("Sync switch failed", error);
+            Alert.alert(t("settings.sync.failedTitle"), t("settings.sync.failedBody"));
+        }).finally(() => setBusy(false));
+    };
 
-	return (
-		<SettingsScreen>
-			<View className="gap-1.5 pt-6">
-				<MonoLabel>{t("settings.sync.eyebrow")}</MonoLabel>
-				<Text className="font-sans-semibold text-foreground text-title">{t(presentation.title)}</Text>
-				<Text className="pt-1 text-muted text-subtitle leading-snug">{t(presentation.detail)}</Text>
-			</View>
+    return (
+        <SettingsScreen>
+            <View className="gap-1.5 pt-6">
+                <MonoLabel>{t("settings.sync.eyebrow")}</MonoLabel>
+                <Text className="font-sans-semibold text-foreground text-title">{t(presentation.title)}</Text>
+                <Text className="text-muted text-subtitle pt-1 leading-snug">{t(presentation.detail)}</Text>
+            </View>
 
-			<SettingsSection
-				footer={t(owned ? "settings.sync.footer" : "settings.sync.needsAccount")}
-				title={t("settings.sync.section")}
-			>
-				<AccountRow />
-				{owned ? (
-					<ToggleRow icon="Cloud" onValueChange={toggle} title={t("settings.sync.toggle")} value={enabled} />
-				) : null}
-			</SettingsSection>
+            <SettingsSection
+                footer={t(owned ? "settings.sync.footer" : "settings.sync.needsAccount")}
+                title={t("settings.sync.section")}
+            >
+                <AccountRow />
+                {owned ? (
+                    <ToggleRow icon="Cloud" onValueChange={toggle} title={t("settings.sync.toggle")} value={enabled} />
+                ) : null}
+            </SettingsSection>
 
-			{busy ? <Text className="pt-2 text-muted text-subtitle">{t("settings.sync.working")}</Text> : null}
+            {busy ? <Text className="text-muted text-subtitle pt-2">{t("settings.sync.working")}</Text> : null}
 
-			{capability.kind === "active" ? (
-				<SettingsSection title={t("settings.sync.statusSection")}>
-					<LinkRow icon="Cloud" title={t("settings.sync.waiting")} value={String(capability.pending)} />
-					<LinkRow
-						icon="CalendarClock"
-						title={t("settings.sync.lastSynced")}
-						value={
-							capability.syncedAt == null
-								? t("settings.sync.neverSynced")
-								: `${formatDayHeader(capability.syncedAt, undefined, language)} ${formatTime(capability.syncedAt, use24Hour, language)}`
-						}
-					/>
-				</SettingsSection>
-			) : null}
-		</SettingsScreen>
-	);
+            {capability.kind === "active" ? (
+                <SettingsSection title={t("settings.sync.statusSection")}>
+                    <LinkRow icon="Cloud" title={t("settings.sync.waiting")} value={String(capability.pending)} />
+                    <LinkRow
+                        icon="CalendarClock"
+                        title={t("settings.sync.lastSynced")}
+                        value={
+                            capability.syncedAt == null
+                                ? t("settings.sync.neverSynced")
+                                : `${formatDayHeader(capability.syncedAt, undefined, language)} ${formatTime(capability.syncedAt, use24Hour, language)}`
+                        }
+                    />
+                </SettingsSection>
+            ) : null}
+        </SettingsScreen>
+    );
 }
 
 /**
@@ -118,21 +118,21 @@ function SyncSettings({ db }: { db: Database }) {
  * write the moment it lands, and the gate is a row like any other.
  */
 function useSyncEnabled(db: Database): boolean {
-	const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)));
-	return rows[0]?.value === "1";
+    const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)));
+    return rows[0]?.value === "1";
 }
 
 function syncPresentation(
-	kind: ReturnType<typeof effectiveCapabilityStatus>["kind"],
-	enabled: boolean
+    kind: ReturnType<typeof effectiveCapabilityStatus>["kind"],
+    enabled: boolean
 ): { detail: TranslatableKey; title: TranslatableKey } {
-	if (kind === "unavailable") {
-		return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
-	}
-	if (kind === "accountRequired") {
-		return { detail: "settings.sync.needsAccount", title: "settings.account.notSignedIn" };
-	}
-	return enabled
-		? { detail: "settings.sync.onDetail", title: "settings.sync.on" }
-		: { detail: "settings.sync.offDetail", title: "settings.sync.off" };
+    if (kind === "unavailable") {
+        return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
+    }
+    if (kind === "accountRequired") {
+        return { detail: "settings.sync.needsAccount", title: "settings.account.notSignedIn" };
+    }
+    return enabled
+        ? { detail: "settings.sync.onDetail", title: "settings.sync.on" }
+        : { detail: "settings.sync.offDetail", title: "settings.sync.off" };
 }

@@ -14,23 +14,23 @@
 
 /** Canonical link targets. Emitted by the widgets and the App Intents. */
 export const DEEP_LINKS = {
-	budgets: "outlayr://budgets",
-	insights: "outlayr://insights",
-	log: "outlayr://log",
-	newExpense: "outlayr://new",
-	newIncome: "outlayr://new?income=1",
-	overallBudget: "outlayr://budgets/overall",
-	search: "outlayr://search",
+    budgets: "outlayr://budgets",
+    insights: "outlayr://insights",
+    log: "outlayr://log",
+    newExpense: "outlayr://new",
+    newIncome: "outlayr://new?income=1",
+    overallBudget: "outlayr://budgets/overall",
+    search: "outlayr://search",
 } as const;
 
 /** One entry, as Spotlight indexes it. See `spotlight.ts`. */
 export function transactionLink(id: string): string {
-	return `outlayr://transaction/${id}`;
+    return `outlayr://transaction/${id}`;
 }
 
 /** One budget, as Spotlight indexes it. */
 export function budgetLink(id: string): string {
-	return `${DEEP_LINKS.budgets}/${id}`;
+    return `${DEEP_LINKS.budgets}/${id}`;
 }
 
 /**
@@ -39,19 +39,19 @@ export function budgetLink(id: string): string {
  * still fires them, and answering with `+not-found` would be a regression.
  */
 const LEGACY_HOSTS: Readonly<Record<string, string>> = {
-	budget: "/budgets",
-	newexpense: "/transactions/create",
-	newincome: "/transactions/create?income=1",
-	transactions: "/",
+    budget: "/budgets",
+    newexpense: "/transactions/create",
+    newincome: "/transactions/create?income=1",
+    transactions: "/",
 };
 
 const HOSTS: Readonly<Record<string, string>> = {
-	budgets: "/budgets",
-	insights: "/insights",
-	log: "/",
-	new: "/transactions/create",
-	search: "/search",
-	transaction: "/transactions",
+    budgets: "/budgets",
+    insights: "/insights",
+    log: "/",
+    new: "/transactions/create",
+    search: "/search",
+    transaction: "/transactions",
 };
 
 /**
@@ -68,7 +68,7 @@ const ID_HOSTS = new Set(["budgets", "transaction"]);
  * reach `+not-found` without this.
  */
 const ID_HOST_SECTION: Readonly<Record<string, string>> = {
-	transaction: "/",
+    transaction: "/",
 };
 
 const SCHEME_PREFIX = /^[a-zA-Z][\w+.-]*:\/\//;
@@ -79,12 +79,12 @@ const SCHEME_PREFIX = /^[a-zA-Z][\w+.-]*:\/\//;
  * but an already-normalized path once the app is running.
  */
 function parts(raw: string): { segments: string[]; query: string } {
-	const withoutScheme = raw.replace(SCHEME_PREFIX, "");
-	const [pathname = "", query = ""] = withoutScheme.split("?");
-	return {
-		query: query ? `?${query}` : "",
-		segments: pathname.split("/").filter(Boolean),
-	};
+    const withoutScheme = raw.replace(SCHEME_PREFIX, "");
+    const [pathname = "", query = ""] = withoutScheme.split("?");
+    return {
+        query: query ? `?${query}` : "",
+        segments: pathname.split("/").filter(Boolean),
+    };
 }
 
 /**
@@ -94,28 +94,28 @@ function parts(raw: string): { segments: string[]; query: string } {
  * dev-client URL keep working through this hook).
  */
 export function resolveDeepLink(raw: string): string | null {
-	const { segments, query } = parts(raw);
-	const [host, ...rest] = segments;
-	if (!host) {
-		return null;
-	}
+    const { segments, query } = parts(raw);
+    const [host, ...rest] = segments;
+    if (!host) {
+        return null;
+    }
 
-	const key = host.toLowerCase();
-	const legacy = LEGACY_HOSTS[key];
-	if (legacy) {
-		return legacy;
-	}
+    const key = host.toLowerCase();
+    const legacy = LEGACY_HOSTS[key];
+    if (legacy) {
+        return legacy;
+    }
 
-	const base = HOSTS[key];
-	if (!base) {
-		return null;
-	}
+    const base = HOSTS[key];
+    if (!base) {
+        return null;
+    }
 
-	if (ID_HOSTS.has(key) && rest.length > 0) {
-		return `${base}/${rest.join("/")}${query}`;
-	}
+    if (ID_HOSTS.has(key) && rest.length > 0) {
+        return `${base}/${rest.join("/")}${query}`;
+    }
 
-	return `${ID_HOST_SECTION[key] ?? base}${query}`;
+    return `${ID_HOST_SECTION[key] ?? base}${query}`;
 }
 
 /**
@@ -127,14 +127,14 @@ export function resolveDeepLink(raw: string): string | null {
  * dev reload lands back on the launch destination.
  */
 export function redirectLaunchPath(
-	{ path, initial }: { path: string | null; initial: boolean },
-	drainLaunchURL: () => void
+    { path, initial }: { path: string | null; initial: boolean },
+    drainLaunchURL: () => void
 ): string | null {
-	if (!path) {
-		return path;
-	}
-	if (initial) {
-		drainLaunchURL();
-	}
-	return resolveDeepLink(path) ?? path;
+    if (!path) {
+        return path;
+    }
+    if (initial) {
+        drainLaunchURL();
+    }
+    return resolveDeepLink(path) ?? path;
 }

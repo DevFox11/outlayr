@@ -1,35 +1,37 @@
 {
-  "name": "outlayr",
-  "private": true,
-  "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "build": "turbo run build",
-    "check": "ultracite check",
-    "check-types": "turbo run check-types",
-    "dev": "turbo run dev",
-    "dev:server": "turbo run dev -F @outlayr/backend",
-    "dev:setup": "turbo run dev:setup -F @outlayr/backend",
-    "fix": "node scripts/guarded-fix.mjs",
-    "prepare": "lefthook install",
-    "test": "turbo run test"
-  },
-  "dependencies": {
-    "@outlayr/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.6",
-    "@outlayr/config": "workspace:*",
-    "@types/node": "^26.1.2",
-    "lefthook": "^2.1.10",
-    "turbo": "^2.10.8",
-    "typescript": "catalog:",
-    "ultracite": "7.10.2"
-  },
-  "packageManager": "pnpm@11.20.0"
+    "name": "outlayr",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "type": "module",
+    "scripts": {
+        "build": "turbo run build",
+        "check": "ultracite check",
+        "check-types": "turbo run check-types",
+        "dev": "turbo run dev",
+        "dev:server": "turbo run dev -F @outlayr/backend",
+        "dev:setup": "turbo run dev:setup -F @outlayr/backend",
+        "fix": "ultracite fix",
+        "prepare": "lefthook install",
+        "test": "turbo run test"
+    },
+    "dependencies": {
+        "@outlayr/env": "workspace:*",
+        "dotenv": "catalog:",
+        "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@outlayr/config": "workspace:*",
+        "@types/node": "^26.1.2",
+        "lefthook": "^2.1.10",
+        "oxfmt": "^0.63.0",
+        "oxlint": "^1.78.0",
+        "oxlint-tailwindcss": "^1.9.0",
+        "turbo": "^2.10.8",
+        "typescript": "catalog:",
+        "ultracite": "7.10.2"
+    },
+    "packageManager": "pnpm@11.20.0"
 }

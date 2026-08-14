@@ -1,7 +1,9 @@
 import { and, desc, eq, isNotNull, isNull, ne } from "drizzle-orm";
+
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import { type HistoricalEntry, rememberedCategory } from "@/domain/merchant-history";
+import { rememberedCategory } from "@/domain/merchant-history";
+import type { HistoricalEntry } from "@/domain/merchant-history";
 
 /**
  * How far back a lookup reads before giving up on remembering a merchant.
@@ -26,30 +28,30 @@ export const HISTORY_WINDOW = 500;
  * with it.
  */
 export async function rememberedCategoryFor(db: Database, key: string, income: boolean): Promise<string | null> {
-	if (key === "") {
-		return null;
-	}
+    if (key === "") {
+        return null;
+    }
 
-	const rows = await db
-		.select({ categoryId: transactions.categoryId, date: transactions.date, note: transactions.note })
-		.from(transactions)
-		.where(
-			and(
-				eq(transactions.income, income),
-				isNotNull(transactions.categoryId),
-				isNull(transactions.deletedAt),
-				ne(transactions.note, "")
-			)
-		)
-		.orderBy(desc(transactions.date))
-		.limit(HISTORY_WINDOW);
+    const rows = await db
+        .select({ categoryId: transactions.categoryId, date: transactions.date, note: transactions.note })
+        .from(transactions)
+        .where(
+            and(
+                eq(transactions.income, income),
+                isNotNull(transactions.categoryId),
+                isNull(transactions.deletedAt),
+                ne(transactions.note, "")
+            )
+        )
+        .orderBy(desc(transactions.date))
+        .limit(HISTORY_WINDOW);
 
-	const entries: HistoricalEntry[] = [];
-	for (const row of rows) {
-		if (row.categoryId == null) {
-			continue;
-		}
-		entries.push({ categoryId: row.categoryId, date: row.date.getTime(), note: row.note });
-	}
-	return rememberedCategory(entries, key);
+    const entries: HistoricalEntry[] = [];
+    for (const row of rows) {
+        if (row.categoryId == null) {
+            continue;
+        }
+        entries.push({ categoryId: row.categoryId, date: row.date.getTime(), note: row.note });
+    }
+    return rememberedCategory(entries, key);
 }

@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+
 import { buildCatalog } from "./lib/build-catalog.mjs";
 
 const OUTPUT = new URL("../src/catalog.generated.ts", import.meta.url);
@@ -12,34 +13,34 @@ const HEADER = `// GENERATED FILE — DO NOT EDIT BY HAND.
 `;
 
 function serializeCodes(pickableCodes) {
-	const lines = pickableCodes.map((code) => `  ${JSON.stringify(code)},`).join("\n");
-	return `export const PICKABLE_CURRENCY_CODES = [\n${lines}\n] as const;`;
+    const lines = pickableCodes.map((code) => `  ${JSON.stringify(code)},`).join("\n");
+    return `export const PICKABLE_CURRENCY_CODES = [\n${lines}\n] as const;`;
 }
 
 function serializeDecimals(pickableCodes, decimalsByCode) {
-	const lines = pickableCodes.map((code) => `  ${code}: ${decimalsByCode[code]},`).join("\n");
-	return `export const CURRENCY_DECIMALS: Record<PickableCode, 0 | 2 | 3> = {\n${lines}\n};`;
+    const lines = pickableCodes.map((code) => `  ${code}: ${decimalsByCode[code]},`).join("\n");
+    return `export const CURRENCY_DECIMALS: Record<PickableCode, 0 | 2 | 3> = {\n${lines}\n};`;
 }
 
 function serializeMeta(pickableCodes, metaByCode) {
-	const lines = pickableCodes
-		.map((code) => {
-			const { name, symbol } = metaByCode[code];
-			return `  ${code}: { name: ${JSON.stringify(name)}, symbol: ${JSON.stringify(symbol)} },`;
-		})
-		.join("\n");
-	return `export const CURRENCY_META: Record<\n  PickableCode,\n  { name: string; symbol: string }\n> = {\n${lines}\n};`;
+    const lines = pickableCodes
+        .map((code) => {
+            const { name, symbol } = metaByCode[code];
+            return `  ${code}: { name: ${JSON.stringify(name)}, symbol: ${JSON.stringify(symbol)} },`;
+        })
+        .join("\n");
+    return `export const CURRENCY_META: Record<\n  PickableCode,\n  { name: string; symbol: string }\n> = {\n${lines}\n};`;
 }
 
 const { codes, decimals, meta } = buildCatalog();
 
 const body = [
-	HEADER,
-	serializeCodes(codes),
-	"/** A currency a user may pick as their display/default currency. */",
-	"export type PickableCode = (typeof PICKABLE_CURRENCY_CODES)[number];",
-	serializeDecimals(codes, decimals),
-	serializeMeta(codes, meta),
+    HEADER,
+    serializeCodes(codes),
+    "/** A currency a user may pick as their display/default currency. */",
+    "export type PickableCode = (typeof PICKABLE_CURRENCY_CODES)[number];",
+    serializeDecimals(codes, decimals),
+    serializeMeta(codes, meta),
 ].join("\n\n");
 
 writeFileSync(OUTPUT, `${body}\n`);

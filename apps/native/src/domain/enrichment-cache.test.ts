@@ -1,126 +1,122 @@
-import {
-	clearEnrichmentCache,
-	getCachedEnrichment,
-	type RemoteEnrichmentResult,
-	setCachedEnrichment,
-} from "./enrichment-cache";
+import { clearEnrichmentCache, getCachedEnrichment, setCachedEnrichment } from "./enrichment-cache";
+import type { RemoteEnrichmentResult } from "./enrichment-cache";
 
 beforeEach(() => {
-	clearEnrichmentCache();
+    clearEnrichmentCache();
 });
 
 describe("getCachedEnrichment", () => {
-	it("reports a miss for a key that was never cached", () => {
-		expect(getCachedEnrichment("spotify")).toStrictEqual({ hit: false });
-	});
+    it("reports a miss for a key that was never cached", () => {
+        expect(getCachedEnrichment("spotify")).toStrictEqual({ hit: false });
+    });
 
-	it("retrieves a positive result that was cached earlier", () => {
-		const value = {
-			categoryName: "Entertainment",
-			domain: "spotify.com",
-			isNewCategory: false,
-			tags: ["Music", "Streaming"],
-		};
-		setCachedEnrichment("spotify", value);
-		expect(getCachedEnrichment("spotify")).toStrictEqual({
-			hit: true,
-			value,
-		});
-	});
+    it("retrieves a positive result that was cached earlier", () => {
+        const value = {
+            categoryName: "Entertainment",
+            domain: "spotify.com",
+            isNewCategory: false,
+            tags: ["Music", "Streaming"],
+        };
+        setCachedEnrichment("spotify", value);
+        expect(getCachedEnrichment("spotify")).toStrictEqual({
+            hit: true,
+            value,
+        });
+    });
 
-	it("caches and retrieves a negative (null) result", () => {
-		setCachedEnrichment("some unknown merchant", null);
-		expect(getCachedEnrichment("some unknown merchant")).toStrictEqual({
-			hit: true,
-			value: null,
-		});
-	});
+    it("caches and retrieves a negative (null) result", () => {
+        setCachedEnrichment("some unknown merchant", null);
+        expect(getCachedEnrichment("some unknown merchant")).toStrictEqual({
+            hit: true,
+            value: null,
+        });
+    });
 });
 
 describe("setCachedEnrichment eviction", () => {
-	it("evicts the first inserted key once the 51st entry is added", () => {
-		for (let i = 0; i < 50; i += 1) {
-			setCachedEnrichment(`merchant-${i}`, null);
-		}
-		expect(getCachedEnrichment("merchant-0")).toStrictEqual({
-			hit: true,
-			value: null,
-		});
+    it("evicts the first inserted key once the 51st entry is added", () => {
+        for (let i = 0; i < 50; i += 1) {
+            setCachedEnrichment(`merchant-${i}`, null);
+        }
+        expect(getCachedEnrichment("merchant-0")).toStrictEqual({
+            hit: true,
+            value: null,
+        });
 
-		setCachedEnrichment("merchant-50", null);
+        setCachedEnrichment("merchant-50", null);
 
-		expect(getCachedEnrichment("merchant-0")).toStrictEqual({ hit: false });
-		expect(getCachedEnrichment("merchant-1")).toStrictEqual({
-			hit: true,
-			value: null,
-		});
-		expect(getCachedEnrichment("merchant-50")).toStrictEqual({
-			hit: true,
-			value: null,
-		});
-	});
+        expect(getCachedEnrichment("merchant-0")).toStrictEqual({ hit: false });
+        expect(getCachedEnrichment("merchant-1")).toStrictEqual({
+            hit: true,
+            value: null,
+        });
+        expect(getCachedEnrichment("merchant-50")).toStrictEqual({
+            hit: true,
+            value: null,
+        });
+    });
 
-	it("does not evict when overwriting an existing key at capacity", () => {
-		for (let i = 0; i < 50; i += 1) {
-			setCachedEnrichment(`merchant-${i}`, null);
-		}
-		setCachedEnrichment("merchant-0", {
-			categoryName: "Shopping",
-			domain: null,
-			isNewCategory: false,
-			tags: [],
-		});
-		expect(getCachedEnrichment("merchant-0")).toStrictEqual({
-			hit: true,
-			value: {
-				categoryName: "Shopping",
-				domain: null,
-				isNewCategory: false,
-				tags: [],
-			},
-		});
-		expect(getCachedEnrichment("merchant-1")).toStrictEqual({
-			hit: true,
-			value: null,
-		});
-	});
+    it("does not evict when overwriting an existing key at capacity", () => {
+        for (let i = 0; i < 50; i += 1) {
+            setCachedEnrichment(`merchant-${i}`, null);
+        }
+        setCachedEnrichment("merchant-0", {
+            categoryName: "Shopping",
+            domain: null,
+            isNewCategory: false,
+            tags: [],
+        });
+        expect(getCachedEnrichment("merchant-0")).toStrictEqual({
+            hit: true,
+            value: {
+                categoryName: "Shopping",
+                domain: null,
+                isNewCategory: false,
+                tags: [],
+            },
+        });
+        expect(getCachedEnrichment("merchant-1")).toStrictEqual({
+            hit: true,
+            value: null,
+        });
+    });
 });
 
 describe("grounding field on RemoteEnrichmentResult", () => {
-	it("round-trips a cache hit carrying grounding", () => {
-		const value: RemoteEnrichmentResult = {
-			categoryName: "Healthcare",
-			domain: "farmatodo.com",
-			grounding: false,
-			isNewCategory: false,
-			tags: ["pharmacy"],
-		};
-		setCachedEnrichment("farmatodo", value);
-		expect(getCachedEnrichment("farmatodo")).toStrictEqual({
-			hit: true,
-			value,
-		});
-	});
+    it("round-trips a cache hit carrying grounding", () => {
+        const value: RemoteEnrichmentResult = {
+            categoryName: "Healthcare",
+            domain: "farmatodo.com",
+            grounding: false,
+            isNewCategory: false,
+            tags: ["pharmacy"],
+        };
+        setCachedEnrichment("farmatodo", value);
+        expect(getCachedEnrichment("farmatodo")).toStrictEqual({
+            hit: true,
+            value,
+        });
+    });
 
-	it("omits grounding without a type error", () => {
-		const value: RemoteEnrichmentResult = {
-			categoryName: "Entertainment",
-			domain: null,
-			isNewCategory: false,
-			tags: [],
-		};
-		setCachedEnrichment("netflix", value);
-		expect(getCachedEnrichment("netflix")).toStrictEqual({
-			hit: true,
-			value,
-		});
-	});
+    it("omits grounding without a type error", () => {
+        const value: RemoteEnrichmentResult = {
+            categoryName: "Entertainment",
+            domain: null,
+            isNewCategory: false,
+            tags: [],
+        };
+        setCachedEnrichment("netflix", value);
+        expect(getCachedEnrichment("netflix")).toStrictEqual({
+            hit: true,
+            value,
+        });
+    });
 });
 
 describe("clearEnrichmentCache", () => {
-	it("empties every cached entry", () => {
-		setCachedEnrichment("spotify", null);
-		clearEnrichmentCache();
-		expect(getCachedEnrichment("spotify")).toStrictEqual({ hit: false });
-	});
+    it("empties every cached entry", () => {
+        setCachedEnrichment("spotify", null);
+        clearEnrichmentCache();
+        expect(getCachedEnrichment("spotify")).toStrictEqual({ hit: false });
+    });
 });

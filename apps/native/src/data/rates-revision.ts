@@ -10,19 +10,19 @@ const listeners = new Set<() => void>();
  * signal, threaded through the `deps` of the hooks that read rates.
  */
 export function ratesRevision(): number {
-	return revision;
+    return revision;
 }
 
 export function bumpRatesRevision(): void {
-	revision += 1;
-	for (const listener of listeners) {
-		listener();
-	}
+    revision += 1;
+    for (const listener of listeners) {
+        listener();
+    }
 }
 
 export function subscribeRatesRevision(listener: () => void): () => void {
-	listeners.add(listener);
-	return () => {
-		listeners.delete(listener);
-	};
+    listeners.add(listener);
+    return () => {
+        listeners.delete(listener);
+    };
 }

@@ -1,15 +1,17 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import { transactions } from "@/db/schema";
 import { clockAdvances } from "@/domain/clock";
 import { startOfDay } from "@/domain/dates";
+
 import { logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
 
 type TestDb = ReturnType<typeof drizzle>;
 
 function makeDb(): TestDb {
-	const sqlite = new BetterSqlite3(":memory:");
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    sqlite.exec(`
 		CREATE TABLE transactions (
 			id text PRIMARY KEY NOT NULL,
 			amount real NOT NULL,
@@ -42,51 +44,51 @@ function makeDb(): TestDb {
 			deletedAt integer
 		);
 	`);
-	return drizzle(sqlite);
+    return drizzle(sqlite);
 }
 
 async function save(db: TestDb, id: string, date: Date): Promise<void> {
-	await db.insert(transactions).values({
-		amount: 12.5,
-		date,
-		day: startOfDay(date),
-		id,
-		income: false,
-		month: new Date(date.getFullYear(), date.getMonth(), 1),
-		note: id,
-		updatedAt: date,
-	});
+    await db.insert(transactions).values({
+        amount: 12.5,
+        date,
+        day: startOfDay(date),
+        id,
+        income: false,
+        month: new Date(date.getFullYear(), date.getMonth(), 1),
+        note: id,
+        updatedAt: date,
+    });
 }
 
 /** What the Log lists at a given reading of the clock. */
 async function listedAt(db: TestDb, nowMs: number): Promise<string[]> {
-	const dayRows = await logWindowDaysQuery(db, nowMs, 30);
-	const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
-	const rows = await logWindowRowsQuery(db, nowMs, floorMs);
-	return rows.map((row) => row.id);
+    const dayRows = await logWindowDaysQuery(db, nowMs, 30);
+    const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
+    const rows = await logWindowRowsQuery(db, nowMs, floorMs);
+    return rows.map((row) => row.id);
 }
 
 describe("the ledger's upper bound against an advancing clock", () => {
-	it("lists a row stamped just after the reading once the clock moves on", async () => {
-		const db = makeDb();
-		const reading = new Date(2025, 6, 15, 9, 41).getTime();
-		// A transaction's date is `new Date()` at form mount, which is strictly later
-		// than a reading the screen behind the form captured before it opened. 500ms
-		// is enough: `date` is stored in milliseconds, so nothing truncates the gap.
-		const saved = reading + 500;
-		await save(db, "just-saved", new Date(saved));
+    it("lists a row stamped just after the reading once the clock moves on", async () => {
+        const db = makeDb();
+        const reading = new Date(2025, 6, 15, 9, 41).getTime();
+        // A transaction's date is `new Date()` at form mount, which is strictly later
+        // than a reading the screen behind the form captured before it opened. 500ms
+        // is enough: `date` is stored in milliseconds, so nothing truncates the gap.
+        const saved = reading + 500;
+        await save(db, "just-saved", new Date(saved));
 
-		expect(await listedAt(db, reading)).toStrictEqual([]);
-		expect(clockAdvances(reading, saved)).toBeTruthy();
-		expect(await listedAt(db, saved)).toStrictEqual(["just-saved"]);
-	});
+        expect(await listedAt(db, reading)).toStrictEqual([]);
+        expect(clockAdvances(reading, saved)).toBeTruthy();
+        expect(await listedAt(db, saved)).toStrictEqual(["just-saved"]);
+    });
 
-	it("keeps hiding a row genuinely scheduled ahead once the clock moves on", async () => {
-		const db = makeDb();
-		const reading = new Date(2025, 6, 15, 9, 41).getTime();
-		await save(db, "landed", new Date(reading - 60_000));
-		await save(db, "scheduled", new Date(2025, 6, 20, 9, 0));
+    it("keeps hiding a row genuinely scheduled ahead once the clock moves on", async () => {
+        const db = makeDb();
+        const reading = new Date(2025, 6, 15, 9, 41).getTime();
+        await save(db, "landed", new Date(reading - 60_000));
+        await save(db, "scheduled", new Date(2025, 6, 20, 9, 0));
 
-		expect(await listedAt(db, reading + 500)).toStrictEqual(["landed"]);
-	});
+        expect(await listedAt(db, reading + 500)).toStrictEqual(["landed"]);
+    });
 });

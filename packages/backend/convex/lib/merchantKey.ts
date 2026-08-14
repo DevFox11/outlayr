@@ -6,11 +6,11 @@
  * and this shared cache.
  */
 export function merchantKey(raw: string): string {
-	return raw
-		.normalize("NFD")
-		.replace(/\p{Diacritic}/gu, "")
-		.toLocaleLowerCase()
-		.replace(/[^\p{L}\p{N}]+/gu, " ")
-		.trim()
-		.replace(/\s+/g, " ");
+    return raw
+        .normalize("NFD")
+        .replaceAll(/\p{Diacritic}/gu, "")
+        .toLocaleLowerCase()
+        .replaceAll(/[^\p{L}\p{N}]+/gu, " ")
+        .trim()
+        .replaceAll(/\s+/g, " ");
 }

@@ -1,19 +1,22 @@
 import { useNavigation } from "expo-router";
-import { type ReactNode, useEffect } from "react";
+import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import Animated, {
-	type SharedValue,
-	useAnimatedReaction,
-	useAnimatedStyle,
-	useDerivedValue,
-	useSharedValue,
+    useAnimatedReaction,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
 } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
+
 import { useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { floatTargetY } from "@/domain/identity-flyup-geometry";
-// biome-ignore lint/style/noExportedImports: account-editor and category-editor take HERO_RING from this path, and it is read here too, so `export … from` would make this component module a barrel instead
-import { FLOAT_TILE, HERO_RING, type HeroVariant, IdentityHero } from "./identity-hero";
 
-export { HERO_RING };
+import { FLOAT_TILE, HERO_RING, IdentityHero } from "./identity-hero";
+import type { HeroVariant } from "./identity-hero";
+
+export { HERO_RING } from "./identity-hero";
 
 /** Half the floated tile — what the clamp keeps below the top of the screen. */
 const HERO_HALF = FLOAT_TILE / 2;
@@ -32,56 +35,56 @@ const FIRST_OPEN_DETENT_FRACTION = 0.5;
  * tile.
  */
 export function useFloatOffset({
-	containerHeight,
-	restCenterY,
+    containerHeight,
+    restCenterY,
 }: {
-	containerHeight: SharedValue<number>;
-	restCenterY: SharedValue<number>;
+    containerHeight: SharedValue<number>;
+    restCenterY: SharedValue<number>;
 }): SharedValue<number> {
-	const { sheetHeight } = useIdentityFlyUp();
-	// The screen is the floor under the form's own measurement: `containerHeight`
-	// comes from a single `onLayout`, so anything that resets the shared value
-	// without changing the layout leaves it at 0, and a 0 zeroes the travel and
-	// kills the whole animation.
-	const { height: windowHeight } = useWindowDimensions();
-	return useDerivedValue(() => {
-		// NaN, never <= 0, is the "not measured yet" sentinel: a scrolled hero has a
-		// legitimately NEGATIVE form-local centre — it sits above the scroll view's
-		// top edge, under the nav bar.
-		if (Number.isNaN(restCenterY.value)) {
-			return 0;
-		}
-		const container = containerHeight.value > 0 ? containerHeight.value : windowHeight;
-		const sheet = sheetHeight.value > 0 ? sheetHeight.value : container * FIRST_OPEN_DETENT_FRACTION;
-		return (
-			floatTargetY({
-				containerHeight: container,
-				heroHalf: HERO_HALF,
-				sheetHeight: sheet,
-			}) - restCenterY.value
-		);
-	});
+    const { sheetHeight } = useIdentityFlyUp();
+    // The screen is the floor under the form's own measurement: `containerHeight`
+    // comes from a single `onLayout`, so anything that resets the shared value
+    // without changing the layout leaves it at 0, and a 0 zeroes the travel and
+    // kills the whole animation.
+    const { height: windowHeight } = useWindowDimensions();
+    return useDerivedValue(() => {
+        // NaN, never <= 0, is the "not measured yet" sentinel: a scrolled hero has a
+        // legitimately NEGATIVE form-local centre — it sits above the scroll view's
+        // top edge, under the nav bar.
+        if (Number.isNaN(restCenterY.value)) {
+            return 0;
+        }
+        const container = containerHeight.value > 0 ? containerHeight.value : windowHeight;
+        const sheet = sheetHeight.value > 0 ? sheetHeight.value : container * FIRST_OPEN_DETENT_FRACTION;
+        return (
+            floatTargetY({
+                containerHeight: container,
+                heroHalf: HERO_HALF,
+                sheetHeight: sheet,
+            }) - restCenterY.value
+        );
+    });
 }
 
 interface IdentityFlyUpLayerProps {
-	/** Custom color override; falls back to income green / foreground. */
-	color: string | null;
-	/** Height of the screen the sheet is centred against. */
-	containerHeight: SharedValue<number>;
-	emoji: string | null;
-	icon: string | null;
-	income: boolean;
-	/** Called after the return spring has already been started. */
-	onDismiss: () => void;
-	photoUri: string | null;
-	/**
-	 * Where the hero's ring rests right now, in form-local points, so the twin starts
-	 * exactly on the real hero instead of jumping. A shared value because it is live:
-	 * both screens re-publish it as the form scrolls, and it is read on the UI thread
-	 * so tracking it costs no renders. The layer latches it for the flight.
-	 */
-	restTop: SharedValue<number>;
-	variant?: HeroVariant;
+    /** Custom color override; falls back to income green / foreground. */
+    color: string | null;
+    /** Height of the screen the sheet is centred against. */
+    containerHeight: SharedValue<number>;
+    emoji: string | null;
+    icon: string | null;
+    income: boolean;
+    /** Called after the return spring has already been started. */
+    onDismiss: () => void;
+    photoUri: string | null;
+    /**
+     * Where the hero's ring rests right now, in form-local points, so the twin starts
+     * exactly on the real hero instead of jumping. A shared value because it is live:
+     * both screens re-publish it as the form scrolls, and it is read on the UI thread
+     * so tracking it costs no renders. The layer latches it for the flight.
+     */
+    restTop: SharedValue<number>;
+    variant?: HeroVariant;
 }
 
 /**
@@ -90,131 +93,130 @@ interface IdentityFlyUpLayerProps {
  * and grows over the sheet.
  */
 export function IdentityFlyUpLayer({
-	restTop,
-	containerHeight,
-	emoji,
-	icon,
-	photoUri,
-	color,
-	income,
-	variant = "transaction",
-	onDismiss,
+    restTop,
+    containerHeight,
+    emoji,
+    icon,
+    photoUri,
+    color,
+    income,
+    variant = "transaction",
+    onDismiss,
 }: IdentityFlyUpLayerProps) {
-	const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
+    const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
 
-	// The launch point, held still for the duration of the flight: both screens
-	// publish `restTop` live, so a reading landing mid-flight would move the launch
-	// point out from under an animation that has already started and jerk the tile.
-	// Reading `floatProgress` rather than `pickerOpen` keeps the latch on the UI
-	// thread and ties it to the flight, which outlives the React state flip in both
-	// directions.
-	const restLaunchTop = useSharedValue(Number.NaN);
-	useAnimatedReaction(
-		() => (floatProgress.value === 0 ? restTop.value : null),
-		(resting) => {
-			if (resting !== null) {
-				restLaunchTop.value = resting;
-			}
-		},
-		[]
-	);
-	// The reaction only fires once the prepared value CHANGES, so the very first
-	// reading has to be taken here or the latch would sit at its sentinel until the
-	// user happened to scroll.
-	useEffect(() => {
-		if (Number.isNaN(restLaunchTop.value)) {
-			restLaunchTop.value = restTop.value;
-		}
-	}, [restLaunchTop, restTop]);
+    // The launch point, held still for the duration of the flight: both screens
+    // publish `restTop` live, so a reading landing mid-flight would move the launch
+    // point out from under an animation that has already started and jerk the tile.
+    // Reading `floatProgress` rather than `pickerOpen` keeps the latch on the UI
+    // thread and ties it to the flight, which outlives the React state flip in both
+    // directions.
+    const restLaunchTop = useSharedValue(Number.NaN);
+    useAnimatedReaction(
+        () => (floatProgress.value === 0 ? restTop.value : null),
+        (resting) => {
+            if (resting !== null) {
+                restLaunchTop.value = resting;
+            }
+        },
+        []
+    );
+    // The reaction only fires once the prepared value CHANGES, so the very first
+    // reading has to be taken here or the latch would sit at its sentinel until the
+    // user happened to scroll.
+    useEffect(() => {
+        if (Number.isNaN(restLaunchTop.value)) {
+            restLaunchTop.value = restTop.value;
+        }
+    }, [restLaunchTop, restTop]);
 
-	const restCenterY = useDerivedValue(() => restLaunchTop.value + HERO_RING / 2);
-	const floatOffsetY = useFloatOffset({ containerHeight, restCenterY });
+    const restCenterY = useDerivedValue(() => restLaunchTop.value + HERO_RING / 2);
+    const floatOffsetY = useFloatOffset({ containerHeight, restCenterY });
 
-	// A screen showing its own hero is, by definition, not showing a picker.
-	// Asserted on mount because `pickerOpen` lives in the app-level provider and
-	// outlives every screen: any path that leaves it true without the picker route
-	// unmounting strands the scrim below on the next screen, where it is invisible
-	// but still `pointerEvents: "auto"` and silently swallows every tap.
-	useEffect(() => {
-		setPickerOpen(false);
-	}, [setPickerOpen]);
+    // A screen showing its own hero is, by definition, not showing a picker.
+    // Asserted on mount because `pickerOpen` lives in the app-level provider and
+    // outlives every screen: any path that leaves it true without the picker route
+    // unmounting strands the scrim below on the next screen, where it is invisible
+    // but still `pointerEvents: "auto"` and silently swallows every tap.
+    useEffect(() => {
+        setPickerOpen(false);
+    }, [setPickerOpen]);
 
-	// `translateY`, not `top`: this tracks the hero every scroll frame, and animating
-	// a layout property runs a layout pass for the overlay each time. The hero's own
-	// fly-up transform lives on a descendant view inside `IdentityHero`, so the two
-	// stack instead of colliding.
-	const twinStyle = useAnimatedStyle(() => ({
-		transform: [{ translateY: restLaunchTop.value }],
-	}));
+    // `translateY`, not `top`: this tracks the hero every scroll frame, and animating
+    // a layout property runs a layout pass for the overlay each time. The hero's own
+    // fly-up transform lives on a descendant view inside `IdentityHero`, so the two
+    // stack instead of colliding.
+    const twinStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: restLaunchTop.value }],
+    }));
 
-	return (
-		<>
-			{/* Transparent: the blur is SwiftUI's own `.blur(radius:)` inside each
+    return (
+        <>
+            {/* Transparent: the blur is SwiftUI's own `.blur(radius:)` inside each
 			    screen's `Host`, so what is left here is tap-outside-to-dismiss and
 			    keeping the form beneath from being hit. */}
-			{pickerOpen ? (
-				<Pressable
-					// `Pressable` defaults `accessible` to true, and a childless one
-					// spanning the screen becomes a full-screen element with nothing to
-					// announce, parked over the form. There is nothing here to reach by
-					// touch exploration anyway: the sheet's own close affordance is how a
-					// screen reader dismisses the picker.
-					accessible={false}
-					className="absolute inset-0"
-					onPress={() => {
-						setPickerOpen(false);
-						onDismiss();
-					}}
-				/>
-			) : null}
+            {pickerOpen ? (
+                <Pressable
+                    // `Pressable` defaults `accessible` to true, and a childless one
+                    // spanning the screen becomes a full-screen element with nothing to
+                    // announce, parked over the form. There is nothing here to reach by
+                    // touch exploration anyway: the sheet's own close affordance is how a
+                    // screen reader dismisses the picker.
+                    accessible={false}
+                    className="absolute inset-0"
+                    onPress={() => {
+                        setPickerOpen(false);
+                        onDismiss();
+                    }}
+                />
+            ) : null}
 
-			<Animated.View
-				pointerEvents="none"
-				style={[
-					{
-						alignItems: "center",
-						left: 0,
-						position: "absolute",
-						right: 0,
-						top: 0,
-					},
-					twinStyle,
-				]}
-			>
-				<IdentityHero
-					color={color}
-					emoji={emoji}
-					floatOffsetY={floatOffsetY}
-					floatProgress={floatProgress}
-					icon={icon}
-					income={income}
-					isFloat
-					photoUri={photoUri}
-					variant={variant}
-				/>
-			</Animated.View>
-		</>
-	);
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    {
+                        alignItems: "center",
+                        left: 0,
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                    },
+                    twinStyle,
+                ]}
+            >
+                <IdentityHero
+                    color={color}
+                    emoji={emoji}
+                    floatOffsetY={floatOffsetY}
+                    floatProgress={floatProgress}
+                    icon={icon}
+                    income={income}
+                    isFloat
+                    photoUri={photoUri}
+                    variant={variant}
+                />
+            </Animated.View>
+        </>
+    );
 }
 
 interface DismissalEvent {
-	data?: { closing?: boolean };
+    data?: { closing?: boolean };
 }
 interface DismissalNavigation {
-	addListener: (type: string, listener: (event: DismissalEvent) => void) => () => void;
+    addListener: (type: string, listener: (event: DismissalEvent) => void) => () => void;
 }
 
 const NOOP = () => {
-	// An unsupported listener name leaves nothing to unsubscribe from.
+    // An unsupported listener name leaves nothing to unsubscribe from.
 };
 
 function listen(navigation: DismissalNavigation, type: string, listener: (event: DismissalEvent) => void): () => void {
-	try {
-		// biome-ignore lint/suspicious/noUnnecessaryConditions: DismissalNavigation is our narrowing of the real navigation object, whose addListener returns nothing for an event type the navigator does not emit
-		return navigation.addListener(type, listener) ?? NOOP;
-	} catch {
-		return NOOP;
-	}
+    try {
+        return navigation.addListener(type, listener) ?? NOOP;
+    } catch {
+        return NOOP;
+    }
 }
 
 /**
@@ -241,31 +243,31 @@ function listen(navigation: DismissalNavigation, type: string, listener: (event:
  * form under a sheet that never left.
  */
 export function IdentityFlyUpSheetHost({ children }: { children: ReactNode }) {
-	const navigation = useNavigation<DismissalNavigation>();
-	const { setPickerOpen, setSheetHeight } = useIdentityFlyUp();
+    const navigation = useNavigation<DismissalNavigation>();
+    const { setPickerOpen, setSheetHeight } = useIdentityFlyUp();
 
-	useEffect(() => {
-		setPickerOpen(true);
-		const unsubscribes = [
-			listen(navigation, "transitionStart", (event) => {
-				const closing = event.data?.closing;
-				if (typeof closing === "boolean") {
-					setPickerOpen(!closing);
-				}
-			}),
-			listen(navigation, "beforeRemove", () => setPickerOpen(false)),
-		];
-		return () => {
-			for (const unsubscribe of unsubscribes) {
-				unsubscribe();
-			}
-			setPickerOpen(false);
-		};
-	}, [navigation, setPickerOpen]);
+    useEffect(() => {
+        setPickerOpen(true);
+        const unsubscribes = [
+            listen(navigation, "transitionStart", (event) => {
+                const closing = event.data?.closing;
+                if (typeof closing === "boolean") {
+                    setPickerOpen(!closing);
+                }
+            }),
+            listen(navigation, "beforeRemove", () => setPickerOpen(false)),
+        ];
+        return () => {
+            for (const unsubscribe of unsubscribes) {
+                unsubscribe();
+            }
+            setPickerOpen(false);
+        };
+    }, [navigation, setPickerOpen]);
 
-	return (
-		<View onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)} style={{ flex: 1 }}>
-			{children}
-		</View>
-	);
+    return (
+        <View onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)} style={{ flex: 1 }}>
+            {children}
+        </View>
+    );
 }

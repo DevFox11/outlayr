@@ -2,16 +2,16 @@ import { ExtensionStorage } from "@bacons/apple-targets";
 import Constants from "expo-constants";
 import { Directory, File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
+
 import {
-	adoptQueue,
-	type ClaimedWrites,
-	claimPendingWrites as claimQueue,
-	parseLegacyQueue,
-	QUEUE_DIRECTORY,
-	QUEUE_FILE,
-	type QueueFiles,
-	releasePendingWrites as releaseQueue,
+    adoptQueue,
+    claimPendingWrites as claimQueue,
+    parseLegacyQueue,
+    QUEUE_DIRECTORY,
+    QUEUE_FILE,
+    releasePendingWrites as releaseQueue,
 } from "./pending-writes-core";
+import type { ClaimedWrites, QueueFiles } from "./pending-writes-core";
 
 /**
  * The App Group the app and the App Intents target meet in, declared once in
@@ -39,11 +39,11 @@ export const INTENT_SNAPSHOT_KEY = "intentSnapshot";
 let storage: ExtensionStorage | null = null;
 
 function getStorage(): ExtensionStorage | null {
-	if (Platform.OS !== "ios" || !APP_GROUP) {
-		return null;
-	}
-	storage ??= new ExtensionStorage(APP_GROUP);
-	return storage;
+    if (Platform.OS !== "ios" || !APP_GROUP) {
+        return null;
+    }
+    storage ??= new ExtensionStorage(APP_GROUP);
+    return storage;
 }
 
 /**
@@ -55,50 +55,50 @@ function getStorage(): ExtensionStorage | null {
  * the ledger into a second store the intents never read.
  */
 export interface IntentSnapshot {
-	budget: {
-		present: boolean;
-		name: string;
-		periodLabel: string;
-		remaining: string;
-		remainingCaption: string;
-		spent: string;
-		limit: string;
-		percent: string;
-	};
-	/**
-	 * Every budget, so `BudgetQuery` can resolve a spoken name. Ordered overall
-	 * first, which is what the intent falls back to when no budget is named.
-	 */
-	budgets: {
-		id: string;
-		name: string;
-		remaining: string;
-		remainingCaption: string;
-		spent: string;
-		limit: string;
-		percent: string;
-		periodLabel: string;
-	}[];
-	insights: {
-		periodLabel: string;
-		rangeLabel: string;
-		net: string;
-		netPositive: boolean;
-		spent: string;
-		income: string;
-	};
+    budget: {
+        present: boolean;
+        name: string;
+        periodLabel: string;
+        remaining: string;
+        remainingCaption: string;
+        spent: string;
+        limit: string;
+        percent: string;
+    };
+    /**
+     * Every budget, so `BudgetQuery` can resolve a spoken name. Ordered overall
+     * first, which is what the intent falls back to when no budget is named.
+     */
+    budgets: {
+        id: string;
+        name: string;
+        remaining: string;
+        remainingCaption: string;
+        spent: string;
+        limit: string;
+        percent: string;
+        periodLabel: string;
+    }[];
+    insights: {
+        periodLabel: string;
+        rangeLabel: string;
+        net: string;
+        netPositive: boolean;
+        spent: string;
+        income: string;
+    };
 }
 
 export function publishIntentSnapshot(snapshot: IntentSnapshot): void {
-	const store = getStorage();
-	if (!store) {
-		return;
-	}
-	try {
-		store.set(INTENT_SNAPSHOT_KEY, JSON.stringify(snapshot));
-	} catch (error) {
-		console.warn("[outlayr] intent snapshot failed", error);
-	}
+    const store = getStorage();
+    if (!store) {
+        return;
+    }
+    try {
+        store.set(INTENT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+        console.warn("[outlayr] intent snapshot failed", error);
+    }
 }
 
 /**
@@ -108,85 +108,85 @@ export function publishIntentSnapshot(snapshot: IntentSnapshot): void {
  * rather than silently writing somewhere the intents cannot see.
  */
 function queueDirectory(): Directory | null {
-	if (Platform.OS !== "ios" || !APP_GROUP) {
-		return null;
-	}
-	const container = Paths.appleSharedContainers[APP_GROUP];
-	if (!container) {
-		return null;
-	}
-	const directory = new Directory(container, QUEUE_DIRECTORY);
-	directory.create({ idempotent: true, intermediates: true });
-	return directory;
+    if (Platform.OS !== "ios" || !APP_GROUP) {
+        return null;
+    }
+    const container = Paths.appleSharedContainers[APP_GROUP];
+    if (!container) {
+        return null;
+    }
+    const directory = new Directory(container, QUEUE_DIRECTORY);
+    directory.create({ idempotent: true, intermediates: true });
+    return directory;
 }
 
 const queueFiles: QueueFiles = {
-	claim(name) {
-		const directory = queueDirectory();
-		if (!directory) {
-			return false;
-		}
-		const live = new File(directory, QUEUE_FILE);
-		if (!live.exists || live.size === 0) {
-			return false;
-		}
-		live.moveSync(new File(directory, name));
-		return true;
-	},
+    claim(name) {
+        const directory = queueDirectory();
+        if (!directory) {
+            return false;
+        }
+        const live = new File(directory, QUEUE_FILE);
+        if (!live.exists || live.size === 0) {
+            return false;
+        }
+        live.moveSync(new File(directory, name));
+        return true;
+    },
 
-	discard(name) {
-		const directory = queueDirectory();
-		if (!directory) {
-			return;
-		}
-		const file = new File(directory, name);
-		if (file.exists) {
-			file.delete();
-		}
-	},
-	list() {
-		const directory = queueDirectory();
-		if (!directory) {
-			return [];
-		}
-		return directory
-			.list()
-			.filter((entry): entry is File => entry instanceof File)
-			.map((file) => file.name);
-	},
+    discard(name) {
+        const directory = queueDirectory();
+        if (!directory) {
+            return;
+        }
+        const file = new File(directory, name);
+        if (file.exists) {
+            file.delete();
+        }
+    },
+    list() {
+        const directory = queueDirectory();
+        if (!directory) {
+            return [];
+        }
+        return directory
+            .list()
+            .filter((entry): entry is File => entry instanceof File)
+            .map((file) => file.name);
+    },
 
-	read(name) {
-		const directory = queueDirectory();
-		if (!directory) {
-			return "";
-		}
-		const file = new File(directory, name);
-		return file.exists ? file.textSync() : "";
-	},
+    read(name) {
+        const directory = queueDirectory();
+        if (!directory) {
+            return "";
+        }
+        const file = new File(directory, name);
+        return file.exists ? file.textSync() : "";
+    },
 
-	write(name, text) {
-		const directory = queueDirectory();
-		if (!directory) {
-			return;
-		}
-		const file = new File(directory, name);
-		file.create({ overwrite: true });
-		file.write(text);
-	},
+    write(name, text) {
+        const directory = queueDirectory();
+        if (!directory) {
+            return;
+        }
+        const file = new File(directory, name);
+        file.create({ overwrite: true });
+        file.write(text);
+    },
 };
 
 /** Moves anything still under the retired key into the file queue, once. */
 function adoptLegacyQueue(): void {
-	const store = getStorage();
-	if (!store) {
-		return;
-	}
-	const raw = store.get(PENDING_WRITES_KEY);
-	if (!raw) {
-		return;
-	}
-	adoptQueue(queueFiles, parseLegacyQueue(raw));
-	store.remove(PENDING_WRITES_KEY);
+    const store = getStorage();
+    if (!store) {
+        return;
+    }
+    const raw = store.get(PENDING_WRITES_KEY);
+    if (!raw) {
+        return;
+    }
+    adoptQueue(queueFiles, parseLegacyQueue(raw));
+    store.remove(PENDING_WRITES_KEY);
 }
 
 /**
@@ -200,19 +200,19 @@ function adoptLegacyQueue(): void {
  * SQLite transaction — the idempotency key this queue used to lack.
  */
 export function claimPendingWrites(): ClaimedWrites {
-	try {
-		adoptLegacyQueue();
-		return claimQueue(queueFiles);
-	} catch (error) {
-		console.warn("[outlayr] pending writes unreadable", error);
-		return { jobs: [], names: [] };
-	}
+    try {
+        adoptLegacyQueue();
+        return claimQueue(queueFiles);
+    } catch (error) {
+        console.warn("[outlayr] pending writes unreadable", error);
+        return { jobs: [], names: [] };
+    }
 }
 
 export function releasePendingWrites(claimed: ClaimedWrites): void {
-	try {
-		releaseQueue(queueFiles, claimed);
-	} catch (error) {
-		console.warn("[outlayr] pending writes not released", error);
-	}
+    try {
+        releaseQueue(queueFiles, claimed);
+    } catch (error) {
+        console.warn("[outlayr] pending writes not released", error);
+    }
 }

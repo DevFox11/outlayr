@@ -3,15 +3,8 @@ import { ConvexError, v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import {
-	action,
-	internalMutation,
-	internalQuery,
-	type MutationCtx,
-	mutation,
-	type QueryCtx,
-	query,
-} from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { isPhotoName, ownsPhotoKey, photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
 
@@ -44,21 +37,21 @@ const r2 = new R2(components.r2);
  * variables should start using them on the next call, not the next cold start.
  */
 function usingR2(): boolean {
-	return (
-		!!process.env.R2_BUCKET &&
-		!!process.env.R2_ENDPOINT &&
-		!!process.env.R2_ACCESS_KEY_ID &&
-		!!process.env.R2_SECRET_ACCESS_KEY
-	);
+    return (
+        !!process.env.R2_BUCKET &&
+        !!process.env.R2_ENDPOINT &&
+        !!process.env.R2_ACCESS_KEY_ID &&
+        !!process.env.R2_SECRET_ACCESS_KEY
+    );
 }
 
 /** The Convex-storage id for `key`, or null when R2 holds the bytes. */
 async function storageIdFor(ctx: QueryCtx, key: string): Promise<Id<"_storage"> | null> {
-	const row = await ctx.db
-		.query("photoObjects")
-		.withIndex("by_key", (q) => q.eq("key", key))
-		.unique();
-	return row ? row.storageId : null;
+    const row = await ctx.db
+        .query("photoObjects")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .unique();
+    return row ? row.storageId : null;
 }
 
 /**
@@ -99,18 +92,18 @@ export const PHOTO_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
  * the one party with a reason to understate it.
  */
 async function checkPhotoQuota(ctx: QueryCtx, userId: string): Promise<void> {
-	const stored = await ctx.db
-		.query("photoSizes")
-		.withIndex("by_user", (q) => q.eq("userId", userId))
-		.collect();
-	const used = stored.reduce((total, row) => total + row.bytes, 0);
-	if (used >= PHOTO_QUOTA_BYTES) {
-		throw new ConvexError({
-			code: "PHOTO_QUOTA_EXCEEDED",
-			limit: PHOTO_QUOTA_BYTES,
-			used,
-		});
-	}
+    const stored = await ctx.db
+        .query("photoSizes")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+    const used = stored.reduce((total, row) => total + row.bytes, 0);
+    if (used >= PHOTO_QUOTA_BYTES) {
+        throw new ConvexError({
+            code: "PHOTO_QUOTA_EXCEEDED",
+            limit: PHOTO_QUOTA_BYTES,
+            used,
+        });
+    }
 }
 
 /**
@@ -122,20 +115,20 @@ async function checkPhotoQuota(ctx: QueryCtx, userId: string): Promise<void> {
  * roll back, so the only safe retry is an idempotent one.
  */
 export const requestUpload = mutation({
-	args: { name: v.string() },
-	handler: async (ctx, args) => {
-		const userId = await requireUserId(ctx);
-		await checkPhotoQuota(ctx, userId);
-		if (!isPhotoName(args.name)) {
-			throw new ConvexError(`Not a photo file name: ${args.name}`);
-		}
-		const key = photoKeyFor(userId, args.name);
-		if (usingR2()) {
-			return await r2.generateUploadUrl(key);
-		}
-		return { key, url: await ctx.storage.generateUploadUrl() };
-	},
-	returns: v.object({ key: v.string(), url: v.string() }),
+    args: { name: v.string() },
+    handler: async (ctx, args) => {
+        const userId = await requireUserId(ctx);
+        await checkPhotoQuota(ctx, userId);
+        if (!isPhotoName(args.name)) {
+            throw new ConvexError(`Not a photo file name: ${args.name}`);
+        }
+        const key = photoKeyFor(userId, args.name);
+        if (usingR2()) {
+            return await r2.generateUploadUrl(key);
+        }
+        return { key, url: await ctx.storage.generateUploadUrl() };
+    },
+    returns: v.object({ key: v.string(), url: v.string() }),
 });
 
 /**
@@ -143,9 +136,9 @@ export const requestUpload = mutation({
  * so cannot validate a session row directly.
  */
 export const callerId = internalQuery({
-	args: {},
-	handler: async (ctx) => await requireUserId(ctx),
-	returns: v.string(),
+    args: {},
+    handler: async (ctx) => await requireUserId(ctx),
+    returns: v.string(),
 });
 
 /**
@@ -158,35 +151,35 @@ export const callerId = internalQuery({
  * repairs.
  */
 export const confirmUpload = action({
-	args: { key: v.string(), storageId: v.optional(v.id("_storage")) },
-	handler: async (ctx, args) => {
-		const userId: string = await ctx.runQuery(internal.photos.callerId, {});
-		if (!ownsPhotoKey(userId, args.key)) {
-			throw new ConvexError("That photo does not belong to this account");
-		}
-		if (args.storageId) {
-			// Convex storage allocated the address, so the key only resolves through
-			// the mapping this records. It reads the size back from the system table
-			// in the same mutation, which is the only place it is known.
-			await ctx.runMutation(internal.photos.mapStorageId, {
-				key: args.key,
-				storageId: args.storageId,
-			});
-			return null;
-		}
-		await r2.syncMetadata(ctx, args.key);
-		// Read after the sync, or the component has no metadata row to answer from.
-		// A missing size records zero rather than refusing: an object that cannot be
-		// weighed must still be readable, and undercounting a quota is recoverable
-		// where losing a photo is not.
-		const metadata = await r2.getMetadata(ctx, args.key);
-		await ctx.runMutation(internal.photos.recordPhotoSize, {
-			bytes: metadata?.size ?? 0,
-			key: args.key,
-		});
-		return null;
-	},
-	returns: v.null(),
+    args: { key: v.string(), storageId: v.optional(v.id("_storage")) },
+    handler: async (ctx, args) => {
+        const userId: string = await ctx.runQuery(internal.photos.callerId, {});
+        if (!ownsPhotoKey(userId, args.key)) {
+            throw new ConvexError("That photo does not belong to this account");
+        }
+        if (args.storageId) {
+            // Convex storage allocated the address, so the key only resolves through
+            // the mapping this records. It reads the size back from the system table
+            // in the same mutation, which is the only place it is known.
+            await ctx.runMutation(internal.photos.mapStorageId, {
+                key: args.key,
+                storageId: args.storageId,
+            });
+            return null;
+        }
+        await r2.syncMetadata(ctx, args.key);
+        // Read after the sync, or the component has no metadata row to answer from.
+        // A missing size records zero rather than refusing: an object that cannot be
+        // weighed must still be readable, and undercounting a quota is recoverable
+        // where losing a photo is not.
+        const metadata = await r2.getMetadata(ctx, args.key);
+        await ctx.runMutation(internal.photos.recordPhotoSize, {
+            bytes: metadata?.size ?? 0,
+            key: args.key,
+        });
+        return null;
+    },
+    returns: v.null(),
 });
 
 /**
@@ -196,12 +189,12 @@ export const confirmUpload = action({
  * be replaced with it rather than added to.
  */
 export const recordPhotoSize = internalMutation({
-	args: { bytes: v.number(), key: v.string() },
-	handler: async (ctx, args) => {
-		await writePhotoSize(ctx, args.key, args.bytes);
-		return null;
-	},
-	returns: v.null(),
+    args: { bytes: v.number(), key: v.string() },
+    handler: async (ctx, args) => {
+        await writePhotoSize(ctx, args.key, args.bytes);
+        return null;
+    },
+    returns: v.null(),
 });
 
 /**
@@ -211,30 +204,30 @@ export const recordPhotoSize = internalMutation({
  * stored.
  */
 async function writePhotoSize(ctx: MutationCtx, key: string, bytes: number): Promise<void> {
-	const userId = photoOwnerFromKey(key);
-	if (userId === null) {
-		return;
-	}
-	const existing = await ctx.db
-		.query("photoSizes")
-		.withIndex("by_key", (q) => q.eq("key", key))
-		.unique();
-	if (existing) {
-		await ctx.db.patch(existing._id, { bytes });
-		return;
-	}
-	await ctx.db.insert("photoSizes", { bytes, key, userId });
+    const userId = photoOwnerFromKey(key);
+    if (userId === null) {
+        return;
+    }
+    const existing = await ctx.db
+        .query("photoSizes")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .unique();
+    if (existing) {
+        await ctx.db.patch(existing._id, { bytes });
+        return;
+    }
+    await ctx.db.insert("photoSizes", { bytes, key, userId });
 }
 
 /** Drops the accounting for an object whose bytes are gone. */
 async function forgetPhotoSize(ctx: MutationCtx, key: string): Promise<void> {
-	const row = await ctx.db
-		.query("photoSizes")
-		.withIndex("by_key", (q) => q.eq("key", key))
-		.unique();
-	if (row) {
-		await ctx.db.delete(row._id);
-	}
+    const row = await ctx.db
+        .query("photoSizes")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .unique();
+    if (row) {
+        await ctx.db.delete(row._id);
+    }
 }
 
 /**
@@ -244,31 +237,31 @@ async function forgetPhotoSize(ctx: MutationCtx, key: string): Promise<void> {
  * idempotent key, and this is the Convex-storage equivalent.
  */
 export const mapStorageId = internalMutation({
-	args: { key: v.string(), storageId: v.id("_storage") },
-	handler: async (ctx, args) => {
-		const existing = await ctx.db
-			.query("photoObjects")
-			.withIndex("by_key", (q) => q.eq("key", args.key))
-			.unique();
-		// The system table is the only place a Convex-stored object's size is
-		// recorded, and it is readable here, so the accounting is written in the
-		// same mutation as the mapping rather than in a second round trip.
-		const stored = await ctx.db.system.get(args.storageId);
-		await writePhotoSize(ctx, args.key, stored?.size ?? 0);
-		if (existing) {
-			if (existing.storageId !== args.storageId) {
-				await ctx.storage.delete(existing.storageId);
-				await ctx.db.patch(existing._id, { storageId: args.storageId });
-			}
-			return null;
-		}
-		await ctx.db.insert("photoObjects", {
-			key: args.key,
-			storageId: args.storageId,
-		});
-		return null;
-	},
-	returns: v.null(),
+    args: { key: v.string(), storageId: v.id("_storage") },
+    handler: async (ctx, args) => {
+        const existing = await ctx.db
+            .query("photoObjects")
+            .withIndex("by_key", (q) => q.eq("key", args.key))
+            .unique();
+        // The system table is the only place a Convex-stored object's size is
+        // recorded, and it is readable here, so the accounting is written in the
+        // same mutation as the mapping rather than in a second round trip.
+        const stored = await ctx.db.system.get(args.storageId);
+        await writePhotoSize(ctx, args.key, stored?.size ?? 0);
+        if (existing) {
+            if (existing.storageId !== args.storageId) {
+                await ctx.storage.delete(existing.storageId);
+                await ctx.db.patch(existing._id, { storageId: args.storageId });
+            }
+            return null;
+        }
+        await ctx.db.insert("photoObjects", {
+            key: args.key,
+            storageId: args.storageId,
+        });
+        return null;
+    },
+    returns: v.null(),
 });
 
 /**
@@ -280,28 +273,28 @@ export const mapStorageId = internalMutation({
  * cost a device the whole page of photos.
  */
 export const readUrls = query({
-	args: { keys: v.array(v.string()) },
-	handler: async (ctx, args) => {
-		const userId = await requireUserId(ctx);
-		if (args.keys.length > PHOTO_URL_BATCH_LIMIT) {
-			throw new ConvexError(`A read asks for at most ${PHOTO_URL_BATCH_LIMIT} urls; got ${args.keys.length}`);
-		}
+    args: { keys: v.array(v.string()) },
+    handler: async (ctx, args) => {
+        const userId = await requireUserId(ctx);
+        if (args.keys.length > PHOTO_URL_BATCH_LIMIT) {
+            throw new ConvexError(`A read asks for at most ${PHOTO_URL_BATCH_LIMIT} urls; got ${args.keys.length}`);
+        }
 
-		const owned = args.keys.filter((key) => ownsPhotoKey(userId, key));
-		const minted = await Promise.all(
-			owned.map(async (key) => {
-				// Routed per key, not per deployment: a photo stored before R2 was
-				// switched on still resolves through the backend that holds it.
-				const storageId = await storageIdFor(ctx, key);
-				const url = storageId
-					? await ctx.storage.getUrl(storageId)
-					: await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS });
-				return url === null ? null : { key, url };
-			})
-		);
-		return minted.filter((entry): entry is { key: string; url: string } => Boolean(entry));
-	},
-	returns: v.array(v.object({ key: v.string(), url: v.string() })),
+        const owned = args.keys.filter((key) => ownsPhotoKey(userId, key));
+        const minted = await Promise.all(
+            owned.map(async (key) => {
+                // Routed per key, not per deployment: a photo stored before R2 was
+                // switched on still resolves through the backend that holds it.
+                const storageId = await storageIdFor(ctx, key);
+                const url = storageId
+                    ? await ctx.storage.getUrl(storageId)
+                    : await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS });
+                return url === null ? null : { key, url };
+            })
+        );
+        return minted.filter((entry): entry is { key: string; url: string } => Boolean(entry));
+    },
+    returns: v.array(v.object({ key: v.string(), url: v.string() })),
 });
 
 /**
@@ -317,18 +310,18 @@ export const readUrls = query({
  * unreferenced would delete bytes two live readers can name.
  */
 async function isReferenced(ctx: MutationCtx, userId: string, key: string): Promise<boolean> {
-	const transactionRows = await ctx.db
-		.query("transactions")
-		.withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
-		.collect();
-	if (transactionRows.some((row) => row.imageKey === key)) {
-		return true;
-	}
-	const accountRows = await ctx.db
-		.query("accounts")
-		.withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
-		.collect();
-	return accountRows.some((row) => row.imageKey === key);
+    const transactionRows = await ctx.db
+        .query("transactions")
+        .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+        .collect();
+    if (transactionRows.some((row) => row.imageKey === key)) {
+        return true;
+    }
+    const accountRows = await ctx.db
+        .query("accounts")
+        .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+        .collect();
+    return accountRows.some((row) => row.imageKey === key);
 }
 
 /**
@@ -350,31 +343,31 @@ async function isReferenced(ctx: MutationCtx, userId: string, key: string): Prom
  * pass retries.
  */
 export const releaseUnreferenced = mutation({
-	args: { key: v.string() },
-	handler: async (ctx, args) => {
-		const userId = await requireUserId(ctx);
-		if (!ownsPhotoKey(userId, args.key)) {
-			throw new ConvexError("That photo does not belong to this account");
-		}
-		if (await isReferenced(ctx, userId, args.key)) {
-			return { released: false };
-		}
-		const mapping = await ctx.db
-			.query("photoObjects")
-			.withIndex("by_key", (q) => q.eq("key", args.key))
-			.unique();
-		if (mapping) {
-			// Same ordering as the R2 branch: the reference goes before the bytes,
-			// so a crash between them leaks an object rather than leaving a row
-			// naming bytes that no longer exist.
-			await ctx.db.delete(mapping._id);
-			await ctx.storage.delete(mapping.storageId);
-			await forgetPhotoSize(ctx, args.key);
-			return { released: true };
-		}
-		await r2.deleteObject(ctx, args.key);
-		await forgetPhotoSize(ctx, args.key);
-		return { released: true };
-	},
-	returns: v.object({ released: v.boolean() }),
+    args: { key: v.string() },
+    handler: async (ctx, args) => {
+        const userId = await requireUserId(ctx);
+        if (!ownsPhotoKey(userId, args.key)) {
+            throw new ConvexError("That photo does not belong to this account");
+        }
+        if (await isReferenced(ctx, userId, args.key)) {
+            return { released: false };
+        }
+        const mapping = await ctx.db
+            .query("photoObjects")
+            .withIndex("by_key", (q) => q.eq("key", args.key))
+            .unique();
+        if (mapping) {
+            // Same ordering as the R2 branch: the reference goes before the bytes,
+            // so a crash between them leaks an object rather than leaving a row
+            // naming bytes that no longer exist.
+            await ctx.db.delete(mapping._id);
+            await ctx.storage.delete(mapping.storageId);
+            await forgetPhotoSize(ctx, args.key);
+            return { released: true };
+        }
+        await r2.deleteObject(ctx, args.key);
+        await forgetPhotoSize(ctx, args.key);
+        return { released: true };
+    },
+    returns: v.object({ released: v.boolean() }),
 });

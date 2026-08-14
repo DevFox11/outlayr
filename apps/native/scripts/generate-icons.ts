@@ -14,66 +14,67 @@
 import { dirname, join, resolve } from "node:path";
 
 import { loadIcon, rasterize, requireRsvgConvert, resetDirectory, SCALE_COUNT, toSvg } from "./hugeicon-raster";
-import { type IconSet, SETS } from "./icon-sets";
+import { SETS } from "./icon-sets";
+import type { IconSet } from "./icon-sets";
 
 const appDir = resolve(dirname(process.argv[1]), "..");
 
 async function writeSet(set: IconSet): Promise<number> {
-	const outDir = join(appDir, "assets", set.dir);
-	resetDirectory(outDir);
+    const outDir = join(appDir, "assets", set.dir);
+    resetDirectory(outDir);
 
-	let written = 0;
-	for (const entry of set.entries) {
-		const weight = entry.weight ?? set.weight ?? "stroke";
-		const size = entry.size ?? set.size;
+    let written = 0;
+    for (const entry of set.entries) {
+        const weight = entry.weight ?? set.weight ?? "stroke";
+        const size = entry.size ?? set.size;
 
-		// A solid glyph is filled rather than stroked, so a width is meaningless on
-		// it. Otherwise the set's stroke is proportional: an entry that renders
-		// smaller than the set's size gets a correspondingly lighter line, so every
-		// glyph in the set reads at the same weight.
-		const strokeWidth =
-			weight === "solid"
-				? undefined
-				: (entry.strokeWidth ?? (set.stroke === undefined ? undefined : (set.stroke * size) / set.size));
+        // A solid glyph is filled rather than stroked, so a width is meaningless on
+        // it. Otherwise the set's stroke is proportional: an entry that renders
+        // smaller than the set's size gets a correspondingly lighter line, so every
+        // glyph in the set reads at the same weight.
+        const strokeWidth =
+            weight === "solid"
+                ? undefined
+                : (entry.strokeWidth ?? (set.stroke === undefined ? undefined : (set.stroke * size) / set.size));
 
-		// biome-ignore lint/performance/noAwaitInLoops: rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
-		const elements = await loadIcon(weight, entry.icon);
-		rasterize(toSvg(elements, strokeWidth, set.ink), join(outDir, entry.slug), size);
-		written += SCALE_COUNT;
+        // oxlint-disable-next-line no-await-in-loop -- rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
+        const elements = await loadIcon(weight, entry.icon);
+        rasterize(toSvg(elements, strokeWidth, set.ink), join(outDir, entry.slug), size);
+        written += SCALE_COUNT;
 
-		if (entry.withSelected) {
-			const solid = await loadIcon("solid", entry.icon);
-			rasterize(toSvg(solid, undefined, set.ink), join(outDir, `${entry.slug}-selected`), size);
-			written += SCALE_COUNT;
-		}
+        if (entry.withSelected) {
+            const solid = await loadIcon("solid", entry.icon);
+            rasterize(toSvg(solid, undefined, set.ink), join(outDir, `${entry.slug}-selected`), size);
+            written += SCALE_COUNT;
+        }
 
-		console.log(`  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""}, ${size}pt)`);
-	}
+        console.log(`  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""}, ${size}pt)`);
+    }
 
-	return written;
+    return written;
 }
 
 async function main() {
-	const [, , only] = process.argv;
-	const sets = only ? SETS.filter((set) => set.dir === only) : SETS;
+    const [only] = process.argv.slice(2);
+    const sets = only ? SETS.filter((set) => set.dir === only) : SETS;
 
-	if (sets.length === 0) {
-		throw new Error(`no icon set named "${only}" — known sets: ${SETS.map((set) => set.dir).join(", ")}`);
-	}
+    if (sets.length === 0) {
+        throw new Error(`no icon set named "${only}" — known sets: ${SETS.map((set) => set.dir).join(", ")}`);
+    }
 
-	requireRsvgConvert();
+    requireRsvgConvert();
 
-	let total = 0;
-	for (const set of sets) {
-		console.log(`\n${set.dir}`);
-		// biome-ignore lint/performance/noAwaitInLoops: writeSet empties its output directory first, so concurrent sets would interleave their progress lines under the wrong header
-		total += await writeSet(set);
-	}
+    let total = 0;
+    for (const set of sets) {
+        console.log(`\n${set.dir}`);
+        // oxlint-disable-next-line no-await-in-loop -- writeSet empties its output directory first, so concurrent sets would interleave their progress lines under the wrong header
+        total += await writeSet(set);
+    }
 
-	console.log(`\nWrote ${total} PNGs across ${sets.length} set${sets.length === 1 ? "" : "s"}`);
+    console.log(`\nWrote ${total} PNGs across ${sets.length} set${sets.length === 1 ? "" : "s"}`);
 }
 
 main().catch((error: unknown) => {
-	console.error(error instanceof Error ? error.message : error);
-	process.exit(1);
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
 });

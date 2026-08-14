@@ -8,11 +8,11 @@ import { AppState } from "react-native";
  * exists to remove.
  */
 export function deviceLanguageTag(): string | null {
-	try {
-		return getLocales()[0]?.languageTag ?? null;
-	} catch {
-		return null;
-	}
+    try {
+        return getLocales()[0]?.languageTag ?? null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -21,18 +21,18 @@ export function deviceLanguageTag(): string | null {
  * locale, so a tag captured once at mount stays stale until the next cold start.
  */
 export function useDeviceLanguageTag(): string | null {
-	const [tag, setTag] = useState(deviceLanguageTag);
+    const [tag, setTag] = useState(deviceLanguageTag);
 
-	useEffect(() => {
-		const subscription = AppState.addEventListener("change", (status) => {
-			if (status !== "active") {
-				return;
-			}
-			// Same string bails out of the re-render inside React.
-			setTag(deviceLanguageTag());
-		});
-		return () => subscription.remove();
-	}, []);
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", (status) => {
+            if (status !== "active") {
+                return;
+            }
+            // Same string bails out of the re-render inside React.
+            setTag(deviceLanguageTag());
+        });
+        return () => subscription.remove();
+    }, []);
 
-	return tag;
+    return tag;
 }

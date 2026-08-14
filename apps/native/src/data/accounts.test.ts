@@ -1,14 +1,17 @@
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+
 import { useAccountCells } from "./accounts";
-import { accountsCellQuery, type CellRow, toCurrencyCell } from "./cell-query";
+import { accountsCellQuery, toCurrencyCell } from "./cell-query";
+import type { CellRow } from "./cell-query";
 
 function makeDb(): Database {
-	const sqlite = new BetterSqlite3(":memory:");
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    sqlite.exec(`
 		CREATE TABLE transactions (
 			id text PRIMARY KEY NOT NULL,
 			amount real NOT NULL,
@@ -41,147 +44,150 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-	return drizzle(sqlite) as unknown as Database;
+    return drizzle(sqlite) as unknown as Database;
 }
 
 const JUNE_1 = new Date("2026-06-01T12:00:00.000Z");
 
 async function addTransaction(
-	db: Database,
-	overrides: Partial<typeof transactions.$inferInsert> & { id: string }
+    db: Database,
+    overrides: Partial<typeof transactions.$inferInsert> & { id: string }
 ): Promise<void> {
-	await db.insert(transactions).values({
-		amount: 10,
-		amountUsd: 10,
-		currency: "USD",
-		date: JUNE_1,
-		day: JUNE_1,
-		income: false,
-		month: JUNE_1,
-		note: "",
-		updatedAt: JUNE_1,
-		...overrides,
-	});
+    await db.insert(transactions).values({
+        amount: 10,
+        amountUsd: 10,
+        currency: "USD",
+        date: JUNE_1,
+        day: JUNE_1,
+        income: false,
+        month: JUNE_1,
+        note: "",
+        updatedAt: JUNE_1,
+        ...overrides,
+    });
 }
 
 describe("accountsCellQuery", () => {
-	let db: Database;
-	beforeEach(() => {
-		db = makeDb();
-	});
+    let db: Database;
+    beforeEach(() => {
+        db = makeDb();
+    });
 
-	it("groups attached rows by account, currency, direction and day", async () => {
-		await addTransaction(db, { accountId: "a1", amount: 5, id: "t1" });
-		await addTransaction(db, { accountId: "a1", amount: 7, id: "t2" });
-		await addTransaction(db, {
-			accountId: "a1",
-			amount: 3,
-			id: "t3",
-			income: true,
-		});
-		await addTransaction(db, { accountId: "a2", amount: 11, id: "t4" });
+    it("groups attached rows by account, currency, direction and day", async () => {
+        await addTransaction(db, { accountId: "a1", amount: 5, id: "t1" });
+        await addTransaction(db, { accountId: "a1", amount: 7, id: "t2" });
+        await addTransaction(db, {
+            accountId: "a1",
+            amount: 3,
+            id: "t3",
+            income: true,
+        });
+        await addTransaction(db, { accountId: "a2", amount: 11, id: "t4" });
 
-		const rows = await accountsCellQuery(db);
-		const byKey = rows.map((row) => ({
-			accountId: row.accountId,
-			...toCurrencyCell(row),
-		}));
+        const rows = await accountsCellQuery(db);
+        const byKey = rows.map((row) => ({
+            accountId: row.accountId,
+            ...toCurrencyCell(row),
+        }));
 
-		const a1Expense = byKey.find((cell) => cell.accountId === "a1" && !cell.income);
-		expect(a1Expense?.amount).toBe(12);
-		expect(a1Expense?.count).toBe(2);
-		const a1Income = byKey.find((cell) => cell.accountId === "a1" && cell.income);
-		expect(a1Income?.amount).toBe(3);
-		expect(byKey.find((cell) => cell.accountId === "a2")?.amount).toBe(11);
-	});
+        const a1Expense = byKey.find((cell) => cell.accountId === "a1" && !cell.income);
+        expect(a1Expense?.amount).toBe(12);
+        expect(a1Expense?.count).toBe(2);
+        const a1Income = byKey.find((cell) => cell.accountId === "a1" && cell.income);
+        expect(a1Income?.amount).toBe(3);
+        expect(byKey.find((cell) => cell.accountId === "a2")?.amount).toBe(11);
+    });
 
-	it("excludes detached and soft-deleted rows", async () => {
-		await addTransaction(db, { accountId: null, amount: 99, id: "t1" });
-		await addTransaction(db, {
-			accountId: "a1",
-			amount: 5,
-			deletedAt: JUNE_1,
-			id: "t2",
-		});
-		await addTransaction(db, { accountId: "a1", amount: 4, id: "t3" });
+    it("excludes detached and soft-deleted rows", async () => {
+        await addTransaction(db, { accountId: null, amount: 99, id: "t1" });
+        await addTransaction(db, {
+            accountId: "a1",
+            amount: 5,
+            deletedAt: JUNE_1,
+            id: "t2",
+        });
+        await addTransaction(db, { accountId: "a1", amount: 4, id: "t3" });
 
-		const rows = await accountsCellQuery(db);
-		expect(rows).toHaveLength(1);
-		expect(rows[0].accountId).toBe("a1");
-		expect(toCurrencyCell(rows[0]).amount).toBe(4);
-	});
+        const rows = await accountsCellQuery(db);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].accountId).toBe("a1");
+        expect(toCurrencyCell(rows[0]).amount).toBe(4);
+    });
 });
 
 jest.mock("./live-query", () => ({
-	useLiveQuery: jest.fn(),
+    useLiveQuery: jest.fn(),
 }));
 
 const mockUseLiveQuery = jest.requireMock("./live-query").useLiveQuery as jest.Mock;
 
 function liveRow(overrides: Partial<CellRow> = {}): CellRow {
-	return {
-		currency: "USD",
-		dateKey: "2026-08-06",
-		income: true,
-		rows: 1,
-		total: 4,
-		totalUsd: 4,
-		unconverted: 0,
-		unconvertedRows: 0,
-		...overrides,
-	};
+    return {
+        currency: "USD",
+        dateKey: "2026-08-06",
+        income: true,
+        rows: 1,
+        total: 4,
+        totalUsd: 4,
+        unconverted: 0,
+        unconvertedRows: 0,
+        ...overrides,
+    };
 }
 
 describe("useAccountCells", () => {
-	beforeEach(() => {
-		mockUseLiveQuery.mockReset();
-	});
+    beforeEach(() => {
+        mockUseLiveQuery.mockReset();
+    });
 
-	it("keeps transaction cells and maps outbound and inbound transfers with opposite directions", async () => {
-		const transaction = liveRow();
-		const outbound = liveRow({ currency: "EUR", dateKey: "2026-08-07", income: false, total: 35, totalUsd: 40 });
-		const inbound = liveRow({ currency: "VES", dateKey: "2026-08-08", income: false, total: 10, totalUsd: 1 });
-		mockUseLiveQuery.mockReturnValueOnce([transaction]).mockReturnValueOnce([outbound]).mockReturnValueOnce([inbound]);
+    it("keeps transaction cells and maps outbound and inbound transfers with opposite directions", async () => {
+        const transaction = liveRow();
+        const outbound = liveRow({ currency: "EUR", dateKey: "2026-08-07", income: false, total: 35, totalUsd: 40 });
+        const inbound = liveRow({ currency: "VES", dateKey: "2026-08-08", income: false, total: 10, totalUsd: 1 });
+        mockUseLiveQuery
+            .mockReturnValueOnce([transaction])
+            .mockReturnValueOnce([outbound])
+            .mockReturnValueOnce([inbound]);
 
-		const { result } = await renderHook(() => useAccountCells({} as Database, "account-1"));
+        const { result } = await renderHook(() => useAccountCells({} as Database, "account-1"));
 
-		expect(result.current).toStrictEqual([
-			{
-				amount: 4,
-				amountUsd: 4,
-				count: 1,
-				currencyCode: "USD",
-				dateKey: "2026-08-06",
-				income: true,
-				rateNeededAmount: 0,
-				rateNeededCount: 0,
-				unconvertedAmount: 0,
-				unconvertedCount: 0,
-			},
-			{
-				amount: 35,
-				amountUsd: 40,
-				count: 1,
-				currencyCode: "EUR",
-				dateKey: "2026-08-07",
-				income: false,
-				rateNeededAmount: 0,
-				rateNeededCount: 0,
-				unconvertedAmount: 0,
-				unconvertedCount: 0,
-			},
-			{
-				amount: 10,
-				amountUsd: 1,
-				count: 1,
-				currencyCode: "VES",
-				dateKey: "2026-08-08",
-				income: true,
-				rateNeededAmount: 0,
-				rateNeededCount: 0,
-				unconvertedAmount: 0,
-				unconvertedCount: 0,
-			},
-		]);
-	});
+        expect(result.current).toStrictEqual([
+            {
+                amount: 4,
+                amountUsd: 4,
+                count: 1,
+                currencyCode: "USD",
+                dateKey: "2026-08-06",
+                income: true,
+                rateNeededAmount: 0,
+                rateNeededCount: 0,
+                unconvertedAmount: 0,
+                unconvertedCount: 0,
+            },
+            {
+                amount: 35,
+                amountUsd: 40,
+                count: 1,
+                currencyCode: "EUR",
+                dateKey: "2026-08-07",
+                income: false,
+                rateNeededAmount: 0,
+                rateNeededCount: 0,
+                unconvertedAmount: 0,
+                unconvertedCount: 0,
+            },
+            {
+                amount: 10,
+                amountUsd: 1,
+                count: 1,
+                currencyCode: "VES",
+                dateKey: "2026-08-08",
+                income: true,
+                rateNeededAmount: 0,
+                rateNeededCount: 0,
+                unconvertedAmount: 0,
+                unconvertedCount: 0,
+            },
+        ]);
+    });
 });

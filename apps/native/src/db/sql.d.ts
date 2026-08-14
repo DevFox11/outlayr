@@ -1,4 +1,4 @@
 declare module "*.sql" {
-	const migration: string;
-	export default migration;
+    const migration: string;
+    export default migration;
 }

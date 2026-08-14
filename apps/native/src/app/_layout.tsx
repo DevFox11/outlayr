@@ -7,7 +7,8 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { PanelUIProvider, useTheme } from "panelui-native";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Pressable, useColorScheme, useWindowDimensions, View } from "react-native";
 import { SafeAreaListener, SafeAreaProvider } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
@@ -38,7 +39,7 @@ import { useApplyThemePreference } from "@/theme/use-theme-preference";
 preventAutoHideAsync();
 
 export const unstable_settings = {
-	anchor: "(tabs)",
+    anchor: "(tabs)",
 };
 
 /**
@@ -46,120 +47,124 @@ export const unstable_settings = {
  * off the runtime rather than through `useTranslation`.
  */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
-	return (
-		<View className="flex-1 items-center justify-center bg-background px-8">
-			<Text className="pb-2 font-sans-semibold text-foreground text-title">{translateNow("error.boundary.title")}</Text>
-			<Text className="pb-4 text-center text-muted text-subtitle">{translateNow("error.boundary.body")}</Text>
-			<Text className="pb-6 text-center text-label text-muted">{error.message}</Text>
-			<Pressable
-				accessibilityRole="button"
-				className="rounded-full bg-accent px-6 py-3"
-				onPress={() => {
-					retry();
-				}}
-			>
-				<Text className="font-sans-semibold text-accent-foreground text-subtitle">{translateNow("common.retry")}</Text>
-			</Pressable>
-		</View>
-	);
+    return (
+        <View className="bg-background flex-1 items-center justify-center px-8">
+            <Text className="font-sans-semibold text-foreground text-title pb-2">
+                {translateNow("error.boundary.title")}
+            </Text>
+            <Text className="text-muted text-subtitle pb-4 text-center">{translateNow("error.boundary.body")}</Text>
+            <Text className="text-label text-muted pb-6 text-center">{error.message}</Text>
+            <Pressable
+                accessibilityRole="button"
+                className="bg-accent rounded-full px-6 py-3"
+                onPress={() => {
+                    retry();
+                }}
+            >
+                <Text className="font-sans-semibold text-accent-foreground text-subtitle">
+                    {translateNow("common.retry")}
+                </Text>
+            </Pressable>
+        </View>
+    );
 }
 
 function CloudRuntimeProvider({ children }: { children: ReactNode }) {
-	if (cloudRuntime === null) {
-		return <AuthSessionProvider>{children}</AuthSessionProvider>;
-	}
+    if (cloudRuntime === null) {
+        return <AuthSessionProvider>{children}</AuthSessionProvider>;
+    }
 
-	return (
-		<AuthSessionProvider>
-			<ActivatedCloudRuntime>{children}</ActivatedCloudRuntime>
-		</AuthSessionProvider>
-	);
+    return (
+        <AuthSessionProvider>
+            <ActivatedCloudRuntime>{children}</ActivatedCloudRuntime>
+        </AuthSessionProvider>
+    );
 }
 
 function ActivatedCloudRuntime({ children }: { children: ReactNode }) {
-	const { accountId } = useAuthSession();
-	if (cloudRuntime === null || accountId === null) {
-		return children;
-	}
-	return (
-		<ConvexBetterAuthProvider authClient={cloudRuntime.authClient} client={cloudRuntime.convex}>
-			{children}
-		</ConvexBetterAuthProvider>
-	);
+    const { accountId } = useAuthSession();
+    if (cloudRuntime === null || accountId === null) {
+        return children;
+    }
+    return (
+        <ConvexBetterAuthProvider authClient={cloudRuntime.authClient} client={cloudRuntime.convex}>
+            {children}
+        </ConvexBetterAuthProvider>
+    );
 }
 
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
-	const { status } = useLocalData();
-	// Above the splash gate on purpose: the accent has to be written into both
-	// themes before the first screen paints, not after it.
-	useAccent();
-	useApplyThemePreference();
-	const { theme } = useTheme();
-	const isDark = theme === "dark";
-	const colorScheme = useColorScheme();
-	const [splashHidden, setSplashHidden] = useState(false);
-	const [background, card, text, border, primary] = useCSSVariable([
-		"--color-background",
-		"--color-card",
-		"--color-foreground",
-		"--color-border",
-		"--color-tint",
-	]) as string[];
+    const { status } = useLocalData();
+    // Above the splash gate on purpose: the accent has to be written into both
+    // themes before the first screen paints, not after it.
+    useAccent();
+    useApplyThemePreference();
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
+    const colorScheme = useColorScheme();
+    const [splashHidden, setSplashHidden] = useState(false);
+    const [background, card, text, border, primary] = useCSSVariable([
+        "--color-background",
+        "--color-card",
+        "--color-foreground",
+        "--color-border",
+        "--color-tint",
+    ]) as string[];
 
-	const hideSplash = useCallback(() => {
-		hideAsync();
-		setSplashHidden(true);
-	}, []);
+    const hideSplash = useCallback(() => {
+        hideAsync();
+        setSplashHidden(true);
+    }, []);
 
-	// An error surface beats an indefinite splash, but it is written in the
-	// owner's language, so it still waits on the catalog.
-	const failed = fontsLoaded && status === "error";
+    // An error surface beats an indefinite splash, but it is written in the
+    // owner's language, so it still waits on the catalog.
+    const failed = fontsLoaded && status === "error";
 
-	useEffect(() => {
-		if (failed) {
-			hideSplash();
-		}
-	}, [failed, hideSplash]);
+    useEffect(() => {
+        if (failed) {
+            hideSplash();
+        }
+    }, [failed, hideSplash]);
 
-	const base = isDark ? DarkTheme : DefaultTheme;
+    const base = isDark ? DarkTheme : DefaultTheme;
 
-	if (localShellReady({ data: status, fontsLoaded })) {
-		return (
-			<LedgerAdoptionProvider>
-				<DeviceResetRecovery>
-					<RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
-						<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+    if (localShellReady({ data: status, fontsLoaded })) {
+        return (
+            <LedgerAdoptionProvider>
+                <DeviceResetRecovery>
+                    <RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
+                        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-						<ThemeProvider
-							value={{
-								...base,
-								// `primary` too, or React Navigation keeps its own iOS blue on every
-								// native toolbar button — the CSS token never reaches native chrome.
-								colors: { ...base.colors, background, border, card, primary, text },
-								dark: isDark,
-							}}
-						>
-							<AuthCover>
-								<AppLockGate>
-									<RootStack />
-								</AppLockGate>
-							</AuthCover>
-						</ThemeProvider>
-					</RouteGate>
-				</DeviceResetRecovery>
-			</LedgerAdoptionProvider>
-		);
-	}
+                        <ThemeProvider
+                            value={{
+                                ...base,
+                                // `primary` too, or React Navigation keeps its own iOS blue on every
+                                // native toolbar button — the CSS token never reaches native chrome.
+                                colors: { ...base.colors, background, border, card, primary, text },
+                                dark: isDark,
+                            }}
+                        >
+                            <AuthCover>
+                                <AppLockGate>
+                                    <RootStack />
+                                </AppLockGate>
+                            </AuthCover>
+                        </ThemeProvider>
+                    </RouteGate>
+                </DeviceResetRecovery>
+            </LedgerAdoptionProvider>
+        );
+    }
 
-	// Latched on the splash, because `retry()` walks the status back through
-	// opening → migrating → seeding: blanking on those once the splash is gone
-	// would empty the screen for the length of the attempt, and permanently if
-	// the migration never answers on a locked or corrupt file.
-	if (!splashHidden) {
-		return null;
-	}
+    // Latched on the splash, because `retry()` walks the status back through
+    // opening → migrating → seeding: blanking on those once the splash is gone
+    // would empty the screen for the length of the attempt, and permanently if
+    // the migration never answers on a locked or corrupt file.
+    if (!splashHidden) {
+        return null;
+    }
 
-	return <LocalDataError />;
+    return <LocalDataError />;
 }
 
 /**
@@ -172,29 +177,29 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
  * `resolving` long after launch, where a splash is not the right cover.
  */
 function RouteGate({
-	children,
-	hideSplash,
-	splashHidden,
+    children,
+    hideSplash,
+    splashHidden,
 }: {
-	children: ReactNode;
-	hideSplash: () => void;
-	splashHidden: boolean;
+    children: ReactNode;
+    hideSplash: () => void;
+    splashHidden: boolean;
 }) {
-	const { gate } = useAuthSession();
-	const { status } = useLedgerAdoption();
-	const settled = routeSettled({ adoption: status, gate });
+    const { gate } = useAuthSession();
+    const { status } = useLedgerAdoption();
+    const settled = routeSettled({ adoption: status, gate });
 
-	useEffect(() => {
-		if (settled) {
-			hideSplash();
-		}
-	}, [settled, hideSplash]);
+    useEffect(() => {
+        if (settled) {
+            hideSplash();
+        }
+    }, [settled, hideSplash]);
 
-	if (!(settled || splashHidden)) {
-		return null;
-	}
+    if (!(settled || splashHidden)) {
+        return null;
+    }
 
-	return children;
+    return children;
 }
 
 /**
@@ -204,11 +209,11 @@ function RouteGate({
  * trading objects rather than a new page sliding in.
  */
 const FIRST_RUN_STEP = {
-	animation: "fade",
-	headerBackButtonDisplayMode: "minimal",
-	headerShadowVisible: false,
-	headerTransparent: true,
-	title: "",
+    animation: "fade",
+    headerBackButtonDisplayMode: "minimal",
+    headerShadowVisible: false,
+    headerTransparent: true,
+    title: "",
 } as const;
 
 /**
@@ -216,216 +221,216 @@ const FIRST_RUN_STEP = {
  * splash gate, where the database is guaranteed open.
  */
 function RootStack() {
-	const db = useDatabase();
-	const t = useTranslation();
-	const onboarded = useOnboardingSettled(db);
-	const deferred = useAccountDeferred(db);
-	const { gate } = useAuthSession();
-	const { status: adoption } = useLedgerAdoption();
-	const { height: windowHeight } = useWindowDimensions();
-	const pickerDetent = identityPickerDetent(windowHeight);
-	useSubscriptionReminderSync(db);
-	useSeededClockPreference(db);
+    const db = useDatabase();
+    const t = useTranslation();
+    const onboarded = useOnboardingSettled(db);
+    const deferred = useAccountDeferred(db);
+    const { gate } = useAuthSession();
+    const { status: adoption } = useLedgerAdoption();
+    const { height: windowHeight } = useWindowDimensions();
+    const pickerDetent = identityPickerDetent(windowHeight);
+    useSubscriptionReminderSync(db);
+    useSeededClockPreference(db);
 
-	const group = rootStackGroup({
-		deferred,
-		gate,
-		onboarded,
-		reconciled: adoption === "settled",
-	});
+    const group = rootStackGroup({
+        deferred,
+        gate,
+        onboarded,
+        reconciled: adoption === "settled",
+    });
 
-	return (
-		<Stack>
-			{/* Declared before `(tabs)`: with the anchor guarded away on a first run,
+    return (
+        <Stack>
+            {/* Declared before `(tabs)`: with the anchor guarded away on a first run,
 			    the stack opens on whatever screen is left first. */}
-			<Stack.Protected guard={group === "onboarding"}>
-				<Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
-				{/* The steps carry the OS back button rather than a drawn one, which
+            <Stack.Protected guard={group === "onboarding"}>
+                <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
+                {/* The steps carry the OS back button rather than a drawn one, which
 				    brings the matching hit target with it. Transparent, because the
 				    stock theme card differs from the flow's `--fr-ground` — an opaque
 				    bar would band the top. */}
-				<Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
-				<Stack.Screen name="onboarding/grounding" options={FIRST_RUN_STEP} />
-				<Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
-			</Stack.Protected>
+                <Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
+                <Stack.Screen name="onboarding/grounding" options={FIRST_RUN_STEP} />
+                <Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
+            </Stack.Protected>
 
-			{/* Behind onboarding, not in front of it: the currency step is the only
+            {/* Behind onboarding, not in front of it: the currency step is the only
 			    thing that writes `currencyChosen`, and canonicalization declines
 			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
-			<Stack.Protected guard={group === "sign-in"}>
-				<Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
-			</Stack.Protected>
+            <Stack.Protected guard={group === "sign-in"}>
+                <Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
+            </Stack.Protected>
 
-			<Stack.Protected guard={group === "adopt"}>
-				<Stack.Screen name="auth/adopt" options={{ gestureEnabled: false, headerShown: false }} />
-			</Stack.Protected>
+            <Stack.Protected guard={group === "adopt"}>
+                <Stack.Screen name="auth/adopt" options={{ gestureEnabled: false, headerShown: false }} />
+            </Stack.Protected>
 
-			{/* `StackRouter.getStateForRouteNamesChange` only filters `state.routes`
+            {/* `StackRouter.getStateForRouteNamesChange` only filters `state.routes`
 			    against the new `routeNames` and re-seats on `routeNames[0]` solely
 			    when that filter leaves zero routes. Every root screen has to sit in
 			    exactly one of these four groups — an aux screen declared outside all
 			    of them would survive a guard flip and strand the stack on it, with no
 			    tab bar and no way back. */}
-			<Stack.Protected guard={group === "ledger"}>
-				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Protected guard={group === "ledger"}>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-				<Stack.Screen
-					name="search"
-					options={{
-						presentation: "modal",
-						sheetGrabberVisible: true,
-					}}
-				>
-					<Stack.Header transparent />
-					<Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
-				</Stack.Screen>
+                <Stack.Screen
+                    name="search"
+                    options={{
+                        presentation: "modal",
+                        sheetGrabberVisible: true,
+                    }}
+                >
+                    <Stack.Header transparent />
+                    <Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
+                </Stack.Screen>
 
-				{SETTINGS_SCREENS.map((screen) => (
-					<Stack.Screen key={screen.name} name={screen.name}>
-						<Stack.Header transparent />
-						<Stack.Screen.BackButton displayMode="minimal" />
-						<Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
-					</Stack.Screen>
-				))}
-				<Stack.Screen name="settings/accounts/index">
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("accounts.title")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen name="settings/accounts/reorder" />
-				<Stack.Screen name="settings/accounts/[accountId]/index" />
-				<Stack.Screen
-					name="settings/accounts/create"
-					options={{
-						presentation: "formSheet",
-						sheetAllowedDetents: [ACCOUNT_DETENT, 1],
-						sheetGrabberVisible: true,
-						title: t("accounts.nav.new"),
-					}}
-				>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("accounts.nav.new")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen
-					name="settings/accounts/[accountId]/edit"
-					options={{
-						presentation: "formSheet",
-						sheetAllowedDetents: [ACCOUNT_DETENT, 1],
-						sheetGrabberVisible: true,
-						title: t("accounts.nav.edit"),
-					}}
-				>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("accounts.nav.edit")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen name="settings/categories/index">
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("nav.categories")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen name="settings/categories/reorder" />
-				{CATEGORY_SHEETS.map((sheet) => (
-					<Stack.Screen
-						key={sheet.name}
-						name={sheet.name}
-						options={{
-							presentation: "formSheet",
-							sheetAllowedDetents: [sheet.detent, 1],
-							sheetGrabberVisible: true,
-							title: t(sheet.titleKey),
-						}}
-					>
-						<Stack.Header transparent />
-						<Stack.Screen.BackButton displayMode="minimal" />
-						<Stack.Screen.Title>{t(sheet.titleKey)}</Stack.Screen.Title>
-					</Stack.Screen>
-				))}
-				<Stack.Screen
-					name="settings/category-symbol"
-					options={{
-						headerShown: false,
-						presentation: "formSheet",
-						sheetAllowedDetents: [pickerDetent, 1],
-						sheetCornerRadius: 40,
-						sheetGrabberVisible: true,
-					}}
-				/>
+                {SETTINGS_SCREENS.map((screen) => (
+                    <Stack.Screen key={screen.name} name={screen.name}>
+                        <Stack.Header transparent />
+                        <Stack.Screen.BackButton displayMode="minimal" />
+                        <Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
+                    </Stack.Screen>
+                ))}
+                <Stack.Screen name="settings/accounts/index">
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("accounts.title")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen name="settings/accounts/reorder" />
+                <Stack.Screen name="settings/accounts/[accountId]/index" />
+                <Stack.Screen
+                    name="settings/accounts/create"
+                    options={{
+                        presentation: "formSheet",
+                        sheetAllowedDetents: [ACCOUNT_DETENT, 1],
+                        sheetGrabberVisible: true,
+                        title: t("accounts.nav.new"),
+                    }}
+                >
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("accounts.nav.new")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen
+                    name="settings/accounts/[accountId]/edit"
+                    options={{
+                        presentation: "formSheet",
+                        sheetAllowedDetents: [ACCOUNT_DETENT, 1],
+                        sheetGrabberVisible: true,
+                        title: t("accounts.nav.edit"),
+                    }}
+                >
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("accounts.nav.edit")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen name="settings/categories/index">
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("nav.categories")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen name="settings/categories/reorder" />
+                {CATEGORY_SHEETS.map((sheet) => (
+                    <Stack.Screen
+                        key={sheet.name}
+                        name={sheet.name}
+                        options={{
+                            presentation: "formSheet",
+                            sheetAllowedDetents: [sheet.detent, 1],
+                            sheetGrabberVisible: true,
+                            title: t(sheet.titleKey),
+                        }}
+                    >
+                        <Stack.Header transparent />
+                        <Stack.Screen.BackButton displayMode="minimal" />
+                        <Stack.Screen.Title>{t(sheet.titleKey)}</Stack.Screen.Title>
+                    </Stack.Screen>
+                ))}
+                <Stack.Screen
+                    name="settings/category-symbol"
+                    options={{
+                        headerShown: false,
+                        presentation: "formSheet",
+                        sheetAllowedDetents: [pickerDetent, 1],
+                        sheetCornerRadius: 40,
+                        sheetGrabberVisible: true,
+                    }}
+                />
 
-				<Stack.Screen
-					name="transactions/transfers/create"
-					options={{
-						presentation: "formSheet",
-						sheetAllowedDetents: [TRANSFER_DETENT, 1],
-						sheetGrabberVisible: true,
-					}}
-				>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "modal" }}>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen name="transactions/create" options={{ presentation: "modal" }}>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen name="transactions/[id]" options={{ presentation: "modal" }}>
-					<Stack.Header transparent />
-					<Stack.Screen.BackButton displayMode="minimal" />
-					<Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
-				</Stack.Screen>
-				<Stack.Screen
-					name="transactions/identity"
-					options={{
-						headerShown: false,
-						presentation: "formSheet",
-						sheetAllowedDetents: [pickerDetent, 1],
-						sheetCornerRadius: 40,
-						sheetGrabberVisible: true,
-						sheetLargestUndimmedDetentIndex: 0,
-					}}
-				/>
-			</Stack.Protected>
-		</Stack>
-	);
+                <Stack.Screen
+                    name="transactions/transfers/create"
+                    options={{
+                        presentation: "formSheet",
+                        sheetAllowedDetents: [TRANSFER_DETENT, 1],
+                        sheetGrabberVisible: true,
+                    }}
+                >
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "modal" }}>
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen name="transactions/create" options={{ presentation: "modal" }}>
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen name="transactions/[id]" options={{ presentation: "modal" }}>
+                    <Stack.Header transparent />
+                    <Stack.Screen.BackButton displayMode="minimal" />
+                    <Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
+                </Stack.Screen>
+                <Stack.Screen
+                    name="transactions/identity"
+                    options={{
+                        headerShown: false,
+                        presentation: "formSheet",
+                        sheetAllowedDetents: [pickerDetent, 1],
+                        sheetCornerRadius: 40,
+                        sheetGrabberVisible: true,
+                        sheetLargestUndimmedDetentIndex: 0,
+                    }}
+                />
+            </Stack.Protected>
+        </Stack>
+    );
 }
 
 export default function RootLayout() {
-	const [fontsLoaded] = useFonts({
-		GeistMono_400Regular,
-		GeistMono_500Medium,
-		InstrumentSerif_400Regular,
-	});
+    const [fontsLoaded] = useFonts({
+        GeistMono_400Regular,
+        GeistMono_500Medium,
+        InstrumentSerif_400Regular,
+    });
 
-	return (
-		<SafeAreaProvider>
-			<SafeAreaListener
-				onChange={({ insets }) => {
-					Uniwind.updateInsets(insets);
-				}}
-			>
-				<PanelUIProvider>
-					<LanguageProvider>
-						<CloudRuntimeProvider>
-							<LocalDataProvider>
-								<AppSettingsProvider>
-									<IdentityDraftProvider>
-										<RootNavigator fontsLoaded={fontsLoaded} />
-									</IdentityDraftProvider>
-								</AppSettingsProvider>
-							</LocalDataProvider>
-						</CloudRuntimeProvider>
-					</LanguageProvider>
-				</PanelUIProvider>
-			</SafeAreaListener>
-		</SafeAreaProvider>
-	);
+    return (
+        <SafeAreaProvider>
+            <SafeAreaListener
+                onChange={({ insets }) => {
+                    Uniwind.updateInsets(insets);
+                }}
+            >
+                <PanelUIProvider>
+                    <LanguageProvider>
+                        <CloudRuntimeProvider>
+                            <LocalDataProvider>
+                                <AppSettingsProvider>
+                                    <IdentityDraftProvider>
+                                        <RootNavigator fontsLoaded={fontsLoaded} />
+                                    </IdentityDraftProvider>
+                                </AppSettingsProvider>
+                            </LocalDataProvider>
+                        </CloudRuntimeProvider>
+                    </LanguageProvider>
+                </PanelUIProvider>
+            </SafeAreaListener>
+        </SafeAreaProvider>
+    );
 }

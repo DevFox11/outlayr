@@ -3,31 +3,27 @@ import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { NumberFlow } from "number-flow-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
+
 import { useLocalData } from "@/contexts/local-data-context";
 import { useLiveQuery } from "@/data/live-query";
 import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings-core";
 import { appMeta } from "@/db/schema";
 import { currencySymbol, numberLocale } from "@/domain/money";
-import {
-	applyNumpadKey,
-	type NumpadKey,
-	type NumpadMode,
-	type NumpadTileKey,
-	numpadMode,
-	numpadToNumber,
-} from "@/domain/numpad";
+import { applyNumpadKey, numpadMode, numpadToNumber } from "@/domain/numpad";
+import type { NumpadKey, NumpadMode, NumpadTileKey } from "@/domain/numpad";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
+
 import { Text } from "./text";
 
 const GLASS = isLiquidGlassAvailable();
 
 const ROWS: NumpadTileKey[][] = [
-	["1", "2", "3"],
-	["4", "5", "6"],
-	["7", "8", "9"],
-	[".", "0", "back"],
+    ["1", "2", "3"],
+    ["4", "5", "6"],
+    ["7", "8", "9"],
+    [".", "0", "back"],
 ];
 
 /**
@@ -36,134 +32,134 @@ const ROWS: NumpadTileKey[][] = [
  * setting resolves to its default, which is the mode the keypad has always had.
  */
 function useNumpadMode(): NumpadMode {
-	const { db } = useLocalData();
-	const rows = useLiveQuery(
-		appMeta,
-		() =>
-			db === null
-				? { all: (): { value: string | null }[] => [] }
-				: db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, "numberEntryType")),
-		[db]
-	);
-	return numpadMode(parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS.numberEntryType));
+    const { db } = useLocalData();
+    const rows = useLiveQuery(
+        appMeta,
+        () =>
+            db === null
+                ? { all: (): { value: string | null }[] => [] }
+                : db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, "numberEntryType")),
+        [db]
+    );
+    return numpadMode(parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS.numberEntryType));
 }
 
 interface AmountNumpadProps {
-	code: string;
-	minorUnits: number;
-	onChange: (next: string) => void;
-	/** Off where the caller already shows the figure above the keys. */
-	showDisplay?: boolean;
-	toneClass?: string;
-	value: string;
+    code: string;
+    minorUnits: number;
+    onChange: (next: string) => void;
+    /** Off where the caller already shows the figure above the keys. */
+    showDisplay?: boolean;
+    toneClass?: string;
+    value: string;
 }
 
 export function AmountNumpad({ value, minorUnits, code, toneClass, onChange, showDisplay = true }: AmountNumpadProps) {
-	const colors = useColors();
-	const haptics = useHaptics();
-	const t = useTranslation();
-	const { language } = useLanguage();
-	const mode = useNumpadMode();
-	const locale = numberLocale(language);
-	const symbol = currencySymbol(code);
-	const amountColor = toneClass?.includes("income") ? colors.income : colors.foreground;
+    const colors = useColors();
+    const haptics = useHaptics();
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const mode = useNumpadMode();
+    const locale = numberLocale(language);
+    const symbol = currencySymbol(code);
+    const amountColor = toneClass?.includes("income") ? colors.income : colors.foreground;
 
-	const press = (key: NumpadKey) => {
-		// A long press has no tell of its own beyond the amount resetting, and
-		// `keyTap` is silent below the excessive haptics level.
-		haptics(key === "clear" ? "medium" : "keyTap");
-		onChange(applyNumpadKey(value, key, minorUnits, mode));
-	};
+    const press = (key: NumpadKey) => {
+        // A long press has no tell of its own beyond the amount resetting, and
+        // `keyTap` is silent below the excessive haptics level.
+        haptics(key === "clear" ? "medium" : "keyTap");
+        onChange(applyNumpadKey(value, key, minorUnits, mode));
+    };
 
-	return (
-		// No horizontal inset of its own: the caller owns it, so the keys line up
-		// with whatever sits under them — the sheet's Done button at `px-4`, the
-		// first-run CTA at `px-6`.
-		<View>
-			{showDisplay ? (
-				<>
-					<View className="items-center pt-2">
-						<Text className="font-sans text-body text-muted">{t("transaction.field.amount")}</Text>
-					</View>
-					<View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
-						<NumberFlow
-							format={{
-								maximumFractionDigits: minorUnits,
-								minimumFractionDigits: minorUnits,
-								useGrouping: true,
-							}}
-							locales={locale.tag}
-							prefix={locale.placement === "prefix" ? `${symbol} ` : undefined}
-							style={{
-								color: amountColor,
-								fontFamily: "SFProRounded-Medium",
-								fontSize: 40,
-							}}
-							suffix={locale.placement === "suffix" ? ` ${symbol}` : undefined}
-							value={numpadToNumber(value)}
-						/>
-					</View>
-				</>
-			) : null}
-			<View className="gap-[9px]">
-				{ROWS.map((row) => (
-					<View className="flex-row gap-[9px]" key={row.join()}>
-						{row.map((key) => (
-							<NumpadKeyTile
-								fg={colors.foreground}
-								glyph={key === "." ? locale.decimal : key}
-								hidden={key === "." && (minorUnits === 0 || mode === "preDotted")}
-								key={key}
-								label={key}
-								onLongPress={key === "back" ? () => press("clear") : undefined}
-								onPress={() => press(key)}
-							/>
-						))}
-					</View>
-				))}
-			</View>
-		</View>
-	);
+    return (
+        // No horizontal inset of its own: the caller owns it, so the keys line up
+        // with whatever sits under them — the sheet's Done button at `px-4`, the
+        // first-run CTA at `px-6`.
+        <View>
+            {showDisplay ? (
+                <>
+                    <View className="items-center pt-2">
+                        <Text className="text-body text-muted font-sans">{t("transaction.field.amount")}</Text>
+                    </View>
+                    <View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
+                        <NumberFlow
+                            format={{
+                                maximumFractionDigits: minorUnits,
+                                minimumFractionDigits: minorUnits,
+                                useGrouping: true,
+                            }}
+                            locales={locale.tag}
+                            prefix={locale.placement === "prefix" ? `${symbol} ` : undefined}
+                            style={{
+                                color: amountColor,
+                                fontFamily: "SFProRounded-Medium",
+                                fontSize: 40,
+                            }}
+                            suffix={locale.placement === "suffix" ? ` ${symbol}` : undefined}
+                            value={numpadToNumber(value)}
+                        />
+                    </View>
+                </>
+            ) : null}
+            <View className="gap-[9px]">
+                {ROWS.map((row) => (
+                    <View className="flex-row gap-[9px]" key={row.join(",")}>
+                        {row.map((key) => (
+                            <NumpadKeyTile
+                                fg={colors.foreground}
+                                glyph={key === "." ? locale.decimal : key}
+                                hidden={key === "." && (minorUnits === 0 || mode === "preDotted")}
+                                key={key}
+                                label={key}
+                                onLongPress={key === "back" ? () => press("clear") : undefined}
+                                onPress={() => press(key)}
+                            />
+                        ))}
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
 }
 
 function NumpadKeyTile({
-	label,
-	glyph,
-	hidden,
-	fg,
-	onPress,
-	onLongPress,
+    label,
+    glyph,
+    hidden,
+    fg,
+    onPress,
+    onLongPress,
 }: {
-	label: NumpadTileKey;
-	/** The separator key draws the active language's mark, not the canonical ".". */
-	glyph: string;
-	hidden: boolean;
-	fg: string;
-	onPress: () => void;
-	onLongPress?: () => void;
+    label: NumpadTileKey;
+    /** The separator key draws the active language's mark, not the canonical ".". */
+    glyph: string;
+    hidden: boolean;
+    fg: string;
+    onPress: () => void;
+    onLongPress?: () => void;
 }) {
-	const t = useTranslation();
-	if (hidden) {
-		return <View className="h-16 flex-1" />;
-	}
-	return (
-		<Pressable
-			accessibilityLabel={label === "back" ? t("transaction.numpad.delete") : glyph}
-			accessibilityRole="button"
-			className="h-16 flex-1 items-center justify-center overflow-hidden rounded-2xl active:scale-[0.96] active:opacity-65"
-			onLongPress={onLongPress}
-			onPress={onPress}
-		>
-			{GLASS ? (
-				<GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
-			) : (
-				<View className="absolute inset-0 bg-surface" />
-			)}
-			{label === "back" ? (
-				<SymbolView name="delete.left" size={26} tintColor={fg} type="monochrome" weight="medium" />
-			) : (
-				<Text className="font-sans-medium text-[30px] text-foreground">{glyph}</Text>
-			)}
-		</Pressable>
-	);
+    const t = useTranslation();
+    if (hidden) {
+        return <View className="h-16 flex-1" />;
+    }
+    return (
+        <Pressable
+            accessibilityLabel={label === "back" ? t("transaction.numpad.delete") : glyph}
+            accessibilityRole="button"
+            className="h-16 flex-1 items-center justify-center overflow-hidden rounded-2xl active:scale-[0.96] active:opacity-65"
+            onLongPress={onLongPress}
+            onPress={onPress}
+        >
+            {GLASS ? (
+                <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+            ) : (
+                <View className="bg-surface absolute inset-0" />
+            )}
+            {label === "back" ? (
+                <SymbolView name="delete.left" size={26} tintColor={fg} type="monochrome" weight="medium" />
+            ) : (
+                <Text className="font-sans-medium text-foreground text-[30px]">{glyph}</Text>
+            )}
+        </Pressable>
+    );
 }

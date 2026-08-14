@@ -9,81 +9,81 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 
 afterEach(() => {
-	vi.unstubAllEnvs();
+    vi.unstubAllEnvs();
 });
 
 describe("groundedSpend", () => {
-	test("record persists a row that monthlyTotal can sum", async () => {
-		const t = convexTest(schema, modules);
-		const now = Date.UTC(2026, 6, 15);
+    test("record persists a row that monthlyTotal can sum", async () => {
+        const t = convexTest(schema, modules);
+        const now = Date.UTC(2026, 6, 15);
 
-		await t.mutation(internal.groundedSpend.record, {
-			actualMicros: 6500,
-			at: now,
-			chargedMicros: 20_000,
-			inputTokens: 1000,
-			outputTokens: 100,
-			published: true,
-			searchCalls: 1,
-		});
+        await t.mutation(internal.groundedSpend.record, {
+            actualMicros: 6500,
+            at: now,
+            chargedMicros: 20_000,
+            inputTokens: 1000,
+            outputTokens: 100,
+            published: true,
+            searchCalls: 1,
+        });
 
-		const result = await t.query(internal.groundedSpend.monthlyTotal, {
-			at: now,
-		});
+        const result = await t.query(internal.groundedSpend.monthlyTotal, {
+            at: now,
+        });
 
-		expect(result.totalMicros).toBe(6500);
-	});
+        expect(result.totalMicros).toBe(6500);
+    });
 
-	test("monthlyTotal sums only rows within the same calendar month", async () => {
-		const t = convexTest(schema, modules);
-		const lastMonth = Date.UTC(2026, 5, 20);
-		const thisMonth = Date.UTC(2026, 6, 3);
-		const laterThisMonth = Date.UTC(2026, 6, 20);
+    test("monthlyTotal sums only rows within the same calendar month", async () => {
+        const t = convexTest(schema, modules);
+        const lastMonth = Date.UTC(2026, 5, 20);
+        const thisMonth = Date.UTC(2026, 6, 3);
+        const laterThisMonth = Date.UTC(2026, 6, 20);
 
-		await t.mutation(internal.groundedSpend.record, {
-			actualMicros: 999_999,
-			at: lastMonth,
-			chargedMicros: 20_000,
-			inputTokens: 1,
-			outputTokens: 1,
-			published: false,
-			searchCalls: 1,
-		});
-		await t.mutation(internal.groundedSpend.record, {
-			actualMicros: 4000,
-			at: thisMonth,
-			chargedMicros: 20_000,
-			inputTokens: 500,
-			outputTokens: 50,
-			published: true,
-			searchCalls: 1,
-		});
+        await t.mutation(internal.groundedSpend.record, {
+            actualMicros: 999_999,
+            at: lastMonth,
+            chargedMicros: 20_000,
+            inputTokens: 1,
+            outputTokens: 1,
+            published: false,
+            searchCalls: 1,
+        });
+        await t.mutation(internal.groundedSpend.record, {
+            actualMicros: 4000,
+            at: thisMonth,
+            chargedMicros: 20_000,
+            inputTokens: 500,
+            outputTokens: 50,
+            published: true,
+            searchCalls: 1,
+        });
 
-		const result = await t.query(internal.groundedSpend.monthlyTotal, {
-			at: laterThisMonth,
-		});
+        const result = await t.query(internal.groundedSpend.monthlyTotal, {
+            at: laterThisMonth,
+        });
 
-		expect(result.totalMicros).toBe(4000);
-	});
+        expect(result.totalMicros).toBe(4000);
+    });
 
-	test("monthlyTotal reports the $25 ceiling constant by default", async () => {
-		const t = convexTest(schema, modules);
+    test("monthlyTotal reports the $25 ceiling constant by default", async () => {
+        const t = convexTest(schema, modules);
 
-		const result = await t.query(internal.groundedSpend.monthlyTotal, {
-			at: Date.UTC(2026, 6, 1),
-		});
+        const result = await t.query(internal.groundedSpend.monthlyTotal, {
+            at: Date.UTC(2026, 6, 1),
+        });
 
-		expect(result.ceilingMicros).toBe(25_000_000);
-	});
+        expect(result.ceilingMicros).toBe(25_000_000);
+    });
 
-	test("monthlyTotal reflects a live env-var ceiling override", async () => {
-		vi.stubEnv("GROUNDED_BUDGET_MICROS", "1000");
-		const t = convexTest(schema, modules);
+    test("monthlyTotal reflects a live env-var ceiling override", async () => {
+        vi.stubEnv("GROUNDED_BUDGET_MICROS", "1000");
+        const t = convexTest(schema, modules);
 
-		const result = await t.query(internal.groundedSpend.monthlyTotal, {
-			at: Date.UTC(2026, 6, 1),
-		});
+        const result = await t.query(internal.groundedSpend.monthlyTotal, {
+            at: Date.UTC(2026, 6, 1),
+        });
 
-		expect(result.ceilingMicros).toBe(1000);
-	});
+        expect(result.ceilingMicros).toBe(1000);
+    });
 });

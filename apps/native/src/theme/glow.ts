@@ -9,15 +9,15 @@
 import { requireNativeModule } from "expo";
 
 interface GlowNativeModule {
-	fromEmoji: (emoji: string) => string[];
-	fromImage: (uri: string) => Promise<string[]>;
+    fromEmoji: (emoji: string) => string[];
+    fromImage: (uri: string) => Promise<string[]>;
 }
 
 let native: GlowNativeModule | null = null;
 try {
-	native = requireNativeModule<GlowNativeModule>("Glow");
+    native = requireNativeModule<GlowNativeModule>("Glow");
 } catch {
-	native = null;
+    native = null;
 }
 
 const emojiCache = new Map<string, string[]>();
@@ -29,20 +29,20 @@ const emojiCache = new Map<string, string[]>();
  * Returns `[]` if the native module is unavailable.
  */
 export function glowFromEmoji(emoji: string): string[] {
-	const hit = emojiCache.get(emoji);
-	if (hit) {
-		return hit;
-	}
-	let result: string[] = [];
-	if (native) {
-		try {
-			result = native.fromEmoji(emoji);
-		} catch {
-			result = [];
-		}
-	}
-	emojiCache.set(emoji, result);
-	return result;
+    const hit = emojiCache.get(emoji);
+    if (hit) {
+        return hit;
+    }
+    let result: string[] = [];
+    if (native) {
+        try {
+            result = native.fromEmoji(emoji);
+        } catch {
+            result = [];
+        }
+    }
+    emojiCache.set(emoji, result);
+    return result;
 }
 
 /**
@@ -53,12 +53,12 @@ export function glowFromEmoji(emoji: string): string[] {
  * if the native module is unavailable or the image can't be read.
  */
 export async function glowFromImage(uri: string): Promise<string[]> {
-	if (!native) {
-		return [];
-	}
-	try {
-		return await native.fromImage(uri);
-	} catch {
-		return [];
-	}
+    if (!native) {
+        return [];
+    }
+    try {
+        return await native.fromImage(uri);
+    } catch {
+        return [];
+    }
 }

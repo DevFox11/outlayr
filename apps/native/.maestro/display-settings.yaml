@@ -6,7 +6,7 @@ name: Display Cents reaches every amount on the Log
 - tapOn: "Settings"
 - assertVisible: "Display Cents"
 - tapOn:
-    id: "toggle-display-cents"
+      id: "toggle-display-cents"
 
 - tapOn: "Log"
 - assertNotVisible: ".*\\$20\\.00.*"
@@ -14,7 +14,7 @@ name: Display Cents reaches every amount on the Log
 
 - tapOn: "Settings"
 - tapOn:
-    id: "toggle-display-cents"
+      id: "toggle-display-cents"
 
 - tapOn: "Log"
 - assertVisible: ".*\\$20\\.00.*"

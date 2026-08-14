@@ -9,12 +9,12 @@ export type LocalLedger = "empty" | "populated";
 export type RemoteLedger = "empty" | "populated" | "unknown";
 
 export type AdoptionPlan =
-	| "fresh"
-	| "adopt"
-	| "replace"
-	| "ask"
-	/** Nothing is decidable yet; leave both sides exactly as they are. */
-	| "defer";
+    | "fresh"
+    | "adopt"
+    | "replace"
+    | "ask"
+    /** Nothing is decidable yet; leave both sides exactly as they are. */
+    | "defer";
 
 /** Ordered as the screen offers them: the non-destructive one first. */
 export const ADOPTION_CHOICES = ["merge", "keep-local", "keep-account"] as const;
@@ -27,12 +27,12 @@ export type AdoptionChoice = (typeof ADOPTION_CHOICES)[number];
  * was untouched" resolve to the same work.
  */
 export interface AdoptionActions {
-	/** Queue every local row so the account receives it. */
-	pushLocal: boolean;
-	/** Tombstone the account's rows so this device's ledger is the survivor. */
-	wipeAccount: boolean;
-	/** Discard the local replica before reading the account's log from seq 0. */
-	wipeLocal: boolean;
+    /** Queue every local row so the account receives it. */
+    pushLocal: boolean;
+    /** Tombstone the account's rows so this device's ledger is the survivor. */
+    wipeAccount: boolean;
+    /** Discard the local replica before reading the account's log from seq 0. */
+    wipeLocal: boolean;
 }
 
 /**
@@ -41,50 +41,57 @@ export interface AdoptionActions {
  * while the other three have exactly one non-destructive answer each.
  */
 export function adoptionPlan(local: LocalLedger, remote: RemoteLedger): AdoptionPlan {
-	if (remote === "unknown") {
-		return "defer";
-	}
-	if (local === "empty") {
-		return remote === "empty" ? "fresh" : "replace";
-	}
-	return remote === "empty" ? "adopt" : "ask";
+    if (remote === "unknown") {
+        return "defer";
+    }
+    if (local === "empty") {
+        return remote === "empty" ? "fresh" : "replace";
+    }
+    return remote === "empty" ? "adopt" : "ask";
 }
 
 /** `null` where the plan resolves to no work of its own — see `choiceActions`. */
 export function adoptionActions(plan: AdoptionPlan): AdoptionActions | null {
-	switch (plan) {
-		case "fresh":
-			return { pushLocal: false, wipeAccount: false, wipeLocal: false };
-		case "adopt":
-			return { pushLocal: true, wipeAccount: false, wipeLocal: false };
-		case "replace":
-			return { pushLocal: false, wipeAccount: false, wipeLocal: true };
-		case "ask":
-		case "defer":
-			return null;
-		default: {
-			const unhandled: never = plan;
-			throw new Error(`Unhandled adoption plan: ${String(unhandled)}`);
-		}
-	}
+    switch (plan) {
+        case "fresh": {
+            return { pushLocal: false, wipeAccount: false, wipeLocal: false };
+        }
+        case "adopt": {
+            return { pushLocal: true, wipeAccount: false, wipeLocal: false };
+        }
+        case "replace": {
+            return { pushLocal: false, wipeAccount: false, wipeLocal: true };
+        }
+        case "ask":
+        case "defer": {
+            return null;
+        }
+        default: {
+            const unhandled: never = plan;
+            throw new Error(`Unhandled adoption plan: ${String(unhandled)}`);
+        }
+    }
 }
 
 export function choiceActions(choice: AdoptionChoice): AdoptionActions {
-	switch (choice) {
-		case "merge":
-			return { pushLocal: true, wipeAccount: false, wipeLocal: false };
-		case "keep-local":
-			return { pushLocal: true, wipeAccount: true, wipeLocal: false };
-		case "keep-account":
-			return { pushLocal: false, wipeAccount: false, wipeLocal: true };
-		default: {
-			const unhandled: never = choice;
-			throw new Error(`Unhandled adoption choice: ${String(unhandled)}`);
-		}
-	}
+    switch (choice) {
+        case "merge": {
+            return { pushLocal: true, wipeAccount: false, wipeLocal: false };
+        }
+        case "keep-local": {
+            return { pushLocal: true, wipeAccount: true, wipeLocal: false };
+        }
+        case "keep-account": {
+            return { pushLocal: false, wipeAccount: false, wipeLocal: true };
+        }
+        default: {
+            const unhandled: never = choice;
+            throw new Error(`Unhandled adoption choice: ${String(unhandled)}`);
+        }
+    }
 }
 
 export function isDestructiveChoice(choice: AdoptionChoice): boolean {
-	const actions = choiceActions(choice);
-	return actions.wipeLocal || actions.wipeAccount;
+    const actions = choiceActions(choice);
+    return actions.wipeLocal || actions.wipeAccount;
 }

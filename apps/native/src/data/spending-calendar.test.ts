@@ -1,27 +1,29 @@
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+
 import { transactions } from "@/db/schema";
 import { buildRateTable } from "@/domain/valuation";
+
 import { spendingCalendarQuery, useSpendingCalendar } from "./spending-calendar";
 import { useValuation } from "./use-valuation";
 
 jest.mock("./live-query", () => ({
-	useLiveQuery: (_table: unknown, build: () => { all: () => unknown[] }) => build().all(),
+    useLiveQuery: (_table: unknown, build: () => { all: () => unknown[] }) => build().all(),
 }));
 jest.mock("./use-valuation", () => ({ useValuation: jest.fn() }));
 
 type TestDb = ReturnType<typeof drizzle>;
 
 const at = (year: number, month: number, day: number, hour = 0, minute = 0, second = 0): Date =>
-	new Date(year, month - 1, day, hour, minute, second);
+    new Date(year, month - 1, day, hour, minute, second);
 
 const NOW = at(2026, 8, 10, 12);
 const EARLIEST = at(2026, 2, 10);
 
 function makeDb(): TestDb {
-	const sqlite = new BetterSqlite3(":memory:");
-	sqlite.exec(`
+    const sqlite = new BetterSqlite3(":memory:");
+    sqlite.exec(`
 		CREATE TABLE transactions (
 			id text PRIMARY KEY NOT NULL,
 			accountId text,
@@ -54,130 +56,130 @@ function makeDb(): TestDb {
 			deletedAt integer
 		);
 	`);
-	return drizzle(sqlite);
+    return drizzle(sqlite);
 }
 
 async function insert(
-	db: TestDb,
-	id: string,
-	date: Date,
-	overrides: Partial<typeof transactions.$inferInsert> = {}
+    db: TestDb,
+    id: string,
+    date: Date,
+    overrides: Partial<typeof transactions.$inferInsert> = {}
 ): Promise<void> {
-	await db.insert(transactions).values({
-		amount: 1,
-		currency: "USD",
-		date,
-		day: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
-		id,
-		income: false,
-		month: new Date(date.getFullYear(), date.getMonth(), 1),
-		updatedAt: NOW,
-		...overrides,
-	});
+    await db.insert(transactions).values({
+        amount: 1,
+        currency: "USD",
+        date,
+        day: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+        id,
+        income: false,
+        month: new Date(date.getFullYear(), date.getMonth(), 1),
+        updatedAt: NOW,
+        ...overrides,
+    });
 }
 
 describe("spendingCalendarQuery", () => {
-	it("returns grouped expense cells bounded to exactly 182 local calendar days", async () => {
-		const db = makeDb();
-		await insert(db, "earliest", EARLIEST, { amount: 10, amountUsd: 10 });
-		await insert(db, "same-day", at(2026, 2, 10, 18), { amount: 5, amountUsd: 5 });
-		await insert(db, "before", at(2026, 2, 9, 23, 59, 59), { amount: 99, amountUsd: 99 });
-		await insert(db, "income", at(2026, 8, 9, 12), {
-			amount: 100,
-			amountUsd: 100,
-			income: true,
-		});
-		await insert(db, "deleted", at(2026, 8, 9, 12), {
-			amount: 200,
-			amountUsd: 200,
-			deletedAt: NOW,
-		});
-		await insert(db, "future", at(2026, 8, 10, 12, 0, 1), { amount: 300, amountUsd: 300 });
+    it("returns grouped expense cells bounded to exactly 182 local calendar days", async () => {
+        const db = makeDb();
+        await insert(db, "earliest", EARLIEST, { amount: 10, amountUsd: 10 });
+        await insert(db, "same-day", at(2026, 2, 10, 18), { amount: 5, amountUsd: 5 });
+        await insert(db, "before", at(2026, 2, 9, 23, 59, 59), { amount: 99, amountUsd: 99 });
+        await insert(db, "income", at(2026, 8, 9, 12), {
+            amount: 100,
+            amountUsd: 100,
+            income: true,
+        });
+        await insert(db, "deleted", at(2026, 8, 9, 12), {
+            amount: 200,
+            amountUsd: 200,
+            deletedAt: NOW,
+        });
+        await insert(db, "future", at(2026, 8, 10, 12, 0, 1), { amount: 300, amountUsd: 300 });
 
-		const rows = await spendingCalendarQuery(db, NOW);
+        const rows = await spendingCalendarQuery(db, NOW);
 
-		expect(rows.every((candidate) => candidate.date.getTime() === EARLIEST.getTime())).toBe(true);
-		expect(rows.every((candidate) => candidate.currency === "USD" && !candidate.income)).toBe(true);
-		expect(rows.reduce((total, candidate) => total + Number(candidate.amount), 0)).toBe(15);
-		expect(rows.reduce((total, candidate) => total + Number(candidate.amountUsd), 0)).toBe(15);
-	});
+        expect(rows.every((candidate) => candidate.date.getTime() === EARLIEST.getTime())).toBe(true);
+        expect(rows.every((candidate) => candidate.currency === "USD" && !candidate.income)).toBe(true);
+        expect(rows.reduce((total, candidate) => total + Number(candidate.amount), 0)).toBe(15);
+        expect(rows.reduce((total, candidate) => total + Number(candidate.amountUsd), 0)).toBe(15);
+    });
 
-	it("keeps UTC valuation days, currencies, and missing canonical values in separate groups", async () => {
-		const db = makeDb();
-		const localDay = at(2026, 8, 9);
-		const firstUtcDay = new Date(Date.UTC(2026, 7, 8, 23, 30));
-		const secondUtcDay = new Date(Date.UTC(2026, 7, 9, 0, 30));
+    it("keeps UTC valuation days, currencies, and missing canonical values in separate groups", async () => {
+        const db = makeDb();
+        const localDay = at(2026, 8, 9);
+        const firstUtcDay = new Date(Date.UTC(2026, 7, 8, 23, 30));
+        const secondUtcDay = new Date(Date.UTC(2026, 7, 9, 0, 30));
 
-		await insert(db, "usd-first-day", firstUtcDay, { amount: 10, amountUsd: 10, day: localDay });
-		await insert(db, "usd-second-day", secondUtcDay, { amount: 5, amountUsd: 5, day: localDay });
-		await insert(db, "eur-second-day", secondUtcDay, {
-			amount: 8,
-			amountUsd: 10,
-			currency: "EUR",
-			day: localDay,
-		});
-		await insert(db, "usd-offline", secondUtcDay, { amount: 3, amountUsd: null, day: localDay });
+        await insert(db, "usd-first-day", firstUtcDay, { amount: 10, amountUsd: 10, day: localDay });
+        await insert(db, "usd-second-day", secondUtcDay, { amount: 5, amountUsd: 5, day: localDay });
+        await insert(db, "eur-second-day", secondUtcDay, {
+            amount: 8,
+            amountUsd: 10,
+            currency: "EUR",
+            day: localDay,
+        });
+        await insert(db, "usd-offline", secondUtcDay, { amount: 3, amountUsd: null, day: localDay });
 
-		const rows = await spendingCalendarQuery(db, NOW);
-		const groups = rows
-			.map((candidate) => ({
-				amount: Number(candidate.amount),
-				amountUsd: candidate.amountUsd === null ? null : Number(candidate.amountUsd),
-				currency: candidate.currency,
-				dateKey: candidate.dateKey,
-			}))
-			.sort((left, right) =>
-				`${left.dateKey}|${left.currency}|${left.amountUsd}`.localeCompare(
-					`${right.dateKey}|${right.currency}|${right.amountUsd}`
-				)
-			);
+        const rows = await spendingCalendarQuery(db, NOW);
+        const groups = rows
+            .map((candidate) => ({
+                amount: Number(candidate.amount),
+                amountUsd: candidate.amountUsd === null ? null : Number(candidate.amountUsd),
+                currency: candidate.currency,
+                dateKey: candidate.dateKey,
+            }))
+            .sort((left, right) =>
+                `${left.dateKey}|${left.currency}|${left.amountUsd}`.localeCompare(
+                    `${right.dateKey}|${right.currency}|${right.amountUsd}`
+                )
+            );
 
-		expect(groups).toEqual([
-			{ amount: 10, amountUsd: 10, currency: "USD", dateKey: "2026-08-08" },
-			{ amount: 8, amountUsd: 10, currency: "EUR", dateKey: "2026-08-09" },
-			{ amount: 5, amountUsd: 5, currency: "USD", dateKey: "2026-08-09" },
-			{ amount: 3, amountUsd: null, currency: "USD", dateKey: "2026-08-09" },
-		]);
-	});
+        expect(groups).toEqual([
+            { amount: 10, amountUsd: 10, currency: "USD", dateKey: "2026-08-08" },
+            { amount: 8, amountUsd: 10, currency: "EUR", dateKey: "2026-08-09" },
+            { amount: 5, amountUsd: 5, currency: "USD", dateKey: "2026-08-09" },
+            { amount: 3, amountUsd: null, currency: "USD", dateKey: "2026-08-09" },
+        ]);
+    });
 });
 
 describe("useSpendingCalendar", () => {
-	it("preserves exact and fallback non-USD groups through the adapter", async () => {
-		const db = makeDb();
-		const localDay = at(2026, 8, 9);
-		const valuationInstant = new Date(Date.UTC(2026, 7, 8, 23, 30));
-		await insert(db, "eur-exact", valuationInstant, {
-			amount: 8,
-			amountUsd: 10,
-			currency: "EUR",
-			day: localDay,
-		});
-		await insert(db, "eur-fallback", valuationInstant, {
-			amount: 7,
-			amountUsd: null,
-			currency: "EUR",
-			day: localDay,
-		});
-		await insert(db, "ves-pending-custom", valuationInstant, {
-			amount: 40,
-			amountUsd: null,
-			currency: "VES",
-			day: localDay,
-			exchangeRate: null,
-			exchangeRateType: "custom",
-		});
-		jest.mocked(useValuation).mockReturnValue({
-			displayCurrency: "CAD",
-			rates: buildRateTable([
-				{ date: "2026-08-08", quote: "CAD", rate: 2 },
-				{ date: "2026-08-09", quote: "CAD", rate: 3 },
-			]),
-		});
+    it("preserves exact and fallback non-USD groups through the adapter", async () => {
+        const db = makeDb();
+        const localDay = at(2026, 8, 9);
+        const valuationInstant = new Date(Date.UTC(2026, 7, 8, 23, 30));
+        await insert(db, "eur-exact", valuationInstant, {
+            amount: 8,
+            amountUsd: 10,
+            currency: "EUR",
+            day: localDay,
+        });
+        await insert(db, "eur-fallback", valuationInstant, {
+            amount: 7,
+            amountUsd: null,
+            currency: "EUR",
+            day: localDay,
+        });
+        await insert(db, "ves-pending-custom", valuationInstant, {
+            amount: 40,
+            amountUsd: null,
+            currency: "VES",
+            day: localDay,
+            exchangeRate: null,
+            exchangeRateType: "custom",
+        });
+        jest.mocked(useValuation).mockReturnValue({
+            displayCurrency: "CAD",
+            rates: buildRateTable([
+                { date: "2026-08-08", quote: "CAD", rate: 2 },
+                { date: "2026-08-09", quote: "CAD", rate: 3 },
+            ]),
+        });
 
-		const { result } = await renderHook(() =>
-			useSpendingCalendar(db as unknown as Parameters<typeof useSpendingCalendar>[0], NOW.getTime())
-		);
+        const { result } = await renderHook(() =>
+            useSpendingCalendar(db as unknown as Parameters<typeof useSpendingCalendar>[0], NOW.getTime())
+        );
 
-		expect(result.current).toEqual([{ date: "2026-08-09", exact: false, value: 27 }]);
-	});
+        expect(result.current).toEqual([{ date: "2026-08-09", exact: false, value: 27 }]);
+    });
 });

@@ -1,20 +1,23 @@
 import { act, renderHook } from "@testing-library/react-native";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState } from "react-native";
+import type { AppStateStatus } from "react-native";
 
 jest.mock("expo-localization", () => ({
-	getLocales: jest.fn(),
+    getLocales: jest.fn(),
 }));
 
 import { getLocales } from "expo-localization";
+
 import { useDeviceLanguageTag } from "./device-language";
 
 const mockGetLocales = getLocales as jest.Mock;
 
 /** The hook reads only the first locale's `languageTag`. */
 const mockDeviceLanguageTag = {
-	mockImplementation: (fn: () => string) => mockGetLocales.mockImplementation(() => [{ languageTag: fn() }]),
-	mockReset: () => mockGetLocales.mockReset(),
-	mockReturnValue: (tag: string) => mockGetLocales.mockReturnValue([{ languageTag: tag }]),
+    // oxlint-disable-next-line jest/prefer-mock-return-shorthand -- `mockReturnValue` would call `fn` here at setup, and one caller passes a `fn` that throws to exercise the failure path
+    mockImplementation: (fn: () => string) => mockGetLocales.mockImplementation(() => [{ languageTag: fn() }]),
+    mockReset: () => mockGetLocales.mockReset(),
+    mockReturnValue: (tag: string) => mockGetLocales.mockReturnValue([{ languageTag: tag }]),
 };
 
 const realAddEventListener = AppState.addEventListener;
@@ -24,101 +27,101 @@ const realAddEventListener = AppState.addEventListener;
  * transitions directly, and reports whether each was later removed.
  */
 function watchAppState() {
-	const listeners: ((status: AppStateStatus) => void)[] = [];
-	const remove = jest.fn();
+    const listeners: ((status: AppStateStatus) => void)[] = [];
+    const remove = jest.fn();
 
-	// Assigned rather than spied: `jest.restoreAllMocks` also reverts the
-	// `language-storage` module mock, and restoring spies one at a time still
-	// left a later test running an earlier test's implementation.
-	AppState.addEventListener = ((event: string, listener: unknown) => {
-		if (event === "change") {
-			listeners.push(listener as (status: AppStateStatus) => void);
-		}
-		return { remove };
-	}) as typeof AppState.addEventListener;
+    // Assigned rather than spied: `jest.restoreAllMocks` also reverts the
+    // `language-storage` module mock, and restoring spies one at a time still
+    // left a later test running an earlier test's implementation.
+    AppState.addEventListener = ((event: string, listener: unknown) => {
+        if (event === "change") {
+            listeners.push(listener as (status: AppStateStatus) => void);
+        }
+        return { remove };
+    }) as typeof AppState.addEventListener;
 
-	return {
-		async emit(status: AppStateStatus) {
-			await act(async () => {
-				for (const listener of listeners) {
-					listener(status);
-				}
-			});
-		},
-		remove,
-	};
+    return {
+        async emit(status: AppStateStatus) {
+            await act(async () => {
+                for (const listener of listeners) {
+                    listener(status);
+                }
+            });
+        },
+        remove,
+    };
 }
 
 afterEach(() => {
-	AppState.addEventListener = realAddEventListener;
-	mockDeviceLanguageTag.mockReset();
+    AppState.addEventListener = realAddEventListener;
+    mockDeviceLanguageTag.mockReset();
 });
 
 describe("useDeviceLanguageTag", () => {
-	it("returns the tag read at mount", async () => {
-		watchAppState();
-		mockDeviceLanguageTag.mockReturnValue("en-US");
+    it("returns the tag read at mount", async () => {
+        watchAppState();
+        mockDeviceLanguageTag.mockReturnValue("en-US");
 
-		const { result } = await renderHook(() => useDeviceLanguageTag());
+        const { result } = await renderHook(() => useDeviceLanguageTag());
 
-		expect(result.current).toBe("en-US");
-	});
+        expect(result.current).toBe("en-US");
+    });
 
-	it("re-reads the tag when the app returns to the foreground", async () => {
-		const appState = watchAppState();
-		mockDeviceLanguageTag.mockReturnValue("en-US");
-		const { result } = await renderHook(() => useDeviceLanguageTag());
+    it("re-reads the tag when the app returns to the foreground", async () => {
+        const appState = watchAppState();
+        mockDeviceLanguageTag.mockReturnValue("en-US");
+        const { result } = await renderHook(() => useDeviceLanguageTag());
 
-		mockDeviceLanguageTag.mockReturnValue("es-MX");
-		await appState.emit("active");
+        mockDeviceLanguageTag.mockReturnValue("es-MX");
+        await appState.emit("active");
 
-		expect(result.current).toBe("es-MX");
-	});
+        expect(result.current).toBe("es-MX");
+    });
 
-	it("does not re-read while the app is heading to the background", async () => {
-		const appState = watchAppState();
-		mockDeviceLanguageTag.mockReturnValue("en-US");
-		const { result } = await renderHook(() => useDeviceLanguageTag());
+    it("does not re-read while the app is heading to the background", async () => {
+        const appState = watchAppState();
+        mockDeviceLanguageTag.mockReturnValue("en-US");
+        const { result } = await renderHook(() => useDeviceLanguageTag());
 
-		mockDeviceLanguageTag.mockReturnValue("es-MX");
-		await appState.emit("background");
+        mockDeviceLanguageTag.mockReturnValue("es-MX");
+        await appState.emit("background");
 
-		expect(result.current).toBe("en-US");
-	});
+        expect(result.current).toBe("en-US");
+    });
 
-	it("notifies every mounted consumer, not just the first", async () => {
-		const appState = watchAppState();
-		mockDeviceLanguageTag.mockReturnValue("en-US");
-		const first = await renderHook(() => useDeviceLanguageTag());
-		const second = await renderHook(() => useDeviceLanguageTag());
+    it("notifies every mounted consumer, not just the first", async () => {
+        const appState = watchAppState();
+        mockDeviceLanguageTag.mockReturnValue("en-US");
+        const first = await renderHook(() => useDeviceLanguageTag());
+        const second = await renderHook(() => useDeviceLanguageTag());
 
-		mockDeviceLanguageTag.mockReturnValue("es-MX");
-		await appState.emit("active");
+        mockDeviceLanguageTag.mockReturnValue("es-MX");
+        await appState.emit("active");
 
-		expect(first.result.current).toBe("es-MX");
-		expect(second.result.current).toBe("es-MX");
-	});
+        expect(first.result.current).toBe("es-MX");
+        expect(second.result.current).toBe("es-MX");
+    });
 
-	it("returns null rather than throwing when the platform call fails", async () => {
-		watchAppState();
-		mockDeviceLanguageTag.mockImplementation(() => {
-			throw new Error("boom");
-		});
+    it("returns null rather than throwing when the platform call fails", async () => {
+        watchAppState();
+        mockDeviceLanguageTag.mockImplementation(() => {
+            throw new Error("boom");
+        });
 
-		const { result } = await renderHook(() => useDeviceLanguageTag());
+        const { result } = await renderHook(() => useDeviceLanguageTag());
 
-		expect(result.current).toBeNull();
-	});
+        expect(result.current).toBeNull();
+    });
 
-	it("removes its AppState subscription on unmount", async () => {
-		const appState = watchAppState();
-		mockDeviceLanguageTag.mockReturnValue("en-US");
+    it("removes its AppState subscription on unmount", async () => {
+        const appState = watchAppState();
+        mockDeviceLanguageTag.mockReturnValue("en-US");
 
-		const { unmount } = await renderHook(() => useDeviceLanguageTag());
-		await act(async () => {
-			unmount();
-		});
+        const { unmount } = await renderHook(() => useDeviceLanguageTag());
+        await act(async () => {
+            unmount();
+        });
 
-		expect(appState.remove).toHaveBeenCalled();
-	});
+        expect(appState.remove).toHaveBeenCalled();
+    });
 });

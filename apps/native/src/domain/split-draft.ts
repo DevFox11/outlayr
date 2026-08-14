@@ -1,4 +1,5 @@
-import { type Allocation, rebalance, round } from "./split";
+import { rebalance, round } from "./split";
+import type { Allocation } from "./split";
 
 /**
  * The editing moves a split sheet needs, on top of the arithmetic in
@@ -14,7 +15,7 @@ import { type Allocation, rebalance, round } from "./split";
  * from anything else would make opening the sheet an edit.
  */
 export function openDraft(total: number, categoryId: string | null): Allocation[] {
-	return [{ amount: round(total), categoryId }];
+    return [{ amount: round(total), categoryId }];
 }
 
 /**
@@ -26,7 +27,7 @@ export function openDraft(total: number, categoryId: string | null): Allocation[
  * neighbour.
  */
 export function addPart(allocations: readonly Allocation[], categoryId: string | null): Allocation[] {
-	return [...allocations.map((one) => ({ ...one })), { amount: 0, categoryId }];
+    return [...allocations.map((one) => ({ ...one })), { amount: 0, categoryId }];
 }
 
 /**
@@ -36,17 +37,17 @@ export function addPart(allocations: readonly Allocation[], categoryId: string |
  * turns removing a category into two chores.
  */
 export function removePart(allocations: readonly Allocation[], index: number): Allocation[] {
-	if (index < 0 || index >= allocations.length) {
-		return allocations.map((one) => ({ ...one }));
-	}
-	const next = allocations.filter((_, at) => at !== index).map((one) => ({ ...one }));
-	const freed = allocations[index].amount;
-	if (next.length === 0) {
-		return next;
-	}
-	const last = next.length - 1;
-	next[last] = { ...next[last], amount: round(next[last].amount + freed) };
-	return next;
+    if (index < 0 || index >= allocations.length) {
+        return allocations.map((one) => ({ ...one }));
+    }
+    const next = allocations.filter((_, at) => at !== index).map((one) => ({ ...one }));
+    const freed = allocations[index].amount;
+    if (next.length === 0) {
+        return next;
+    }
+    const last = next.length - 1;
+    next[last] = { ...next[last], amount: round(next[last].amount + freed) };
+    return next;
 }
 
 /**
@@ -61,21 +62,21 @@ export function removePart(allocations: readonly Allocation[], index: number): A
  * part is merely confusing.
  */
 export function setPartAmount(
-	total: number,
-	allocations: readonly Allocation[],
-	index: number,
-	amount: number
+    total: number,
+    allocations: readonly Allocation[],
+    index: number,
+    amount: number
 ): Allocation[] {
-	return rebalance(total, allocations, index, amount).map((one) => (one.amount < 0 ? { ...one, amount: 0 } : one));
+    return rebalance(total, allocations, index, amount).map((one) => (one.amount < 0 ? { ...one, amount: 0 } : one));
 }
 
 /** Sets one part's category, leaving every amount alone. */
 export function setPartCategory(
-	allocations: readonly Allocation[],
-	index: number,
-	categoryId: string | null
+    allocations: readonly Allocation[],
+    index: number,
+    categoryId: string | null
 ): Allocation[] {
-	return allocations.map((one, at) => (at === index ? { ...one, categoryId } : { ...one }));
+    return allocations.map((one, at) => (at === index ? { ...one, categoryId } : { ...one }));
 }
 
 /**
@@ -86,5 +87,5 @@ export function setPartCategory(
  * `allocationsFor` returning the implicit whole rather than an equivalent row.
  */
 export function isRealSplit(allocations: readonly Allocation[]): boolean {
-	return allocations.length > 1;
+    return allocations.length > 1;
 }

@@ -1,49 +1,50 @@
 import type { TranslationKey } from "@/i18n/catalog";
+
 export interface AppIconChoice {
-	detail: TranslationKey;
-	label: TranslationKey;
-	/**
-	 * The alternate's name in the asset catalogue, or `null` for the primary.
-	 * iOS reports and accepts `null` for whichever icon the build ships as
-	 * primary, so the Default row cannot name one — Debug and Release ship
-	 * different primaries.
-	 */
-	name: string | null;
-	/** Picks the preview PNG in `assets/images/app-icon-previews/`. */
-	slug: string;
+    detail: TranslationKey;
+    label: TranslationKey;
+    /**
+     * The alternate's name in the asset catalogue, or `null` for the primary.
+     * iOS reports and accepts `null` for whichever icon the build ships as
+     * primary, so the Default row cannot name one — Debug and Release ship
+     * different primaries.
+     */
+    name: string | null;
+    /** Picks the preview PNG in `assets/images/app-icon-previews/`. */
+    slug: string;
 }
 
 export const APP_ICONS = [
-	{
-		detail: "appIcon.default.detail",
-		label: "appIcon.default.label",
-		name: null,
-		slug: "default",
-	},
-	{
-		detail: "appIcon.ink.detail",
-		label: "appIcon.ink.label",
-		name: "OutlayrInk",
-		slug: "ink",
-	},
-	{
-		detail: "appIcon.hairline.detail",
-		label: "appIcon.hairline.label",
-		name: "OutlayrHairline",
-		slug: "hairline",
-	},
-	{
-		detail: "appIcon.mono.detail",
-		label: "appIcon.mono.label",
-		name: "OutlayrMono",
-		slug: "mono",
-	},
-	{
-		detail: "appIcon.emboss.detail",
-		label: "appIcon.emboss.label",
-		name: "OutlayrEmboss",
-		slug: "emboss",
-	},
+    {
+        detail: "appIcon.default.detail",
+        label: "appIcon.default.label",
+        name: null,
+        slug: "default",
+    },
+    {
+        detail: "appIcon.ink.detail",
+        label: "appIcon.ink.label",
+        name: "OutlayrInk",
+        slug: "ink",
+    },
+    {
+        detail: "appIcon.hairline.detail",
+        label: "appIcon.hairline.label",
+        name: "OutlayrHairline",
+        slug: "hairline",
+    },
+    {
+        detail: "appIcon.mono.detail",
+        label: "appIcon.mono.label",
+        name: "OutlayrMono",
+        slug: "mono",
+    },
+    {
+        detail: "appIcon.emboss.detail",
+        label: "appIcon.emboss.label",
+        name: "OutlayrEmboss",
+        slug: "emboss",
+    },
 ] as const satisfies readonly AppIconChoice[];
 
 /**
@@ -62,15 +63,15 @@ type AppIconName = NonNullable<(typeof APP_ICONS)[number]["name"]>;
 
 /** Read by `app.config.ts` to copy the bundles in and declare them to actool. */
 export const ALTERNATE_ICON_NAMES: readonly string[] = APP_ICONS.map((icon) => icon.name).filter(
-	(name): name is AppIconName => name !== null
+    (name): name is AppIconName => name !== null
 );
 
 export function appIconChoice(active: string | null): AppIconChoice {
-	return APP_ICONS.find((icon) => icon.name === active) ?? APP_ICONS[0];
+    return APP_ICONS.find((icon) => icon.name === active) ?? APP_ICONS[0];
 }
 
 export function appIconLabel(active: string | null): TranslationKey {
-	return appIconChoice(active).label;
+    return appIconChoice(active).label;
 }
 
 /**
@@ -89,23 +90,23 @@ export const RELEASE_PRIMARY_ICON = "Outlayr";
  * build made before it was carried.
  */
 export function defaultRowDetail(primary: string | null): TranslationKey {
-	return primary === RELEASE_PRIMARY_ICON ? "appIcon.default.detail" : "appIcon.default.detailDev";
+    return primary === RELEASE_PRIMARY_ICON ? "appIcon.default.detail" : "appIcon.default.detailDev";
 }
 
 export interface AppIconState {
-	active: string | null;
-	/**
-	 * The change still in flight, boxed rather than kept as a bare name so that a
-	 * request for the primary — whose name is `null` — is not read as no request.
-	 */
-	pending: { name: string | null } | null;
+    active: string | null;
+    /**
+     * The change still in flight, boxed rather than kept as a bare name so that a
+     * request for the primary — whose name is `null` — is not read as no request.
+     */
+    pending: { name: string | null } | null;
 }
 
 export type AppIconEvent =
-	| { kind: "tap"; name: string | null }
-	| { kind: "resolved"; name: string | null }
-	/** `reported` is what iOS says is on now, read back after the refusal. */
-	| { kind: "rejected"; reported: string | null };
+    | { kind: "tap"; name: string | null }
+    | { kind: "resolved"; name: string | null }
+    /** `reported` is what iOS says is on now, read back after the refusal. */
+    | { kind: "rejected"; reported: string | null };
 
 /**
  * Returns `state` itself when the event changes nothing, so a caller can tell a
@@ -113,24 +114,27 @@ export type AppIconEvent =
  * native call.
  */
 export function appIconTransition(state: AppIconState, event: AppIconEvent): AppIconState {
-	switch (event.kind) {
-		case "tap":
-			// Overlapping setAlternateIconName calls are a documented rejection
-			// source, and whichever settled last would win regardless of tap order.
-			return state.pending === null ? { active: event.name, pending: { name: event.name } } : state;
-		case "resolved":
-			// A landing for anything but the outstanding request is stale: it would
-			// otherwise resurrect an icon the user has already moved off.
-			return state.pending !== null && state.pending.name === event.name
-				? { active: event.name, pending: null }
-				: state;
-		case "rejected":
-			// iOS is the only record of which icon is on, so its readback outranks
-			// whatever the optimistic tap assumed.
-			return { active: event.reported, pending: null };
-		default: {
-			const unhandled: never = event;
-			throw new Error(`Unhandled app icon event: ${JSON.stringify(unhandled)}`);
-		}
-	}
+    switch (event.kind) {
+        case "tap": {
+            // Overlapping setAlternateIconName calls are a documented rejection
+            // source, and whichever settled last would win regardless of tap order.
+            return state.pending === null ? { active: event.name, pending: { name: event.name } } : state;
+        }
+        case "resolved": {
+            // A landing for anything but the outstanding request is stale: it would
+            // otherwise resurrect an icon the user has already moved off.
+            return state.pending !== null && state.pending.name === event.name
+                ? { active: event.name, pending: null }
+                : state;
+        }
+        case "rejected": {
+            // iOS is the only record of which icon is on, so its readback outranks
+            // whatever the optimistic tap assumed.
+            return { active: event.reported, pending: null };
+        }
+        default: {
+            const unhandled: never = event;
+            throw new Error(`Unhandled app icon event: ${JSON.stringify(unhandled)}`);
+        }
+    }
 }

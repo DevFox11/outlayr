@@ -1,6 +1,8 @@
 import { useEffect } from "react";
+
 import type { Database } from "@/db/client";
 import { photoFiles } from "@/lib/photo-storage";
+
 import { reconcilePhotos } from "./photo-store-core";
 
 /**
@@ -15,12 +17,12 @@ import { reconcilePhotos } from "./photo-store-core";
  * `useRecurrenceSweep`.
  */
 export function usePhotoReconcile(db: Database | null): void {
-	useEffect(() => {
-		if (db == null) {
-			return;
-		}
-		reconcilePhotos(db, photoFiles, Date.now()).catch((error) => {
-			console.error("Photo reconcile failed", error);
-		});
-	}, [db]);
+    useEffect(() => {
+        if (db == null) {
+            return;
+        }
+        reconcilePhotos(db, photoFiles, Date.now()).catch((error) => {
+            console.error("Photo reconcile failed", error);
+        });
+    }, [db]);
 }

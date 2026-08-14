@@ -22,7 +22,7 @@ export type NumpadMode = "preDotted" | "explicitSeparator";
 
 /** Reads Swift's `numberEntryType`: 1 is the pre-dotted keypad, 2 the separator one. */
 export function numpadMode(numberEntryType: number): NumpadMode {
-	return numberEntryType === 1 ? "preDotted" : "explicitSeparator";
+    return numberEntryType === 1 ? "preDotted" : "explicitSeparator";
 }
 
 /**
@@ -32,80 +32,80 @@ export function numpadMode(numberEntryType: number): NumpadMode {
  * digits it happens to display.
  */
 function toMinorDigits(current: string, minorUnits: number): string {
-	const [integer = "", fraction = ""] = current.split(".");
-	return `${integer}${fraction.slice(0, minorUnits).padEnd(minorUnits, "0")}`;
+    const [integer = "", fraction = ""] = current.split(".");
+    return `${integer}${fraction.slice(0, minorUnits).padEnd(minorUnits, "0")}`;
 }
 
 /** Inverse of `toMinorDigits`. The empty string for digits that read as zero. */
 function fromMinorDigits(digits: string, minorUnits: number): string {
-	const trimmed = digits.replace(LEADING_ZEROS, "");
-	if (trimmed === "") {
-		return "";
-	}
-	// A zero-minor-unit currency has no cents to shift into, so the ladder
-	// collapses to plain integer entry rather than inventing a fraction.
-	if (minorUnits === 0) {
-		return trimmed;
-	}
-	const padded = trimmed.padStart(minorUnits + 1, "0");
-	const cut = padded.length - minorUnits;
-	return `${padded.slice(0, cut)}.${padded.slice(cut)}`;
+    const trimmed = digits.replace(LEADING_ZEROS, "");
+    if (trimmed === "") {
+        return "";
+    }
+    // A zero-minor-unit currency has no cents to shift into, so the ladder
+    // collapses to plain integer entry rather than inventing a fraction.
+    if (minorUnits === 0) {
+        return trimmed;
+    }
+    const padded = trimmed.padStart(minorUnits + 1, "0");
+    const cut = padded.length - minorUnits;
+    return `${padded.slice(0, cut)}.${padded.slice(cut)}`;
 }
 
 function applyPreDottedKey(current: string, key: Exclude<NumpadTileKey, ".">, minorUnits: number): string {
-	const digits = toMinorDigits(current, minorUnits);
-	const next = key === "back" ? digits.slice(0, -1) : `${digits}${key}`;
-	const entry = fromMinorDigits(next, minorUnits);
-	const [integer = ""] = entry.split(".");
-	return integer.length > MAX_INTEGER_DIGITS ? current : entry;
+    const digits = toMinorDigits(current, minorUnits);
+    const next = key === "back" ? digits.slice(0, -1) : `${digits}${key}`;
+    const entry = fromMinorDigits(next, minorUnits);
+    const [integer = ""] = entry.split(".");
+    return integer.length > MAX_INTEGER_DIGITS ? current : entry;
 }
 
 /** The empty string represents an unset amount. */
 export function applyNumpadKey(current: string, key: NumpadKey, minorUnits: number, mode: NumpadMode): string {
-	if (key === "clear") {
-		return "";
-	}
-	if (mode === "preDotted") {
-		return key === "." ? current : applyPreDottedKey(current, key, minorUnits);
-	}
-	if (key === "back") {
-		return current.slice(0, -1);
-	}
-	if (key === ".") {
-		if (minorUnits === 0 || current.includes(".")) {
-			return current;
-		}
-		return current === "" ? "0." : `${current}.`;
-	}
-	const [integer = "", fraction = ""] = current.split(".");
-	const hasDot = current.includes(".");
-	if (hasDot) {
-		if (fraction.length >= minorUnits) {
-			return current;
-		}
-		return `${current}${key}`;
-	}
-	// Leading-zero guard: a lone "0" is replaced, not prefixed.
-	const nextInteger = integer === "0" ? key : `${integer}${key}`;
-	if (nextInteger.length > MAX_INTEGER_DIGITS) {
-		return current;
-	}
-	return nextInteger;
+    if (key === "clear") {
+        return "";
+    }
+    if (mode === "preDotted") {
+        return key === "." ? current : applyPreDottedKey(current, key, minorUnits);
+    }
+    if (key === "back") {
+        return current.slice(0, -1);
+    }
+    if (key === ".") {
+        if (minorUnits === 0 || current.includes(".")) {
+            return current;
+        }
+        return current === "" ? "0." : `${current}.`;
+    }
+    const [integer = "", fraction = ""] = current.split(".");
+    const hasDot = current.includes(".");
+    if (hasDot) {
+        if (fraction.length >= minorUnits) {
+            return current;
+        }
+        return `${current}${key}`;
+    }
+    // Leading-zero guard: a lone "0" is replaced, not prefixed.
+    const nextInteger = integer === "0" ? key : `${integer}${key}`;
+    if (nextInteger.length > MAX_INTEGER_DIGITS) {
+        return current;
+    }
+    return nextInteger;
 }
 
 export function numpadToNumber(value: string): number {
-	if (value === "" || value === ".") {
-		return 0;
-	}
-	const parsed = Number.parseFloat(value);
-	return Number.isFinite(parsed) ? parsed : 0;
+    if (value === "" || value === ".") {
+        return 0;
+    }
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function numberToNumpad(amount: number, minorUnits: number): string {
-	if (amount <= 0) {
-		return "";
-	}
-	const fixed = amount.toFixed(minorUnits);
-	// Drop a pure ".00" tail so the entry reads like a fresh integer.
-	return fixed.replace(ZERO_FRACTION, "");
+    if (amount <= 0) {
+        return "";
+    }
+    const fixed = amount.toFixed(minorUnits);
+    // Drop a pure ".00" tail so the entry reads like a fresh integer.
+    return fixed.replace(ZERO_FRACTION, "");
 }

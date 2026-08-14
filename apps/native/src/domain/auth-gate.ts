@@ -1,16 +1,16 @@
 export type AuthGate =
-	/** No session is cached and none has been read yet. Cover, do not decide. */
-	| "restoring"
-	| "signed-in"
-	| "signed-out"
-	/** This build has no auth client at all — see `src/lib/auth-client.ts`. */
-	| "unconfigured";
+    /** No session is cached and none has been read yet. Cover, do not decide. */
+    | "restoring"
+    | "signed-in"
+    | "signed-out"
+    /** This build has no auth client at all — see `src/lib/auth-client.ts`. */
+    | "unconfigured";
 
 export interface AuthProbe {
-	configured: boolean;
-	hasSession: boolean;
-	restoreExpired: boolean;
-	restoring: boolean;
+    configured: boolean;
+    hasSession: boolean;
+    restoreExpired: boolean;
+    restoring: boolean;
 }
 
 /**
@@ -34,27 +34,27 @@ export const AUTH_RESTORE_BUDGET_MS = 6000;
  * already hold.
  */
 export function authGate(probe: AuthProbe): AuthGate {
-	if (!probe.configured) {
-		return "unconfigured";
-	}
-	if (probe.hasSession) {
-		return "signed-in";
-	}
-	if (probe.restoring && !probe.restoreExpired) {
-		return "restoring";
-	}
-	return "signed-out";
+    if (!probe.configured) {
+        return "unconfigured";
+    }
+    if (probe.hasSession) {
+        return "signed-in";
+    }
+    if (probe.restoring && !probe.restoreExpired) {
+        return "restoring";
+    }
+    return "signed-out";
 }
 
 /** The one account-area screen the root stack admits once onboarding is done. */
 export type AuthRoute = "sign-in" | "adopt" | "ledger";
 
 export interface AccountState {
-	/** The owner declined the account offer during first run. */
-	deferred: boolean;
-	gate: AuthGate;
-	/** This device's ledger has been reconciled against the account's. */
-	reconciled: boolean;
+    /** The owner declined the account offer during first run. */
+    deferred: boolean;
+    gate: AuthGate;
+    /** This device's ledger has been reconciled against the account's. */
+    reconciled: boolean;
 }
 
 /**
@@ -76,17 +76,17 @@ export interface AccountState {
  * `AuthCover` holds an opaque cover over it for exactly that window.
  */
 export function authRoute(state: AccountState): AuthRoute {
-	if (state.gate === "unconfigured") {
-		return "ledger";
-	}
-	if (state.gate !== "signed-in") {
-		return state.deferred ? "ledger" : "sign-in";
-	}
-	return state.reconciled ? "ledger" : "adopt";
+    if (state.gate === "unconfigured") {
+        return "ledger";
+    }
+    if (state.gate !== "signed-in") {
+        return state.deferred ? "ledger" : "sign-in";
+    }
+    return state.reconciled ? "ledger" : "adopt";
 }
 
 export type RootStackGroup = "onboarding" | AuthRoute;
 
 export function rootStackGroup(state: AccountState & { onboarded: boolean }): RootStackGroup {
-	return state.onboarded ? authRoute(state) : "onboarding";
+    return state.onboarded ? authRoute(state) : "onboarding";
 }

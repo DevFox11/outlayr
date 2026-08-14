@@ -15,11 +15,11 @@ const SYMBOL_ALLOWANCE = 26;
 
 /** Characters a figure renders as, including group separators and the decimal. */
 export function amountHeroLength(amount: number, minorUnits: number): number {
-	const whole = Math.floor(Math.abs(amount));
-	const integerDigits = whole.toString().length;
-	const separators = Math.floor((integerDigits - 1) / 3);
-	const fraction = minorUnits > 0 ? minorUnits + 1 : 0;
-	return integerDigits + separators + fraction;
+    const whole = Math.floor(Math.abs(amount));
+    const integerDigits = whole.toString().length;
+    const separators = Math.floor((integerDigits - 1) / 3);
+    const fraction = minorUnits > 0 ? minorUnits + 1 : 0;
+    return integerDigits + separators + fraction;
 }
 
 /**
@@ -28,10 +28,10 @@ export function amountHeroLength(amount: number, minorUnits: number): number {
  * size, so without this a nine-figure amount runs off both edges.
  */
 export function amountHeroFontSize(amount: number, minorUnits: number, contentWidth: number): number {
-	const available = contentWidth - SYMBOL_ALLOWANCE;
-	if (available <= 0) {
-		return AMOUNT_HERO_MIN_SIZE;
-	}
-	const fits = available / (amountHeroLength(amount, minorUnits) * ADVANCE_PER_CHAR);
-	return Math.max(AMOUNT_HERO_MIN_SIZE, Math.min(AMOUNT_HERO_MAX_SIZE, fits));
+    const available = contentWidth - SYMBOL_ALLOWANCE;
+    if (available <= 0) {
+        return AMOUNT_HERO_MIN_SIZE;
+    }
+    const fits = available / (amountHeroLength(amount, minorUnits) * ADVANCE_PER_CHAR);
+    return Math.max(AMOUNT_HERO_MIN_SIZE, Math.min(AMOUNT_HERO_MAX_SIZE, fits));
 }

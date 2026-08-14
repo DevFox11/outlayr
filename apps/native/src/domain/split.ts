@@ -16,15 +16,15 @@
  */
 
 export interface Allocation {
-	/** Unsigned, like the row's own amount: direction comes from `income`. */
-	amount: number;
-	categoryId: string | null;
+    /** Unsigned, like the row's own amount: direction comes from `income`. */
+    amount: number;
+    categoryId: string | null;
 }
 
 export interface SplittableEntry {
-	amount: number;
-	categoryId: string | null;
-	id: string;
+    amount: number;
+    categoryId: string | null;
+    id: string;
 }
 
 /**
@@ -34,10 +34,10 @@ export interface SplittableEntry {
  * for every entry that has never been split.
  */
 export function allocationsFor(entry: SplittableEntry, explicit: readonly Allocation[]): Allocation[] {
-	if (explicit.length === 0) {
-		return [{ amount: entry.amount, categoryId: entry.categoryId }];
-	}
-	return explicit.map((allocation) => ({ ...allocation }));
+    if (explicit.length === 0) {
+        return [{ amount: entry.amount, categoryId: entry.categoryId }];
+    }
+    return explicit.map((allocation) => ({ ...allocation }));
 }
 
 /**
@@ -47,7 +47,7 @@ export function allocationsFor(entry: SplittableEntry, explicit: readonly Alloca
  * to say which, so this does not clamp.
  */
 export function unallocated(total: number, allocations: readonly Allocation[]): number {
-	return round(total - allocations.reduce((sum, one) => sum + one.amount, 0));
+    return round(total - allocations.reduce((sum, one) => sum + one.amount, 0));
 }
 
 /**
@@ -62,7 +62,7 @@ export function unallocated(total: number, allocations: readonly Allocation[]): 
  * so it is allowed but pointless, and the UI is what declines to offer it.
  */
 export function isBalanced(total: number, allocations: readonly Allocation[]): boolean {
-	return allocations.length > 0 && unallocated(total, allocations) === 0;
+    return allocations.length > 0 && unallocated(total, allocations) === 0;
 }
 
 /**
@@ -74,23 +74,23 @@ export function isBalanced(total: number, allocations: readonly Allocation[]): b
  * furthest from where the user is typing.
  */
 export function rebalance(
-	total: number,
-	allocations: readonly Allocation[],
-	index: number,
-	amount: number
+    total: number,
+    allocations: readonly Allocation[],
+    index: number,
+    amount: number
 ): Allocation[] {
-	const next = allocations.map((allocation) => ({ ...allocation }));
-	if (index < 0 || index >= next.length) {
-		return next;
-	}
-	next[index] = { ...next[index], amount: round(Math.max(0, amount)) };
-	const absorber = next.length - 1 === index ? next.length - 2 : next.length - 1;
-	if (absorber < 0) {
-		return next;
-	}
-	const others = next.reduce((sum, one, at) => (at === absorber ? sum : sum + one.amount), 0);
-	next[absorber] = { ...next[absorber], amount: round(total - others) };
-	return next;
+    const next = allocations.map((allocation) => ({ ...allocation }));
+    if (index < 0 || index >= next.length) {
+        return next;
+    }
+    next[index] = { ...next[index], amount: round(Math.max(0, amount)) };
+    const absorber = next.length - 1 === index ? next.length - 2 : next.length - 1;
+    if (absorber < 0) {
+        return next;
+    }
+    const others = next.reduce((sum, one, at) => (at === absorber ? sum : sum + one.amount), 0);
+    next[absorber] = { ...next[absorber], amount: round(total - others) };
+    return next;
 }
 
 /**
@@ -101,16 +101,16 @@ export function rebalance(
  * harder to check by eye, and a split is something the owner reads back.
  */
 export function splitEvenly(total: number, count: number, categoryIds: readonly (string | null)[] = []): Allocation[] {
-	if (count < 1) {
-		return [];
-	}
-	const each = round(total / count);
-	const parts: Allocation[] = [];
-	for (let index = 0; index < count; index += 1) {
-		parts.push({ amount: each, categoryId: categoryIds[index] ?? null });
-	}
-	parts[0] = { ...parts[0], amount: round(total - each * (count - 1)) };
-	return parts;
+    if (count < 1) {
+        return [];
+    }
+    const each = round(total / count);
+    const parts: Allocation[] = [];
+    for (let index = 0; index < count; index += 1) {
+        parts.push({ amount: each, categoryId: categoryIds[index] ?? null });
+    }
+    parts[0] = { ...parts[0], amount: round(total - each * (count - 1)) };
+    return parts;
 }
 
 /**
@@ -121,16 +121,16 @@ export function splitEvenly(total: number, count: number, categoryIds: readonly 
  * unsplit entries counted exactly as they are today.
  */
 export function totalsByCategory(
-	entries: readonly SplittableEntry[],
-	explicitByEntry: ReadonlyMap<string, readonly Allocation[]>
+    entries: readonly SplittableEntry[],
+    explicitByEntry: ReadonlyMap<string, readonly Allocation[]>
 ): Map<string | null, number> {
-	const totals = new Map<string | null, number>();
-	for (const entry of entries) {
-		for (const allocation of allocationsFor(entry, explicitByEntry.get(entry.id) ?? [])) {
-			totals.set(allocation.categoryId, round((totals.get(allocation.categoryId) ?? 0) + allocation.amount));
-		}
-	}
-	return totals;
+    const totals = new Map<string | null, number>();
+    for (const entry of entries) {
+        for (const allocation of allocationsFor(entry, explicitByEntry.get(entry.id) ?? [])) {
+            totals.set(allocation.categoryId, round((totals.get(allocation.categoryId) ?? 0) + allocation.amount));
+        }
+    }
+    return totals;
 }
 
 /**
@@ -140,5 +140,5 @@ export function totalsByCategory(
  * back to the whole without a float tail turning `isBalanced` into a coin toss.
  */
 export function round(value: number): number {
-	return Math.round(value * 100) / 100;
+    return Math.round(value * 100) / 100;
 }

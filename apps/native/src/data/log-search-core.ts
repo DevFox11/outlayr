@@ -1,12 +1,15 @@
-import { and, desc, eq, inArray, isNull, lte, or, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
+
 import { transactions } from "@/db/schema";
+
 import type { SpendDb } from "./budget-spent";
 import { LOG_COLUMNS } from "./transactions-core";
 
 /** Escapes the wildcards SQLite's LIKE would otherwise read as pattern syntax. */
 export function escapeLike(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+    return value.replaceAll(/[\\%_]/g, (match) => `\\${match}`);
 }
 
 /**
@@ -16,7 +19,7 @@ export function escapeLike(value: string): string {
  * characters and searching for `50%` finds nothing whatsoever.
  */
 function contains(column: SQLiteColumn, query: string): SQL {
-	return sql`${column} like ${`%${escapeLike(query)}%`} escape '\\'`;
+    return sql`${column} like ${`%${escapeLike(query)}%`} escape '\\'`;
 }
 
 /**
@@ -25,20 +28,20 @@ function contains(column: SQLiteColumn, query: string): SQL {
  * matched. The Log paints no note, so its own read stays as narrow as it was.
  */
 export const SEARCH_COLUMNS = {
-	...LOG_COLUMNS,
-	details: transactions.details,
+    ...LOG_COLUMNS,
+    details: transactions.details,
 } as const;
 
 export interface SearchCriteria {
-	/**
-	 * Categories whose name matched, resolved outside SQL: `useLiveQuery` listens
-	 * to one table, so a joined category name would survive every edit to it.
-	 */
-	categoryIds: string[];
-	/** The shared clock reading — see `useNow`. */
-	nowMs: number;
-	/** Already trimmed. An empty query matches nothing rather than everything. */
-	query: string;
+    /**
+     * Categories whose name matched, resolved outside SQL: `useLiveQuery` listens
+     * to one table, so a joined category name would survive every edit to it.
+     */
+    categoryIds: string[];
+    /** The shared clock reading — see `useNow`. */
+    nowMs: number;
+    /** Already trimmed. An empty query matches nothing rather than everything. */
+    query: string;
 }
 
 /**
@@ -60,29 +63,29 @@ export interface SearchCriteria {
  * Settings → Upcoming is the surface that owns them.
  */
 export function searchedTransactionsQuery(db: SpendDb, criteria: SearchCriteria) {
-	const { query, categoryIds, nowMs } = criteria;
+    const { query, categoryIds, nowMs } = criteria;
 
-	if (query === "") {
-		// The screen shows its idle state, and a full-table read would be wasted.
-		return db.select(SEARCH_COLUMNS).from(transactions).where(eq(transactions.id, ""));
-	}
+    if (query === "") {
+        // The screen shows its idle state, and a full-table read would be wasted.
+        return db.select(SEARCH_COLUMNS).from(transactions).where(eq(transactions.id, ""));
+    }
 
-	const amount = Number.parseFloat(query);
+    const amount = Number.parseFloat(query);
 
-	return db
-		.select(SEARCH_COLUMNS)
-		.from(transactions)
-		.where(
-			and(
-				isNull(transactions.deletedAt),
-				lte(transactions.date, new Date(nowMs)),
-				or(
-					contains(transactions.note, query),
-					contains(transactions.details, query),
-					categoryIds.length > 0 ? inArray(transactions.categoryId, categoryIds) : undefined,
-					Number.isFinite(amount) ? eq(transactions.amount, amount) : undefined
-				)
-			)
-		)
-		.orderBy(desc(transactions.day), desc(transactions.date));
+    return db
+        .select(SEARCH_COLUMNS)
+        .from(transactions)
+        .where(
+            and(
+                isNull(transactions.deletedAt),
+                lte(transactions.date, new Date(nowMs)),
+                or(
+                    contains(transactions.note, query),
+                    contains(transactions.details, query),
+                    categoryIds.length > 0 ? inArray(transactions.categoryId, categoryIds) : undefined,
+                    Number.isFinite(amount) ? eq(transactions.amount, amount) : undefined
+                )
+            )
+        )
+        .orderBy(desc(transactions.day), desc(transactions.date));
 }

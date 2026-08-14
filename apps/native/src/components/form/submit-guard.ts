@@ -1,8 +1,9 @@
-import { Alert, type AlertButton } from "react-native";
+import { Alert } from "react-native";
+import type { AlertButton } from "react-native";
 
 interface SubmittableForm {
-	handleSubmit: () => Promise<void>;
-	readonly state: { readonly isSubmitting: boolean };
+    handleSubmit: () => Promise<void>;
+    readonly state: { readonly isSubmitting: boolean };
 }
 
 /**
@@ -11,46 +12,46 @@ interface SubmittableForm {
  * path — every consumer's `onSubmit` already handles its own errors.
  */
 export function pressSubmit(form: SubmittableForm): void {
-	if (form.state.isSubmitting) {
-		return;
-	}
-	form.handleSubmit().catch((error) => {
-		console.error("Form submit threw", error);
-	});
+    if (form.state.isSubmitting) {
+        return;
+    }
+    form.handleSubmit().catch((error) => {
+        console.error("Form submit threw", error);
+    });
 }
 
 interface SubmittableFormWithMeta<TMeta> {
-	handleSubmit: (meta: TMeta) => Promise<void>;
-	readonly state: { readonly isSubmitting: boolean };
+    handleSubmit: (meta: TMeta) => Promise<void>;
+    readonly state: { readonly isSubmitting: boolean };
 }
 
 export function pressSubmitWith<TMeta>(form: SubmittableFormWithMeta<TMeta>, meta: TMeta): void {
-	if (form.state.isSubmitting) {
-		return;
-	}
-	form.handleSubmit(meta).catch((error) => {
-		console.error("Form submit threw", error);
-	});
+    if (form.state.isSubmitting) {
+        return;
+    }
+    form.handleSubmit(meta).catch((error) => {
+        console.error("Form submit threw", error);
+    });
 }
 
 /** Never settles: the caller's write has committed and the CTA must not re-enable. */
 export function holdSubmitting(): Promise<never> {
-	return new Promise<never>(() => {
-		// Intentionally never settles.
-	});
+    return new Promise<never>(() => {
+        // Intentionally never settles.
+    });
 }
 
 interface ReportSaveFailureOptions {
-	body: string;
-	buttons?: AlertButton[];
-	cause?: unknown;
-	log?: string;
-	title: string;
+    body: string;
+    buttons?: AlertButton[];
+    cause?: unknown;
+    log?: string;
+    title: string;
 }
 
 export function reportSaveFailure(options: ReportSaveFailureOptions): void {
-	if (options.log !== undefined) {
-		console.error(options.log, options.cause);
-	}
-	Alert.alert(options.title, options.body, options.buttons);
+    if (options.log !== undefined) {
+        console.error(options.log, options.cause);
+    }
+    Alert.alert(options.title, options.body, options.buttons);
 }

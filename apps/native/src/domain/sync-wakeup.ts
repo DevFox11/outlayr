@@ -15,5 +15,5 @@
  * whatever it was trying to say.
  */
 export function isBehindWatermark(watermark: number, cursor: number): boolean {
-	return Number.isSafeInteger(watermark) && watermark - 1 > cursor;
+    return Number.isSafeInteger(watermark) && watermark - 1 > cursor;
 }

@@ -1,25 +1,27 @@
-import { type CurrencyEntry, cellFigures, toCells } from "./currency-totals";
-import { type LogFigures, ZERO_FIGURES } from "./log-measure";
+import { cellFigures, toCells } from "./currency-totals";
+import type { CurrencyEntry } from "./currency-totals";
+import { ZERO_FIGURES } from "./log-measure";
+import type { LogFigures } from "./log-measure";
 import type { RateTable } from "./valuation";
 
 export interface ScopeTotals {
-	/** Every other currency the scope used, dominance order. */
-	others: LogFigures[];
-	/**
-	 * The bucket the screen is being read in, or the dominant one when the scope
-	 * holds nothing that can be placed there — a figure labelled with a currency
-	 * its numbers are not in states something untrue.
-	 */
-	shown: LogFigures;
+    /** Every other currency the scope used, dominance order. */
+    others: LogFigures[];
+    /**
+     * The bucket the screen is being read in, or the dominant one when the scope
+     * holds nothing that can be placed there — a figure labelled with a currency
+     * its numbers are not in states something untrue.
+     */
+    shown: LogFigures;
 }
 
 function totalled(entries: readonly CurrencyEntry[]): CurrencyEntry[] {
-	return entries.filter((entry) => !("excludedFromTotals" in entry && entry.excludedFromTotals));
+    return entries.filter((entry) => !("excludedFromTotals" in entry && entry.excludedFromTotals));
 }
 
 /** False when the scope holds nothing in and out could describe — every row a transfer, or no rows at all. */
 export function scopeHasFigures(entries: readonly CurrencyEntry[]): boolean {
-	return totalled(entries).length > 0;
+    return totalled(entries).length > 0;
 }
 
 /**
@@ -31,13 +33,13 @@ export function scopeHasFigures(entries: readonly CurrencyEntry[]): boolean {
  * question than the one the filter asked.
  */
 export function scopeTotals(
-	entries: readonly CurrencyEntry[],
-	displayCurrency: string,
-	rates?: RateTable
+    entries: readonly CurrencyEntry[],
+    displayCurrency: string,
+    rates?: RateTable
 ): ScopeTotals {
-	const ordered = cellFigures(toCells(totalled(entries)), displayCurrency, rates);
-	const shown = ordered.find((figures) => figures.currencyCode === displayCurrency) ??
-		ordered[0] ?? { currencyCode: displayCurrency, ...ZERO_FIGURES };
+    const ordered = cellFigures(toCells(totalled(entries)), displayCurrency, rates);
+    const shown = ordered.find((figures) => figures.currencyCode === displayCurrency) ??
+        ordered[0] ?? { currencyCode: displayCurrency, ...ZERO_FIGURES };
 
-	return { others: ordered.filter((figures) => figures !== shown), shown };
+    return { others: ordered.filter((figures) => figures !== shown), shown };
 }

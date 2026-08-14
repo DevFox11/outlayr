@@ -1,16 +1,19 @@
-import { CATALOGS, EN, type TranslatableKey } from "./catalog";
-import { DEFAULT_LANGUAGE, type Language } from "./languages";
-import { type TranslationParams, translate } from "./translate";
+import { CATALOGS, EN } from "./catalog";
+import type { TranslatableKey } from "./catalog";
+import { DEFAULT_LANGUAGE } from "./languages";
+import type { Language } from "./languages";
+import { translate } from "./translate";
+import type { TranslationParams } from "./translate";
 
 let current: Language = DEFAULT_LANGUAGE;
 
 /** Kept in sync by `LanguageProvider`. */
 export function setRuntimeLanguage(language: Language): void {
-	current = language;
+    current = language;
 }
 
 export function runtimeLanguage(): Language {
-	return current;
+    return current;
 }
 
 /**
@@ -20,9 +23,9 @@ export function runtimeLanguage(): Language {
  * language changes; this does not.
  */
 export function translateNow(key: TranslatableKey, params?: TranslationParams): string {
-	return translate(key, {
-		catalog: CATALOGS[current] ?? EN,
-		fallback: EN,
-		params,
-	});
+    return translate(key, {
+        catalog: CATALOGS[current] ?? EN,
+        fallback: EN,
+        params,
+    });
 }

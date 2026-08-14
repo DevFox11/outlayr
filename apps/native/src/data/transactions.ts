@@ -1,19 +1,16 @@
 import { desc, isNull } from "drizzle-orm";
 import { useMemo } from "react";
+
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
-import {
-	type LOG_COLUMNS,
-	ledgerSizeQuery,
-	logWindowDaysQuery,
-	logWindowRowsQuery,
-	type Transaction,
-} from "./transactions-core";
+import { ledgerSizeQuery, logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
+import type { LOG_COLUMNS, Transaction } from "./transactions-core";
 
 export function useTransactionCount(db: Database): number {
-	return useLiveQuery(transactions, () => ledgerSizeQuery(db)).length;
+    return useLiveQuery(transactions, () => ledgerSizeQuery(db)).length;
 }
 
 /**
@@ -21,17 +18,17 @@ export function useTransactionCount(db: Database): number {
  * carries — first run only needs the last line or two to draw on its page.
  */
 export function useRecentLines(db: Database, limit: number): Transaction[] {
-	return useLiveQuery(
-		transactions,
-		() =>
-			db
-				.select()
-				.from(transactions)
-				.where(isNull(transactions.deletedAt))
-				.orderBy(desc(transactions.date))
-				.limit(limit),
-		[limit]
-	) as Transaction[];
+    return useLiveQuery(
+        transactions,
+        () =>
+            db
+                .select()
+                .from(transactions)
+                .where(isNull(transactions.deletedAt))
+                .orderBy(desc(transactions.date))
+                .limit(limit),
+        [limit]
+    ) as Transaction[];
 }
 
 /**
@@ -39,18 +36,18 @@ export function useRecentLines(db: Database, limit: number): Transaction[] {
  * the two cannot drift apart.
  */
 export type TransactionWithCategory = {
-	[K in keyof typeof LOG_COLUMNS]: Transaction[K];
+    [K in keyof typeof LOG_COLUMNS]: Transaction[K];
 } & {
-	categoryName: string | null;
-	categoryColor: string | null;
-	categoryIcon: string | null;
-	categoryEmoji: string | null;
+    categoryName: string | null;
+    categoryColor: string | null;
+    categoryIcon: string | null;
+    categoryEmoji: string | null;
 };
 
 export interface LoggedTransactions {
-	/** False while older days remain to be fetched. */
-	reachedEnd: boolean;
-	rows: TransactionWithCategory[];
+    /** False while older days remain to be fetched. */
+    reachedEnd: boolean;
+    rows: TransactionWithCategory[];
 }
 
 /**
@@ -68,28 +65,28 @@ export interface LoggedTransactions {
  * skipping rows.
  */
 export function useLoggedTransactions(db: Database, nowMs: number, days: number): LoggedTransactions {
-	const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days]);
+    const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days]);
 
-	const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
-	const reachedEnd = dayRows.length < days;
+    const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
+    const reachedEnd = dayRows.length < days;
 
-	const data = useLiveQuery(transactions, () => logWindowRowsQuery(db, nowMs, floorMs), [nowMs, floorMs]);
-	const categoryMeta = useCategoryMeta(db);
+    const data = useLiveQuery(transactions, () => logWindowRowsQuery(db, nowMs, floorMs), [nowMs, floorMs]);
+    const categoryMeta = useCategoryMeta(db);
 
-	const rows = useMemo(
-		() =>
-			data.map((row) => {
-				const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-				return {
-					...row,
-					categoryColor: meta?.color ?? null,
-					categoryEmoji: meta?.emoji ?? null,
-					categoryIcon: meta?.icon ?? null,
-					categoryName: meta?.name ?? null,
-				};
-			}),
-		[data, categoryMeta]
-	);
+    const rows = useMemo(
+        () =>
+            data.map((row) => {
+                const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
+                return {
+                    ...row,
+                    categoryColor: meta?.color ?? null,
+                    categoryEmoji: meta?.emoji ?? null,
+                    categoryIcon: meta?.icon ?? null,
+                    categoryName: meta?.name ?? null,
+                };
+            }),
+        [data, categoryMeta]
+    );
 
-	return useMemo(() => ({ reachedEnd, rows }), [rows, reachedEnd]);
+    return useMemo(() => ({ reachedEnd, rows }), [rows, reachedEnd]);
 }
