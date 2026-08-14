@@ -11,8 +11,3 @@
 # The dispatcher runs this under `sh -e`, so the first failure stops the push.
 vp run -r --cache check-types
 vp run -r --cache test
-
-# The vendored oxlint plugin is outside every workspace, so `vp run -r test`
-# never sees it. Its rule tests are the only thing standing behind a local edit
-# to tools/oxlint/anti-slop, and they take ~0.2s.
-vp run --cache test:lint-plugins

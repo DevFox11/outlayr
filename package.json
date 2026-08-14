@@ -15,8 +15,7 @@
         "dev:setup": "vp run --filter @outlayr/backend dev:setup",
         "fix": "vp check --fix",
         "prepare": "vp config --no-agent --no-editor",
-        "test": "vp run -r --cache test",
-        "test:lint-plugins": "node --test \"tools/oxlint/anti-slop/rules/*.test.ts\""
+        "test": "vp run -r --cache test"
     },
     "dependencies": {
         "@outlayr/env": "workspace:*",
@@ -25,13 +24,12 @@
     },
     "devDependencies": {
         "@outlayr/config": "workspace:*",
-        "@oxlint/plugins": "1.78.0",
         "@types/node": "^26.1.2",
         "oxfmt": "^0.63.0",
         "oxlint": "^1.78.0",
         "oxlint-tailwindcss": "^1.9.0",
         "typescript": "catalog:",
-        "ultracite": "7.10.2",
+        "ultracite": "7.10.4",
         "vite-plus": "^0.2.9"
     },
     "packageManager": "pnpm@11.20.0"

@@ -35,4 +35,4 @@ catalog:
     zod: ^4.4.3
     typescript: ~6.0.3
 minimumReleaseAgeExclude:
-    - ultracite@7.10.2
+    - ultracite@7.10.4

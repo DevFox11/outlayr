@@ -1,4 +1,5 @@
 import ultraciteFmt from "ultracite/oxfmt";
+import antiSlop from "ultracite/oxlint/anti-slop";
 import core from "ultracite/oxlint/core";
 import jest from "ultracite/oxlint/jest";
 import react from "ultracite/oxlint/react";
@@ -29,10 +30,6 @@ const projectIgnores = [
     "**/.playwright-mcp",
     "**/.claude",
     "skills-lock.json",
-    // The vendored anti-slop plugin. Held at upstream's formatting and style so
-    // `tools/oxlint/anti-slop/VENDOR.md` can diff it against the pinned commit;
-    // linting or formatting it with our own gate would fork it on the first sync.
-    "tools/oxlint/anti-slop",
 ];
 
 // `*.md` and `*.html` are formats oxfmt handles and oxlint does not, so they
@@ -109,7 +106,12 @@ export default defineConfig({
         tabWidth: 4,
     },
     lint: {
-        extends: [core, react, tanstack],
+        // anti-slop goes last: its preset also turns off the two core rules that
+        // fight it (`typescript/consistent-indexed-object-style` autofixes into a
+        // `Record` alias that `no-known-value-widening` then re-flags, and
+        // `unicorn/no-immediate-mutation` bans that rule's own empty-accumulator
+        // escape), and a later config wins.
+        extends: [core, react, tanstack, antiSlop],
         // Biome knows `describe`/`it` but neither of these, and the runner presets
         // ship rules without globals.
         globals: {
@@ -117,7 +119,8 @@ export default defineConfig({
             jest: "readonly",
         },
         ignorePatterns: [...core.ignorePatterns, ...projectIgnores],
-        jsPlugins: ["oxlint-tailwindcss", { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" }],
+        // anti-slop registers its own plugin entry through the preset above.
+        jsPlugins: ["oxlint-tailwindcss"],
         overrides: [
             ...scopeTo("apps/native", "jest", JEST_ONLY_OPT_OUT, jest),
             ...scopeTo("packages", "vitest", VITEST_ONLY_OPT_OUT, vitest),
@@ -270,10 +273,11 @@ export default defineConfig({
             },
         ],
         rules: {
-            // anti-slop (vendored, see tools/oxlint/anti-slop) rejects low-evidence
+            // anti-slop (shipped by ultracite, extended above) rejects low-evidence
             // typing: casts with no stated reason, `unknown`/`object` inputs, and
-            // values that cross a boundary unparsed. The severity per rule is
-            // whatever the tree already satisfies. `error` means zero sites today,
+            // values that cross a boundary unparsed. Its preset sets every rule to
+            // `error`; the severities below are what the tree already satisfies and
+            // so have to be restated here. `error` means zero sites today,
             // so the rule holds a line rather than opening a backlog; `warn` means
             // real signal against a pre-existing count, and this change is linter
             // wiring rather than a typing rewrite. Pre-commit lints staged files,
