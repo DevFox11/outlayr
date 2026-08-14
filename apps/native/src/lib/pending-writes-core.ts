@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * A transaction an App Intent accepted while the app was not running. The intent
  * cannot reach SQLite — the store lives in the app's own container and the whole
@@ -85,20 +87,37 @@ export function claimName(files: QueueFiles): string {
     return `claimed-${highest + 1}.jsonl`;
 }
 
-function isPendingWrite(value: unknown): value is PendingWrite {
-    if (typeof value !== "object" || value === null) {
-        return false;
+/**
+ * The wire format `LogTransactionIntent.swift` writes.
+ *
+ * Only the five fields a write is useless without are required. The rest default
+ * to null rather than failing the line: an extension build older than the app is
+ * normal, and every reader here tests them for truthiness, so a missing one and
+ * an explicit null already mean the same thing.
+ */
+const pendingWriteSchema = z.object({
+    amount: z.number().finite(),
+    amountText: z.string().nullish(),
+    category: z
+        .string()
+        .nullish()
+        .transform((value) => value ?? null),
+    currency: z.string().nullish(),
+    date: z.number().finite(),
+    dedupeKey: z.string().nullish(),
+    id: z.string(),
+    income: z.boolean(),
+    note: z.string(),
+});
+
+/** Null for a line that is not JSON, or not a write this build can commit. */
+function parsePendingWrite(line: string): PendingWrite | null {
+    try {
+        const parsed = pendingWriteSchema.safeParse(JSON.parse(line));
+        return parsed.success ? parsed.data : null;
+    } catch {
+        return null;
     }
-    const write = value as Record<string, unknown>;
-    return (
-        typeof write.id === "string" &&
-        typeof write.amount === "number" &&
-        Number.isFinite(write.amount) &&
-        typeof write.income === "boolean" &&
-        typeof write.note === "string" &&
-        typeof write.date === "number" &&
-        Number.isFinite(write.date)
-    );
 }
 
 /**
@@ -113,13 +132,10 @@ export function parseQueue(text: string): PendingWrite[] {
         if (!trimmed) {
             continue;
         }
-        try {
-            const parsed: unknown = JSON.parse(trimmed);
-            if (isPendingWrite(parsed)) {
-                jobs.push(parsed);
-            }
-        } catch {
-            // Skip a malformed line rather than losing the rest of the log.
+        // A malformed line is skipped rather than losing the rest of the log.
+        const write = parsePendingWrite(trimmed);
+        if (write) {
+            jobs.push(write);
         }
     }
     return jobs;
@@ -132,8 +148,8 @@ export function toQueueText(jobs: PendingWrite[]): string {
 /** The shape the pre-file queue used: one JSON array under a UserDefaults key. */
 export function parseLegacyQueue(raw: string): PendingWrite[] {
     try {
-        const parsed: unknown = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed.filter(isPendingWrite) : [];
+        const parsed = z.array(pendingWriteSchema.nullable().catch(null)).safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data.filter((write) => write !== null) : [];
     } catch {
         return [];
     }

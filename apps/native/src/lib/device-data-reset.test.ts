@@ -36,20 +36,28 @@ import {
     writeDeviceResetMarker,
 } from "./device-data-reset";
 import { DEVICE_STORES } from "./device-data-stores";
-import type { DeviceDataStores } from "./device-data-stores";
+import type { DeviceDataStores, DeviceStore } from "./device-data-stores";
 
 function storesWith(calls: string[], failing: readonly string[] = []): DeviceDataStores {
-    return Object.fromEntries(
-        DEVICE_STORES.map((store) => [
-            store,
-            async () => {
-                calls.push(store);
-                if (failing.includes(store)) {
-                    throw new Error(`${store} unavailable`);
-                }
-            },
-        ])
-    ) as DeviceDataStores;
+    const recorded = (store: DeviceStore) => async () => {
+        calls.push(store);
+        if (failing.includes(store)) {
+            throw new Error(`${store} unavailable`);
+        }
+    };
+    // Written out rather than built from `DEVICE_STORES`, so a store added to the
+    // contract fails here instead of silently going untested.
+    return {
+        alternateIcon: recorded("alternateIcon"),
+        asyncStorage: recorded("asyncStorage"),
+        cache: recorded("cache"),
+        credentials: recorded("credentials"),
+        notifications: recorded("notifications"),
+        photos: recorded("photos"),
+        spotlight: recorded("spotlight"),
+        sqlite: recorded("sqlite"),
+        widget: recorded("widget"),
+    };
 }
 
 describe("resetAllDeviceData", () => {

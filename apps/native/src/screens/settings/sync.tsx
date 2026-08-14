@@ -69,8 +69,8 @@ function SyncSettings({ db }: { db: Database }) {
         setBusy(true);
         const work =
             next && accountId ? runAdoption(db, adoptionEngine(db), RESUME, accountId) : setSyncEnabled(db, false);
-        work.catch((error: unknown) => {
-            console.error("Sync switch failed", error);
+        work.catch((cause: unknown) => {
+            console.error("Sync switch failed", cause);
             Alert.alert(t("settings.sync.failedTitle"), t("settings.sync.failedBody"));
         }).finally(() => setBusy(false));
     };
@@ -122,10 +122,15 @@ function useSyncEnabled(db: Database): boolean {
     return rows[0]?.value === "1";
 }
 
+interface SyncPresentation {
+    detail: TranslatableKey;
+    title: TranslatableKey;
+}
+
 function syncPresentation(
     kind: ReturnType<typeof effectiveCapabilityStatus>["kind"],
     enabled: boolean
-): { detail: TranslatableKey; title: TranslatableKey } {
+): SyncPresentation {
     if (kind === "unavailable") {
         return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
     }

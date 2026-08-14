@@ -53,7 +53,7 @@ export const CATEGORY_SHEETS: readonly {
     },
 ];
 
-export const ROOT_STACK_SCREEN_NAMES: Readonly<Record<RootStackGroup, readonly string[]>> = {
+export const ROOT_STACK_SCREEN_NAMES = {
     adopt: ["auth/adopt"],
     ledger: [
         "(tabs)",
@@ -76,4 +76,4 @@ export const ROOT_STACK_SCREEN_NAMES: Readonly<Record<RootStackGroup, readonly s
     ],
     onboarding: ["onboarding/index", "onboarding/currency", "onboarding/grounding", "onboarding/rhythm"],
     "sign-in": ["auth/sign-in"],
-};
+} satisfies Readonly<Record<RootStackGroup, readonly string[]>>;

@@ -26,14 +26,14 @@ export function ProviderSignInButtons({
             {apple ? (
                 <AppleSignInButton
                     disabled={busy !== null}
-                    onPress={() => start("apple", appleCredential)}
+                    onPress={() => start({ getCredential: appleCredential, provider: "apple" })}
                     pending={busy === "apple"}
                 />
             ) : null}
             {google ? (
                 <GoogleSignInButton
                     disabled={busy !== null}
-                    onPress={() => start("google", googleIdToken)}
+                    onPress={() => start({ getCredential: googleIdToken, provider: "google" })}
                     pending={busy === "google"}
                 />
             ) : null}

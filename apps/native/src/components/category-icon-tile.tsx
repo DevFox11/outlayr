@@ -13,7 +13,14 @@ import type { CategoryIconType } from "./category-icon";
  * be pinned or its glyph comes out 5pt too big. 36 is the Log row's tile: a 20pt
  * glyph in 8pt of padding, and it takes a 9pt radius rather than this one's 10.
  */
-const GLYPH_RAMP: Record<number, number> = { 28: 15, 34: 18, 36: 20, 90: 42 };
+// Keyed by the tile size a caller asks for, which is any number; sizes off the
+// ramp fall through to the proportional default.
+const GLYPH_RAMP = new Map<number, number>([
+    [28, 15],
+    [34, 18],
+    [36, 20],
+    [90, 42],
+]);
 
 function tileRadius(size: number): number {
     if (size >= 72) {
@@ -69,7 +76,7 @@ export function CategoryIconTile({
     // different photo re-arms it on the same render.
     const [unreadable, setUnreadable] = useState<string | null>(null);
     const radius = radiusOverride ?? tileRadius(size);
-    const glyphSize = GLYPH_RAMP[size] ?? Math.round(size * 0.52);
+    const glyphSize = GLYPH_RAMP.get(size) ?? Math.round(size * 0.52);
     // A contrast-corrected shade of the tint, never the raw hex: a bright tint
     // vanishes into its own wash.
     const glyphColor = glyphShade(color, isDark);

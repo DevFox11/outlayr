@@ -25,21 +25,21 @@ import { useChooseImportFile } from "./use-choose-import-file";
 
 const STEP_TRANSITION_MS = 200;
 
-const STEP_TITLE: Record<ImportStep, TranslationKey> = {
+const STEP_TITLE = {
     done: "import.titleDone",
     file: "import.titleFile",
     resolve: "import.titleResolve",
     review: "import.titleReview",
     source: "import.titleSource",
-};
+} satisfies Record<ImportStep, TranslationKey>;
 
-const STEP_BACK: Record<ImportStep, ImportStep | null> = {
+const STEP_BACK = {
     done: null,
     file: "source",
     resolve: "file",
     review: "file",
     source: null,
-};
+} satisfies Record<ImportStep, ImportStep | null>;
 
 export function resolveLegalStep(flow: ImportFlowState, step: ImportStep): ImportStep {
     let index = IMPORT_STEPS.indexOf(step);
@@ -94,6 +94,7 @@ export function ImportSheet({ ref }: ImportSheetProps) {
     const t = useTranslation();
     const sheetRef = useRef<BottomSheetModal>(null);
     const [presented, setPresented] = useState(false);
+    // SAFETY: declared in global.css for both schemes, as in `outlayr-mark`.
     const backgroundColor = useCSSVariable("--color-background") as string;
 
     const dismiss = useCallback(() => {

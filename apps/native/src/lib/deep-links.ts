@@ -38,21 +38,24 @@ export function budgetLink(id: string): string {
  * + suffix). Retired but not dead: a shortcut a user built against the old build
  * still fires them, and answering with `+not-found` would be a regression.
  */
-const LEGACY_HOSTS: Readonly<Record<string, string>> = {
-    budget: "/budgets",
-    newexpense: "/transactions/create",
-    newincome: "/transactions/create?income=1",
-    transactions: "/",
-};
+// Keyed by a host parsed off an incoming URL, so the key is untrusted; `.get`
+// answers undefined for one this build does not route.
+const LEGACY_HOSTS = new Map<string, string>([
+    ["budget", "/budgets"],
+    ["newexpense", "/transactions/create"],
+    ["newincome", "/transactions/create?income=1"],
+    ["transactions", "/"],
+]);
 
-const HOSTS: Readonly<Record<string, string>> = {
-    budgets: "/budgets",
-    insights: "/insights",
-    log: "/",
-    new: "/transactions/create",
-    search: "/search",
-    transaction: "/transactions",
-};
+// As `LEGACY_HOSTS` — an untrusted host off the URL.
+const HOSTS = new Map<string, string>([
+    ["budgets", "/budgets"],
+    ["insights", "/insights"],
+    ["log", "/"],
+    ["new", "/transactions/create"],
+    ["search", "/search"],
+    ["transaction", "/transactions"],
+]);
 
 /**
  * Hosts whose next segment is a record id that passes straight through to the
@@ -67,9 +70,8 @@ const ID_HOSTS = new Set(["budgets", "transaction"]);
  * `/transactions/[id]` has no index, so a bare `outlayr://transaction` would
  * reach `+not-found` without this.
  */
-const ID_HOST_SECTION: Readonly<Record<string, string>> = {
-    transaction: "/",
-};
+// As `HOSTS` — an untrusted host off the URL.
+const ID_HOST_SECTION = new Map<string, string>([["transaction", "/"]]);
 
 const SCHEME_PREFIX = /^[a-zA-Z][\w+.-]*:\/\//;
 
@@ -78,7 +80,13 @@ const SCHEME_PREFIX = /^[a-zA-Z][\w+.-]*:\/\//;
  * to parse: expo-router hands `redirectSystemPath` the raw URL on a cold start
  * but an already-normalized path once the app is running.
  */
-function parts(raw: string): { segments: string[]; query: string } {
+interface UrlParts {
+    /** Carries its leading `?`, or is empty. */
+    query: string;
+    segments: string[];
+}
+
+function parts(raw: string): UrlParts {
     const withoutScheme = raw.replace(SCHEME_PREFIX, "");
     const [pathname = "", query = ""] = withoutScheme.split("?");
     return {
@@ -101,12 +109,12 @@ export function resolveDeepLink(raw: string): string | null {
     }
 
     const key = host.toLowerCase();
-    const legacy = LEGACY_HOSTS[key];
+    const legacy = LEGACY_HOSTS.get(key);
     if (legacy) {
         return legacy;
     }
 
-    const base = HOSTS[key];
+    const base = HOSTS.get(key);
     if (!base) {
         return null;
     }
@@ -115,7 +123,7 @@ export function resolveDeepLink(raw: string): string | null {
         return `${base}/${rest.join("/")}${query}`;
     }
 
-    return `${ID_HOST_SECTION[key] ?? base}${query}`;
+    return `${ID_HOST_SECTION.get(key) ?? base}${query}`;
 }
 
 /**

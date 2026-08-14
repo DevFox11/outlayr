@@ -421,13 +421,19 @@ export function categoryMovers(
 }
 
 /** Both totals are positive magnitudes; the net is `income − spent`. */
+/** Both sides of one window, each already a positive magnitude. */
+export interface WindowTotals {
+    income: number;
+    spent: number;
+}
+
 export function windowTotals(
     rows: readonly InsightsContribution[],
     period: InsightsPeriod,
     now: Date,
     offset = 0,
     calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
-): { income: number; spent: number } {
+): WindowTotals {
     const bounds = windowBounds(period, now, offset, calendar);
     if (!bounds) {
         return { income: 0, spent: 0 };

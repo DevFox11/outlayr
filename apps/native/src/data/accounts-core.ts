@@ -171,8 +171,8 @@ export const accountsRepo = {
             .update(accounts)
             .set({
                 ...patch,
-                ...(removesLogo ? { imageKey: null } : {}),
                 currency,
+                imageKey: removesLogo ? null : patch.imageKey,
                 initialBalance,
                 initialBalanceDate,
                 initialBalanceUsd: moneyMoved

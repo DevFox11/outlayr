@@ -59,10 +59,15 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
     const setRefs = useCallback(
         (node: BottomSheetModal | null) => {
             sheetRef.current = node;
-            if (typeof ref === "function") {
+            if (!ref) {
+                return;
+            }
+            // React's `Ref` is a callback or an object with `current`; only the
+            // second has the property, which is what tells the two apart.
+            if ("current" in ref) {
+                ref.current = node;
+            } else {
                 ref(node);
-            } else if (ref) {
-                (ref as { current: BottomSheetModal | null }).current = node;
             }
         },
         [ref]

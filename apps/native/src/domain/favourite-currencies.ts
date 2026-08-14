@@ -20,7 +20,9 @@ const SEEDED = ["USD", "EUR"] as const;
  * Caracas would otherwise detect a currency this app has never heard of and seed
  * nothing. Same currency, two ISO codes.
  */
-const ALIASES: Readonly<Record<string, string>> = { VED: "VES" };
+// Keyed by a currency code that may come from the device locale, so the lookup
+// is of an untrusted string.
+const ALIASES = new Map<string, string>([["VED", "VES"]]);
 
 /**
  * The cluster a ledger is created with, so the picker opens with somewhere to
@@ -37,7 +39,7 @@ export function seedFavourites(detected: string | null): string[] {
         return seeded;
     }
     const named = normalise(detected);
-    const code = ALIASES[named] ?? named;
+    const code = ALIASES.get(named) ?? named;
     if (CATALOGUE.has(code) && !seeded.includes(code)) {
         seeded.push(code);
     }

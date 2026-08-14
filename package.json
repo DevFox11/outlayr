@@ -15,7 +15,8 @@
         "dev:setup": "turbo run dev:setup -F @outlayr/backend",
         "fix": "ultracite fix",
         "prepare": "lefthook install",
-        "test": "turbo run test"
+        "test": "turbo run test",
+        "test:lint-plugins": "node --test \"tools/oxlint/anti-slop/rules/*.test.ts\""
     },
     "dependencies": {
         "@outlayr/env": "workspace:*",
@@ -24,6 +25,7 @@
     },
     "devDependencies": {
         "@outlayr/config": "workspace:*",
+        "@oxlint/plugins": "1.78.0",
         "@types/node": "^26.1.2",
         "lefthook": "^2.1.10",
         "oxfmt": "^0.63.0",

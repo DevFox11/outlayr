@@ -158,17 +158,18 @@ export const budgetsRepo = {
         if (existing[0]) {
             await db
                 .update(mainBudget)
+                // `name` and `rollover` pass `undefined` through when the caller
+                // omitted them, and drizzle's `.set()` drops an undefined value
+                // rather than writing NULL — so the column keeps what it had. Both
+                // need that: the form opens on Overall with the name field blank
+                // and no rollover, and writing either unconditionally would erase
+                // the budget's name and turn its rollover off.
                 .set({
-                    // Only write a name the caller actually supplied: the form opens on
-                    // Overall with the field blank, so writing it unconditionally erases
-                    // whatever the existing budget is called.
-                    ...(input.name === undefined ? {} : { name: customName(input.name) }),
+                    name: input.name === undefined ? undefined : customName(input.name),
                     ...(await budgetLimit(db, input.amount, start)),
+                    rollover: input.rollover,
                     startDate: start,
                     type: input.type,
-                    // Only when supplied, for the same reason `name` is guarded: the
-                    // form opens on Overall without it and would otherwise turn it off.
-                    ...(input.rollover === undefined ? {} : { rollover: input.rollover }),
                     updatedAt: now,
                 })
                 .where(eq(mainBudget.id, existing[0].id));

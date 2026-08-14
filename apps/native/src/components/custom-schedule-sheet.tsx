@@ -54,50 +54,39 @@ const UNIT_FADE_MS = 170;
  */
 const COUNT_TRACKING = 5;
 
-const UNIT_TITLE_KEY: Record<number, TranslationKey> = {
-    [RECURRING_TYPE.daily]: "transaction.cadence.days",
-    [RECURRING_TYPE.weekly]: "transaction.cadence.weeks",
-    [RECURRING_TYPE.monthly]: "transaction.cadence.months",
-    [RECURRING_TYPE.yearly]: "transaction.cadence.years",
-};
+// Keyed by a stored `recurringType`, as in `domain/recurrence.ts`.
+const UNIT_TITLE_KEY = new Map<number, TranslationKey>([
+    [RECURRING_TYPE.daily, "transaction.cadence.days"],
+    [RECURRING_TYPE.weekly, "transaction.cadence.weeks"],
+    [RECURRING_TYPE.monthly, "transaction.cadence.months"],
+    [RECURRING_TYPE.yearly, "transaction.cadence.years"],
+]);
 
-const UNIT_NOUN_KEY: Record<number, { readonly one: TranslationKey; readonly many: TranslationKey }> = {
-    [RECURRING_TYPE.daily]: {
-        many: "transaction.unit.days",
-        one: "transaction.unit.day",
-    },
-    [RECURRING_TYPE.weekly]: {
-        many: "transaction.unit.weeks",
-        one: "transaction.unit.week",
-    },
-    [RECURRING_TYPE.monthly]: {
-        many: "transaction.unit.months",
-        one: "transaction.unit.month",
-    },
-    [RECURRING_TYPE.yearly]: {
-        many: "transaction.unit.years",
-        one: "transaction.unit.year",
-    },
-};
+interface PluralKeys {
+    readonly many: TranslationKey;
+    readonly one: TranslationKey;
+}
 
-const INTERVAL_KEY: Record<number, { readonly one: TranslationKey; readonly many: TranslationKey }> = {
-    [RECURRING_TYPE.daily]: {
-        many: "transaction.interval.days",
-        one: "transaction.interval.day",
-    },
-    [RECURRING_TYPE.weekly]: {
-        many: "transaction.interval.weeks",
-        one: "transaction.interval.week",
-    },
-    [RECURRING_TYPE.monthly]: {
-        many: "transaction.interval.months",
-        one: "transaction.interval.month",
-    },
-    [RECURRING_TYPE.yearly]: {
-        many: "transaction.interval.years",
-        one: "transaction.interval.year",
-    },
-};
+/** Named so the fallback below is a value, not another lookup that can miss. */
+const MONTHLY_UNIT: PluralKeys = { many: "transaction.unit.months", one: "transaction.unit.month" };
+
+// Keyed by a stored `recurringType`, as above.
+const UNIT_NOUN_KEY = new Map<number, PluralKeys>([
+    [RECURRING_TYPE.daily, { many: "transaction.unit.days", one: "transaction.unit.day" }],
+    [RECURRING_TYPE.weekly, { many: "transaction.unit.weeks", one: "transaction.unit.week" }],
+    [RECURRING_TYPE.monthly, MONTHLY_UNIT],
+    [RECURRING_TYPE.yearly, { many: "transaction.unit.years", one: "transaction.unit.year" }],
+]);
+
+const MONTHLY_INTERVAL: PluralKeys = { many: "transaction.interval.months", one: "transaction.interval.month" };
+
+// Keyed by a stored `recurringType`, as above.
+const INTERVAL_KEY = new Map<number, PluralKeys>([
+    [RECURRING_TYPE.daily, { many: "transaction.interval.days", one: "transaction.interval.day" }],
+    [RECURRING_TYPE.weekly, { many: "transaction.interval.weeks", one: "transaction.interval.week" }],
+    [RECURRING_TYPE.monthly, MONTHLY_INTERVAL],
+    [RECURRING_TYPE.yearly, { many: "transaction.interval.years", one: "transaction.interval.year" }],
+]);
 
 /**
  * The "day" / "3 months" fragment both `Every {interval}` and
@@ -107,12 +96,12 @@ const INTERVAL_KEY: Record<number, { readonly one: TranslationKey; readonly many
  */
 export function intervalPhrase(t: TranslateFn, type: number, coefficient: number): string {
     const n = Math.max(1, Math.round(coefficient));
-    const keys = INTERVAL_KEY[type] ?? INTERVAL_KEY[RECURRING_TYPE.monthly];
+    const keys = INTERVAL_KEY.get(type) ?? MONTHLY_INTERVAL;
     return n <= 1 ? t(keys.one) : t(keys.many, { count: n });
 }
 
 function unitNoun(t: TranslateFn, type: number, coefficient: number): string {
-    const keys = UNIT_NOUN_KEY[type] ?? UNIT_NOUN_KEY[RECURRING_TYPE.monthly];
+    const keys = UNIT_NOUN_KEY.get(type) ?? MONTHLY_UNIT;
     return coefficient <= 1 ? t(keys.one) : t(keys.many);
 }
 
@@ -375,7 +364,7 @@ export function CustomScheduleSheet({
                     <Tabs.List>
                         {SELECTABLE_RECURRING_TYPES.map((option) => (
                             <Tabs.Trigger key={option} value={String(option)}>
-                                {t(UNIT_TITLE_KEY[option] ?? "transaction.cadence.months")}
+                                {t(UNIT_TITLE_KEY.get(option) ?? "transaction.cadence.months")}
                             </Tabs.Trigger>
                         ))}
                     </Tabs.List>

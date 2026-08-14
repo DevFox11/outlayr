@@ -273,6 +273,8 @@ export function usePerCategoryBudgets(
                           anchor: row.dateCreated ?? window.start,
                           current: window,
                           limit,
+                          // SAFETY: this branch is the category-budget one, and a category budget
+                          // always has a categoryId — the column is nullable for the overall budget.
                           spentIn: (start, end) =>
                               spentForCategory(contributions, row.categoryId as string, start, end),
                           type: row.type,
@@ -385,6 +387,7 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
                       anchor: row.dateCreated ?? window.start,
                       current: window,
                       limit,
+                      // SAFETY: the category branch again, as above.
                       spentIn: (start, end) => spentForCategory(contributions, row.categoryId as string, start, end),
                       type: row.type,
                   }).credit

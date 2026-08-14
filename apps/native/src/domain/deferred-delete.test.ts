@@ -40,7 +40,7 @@ const settle = () =>
         setTimeout(resolve, 0);
     });
 
-function harness(commit: (id: string) => Promise<unknown>) {
+function harness(commit: (id: string) => Promise<void>) {
     const clock = fakeClock();
     const seen: DeferredDeleteSnapshot[] = [];
     const controller = createDeferredDelete({
@@ -65,7 +65,7 @@ function recorder() {
     };
 }
 
-const rejecting = () => Promise.reject(new Error("database is locked"));
+const rejecting = (): Promise<void> => Promise.reject(new Error("database is locked"));
 
 describe("createDeferredDelete", () => {
     it("hides the row now and holds the write until the window closes", () => {

@@ -57,14 +57,14 @@ export interface UseCsvImportResult {
     totalLabels: number;
 }
 
-const REASON_BY_STATUS: Record<Exclude<CsvImportStatus, "ok">, UnavailableReason> = {
+const REASON_BY_STATUS = {
     invalid: "providerError",
     invalidResponse: "invalidResponse",
     notConfigured: "notConfigured",
     providerError: "providerError",
     rateLimited: "rateLimited",
     unauthenticated: "unauthenticated",
-};
+} satisfies Record<Exclude<CsvImportStatus, "ok">, UnavailableReason>;
 
 type Settled = { kind: "result"; result: CsvImportResult } | { kind: "timeout" } | { kind: "rejected" };
 
@@ -150,11 +150,17 @@ function reduce(state: CsvImportState, action: CsvImportAction): CsvImportState 
     }
 }
 
+/** Labels the curated map could not finish with: no domain, or no match at all. */
+interface MerchantLinkGaps {
+    domainless: string[];
+    unresolved: string[];
+}
+
 function linkKnownMerchants(
     labels: readonly string[],
     categoryIdByKey: ReadonlyMap<string, string>,
     links: Map<string, string>
-): { domainless: string[]; unresolved: string[] } {
+): MerchantLinkGaps {
     const unresolved: string[] = [];
 
     // A map match without a domain keeps its tier-1 category link but still
@@ -365,6 +371,8 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
         } catch {
             // TS narrows `partialRef.current` to `null` here because it can't see
             // `resolveImport` reassigning it before throwing — assert the real type.
+            // SAFETY: stated in the comment above — `resolveImport` assigns it before
+            // throwing, which TS cannot see across the boundary.
             const partial = partialRef.current as PartialResolution | null;
             settlement = settleWith(
                 partial?.links ?? NO_LINKS,

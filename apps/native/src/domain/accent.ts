@@ -50,6 +50,12 @@ export function accentForValue(value: number): Accent {
     return ACCENTS.find((accent) => accent.value === value) ?? DEFAULT_ACCENT;
 }
 
+/** The two CSS variables an accent drives, named so the pair is the contract. */
+export interface AccentVariables {
+    "--color-ring": string;
+    "--tint": string;
+}
+
 /**
  * The tokens an accent owns, for one theme.
  *
@@ -61,7 +67,7 @@ export function accentForValue(value: number): Accent {
  * colours are stored per row, so rotating them would repaint every category a
  * user already has, and the accent is chrome where the ramp is taxonomy.
  */
-export function accentVariables(accent: Accent, theme: "light" | "dark"): Record<string, string> {
+export function accentVariables(accent: Accent, theme: "light" | "dark"): AccentVariables {
     const value = theme === "dark" ? accent.dark : accent.light;
     return { "--color-ring": value, "--tint": value };
 }

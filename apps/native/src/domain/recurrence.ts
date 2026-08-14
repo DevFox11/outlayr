@@ -31,15 +31,17 @@ export function ensureRecurringType(type: number): number {
     return type === RECURRING_TYPE.none ? RECURRING_TYPE.monthly : type;
 }
 
-const UNIT_SINGULAR: Record<number, string> = {
-    1: "day",
-    2: "week",
-    3: "month",
-    4: "year",
-};
+// Keyed by a stored `recurringType`, which is a plain column value rather than
+// a checked union, so an unknown one falls back to months.
+const UNIT_SINGULAR = new Map<number, string>([
+    [1, "day"],
+    [2, "week"],
+    [3, "month"],
+    [4, "year"],
+]);
 
 export function cadenceUnit(type: number): string {
-    return UNIT_SINGULAR[type] ?? "month";
+    return UNIT_SINGULAR.get(type) ?? "month";
 }
 
 /** Adds `n` whole months, landing on `anchorDay` where the target month allows. */

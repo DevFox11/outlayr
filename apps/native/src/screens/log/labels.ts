@@ -9,7 +9,7 @@ import type { TranslateFn } from "@/i18n/context";
  * once at import and so cannot follow a language change. Screens name the copy
  * through these keys instead and leave the constants to non-visual callers.
  */
-export const FILTER_LABEL_KEY: Record<LogFilter, TranslationKey> = {
+export const FILTER_LABEL_KEY = {
     all: "log.filter.all",
     category: "log.filter.category",
     day: "log.filter.day",
@@ -19,21 +19,21 @@ export const FILTER_LABEL_KEY: Record<LogFilter, TranslationKey> = {
     type: "log.filter.type",
     upcoming: "log.filter.upcoming",
     week: "log.filter.week",
-};
+} satisfies Record<LogFilter, TranslationKey>;
 
-export const PERIOD_PHRASE_KEY: Record<LogPeriod, TranslationKey> = {
+export const PERIOD_PHRASE_KEY = {
     all: "log.period.all",
     day: "log.period.day",
     month: "log.period.month",
     week: "log.period.week",
     year: "log.period.year",
-};
+} satisfies Record<LogPeriod, TranslationKey>;
 
-export const MEASURE_WORD_KEY: Record<LogMeasure, TranslationKey> = {
+export const MEASURE_WORD_KEY = {
     in: "log.measure.in",
     net: "log.measure.net",
     out: "log.measure.out",
-};
+} satisfies Record<LogMeasure, TranslationKey>;
 
 /**
  * The eyebrow over the filtered scope's figure. `shownCurrency` is what that

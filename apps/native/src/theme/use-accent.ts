@@ -24,8 +24,11 @@ export function useAccent(): Accent {
     const accent = accentForValue(useSettingNumber("accentColor"));
 
     useLayoutEffect(() => {
-        Uniwind.updateCSSVariables("light", accentVariables(accent, "light"));
-        Uniwind.updateCSSVariables("dark", accentVariables(accent, "dark"));
+        // Spread into a fresh literal: `AccentVariables` is an interface, and TS
+        // gives an interface no implicit index signature, so it does not satisfy
+        // uniwind's `CSSVariables` record on its own.
+        Uniwind.updateCSSVariables("light", { ...accentVariables(accent, "light") });
+        Uniwind.updateCSSVariables("dark", { ...accentVariables(accent, "dark") });
     }, [accent]);
 
     return accent;

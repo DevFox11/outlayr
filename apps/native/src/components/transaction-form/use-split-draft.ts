@@ -6,22 +6,20 @@ import type { Database } from "@/db/client";
 import type { Allocation } from "@/domain/split";
 import { openDraft } from "@/domain/split-draft";
 
+export interface SplitDraft {
+    allocations: Allocation[];
+    /** Seeds an untouched draft from what the entry already says. */
+    openSplit: (total: number, categoryId: string | null) => void;
+    setAllocations: (next: Allocation[]) => void;
+}
+
 /**
  * The split being edited alongside the form.
  *
  * Kept out of the form store because a split is written after the row exists,
  * like tags, and nothing in `validators.onChange` gates on it.
  */
-export function useSplitDraft(
-    db: Database,
-    mode: "create" | "edit",
-    initial: Transaction | undefined
-): {
-    allocations: Allocation[];
-    /** Seeds an untouched draft from what the entry already says. */
-    openSplit: (total: number, categoryId: string | null) => void;
-    setAllocations: (next: Allocation[]) => void;
-} {
+export function useSplitDraft(db: Database, mode: "create" | "edit", initial: Transaction | undefined): SplitDraft {
     const [allocations, setAllocations] = useState<Allocation[]>([]);
 
     // An entry being edited already has its parts. Without this the sheet would

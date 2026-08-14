@@ -88,6 +88,8 @@ async function photoRows(
     photoTable: PhotoTable,
     live: "uploadable" | "downloadable"
 ): Promise<PhotoRow[]> {
+    // SAFETY: as in `photo-store-core` — a runtime table choice erases the
+    // generated row type, and the selected columns are common to every one.
     return (await db
         .select({
             id: photoTable.id,

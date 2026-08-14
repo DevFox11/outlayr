@@ -35,15 +35,13 @@ export interface TransactionSaveDraft {
  * lead or end date left over from before the toggle.
  */
 export function buildTransactionInput(draft: TransactionSaveDraft): TransactionInput {
-    return {
+    const input: TransactionInput = {
         accountId: draft.accountId,
         amount: draft.amount,
         categoryId: draft.categoryId,
         currency: draft.currency,
         customColor: draft.customColor,
         date: draft.date,
-        ...(draft.exchangeRate === undefined ? {} : { exchangeRate: draft.exchangeRate }),
-        ...(draft.exchangeRateType === undefined ? {} : { exchangeRateType: draft.exchangeRateType }),
         details: draft.details,
         emoji: draft.emoji,
         icon: draft.icon,
@@ -57,4 +55,14 @@ export function buildTransactionInput(draft: TransactionSaveDraft): TransactionI
         recurringType: draft.isSubscription ? draft.recurringType : RECURRING_TYPE.none,
         reminderLeadDays: draft.isSubscription ? draft.leadDays : null,
     };
+    // Absent, not undefined: an edit that never touched the rate leaves both keys
+    // off so the write keeps whatever was already stored. `transaction-form-save`
+    // has a test pinning that, and `keptCanonical` reads the pair as a unit.
+    if (draft.exchangeRate !== undefined) {
+        input.exchangeRate = draft.exchangeRate;
+    }
+    if (draft.exchangeRateType !== undefined) {
+        input.exchangeRateType = draft.exchangeRateType;
+    }
+    return input;
 }

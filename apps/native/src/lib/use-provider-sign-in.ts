@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { z } from "zod";
 
 import { isSignInCancellation, signInFailureDetail, signInFailureMessage } from "@/domain/account";
 import { useTranslation } from "@/i18n/context";
@@ -11,10 +12,22 @@ type AuthClient = NonNullable<typeof authClient>;
 
 export type SignInProvider = "apple" | "google";
 
+/**
+ * One request per provider, so the credential type travels with the name of the
+ * provider that produces it. Apple answers with a credential object and Google
+ * with a bare id token; pairing them in one union is what previously left the
+ * hook inspecting the value to work out which branch it was in.
+ *
+ * Null is a dismissed sheet, which is not a failure.
+ */
+export type SignInRequest =
+    | { getCredential: () => Promise<AppleSignInCredential | null>; provider: "apple" }
+    | { getCredential: () => Promise<string | null>; provider: "google" };
+
 export interface ProviderSignIn {
     busy: SignInProvider | null;
     error: string | null;
-    start: (provider: SignInProvider, getCredential: () => Promise<AppleSignInCredential | string | null>) => void;
+    start: (request: SignInRequest) => void;
 }
 
 type Activation = Pick<ReturnType<typeof useAuthSession>, "activate" | "begin" | "reject">;
@@ -27,13 +40,21 @@ interface SocialSignInResult {
     error?: { message?: string } | null;
 }
 
+const userIdSchema = z.string().min(1);
+
 function betterAuthUserId(result: SocialSignInResult): string {
-    const userId = result.data?.user?.id;
-    if (typeof userId !== "string" || userId.length === 0) {
+    const userId = userIdSchema.safeParse(result.data?.user?.id);
+    if (!userId.success) {
         throw new Error("Provider sign-in did not return a Better Auth user");
     }
-    return userId;
+    return userId.data;
 }
+
+/** Only the subject is read; an id token carries far more than we need. */
+const identityClaims = z.object({ sub: z.string().min(1) });
+
+/** The `active: true` an /apple/grant success answers with. */
+const appleGrant = z.object({ active: z.literal(true) });
 
 export function googleProviderSubject(identityToken: string): string {
     const [, payload] = identityToken.split(".");
@@ -43,11 +64,11 @@ export function googleProviderSubject(identityToken: string): string {
     try {
         const base64 = payload.replaceAll("-", "+").replaceAll("_", "/");
         const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-        const subject: unknown = JSON.parse(globalThis.atob(padded)).sub;
-        if (typeof subject !== "string" || subject.length === 0) {
+        const claims = identityClaims.safeParse(JSON.parse(globalThis.atob(padded)));
+        if (!claims.success) {
             throw new Error("Google identity token does not contain a subject");
         }
-        return subject;
+        return claims.data.sub;
     } catch (cause) {
         if (cause instanceof Error && cause.message === "Google identity token does not contain a subject") {
             throw cause;
@@ -64,6 +85,9 @@ export async function completeAppleSignIn(
 ): Promise<void> {
     activation.begin();
     try {
+        // SAFETY: better-auth types this per configured provider, and the client
+        // is built without the generic that would resolve it here. Only `data.user.id`
+        // and `error.message` are read, and both are checked before use.
         const result = (await client.signIn.social({
             idToken: { nonce: credential.nonce, token: credential.identityToken },
             provider: "apple",
@@ -77,11 +101,7 @@ export async function completeAppleSignIn(
             body: credential,
             method: "POST",
         });
-        const active =
-            typeof grantResult.data === "object" &&
-            grantResult.data !== null &&
-            "active" in grantResult.data &&
-            grantResult.data.active === true;
+        const active = appleGrant.safeParse(grantResult.data).success;
         if (grantResult.error || !active) {
             throw new Error(grantResult.error?.message ?? "Apple credential activation failed");
         }
@@ -100,6 +120,7 @@ export async function completeAppleSignIn(
 }
 
 export async function completeGoogleSignIn(client: AuthClient, identityToken: string): Promise<void> {
+    // SAFETY: as in `completeAppleSignIn`.
     const result = (await client.signIn.social({
         idToken: { token: identityToken },
         provider: "google",
@@ -124,26 +145,22 @@ export function useProviderSignIn(client: AuthClient, options: ProviderSignInOpt
     const [busy, setBusy] = useState<SignInProvider | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const start = (provider: SignInProvider, getCredential: () => Promise<AppleSignInCredential | string | null>) => {
+    const start = (request: SignInRequest) => {
         setError(null);
-        setBusy(provider);
-        getCredential()
-            .then(async (credential) => {
-                if (!credential) {
-                    return;
-                }
-                if (provider === "apple") {
-                    if (typeof credential === "string") {
-                        throw new TypeError("Apple sign-in did not return a credential");
-                    }
-                    await completeAppleSignIn(client, activation, credential, options.onAppleFailure);
-                    return;
-                }
-                if (typeof credential !== "string") {
-                    throw new TypeError("Google sign-in did not return an identity token");
-                }
-                await completeGoogleSignIn(client, credential);
-            })
+        setBusy(request.provider);
+        const completed =
+            request.provider === "apple"
+                ? request.getCredential().then(async (credential) => {
+                      if (credential) {
+                          await completeAppleSignIn(client, activation, credential, options.onAppleFailure);
+                      }
+                  })
+                : request.getCredential().then(async (idToken) => {
+                      if (idToken) {
+                          await completeGoogleSignIn(client, idToken);
+                      }
+                  });
+        completed
             .catch((cause: unknown) => {
                 if (!isSignInCancellation(cause)) {
                     console.warn("[outlayr] sign-in failed", signInFailureDetail(cause));

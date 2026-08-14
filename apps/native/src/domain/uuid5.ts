@@ -99,11 +99,13 @@ function utf8(text: string): Uint8Array {
     // `TextEncoder` is present in Hermes and in node; the manual path exists so a
     // runtime without it still produces the SAME bytes rather than throwing,
     // because a device that computed a different id would mint a duplicate row.
-    if (typeof TextEncoder !== "undefined") {
+    if ("TextEncoder" in globalThis) {
         return new TextEncoder().encode(text);
     }
     const bytes: number[] = [];
     for (const character of text) {
+        // SAFETY: `character` comes from iterating the string, so index 0 exists;
+        // `codePointAt` only answers undefined past the end.
         const point = character.codePointAt(0) as number;
         if (point < 0x80) {
             bytes.push(point);

@@ -18,6 +18,7 @@ export function useTransactionCount(db: Database): number {
  * carries — first run only needs the last line or two to draw on its page.
  */
 export function useRecentLines(db: Database, limit: number): Transaction[] {
+    // SAFETY: as in `data/accounts.ts` — the table argument pins the row type.
     return useLiveQuery(
         transactions,
         () =>

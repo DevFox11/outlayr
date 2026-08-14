@@ -55,10 +55,13 @@ export function sortTags<T extends NamedTag>(tags: readonly T[]): T[] {
  * nothing, and its tombstone-then-recreate would briefly show the entry
  * untagged on the far side.
  */
-export function tagLinkDiff(
-    current: readonly string[],
-    next: readonly string[]
-): { attach: string[]; detach: string[] } {
+/** The two sets of tag ids a save has to write, in link-table terms. */
+export interface TagLinkDiff {
+    attach: string[];
+    detach: string[];
+}
+
+export function tagLinkDiff(current: readonly string[], next: readonly string[]): TagLinkDiff {
     const before = new Set(current);
     const after = new Set(next);
     return {

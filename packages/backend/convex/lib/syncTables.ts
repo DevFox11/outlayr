@@ -1,6 +1,18 @@
 import { v } from "convex/values";
 
 /**
+ * Everything a replicated column can hold once it is on the wire.
+ *
+ * Mirrors `WireValue` in `apps/native/src/data/sync-engine-core.ts`: the client
+ * encodes every instant to epoch milliseconds before pushing, so no `Date` — and
+ * nothing structured — ever reaches this side.
+ */
+export type WireValue = boolean | number | string | null;
+
+/** A replicated row's payload, keyed by column name. */
+export type WireFields = Record<string, WireValue>;
+
+/**
  * The replication envelope and the per-table payloads, declared once so
  * `schema.ts` (what is stored) and `sync.ts` (what is accepted and served)
  * cannot drift. A column added to one and not the other would replicate as

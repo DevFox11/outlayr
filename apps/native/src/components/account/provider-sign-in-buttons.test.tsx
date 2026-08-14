@@ -169,7 +169,7 @@ describe("providerSignInButtons start wiring", () => {
             <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
         );
         fireEvent.press(getByTestId("apple-sign-in-button"));
-        expect(start).toHaveBeenCalledWith("apple", appleCredential);
+        expect(start).toHaveBeenCalledWith({ getCredential: appleCredential, provider: "apple" });
     });
 
     it("starts Google with the google id token getter", async () => {
@@ -178,6 +178,6 @@ describe("providerSignInButtons start wiring", () => {
             <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
         );
         fireEvent.press(getByTestId("google-sign-in-button"));
-        expect(start).toHaveBeenCalledWith("google", googleIdToken);
+        expect(start).toHaveBeenCalledWith({ getCredential: googleIdToken, provider: "google" });
     });
 });

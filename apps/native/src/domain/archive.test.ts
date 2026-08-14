@@ -29,7 +29,7 @@ function emptyDocument(): ArchiveDocument {
 
 describe("encoding a row", () => {
     it("writes an instant as epoch milliseconds", () => {
-        const encoded = encodeArchiveRow("transactions", {
+        const encoded = encodeArchiveRow({
             date: new Date(1_700_000_000_000),
             id: "t1",
         });
@@ -39,19 +39,19 @@ describe("encoding a row", () => {
     it("leaves a column that merely looks like a date alone", () => {
         // `note` is free text. Encoding by name rather than by value is what keeps
         // a note reading "2026-01-01" from being rewritten as a number.
-        const encoded = encodeArchiveRow("transactions", { note: "2026-01-01" });
+        const encoded = encodeArchiveRow({ note: "2026-01-01" });
         expect(encoded.note).toBe("2026-01-01");
     });
 
     it("round-trips an instant back to the same moment", () => {
         const original = new Date(1_700_000_000_123);
-        const decoded = decodeArchiveRow("transactions", encodeArchiveRow("transactions", { day: original }));
+        const decoded = decodeArchiveRow("transactions", encodeArchiveRow({ day: original }));
         expect(decoded.day instanceof Date).toBeTruthy();
         expect((decoded.day as Date).getTime()).toBe(original.getTime());
     });
 
     it("round-trips a null instant as null, not as the epoch", () => {
-        const decoded = decodeArchiveRow("transactions", encodeArchiveRow("transactions", { deletedAt: null }));
+        const decoded = decodeArchiveRow("transactions", encodeArchiveRow({ deletedAt: null }));
         expect(decoded.deletedAt).toBeNull();
     });
 

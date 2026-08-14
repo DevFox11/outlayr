@@ -10,7 +10,7 @@ import { useTranslation } from "@/i18n/context";
 
 import { FILTER_LABEL_KEY, PERIOD_PHRASE_KEY } from "../labels";
 
-const FILTER_ICON: Record<LogFilter, ToolbarIconName> = {
+const FILTER_ICON = {
     all: "showAll",
     category: "showCategory",
     day: "showDay",
@@ -20,7 +20,7 @@ const FILTER_ICON: Record<LogFilter, ToolbarIconName> = {
     type: "showType",
     upcoming: "showUpcoming",
     week: "showWeek",
-};
+} satisfies Record<LogFilter, ToolbarIconName>;
 
 interface LogToolbarProps {
     filter: LogFilter;

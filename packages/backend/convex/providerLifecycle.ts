@@ -137,16 +137,21 @@ function sha256Hex(value: string): Promise<string> {
         .then((bytes) => Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join(""));
 }
 
+const appleIdentityClaims = z.object({ sub: z.string() });
+
 export function appleTokenVerifier(clientId: string): AppleGrantDependencies["verify"] {
     return async (idToken, rawNonce) => {
         const { payload } = await jwtVerify(idToken, APPLE_JWKS, { audience: clientId, issuer: APPLE_ISSUER });
-        if (typeof payload.sub !== "string") {
+        // `jose` declares `sub` as an optional string but the payload is JSON, so
+        // the claim still has to be checked rather than trusted.
+        const claims = appleIdentityClaims.safeParse(payload);
+        if (!claims.success) {
             throw new TypeError("Apple identity token does not contain a subject");
         }
         if (rawNonce && payload.nonce !== (await sha256Hex(rawNonce))) {
             throw new Error("Apple identity token nonce does not match the raw nonce");
         }
-        return { subject: payload.sub };
+        return { subject: claims.data.sub };
     };
 }
 
@@ -159,12 +164,47 @@ interface AppleResumeValidator {
     resumeUserId: (resumeSecret: string) => Promise<string>;
 }
 
+/**
+ * The only columns this plugin ever writes back onto a linked Apple account.
+ *
+ * `setTokenUtil` answers null when better-auth has no encryption configured, and
+ * a refresh grant returns no new refresh token, so both token columns carry the
+ * absence rather than dropping the write.
+ */
+interface AppleAccountUpdate {
+    accessToken: string | null | undefined;
+    accessTokenExpiresAt: Date | undefined;
+    refreshToken: string | null | undefined;
+}
+
+/**
+ * The slice of better-auth's endpoint context this plugin calls, narrowed from
+ * `ctx.context` by assertion at each endpoint.
+ *
+ * `updateAccount` keeps better-auth's `unknown` result: the assertion needs the
+ * two types to overlap, and tightening it to the `void` the callers actually use
+ * makes `ctx.context as AppleLifecycleContext` stop compiling. The argument side
+ * narrows safely because a parameter type only has to be accepted, not produced.
+ */
 interface AppleLifecycleContext {
     internalAdapter: {
         findAccounts: (userId: string) => Promise<(AppleAccount & { providerId: string })[]>;
-        updateAccount: (accountId: string, values: Record<string, unknown>) => Promise<unknown>;
+        updateAccount: (accountId: string, values: AppleAccountUpdate) => Promise<unknown>;
     };
 }
+
+/**
+ * Apple's token endpoint, snake_case as it sends it.
+ *
+ * `refresh_token` is absent on a refresh-grant response and present on an
+ * authorization-code one, which is why only the caller that needs it insists.
+ */
+const appleTokenResponse = z.object({
+    access_token: z.string(),
+    expires_in: z.number(),
+    id_token: z.string(),
+    refresh_token: z.string().optional(),
+});
 
 async function appleTokenRequest(config: AppleServerConfig, parameters: Record<string, string>): Promise<AppleTokens> {
     const response = await fetch("https://appleid.apple.com/auth/token", {
@@ -179,22 +219,15 @@ async function appleTokenRequest(config: AppleServerConfig, parameters: Record<s
     if (!response.ok) {
         throw new Error("Apple token exchange failed");
     }
-    const body: unknown = await response.json();
-    if (
-        typeof body !== "object" ||
-        body === null ||
-        typeof (body as Record<string, unknown>).access_token !== "string" ||
-        typeof (body as Record<string, unknown>).expires_in !== "number" ||
-        typeof (body as Record<string, unknown>).id_token !== "string"
-    ) {
+    const tokens = appleTokenResponse.safeParse(await response.json());
+    if (!tokens.success) {
         throw new Error("Apple token exchange returned incomplete token material");
     }
-    const tokens = body as Record<string, unknown>;
     return {
-        accessToken: tokens.access_token as string,
-        expiresIn: tokens.expires_in as number,
-        idToken: tokens.id_token as string,
-        refreshToken: typeof tokens.refresh_token === "string" ? tokens.refresh_token : undefined,
+        accessToken: tokens.data.access_token,
+        expiresIn: tokens.data.expires_in,
+        idToken: tokens.data.id_token,
+        refreshToken: tokens.data.refresh_token,
     };
 }
 
@@ -215,6 +248,10 @@ function appleCredentialLifecycleDependencies(config: AppleServerConfig, context
             return accounts.find((a: AppleAccount & { providerId: string }) => a.providerId === "apple") ?? null;
         },
         persist: async (accountId, tokens, retainedRefreshToken) => {
+            // SAFETY: better-auth's token helpers take its full `AuthContext`,
+            // which it does not export, so there is no name to assert to. They
+            // read only the encryption options off it, and the value passed is
+            // the real context — `never` is the widest thing both accept.
             await context.internalAdapter.updateAccount(accountId, {
                 accessToken: await setTokenUtil(tokens.accessToken, context as never),
                 accessTokenExpiresAt: tokens.accessTokenExpiresAt,
@@ -229,6 +266,7 @@ function appleCredentialLifecycleDependencies(config: AppleServerConfig, context
             }
             return appleTokenRequest(config, {
                 grant_type: "refresh_token",
+                // SAFETY: the unexported `AuthContext` again, as in `persist`.
                 refresh_token: await decryptOAuthToken(account.refreshToken, context as never),
             });
         },
@@ -273,6 +311,9 @@ export function appleCredentialLifecycle(config: AppleServerConfig | null, resum
                     const result = await grantAppleCredential(
                         ctx.context.session.user.id,
                         ctx.body,
+                        // SAFETY: better-auth builds one context per request and always
+                        // installs `internalAdapter`; this narrows it to the two adapter
+                        // calls `appleCredentialLifecycleDependencies` makes, nothing more.
                         appleCredentialLifecycleDependencies(config, ctx.context as AppleLifecycleContext)
                     );
                     return ctx.json(result);
@@ -292,6 +333,7 @@ export function appleCredentialLifecycle(config: AppleServerConfig | null, resum
                     return ctx.json(
                         await refreshAppleCredential(
                             ctx.context.session.user.id,
+                            // SAFETY: as in `grantAppleCredential` above.
                             appleCredentialLifecycleDependencies(config, ctx.context as AppleLifecycleContext)
                         )
                     );
@@ -309,6 +351,7 @@ export function appleCredentialLifecycle(config: AppleServerConfig | null, resum
                     }
                     const dependencies = appleCredentialLifecycleDependencies(
                         config,
+                        // SAFETY: as in `grantAppleCredential` above.
                         ctx.context as AppleLifecycleContext
                     );
                     const account = await dependencies.findAppleAccount(
@@ -318,6 +361,7 @@ export function appleCredentialLifecycle(config: AppleServerConfig | null, resum
                     if (!(account && encryptedToken)) {
                         throw new Error("Apple provider revocation requires reauthentication");
                     }
+                    // SAFETY: the unexported `AuthContext`, as in `persist`.
                     await dependencies.revoke(await decryptOAuthToken(encryptedToken, ctx.context as never));
                     return ctx.json({ revoked: true });
                 }

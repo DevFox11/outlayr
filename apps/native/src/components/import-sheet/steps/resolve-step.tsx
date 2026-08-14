@@ -15,7 +15,7 @@ import { useColors } from "@/theme/use-colors";
 
 import { StepCta } from "../step-cta";
 
-const REASON_COPY: Record<UnavailableReason, TranslationKey> = {
+const REASON_COPY = {
     invalidResponse: "import.unavailableInvalidResponse",
     notConfigured: "import.unavailableNotConfigured",
     offline: "import.unavailableOffline",
@@ -24,7 +24,7 @@ const REASON_COPY: Record<UnavailableReason, TranslationKey> = {
     rateLimited: "import.unavailableRateLimited",
     timeout: "import.unavailableTimeout",
     unauthenticated: "import.unavailableUnauthenticated",
-};
+} satisfies Record<UnavailableReason, TranslationKey>;
 
 const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set(["overCap", "notConfigured"]);
 

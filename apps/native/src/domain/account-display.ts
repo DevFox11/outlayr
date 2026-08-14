@@ -96,11 +96,17 @@ export function accountsOverview(
     return { count: accounts.length, exact, owe: worth.owe, own: worth.own, total: worth.net };
 }
 
+/** `exact` is false when no rate reached the display currency and the figure is the raw one. */
+export interface DisplayedBalance {
+    exact: boolean;
+    value: number;
+}
+
 export function initialInDisplay(
     account: OverviewAccount,
     displayCurrency: string,
     rates: RateTable
-): { value: number; exact: boolean } {
+): DisplayedBalance {
     if (account.currency === displayCurrency || account.initialBalance === 0) {
         return { exact: true, value: account.initialBalance };
     }

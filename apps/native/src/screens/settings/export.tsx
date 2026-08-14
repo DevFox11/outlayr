@@ -55,10 +55,10 @@ function ExportDataContent({ db }: { db: Database }) {
                     t("settings.export.archiveShareTitle")
                 )
             )
-            .catch((error: unknown) => {
+            .catch((cause: unknown) => {
                 Alert.alert(
                     t("settings.export.failedTitle"),
-                    error instanceof TransferError ? t(error.key) : t("settings.export.failedBody")
+                    cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody")
                 );
             })
             .finally(() => setBusy(false));
@@ -68,10 +68,10 @@ function ExportDataContent({ db }: { db: Database }) {
         setBusy(true);
         exportTransactionsCsv(db)
             .then((csv) => shareText(csv, exportFileName(new Date()), "text/csv", t("settings.export.shareTitle")))
-            .catch((error: unknown) => {
+            .catch((cause: unknown) => {
                 Alert.alert(
                     t("settings.export.failedTitle"),
-                    error instanceof TransferError ? t(error.key) : t("settings.export.failedBody")
+                    cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody")
                 );
             })
             .finally(() => setBusy(false));

@@ -28,8 +28,8 @@ function RecentlyDeletedContent({ db }: { db: Database }) {
     const rows = useLiveQuery(transactions, () => deletedTransactionsQuery(db));
 
     const restore = (id: string) => {
-        transactionsRepo.restore(db, id).catch((error: unknown) => {
-            console.error("Restore failed", error);
+        transactionsRepo.restore(db, id).catch((cause: unknown) => {
+            console.error("Restore failed", cause);
             Alert.alert(t("settings.deleted.failedTitle"), t("settings.deleted.failedBody"));
         });
     };

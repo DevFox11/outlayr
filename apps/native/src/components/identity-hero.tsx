@@ -69,14 +69,7 @@ const SPARKLES = {
  */
 const CAPTION_GAP = { category: 8, transaction: 12 } as const;
 
-const A11Y: Record<
-    HeroVariant,
-    {
-        readonly tile: TranslationKey;
-        readonly hint: TranslationKey;
-        readonly reset: TranslationKey;
-    }
-> = {
+const A11Y = {
     category: {
         hint: "transaction.identity.hero.iconHint",
         reset: "transaction.identity.hero.removeIcon",
@@ -87,12 +80,19 @@ const A11Y: Record<
         reset: "transaction.identity.hero.removeLogo",
         tile: "transaction.identity.hero.logo",
     },
-};
+} satisfies Record<
+    HeroVariant,
+    {
+        readonly tile: TranslationKey;
+        readonly hint: TranslationKey;
+        readonly reset: TranslationKey;
+    }
+>;
 
-const EMPTY_CAPTION: Record<HeroVariant, TranslationKey> = {
+const EMPTY_CAPTION = {
     category: "transaction.identity.hero.chooseIcon",
     transaction: "transaction.identity.hero.logo",
-};
+} satisfies Record<HeroVariant, TranslationKey>;
 
 interface IdentityHeroProps {
     /** Custom color override; falls back to income green / foreground. */

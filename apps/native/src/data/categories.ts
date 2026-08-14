@@ -87,6 +87,7 @@ export function useCategoryTotals(db: Database): Map<string, number> {
 
 /** Top-level categories only, each with its ordered children nested. */
 export function useCategoriesByNamespace(db: Database, income: boolean): CategoryWithChildren[] {
+    // SAFETY: as in `data/accounts.ts` — the table argument pins the row type.
     const rows = useLiveQuery(
         categories,
         () =>

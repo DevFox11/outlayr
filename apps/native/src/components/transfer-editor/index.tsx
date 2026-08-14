@@ -165,6 +165,8 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
                             onRateTypeChange={draft.setRateType}
                             onSentPress={() => openPad("sent")}
                             rateOptions={draft.rateOptions.map((option) => ({
+                                // SAFETY: every `rateOptions` member has a `transfers.rate.*` entry; the
+                                // literal names one of them so the template resolves to a real key.
                                 label: t(`transfers.rate.${option}` as "transfers.rate.official"),
                                 value: option,
                             }))}

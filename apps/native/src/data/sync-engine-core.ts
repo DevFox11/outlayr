@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 
 import type { Database } from "@/db/client";
@@ -33,9 +34,21 @@ export const PULL_PAGE_LIMIT = 1000;
 /** SQLite binds a bounded number of variables per statement. */
 const ID_CHUNK = 300;
 
+/**
+ * Everything that survives the JSON hop to Convex.
+ *
+ * `Date` is deliberately absent: `toWireFields` encodes every column named in a
+ * spec's `dates` to epoch milliseconds first, and letting a `Date` through here
+ * would put an ISO string on the wire that reads back as text.
+ */
+export type WireValue = boolean | number | string | null;
+
+/** A replicated row's payload, keyed by column name. */
+export type WireFields = Record<string, WireValue>;
+
 export interface WireRow {
     deletedAt: number | null;
-    fields: Record<string, unknown>;
+    fields: WireFields;
     localId: string;
     table: SyncedTable;
     updatedAt: number;
@@ -70,7 +83,7 @@ interface TableSpec {
     table: SQLiteTable;
 }
 
-const SPECS: Record<SyncedTable, TableSpec> = {
+const SPECS = {
     accounts: {
         dates: ["initialBalanceDate", "dateCreated"],
         // `imageUri` is absent for the same reason it is on `transactions`.
@@ -227,42 +240,70 @@ const SPECS: Record<SyncedTable, TableSpec> = {
         id: transfers.id,
         table: transfers,
     },
-};
+} satisfies Record<SyncedTable, TableSpec>;
 
 export function specFor(table: SyncedTable): TableSpec {
     return SPECS[table];
 }
 
+/** A column as SQLite hands it back: the wire set, plus the `Date` it decodes to. */
+export type LocalValue = Date | WireValue;
+
 // A runtime table name erases the generated row type, and every read below is
 // keyed by a name checked against `SPECS`. The alternative is six copies of each
 // helper.
-type Row = Record<string, unknown>;
+type Row = Record<string, LocalValue>;
 interface AnyWriter {
-    select: (columns?: unknown) => {
+    insert: (table: SQLiteTable) => {
+        values: (row: Row) => {
+            onConflictDoUpdate: (config: { target: SQLiteColumn; set: Row }) => Promise<void>;
+        };
+    };
+    select: () => {
         from: (table: SQLiteTable) => {
-            where: (clause: unknown) => Promise<Row[]>;
+            where: (clause: SQL) => Promise<Row[]>;
         };
     };
 }
 
-function toEpoch(value: unknown): number | null {
+/**
+ * The single place the handle is re-typed, so the reason lives in one spot.
+ *
+ * `Database` shares no overlap with `AnyWriter` to assert against directly:
+ * drizzle's builders are generic over each table's column map, so the value the
+ * builder accepts differs per table and cannot be one type. `AnyWriter` is the
+ * shape this file actually calls, with the row type erased for the same reason
+ * `Row` is.
+ */
+function anyWriter(db: Database): AnyWriter {
+    // SAFETY: only the two methods named above are called, and every table
+    // reaching them was looked up in `SPECS` by a checked `SyncedTable` name.
+    return db as unknown as AnyWriter;
+}
+
+function toEpoch(value: LocalValue | undefined): number | null {
     return value instanceof Date ? value.getTime() : null;
 }
 
-function toWireFields(spec: TableSpec, row: Row): Record<string, unknown> {
-    const fields: Record<string, unknown> = {};
+/** A column the spec does not list as a date still cannot carry one. */
+function toWireValue(value: LocalValue | undefined): WireValue {
+    return value instanceof Date ? value.getTime() : (value ?? null);
+}
+
+function toWireFields(spec: TableSpec, row: Row): WireFields {
+    const fields: WireFields = {};
     for (const name of spec.fields) {
         const value = row[name];
-        fields[name] = spec.dates.includes(name) ? toEpoch(value) : (value ?? null);
+        fields[name] = spec.dates.includes(name) ? toEpoch(value) : toWireValue(value);
     }
     return fields;
 }
 
-function toLocalDate(value: unknown): Date | null {
+function toLocalDate(value: WireValue): Date | null {
     return typeof value === "number" ? new Date(value) : null;
 }
 
-function toLocalFields(spec: TableSpec, fields: Record<string, unknown>): Row {
+function toLocalFields(spec: TableSpec, fields: WireFields): Row {
     const local: Row = {};
     for (const name of spec.fields) {
         const value = fields[name] ?? null;
@@ -282,12 +323,11 @@ function chunked<T>(values: readonly T[]): T[][] {
 async function rowsById(db: Database, table: SyncedTable, ids: readonly string[]): Promise<Map<string, Row>> {
     const spec = SPECS[table];
     const batches = await Promise.all(
-        chunked(ids).map(
-            (chunk) =>
-                (db as unknown as AnyWriter)
-                    .select()
-                    .from(spec.table)
-                    .where(inArray(spec.id, [...chunk])) as Promise<Row[]>
+        chunked(ids).map((chunk) =>
+            anyWriter(db)
+                .select()
+                .from(spec.table)
+                .where(inArray(spec.id, [...chunk]))
         )
     );
     const found = new Map<string, Row>();
@@ -302,6 +342,8 @@ async function rowsById(db: Database, table: SyncedTable, ids: readonly string[]
 function groupByTable<T extends { tableName: string; localId: string }>(entries: readonly T[]): Map<SyncedTable, T[]> {
     const grouped = new Map<SyncedTable, T[]>();
     for (const entry of entries) {
+        // SAFETY: checked against `SPECS` on the next line, which is the same set
+        // `SyncedTable` enumerates.
         const table = entry.tableName as SyncedTable;
         if (!(table in SPECS)) {
             continue;
@@ -358,6 +400,8 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 
         const rows: WireRow[] = [];
         for (const entry of queued) {
+            // SAFETY: `queued` came from `groupByTable`, which already dropped every
+            // entry whose table name is not a key of `SPECS`.
             const table = entry.tableName as SyncedTable;
             const row = loaded.get(table)?.get(entry.localId);
             if (!row) {
@@ -623,6 +667,8 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
         // Written directly rather than through `setMeta`, which cannot express a
         // null value — and a key whose value is genuinely null must not arrive here
         // as an empty string.
+        // SAFETY: `appMeta` declares its single column as a nullable string in
+        // `syncTables.ts`, and the wire union is narrower than the column.
         const value = (row.fields.value ?? null) as string | null;
         await db
             .insert(appMeta)
@@ -633,12 +679,12 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
 
     const lostCategory = row.table === "budgets" && (await resolveBudgetCategory(db, row, now));
 
-    const values: Row = {
+    const values = {
         ...toLocalFields(spec, row.fields),
         [spec.id.name]: row.localId,
         deletedAt: lostCategory ? now : toLocalDate(row.deletedAt),
         updatedAt: lostCategory ? now : new Date(row.updatedAt),
-    };
+    } satisfies Row;
     if (lostCategory) {
         values.categoryId = null;
     }
@@ -651,14 +697,7 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
         values.reminderLeadDays = null;
     }
 
-    const writer = db as unknown as {
-        insert: (table: SQLiteTable) => {
-            values: (row: Row) => {
-                onConflictDoUpdate: (config: { target: SQLiteColumn; set: Row }) => Promise<unknown>;
-            };
-        };
-    };
-    await writer.insert(spec.table).values(values).onConflictDoUpdate({ set: values, target: spec.id });
+    await anyWriter(db).insert(spec.table).values(values).onConflictDoUpdate({ set: values, target: spec.id });
     return !lostCategory;
 }
 

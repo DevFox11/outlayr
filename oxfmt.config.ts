@@ -29,6 +29,8 @@ const projectIgnores = [
     "**/.playwright-mcp",
     "**/.claude",
     "skills-lock.json",
+    // Vendored upstream source; see the matching note in oxlint.config.ts.
+    "tools/oxlint/anti-slop",
 ];
 
 export default defineConfig({

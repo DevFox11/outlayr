@@ -4,9 +4,9 @@ import type { Database } from "@/db/client";
 import { accounts, appMeta, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { ARCHIVE_FORMAT, ARCHIVE_TABLES, ARCHIVE_VERSION, decodeArchiveRow, encodeArchiveRow } from "@/domain/archive";
-import type { ArchiveDocument, ArchiveTable } from "@/domain/archive";
+import type { ArchiveDocument, ArchiveRow, ArchiveTable, TableRow } from "@/domain/archive";
 
-const TABLES: Record<ArchiveTable, SQLiteTable> = {
+const TABLES = {
     accounts,
     appMeta,
     budgets,
@@ -14,7 +14,7 @@ const TABLES: Record<ArchiveTable, SQLiteTable> = {
     mainBudget,
     transactions,
     transfers,
-};
+} satisfies Record<ArchiveTable, SQLiteTable>;
 
 /**
  * Every row of every replicated table, tombstones included.
@@ -24,11 +24,13 @@ const TABLES: Record<ArchiveTable, SQLiteTable> = {
  * the undo window restores from them too.
  */
 export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocument> {
-    const tables = {} as Record<ArchiveTable, Record<string, unknown>[]>;
+    // SAFETY: filled for every `ARCHIVE_TABLES` member by the loop below, which
+    // is the same union the type is keyed on.
+    const tables = {} as Record<ArchiveTable, ArchiveRow[]>;
     await Promise.all(
         ARCHIVE_TABLES.map(async (table) => {
-            const rows = await db.select().from(TABLES[table]);
-            tables[table] = rows.map((row) => encodeArchiveRow(table, row as Record<string, unknown>));
+            const rows: TableRow[] = await db.select().from(TABLES[table]);
+            tables[table] = rows.map((row) => encodeArchiveRow(row));
         })
     );
     return {

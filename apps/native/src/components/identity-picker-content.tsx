@@ -68,11 +68,11 @@ export const TRANSACTION_TABS: readonly IdentityTab[] = ["photo", "emoji", "icon
 /** A category is a glyph, never a photo. */
 export const CATEGORY_TABS: readonly IdentityTab[] = ["icons", "emoji"];
 
-const TAB_LABEL: Record<IdentityTab, TranslationKey> = {
+const TAB_LABEL = {
     emoji: "transaction.identity.tab.emoji",
     icons: "transaction.identity.tab.icons",
     photo: "transaction.identity.tab.photo",
-};
+} satisfies Record<IdentityTab, TranslationKey>;
 
 const SECONDARY_LABEL = PlatformColor("secondaryLabel");
 const SEARCH_FIELD_BACKGROUND = PlatformColor("systemGray6");
@@ -209,8 +209,8 @@ export function IdentityPickerContent({
         const picked = result.assets[0].uri;
         // A failed copy still leaves a usable picture for this session, and the
         // launch reconcile adopts it while the cache entry survives.
-        const uri = await persistPickedPhoto(picked).catch((error: unknown) => {
-            console.error("Failed to store the picked photo", error);
+        const uri = await persistPickedPhoto(picked).catch((cause: unknown) => {
+            console.error("Failed to store the picked photo", cause);
             return picked;
         });
         // An unreadable image costs the extracted tint alone: `glowFromImage`
@@ -230,8 +230,8 @@ export function IdentityPickerContent({
     // same afterwards, so a silent rejection is indistinguishable from the tap
     // never having registered.
     const pickPhoto = () => {
-        adoptPickedPhoto().catch((error: unknown) => {
-            console.error("Failed to pick a photo", error);
+        adoptPickedPhoto().catch((cause: unknown) => {
+            console.error("Failed to pick a photo", cause);
             Alert.alert(t("alerts.photo.failedTitle"), t("alerts.photo.failedBody"));
         });
     };
@@ -311,6 +311,8 @@ export function IdentityPickerContent({
 
             <Picker
                 modifiers={[pickerStyle("segmented"), padding({ bottom: 12, horizontal: 20 })]}
+                // SAFETY: the picker reports an index into the options this component
+                // renders, which are exactly `IdentityTab`'s members.
                 onSelectionChange={(next) => setTab(next as IdentityTab)}
                 selection={tab}
             >

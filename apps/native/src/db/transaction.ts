@@ -23,6 +23,9 @@ import type { Database } from "./client";
  * pull `expo-sqlite` into their runtime graph.
  */
 export async function withTransaction(db: Database, task: () => Promise<void>): Promise<void> {
+    // SAFETY: drizzle types `$client` per driver, and this file is shared by the
+    // expo-sqlite and better-sqlite3 ones. Only the optional method below is read,
+    // and its absence is the branch immediately after.
     const client = db.$client as {
         withTransactionAsync?: (t: () => Promise<void>) => Promise<void>;
     };
@@ -30,7 +33,7 @@ export async function withTransaction(db: Database, task: () => Promise<void>): 
     // The better-sqlite3 client most tests inject has no async transaction API, and
     // running the task bare keeps those meaningful rather than silently skipped. A
     // test that needs real rollback injects one — see `transfers-core.test.ts`.
-    if (typeof client.withTransactionAsync !== "function") {
+    if (!client.withTransactionAsync) {
         await task();
         return;
     }

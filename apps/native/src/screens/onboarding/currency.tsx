@@ -27,6 +27,11 @@ import { useTranslation } from "@/i18n/context";
 
 type CommitKind = "continue" | "finish";
 
+// Named so the form's submit-meta type is the union rather than whichever
+// literal the default happened to be.
+const CONTINUE: CommitKind = "continue";
+const FINISH: CommitKind = "finish";
+
 const EASE_OUT = Easing.bezier(0.19, 1, 0.22, 1);
 
 /**
@@ -87,7 +92,7 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
     const sheet = useRef<BottomSheetModal>(null);
     const t = useTranslation();
 
-    const [initialValues] = useState(() => ({ picked: null as string | null }));
+    const [initialValues] = useState<{ picked: string | null }>(() => ({ picked: null }));
     const form = useForm({
         defaultValues: initialValues,
         onSubmit: async ({ value, meta }) => {
@@ -112,7 +117,7 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
                 });
             }
         },
-        onSubmitMeta: "continue" as CommitKind,
+        onSubmitMeta: CONTINUE,
     });
     const { picked } = useSelector(form.store, (s) => s.values);
     const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
@@ -125,14 +130,14 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
             action={{
                 disabled: isSubmitting,
                 label: isSubmitting ? t("onboarding.currency.saving") : t("common.continue"),
-                onPress: () => pressSubmitWith(form, "continue" as CommitKind),
+                onPress: () => pressSubmitWith(form, CONTINUE),
             }}
             body={t("onboarding.currency.body")}
             eyebrow={t("onboarding.currency.eyebrow")}
             object={<CurrencyGlyph symbol={display.symbol} />}
             skip={{
                 label: t("onboarding.currency.shortcut"),
-                onPress: () => pressSubmitWith(form, "finish" as CommitKind),
+                onPress: () => pressSubmitWith(form, FINISH),
             }}
             title={t("onboarding.currency.title")}
         >

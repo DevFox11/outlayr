@@ -62,6 +62,7 @@ export async function fetchMerchantImage(
     // not load is not a failure — it costs one request.
     let cache: typeof import("@/lib/logo-cache") | null = null;
     try {
+        // SAFETY: untyped `require`, asserted to that module's own type.
         cache = require("@/lib/logo-cache") as typeof import("@/lib/logo-cache");
     } catch {
         cache = null;

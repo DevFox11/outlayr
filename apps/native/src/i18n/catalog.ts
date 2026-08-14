@@ -111,4 +111,4 @@ export function catalogFor(locale: Language): Catalog {
 export const EN = catalogFor("en");
 export const ES = catalogFor("es");
 
-export const CATALOGS: Record<Language, Catalog> = { en: EN, es: ES };
+export const CATALOGS = { en: EN, es: ES } satisfies Record<Language, Catalog>;

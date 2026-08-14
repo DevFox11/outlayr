@@ -34,6 +34,10 @@ describe("shallowEqual", () => {
         expect(shallowEqual(1, 2)).toBe(false);
     });
 
+    it("compares two property-less objects as equal, which is what shallow means", () => {
+        expect(shallowEqual({}, {})).toBe(true);
+    });
+
     it("treats NaN operands as equal, matching Object.is", () => {
         expect(shallowEqual({ a: Number.NaN }, { a: Number.NaN })).toBe(true);
     });

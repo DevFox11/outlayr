@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { TranslateFn } from "@/i18n/context";
 
 export interface AccountUser {
@@ -40,8 +42,8 @@ const CANCELLATION_CODES = new Set([
  * as a failure would put an error on screen for a user who simply changed their
  * mind.
  */
-export function isSignInCancellation(error: unknown): boolean {
-    const code = errorField(error, "code");
+export function isSignInCancellation(cause: unknown): boolean {
+    const code = errorField(cause, "code");
     return code !== null && CANCELLATION_CODES.has(code);
 }
 
@@ -57,24 +59,30 @@ export function isSignInCancellation(error: unknown): boolean {
  * so the only thing shown is copy we wrote. The original is still worth having
  * when something is actually wrong, so callers log it.
  */
-export function signInFailureMessage(error: unknown, t: TranslateFn): string {
-    if (errorField(error, "code") === "PLAY_SERVICES_NOT_AVAILABLE") {
+export function signInFailureMessage(cause: unknown, t: TranslateFn): string {
+    if (errorField(cause, "code") === "PLAY_SERVICES_NOT_AVAILABLE") {
         return t("settings.account.playServices");
     }
     return t("settings.account.genericFailure");
 }
 
 /** The provider's own text, for a log line rather than a screen. */
-export function signInFailureDetail(error: unknown): string | null {
-    return firstNonBlank(errorField(error, "message"), errorField(error, "code"));
+export function signInFailureDetail(cause: unknown): string | null {
+    return firstNonBlank(errorField(cause, "message"), errorField(cause, "code"));
 }
 
-function errorField(error: unknown, field: string): string | null {
-    if (typeof error !== "object" || error === null) {
-        return null;
-    }
-    const value = (error as Record<string, unknown>)[field];
-    return typeof value === "string" ? value : null;
+/**
+ * The two fields a provider rejection may carry. Everything a provider throws is
+ * `unknown` to us, so the pair is read off it rather than assumed.
+ */
+const providerFailure = z.object({
+    code: z.string().optional(),
+    message: z.string().optional(),
+});
+
+function errorField(cause: unknown, field: "code" | "message"): string | null {
+    const parsed = providerFailure.safeParse(cause);
+    return parsed.success ? (parsed.data[field] ?? null) : null;
 }
 
 function firstNonBlank(...values: (string | null | undefined)[]): string | null {

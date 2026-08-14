@@ -137,8 +137,8 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
                 setStatus("settled");
             };
 
-            adopt().catch((error: unknown) => {
-                console.warn("[outlayr] ledger adoption failed", error);
+            adopt().catch((cause: unknown) => {
+                console.warn("[outlayr] ledger adoption failed", cause);
                 setFailed(true);
                 setStatus("ask");
             });

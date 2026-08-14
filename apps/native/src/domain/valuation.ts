@@ -169,6 +169,8 @@ export function valueRowsIn(rows: readonly DirectedValuable[], displayCurrency: 
         let assigned = 0;
         for (const index of indices) {
             const row = rows[index];
+            // SAFETY: `indices` holds only rows `canonicalOf` answered a number for —
+            // the null ones were partitioned out before this loop.
             runningUsd += canonicalOf(row) as number;
             const converted = convertUsdSum(runningUsd, row.dateKey, displayCurrency, rates);
             if (converted === null) {

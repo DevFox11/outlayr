@@ -10,7 +10,13 @@ jest.mock("expo-secure-store", () => ({
     setItemAsync: jest.fn(),
 }));
 jest.mock("@/lib/auth-client", () => ({ authClient: null }));
-jest.mock("@/lib/convex", () => ({ convex: { mutation: jest.fn(), query: jest.fn() } }));
+// `convex` only has to be non-null — the module's own guard reads it — while the
+// calls themselves go through the wrappers `convex.ts` exports.
+jest.mock("@/lib/convex", () => ({
+    cloudMutation: jest.fn(),
+    cloudQuery: jest.fn(),
+    convex: {},
+}));
 jest.mock("@/lib/provider-revocation", () => ({
     persistGoogleLocalReceiptAfterRevocation: async (revoke: () => Promise<void>, persist: () => Promise<void>) => {
         await revoke();
@@ -19,16 +25,16 @@ jest.mock("@/lib/provider-revocation", () => ({
     revokeGoogleProviderSubject: (...args: unknown[]) => mockRevokeGoogleProviderSubject(...args),
 }));
 
+function cloudMocks() {
+    return jest.requireMock("@/lib/convex") as { cloudMutation: jest.Mock; cloudQuery: jest.Mock };
+}
+
 describe("resumePersistedCloudDeletion", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        const { convex } = jest.requireMock("@/lib/convex") as {
-            convex: { mutation: jest.Mock; query: jest.Mock };
-        };
-        const mockQuery = convex.query;
-        const mockMutation = convex.mutation;
-        mockQuery.mockResolvedValueOnce({ phase: "prepared" }).mockResolvedValueOnce({ phase: "complete" });
-        mockMutation.mockResolvedValueOnce({ phase: "providersRevoked" }).mockResolvedValueOnce({ phase: "complete" });
+        const { cloudMutation, cloudQuery } = cloudMocks();
+        cloudQuery.mockResolvedValueOnce({ phase: "prepared" }).mockResolvedValueOnce({ phase: "complete" });
+        cloudMutation.mockResolvedValueOnce({ phase: "providersRevoked" }).mockResolvedValueOnce({ phase: "complete" });
         (getItemAsync as jest.Mock).mockResolvedValue(
             JSON.stringify({
                 provider: "google",
@@ -41,20 +47,18 @@ describe("resumePersistedCloudDeletion", () => {
 
     it("resumes a cloud marker through the sessionless provider receipt and deletion job", async () => {
         await resumePersistedCloudDeletion({ clearOnComplete: false, required: true });
-        const { convex } = jest.requireMock("@/lib/convex") as {
-            convex: { mutation: jest.Mock };
-        };
+        const { cloudMutation } = cloudMocks();
 
         expect(mockRevokeGoogleProviderSubject).toHaveBeenCalledWith("provider-subject");
         expect(setItemAsync).toHaveBeenCalledWith(
             "outlayr.account-deletion-resume",
             expect.stringContaining("googleLocalReceipt")
         );
-        expect(convex.mutation).toHaveBeenCalledWith("accountDeletion:submitGoogleLocalReceipt", {
+        expect(cloudMutation).toHaveBeenCalledWith("accountDeletion:submitGoogleLocalReceipt", {
             receiptChallenge: "challenge",
             resumeSecret: "secret",
         });
-        expect(convex.mutation).toHaveBeenCalledWith("accountDeletion:advance", { resumeSecret: "secret" });
+        expect(cloudMutation).toHaveBeenCalledWith("accountDeletion:advance", { resumeSecret: "secret" });
         expect(deleteItemAsync).not.toHaveBeenCalled();
     });
 
@@ -62,20 +66,15 @@ describe("resumePersistedCloudDeletion", () => {
         (getItemAsync as jest.Mock).mockResolvedValue(null);
 
         await expect(resumePersistedCloudDeletion({ required: true })).rejects.toThrow("requires reauthentication");
-        const { convex } = jest.requireMock("@/lib/convex") as {
-            convex: { mutation: jest.Mock };
-        };
-        expect(convex.mutation).not.toHaveBeenCalled();
+        expect(cloudMocks().cloudMutation).not.toHaveBeenCalled();
     });
 
     it("maps an expired deletion job to reauthentication without advancing device cleanup", async () => {
-        const { convex } = jest.requireMock("@/lib/convex") as {
-            convex: { mutation: jest.Mock; query: jest.Mock };
-        };
-        convex.query.mockReset();
-        convex.query.mockResolvedValue(null);
+        const { cloudMutation, cloudQuery } = cloudMocks();
+        cloudQuery.mockReset();
+        cloudQuery.mockResolvedValue(null);
 
         await expect(resumePersistedCloudDeletion({ required: true })).rejects.toThrow("requires reauthentication");
-        expect(convex.mutation).not.toHaveBeenCalled();
+        expect(cloudMutation).not.toHaveBeenCalled();
     });
 });

@@ -1,5 +1,6 @@
 import { utcDateString } from "@outlayr/money/dates";
 import { v } from "convex/values";
+import { z } from "zod";
 
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -43,32 +44,19 @@ function windowUrl(from: string): string {
     return `${FRANKFURTER_URL}&from=${from}`;
 }
 
-interface FrankfurterRecord {
-    base: string;
-    date: string;
-    quote: string;
-    rate: number;
-}
+/**
+ * `base` is a literal: a record quoting anything but USD is not one of ours, and
+ * storing it would put the wrong denominator on every rate in the row.
+ */
+const frankfurterRecord = z.object({
+    base: z.literal("USD"),
+    date: z.string().regex(EFFECTIVE_DATE_PATTERN),
+    quote: z.string().regex(CURRENCY_CODE_PATTERN),
+    rate: z.number().finite().positive(),
+});
 
-function isValidRecord(value: unknown): value is FrankfurterRecord {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-    if (!("base" in value && "quote" in value && "rate" in value && "date" in value)) {
-        return false;
-    }
-    const { base, quote, rate, date } = value;
-    return (
-        base === "USD" &&
-        typeof quote === "string" &&
-        CURRENCY_CODE_PATTERN.test(quote) &&
-        typeof rate === "number" &&
-        Number.isFinite(rate) &&
-        rate > 0 &&
-        typeof date === "string" &&
-        EFFECTIVE_DATE_PATTERN.test(date)
-    );
-}
+/** One unusable record is dropped, not the whole window. */
+const frankfurterResponse = z.array(frankfurterRecord.nullable().catch(null));
 
 export const fetchRates = internalAction({
     args: {},
@@ -86,14 +74,17 @@ export const fetchRates = internalAction({
             return null;
         }
 
-        if (!Array.isArray(payload)) {
+        const parsed = frankfurterResponse.safeParse(payload);
+        if (!parsed.success) {
             console.error("Frankfurter response was not an array");
             return null;
         }
 
         const ratesByDate = new Map<string, { quote: string; rateType: "official"; rate: number }[]>();
-        const records = payload.filter(isValidRecord);
-        for (const record of records) {
+        for (const record of parsed.data) {
+            if (record === null) {
+                continue;
+            }
             const entry = {
                 quote: record.quote,
                 rate: record.rate,

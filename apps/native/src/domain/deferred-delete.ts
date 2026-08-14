@@ -30,7 +30,7 @@ export interface DeferredDeleteController {
 }
 
 export interface DeferredDeleteOptions<Handle> {
-    commit: (id: string) => Promise<unknown>;
+    commit: (id: string) => Promise<void>;
     onChange: (snapshot: DeferredDeleteSnapshot) => void;
     timers: DeferredDeleteTimers<Handle>;
     windowMs: number;

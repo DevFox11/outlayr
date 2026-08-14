@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull, like } from "drizzle-orm";
+import { z } from "zod";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
@@ -38,19 +39,19 @@ interface LedgerEntry {
     txId: string;
 }
 
-function isLedgerEntry(value: unknown): value is LedgerEntry {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-    const entry = value as Record<string, unknown>;
-    return (
-        typeof entry.id === "string" &&
-        (entry.key === null || typeof entry.key === "string") &&
-        typeof entry.txId === "string" &&
-        typeof entry.at === "number" &&
-        Number.isFinite(entry.at)
-    );
-}
+const ledgerSchema = z.array(
+    z
+        .object({
+            at: z.number().finite(),
+            id: z.string(),
+            key: z.string().nullable(),
+            txId: z.string(),
+        })
+        // Per entry, so one bad row does not discard a ledger that is otherwise
+        // the only record of which purchases have already been committed.
+        .nullable()
+        .catch(null)
+);
 
 async function readLedger(db: Database): Promise<LedgerEntry[]> {
     const raw = await getMeta(db, META_KEYS.pendingWriteLedger);
@@ -58,8 +59,8 @@ async function readLedger(db: Database): Promise<LedgerEntry[]> {
         return [];
     }
     try {
-        const parsed: unknown = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed.filter(isLedgerEntry) : [];
+        const parsed = ledgerSchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data.filter((entry) => entry !== null) : [];
     } catch {
         return [];
     }

@@ -135,6 +135,8 @@ export async function reconcilePhotos(db: SpendDb, files: PhotoFiles, nowMs: num
 
     /* oxlint-disable no-await-in-loop -- every table reconciles against the `stored` and `referenced` maps the previous table already mutated, so a table's rows cannot be read before the one before it has finished adopting files */
     for (const photoTable of PHOTO_TABLES) {
+        // SAFETY: `photoTable` is chosen from `PHOTO_TABLES` at runtime, which
+        // erases the column map; the two columns selected exist on all of them.
         const rows = (await db
             .select({ id: photoTable.id, imageUri: photoTable.imageUri })
             .from(photoTable.table)

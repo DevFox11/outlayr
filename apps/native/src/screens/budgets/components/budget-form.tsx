@@ -32,12 +32,27 @@ import { useColors } from "@/theme/use-colors";
 type Kind = "overall" | "category";
 type Period = "day" | "week" | "month" | "year";
 
-const PERIOD_TYPE: Record<Period, number> = {
+/**
+ * Named so the two union fields keep their union type. Inferred from the initial
+ * object they would each narrow to the one literal the current mode happens to
+ * start on, and the segmented controls below set the other.
+ */
+interface BudgetFormValues {
+    amount: string;
+    category: ReturnType<typeof getCategoryById>;
+    kind: Kind;
+    name: string;
+    period: Period;
+    rollover: boolean;
+    startDate: Date | null;
+}
+
+const PERIOD_TYPE = {
     day: BUDGET_TYPE.day,
     month: BUDGET_TYPE.month,
     week: BUDGET_TYPE.week,
     year: BUDGET_TYPE.year,
-};
+} satisfies Record<Period, number>;
 
 interface BudgetFormProps {
     db: Database;
@@ -49,12 +64,13 @@ interface BudgetFormProps {
     onDone: () => void;
 }
 
-const PERIOD_BY_TYPE: Record<number, Period> = {
-    [BUDGET_TYPE.day]: "day",
-    [BUDGET_TYPE.week]: "week",
-    [BUDGET_TYPE.month]: "month",
-    [BUDGET_TYPE.year]: "year",
-};
+// Keyed by a stored budget `type`, which is a plain column value.
+const PERIOD_BY_TYPE = new Map<number, Period>([
+    [BUDGET_TYPE.day, "day"],
+    [BUDGET_TYPE.week, "week"],
+    [BUDGET_TYPE.month, "month"],
+    [BUDGET_TYPE.year, "year"],
+]);
 
 /** Overall budgets are a singleton — saving re-points the existing one. */
 export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
@@ -87,12 +103,12 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
         );
     };
 
-    const [initialValues] = useState(() => ({
+    const [initialValues] = useState<BudgetFormValues>(() => ({
         amount: initial ? numberToNumpad(initial.amount, minorUnits) : "",
         category: initial?.categoryId ? getCategoryById(db, initial.categoryId) : null,
-        kind: (initial ? "category" : "overall") as Kind,
+        kind: initial ? "category" : "overall",
         name: initial?.name ?? "",
-        period: (initial ? (PERIOD_BY_TYPE[initial.type] ?? "month") : "month") as Period,
+        period: initial ? (PERIOD_BY_TYPE.get(initial.type) ?? "month") : "month",
         rollover: initial?.rollover ?? false,
         startDate: initial?.startDate ?? null,
     }));
@@ -194,6 +210,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
             >
                 {initial ? null : (
                     <SegmentedControl
+                        // SAFETY: the control reports one of the `options` below, which are
+                        // exactly `Kind`'s members.
                         onChange={(next) => form.setFieldValue("kind", next as Kind)}
                         options={[
                             { label: t("budgets.form.kindOverall"), value: "overall" },
@@ -264,6 +282,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 
                 <Field label={t("budgets.form.period")}>
                     <SegmentedControl
+                        // SAFETY: the control reports one of the `options` below, which are
+                        // exactly `Period`'s members.
                         onChange={(next) => form.setFieldValue("period", next as Period)}
                         options={[
                             { label: t("budgets.form.periodDay"), value: "day" },

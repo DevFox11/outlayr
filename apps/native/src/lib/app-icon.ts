@@ -21,10 +21,13 @@ function readAppIconName(): string | null {
     }
 }
 
-export function useAppIcon(): {
+export interface AppIconControl {
+    /** Null is the primary icon. */
     active: string | null;
     choose: (name: string | null) => void;
-} {
+}
+
+export function useAppIcon(): AppIconControl {
     const [state, setState] = useState<AppIconState>(() => ({
         active: readAppIconName(),
         pending: null,
@@ -70,8 +73,8 @@ export function useAppIcon(): {
                 .then(() => {
                     apply({ kind: "resolved", name });
                 })
-                .catch((error: unknown) => {
-                    console.error("App icon change failed", error);
+                .catch((cause: unknown) => {
+                    console.error("App icon change failed", cause);
                     apply({ kind: "rejected", reported: readAppIconName() });
                     Alert.alert(
                         translateNow("settings.appIcon.failedTitle"),

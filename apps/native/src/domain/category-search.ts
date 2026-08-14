@@ -19,7 +19,13 @@ export function categorySearchKey(value: string): string {
  * loses its combining mark to the fold, and every offset after it would otherwise
  * point one character early and cut the highlight short.
  */
-function fold(value: string): { folded: string; origIndex: number[] } {
+interface FoldedText {
+    folded: string;
+    /** `origIndex[i]` is the offset in the original that folded position `i` came from. */
+    origIndex: number[];
+}
+
+function fold(value: string): FoldedText {
     let folded = "";
     const origIndex: number[] = [];
     let offset = 0;

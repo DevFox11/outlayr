@@ -17,7 +17,7 @@ import { useTranslation } from "@/i18n/context";
 import { runAccountLifecycle } from "@/lib/account-lifecycle";
 import { authClient } from "@/lib/auth-client";
 import { useAuthSession } from "@/lib/auth-session";
-import { convex } from "@/lib/convex";
+import { cloudMutation, convex } from "@/lib/convex";
 import { deletionResumeSecretKey, resumePersistedCloudDeletion, resumeProviderRevocation } from "@/lib/deletion-resume";
 import type { StoredDeletionPreparation } from "@/lib/deletion-resume";
 import { createDeviceResetGate, writeDeviceResetMarker } from "@/lib/device-data-reset";
@@ -81,10 +81,14 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
         setBusy(true);
         runAccountLifecycle("signOut", {
             allowLocal: openLedger,
-            deleteAccount: () => client.deleteUser(),
+            deleteAccount: async () => {
+                await client.deleteUser();
+            },
             navigateToLedger: openLedger,
             quiesce: () => setSyncEnabled(db, false),
-            signOut: () => client.signOut(),
+            signOut: async () => {
+                await client.signOut();
+            },
         })
             .catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
             .finally(() => setBusy(false));
@@ -110,7 +114,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                 if (convex === null) {
                     throw new Error("Cloud deletion is unavailable");
                 }
-                return await convex.mutation("accountDeletion:advance" as never, { resumeSecret } as never);
+                return await cloudMutation("accountDeletion:advance", { resumeSecret });
             },
             allowLocal: openLedger,
             beginDeviceReset:
@@ -133,16 +137,20 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                     throw new Error("Cloud deletion is unavailable");
                 }
                 const binding = await providerBindingFor(activeSession.user.id);
-                const preparation = (await convex.mutation("accountDeletion:prepare" as never, {} as never)) as {
-                    receiptChallenge: string;
-                    resumeSecret: string;
-                };
+                const preparation = await cloudMutation<
+                    Record<string, never>,
+                    { receiptChallenge: string; resumeSecret: string }
+                >("accountDeletion:prepare", {});
                 return { ...preparation, provider: binding.provider, providerSubject: binding.providerSubject };
             },
             quiesce: () => setSyncEnabled(db, false),
             resetDevice: action === "deleteAll" && resetGate ? async () => await resetGate.recover() : undefined,
-            revokeProvider: async (preparation) =>
-                await resumeProviderRevocation(preparation as StoredDeletionPreparation),
+            revokeProvider: async (preparation) => {
+                // SAFETY: `prepareDeletion` above is the only producer of this value
+                // and adds the provider pair that `StoredDeletionPreparation` needs
+                // on top of what `DeletionPreparation` declares.
+                await resumeProviderRevocation(preparation as StoredDeletionPreparation);
+            },
         })
             .catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
             .finally(() => setBusy(false));

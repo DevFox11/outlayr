@@ -20,7 +20,7 @@ export const LOG_FILTER_ORDER: readonly LogFilter[] = [
     "upcoming",
 ];
 
-export const LOG_FILTER_LABEL: Record<LogFilter, string> = {
+export const LOG_FILTER_LABEL = {
     all: "all entries",
     category: "by category",
     day: "by day",
@@ -30,7 +30,7 @@ export const LOG_FILTER_LABEL: Record<LogFilter, string> = {
     type: "by type",
     upcoming: "upcoming",
     week: "by week",
-};
+} satisfies Record<LogFilter, string>;
 
 /** Null for the filters that name no stretch of time. */
 export function filterPeriodUnit(filter: LogFilter): CursorUnit | null {

@@ -44,10 +44,15 @@ export function AccountPickerSheet({
     const setRefs = useCallback(
         (node: BottomSheetModal | null) => {
             sheetRef.current = node;
-            if (typeof ref === "function") {
-                ref(node);
-            } else if (ref) {
+            if (!ref) {
+                return;
+            }
+            // React's `Ref` is a callback or an object with `current`; only the
+            // second has the property, which is what tells the two apart.
+            if ("current" in ref) {
                 ref.current = node;
+            } else {
+                ref(node);
             }
         },
         [ref]

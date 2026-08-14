@@ -25,7 +25,7 @@ export interface NumberLocale {
 /** A trailing symbol must not wrap onto a line of its own, away from its figure. */
 export const NBSP = "\u00A0";
 
-const NUMBER_LOCALES: Record<Language, NumberLocale> = {
+const NUMBER_LOCALES = {
     en: { decimal: ".", gap: "", group: ",", placement: "prefix", tag: "en-US" },
     es: {
         decimal: ",",
@@ -34,7 +34,7 @@ const NUMBER_LOCALES: Record<Language, NumberLocale> = {
         placement: "suffix",
         tag: "es-ES",
     },
-};
+} satisfies Record<Language, NumberLocale>;
 
 export function numberLocale(language: Language = runtimeLanguage()): NumberLocale {
     return NUMBER_LOCALES[language];
@@ -45,6 +45,7 @@ export function numberLocale(language: Language = runtimeLanguage()): NumberLoca
  * for most, 3 for KWD-style dinars); an unknown code falls back to 2.
  */
 export function minorUnitsFor(code: string): number {
+    // SAFETY: guarded by the `in` check on the same line.
     return code in CURRENCY_DECIMALS ? CURRENCY_DECIMALS[code as keyof typeof CURRENCY_DECIMALS] : 2;
 }
 

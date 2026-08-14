@@ -64,10 +64,10 @@ function RestoreDataContent({ db }: { db: Database }) {
                     ]
                 );
             })
-            .catch((error: unknown) => {
+            .catch((cause: unknown) => {
                 Alert.alert(
                     t("settings.restore.failedTitle"),
-                    error instanceof TransferError ? t(error.key) : t("settings.restore.failedBody")
+                    cause instanceof TransferError ? t(cause.key) : t("settings.restore.failedBody")
                 );
             });
     };

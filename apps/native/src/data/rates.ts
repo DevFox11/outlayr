@@ -96,6 +96,8 @@ export async function pullRatesIfDue(
     if (!options.force) {
         const raw = await getMeta(db, LAST_PULL_KEY);
         const last = raw === null ? null : Number.parseInt(raw, 10);
+        // SAFETY: `Number.isNaN` takes a number, and `last` is null-checked into
+        // the parse above; the null case is handled by the ternary itself.
         if (isThrottled(Number.isNaN(last as number) ? null : last, now)) {
             return false;
         }

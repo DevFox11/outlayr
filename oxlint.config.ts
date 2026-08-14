@@ -28,6 +28,10 @@ const projectIgnores = [
     "**/.playwright-mcp",
     "**/.claude",
     "skills-lock.json",
+    // The vendored anti-slop plugin. Held at upstream's formatting and style so
+    // `tools/oxlint/anti-slop/VENDOR.md` can diff it against the pinned commit;
+    // linting it with our own gate would fork it on the first sync.
+    "tools/oxlint/anti-slop",
 ];
 
 const NATIVE_SOURCE = "apps/native/src/**";
@@ -98,7 +102,7 @@ export default defineConfig({
         jest: "readonly",
     },
     ignorePatterns: [...core.ignorePatterns, ...projectIgnores],
-    jsPlugins: ["oxlint-tailwindcss"],
+    jsPlugins: ["oxlint-tailwindcss", { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" }],
     overrides: [
         ...scopeTo("apps/native", "jest", JEST_ONLY_OPT_OUT, jest),
         ...scopeTo("packages", "vitest", VITEST_ONLY_OPT_OUT, vitest),
@@ -116,6 +120,18 @@ export default defineConfig({
                 "**/scripts/**",
             ],
             rules: {
+                // A test declares its own doubles, so anti-slop's evidence
+                // rules have nothing to protect here: the cast, the widened
+                // literal and the `unknown` argument are the fixture. Module
+                // mocking is how jest-expo isolates a native module at all.
+                "anti-slop/no-chained-type-assertions": "off",
+                "anti-slop/no-known-value-widening": "off",
+                "anti-slop/no-module-mocking": "off",
+                "anti-slop/no-runtime-typeof": "off",
+                "anti-slop/no-unknown-parameters": "off",
+                "anti-slop/no-unknown-returns": "off",
+                "anti-slop/no-unsafe-dictionary-type": "off",
+                "anti-slop/require-safety-comment-for-type-assertion": "off",
                 "class-methods-use-this": "off",
                 "import/first": "off",
                 "import/no-named-as-default-member": "off",
@@ -215,8 +231,82 @@ export default defineConfig({
                 "no-restricted-imports": "off",
             },
         },
+        {
+            // The two assertion chains this codebase cannot retire, both against
+            // a type we do not own. React Native's `BodyInit` omits the typed
+            // array its `fetch` actually sends, and drizzle's builders are
+            // generic per table so `Database` shares no members with the
+            // single-code-path writer the sync engine calls. Each is one named,
+            // commented hop — `anyWriter` in the second case.
+            files: ["apps/native/src/lib/convex.ts", "apps/native/src/data/sync-engine-core.ts"],
+            rules: {
+                "anti-slop/no-chained-type-assertions": "off",
+            },
+        },
+        {
+            // `AppleLifecycleContext` is a structural view of better-auth's
+            // endpoint context, narrowed by assertion. Its members are
+            // better-auth's to declare: tightening `updateAccount` to the `void`
+            // the callers use removes the overlap the assertion needs.
+            files: ["packages/backend/convex/providerLifecycle.ts"],
+            rules: {
+                "anti-slop/no-unknown-returns": "off",
+            },
+        },
     ],
     rules: {
+        // anti-slop (vendored, see tools/oxlint/anti-slop) rejects low-evidence
+        // typing: casts with no stated reason, `unknown`/`object` inputs, and
+        // values that cross a boundary unparsed. The severity per rule is
+        // whatever the tree already satisfies. `error` means zero sites today,
+        // so the rule holds a line rather than opening a backlog; `warn` means
+        // real signal against a pre-existing count, and this change is linter
+        // wiring rather than a typing rewrite. Pre-commit lints staged files,
+        // so a warning surfaces on the file someone is already editing. The
+        // test override above drops the rules whose subject is the fixture.
+        //
+        // The two that remain are third-party types with no overlap to assert
+        // against; both have a file override above.
+        "anti-slop/no-chained-type-assertions": "error",
+        "anti-slop/no-conditional-empty-object-spread": "error",
+        // 5 sites left. Four are a row keyed by a runtime column name
+        // (`WireFields`, `ArchiveRow`, `TableRow`) — genuinely an open
+        // dictionary, which is why the sync engine and the archive exist. The
+        // fifth is a preset table whose `satisfies` form narrows the category
+        // names past what `merchant-map.test.ts` passes in.
+        "anti-slop/no-known-value-widening": "warn",
+        // Every site but one is a test; the exception is
+        // `jest/expo-observe-stub.js`. The override covers both, which leaves
+        // this an error for source — no shipping module mocks a module.
+        "anti-slop/no-module-mocking": "error",
+        "anti-slop/no-object-parameters": "error",
+        "anti-slop/no-reflect-apply": "error",
+        "anti-slop/no-reflect-get": "error",
+        // 8 sites left, all narrowing a union TypeScript already declares — a
+        // `weight: number | string` prop, a `WireValue` column, a translation
+        // count. Every I/O boundary the rule was actually aimed at now parses
+        // with zod instead, but narrowing a declared union is what `typeof` is
+        // for, so this cannot become an error without rejecting correct code.
+        "anti-slop/no-runtime-typeof": "warn",
+        // Bans the substring "shape" in any identifier, imported ones included.
+        // Most sites here are `contentShape`, `shapes` and `buttonBorderShape`
+        // from @expo/ui/swift-ui/modifiers, which are SwiftUI's names for real
+        // geometry and cannot be renamed.
+        "anti-slop/no-shape-in-symbol-names": "off",
+        // Every caught value is now named `cause`, which is the rule's own
+        // carve-out and what the call sites already called it.
+        "anti-slop/no-unknown-parameters": "error",
+        // Every injected callback now declares `Promise<void>` where its value
+        // is ignored. The one exception has a file override above.
+        "anti-slop/no-unknown-returns": "error",
+        "anti-slop/no-unknown-type-aliases": "error",
+        // 2 sites left, both a third-party type parameter rather than a
+        // dictionary of ours: drizzle's schema generic on `SpendDb`, and the
+        // oxlint rule map in `scopeTo` below.
+        "anti-slop/no-unsafe-dictionary-type": "warn",
+        "anti-slop/no-widen-then-assert": "error",
+        // Every assertion left in the tree now states its invariant.
+        "anti-slop/require-safety-comment-for-type-assertion": "error",
         // oxlint counts cyclomatic complexity where Biome counted cognitive, so
         // the old threshold of 25 does not carry across. On the new metric the
         // cluster that is barely over sits at 26-33 and only the transaction

@@ -10,7 +10,7 @@ import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
 
-const COPY: Record<AdoptionChoice, { title: TranslationKey; body: TranslationKey; confirm: TranslationKey }> = {
+const COPY = {
     "keep-account": {
         body: "auth.adopt.keepAccount.body",
         confirm: "auth.adopt.confirm.keepAccount",
@@ -26,7 +26,7 @@ const COPY: Record<AdoptionChoice, { title: TranslationKey; body: TranslationKey
         confirm: "auth.adopt.merge.body",
         title: "auth.adopt.merge.title",
     },
-};
+} satisfies Record<AdoptionChoice, { title: TranslationKey; body: TranslationKey; confirm: TranslationKey }>;
 
 export function LedgerAdoption() {
     const { status, failed, choose } = useLedgerAdoption();

@@ -98,7 +98,8 @@
         "tailwind-merge": "^3.6.0",
         "tailwind-variants": "^3.3.0",
         "tailwindcss": "^4.3.3",
-        "uniwind": "^1.10.0"
+        "uniwind": "^1.10.0",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@outlayr/config": "workspace:*",

@@ -203,6 +203,9 @@ export const advance = mutation({
             return publicStatus({ ...job, phase: "authDeleting" });
         }
         try {
+            // SAFETY: the better-auth component types its mutation references
+            // against its own generated api, which this app does not import. The
+            // `input` shape below is the adapter's documented one.
             await ctx.runMutation(
                 components.betterAuth.adapter.deleteOne as never,
                 {
@@ -210,6 +213,7 @@ export const advance = mutation({
                 } as never
             );
         } finally {
+            // SAFETY: as in the `deleteOne` call above.
             await ctx.runMutation(
                 components.betterAuth.adapter.deleteMany as never,
                 {

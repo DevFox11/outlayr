@@ -63,6 +63,8 @@ const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
  * named faces, so both paths agree.
  */
 export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
+    // SAFETY: `style` is this component's own `TextStyle` prop; RN types
+    // `flatten` against the wider ViewStyle union for all callers.
     const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
     const keepFamily = flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
     const fontFamily = keepFamily ? undefined : roundedFamily(flattened?.fontWeight);

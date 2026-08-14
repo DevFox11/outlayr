@@ -41,6 +41,7 @@ const COLOR_VARIABLES = {
 
 type ColorName = keyof typeof COLOR_VARIABLES;
 
+// SAFETY: `Object.keys` widens to string[]; these are that object's own keys.
 const COLOR_NAMES = Object.keys(COLOR_VARIABLES) as ColorName[];
 const COLOR_VARIABLE_NAMES = COLOR_NAMES.map((name) => COLOR_VARIABLES[name]);
 
@@ -60,6 +61,8 @@ export function useColors(): ThemeColors {
     const values = useCSSVariable(COLOR_VARIABLE_NAMES);
 
     return useMemo(
+        // SAFETY: `fromEntries` loses the key union, and `values` is uniwind's read
+        // of the same names in the same order — one slot per name.
         () => Object.fromEntries(COLOR_NAMES.map((name, index) => [name, values[index] as string])) as ThemeColors,
         [values]
     );

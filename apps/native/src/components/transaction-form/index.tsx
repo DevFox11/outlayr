@@ -508,6 +508,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         const currencySeed = initial?.currency ?? copyOf?.currency ?? null;
         const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
         const effectiveCurrency = currencySeed ?? globalCurrency;
+        // SAFETY: three of the fields below start empty and are filled as the form
+        // is used, so each initial literal has to carry the type the field will end
+        // up holding rather than the empty one it starts as.
         return {
             account: seedAccount(db, initial),
             amount: amountSeed == null ? "" : numberToNumpad(amountSeed, minorUnitsFor(currencySeed ?? globalCurrency)),
@@ -883,9 +886,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     // Shape only — the names, and what sits under what. No figures leave here.
     const categoryTree = useMemo(() => {
         const named = categoriesForNamespace.filter((candidate) => candidate.name != null);
+        // SAFETY: `named` is filtered to rows with a non-null name just above; the
+        // column itself is nullable.
         return named
             .filter((candidate) => candidate.parentId == null)
             .map((parent) => ({
+                // SAFETY on both lines: `named` is filtered to rows with a non-null name
+                // just above; the column itself is nullable.
                 children: named.filter((child) => child.parentId === parent.id).map((child) => child.name as string),
                 name: parent.name as string,
             }));
@@ -990,6 +997,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             try {
                 // Required lazily so rendering this form does not pull Skia's downscaler
                 // into the module graph, matching `domain/ids.ts`.
+                // SAFETY: `require` is untyped; the path is a first-party module and the
+                // asserted type is that same module's own.
                 const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
                 photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
             } catch {

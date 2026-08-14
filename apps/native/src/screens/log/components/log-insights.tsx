@@ -200,6 +200,8 @@ function DisplayCurrencyChip({
             actions={[
                 ...options.map((option) => ({
                     id: option,
+                    // SAFETY: the ternary produces one of the two literals; the assertion is
+                    // what keeps the menu item's state field a union rather than one of them.
                     state: (option === code ? "on" : "off") as "on" | "off",
                     title: option,
                 })),

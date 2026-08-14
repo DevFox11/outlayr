@@ -6,10 +6,13 @@
  * the node test runner (which can't transform React Native's source).
  */
 export function newId(): string {
+    // SAFETY: Hermes has no `crypto` in its lib types; the shape asserted is
+    // the one the very next line checks for before calling.
     const webCrypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-    if (typeof webCrypto?.randomUUID === "function") {
+    if (webCrypto?.randomUUID) {
         return webCrypto.randomUUID();
     }
+    // SAFETY: `require` is untyped and the asserted type is the same module's.
     const expoCrypto = require("expo-crypto") as typeof import("expo-crypto");
     return expoCrypto.randomUUID();
 }

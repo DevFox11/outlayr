@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
@@ -15,12 +17,36 @@ function cloudClient(): CloudRuntime["convex"] {
     return cloudRuntime.convex;
 }
 
+/**
+ * Every backend call in this file goes through one of these three.
+ *
+ * Convex functions are addressed by their string path rather than through the
+ * generated `api` object: `packages/backend` is not a build dependency of the
+ * app, so that object does not exist here and the client's overloads — which are
+ * keyed on it — have nothing to match. The three assertions below are the whole
+ * cost of that, stated once instead of at twenty call sites.
+ *
+ * What pins each shape instead is the `Result` the caller names plus the
+ * backend's own tests over the same function's validators.
+ */
+export function cloudQuery<Args, Result>(path: string, args: Args): Promise<Result> {
+    // SAFETY: `never` satisfies the generated-API overload for both the path and
+    // the args; the real values are a deployed function's name and its arguments.
+    return cloudClient().query(path as never, args as never) as Promise<Result>;
+}
+
+export function cloudMutation<Args, Result>(path: string, args: Args): Promise<Result> {
+    // SAFETY: as in `cloudQuery`.
+    return cloudClient().mutation(path as never, args as never) as Promise<Result>;
+}
+
+export function cloudAction<Args, Result>(path: string, args: Args): Promise<Result> {
+    // SAFETY: as in `cloudQuery`.
+    return cloudClient().action(path as never, args as never) as Promise<Result>;
+}
+
 export function ratesPuller(): PullRatesFn {
-    return async (args) =>
-        // Addressed by path rather than through the generated API:
-        // `packages/backend` is not a build dependency of the app, and the wire
-        // shape is pinned by `PullRatesPage` plus the backend's own tests.
-        cloudClient().query("exchangeRates:pullRates" as never, (args ?? {}) as never);
+    return async (args) => cloudQuery("exchangeRates:pullRates", args ?? {});
 }
 
 /**
@@ -32,10 +58,15 @@ export function ratesPuller(): PullRatesFn {
  * the caller is, which is the point — the server never accepts a user id as an
  * argument.
  */
-export function syncTransport(): { push: PushFn; pull: PullFn } {
+export interface SyncTransport {
+    pull: PullFn;
+    push: PushFn;
+}
+
+export function syncTransport(): SyncTransport {
     return {
-        pull: async (args) => cloudClient().query("sync:pullSince" as never, args as never),
-        push: async (args) => cloudClient().mutation("sync:push" as never, args as never),
+        pull: async (args) => cloudQuery("sync:pullSince", args),
+        push: async (args) => cloudMutation("sync:push", args),
     };
 }
 
@@ -58,16 +89,19 @@ export function watchSyncWatermark(onWatermark: (watermark: number) => void): ()
     if (cloudRuntime === null) {
         return () => undefined;
     }
+    // SAFETY: addressed by path for the reason given on `cloudQuery`; this is the
+    // subscribing counterpart, which takes the same two arguments.
     const watch = cloudRuntime.convex.watchQuery("sync:currentSeq" as never, {} as never);
     return watch.onUpdate(() => {
-        let watermark: unknown;
         try {
-            watermark = watch.localQueryResult();
+            // The socket can also deliver the refusal described above, so the
+            // watermark is read rather than assumed.
+            const watermark = z.number().safeParse(watch.localQueryResult());
+            if (watermark.success) {
+                onWatermark(watermark.data);
+            }
         } catch {
-            return;
-        }
-        if (typeof watermark === "number") {
-            onWatermark(watermark);
+            // The refusal described above. The subscription stays up.
         }
     });
 }
@@ -107,7 +141,7 @@ export type EnrichmentFn = (args: EnrichmentRequest) => Promise<RemoteEnrichment
  * for `syncTransport`.
  */
 export function enrichmentTransport(): EnrichmentFn {
-    return async (args) => cloudClient().action("enrichment:suggest" as never, args as never);
+    return async (args) => cloudAction("enrichment:suggest", args);
 }
 
 export interface LabelSuggestion {
@@ -149,8 +183,11 @@ export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
  * itself, exactly as it does for `enrichmentTransport`.
  */
 export function csvImportTransport(): CsvImportFn {
-    return async (args) => cloudClient().action("csvImport:csvImport" as never, args as never);
+    return async (args) => cloudAction("csvImport:csvImport", args);
 }
+
+/** Convex file storage answers the PUT with the id it allocated; R2 sends nothing. */
+const uploadReceipt = z.object({ storageId: z.string().optional() });
 
 /**
  * The bytes never touch Convex: the signed urls address R2 directly, so a
@@ -162,10 +199,7 @@ export function csvImportTransport(): CsvImportFn {
 export function photoTransport(): PhotoTransport {
     return {
         confirmUpload: async (key, storageId) => {
-            await cloudClient().action(
-                "photos:confirmUpload" as never,
-                (storageId ? { key, storageId } : { key }) as never
-            );
+            await cloudAction("photos:confirmUpload", storageId ? { key, storageId } : { key });
         },
         get: async (url) => {
             const response = await fetch(url);
@@ -181,6 +215,9 @@ export function photoTransport(): PhotoTransport {
         },
         put: async (url, bytes) => {
             const response = await fetch(url, {
+                // SAFETY: React Native sends a typed array as raw bytes, but its
+                // `BodyInit` lists only Blob/FormData/URLSearchParams/string, so
+                // the byte array has no overlap to assert against directly.
                 body: bytes as unknown as BodyInit,
                 headers: { "Content-Type": "image/jpeg" },
                 method: "PUT",
@@ -191,22 +228,16 @@ export function photoTransport(): PhotoTransport {
             // Convex file storage answers the PUT with the id it allocated; R2
             // answers with nothing, because its key is already the address.
             try {
-                const body = (await response.json()) as { storageId?: string };
-                return body.storageId ?? null;
+                const body = uploadReceipt.safeParse(await response.json());
+                return body.success ? (body.data.storageId ?? null) : null;
             } catch {
                 return null;
             }
         },
-        readUrls: async (keys) =>
-            cloudClient().query(
-                "photos:readUrls" as never,
-                {
-                    keys: [...keys],
-                } as never
-            ),
+        readUrls: async (keys) => cloudQuery("photos:readUrls", { keys: [...keys] }),
         release: async (key) => {
-            await cloudClient().mutation("photos:releaseUnreferenced" as never, { key } as never);
+            await cloudMutation("photos:releaseUnreferenced", { key });
         },
-        requestUpload: async (name) => cloudClient().mutation("photos:requestUpload" as never, { name } as never),
+        requestUpload: async (name) => cloudMutation("photos:requestUpload", { name }),
     };
 }

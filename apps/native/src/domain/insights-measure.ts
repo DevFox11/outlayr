@@ -2,7 +2,7 @@ import type { InsightsMeasure } from "@/data/insights";
 
 export const INSIGHTS_MEASURE_ORDER: readonly InsightsMeasure[] = ["spent", "income", "net"];
 
-const STORED: Record<InsightsMeasure, number> = { income: 2, net: 3, spent: 1 };
+const STORED = { income: 2, net: 3, spent: 1 } satisfies Record<InsightsMeasure, number>;
 
 export function insightsMeasureFromStored(value: number): InsightsMeasure {
     return INSIGHTS_MEASURE_ORDER.find((m) => STORED[m] === value) ?? "spent";

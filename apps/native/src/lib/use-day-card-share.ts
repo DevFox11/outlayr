@@ -22,11 +22,11 @@ export function useDayCardShare(options: DayCardOptions): (section: CardableSect
                 {
                     onPress: () => {
                         shareDayCard(dayCardContent(section, options), dayCardFileName(section.day)).catch(
-                            (error: unknown) => {
+                            (cause: unknown) => {
                                 Alert.alert(
                                     translateNow("alerts.dayCard.failedTitle"),
-                                    error instanceof TransferError
-                                        ? translateNow(error.key)
+                                    cause instanceof TransferError
+                                        ? translateNow(cause.key)
                                         : translateNow("alerts.dayCard.failedBody")
                                 );
                             }

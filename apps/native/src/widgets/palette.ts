@@ -25,7 +25,7 @@ export interface WidgetPalette {
     subtle: string;
 }
 
-export const WIDGET_PALETTE: Record<"light" | "dark", WidgetPalette> = {
+export const WIDGET_PALETTE = {
     dark: {
         background: "#17150f",
         border: "#353026",
@@ -44,10 +44,10 @@ export const WIDGET_PALETTE: Record<"light" | "dark", WidgetPalette> = {
         over: "#bd1c1e",
         subtle: "#6d6657",
     },
-};
+} satisfies Record<"light" | "dark", WidgetPalette>;
 
 /** Maps each palette entry to the `global.css` custom property it mirrors. */
-export const PALETTE_VARIABLES: Record<keyof WidgetPalette, string> = {
+export const PALETTE_VARIABLES = {
     background: "--background",
     border: "--border",
     income: "--income",
@@ -55,4 +55,4 @@ export const PALETTE_VARIABLES: Record<keyof WidgetPalette, string> = {
     muted: "--muted",
     over: "--over-budget",
     subtle: "--subtle",
-};
+} satisfies Record<keyof WidgetPalette, string>;

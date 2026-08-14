@@ -21,3 +21,8 @@ pre-push:
           run: pnpm turbo run check-types
         - name: tests
           run: pnpm turbo run test
+        # The vendored oxlint plugin is outside every workspace, so `turbo run
+        # test` never sees it. Its rule tests are the only thing standing behind
+        # a local edit to tools/oxlint/anti-slop, and they take ~0.2s.
+        - name: lint-plugins
+          run: pnpm run test:lint-plugins

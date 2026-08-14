@@ -8,7 +8,9 @@ describe("runAccountLifecycle", () => {
                 advanceDeletion: async () => ({ phase: "complete" }),
                 allowLocal: () => calls.push("allowLocal"),
                 clearDeletionSecret: async () => undefined,
-                deleteAccount: async () => calls.push("deleteAccount"),
+                deleteAccount: async () => {
+                    calls.push("deleteAccount");
+                },
                 navigateToLedger: () => calls.push("navigate"),
                 persistDeletionSecret: async () => undefined,
                 prepareDeletion: async () => ({ receiptChallenge: "receipt-challenge", resumeSecret: "resume-secret" }),
@@ -29,13 +31,19 @@ describe("runAccountLifecycle", () => {
         const calls: string[] = [];
         await runAccountLifecycle("signOut", {
             allowLocal: () => calls.push("allowLocal"),
-            deleteAccount: async () => calls.push("deleteAccount"),
+            deleteAccount: async () => {
+                calls.push("deleteAccount");
+            },
             navigateToLedger: () => calls.push("navigate"),
             quiesce: async () => {
                 calls.push("quiesce");
             },
-            revokeProvider: async () => calls.push("revokeProvider"),
-            signOut: async () => calls.push("signOut"),
+            revokeProvider: async () => {
+                calls.push("revokeProvider");
+            },
+            signOut: async () => {
+                calls.push("signOut");
+            },
         });
 
         expect(calls).toEqual(["allowLocal", "quiesce", "signOut", "navigate"]);
@@ -50,7 +58,9 @@ test("persists the resume secret before revocation and advances idempotently", a
         clearDeletionSecret: async () => {
             calls.push("clear");
         },
-        deleteAccount: async () => calls.push("deleteAccount"),
+        deleteAccount: async () => {
+            calls.push("deleteAccount");
+        },
         navigateToLedger: () => calls.push("navigate"),
         persistDeletionSecret: async () => {
             calls.push("persist");

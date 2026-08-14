@@ -102,8 +102,8 @@ function SignInContent({ client }: { client: AuthClient }) {
             skip={{
                 label: t("auth.signIn.notNow"),
                 onPress: () => {
-                    deferAccount(db).catch((failure: unknown) => {
-                        console.error("Deferring the account offer failed", failure);
+                    deferAccount(db).catch((cause: unknown) => {
+                        console.error("Deferring the account offer failed", cause);
                     });
                 },
             }}

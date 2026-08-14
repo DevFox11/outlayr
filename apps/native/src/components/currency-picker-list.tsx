@@ -192,6 +192,8 @@ export function CurrencyPickerList({
                 <LegendList
                     contentContainerStyle={contentContainerStyle}
                     contentInsetAdjustmentBehavior="automatic"
+                    // SAFETY: `rows` is this component's own prop, already narrowed by the
+                    // caller; Legend List widens its `data` generic on the way in.
                     data={rows as CurrencyPickerRow[]}
                     // A container re-renders on its own item or on `extraData`, never
                     // because the list around it did. Without this the row that took off

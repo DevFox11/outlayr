@@ -103,6 +103,8 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
     const isDark = theme === "dark";
     const colorScheme = useColorScheme();
     const [splashHidden, setSplashHidden] = useState(false);
+    // SAFETY: uniwind types the batched read as (string | undefined)[]; every name
+    // below is declared in global.css, so each slot resolves.
     const [background, card, text, border, primary] = useCSSVariable([
         "--color-background",
         "--color-card",

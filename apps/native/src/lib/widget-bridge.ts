@@ -23,6 +23,7 @@ import type { ClaimedWrites, QueueFiles } from "./pending-writes-core";
  * The widgets do NOT come through here: `expo-widgets` owns its own transport
  * (`Widget.updateTimeline`). This group exists solely for the intent queue below.
  */
+// SAFETY: as in `device-data-stores` — `extra` is an open record.
 const APP_GROUP = Constants.expoConfig?.extra?.appGroup as string | undefined;
 
 /**

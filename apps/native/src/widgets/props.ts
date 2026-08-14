@@ -4,7 +4,7 @@ import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { OVERALL_BUDGET_ID } from "@/data/budgets-core";
 import { bucketSeries, categoryBreakdown, loadContributions, windowLabel, windowTotals } from "@/data/insights";
-import type { InsightsCalendar, InsightsPeriod } from "@/data/insights";
+import type { InsightsCalendar, InsightsPeriod, WindowTotals } from "@/data/insights";
 import { parseBoolSetting, parseIntSetting } from "@/data/settings-core";
 import { loadValuation } from "@/data/valuation-source";
 import type { Valuation } from "@/data/valuation-source";
@@ -206,17 +206,18 @@ export interface WidgetProps {
 }
 
 /** The Insights period codes as stored (`insightsTimeFrame`). */
-const PERIODS: Readonly<Record<number, InsightsPeriod>> = {
-    1: "week",
-    2: "month",
-    3: "year",
-};
+// Keyed by the stored insights period setting, which is a plain number.
+const PERIODS = new Map<number, InsightsPeriod>([
+    [1, "week"],
+    [2, "month"],
+    [3, "year"],
+]);
 
-const PERIOD_EYEBROW: Readonly<Record<InsightsPeriod, TranslationKey>> = {
+const PERIOD_EYEBROW = {
     month: "insights.quiet.thisMonth",
     week: "insights.quiet.thisWeek",
     year: "insights.quiet.thisYear",
-};
+} satisfies Readonly<Record<InsightsPeriod, TranslationKey>>;
 
 /**
  * "1 – 31 JUL", collapsing the month when both ends share one. `end` is the
@@ -275,7 +276,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
         firstDayOfMonth: parseIntSetting(monthDayRaw, 1),
         firstWeekday: parseIntSetting(weekdayRaw, 1),
     };
-    const period = PERIODS[parseIntSetting(periodRaw, 1)] ?? "week";
+    const period = PERIODS.get(parseIntSetting(periodRaw, 1)) ?? "week";
     const money = (value: number) => formatAmount(value, currency, showCents);
     /** Supporting figures, cents always off — see `BudgetWidgetProps.spent`. */
     const whole = (value: number) => formatAmount(value, currency, false);
@@ -601,17 +602,14 @@ function buildLedgerHeaders(
     now: Date,
     calendar: InsightsCalendar,
     money: Money
-): Record<LedgerHeaderPeriod, Record<LedgerHeaderMeasure, LedgerHeaderProps>> {
-    const measures = (
-        label: string,
-        totals: { income: number; spent: number }
-    ): Record<LedgerHeaderMeasure, LedgerHeaderProps> => {
+) {
+    const measures = (label: string, totals: WindowTotals) => {
         const net = totals.income - totals.spent;
         return {
             income: { amount: money(totals.income), label, positive: true },
             net: { amount: money(Math.abs(net)), label, positive: net >= 0 },
             spent: { amount: money(totals.spent), label, positive: false },
-        };
+        } satisfies Record<LedgerHeaderMeasure, LedgerHeaderProps>;
     };
 
     const startToday = startOfDay(now);
@@ -632,7 +630,7 @@ function buildLedgerHeaders(
             translateNow("insights.period.year").toUpperCase(),
             windowTotals(contributions, "year", now, 0, calendar)
         ),
-    };
+    } satisfies Record<LedgerHeaderPeriod, Record<LedgerHeaderMeasure, LedgerHeaderProps>>;
 }
 
 function buildInsights(

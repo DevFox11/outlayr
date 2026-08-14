@@ -34,8 +34,8 @@ function EraseDataContent({ db }: { db: Database }) {
                 onPress: () => {
                     eraseData(db, scope, RESIDUE)
                         .then(() => router.back())
-                        .catch((error: unknown) => {
-                            console.error("Erase failed", error);
+                        .catch((cause: unknown) => {
+                            console.error("Erase failed", cause);
                             Alert.alert(t("settings.erase.failedTitle"), t("settings.erase.failedBody"));
                         });
                 },

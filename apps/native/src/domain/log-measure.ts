@@ -11,7 +11,7 @@ export type LogMeasure = "net" | "in" | "out";
  */
 export const LOG_MEASURE_ORDER: readonly LogMeasure[] = ["net", "in", "out"];
 
-const STORED: Record<LogMeasure, number> = { in: 2, net: 1, out: 3 };
+const STORED = { in: 2, net: 1, out: 3 } satisfies Record<LogMeasure, number>;
 
 export function logMeasureFromStored(value: number): LogMeasure {
     return LOG_MEASURE_ORDER.find((m) => STORED[m] === value) ?? "net";
@@ -22,11 +22,11 @@ export function storedLogMeasure(measure: LogMeasure): number {
 }
 
 /** One short word, so all three fit across the narrowest phone. */
-export const LOG_MEASURE_WORD: Record<LogMeasure, string> = {
+export const LOG_MEASURE_WORD = {
     in: "In",
     net: "Net",
     out: "Out",
-};
+} satisfies Record<LogMeasure, string>;
 
 export interface LogFigures {
     count: number;

@@ -71,11 +71,12 @@ import { NetWorthCard } from "./components/net-worth-card";
 import { SpendingCalendar } from "./components/spending-calendar";
 import { MEASURE_KEY } from "./measure-label";
 
-const PERIOD_BY_VALUE: Record<number, InsightsPeriod> = {
-    1: "week",
-    2: "month",
-    3: "year",
-};
+// Keyed by the stored insights period setting, which is a plain number.
+const PERIOD_BY_VALUE = new Map<number, InsightsPeriod>([
+    [1, "week"],
+    [2, "month"],
+    [3, "year"],
+]);
 
 const PERIOD_OPTIONS: readonly { labelKey: TranslationKey; value: number }[] = [
     { labelKey: "insights.period.week", value: 1 },
@@ -83,11 +84,11 @@ const PERIOD_OPTIONS: readonly { labelKey: TranslationKey; value: number }[] = [
     { labelKey: "insights.period.year", value: 3 },
 ];
 
-const PERIOD_LABEL_KEY: Record<InsightsPeriod, TranslationKey> = {
+const PERIOD_LABEL_KEY = {
     month: "insights.period.month",
     week: "insights.period.week",
     year: "insights.period.year",
-};
+} satisfies Record<InsightsPeriod, TranslationKey>;
 
 function heroMagnitudeFor(
     filteredEntry: CategoryBreakdownEntry | null,
@@ -131,7 +132,13 @@ function bucketAt(buckets: readonly InsightsBucket[], index: number | null): Ins
     return buckets[index] ?? null;
 }
 
-function boundsOf(bucket: InsightsBucket): { end: number; start: number } {
+/** A bucket's span as epoch ms, which is what the chart props take. */
+interface BucketBounds {
+    end: number;
+    start: number;
+}
+
+function boundsOf(bucket: InsightsBucket): BucketBounds {
     return { end: bucket.end.getTime(), start: bucket.start.getTime() };
 }
 
@@ -278,7 +285,7 @@ function InsightsContent({ db }: { db: Database }) {
     const netWorth = useNetWorthSeries(db);
 
     const incomeTracking = useSettingBool("incomeTracking");
-    const period = PERIOD_BY_VALUE[useSettingNumber("insightsTimeFrame")] ?? "week";
+    const period = PERIOD_BY_VALUE.get(useSettingNumber("insightsTimeFrame")) ?? "week";
 
     // With income tracking off there is only one direction, so the measure is not
     // a choice.
@@ -314,14 +321,14 @@ function InsightsContent({ db }: { db: Database }) {
 
     const selectPeriod = (value: number) => {
         setOffset(0);
-        setNumberSetting(db, "insightsTimeFrame", value).catch((error: unknown) => {
-            console.error("Saving the insights period failed", error);
+        setNumberSetting(db, "insightsTimeFrame", value).catch((cause: unknown) => {
+            console.error("Saving the insights period failed", cause);
         });
     };
 
     const promote = (next: typeof measure) => {
-        setNumberSetting(db, "insightsMeasure", storedInsightsMeasure(next)).catch((error: unknown) => {
-            console.error("Saving the insights measure failed", error);
+        setNumberSetting(db, "insightsMeasure", storedInsightsMeasure(next)).catch((cause: unknown) => {
+            console.error("Saving the insights measure failed", cause);
         });
     };
 
@@ -449,7 +456,7 @@ function InsightsContent({ db }: { db: Database }) {
                     <Stack.Toolbar.Label>{t(PERIOD_LABEL_KEY[period])}</Stack.Toolbar.Label>
                     {PERIOD_OPTIONS.map((option) => (
                         <Stack.Toolbar.MenuAction
-                            isOn={PERIOD_BY_VALUE[option.value] === period}
+                            isOn={PERIOD_BY_VALUE.get(option.value) === period}
                             key={option.value}
                             onPress={() => selectPeriod(option.value)}
                         >

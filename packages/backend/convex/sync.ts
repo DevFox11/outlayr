@@ -1,6 +1,5 @@
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import type { Validator } from "convex/values";
 
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
@@ -23,7 +22,7 @@ import {
     transactionTagFields,
     transferFields,
 } from "./lib/syncTables";
-import type { SyncedTable } from "./lib/syncTables";
+import type { SyncedTable, WireFields, WireValue } from "./lib/syncTables";
 
 /**
  * Rows a single `push` may carry. Chosen against Convex's per-transaction
@@ -127,7 +126,7 @@ const pushRow = v.union(
 
 interface PushRow {
     deletedAt: number | null;
-    fields: Record<string, unknown>;
+    fields: WireFields;
     localId: string;
     table: SyncedTable;
     updatedAt: number;
@@ -179,7 +178,11 @@ const TRANSACTION_LEGACY_OPTIONAL_NULLABLE_FIELDS = new Set<keyof typeof transac
     "transferId",
 ]);
 
-function transactionFieldsEqual(field: keyof typeof transactionFields, stored: unknown, incoming: unknown): boolean {
+function transactionFieldsEqual(
+    field: keyof typeof transactionFields,
+    stored: WireValue | undefined,
+    incoming: WireValue | undefined
+): boolean {
     if (TRANSACTION_LEGACY_OPTIONAL_NULLABLE_FIELDS.has(field)) {
         return Object.is(stored ?? null, incoming ?? null);
     }
@@ -197,8 +200,11 @@ function transactionPolicyTieDecision(row: PushRow, existing: Doc<SyncedTable> |
     ) {
         return null;
     }
+    // SAFETY: the guard above returned unless `row.table` is "transactions", and
+    // `existing` was looked up by that same table name.
     const stored = existing as Doc<"transactions">;
-    const incoming = row.fields as Doc<"transactions">;
+    const incoming = fieldsFor<"transactions">(row);
+    // SAFETY: `Object.keys` widens to string[]; the keys are this object's own.
     for (const field of Object.keys(transactionFields) as (keyof typeof transactionFields)[]) {
         if (
             !(TRANSACTION_VALUATION_FIELDS.has(field) || transactionFieldsEqual(field, stored[field], incoming[field]))
@@ -220,12 +226,28 @@ function transactionPolicyTieDecision(row: PushRow, existing: Doc<SyncedTable> |
     return incomingPendingCustom ? "incoming" : "existing";
 }
 
+/**
+ * The already-validated payload for one table, recovered as its document type.
+ *
+ * `push`'s argument validator is the per-table union in `syncTables.ts`, so by
+ * the time a row reaches `upsert` its `fields` have been checked against exactly
+ * the columns `schema.ts` declares for `row.table`. The assertion only puts back
+ * the generated type that a runtime table name erased — see the note on
+ * `upsert`, and the switch below that pairs each literal with its own branch.
+ */
+function fieldsFor<T extends SyncedTable>(row: PushRow): Doc<T> {
+    // SAFETY: the caller passes the table literal matching the case it is in.
+    return row.fields as Doc<T>;
+}
+
 async function writeRow<T extends SyncedTable>(
     ctx: MutationCtx,
     table: T,
     existing: Doc<SyncedTable> | null,
     doc: WithoutSystemFields<Doc<T>>
 ): Promise<void> {
+    // SAFETY: `existing` was looked up by `row.table`, which is the same `T`
+    // this call was given, so its id addresses a row of that table.
     await (existing ? ctx.db.patch(table, existing._id as Id<T>, doc) : ctx.db.insert(table, doc));
 }
 
@@ -252,51 +274,51 @@ async function upsert(
 
     switch (row.table) {
         case "categories": {
-            return await writeRow(ctx, "categories", existing, { ...envelope, ...(row.fields as Doc<"categories">) });
+            return await writeRow(ctx, "categories", existing, { ...envelope, ...fieldsFor<"categories">(row) });
         }
         case "transactions": {
             return await writeRow(ctx, "transactions", existing, {
                 ...envelope,
-                ...(row.fields as Doc<"transactions">),
+                ...fieldsFor<"transactions">(row),
             });
         }
         case "budgets": {
-            return await writeRow(ctx, "budgets", existing, { ...envelope, ...(row.fields as Doc<"budgets">) });
+            return await writeRow(ctx, "budgets", existing, { ...envelope, ...fieldsFor<"budgets">(row) });
         }
         case "mainBudget": {
-            return await writeRow(ctx, "mainBudget", existing, { ...envelope, ...(row.fields as Doc<"mainBudget">) });
+            return await writeRow(ctx, "mainBudget", existing, { ...envelope, ...fieldsFor<"mainBudget">(row) });
         }
         case "tags": {
-            return await writeRow(ctx, "tags", existing, { ...envelope, ...(row.fields as Doc<"tags">) });
+            return await writeRow(ctx, "tags", existing, { ...envelope, ...fieldsFor<"tags">(row) });
         }
         case "transactionTags": {
             return await writeRow(ctx, "transactionTags", existing, {
                 ...envelope,
-                ...(row.fields as Doc<"transactionTags">),
+                ...fieldsFor<"transactionTags">(row),
             });
         }
         case "transactionPhotos": {
             return await writeRow(ctx, "transactionPhotos", existing, {
                 ...envelope,
-                ...(row.fields as Doc<"transactionPhotos">),
+                ...fieldsFor<"transactionPhotos">(row),
             });
         }
         case "transactionSplits": {
             return await writeRow(ctx, "transactionSplits", existing, {
                 ...envelope,
-                ...(row.fields as Doc<"transactionSplits">),
+                ...fieldsFor<"transactionSplits">(row),
             });
         }
         case "accounts": {
-            return await writeRow(ctx, "accounts", existing, { ...envelope, ...(row.fields as Doc<"accounts">) });
+            return await writeRow(ctx, "accounts", existing, { ...envelope, ...fieldsFor<"accounts">(row) });
         }
         case "transfers": {
-            return await writeRow(ctx, "transfers", existing, { ...envelope, ...(row.fields as Doc<"transfers">) });
+            return await writeRow(ctx, "transfers", existing, { ...envelope, ...fieldsFor<"transfers">(row) });
         }
         case "savingsGoals": {
             return await writeRow(ctx, "savingsGoals", existing, {
                 ...envelope,
-                ...(row.fields as Doc<"savingsGoals">),
+                ...fieldsFor<"savingsGoals">(row),
             });
         }
         case "appMeta": {
@@ -306,8 +328,12 @@ async function upsert(
                 seq: stamp.seq,
                 updatedAt: row.updatedAt,
                 userId: stamp.userId,
+                // SAFETY: `appMeta` is the one table whose payload is a single
+                // column, declared as exactly this in `syncTables.ts`.
                 value: (row.fields as { value: string | null }).value,
             };
+            // SAFETY: `existing` was looked up by `row.table`, which this case
+            // has already matched against "appMeta".
             await (existing
                 ? ctx.db.patch("appMeta", existing._id as Id<"appMeta">, doc)
                 : ctx.db.insert("appMeta", doc));
@@ -354,6 +380,8 @@ export const push = mutation({
         const reEmittedPolicyWinners = new Set<string>();
 
         /* oxlint-disable no-await-in-loop -- rows are applied in order — `seq` is handed out one per accepted row, and two rows for the same localId in one batch require the second lookup to observe the first row's upsert. */
+        // SAFETY: `pushRow` above validates each row into exactly this shape;
+        // `PushRow` is the flattened view of that union the loop reads.
         for (const row of args.rows as PushRow[]) {
             const existing = await findExisting(ctx, userId, row);
             const candidate = {
@@ -365,6 +393,9 @@ export const push = mutation({
             if (policyTieDecision === "existing") {
                 const key = `${row.table}:${row.localId}`;
                 if (!reEmittedPolicyWinners.has(key)) {
+                    // SAFETY: only a "transactions" row reaches a policy tie —
+                    // `transactionPolicyTieDecision` returns null for every other
+                    // table — and `existing` was looked up by that table name.
                     await ctx.db.patch("transactions", (existing as Doc<"transactions">)._id, { seq: nextSeq });
                     nextSeq += 1;
                     reEmittedPolicyWinners.add(key);
@@ -407,18 +438,39 @@ export const push = mutation({
     }),
 });
 
+/**
+ * A stored document read as the flat, per-column bag `toWire` walks.
+ *
+ * Every synced table's columns are declared in `syncTables.ts` as wire-shaped
+ * validators, so a stored value is already a `WireValue`; `_id`/`_creationTime`
+ * are Convex's own and are the reason the key type stays open.
+ */
+type StoredDocument = Record<string, WireValue | undefined> & {
+    deletedAt?: number | null;
+    /** `appMeta` identifies its rows by `key`; every other table by `localId`. */
+    key?: string;
+    localId?: string;
+};
+
 function toWire(table: SyncedTable, doc: Doc<SyncedTable>) {
-    const fieldNames = Object.keys(FIELDS_BY_TABLE[table] as Record<string, Validator<unknown>>);
-    const source = doc as unknown as Record<string, unknown>;
-    const fields: Record<string, unknown> = {};
+    const fieldNames = Object.keys(FIELDS_BY_TABLE[table]);
+    const source: StoredDocument = doc;
+    const fields: WireFields = {};
     for (const name of fieldNames) {
         fields[name] = source[name] ?? null;
     }
+    const localId = source.localId ?? source.key;
+    if (localId === undefined) {
+        // Every synced table declares one or the other in `syncTables.ts`, so
+        // reaching here is schema drift, not bad data. Serving the row under a
+        // stand-in id would have the client adopt it afresh on every pull.
+        throw new Error(`Synced row in ${table} carries neither localId nor key`);
+    }
     return {
-        deletedAt: (source.deletedAt ?? null) as number | null,
+        deletedAt: source.deletedAt ?? null,
         deviceId: doc.deviceId,
         fields,
-        localId: (source.localId ?? source.key) as string,
+        localId,
         seq: doc.seq,
         table,
         updatedAt: doc.updatedAt,

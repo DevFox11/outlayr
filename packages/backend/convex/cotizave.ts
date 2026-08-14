@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { z } from "zod";
 
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -15,58 +16,45 @@ const VES_QUOTE = "VES";
  * BCV official EUR rate), NOT USD→VES — it is stored verbatim per spec; any
  * USD conversion for eur_reference entries must account for that denomination.
  */
-const MARKET_RATE_TYPES: Record<string, MarketRateType | undefined> = {
-    binance: "binance",
-    eur_reference: "eur_reference",
-    reference: "official",
-};
+// A Map rather than an object: the key is a market name off the remote feed, so
+// the lookup is of an untrusted string and `.get` answers `undefined` for one we
+// do not carry without widening the table's own key type to `string`.
+const MARKET_RATE_TYPES = new Map<string, MarketRateType>([
+    ["binance", "binance"],
+    ["eur_reference", "eur_reference"],
+    ["reference", "official"],
+]);
 
-interface CotizaveMarket {
-    market: string;
-    mid: number;
-}
-
-function isValidMarket(value: unknown): value is CotizaveMarket {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-    if (!("market" in value && "mid" in value)) {
-        return false;
-    }
-    const { market, mid } = value;
-    return typeof market === "string" && typeof mid === "number" && Number.isFinite(mid) && mid > 0;
-}
+const cotizaveMarket = z.object({
+    market: z.string(),
+    mid: z.number().finite().positive(),
+});
 
 /**
- * A payload quoting another currency pair (however well-formed) must never be
- * stored as VES rows.
+ * The envelope, pinned to the pair we store.
+ *
+ * `base`/`currency` are literals rather than free strings: a payload quoting
+ * another pair, however well-formed, must never be stored as VES rows. A market
+ * entry that does not parse is dropped instead of failing the response, so one
+ * bad row does not cost the rest of the feed — hence the per-element catch.
  */
-function hasExpectedContract(payload: unknown): boolean {
-    if (typeof payload !== "object" || payload === null) {
-        return false;
-    }
-    if (!("base" in payload && "currency" in payload)) {
-        return false;
-    }
-    const { base, currency } = payload;
-    return base === "USD" && currency === VES_QUOTE;
+const cotizaveResponse = z.object({
+    base: z.literal("USD"),
+    currency: z.literal(VES_QUOTE),
+    rates: z.array(cotizaveMarket.nullable().catch(null)),
+});
+
+interface CotizaveRate {
+    quote: string;
+    rate: number;
+    rateType: MarketRateType;
 }
 
-function extractRates(payload: unknown) {
-    if (typeof payload !== "object" || payload === null || !("rates" in payload)) {
-        return null;
-    }
-    const { rates } = payload;
-    if (!Array.isArray(rates)) {
-        return null;
-    }
-    const parsed: { quote: string; rateType: MarketRateType; rate: number }[] = [];
-    for (const record of rates) {
-        if (!isValidMarket(record)) {
-            continue;
-        }
-        const rateType = MARKET_RATE_TYPES[record.market];
-        if (rateType === undefined) {
+function extractRates(payload: z.infer<typeof cotizaveResponse>): CotizaveRate[] {
+    const parsed: CotizaveRate[] = [];
+    for (const record of payload.rates) {
+        const rateType = record === null ? undefined : MARKET_RATE_TYPES.get(record.market);
+        if (record === null || rateType === undefined) {
             continue;
         }
         parsed.push({ quote: VES_QUOTE, rate: record.mid, rateType });
@@ -97,16 +85,13 @@ export const fetchRates = internalAction({
             return null;
         }
 
-        if (!hasExpectedContract(payload)) {
+        const contract = cotizaveResponse.safeParse(payload);
+        if (!contract.success) {
             console.error("Cotizave response did not match the expected USD-based VES contract");
             return null;
         }
 
-        const rates = extractRates(payload);
-        if (rates === null) {
-            console.error("Cotizave response was not a parseable rates array");
-            return null;
-        }
+        const rates = extractRates(contract.data);
         if (rates.length === 0) {
             console.error("Cotizave response contained no valid target markets");
             return null;

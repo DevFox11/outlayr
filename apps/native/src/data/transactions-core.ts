@@ -450,8 +450,8 @@ export const transactionsRepo = {
                 ...rest,
                 ...kept,
                 accountId: keptAccount(previous, input),
+                imageKey: removesPhoto(previous, row) ? null : rest.imageKey,
                 reminderLeadDays: keptLead(row, previous, input),
-                ...(removesPhoto(previous, row) ? { imageKey: null } : {}),
             })
             .where(eq(transactions.id, id));
     },

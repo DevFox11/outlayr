@@ -113,7 +113,13 @@ export function transferLegs(
     return finitePositive(exchangeRate) ? { exchangeRate, fromAmount, toAmount } : null;
 }
 
-export function transferDisplay(legs: TransferLegs, fee: number, feeSide: FeeSide): { arrived: number; sent: number } {
+/** What the two amount fields read, once the fee has been put on its side. */
+export interface TransferDisplay {
+    arrived: number;
+    sent: number;
+}
+
+export function transferDisplay(legs: TransferLegs, fee: number, feeSide: FeeSide): TransferDisplay {
     if (feeSide === "source") {
         return {
             arrived: roundMoney(legs.toAmount, NOISE_DECIMALS),

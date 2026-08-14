@@ -8,16 +8,18 @@ export const DEFAULT_LANGUAGE: Language = "en";
  * Endonyms: someone who has landed in a language they cannot read still has to
  * recognise which one they are in.
  */
-const LANGUAGE_NAMES: Record<Language, string> = {
+const LANGUAGE_NAMES = {
     en: "English",
     es: "Español",
-};
+} satisfies Record<Language, string>;
 
 export function languageLabel(language: Language): string {
     return LANGUAGE_NAMES[language];
 }
 
 function isLanguage(value: string): value is Language {
+    // SAFETY: widening the tuple so an arbitrary string can be tested against
+    // it — narrowing the argument is the whole point of the predicate.
     return (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
 }
 

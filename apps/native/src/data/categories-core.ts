@@ -196,7 +196,7 @@ export type CategoryError =
     | "duplicateName";
 
 /** Kept verbatim in sync with the Swift copy. */
-export const CATEGORY_ERROR_MESSAGES: Record<CategoryError, string> = {
+export const CATEGORY_ERROR_MESSAGES = {
     duplicate: "A category with this symbol and name already exists.",
     duplicateEmoji: "Another category already uses this emoji.",
     duplicateIcon: "Another category already uses this icon.",
@@ -204,7 +204,7 @@ export const CATEGORY_ERROR_MESSAGES: Record<CategoryError, string> = {
     incomplete: "Please choose an icon or emoji, and a name.",
     missingIcon: "Please choose an icon or emoji for the category.",
     missingName: "Please enter a name for this category.",
-};
+} satisfies Record<CategoryError, string>;
 
 export interface CategoryValidationResult {
     error: CategoryError | null;

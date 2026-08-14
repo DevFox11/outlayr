@@ -15,7 +15,9 @@ interface Brand {
  * cannot answer for keeps its category tile.
  */
 export async function attachImportLogos(entries: readonly ImportEntry[]): Promise<ImportEntry[]> {
+    // SAFETY: untyped `require`, asserted to that module's own type.
     const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+    // SAFETY: as on the line above.
     const { glowFromImage } = require("@/theme/glow") as typeof import("@/theme/glow");
 
     const brands = new Map<string, Brand | null>();

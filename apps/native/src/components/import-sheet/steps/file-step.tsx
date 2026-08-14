@@ -15,26 +15,26 @@ import { useColors } from "@/theme/use-colors";
 import { MeasureStrip } from "../measure-strip";
 import { StepCta } from "../step-cta";
 
-const ERROR_TITLE: Record<FileStepError["cause"], TranslationKey> = {
+const ERROR_TITLE = {
     empty: "import.errorEmptyTitle",
     io: "import.errorIoTitle",
     noDataRows: "import.errorNoDataTitle",
     tooFewColumns: "import.errorTooFewColumnsTitle",
     tooLarge: "import.errorTooLargeTitle",
-};
+} satisfies Record<FileStepError["cause"], TranslationKey>;
 
-const ERROR_BODY: Partial<Record<FileStepError["cause"], TranslationKey>> = {
+const ERROR_BODY = {
     empty: "import.errorEmptyBody",
     noDataRows: "import.errorNoDataBody",
     tooFewColumns: "import.errorTooFewColumnsBody",
     tooLarge: "import.errorTooLargeBody",
-};
+} satisfies Partial<Record<FileStepError["cause"], TranslationKey>>;
 
-const MAPPING_GAP_COPY: Record<string, TranslationKey> = {
+const MAPPING_GAP_COPY = {
     noAmount: "import.mappingGapNoAmount",
     noDate: "import.mappingGapNoDate",
     noLabelColumn: "import.mappingGapNoLabel",
-};
+} satisfies Record<string, TranslationKey>;
 
 const DOC_TILE_SIZE = 30;
 
@@ -84,6 +84,8 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
     }
 
     if (error != null) {
+        // SAFETY: ERROR_BODY is keyed by the same cause union the branch tests, and
+        // every value in it is a key of the catalog.
         return (
             <View className="flex-1 gap-4 px-5 pt-4">
                 <View className="border-border gap-2 border-y py-3">

@@ -59,10 +59,10 @@ export const LARGE_ONLY = [1];
  * while it presents), so each step declares the height it wants and the
  * sheet re-snaps when the step changes.
  */
-export const IMPORT_STEP_SNAP_FRACTION: Record<ImportStep, number> = {
+export const IMPORT_STEP_SNAP_FRACTION = {
     done: 0.55,
     file: 0.65,
     resolve: 0.7,
     review: 0.85,
     source: 0.5,
-};
+} satisfies Record<ImportStep, number>;

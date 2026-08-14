@@ -30,6 +30,8 @@ import type { Valuation } from "./valuation-source";
 
 /** Live accounts in manual order, tombstones excluded. */
 export function useAccounts(db: Database): Account[] {
+    // SAFETY: drizzle types a select builder per column map; `useLiveQuery`
+    // takes the erased one and the table argument pins the row type back.
     return useLiveQuery(accounts, () =>
         db.select().from(accounts).where(isNull(accounts.deletedAt)).orderBy(accounts.sortOrder)
     ) as Account[];

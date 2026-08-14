@@ -46,16 +46,16 @@ function OnboardingRhythmContent({ db }: { db: Database }) {
     // The flow's terminal step either way: `finishOnboarding` settles the root
     // guard, which swaps this stack for the account offer. Nothing navigates.
     const finish = () => {
-        finishOnboarding(db).catch((error: unknown) => {
-            console.error("Finishing onboarding failed", error);
+        finishOnboarding(db).catch((cause: unknown) => {
+            console.error("Finishing onboarding failed", cause);
         });
     };
 
     const remind = () => {
         Promise.all([setNumberSetting(db, "notificationOption", REMINDER_EVENING), markReminderChosen(db)])
             .then(finish)
-            .catch((error: unknown) => {
-                console.error("Saving the first-run reminder choice failed", error);
+            .catch((cause: unknown) => {
+                console.error("Saving the first-run reminder choice failed", cause);
                 finish();
             });
     };

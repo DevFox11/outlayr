@@ -23,8 +23,8 @@ function OnboardingGroundingContent({ db }: { db: Database }) {
     const confirm = () => {
         setBoolSetting(db, "groundedLookup", enabled)
             .then(() => router.push("/onboarding/rhythm"))
-            .catch((error: unknown) => {
-                console.error("Saving the grounded-lookup choice failed", error);
+            .catch((cause: unknown) => {
+                console.error("Saving the grounded-lookup choice failed", cause);
                 router.push("/onboarding/rhythm");
             });
     };

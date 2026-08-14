@@ -15,11 +15,11 @@ import { MEASURE_KEY } from "../measure-label";
 /** Matches the chart's plot height, so promoting a quiet measure never jumps. */
 const PLOT_HEIGHT = 150;
 
-const PERIOD_PHRASE_KEY: Record<InsightsPeriod, TranslationKey> = {
+const PERIOD_PHRASE_KEY = {
     month: "insights.quiet.thisMonth",
     week: "insights.quiet.thisWeek",
     year: "insights.quiet.thisYear",
-};
+} satisfies Record<InsightsPeriod, TranslationKey>;
 
 interface InsightsQuietProps {
     alternative: InsightsMeasure | null;

@@ -7,6 +7,7 @@ import { useCSSVariable } from "uniwind";
  * lifted to the first-run ink token so it renders on both faces.
  */
 export function OutlayrMark({ size = 92 }: { size?: number }) {
+    // SAFETY: declared in global.css for both schemes, so it always resolves.
     const ink = useCSSVariable("--color-fr-ink") as string;
     return (
         <Svg height={size} viewBox="0 0 697 698" width={size}>

@@ -51,16 +51,16 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
                     if (db == null) {
                         return;
                     }
-                    setBoolSetting(db, key, value).catch((error: unknown) => {
-                        console.error(`Saving the ${key} setting failed`, error);
+                    setBoolSetting(db, key, value).catch((cause: unknown) => {
+                        console.error(`Saving the ${key} setting failed`, cause);
                     });
                 },
                 setNumber: (key, value) => {
                     if (db == null) {
                         return;
                     }
-                    setNumberSetting(db, key, value).catch((error: unknown) => {
-                        console.error(`Saving the ${key} setting failed`, error);
+                    setNumberSetting(db, key, value).catch((cause: unknown) => {
+                        console.error(`Saving the ${key} setting failed`, cause);
                     });
                 },
             },

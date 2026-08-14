@@ -98,8 +98,8 @@ function BudgetContent({ db }: { db: Database }) {
     // so an unhandled rejection would leave the budget sitting in the list with
     // nothing said about why the delete did not take.
     const deleteBudget = (id: string) => {
-        budgetsRepo.deleteBudget(db, id).catch((error: unknown) => {
-            console.error("Failed to delete the budget", error);
+        budgetsRepo.deleteBudget(db, id).catch((cause: unknown) => {
+            console.error("Failed to delete the budget", cause);
             Alert.alert(t("budgets.delete.failedTitle"), t("budgets.delete.failedBody"));
         });
     };

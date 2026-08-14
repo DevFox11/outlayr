@@ -15,16 +15,16 @@ export interface AccountLifecycleDependencies {
     allowLocal: () => void;
     beginDeviceReset?: () => Promise<void>;
     clearDeletionSecret?: () => Promise<void>;
-    deleteAccount: () => Promise<unknown>;
+    deleteAccount: () => Promise<void>;
     markDeviceCleanupReady?: () => Promise<void>;
     navigateToLedger: () => void;
     navigateToOnboarding?: () => void;
     persistDeletionSecret?: (preparation: DeletionPreparation) => Promise<void>;
     prepareDeletion?: () => Promise<DeletionPreparation>;
-    quiesce: () => Promise<unknown>;
+    quiesce: () => Promise<void>;
     resetDevice?: () => Promise<{ failures: readonly string[] }>;
-    revokeProvider?: (preparation: DeletionPreparation) => Promise<unknown>;
-    signOut?: () => Promise<unknown>;
+    revokeProvider?: (preparation: DeletionPreparation) => Promise<void>;
+    signOut?: () => Promise<void>;
 }
 
 export class AccountLifecycleError extends Error {

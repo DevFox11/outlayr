@@ -38,7 +38,9 @@ export interface UseAccountIdentityResult {
 async function persistDefault(bytes: Uint8Array): Promise<AccountLogo> {
     // Required lazily so rendering the editor does not pull Skia's downscaler
     // into the module graph, matching `domain/ids.ts`.
+    // SAFETY: untyped `require`, asserted to that module's own type.
     const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+    // SAFETY: as on the line above.
     const { glowFromImage } = require("@/theme/glow") as typeof import("@/theme/glow");
     const imageUri = await photoStorage.persistLogoBytes(bytes);
     const hues = await glowFromImage(imageUri);

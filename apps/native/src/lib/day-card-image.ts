@@ -18,12 +18,12 @@ const PAPER = "#FFFFFF";
 const INK = "#17150F";
 const MUTED = "#767676";
 
-const WEIGHTS: Record<CardWeight, FontWeight> = {
+const WEIGHTS = {
     medium: FontWeight.Medium,
     mono: FontWeight.Medium,
     regular: FontWeight.Normal,
     semibold: FontWeight.SemiBold,
-};
+} satisfies Record<CardWeight, FontWeight>;
 
 /**
  * The empty name asks for the platform default; the rest are the concrete
@@ -43,6 +43,8 @@ function typefaceFor(weight: CardWeight): SkTypeface | undefined {
     const manager = Skia.FontMgr.System();
     let found: SkTypeface | undefined;
     for (const family of FAMILIES) {
+        // SAFETY: Skia types `weight` as its own enum; `WEIGHTS` maps our four
+        // names onto exactly those numeric values.
         const candidate = manager.matchFamilyStyle(family, {
             weight: WEIGHTS[weight],
         }) as SkTypeface | null;

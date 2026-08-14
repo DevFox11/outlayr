@@ -212,9 +212,9 @@ export function useImportReview(): ImportReviewResult {
                 });
                 importDraftStore.setStep("done");
             })
-            .catch((error: unknown) => {
+            .catch((cause: unknown) => {
                 importDraftStore.dispatch({
-                    detail: error instanceof Error ? error.message : null,
+                    detail: cause instanceof Error ? cause.message : null,
                     type: "commitFailed",
                 });
             });

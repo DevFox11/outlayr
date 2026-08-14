@@ -50,8 +50,8 @@ const OPTIONS = [
     detail?: TranslationKey;
 }[];
 
-function reportReminderFailure(error: unknown): void {
-    console.error("Reminder update failed", error);
+function reportReminderFailure(cause: unknown): void {
+    console.error("Reminder update failed", cause);
 }
 
 async function enableReminders(db: Database): Promise<void> {

@@ -29,6 +29,8 @@ const BETTER_AUTH_KEYS = [
     PROVIDER_BINDING_KEY,
     DELETION_SECRET_KEY,
 ] as const;
+// SAFETY: `extra` is typed as an open record by expo-constants; `appGroup`
+// is a string in app.config.ts, and absence is handled by the union.
 const APP_GROUP = Constants.expoConfig?.extra?.appGroup as string | undefined;
 
 export const DEVICE_STORES = [
@@ -44,7 +46,21 @@ export const DEVICE_STORES = [
 ] as const;
 
 export type DeviceStore = (typeof DEVICE_STORES)[number];
-export type DeviceDataStores = Record<DeviceStore, () => Promise<void>>;
+/**
+ * One clear per store, named. `DEVICE_STORES` above is the erase ORDER — this is
+ * the contract, and a store added to one without the other stops compiling.
+ */
+export interface DeviceDataStores {
+    alternateIcon: () => Promise<void>;
+    asyncStorage: () => Promise<void>;
+    cache: () => Promise<void>;
+    credentials: () => Promise<void>;
+    notifications: () => Promise<void>;
+    photos: () => Promise<void>;
+    spotlight: () => Promise<void>;
+    sqlite: () => Promise<void>;
+    widget: () => Promise<void>;
+}
 
 export const NON_ERASABLE_DEVICE_STATE = [
     "biometricEnrollment",

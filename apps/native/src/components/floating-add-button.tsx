@@ -17,6 +17,8 @@ export function FloatingAddButton() {
     // `--tint`, not `--color-primary`: this is the one control on the ledger that
     // starts something rather than reporting it, and it is where the brand gets to
     // speak. Every figure around it stays ink.
+    // SAFETY: `--tint` is declared in global.css for both schemes, so uniwind's
+    // `string | undefined` cannot be undefined here.
     const accentColor = useCSSVariable("--tint") as string;
     const t = useTranslation();
     const importSheetRef = useRef<ImportSheetHandle>(null);

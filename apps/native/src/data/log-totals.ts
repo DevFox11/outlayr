@@ -20,13 +20,13 @@ export type LogPeriod = "day" | "week" | "month" | "year" | "all";
 
 export const LOG_PERIOD_ORDER: readonly LogPeriod[] = ["day", "week", "month", "year", "all"];
 
-const STORED: Record<LogPeriod, number> = {
+const STORED = {
     all: 5,
     day: 1,
     month: 3,
     week: 2,
     year: 4,
-};
+} satisfies Record<LogPeriod, number>;
 
 export function logPeriodFromStored(value: number): LogPeriod {
     return LOG_PERIOD_ORDER.find((p) => STORED[p] === value) ?? "month";
@@ -40,13 +40,13 @@ export function storedLogPeriod(period: LogPeriod): number {
  * Mid-sentence fragments on purpose: the eyebrow uppercases them and the period
  * menu shows them as-is.
  */
-export const LOG_PERIOD_PHRASE: Record<LogPeriod, string> = {
+export const LOG_PERIOD_PHRASE = {
     all: "all time",
     day: "today",
     month: "this month",
     week: "this week",
     year: "this year",
-};
+} satisfies Record<LogPeriod, string>;
 
 export function sentenceCased(value: string): string {
     return value.charAt(0).toUpperCase() + value.slice(1);

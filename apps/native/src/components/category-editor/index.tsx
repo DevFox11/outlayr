@@ -394,9 +394,9 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
         flashAdded();
     };
 
-    const reportSaveFailure = (error: unknown) => {
+    const reportSaveFailure = (cause: unknown) => {
         haptics("error");
-        const code = error instanceof Error ? categoryErrorCode(error.message) : null;
+        const code = cause instanceof Error ? categoryErrorCode(cause.message) : null;
         const message = code ? t(CATEGORY_ERROR_KEYS[code]) : t("categories.error.generic");
         const refocus = code === "missingName" || code === "duplicateName";
         Alert.alert(errorTitle, message, [

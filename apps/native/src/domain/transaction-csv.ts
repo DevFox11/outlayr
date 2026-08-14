@@ -244,14 +244,14 @@ export function parseCsvDate(value: string, format: string): Date | null {
         return null;
     }
 
-    const parts: Record<Token, number> = {
+    const parts = {
         HH: 0,
         MM: 1,
         dd: 1,
         mm: 0,
         ss: 0,
         yyyy: 1970,
-    };
+    } satisfies Record<Token, number>;
     for (const [index, token] of pattern.order.entries()) {
         parts[token] = Number.parseInt(match[index + 1] ?? "", 10);
     }
