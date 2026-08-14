@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { Category, CategoryWithChildren } from "@/data/categories-core";
 
 import { categorySearchKey, expandedForSelectedCategory, searchCategoryTree } from "./category-search";
@@ -51,8 +53,8 @@ describe("categorySearchKey", () => {
 
 describe("searchCategoryTree", () => {
     it("returns nothing for an empty or whitespace-only query", () => {
-        expect(searchCategoryTree(SAMPLE, "")).toEqual([]);
-        expect(searchCategoryTree(SAMPLE, "   ")).toEqual([]);
+        expect(searchCategoryTree(SAMPLE, "")).toStrictEqual([]);
+        expect(searchCategoryTree(SAMPLE, "   ")).toStrictEqual([]);
     });
 
     it("matches a parent on a case-insensitive substring", () => {
@@ -71,12 +73,12 @@ describe("searchCategoryTree", () => {
 
     it("does not pull in a matching parent's non-matching children", () => {
         const matches = searchCategoryTree(SAMPLE, "groceries");
-        expect(matches.map((match) => match.category.id)).toEqual(["groceries"]);
+        expect(matches.map((match) => match.category.id)).toStrictEqual(["groceries"]);
     });
 
     it("keeps tree order, with a matching child directly after its parent", () => {
         const matches = searchCategoryTree(SAMPLE, "or");
-        expect(matches.map((match) => match.category.id)).toEqual(["organic", "transport", "storage"]);
+        expect(matches.map((match) => match.category.id)).toStrictEqual(["organic", "transport", "storage"]);
     });
 
     it("reports where the match sits so the row can highlight it", () => {
@@ -97,13 +99,13 @@ describe("searchCategoryTree", () => {
     });
 
     it("returns nothing when no name contains the query", () => {
-        expect(searchCategoryTree(SAMPLE, "veterinary")).toEqual([]);
+        expect(searchCategoryTree(SAMPLE, "veterinary")).toStrictEqual([]);
     });
 });
 
 describe("expandedForSelectedCategory", () => {
     it("opens the parent holding the selected child", () => {
-        expect([...expandedForSelectedCategory(SAMPLE, "organic")]).toEqual(["groceries"]);
+        expect([...expandedForSelectedCategory(SAMPLE, "organic")]).toStrictEqual(["groceries"]);
     });
 
     it("opens nothing when the selection is a top-level category", () => {

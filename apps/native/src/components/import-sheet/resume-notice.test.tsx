@@ -1,10 +1,7 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 
 import { ResumeNotice } from "./resume-notice";
-
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
-}));
 
 describe("resumeNotice", () => {
     it("renders the resume copy and calls onStartOver when Start over is pressed", async () => {

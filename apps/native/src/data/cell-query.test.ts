@@ -1,7 +1,8 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 import { cellFigures } from "@/domain/currency-totals";
 import { buildRateTable } from "@/domain/valuation";
 
@@ -43,7 +44,7 @@ function makeDb() {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 const NOW = new Date(Date.UTC(2026, 6, 31, 23));
@@ -162,7 +163,9 @@ describe("logCellQuery", () => {
             date: new Date(Date.UTC(2026, 6, 20, 12)),
         });
         // 90 + 95, not 200 at either single rate.
-        expect(await figures(db, "EUR")).toStrictEqual([{ count: 2, currencyCode: "EUR", expense: 185, income: 0 }]);
+        await expect(figures(db, "EUR")).resolves.toStrictEqual([
+            { count: 2, currencyCode: "EUR", expense: 185, income: 0 },
+        ]);
     });
 
     it("keeps income and expense apart inside a converted currency", async () => {
@@ -181,7 +184,9 @@ describe("logCellQuery", () => {
             date: july5,
             income: true,
         });
-        expect(await figures(db, "EUR")).toStrictEqual([{ count: 2, currencyCode: "EUR", expense: 90, income: 180 }]);
+        await expect(figures(db, "EUR")).resolves.toStrictEqual([
+            { count: 2, currencyCode: "EUR", expense: 90, income: 180 },
+        ]);
     });
 
     it("leaves what it cannot convert in its own currency", async () => {
@@ -198,7 +203,7 @@ describe("logCellQuery", () => {
             currency: "GBP",
             date: new Date(Date.UTC(2026, 6, 5, 12)),
         });
-        expect(await figures(db, "EUR")).toStrictEqual([
+        await expect(figures(db, "EUR")).resolves.toStrictEqual([
             { count: 1, currencyCode: "EUR", expense: 60, income: 0 },
             { count: 1, currencyCode: "GBP", expense: 25, income: 0 },
         ]);
@@ -213,6 +218,8 @@ describe("logCellQuery", () => {
             date: new Date(Date.UTC(2026, 6, 5, 12)),
         });
         await db.update(transactions).set({ deletedAt: NOW });
-        expect(await figures(db, "EUR")).toStrictEqual([{ count: 0, currencyCode: "EUR", expense: 0, income: 0 }]);
+        await expect(figures(db, "EUR")).resolves.toStrictEqual([
+            { count: 0, currencyCode: "EUR", expense: 0, income: 0 },
+        ]);
     });
 });

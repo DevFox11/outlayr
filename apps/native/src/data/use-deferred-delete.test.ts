@@ -1,10 +1,11 @@
+import { describe, expect, it } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 
 import { accountsRepo } from "./accounts-core";
@@ -62,7 +63,7 @@ function makeDb(): Database {
 			PRIMARY KEY (quote, rateType, date)
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function transferWithFee(db: Database): Promise<string> {

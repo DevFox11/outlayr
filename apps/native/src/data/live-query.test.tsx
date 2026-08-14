@@ -1,11 +1,12 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Text } from "react-native";
 
 import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { useLiveValue } from "./live-query";
 
@@ -41,7 +42,7 @@ function makeDb(): Database {
 			value text
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 function write(db: Database, key: string, value: string) {

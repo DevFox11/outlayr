@@ -1,5 +1,8 @@
-jest.mock("@react-native-async-storage/async-storage", () =>
-    require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
+jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
+    "@react-native-async-storage/async-storage",
+    () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
 jest.mock("@/lib/auth-session", () => ({
@@ -22,9 +25,9 @@ const { completeAppleSignIn, completeGoogleSignIn, googleProviderSubject } =
 describe("apple-credential-captures-code", () => {
     it("binds raw nonce through Better Auth then grants the captured Apple credential", async () => {
         const client = {
-            $fetch: jest.fn().mockResolvedValue({ data: { active: true }, error: null }),
+            $fetch: jest.fn(async () => ({ data: { active: true }, error: null })),
             signIn: {
-                social: jest.fn().mockResolvedValue({ data: { user: { id: "better-auth-user" } }, error: null }),
+                social: jest.fn(async () => ({ data: { user: { id: "better-auth-user" } }, error: null })),
             },
         };
         const activation = { activate: jest.fn(), begin: jest.fn(), reject: jest.fn() };
@@ -66,14 +69,14 @@ describe("apple-credential-captures-code", () => {
 
     it("apple-capture-failure-returns-local", async () => {
         const client = {
-            $fetch: jest.fn().mockResolvedValue({ data: null, error: { message: "grant failed" } }),
+            $fetch: jest.fn(async () => ({ data: null, error: { message: "grant failed" } })),
             signIn: {
-                social: jest.fn().mockResolvedValue({ data: { user: { id: "better-auth-user" } }, error: null }),
+                social: jest.fn(async () => ({ data: { user: { id: "better-auth-user" } }, error: null })),
             },
-            signOut: jest.fn().mockResolvedValue({ error: null }),
+            signOut: jest.fn(async () => ({ error: null })),
         };
         const activation = { activate: jest.fn(), begin: jest.fn(), reject: jest.fn() };
-        const restoreLocal = jest.fn().mockResolvedValue(undefined);
+        const restoreLocal = jest.fn(async () => undefined);
 
         await expect(
             completeAppleSignIn(
@@ -101,7 +104,7 @@ describe("google provider binding", () => {
     it("persists the Better Auth user and validated Google subject after sign-in", async () => {
         const client = {
             signIn: {
-                social: jest.fn().mockResolvedValue({ data: { user: { id: "better-auth-user" } }, error: null }),
+                social: jest.fn(async () => ({ data: { user: { id: "better-auth-user" } }, error: null })),
             },
         };
         const identityToken = "header.eyJzdWIiOiJnb29nbGUtc3ViamVjdCJ9.signature";
@@ -120,7 +123,7 @@ describe("google provider binding", () => {
 
     it("does not persist a binding for rejected or malformed Google sign-ins", async () => {
         const client = {
-            signIn: { social: jest.fn().mockResolvedValue({ data: null, error: { message: "rejected" } }) },
+            signIn: { social: jest.fn(async () => ({ data: null, error: { message: "rejected" } })) },
         };
 
         await expect(completeGoogleSignIn(client as never, "header.payload.signature")).rejects.toThrow("rejected");

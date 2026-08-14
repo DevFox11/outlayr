@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, outbox, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { applyPulledRows, drainOutbox, incomingWinsLocally, pullAndApply, runSync, specFor } from "./sync-engine-core";
@@ -32,7 +33,7 @@ function makeDb(): Database {
     // applier's `PRAGMA foreign_keys = OFF` would be a no-op here and the
     // out-of-order page below would pass for the wrong reason.
     sqlite.exec("PRAGMA foreign_keys = ON");
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 /**
@@ -265,7 +266,7 @@ describe("drainOutbox", () => {
             return { accepted: 0, nextSeq: 1, skipped: 0 };
         };
 
-        expect(await drainOutbox(db, push)).toBe(0);
+        await expect(drainOutbox(db, push)).resolves.toBe(0);
         expect(calls).toBe(0);
     });
 
@@ -275,8 +276,8 @@ describe("drainOutbox", () => {
         await addTransaction(db, "t2");
         const server = makeServer();
 
-        expect(await drainOutbox(db, server.push)).toBe(2);
-        expect(await outboxPendingCount(db)).toBe(0);
+        await expect(drainOutbox(db, server.push)).resolves.toBe(2);
+        await expect(outboxPendingCount(db)).resolves.toBe(0);
         expect(server.rows.size).toBe(2);
     });
 
@@ -368,7 +369,7 @@ describe("drainOutbox", () => {
 
         await drainOutbox(db, push);
 
-        expect(await outboxPendingCount(db)).toBe(1);
+        await expect(outboxPendingCount(db)).resolves.toBe(1);
     });
 
     it("pages a queue longer than one batch", async () => {
@@ -383,7 +384,7 @@ describe("drainOutbox", () => {
         });
 
         expect(batches).toStrictEqual([500, 1]);
-        expect(await outboxPendingCount(db)).toBe(0);
+        await expect(outboxPendingCount(db)).resolves.toBe(0);
     });
 
     it("keeps the queue when the push throws", async () => {
@@ -395,7 +396,7 @@ describe("drainOutbox", () => {
                 throw new Error("offline");
             })
         ).rejects.toThrow();
-        expect(await outboxPendingCount(db)).toBe(1);
+        await expect(outboxPendingCount(db)).resolves.toBe(1);
     });
 
     it("pushes only the account-scoped meta keys", async () => {
@@ -431,7 +432,7 @@ describe("applyPulledRows", () => {
         expect(row.id).toBe("remote");
         expect(row.amount).toBe(7.5);
         expect(row.updatedAt.getTime()).toBe(5000);
-        expect(await getSyncCursor(db)).toBe(1);
+        await expect(getSyncCursor(db)).resolves.toBe(1);
     });
 
     it("round-trips dates and nulls", async () => {
@@ -476,7 +477,7 @@ describe("applyPulledRows", () => {
         const [row] = await db.select().from(transactions);
         expect(result.applied).toBe(0);
         expect(row.note).toBe("mine");
-        expect(await outboxPendingCount(db)).toBe(1);
+        await expect(outboxPendingCount(db)).resolves.toBe(1);
     });
 
     it("r1 — an incoming tombstone beats a newer local edit", async () => {
@@ -581,7 +582,7 @@ describe("applyPulledRows", () => {
 
         const [row] = await db.select().from(transactions);
         expect(row.note).toBe("mine");
-        expect(await outboxPendingCount(db)).toBe(1);
+        await expect(outboxPendingCount(db)).resolves.toBe(1);
     });
 
     it("deletes the queue entries its own writes create", async () => {
@@ -592,7 +593,7 @@ describe("applyPulledRows", () => {
             rows: [txRow("remote", 1, 5000)],
         });
 
-        expect(await outboxPendingCount(db)).toBe(0);
+        await expect(outboxPendingCount(db)).resolves.toBe(0);
     });
 
     it("applies a page whose transaction precedes the category it references", async () => {
@@ -629,13 +630,13 @@ describe("applyPulledRows", () => {
         await applyPulledRows(db, { cursor: 1, rows: [txRow("t1", 1, 5000)] });
         await applyPulledRows(db, { cursor: 7, rows: [txRow("t2", 7, 5000)] });
 
-        expect(await getSyncCursor(db)).toBe(7);
+        await expect(getSyncCursor(db)).resolves.toBe(7);
     });
 
     it("leaves the cursor alone on an empty page", async () => {
         await applyPulledRows(db, { cursor: 99, rows: [] });
 
-        expect(await getSyncCursor(db)).toBe(0);
+        await expect(getSyncCursor(db)).resolves.toBe(0);
     });
 
     it("writes an appMeta key by its key", async () => {
@@ -654,7 +655,7 @@ describe("applyPulledRows", () => {
             ],
         });
 
-        expect(await getMeta(db, META_KEYS.currency)).toBe("JPY");
+        await expect(getMeta(db, META_KEYS.currency)).resolves.toBe("JPY");
     });
 
     // `appMeta` carries no `updatedAt` column, so without the pending guard every
@@ -668,8 +669,8 @@ describe("applyPulledRows", () => {
             rows: [metaRow(META_KEYS.currency, 1, 9000, "JPY")],
         });
 
-        expect(await getMeta(db, META_KEYS.currency)).toBe("GBP");
-        expect(await outboxPendingCount(db)).toBe(1);
+        await expect(getMeta(db, META_KEYS.currency)).resolves.toBe("GBP");
+        await expect(outboxPendingCount(db)).resolves.toBe(1);
     });
 
     it("takes the incoming meta value when nothing local is owed", async () => {
@@ -680,7 +681,7 @@ describe("applyPulledRows", () => {
             rows: [metaRow(META_KEYS.currency, 1, 9000, "JPY")],
         });
 
-        expect(await getMeta(db, META_KEYS.currency)).toBe("JPY");
+        await expect(getMeta(db, META_KEYS.currency)).resolves.toBe("JPY");
     });
 
     it("reports the tables it wrote so the caller can invalidate them", async () => {
@@ -826,8 +827,8 @@ describe("r3 — invariants Convex cannot hold", () => {
         const first = makeDb();
         const second = makeDb();
 
-        expect(await seed(first, "aaa", "zzz")).toStrictEqual(["zzz"]);
-        expect(await seed(second, "zzz", "aaa")).toStrictEqual(["zzz"]);
+        await expect(seed(first, "aaa", "zzz")).resolves.toStrictEqual(["zzz"]);
+        await expect(seed(second, "zzz", "aaa")).resolves.toStrictEqual(["zzz"]);
     });
 
     it("leaves two budgets on different categories alone", async () => {
@@ -925,8 +926,8 @@ describe("two devices against one account", () => {
 
         const [row] = await db.select().from(transactions);
         expect(row).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
-        expect(await getSyncCursor(db)).toBe(2);
-        expect(await outboxPendingCount(db)).toBe(0);
+        await expect(getSyncCursor(db)).resolves.toBe(2);
+        await expect(outboxPendingCount(db)).resolves.toBe(0);
     });
 
     it("replicates a ledger from one device to the other", async () => {
@@ -942,7 +943,7 @@ describe("two devices against one account", () => {
 
         const [row] = await beta.select().from(transactions);
         expect(row.note).toBe("coffee");
-        expect(await outboxPendingCount(beta)).toBe(0);
+        await expect(outboxPendingCount(beta)).resolves.toBe(0);
     });
 
     it("replicates an account, dates as epochs and the local path withheld", async () => {
@@ -976,7 +977,7 @@ describe("two devices against one account", () => {
         expect(row.dateCreated.getTime()).toBe(3000);
         expect(row.sortOrder).toBe(2);
         expect(row.imageUri).toBeNull();
-        expect(await outboxPendingCount(beta)).toBe(0);
+        await expect(outboxPendingCount(beta)).resolves.toBe(0);
     });
 
     it("converges a concurrent edit to the same row on the later writer", async () => {
@@ -1041,7 +1042,7 @@ describe("two devices against one account", () => {
         const applied = await pullAndApply(beta, server.pull);
 
         expect(applied.applied).toBe(1);
-        expect(await outboxPendingCount(beta)).toBe(1);
+        await expect(outboxPendingCount(beta)).resolves.toBe(1);
         const notes = (await beta.select().from(transactions)).map((row) => row.note).sort();
         expect(notes).toStrictEqual(["from-alpha", "unsent"]);
     });
@@ -1060,11 +1061,11 @@ describe("two devices against one account", () => {
             await runSync(beta, server.transport);
         }
 
-        expect(await outboxPendingCount(alpha)).toBe(0);
-        expect(await outboxPendingCount(beta)).toBe(0);
-        expect(await alpha.select().from(transactions)).toHaveLength(2);
-        expect(await beta.select().from(transactions)).toHaveLength(2);
-        expect(await getSyncCursor(alpha)).toBe(await getSyncCursor(beta));
+        await expect(outboxPendingCount(alpha)).resolves.toBe(0);
+        await expect(outboxPendingCount(beta)).resolves.toBe(0);
+        await expect(alpha.select().from(transactions)).resolves.toHaveLength(2);
+        await expect(beta.select().from(transactions)).resolves.toHaveLength(2);
+        await expect(getSyncCursor(alpha)).resolves.toBe(await getSyncCursor(beta));
     });
 
     it("stops rather than looping when a page does not advance the cursor", async () => {

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { CurrencyCell } from "./currency-totals";
 import { netWorthSeries } from "./net-worth-series";
 import type { NetWorthSeriesAccount } from "./net-worth-series";

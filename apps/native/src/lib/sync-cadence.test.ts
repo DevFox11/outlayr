@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { affectsSpotlight, affectsWidgets, debounce, PUBLISH_DEBOUNCE_MS, SPOTLIGHT_DEBOUNCE_MS } from "./sync-cadence";
 
 const sleep = (ms: number) =>

@@ -43,7 +43,7 @@ describe("apple-capture-exchange-storage", () => {
         vi.setSystemTime(now);
         const deps = dependencies();
 
-        await expect(grantAppleCredential("user-id", input, deps)).resolves.toEqual({ active: true });
+        await expect(grantAppleCredential("user-id", input, deps)).resolves.toStrictEqual({ active: true });
 
         expect(deps.verify).toHaveBeenNthCalledWith(1, "identity-token", "raw-nonce");
         expect(deps.exchange).toHaveBeenCalledWith("code");
@@ -80,7 +80,7 @@ describe("apple-refresh-rotation", () => {
     test("rotates access and expiry atomically while retaining an omitted refresh token", async () => {
         const deps = dependencies();
 
-        await expect(refreshAppleCredential("user-id", deps, now)).resolves.toEqual({
+        await expect(refreshAppleCredential("user-id", deps, now)).resolves.toStrictEqual({
             active: true,
             refreshed: true,
         });
@@ -141,7 +141,7 @@ describe("apple-refresh-rotation", () => {
             updatedAt: new Date("2026-08-11T11:00:00.000Z"),
         });
 
-        await expect(refreshAppleCredential("user-id", deps, now)).resolves.toEqual({
+        await expect(refreshAppleCredential("user-id", deps, now)).resolves.toStrictEqual({
             active: true,
             refreshed: false,
         });

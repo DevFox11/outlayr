@@ -74,7 +74,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 
         await runGroundedLookupCall({ grounding, groundingTools: { web_search: fakeWebSearchTool } }, BASE_ARGS);
 
-        expect(grounding.doGenerateCalls[0]?.tools).toEqual([expect.objectContaining({ name: "web_search" })]);
+        expect(grounding.doGenerateCalls[0]?.tools).toStrictEqual([expect.objectContaining({ name: "web_search" })]);
     });
 
     test("parses a clean JSON response with no fence or prose", async () => {
@@ -222,7 +222,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
             key: "farmatodo",
             tags: ["pharmacy"],
         });
-        expect(outcome.sources).toEqual([{ url: "https://farmatodo.com/about" }]);
+        expect(outcome.sources).toStrictEqual([{ url: "https://farmatodo.com/about" }]);
         expect(outcome.inputTokens).toBe(5489);
         expect(outcome.outputTokens).toBe(85);
     });
@@ -279,7 +279,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
             BASE_ARGS
         );
 
-        expect(outcome.sources).toEqual([]);
+        expect(outcome.sources).toStrictEqual([]);
     });
 });
 

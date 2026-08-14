@@ -1,13 +1,13 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, userEvent } from "@testing-library/react-native";
 import { FadeInLeft, FadeInRight, Keyframe, ReduceMotion } from "react-native-reanimated";
 
+import { testColors as mockTestColors } from "@/theme/test-colors";
+
 import { HEADER_BUTTON_ENTERING, SheetHeader, titleEntering } from "./sheet-header";
 
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
-}));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ foreground: "#17150F", muted: "#8A8578" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ foreground: "#17150F", muted: "#8A8578" }),
 }));
 
 describe("sheetHeader", () => {

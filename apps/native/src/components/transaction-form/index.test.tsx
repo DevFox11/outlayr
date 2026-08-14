@@ -1,14 +1,15 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories-core";
 import { bumpRatesRevision } from "@/data/rates-revision";
@@ -17,62 +18,58 @@ import { tagsRepo } from "@/data/tags-core";
 import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import type { LogoOutcome } from "@/lib/logo-fetch";
 import { glowFromImage } from "@/theme/glow";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { curtainGradient } from "../identity-curtain";
 import { TransactionForm } from "./index";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-    require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
+    "@react-native-async-storage/async-storage",
+    () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
-jest.mock("expo-sqlite", () => ({
+jest.mock<Partial<typeof import("expo-sqlite")>>("expo-sqlite", () => ({
     addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("@/i18n/context", () => ({
-    useLanguage: () => ({
-        language: "en",
-        preference: "system",
-        setPreference: () => {},
-    }),
-    useTranslation: () => (key: string) => key,
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            accent: "#3D7A5C",
+            accentForeground: "#FFFFFF",
+            background: "#F2F0EA",
+            border: "#DAD6C9",
+            danger: "#B5482F",
+            expense: "#B5482F",
+            foreground: "#17150F",
+            future: "#8A8578",
+            groupedBackground: "#EFEDE6",
+            income: "#3D7A5C",
+            muted: "#8A8578",
+            overBudget: "#B5482F",
+            railTrack: "rgba(0,0,0,0.08)",
+            separator: "#DAD6C9",
+            subtle: "#B4AFA0",
+            surface: "#FFFFFF",
+            surfaceSecondary: "#F7F5EF",
+            tint: "#3D7A5C",
+            warning: "#C08A2E",
+        }),
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        accent: "#3D7A5C",
-        accentForeground: "#FFFFFF",
-        background: "#F2F0EA",
-        border: "#DAD6C9",
-        danger: "#B5482F",
-        expense: "#B5482F",
-        foreground: "#17150F",
-        future: "#8A8578",
-        groupedBackground: "#EFEDE6",
-        income: "#3D7A5C",
-        muted: "#8A8578",
-        overBudget: "#B5482F",
-        railTrack: "rgba(0,0,0,0.08)",
-        separator: "#DAD6C9",
-        subtle: "#B4AFA0",
-        surface: "#FFFFFF",
-        surfaceSecondary: "#F7F5EF",
-        tint: "#3D7A5C",
-        warning: "#C08A2E",
-    }),
-}));
-jest.mock("expo-router", () => require("../../../jest/expo-router-stub"));
+jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => require("../../../jest/expo-router-stub"));
 jest.mock("number-flow-react-native", () => {
     const react = require("react") as typeof import("react");
     return {
         NumberFlow: (props: Record<string, unknown>) => react.createElement("NumberFlow", props),
     };
 });
-jest.mock("react-native-safe-area-context", () => ({
+jest.mock<Partial<typeof import("react-native-safe-area-context")>>("react-native-safe-area-context", () => ({
     useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
-jest.mock("../currency-picker-sheet", () => {
+jest.mock<Partial<typeof import("../currency-picker-sheet")>>("../currency-picker-sheet", () => {
     const React = require("react");
     const { Pressable } = require("react-native");
     return {
@@ -84,20 +81,22 @@ jest.mock("../currency-picker-sheet", () => {
             }),
     };
 });
-jest.mock("@/lib/subscription-reminder-sync", () => ({
+jest.mock<Partial<typeof import("@/lib/subscription-reminder-sync")>>("@/lib/subscription-reminder-sync", () => ({
     syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
 }));
 jest.mock("@/lib/logo-fetch", () => ({ fetchMerchantImage: jest.fn() }));
-jest.mock("@/lib/photo-storage", () => ({ persistLogoBytes: jest.fn() }));
+jest.mock<Partial<typeof import("@/lib/photo-storage")>>("@/lib/photo-storage", () => ({
+    persistLogoBytes: jest.fn<typeof import("@/lib/photo-storage").persistLogoBytes>(),
+}));
 jest.mock("@/theme/glow", () => {
-    const actual = jest.requireActual("@/theme/glow");
+    const actual = jest.requireActual<typeof import("@/theme/glow")>("@/theme/glow");
     return { ...actual, glowFromImage: jest.fn() };
 });
 // `backfillRecurring` defaults to the real implementation; the re-entrancy
 // suite below overrides it once to hold the pipeline open past the row
 // commit, so it can observe the CTA before `holdSubmitting()` would settle.
 jest.mock("@/data/recurrence-backfill", () => {
-    const actual = jest.requireActual("@/data/recurrence-backfill");
+    const actual = jest.requireActual<typeof import("@/data/recurrence-backfill")>("@/data/recurrence-backfill");
     return {
         ...actual,
         backfillRecurring: jest.fn(actual.backfillRecurring),
@@ -117,7 +116,7 @@ interface ObservableStateDouble {
 }
 
 jest.mock("@expo/ui/swift-ui", () => {
-    const actual = jest.requireActual("@expo/ui/swift-ui");
+    const actual = jest.requireActual<typeof import("@expo/ui/swift-ui")>("@expo/ui/swift-ui");
     const React = require("react");
     return {
         ...actual,
@@ -393,7 +392,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function seedCategory(db: Database, id = "c1", name = "Groceries") {
@@ -550,7 +549,7 @@ let closePickerForTest: (() => void) | null = null;
 
 jest.mock("@/contexts/local-data-context", () => ({
     useDatabase: () => dbHolder.current,
-    useLocalData: () => ({ db: dbHolder.current }),
+    useLocalData: () => mockTestLocalData({ db: dbHolder.current }),
 }));
 
 function PickerController() {
@@ -837,7 +836,7 @@ describe("transactionForm submit re-entrancy", () => {
         };
 
         let resolveBackfill: () => void = () => {};
-        (backfillRecurring as jest.Mock).mockImplementationOnce(
+        jest.mocked(backfillRecurring).mockImplementationOnce(
             () =>
                 new Promise<void>((resolve) => {
                     resolveBackfill = resolve;
@@ -1438,7 +1437,7 @@ describe("transactionForm pending category and tag materialization", () => {
         });
 
         expect(createSpy).toHaveBeenCalledTimes(1);
-        expect(await db.select().from(transactions)).toHaveLength(0);
+        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
         expect(JSON.stringify(toJSON())).toContain('"$type":"strokeBorder"');
 
         createSpy.mockRestore();
@@ -1557,7 +1556,7 @@ describe("transactionForm account attachment", () => {
         const savedTx = await db.select().from(transactions);
         expect(savedTx).toHaveLength(1);
         expect(savedTx[0].accountId).toBe(accountId);
-        expect(await getMeta(db, META_KEYS.lastTransactionAccount)).toBe(accountId);
+        await expect(getMeta(db, META_KEYS.lastTransactionAccount)).resolves.toBe(accountId);
     });
 });
 
@@ -1571,7 +1570,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState).toEqual({
+        expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState).toMatchObject({
             selected: true,
         });
         expect(screen.getAllByText("55.5 transaction.rate.perUsd").length).toBeGreaterThan(0);
@@ -1613,7 +1612,7 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={vesCopy} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        expect(ves.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toEqual({
+        expect(ves.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject({
             selected: true,
         });
         await ves.unmount();
@@ -1650,14 +1649,16 @@ describe("transactionForm entry-rate confirmation", () => {
         await waitFor(() => {
             expect(
                 screen.getByRole("button", { name: "transaction.rate.eur_reference" }).props.accessibilityState
-            ).toEqual({
+            ).toMatchObject({
                 selected: true,
             });
         });
         await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
 
         await waitFor(() => {
-            expect(screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toEqual({
+            expect(
+                screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState
+            ).toMatchObject({
                 selected: true,
             });
             expect(screen.queryByRole("button", { name: "transaction.rate.eur_reference" })).toBeNull();
@@ -1681,7 +1682,9 @@ describe("transactionForm entry-rate confirmation", () => {
         await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
 
         await waitFor(() => {
-            expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState).toEqual({
+            expect(
+                screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState
+            ).toMatchObject({
                 selected: true,
             });
             expect(screen.getByRole("button", { name: "transaction.rate.editCustom" })).not.toHaveTextContent("55.5");
@@ -1712,7 +1715,7 @@ describe("transactionForm entry-rate confirmation", () => {
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
-        expect(await db.select().from(transactions)).toHaveLength(0);
+        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
         expect(screen.getByText("transaction.rate.required")).toBeTruthy();
     });
 
@@ -1902,7 +1905,9 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toEqual({
+        expect(
+            screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState
+        ).toMatchObject({
             selected: true,
         });
         expect(screen.getAllByText("55.5 transaction.rate.perUsd").length).toBeGreaterThan(0);

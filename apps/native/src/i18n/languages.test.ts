@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { DEFAULT_LANGUAGE, languageFromTag, languageLabel, resolveLanguage } from "./languages";
 
 describe("languageFromTag", () => {

@@ -1,25 +1,27 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 
+import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { DoneStep } from "./done-step";
 
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useLanguage: () => ({ language: "en" }),
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        foreground: "#17150F",
-        income: "#2E7D32",
-        muted: "#8A8578",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            foreground: "#17150F",
+            income: "#2E7D32",
+            muted: "#8A8578",
+        }),
 }));
-jest.mock("@/contexts/display-settings-context", () => ({
-    useDisplaySettings: () => ({
-        state: { showCents: true },
-    }),
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
+    useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true }),
 }));
 
 const ENTRY = {

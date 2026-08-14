@@ -1,18 +1,24 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Text } from "react-native";
 
+import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
+
 import { DeviceResetRecovery, retryBeforeClosingDatabase } from "./device-reset-recovery";
 
-const mockRecover = jest.fn();
-const mockResumePersistedCloudDeletion = jest.fn();
+const mockRecover = jest.fn<typeof import("@/lib/device-data-reset").recoverDeviceReset>();
+const mockResumePersistedCloudDeletion = jest.fn<typeof import("@/lib/deletion-resume").resumePersistedCloudDeletion>();
 let mockCompleteCloudDeletion: (() => Promise<void>) | undefined;
-const mockDatabase = {};
+const mockDatabase = mockUnusedDatabase();
 const mockRetry = jest.fn();
-jest.mock("@/contexts/local-data-context", () => ({ useLocalData: () => ({ db: mockDatabase, retry: mockRetry }) }));
+jest.mock("@/contexts/local-data-context", () => ({
+    useLocalData: () => mockTestLocalData({ db: mockDatabase, retry: mockRetry }),
+}));
 jest.mock("@/db/client", () => ({ closeDatabase: jest.fn() }));
-jest.mock("@/i18n/context", () => ({ useTranslation: () => (key: string) => key }));
 jest.mock("./deletion-resume", () => ({
-    resumePersistedCloudDeletion: (...args: unknown[]) => mockResumePersistedCloudDeletion(...args),
+    resumePersistedCloudDeletion: (...args: Parameters<typeof mockResumePersistedCloudDeletion>) =>
+        mockResumePersistedCloudDeletion(...args),
 }));
 jest.mock("./device-data-reset", () => ({
     createDeviceResetGate: ({ completeCloudDeletion }: { completeCloudDeletion: () => Promise<void> }) => {

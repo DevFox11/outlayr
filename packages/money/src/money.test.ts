@@ -21,7 +21,7 @@ const EUR_VES_ONLY_PATTERN = /eur_reference rates are only available for VES/;
 const NO_MARKET_RATE_PATTERN = /No official rate available for VES on 2020-01-01/;
 const RESOLVED_RATE_POSITIVE_PATTERN = /Resolved official rate for VES on .* must be a positive number/;
 
-describe("isPickableCurrency", () => {
+describe(isPickableCurrency, () => {
     it("accepts fiat quotes the app allows", () => {
         expect(isPickableCurrency("USD")).toBeTruthy();
         expect(isPickableCurrency("VES")).toBeTruthy();
@@ -40,7 +40,7 @@ describe("isPickableCurrency", () => {
     });
 });
 
-describe("utcDateString", () => {
+describe(utcDateString, () => {
     it("derives the UTC calendar date from an epoch", () => {
         expect(utcDateString(Date.UTC(2026, 5, 30, 23, 59))).toBe("2026-06-30");
         expect(utcDateString(Date.UTC(2020, 0, 1, 0, 0))).toBe("2020-01-01");
@@ -69,7 +69,7 @@ describe("finite / epoch assertions", () => {
     });
 });
 
-describe("resolveEntryRate", () => {
+describe(resolveEntryRate, () => {
     const lookup = makeRateLookup([
         { date: "2026-06-01", quote: "VES", rate: 40, rateType: "official" },
         {

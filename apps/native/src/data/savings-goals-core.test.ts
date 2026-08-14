@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { savingsGoalsQuery, savingsGoalsRepo } from "./savings-goals-core";
 
@@ -22,7 +23,7 @@ function makeDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const AUTHORED = new Date("2026-03-04T10:00:00.000Z");
@@ -70,7 +71,7 @@ describe("savings goals", () => {
     it("keeps a deleted goal out of every read", async () => {
         const id = await goal();
         await savingsGoalsRepo.remove(db, id);
-        expect(await savingsGoalsQuery(db)).toStrictEqual([]);
+        await expect(savingsGoalsQuery(db)).resolves.toStrictEqual([]);
     });
 
     it("re-freezes the USD target only when the amount or currency moves", async () => {
@@ -92,7 +93,7 @@ describe("savings goals", () => {
         // cascades rather than leaving a target pointing at nothing.
         await goal();
         db.run?.("DELETE FROM accounts WHERE id = 'savings'");
-        expect(await savingsGoalsQuery(db)).toStrictEqual([]);
+        await expect(savingsGoalsQuery(db)).resolves.toStrictEqual([]);
     });
 
     it("refuses to update a goal that is not there", async () => {

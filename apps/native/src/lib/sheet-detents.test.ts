@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { ACCOUNT_DETENT, CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT, TRANSFER_DETENT } from "./sheet-detents";
 
 describe("sheet detents", () => {
@@ -9,7 +11,7 @@ describe("sheet detents", () => {
     });
 
     it("offers large-only as the single escape hatch while a picker is open", () => {
-        expect(LARGE_ONLY).toEqual([1]);
+        expect(LARGE_ONLY).toStrictEqual([1]);
     });
 
     it("gives the transfer editor more room than the account editor, which has fewer rows", () => {

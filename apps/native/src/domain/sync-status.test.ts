@@ -1,4 +1,6 @@
-import { effectiveCapabilityStatus, syncStatusLabel } from "./sync-status";
+import { describe, expect, it } from "@jest/globals";
+
+import { effectiveCapabilityStatus, ownsSyncSwitch, syncPresentation, syncStatusLabel } from "./sync-status";
 
 const AT = new Date(1_700_000_000_000);
 
@@ -74,5 +76,48 @@ describe("effective capability status", () => {
                 syncedAt: AT,
             })
         ).toStrictEqual({ enableSync: true, kind: "syncOff" });
+    });
+});
+
+describe("syncPresentation", () => {
+    it("names the build as unavailable before it names the account", () => {
+        expect(syncPresentation("unavailable", false)).toStrictEqual({
+            detail: "settings.account.unavailableDetail",
+            title: "settings.account.unavailable",
+        });
+    });
+
+    it("asks for an account without claiming sync is off", () => {
+        expect(syncPresentation("accountRequired", false)).toStrictEqual({
+            detail: "settings.sync.needsAccount",
+            title: "settings.account.notSignedIn",
+        });
+    });
+
+    it("reads the switch only once the capability settled", () => {
+        expect(syncPresentation("syncOff", false).title).toBe("settings.sync.off");
+        expect(syncPresentation("active", true).title).toBe("settings.sync.on");
+    });
+
+    it("ignores the switch position for a kind that has no switch", () => {
+        expect(syncPresentation("unavailable", true).title).toBe("settings.account.unavailable");
+        expect(syncPresentation("accountRequired", true).title).toBe("settings.account.notSignedIn");
+    });
+});
+
+describe("ownsSyncSwitch", () => {
+    it("withholds the switch until adoption settles", () => {
+        expect(ownsSyncSwitch("active", "reconciling")).toBe(false);
+        expect(ownsSyncSwitch("syncOff", "reconciling")).toBe(false);
+    });
+
+    it("offers the switch for both settled capabilities", () => {
+        expect(ownsSyncSwitch("active", "settled")).toBe(true);
+        expect(ownsSyncSwitch("syncOff", "settled")).toBe(true);
+    });
+
+    it("withholds the switch from a device with no account or no cloud", () => {
+        expect(ownsSyncSwitch("accountRequired", "settled")).toBe(false);
+        expect(ownsSyncSwitch("unavailable", "settled")).toBe(false);
     });
 });

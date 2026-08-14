@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { IMPORT_SOURCES } from "./import-sources";
 
 describe("iMPORT_SOURCES", () => {

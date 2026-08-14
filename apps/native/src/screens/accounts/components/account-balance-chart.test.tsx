@@ -1,7 +1,9 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 
 import type { CurrencyCell } from "@/domain/currency-totals";
 import { buildRateTable } from "@/domain/valuation";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountBalanceChart } from "./account-balance-chart";
 
@@ -47,7 +49,7 @@ jest.mock("panelui-native", () => {
 });
 
 jest.mock("react-native-reanimated", () => {
-    const actual = jest.requireActual("react-native-reanimated");
+    const actual = jest.requireActual<typeof import("react-native-reanimated")>("react-native-reanimated");
     return { ...actual, useReducedMotion: () => mockReduceMotion() };
 });
 
@@ -66,8 +68,8 @@ jest.mock("@/i18n/context", () => ({
     },
 }));
 
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ tint: "#4f46e5" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ tint: "#4f46e5" }),
 }));
 
 const { mockLineChart, mockLineChartTooltip, mockLineChartXAxis, mockLineChartYAxis } = globalThis as unknown as {
@@ -130,7 +132,7 @@ describe("accountBalanceChart", () => {
         await renderChart();
 
         expect(screen.getByLabelText(/balance history/i)).toBeOnTheScreen();
-        expect(mockLineChart.mock.calls[0]?.[0]).toEqual(
+        expect(mockLineChart.mock.calls[0]?.[0]).toStrictEqual(
             expect.objectContaining({ data: expect.arrayContaining([expect.objectContaining({ value: 0 })]) })
         );
     });
@@ -139,7 +141,7 @@ describe("accountBalanceChart", () => {
         await renderChart([], 20, "USD", new Date("2026-01-01T12:00:00Z"));
 
         const props = mockLineChart.mock.calls[0]?.[0] as { yDomain: [number, number] };
-        expect(props.yDomain).toEqual([18, 22]);
+        expect(props.yDomain).toStrictEqual([18, 22]);
     });
 
     it("uses compact magnitudes for four-digit negative Y-axis labels", async () => {
@@ -220,7 +222,7 @@ describe("accountBalanceChart", () => {
 
             await renderChart();
 
-            expect(mockLineChart.mock.calls[0]?.[0]).toEqual(
+            expect(mockLineChart.mock.calls[0]?.[0]).toStrictEqual(
                 expect.objectContaining({ animationDuration: 0, domainDuration: 0 })
             );
         }

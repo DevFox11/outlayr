@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
 import type { Account } from "@/data/accounts-core";
@@ -23,7 +24,7 @@ jest.mock("@/data/transfer-rates", () => ({
     useTransferRates: () => ({ get: (code: string) => mockRates.get(code) ?? null }),
 }));
 
-jest.mock("@/data/transfers-core", () => ({
+jest.mock<Partial<typeof import("@/data/transfers-core")>>("@/data/transfers-core", () => ({
     lastFeeCategoryId: () => null,
 }));
 

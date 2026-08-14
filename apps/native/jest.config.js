@@ -17,6 +17,8 @@ module.exports = {
         "react-native-gesture-handler/jestSetup.js",
         "<rootDir>/jest/expo-observe-stub.js",
         "<rootDir>/jest/env-stub.js",
+        "<rootDir>/jest/sqlite-change-listener-stub.js",
+        "<rootDir>/jest/i18n-key-stub.js",
     ],
     testMatch: ["**/*.test.ts?(x)"],
     // panelui-native's kpi pulls in lucide-react-native, which ships ESM under

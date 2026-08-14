@@ -1,7 +1,8 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions, transfers } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
 
@@ -67,7 +68,7 @@ function makeDb() {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 async function addTransfer(
@@ -140,14 +141,14 @@ describe("transferCells projects each leg into the shape the balance engine alre
         const db = makeDb();
         await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
 
-        expect(await transferCells(db, "c")).toEqual([]);
+        await expect(transferCells(db, "c")).resolves.toStrictEqual([]);
     });
 
     it("ignores a tombstoned transfer", async () => {
         const db = makeDb();
         await addTransfer(db, { deletedAt: DAY, fromAccountId: "a", id: "t1", toAccountId: "b" });
 
-        expect(await transferCells(db, "a")).toEqual([]);
+        await expect(transferCells(db, "a")).resolves.toStrictEqual([]);
     });
 
     it("sums several transfers on the same day and currency into one cell", async () => {
@@ -258,7 +259,7 @@ describe("allTransferCells splits the whole ledger by account in one read", () =
             const fromAll = all
                 .filter((cell) => cell.accountId === accountId)
                 .map(({ accountId: _drop, ...cell }) => cell);
-            expect(fromAll.sort((l, r) => Number(l.income) - Number(r.income))).toEqual(
+            expect(fromAll.sort((l, r) => Number(l.income) - Number(r.income))).toStrictEqual(
                 scoped.sort((l, r) => Number(l.income) - Number(r.income))
             );
         }

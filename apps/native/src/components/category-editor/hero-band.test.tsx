@@ -1,45 +1,50 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { useSharedValue } from "react-native-reanimated";
 
 import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "@/components/editor-style";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
+import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { CategoryEditorHeroBand } from "./hero-band";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-    require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
+    "@react-native-async-storage/async-storage",
+    () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
-jest.mock("expo-sqlite", () => ({
+jest.mock<Partial<typeof import("expo-sqlite")>>("expo-sqlite", () => ({
     addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("@/contexts/local-data-context", () => ({
-    useLocalData: () => ({ db: null }),
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useLocalData: () => mockTestLocalData({ db: null }),
 }));
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string) => key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        accent: "#3D7A5C",
-        accentForeground: "#FFFFFF",
-        background: "#F2F0EA",
-        border: "#DAD6C9",
-        danger: "#B5482F",
-        expense: "#B5482F",
-        foreground: "#17150F",
-        future: "#8A8578",
-        groupedBackground: "#EFEDE6",
-        income: "#3D7A5C",
-        muted: "#8A8578",
-        overBudget: "#B5482F",
-        railTrack: "rgba(0,0,0,0.08)",
-        separator: "#DAD6C9",
-        subtle: "#B4AFA0",
-        surface: "#FFFFFF",
-        surfaceSecondary: "#F7F5EF",
-        tint: "#3D7A5C",
-        warning: "#C08A2E",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            accent: "#3D7A5C",
+            accentForeground: "#FFFFFF",
+            background: "#F2F0EA",
+            border: "#DAD6C9",
+            danger: "#B5482F",
+            expense: "#B5482F",
+            foreground: "#17150F",
+            future: "#8A8578",
+            groupedBackground: "#EFEDE6",
+            income: "#3D7A5C",
+            muted: "#8A8578",
+            overBudget: "#B5482F",
+            railTrack: "rgba(0,0,0,0.08)",
+            separator: "#DAD6C9",
+            subtle: "#B4AFA0",
+            surface: "#FFFFFF",
+            surfaceSecondary: "#F7F5EF",
+            tint: "#3D7A5C",
+            warning: "#C08A2E",
+        }),
 }));
 
 interface JsonNode {

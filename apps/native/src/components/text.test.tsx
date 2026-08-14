@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { createRef } from "react";
 import type { Text as RNText } from "react-native";

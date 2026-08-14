@@ -175,7 +175,7 @@ describe("getLatestRate", () => {
             quote: "VES",
             rateType: "official",
         });
-        expect(latest).toEqual({ date: "2026-03-13", fetchedAt: 300, rate: 41 });
+        expect(latest).toStrictEqual({ date: "2026-03-13", fetchedAt: 300, rate: 41 });
     });
 
     test("returns null when no rate exists for the pair", async () => {
@@ -228,7 +228,7 @@ describe("getRateOnDate", () => {
             quote: "VES",
             rateType: "official",
         });
-        expect(result).toEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
+        expect(result).toStrictEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
     });
 
     test("falls back to the newest earlier date across a weekend gap", async () => {
@@ -242,7 +242,7 @@ describe("getRateOnDate", () => {
             quote: "VES",
             rateType: "official",
         });
-        expect(saturday).toEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
+        expect(saturday).toStrictEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
     });
 
     test("returns null when no row is on or before the requested date", async () => {
@@ -315,7 +315,9 @@ describe("pruneStale", () => {
 
         await runPruneToCompletion(t);
 
-        expect(await allRateDates(t, "VES")).toEqual([daysAgoDate(200), daysAgoDate(100), daysAgoDate(5)].sort());
+        await expect(allRateDates(t, "VES")).resolves.toStrictEqual(
+            [daysAgoDate(200), daysAgoDate(100), daysAgoDate(5)].sort()
+        );
     });
 
     test("collapses several rows in one month down to that month's newest", async () => {
@@ -328,7 +330,7 @@ describe("pruneStale", () => {
 
         await runPruneToCompletion(t);
 
-        expect(await allRateDates(t, "VES")).toEqual(["2026-01-29"]);
+        await expect(allRateDates(t, "VES")).resolves.toStrictEqual(["2026-01-29"]);
     });
 
     test("keeps the monthly anchors of non-catalog pairs too", async () => {
@@ -340,7 +342,7 @@ describe("pruneStale", () => {
 
         await runPruneToCompletion(t);
 
-        expect(await allRateDates(t, "XXX")).toEqual([daysAgoDate(200), daysAgoDate(100)].sort());
+        await expect(allRateDates(t, "XXX")).resolves.toStrictEqual([daysAgoDate(200), daysAgoDate(100)].sort());
     });
 
     test("completes across self-scheduled batches when stale rows exceed one batch", async () => {
@@ -404,8 +406,8 @@ describe("pruneStale", () => {
 
         // The post-prune backlog fits one batch, so this pass is a single
         // invocation — `deleted: 0` is the whole pass's total.
-        expect(second).toEqual({ deleted: 0, isDone: true });
-        expect(await allRateDates(t, "VES")).toEqual(survivors);
+        expect(second).toStrictEqual({ deleted: 0, isDone: true });
+        await expect(allRateDates(t, "VES")).resolves.toStrictEqual(survivors);
     });
 
     test("spaces the next batch out instead of dispatching it immediately", async () => {
@@ -446,7 +448,7 @@ describe("pruneStale", () => {
     });
 });
 
-describe("nextPruneStep", () => {
+describe(nextPruneStep, () => {
     const midPass = { cursor: "page-3", retries: 0 };
 
     test("carries a drained batch on to the next page", () => {

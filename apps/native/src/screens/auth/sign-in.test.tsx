@@ -1,20 +1,26 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
+
+import { testAppSettings as mockTestAppSettings } from "@/contexts/test-settings";
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { SignIn } from "./sign-in";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-    require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
+    "@react-native-async-storage/async-storage",
+    () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
 jest.mock("@/lib/auth-client", () => ({ authClient: {} }));
 
-jest.mock("@/lib/google-sign-in", () => ({
-    googleIdToken: jest.fn(),
+jest.mock<Partial<typeof import("@/lib/google-sign-in")>>("@/lib/google-sign-in", () => ({
+    googleIdToken: jest.fn<typeof import("@/lib/google-sign-in").googleIdToken>(),
     isGoogleSignInAvailable: false,
 }));
 
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ background: "#F2F0EA" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ background: "#F2F0EA" }),
 }));
 
 jest.mock("@/lib/use-provider-sign-in", () => ({
@@ -25,22 +31,15 @@ jest.mock("@/lib/use-provider-sign-in", () => ({
     }),
 }));
 
-jest.mock("@/i18n/context", () => ({
-    useLanguage: () => ({ language: "en" }),
-    useTranslation: () => (key: string) => key,
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useDatabase: () => mockUnusedDatabase(),
 }));
 
-jest.mock("@/contexts/local-data-context", () => ({
-    useDatabase: () => ({}),
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
+    useAppSettings: () => mockTestAppSettings({ number: () => 0 }),
 }));
 
-jest.mock("@/contexts/display-settings-context", () => ({
-    useAppSettings: () => ({
-        state: { number: () => 0 },
-    }),
-}));
-
-jest.mock("@/data/app-meta", () => ({ useGlobalCurrency: () => "USD" }));
+jest.mock<Partial<typeof import("@/data/app-meta")>>("@/data/app-meta", () => ({ useGlobalCurrency: () => "USD" }));
 
 jest.mock("@/data/onboarding", () => ({
     deferAccount: jest.fn(),

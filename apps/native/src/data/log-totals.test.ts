@@ -1,16 +1,13 @@
+import { describe, expect, it } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { buildRateTable } from "@/domain/valuation";
 
 import { useSparklineRows } from "./log-totals";
-
-jest.mock("expo-sqlite", () => ({
-    addDatabaseChangeListener: () => ({ remove: () => undefined }),
-}));
 
 const NOW = new Date(Date.UTC(2026, 6, 15, 12));
 
@@ -49,7 +46,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function seedPendingCustom(db: Database): Promise<void> {
@@ -82,13 +79,13 @@ describe("useSparklineRows pending custom valuation", () => {
         const db = makeDb();
         await seedPendingCustom(db);
 
-        expect(await sparklineAmounts(db, "VES")).toStrictEqual([40]);
+        await expect(sparklineAmounts(db, "VES")).resolves.toStrictEqual([40]);
     });
 
     it("charts zero instead of face value when the sparkline uses a foreign currency", async () => {
         const db = makeDb();
         await seedPendingCustom(db);
 
-        expect(await sparklineAmounts(db, "EUR")).toStrictEqual([0]);
+        await expect(sparklineAmounts(db, "EUR")).resolves.toStrictEqual([0]);
     });
 });

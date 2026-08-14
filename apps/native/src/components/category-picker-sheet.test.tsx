@@ -1,46 +1,50 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { createRef } from "react";
 
 import { seedCategories, seededCategoryId } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { CategoryPickerSheet } from "./category-picker-sheet";
 import type { CategoryPickerSheetRef } from "./category-picker-sheet";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-    require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
+    "@react-native-async-storage/async-storage",
+    () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
-jest.mock("expo-sqlite", () => ({
+jest.mock<Partial<typeof import("expo-sqlite")>>("expo-sqlite", () => ({
     addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        accent: "#010101",
-        accentForeground: "#ffffff",
-        background: "#ffffff",
-        border: "#d2d6db",
-        danger: "#da0f01",
-        expense: "#010101",
-        foreground: "#010101",
-        future: "#6d6d6d",
-        groupedBackground: "#f2f2f7",
-        income: "#027d51",
-        muted: "#6d6d6d",
-        overBudget: "#da0f01",
-        railTrack: "rgba(0,0,0,.06)",
-        separator: "#d2d6db",
-        subtle: "#6c6c78",
-        surface: "#f6f6f6",
-        surfaceSecondary: "#f0f0f0",
-        tint: "#0069de",
-        warning: "#d8a13a",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            accent: "#010101",
+            accentForeground: "#ffffff",
+            background: "#ffffff",
+            border: "#d2d6db",
+            danger: "#da0f01",
+            expense: "#010101",
+            foreground: "#010101",
+            future: "#6d6d6d",
+            groupedBackground: "#f2f2f7",
+            income: "#027d51",
+            muted: "#6d6d6d",
+            overBudget: "#da0f01",
+            railTrack: "rgba(0,0,0,.06)",
+            separator: "#d2d6db",
+            subtle: "#6c6c78",
+            surface: "#f6f6f6",
+            surfaceSecondary: "#f0f0f0",
+            tint: "#0069de",
+            warning: "#d8a13a",
+        }),
 }));
 jest.mock("@/i18n/context", () => ({
     useTranslation:
@@ -62,7 +66,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const GROCERIES = seededCategoryId("Groceries", false);
@@ -217,7 +221,7 @@ describe("categoryPickerSheet", () => {
         await type("organic");
 
         press("category-row-organic");
-        expect(picked).toEqual(["organic"]);
+        expect(picked).toStrictEqual(["organic"]);
     });
 
     it("offers to create the typed name when nothing matches", async () => {
@@ -230,7 +234,7 @@ describe("categoryPickerSheet", () => {
 
         expect(screen.getByText("transaction.category.noMatches:veterinary")).toBeTruthy();
         press("category-create");
-        expect(created).toEqual(["veterinary"]);
+        expect(created).toStrictEqual(["veterinary"]);
     });
 
     it("omits the create action when the host cannot create categories", async () => {

@@ -165,7 +165,7 @@ describe("accounting for what an account stores", () => {
         await storeSize(t, key, 100);
         await storeSize(t, key, 200);
 
-        expect(await totalStored(t, owner.userId)).toBe(200);
+        await expect(totalStored(t, owner.userId)).resolves.toBe(200);
     });
 
     test("records nothing for a key that is not a photo key", async () => {
@@ -176,7 +176,7 @@ describe("accounting for what an account stores", () => {
         });
 
         const rows = await t.run(async (ctx) => ctx.db.query("photoSizes").collect());
-        expect(rows).toEqual([]);
+        expect(rows).toStrictEqual([]);
     });
 });
 
@@ -215,7 +215,7 @@ describe("readUrls", () => {
         const t = convexTest(schema, modules);
         const owner = await seedAuthUser(t);
 
-        await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys: [] })).resolves.toEqual([]);
+        await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys: [] })).resolves.toStrictEqual([]);
     });
 
     test("drops a key belonging to another account rather than minting for it", async () => {
@@ -227,7 +227,7 @@ describe("readUrls", () => {
             authenticatedAs(t, owner).query(api.photos.readUrls, {
                 keys: [photoKeyFor(stranger.userId, PHOTO)],
             })
-        ).resolves.toEqual([]);
+        ).resolves.toStrictEqual([]);
     });
 });
 
@@ -254,7 +254,7 @@ describe("releaseUnreferenced", () => {
             authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
                 key,
             })
-        ).resolves.toEqual({ released: false });
+        ).resolves.toStrictEqual({ released: false });
     });
 
     test("keeps an object only a tombstoned row names", async () => {
@@ -269,7 +269,7 @@ describe("releaseUnreferenced", () => {
             authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
                 key,
             })
-        ).resolves.toEqual({ released: false });
+        ).resolves.toStrictEqual({ released: false });
     });
 
     test("keeps an object only an account logo names", async () => {
@@ -282,7 +282,7 @@ describe("releaseUnreferenced", () => {
             authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
                 key,
             })
-        ).resolves.toEqual({ released: false });
+        ).resolves.toStrictEqual({ released: false });
     });
 
     test("does not see another account's row as a reference", async () => {
@@ -316,7 +316,7 @@ describe("merchant cache keys stay unowned (T8)", () => {
             authenticatedAs(t, owner).query(api.photos.readUrls, {
                 keys: ["merchant/farmatodo"],
             })
-        ).resolves.toEqual([]);
+        ).resolves.toStrictEqual([]);
     });
 });
 
@@ -378,8 +378,8 @@ describe("the convex storage fallback", () => {
 
         const released = await authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, { key });
 
-        expect(released).toEqual({ released: true });
-        expect(await t.run(async (ctx) => await ctx.db.query("photoObjects").collect())).toHaveLength(0);
+        expect(released).toStrictEqual({ released: true });
+        await expect(t.run(async (ctx) => await ctx.db.query("photoObjects").collect())).resolves.toHaveLength(0);
         await expect(t.run(async (ctx) => await ctx.storage.getUrl(storageId))).resolves.toBeNull();
     });
 });

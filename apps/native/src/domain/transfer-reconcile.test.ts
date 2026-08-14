@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { solveTransfer, transferDisplay, transferGap, transferLegs } from "./transfer-reconcile";
 import type { TransferValues } from "./transfer-reconcile";
 
@@ -118,7 +120,7 @@ describe("solveTransfer refuses the unanswerable", () => {
 
 describe("transferLegs stores movement and leaves the fee outside", () => {
     it("shrinks the outbound leg by a source-side fee", () => {
-        expect(transferLegs(sourceFeeCase(), USD_DECIMALS, VES_DECIMALS)).toEqual({
+        expect(transferLegs(sourceFeeCase(), USD_DECIMALS, VES_DECIMALS)).toStrictEqual({
             exchangeRate: 55.5,
             fromAmount: 97.3,
             toAmount: 5400.15,
@@ -126,7 +128,7 @@ describe("transferLegs stores movement and leaves the fee outside", () => {
     });
 
     it("grows the inbound leg by a destination-side fee", () => {
-        expect(transferLegs(destFeeCase(), USD_DECIMALS, VES_DECIMALS)).toEqual({
+        expect(transferLegs(destFeeCase(), USD_DECIMALS, VES_DECIMALS)).toStrictEqual({
             exchangeRate: 55.5,
             fromAmount: 100,
             toAmount: 5550,
@@ -150,14 +152,18 @@ describe("transferLegs stores movement and leaves the fee outside", () => {
 
 describe("transferDisplay recomposes what the user typed", () => {
     it("adds a source-side fee back onto the outbound leg", () => {
-        expect(transferDisplay({ exchangeRate: 55.5, fromAmount: 97.3, toAmount: 5400.15 }, 2.7, "source")).toEqual({
+        expect(
+            transferDisplay({ exchangeRate: 55.5, fromAmount: 97.3, toAmount: 5400.15 }, 2.7, "source")
+        ).toStrictEqual({
             arrived: 5400.15,
             sent: 100,
         });
     });
 
     it("deducts a destination-side fee from the inbound leg", () => {
-        expect(transferDisplay({ exchangeRate: 55.5, fromAmount: 100, toAmount: 5550 }, 150, "destination")).toEqual({
+        expect(
+            transferDisplay({ exchangeRate: 55.5, fromAmount: 100, toAmount: 5550 }, 150, "destination")
+        ).toStrictEqual({
             arrived: 5400,
             sent: 100,
         });

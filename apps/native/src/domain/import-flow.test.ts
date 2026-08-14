@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { ParsedImportFile } from "@/data/transfer-core";
 
 import { canAdvance, IMPORT_STEPS, INITIAL_IMPORT_FLOW_STATE, importFlowReducer } from "./import-flow";

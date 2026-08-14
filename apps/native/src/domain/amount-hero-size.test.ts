@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { AMOUNT_HERO_MAX_SIZE, AMOUNT_HERO_MIN_SIZE, amountHeroFontSize, amountHeroLength } from "./amount-hero-size";
 
 const IPHONE_CONTENT_WIDTH = 353;

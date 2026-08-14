@@ -1,14 +1,15 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
-jest.mock("@/i18n/device-language", () => ({
-    useDeviceLanguageTag: jest.fn(),
+jest.mock<Partial<typeof import("@/i18n/device-language")>>("@/i18n/device-language", () => ({
+    useDeviceLanguageTag: jest.fn<typeof import("@/i18n/device-language").useDeviceLanguageTag>(),
 }));
 
 import { useDeviceLanguageTag } from "@/i18n/device-language";
 
 import { useLocaleTag } from "./use-locale-tag";
 
-const mockUseDeviceLanguageTag = useDeviceLanguageTag as jest.Mock;
+const mockUseDeviceLanguageTag = jest.mocked(useDeviceLanguageTag);
 
 describe("useLocaleTag", () => {
     it("returns the device's own language tag", async () => {

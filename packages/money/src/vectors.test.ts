@@ -135,7 +135,7 @@ describe("golden vectors — convertFromUsd", () => {
     });
 });
 
-describe("CURRENCY_DECIMALS", () => {
+describe("currency fractional digits", () => {
     it("assigns zero fractional digits to JPY, KRW, and ISK", () => {
         expect(CURRENCY_DECIMALS.JPY).toBe(0);
         expect(CURRENCY_DECIMALS.KRW).toBe(0);
@@ -160,16 +160,16 @@ describe("CURRENCY_DECIMALS", () => {
     });
 });
 
-describe("currencyDisplayFor", () => {
+describe(currencyDisplayFor, () => {
     it("returns generated metadata for a catalog code", () => {
-        expect(currencyDisplayFor("VES")).toEqual({
+        expect(currencyDisplayFor("VES")).toStrictEqual({
             name: "Venezuelan Bolívar",
             symbol: "Bs.",
         });
     });
 
     it("falls back to the bare code for a code absent from the catalog", () => {
-        expect(currencyDisplayFor("ZZZ")).toEqual({ name: "ZZZ", symbol: "ZZZ" });
+        expect(currencyDisplayFor("ZZZ")).toStrictEqual({ name: "ZZZ", symbol: "ZZZ" });
     });
 });
 

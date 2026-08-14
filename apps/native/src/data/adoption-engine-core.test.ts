@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { accountLedgerState, discardAccountLedger, replaceLocalFromAccount } from "./adoption-engine-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -29,7 +30,7 @@ function makeDb(): Database {
         }
     }
     sqlite.exec("PRAGMA foreign_keys = ON");
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 /** The same R1/R2 rule as `packages/backend/convex/lib/syncTables.ts`. */
@@ -139,13 +140,13 @@ describe("accountLedgerState", () => {
             deviceId: "peer",
             rows: [{ ...serverRow("a", 100, 100) }],
         });
-        expect(await accountLedgerState(server.pull)).toBe("empty");
+        await expect(accountLedgerState(server.pull)).resolves.toBe("empty");
     });
 
     it("reads one live row as populated", async () => {
         const server = makeServer();
         await server.push({ deviceId: "peer", rows: [serverRow("a", 100)] });
-        expect(await accountLedgerState(server.pull)).toBe("populated");
+        await expect(accountLedgerState(server.pull)).resolves.toBe("populated");
     });
 });
 
@@ -174,10 +175,10 @@ describe("replaceLocalFromAccount", () => {
 
         await replaceLocalFromAccount(db, server.pull);
 
-        expect(await getMeta(db, META_KEYS.syncDeviceId)).toBe("this-device");
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("1");
+        await expect(getMeta(db, META_KEYS.syncDeviceId)).resolves.toBe("this-device");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("1");
         // Account-scoped, so the account's absence of it is authoritative.
-        expect(await getMeta(db, META_KEYS.currency)).toBeNull();
+        await expect(getMeta(db, META_KEYS.currency)).resolves.toBeNull();
     });
 });
 

@@ -37,7 +37,7 @@ describe("pricing defaults", () => {
     });
 });
 
-describe("estimateMicros", () => {
+describe(estimateMicros, () => {
     test("the worst-case pre-charge is strictly positive", () => {
         expect(estimateMicros()).toBeGreaterThan(0);
     });
@@ -49,7 +49,7 @@ describe("estimateMicros", () => {
     });
 });
 
-describe("measureMicros", () => {
+describe(measureMicros, () => {
     test("sums search calls and token usage at the configured unit prices", () => {
         // 1 search @5000 + 1000 input tok @1.25/tok + 100 output tok @2.5/tok
         expect(measureMicros({ inputTokens: 1000, outputTokens: 100 }, 1)).toBe(5000 + 1000 * 1.25 + 100 * 2.5);

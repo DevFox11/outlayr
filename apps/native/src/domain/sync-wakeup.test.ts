@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { isBehindWatermark } from "./sync-wakeup";
 
 describe("isBehindWatermark", () => {

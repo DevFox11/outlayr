@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { categoryBreakdownWithin, categoryMovers, runningTotals, withCategoryDeltas } from "./insights";
 import type { CategoryBreakdownEntry, CategoryMeta, InsightsBucket, InsightsContribution } from "./insights";
 

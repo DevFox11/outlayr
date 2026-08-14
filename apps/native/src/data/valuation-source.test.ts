@@ -1,7 +1,8 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { appMeta, exchangeRates } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 
 import type { SpendDb } from "./budget-spent";
 import { loadValuation, loadValuationIn } from "./valuation-source";
@@ -27,7 +28,7 @@ function makeDb(): SpendDb {
 			PRIMARY KEY (quote, rateType, date)
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 const OFFICIAL_VES = 45.5;

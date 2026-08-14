@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { currencyTotals } from "./currency-totals";
 import { netTotal } from "./log-measure";
 import { scopeHasFigures, scopeTotals } from "./log-scope-figures";

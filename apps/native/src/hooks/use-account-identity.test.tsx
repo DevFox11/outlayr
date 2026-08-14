@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
 import { clearEnrichmentCache } from "@/domain/enrichment-cache";
@@ -27,7 +28,7 @@ interface DeferredCall {
 }
 
 function deferredTransport(): {
-    fn: EnrichmentFn & jest.Mock;
+    fn: jest.Mock<EnrichmentFn>;
     calls: DeferredCall[];
 } {
     const calls: DeferredCall[] = [];
@@ -39,7 +40,7 @@ function deferredTransport(): {
                     settle: (value) => resolve(value as RemoteEnrichmentResult),
                 });
             })
-    ) as EnrichmentFn & jest.Mock;
+    );
     return { calls, fn };
 }
 
@@ -136,7 +137,7 @@ describe("debounce and domain consumption", () => {
 
         expect(fetchImage).not.toHaveBeenCalled();
         expect(onLogo).not.toHaveBeenCalled();
-        expect(onClear).toHaveBeenCalled();
+        expect(onClear).toHaveBeenCalledWith();
     });
 });
 
@@ -154,7 +155,7 @@ describe("consent gates", () => {
         });
 
         expect(fn).not.toHaveBeenCalled();
-        expect(onClear).toHaveBeenCalled();
+        expect(onClear).toHaveBeenCalledWith();
     });
 
     it("skips the grounded follow-up when groundedLookup is off", async () => {
@@ -232,7 +233,7 @@ describe("acceptance and gating", () => {
         });
 
         expect(onLogo).not.toHaveBeenCalled();
-        expect(onClear).toHaveBeenCalled();
+        expect(onClear).toHaveBeenCalledWith();
     });
 
     it("leaves the tile alone while canAttach answers false", async () => {

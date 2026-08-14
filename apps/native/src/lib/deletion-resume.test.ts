@@ -1,20 +1,21 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 
 import { resumePersistedCloudDeletion } from "./deletion-resume";
 
 const mockRevokeGoogleProviderSubject = jest.fn();
 
-jest.mock("expo-secure-store", () => ({
-    deleteItemAsync: jest.fn(),
-    getItemAsync: jest.fn(),
-    setItemAsync: jest.fn(),
+jest.mock<Partial<typeof import("expo-secure-store")>>("expo-secure-store", () => ({
+    deleteItemAsync: jest.fn<typeof import("expo-secure-store").deleteItemAsync>(),
+    getItemAsync: jest.fn<typeof import("expo-secure-store").getItemAsync>(),
+    setItemAsync: jest.fn<typeof import("expo-secure-store").setItemAsync>(),
 }));
-jest.mock("@/lib/auth-client", () => ({ authClient: null }));
+jest.mock<Partial<typeof import("@/lib/auth-client")>>("@/lib/auth-client", () => ({ authClient: null }));
 // `convex` only has to be non-null — the module's own guard reads it — while the
 // calls themselves go through the wrappers `convex.ts` exports.
 jest.mock("@/lib/convex", () => ({
-    cloudMutation: jest.fn(),
-    cloudQuery: jest.fn(),
+    cloudMutation: jest.fn<typeof import("@/lib/convex").cloudMutation>(),
+    cloudQuery: jest.fn<typeof import("@/lib/convex").cloudQuery>(),
     convex: {},
 }));
 jest.mock("@/lib/provider-revocation", () => ({
@@ -26,7 +27,7 @@ jest.mock("@/lib/provider-revocation", () => ({
 }));
 
 function cloudMocks() {
-    return jest.requireMock("@/lib/convex") as { cloudMutation: jest.Mock; cloudQuery: jest.Mock };
+    return jest.mocked(jest.requireMock<typeof import("@/lib/convex")>("@/lib/convex"));
 }
 
 describe("resumePersistedCloudDeletion", () => {
@@ -35,7 +36,7 @@ describe("resumePersistedCloudDeletion", () => {
         const { cloudMutation, cloudQuery } = cloudMocks();
         cloudQuery.mockResolvedValueOnce({ phase: "prepared" }).mockResolvedValueOnce({ phase: "complete" });
         cloudMutation.mockResolvedValueOnce({ phase: "providersRevoked" }).mockResolvedValueOnce({ phase: "complete" });
-        (getItemAsync as jest.Mock).mockResolvedValue(
+        jest.mocked(getItemAsync).mockResolvedValue(
             JSON.stringify({
                 provider: "google",
                 providerSubject: "provider-subject",
@@ -63,7 +64,7 @@ describe("resumePersistedCloudDeletion", () => {
     });
 
     it("fails closed when a cloud marker has no usable resume secret", async () => {
-        (getItemAsync as jest.Mock).mockResolvedValue(null);
+        jest.mocked(getItemAsync).mockResolvedValue(null);
 
         await expect(resumePersistedCloudDeletion({ required: true })).rejects.toThrow("requires reauthentication");
         expect(cloudMocks().cloudMutation).not.toHaveBeenCalled();

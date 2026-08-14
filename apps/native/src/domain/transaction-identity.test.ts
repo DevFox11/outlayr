@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "./transaction-identity";
 import type { TransactionIdentitySource } from "./transaction-identity";
 

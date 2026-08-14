@@ -18,8 +18,7 @@ import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
 import { formatDayHeader, formatTime } from "@/domain/dates";
 import type { AdoptionActions } from "@/domain/ledger-adoption";
-import { effectiveCapabilityStatus } from "@/domain/sync-status";
-import type { TranslatableKey } from "@/i18n/catalog";
+import { effectiveCapabilityStatus, ownsSyncSwitch, syncPresentation } from "@/domain/sync-status";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
@@ -62,7 +61,7 @@ function SyncSettings({ db }: { db: Database }) {
         syncEnabled: enabled,
         syncedAt,
     });
-    const owned = status === "settled" && (capability.kind === "active" || capability.kind === "syncOff");
+    const owned = ownsSyncSwitch(capability.kind, status);
     const presentation = syncPresentation(capability.kind, enabled);
 
     const toggle = (next: boolean) => {
@@ -120,24 +119,4 @@ function SyncSettings({ db }: { db: Database }) {
 function useSyncEnabled(db: Database): boolean {
     const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)));
     return rows[0]?.value === "1";
-}
-
-interface SyncPresentation {
-    detail: TranslatableKey;
-    title: TranslatableKey;
-}
-
-function syncPresentation(
-    kind: ReturnType<typeof effectiveCapabilityStatus>["kind"],
-    enabled: boolean
-): SyncPresentation {
-    if (kind === "unavailable") {
-        return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
-    }
-    if (kind === "accountRequired") {
-        return { detail: "settings.sync.needsAccount", title: "settings.account.notSignedIn" };
-    }
-    return enabled
-        ? { detail: "settings.sync.onDetail", title: "settings.sync.on" }
-        : { detail: "settings.sync.offDetail", title: "settings.sync.off" };
 }

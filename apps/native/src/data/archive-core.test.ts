@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { parseArchive, serializeArchive } from "@/domain/archive";
 
 import { buildArchive, restoreArchive } from "./archive-core";
@@ -29,7 +30,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const CATEGORY = {
@@ -179,7 +180,7 @@ describe("archiving a ledger", () => {
         const written = await restoreArchive(fresh, parsed);
 
         expect(written).toBe(251);
-        expect(await fresh.select().from(transactions)).toHaveLength(250);
+        await expect(fresh.select().from(transactions)).resolves.toHaveLength(250);
     });
 
     it("writes categories before the rows that point at them", async () => {

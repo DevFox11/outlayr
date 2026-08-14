@@ -101,6 +101,7 @@
         "zod": "catalog:"
     },
     "devDependencies": {
+        "@jest/globals": "29.7.0",
         "@outlayr/config": "workspace:*",
         "@testing-library/react-native": "^14.0.1",
         "@types/better-sqlite3": "^9.6.0",

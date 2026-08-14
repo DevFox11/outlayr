@@ -42,40 +42,37 @@ const formatOnlyIgnores = ["**/*.html", "**/*.md"];
 
 const NATIVE_SOURCE = "apps/native/src/**";
 
-// Assertion-count and title-shape rules describe how someone else writes tests,
-// and three of these rewrite what an assertion means: `toHaveBeenCalled()` ->
-// `toHaveBeenCalledWith()` turns "the spy ran" into "the spy ran with no
-// arguments"; `toEqual` -> `toStrictEqual` starts counting the `undefined`
-// members every `accessibilityState` carries; and `expect(await x)` ->
-// `await expect(x).resolves` assumes `x` is a promise, which the synchronous
-// drizzle reads are not. Both runners name these identically under their own
-// prefix; the entries only one plugin defines are listed per-runner below.
+// Rules that describe the shape of someone else's test rather than whether it
+// holds. `max-expects` reported 128 times and its worst file is `erase-core`,
+// where ten well-named tests check that a tombstone is scrubbed column by
+// column — one behaviour, many fields, which is the assertion and not a smell.
+// `require-top-level-describe` and `prefer-ending-with-an-expect` are the same
+// kind of claim about layout. The rest are the same category: a `try`/`catch`
+// that asserts on the caught error, a table written as separate `it`s because
+// the cases differ in more than their data, a helper that carries the `expect`,
+// and `toThrow()` where the type of the error is the claim. Both runners name
+// all six identically.
 const RUNNER_OPT_OUT = [
     "expect-expect",
     "max-expects",
     "no-conditional-expect",
-    "prefer-called-with",
     "prefer-each",
-    "prefer-expect-resolves",
-    "prefer-strict-equal",
     "require-to-throw-message",
     "require-top-level-describe",
 ];
-// `prefer-importing-jest-globals` wants an explicit `@jest/globals` import in
-// every test — jest-expo injects the globals instead and the package is not
-// installed, so its fix added 259 unresolvable imports. `prefer-jest-mocked`
-// rewrites `getLocales as jest.Mock` to `jest.mocked(getLocales)`, which
-// restores the real signature and rejects every partial mock return value.
-const JEST_ONLY_OPT_OUT = [
-    "no-untyped-mock-factory",
-    "prefer-ending-with-an-expect",
-    "prefer-importing-jest-globals",
-    "prefer-jest-mocked",
-];
+// `no-untyped-mock-factory` reads `typeof import("m")` as the whole module, so a
+// factory that stands in for two exports out of nine cannot satisfy it —
+// `Partial<>` only reaches the top level, and below that every mocked hook owes
+// a complete third-party return value (a `useRouter` stub owes a whole `Router`).
+// The 152 type errors it produced across 47 files were all that shape. The
+// factories keep the type parameter wherever it does hold.
+const JEST_ONLY_OPT_OUT = ["no-untyped-mock-factory", "prefer-ending-with-an-expect"];
 // `prefer-describe-function-title` substitutes the referenced binding for the
-// string title, so `describe("CURRENCY_DECIMALS", …)` became
-// `describe(CURRENCY_DECIMALS, …)` — a type error for every subject that is a
-// constant rather than a function, and a silent suite rename for the rest.
+// string title, so `describe("crons", …)` becomes `describe(crons, …)` — a type
+// error for every subject that is a value rather than a function, and a silent
+// suite rename for the rest. It rewrote four titles in `packages/backend` on the
+// run that re-enabled it. `require-mock-type-parameters` is vitest's spelling of
+// `no-untyped-mock-factory` and is off for the same reason as its jest twin.
 const VITEST_ONLY_OPT_OUT = ["prefer-describe-function-title", "require-mock-type-parameters"];
 
 // The jest and vitest presets both claim `**/*.{test,spec}.*`, so extending both
@@ -108,11 +105,12 @@ export default defineConfig({
         // `unicorn/no-immediate-mutation` bans that rule's own empty-accumulator
         // escape), and a later config wins.
         extends: [core, react, tanstack, antiSlop],
-        // Biome knows `describe`/`it` but neither of these, and the runner presets
-        // ship rules without globals.
+        // Every test now imports its runner globals, so only React Native's
+        // build-time flag is left to declare here. The three setup stubs under
+        // apps/native/jest still run against the injected `jest` object; they
+        // get it from their own override below.
         globals: {
             __DEV__: "readonly",
-            jest: "readonly",
         },
         ignorePatterns: [...core.ignorePatterns, ...projectIgnores],
         // anti-slop registers its own plugin entry through the preset above.
@@ -121,23 +119,61 @@ export default defineConfig({
             ...scopeTo("apps/native", "jest", JEST_ONLY_OPT_OUT, jest),
             ...scopeTo("packages", "vitest", VITEST_ONLY_OPT_OUT, vitest),
             {
-                // Test code is written to be read top-to-bottom, not to be tuned.
-                // Async mocks, sequential steps, assertion regexes, wide test-double
-                // types, inline expectation comments and stub classes inside a
-                // `jest.mock` factory are not what these rules protect. Mirrors how
-                // ultracite core already scopes `no-console` and `no-explicit-any`.
+                // Setup files, not tests: jest loads them through `setupFiles` /
+                // `moduleNameMapper` before any module graph exists, so they
+                // cannot import `@jest/globals` the way the suites do.
+                files: ["apps/native/jest/**"],
+                globals: {
+                    jest: "readonly",
+                },
+            },
+            {
+                // The two anti-slop rules whose findings a test cannot answer in
+                // its own words. Both were measured at full strength first, over
+                // the whole suite, rather than assumed:
+                //
+                // `no-module-mocking` reported 236 times. jest-expo has no other
+                // way to isolate a native module, so every one of those is a
+                // suppression, not a fix — the rule would live in the files
+                // instead of here, which is the same exception with more noise.
+                // What was genuinely shared setup has already left: 22 stubs now
+                // sit in `apps/native/jest/*-stub.js` (see `setupFiles`).
+                //
+                // `require-safety-comment-for-type-assertion` reported 464 times,
+                // and the honest reason is the same sentence at nearly all of
+                // them — the fixture is the assertion. The casts that had a real
+                // reason were worth extracting and no longer exist: 49 suites
+                // each declared the same drizzle driver bridge, now one commented
+                // assertion in `@/db/test-database`.
+                //
+                // Both stay on in `src/`, where an unexplained cast is evidence
+                // of something.
+                // Code that runs on node rather than in the app: the suites, the
+                // fixtures they share, the jest setup stubs, and the build
+                // scripts. The counts below are what each rule reported over the
+                // whole tree with every carve-out removed.
                 files: [
                     "**/*.test.{ts,tsx}",
                     "**/*.spec.{ts,tsx}",
+                    "**/test-*.ts",
                     "**/test.helpers.ts",
                     "apps/native/jest/**",
                     "**/scripts/**",
                 ],
                 rules: {
-                    // A test declares its own doubles, so anti-slop's evidence
-                    // rules have nothing to protect here: the cast, the widened
-                    // literal and the `unknown` argument are the fixture. Module
-                    // mocking is how jest-expo isolates a native module at all.
+                    // anti-slop's evidence rules, 248 between them. A test
+                    // declares its own doubles, so there is nothing here for them
+                    // to protect — the cast, the widened literal and the
+                    // `unknown` argument are the fixture, and `no-unknown-returns`
+                    // lands on the structural double a suite builds for a
+                    // boundary it does not own (better-auth's client, a Convex
+                    // handler ctx). Where a cast did have a reason worth stating
+                    // it was worth extracting instead, and has been: the drizzle
+                    // driver bridge 49 suites each declared is now one commented
+                    // assertion in `@/db/test-database`. `no-module-mocking` is
+                    // here because jest-expo has no other way to isolate a native
+                    // module; the 22 mocks that were shared setup rather than a
+                    // decision have moved to `setupFiles`.
                     "anti-slop/no-chained-type-assertions": "off",
                     "anti-slop/no-known-value-widening": "off",
                     "anti-slop/no-module-mocking": "off",
@@ -146,20 +182,29 @@ export default defineConfig({
                     "anti-slop/no-unknown-returns": "off",
                     "anti-slop/no-unsafe-dictionary-type": "off",
                     "anti-slop/require-safety-comment-for-type-assertion": "off",
-                    "class-methods-use-this": "off",
+                    // The stub classes a factory returns to satisfy a shape: one
+                    // static-ish member, several per file, no `this` in a method.
+                    "eslint/class-methods-use-this": "off",
+                    "eslint/max-classes-per-file": "off",
+                    // Style in code that is read top to bottom and never tuned:
+                    // a loop that applies fixture rows in order, `(await
+                    // seed(db)).id`, a helper scoped to the suite that uses it,
+                    // and an expectation annotated on its own line. `no-bitwise`
+                    // joins them because RFC 4122 and the confetti seed are
+                    // defined in bitwise terms and their suites check the bits.
+                    "eslint/no-await-in-loop": "off",
+                    "eslint/no-bitwise": "off",
+                    "eslint/no-empty-function": "off",
+                    "eslint/no-implicit-globals": "off",
+                    "eslint/no-inline-comments": "off",
+                    // Not style: babel-plugin-jest-hoist lifts every `jest.mock`
+                    // above the imports, so a suite that reads a spy inside a
+                    // factory has to declare it above them too. `import/first`
+                    // reports the resulting order 22 times and the fix would break
+                    // the hoisting it is complaining about.
                     "import/first": "off",
                     "import/no-named-as-default-member": "off",
-                    "max-classes-per-file": "off",
-                    "no-await-in-loop": "off",
-                    "no-bitwise": "off",
-                    "no-empty": "off",
-                    "no-empty-function": "off",
-                    "no-implicit-globals": "off",
-                    "no-inline-comments": "off",
-                    "no-use-before-define": "off",
-                    "promise/avoid-new": "off",
                     "react/state-in-constructor": "off",
-                    "require-await": "off",
                     "typescript/class-literal-property-style": "off",
                     "typescript/no-explicit-any": "off",
                     "unicorn/consistent-function-scoping": "off",

@@ -163,7 +163,7 @@ describe("cotizave.fetchRates", () => {
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({ rate: 650, source: "cotizave" });
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
     });
 
     test("writes nothing and logs an error when no target market is present", async () => {
@@ -184,7 +184,7 @@ describe("cotizave.fetchRates", () => {
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(0);
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Cotizave response contained no valid target markets");
     });
 
     test("writes nothing and keeps prior rows when the response currency is not VES", async () => {
@@ -210,7 +210,7 @@ describe("cotizave.fetchRates", () => {
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({ fetchedAt: 1, rate: 650 });
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
     });
 
     test("writes nothing and keeps prior rows when the response base is not USD", async () => {
@@ -236,7 +236,7 @@ describe("cotizave.fetchRates", () => {
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({ fetchedAt: 1, rate: 650 });
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
     });
 
     test("throws a descriptive error when COTIZAVE_API_KEY is missing", async () => {

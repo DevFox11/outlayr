@@ -1,36 +1,42 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
 
-jest.mock("expo-localization", () => ({
-    getLocales: jest.fn(),
+jest.mock<Partial<typeof import("expo-localization")>>("expo-localization", () => ({
+    getLocales: jest.fn<typeof import("expo-localization").getLocales>(),
 }));
 
 import { getLocales } from "expo-localization";
 
+import { testLocale as mockTestLocale } from "@/i18n/test-locale";
+
 import { useRegionCode } from "./use-region-code";
 
-const mockGetLocales = getLocales as jest.Mock;
+const mockGetLocales = jest.mocked(getLocales);
 
 describe("useRegionCode", () => {
     it("returns the device's own region code", async () => {
-        mockGetLocales.mockReturnValue([{ regionCode: "VE" }]);
+        mockGetLocales.mockReturnValue([mockTestLocale({ regionCode: "VE" })]);
         const { result } = await renderHook(() => useRegionCode());
         expect(result.current).toBe("VE");
     });
 
     it("returns undefined, never null, when the device reports no region", async () => {
-        mockGetLocales.mockReturnValue([{ regionCode: null }]);
+        mockGetLocales.mockReturnValue([mockTestLocale({ regionCode: null })]);
         const { result } = await renderHook(() => useRegionCode());
         expect(result.current).toBeUndefined();
     });
 
     it("returns undefined, never an empty string, when the region is empty", async () => {
-        mockGetLocales.mockReturnValue([{ regionCode: "" }]);
+        mockGetLocales.mockReturnValue([mockTestLocale({ regionCode: "" })]);
         const { result } = await renderHook(() => useRegionCode());
         expect(result.current).toBeUndefined();
     });
 
     it("returns undefined when getLocales reports no entries", async () => {
-        mockGetLocales.mockReturnValue([]);
+        // expo-localization declares a non-empty tuple, so this is the case its
+        // type says cannot happen — `useRegionCode` still reads index 0, and a
+        // native module that returns nothing must not crash the first render.
+        mockGetLocales.mockReturnValue([] as unknown as ReturnType<typeof getLocales>);
         const { result } = await renderHook(() => useRegionCode());
         expect(result.current).toBeUndefined();
     });

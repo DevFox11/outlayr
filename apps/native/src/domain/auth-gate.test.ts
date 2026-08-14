@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { authGate, authRoute, rootStackGroup } from "./auth-gate";
 import type { AuthGate } from "./auth-gate";
 import { ROOT_STACK_SCREEN_NAMES } from "./root-stack";

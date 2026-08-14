@@ -1,20 +1,17 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { buildRateTable } from "@/domain/valuation";
 
 import { useInsights } from "./use-insights";
 
 const mockUseValuation = jest.fn();
 
-jest.mock("expo-sqlite", () => ({
-    addDatabaseChangeListener: () => ({ remove: () => undefined }),
-}));
-
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useLanguage: () => ({ language: "en" }),
 }));
 
@@ -72,7 +69,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function seedPendingCustom(db: Database): Promise<void> {

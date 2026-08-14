@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { groupByDay } from "./day-sections";
 
 const DAY = new Date(2026, 7, 9);
@@ -28,7 +30,7 @@ describe("a transfer sits in the day's list without touching its total", () => {
             "USD"
         );
 
-        expect(section.totals.map((bucket) => bucket.currencyCode)).toEqual(["USD"]);
+        expect(section.totals.map((bucket) => bucket.currencyCode)).toStrictEqual(["USD"]);
     });
 
     it("reports a zero total for a day that holds nothing but transfers", () => {

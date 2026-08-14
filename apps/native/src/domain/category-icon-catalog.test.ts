@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import {
     CATEGORY_EMOJI_GROUPS,
     CATEGORY_ICON_GROUPS,

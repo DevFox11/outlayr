@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { rememberedCategory } from "./merchant-history";
 import type { HistoricalEntry } from "./merchant-history";
 import { merchantKey } from "./merchant-resolver";

@@ -1,7 +1,8 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { accounts, transactions } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 
 import type { SpendDb } from "./budget-spent";
 import { PHOTO_PURGE_GRACE_MS, photoExtension, photoFileName, photoUriFor, reconcilePhotos } from "./photo-store-core";
@@ -66,7 +67,7 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 async function insert(db: SpendDb, id: string, imageUri: string | null, deletedAt: Date | null = null) {
@@ -200,7 +201,7 @@ describe("reconcilePhotos", () => {
 
         const result = await reconcilePhotos(db, files, NOW);
 
-        expect(await storedUri(db, "t1")).toBe(uri);
+        await expect(storedUri(db, "t1")).resolves.toBe(uri);
         expect(result).toStrictEqual({
             cleared: 0,
             purged: 0,
@@ -215,7 +216,7 @@ describe("reconcilePhotos", () => {
 
         const result = await reconcilePhotos(db, files, NOW);
 
-        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
+        await expect(storedUri(db, "t1")).resolves.toBe(`${DIRECTORY}/keep.jpg`);
         expect(result.repointed).toBe(1);
         expect(result.purged).toBe(0);
     });
@@ -227,7 +228,7 @@ describe("reconcilePhotos", () => {
 
         const result = await reconcilePhotos(db, files, NOW);
 
-        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
+        await expect(storedUri(db, "t1")).resolves.toBe(`${DIRECTORY}/t1.jpeg`);
         expect(result.rescued).toBe(1);
         expect(result.purged).toBe(0);
     });
@@ -238,7 +239,7 @@ describe("reconcilePhotos", () => {
 
         const result = await reconcilePhotos(db, files, NOW);
 
-        expect(await storedUri(db, "t1")).toBeNull();
+        await expect(storedUri(db, "t1")).resolves.toBeNull();
         expect(result.cleared).toBe(1);
     });
 
@@ -271,7 +272,7 @@ describe("reconcilePhotos", () => {
         const result = await reconcilePhotos(db, files, NOW);
 
         expect(files.removed).toStrictEqual([]);
-        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/keep.jpg`);
+        await expect(storedUri(db, "t1")).resolves.toBe(`${DIRECTORY}/keep.jpg`);
         expect(result.purged).toBe(0);
     });
 
@@ -282,7 +283,7 @@ describe("reconcilePhotos", () => {
         const result = await reconcilePhotos(db, files, NOW);
 
         expect(files.removed).toStrictEqual([]);
-        expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/logo.jpg`);
+        await expect(storedAccountUri(db, "a1")).resolves.toBe(`${DIRECTORY}/logo.jpg`);
         expect(result.purged).toBe(0);
     });
 
@@ -292,7 +293,7 @@ describe("reconcilePhotos", () => {
 
         const result = await reconcilePhotos(db, files, NOW);
 
-        expect(await storedAccountUri(db, "a1")).toBe(`${DIRECTORY}/l.jpg`);
+        await expect(storedAccountUri(db, "a1")).resolves.toBe(`${DIRECTORY}/l.jpg`);
         expect(result.repointed).toBe(1);
         expect(result.purged).toBe(0);
     });
@@ -303,7 +304,7 @@ describe("reconcilePhotos", () => {
 
         const result = await reconcilePhotos(db, files, NOW);
 
-        expect(await storedAccountUri(db, "a1")).toBeNull();
+        await expect(storedAccountUri(db, "a1")).resolves.toBeNull();
         expect(result.cleared).toBe(1);
     });
 
@@ -322,7 +323,7 @@ describe("reconcilePhotos", () => {
             repointed: 0,
             rescued: 0,
         });
-        expect(await storedUri(db, "t1")).toBe(`${DIRECTORY}/t1.jpeg`);
-        expect(await storedUri(db, "t2")).toBeNull();
+        await expect(storedUri(db, "t1")).resolves.toBe(`${DIRECTORY}/t1.jpeg`);
+        await expect(storedUri(db, "t2")).resolves.toBeNull();
     });
 });

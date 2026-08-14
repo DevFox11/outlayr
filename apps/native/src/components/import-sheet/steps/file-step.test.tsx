@@ -1,25 +1,28 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 
 import type { ResolvedMapping } from "@/domain/import-mapping";
 import { importDraftStore } from "@/lib/import-draft-store";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { FileStep } from "./file-step";
 
 const mockChoose = jest.fn();
 
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        background: "#F2F0EA",
-        danger: "#B5482F",
-        foreground: "#17150F",
-        income: "#2E7D32",
-        muted: "#8A8578",
-        subtle: "#B4AFA0",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            background: "#F2F0EA",
+            danger: "#B5482F",
+            foreground: "#17150F",
+            income: "#2E7D32",
+            muted: "#8A8578",
+            subtle: "#B4AFA0",
+        }),
 }));
 
 const RESOLVED_MAPPING: ResolvedMapping = {

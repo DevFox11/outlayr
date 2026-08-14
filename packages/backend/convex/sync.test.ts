@@ -211,7 +211,7 @@ describe("push table coverage", () => {
         await pushAs(t, owner, DEVICE_A, rows);
 
         const page = await pullAs(t, owner, 0);
-        expect(page.rows.map((row) => row.table).sort()).toEqual([
+        expect(page.rows.map((row) => row.table).sort()).toStrictEqual([
             "tags",
             "transactionPhotos",
             "transactionSplits",
@@ -367,7 +367,7 @@ describe("push sequencing", () => {
             transactionRow("t2", 102),
         ]);
 
-        expect(result).toEqual({ accepted: 3, nextSeq: 4, skipped: 0 });
+        expect(result).toStrictEqual({ accepted: 3, nextSeq: 4, skipped: 0 });
         const states = await t.run((ctx) => ctx.db.query("syncState").collect());
         expect(states).toHaveLength(1);
         expect(states[0].nextSeq).toBe(4);
@@ -381,7 +381,7 @@ describe("push sequencing", () => {
         await pushAs(t, owner, DEVICE_A, [transactionRow("t2", 101)]);
 
         const page = await pullAs(t, owner, 0);
-        expect(page.rows.map((row) => row.seq)).toEqual([1, 2]);
+        expect(page.rows.map((row) => row.seq)).toStrictEqual([1, 2]);
     });
 
     test("leaves the counter alone when a whole batch is a no-op", async () => {
@@ -391,7 +391,7 @@ describe("push sequencing", () => {
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
         const replay = await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
-        expect(replay).toEqual({ accepted: 0, nextSeq: 2, skipped: 1 });
+        expect(replay).toStrictEqual({ accepted: 0, nextSeq: 2, skipped: 1 });
     });
 
     test("upserts by localId rather than inserting a second copy", async () => {
@@ -471,7 +471,7 @@ describe("push conflict resolution", () => {
         const stale = await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { fields: { note: "older" } })]);
 
         expect(stale.skipped).toBe(1);
-        expect(await pullAs(t, owner, consumed.cursor)).toMatchObject({ rows: [] });
+        await expect(pullAs(t, owner, consumed.cursor)).resolves.toMatchObject({ rows: [] });
         const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
         expect(stored[0].note).toBe("newer");
     });
@@ -671,7 +671,7 @@ describe("push conflict resolution", () => {
 
         expect(result).toMatchObject({ accepted: 0, skipped: 2 });
         expect(correction.rows).toHaveLength(1);
-        expect(await pullAs(t, owner, correction.cursor)).toMatchObject({ rows: [] });
+        await expect(pullAs(t, owner, correction.cursor)).resolves.toMatchObject({ rows: [] });
     });
 
     test("re-emits one correction for an identical losing backfill in a later push", async () => {
@@ -697,7 +697,7 @@ describe("push conflict resolution", () => {
         expect(secondCorrection.rows[0]).toMatchObject({
             fields: { amountUsd: null, exchangeRate: null, exchangeRateType: "custom" },
         });
-        expect(await pullAs(t, owner, secondCorrection.cursor)).toMatchObject({ rows: [] });
+        await expect(pullAs(t, owner, secondCorrection.cursor)).resolves.toMatchObject({ rows: [] });
     });
 
     test("keeps normal deviceId tie-breaking when an equal-timestamp official edit changes a business field", async () => {
@@ -784,7 +784,7 @@ describe("pullSince", () => {
 
         const page = await pullAs(t, owner, 0);
 
-        expect(page.rows.map((row) => [row.table, row.localId])).toEqual([
+        expect(page.rows.map((row) => [row.table, row.localId])).toStrictEqual([
             ["transactions", "t1"],
             ["categories", "c1"],
             ["budgets", "b1"],
@@ -805,7 +805,7 @@ describe("pullSince", () => {
 
         const page = await pullAs(t, owner, 2);
 
-        expect(page.rows.map((row) => row.localId)).toEqual(["t3"]);
+        expect(page.rows.map((row) => row.localId)).toStrictEqual(["t3"]);
     });
 
     test("pages a log longer than the limit without dropping a row", async () => {
@@ -829,7 +829,7 @@ describe("pullSince", () => {
             }
         }
 
-        expect(seen).toEqual(["t0", "t1", "t2", "t3", "t4", "t5", "t6"]);
+        expect(seen).toStrictEqual(["t0", "t1", "t2", "t3", "t4", "t5", "t6"]);
     });
 
     test("carries the full field payload, tombstone included", async () => {
@@ -877,7 +877,7 @@ describe("pullSince", () => {
 
         const page = await pullAs(t, owner, 1);
 
-        expect(page.rows).toEqual([]);
+        expect(page.rows).toStrictEqual([]);
         expect(page.cursor).toBe(1);
         expect(page.hasMore).toBeFalsy();
     });
@@ -888,7 +888,7 @@ describe("currentSeq", () => {
         const t = convexTest(schema, modules);
         const owner = await seedAuthUser(t);
 
-        expect(await authenticatedAs(t, owner).query(api.sync.currentSeq, {})).toBe(0);
+        await expect(authenticatedAs(t, owner).query(api.sync.currentSeq, {})).resolves.toBe(0);
     });
 
     test("moves when any device pushes", async () => {
@@ -896,7 +896,7 @@ describe("currentSeq", () => {
         const owner = await seedAuthUser(t);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
-        expect(await authenticatedAs(t, owner).query(api.sync.currentSeq, {})).toBe(2);
+        await expect(authenticatedAs(t, owner).query(api.sync.currentSeq, {})).resolves.toBe(2);
     });
 
     test("refuses a caller with no session", async () => {

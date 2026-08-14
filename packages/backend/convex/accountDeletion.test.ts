@@ -52,7 +52,7 @@ describe("resumable account deletion", () => {
                 calls.push("revoke");
             },
         });
-        expect(calls).toEqual(["revoke", "purge"]);
+        expect(calls).toStrictEqual(["revoke", "purge"]);
     });
 
     test("google-revoke-precedes-delete and purge-requires-revocation", async () => {
@@ -74,7 +74,7 @@ describe("resumable account deletion", () => {
                 }
             )
         ).resolves.toMatchObject({ phase: "authDeleting" });
-        expect(calls).toEqual(["google-revoke", "purge"]);
+        expect(calls).toStrictEqual(["google-revoke", "purge"]);
     });
 
     test("deletion-job-resumes-lost-response-without-identity", async () => {
@@ -89,7 +89,7 @@ describe("resumable account deletion", () => {
                 revoke: async () => undefined,
             })
         ).resolves.toMatchObject({ phase: "complete", userId: null });
-        expect(calls).toEqual(["delete"]);
+        expect(calls).toStrictEqual(["delete"]);
     });
 
     test("expiry-after-providersRevoked-fails-closed-before-purge", async () => {

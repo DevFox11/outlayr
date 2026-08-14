@@ -78,7 +78,7 @@ describe("frankfurter.fetchRates", () => {
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         const quotes = rows.map((row) => row.quote).sort();
-        expect(quotes).toEqual(["ARS", "CHF", "VES"]);
+        expect(quotes).toStrictEqual(["ARS", "CHF", "VES"]);
         const ars = rows.find((row) => row.quote === "ARS");
         expect(ars).toMatchObject({ fetchedAt: 1, rate: 1300, source: "cotizave" });
     });
@@ -97,7 +97,7 @@ describe("frankfurter.fetchRates", () => {
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         const quotes = rows.map((row) => row.quote).sort();
-        expect(quotes).toEqual(["VES", "XAU", "ZZZ"]);
+        expect(quotes).toStrictEqual(["VES", "XAU", "ZZZ"]);
     });
 
     test("writes nothing and logs an error for a non-array response", async () => {
@@ -122,7 +122,7 @@ describe("frankfurter.fetchRates", () => {
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({ rate: 38, source: "cotizave" });
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Frankfurter response was not an array");
     });
 
     test("writes nothing and logs an error for an empty array", async () => {
@@ -136,7 +136,7 @@ describe("frankfurter.fetchRates", () => {
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(0);
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Frankfurter response contained no valid records");
     });
 
     test("writes nothing and logs an error when the request rejects", async () => {
@@ -153,7 +153,7 @@ describe("frankfurter.fetchRates", () => {
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(0);
-        expect(errorSpy).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith("Frankfurter fetch request failed", expect.any(Error));
     });
 
     test("keys each row by the record's own date, not the UTC fetch day", async () => {
@@ -235,7 +235,7 @@ describe("frankfurter.fetchRates window", () => {
         await t.action(internal.frankfurter.fetchRates, {});
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
-        expect(rows.map((row) => row.date).sort()).toEqual(["2026-05-04", "2026-06-15", "2026-07-29"]);
+        expect(rows.map((row) => row.date).sort()).toStrictEqual(["2026-05-04", "2026-06-15", "2026-07-29"]);
     });
 
     test("leaves a settled day alone rather than rewriting it", async () => {
@@ -340,7 +340,7 @@ describe("frankfurter.fetchRates coverage", () => {
         await t.action(internal.frankfurter.fetchRates, {});
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
-        expect(rows.map((row) => row.quote).sort()).toEqual(["EUR", "JPY"]);
+        expect(rows.map((row) => row.quote).sort()).toStrictEqual(["EUR", "JPY"]);
     });
 
     test("does not read a non-official row as coverage for the official quote", async () => {
@@ -369,7 +369,7 @@ describe("frankfurter.fetchRates coverage", () => {
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         const official = rows.filter((row) => row.rateType === "official");
-        expect(official.map((row) => row.quote).sort()).toEqual(["EUR", "VES"]);
+        expect(official.map((row) => row.quote).sort()).toStrictEqual(["EUR", "VES"]);
     });
 
     test("writes a day the feed never fills once, then stops retrying it", async () => {
@@ -400,6 +400,6 @@ describe("frankfurter.fetchRates coverage", () => {
         await t.action(internal.frankfurter.fetchRates, {});
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
-        expect(rows.map((row) => row.date).sort()).toEqual(["2026-06-15", "2026-06-16"]);
+        expect(rows.map((row) => row.date).sort()).toStrictEqual(["2026-06-15", "2026-06-16"]);
     });
 });

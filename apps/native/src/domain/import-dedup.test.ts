@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { ImportEntry } from "@/data/transfer-core";
 
 import { dedupFingerprint, fingerprintsOf, flagDuplicates } from "./import-dedup";

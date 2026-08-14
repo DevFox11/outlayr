@@ -10,11 +10,11 @@ import type { BoolSettingKey, NumberSettingKey } from "@/data/settings-core";
 
 import { useLocalData } from "./local-data-context";
 
-interface DisplaySettingsValue {
+export interface DisplaySettingsValue {
     state: DisplaySettings;
 }
 
-interface AppSettingsValue {
+export interface AppSettingsValue {
     actions: {
         setBool: (key: BoolSettingKey, value: boolean) => void;
         setNumber: (key: NumberSettingKey, value: number) => void;

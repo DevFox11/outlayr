@@ -1,3 +1,4 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 
 import { StepCta } from "./step-cta";
@@ -18,12 +19,12 @@ describe("stepCta", () => {
 
         fireEvent.press(getByText("Import 3"));
         expect(onPress).not.toHaveBeenCalled();
-        expect(await findByText("Import 3?")).toBeTruthy();
+        await expect(findByText("Import 3?")).resolves.toBeTruthy();
         expect(queryByText("Import 3")).toBeNull();
 
         fireEvent.press(getByText("Import 3?"));
         expect(onPress).toHaveBeenCalledTimes(1);
-        expect(await findByText("Import 3")).toBeTruthy();
+        await expect(findByText("Import 3")).resolves.toBeTruthy();
     });
 
     it("disarms when the confirm label changes underneath it", async () => {
@@ -32,7 +33,7 @@ describe("stepCta", () => {
             <StepCta confirmLabel="Import 3?" label="Import 3" onPress={onPress} />
         );
         fireEvent.press(getByText("Import 3"));
-        expect(await findByText("Import 3?")).toBeTruthy();
+        await expect(findByText("Import 3?")).resolves.toBeTruthy();
 
         await rerender(<StepCta confirmLabel="Import 2?" label="Import 2" onPress={onPress} />);
         expect(getByText("Import 2")).toBeTruthy();

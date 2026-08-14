@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { canStepForward, cursorEnd, cursorLabel, cursorStart, stepCursor } from "./log-period-cursor";
 
 // A Wednesday.

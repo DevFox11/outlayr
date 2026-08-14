@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { renderHook, waitFor } from "@testing-library/react-native";
 
 import type { ImportEntry } from "@/data/transfer-core";
@@ -9,7 +10,7 @@ import { useReviewEnrichment } from "./use-review-enrichment";
 
 const mockCacheUris = new Map<string, string>();
 
-jest.mock("@/lib/logo-cache", () => ({
+jest.mock<Partial<typeof import("@/lib/logo-cache")>>("@/lib/logo-cache", () => ({
     cachedLogoUri: (key: string) => mockCacheUris.get(key) ?? null,
     logoCacheKey: (name: string, domain: string | null) => `${name}|${domain ?? ""}`.toLowerCase(),
 }));

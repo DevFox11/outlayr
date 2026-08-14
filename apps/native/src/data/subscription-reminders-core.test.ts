@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { asc } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
@@ -57,7 +58,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 interface CarrierOverrides {
@@ -193,7 +194,7 @@ describe("reminderCandidates", () => {
     it("yields nothing for a carrier with no notice set", async () => {
         await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: null });
 
-        expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
     });
 
     it("keeps a same-day notice, which is not the off state", async () => {
@@ -212,7 +213,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 2,
         });
 
-        expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
     });
 
     // Every retire path clears the column, but a peer's hand-off replicates in
@@ -224,7 +225,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 2,
         });
 
-        expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
     });
 
     it("yields nothing once the chain has run past its end date", async () => {
@@ -235,7 +236,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 1,
         });
 
-        expect(await reminderCandidates(db, NOW)).toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
     });
 
     it("resolves every live carrier, each on its own cadence", async () => {
@@ -291,7 +292,7 @@ describe("pendingReminderPlan", () => {
             reminderLeadDays: 7,
         });
 
-        expect(await pendingReminderPlan(db, NOW, NINE_AM)).toStrictEqual([]);
+        await expect(pendingReminderPlan(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
     it("keeps the soonest notices when the cap truncates", async () => {
@@ -318,7 +319,7 @@ describe("pendingReminderPlan", () => {
 
         await pendingReminderPlan(db, NOW, NINE_AM);
 
-        expect(await everyRow(db)).toStrictEqual(before);
+        await expect(everyRow(db)).resolves.toStrictEqual(before);
     });
 
     // The plan is what the scheduler hands to iOS, so a request that reached it

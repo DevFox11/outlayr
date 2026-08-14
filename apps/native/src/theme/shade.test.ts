@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { SUGGESTED_CATEGORY_PRESETS } from "@/data/categories-core";
 
 import { curtainShade, glyphShade, TILE_WASH_OPACITY, withAlpha } from "./shade";

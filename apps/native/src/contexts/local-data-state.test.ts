@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { reopenLocalData } from "./local-data-state";
 
 describe("reopenLocalData", () => {

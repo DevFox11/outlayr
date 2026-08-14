@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { spendingCalendarEntries } from "./spending-calendar";
 import type { SpendingCalendarRow } from "./spending-calendar";
 import { buildRateTable } from "./valuation";
@@ -31,7 +33,7 @@ describe("spendingCalendarEntries", () => {
             NOW
         );
 
-        expect(result).toEqual([
+        expect(result).toStrictEqual([
             { date: "2026-08-08", exact: true, value: 5 },
             { date: "2026-08-10", exact: true, value: 42 },
         ]);
@@ -48,7 +50,7 @@ describe("spendingCalendarEntries", () => {
             NOW
         );
 
-        expect(result).toEqual([{ date: "2026-08-10", exact: true, value: 42 }]);
+        expect(result).toStrictEqual([{ date: "2026-08-10", exact: true, value: 42 }]);
     });
 
     it("omits empty days and returns an empty array when there is no spending", () => {
@@ -63,11 +65,11 @@ describe("spendingCalendarEntries", () => {
                 valuation,
                 NOW
             )
-        ).toEqual([
+        ).toStrictEqual([
             { date: "2026-08-08", exact: true, value: 10 },
             { date: "2026-08-10", exact: true, value: 20 },
         ]);
-        expect(spendingCalendarEntries([], valuation, NOW)).toEqual([]);
+        expect(spendingCalendarEntries([], valuation, NOW)).toStrictEqual([]);
     });
 
     it("values mixed currencies at the rate for each row's date", () => {
@@ -104,7 +106,7 @@ describe("spendingCalendarEntries", () => {
             NOW
         );
 
-        expect(result).toEqual([{ date: "2026-08-10", exact: true, value: 20 }]);
+        expect(result).toStrictEqual([{ date: "2026-08-10", exact: true, value: 20 }]);
     });
 
     it("marks partially valued local days approximate while retaining their useful total", () => {
@@ -114,7 +116,7 @@ describe("spendingCalendarEntries", () => {
             NOW
         );
 
-        expect(result).toEqual([{ date: "2026-08-10", exact: false, value: 17 }]);
+        expect(result).toStrictEqual([{ date: "2026-08-10", exact: false, value: 17 }]);
     });
 
     it("assigns rounded values to local days deterministically across input order", () => {
@@ -148,8 +150,8 @@ describe("spendingCalendarEntries", () => {
                 { date: "2026-08-10", exact: true, value: 0 },
             ];
 
-            expect(spendingCalendarEntries(rows, valuation, NOW)).toEqual(expected);
-            expect(spendingCalendarEntries([...rows].reverse(), valuation, NOW)).toEqual(expected);
+            expect(spendingCalendarEntries(rows, valuation, NOW)).toStrictEqual(expected);
+            expect(spendingCalendarEntries([...rows].reverse(), valuation, NOW)).toStrictEqual(expected);
         } finally {
             if (previousTimezone === undefined) {
                 delete process.env.TZ;

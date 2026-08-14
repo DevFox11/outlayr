@@ -1,10 +1,11 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 
 import { TransactionFormAmountHero } from "./amount-hero";
 
 let mockLanguage: "en" | "es" = "en";
 
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useLanguage: () => ({ language: mockLanguage }),
 }));
 
@@ -121,11 +122,11 @@ describe("transactionFormAmountHero", () => {
 
     it("moves the symbol after the digits in Spanish", async () => {
         const { toJSON } = await render(<TransactionFormAmountHero {...BASE} />);
-        expect(rowOrder(toJSON() as JsonNode)).toEqual(["Text", "NumberFlow"]);
+        expect(rowOrder(toJSON() as JsonNode)).toStrictEqual(["Text", "NumberFlow"]);
 
         mockLanguage = "es";
         const { toJSON: toJSONes } = await render(<TransactionFormAmountHero {...BASE} />);
-        expect(rowOrder(toJSONes() as JsonNode)).toEqual(["NumberFlow", "Text"]);
+        expect(rowOrder(toJSONes() as JsonNode)).toStrictEqual(["NumberFlow", "Text"]);
     });
 
     it("renders the symbol, digits and currency code passed in", async () => {
@@ -221,7 +222,9 @@ describe("transactionFormAmountHero", () => {
         }
         expect(expense).not.toBeNull();
         expect(income).not.toBeNull();
-        expect(onTypeChange.mock.calls.map(([kind]) => kind)).toEqual(expect.arrayContaining(["expense", "income"]));
+        expect(onTypeChange.mock.calls.map(([kind]) => kind)).toStrictEqual(
+            expect.arrayContaining(["expense", "income"])
+        );
     });
 });
 

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { SPECTRUM_STOPS, spectrumRamp } from "./spectrum";
 
 describe("spectrumRamp", () => {

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { mergeByRecency, toTransferLogRow } from "./transfer-log-rows";
 
 const DAY = new Date(2026, 7, 9);
@@ -60,16 +62,16 @@ describe("mergeByRecency", () => {
     const newest = { date: new Date(2026, 7, 9, 18), day: new Date(2026, 7, 9), id: "z" };
 
     it("interleaves two newest-first lists into one", () => {
-        expect(mergeByRecency([newest, older], [newer]).map((row) => row.id)).toEqual(["z", "y", "x"]);
+        expect(mergeByRecency([newest, older], [newer]).map((row) => row.id)).toStrictEqual(["z", "y", "x"]);
     });
 
     it("keeps day order ahead of time order", () => {
         const lateOnOlderDay = { date: new Date(2026, 7, 8, 23), day: new Date(2026, 7, 8), id: "late" };
-        expect(mergeByRecency([newer], [lateOnOlderDay]).map((row) => row.id)).toEqual(["y", "late"]);
+        expect(mergeByRecency([newer], [lateOnOlderDay]).map((row) => row.id)).toStrictEqual(["y", "late"]);
     });
 
     it("returns the other list untouched when one is empty", () => {
-        expect(mergeByRecency([], [newer]).map((row) => row.id)).toEqual(["y"]);
-        expect(mergeByRecency([newer], []).map((row) => row.id)).toEqual(["y"]);
+        expect(mergeByRecency([], [newer]).map((row) => row.id)).toStrictEqual(["y"]);
+        expect(mergeByRecency([newer], []).map((row) => row.id)).toStrictEqual(["y"]);
     });
 });

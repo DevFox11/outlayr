@@ -1,6 +1,8 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
 const mockSecureStore = new Map<string, string>();
 
-jest.mock("expo-secure-store", () => ({
+jest.mock<Partial<typeof import("expo-secure-store")>>("expo-secure-store", () => ({
     getItemAsync: async (key: string) => mockSecureStore.get(key) ?? null,
     setItemAsync: async (key: string, value: string) => {
         mockSecureStore.set(key, value);
@@ -45,7 +47,7 @@ describe("legacy-apple-uses-accountId-and-mismatch-fails", () => {
                 calls.push("receipt");
             }
         );
-        expect(calls).toEqual(["revoke", "receipt"]);
+        expect(calls).toStrictEqual(["revoke", "receipt"]);
         await expect(
             persistGoogleLocalReceiptAfterRevocation(
                 async () => {
@@ -56,7 +58,7 @@ describe("legacy-apple-uses-accountId-and-mismatch-fails", () => {
                 }
             )
         ).rejects.toThrow("offline");
-        expect(calls).toEqual(["revoke", "receipt"]);
+        expect(calls).toStrictEqual(["revoke", "receipt"]);
     });
 
     it("makes a validated provider sign-in binding available for later deletion", async () => {

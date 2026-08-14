@@ -1,12 +1,15 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import type { ReactElement } from "react";
 import { StyleSheet } from "react-native";
 import type { ViewStyle } from "react-native";
 
+import { testColors as mockTestColors } from "@/theme/test-colors";
+
 import { GhostPanel, Tile } from "./empty-state-parts";
 
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ foreground: "#000000" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ foreground: "#000000" }),
 }));
 
 async function rootStyle(ui: ReactElement): Promise<ViewStyle> {

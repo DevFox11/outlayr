@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import type { RateLookup } from "@outlayr/money/rates";
 
 import { canonicalUsd } from "./canonical-usd";

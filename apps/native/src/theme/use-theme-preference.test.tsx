@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { Text } from "react-native";
 
@@ -7,11 +8,11 @@ import { useApplyThemePreference } from "./use-theme-preference";
 const mockSetTheme = jest.fn();
 const stored = { colorScheme: 0 };
 
-jest.mock("panelui-native", () => ({
+jest.mock<Partial<typeof import("panelui-native")>>("panelui-native", () => ({
     useTheme: () => ({ setTheme: mockSetTheme, theme: "light" }),
 }));
 
-jest.mock("@/contexts/display-settings-context", () => ({
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
     useSettingNumber: (key: string) => (key === "colorScheme" ? stored.colorScheme : 0),
 }));
 

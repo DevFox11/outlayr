@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { selectDisplaySettings } from "./display-settings";
 import type { BoolSettingKey, NumberSettingKey } from "./settings-core";
 

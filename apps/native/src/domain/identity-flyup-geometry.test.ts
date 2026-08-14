@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { floatTargetY } from "./identity-flyup-geometry";
 
 /** Half the 164pt floated hero tile. */

@@ -1,17 +1,14 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Text } from "react-native";
 
 import type { Database } from "@/db/client";
 import { accounts, transfers } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import type { TransferLogRow } from "@/domain/transfer-log-rows";
 
 import { useAccountTransfers } from "./account-transfers";
-
-jest.mock("expo-sqlite", () => ({
-    addDatabaseChangeListener: () => ({ remove: () => undefined }),
-}));
 
 const AUG_9 = new Date(Date.UTC(2026, 7, 9, 12));
 const AUG_10 = new Date(Date.UTC(2026, 7, 10, 12));
@@ -59,7 +56,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function addAccount(db: Database, id: string, name: string): Promise<void> {
@@ -114,14 +111,14 @@ describe("an account's transfers", () => {
         await addTransfer(db, { fromAccountId: "checking", id: "tr1", toAccountId: "savings" });
 
         const rows = await readTransfers(db, "savings");
-        expect(rows.map((row) => row.id)).toEqual(["tr1"]);
+        expect(rows.map((row) => row.id)).toStrictEqual(["tr1"]);
     });
 
     it("includes money that left for another account", async () => {
         await addTransfer(db, { fromAccountId: "checking", id: "tr1", toAccountId: "savings" });
 
         const rows = await readTransfers(db, "checking");
-        expect(rows.map((row) => row.id)).toEqual(["tr1"]);
+        expect(rows.map((row) => row.id)).toStrictEqual(["tr1"]);
     });
 
     it("names both ends of the move on a row that carries no note", async () => {
@@ -142,13 +139,13 @@ describe("an account's transfers", () => {
         await addAccount(db, "cash", "Cash");
         await addTransfer(db, { fromAccountId: "checking", id: "tr1", toAccountId: "cash" });
 
-        expect(await readTransfers(db, "savings")).toEqual([]);
+        await expect(readTransfers(db, "savings")).resolves.toStrictEqual([]);
     });
 
     it("ignores a transfer that was deleted", async () => {
         await addTransfer(db, { deletedAt: AUG_9, fromAccountId: "checking", id: "tr1", toAccountId: "savings" });
 
-        expect(await readTransfers(db, "savings")).toEqual([]);
+        await expect(readTransfers(db, "savings")).resolves.toStrictEqual([]);
     });
 
     it("lists the newest first", async () => {
@@ -162,6 +159,6 @@ describe("an account's transfers", () => {
         });
 
         const rows = await readTransfers(db, "savings");
-        expect(rows.map((row) => row.id)).toEqual(["newer", "older"]);
+        expect(rows.map((row) => row.id)).toStrictEqual(["newer", "older"]);
     });
 });

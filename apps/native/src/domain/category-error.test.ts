@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { CATEGORY_ERROR_MESSAGES } from "@/data/categories-core";
 import { EN } from "@/i18n/catalog";
 import { translate } from "@/i18n/translate";

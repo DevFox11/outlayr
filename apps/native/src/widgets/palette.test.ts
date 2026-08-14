@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 import { PALETTE_VARIABLES, WIDGET_PALETTE } from "./palette";
 import type { WidgetPalette } from "./palette";
 

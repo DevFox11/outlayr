@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { cadenceUnit, ensureRecurringType, nextDate, nextLanding, RECURRING_TYPE, schedulePreview } from "./recurrence";
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
@@ -194,7 +196,7 @@ describe("the charges a schedule is about to make", () => {
     });
 
     it("has nothing to show without a cadence", () => {
-        expect(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.none, 1, 3)).toEqual([]);
-        expect(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.monthly, 1, 0)).toEqual([]);
+        expect(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.none, 1, 3)).toStrictEqual([]);
+        expect(schedulePreview(at(2026, 8, 7), RECURRING_TYPE.monthly, 1, 0)).toStrictEqual([]);
     });
 });

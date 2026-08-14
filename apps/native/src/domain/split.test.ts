@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { allocationsFor, isBalanced, rebalance, splitEvenly, totalsByCategory, unallocated } from "./split";
 import type { Allocation } from "./split";
 

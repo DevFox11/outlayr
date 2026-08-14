@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import {
     amountDigits,
     amountParts,
@@ -87,11 +89,11 @@ describe("amountDigits", () => {
 
 describe("splitSymbol", () => {
     it("fills exactly one side, so a hero can style the symbol apart", () => {
-        expect(splitSymbol(amountParts(1, "USD", true, "en"))).toEqual({
+        expect(splitSymbol(amountParts(1, "USD", true, "en"))).toStrictEqual({
             prefixSymbol: "$",
             suffixSymbol: "",
         });
-        expect(splitSymbol(amountParts(1, "EUR", true, "es"))).toEqual({
+        expect(splitSymbol(amountParts(1, "EUR", true, "es"))).toStrictEqual({
             prefixSymbol: "",
             suffixSymbol: `${NBSP}€`,
         });

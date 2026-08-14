@@ -1,8 +1,9 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { exchangeRates, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { transactionRateSuggestions } from "./transaction-entry-rates";
 
@@ -50,7 +51,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const SELECTED_DATE = new Date("2026-08-10T12:00:00.000Z");

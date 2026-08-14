@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 // screens/settings/index.tsx pulls 8+ contexts, so a real render for a single
 // row's navigation target is the wrong layer (Mock Hygiene Rule). This reads
 // the source text instead, matching domain/import-route-registration.test.ts's

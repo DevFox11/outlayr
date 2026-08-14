@@ -1,3 +1,5 @@
+import { describe, expect, it, test } from "@jest/globals";
+
 import { resumeCloudDeletion, runAccountLifecycle } from "./account-lifecycle";
 
 describe("runAccountLifecycle", () => {
@@ -24,7 +26,7 @@ describe("runAccountLifecycle", () => {
             })
         ).rejects.toMatchObject({ stage: "revokeProvider" });
 
-        expect(calls).toEqual(["allowLocal", "quiesce", "revokeProvider"]);
+        expect(calls).toStrictEqual(["allowLocal", "quiesce", "revokeProvider"]);
     });
 
     it("signs out without revoking provider authorization", async () => {
@@ -46,7 +48,7 @@ describe("runAccountLifecycle", () => {
             },
         });
 
-        expect(calls).toEqual(["allowLocal", "quiesce", "signOut", "navigate"]);
+        expect(calls).toStrictEqual(["allowLocal", "quiesce", "signOut", "navigate"]);
     });
 });
 
@@ -74,7 +76,7 @@ test("persists the resume secret before revocation and advances idempotently", a
         },
     });
 
-    expect(calls).toEqual(["allowLocal", "quiesce", "persist", "revoke", "clear", "navigate"]);
+    expect(calls).toStrictEqual(["allowLocal", "quiesce", "persist", "revoke", "clear", "navigate"]);
 });
 
 test("resumes a prepared deletion by retrying provider revocation before advancing", async () => {
@@ -94,7 +96,7 @@ test("resumes a prepared deletion by retrying provider revocation before advanci
         }
     );
 
-    expect(calls).toEqual(["revoke", "advance"]);
+    expect(calls).toStrictEqual(["revoke", "advance"]);
 });
 
 test("does not clean the device before cloud deletion completes", async () => {
@@ -133,7 +135,7 @@ test("does not clean the device before cloud deletion completes", async () => {
         },
     });
 
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
         "allowLocal",
         "quiesce",
         "marker-cloud",

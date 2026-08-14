@@ -1,4 +1,5 @@
 import { opacity } from "@expo/ui/swift-ui/modifiers";
+import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 
 import { CategoryEditorCta } from "./cta";
@@ -113,6 +114,12 @@ describe("categoryEditorCta", () => {
             />
         );
         const modifiers = findButtonModifiers(toJSON() as JsonNode);
-        expect(modifiers?.map((m) => m.$type)).toEqual(["buttonStyle", "controlSize", "tint", "disabled", "opacity"]);
+        expect(modifiers?.map((m) => m.$type)).toStrictEqual([
+            "buttonStyle",
+            "controlSize",
+            "tint",
+            "disabled",
+            "opacity",
+        ]);
     });
 });

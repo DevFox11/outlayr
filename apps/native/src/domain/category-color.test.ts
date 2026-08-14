@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { CATEGORY_PALETTE } from "@/data/categories-core";
 
 import { firstAvailableColor } from "./category-color";

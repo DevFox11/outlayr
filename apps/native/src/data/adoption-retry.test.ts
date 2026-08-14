@@ -1,3 +1,5 @@
+import { describe, expect, it, jest } from "@jest/globals";
+
 import { createSingleAdoptionRetry } from "./adoption-retry";
 
 describe("adoption retry", () => {
@@ -6,9 +8,9 @@ describe("adoption retry", () => {
         const reconcile = jest.fn(async () => undefined);
 
         retry.schedule();
-        expect(await retry.run(reconcile)).toBe(true);
+        await expect(retry.run(reconcile)).resolves.toBe(true);
         retry.schedule();
-        expect(await retry.run(reconcile)).toBe(false);
+        await expect(retry.run(reconcile)).resolves.toBe(false);
         expect(reconcile).toHaveBeenCalledTimes(1);
     });
 });

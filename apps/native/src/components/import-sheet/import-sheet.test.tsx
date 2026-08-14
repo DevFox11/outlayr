@@ -1,8 +1,10 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { createRef } from "react";
 import type { ReactNode } from "react";
 
 import { importDraftStore } from "@/lib/import-draft-store";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { ImportSheet, resolveLegalStep } from "./import-sheet";
 import type { ImportSheetHandle } from "./import-sheet";
@@ -13,25 +15,26 @@ const mockSnapToIndex = jest.fn();
 const mockSheetProps: Record<string, unknown>[] = [];
 const mockDismissHolder: { current?: () => void } = {};
 
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
 jest.mock("uniwind", () => ({
-    ...jest.requireActual("uniwind"),
+    ...jest.requireActual<typeof import("uniwind")>("uniwind"),
     useCSSVariable: () => "#F2F0EA",
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        background: "#F2F0EA",
-        foreground: "#17150F",
-        muted: "#8A8578",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            background: "#F2F0EA",
+            foreground: "#17150F",
+            muted: "#8A8578",
+        }),
 }));
 jest.mock("expo-router", () => ({
     router: { push: (...args: unknown[]) => mockPush(...args) },
 }));
-jest.mock("react-native-safe-area-context", () => ({
+jest.mock<Partial<typeof import("react-native-safe-area-context")>>("react-native-safe-area-context", () => ({
     useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
 }));
 jest.mock("@expo/ui/community/bottom-sheet", () => {
@@ -79,23 +82,23 @@ jest.mock("@/hooks/use-import-review", () => ({
 jest.mock("./use-choose-import-file", () => ({
     useChooseImportFile: () => ({ choose: jest.fn(), status: "idle" }),
 }));
-jest.mock("./steps/source-step", () => {
+jest.mock<Partial<typeof import("./steps/source-step")>>("./steps/source-step", () => {
     const { Text: RNText } = require("react-native");
     return { SourceStep: () => <RNText>step:source</RNText> };
 });
-jest.mock("./steps/file-step", () => {
+jest.mock<Partial<typeof import("./steps/file-step")>>("./steps/file-step", () => {
     const { Text: RNText } = require("react-native");
     return { FileStep: () => <RNText>step:file</RNText> };
 });
-jest.mock("./steps/resolve-step", () => {
+jest.mock<Partial<typeof import("./steps/resolve-step")>>("./steps/resolve-step", () => {
     const { Text: RNText } = require("react-native");
     return { ResolveStep: () => <RNText>step:resolve</RNText> };
 });
-jest.mock("./steps/review-step", () => {
+jest.mock<Partial<typeof import("./steps/review-step")>>("./steps/review-step", () => {
     const { Text: RNText } = require("react-native");
     return { ReviewStep: () => <RNText>step:review</RNText> };
 });
-jest.mock("./steps/done-step", () => {
+jest.mock<Partial<typeof import("./steps/done-step")>>("./steps/done-step", () => {
     const { Text: RNText } = require("react-native");
     return { DoneStep: () => <RNText>step:done</RNText> };
 });
@@ -189,22 +192,22 @@ describe("importSheet", () => {
 
     it("presents the source step with its title and no back chevron", async () => {
         const { findByText, queryByTestId } = await presentSheet();
-        expect(await findByText("step:source")).toBeTruthy();
-        expect(await findByText("import.titleSource")).toBeTruthy();
+        await expect(findByText("step:source")).resolves.toBeTruthy();
+        await expect(findByText("import.titleSource")).resolves.toBeTruthy();
         expect(queryByTestId("import-sheet-back")).toBeNull();
     });
 
     it("guards an illegal stored step back to the earliest legal one", async () => {
         importDraftStore.setStep("review");
         const { findByText } = await presentSheet();
-        expect(await findByText("step:source")).toBeTruthy();
+        await expect(findByText("step:source")).resolves.toBeTruthy();
     });
 
     it("renders the file step with a back chevron that steps back through the store", async () => {
         loadFile();
         importDraftStore.setStep("file");
         const { findByText, getByTestId } = await presentSheet();
-        expect(await findByText("step:file")).toBeTruthy();
+        await expect(findByText("step:file")).resolves.toBeTruthy();
 
         fireEvent.press(getByTestId("import-sheet-back"));
         expect(importDraftStore.getSnapshot().ui.step).toBe("source");
@@ -213,7 +216,7 @@ describe("importSheet", () => {
     it("dismisses through the close button", async () => {
         const { getByTestId } = await presentSheet();
         fireEvent.press(getByTestId("import-sheet-close"));
-        expect(mockDismiss).toHaveBeenCalled();
+        expect(mockDismiss).toHaveBeenCalledWith();
     });
 
     it("records a resume on dismissal mid-flow", async () => {
@@ -245,7 +248,7 @@ describe("importSheet", () => {
         });
         importDraftStore.setStep("done");
         const { findByText } = await presentSheet();
-        expect(await findByText("step:done")).toBeTruthy();
+        await expect(findByText("step:done")).resolves.toBeTruthy();
 
         await act(async () => {
             mockDismissHolder.current?.();
@@ -259,7 +262,7 @@ describe("importSheet", () => {
         importDraftStore.setStep("file");
         importDraftStore.commitDismissal();
         const { findByTestId, getByTestId } = await presentSheet();
-        expect(await findByTestId("import-resume-notice")).toBeTruthy();
+        await expect(findByTestId("import-resume-notice")).resolves.toBeTruthy();
 
         fireEvent.press(getByTestId("import-resume-start-over"));
         expect(importDraftStore.getSnapshot().flow.parsed).toBeNull();

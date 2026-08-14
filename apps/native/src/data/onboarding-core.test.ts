@@ -1,7 +1,8 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
+import { testDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import {
@@ -19,7 +20,7 @@ function makeDb(): Database {
 			value text
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 describe("onboarding gate", () => {
@@ -50,7 +51,7 @@ describe("finishOnboarding", () => {
 
     it("is the sole writer of onboardingComplete, shared by both terminal paths", async () => {
         await finishOnboarding(db);
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
     });
 
     it("settles the gate it writes", async () => {
@@ -61,7 +62,7 @@ describe("finishOnboarding", () => {
     it("is idempotent when a caller runs it more than once", async () => {
         await finishOnboarding(db);
         await finishOnboarding(db);
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
     });
 });
 
@@ -94,15 +95,15 @@ describe("settleLegacyOnboarding", () => {
 
         await settleLegacyOnboarding(db);
 
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
-        expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
     });
 
     it("stamps the marker even when there is nothing to backfill", async () => {
         await settleLegacyOnboarding(db);
 
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBeNull();
-        expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBeNull();
+        await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
     });
 
     it("does not touch a ledger that already finished the flow itself", async () => {
@@ -110,8 +111,8 @@ describe("settleLegacyOnboarding", () => {
 
         await settleLegacyOnboarding(db);
 
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
-        expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
     });
 
     it("is idempotent — a second relaunch writes nothing further", async () => {
@@ -120,7 +121,7 @@ describe("settleLegacyOnboarding", () => {
 
         await settleLegacyOnboarding(db);
 
-        expect(await getMeta(db, META_KEYS.onboardingComplete)).toBe("true");
-        expect(await getMeta(db, META_KEYS.onboardingGateMigrated)).toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
+        await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
     });
 });

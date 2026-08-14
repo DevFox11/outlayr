@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
 import { StackRouter } from "expo-router/react-navigation";
 import {
     createSourceFile,
@@ -95,7 +96,7 @@ const PARTITIONABLE_ROUTES = ROUTE_FILES_ON_DISK.filter((name) => name !== UNGUA
 describe("routes derived from the app directory", () => {
     it("collapses a directory owning a _layout into a single route name", () => {
         expect(ROUTE_FILES_ON_DISK).toContain("(tabs)");
-        expect(ROUTE_FILES_ON_DISK.filter((name) => name.startsWith("(tabs)/"))).toEqual([]);
+        expect(ROUTE_FILES_ON_DISK.filter((name) => name.startsWith("(tabs)/"))).toStrictEqual([]);
     });
 
     it("finds +not-found on disk and holds it out of the partition", () => {
@@ -112,7 +113,7 @@ describe("root stack total-partition invariant", () => {
         const declared = new Set(union);
         const unpartitioned = PARTITIONABLE_ROUTES.filter((name) => !declared.has(name));
         const phantom = union.filter((name) => !PARTITIONABLE_ROUTES.includes(name));
-        expect({ phantom, unpartitioned }).toEqual({
+        expect({ phantom, unpartitioned }).toStrictEqual({
             phantom: [],
             unpartitioned: [],
         });
@@ -123,7 +124,7 @@ describe("root stack total-partition invariant", () => {
         for (let i = 0; i < groups.length; i += 1) {
             for (let j = i + 1; j < groups.length; j += 1) {
                 const overlap = groups[i].filter((name) => groups[j].includes(name));
-                expect(overlap).toEqual([]);
+                expect(overlap).toStrictEqual([]);
             }
         }
     });
@@ -282,7 +283,7 @@ describe("guard partition written in app/_layout.tsx", () => {
                 (screen) =>
                     `app/_layout.tsx:${screen.line} "${screen.name}" sits outside every <Stack.Protected> block. A guard flip filters the stack against the new routeNames and only re-seats when nothing survives, so this screen survives every flip and strands the stack on it — no tab bar, no way back. Move it inside the block for its group and list it in ROOT_STACK_SCREEN_NAMES.`
             );
-        expect(stranded).toEqual([]);
+        expect(stranded).toStrictEqual([]);
     });
 
     it("renders exactly the name-to-group partition declared in root-stack.ts", () => {
@@ -297,7 +298,7 @@ describe("guard partition written in app/_layout.tsx", () => {
                 (screen) =>
                     `app/_layout.tsx:${screen.line} "${screen.name}" is rendered under the "${screen.group}" guard but ROOT_STACK_SCREEN_NAMES puts it under "${declaredGroupOf.get(screen.name) ?? "no group"}". Make the two agree — the invariant test above trusts the constant, the router obeys the JSX.`
             );
-        expect(drift).toEqual([]);
+        expect(drift).toStrictEqual([]);
 
         const renderedByGroup = Object.fromEntries(
             GROUPS.map((group) => [
@@ -311,7 +312,7 @@ describe("guard partition written in app/_layout.tsx", () => {
         const declaredByGroup = Object.fromEntries(
             GROUPS.map((group) => [group, [...ROOT_STACK_SCREEN_NAMES[group]].sort(byCodeUnit)])
         );
-        expect(renderedByGroup).toEqual(declaredByGroup);
+        expect(renderedByGroup).toStrictEqual(declaredByGroup);
     });
 });
 
@@ -327,7 +328,7 @@ describe("the layout parser only accepts a strict-equality guard", () => {
 	`;
 
     it("reads the canonical shape", () => {
-        expect(parseLayoutScreens(layout('group === "ledger"'))).toEqual([
+        expect(parseLayoutScreens(layout('group === "ledger"'))).toStrictEqual([
             { group: "ledger", line: 5, name: "(tabs)" },
         ]);
     });

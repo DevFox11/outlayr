@@ -1,10 +1,11 @@
+import { describe, expect, it } from "@jest/globals";
 import { utcDateString } from "@outlayr/money/dates";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 
 import { accountsRepo } from "./accounts-core";
@@ -66,7 +67,7 @@ function makeDb(): Database {
 		INSERT INTO exchangeRates (quote, rateType, date, rate, fetchedAt, source)
 		VALUES ('VES', 'official', '${utcDateString(DAY.getTime())}', ${OFFICIAL_VES_PER_USD}, 0, 'test');
 	`);
-    const db = drizzle(sqlite) as unknown as Database;
+    const db = testDatabase(sqlite);
     // withTransaction runs its task bare when the client has no async transaction
     // API, which would make every rollback assertion below vacuously true.
     Object.assign(db.$client as object, {
@@ -235,7 +236,7 @@ describe("transfersRepo.create", () => {
 
         await transfersRepo.create(db, baseInput(from, to));
 
-        expect(await db.select().from(transactions)).toEqual([]);
+        await expect(db.select().from(transactions)).resolves.toStrictEqual([]);
     });
 
     it("writes a source-side fee as an expense on the source account", async () => {
@@ -368,7 +369,7 @@ describe("deleting an account takes its transfers with it", () => {
         await transfersRepo.create(db, baseInput(from, to));
         await transfersRepo.create(db, { ...baseInput(to, from), fromCurrency: "VES", toCurrency: "USD" });
 
-        expect(await transfersRepo.countForAccount(db, from)).toBe(2);
+        await expect(transfersRepo.countForAccount(db, from)).resolves.toBe(2);
     });
 });
 
@@ -387,7 +388,7 @@ describe("an account delete that cannot finish", () => {
         const rows = await db.select().from(transfers);
         expect(rows).toHaveLength(3);
         expect(rows.filter((row) => row.deletedAt === null)).toHaveLength(3);
-        expect(await transfersRepo.countForAccount(db, from)).toBe(3);
+        await expect(transfersRepo.countForAccount(db, from)).resolves.toBe(3);
         expect((await accountsRepo.listActive(db)).map((row) => row.id)).toContain(from);
         const [entry] = await db.select().from(transactions).where(eq(transactions.id, "groceries"));
         expect(entry.accountId).toBe(from);

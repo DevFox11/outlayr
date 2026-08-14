@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { applyNumpadKey, numberToNumpad, numpadMode, numpadToNumber } from "./numpad";
 import type { NumpadKey, NumpadMode } from "./numpad";
 

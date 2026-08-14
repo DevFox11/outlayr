@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { cellFigures, cellTotals, currencyTotals, toCells, valueCell } from "./currency-totals";
 import { buildRateTable } from "./valuation";
 

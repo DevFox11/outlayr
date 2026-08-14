@@ -1,7 +1,9 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 
 import type { SpendingCalendarEntry } from "@/domain/spending-calendar";
 import { CHART_DRAW } from "@/theme/chart";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { SpendingCalendar } from "./spending-calendar";
 
@@ -52,7 +54,7 @@ jest.mock("panelui-native", () => {
 });
 
 jest.mock("react-native-reanimated", () => {
-    const actual = jest.requireActual("react-native-reanimated");
+    const actual = jest.requireActual<typeof import("react-native-reanimated")>("react-native-reanimated");
     return { ...actual, useReducedMotion: () => mockReduceMotion() };
 });
 
@@ -71,8 +73,8 @@ jest.mock("@/i18n/context", () => ({
     },
 }));
 
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ railTrack: "#rail", tint: "#tint" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ railTrack: "#rail", tint: "#tint" }),
 }));
 
 const { mockHeatmapChart, mockHeatmapLegend, mockHeatmapTooltip } = globalThis as unknown as {
@@ -110,7 +112,7 @@ describe("spendingCalendar", () => {
                 weekStartDay: 1,
             })
         );
-        expect(mockHeatmapChart.mock.calls[0]?.[0]).toEqual(
+        expect(mockHeatmapChart.mock.calls[0]?.[0]).toStrictEqual(
             expect.objectContaining({ emptyColor: "#rail", layout: "fill", weekStartDay: 1 })
         );
     });
@@ -119,7 +121,7 @@ describe("spendingCalendar", () => {
         mockLanguage = "es";
         await renderCalendar();
 
-        expect(mockHeatmapLegend.mock.calls[0]?.[0]).toEqual(
+        expect(mockHeatmapLegend.mock.calls[0]?.[0]).toStrictEqual(
             expect.objectContaining({ lessLabel: "Menos", moreLabel: "Más" })
         );
         const tooltip = mockHeatmapTooltip.mock.calls[0]?.[0] as {
@@ -133,14 +135,14 @@ describe("spendingCalendar", () => {
 
         const day = screen.getByLabelText(/10 Aug.*\$12\.50 spent/i);
         expect(day).toBeOnTheScreen();
-        expect(day.props.style).toEqual(expect.objectContaining({ flex: 1 }));
+        expect(day.props.style).toStrictEqual(expect.objectContaining({ flex: 1 }));
         expect(screen.getAllByLabelText(/spent$/i)).toHaveLength(1);
         const companion = screen.getByTestId("spending-calendar-accessibility-grid");
         expect(companion.props.pointerEvents).toBe("none");
-        expect(companion.props.style).toEqual(
+        expect(companion.props.style).toStrictEqual(
             expect.objectContaining({ bottom: 0, left: 0, position: "absolute", right: 0, top: 0 })
         );
-        expect(companion.props.style).not.toEqual(expect.objectContaining({ opacity: 0 }));
+        expect(companion.props.style).not.toStrictEqual(expect.objectContaining({ opacity: 0 }));
         expect(
             screen.getByTestId("spending-calendar-panel-chart", { includeHiddenElements: true }).props
         ).toMatchObject({
@@ -187,7 +189,9 @@ describe("spendingCalendar", () => {
 
             await renderCalendar();
 
-            expect(mockHeatmapChart.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ animationDuration: 0 }));
+            expect(mockHeatmapChart.mock.calls[0]?.[0]).toStrictEqual(
+                expect.objectContaining({ animationDuration: 0 })
+            );
         }
     );
 
@@ -197,7 +201,7 @@ describe("spendingCalendar", () => {
 
         await renderCalendar();
 
-        expect(mockHeatmapChart.mock.calls[0]?.[0]).toEqual(
+        expect(mockHeatmapChart.mock.calls[0]?.[0]).toStrictEqual(
             expect.objectContaining({ animationDuration: CHART_DRAW.durationMs })
         );
     });

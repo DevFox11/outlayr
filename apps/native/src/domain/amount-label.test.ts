@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { EN, ES } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";

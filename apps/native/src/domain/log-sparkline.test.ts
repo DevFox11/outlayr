@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { sparklineIsPositive, sparklineRange, sparklineSeries } from "./log-sparkline";
 
 const NOW = new Date("2026-07-27T13:00:00");

@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 import { ACCENTS, DEFAULT_ACCENT } from "@/domain/accent";
 
 import { AA_LARGE_CONTRAST, AA_TEXT_CONTRAST, contrastRatio, relativeLuminance } from "./token-contrast";

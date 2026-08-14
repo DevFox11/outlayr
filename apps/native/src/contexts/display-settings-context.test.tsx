@@ -1,10 +1,12 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Text } from "react-native";
 
+import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
+import { testDatabase } from "@/db/test-database";
 
 import { AppSettingsProvider, useAppSettings, useDisplaySettings } from "./display-settings-context";
 
@@ -39,13 +41,13 @@ function makeDb(): Database {
 			value text
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const mockDbHolder: { current: Database | null } = { current: null };
 
-jest.mock("@/contexts/local-data-context", () => ({
-    useLocalData: () => ({ db: mockDbHolder.current }),
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useLocalData: () => mockTestLocalData({ db: mockDbHolder.current }),
 }));
 
 let displayRenders: number;

@@ -1,24 +1,30 @@
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { AppState, Text } from "react-native";
 import type { AppStateStatus } from "react-native";
 
-jest.mock("expo-localization", () => ({
-    getLocales: jest.fn(),
+jest.mock<Partial<typeof import("expo-localization")>>("expo-localization", () => ({
+    getLocales: jest.fn<typeof import("expo-localization").getLocales>(),
 }));
 
 import { getLocales } from "expo-localization";
+
+import { testLocale as mockTestLocale } from "@/i18n/test-locale";
 
 import { LanguageProvider, useLanguage } from "./context";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { runtimeLanguage, setRuntimeLanguage } from "./runtime";
 
-const mockGetLocales = getLocales as jest.Mock;
+// This suite is the module under test, so it opts out of jest/i18n-key-stub.js.
+jest.unmock("@/i18n/context");
+
+const mockGetLocales = jest.mocked(getLocales);
 
 /** The provider reads only the first locale's `languageTag`. */
 const mockDeviceLanguageTag = {
     mockReset: () => mockGetLocales.mockReset(),
-    mockReturnValue: (tag: string) => mockGetLocales.mockReturnValue([{ languageTag: tag }]),
+    mockReturnValue: (tag: string) => mockGetLocales.mockReturnValue([mockTestLocale({ languageTag: tag })]),
 };
 
 const realAddEventListener = AppState.addEventListener;

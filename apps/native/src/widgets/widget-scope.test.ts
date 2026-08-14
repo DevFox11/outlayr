@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 /**
  * Every file holding a `'widget'`-directive component. Adding one here is part
  * of adding a widget — the guard below is worthless if a new layout skips it.

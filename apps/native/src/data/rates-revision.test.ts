@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { bumpRatesRevision, ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
 describe("rates revision", () => {

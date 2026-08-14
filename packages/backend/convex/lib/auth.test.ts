@@ -10,7 +10,7 @@ import { optionalUserId, requireUserId } from "./auth";
 
 const modules = import.meta.glob("../**/*.ts");
 
-describe("requireUserId", () => {
+describe(requireUserId, () => {
     test("returns the Better Auth user id for an authenticated caller", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -50,7 +50,7 @@ describe("requireUserId", () => {
     });
 });
 
-describe("optionalUserId", () => {
+describe(optionalUserId, () => {
     test("returns the Better Auth user id for an authenticated caller", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);

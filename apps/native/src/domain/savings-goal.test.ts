@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { goalProgress } from "./savings-goal";
 
 const NOW = new Date("2026-08-13T12:00:00Z");

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 
 const MIGRATIONS = join(import.meta.dirname, "../../drizzle");

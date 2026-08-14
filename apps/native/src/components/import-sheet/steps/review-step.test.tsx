@@ -1,34 +1,36 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
+import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { EntryRow, ReviewStep } from "./review-step";
 
-jest.mock("react-native-safe-area-context", () => ({
+jest.mock<Partial<typeof import("react-native-safe-area-context")>>("react-native-safe-area-context", () => ({
     useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
 }));
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useLanguage: () => ({ language: "en" }),
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        background: "#F2F0EA",
-        danger: "#B5482F",
-        foreground: "#17150F",
-        income: "#2E7D32",
-        muted: "#8A8578",
-        subtle: "#B4AFA0",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            background: "#F2F0EA",
+            danger: "#B5482F",
+            foreground: "#17150F",
+            income: "#2E7D32",
+            muted: "#8A8578",
+            subtle: "#B4AFA0",
+        }),
 }));
-jest.mock("@/contexts/display-settings-context", () => ({
-    useDisplaySettings: () => ({
-        state: { showCents: true },
-    }),
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
+    useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true }),
 }));
-jest.mock("@/hooks/use-review-enrichment", () => ({
+jest.mock<Partial<typeof import("@/hooks/use-review-enrichment")>>("@/hooks/use-review-enrichment", () => ({
     useReviewEnrichment: (entries: readonly { note: string }[]) =>
         new Map(entries.map((entry, index) => [index, { displayName: `clean:${entry.note}`, logoUri: null }])),
 }));
@@ -313,8 +315,8 @@ describe("reviewStep", () => {
         expect(queryByText("import.skipReasonAmount")).toBeNull();
 
         fireEvent.press(getByTestId("review-skipped-toggle"));
-        expect(await findByText("import.skipReasonAmount")).toBeTruthy();
-        expect(await findByText('import.reviewSkippedHide:{"count":1}')).toBeTruthy();
+        await expect(findByText("import.skipReasonAmount")).resolves.toBeTruthy();
+        await expect(findByText('import.reviewSkippedHide:{"count":1}')).resolves.toBeTruthy();
     });
 
     it("starts a duplicate unchecked, driven by the excluded set", async () => {
@@ -348,7 +350,7 @@ describe("reviewStep", () => {
 
         fireEvent.press(getByTestId("review-commit-cta"));
         expect(onCommit).not.toHaveBeenCalled();
-        expect(await findByText('import.reviewCommitConfirmCta:{"count":1}')).toBeTruthy();
+        await expect(findByText('import.reviewCommitConfirmCta:{"count":1}')).resolves.toBeTruthy();
 
         fireEvent.press(getByTestId("review-commit-cta"));
         expect(onCommit).toHaveBeenCalledTimes(1);

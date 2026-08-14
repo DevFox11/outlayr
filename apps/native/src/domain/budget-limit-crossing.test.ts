@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { crossingDay } from "./budget-limit-crossing";
 
 /** Cumulative spend for a month whose only charges land on days 1, 3 and 6. */

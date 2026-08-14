@@ -5,7 +5,7 @@ import { isPhotoName, ownsPhotoKey, PHOTO_KEY_PREFIX, photoKeyFor, photoNameFrom
 const USER = "user-aaaa";
 const OTHER = "user-bbbb";
 
-describe("isPhotoName", () => {
+describe(isPhotoName, () => {
     test("accepts the ids the device mints", () => {
         expect(isPhotoName("k7q2x9f1.jpg")).toBeTruthy();
         expect(isPhotoName("A-b_c.1.jpeg")).toBeTruthy();
@@ -25,7 +25,7 @@ describe("isPhotoName", () => {
     });
 });
 
-describe("photoKeyFor", () => {
+describe(photoKeyFor, () => {
     test("namespaces the object under the account", () => {
         expect(photoKeyFor(USER, "a.jpg")).toBe(`${PHOTO_KEY_PREFIX}/${USER}/a.jpg`);
     });
@@ -35,7 +35,7 @@ describe("photoKeyFor", () => {
     });
 });
 
-describe("ownsPhotoKey", () => {
+describe(ownsPhotoKey, () => {
     test("accepts a key this account minted", () => {
         expect(ownsPhotoKey(USER, photoKeyFor(USER, "a.jpg"))).toBeTruthy();
     });
@@ -53,7 +53,7 @@ describe("ownsPhotoKey", () => {
     });
 });
 
-describe("photoNameFromKey", () => {
+describe(photoNameFromKey, () => {
     test("answers the device file name a key was minted from", () => {
         expect(photoNameFromKey(photoKeyFor(USER, "a.jpg"))).toBe("a.jpg");
     });

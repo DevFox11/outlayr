@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { asc, eq, isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { exchangeRates, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
@@ -70,7 +71,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 interface SourceOverrides {
@@ -534,7 +535,7 @@ describe("backfillAllRecurring", () => {
         const first = (await allRows(db)).length;
         await backfillAllRecurring(db, NOW);
 
-        expect(await allRows(db)).toHaveLength(first);
+        await expect(allRows(db)).resolves.toHaveLength(first);
     });
 
     // The carrier is a different row after every sweep, so a notice that survives
@@ -579,7 +580,7 @@ describe("backfillAllRecurring", () => {
 
         await backfillAllRecurring(db, NOW);
 
-        expect(await allRows(db)).toHaveLength(0);
+        await expect(allRows(db)).resolves.toHaveLength(0);
     });
 });
 
@@ -600,7 +601,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
         await transactionsRepo.remove(db, id, NOW);
 
-        expect(await liveCarrier(db)).toMatchObject({
+        await expect(liveCarrier(db)).resolves.toMatchObject({
             amountUsd: null,
             exchangeRate: null,
             exchangeRateType: "custom",
@@ -619,7 +620,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
         await transactionsRepo.remove(db, id, NOW);
 
-        expect(await liveCarrier(db)).toMatchObject({
+        await expect(liveCarrier(db)).resolves.toMatchObject({
             amountUsd: 0.142714,
             exchangeRate: 70,
             exchangeRateType: "official",
@@ -692,7 +693,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
         await transactionsRepo.remove(db, id, NOW);
 
-        expect(await allRows(db)).toHaveLength(0);
+        await expect(allRows(db)).resolves.toHaveLength(0);
     });
 
     it("stops the chain when the pending charge itself is deleted", async () => {
@@ -700,7 +701,7 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
         await transactionsRepo.remove(db, id, NOW);
 
-        expect(await allRows(db)).toHaveLength(0);
+        await expect(allRows(db)).resolves.toHaveLength(0);
         const [tombstone] = await everyRow(db);
         expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
     });
@@ -723,8 +724,8 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
         await transactionsRepo.remove(db, inert?.id ?? "", NOW);
 
-        expect(await allRows(db)).toHaveLength(before - 1);
-        expect(await liveCarrier(db)).not.toBeNull();
+        await expect(allRows(db)).resolves.toHaveLength(before - 1);
+        await expect(liveCarrier(db)).resolves.not.toBeNull();
     });
 
     it("keeps sweeping the chain after the handover", async () => {
@@ -751,8 +752,8 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
 
         await transactionsRepo.remove(db, id, NOW);
 
-        expect(await allRows(db)).toHaveLength(0);
-        expect(await everyRow(db)).toHaveLength(1);
+        await expect(allRows(db)).resolves.toHaveLength(0);
+        await expect(everyRow(db)).resolves.toHaveLength(1);
     });
 });
 
@@ -770,8 +771,8 @@ describe("transactionsRepo.stopRecurring", () => {
 
         await transactionsRepo.stopRecurring(db, carrier?.id ?? "", NOW);
 
-        expect(await allRows(db)).toHaveLength(before);
-        expect(await liveCarrier(db)).toBeNull();
+        await expect(allRows(db)).resolves.toHaveLength(before);
+        await expect(liveCarrier(db)).resolves.toBeNull();
     });
 
     it("anchors no successor, so later sweeps generate nothing", async () => {
@@ -836,9 +837,9 @@ describe("repairOrphanedRecurrence", () => {
         });
         await orphanCarrier(db, id);
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(1);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(1);
 
-        expect(await liveCarrier(db)).toMatchObject({
+        await expect(liveCarrier(db)).resolves.toMatchObject({
             amountUsd: null,
             exchangeRate: null,
             exchangeRateType: "custom",
@@ -857,9 +858,9 @@ describe("repairOrphanedRecurrence", () => {
         await seedRate(db, "EUR", "official", "2025-07-01", 0.9);
         await orphanCarrier(db, id);
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(1);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(1);
 
-        expect(await liveCarrier(db)).toMatchObject({
+        await expect(liveCarrier(db)).resolves.toMatchObject({
             amountUsd: 0.13875,
             exchangeRate: 80,
             exchangeRateType: "eur_reference",
@@ -871,9 +872,9 @@ describe("repairOrphanedRecurrence", () => {
         await backfillRecurring(db, id, NOW);
         const carrier = await liveCarrier(db);
         await orphanCarrier(db, carrier?.id ?? "");
-        expect(await liveCarrier(db)).toBeNull();
+        await expect(liveCarrier(db)).resolves.toBeNull();
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(1);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(1);
 
         const revived = await liveCarrier(db);
         expect(revived?.date.getTime()).toBe(at(2025, 7, 15).getTime());
@@ -914,24 +915,24 @@ describe("repairOrphanedRecurrence", () => {
         await backfillRecurring(db, id, NOW);
         const before = (await everyRow(db)).length;
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(0);
 
-        expect(await everyRow(db)).toHaveLength(before);
+        await expect(everyRow(db)).resolves.toHaveLength(before);
         expect((await liveCarrier(db))?.date.getTime()).toBe(at(2025, 6, 15).getTime());
     });
 
     it("only ever runs once, so a later tombstone is not swept up", async () => {
         const id = await seedSource(db, { date: at(2025, 3, 15) });
         await backfillRecurring(db, id, NOW);
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(0);
 
         const carrier = await liveCarrier(db);
         await orphanCarrier(db, carrier?.id ?? "");
         const before = (await everyRow(db)).length;
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(0);
 
-        expect(await everyRow(db)).toHaveLength(before);
+        await expect(everyRow(db)).resolves.toHaveLength(before);
     });
 
     it("does not double-charge a chain the delete handover already re-anchored", async () => {
@@ -941,18 +942,18 @@ describe("repairOrphanedRecurrence", () => {
         await transactionsRepo.remove(db, carrier?.id ?? "", NOW);
         const before = (await everyRow(db)).length;
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(0);
 
-        expect(await everyRow(db)).toHaveLength(before);
+        await expect(everyRow(db)).resolves.toHaveLength(before);
     });
 
     it("does not reinstate a deleted pending charge", async () => {
         const id = await seedSource(db, { date: at(2025, 7, 15) });
         await orphanCarrier(db, id);
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(0);
 
-        expect(await allRows(db)).toHaveLength(0);
+        await expect(allRows(db)).resolves.toHaveLength(0);
     });
 
     it("retires a tombstone whose chain has run past its end date", async () => {
@@ -963,9 +964,9 @@ describe("repairOrphanedRecurrence", () => {
         });
         await orphanCarrier(db, id);
 
-        expect(await repairOrphanedRecurrence(db, NOW)).toBe(0);
+        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(0);
 
-        expect(await allRows(db)).toHaveLength(0);
+        await expect(allRows(db)).resolves.toHaveLength(0);
         const [tombstone] = await everyRow(db);
         expect(tombstone?.recurringType).toBe(RECURRING_TYPE.none);
     });

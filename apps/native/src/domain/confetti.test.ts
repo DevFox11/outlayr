@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { CONFETTI_FLIGHT_MS, confettiBurst } from "./confetti";
 
 describe("confetti burst", () => {

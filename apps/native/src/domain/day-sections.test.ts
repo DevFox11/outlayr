@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { groupByDay } from "./day-sections";
 import { buildRateTable } from "./valuation";
 

@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 const SRC = join(import.meta.dirname, "..");
 
 /** Where the ban is explained, so it necessarily names the API it bans. */

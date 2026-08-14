@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { fingerprint, isRealLogo } from "./logo-acceptance";
 
 function padded(signature: number[], length: number, fill = 0x42): Uint8Array {

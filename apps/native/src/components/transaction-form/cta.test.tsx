@@ -1,3 +1,5 @@
+import { describe, expect, it, jest } from "@jest/globals";
+
 import { transactionFormCtaActions } from "./cta";
 
 const BASE = {
@@ -9,7 +11,7 @@ const BASE = {
 
 describe("transactionFormCtaActions", () => {
     it("offers only save when there is nothing to delete", () => {
-        expect(transactionFormCtaActions(BASE).map((a) => a.key)).toEqual(["save"]);
+        expect(transactionFormCtaActions(BASE).map((a) => a.key)).toStrictEqual(["save"]);
     });
 
     // Destructive on the inside of the pair, so the outermost item under the
@@ -19,7 +21,7 @@ describe("transactionFormCtaActions", () => {
             ...BASE,
             onDelete: () => {},
         });
-        expect(actions.map((a) => a.key)).toEqual(["delete", "save"]);
+        expect(actions.map((a) => a.key)).toStrictEqual(["delete", "save"]);
     });
 
     it("uses a distinct icon for each action", () => {
@@ -27,7 +29,7 @@ describe("transactionFormCtaActions", () => {
             ...BASE,
             onDelete: () => {},
         });
-        expect(actions.map((a) => a.icon)).toEqual(["delete", "done"]);
+        expect(actions.map((a) => a.icon)).toStrictEqual(["delete", "done"]);
     });
 
     it("disables save when the form cannot be saved", () => {
@@ -82,6 +84,6 @@ describe("transactionFormCtaActions", () => {
             onDelete: () => {},
             saveLabel: "Save changes",
         });
-        expect(actions.map((a) => a.accessibilityLabel)).toEqual(["Delete entry", "Save changes"]);
+        expect(actions.map((a) => a.accessibilityLabel)).toStrictEqual(["Delete entry", "Save changes"]);
     });
 });

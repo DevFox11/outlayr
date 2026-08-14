@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, tags, transactions, transactionTags } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { liveTagsQuery, tagIdsForQuery, tagsRepo } from "./tags-core";
 
@@ -23,7 +24,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function seedTransaction(db: Database, id: string) {
@@ -61,7 +62,7 @@ describe("tagsRepo", () => {
         const first = await tagsRepo.ensureTag(db, "Work");
         const second = await tagsRepo.ensureTag(db, "  work ");
         expect(second).toBe(first);
-        expect(await liveTagsQuery(db)).toHaveLength(1);
+        await expect(liveTagsQuery(db)).resolves.toHaveLength(1);
     });
 
     it("keeps the casing the owner typed first", async () => {
@@ -71,8 +72,8 @@ describe("tagsRepo", () => {
     });
 
     it("refuses a name that is only whitespace", async () => {
-        expect(await tagsRepo.ensureTag(db, "   ")).toBeNull();
-        expect(await liveTagsQuery(db)).toHaveLength(0);
+        await expect(tagsRepo.ensureTag(db, "   ")).resolves.toBeNull();
+        await expect(liveTagsQuery(db)).resolves.toHaveLength(0);
     });
 
     it("attaches and detaches to match exactly what was asked for", async () => {
@@ -83,7 +84,7 @@ describe("tagsRepo", () => {
         }
 
         await tagsRepo.setTagsFor(db, "t1", [work, trip]);
-        expect(await tagIdsForQuery(db, "t1")).toHaveLength(2);
+        await expect(tagIdsForQuery(db, "t1")).resolves.toHaveLength(2);
 
         await tagsRepo.setTagsFor(db, "t1", [work]);
         expect((await tagIdsForQuery(db, "t1")).map((row) => row.tagId)).toStrictEqual([work]);
@@ -129,8 +130,8 @@ describe("tagsRepo", () => {
 
         await tagsRepo.deleteTag(db, work);
 
-        expect(await tagIdsForQuery(db, "t1")).toHaveLength(0);
-        expect(await liveTagsQuery(db)).toHaveLength(0);
+        await expect(tagIdsForQuery(db, "t1")).resolves.toHaveLength(0);
+        await expect(liveTagsQuery(db)).resolves.toHaveLength(0);
     });
 
     it("leaves the tombstone replicable rather than dropping the row", async () => {
@@ -155,6 +156,6 @@ describe("tagsRepo", () => {
 
         const second = await tagsRepo.ensureTag(db, "work");
         expect(second).not.toBe(first);
-        expect(await db.select().from(tags).where(isNull(tags.deletedAt))).toHaveLength(1);
+        await expect(db.select().from(tags).where(isNull(tags.deletedAt))).resolves.toHaveLength(1);
     });
 });

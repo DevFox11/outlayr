@@ -1,8 +1,9 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
 
@@ -87,7 +88,7 @@ function makeDb(): Database {
 			PRIMARY KEY (quote, rateType, date)
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function addRate(db: Database, quote: string, date: string, rate: number): Promise<void> {

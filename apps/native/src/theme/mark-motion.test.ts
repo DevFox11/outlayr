@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { arrivalFrame, MARK_MOTION, recedeDelay, settleFrame, staggerDelay } from "./mark-motion";
 
 describe("frame builders run on the UI runtime", () => {
@@ -5,17 +7,17 @@ describe("frame builders run on the UI runtime", () => {
         ["arrivalFrame", arrivalFrame],
         ["settleFrame", settleFrame],
     ])("%s is workletized, so useAnimatedStyle can call it without a remote-function crash", (_name, fn) => {
-        expect((fn as unknown as { __workletHash?: number }).__workletHash).toEqual(expect.any(Number));
+        expect((fn as unknown as { __workletHash?: number }).__workletHash).toStrictEqual(expect.any(Number));
     });
 });
 
 describe("arrivalFrame", () => {
     it("starts fully clear of the slot and invisible", () => {
-        expect(arrivalFrame(0, 46)).toEqual({ opacity: 0, translateY: 46 });
+        expect(arrivalFrame(0, 46)).toStrictEqual({ opacity: 0, translateY: 46 });
     });
 
     it("lands settled", () => {
-        expect(arrivalFrame(1, 46)).toEqual({ opacity: 1, translateY: 0 });
+        expect(arrivalFrame(1, 46)).toStrictEqual({ opacity: 1, translateY: 0 });
     });
 
     it("finishes fading in before the travel ends, so the row is legible while it moves", () => {
@@ -26,18 +28,18 @@ describe("arrivalFrame", () => {
     });
 
     it("clamps a spring overshoot instead of rendering past the slot", () => {
-        expect(arrivalFrame(1.4, 46)).toEqual({ opacity: 1, translateY: 0 });
-        expect(arrivalFrame(-0.2, 46)).toEqual({ opacity: 0, translateY: 46 });
+        expect(arrivalFrame(1.4, 46)).toStrictEqual({ opacity: 1, translateY: 0 });
+        expect(arrivalFrame(-0.2, 46)).toStrictEqual({ opacity: 0, translateY: 46 });
     });
 });
 
 describe("settleFrame", () => {
     it("starts oversized and invisible", () => {
-        expect(settleFrame(0, 1.08)).toEqual({ opacity: 0, scale: 1.08 });
+        expect(settleFrame(0, 1.08)).toStrictEqual({ opacity: 0, scale: 1.08 });
     });
 
     it("lands at true size", () => {
-        expect(settleFrame(1, 1.08)).toEqual({ opacity: 1, scale: 1 });
+        expect(settleFrame(1, 1.08)).toStrictEqual({ opacity: 1, scale: 1 });
     });
 
     it("never scales past true size on an overshoot", () => {

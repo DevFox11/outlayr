@@ -2,14 +2,14 @@ import { describe, expect, test } from "vitest";
 
 import { BGN_PER_EUR, bgnBaseLegToEur } from "./bgn";
 
-describe("bgnBaseLegToEur", () => {
+describe(bgnBaseLegToEur, () => {
     test("pins Bulgaria's fixed BGN/EUR peg", () => {
         expect(BGN_PER_EUR).toBe(1.95583);
     });
 
     test("re-currencies a whole-EUR base leg exactly at the peg", () => {
         // 195.583 BGN / 1.95583 = 100.00 EUR; 3.91166 BGN-per-USD / 1.95583 = 2 EUR-per-USD.
-        expect(bgnBaseLegToEur(195.583, 3.91166)).toEqual({
+        expect(bgnBaseLegToEur(195.583, 3.91166)).toStrictEqual({
             baseAmount: 100,
             baseCurrency: "EUR",
             exchangeRate: 2,

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { createDeferredDelete } from "./deferred-delete";
 import type { DeferredDeleteSnapshot } from "./deferred-delete";
 

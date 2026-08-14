@@ -1,3 +1,10 @@
+import type { TranslatableKey } from "@/i18n/catalog";
+
+export interface SyncPresentation {
+    detail: TranslatableKey;
+    title: TranslatableKey;
+}
+
 export interface SyncLabel {
     count?: number;
     key: "settings.sync.upToDate" | "settings.sync.never" | "settings.sync.pending" | "settings.sync.pendingOne";
@@ -55,4 +62,30 @@ export function syncStatusLabel(pending: number, syncedAt: Date | null): SyncLab
         return { count: pending, key: "settings.sync.pending" };
     }
     return syncedAt === null ? { key: "settings.sync.never" } : { key: "settings.sync.upToDate" };
+}
+
+/**
+ * The heading the sync screen leads with, for a capability kind and the current
+ * switch position. Only the two settled kinds distinguish on/off — an
+ * unconfigured build or a signed-out device has no switch to describe.
+ */
+export function syncPresentation(kind: EffectiveCapabilityStatus["kind"], syncEnabled: boolean): SyncPresentation {
+    if (kind === "unavailable") {
+        return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
+    }
+    if (kind === "accountRequired") {
+        return { detail: "settings.sync.needsAccount", title: "settings.account.notSignedIn" };
+    }
+    return syncEnabled
+        ? { detail: "settings.sync.onDetail", title: "settings.sync.on" }
+        : { detail: "settings.sync.offDetail", title: "settings.sync.off" };
+}
+
+/**
+ * Whether this device owns the sync switch at all. Adoption has to have settled
+ * — mid-reconcile the switch would offer a choice the engine is still making —
+ * and the capability has to be one of the two the account actually reached.
+ */
+export function ownsSyncSwitch(kind: EffectiveCapabilityStatus["kind"], adoptionStatus: string): boolean {
+    return adoptionStatus === "settled" && (kind === "active" || kind === "syncOff");
 }

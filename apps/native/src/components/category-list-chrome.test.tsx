@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 
 import type { ThemeColors } from "@/theme/use-colors";
@@ -13,7 +14,7 @@ describe("eyebrow", () => {
         const tree = toJSON();
         expect(tree?.type).toBe("ViewManagerAdapter_ExpoUI");
         expect(tree?.props.text).toBe("THIS MONTH");
-        expect(tree?.props.modifiers).toEqual(
+        expect(tree?.props.modifiers).toStrictEqual(
             expect.arrayContaining([
                 expect.objectContaining({ $type: "textCase", value: "uppercase" }),
                 expect.objectContaining({

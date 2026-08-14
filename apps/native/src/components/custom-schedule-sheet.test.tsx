@@ -1,13 +1,9 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, within } from "@testing-library/react-native";
 
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
 import { CustomScheduleSheet } from "./custom-schedule-sheet";
-
-jest.mock("@/i18n/context", () => ({
-    useLanguage: () => ({ language: "en" }),
-    useTranslation: () => (key: string) => key,
-}));
 
 jest.mock("number-flow-react-native", () => {
     const react = require("react") as typeof import("react");

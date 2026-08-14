@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactionSplits, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { totalsByCategory } from "@/domain/split";
 
 import { allSplitsQuery, splitsForQuery, splitsRepo, UnbalancedSplitError } from "./splits-core";
@@ -24,7 +25,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function seed(db: Database) {
@@ -78,7 +79,7 @@ describe("splitsRepo", () => {
         await expect(splitsRepo.setSplit(db, "t1", 40, [{ amount: 25, categoryId: "food" }])).rejects.toThrow(
             UnbalancedSplitError
         );
-        expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
+        await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
     });
 
     it("replaces a split wholesale rather than merging into it", async () => {
@@ -101,7 +102,7 @@ describe("splitsRepo", () => {
         ]);
         await splitsRepo.setSplit(db, "t1", 40, []);
 
-        expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
+        await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
         const totals = totalsByCategory([{ amount: 40, categoryId: "food", id: "t1" }], new Map());
         expect(totals.get("food")).toBe(40);
     });
@@ -125,13 +126,13 @@ describe("splitsRepo", () => {
 
         await splitsRepo.clearForTransactions(db, ["t1"]);
 
-        expect(await splitsForQuery(db, "t1")).toStrictEqual([]);
+        await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
     });
 
     it("does nothing when given no entries to clear", async () => {
         await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }]);
         await splitsRepo.clearForTransactions(db, []);
-        expect(await splitsForQuery(db, "t1")).toHaveLength(1);
+        await expect(splitsForQuery(db, "t1")).resolves.toHaveLength(1);
     });
 
     it("is not consulted for an entry that is gone", async () => {
@@ -148,7 +149,7 @@ describe("splitsRepo", () => {
         expect(totals.size).toBe(0);
         // The rows survive, so an undo needs no repair and replication still
         // carries whatever the entry is restored to.
-        expect(await splitsForQuery(db, "t1")).toHaveLength(2);
+        await expect(splitsForQuery(db, "t1")).resolves.toHaveLength(2);
     });
 
     it("feeds the category totals without double-counting the entry", async () => {

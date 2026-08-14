@@ -1,19 +1,23 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
+
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { SourceStep } from "./source-step";
 
 const mockDispatch = jest.fn();
 const mockSetStep = jest.fn();
 
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        foreground: "#17150F",
-        muted: "#8A8578",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            foreground: "#17150F",
+            muted: "#8A8578",
+        }),
 }));
 jest.mock("@/lib/import-draft-store", () => ({
     importDraftStore: {
@@ -21,7 +25,7 @@ jest.mock("@/lib/import-draft-store", () => ({
         setStep: (...args: unknown[]) => mockSetStep(...args),
     },
 }));
-jest.mock("@/domain/import-sources", () => ({
+jest.mock<Partial<typeof import("@/domain/import-sources")>>("@/domain/import-sources", () => ({
     IMPORT_SOURCES: [
         {
             available: true,

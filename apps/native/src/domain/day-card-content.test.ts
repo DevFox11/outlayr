@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { dayCardContent, dayCardFileName } from "./day-card-content";
 
 const DAY = new Date(2026, 6, 29);

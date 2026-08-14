@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { invalidate, invalidateAll, subscribeToTable } from "./table-invalidation";
 
 describe("table invalidation", () => {

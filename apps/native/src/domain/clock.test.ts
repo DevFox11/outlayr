@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 import { clockAdvances, nextClockTick } from "./clock";
 
 const HOUR_MS = 3_600_000;

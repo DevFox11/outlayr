@@ -1,8 +1,9 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { appMeta, budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 
 import type { SpendDb } from "./budget-spent";
 import {
@@ -91,7 +92,7 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 const JULY_28 = new Date(Date.UTC(2026, 6, 28, 12));
@@ -145,7 +146,7 @@ describe("stampLedgerCurrency", () => {
         await add(db, { amount: 18.5, currency: null });
         await add(db, { amount: 100, currency: "JPY" });
 
-        expect(await stampLedgerCurrency(db)).toBe(1);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(1);
         const rows = await db.select({ currency: transactions.currency, id: transactions.id }).from(transactions);
         expect(rows.map((row) => row.currency).sort()).toStrictEqual(["EUR", "JPY"]);
     });
@@ -155,7 +156,7 @@ describe("stampLedgerCurrency", () => {
         await db.insert(appMeta).values({ key: "currency", value: "EUR" });
         await add(db, { amount: 100, currency: "JPY" });
 
-        expect(await stampLedgerCurrency(db)).toBe(0);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
         const [row] = await db.select({ currency: transactions.currency }).from(transactions);
         expect(row.currency).toBe("JPY");
     });
@@ -164,7 +165,7 @@ describe("stampLedgerCurrency", () => {
         const db = makeDb();
         await add(db, { amount: 10, currency: null });
 
-        expect(await stampLedgerCurrency(db)).toBe(0);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
         const [row] = await db.select({ currency: transactions.currency }).from(transactions);
         expect(row.currency).toBeNull();
     });
@@ -174,7 +175,7 @@ describe("stampLedgerCurrency", () => {
         await db.insert(appMeta).values({ key: "currency", value: "USD" });
         await add(db, { amount: 10, currency: null });
 
-        expect(await stampLedgerCurrency(db)).toBe(0);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
         const [row] = await db.select({ currency: transactions.currency }).from(transactions);
         expect(row.currency).toBeNull();
     });
@@ -187,7 +188,7 @@ describe("stampLedgerCurrency", () => {
         ]);
         await add(db, { amount: 10, currency: null });
 
-        expect(await stampLedgerCurrency(db)).toBe(1);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(1);
         const [row] = await db.select({ currency: transactions.currency }).from(transactions);
         expect(row.currency).toBe("USD");
     });
@@ -198,7 +199,7 @@ describe("stampLedgerCurrency", () => {
         await add(db, { amount: 10, currency: null });
 
         await stampLedgerCurrency(db);
-        expect(await stampLedgerCurrency(db)).toBe(0);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
     });
 });
 
@@ -234,7 +235,7 @@ describe("a row kept under a currency nobody stated", () => {
         await add(db, { amount: 18.5, currency: null });
         await add(db, { amount: 100, currency: "EUR" });
 
-        expect(await backfillCanonicalUsd(db)).toBe(1);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(1);
     });
 });
 
@@ -242,7 +243,7 @@ describe("backfillCanonicalUsd", () => {
     it("completes a stored custom rate without replacing it", async () => {
         const db = makeDb();
         const id = await add(db, { amount: 100, currency: "EUR", exchangeRate: 0.8, exchangeRateType: "custom" });
-        expect(await backfillCanonicalUsd(db)).toBe(1);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(1);
         const [row] = await db
             .select({
                 amountUsd: transactions.amountUsd,
@@ -266,7 +267,7 @@ describe("backfillCanonicalUsd", () => {
         });
         await seedRate(db);
         const id = await add(db, { amount: 100, currency: "VES", exchangeRateType: "eur_reference" });
-        expect(await backfillCanonicalUsd(db)).toBe(1);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(1);
         const [row] = await db
             .select({ exchangeRate: transactions.exchangeRate, exchangeRateType: transactions.exchangeRateType })
             .from(transactions)
@@ -284,7 +285,7 @@ describe("backfillCanonicalUsd", () => {
             exchangeRateType: "official",
         });
 
-        expect(await backfillCanonicalUsd(db)).toBe(1);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(1);
         const [row] = await db
             .select({
                 amountUsd: transactions.amountUsd,
@@ -301,7 +302,7 @@ describe("backfillCanonicalUsd", () => {
         await seedRate(db);
         const id = await add(db, { amount: 100, currency: "EUR", exchangeRate: null, exchangeRateType: "custom" });
 
-        expect(await backfillCanonicalUsd(db)).toBe(0);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(0);
         const [row] = await db
             .select({
                 amountUsd: transactions.amountUsd,
@@ -322,13 +323,13 @@ describe("backfillCanonicalUsd", () => {
             exchangeRateType: "custom",
         });
 
-        expect(await backfillCanonicalUsd(db)).toBe(0);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(0);
         const [row] = await db
             .select({ exchangeRate: transactions.exchangeRate, exchangeRateType: transactions.exchangeRateType })
             .from(transactions)
             .where(eq(transactions.id, id));
         expect(row).toStrictEqual({ exchangeRate: null, exchangeRateType: "custom" });
-        expect(await hasUncanonicalized(db)).toBe(false);
+        await expect(hasUncanonicalized(db)).resolves.toBe(false);
     });
 
     it("freezes a stamped foreign row at the rate of its own day", async () => {
@@ -337,7 +338,7 @@ describe("backfillCanonicalUsd", () => {
         await db.insert(appMeta).values({ key: "currency", value: "USD" });
         await add(db, { amount: 100, currency: "EUR" });
 
-        expect(await backfillCanonicalUsd(db)).toBe(1);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(1);
         const [row] = await db
             .select({
                 amountUsd: transactions.amountUsd,
@@ -356,8 +357,8 @@ describe("backfillCanonicalUsd", () => {
         await db.insert(appMeta).values({ key: "currency", value: "USD" });
         await add(db, { amount: 100, currency: "EUR" });
 
-        expect(await backfillCanonicalUsd(db)).toBe(0);
-        expect(await hasUncanonicalized(db)).toBe(true);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(0);
+        await expect(hasUncanonicalized(db)).resolves.toBe(true);
     });
 });
 
@@ -369,7 +370,7 @@ describe("hasUncanonicalized", () => {
         const db = makeDb();
         await add(db, { amount: 18.5, currency: null });
 
-        expect(await hasUncanonicalized(db)).toBe(false);
+        await expect(hasUncanonicalized(db)).resolves.toBe(false);
     });
 
     it("does not report pending custom as provider coverage backlog", async () => {
@@ -381,8 +382,8 @@ describe("hasUncanonicalized", () => {
             exchangeRateType: "custom",
         });
 
-        expect(await hasUncanonicalized(db)).toBe(false);
-        expect(await valuationCoverage(db)).toStrictEqual({
+        await expect(hasUncanonicalized(db)).resolves.toBe(false);
+        await expect(valuationCoverage(db)).resolves.toStrictEqual({
             beyondRateHistory: 0,
             converted: 0,
             pending: 0,
@@ -396,7 +397,7 @@ describe("valuationCoverage", () => {
         await add(db, { amount: 100, amountUsd: 113.9, currency: "EUR" });
         await add(db, { amount: 20, currency: null });
 
-        expect(await valuationCoverage(db)).toStrictEqual({
+        await expect(valuationCoverage(db)).resolves.toStrictEqual({
             beyondRateHistory: 0,
             converted: 1,
             pending: 0,
@@ -417,7 +418,7 @@ describe("valuationCoverage", () => {
             date: new Date(Date.UTC(2025, 0, 9, 12)),
         });
 
-        expect(await valuationCoverage(db)).toStrictEqual({
+        await expect(valuationCoverage(db)).resolves.toStrictEqual({
             beyondRateHistory: 1,
             converted: 1,
             pending: 1,
@@ -434,7 +435,7 @@ describe("valuationCoverage", () => {
             date: new Date(Date.UTC(2025, 0, 9, 12)),
         });
 
-        expect(await valuationCoverage(db)).toStrictEqual({
+        await expect(valuationCoverage(db)).resolves.toStrictEqual({
             beyondRateHistory: 0,
             converted: 0,
             pending: 1,
@@ -451,7 +452,7 @@ describe("valuationCoverage", () => {
             date: new Date(Date.UTC(2020, 2, 1, 12)),
         });
 
-        expect(await valuationCoverage(db)).toStrictEqual({
+        await expect(valuationCoverage(db)).resolves.toStrictEqual({
             beyondRateHistory: 0,
             converted: 0,
             pending: 1,
@@ -481,7 +482,7 @@ describe("stampLedgerCurrency over budgets", () => {
         });
 
         // One transaction-less ledger: the count is the two budgets.
-        expect(await stampLedgerCurrency(db)).toBe(2);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(2);
         const [b] = await db.select({ currency: budgets.currency }).from(budgets);
         const [m] = await db.select({ currency: mainBudget.currency }).from(mainBudget);
         expect(b.currency).toBe("EUR");
@@ -499,7 +500,7 @@ describe("stampLedgerCurrency over budgets", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await stampLedgerCurrency(db)).toBe(0);
+        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
         const [b] = await db.select({ currency: budgets.currency }).from(budgets);
         expect(b.currency).toBe("GBP");
     });
@@ -537,9 +538,9 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(1);
+        await expect(backfillBudgetUsd(db)).resolves.toBe(1);
         // 400 / 0.8, not 400 / 0.87775 — the divisor is currency-per-USD.
-        expect(await budgetUsd(db, "b1")).toBe(500);
+        await expect(budgetUsd(db, "b1")).resolves.toBe(500);
     });
 
     it("falls back to the window start when no creation date was kept", async () => {
@@ -555,8 +556,8 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(1);
-        expect(await budgetUsd(db, "b1")).toBe(500);
+        await expect(backfillBudgetUsd(db)).resolves.toBe(1);
+        await expect(budgetUsd(db, "b1")).resolves.toBe(500);
     });
 
     it("skips a target that names no currency", async () => {
@@ -573,8 +574,8 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(0);
-        expect(await budgetUsd(db, "b1")).toBeNull();
+        await expect(backfillBudgetUsd(db)).resolves.toBe(0);
+        await expect(budgetUsd(db, "b1")).resolves.toBeNull();
     });
 
     it("leaves a target it cannot value for the next pass to retry", async () => {
@@ -588,8 +589,8 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(0);
-        expect(await budgetUsd(db, "b1")).toBeNull();
+        await expect(backfillBudgetUsd(db)).resolves.toBe(0);
+        await expect(budgetUsd(db, "b1")).resolves.toBeNull();
     });
 
     it("freezes a USD target without consulting a rate", async () => {
@@ -603,8 +604,8 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(1);
-        expect(await budgetUsd(db, "b1")).toBe(400);
+        await expect(backfillBudgetUsd(db)).resolves.toBe(1);
+        await expect(budgetUsd(db, "b1")).resolves.toBe(400);
     });
 
     it("covers the main budget alongside the per-category ones", async () => {
@@ -627,7 +628,7 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(2);
+        await expect(backfillBudgetUsd(db)).resolves.toBe(2);
         const [m] = await db.select({ amountUsd: mainBudget.amountUsd }).from(mainBudget);
         expect(m.amountUsd).toBe(3000);
     });
@@ -645,7 +646,7 @@ describe("backfillBudgetUsd", () => {
         });
 
         await backfillBudgetUsd(db);
-        expect(await backfillBudgetUsd(db)).toBe(0);
+        await expect(backfillBudgetUsd(db)).resolves.toBe(0);
     });
 
     it("ignores a soft-deleted target", async () => {
@@ -661,8 +662,8 @@ describe("backfillBudgetUsd", () => {
             updatedAt: JULY_28,
         });
 
-        expect(await backfillBudgetUsd(db)).toBe(0);
-        expect(await budgetUsd(db, "b1")).toBeNull();
+        await expect(backfillBudgetUsd(db)).resolves.toBe(0);
+        await expect(budgetUsd(db, "b1")).resolves.toBeNull();
     });
 });
 
@@ -689,8 +690,8 @@ describe("backfillCanonicalUsd over a backlog", () => {
         const total = CANONICALIZE_BATCH + 60;
         await addMany(db, total, "EUR", 0);
 
-        expect(await backfillCanonicalUsd(db)).toBe(total);
-        expect(await hasUncanonicalized(db)).toBe(false);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(total);
+        await expect(hasUncanonicalized(db)).resolves.toBe(false);
     });
 
     it("does not skip the next batch after sanitizing an invalid custom row", async () => {
@@ -711,8 +712,8 @@ describe("backfillCanonicalUsd over a backlog", () => {
         });
         await addMany(db, CANONICALIZE_BATCH, "EUR", 1);
 
-        expect(await backfillCanonicalUsd(db)).toBe(CANONICALIZE_BATCH);
-        expect(await hasUncanonicalized(db)).toBe(false);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(CANONICALIZE_BATCH);
+        await expect(hasUncanonicalized(db)).resolves.toBe(false);
     });
 
     it("steps past rows it cannot value rather than re-reading them", async () => {
@@ -724,7 +725,7 @@ describe("backfillCanonicalUsd over a backlog", () => {
         await addMany(db, 300, "JPY", 1000);
         await addMany(db, 40, "EUR", 2000);
 
-        expect(await backfillCanonicalUsd(db)).toBe(CANONICALIZE_BATCH + 40);
-        expect(await hasUncanonicalized(db)).toBe(true);
+        await expect(backfillCanonicalUsd(db)).resolves.toBe(CANONICALIZE_BATCH + 40);
+        await expect(hasUncanonicalized(db)).resolves.toBe(true);
     });
 });

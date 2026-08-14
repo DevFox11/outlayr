@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
@@ -79,9 +80,9 @@ describe("the ledger's upper bound against an advancing clock", () => {
         const saved = reading + 500;
         await save(db, "just-saved", new Date(saved));
 
-        expect(await listedAt(db, reading)).toStrictEqual([]);
+        await expect(listedAt(db, reading)).resolves.toStrictEqual([]);
         expect(clockAdvances(reading, saved)).toBeTruthy();
-        expect(await listedAt(db, saved)).toStrictEqual(["just-saved"]);
+        await expect(listedAt(db, saved)).resolves.toStrictEqual(["just-saved"]);
     });
 
     it("keeps hiding a row genuinely scheduled ahead once the clock moves on", async () => {
@@ -90,6 +91,6 @@ describe("the ledger's upper bound against an advancing clock", () => {
         await save(db, "landed", new Date(reading - 60_000));
         await save(db, "scheduled", new Date(2025, 6, 20, 9, 0));
 
-        expect(await listedAt(db, reading + 500)).toStrictEqual(["landed"]);
+        await expect(listedAt(db, reading + 500)).resolves.toStrictEqual(["landed"]);
     });
 });

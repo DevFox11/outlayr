@@ -1,3 +1,4 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -135,7 +136,7 @@ describe("spendingCalendarQuery", () => {
                 )
             );
 
-        expect(groups).toEqual([
+        expect(groups).toStrictEqual([
             { amount: 10, amountUsd: 10, currency: "USD", dateKey: "2026-08-08" },
             { amount: 8, amountUsd: 10, currency: "EUR", dateKey: "2026-08-09" },
             { amount: 5, amountUsd: 5, currency: "USD", dateKey: "2026-08-09" },
@@ -181,6 +182,6 @@ describe("useSpendingCalendar", () => {
             useSpendingCalendar(db as unknown as Parameters<typeof useSpendingCalendar>[0], NOW.getTime())
         );
 
-        expect(result.current).toEqual([{ date: "2026-08-09", exact: false, value: 27 }]);
+        expect(result.current).toStrictEqual([{ date: "2026-08-09", exact: false, value: 27 }]);
     });
 });

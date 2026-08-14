@@ -1,5 +1,8 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 import type { ReactNode, Ref } from "react";
+
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 
 import { FloatingAddButton } from "./floating-add-button";
 
@@ -9,14 +12,11 @@ const mockSetStep = jest.fn();
 const mockPresent = jest.fn();
 const mockAccounts = jest.fn(() => [{ id: "a" }, { id: "b" }]);
 
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
-}));
 jest.mock("expo-router", () => ({
     router: { push: (...args: unknown[]) => mockPush(...args) },
 }));
-jest.mock("@/contexts/local-data-context", () => ({
-    useDatabase: () => ({}),
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useDatabase: () => mockUnusedDatabase(),
 }));
 jest.mock("@/data/accounts", () => ({
     useAccounts: () => mockAccounts(),

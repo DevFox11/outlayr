@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { merchantKey } from "@/domain/merchant-resolver";
 
 import { HISTORY_WINDOW, rememberedCategoryFor } from "./merchant-history-core";
@@ -23,7 +24,7 @@ function makeDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 let db: Database;

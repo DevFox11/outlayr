@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns, isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { appMeta, budgets, categories, exchangeRates, mainBudget, outbox } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
 
@@ -59,7 +60,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
@@ -82,7 +83,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function queued(db: Database): Promise<[string, string][]> {
@@ -606,7 +607,7 @@ describe("budgetsRepo.deleteBudget", () => {
         // A hard delete fires the AFTER DELETE trigger, which removes the entry: the
         // peer never hears of the delete, keeps the budget, and pushes it back at a
         // fresh seq the moment its own period rolls over.
-        expect(await queued(db)).toStrictEqual([["budgets", id]]);
+        await expect(queued(db)).resolves.toStrictEqual([["budgets", id]]);
     });
 
     it("leaves a tombstone no read can reach", async () => {
@@ -664,7 +665,7 @@ describe("budgetsRepo.deleteBudget", () => {
         const [second] = await db.select().from(budgets);
         expect(second.deletedAt?.getTime()).toBe(first.deletedAt?.getTime());
         expect(second.updatedAt.getTime()).toBe(first.updatedAt.getTime());
-        expect(await queued(db)).toStrictEqual([]);
+        await expect(queued(db)).resolves.toStrictEqual([]);
     });
 });
 
@@ -691,7 +692,7 @@ describe("budgetsRepo.deleteMainBudget", () => {
 
         await budgetsRepo.deleteMainBudget(db, id);
 
-        expect(await queued(db)).toStrictEqual([["mainBudget", id]]);
+        await expect(queued(db)).resolves.toStrictEqual([["mainBudget", id]]);
         const replicable = await db.select().from(mainBudget);
         expect(replicable).toHaveLength(1);
         expect(replicable[0]?.deletedAt).not.toBeNull();

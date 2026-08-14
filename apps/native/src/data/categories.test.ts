@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { and, eq, isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import {
     CATEGORY_ERROR_MESSAGES,
@@ -82,7 +83,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function addTransaction(
@@ -269,7 +270,7 @@ describe("categoriesRepo.create collisions", () => {
             income: true,
             name: "Coffee",
         });
-        expect(await getCategoryById(db, id)).not.toBeNull();
+        expect(getCategoryById(db, id)).not.toBeNull();
     });
 
     it("ignores a soft-deleted sibling when checking collisions", async () => {
@@ -286,7 +287,7 @@ describe("categoriesRepo.create collisions", () => {
             income: false,
             name: "Coffee",
         });
-        expect(await getCategoryById(db, reused)).not.toBeNull();
+        expect(getCategoryById(db, reused)).not.toBeNull();
     });
 });
 
@@ -704,7 +705,7 @@ describe("categoriesRepo.remove cascade", () => {
 
         await categoriesRepo.remove(db, id);
 
-        expect(await getCategoryById(db, id)).toBeNull();
+        expect(getCategoryById(db, id)).toBeNull();
         const categoryRows = await db.select().from(categories).where(eq(categories.id, id));
         expect(categoryRows).toHaveLength(1);
         expect(categoryRows[0].deletedAt).not.toBeNull();
@@ -906,7 +907,7 @@ describe("seedCategories idempotency", () => {
             return rows.map((row) => `${row.income ? "income" : "expense"} ${row.name} ${row.id}`).sort();
         };
 
-        expect(await identify(db)).toStrictEqual(await identify(other));
+        await expect(identify(db)).resolves.toStrictEqual(await identify(other));
     });
 
     it("gives each seeded category a distinct id", async () => {

@@ -1,8 +1,9 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, exchangeRates, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { parseCsv } from "@/domain/csv";
 import { resolveImportMapping } from "@/domain/import-mapping";
 import { CSV_HEADER, parseCsvAmount, parseCsvDate } from "@/domain/transaction-csv";
@@ -70,7 +71,7 @@ function makeDb(options?: { withRealTransactions?: boolean }): Database {
 			updatedAt integer NOT NULL, deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const NOW = new Date(2026, 6, 29, 12);
@@ -559,7 +560,7 @@ describe("applyImport", () => {
         const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
         const written = await applyImport(db, plan);
         expect(written).toBe(2);
-        expect(await db.select().from(transactions)).toHaveLength(2);
+        await expect(db.select().from(transactions)).resolves.toHaveLength(2);
     });
 
     it("buckets each row into its own day and month", async () => {
@@ -573,8 +574,8 @@ describe("applyImport", () => {
 
     it("writes nothing at all when there is nothing to write", async () => {
         const plan = buildImportPlan([], MAPPING, "yyyy-MM-dd", ".", links, income);
-        expect(await applyImport(db, plan)).toBe(0);
-        expect(await db.select().from(transactions)).toHaveLength(0);
+        await expect(applyImport(db, plan)).resolves.toBe(0);
+        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
     });
 
     it("rolls back every entry when the write fails partway through", async () => {
@@ -592,7 +593,7 @@ describe("applyImport", () => {
         });
 
         await expect(applyImport(transactionalDb, plan)).rejects.toThrow("disk full");
-        expect(await transactionalDb.select().from(transactions)).toHaveLength(0);
+        await expect(transactionalDb.select().from(transactions)).resolves.toHaveLength(0);
 
         spy.mockRestore();
     });

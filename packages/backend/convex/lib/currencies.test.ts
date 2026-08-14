@@ -75,7 +75,7 @@ describe("roundMoney (banker's rounding, half-even)", () => {
     });
 });
 
-describe("utcDateString", () => {
+describe(utcDateString, () => {
     test("formats an epoch as a UTC YYYY-MM-DD string", () => {
         expect(utcDateString(Date.UTC(2026, 2, 15, 12, 0, 0))).toBe("2026-03-15");
     });
@@ -116,11 +116,11 @@ describe("isPickableCurrency (default-currency allowlist)", () => {
     test("the pickable catalog now includes every metal code", () => {
         const pickable = new Set<string>(PICKABLE_CURRENCY_CODES);
         const included = METAL_CURRENCY_CODES.filter((code) => pickable.has(code));
-        expect(included).toEqual([...METAL_CURRENCY_CODES]);
+        expect(included).toStrictEqual([...METAL_CURRENCY_CODES]);
     });
 });
 
-describe("resolveEntryRate", () => {
+describe(resolveEntryRate, () => {
     test("returns the customRate verbatim for a custom rate type", async () => {
         const t = convexTest(schema, modules);
         const rate = await t.run((ctx) => resolveEntryRate(ctx.db, "VES", "custom", 80, "2020-01-01"));
@@ -176,7 +176,7 @@ describe("resolveEntryRate", () => {
     });
 });
 
-describe("computeAmountUSD", () => {
+describe(computeAmountUSD, () => {
     test("divides the base amount by the rate for a single-leg market type", async () => {
         const t = convexTest(schema, modules);
         const usd = await t.run((ctx) =>

@@ -1,8 +1,9 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { accounts, transactions } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 
 import type { SpendDb } from "./budget-spent";
 import type { PhotoFiles } from "./photo-store-core";
@@ -68,7 +69,7 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 const EARLIER = new Date(Date.UTC(2026, 6, 1));
@@ -394,7 +395,7 @@ describe("downloadPhotos", () => {
         bucket.objects.set(`transaction-photos/${USER}/a.jpg`, new TextEncoder().encode("PHOTO"));
         await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-        expect(await downloadPhotos(db, peer, transport)).toBe(1);
+        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(1);
         expect(peer.read("a.jpg")).toStrictEqual(new TextEncoder().encode("PHOTO"));
         expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
     });
@@ -406,7 +407,7 @@ describe("downloadPhotos", () => {
         await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
         // The object is not in the bucket yet — the row got here first.
-        expect(await downloadPhotos(db, peer, transport)).toBe(0);
+        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(0);
         const row = await readRow(db, "t1");
         expect(row.imageUri).toBeNull();
         // The key survives, so the next pass retries rather than giving up.
@@ -422,7 +423,7 @@ describe("downloadPhotos", () => {
         });
         await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
 
-        expect(await downloadPhotos(db, peer, transport)).toBe(0);
+        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(0);
         expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
     });
 
@@ -452,7 +453,7 @@ describe("downloadPhotos", () => {
         // Removing a photo clears both halves, so there is nothing to resurrect.
         await insert(db, "t1", { imageKey: null, imageUri: null });
 
-        expect(await downloadPhotos(db, peer, transport)).toBe(0);
+        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(0);
         expect((await readRow(db, "t1")).imageUri).toBeNull();
     });
 
@@ -465,7 +466,7 @@ describe("downloadPhotos", () => {
         await insert(db, "t1", { imageKey: key });
         await insert(db, "t2", { imageKey: key });
 
-        expect(await downloadPhotos(db, peer, transport)).toBe(2);
+        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(2);
         expect((await readRow(db, "t1")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
         expect((await readRow(db, "t2")).imageUri).toBe(`${PEER_DIRECTORY}/a.jpg`);
     });
@@ -479,7 +480,7 @@ describe("downloadPhotos", () => {
             imageKey: `transaction-photos/${USER}/logo.jpg`,
         });
 
-        expect(await downloadPhotos(db, peer, transport)).toBe(1);
+        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(1);
         expect(peer.read("logo.jpg")).toStrictEqual(new TextEncoder().encode("LOGO"));
         const row = await readAccount(db, "a1");
         expect(row.imageUri).toBe(`${PEER_DIRECTORY}/logo.jpg`);

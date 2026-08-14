@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { accountsOverview, formatSignedAmount, isMultiCurrency } from "./account-display";
 import type { AccountCellRow, OverviewAccount } from "./account-display";
 import type { CurrencyCell } from "./currency-totals";
@@ -78,7 +80,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toEqual({
+        expect(result).toStrictEqual({
             count: 2,
             exact: true,
             owe: 0,
@@ -94,7 +96,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
+        expect(result).toStrictEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
     });
 
     it("falls back to face value and marks approximate when no rate reaches", () => {
@@ -110,7 +112,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toEqual({ count: 1, exact: false, owe: 0, own: 80, total: 80 });
+        expect(result).toStrictEqual({ count: 1, exact: false, owe: 0, own: 80, total: 80 });
     });
 
     it("marks approximate when a cell cannot convert", () => {
@@ -139,7 +141,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
+        expect(result).toStrictEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
     });
 
     it("values a whole foreign account into the display currency", () => {
@@ -150,7 +152,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toEqual({ count: 2, exact: true, owe: 0, own: 10, total: 10 });
+        expect(result).toStrictEqual({ count: 2, exact: true, owe: 0, own: 10, total: 10 });
     });
 
     it("tells a card apart from an overdrawn current account", () => {
@@ -165,7 +167,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
+        expect(result).toStrictEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
     });
 
     it("leaves the total untouched by the kind split", () => {

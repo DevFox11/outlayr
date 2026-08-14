@@ -1,15 +1,17 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Alert } from "react-native";
 
+import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import type { ImportPlan } from "@/data/transfer-core";
 import * as transferCore from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { INITIAL_IMPORT_FLOW_STATE } from "@/domain/import-flow";
 import { importDraftStore } from "@/lib/import-draft-store";
 
@@ -20,13 +22,10 @@ const mockUseNavigation = jest.fn((_parent?: string) => ({
     goBack: mockGoBack,
 }));
 
-jest.mock("expo-sqlite", () => ({
-    addDatabaseChangeListener: () => ({ remove: () => {} }),
-}));
 jest.mock("expo-router", () => ({
     useNavigation: (parent?: string) => mockUseNavigation(parent),
 }));
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
@@ -34,7 +33,7 @@ jest.mock("@/i18n/context", () => ({
 const dbHolder: { current: Database | null } = { current: null };
 jest.mock("@/contexts/local-data-context", () => ({
     useDatabase: () => dbHolder.current,
-    useLocalData: () => ({ db: dbHolder.current }),
+    useLocalData: () => mockTestLocalData({ db: dbHolder.current }),
 }));
 
 const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
@@ -50,7 +49,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const NOW = new Date(2026, 6, 29, 12);
@@ -290,7 +289,7 @@ describe("useImportReview", () => {
         const { result } = await renderHook(() => useImportReview());
         await waitFor(() => expect(result.current.plan.entries).toHaveLength(2));
 
-        expect(await db.select().from(transactions)).toHaveLength(0);
+        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
     });
 
     it("onCommit writes every non-excluded entry, records the success and advances to the done step without clearing the draft", async () => {
@@ -308,7 +307,7 @@ describe("useImportReview", () => {
             await Promise.resolve();
         });
 
-        expect(await db.select().from(transactions)).toHaveLength(2);
+        await expect(db.select().from(transactions)).resolves.toHaveLength(2);
         const snapshot = importDraftStore.getSnapshot();
         expect(snapshot.flow.commit).toStrictEqual({
             count: 2,

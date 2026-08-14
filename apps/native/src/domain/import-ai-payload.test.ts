@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { ColumnMapping, ParsedImportFile } from "@/data/transfer-core";
 import { parseCsvAmount, parseCsvDate } from "@/domain/transaction-csv";
 
@@ -76,7 +78,7 @@ describe("buildClassificationPayload", () => {
         });
 
         expect(payload).not.toBeNull();
-        expect(Object.keys(payload as object).sort()).toEqual(["categoryTree", "labels"].sort());
+        expect(Object.keys(payload as object).sort()).toStrictEqual(["categoryTree", "labels"].sort());
     });
 
     it("caps labels at MAX_LABELS", () => {
@@ -102,8 +104,8 @@ describe("buildClassificationPayload", () => {
         });
 
         expect(payload).not.toBeNull();
-        expect(payload?.categoryTree).toEqual(CATEGORY_TREE);
-        expect(payload?.labels).toEqual(["Coffee Shop"]);
+        expect(payload?.categoryTree).toStrictEqual(CATEGORY_TREE);
+        expect(payload?.labels).toStrictEqual(["Coffee Shop"]);
     });
 
     it("no raw CSV date or amount string appears anywhere in the stringified payload", () => {

@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { eraseData } from "./erase";
 import type { EraseResidue } from "./erase";
@@ -68,7 +69,7 @@ const TRANSFERS_DDL = `
 function makeDb(ddl = `${TRANSACTIONS_DDL}${TRANSFERS_DDL}`): Database {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(ddl);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 /** Missing `transfers`, so the ledger write throws part-way through. */
@@ -133,7 +134,7 @@ describe("eraseData", () => {
         await eraseData(db, "transactions", residue);
 
         expect(calls).toStrictEqual(["photos", "spotlight"]);
-        expect(await liveTransactions(db)).toHaveLength(0);
+        await expect(liveTransactions(db)).resolves.toHaveLength(0);
     });
 
     // A Spotlight index nobody cleared keeps erased notes and amounts answering
@@ -154,7 +155,7 @@ describe("eraseData", () => {
 
         await expect(eraseData(db, "transactions", residue)).rejects.toThrow();
 
-        expect(await liveTransactions(db)).toHaveLength(0);
+        await expect(liveTransactions(db)).resolves.toHaveLength(0);
         const [tombstone] = await db.select().from(transactions);
         expect(tombstone.deletedAt).not.toBeNull();
     });

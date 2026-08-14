@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { RECENT_CATEGORY_LIMIT, recentCategoryIdsQuery } from "./category-recents";
 
@@ -22,7 +23,7 @@ function makeDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 let clock = 0;
@@ -80,7 +81,7 @@ beforeEach(() => {
 
 describe("recentCategoryIdsQuery", () => {
     it("returns nothing on an empty ledger", () => {
-        expect(ids(makeDb(), false)).toEqual([]);
+        expect(ids(makeDb(), false)).toStrictEqual([]);
     });
 
     it("orders by the most recent transaction, newest first", () => {
@@ -88,7 +89,7 @@ describe("recentCategoryIdsQuery", () => {
         log(db, "rent");
         log(db, "groceries");
         log(db, "transport");
-        expect(ids(db, false)).toEqual(["transport", "groceries", "rent"]);
+        expect(ids(db, false)).toStrictEqual(["transport", "groceries", "rent"]);
     });
 
     it("lists a category once, ranked by its newest transaction", () => {
@@ -96,29 +97,29 @@ describe("recentCategoryIdsQuery", () => {
         log(db, "groceries");
         log(db, "rent");
         log(db, "groceries");
-        expect(ids(db, false)).toEqual(["groceries", "rent"]);
+        expect(ids(db, false)).toStrictEqual(["groceries", "rent"]);
     });
 
     it("ignores soft-deleted transactions", () => {
         const db = makeDb();
         log(db, "rent");
         log(db, "groceries", { deleted: true });
-        expect(ids(db, false)).toEqual(["rent"]);
+        expect(ids(db, false)).toStrictEqual(["rent"]);
     });
 
     it("ignores uncategorised transactions", () => {
         const db = makeDb();
         log(db, null);
         log(db, "rent");
-        expect(ids(db, false)).toEqual(["rent"]);
+        expect(ids(db, false)).toStrictEqual(["rent"]);
     });
 
     it("keeps the two namespaces apart", () => {
         const db = makeDb();
         log(db, "groceries", { income: false });
         log(db, "paycheck", { income: true });
-        expect(ids(db, false)).toEqual(["groceries"]);
-        expect(ids(db, true)).toEqual(["paycheck"]);
+        expect(ids(db, false)).toStrictEqual(["groceries"]);
+        expect(ids(db, true)).toStrictEqual(["paycheck"]);
     });
 
     it("caps the list at the requested limit", () => {

@@ -1,15 +1,14 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 import type { ViewStyle } from "react-native";
 
+import { testColors as mockTestColors } from "@/theme/test-colors";
+
 import { SearchEmptyState } from "./search-empty-state";
 
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
-}));
-
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ background: "#F2F0EA", foreground: "#17150F" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ background: "#F2F0EA", foreground: "#17150F" }),
 }));
 
 interface TreeNode {

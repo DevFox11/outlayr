@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { IdentitySelection } from "@/components/identity-picker-content";
 
 import { computeCurtainHues } from "./curtain-hues";

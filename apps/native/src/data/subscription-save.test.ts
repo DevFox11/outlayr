@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { asc, isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
 import { backfillRecurring } from "./recurrence-backfill";
@@ -95,7 +96,7 @@ function makeDb(): Harness {
 	`);
     return {
         breakRateReplica: () => sqlite.exec("DROP TABLE exchangeRates;"),
-        db: drizzle(sqlite) as unknown as Database,
+        db: testDatabase(sqlite),
     };
 }
 
@@ -179,7 +180,7 @@ describe("a subscription whose back-fill fails after the row is committed", () =
         const second = await transactionsRepo.create(db, SUBSCRIPTION);
 
         expect(first).not.toBe(second);
-        expect(await carriers(db)).toHaveLength(2);
+        await expect(carriers(db)).resolves.toHaveLength(2);
     });
 });
 

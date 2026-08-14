@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 const DRIZZLE_DIR = join(import.meta.dirname, "..", "..", "drizzle");
 
 function journalTags(): string[] {
@@ -25,7 +27,7 @@ describe("drizzle/migrations.js is a tracked file, not a generated one", () => {
     it("imports every migration the journal lists", () => {
         const source = bundleSource();
         const missing = journalTags().filter((tag) => !source.includes(`'./${tag}.sql'`));
-        expect(missing).toEqual([]);
+        expect(missing).toStrictEqual([]);
     });
 
     it("exports every migration the journal lists", () => {
@@ -34,17 +36,17 @@ describe("drizzle/migrations.js is a tracked file, not a generated one", () => {
         const missing = journalTags()
             .map((_tag, index) => `m${String(index).padStart(4, "0")}`)
             .filter((key) => !new RegExp(`\\b${key}\\b`).test(exported));
-        expect(missing).toEqual([]);
+        expect(missing).toStrictEqual([]);
     });
 
     it("has a journal entry for every migration file on disk", () => {
-        expect(sqlFileTags()).toEqual([...journalTags()].sort());
+        expect(sqlFileTags()).toStrictEqual([...journalTags()].sort());
     });
 
     it("keeps the journal in index order with no gaps", () => {
         const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, "meta", "_journal.json"), "utf-8")) as {
             entries: { idx: number }[];
         };
-        expect(journal.entries.map((entry) => entry.idx)).toEqual(journal.entries.map((_entry, index) => index));
+        expect(journal.entries.map((entry) => entry.idx)).toStrictEqual(journal.entries.map((_entry, index) => index));
     });
 });

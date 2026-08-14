@@ -1,23 +1,28 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
+
+import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { TransactionRow } from "./transaction-row";
 
-jest.mock("@/contexts/display-settings-context", () => ({
-    useDisplaySettings: () => ({ state: { showCents: true, swapTimeLabel: false, use24Hour: false } }),
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
+    useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true, swapTimeLabel: false, use24Hour: false }),
 }));
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useLanguage: () => ({ language: "en" }),
     useTranslation: () => (key: string) => key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        foreground: "#17150F",
-        future: "#8A8578",
-        income: "#3D7A5C",
-        muted: "#8A8578",
-        surfaceSecondary: "#F7F5EF",
-        transfer: "#427AA1",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            foreground: "#17150F",
+            future: "#8A8578",
+            income: "#3D7A5C",
+            muted: "#8A8578",
+            surfaceSecondary: "#F7F5EF",
+            transfer: "#427AA1",
+        }),
 }));
 
 const PENDING_CUSTOM = {

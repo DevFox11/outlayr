@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { isMissingCategory, TRANSACTION_FORM_ERROR, transactionFormErrors } from "./transaction-form-validate";
 
 const CATEGORY = { id: "cat_1" };
@@ -32,7 +34,7 @@ describe("transactionFormErrors", () => {
                 ...VALID_VALUES,
                 amount: "",
             })
-        ).toEqual({ fields: { amount: TRANSACTION_FORM_ERROR.amountRequired } });
+        ).toStrictEqual({ fields: { amount: TRANSACTION_FORM_ERROR.amountRequired } });
     });
 
     it("flags a zero amount", () => {
@@ -41,7 +43,7 @@ describe("transactionFormErrors", () => {
                 ...VALID_VALUES,
                 amount: "0",
             })
-        ).toEqual({ fields: { amount: TRANSACTION_FORM_ERROR.amountRequired } });
+        ).toStrictEqual({ fields: { amount: TRANSACTION_FORM_ERROR.amountRequired } });
     });
 
     it("flags a missing category", () => {
@@ -50,7 +52,7 @@ describe("transactionFormErrors", () => {
                 ...VALID_VALUES,
                 category: null,
             })
-        ).toEqual({
+        ).toStrictEqual({
             fields: { category: TRANSACTION_FORM_ERROR.categoryRequired },
         });
     });
@@ -62,7 +64,7 @@ describe("transactionFormErrors", () => {
                 amount: "",
                 category: null,
             })
-        ).toEqual({
+        ).toStrictEqual({
             fields: {
                 amount: TRANSACTION_FORM_ERROR.amountRequired,
                 category: TRANSACTION_FORM_ERROR.categoryRequired,
@@ -82,13 +84,13 @@ describe("transactionFormErrors", () => {
                 currency: "EUR",
                 exchangeRateType: "eur_reference",
             })
-        ).toEqual({ fields: { exchangeRate: TRANSACTION_FORM_ERROR.eurReferenceRequiresVes } });
+        ).toStrictEqual({ fields: { exchangeRate: TRANSACTION_FORM_ERROR.eurReferenceRequiresVes } });
     });
 
     it.each([null, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
         "rejects custom when the actual rate is blank zero negative or non-finite (%s)",
         (exchangeRate) => {
-            expect(transactionFormErrors({ ...VALID_VALUES, exchangeRate, exchangeRateType: "custom" })).toEqual({
+            expect(transactionFormErrors({ ...VALID_VALUES, exchangeRate, exchangeRateType: "custom" })).toStrictEqual({
                 fields: { exchangeRate: TRANSACTION_FORM_ERROR.customRateRequired },
             });
         }

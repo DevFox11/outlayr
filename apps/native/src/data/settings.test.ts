@@ -1,7 +1,8 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
+import { testDatabase } from "@/db/test-database";
 import { amountParts, formatAmount } from "@/domain/money";
 
 import { getMeta } from "./app-meta-core";
@@ -27,7 +28,7 @@ function makeDb(): Database {
 			value text
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 describe("settings defaults", () => {
@@ -37,35 +38,35 @@ describe("settings defaults", () => {
     });
 
     it("returns the faithful defaults on a fresh store", async () => {
-        expect(await readBoolSetting(db, "showCents")).toBe(true);
-        expect(await readNumberSetting(db, "firstWeekday")).toBe(1);
-        expect(await readNumberSetting(db, "firstDayOfMonth")).toBe(1);
+        await expect(readBoolSetting(db, "showCents")).resolves.toBe(true);
+        await expect(readNumberSetting(db, "firstWeekday")).resolves.toBe(1);
+        await expect(readNumberSetting(db, "firstDayOfMonth")).resolves.toBe(1);
     });
 
     it("keeps the celebration off until it is asked for", async () => {
-        expect(await readBoolSetting(db, "confetti")).toBe(false);
+        await expect(readBoolSetting(db, "confetti")).resolves.toBe(false);
         await setBoolSetting(db, "confetti", true);
-        expect(await readBoolSetting(db, "confetti")).toBe(true);
+        await expect(readBoolSetting(db, "confetti")).resolves.toBe(true);
     });
 
     it("keeps the subscription notices off until they are asked for", async () => {
-        expect(await readBoolSetting(db, "subscriptionReminders")).toBe(false);
+        await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(false);
         await setBoolSetting(db, "subscriptionReminders", true);
-        expect(await readBoolSetting(db, "subscriptionReminders")).toBe(true);
+        await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(true);
     });
 
     it("lists the budgets as rows until the grid is asked for", async () => {
         // Inverted against Swift's `budgetViewStyle`, which defaulted to the grid:
         // rows are the shipped budget list here, so the default must not flip it.
-        expect(await readBoolSetting(db, "budgetViewStyle")).toBe(true);
+        await expect(readBoolSetting(db, "budgetViewStyle")).resolves.toBe(true);
         await setBoolSetting(db, "budgetViewStyle", false);
-        expect(await readBoolSetting(db, "budgetViewStyle")).toBe(false);
+        await expect(readBoolSetting(db, "budgetViewStyle")).resolves.toBe(false);
     });
 
     it("defaults grounded-lookup consent on for a device that never wrote it", async () => {
-        expect(await readBoolSetting(db, "groundedLookup")).toBe(true);
+        await expect(readBoolSetting(db, "groundedLookup")).resolves.toBe(true);
         await setBoolSetting(db, "groundedLookup", false);
-        expect(await readBoolSetting(db, "groundedLookup")).toBe(false);
+        await expect(readBoolSetting(db, "groundedLookup")).resolves.toBe(false);
     });
 });
 
@@ -76,19 +77,19 @@ describe("the 12/24-hour clock", () => {
     });
 
     it("reads as a 12-hour clock before anything is stored", async () => {
-        expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
+        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
     });
 
     it("persists and reads back the user's own choice", async () => {
         await setBoolSetting(db, "use24HourClock", true);
-        expect(await readBoolSetting(db, "use24HourClock")).toBe(true);
+        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(true);
         await setBoolSetting(db, "use24HourClock", false);
-        expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
+        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
     });
 
     it("seeds the device's convention when the user has never chosen", async () => {
         await seedClockPreference(db, true);
-        expect(await readBoolSetting(db, "use24HourClock")).toBe(true);
+        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(true);
     });
 
     // The whole reason the seed reads the raw row: a stored `false` is a choice,
@@ -96,14 +97,14 @@ describe("the 12/24-hour clock", () => {
     it("never overrules a stored choice, not even a stored false", async () => {
         await setBoolSetting(db, "use24HourClock", false);
         await seedClockPreference(db, true);
-        expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
+        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
     });
 
     it("does not re-seed once it has seeded", async () => {
         await seedClockPreference(db, true);
         await setBoolSetting(db, "use24HourClock", false);
         await seedClockPreference(db, true);
-        expect(await readBoolSetting(db, "use24HourClock")).toBe(false);
+        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
     });
 
     it("labels both clocks", () => {
@@ -120,22 +121,22 @@ describe("settings read/write round-trip", () => {
 
     it("persists and reads back a boolean setting", async () => {
         await setBoolSetting(db, "showCents", false);
-        expect(await readBoolSetting(db, "showCents")).toBe(false);
+        await expect(readBoolSetting(db, "showCents")).resolves.toBe(false);
         await setBoolSetting(db, "showCents", true);
-        expect(await readBoolSetting(db, "showCents")).toBe(true);
+        await expect(readBoolSetting(db, "showCents")).resolves.toBe(true);
     });
 
     it("persists and reads back integer settings", async () => {
         await setNumberSetting(db, "firstWeekday", 2);
         await setNumberSetting(db, "firstDayOfMonth", 15);
-        expect(await readNumberSetting(db, "firstWeekday")).toBe(2);
-        expect(await readNumberSetting(db, "firstDayOfMonth")).toBe(15);
+        await expect(readNumberSetting(db, "firstWeekday")).resolves.toBe(2);
+        await expect(readNumberSetting(db, "firstDayOfMonth")).resolves.toBe(15);
     });
 
     it("upserts (a second write replaces the first)", async () => {
         await setNumberSetting(db, "firstWeekday", 2);
         await setNumberSetting(db, "firstWeekday", 1);
-        expect(await readNumberSetting(db, "firstWeekday")).toBe(1);
+        await expect(readNumberSetting(db, "firstWeekday")).resolves.toBe(1);
     });
 
     // The permission-revoke reconcile writes `showNotifications` back off, so a
@@ -143,13 +144,13 @@ describe("settings read/write round-trip", () => {
     it("holds the subscription notices on a key of their own", async () => {
         await setBoolSetting(db, "subscriptionReminders", true);
         await setBoolSetting(db, "showNotifications", false);
-        expect(await readBoolSetting(db, "subscriptionReminders")).toBe(true);
-        expect(await readBoolSetting(db, "showNotifications")).toBe(false);
+        await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(true);
+        await expect(readBoolSetting(db, "showNotifications")).resolves.toBe(false);
     });
 
     it("writes the global currency under the shared meta key", async () => {
         await setCurrency(db, "EUR");
-        expect(await getMeta(db, "currency")).toBe("EUR");
+        await expect(getMeta(db, "currency")).resolves.toBe("EUR");
     });
 });
 

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { interpolate, translate } from "./translate";
 
 const EN = {

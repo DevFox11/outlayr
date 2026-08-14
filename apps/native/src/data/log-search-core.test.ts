@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
@@ -97,7 +98,7 @@ describe("search query", () => {
             { date: at(2025, 7, 14), id: "miss", note: "Petrol" },
         ]);
 
-        expect(await search(db, "groceries")).toStrictEqual(["hit"]);
+        await expect(search(db, "groceries")).resolves.toStrictEqual(["hit"]);
     });
 
     it("matches every row of a category whose name matched", async () => {
@@ -112,7 +113,7 @@ describe("search query", () => {
             { date: at(2025, 7, 14), id: "other", note: "nothing textual to match" },
         ]);
 
-        expect(await search(db, "food", ["cat-food"])).toStrictEqual(["in-cat"]);
+        await expect(search(db, "food", ["cat-food"])).resolves.toStrictEqual(["in-cat"]);
     });
 
     it("matches an exact amount when the query reads as a number", async () => {
@@ -122,7 +123,7 @@ describe("search query", () => {
             { amount: 4200, date: at(2025, 7, 13), id: "near", note: "rent" },
         ]);
 
-        expect(await search(db, "42")).toStrictEqual(["exact"]);
+        await expect(search(db, "42")).resolves.toStrictEqual(["exact"]);
     });
 
     it("excludes rows dated ahead of the clock, which have not been spent yet", async () => {
@@ -132,15 +133,15 @@ describe("search query", () => {
             { amount: 1500, date: at(2025, 8, 1), id: "scheduled", note: "Rent" },
         ]);
 
-        expect(await search(db, "rent")).toStrictEqual(["landed"]);
+        await expect(search(db, "rent")).resolves.toStrictEqual(["landed"]);
     });
 
     it("takes in a row the moment the clock reaches it", async () => {
         const db = makeDb();
         await seed(db, [{ date: at(2025, 7, 15, 18), id: "later-today", note: "Rent" }]);
 
-        expect(await search(db, "rent")).toStrictEqual([]);
-        expect(await search(db, "rent", [], at(2025, 7, 15, 19).getTime())).toStrictEqual(["later-today"]);
+        await expect(search(db, "rent")).resolves.toStrictEqual([]);
+        await expect(search(db, "rent", [], at(2025, 7, 15, 19).getTime())).resolves.toStrictEqual(["later-today"]);
     });
 
     it("excludes tombstones", async () => {
@@ -154,14 +155,14 @@ describe("search query", () => {
             },
         ]);
 
-        expect(await search(db, "rent")).toStrictEqual([]);
+        await expect(search(db, "rent")).resolves.toStrictEqual([]);
     });
 
     it("matches nothing at all on an empty query", async () => {
         const db = makeDb();
         await seed(db, [{ date: at(2025, 7, 1), details: "anything", id: "any", note: "Rent" }]);
 
-        expect(await search(db, "")).toStrictEqual([]);
+        await expect(search(db, "")).resolves.toStrictEqual([]);
     });
 
     it("returns newest first", async () => {
@@ -172,7 +173,7 @@ describe("search query", () => {
             { date: at(2025, 6, 30), id: "oldest", note: "Rent" },
         ]);
 
-        expect(await search(db, "rent")).toStrictEqual(["newest", "middle", "oldest"]);
+        await expect(search(db, "rent")).resolves.toStrictEqual(["newest", "middle", "oldest"]);
     });
 });
 
@@ -189,7 +190,7 @@ describe("search over the note's free text", () => {
             { date: at(2025, 7, 14), id: "other", note: "Card 4471" },
         ]);
 
-        expect(await search(db, "dentist")).toStrictEqual(["in-details"]);
+        await expect(search(db, "dentist")).resolves.toStrictEqual(["in-details"]);
     });
 
     it("returns a row matching both the note and the free text once", async () => {
@@ -203,7 +204,7 @@ describe("search over the note's free text", () => {
             },
         ]);
 
-        expect(await search(db, "coffee")).toStrictEqual(["both"]);
+        await expect(search(db, "coffee")).resolves.toStrictEqual(["both"]);
     });
 
     it("holds the clock and tombstone bounds the note match holds", async () => {
@@ -224,7 +225,7 @@ describe("search over the note's free text", () => {
             },
         ]);
 
-        expect(await search(db, "dentist")).toStrictEqual([]);
+        await expect(search(db, "dentist")).resolves.toStrictEqual([]);
     });
 });
 
@@ -246,7 +247,7 @@ describe("wildcards in the query", () => {
             },
         ]);
 
-        expect(await search(db, "50%")).toStrictEqual(["literal"]);
+        await expect(search(db, "50%")).resolves.toStrictEqual(["literal"]);
     });
 
     it("matches a literal underscore in the free text", async () => {
@@ -266,7 +267,7 @@ describe("wildcards in the query", () => {
             },
         ]);
 
-        expect(await search(db, "a_b")).toStrictEqual(["literal"]);
+        await expect(search(db, "a_b")).resolves.toStrictEqual(["literal"]);
     });
 });
 

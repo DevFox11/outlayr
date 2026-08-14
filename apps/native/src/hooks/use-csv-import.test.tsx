@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
 import { categoryKey } from "@/data/transfer-core";
@@ -592,7 +593,7 @@ describe("raw ↔ scrubbed label correspondence", () => {
     it("resolves the link by the RAW label's key, not the scrubbed label the payload sends", async () => {
         const raw = `${UNKNOWN} 1234567`;
         const fn = jest.fn((payload: CsvImportRequest) => {
-            expect(payload.labels).toEqual([UNKNOWN]);
+            expect(payload.labels).toStrictEqual([UNKNOWN]);
             return Promise.resolve({
                 status: "ok" as const,
                 suggestions: [{ categoryName: "Shopping", label: UNKNOWN }],

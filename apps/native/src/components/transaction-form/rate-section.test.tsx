@@ -1,19 +1,23 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 import type { ComponentProps } from "react";
 import { StyleSheet } from "react-native";
 
+import { testColors as mockTestColors } from "@/theme/test-colors";
+
 import { TransactionFormRateSection } from "./rate-section";
 
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        border: "#DAD6C9",
-        danger: "#B5482F",
-        foreground: "#17150F",
-        income: "#3D7A5C",
-        muted: "#8A8578",
-        surface: "#FFFFFF",
-        surfaceSecondary: "#F7F5EF",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            border: "#DAD6C9",
+            danger: "#B5482F",
+            foreground: "#17150F",
+            income: "#3D7A5C",
+            muted: "#8A8578",
+            surface: "#FFFFFF",
+            surfaceSecondary: "#F7F5EF",
+        }),
 }));
 
 const labels = {
@@ -79,8 +83,8 @@ describe("transactionFormRateSection", () => {
     it("exposes each rate choice as a labelled button with selected state", async () => {
         const { getByRole } = await render(<TransactionFormRateSection {...baseProps} />);
 
-        expect(getByRole("button", { name: "Official" }).props.accessibilityState).toEqual({ selected: true });
-        expect(getByRole("button", { name: "Custom" }).props.accessibilityState).toEqual({ selected: false });
+        expect(getByRole("button", { name: "Official" }).props.accessibilityState).toMatchObject({ selected: true });
+        expect(getByRole("button", { name: "Custom" }).props.accessibilityState).toMatchObject({ selected: false });
     });
 
     it("gives every rate-policy control at least a 44-point touch target", async () => {
@@ -109,7 +113,7 @@ describe("transactionFormRateSection", () => {
         expect(getByText("42 VES per USD")).toBeTruthy();
         expect(getByText("50 VES per USD")).toBeTruthy();
         expect(getByText("55.5 VES per USD")).toBeTruthy();
-        expect(getByRole("button", { name: "Custom" }).props.accessibilityState).toEqual({ selected: false });
+        expect(getByRole("button", { name: "Custom" }).props.accessibilityState).toMatchObject({ selected: false });
         expect(onUseSuggestion).not.toHaveBeenCalled();
     });
 

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { AdoptionStatus } from "@/lib/ledger-adoption";
 
 import type { AuthGate } from "./auth-gate";

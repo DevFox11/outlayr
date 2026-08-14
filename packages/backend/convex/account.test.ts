@@ -82,11 +82,11 @@ describe("purging an account", () => {
             deviceId: DEVICE,
             rows: [transactionRow("a"), transactionRow("b")],
         });
-        expect(await countRows(t, owner.userId)).toBe(2);
+        await expect(countRows(t, owner.userId)).resolves.toBe(2);
 
         await purgeAll(t, owner.userId);
 
-        expect(await countRows(t, owner.userId)).toBe(0);
+        await expect(countRows(t, owner.userId)).resolves.toBe(0);
     });
 
     test("leaves another account's ledger untouched", async () => {
@@ -104,8 +104,8 @@ describe("purging an account", () => {
 
         await purgeAll(t, owner.userId);
 
-        expect(await countRows(t, owner.userId)).toBe(0);
-        expect(await countRows(t, stranger.userId)).toBe(1);
+        await expect(countRows(t, owner.userId)).resolves.toBe(0);
+        await expect(countRows(t, stranger.userId)).resolves.toBe(1);
     });
 
     test("drops the seq counter only once the rows are gone", async () => {
@@ -160,8 +160,8 @@ describe("purging an account", () => {
             objects: await ctx.db.query("photoObjects").collect(),
             sizes: await ctx.db.query("photoSizes").collect(),
         }));
-        expect(leftovers.sizes).toEqual([]);
-        expect(leftovers.objects).toEqual([]);
+        expect(leftovers.sizes).toStrictEqual([]);
+        expect(leftovers.objects).toStrictEqual([]);
     });
 
     test("is safe to run again on an account already purged", async () => {

@@ -1,4 +1,8 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
+
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import TransferDetail from "./detail";
 
@@ -14,8 +18,8 @@ jest.mock("@/data/live-query", () => {
     };
 });
 
-jest.mock("@/contexts/local-data-context", () => ({
-    useDatabase: () => ({}),
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useDatabase: () => mockUnusedDatabase(),
 }));
 
 jest.mock("@/data/accounts", () => ({
@@ -29,13 +33,8 @@ jest.mock("@/data/transfers-core", () => ({
     transfersRepo: { softDelete: jest.fn() },
 }));
 
-jest.mock("@/i18n/context", () => ({
-    useLanguage: () => ({ language: "en" }),
-    useTranslation: () => (key: string) => key,
-}));
-
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ danger: "#FF3B30" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors({ danger: "#FF3B30" }),
 }));
 
 jest.mock("expo-router", () => ({
@@ -111,7 +110,7 @@ describe("transferDetail", () => {
     it("announces its delete row as a button, since a tap gesture alone gives VoiceOver nothing to press", async () => {
         const modifiers = await deleteRowModifiers();
 
-        expect(modifiers).toEqual(
+        expect(modifiers).toStrictEqual(
             expect.arrayContaining([expect.objectContaining({ $type: "accessibilityAddTraits", traits: ["isButton"] })])
         );
     });
@@ -119,7 +118,7 @@ describe("transferDetail", () => {
     it("names its delete row with the same words it shows", async () => {
         const modifiers = await deleteRowModifiers();
 
-        expect(modifiers).toEqual(
+        expect(modifiers).toStrictEqual(
             expect.arrayContaining([
                 expect.objectContaining({ $type: "accessibilityLabel", label: "transfers.delete.row" }),
             ])
@@ -129,7 +128,7 @@ describe("transferDetail", () => {
     it("merges the delete row into one element, so it is reached as a single control", async () => {
         const modifiers = await deleteRowModifiers();
 
-        expect(modifiers).toEqual(
+        expect(modifiers).toStrictEqual(
             expect.arrayContaining([expect.objectContaining({ $type: "accessibilityElement", children: "combine" })])
         );
     });

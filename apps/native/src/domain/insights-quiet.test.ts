@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { quietAlternative } from "./insights-quiet";
 
 describe("quietAlternative", () => {

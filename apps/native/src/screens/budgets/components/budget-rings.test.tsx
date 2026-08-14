@@ -1,5 +1,7 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
+import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { CategoryBudgetView } from "@/data/budgets";
 
 import { BudgetRings } from "./budget-rings";
@@ -43,12 +45,12 @@ jest.mock("panelui-native", () => {
 });
 
 jest.mock("react-native-reanimated", () => {
-    const actual = jest.requireActual("react-native-reanimated");
+    const actual = jest.requireActual<typeof import("react-native-reanimated")>("react-native-reanimated");
     return { ...actual, useReducedMotion: () => mockReduceMotion() };
 });
 
 jest.mock("@/contexts/display-settings-context", () => ({
-    useDisplaySettings: () => ({ state: { showCents: true } }),
+    useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true }),
     useSettingBool: () => mockAnimatedCharts(),
 }));
 
@@ -119,7 +121,7 @@ describe("budgetRings", () => {
 
         chartProps = mockBudgetRingChart.mock.calls.at(-1)?.[0] as typeof chartProps;
         expect(chartProps.activeIndex).toBe(0);
-        expect(screen.getByRole("button", { name: /travel/i }).props.accessibilityState).toEqual({
+        expect(screen.getByRole("button", { name: /travel/i }).props.accessibilityState).toMatchObject({
             selected: true,
         });
     });
@@ -136,7 +138,7 @@ describe("budgetRings", () => {
 
         const latestChartProps = mockBudgetRingChart.mock.calls.at(-1)?.[0] as { activeIndex: number } | undefined;
         expect(latestChartProps?.activeIndex).toBe(-1);
-        expect(screen.getByRole("button", { name: /travel/i }).props.accessibilityState).toEqual({
+        expect(screen.getByRole("button", { name: /travel/i }).props.accessibilityState).toMatchObject({
             selected: false,
         });
     });
@@ -178,7 +180,7 @@ describe("budgetRings", () => {
             mockReduceMotion.mockReturnValue(reducedMotion);
             await render(<BudgetRings budgets={[FOOD]} currency="USD" />);
 
-            expect(mockBudgetRingChart.mock.calls.at(-1)?.[0]).toEqual(
+            expect(mockBudgetRingChart.mock.calls.at(-1)?.[0]).toStrictEqual(
                 expect.objectContaining({ animationDuration: 0 })
             );
         }

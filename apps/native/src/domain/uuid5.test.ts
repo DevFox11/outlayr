@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { describe, expect, it } from "@jest/globals";
+
 import { uuidV5 } from "./uuid5";
 
 const DNS_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";

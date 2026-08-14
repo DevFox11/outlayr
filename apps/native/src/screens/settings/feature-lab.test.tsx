@@ -1,13 +1,16 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
+
+import {
+    testAppSettings as mockTestAppSettings,
+    testDisplaySettingsValue as mockTestDisplaySettingsValue,
+} from "@/contexts/test-settings";
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 
 import { FeatureLab } from "./feature-lab";
 
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
-}));
-
-jest.mock("@/contexts/local-data-context", () => ({
-    useDatabase: () => ({}),
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useDatabase: () => mockUnusedDatabase(),
 }));
 
 const mockSetBoolSetting = jest.fn();
@@ -15,10 +18,10 @@ jest.mock("@/data/settings-core", () => ({
     setBoolSetting: (...args: unknown[]) => mockSetBoolSetting(...args),
 }));
 
-const mockBool = jest.fn();
+const mockBool = jest.fn<(key: import("@/data/settings-core").BoolSettingKey) => boolean>();
 jest.mock("@/contexts/display-settings-context", () => ({
-    useAppSettings: () => ({ state: { bool: mockBool } }),
-    useDisplaySettings: () => ({ state: { swapTimeLabel: false } }),
+    useAppSettings: () => mockTestAppSettings({ bool: mockBool }),
+    useDisplaySettings: () => mockTestDisplaySettingsValue({ swapTimeLabel: false }),
 }));
 
 beforeEach(() => {

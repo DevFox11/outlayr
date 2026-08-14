@@ -66,9 +66,9 @@ const BASE_ARGS = {
     labels: ["Coffee Shop", "Unknown Store"],
 };
 
-describe("csvImportArgs", () => {
+describe("csv import args validation", () => {
     test("carries exactly the privacy-boundary fields — labels, tree, consent, region", () => {
-        expect(Object.keys(csvImportArgs).sort()).toEqual(
+        expect(Object.keys(csvImportArgs).sort()).toStrictEqual(
             ["categoryTree", "groundedLookup", "labels", "regionCode"].sort()
         );
     });
@@ -78,7 +78,7 @@ describe("csvImport guard ladder", () => {
     test("returns unauthenticated for a signed-out caller", async () => {
         const t = convexTest(schema, modules);
 
-        await expect(t.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+        await expect(t.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
             status: "unauthenticated",
             suggestions: null,
         });
@@ -89,7 +89,7 @@ describe("csvImport guard ladder", () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
-        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
             status: "notConfigured",
             suggestions: null,
         });
@@ -105,7 +105,7 @@ describe("csvImport guard ladder", () => {
                 ...BASE_ARGS,
                 labels: [],
             })
-        ).resolves.toEqual({ status: "invalid", suggestions: null });
+        ).resolves.toStrictEqual({ status: "invalid", suggestions: null });
     });
 
     test("returns invalid when labels exceed the 200-label cap", async () => {
@@ -118,7 +118,7 @@ describe("csvImport guard ladder", () => {
                 ...BASE_ARGS,
                 labels: Array.from({ length: 201 }, (_, i) => `Merchant ${i}`),
             })
-        ).resolves.toEqual({ status: "invalid", suggestions: null });
+        ).resolves.toStrictEqual({ status: "invalid", suggestions: null });
     });
 
     test("returns rateLimited and never throws once the per-user bucket is exhausted", async () => {
@@ -140,7 +140,7 @@ describe("csvImport guard ladder", () => {
             })
         );
 
-        await expect(asUser.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+        await expect(asUser.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
             status: "rateLimited",
             suggestions: null,
         });
@@ -157,7 +157,7 @@ describe("csvImport guard ladder", () => {
                 name === "csvImportGlobal" ? { ok: false, retryAfter: 1000 } : { ok: true, retryAfter: undefined }
             );
 
-        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
             status: "rateLimited",
             suggestions: null,
         });
@@ -193,7 +193,7 @@ describe("csvImport guard ladder", () => {
                 groundedLookup: true,
                 labels: ["FARMACIA SAAS"],
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             status: "ok",
             suggestions: [
                 {
@@ -203,11 +203,11 @@ describe("csvImport guard ladder", () => {
                 },
             ],
         });
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 });
 
-describe("perUserLimitConfig", () => {
+describe(perUserLimitConfig, () => {
     test("defaults to a two-import burst when CSV_IMPORT_CAPACITY is unset", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", undefined);
 
@@ -232,7 +232,7 @@ describe("perUserLimitConfig", () => {
     test("leaves the refill rate alone, so only the burst is tunable", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
-        expect(perUserLimitConfig()).toEqual({
+        expect(perUserLimitConfig()).toStrictEqual({
             capacity: 25,
             kind: "token bucket",
             period: HOUR,
@@ -247,7 +247,7 @@ describe("perUserLimitConfig", () => {
         const identity = await seedAuthUser(t);
         const limitSpy = vi.spyOn(rateLimiter, "limit").mockResolvedValue({ ok: false, retryAfter: 1000 });
 
-        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toEqual({
+        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
             status: "rateLimited",
             suggestions: null,
         });
@@ -274,7 +274,7 @@ function asIdentity(t: ReturnType<typeof convexTest>, identity: Awaited<ReturnTy
     });
 }
 
-describe("scheduleImportGrounded", () => {
+describe(scheduleImportGrounded, () => {
     test("schedules one grounded run per label, deduped by merchant key", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -297,13 +297,13 @@ describe("scheduleImportGrounded", () => {
                 return [scheduledArgs.key, scheduledArgs];
             })
         );
-        expect(argsByKey.get(merchantKey("Corpoelec"))).toEqual({
+        expect(argsByKey.get(merchantKey("Corpoelec"))).toStrictEqual({
             income: false,
             key: "corpoelec",
             name: "Corpoelec",
             regionCode: "VE",
         });
-        expect(argsByKey.get(merchantKey("Automercado Plaza's"))).toEqual({
+        expect(argsByKey.get(merchantKey("Automercado Plaza's"))).toStrictEqual({
             income: false,
             key: "automercado plaza s",
             name: "Automercado Plaza's",
@@ -328,7 +328,7 @@ describe("scheduleImportGrounded", () => {
         );
 
         expect(scheduled).toBe(GROUNDED_IMPORT_MAX);
-        expect(await scheduledGroundedRuns(t)).toHaveLength(GROUNDED_IMPORT_MAX);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(GROUNDED_IMPORT_MAX);
     });
 
     test("schedules nothing when the client consent flag is false", async () => {
@@ -343,7 +343,7 @@ describe("scheduleImportGrounded", () => {
         );
 
         expect(scheduled).toBe(0);
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
     test("schedules nothing when the synced appMeta consent row is false", async () => {
@@ -368,7 +368,7 @@ describe("scheduleImportGrounded", () => {
         );
 
         expect(scheduled).toBe(0);
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
     test("returns 0 instead of throwing when the session no longer resolves to a user", async () => {
@@ -389,7 +389,7 @@ describe("scheduleImportGrounded", () => {
                 })
             )
         ).resolves.toBe(0);
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 });
 
@@ -417,7 +417,7 @@ describe("merchantKnowledge tier", () => {
                 categoryTree: [{ children: [], name: "Healthcare" }],
                 labels: ["FARMACIA SAAS"],
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             status: "ok",
             suggestions: [
                 {
@@ -427,7 +427,7 @@ describe("merchantKnowledge tier", () => {
                 },
             ],
         });
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
     test("an unknown label schedules a grounded lookup even when the model tier fails", async () => {
@@ -492,7 +492,7 @@ describe("merchantKnowledge tier", () => {
                 categoryTree: [{ children: [], name: "Healthcare" }],
                 labels: ["FARMACIA SAAS", "Unknown Store"],
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             degraded: true,
             status: "ok",
             suggestions: [
@@ -506,7 +506,7 @@ describe("merchantKnowledge tier", () => {
     });
 });
 
-describe("classify", () => {
+describe(classify, () => {
     test("returns ok with a suggestion for every label naming an existing category", async () => {
         const model = mockModel(
             JSON.stringify({
@@ -522,7 +522,7 @@ describe("classify", () => {
                 categoryTree: BASE_ARGS.categoryTree,
                 labels: BASE_ARGS.labels,
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             status: "ok",
             suggestions: [
                 { categoryName: "Coffee", domain: null, label: "Coffee Shop" },
@@ -546,7 +546,7 @@ describe("classify", () => {
                 categoryTree: BASE_ARGS.categoryTree,
                 labels: BASE_ARGS.labels,
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             status: "ok",
             suggestions: [{ categoryName: "Coffee", domain: null, label: "Coffee Shop" }],
         });
@@ -560,7 +560,7 @@ describe("classify", () => {
                 categoryTree: BASE_ARGS.categoryTree,
                 labels: BASE_ARGS.labels,
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             status: "invalidResponse",
             suggestions: null,
         });
@@ -574,7 +574,7 @@ describe("classify", () => {
                 categoryTree: BASE_ARGS.categoryTree,
                 labels: BASE_ARGS.labels,
             })
-        ).resolves.toEqual({
+        ).resolves.toStrictEqual({
             status: "providerError",
             suggestions: null,
         });

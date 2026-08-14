@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { runtimeLanguage, setRuntimeLanguage } from "@/i18n/runtime";
 
 import * as dates from "./dates";

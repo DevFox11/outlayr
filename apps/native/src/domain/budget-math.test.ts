@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { EN, ES } from "@/i18n/catalog";
 
 import * as budgetMath from "./budget-math";

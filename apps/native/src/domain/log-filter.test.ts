@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { filterDetail, filterHasMenu, filterPeriodUnit } from "./log-filter";
 
 const CURSOR = new Date("2026-07-22T15:30:00");

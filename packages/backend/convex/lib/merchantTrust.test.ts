@@ -11,7 +11,7 @@ const BASE_CANDIDATE = {
     tags: ["pharmacy"],
 };
 
-describe("corroborates", () => {
+describe(corroborates, () => {
     test("accepts the exact host", () => {
         expect(corroborates("farmatodo.com", "https://farmatodo.com/about")).toBeTruthy();
     });
@@ -33,7 +33,7 @@ describe("corroborates", () => {
     });
 });
 
-describe("shouldPublish", () => {
+describe(shouldPublish, () => {
     test("publishes a confident, corroborated candidate", () => {
         expect(shouldPublish(BASE_CANDIDATE, [{ url: "https://farmatodo.com/es" }])).toBeTruthy();
     });
@@ -81,7 +81,7 @@ describe("shouldPublish", () => {
     });
 });
 
-describe("CANONICAL_CATEGORY_NAMES", () => {
+describe("canonical category names", () => {
     test("includes every preset expense and income category name", () => {
         expect(CANONICAL_CATEGORY_NAMES.has("Healthcare")).toBeTruthy();
         expect(CANONICAL_CATEGORY_NAMES.has("Paycheck")).toBeTruthy();

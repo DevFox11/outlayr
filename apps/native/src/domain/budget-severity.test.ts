@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { compareBudgetSeverity } from "./budget-severity";
 import type { BudgetSeverity } from "./budget-severity";
 

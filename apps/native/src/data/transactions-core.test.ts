@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
@@ -70,7 +71,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
@@ -100,7 +101,7 @@ function syncedDb(): Database {
             "INSERT INTO categories (id, name, income, sortOrder, updatedAt) VALUES ('cat-1', 'Groceries', 0, 0, 1)"
         )
         .run();
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 /** Older than the 90 days of history the rate feed serves. */
@@ -229,7 +230,7 @@ describe("transactionsRepo entry-rate selections", () => {
             recurringType: RECURRING_TYPE.none,
         });
         await transactionsRepo.update(db, id, input);
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 1.801802,
             exchangeRate: 55.5,
             exchangeRateType: "custom",
@@ -259,7 +260,7 @@ describe("transactionsRepo entry-rate selections", () => {
             exchangeRate: 55.5,
             exchangeRateType: "custom",
         });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 1.801802,
             exchangeRate: 55.5,
             exchangeRateType: "custom",
@@ -271,7 +272,7 @@ describe("transactionsRepo entry-rate selections", () => {
         await seedRate(db, "VES", "eur_reference", 50);
         await seedRate(db, "EUR", "official", 0.8);
         const id = await transactionsRepo.create(db, { ...DRAFT, currency: "VES", exchangeRateType: "eur_reference" });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 2.5,
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
@@ -282,7 +283,7 @@ describe("transactionsRepo entry-rate selections", () => {
         const db = makeDb();
         await seedRate(db, "EUR", "official", 0.8);
         const id = await transactionsRepo.create(db, DRAFT);
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 125,
             exchangeRate: 0.8,
             exchangeRateType: "official",
@@ -297,7 +298,7 @@ describe("transactionsRepo entry-rate selections", () => {
             exchangeRate: 55.5,
             exchangeRateType: "custom",
         });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 100,
             exchangeRate: 1,
             exchangeRateType: null,
@@ -308,7 +309,7 @@ describe("transactionsRepo entry-rate selections", () => {
         const db = makeDb();
         await seedRate(db, "EUR", "official", 0.9);
         const id = await transactionsRepo.create(db, { ...DRAFT, exchangeRate: 0.8, exchangeRateType: "official" });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 125,
             exchangeRate: 0.8,
             exchangeRateType: "official",
@@ -320,7 +321,7 @@ describe("transactionsRepo entry-rate selections", () => {
         const input = { ...DRAFT, currency: "VES", exchangeRate: 55.5, exchangeRateType: "custom" } as const;
         const id = await transactionsRepo.create(db, input);
         await transactionsRepo.update(db, id, { ...input, note: "Updated" });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 1.801802,
             exchangeRate: 55.5,
             exchangeRateType: "custom",
@@ -332,7 +333,7 @@ describe("transactionsRepo entry-rate selections", () => {
         await seedRate(db, "EUR", "official", 0.8);
         const id = await transactionsRepo.create(db, DRAFT);
         await transactionsRepo.update(db, id, { ...DRAFT, exchangeRate: 0.5, exchangeRateType: "custom" });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 200,
             exchangeRate: 0.5,
             exchangeRateType: "custom",
@@ -344,7 +345,7 @@ describe("transactionsRepo entry-rate selections", () => {
         const input = { ...DRAFT, currency: "VES", exchangeRate: 50, exchangeRateType: "custom" } as const;
         const id = await transactionsRepo.create(db, input);
         await transactionsRepo.update(db, id, { ...input, exchangeRate: 40 });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 2.5,
             exchangeRate: 40,
             exchangeRateType: "custom",
@@ -356,7 +357,7 @@ describe("transactionsRepo entry-rate selections", () => {
         const input = { ...DRAFT, currency: "VES", exchangeRate: null, exchangeRateType: "custom" } as const;
         const id = await transactionsRepo.create(db, input);
         await transactionsRepo.update(db, id, { ...input, note: "Updated" });
-        expect(await frozen(db, id)).toMatchObject({
+        await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: null,
             exchangeRate: null,
             exchangeRateType: "custom",
@@ -386,7 +387,7 @@ describe("transactionsRepo.update and the replicated photo key", () => {
 
         await transactionsRepo.update(db, id, { ...DRAFT, imageUri: null });
 
-        expect(await photoColumns(db, id)).toStrictEqual({
+        await expect(photoColumns(db, id)).resolves.toStrictEqual({
             imageKey: null,
             imageUri: null,
         });
@@ -579,12 +580,12 @@ describe("restoring a tombstoned transaction", () => {
     });
 
     it("puts the entry back in every read that hides tombstones", async () => {
-        expect(await ledgerSizeQuery(db)).toStrictEqual([]);
+        await expect(ledgerSizeQuery(db)).resolves.toStrictEqual([]);
 
         await transactionsRepo.restore(db, id, RESTORED_AT);
 
         expect((await ledgerSizeQuery(db)).map((row) => row.id)).toStrictEqual([id]);
-        expect(await logWindowDaysQuery(db, Date.now(), 30)).toHaveLength(1);
+        await expect(logWindowDaysQuery(db, Date.now(), 30)).resolves.toHaveLength(1);
     });
 
     it("takes the entry off the deleted list it was restored from", async () => {
@@ -592,7 +593,7 @@ describe("restoring a tombstoned transaction", () => {
 
         await transactionsRepo.restore(db, id, RESTORED_AT);
 
-        expect(await deletedTransactionsQuery(db)).toStrictEqual([]);
+        await expect(deletedTransactionsQuery(db)).resolves.toStrictEqual([]);
     });
 
     it("moves updatedAt, so a peer is told the row came back", async () => {
@@ -763,7 +764,7 @@ describe("switching sync off over a ledger already logged", () => {
         await setSyncEnabled(db, false);
         const afterOff = await transactionsRepo.create(db, DRAFT);
 
-        expect(await db.select({ seq: outbox.seq }).from(outbox)).toStrictEqual([]);
+        await expect(db.select({ seq: outbox.seq }).from(outbox)).resolves.toStrictEqual([]);
         expect((await ledgerSizeQuery(db)).map((row) => row.id).sort()).toStrictEqual([kept, afterOff].sort());
         expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual([tombstoned]);
     });
@@ -785,14 +786,14 @@ describe("the account an entry is attached to", () => {
             accountId: "acc-1",
         });
 
-        expect(await attachedTo(db, id)).toBe("acc-1");
+        await expect(attachedTo(db, id)).resolves.toBe("acc-1");
     });
 
     it("leaves the row detached when the input names no account", async () => {
         const db = makeDb();
         const id = await transactionsRepo.create(db, DRAFT);
 
-        expect(await attachedTo(db, id)).toBeNull();
+        await expect(attachedTo(db, id)).resolves.toBeNull();
     });
 
     it("moves the attachment when an edit names another account", async () => {
@@ -804,7 +805,7 @@ describe("the account an entry is attached to", () => {
 
         await transactionsRepo.update(db, id, { ...DRAFT, accountId: "acc-2" });
 
-        expect(await attachedTo(db, id)).toBe("acc-2");
+        await expect(attachedTo(db, id)).resolves.toBe("acc-2");
     });
 
     it("detaches on an explicit null", async () => {
@@ -816,7 +817,7 @@ describe("the account an entry is attached to", () => {
 
         await transactionsRepo.update(db, id, { ...DRAFT, accountId: null });
 
-        expect(await attachedTo(db, id)).toBeNull();
+        await expect(attachedTo(db, id)).resolves.toBeNull();
     });
 
     // The CSV import and the App Intent queue build their inputs without the
@@ -831,7 +832,7 @@ describe("the account an entry is attached to", () => {
 
         await transactionsRepo.update(db, id, { ...DRAFT, note: "Renamed" });
 
-        expect(await attachedTo(db, id)).toBe("acc-1");
+        await expect(attachedTo(db, id)).resolves.toBe("acc-1");
     });
 });
 

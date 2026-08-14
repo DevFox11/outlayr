@@ -1,3 +1,5 @@
+import { describe, expect, it, jest } from "@jest/globals";
+
 import { faviconUrl, fetchMerchantImage, logoDevUrl } from "./logo-fetch";
 
 jest.mock("@/lib/logo-cache", () => ({
@@ -6,7 +8,7 @@ jest.mock("@/lib/logo-cache", () => ({
     writeCachedLogo: () => {},
 }));
 
-jest.mock("@outlayr/env/native", () => ({
+jest.mock<Partial<typeof import("@outlayr/env/native")>>("@outlayr/env/native", () => ({
     env: { EXPO_PUBLIC_LOGO_DEV_TOKEN: "pk_test" },
 }));
 
@@ -101,7 +103,7 @@ describe("fetchMerchantImage", () => {
 
     it("skips straight to the favicon when no logo.dev token is configured", async () => {
         jest.resetModules();
-        jest.doMock("@outlayr/env/native", () => ({
+        jest.doMock<Partial<typeof import("@outlayr/env/native")>>("@outlayr/env/native", () => ({
             env: { EXPO_PUBLIC_LOGO_DEV_TOKEN: undefined },
         }));
         const { fetchMerchantImage: fetchWithNoToken } = require("./logo-fetch") as typeof import("./logo-fetch");

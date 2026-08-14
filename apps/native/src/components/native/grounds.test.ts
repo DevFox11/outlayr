@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 /**
  * Both grounds these guard are painted by iOS, below the level any token reaches:
  * a SwiftUI `List` fills itself with `systemGroupedBackground` and a sheet with

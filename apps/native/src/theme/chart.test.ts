@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { axisMax, CHART_DASH, compactMagnitude, dashArray } from "./chart";
 
 describe("axisMax", () => {

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { CategoryBudgetView } from "@/data/budgets";
 
 import { budgetRingData } from "./budget-rings";
@@ -40,7 +42,7 @@ describe("budgetRingData", () => {
             budget("5", 100, 40),
         ]);
 
-        expect(result.map(({ id }) => id)).toEqual(["1", "2", "3", "4"]);
+        expect(result.map(({ id }) => id)).toStrictEqual(["1", "2", "3", "4"]);
     });
 
     it("filters non-positive targets before applying the four-ring cap", () => {
@@ -54,17 +56,17 @@ describe("budgetRingData", () => {
             budget("5", 100, 50),
         ]);
 
-        expect(result.map(({ id }) => id)).toEqual(["1", "2", "3", "4"]);
+        expect(result.map(({ id }) => id)).toStrictEqual(["1", "2", "3", "4"]);
     });
 
     it("represents zero spend as zero progress", () => {
-        expect(budgetRingData([budget("1", 250, 0)])).toEqual([
+        expect(budgetRingData([budget("1", 250, 0)])).toStrictEqual([
             expect.objectContaining({ maxValue: 250, percent: 0, value: 0 }),
         ]);
     });
 
     it("keeps the uncapped percentage for an over-budget category", () => {
-        expect(budgetRingData([budget("1", 100, 175)])[0]).toEqual(
+        expect(budgetRingData([budget("1", 100, 175)])[0]).toStrictEqual(
             expect.objectContaining({ maxValue: 100, percent: 175, value: 175 })
         );
     });

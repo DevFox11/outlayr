@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 
 import { currencyPickerRows } from "./currency-picker-rows";

@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { BUDGET_TYPE } from "./budget-math";
 import { effectiveLimit, MAX_CARRY_PERIODS, rolloverCarry } from "./budget-rollover";
 

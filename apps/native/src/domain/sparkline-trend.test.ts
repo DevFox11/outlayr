@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { sparklineSeries } from "./log-sparkline";
 import { sparklineLabelKey, sparklineTrendKey } from "./sparkline-trend";
 

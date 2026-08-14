@@ -1,28 +1,37 @@
+import { describe, expect, it, jest, test } from "@jest/globals";
+
 jest.mock("@bacons/apple-targets", () => ({
     ExtensionStorage: class {
         remove = jest.fn();
     },
 }));
 jest.mock("@react-native-async-storage/async-storage", () => ({ clear: jest.fn() }));
-jest.mock("expo-alternate-app-icons", () => ({ setAlternateAppIcon: jest.fn(), supportsAlternateIcons: true }));
+jest.mock<Partial<typeof import("expo-alternate-app-icons")>>("expo-alternate-app-icons", () => ({
+    setAlternateAppIcon: jest.fn<typeof import("expo-alternate-app-icons").setAlternateAppIcon>(),
+    supportsAlternateIcons: true,
+}));
 jest.mock("expo-core-spotlight", () => ({
     __esModule: true,
     default: { isAvailable: jest.fn(), removeAllItems: jest.fn() },
 }));
-jest.mock("expo-notifications", () => ({
-    cancelAllScheduledNotificationsAsync: jest.fn(),
-    dismissAllNotificationsAsync: jest.fn(),
-    setBadgeCountAsync: jest.fn(),
+jest.mock<Partial<typeof import("expo-notifications")>>("expo-notifications", () => ({
+    cancelAllScheduledNotificationsAsync:
+        jest.fn<typeof import("expo-notifications").cancelAllScheduledNotificationsAsync>(),
+    dismissAllNotificationsAsync: jest.fn<typeof import("expo-notifications").dismissAllNotificationsAsync>(),
+    setBadgeCountAsync: jest.fn<typeof import("expo-notifications").setBadgeCountAsync>(),
 }));
-jest.mock("expo-secure-store", () => ({
-    deleteItemAsync: jest.fn(),
-    getItem: jest.fn(),
-    getItemAsync: jest.fn(),
-    setItemAsync: jest.fn(),
+jest.mock<Partial<typeof import("expo-secure-store")>>("expo-secure-store", () => ({
+    deleteItemAsync: jest.fn<typeof import("expo-secure-store").deleteItemAsync>(),
+    getItem: jest.fn<typeof import("expo-secure-store").getItem>(),
+    getItemAsync: jest.fn<typeof import("expo-secure-store").getItemAsync>(),
+    setItemAsync: jest.fn<typeof import("expo-secure-store").setItemAsync>(),
 }));
 jest.mock("expo-sqlite", () => ({ deleteDatabaseAsync: jest.fn() }));
-jest.mock("./photo-storage", () => ({ clearStoredPhotos: jest.fn() }));
-jest.mock("./widget-bridge", () => ({ INTENT_SNAPSHOT_KEY: "intentSnapshot", PENDING_WRITES_KEY: "pendingWrites" }));
+jest.mock<Partial<typeof import("./photo-storage")>>("./photo-storage", () => ({ clearStoredPhotos: jest.fn() }));
+jest.mock<Partial<typeof import("./widget-bridge")>>("./widget-bridge", () => ({
+    INTENT_SNAPSHOT_KEY: "intentSnapshot",
+    PENDING_WRITES_KEY: "pendingWrites",
+}));
 
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 
@@ -65,8 +74,8 @@ describe("resetAllDeviceData", () => {
         const calls: string[] = [];
         const first = await resetAllDeviceData(storesWith(calls, ["credentials"]));
 
-        expect(first.failures).toEqual(["credentials"]);
-        expect(calls).toEqual(DEVICE_STORES);
+        expect(first.failures).toStrictEqual(["credentials"]);
+        expect(calls).toStrictEqual(DEVICE_STORES);
 
         const second = await retryDeviceReset(
             {
@@ -77,8 +86,8 @@ describe("resetAllDeviceData", () => {
             },
             first.failures
         );
-        expect(second.failures).toEqual([]);
-        expect(calls).toEqual([...DEVICE_STORES, "credentials", "clear-marker"]);
+        expect(second.failures).toStrictEqual([]);
+        expect(calls).toStrictEqual([...DEVICE_STORES, "credentials", "clear-marker"]);
     });
 });
 
@@ -102,7 +111,7 @@ test("reset-marker-resumes-after-crash and clears the marker last", async () => 
         },
     });
 
-    expect(calls).toEqual(["cloud", "marker-device", ...DEVICE_STORES, "clear-marker"]);
+    expect(calls).toStrictEqual(["cloud", "marker-device", ...DEVICE_STORES, "clear-marker"]);
     expect(marker).toBeNull();
 });
 
@@ -126,9 +135,9 @@ test("persists the marker before cloud cleanup and never clears it when a store 
         },
     });
 
-    expect(result.failures).toEqual(["credentials"]);
-    expect(calls).toEqual(["marker-cloud", "cloud", "marker-device", ...DEVICE_STORES]);
-    expect(marker).toEqual({ phase: "device", v: 1 });
+    expect(result.failures).toStrictEqual(["credentials"]);
+    expect(calls).toStrictEqual(["marker-cloud", "cloud", "marker-device", ...DEVICE_STORES]);
+    expect(marker).toStrictEqual({ phase: "device", v: 1 });
 });
 
 test("does not clean device stores when cloud completion fails", async () => {
@@ -150,17 +159,17 @@ test("does not clean device stores when cloud completion fails", async () => {
             },
         })
     ).rejects.toThrow("cloud unavailable");
-    expect(calls).toEqual(["cloud"]);
-    expect(marker).toEqual({ phase: "cloud", v: 1 });
+    expect(calls).toStrictEqual(["cloud"]);
+    expect(marker).toStrictEqual({ phase: "cloud", v: 1 });
 });
 
 test("persists and validates the SecureStore reset marker", async () => {
-    const getMarker = getItemAsync as jest.MockedFunction<typeof getItemAsync>;
-    const writeMarker = setItemAsync as jest.MockedFunction<typeof setItemAsync>;
-    const eraseMarker = deleteItemAsync as jest.MockedFunction<typeof deleteItemAsync>;
+    const getMarker = jest.mocked(getItemAsync);
+    const writeMarker = jest.mocked(setItemAsync);
+    const eraseMarker = jest.mocked(deleteItemAsync);
     getMarker.mockResolvedValue(JSON.stringify({ phase: "device", v: 1 }));
 
-    expect(await readDeviceResetMarker()).toEqual({ phase: "device", v: 1 });
+    await expect(readDeviceResetMarker()).resolves.toStrictEqual({ phase: "device", v: 1 });
     await writeDeviceResetMarker({ phase: "cloud", v: 1 });
     await clearDeviceResetMarker();
 

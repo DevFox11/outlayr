@@ -1,39 +1,43 @@
+import { describe, expect, it, jest } from "@jest/globals";
+import type { AppleAuthenticationCredential } from "expo-apple-authentication";
+import { CryptoDigestAlgorithm } from "expo-crypto";
+
 import { appleCredential } from "./apple-sign-in";
 
-jest.mock("expo-apple-authentication", () => ({
-    AppleAuthenticationScope: { EMAIL: "email", FULL_NAME: "full-name" },
-    signInAsync: jest.fn(),
+jest.mock<typeof import("expo-apple-authentication")>("expo-apple-authentication", () => ({
+    ...jest.requireActual<typeof import("expo-apple-authentication")>("expo-apple-authentication"),
+    signInAsync: jest.fn<typeof import("expo-apple-authentication").signInAsync>(),
 }));
 
-jest.mock("expo-crypto", () => ({
-    CryptoDigestAlgorithm: { SHA256: "SHA256" },
-    digestStringAsync: jest.fn(),
-    getRandomBytesAsync: jest.fn(),
+jest.mock<typeof import("expo-crypto")>("expo-crypto", () => ({
+    ...jest.requireActual<typeof import("expo-crypto")>("expo-crypto"),
+    digestStringAsync: jest.fn<typeof import("expo-crypto").digestStringAsync>(),
+    getRandomBytesAsync: jest.fn<typeof import("expo-crypto").getRandomBytesAsync>(),
 }));
 
-const apple = jest.requireMock("expo-apple-authentication") as { signInAsync: jest.Mock };
-const crypto = jest.requireMock("expo-crypto") as {
-    digestStringAsync: jest.Mock;
-    getRandomBytesAsync: jest.Mock;
-};
+const apple = jest.mocked(jest.requireMock<typeof import("expo-apple-authentication")>("expo-apple-authentication"));
+const crypto = jest.mocked(jest.requireMock<typeof import("expo-crypto")>("expo-crypto"));
 
 describe("apple-nonce-binds-once", () => {
     it("passes only the SHA-256 nonce to Apple while retaining raw nonce for Better Auth", async () => {
         crypto.getRandomBytesAsync.mockResolvedValue(Uint8Array.from([0, 1, 2]));
         crypto.digestStringAsync.mockResolvedValue("hashed-nonce");
-        apple.signInAsync.mockResolvedValue({
-            authorizationCode: "authorization-code",
-            identityToken: "identity-token",
-            user: "apple-subject",
-        });
+        apple.signInAsync.mockResolvedValue(
+            // SAFETY: appleCredential reads these three fields and nothing else off the credential; email, fullName, realUserStatus and state never reach it.
+            {
+                authorizationCode: "authorization-code",
+                identityToken: "identity-token",
+                user: "apple-subject",
+            } as AppleAuthenticationCredential
+        );
 
-        await expect(appleCredential()).resolves.toEqual({
+        await expect(appleCredential()).resolves.toStrictEqual({
             authorizationCode: "authorization-code",
             identityToken: "identity-token",
             nonce: "AAEC",
             providerSubject: "apple-subject",
         });
-        expect(crypto.digestStringAsync).toHaveBeenCalledWith("SHA256", "AAEC");
+        expect(crypto.digestStringAsync).toHaveBeenCalledWith(CryptoDigestAlgorithm.SHA256, "AAEC");
         expect(apple.signInAsync).toHaveBeenCalledWith(expect.objectContaining({ nonce: "hashed-nonce" }));
     });
 });

@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, waitFor } from "@testing-library/react-native";
 import { useSyncExternalStore } from "react";
 import { Text } from "react-native";
@@ -7,7 +8,7 @@ import { FreezeOnBlur } from "./freeze-on-blur";
 const mockFocus = { current: true };
 const mockFocusListeners = new Set<() => void>();
 
-jest.mock("expo-router", () => ({
+jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => ({
     useIsFocused: () => {
         const { useSyncExternalStore: subscribeToFocus } = jest.requireActual<typeof import("react")>("react");
         return subscribeToFocus(

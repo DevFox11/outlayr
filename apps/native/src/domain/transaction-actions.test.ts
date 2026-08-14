@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { EN } from "@/i18n/catalog";
 import { interpolate } from "@/i18n/translate";
 

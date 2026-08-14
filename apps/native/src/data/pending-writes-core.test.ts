@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, ne } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
 import { applyPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
@@ -70,7 +71,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const NOW = new Date("2026-03-04T09:00:00Z");
@@ -137,7 +138,7 @@ describe("applyPendingWrites", () => {
         const applied = await applyPendingWrites(db, [walletWrite("settle")], settled);
 
         expect(applied).toBe(0);
-        expect(await liveRows(db)).toHaveLength(1);
+        await expect(liveRows(db)).resolves.toHaveLength(1);
     });
 
     it("keeps the same purchase made again past the window", async () => {
@@ -147,7 +148,7 @@ describe("applyPendingWrites", () => {
         const applied = await applyPendingWrites(db, [walletWrite("noon")], later);
 
         expect(applied).toBe(1);
-        expect(await liveRows(db)).toHaveLength(2);
+        await expect(liveRows(db)).resolves.toHaveLength(2);
     });
 
     it("keeps two purchases the automation could tell apart", async () => {
@@ -156,7 +157,7 @@ describe("applyPendingWrites", () => {
         const applied = await applyPendingWrites(db, [walletWrite("b", { dedupeKey: "wallet:id:txn-99" })], NOW);
 
         expect(applied).toBe(1);
-        expect(await liveRows(db)).toHaveLength(2);
+        await expect(liveRows(db)).resolves.toHaveLength(2);
     });
 
     it("does not re-commit a replayed queue file", async () => {
@@ -166,7 +167,7 @@ describe("applyPendingWrites", () => {
         const applied = await applyPendingWrites(db, [job], NOW);
 
         expect(applied).toBe(0);
-        expect(await liveRows(db)).toHaveLength(1);
+        await expect(liveRows(db)).resolves.toHaveLength(1);
     });
 
     it("does not re-commit a replayed file whose purchase key has aged out", async () => {
@@ -177,7 +178,7 @@ describe("applyPendingWrites", () => {
         const applied = await applyPendingWrites(db, [job], late);
 
         expect(applied).toBe(0);
-        expect(await liveRows(db)).toHaveLength(1);
+        await expect(liveRows(db)).resolves.toHaveLength(1);
     });
 
     it("lets a purchase the user deleted be logged again", async () => {
@@ -191,7 +192,7 @@ describe("applyPendingWrites", () => {
         expect(applied).toBe(1);
         const live = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.deletedAt, NOW));
         expect(live).toHaveLength(1);
-        expect(await liveRows(db)).toHaveLength(2);
+        await expect(liveRows(db)).resolves.toHaveLength(2);
     });
 
     it("files a merchant where it was filed last time", async () => {
@@ -236,6 +237,6 @@ describe("applyPendingWrites", () => {
         const applied = await applyPendingWrites(db, [walletWrite("a")], NOW);
 
         expect(applied).toBe(0);
-        expect(await liveRows(db)).toHaveLength(0);
+        await expect(liveRows(db)).resolves.toHaveLength(0);
     });
 });

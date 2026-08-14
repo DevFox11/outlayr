@@ -69,11 +69,11 @@ const BASE_ARGS = {
     name: "netflix",
 };
 
-describe("suggestArgs", () => {
+describe("suggest args validation", () => {
     test("carries exactly the seven privacy-boundary fields", () => {
         // Amounts, dates, accounts, balances, and identity must never leave the
         // device — this is a threat-matrix assertion, not a shape convenience.
-        expect(Object.keys(suggestArgs).sort()).toEqual(
+        expect(Object.keys(suggestArgs).sort()).toStrictEqual(
             ["categoryTree", "groundedLookup", "income", "knowledgeOnly", "locale", "name", "regionCode"].sort()
         );
     });
@@ -83,7 +83,7 @@ describe("suggest guard ladder", () => {
     test("returns EMPTY for a signed-out caller", async () => {
         const t = convexTest(schema, modules);
 
-        await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
+        await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(EMPTY);
     });
 
     test("returns EMPTY when XAI_API_KEY is unset", async () => {
@@ -91,7 +91,9 @@ describe("suggest guard ladder", () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
-        await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
+        await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(
+            EMPTY
+        );
     });
 
     test("returns EMPTY for a name shorter than 3 trimmed characters", async () => {
@@ -104,7 +106,7 @@ describe("suggest guard ladder", () => {
                 ...BASE_ARGS,
                 name: " hi ",
             })
-        ).resolves.toEqual(EMPTY);
+        ).resolves.toStrictEqual(EMPTY);
     });
 
     test("returns EMPTY for a name longer than 64 trimmed characters", async () => {
@@ -117,7 +119,7 @@ describe("suggest guard ladder", () => {
                 ...BASE_ARGS,
                 name: "a".repeat(65),
             })
-        ).resolves.toEqual(EMPTY);
+        ).resolves.toStrictEqual(EMPTY);
     });
 
     test("returns EMPTY and never throws once the per-user bucket is exhausted", async () => {
@@ -142,7 +144,7 @@ describe("suggest guard ladder", () => {
             })
         );
 
-        await expect(asUser.action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
+        await expect(asUser.action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(EMPTY);
     });
 
     test("returns EMPTY and never throws once the global window is exhausted", async () => {
@@ -162,7 +164,9 @@ describe("suggest guard ladder", () => {
                 name === "enrichmentGlobal" ? { ok: false, retryAfter: 1000 } : { ok: true, retryAfter: undefined }
             );
 
-        await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS)).resolves.toEqual(EMPTY);
+        await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(
+            EMPTY
+        );
         expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "enrichmentGlobal");
     });
 });
@@ -248,7 +252,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
                 knowledgeOnly: true,
                 name: "totally unknown merchant xyz",
             })
-        ).resolves.toEqual(EMPTY);
+        ).resolves.toStrictEqual(EMPTY);
         expect(limitSpy).not.toHaveBeenCalled();
     });
 
@@ -261,7 +265,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
                 ...BASE_ARGS,
                 name: "totally unknown merchant xyz",
             })
-        ).resolves.toEqual(EMPTY);
+        ).resolves.toStrictEqual(EMPTY);
     });
 });
 
@@ -284,7 +288,7 @@ describe("latency/retry regression guard (task 3.13)", () => {
     });
 });
 
-describe("needsGroundedLookup", () => {
+describe(needsGroundedLookup, () => {
     test("a confident category with no domain still needs one", () => {
         expect(needsGroundedLookup({ categoryName: "Groceries", domain: null })).toBeTruthy();
     });
@@ -302,7 +306,7 @@ describe("needsGroundedLookup", () => {
     });
 });
 
-describe("maybeScheduleGrounded", () => {
+describe(maybeScheduleGrounded, () => {
     async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
         const rows = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
         return rows.filter((row) => row.name.includes("groundedLookup"));
@@ -335,7 +339,7 @@ describe("maybeScheduleGrounded", () => {
             })
         );
 
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
     test("does not schedule when the synced appMeta row is false despite a true arg", async () => {
@@ -360,7 +364,7 @@ describe("maybeScheduleGrounded", () => {
             })
         );
 
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
     test("schedules when the arg is true and no appMeta row exists", async () => {
@@ -377,7 +381,7 @@ describe("maybeScheduleGrounded", () => {
         );
 
         expect(scheduled).toBeTruthy();
-        expect(await scheduledGroundedRuns(t)).toHaveLength(1);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(1);
     });
 
     test("the scheduled args never carry categoryTree (ADR-7)", async () => {
@@ -397,7 +401,7 @@ describe("maybeScheduleGrounded", () => {
         const [row] = await scheduledGroundedRuns(t);
         const scheduledArgs = row.args[0] as Record<string, unknown>;
         expect(scheduledArgs).not.toHaveProperty("categoryTree");
-        expect(scheduledArgs).toEqual({
+        expect(scheduledArgs).toStrictEqual({
             income: false,
             key: merchantKey("Farmatodo"),
             locale: "es-VE",
@@ -424,7 +428,7 @@ describe("maybeScheduleGrounded", () => {
                 })
             )
         ).resolves.toBeFalsy();
-        expect(await scheduledGroundedRuns(t)).toHaveLength(0);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
     test("the scheduled args thread a region code through to groundedLookup.run", async () => {
@@ -456,7 +460,7 @@ describe("runSuggest sanitisation", () => {
             tags: ["  Music  ", "Streaming"],
         });
 
-        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toEqual({
+        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toStrictEqual({
             categoryName: "Streaming",
             domain: "netflix.com",
             emoji: null,
@@ -480,7 +484,7 @@ describe("runSuggest sanitisation", () => {
             categoryTree: [],
         });
 
-        expect(result.tags).toEqual(["a".repeat(24), "second", "third"]);
+        expect(result.tags).toStrictEqual(["a".repeat(24), "second", "third"]);
     });
 
     test("rejects a domain that is not a bare host.tld shape", async () => {
@@ -728,7 +732,7 @@ describe("runSuggest regionCode", () => {
     });
 });
 
-describe("sanitizeDomain", () => {
+describe(sanitizeDomain, () => {
     test("strips a leading www. so logo.dev's apex-only lookup still matches", () => {
         expect(sanitizeDomain("www.unicasa.com.ve")).toBe("unicasa.com.ve");
     });
@@ -750,7 +754,7 @@ describe("sanitizeDomain", () => {
     });
 });
 
-describe("sanitizeRegionCode", () => {
+describe(sanitizeRegionCode, () => {
     test("uppercases a valid lowercase code", () => {
         expect(sanitizeRegionCode("ve")).toBe("VE");
     });

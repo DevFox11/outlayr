@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { and, eq, isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import {
     categoriesRepo,
@@ -29,7 +30,7 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 async function liveCategories(db: Database, income: boolean): Promise<Category[]> {
@@ -66,7 +67,7 @@ describe("ensureCategoryByName", () => {
         const second = await ensureCategoryByName(db, "entertainment", false, "Tv01", "#000000");
 
         expect(second).toBe(first);
-        expect(await liveCategories(db, false)).toHaveLength(1);
+        await expect(liveCategories(db, false)).resolves.toHaveLength(1);
     });
 
     it("treats expense and income as separate namespaces", async () => {
@@ -74,8 +75,8 @@ describe("ensureCategoryByName", () => {
         const incomeId = await ensureCategoryByName(db, "Gifts", true, "GiftCard", "#E5484D");
 
         expect(expenseId).not.toBe(incomeId);
-        expect(await liveCategories(db, false)).toHaveLength(1);
-        expect(await liveCategories(db, true)).toHaveLength(1);
+        await expect(liveCategories(db, false)).resolves.toHaveLength(1);
+        await expect(liveCategories(db, true)).resolves.toHaveLength(1);
     });
 });
 

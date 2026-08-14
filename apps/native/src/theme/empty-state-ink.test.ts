@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { EMPTY_STATE_TIERS, ghostInk, MARK_CEILING } from "./empty-state-ink";
 import type { EmptyStateTier } from "./empty-state-ink";
 

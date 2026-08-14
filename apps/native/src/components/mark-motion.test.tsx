@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import type { ReactElement } from "react";
 import { StyleSheet, Text } from "react-native";
@@ -7,7 +8,7 @@ import { Arrive, Fade } from "./mark-motion";
 
 const mockStill = jest.fn(() => false);
 jest.mock("react-native-reanimated", () => {
-    const actual = jest.requireActual("react-native-reanimated");
+    const actual = jest.requireActual<typeof import("react-native-reanimated")>("react-native-reanimated");
     return { __esModule: true, ...actual, useReducedMotion: () => mockStill() };
 });
 

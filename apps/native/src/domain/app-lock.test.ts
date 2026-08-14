@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { lockFailureMessage, lockGate, lockIsUnenforceable, relocksOnPhase } from "./app-lock";
 
 describe("app lock gate", () => {

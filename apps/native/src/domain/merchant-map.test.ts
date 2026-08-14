@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { capitalizeCategoryName, SUGGESTED_CATEGORY_PRESETS } from "@/data/categories-core";
 
 import { MERCHANT_INDEX, MERCHANTS } from "./merchant-map";

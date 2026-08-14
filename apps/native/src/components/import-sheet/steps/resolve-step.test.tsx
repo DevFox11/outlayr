@@ -1,9 +1,11 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 
 import type { ImportEntry } from "@/data/transfer-core";
 import type { UseCsvImportResult } from "@/hooks/use-csv-import";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
 import { importDraftStore } from "@/lib/import-draft-store";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { askedStatus, matchedStatus, ResolveStep } from "./resolve-step";
 
@@ -28,21 +30,22 @@ function baseContext(overrides: Partial<UseCsvImportResult> = {}): UseCsvImportR
     };
 }
 
-jest.mock("@/i18n/context", () => ({
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({
-        danger: "#B5482F",
-        foreground: "#17150F",
-        income: "#2E7D32",
-        muted: "#8A8578",
-        subtle: "#B4AFA0",
-        tint: "#3366FF",
-    }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({
+            danger: "#B5482F",
+            foreground: "#17150F",
+            income: "#2E7D32",
+            muted: "#8A8578",
+            subtle: "#B4AFA0",
+            tint: "#3366FF",
+        }),
 }));
-jest.mock("@/contexts/csv-import-context", () => ({
+jest.mock<Partial<typeof import("@/contexts/csv-import-context")>>("@/contexts/csv-import-context", () => ({
     useCsvImportContext: () => mockContext,
 }));
 
@@ -217,7 +220,7 @@ describe("resolveStep", () => {
         expect(getByText("import.unavailableTitle")).toBeTruthy();
         expect(getByText("import.unavailableTimeout")).toBeTruthy();
         fireEvent.press(getByText("import.tryAgain"));
-        expect(mockRun).toHaveBeenCalled();
+        expect(mockRun).toHaveBeenCalledTimes(1);
     });
 
     it("offers no retry for a no-retry reason", async () => {

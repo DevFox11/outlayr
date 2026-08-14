@@ -1,4 +1,8 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+
+import { testAppSettings as mockTestAppSettings } from "@/contexts/test-settings";
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 
 import { OnboardingGrounding } from "./grounding";
 
@@ -7,22 +11,18 @@ jest.mock("expo-router", () => ({
     useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
-}));
-
-jest.mock("@/contexts/local-data-context", () => ({
-    useDatabase: () => ({}),
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useDatabase: () => mockUnusedDatabase(),
 }));
 
 const mockSetBoolSetting = jest.fn((..._args: unknown[]) => Promise.resolve());
-jest.mock("@/data/settings-core", () => ({
+jest.mock<Partial<typeof import("@/data/settings-core")>>("@/data/settings-core", () => ({
     setBoolSetting: (...args: unknown[]) => mockSetBoolSetting(...args),
 }));
 
-const mockBool = jest.fn();
+const mockBool = jest.fn<(key: import("@/data/settings-core").BoolSettingKey) => boolean>();
 jest.mock("@/contexts/display-settings-context", () => ({
-    useAppSettings: () => ({ state: { bool: mockBool } }),
+    useAppSettings: () => mockTestAppSettings({ bool: mockBool }),
 }));
 
 beforeEach(() => {

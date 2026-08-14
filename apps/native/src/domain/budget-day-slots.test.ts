@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import type { ExpenseContribution } from "@/data/budget-spent";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";

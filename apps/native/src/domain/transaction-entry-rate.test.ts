@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { isTransactionRateNeeded, transactionRateError, transactionRateOptions } from "./transaction-entry-rate";
 
 describe("transaction entry rate policy", () => {

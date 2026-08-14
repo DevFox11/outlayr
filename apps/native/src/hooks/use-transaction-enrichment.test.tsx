@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
 import { clearEnrichmentCache, getCachedEnrichment } from "@/domain/enrichment-cache";
@@ -35,7 +36,7 @@ interface DeferredCall {
 }
 
 function deferredTransport(): {
-    fn: EnrichmentFn & jest.Mock;
+    fn: jest.Mock<EnrichmentFn>;
     calls: DeferredCall[];
 } {
     const calls: DeferredCall[] = [];
@@ -47,7 +48,7 @@ function deferredTransport(): {
                     settle: (value) => resolve(value as RemoteEnrichmentResult),
                 });
             })
-    ) as EnrichmentFn & jest.Mock;
+    );
     return { calls, fn };
 }
 

@@ -1,7 +1,11 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 
+import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { TransactionWithCategory } from "@/data/transactions";
+import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 import type { CurrencyCell } from "@/domain/currency-totals";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountDetail } from "./detail";
 
@@ -57,23 +61,16 @@ jest.mock("@legendapp/list/section-list", () => {
 });
 
 // uniwind resolves the theme variables through the native runtime, which jest has none of.
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => new Proxy({}, { get: () => "#17150f" }),
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors(),
 }));
 
-jest.mock("@/i18n/context", () => ({
-    useLanguage: () => ({ language: "en" }),
-    useTranslation: () => (key: string) => key,
+jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
+    useDatabase: () => mockUnusedDatabase(),
 }));
 
-jest.mock("@/contexts/local-data-context", () => ({
-    useDatabase: () => ({}),
-}));
-
-jest.mock("@/contexts/display-settings-context", () => ({
-    useDisplaySettings: () => ({
-        state: { showCents: true, swapTimeLabel: false, use24Hour: false },
-    }),
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
+    useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true, swapTimeLabel: false, use24Hour: false }),
     useSettingBool: () => false,
 }));
 

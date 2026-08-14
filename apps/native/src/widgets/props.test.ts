@@ -1,8 +1,9 @@
+import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { SpendDb } from "@/data/budget-spent";
 import { appMeta, budgets, categories, mainBudget, transactions } from "@/db/schema";
+import { testSpendDb } from "@/db/test-database";
 
 import { buildWidgetProps } from "./props";
 
@@ -96,7 +97,7 @@ function makeDb(): SpendDb {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as SpendDb;
+    return testSpendDb(sqlite);
 }
 
 const NOW = new Date(Date.UTC(2026, 6, 28, 12));

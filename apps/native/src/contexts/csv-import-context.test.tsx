@@ -1,23 +1,26 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Component } from "react";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
 
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
+import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import type { Database } from "@/db/client";
+import { testDatabase } from "@/db/test-database";
 import { importDraftStore } from "@/lib/import-draft-store";
 
 import { CsvImportProvider, useCsvImportContext } from "./csv-import-context";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-    require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
+    "@react-native-async-storage/async-storage",
+    () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
-jest.mock("expo-sqlite", () => ({
+jest.mock<Partial<typeof import("expo-sqlite")>>("expo-sqlite", () => ({
     addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
 
@@ -34,14 +37,14 @@ function migratedDb(): Database {
             }
         }
     }
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const dbHolder: { current: Database | null } = { current: null };
 
 jest.mock("@/contexts/local-data-context", () => ({
     useDatabase: () => dbHolder.current,
-    useLocalData: () => ({ db: dbHolder.current }),
+    useLocalData: () => mockTestLocalData({ db: dbHolder.current }),
 }));
 
 beforeEach(() => {

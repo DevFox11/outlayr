@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { describe, expect, it } from "@jest/globals";
+
 // The import flow is one BottomSheetModal presented over the Log — never an
 // expo-router route. These structural checks pin that architecture: a stray
 // app/import route would re-grow the nested-navigator sheet this replaced.

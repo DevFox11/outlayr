@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { merchantKey, resolveMerchant } from "./merchant-resolver";
 
 describe("normalizing a raw name into a matching key", () => {

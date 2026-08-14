@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { ADOPTION_CHOICES, adoptionActions, adoptionPlan, choiceActions, isDestructiveChoice } from "./ledger-adoption";
 
 describe("adoption plan", () => {

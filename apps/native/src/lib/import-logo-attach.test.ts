@@ -1,8 +1,10 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
 import type { ImportEntry } from "@/data/transfer-core";
 
 import { attachImportLogos } from "./import-logo-attach";
 
-jest.mock("@/domain/import-review-identity", () => ({
+jest.mock<Partial<typeof import("@/domain/import-review-identity")>>("@/domain/import-review-identity", () => ({
     reviewEntryIdentity: (note: string) => ({
         displayName: note,
         domain: note.toLowerCase().startsWith("spotify") ? "spotify.com" : null,
@@ -17,11 +19,11 @@ jest.mock("@/lib/logo-cache", () => ({
 }));
 
 const mockPersist = jest.fn(async (_bytes: Uint8Array) => "file:///documents/logo-1.png");
-jest.mock("@/lib/photo-storage", () => ({
+jest.mock<Partial<typeof import("@/lib/photo-storage")>>("@/lib/photo-storage", () => ({
     persistLogoBytes: (bytes: Uint8Array) => mockPersist(bytes),
 }));
 
-jest.mock("@/theme/glow", () => ({
+jest.mock<Partial<typeof import("@/theme/glow")>>("@/theme/glow", () => ({
     glowFromImage: jest.fn(async () => ["#1DB954"]),
 }));
 

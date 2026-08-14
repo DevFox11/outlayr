@@ -1,9 +1,10 @@
+import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { Text } from "react-native";
 
 import { AuthSessionProvider, sessionView, useAuthSession } from "./auth-session";
 
-jest.mock("@/lib/auth-client", () => ({ authClient: null }));
+jest.mock<Partial<typeof import("@/lib/auth-client")>>("@/lib/auth-client", () => ({ authClient: null }));
 
 function Probe() {
     const session = useAuthSession();
@@ -12,7 +13,7 @@ function Probe() {
 
 describe("useAuthSession", () => {
     it("apple-session-quarantined-until-grant-stored", () => {
-        expect(sessionView({ user: { id: "provisional-user" } }, false, true)).toEqual({
+        expect(sessionView({ user: { id: "provisional-user" } }, false, true)).toStrictEqual({
             accountId: null,
             gate: "restoring",
         });

@@ -1,9 +1,11 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
+import { describe, expect, it, jest } from "@jest/globals";
 import { act, render } from "@testing-library/react-native";
 import { createRef } from "react";
 
 import type { Account } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountPickerSheet } from "./account-picker-sheet";
 
@@ -12,13 +14,11 @@ const ACCOUNTS = [
     { currency: "VES", id: "b", name: "Efectivo" },
 ] as Account[];
 
-jest.mock("@/i18n/context", () => ({
-    useTranslation: () => (key: string) => key,
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () =>
+        mockTestColors({ foreground: "#17150F", muted: "#8A8578", surfaceSecondary: "#F7F5EF", tint: "#3D7A5C" }),
 }));
-jest.mock("@/theme/use-colors", () => ({
-    useColors: () => ({ foreground: "#17150F", muted: "#8A8578", surfaceSecondary: "#F7F5EF", tint: "#3D7A5C" }),
-}));
-jest.mock("@/data/accounts", () => ({ useAccounts: () => ACCOUNTS }));
+jest.mock<Partial<typeof import("@/data/accounts")>>("@/data/accounts", () => ({ useAccounts: () => ACCOUNTS }));
 
 const db = {} as Database;
 

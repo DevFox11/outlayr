@@ -1,3 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
+
 import { guessMapping } from "@/data/transfer-core";
 
 import { resolveImportMapping } from "./import-mapping";

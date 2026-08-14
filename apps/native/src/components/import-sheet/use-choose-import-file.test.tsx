@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 
@@ -6,13 +7,13 @@ import { importDraftStore } from "@/lib/import-draft-store";
 
 import { useChooseImportFile } from "./use-choose-import-file";
 
-const mockPickCsvFile = jest.fn();
+const mockPickCsvFile = jest.fn<typeof import("@/lib/data-transfer").pickCsvFile>();
 
 jest.mock("@/lib/data-transfer", () => {
-    const actual = jest.requireActual("@/lib/data-transfer");
+    const actual = jest.requireActual<typeof import("@/lib/data-transfer")>("@/lib/data-transfer");
     return {
         ...actual,
-        pickCsvFile: (...args: unknown[]) => mockPickCsvFile(...args),
+        pickCsvFile: (...args: Parameters<typeof mockPickCsvFile>) => mockPickCsvFile(...args),
     };
 });
 

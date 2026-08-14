@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import { getIntlayer } from "intlayer";
 
 import { CATALOGS, DICTIONARY_KEYS, EN, ES } from "./catalog";

@@ -1,9 +1,10 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { testDatabase } from "@/db/test-database";
 
 import { useAccountCells } from "./accounts";
 import { accountsCellQuery, toCurrencyCell } from "./cell-query";
@@ -44,7 +45,7 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return drizzle(sqlite) as unknown as Database;
+    return testDatabase(sqlite);
 }
 
 const JUNE_1 = new Date("2026-06-01T12:00:00.000Z");
@@ -116,10 +117,10 @@ describe("accountsCellQuery", () => {
 });
 
 jest.mock("./live-query", () => ({
-    useLiveQuery: jest.fn(),
+    useLiveQuery: jest.fn<typeof import("./live-query").useLiveQuery>(),
 }));
 
-const mockUseLiveQuery = jest.requireMock("./live-query").useLiveQuery as jest.Mock;
+const mockUseLiveQuery = jest.mocked(jest.requireMock<typeof import("./live-query")>("./live-query").useLiveQuery);
 
 function liveRow(overrides: Partial<CellRow> = {}): CellRow {
     return {
