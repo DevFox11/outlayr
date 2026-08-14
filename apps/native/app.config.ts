@@ -236,9 +236,12 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			"expo-splash-screen",
 			{
-				backgroundColor: "#ffffff",
+				// `--background` in each theme. The splash hands off to the first
+				// screen without a crossfade, so a value that is merely close shows up
+				// as a flash at the handoff rather than as a slightly wrong grey.
+				backgroundColor: "#f2f0ea",
 				dark: {
-					backgroundColor: "#060a07",
+					backgroundColor: "#17150f",
 					image: "./assets/images/splash-icon-dark.png",
 				},
 				image: "./assets/images/splash-icon.png",

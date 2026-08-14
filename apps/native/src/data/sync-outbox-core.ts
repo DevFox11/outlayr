@@ -69,9 +69,14 @@ export const SYNCED_META_KEYS = [
 	"logInsightsType",
 	"insightsTimeFrame",
 	"insightsMeasure",
+	"accentColor",
 	// Deliberately NOT here, and each for its own reason rather than by oversight:
-	// `biometricLock` and the `notification*` keys describe a permission this
-	// handset holds and another may have been refused; the `sync*` keys and
+	// `colorScheme` is what this screen should look like in this room — an OLED
+	// phone at night and a tablet in daylight want different answers, and the
+	// default already follows each device on its own. `accentColor` above it is
+	// the opposite: which colour the app *is* belongs to the person, like their
+	// currency. `biometricLock` and the `notification*` keys describe a
+	// permission this handset holds and another may have been refused; the `sync*` keys and
 	// `ledgerAdoption` describe this device's own replication identity, so
 	// replicating them would hand every device the same one; `firstLaunch`,
 	// `onboardingComplete` and `recurrenceRepaired` record what has happened on

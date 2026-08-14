@@ -80,6 +80,7 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
 						/>
 					) : null
 				}
+				tint={budget.color}
 				transactions={transactions}
 			/>
 			<Stack.Screen.Title>{budget.name}</Stack.Screen.Title>

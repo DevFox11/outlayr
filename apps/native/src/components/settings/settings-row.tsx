@@ -10,6 +10,7 @@ import { cn } from "@/components/tw";
 import { useColors } from "@/theme/use-colors";
 import type { SettingsIconName } from "./settings-icons";
 import { settingsIcon } from "./settings-icons";
+import { TintedLabel, tintedLabelAvailable } from "./tinted-label";
 
 const GLYPH = 20;
 
@@ -126,7 +127,16 @@ export function PickerRow<T extends string | number | boolean>({
 	icon: SettingsIconName;
 	title: string;
 	detail?: string;
-	options: readonly { label: string; value: T }[];
+	/**
+	 * A `swatch` renders the option through `TintedLabel`, a Glow view that
+	 * pre-paints `circle.fill` with `.alwaysOriginal` at a fixed point size.
+	 * Both halves of that matter. `UIMenu` discards SwiftUI styling, so a
+	 * `Label` + `foregroundStyle` draws five identical grey circles
+	 * (`docs/design/evidence/menu-swatch-rejected.png`); and an unpinned symbol
+	 * arrives on the closed row at menu size, because a `.menu` picker's
+	 * control *is* the selected item's label.
+	 */
+	options: readonly { label: string; swatch?: string; value: T }[];
 	value: T;
 	onChange: (value: T) => void;
 }) {
@@ -149,11 +159,17 @@ export function PickerRow<T extends string | number | boolean>({
 						}}
 						selection={String(value)}
 					>
-						{options.map((option) => (
-							<NativeText key={String(option.value)} modifiers={[tag(String(option.value))]}>
-								{option.label}
-							</NativeText>
-						))}
+						{options.map((option) => {
+							const key = String(option.value);
+							if (tintedLabelAvailable && option.swatch) {
+								return <TintedLabel color={option.swatch} key={key} modifiers={[tag(key)]} title={option.label} />;
+							}
+							return (
+								<NativeText key={key} modifiers={[tag(key)]}>
+									{option.label}
+								</NativeText>
+							);
+						})}
 					</Picker>
 				</Host>
 			</View>

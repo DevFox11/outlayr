@@ -41,6 +41,8 @@ interface BudgetDetailViewProps {
 	period: string;
 	spent: number;
 	stepper?: ReactNode;
+	/** The budget's category colour for the rail; omitted by the overall budget. */
+	tint?: string | null;
 	transactions: TransactionWithCategory[];
 }
 
@@ -62,6 +64,7 @@ export function BudgetDetailView({
 	leftPerDayAmount = null,
 	closed = false,
 	stepper = null,
+	tint = null,
 }: BudgetDetailViewProps) {
 	const t = useTranslation();
 	const db = useDatabase();
@@ -106,6 +109,7 @@ export function BudgetDetailView({
 						closed={closed}
 						note={note}
 						stepper={stepper}
+						tint={tint}
 					/>
 				}
 				ListEmptyComponent={
@@ -144,6 +148,7 @@ function BudgetSummary({
 	closed,
 	note,
 	stepper,
+	tint,
 }: {
 	period: string;
 	spent: number;
@@ -157,6 +162,7 @@ function BudgetSummary({
 	closed: boolean;
 	note: string | null;
 	stepper: ReactNode;
+	tint: string | null;
 }) {
 	const { showCents } = useDisplaySettings().state;
 	const t = useTranslation();
@@ -204,6 +210,7 @@ function BudgetSummary({
 					paceRemaining={paceRemaining}
 					paceBehind={paceBehind}
 					height={8}
+					tint={tint}
 				/>
 			</View>
 

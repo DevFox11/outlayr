@@ -13,7 +13,10 @@ import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 
 export function FloatingAddButton() {
-	const accentColor = useCSSVariable("--color-primary") as string;
+	// `--tint`, not `--color-primary`: this is the one control on the ledger that
+	// starts something rather than reporting it, and it is where the brand gets to
+	// speak. Every figure around it stays ink.
+	const accentColor = useCSSVariable("--tint") as string;
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
 	const canTransfer = useAccounts(useDatabase()).length >= 2;

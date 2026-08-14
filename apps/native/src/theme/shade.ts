@@ -37,6 +37,14 @@ const TARGET_CONTRAST = 3.5;
 type Rgb = readonly [number, number, number];
 
 /**
+ * `--background` in each theme, normalized. Restated here rather than read from
+ * `useColors` because this runs mid-bisection on a worklet-free hot path and
+ * takes no hook; `token-contrast.test.ts` is what keeps the pair honest.
+ */
+const PAPER_GROUND: Rgb = [0.949, 0.941, 0.918];
+const DARK_GROUND: Rgb = [0.09, 0.082, 0.059];
+
+/**
  * Derives a legible glyph shade from any category tint, porting Swift's
  * `CategoryTileShading.glyph`. The tint is composited over the sheet at
  * {@link TILE_WASH_OPACITY} to get the wash the glyph actually sits on, then
@@ -51,15 +59,18 @@ export function glyphShade(hex: string, isDark: boolean): string {
 		return hex;
 	}
 	const tint: Rgb = [parsed.r / 255, parsed.g / 255, parsed.b / 255];
-	const sheet: Rgb = isDark ? [0.11, 0.11, 0.12] : [0.96, 0.96, 0.96];
+	// The theme's own grounds, not the iOS greys these used to approximate: a
+	// wash composited over the wrong sheet targets a contrast the tile never
+	// actually has.
+	const sheet: Rgb = isDark ? DARK_GROUND : PAPER_GROUND;
 	const wash = mixRgb(tint, sheet, 1 - TILE_WASH_OPACITY);
 
 	if (contrastRatio(tint, wash) >= TARGET_CONTRAST) {
 		return hex;
 	}
 
-	const ink: Rgb = [0.09, 0.09, 0.1];
-	const paper: Rgb = [0.99, 0.99, 0.99];
+	const ink: Rgb = DARK_GROUND;
+	const paper: Rgb = PAPER_GROUND;
 	const anchor = contrastRatio(ink, wash) >= contrastRatio(paper, wash) ? ink : paper;
 
 	let lo = 0;

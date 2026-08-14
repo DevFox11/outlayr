@@ -26,7 +26,9 @@ function washOver(hex: string, isDark: boolean): string {
 	const v = hex.replace("#", "");
 	const int = Number.parseInt(v, 16);
 	const tint = [(int >> 16) & 255, (int >> 8) & 255, int & 255];
-	const sheet = isDark ? [28, 28, 31] : [245, 245, 245];
+	// The themes' grounds in 0–255, kept as literals so this stays an independent
+	// statement of what the tile sits on rather than a read of `shade.ts`.
+	const sheet = isDark ? [23, 21, 15] : [242, 240, 234];
 	const t = 1 - TILE_WASH_OPACITY;
 	return `#${tint
 		.map((c, i) =>

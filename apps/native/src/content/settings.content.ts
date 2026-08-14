@@ -194,6 +194,30 @@ const settings = {
 			en: "This device does not allow the app icon to be changed.",
 			es: "Este dispositivo no permite cambiar el ícono de la app.",
 		}),
+		"settings.colorScheme.dark": t({
+			en: "Dark",
+			es: "Oscuro",
+		}),
+		"settings.colorScheme.darkDetail": t({
+			en: "Always dark, whatever the device does.",
+			es: "Siempre oscuro, haga lo que haga el dispositivo.",
+		}),
+		"settings.colorScheme.light": t({
+			en: "Light",
+			es: "Claro",
+		}),
+		"settings.colorScheme.lightDetail": t({
+			en: "Always light, whatever the device does.",
+			es: "Siempre claro, haga lo que haga el dispositivo.",
+		}),
+		"settings.colorScheme.system": t({
+			en: "System",
+			es: "Sistema",
+		}),
+		"settings.colorScheme.systemDetail": t({
+			en: "Follows your device.",
+			es: "Sigue a tu dispositivo.",
+		}),
 		"settings.currency.all": t({
 			en: "All currencies",
 			es: "Todas las monedas",
@@ -698,6 +722,10 @@ const settings = {
 			en: "Categories",
 			es: "Categorías",
 		}),
+		"settings.row.colorScheme": t({
+			en: "Color Scheme",
+			es: "Esquema de color",
+		}),
 		"settings.row.currency": t({
 			en: "Currency",
 			es: "Moneda",
@@ -922,29 +950,25 @@ const settings = {
 			en: "Working…",
 			es: "Trabajando…",
 		}),
-		"settings.theme.dark": t({
-			en: "Dark",
-			es: "Oscuro",
+		"settings.theme.ochre": t({
+			en: "Ochre",
+			es: "Ocre",
 		}),
-		"settings.theme.darkDetail": t({
-			en: "Always dark, whatever the device does.",
-			es: "Siempre oscuro, haga lo que haga el dispositivo.",
+		"settings.theme.pine": t({
+			en: "Pine",
+			es: "Pino",
 		}),
-		"settings.theme.light": t({
-			en: "Light",
-			es: "Claro",
+		"settings.theme.plum": t({
+			en: "Plum",
+			es: "Ciruela",
 		}),
-		"settings.theme.lightDetail": t({
-			en: "Always light, whatever the device does.",
-			es: "Siempre claro, haga lo que haga el dispositivo.",
+		"settings.theme.prussian": t({
+			en: "Prussian",
+			es: "Azul de Prusia",
 		}),
-		"settings.theme.system": t({
-			en: "System",
-			es: "Sistema",
-		}),
-		"settings.theme.systemDetail": t({
-			en: "Follows your device.",
-			es: "Sigue a tu dispositivo.",
+		"settings.theme.vermilion": t({
+			en: "Vermilion",
+			es: "Bermellón",
 		}),
 		"settings.time.dayOfMonth": t({
 			en: "{day} of month",

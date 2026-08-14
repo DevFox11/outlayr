@@ -23,6 +23,7 @@ import m0018 from './0018_transfers.sql';
 import m0019 from './0019_drop_template_transactions.sql';
 import m0020 from './0020_account_kind.sql';
 import m0021 from './0021_savings_goals.sql';
+import m0022 from './0022_accent_color_synced.sql';
 
   export default {
     journal,
@@ -48,7 +49,8 @@ m0017,
 m0018,
 m0019,
 m0020,
-m0021
+m0021,
+m0022
     }
   }
   

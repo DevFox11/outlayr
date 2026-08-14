@@ -57,6 +57,15 @@ export type NumberSettingKey =
 	| "insightsTimeFrame"
 	// Which figure the Insights hero leads with: 1 = spent, 2 = income, 3 = net.
 	| "insightsMeasure"
+	// Which accent the app speaks in; indexes `ACCENTS`. Its own setting rather
+	// than a theme: light/dark is what the ground does and this is what the
+	// chrome does, and the two are chosen independently.
+	| "accentColor"
+	// Light, dark, or follow the device; indexes `THEME_OPTIONS`. Numeric because
+	// this record admits booleans and numbers alone, and uniwind holds the
+	// resolved theme in memory only — without a stored value the choice lasts
+	// until the next launch.
+	| "colorScheme"
 	// Swift's `notificationOption`: 1 = morning, 2 = evening, 3 = the stored
 	// `notificationHour`/`notificationMinute`. Only read when `showNotifications`
 	// is on.
@@ -70,11 +79,13 @@ export type NumberSettingKey =
  * 2 = this week. `logInsightsType`: 1 = net. `insightsTimeFrame`: 1 = week.
  */
 export const SETTING_DEFAULTS = {
+	accentColor: 0,
 	aiEnrichment: true,
 	animatedCharts: true,
 	biometricLock: false,
 	budgetViewStyle: true,
 	categorySuggestions: true,
+	colorScheme: 0,
 	confetti: false,
 	firstDayOfMonth: 1,
 	firstWeekday: 1,

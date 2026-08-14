@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { ACCENTS, DEFAULT_ACCENT } from "@/domain/accent";
 import { AA_LARGE_CONTRAST, AA_TEXT_CONTRAST, contrastRatio, relativeLuminance } from "./token-contrast";
 
 const nativeRoot = join(import.meta.dirname, "../..");
@@ -107,19 +108,17 @@ const WHITE_TEXT_SITES = [
 ] as const;
 
 /**
- * Measured AA failures held open deliberately. Dark `--surface` (#3a3a3c) is by
- * far the lightest ground either theme declares — 3.6x the luminance of dark
- * `--surface-secondary` — and all four tokens below are iOS system colours in
- * dark: clearing 4.5:1 against it means replacing systemBlue and systemRed with
- * pastels, a design change this guard does not own. The two assertions on this
- * list keep the debt bounded and keep the list from outliving its cause.
+ * Measured AA failures held open deliberately. Empty, and the machinery is kept
+ * for the next time it is not.
+ *
+ * It held four pairs until the paper theme landed: dark `--surface` was #3a3a3c,
+ * an iOS elevated grey 3.6x the luminance of every other dark plane, and
+ * `--subtle`, `--tint`, `--danger` and `--over-budget` were iOS system colours
+ * that could not clear 4.5:1 against it without being replaced by pastels. The
+ * warm dark face re-derived that ground to #2a251b, which is the design change
+ * this guard said it did not own, and all four now pass on their own.
  */
-const EXEMPT_PAIRS: readonly { theme: Theme; token: string; ground: string }[] = [
-	{ ground: "surface", theme: "dark", token: "subtle" },
-	{ ground: "surface", theme: "dark", token: "tint" },
-	{ ground: "surface", theme: "dark", token: "danger" },
-	{ ground: "surface", theme: "dark", token: "over-budget" },
-];
+const EXEMPT_PAIRS: readonly { theme: Theme; token: string; ground: string }[] = [];
 
 const EXEMPT = new Set(EXEMPT_PAIRS.map((pair) => pairKey(pair.theme, pair.token, pair.ground)));
 
@@ -411,5 +410,41 @@ describe("tokens classified as fills", () => {
 		for (const token of NON_TEXT_TOKENS) {
 			expect(!written.has(token)).toBeTruthy();
 		}
+	});
+});
+
+/**
+ * `--tint` is the one token a user can change, so the stylesheet's own value is
+ * only the default. Every accent has to clear the same floor the declared one
+ * does, against every ground its theme paints — otherwise the picker is a list
+ * of options, one of which is unreadable.
+ */
+describe("every accent a user can pick", () => {
+	for (const theme of THEMES) {
+		it(`holds ${AA_TEXT_CONTRAST}:1 on every ${theme} ground`, () => {
+			const failures: string[] = [];
+			for (const accent of ACCENTS) {
+				for (const ground of GROUNDS) {
+					const ratio = contrastRatio(accent[theme], tokenValue(theme, ground));
+					if (ratio < AA_TEXT_CONTRAST) {
+						failures.push(`${theme}: ${accent.key} on --${ground} = ${ratio.toFixed(2)}:1`);
+					}
+				}
+			}
+			expect(failures).toStrictEqual([]);
+		});
+	}
+
+	// The declared `--tint` is what an untouched install paints, so the two must
+	// not drift: a default changed in one place and not the other would ship an
+	// app whose first screen disagrees with its own settings row.
+	it("leads with the value the stylesheet declares", () => {
+		for (const theme of THEMES) {
+			expect(DEFAULT_ACCENT[theme]).toBe(tokenValue(theme, "tint"));
+		}
+	});
+
+	it("carries a stable stored value for each accent", () => {
+		expect(ACCENTS.map((accent) => accent.value)).toStrictEqual([...ACCENTS.keys()]);
 	});
 });

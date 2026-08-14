@@ -14,38 +14,49 @@
 @layer theme {
 	:root {
 		@variant light {
-			--background: #ffffff;
-			--foreground: #010101;
-			--muted: #6d6d6d;
-			--subtle: #6c6c78;
+			/* Paper and ink, verbatim from the app icon's light face. The ground is
+			   the darkest plane the light theme paints: on paper a raised surface
+			   floats *lighter*, which inverts the iOS grey ladder on purpose. Every
+			   pairing below is proven by `src/theme/token-contrast.test.ts`. */
+			--background: #f2f0ea;
+			--foreground: #17150f;
+			--muted: #6b6557;
+			--subtle: #6d6657;
 
-			--surface: #f6f6f6;
-			--surface-foreground: #010101;
-			--surface-secondary: #f0f0f0;
-			--surface-secondary-foreground: #010101;
+			--surface: #f8f6f1;
+			--surface-foreground: #17150f;
+			/* The one plane that goes darker than paper, and only as far as the
+			   vermilion can still be read on it — 4.5:1 lands at luminance 0.8215,
+			   and this sits at 0.8403. */
+			--surface-secondary: #efece4;
+			--surface-secondary-foreground: #17150f;
 
-			--border: #d2d6db;
-			--separator: #d2d6db;
+			--border: #dcd8cc;
+			--separator: #dcd8cc;
 
-			/* Hex mirror of iOS `systemGroupedBackground`. The OS owns the real
-			   value, but `PlatformColor` returns an opaque object that cannot be
-			   interpolated, so gradient stops and `withAlpha` need a parseable hex.
-			   Solid fills should prefer `SYSTEM_COLORS.groupedBackground`. */
-			--grouped-background: #f2f2f7;
+			/* Was a hex mirror of iOS `systemGroupedBackground`. A grouped list on
+			   paper takes the paper itself and lets its cells float lighter on
+			   `--surface`, so this is no longer a separate grey. It stays a
+			   parseable hex because gradient stops and `withAlpha` cannot consume
+			   the opaque object `PlatformColor` returns. */
+			--grouped-background: #f2f0ea;
 
-			--accent: #010101;
-			--accent-foreground: #ffffff;
+			--accent: #17150f;
+			--accent-foreground: #f2f0ea;
 			/* The brand's own vermilion, not Apple's blue. A like-for-like exchange
 			   by weight — OKLCH L 0.543/C 0.180 against the blue's L 0.542/C 0.196 —
 			   so nothing that reads as interactive changes in prominence, only in
-			   whose colour it is. It also measures better on white: 5.45:1 vs 5.15:1.
-			   Matches `--fr-vermilion`, which had it fenced into the first-run screen. */
+			   whose colour it is. Matches `--fr-vermilion`, which had it fenced into
+			   the first-run screen. It is also the default of a choice now: see
+			   `domain/accent.ts`, which writes this same value at boot. */
 			--tint: #c2371b;
 
-			--income: #027d51;
-			--expense: #010101;
-			--transfer: #33689e;
-			--future: #6d6d6d;
+			/* Re-fitted for paper. The old #027d51 was chosen against white and
+			   falls to 4.54:1 here, which leaves nothing for the inset plane. */
+			--income: #00714a;
+			--expense: #17150f;
+			--transfer: #4187ba;
+			--future: #6b6557;
 
 			/* The favourite swipe pill, which writes literal white over it. Same value
 			   in both themes for the reason `--danger-fill` is: white is the text in
@@ -53,8 +64,10 @@
 			   stops clearing 4.5:1. */
 			--gold-fill: #8a6a14;
 
-			--danger: #da0f01;
-			--over-budget: #d61d1f;
+			/* Both re-fitted for paper alongside `--income`; the old values were
+			   picked against white and do not clear the inset plane here. */
+			--danger: #c01005;
+			--over-budget: #bd1c1e;
 
 			/* The destructive swipe pill, which writes literal white over it. It
 			   cannot be `--danger`: in dark that token has to stay light enough to
@@ -68,7 +81,7 @@
 			   moment a `text-warning` appears and makes that untrue. */
 			--warning: #fdcc41;
 
-			--chip: #1c1c1e;
+			--chip: #201d15;
 
 			/* The budget rail's washes. Declared outright rather than written as
 			   `bg-over-budget/22`: Tailwind compiles that modifier to
@@ -77,49 +90,60 @@
 			   with other units". They are literals rather than the current
 			   `--over-budget`/`--muted`, which the AA fix split per theme: the rail
 			   still reads the same in both, and re-hueing it to follow the darker
-			   text colours is a visual decision this has not taken. */
-			--rail-over: rgba(241, 120, 121, 0.22);
-			--rail-track: rgba(118, 118, 118, 0.18);
+			   text colours is a visual decision this has not taken.
 
-			--color-card: #ffffff;
-			--color-card-foreground: #010101;
-			--color-popover: #ffffff;
-			--color-popover-foreground: #010101;
-			--color-overlay: #ffffff;
-			--color-overlay-foreground: #010101;
-			--color-primary: #010101;
-			--color-primary-foreground: #ffffff;
-			--color-muted-foreground: #6d6d6d;
-			--color-destructive: #da0f01;
-			--color-destructive-foreground: #da0f01;
-			--color-info: #0069de;
-			--color-info-foreground: #0069de;
-			--color-success: #027d51;
-			--color-success-foreground: #027d51;
+			   Both re-hued warm with the ground: a cool grey track is the single
+			   most visible thing left over from a white theme once the page is
+			   paper. */
+			--rail-over: rgba(189, 28, 30, 0.2);
+			--rail-track: rgba(23, 21, 15, 0.13);
+
+			--color-card: #f8f6f1;
+			--color-card-foreground: #17150f;
+			--color-popover: #f8f6f1;
+			--color-popover-foreground: #17150f;
+			--color-overlay: #f8f6f1;
+			--color-overlay-foreground: #17150f;
+			--color-primary: #17150f;
+			--color-primary-foreground: #f2f0ea;
+			--color-muted-foreground: #6b6557;
+			--color-destructive: #c01005;
+			--color-destructive-foreground: #c01005;
+			/* Informational, not the brand: `--tint` is the accent and this is the
+			   "here is a fact" blue. Taken from the category ramp so the two
+			   families cannot drift apart. */
+			--color-info: #2f6d99;
+			--color-info-foreground: #2f6d99;
+			--color-success: #00714a;
+			--color-success-foreground: #00714a;
 			--color-warning-foreground: #8a6a14;
-			--color-input: #d2d6db;
-			--color-ring: #0069de;
-			--color-surface-tertiary: #eaeaea;
-			--color-skeleton: rgba(0, 0, 0, 0.1);
-			--color-info-soft: rgba(0, 105, 222, 0.1);
-			--color-info-subtle: rgba(0, 105, 222, 0.08);
-			--color-success-soft: rgba(2, 125, 81, 0.1);
-			--color-success-subtle: rgba(2, 125, 81, 0.08);
+			--color-input: #dcd8cc;
+			--color-ring: #c2371b;
+			--color-surface-tertiary: #ebe8e0;
+			--color-skeleton: rgba(23, 21, 15, 0.09);
+			--color-info-soft: rgba(47, 109, 153, 0.1);
+			--color-info-subtle: rgba(47, 109, 153, 0.08);
+			--color-success-soft: rgba(0, 113, 74, 0.1);
+			--color-success-subtle: rgba(0, 113, 74, 0.08);
 			--color-warning-soft: rgba(253, 204, 65, 0.1);
 			--color-warning-subtle: rgba(253, 204, 65, 0.08);
-			--color-destructive-soft: rgba(218, 15, 1, 0.1);
-			--color-destructive-subtle: rgba(218, 15, 1, 0.08);
-			--color-chart-1: #010101;
-			--color-chart-2: #0069de;
-			--color-chart-3: #027d51;
-			--color-chart-4: #fdcc41;
-			--color-chart-5: #da0f01;
+			--color-destructive-soft: rgba(192, 16, 5, 0.1);
+			--color-destructive-subtle: rgba(192, 16, 5, 0.08);
+			/* Charts read as one family with the category ramp rather than as a
+			   separate set of primaries: ink leads, then ramp entries. */
+			--color-chart-1: #17150f;
+			--color-chart-2: #4187ba;
+			--color-chart-3: #499262;
+			--color-chart-4: #ac7137;
+			--color-chart-5: #b4647a;
 
-			/* First-run only: the app icon's light face, verbatim from
-			   Outlayr.icon/icon.json — paper #F2F0EA ground with ink #17150F.
-			   Measured on this ground: ink 16.02:1, muted 5.08:1, vermilion
-			   4.78:1. The vermilion speaks only in the eyebrow and never
-			   carries a value. */
+			/* No longer first-run only: the whole light theme is now the icon's
+			   light face, so these are the same paper and ink the app paints.
+			   They are kept as their own tokens because the first-run flow is the
+			   one surface that must not follow a future theme change, and because
+			   `--fr-vermilion` speaks only in the eyebrow and never carries a
+			   value — which `--tint` now does. Measured on this ground: ink
+			   16.02:1, muted 5.08:1, vermilion 4.78:1. */
 			--fr-ground: #f2f0ea;
 			--fr-ink: #17150f;
 			--fr-muted: #6b6557;
@@ -129,39 +153,46 @@
 		}
 
 		@variant dark {
-			--background: #060a07;
-			--foreground: #ffffff;
-			--muted: #a4a4a9;
-			--subtle: #8e8e93;
+			/* The icon's dark face, which is a designed warm near-black rather than
+			   an inverted paper. `--surface` used to be #3a3a3c, an iOS elevated
+			   grey 3.6x the luminance of every other dark plane, and it was the
+			   sole reason four tokens carried AA exemptions. Re-derived warm and
+			   dark, it clears the floor and the exemption list is gone. */
+			--background: #17150f;
+			--foreground: #f2efe8;
+			--muted: #a8a093;
+			--subtle: #968e80;
 
-			--surface: #3a3a3c;
-			--surface-foreground: #ffffff;
-			--surface-secondary: #1c1c1e;
-			--surface-secondary-foreground: #ffffff;
+			--surface: #2a251b;
+			--surface-foreground: #f2efe8;
+			--surface-secondary: #201d15;
+			--surface-secondary-foreground: #f2efe8;
 
-			--border: #2e2e2e;
-			--separator: #2e2e2e;
+			--border: #353026;
+			--separator: #353026;
 
 			/* See the light-mode note. */
-			--grouped-background: #000000;
+			--grouped-background: #0e0c08;
 
-			--accent: #ffffff;
-			--accent-foreground: #060a07;
-			/* See the light-mode note. `--fr-vermilion`'s own dark value (#e0552f)
-			   was tuned against the first-run ground and lands at 4.46:1 on
-			   `--surface-secondary` and 2.98:1 on `--surface` — under both floors.
-			   Same hue and saturation, lightness raised until it clears them:
-			   4.75:1 and 3.17:1. */
-			--tint: #e25d39;
+			--accent: #f2efe8;
+			--accent-foreground: #17150f;
+			/* See the light-mode note. Neither `--fr-vermilion`'s #e0552f nor the
+			   #e25d39 fitted for the old iOS-grey dark surfaces survives this
+			   ground: they read 4.00:1 and 4.25:1 on `--surface`, both under the
+			   floor. Same hue, lightness raised until it clears at 4.57:1. */
+			--tint: #ec603b;
 
-			--income: #0fffa9;
-			--expense: #ffffff;
-			--transfer: #7caedc;
-			--future: #a4a4a9;
+			/* Was #0fffa9, a neon mint inherited from no particular decision. It
+			   reads as a different product from everything around it, and on a warm
+			   ground it fluoresces; this is the same green pulled toward the face. */
+			--income: #3fd99b;
+			--expense: #f2efe8;
+			--transfer: #65b3ee;
+			--future: #a8a093;
 
 			--gold-fill: #8a6a14;
 
-			--danger: #fe473a;
+			--danger: #ff493c;
 			--over-budget: #f17879;
 
 			/* See the light-mode note. */
@@ -169,48 +200,51 @@
 
 			--warning: #fdcc41;
 
-			--chip: #2c2c2e;
+			--chip: #2a251b;
 
 			/* See the light-mode note. */
 			--rail-over: rgba(241, 120, 121, 0.22);
-			--rail-track: rgba(118, 118, 118, 0.18);
+			--rail-track: rgba(242, 239, 232, 0.14);
 
-			--color-card: #1c1c1e;
-			--color-card-foreground: #ffffff;
-			--color-popover: #2c2c2e;
-			--color-popover-foreground: #ffffff;
-			--color-overlay: #3a3a3c;
-			--color-overlay-foreground: #ffffff;
-			--color-primary: #ffffff;
-			--color-primary-foreground: #060a07;
-			--color-muted-foreground: #a4a4a9;
-			--color-destructive: #fe473a;
-			--color-destructive-foreground: #fe473a;
-			--color-info: #0a84ff;
-			--color-info-foreground: #0a84ff;
-			--color-success: #0fffa9;
-			--color-success-foreground: #0fffa9;
+			--color-card: #201d15;
+			--color-card-foreground: #f2efe8;
+			--color-popover: #2a251b;
+			--color-popover-foreground: #f2efe8;
+			--color-overlay: #2a251b;
+			--color-overlay-foreground: #f2efe8;
+			--color-primary: #f2efe8;
+			--color-primary-foreground: #17150f;
+			--color-muted-foreground: #a8a093;
+			--color-destructive: #ff493c;
+			--color-destructive-foreground: #ff493c;
+			/* See the light-mode note on `--color-info`. */
+			--color-info: #7bb4dd;
+			--color-info-foreground: #7bb4dd;
+			--color-success: #3fd99b;
+			--color-success-foreground: #3fd99b;
 			--color-warning-foreground: #fdcc41;
-			--color-input: #2e2e2e;
-			--color-ring: #0a84ff;
-			--color-surface-tertiary: #2c2c2e;
-			--color-skeleton: rgba(255, 255, 255, 0.13);
-			--color-info-soft: rgba(10, 132, 255, 0.06);
-			--color-info-subtle: rgba(10, 132, 255, 0.16);
-			--color-success-soft: rgba(15, 255, 169, 0.06);
-			--color-success-subtle: rgba(15, 255, 169, 0.16);
+			--color-input: #353026;
+			--color-ring: #ec603b;
+			--color-surface-tertiary: #2a251b;
+			--color-skeleton: rgba(242, 239, 232, 0.11);
+			--color-info-soft: rgba(123, 180, 221, 0.06);
+			--color-info-subtle: rgba(123, 180, 221, 0.16);
+			--color-success-soft: rgba(63, 217, 155, 0.06);
+			--color-success-subtle: rgba(63, 217, 155, 0.16);
 			--color-warning-soft: rgba(253, 204, 65, 0.06);
 			--color-warning-subtle: rgba(253, 204, 65, 0.16);
-			--color-destructive-soft: rgba(254, 71, 58, 0.06);
-			--color-destructive-subtle: rgba(254, 71, 58, 0.16);
-			--color-chart-1: #ffffff;
-			--color-chart-2: #0a84ff;
-			--color-chart-3: #0fffa9;
-			--color-chart-4: #fdcc41;
-			--color-chart-5: #fe473a;
+			--color-destructive-soft: rgba(255, 73, 60, 0.06);
+			--color-destructive-subtle: rgba(255, 73, 60, 0.16);
+			/* See the light-mode note; these are the ramp's dark face. */
+			--color-chart-1: #f2efe8;
+			--color-chart-2: #65b3ee;
+			--color-chart-3: #6dc088;
+			--color-chart-4: #de9a59;
+			--color-chart-5: #e78ba4;
 
-			/* First-run only: the icon's dark face — a warmer ground than the
-			   app's `--background`, designed rather than inverted. Measured on
+			/* The icon's dark face. No longer "a warmer ground than the app's
+			   `--background`" — the app's ground is now this same value; the set
+			   stays separate for the reason given on the light face. Measured on
 			   #17150F: ink 15.89:1, muted 7.05:1, vermilion 4.79:1 (mirroring
 			   the light face's 4.78:1 by construction). */
 			--fr-ground: #17150f;

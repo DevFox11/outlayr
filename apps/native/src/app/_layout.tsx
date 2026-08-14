@@ -32,6 +32,8 @@ import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
 import { ACCOUNT_DETENT, identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
+import { useAccent } from "@/theme/use-accent";
+import { useApplyThemePreference } from "@/theme/use-theme-preference";
 
 preventAutoHideAsync();
 
@@ -88,6 +90,10 @@ function ActivatedCloudRuntime({ children }: { children: ReactNode }) {
 
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 	const { status } = useLocalData();
+	// Above the splash gate on purpose: the accent has to be written into both
+	// themes before the first screen paints, not after it.
+	useAccent();
+	useApplyThemePreference();
 	const { theme } = useTheme();
 	const isDark = theme === "dark";
 	const colorScheme = useColorScheme();

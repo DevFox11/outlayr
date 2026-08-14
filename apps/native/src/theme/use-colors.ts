@@ -1,22 +1,14 @@
 import { useMemo } from "react";
-import { PlatformColor } from "react-native";
 import { useCSSVariable } from "uniwind";
 
-/**
- * iOS system semantic colors (via `PlatformColor`) for grouped-form surfaces.
- * They resolve at the OS level, so they track light/dark on their own. These are
- * opaque `ColorValue` objects — they can't be passed to `withAlpha`, which
- * expects a hex string. uniwind 1.10 has no `platformColor()` CSS function, so
- * these cannot move into `global.css`.
+/*
+ * There used to be a `SYSTEM_COLORS` export here: `systemGroupedBackground` and
+ * `secondarySystemGroupedBackground` via `PlatformColor`, used as the grounds of
+ * the three grouped-form screens. The OS resolves those to its own greys, which
+ * was invisible while the app's own ground was #ffffff and is the loudest thing
+ * on the screen now that it is paper. They are `--grouped-background` and
+ * `--surface` instead, which the same screens' siblings already read.
  */
-export const SYSTEM_COLORS = {
-	/** A grouped cell or section — sits one step lighter on `groupedBackground`. */
-	card: PlatformColor("secondarySystemGroupedBackground"),
-	/** Grouped-list base — the sheet/screen behind the cells (grey / near-black). */
-	groupedBackground: PlatformColor("systemGroupedBackground"),
-	/** System hairline between rows inside a cell. */
-	separator: PlatformColor("separator"),
-} as const;
 
 /** `global.css` is the only declaration of these — nothing here restates a value. */
 const COLOR_VARIABLES = {

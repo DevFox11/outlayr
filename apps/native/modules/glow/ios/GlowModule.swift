@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import ExpoUI
 import UIKit
 
 public class GlowModule: Module {
@@ -12,6 +13,8 @@ public class GlowModule: Module {
     AsyncFunction("fromImage") { (uri: String) -> [String] in
       GlowExtractor.colors(fromImageURI: uri)
     }
+
+    ExpoUIView(TintedLabelView.self)
   }
 }
 

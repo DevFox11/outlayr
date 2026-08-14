@@ -14,22 +14,22 @@ import { useNow } from "@/data/use-now";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
-// The ink tint barely distinguishes the selected label on its own, so the weight
-// has to carry it.
+// The weight still carries part of the selection: the tint reads clearly on the
+// icon but the label is small enough that colour alone is a weak signal.
 const LABEL_STYLE = {
 	default: { fontFamily: "SFProRounded-Regular" },
 	selected: { fontFamily: "SFProRounded-Semibold" },
 };
 
 export default function TabLayout() {
-	const { accent } = useColors();
+	const { tint } = useColors();
 	const t = useTranslation();
 	const db = useDatabase();
 	const nowMs = useNow();
 	const overBudget = useOverBudgetCount(db, nowMs);
 
 	return (
-		<NativeTabs labelStyle={LABEL_STYLE} tintColor={accent}>
+		<NativeTabs labelStyle={LABEL_STYLE} tintColor={tint}>
 			<NativeTabs.Trigger name="(transactions)">
 				<NativeTabs.Trigger.Icon renderingMode="template" src={{ default: logIcon, selected: logSelectedIcon }} />
 				<NativeTabs.Trigger.Label>{t("nav.tab.log")}</NativeTabs.Trigger.Label>

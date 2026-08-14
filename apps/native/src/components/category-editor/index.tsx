@@ -34,7 +34,7 @@ import { CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT } from "@/lib/sheet-det
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { useColors } from "@/theme/use-colors";
 import { CategoryEditorCta } from "./cta";
 import { CategoryEditorDetailsSection } from "./details-section";
 import { CategoryEditorHeroBand } from "./hero-band";
@@ -417,7 +417,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 				containerHeight.value = e.nativeEvent.layout.height;
 			}}
 			style={{
-				backgroundColor: SYSTEM_COLORS.groupedBackground,
+				backgroundColor: colors.groupedBackground,
 				flex: 1,
 			}}
 		>
@@ -503,7 +503,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 					<View
 						className="flex-row items-center gap-2 rounded-full"
 						style={{
-							backgroundColor: SYSTEM_COLORS.card,
+							backgroundColor: colors.surface,
 							borderColor: withAlpha(colors.foreground, 0.12),
 							borderWidth: 1,
 							paddingHorizontal: 16,

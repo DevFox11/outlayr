@@ -56,7 +56,6 @@ jest.mock("@legendapp/list/section-list", () => {
 
 // uniwind resolves the theme variables through the native runtime, which jest has none of.
 jest.mock("@/theme/use-colors", () => ({
-	SYSTEM_COLORS: { card: "#ffffff", groupedBackground: "#f2f0ea", separator: "#cccccc" },
 	useColors: () => new Proxy({}, { get: () => "#17150f" }),
 }));
 

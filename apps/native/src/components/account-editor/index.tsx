@@ -45,7 +45,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { useColors } from "@/theme/use-colors";
 import { AccountEditorCta } from "./cta";
 import { AccountEditorDetailsSection } from "./details-section";
 import { AccountEditorHeroBand } from "./hero-band";
@@ -307,7 +307,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 			onLayout={(e) => {
 				containerHeight.value = e.nativeEvent.layout.height;
 			}}
-			style={{ backgroundColor: SYSTEM_COLORS.groupedBackground, flex: 1 }}
+			style={{ backgroundColor: colors.groupedBackground, flex: 1 }}
 		>
 			<IdentityCurtain hues={curtainHues} />
 

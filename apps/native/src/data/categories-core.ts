@@ -11,32 +11,46 @@ export type Category = typeof categories.$inferSelect;
 
 const WHITESPACE_RUN = /\s+/;
 
-/** `Color.colorArray` in the Swift app, identical in light and dark. */
+/**
+ * The colours offered when a category is created, identical in light and dark —
+ * `glyphShade` derives the readable glyph per theme, so one stored value serves
+ * both.
+ *
+ * Twenty-four hues 15 degrees apart, all at OKLCH lightness 0.600 and chroma
+ * 0.102, anchored on the brand vermilion's hue. Uniform lightness and chroma is
+ * the whole point: this replaced `Color.colorArray` ported from the Swift app,
+ * whose 24 hues spanned 0.414–0.882 in lightness and 1.25:1–7.67:1 in contrast
+ * on paper, which is why some category tiles shouted and others vanished.
+ *
+ * Fifteen degrees is comfortably above the ~9 degree floor where two hues at
+ * this lightness stop being tellable apart, which is the same floor that spaces
+ * {@link SUGGESTED_CATEGORY_PRESETS}.
+ */
 export const CATEGORY_PALETTE = [
-	"#279AF4",
-	"#EC7A58",
-	"#A6678A",
-	"#C56AF7",
-	"#6E7BF1",
-	"#F3BF56",
-	"#ED80A2",
-	"#F6D24A",
-	"#E34D63",
-	"#61C7FA",
-	"#7014F5",
-	"#EB7068",
-	"#84B4EB",
-	"#4088AD",
-	"#B8D6FA",
-	"#C38D5D",
-	"#A0ACF9",
-	"#7CB0AA",
-	"#F6D489",
-	"#88997A",
-	"#F1AF8A",
-	"#2D4B7B",
-	"#5FAF9F",
-	"#D46D7F",
+	"#B56858",
+	"#B16C48",
+	"#AB723A",
+	"#A17830",
+	"#957E2E",
+	"#868535",
+	"#758A41",
+	"#618F51",
+	"#4B9263",
+	"#339475",
+	"#189486",
+	"#009296",
+	"#1190A5",
+	"#2C8CB0",
+	"#4487B8",
+	"#5981BD",
+	"#6C7BBD",
+	"#7D76BA",
+	"#8D71B2",
+	"#9A6CA8",
+	"#A4689A",
+	"#AD668B",
+	"#B2657A",
+	"#B56669",
 ] as const;
 
 /**
@@ -363,41 +377,41 @@ export const SUGGESTED_CATEGORY_PRESETS: {
 	readonly income: readonly SuggestedCategoryPreset[];
 } = {
 	expense: [
-		{ color: "#34C759", icon: "ShoppingCart01", name: "Groceries" },
-		{ color: "#FF8A00", icon: "Restaurant01", name: "Dining Out" },
-		{ color: "#9B6A43", icon: "Coffee02", name: "Coffee" },
-		{ color: "#0A84FF", icon: "Bus01", name: "Transport" },
-		{ color: "#E8590C", icon: "Fuel01", name: "Fuel" },
-		{ color: "#B4530E", icon: "Home01", name: "Rent" },
-		{ color: "#7E9B57", icon: "Sofa01", name: "Home" },
-		{ color: "#FFC400", icon: "Flash", name: "Utilities" },
-		{ color: "#00A7C4", icon: "Wifi01", name: "Phone & Internet" },
-		{ color: "#5E5CE6", icon: "Repeat", name: "Subscriptions" },
-		{ color: "#2FBFA4", icon: "Health", name: "Healthcare" },
-		{ color: "#FF5630", icon: "Dumbbell01", name: "Fitness" },
-		{ color: "#FF4FA3", icon: "ShoppingBag01", name: "Shopping" },
-		{ color: "#C13BF0", icon: "Dress01", name: "Fashion" },
-		{ color: "#AF52DE", icon: "FilmRoll01", name: "Entertainment" },
-		{ color: "#32ADE6", icon: "Airplane01", name: "Travel" },
-		{ color: "#3A5BD9", icon: "Mortarboard01", name: "Education" },
-		{ color: "#FF375F", icon: "Gift", name: "Gifts" },
-		{ color: "#E4A11B", icon: "Bone01", name: "Pets" },
-		{ color: "#FF7A59", icon: "Kid", name: "Family" },
-		{ color: "#D96FA8", icon: "HairDryer", name: "Personal Care" },
-		{ color: "#2C4A7C", icon: "Shield01", name: "Insurance" },
-		{ color: "#6E7787", icon: "Taxes", name: "Taxes" },
+		{ color: "#53915A", icon: "ShoppingCart01", name: "Groceries" },
+		{ color: "#A97332", icon: "Restaurant01", name: "Dining Out" },
+		{ color: "#AE703A", icon: "Coffee02", name: "Coffee" },
+		{ color: "#4D84BD", icon: "Bus01", name: "Transport" },
+		{ color: "#B46A4D", icon: "Fuel01", name: "Fuel" },
+		{ color: "#B26C43", icon: "Home01", name: "Rent" },
+		{ color: "#728B41", icon: "Sofa01", name: "Home" },
+		{ color: "#937F2B", icon: "Flash", name: "Utilities" },
+		{ color: "#0590A7", icon: "Wifi01", name: "Phone & Internet" },
+		{ color: "#7C76BC", icon: "Repeat", name: "Subscriptions" },
+		{ color: "#1D947F", icon: "Health", name: "Healthcare" },
+		{ color: "#B76662", icon: "Dumbbell01", name: "Fitness" },
+		{ color: "#B16482", icon: "ShoppingBag01", name: "Shopping" },
+		{ color: "#9B6BA8", icon: "Dress01", name: "Fashion" },
+		{ color: "#936EAF", icon: "FilmRoll01", name: "Entertainment" },
+		{ color: "#2F8AB4", icon: "Airplane01", name: "Travel" },
+		{ color: "#7179BE", icon: "Mortarboard01", name: "Education" },
+		{ color: "#B46477", icon: "Gift", name: "Gifts" },
+		{ color: "#A3772D", icon: "Bone01", name: "Pets" },
+		{ color: "#B66757", icon: "Kid", name: "Family" },
+		{ color: "#AD658C", icon: "HairDryer", name: "Personal Care" },
+		{ color: "#667DBF", icon: "Shield01", name: "Insurance" },
+		{ color: "#5A81BF", icon: "Taxes", name: "Taxes" },
 	],
 	income: [
-		{ color: "#34C759", icon: "MoneyBag01", name: "Paycheck" },
-		{ color: "#20C4B8", icon: "Laptop", name: "Freelance" },
-		{ color: "#3AA0FF", icon: "Briefcase01", name: "Part-Time" },
-		{ color: "#2E8B57", icon: "Building01", name: "Business" },
-		{ color: "#7CB342", icon: "ChartUp", name: "Investments" },
-		{ color: "#4CAF88", icon: "PercentCircle", name: "Interest" },
-		{ color: "#FFB300", icon: "Target01", name: "Bonus" },
-		{ color: "#E4A11B", icon: "Tips", name: "Tips" },
-		{ color: "#5AC8FA", icon: "Cashback", name: "Refund" },
-		{ color: "#E5484D", icon: "GiftCard", name: "Gifts" },
+		{ color: "#53915A", icon: "MoneyBag01", name: "Paycheck" },
+		{ color: "#00948A", icon: "Laptop", name: "Freelance" },
+		{ color: "#3F87B9", icon: "Briefcase01", name: "Part-Time" },
+		{ color: "#459365", icon: "Building01", name: "Business" },
+		{ color: "#668E4B", icon: "ChartUp", name: "Investments" },
+		{ color: "#359470", icon: "PercentCircle", name: "Interest" },
+		{ color: "#9C7B2A", icon: "Target01", name: "Bonus" },
+		{ color: "#A3772D", icon: "Tips", name: "Tips" },
+		{ color: "#1E8DAE", icon: "Cashback", name: "Refund" },
+		{ color: "#B6646C", icon: "GiftCard", name: "Gifts" },
 	],
 } as const;
 

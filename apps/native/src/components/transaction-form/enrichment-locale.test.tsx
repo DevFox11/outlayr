@@ -19,11 +19,6 @@ jest.mock("expo-sqlite", () => ({
 	addDatabaseChangeListener: () => ({ remove: () => {} }),
 }));
 jest.mock("@/theme/use-colors", () => ({
-	SYSTEM_COLORS: {
-		card: "#FFFFFF",
-		groupedBackground: "#EFEDE6",
-		separator: "#DAD6C9",
-	},
 	useColors: () => ({
 		accent: "#3D7A5C",
 		accentForeground: "#FFFFFF",

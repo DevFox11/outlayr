@@ -1,62 +1,61 @@
-import { fireEvent, render } from "@testing-library/react-native";
-import { Pressable, Text } from "react-native";
-import type { ThemePreference } from "./theme-preference";
-import { useThemePreference } from "./use-theme-preference";
+import { render } from "@testing-library/react-native";
+import { Text } from "react-native";
+import { THEME_OPTIONS, themePreferenceForValue, valueForThemePreference } from "./theme-preference";
+import { useApplyThemePreference } from "./use-theme-preference";
 
-const mockState = { hasAdaptiveThemes: false, theme: "light" };
 const mockSetTheme = jest.fn();
-
-jest.mock("uniwind", () => ({
-	useUniwind: () => mockState,
-}));
+const stored = { colorScheme: 0 };
 
 jest.mock("panelui-native", () => ({
-	useTheme: () => ({ setTheme: mockSetTheme, theme: mockState.theme }),
+	useTheme: () => ({ setTheme: mockSetTheme, theme: "light" }),
 }));
 
-function Probe({ press }: { press?: ThemePreference }) {
-	const { preference, setPreference } = useThemePreference();
-	return (
-		<Pressable
-			onPress={() => {
-				if (press) {
-					setPreference(press);
-				}
-			}}
-			testID="probe"
-		>
-			<Text testID="preference">{preference}</Text>
-		</Pressable>
-	);
-}
+jest.mock("@/contexts/display-settings-context", () => ({
+	useSettingNumber: (key: string) => (key === "colorScheme" ? stored.colorScheme : 0),
+}));
 
-async function mount(theme: string, hasAdaptiveThemes: boolean) {
-	mockState.theme = theme;
-	mockState.hasAdaptiveThemes = hasAdaptiveThemes;
-	return await render(<Probe press="dark" />);
+function Probe() {
+	return <Text testID="preference">{useApplyThemePreference()}</Text>;
 }
 
 beforeEach(() => {
 	mockSetTheme.mockClear();
+	stored.colorScheme = 0;
 });
 
-describe("useThemePreference", () => {
-	it("reports 'system' while Uniwind follows the device, whatever it resolved to", async () => {
-		const { getByTestId } = await mount("dark", true);
-		expect(getByTestId("preference").props.children).toBe("system");
+describe("the stored colour scheme", () => {
+	it("round-trips every option", () => {
+		for (const option of THEME_OPTIONS) {
+			expect(themePreferenceForValue(valueForThemePreference(option.preference))).toBe(option.preference);
+		}
 	});
 
-	it("reports the pinned theme once the device is no longer being followed", async () => {
-		const dark = await mount("dark", false);
-		expect(dark.getByTestId("preference").props.children).toBe("dark");
-
-		const light = await mount("light", false);
-		expect(light.getByTestId("preference").props.children).toBe("light");
+	// The value comes off disk, so a number nobody wrote must not strand the app
+	// on a theme that does not exist.
+	it("falls back to following the device for a value it does not know", () => {
+		expect(themePreferenceForValue(99)).toBe("system");
+		expect(themePreferenceForValue(-1)).toBe("system");
 	});
 
-	it("passes the chosen preference to PanelUI unchanged", async () => {
-		const { getByTestId } = await mount("light", true);
-		fireEvent.press(getByTestId("probe"));
+	// Renumbering would silently repaint every device that already stored one.
+	it("keeps system at zero, so an unwritten setting means follow the device", () => {
+		expect(valueForThemePreference("system")).toBe(0);
+	});
+});
+
+describe("useApplyThemePreference", () => {
+	it("pushes the stored scheme into uniwind", async () => {
+		stored.colorScheme = valueForThemePreference("dark");
+
+		const { getByTestId } = await render(<Probe />);
+
 		expect(mockSetTheme).toHaveBeenCalledWith("dark");
+		expect(getByTestId("preference").props.children).toBe("dark");
+	});
+
+	it("follows the device when nothing has been stored", async () => {
+		await render(<Probe />);
+
+		expect(mockSetTheme).toHaveBeenCalledWith("system");
 	});
 });

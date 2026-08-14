@@ -49,7 +49,7 @@ import { persistPickedPhoto } from "@/lib/photo-storage";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
-import { SYSTEM_COLORS, useColors } from "@/theme/use-colors";
+import { useColors } from "@/theme/use-colors";
 
 export interface IdentitySelection {
 	color: string | null;
@@ -163,6 +163,7 @@ export function IdentityPickerContent({
 	const searchResults = searching ? iconKeysMatching(query) : [];
 
 	const haptics = useHaptics();
+	const colors = useColors();
 	const effectiveColor = value.color ?? CATEGORY_PALETTE[0];
 	const glyphTint = tint ?? effectiveColor;
 
@@ -298,7 +299,7 @@ export function IdentityPickerContent({
 	}
 
 	return (
-		<VStack modifiers={[background(SYSTEM_COLORS.groupedBackground)]} spacing={0}>
+		<VStack modifiers={[background(colors.groupedBackground)]} spacing={0}>
 			<HStack modifiers={[padding({ bottom: 8, horizontal: 20, top: 16 })]}>
 				<Spacer />
 				<Button label={t("common.done")} modifiers={[font({ weight: "semibold" })]} onPress={onDone} />
@@ -501,7 +502,7 @@ function PhotoPanel({
 				</SwiftText>
 
 				<HStack
-					modifiers={[padding({ horizontal: 15, vertical: 13 }), background(SYSTEM_COLORS.card, CARD_SHAPE)]}
+					modifiers={[padding({ horizontal: 15, vertical: 13 }), background(colors.surface, CARD_SHAPE)]}
 					spacing={12}
 				>
 					<SwiftImage color={uri ? colors.income : withAlpha(colors.muted, 0.35)} size={14} systemName="checkmark" />

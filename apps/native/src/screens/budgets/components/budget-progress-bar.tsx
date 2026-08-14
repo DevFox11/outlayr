@@ -10,6 +10,13 @@ interface BudgetProgressBarProps {
 	/** Fraction of period time remaining, or null to hide the pace marker. */
 	paceRemaining?: number | null;
 	spent: number;
+	/**
+	 * The budget's category colour, drawn as the fill. Omitted by the overall
+	 * budget, which spans every category and so answers in ink. Ignored once the
+	 * budget is over: past the limit the rail is stating a verdict, not naming a
+	 * category, and that verdict is the only thing it is allowed to say.
+	 */
+	tint?: string | null;
 }
 
 const rail = tv({
@@ -33,6 +40,7 @@ export function BudgetProgressBar({
 	paceRemaining = null,
 	paceBehind = false,
 	height = 6,
+	tint = null,
 }: BudgetProgressBarProps) {
 	const { fill: pct, over } = budgetRail(spent, limit);
 	// The pace triangle reads against the limit; over budget the rail is no
@@ -51,7 +59,10 @@ export function BudgetProgressBar({
 				/>
 			) : null}
 			<View className={rail({ over })} style={{ height }}>
-				<View className={railFill({ over })} style={{ width: `${pct * 100}%` }} />
+				<View
+					className={railFill({ over })}
+					style={over || tint == null ? { width: `${pct * 100}%` } : { backgroundColor: tint, width: `${pct * 100}%` }}
+				/>
 			</View>
 		</View>
 	);

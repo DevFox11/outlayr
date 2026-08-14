@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
-import { Alert, Linking, Platform, Share } from "react-native";
+import { Alert, Linking, Platform, Share, useColorScheme } from "react-native";
 import { ImportSheet, type ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { AccountRow } from "@/components/settings/account-row";
 import { LinkRow, PickerRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
@@ -22,6 +22,7 @@ import {
 import { useSyncStatus } from "@/data/use-sync-status";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
+import { ACCENTS } from "@/domain/accent";
 import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
 import { syncStatusLabel } from "@/domain/sync-status";
@@ -35,7 +36,6 @@ import { importDraftStore } from "@/lib/import-draft-store";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { type SupportDiagnostics, supportMailto } from "@/lib/support-mailto";
 import { THEME_OPTIONS } from "@/theme/theme-preference";
-import { useThemePreference } from "@/theme/use-theme-preference";
 
 /**
  * iOS owns the per-app language, so the row is a signpost rather than a control:
@@ -78,7 +78,6 @@ function SettingsContent({ db }: { db: Database }) {
 	const router = useRouter();
 	const t = useTranslation();
 	const importSheetRef = useRef<ImportSheetHandle>(null);
-	const { preference: themePreference, setPreference: setThemePreference } = useThemePreference();
 	const { language } = useLanguage();
 	useReminderSync(db);
 
@@ -94,6 +93,9 @@ function SettingsContent({ db }: { db: Database }) {
 	const animatedCharts = settings.bool("animatedCharts");
 	const numberEntryType = settings.number("numberEntryType");
 	const haptics = settings.number("haptics");
+	const accentColor = settings.number("accentColor");
+	const colorScheme = settings.number("colorScheme");
+	const scheme = useColorScheme() === "dark" ? "dark" : "light";
 
 	const version = Constants.expoConfig?.version ?? "1.0.0";
 	const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
@@ -159,13 +161,31 @@ function SettingsContent({ db }: { db: Database }) {
 			<SettingsSection title={t("settings.section.appearance")}>
 				<PickerRow
 					icon="DarkMode"
-					onChange={setThemePreference}
+					onChange={(next) => {
+						setNumberSetting(db, "colorScheme", next);
+					}}
 					options={THEME_OPTIONS.map((option) => ({
 						label: t(option.label),
 						value: option.value,
 					}))}
+					title={t("settings.row.colorScheme")}
+					value={colorScheme}
+				/>
+				<PickerRow
+					icon="Swatch"
+					onChange={(next) => {
+						setNumberSetting(db, "accentColor", next);
+					}}
+					options={ACCENTS.map((accent) => ({
+						label: t(accent.label),
+						swatch: accent[scheme],
+						value: accent.value,
+					}))}
+					// The value the app is painting right now, not the light one: the two
+					// halves of an accent differ, and a dot showing the other half would
+					// disagree with every control around it.
 					title={t("settings.row.theme")}
-					value={themePreference}
+					value={accentColor}
 				/>
 				{alternateIconsSupported ? <AppIconRow /> : null}
 				<LinkRow

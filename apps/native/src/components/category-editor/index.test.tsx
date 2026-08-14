@@ -18,11 +18,6 @@ jest.mock("@/i18n/context", () => ({
 	useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/theme/use-colors", () => ({
-	SYSTEM_COLORS: {
-		card: "#FFFFFF",
-		groupedBackground: "#EFEDE6",
-		separator: "#DAD6C9",
-	},
 	useColors: () => ({
 		accent: "#3D7A5C",
 		accentForeground: "#FFFFFF",

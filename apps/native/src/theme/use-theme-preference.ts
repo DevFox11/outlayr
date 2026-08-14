@@ -1,29 +1,28 @@
 import { useTheme } from "panelui-native";
-import { useUniwind } from "uniwind";
+import { useLayoutEffect } from "react";
 
-import type { ThemePreference } from "./theme-preference";
-
-function toPreference(theme: string, hasAdaptiveThemes: boolean): ThemePreference {
-	if (hasAdaptiveThemes) {
-		return "system";
-	}
-	return theme === "dark" ? "dark" : "light";
-}
+import { useSettingNumber } from "@/contexts/display-settings-context";
+import { type ThemePreference, themePreferenceForValue } from "./theme-preference";
 
 /**
- * PanelUI's `useTheme` reports the resolved theme, so `"system"` is only
- * readable through Uniwind's `hasAdaptiveThemes` — which `Uniwind.setTheme`
- * sets when it is handed `"system"`.
+ * Pushes the stored colour scheme into uniwind, once and on every change.
+ *
+ * The stored setting is the source of truth, not uniwind. Uniwind holds the
+ * resolved theme in memory only, so reading the preference back off it — which
+ * the settings row used to do, via `hasAdaptiveThemes` — meant "Dark" survived
+ * exactly until the next launch and then silently reverted to System. Reading
+ * flows one way now: setting → uniwind, never back.
+ *
+ * Layout effect for the same reason the accent uses one: on a cold start with
+ * "Dark" stored, a passive effect paints one light frame first.
  */
-export function useThemePreference(): {
-	preference: ThemePreference;
-	setPreference: (preference: ThemePreference) => void;
-} {
-	const { theme, setTheme } = useTheme();
-	const { hasAdaptiveThemes } = useUniwind();
+export function useApplyThemePreference(): ThemePreference {
+	const preference = themePreferenceForValue(useSettingNumber("colorScheme"));
+	const { setTheme } = useTheme();
 
-	return {
-		preference: toPreference(theme, hasAdaptiveThemes),
-		setPreference: setTheme,
-	};
+	useLayoutEffect(() => {
+		setTheme(preference);
+	}, [preference, setTheme]);
+
+	return preference;
 }

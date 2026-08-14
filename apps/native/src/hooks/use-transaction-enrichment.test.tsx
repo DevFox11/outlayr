@@ -114,8 +114,11 @@ describe("tier 1: curated match", () => {
 		expect(suggestion.source).toBe("curated");
 		expect(suggestion.domain).toBe("netflix.com");
 		expect(suggestion.pendingTagNames).toStrictEqual(["Streaming", "Subscription"]);
+		// The Entertainment preset's own identity, stated rather than read from
+		// `SUGGESTED_CATEGORY_PRESETS` — reading it would let a lookup that
+		// resolved the wrong preset still agree with itself.
 		expect(suggestion.pendingCategory).toStrictEqual({
-			color: "#AF52DE",
+			color: "#936EAF",
 			emoji: null,
 			icon: "FilmRoll01",
 			name: "Entertainment",

@@ -36,8 +36,11 @@ export function CategoryBreakdownRow({
 	const { language } = useLanguage();
 	const income = measure === "income";
 	const toneClass = income ? "text-income" : "text-foreground";
-	const fillClass = income ? "bg-income" : "bg-foreground";
 	const sign = income ? "+" : "-";
+	// The bar is the same measurement the tile above it names, so it is drawn in
+	// the same colour. Income keeps its own green: there the bar is reporting a
+	// direction, and the category is the secondary fact.
+	const fill = income ? colors.income : entry.color;
 	const pct = Math.round(entry.fraction * 100);
 
 	const body = (
@@ -75,8 +78,9 @@ export function CategoryBreakdownRow({
 			</View>
 			<View className="h-1 w-full overflow-hidden rounded-full bg-rail-track">
 				<View
-					className={cn("h-full rounded-full", fillClass)}
+					className="h-full rounded-full"
 					style={{
+						backgroundColor: fill,
 						width: `${Math.max(0, Math.min(1, entry.fraction)) * 100}%`,
 					}}
 				/>

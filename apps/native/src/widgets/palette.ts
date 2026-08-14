@@ -27,22 +27,22 @@ export interface WidgetPalette {
 
 export const WIDGET_PALETTE: Record<"light" | "dark", WidgetPalette> = {
 	dark: {
-		background: "#060a07",
-		border: "#2e2e2e",
-		income: "#0fffa9",
-		ink: "#ffffff",
-		muted: "#a4a4a9",
+		background: "#17150f",
+		border: "#353026",
+		income: "#3fd99b",
+		ink: "#f2efe8",
+		muted: "#a8a093",
 		over: "#f17879",
-		subtle: "#8e8e93",
+		subtle: "#968e80",
 	},
 	light: {
-		background: "#ffffff",
-		border: "#d2d6db",
-		income: "#027d51",
-		ink: "#010101",
-		muted: "#6d6d6d",
-		over: "#d61d1f",
-		subtle: "#6c6c78",
+		background: "#f2f0ea",
+		border: "#dcd8cc",
+		income: "#00714a",
+		ink: "#17150f",
+		muted: "#6b6557",
+		over: "#bd1c1e",
+		subtle: "#6d6657",
 	},
 };
 
