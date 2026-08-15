@@ -1,11 +1,11 @@
 import { getAppIconName, setAlternateAppIcon, supportsAlternateIcons } from "expo-alternate-app-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Alert } from "react-native";
 
 import { appIconTransition } from "@/domain/app-icons";
 import type { AppIconEvent, AppIconState } from "@/domain/app-icons";
 import { translateNow } from "@/i18n/runtime";
+import { notifyFailure } from "@/lib/notify";
 
 export const alternateIconsSupported: boolean = supportsAlternateIcons;
 
@@ -76,10 +76,10 @@ export function useAppIcon(): AppIconControl {
                 .catch((cause: unknown) => {
                     console.error("App icon change failed", cause);
                     apply({ kind: "rejected", reported: readAppIconName() });
-                    Alert.alert(
-                        translateNow("settings.appIcon.failedTitle"),
-                        translateNow("settings.appIcon.failedBody")
-                    );
+                    notifyFailure({
+                        body: translateNow("settings.appIcon.failedBody"),
+                        title: translateNow("settings.appIcon.failedTitle"),
+                    });
                 });
         },
         [apply]

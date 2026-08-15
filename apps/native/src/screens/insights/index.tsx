@@ -55,7 +55,6 @@ import { formatAmount } from "@/domain/money";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
-import { UndoToast } from "@/screens/log/components/undo-toast";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -418,7 +417,7 @@ function InsightsContent({ db }: { db: Database }) {
     // and the hook flushes its pending write on unmount — so a delete owned down
     // there would commit the instant the row's own list went away, before the undo
     // window had run and before the toast offering it could be tapped.
-    const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete(db);
     // Only a single day reads better ungrouped — every row would share one header.
     const listGrouped = !(lockedBucket && period !== "year");
 
@@ -580,7 +579,6 @@ function InsightsContent({ db }: { db: Database }) {
                     </View>
                 ) : null}
             </ScrollView>
-            <UndoToast onUndo={undo} visible={pendingId != null} />
         </>
     );
 }

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
+import { toast } from "panelui-native";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
@@ -132,5 +133,28 @@ describe("useDeferredDelete", () => {
             const [row] = await db.select().from(transactions).where(eq(transactions.id, id));
             expect(row.deletedAt).not.toBeNull();
         });
+    });
+
+    it("offers the undo at the top of the screen for as long as the window is open, then takes it back", async () => {
+        const db = makeDb();
+        const id = await plainTransaction(db);
+        const showSpy = jest.spyOn(toast, "show").mockReturnValue("toast-1");
+        const hideSpy = jest.spyOn(toast, "hide").mockImplementation(() => {});
+
+        const { result, unmount } = await renderHook(() => useDeferredDelete(db));
+        await act(async () => {
+            result.current.requestDelete(id);
+        });
+
+        expect(showSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ actionLabel: expect.any(String), placement: "top", variant: "default" })
+        );
+        // The offer cannot outlive the window: undo stops working once the write lands.
+        expect(hideSpy).not.toHaveBeenCalled();
+        await unmount();
+        expect(hideSpy).toHaveBeenCalledWith("toast-1");
+
+        showSpy.mockRestore();
+        hideSpy.mockRestore();
     });
 });

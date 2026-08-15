@@ -19,7 +19,6 @@ import type { CurrencyFigures } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
-import { UndoToast } from "@/screens/log/components/undo-toast";
 
 import { SearchEmptyState } from "./components/search-empty-state";
 
@@ -49,7 +48,7 @@ function SearchContent({ db }: { db: Database }) {
     const { showCents } = useDisplaySettings().state;
     const [query, setQuery] = useState("");
     const nowMs = useNow();
-    const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete(db);
     const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
 
     const found = useSearchedTransactions(db, query, nowMs);
@@ -98,7 +97,6 @@ function SearchContent({ db }: { db: Database }) {
                     sections={sections}
                 />
             )}
-            <UndoToast onUndo={undo} visible={pendingId != null} />
         </>
     );
 }

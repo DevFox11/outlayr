@@ -1,4 +1,4 @@
-import { Alert, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { RowAmount } from "@/components/amount-text";
 import { EmptyState } from "@/components/empty-state";
@@ -16,6 +16,7 @@ import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { formatDayHeader } from "@/domain/dates";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { notifyFailure } from "@/lib/notify";
 
 export function RecentlyDeleted() {
     const db = useDatabase();
@@ -30,7 +31,7 @@ function RecentlyDeletedContent({ db }: { db: Database }) {
     const restore = (id: string) => {
         transactionsRepo.restore(db, id).catch((cause: unknown) => {
             console.error("Restore failed", cause);
-            Alert.alert(t("settings.deleted.failedTitle"), t("settings.deleted.failedBody"));
+            notifyFailure({ body: t("settings.deleted.failedBody"), title: t("settings.deleted.failedTitle") });
         });
     };
 

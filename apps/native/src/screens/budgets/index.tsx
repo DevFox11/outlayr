@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
 import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
@@ -26,6 +26,7 @@ import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
 import { firstOfMonth } from "@/domain/dates";
 import { useTranslation } from "@/i18n/context";
 import { showBudgetActions } from "@/lib/budget-actions";
+import { notifyFailure } from "@/lib/notify";
 
 import { BudgetBurndownHero } from "./components/budget-burndown-hero";
 import { BudgetCard } from "./components/budget-card";
@@ -100,7 +101,7 @@ function BudgetContent({ db }: { db: Database }) {
     const deleteBudget = (id: string) => {
         budgetsRepo.deleteBudget(db, id).catch((cause: unknown) => {
             console.error("Failed to delete the budget", cause);
-            Alert.alert(t("budgets.delete.failedTitle"), t("budgets.delete.failedBody"));
+            notifyFailure({ body: t("budgets.delete.failedBody"), title: t("budgets.delete.failedTitle") });
         });
     };
 
@@ -112,7 +113,7 @@ function BudgetContent({ db }: { db: Database }) {
             });
         } catch (error) {
             console.error("Failed to create the overall budget", error);
-            Alert.alert(t("budgets.save.failedTitle"), t("budgets.save.failedBody"));
+            notifyFailure({ body: t("budgets.save.failedBody"), title: t("budgets.save.failedTitle") });
         }
     };
 

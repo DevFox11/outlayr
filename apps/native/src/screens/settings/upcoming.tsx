@@ -16,7 +16,6 @@ import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogUpcoming } from "@/screens/log/components/log-upcoming";
-import { UndoToast } from "@/screens/log/components/undo-toast";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 
@@ -61,53 +60,50 @@ function UpcomingContent({ db }: { db: Database }) {
     // Unlimited whatever the 14-day toggle says, matching Swift's
     // `limitedMode: false` and the promise the footer above makes.
     const scheduled = useUpcomingTransactions(db, nowMs, false);
-    const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete(db);
     const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
     // A row waiting on the undo toast is already gone as far as the figures go,
     // or the monthly cost keeps charging for a subscription the user just deleted.
     const upcoming = scheduled.rows.filter((row) => row.id !== pendingId);
 
     return (
-        <>
-            <SettingsScreen>
-                <SettingsSection footer={t("settings.upcoming.footer")} title={t("settings.upcoming.section")}>
-                    <ToggleRow
-                        icon="Sunrise"
-                        onValueChange={(next) => {
-                            setBoolSetting(db, "showUpcoming", next);
-                            if (!next) {
-                                setBoolSetting(db, "showUpcomingSoon", false);
-                            }
-                        }}
-                        title={t("settings.upcoming.displayOnLog")}
-                        value={showUpcoming}
-                    />
-                    <ToggleRow
-                        icon="CalendarClock"
-                        onValueChange={(next) => {
-                            setBoolSetting(db, "showUpcomingSoon", next);
-                        }}
-                        title={t("settings.upcoming.limitToSoon")}
-                        value={showSoon}
-                    />
-                </SettingsSection>
+        <SettingsScreen>
+            <SettingsSection footer={t("settings.upcoming.footer")} title={t("settings.upcoming.section")}>
+                <ToggleRow
+                    icon="Sunrise"
+                    onValueChange={(next) => {
+                        setBoolSetting(db, "showUpcoming", next);
+                        if (!next) {
+                            setBoolSetting(db, "showUpcomingSoon", false);
+                        }
+                    }}
+                    title={t("settings.upcoming.displayOnLog")}
+                    value={showUpcoming}
+                />
+                <ToggleRow
+                    icon="CalendarClock"
+                    onValueChange={(next) => {
+                        setBoolSetting(db, "showUpcomingSoon", next);
+                    }}
+                    title={t("settings.upcoming.limitToSoon")}
+                    value={showSoon}
+                />
+            </SettingsSection>
 
-                <View className="pt-4">
-                    <LogUpcoming
-                        currency={currency}
-                        nowMs={nowMs}
-                        onLongPress={(id) => openRowActions(id, true)}
-                        onPress={(id) => router.push(`/transactions/${id}`)}
-                        rates={rates}
-                        schedules={upcoming}
-                        transactions={upcoming}
-                    />
-                    {upcoming.length === 0 ? (
-                        <EmptyState body={t("settings.upcoming.empty")} mark={<TimelineStops />} tier="insetRow" />
-                    ) : null}
-                </View>
-            </SettingsScreen>
-            <UndoToast onUndo={undo} visible={pendingId != null} />
-        </>
+            <View className="pt-4">
+                <LogUpcoming
+                    currency={currency}
+                    nowMs={nowMs}
+                    onLongPress={(id) => openRowActions(id, true)}
+                    onPress={(id) => router.push(`/transactions/${id}`)}
+                    rates={rates}
+                    schedules={upcoming}
+                    transactions={upcoming}
+                />
+                {upcoming.length === 0 ? (
+                    <EmptyState body={t("settings.upcoming.empty")} mark={<TimelineStops />} tier="insetRow" />
+                ) : null}
+            </View>
+        </SettingsScreen>
     );
 }

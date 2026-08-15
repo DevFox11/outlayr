@@ -1,5 +1,4 @@
 import { Alert } from "react-native";
-import type { AlertButton } from "react-native";
 
 interface SubmittableForm {
     handleSubmit: () => Promise<void>;
@@ -43,15 +42,20 @@ export function holdSubmitting(): Promise<never> {
 
 interface ReportSaveFailureOptions {
     body: string;
-    buttons?: AlertButton[];
     cause?: unknown;
     log?: string;
     title: string;
 }
 
+/**
+ * Stays an `Alert` rather than a toast: every form that calls this is presented
+ * as a sheet or modal, and it keeps that presentation up on failure so the user
+ * can retry. A toast is portalled at the app root, which is behind the
+ * presentation — see the note in `@/lib/notify`.
+ */
 export function reportSaveFailure(options: ReportSaveFailureOptions): void {
     if (options.log !== undefined) {
         console.error(options.log, options.cause);
     }
-    Alert.alert(options.title, options.body, options.buttons);
+    Alert.alert(options.title, options.body);
 }

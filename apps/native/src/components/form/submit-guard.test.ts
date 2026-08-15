@@ -54,13 +54,12 @@ describe("holdSubmitting", () => {
 });
 
 describe("reportSaveFailure", () => {
-    it("shows the alert with the given title, body, and buttons", () => {
+    it("shows the alert with the given title and body", () => {
         const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-        const buttons = [{ text: "OK" }];
 
-        reportSaveFailure({ body: "Failed", buttons, title: "Oops" });
+        reportSaveFailure({ body: "Failed", title: "Oops" });
 
-        expect(alertSpy).toHaveBeenCalledWith("Oops", "Failed", buttons);
+        expect(alertSpy).toHaveBeenCalledWith("Oops", "Failed");
         alertSpy.mockRestore();
     });
 

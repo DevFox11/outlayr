@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
-import { Alert, Linking, Platform, Share, useColorScheme } from "react-native";
+import { Linking, Platform, Share, useColorScheme } from "react-native";
 
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
@@ -35,6 +35,7 @@ import { translateNow } from "@/i18n/runtime";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { importDraftStore } from "@/lib/import-draft-store";
+import { notifyFailure } from "@/lib/notify";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { supportMailto } from "@/lib/support-mailto";
 import type { SupportDiagnostics } from "@/lib/support-mailto";
@@ -68,7 +69,10 @@ async function toggleAppLock(db: Database, next: boolean): Promise<void> {
     }
     const messageKey = lockFailureMessage(result.error);
     if (messageKey) {
-        Alert.alert(translateNow("settings.lock.alertTitle"), translateNow(messageKey));
+        notifyFailure({
+            body: translateNow(messageKey),
+            title: translateNow("settings.lock.alertTitle"),
+        });
     }
 }
 

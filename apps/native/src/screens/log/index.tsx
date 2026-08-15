@@ -49,7 +49,6 @@ import { LogNoResults } from "./components/log-no-results";
 import { LogToolbar } from "./components/log-toolbar";
 import { LogUpcoming } from "./components/log-upcoming";
 import { SwipeableTransactionRow } from "./components/swipeable-transaction-row";
-import { UndoToast } from "./components/undo-toast";
 import { filterScopeLabel } from "./labels";
 
 export function Log() {
@@ -188,7 +187,7 @@ function LogContent({ db }: { db: Database }) {
     );
     const sparkline = useSparkline(db, nowMs, logViewLineGraph, measure, period, firstWeekday, currency, rates);
     const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
-    const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete(db);
 
     const listRows = useMemo(() => {
         if (filter === "transfers") {
@@ -391,7 +390,6 @@ function LogContent({ db }: { db: Database }) {
                 )}
             />
 
-            <UndoToast visible={pendingId != null} onUndo={undo} />
             <FloatingAddButton />
         </>
     );

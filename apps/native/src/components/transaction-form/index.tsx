@@ -83,6 +83,7 @@ import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
+import { notifyFailure } from "@/lib/notify";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
@@ -634,7 +635,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     await tagsRepo.setTagsFor(db, savedId, materializedTagIds);
                 } catch (error) {
                     console.error("Failed to save tags", error);
-                    Alert.alert(t("transaction.tags.failedTitle"), t("transaction.tags.failedBody"));
+                    notifyFailure({ body: t("transaction.tags.failedBody"), title: t("transaction.tags.failedTitle") });
                 }
             }
             // After the row exists, for the same reason tags are: the parts point at
@@ -650,7 +651,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 );
             } catch (error) {
                 console.error("Failed to save the split", error);
-                Alert.alert(t("transaction.split.failedTitle"), t("transaction.split.failedBody"));
+                notifyFailure({ body: t("transaction.split.failedBody"), title: t("transaction.split.failedTitle") });
             }
             let scheduleFailed = false;
             if (value.isSubscription) {
@@ -670,12 +671,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             });
             if (scheduleFailed) {
                 haptics("error");
-                // Dismissed from the alert's own button rather than alongside it: an
-                // alert raised as the modal route is being torn down has no presenter
-                // left and never appears, which is the silence this replaces.
-                Alert.alert(t("transaction.save.scheduleFailedTitle"), t("transaction.save.scheduleFailedBody"), [
-                    { onPress: onDone, text: t("common.done") },
-                ]);
+                // Raised before the dismissal rather than from a button inside it: the
+                // toast is mounted at the root, so it outlives this route and reads on
+                // the screen behind it — where an alert needs a presenter that is
+                // already gone by the time the modal finishes tearing down.
+                notifyFailure({
+                    body: t("transaction.save.scheduleFailedBody"),
+                    title: t("transaction.save.scheduleFailedTitle"),
+                });
+                onDone();
                 return await holdSubmitting();
             }
             if (mode === "edit") {

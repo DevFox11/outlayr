@@ -5,6 +5,7 @@ import { formatDayHeader } from "@/domain/dates";
 import { dayCardContent, dayCardFileName } from "@/domain/day-card-content";
 import type { CardableSection, DayCardOptions } from "@/domain/day-card-content";
 import { translateNow } from "@/i18n/runtime";
+import { notifyFailure } from "@/lib/notify";
 
 import { TransferError } from "./data-transfer";
 import { shareDayCard } from "./day-card-image";
@@ -23,12 +24,13 @@ export function useDayCardShare(options: DayCardOptions): (section: CardableSect
                     onPress: () => {
                         shareDayCard(dayCardContent(section, options), dayCardFileName(section.day)).catch(
                             (cause: unknown) => {
-                                Alert.alert(
-                                    translateNow("alerts.dayCard.failedTitle"),
-                                    cause instanceof TransferError
-                                        ? translateNow(cause.key)
-                                        : translateNow("alerts.dayCard.failedBody")
-                                );
+                                notifyFailure({
+                                    body:
+                                        cause instanceof TransferError
+                                            ? translateNow(cause.key)
+                                            : translateNow("alerts.dayCard.failedBody"),
+                                    title: translateNow("alerts.dayCard.failedTitle"),
+                                });
                             }
                         );
                     },

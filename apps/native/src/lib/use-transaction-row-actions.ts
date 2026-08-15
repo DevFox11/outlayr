@@ -1,11 +1,11 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { transactionRowActions } from "@/domain/transaction-actions";
 import { translateNow } from "@/i18n/runtime";
+import { notifyFailure } from "@/lib/notify";
 
 import { showTransactionActions } from "./transaction-actions";
 
@@ -20,20 +20,15 @@ async function stopRecurring(db: Database, id: string): Promise<void> {
         await transactionsRepo.stopRecurring(db, id);
     } catch (error) {
         console.error("Stop recurring failed", error);
-        Alert.alert(
-            translateNow("transaction.stopRecurring.failedTitle"),
-            translateNow("transaction.stopRecurring.failedBody"),
-            [
-                { style: "cancel", text: translateNow("common.cancel") },
-                {
-                    onPress: () => {
-                        // oxlint-disable-next-line no-void -- stopRecurring settles its own failure into this same alert, so the retry has no rejection left to handle
-                        void stopRecurring(db, id);
-                    },
-                    text: translateNow("common.retry"),
-                },
-            ]
-        );
+        notifyFailure({
+            actionLabel: translateNow("common.retry"),
+            body: translateNow("transaction.stopRecurring.failedBody"),
+            onActionPress: () => {
+                // oxlint-disable-next-line no-void -- stopRecurring settles its own failure into this same toast, so the retry has no rejection left to handle
+                void stopRecurring(db, id);
+            },
+            title: translateNow("transaction.stopRecurring.failedTitle"),
+        });
     }
 }
 

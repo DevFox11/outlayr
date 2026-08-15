@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { useState } from "react";
-import { Alert, View } from "react-native";
+import { View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
 import { AccountRow } from "@/components/settings/account-row";
@@ -24,6 +24,7 @@ import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
 import { cloudRuntime } from "@/lib/cloud-runtime";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
+import { notifyFailure } from "@/lib/notify";
 
 /**
  * Switching back on goes through the adoption path rather than a bespoke push.
@@ -70,7 +71,7 @@ function SyncSettings({ db }: { db: Database }) {
             next && accountId ? runAdoption(db, adoptionEngine(db), RESUME, accountId) : setSyncEnabled(db, false);
         work.catch((cause: unknown) => {
             console.error("Sync switch failed", cause);
-            Alert.alert(t("settings.sync.failedTitle"), t("settings.sync.failedBody"));
+            notifyFailure({ body: t("settings.sync.failedBody"), title: t("settings.sync.failedTitle") });
         }).finally(() => setBusy(false));
     };
 

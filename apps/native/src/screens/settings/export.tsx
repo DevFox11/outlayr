@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
 import { SettingsSection } from "@/components/settings/settings-row";
@@ -15,6 +15,7 @@ import { CSV_HEADER } from "@/domain/transaction-csv";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { shareText, TransferError } from "@/lib/data-transfer";
+import { notifyFailure } from "@/lib/notify";
 import { useColors } from "@/theme/use-colors";
 
 /**
@@ -56,10 +57,10 @@ function ExportDataContent({ db }: { db: Database }) {
                 )
             )
             .catch((cause: unknown) => {
-                Alert.alert(
-                    t("settings.export.failedTitle"),
-                    cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody")
-                );
+                notifyFailure({
+                    body: cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody"),
+                    title: t("settings.export.failedTitle"),
+                });
             })
             .finally(() => setBusy(false));
     };
@@ -69,10 +70,10 @@ function ExportDataContent({ db }: { db: Database }) {
         exportTransactionsCsv(db)
             .then((csv) => shareText(csv, exportFileName(new Date()), "text/csv", t("settings.export.shareTitle")))
             .catch((cause: unknown) => {
-                Alert.alert(
-                    t("settings.export.failedTitle"),
-                    cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody")
-                );
+                notifyFailure({
+                    body: cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody"),
+                    title: t("settings.export.failedTitle"),
+                });
             })
             .finally(() => setBusy(false));
     };

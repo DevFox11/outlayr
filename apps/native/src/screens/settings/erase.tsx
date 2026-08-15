@@ -12,6 +12,7 @@ import { useTransactionCount } from "@/data/transactions";
 import type { Database } from "@/db/client";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
+import { notifyFailure } from "@/lib/notify";
 import { clearStoredPhotos } from "@/lib/photo-storage";
 import { clearSpotlight } from "@/lib/spotlight";
 
@@ -36,7 +37,10 @@ function EraseDataContent({ db }: { db: Database }) {
                         .then(() => router.back())
                         .catch((cause: unknown) => {
                             console.error("Erase failed", cause);
-                            Alert.alert(t("settings.erase.failedTitle"), t("settings.erase.failedBody"));
+                            notifyFailure({
+                                body: t("settings.erase.failedBody"),
+                                title: t("settings.erase.failedTitle"),
+                            });
                         });
                 },
                 style: "destructive",

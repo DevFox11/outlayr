@@ -40,6 +40,7 @@ import type { Account } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { notifyFailure } from "@/lib/notify";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
@@ -93,7 +94,10 @@ function AccountsReady({ db }: { db: Database }) {
                 {
                     onPress: () => {
                         accountsRepo.softDelete(db, account.id).catch(() => {
-                            Alert.alert(t("accounts.error.deleteTitle"), t("accounts.error.generic"));
+                            notifyFailure({
+                                body: t("accounts.error.generic"),
+                                title: t("accounts.error.deleteTitle"),
+                            });
                         });
                     },
                     style: "destructive",

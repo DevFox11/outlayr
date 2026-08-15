@@ -12,6 +12,7 @@ import { archiveRowCount, parseArchive } from "@/domain/archive";
 import type { ArchiveDocument } from "@/domain/archive";
 import { useTranslation } from "@/i18n/context";
 import { pickArchiveFile, TransferError } from "@/lib/data-transfer";
+import { notifyFailure } from "@/lib/notify";
 import { useColors } from "@/theme/use-colors";
 
 export function RestoreData() {
@@ -30,7 +31,7 @@ function RestoreDataContent({ db }: { db: Database }) {
         restoreArchive(db, document)
             .then(() => router.back())
             .catch(() => {
-                Alert.alert(t("settings.restore.failedTitle"), t("settings.restore.failedBody"));
+                notifyFailure({ body: t("settings.restore.failedBody"), title: t("settings.restore.failedTitle") });
             })
             .finally(() => setBusy(false));
     };
@@ -46,7 +47,10 @@ function RestoreDataContent({ db }: { db: Database }) {
                 }
                 const document = parseArchive(picked.text);
                 if (document == null) {
-                    Alert.alert(t("settings.restore.badArchiveTitle"), t("settings.restore.badArchiveBody"));
+                    notifyFailure({
+                        body: t("settings.restore.badArchiveBody"),
+                        title: t("settings.restore.badArchiveTitle"),
+                    });
                     return;
                 }
                 Alert.alert(
@@ -65,10 +69,10 @@ function RestoreDataContent({ db }: { db: Database }) {
                 );
             })
             .catch((cause: unknown) => {
-                Alert.alert(
-                    t("settings.restore.failedTitle"),
-                    cause instanceof TransferError ? t(cause.key) : t("settings.restore.failedBody")
-                );
+                notifyFailure({
+                    body: cause instanceof TransferError ? t(cause.key) : t("settings.restore.failedBody"),
+                    title: t("settings.restore.failedTitle"),
+                });
             });
     };
 

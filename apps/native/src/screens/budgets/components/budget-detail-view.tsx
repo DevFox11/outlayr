@@ -21,7 +21,6 @@ import { formatAmount } from "@/domain/money";
 import { coverageNote, coverageOf } from "@/domain/valuation-coverage";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
-import { UndoToast } from "@/screens/log/components/undo-toast";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 
@@ -73,7 +72,7 @@ export function BudgetDetailView({
     const db = useDatabase();
     const { displayCurrency, rates } = useValuation(db);
     const nowMs = useNow();
-    const { pendingId, requestDelete, undo } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete(db);
     const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
     // Only the list drops the row being deleted. The summary above it is computed
     // by the caller from the same window and catches up when the write lands, the
@@ -89,54 +88,51 @@ export function BudgetDetailView({
     );
 
     return (
-        <>
-            <SectionList
-                className="bg-background flex-1"
-                contentInsetAdjustmentBehavior="automatic"
-                sections={sections}
-                keyExtractor={(item) => item.id}
-                stickySectionHeadersEnabled={false}
-                recycleItems
-                contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
-                ListHeaderComponent={
-                    <BudgetSummary
-                        period={period}
-                        spent={spent}
-                        amount={amount}
-                        leftover={leftover}
-                        overBudget={overBudget}
-                        currency={currency}
-                        paceRemaining={paceRemaining}
-                        paceBehind={paceBehind}
-                        leftPerDayAmount={leftPerDayAmount}
-                        closed={closed}
-                        note={note}
-                        stepper={stepper}
-                        tint={tint}
-                    />
-                }
-                ListEmptyComponent={
-                    <EmptyState
-                        body={closed ? t("budgets.detail.emptyClosed") : t("budgets.detail.emptyOpen")}
-                        mark={<PeriodFloor closed={closed} />}
-                        tier="inFlow"
-                    />
-                }
-                renderSectionHeader={({ section }) => (
-                    <DaySectionHeader section={section} first={sections[0] === section} />
-                )}
-                renderItem={({ item }) => (
-                    <TransactionRow
-                        transaction={item}
-                        currency={currency}
-                        rates={rates}
-                        onPress={onPressTransaction}
-                        onLongPress={(id) => openRowActions(id, false)}
-                    />
-                )}
-            />
-            <UndoToast onUndo={undo} visible={pendingId != null} />
-        </>
+        <SectionList
+            className="bg-background flex-1"
+            contentInsetAdjustmentBehavior="automatic"
+            sections={sections}
+            keyExtractor={(item) => item.id}
+            stickySectionHeadersEnabled={false}
+            recycleItems
+            contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
+            ListHeaderComponent={
+                <BudgetSummary
+                    period={period}
+                    spent={spent}
+                    amount={amount}
+                    leftover={leftover}
+                    overBudget={overBudget}
+                    currency={currency}
+                    paceRemaining={paceRemaining}
+                    paceBehind={paceBehind}
+                    leftPerDayAmount={leftPerDayAmount}
+                    closed={closed}
+                    note={note}
+                    stepper={stepper}
+                    tint={tint}
+                />
+            }
+            ListEmptyComponent={
+                <EmptyState
+                    body={closed ? t("budgets.detail.emptyClosed") : t("budgets.detail.emptyOpen")}
+                    mark={<PeriodFloor closed={closed} />}
+                    tier="inFlow"
+                />
+            }
+            renderSectionHeader={({ section }) => (
+                <DaySectionHeader section={section} first={sections[0] === section} />
+            )}
+            renderItem={({ item }) => (
+                <TransactionRow
+                    transaction={item}
+                    currency={currency}
+                    rates={rates}
+                    onPress={onPressTransaction}
+                    onLongPress={(id) => openRowActions(id, false)}
+                />
+            )}
+        />
     );
 }
 
