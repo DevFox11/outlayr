@@ -14,7 +14,7 @@
         "dev:server": "vp run --filter @outlayr/backend dev",
         "dev:setup": "vp run --filter @outlayr/backend dev:setup",
         "fix": "vp check --fix",
-        "prepare": "vp config --no-agent --no-editor",
+        "prepare": "[ -n \"$CI$EAS_BUILD\" ] || vp config --no-agent --no-editor",
         "test": "vp run -r --cache test"
     },
     "dependencies": {

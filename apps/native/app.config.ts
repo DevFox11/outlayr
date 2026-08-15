@@ -1,7 +1,4 @@
 import "dotenv/config";
-import { existsSync } from "node:fs";
-import path from "node:path";
-
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 const isProduction = process.env.EAS_BUILD_PROFILE === "production";
@@ -116,18 +113,12 @@ const roundedFontFiles = [
     "SF-Pro-Rounded-Semibold.otf",
     "SF-Pro-Rounded-Bold.otf",
 ];
-const roundedFonts = roundedFontFiles
-    .map((file) => `./assets/fonts/${file}`)
-    .filter((relPath) => existsSync(path.join(import.meta.dirname, relPath)));
-
-if (roundedFonts.length === 0) {
-    console.warn(
-        "[outlayr] No SF Pro Rounded OTFs in assets/fonts — nothing will be embedded, " +
-            "yet every <Text> asks for SFProRounded-*. iOS falls back to the system face " +
-            "with no error, so this build renders in the wrong typeface. " +
-            "See assets/fonts/README.md."
-    );
-}
+// Listed unconditionally. These OTFs are committed, so a missing one is a
+// broken checkout and should fail the build loudly. Guarding with existsSync
+// silently dropped all four on EAS — `import.meta.dirname` points at the temp
+// directory Expo transpiles this config into, not the project — and shipped a
+// build in the system face instead of rounded.
+const roundedFonts = roundedFontFiles.map((file) => `./assets/fonts/${file}`);
 
 const GOOGLE_CLIENT_SUFFIX = /\.apps\.googleusercontent\.com$/i;
 
@@ -286,6 +277,10 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     scheme: "outlayr",
     slug: "outlayr",
     userInterfaceStyle: "automatic",
+    // The marketing version users see. The build number beside it is not here:
+    // `eas.json` sets `appVersionSource: "remote"`, so EAS owns and increments
+    // it, and a local `ios.buildNumber` would be ignored.
+    version: "1.0.0",
 });
 
 export default getConfig;

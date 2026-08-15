@@ -4,13 +4,8 @@
         "appVersionSource": "remote"
     },
     "build": {
-        "base": {
-            "env": {
-                "HUGEICONS_PRO_TOKEN": "@HUGEICONS_PRO_TOKEN"
-            }
-        },
         "development": {
-            "extends": "base",
+            "environment": "development",
             "developmentClient": true,
             "distribution": "internal",
             "ios": {
@@ -25,15 +20,20 @@
             "autoIncrement": true
         },
         "preview": {
-            "extends": "base",
+            "environment": "preview",
             "distribution": "internal"
         },
         "production": {
-            "extends": "base",
+            "environment": "production",
             "autoIncrement": true
         }
     },
     "submit": {
-        "production": {}
+        "production": {
+            "ios": {
+                "appleTeamId": "8ZB3YXDU7V",
+                "ascAppId": "6801652978"
+            }
+        }
     }
 }

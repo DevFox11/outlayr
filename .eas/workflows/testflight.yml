@@ -1,0 +1,60 @@
+name: Ship to TestFlight
+
+# Manual only, on purpose. This deploys the production Convex deployment before
+# it builds, and a bad schema change is not as cheap to undo as a bad binary.
+# Add an `on.push` trigger once you are happy running it on every merge.
+on:
+    workflow_dispatch: {}
+
+jobs:
+    # Deploy the backend first so the binary is never newer than the API it calls.
+    #
+    # The deploy target is configuration, not code. `npx convex deploy` picks its
+    # target from the environment, so pointing this at a self-hosted instance means
+    # changing EAS environment variables and nothing in this file:
+    #
+    #   Convex Cloud   CONVEX_DEPLOY_KEY
+    #   Self-hosted    CONVEX_SELF_HOSTED_URL + CONVEX_SELF_HOSTED_ADMIN_KEY
+    #
+    # Set them on the `production` EAS environment, which is what this job reads.
+    deploy_backend:
+        name: Deploy Convex functions
+        environment: production
+        defaults:
+            run:
+                working_directory: packages/backend
+        steps:
+            - uses: eas/checkout
+            - uses: eas/install_node_modules
+            - name: Resolve the Convex deploy target
+              # Fail here rather than let `convex deploy` pick up an unset variable and
+              # push to whichever deployment happens to be configured by default.
+              run: |
+                  if [ -n "$CONVEX_DEPLOY_KEY" ]; then
+                    echo "Convex target: cloud (CONVEX_DEPLOY_KEY)"
+                  elif [ -n "$CONVEX_SELF_HOSTED_URL" ] && [ -n "$CONVEX_SELF_HOSTED_ADMIN_KEY" ]; then
+                    echo "Convex target: self-hosted at $CONVEX_SELF_HOSTED_URL"
+                  else
+                    echo "No Convex deploy credentials on the production environment." >&2
+                    echo "Set CONVEX_DEPLOY_KEY, or both CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY." >&2
+                    exit 1
+                  fi
+            - name: Deploy functions
+              run: npx convex deploy -y
+
+    build_ios:
+        name: Build iOS (production)
+        needs: [deploy_backend]
+        type: build
+        params:
+            platform: ios
+            profile: production
+
+    submit_ios:
+        name: Submit to TestFlight
+        needs: [build_ios]
+        type: submit
+        params:
+            build_id: ${{ needs.build_ios.outputs.build_id }}
+            profile: production
+            groups: ["Internal"]

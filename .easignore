@@ -61,7 +61,6 @@ apps/native/android
 apps/native/web-build/
 apps/native/.metro-health-check*
 apps/native/expo-env.d.ts
-apps/native/assets/fonts/*.otf
 *.jks
 *.p8
 *.p12
@@ -85,3 +84,10 @@ apps/native/docs/
 .claude/
 .vscode/
 lefthook.yml
+
+# Local signing assets for `credentialsSource: local`. The EAS CLI reads these
+# on this machine and sends the certificate over the credentials channel, so the
+# builder never needs them in the tarball. The p12 and .mobileprovision already
+# match rules above; credentials.json holds the p12 password and does not.
+credentials.json
+apps/native/credentials/
