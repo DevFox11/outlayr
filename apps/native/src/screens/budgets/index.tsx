@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
@@ -7,6 +7,7 @@ import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import type { ExpenseContribution } from "@/data/budget-spent";
+import type { CategoryBudgetView } from "@/data/budgets";
 import {
     budgetsRepo,
     compareBudgetSeverity,
@@ -25,7 +26,7 @@ import { dominantCategory } from "@/domain/budget-dominant";
 import { BUDGET_TYPE, periodEnd } from "@/domain/budget-math";
 import { firstOfMonth } from "@/domain/dates";
 import { useTranslation } from "@/i18n/context";
-import { showBudgetActions } from "@/lib/budget-actions";
+import { budgetMenuItems } from "@/lib/budget-actions";
 import { notifyFailure } from "@/lib/notify";
 
 import { BudgetBurndownHero } from "./components/budget-burndown-hero";
@@ -40,6 +41,9 @@ export function Budgets() {
     return <BudgetContent db={db} />;
 }
 
+/** `gap-3` between the two columns of the card grid. */
+const CARD_GUTTER = 12;
+
 function pairs<T>(items: readonly T[]): [T, T | undefined][] {
     const rows: [T, T | undefined][] = [];
     for (let index = 0; index < items.length; index += 2) {
@@ -50,6 +54,7 @@ function pairs<T>(items: readonly T[]): [T, T | undefined][] {
 
 function BudgetContent({ db }: { db: Database }) {
     const router = useRouter();
+    const [gridWidth, setGridWidth] = useState<number | null>(null);
     const t = useTranslation();
     const currency = useGlobalCurrency(db);
     const asRows = useSettingBool("budgetViewStyle");
@@ -117,17 +122,17 @@ function BudgetContent({ db }: { db: Database }) {
         }
     };
 
-    const openActions = (id: string) => {
-        const budget = budgets.find((candidate) => candidate.id === id);
-        if (!budget) {
-            return;
-        }
-        showBudgetActions({
+    // Half the grid less its 12pt gutter. Null until the first layout, which is
+    // the frame the cards render flexed and menu-less.
+    const cardWidth = gridWidth === null ? null : (gridWidth - CARD_GUTTER) / 2;
+
+    const menuItems = (budget: CategoryBudgetView) =>
+        budgetMenuItems({
             name: budget.name,
-            onDelete: () => deleteBudget(id),
-            onEdit: () => router.push(`/budgets/edit/${id}`),
+            onDelete: () => deleteBudget(budget.id),
+            onEdit: () => router.push(`/budgets/edit/${budget.id}`),
+            t,
         });
-    };
 
     if (isEmpty && monthToDate) {
         return (
@@ -192,15 +197,19 @@ function BudgetContent({ db }: { db: Database }) {
                                     contributions={contributions}
                                     currency={currency}
                                     key={budget.id}
+                                    menuItems={menuItems(budget)}
                                     nowMs={nowMs}
                                     onDelete={deleteBudget}
-                                    onLongPress={openActions}
                                     onPress={(id) => router.push(`/budgets/${id}`)}
                                 />
                             ))}
                         </View>
                     ) : (
-                        <View className="gap-3">
+                        // Measured rather than flexed: a card's context menu hosts it in
+                        // a SwiftUI view that sizes itself from its content, so a card
+                        // left on `flex-1` has no width of its own to come back to and
+                        // collapses once the menu lifts it out.
+                        <View className="gap-3" onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
                             {pairs(ranked).map(([left, right]) => (
                                 <View className="flex-row gap-3" key={left.id}>
                                     <BudgetCard
@@ -208,9 +217,10 @@ function BudgetContent({ db }: { db: Database }) {
                                         burndown={burndowns.get(left.id) ?? null}
                                         contributions={contributions}
                                         currency={currency}
+                                        menuItems={menuItems(left)}
                                         nowMs={nowMs}
-                                        onLongPress={openActions}
                                         onPress={(id) => router.push(`/budgets/${id}`)}
+                                        width={cardWidth}
                                     />
                                     {right ? (
                                         <BudgetCard
@@ -218,9 +228,10 @@ function BudgetContent({ db }: { db: Database }) {
                                             burndown={burndowns.get(right.id) ?? null}
                                             contributions={contributions}
                                             currency={currency}
+                                            menuItems={menuItems(right)}
                                             nowMs={nowMs}
-                                            onLongPress={openActions}
                                             onPress={(id) => router.push(`/budgets/${id}`)}
+                                            width={cardWidth}
                                         />
                                     ) : (
                                         // Holds the odd budget out to one column instead of

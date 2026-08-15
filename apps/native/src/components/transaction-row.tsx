@@ -14,6 +14,8 @@ import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
+import { ActionMenu } from "./action-menu";
+import type { ActionMenuItem } from "./action-menu";
 import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
 import { MonoLabel } from "./mono-label";
@@ -39,13 +41,16 @@ interface TransactionRowProps {
     /** When the row lands, for the upcoming variant's subtitle. */
     landsOn?: Date;
     /**
+     * The row's context menu, opened by holding it. Omit on a surface that offers
+     * none.
+     */
+    menuItems?: readonly ActionMenuItem[];
+    /**
      * Same deletion the swipe performs. Pass it on a surface whose rows swipe: a
      * pan is the one gesture assistive technology cannot make, so the action has to
      * also exist as an accessibility action.
      */
     onDelete?: (id: string) => void;
-    /** Opens the row's action menu. Omit on a surface that offers none. */
-    onLongPress?: (id: string) => void;
     onPress: (id: string) => void;
     /** Rates for `currency`. Without it no row is marked unplaced. */
     rates?: RateTable;
@@ -62,7 +67,7 @@ export function TransactionRow({
     currency,
     rates,
     onPress,
-    onLongPress,
+    menuItems,
     onDelete,
     future: forcedFuture,
     landsOn,
@@ -99,7 +104,7 @@ export function TransactionRow({
     const timeLabel = swapTimeLabel ? (transaction.categoryName ?? "") : formatTime(date, use24Hour, language);
     const subtitle = future ? formatUpcomingDate(landsOn ?? date, language) : timeLabel;
 
-    return (
+    const row = (
         <Pressable
             // The hold is the only route to the action menu, and nothing on screen says
             // so; the rotor entry is the only route to Delete, which otherwise lives
@@ -107,9 +112,11 @@ export function TransactionRow({
             accessibilityActions={
                 onDelete ? [{ label: t("log.row.deleteAccessibility"), name: DELETE_ACTION }] : undefined
             }
-            accessibilityHint={onLongPress ? t("log.row.actionsHint") : undefined}
+            accessibilityHint={menuItems?.length ? t("log.row.actionsHint") : undefined}
             accessibilityRole="button"
-            className="flex-row items-center gap-3 py-2 active:opacity-70"
+            // The menu lifts this row into its preview, so the row carries the ground
+            // it is snapshotted against rather than borrowing the list's.
+            className="bg-background flex-row items-center gap-3 py-2 active:opacity-70"
             onAccessibilityAction={
                 onDelete
                     ? (event: AccessibilityActionEvent) => {
@@ -119,7 +126,6 @@ export function TransactionRow({
                       }
                     : undefined
             }
-            onLongPress={onLongPress ? () => onLongPress(transaction.id) : undefined}
             onPress={() => onPress(transaction.id)}
         >
             <View>
@@ -194,4 +200,6 @@ export function TransactionRow({
             />
         </Pressable>
     );
+
+    return menuItems?.length ? <ActionMenu items={menuItems}>{row}</ActionMenu> : row;
 }

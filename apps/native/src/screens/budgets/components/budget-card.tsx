@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
 
+import { ActionMenu } from "@/components/action-menu";
+import type { ActionMenuItem } from "@/components/action-menu";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -23,8 +25,15 @@ interface BudgetCardProps {
     currency: string;
     /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
     nowMs: number;
-    onLongPress: (id: string) => void;
+    /** The card's context menu, opened by holding it. */
+    menuItems: readonly ActionMenuItem[];
     onPress: (id: string) => void;
+    /**
+     * Measured column width. Null on the first frame, before the grid has laid
+     * out — the card flexes and offers no menu until it has a width of its own,
+     * because the menu hosts it in a SwiftUI view that has no flex to inherit.
+     */
+    width: number | null;
 }
 
 const THUMB_HEIGHT = 40;
@@ -41,10 +50,11 @@ export function BudgetCard({
     budget,
     currency,
     onPress,
-    onLongPress,
+    menuItems,
     burndown,
     contributions,
     nowMs,
+    width,
 }: BudgetCardProps) {
     const { showCents } = useDisplaySettings().state;
     const t = useTranslation();
@@ -60,7 +70,7 @@ export function BudgetCard({
         setChartWidth(event.nativeEvent.layout.width);
     };
 
-    return (
+    const card = (
         <Pressable
             accessibilityLabel={
                 over
@@ -74,9 +84,9 @@ export function BudgetCard({
                       })
             }
             accessibilityRole="button"
-            className="border-border flex-1 gap-2 rounded-xl border p-3 active:opacity-70"
-            onLongPress={() => onLongPress(budget.id)}
+            className="border-border gap-2 rounded-xl border p-3 active:opacity-70"
             onPress={() => onPress(budget.id)}
+            style={width === null ? { flex: 1 } : { width }}
         >
             <View className="flex-row items-center gap-2">
                 <View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
@@ -132,5 +142,13 @@ export function BudgetCard({
                 })} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
             </MonoLabel>
         </Pressable>
+    );
+
+    return width === null ? (
+        card
+    ) : (
+        <ActionMenu items={menuItems} style={{ width }}>
+            {card}
+        </ActionMenu>
     );
 }

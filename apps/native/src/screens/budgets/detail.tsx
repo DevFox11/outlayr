@@ -16,7 +16,7 @@ import {
     shouldShowPaceMarker,
 } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
-import { showBudgetActions } from "@/lib/budget-actions";
+import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
 
@@ -38,14 +38,10 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
         return <View className="bg-background flex-1" />;
     }
 
-    const openActions = () => {
-        showBudgetActions({
-            name: budget.name,
-            onDelete: async () => {
-                await budgetsRepo.deleteBudget(db, budget.id);
-                onDone();
-            },
-            onEdit: () => router.push(`/budgets/edit/${budget.id}`),
+    const requestDelete = () => {
+        confirmDeleteBudget(budget.name, async () => {
+            await budgetsRepo.deleteBudget(db, budget.id);
+            onDone();
         });
     };
 
@@ -86,11 +82,16 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
             />
             <Stack.Screen.Title>{budget.name}</Stack.Screen.Title>
             <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("more")}
-                    accessibilityLabel={t("budgets.action.moreA11y")}
-                    onPress={openActions}
-                />
+                {/* A menu on the bar button, not an alert behind it: these are
+				    neutral choices, and the delete asks its own question. */}
+                <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("budgets.action.moreA11y")}>
+                    <Stack.Toolbar.MenuAction icon="pencil" onPress={() => router.push(`/budgets/edit/${budget.id}`)}>
+                        {t("common.edit")}
+                    </Stack.Toolbar.MenuAction>
+                    <Stack.Toolbar.MenuAction destructive icon="trash" onPress={requestDelete}>
+                        {t("common.delete")}
+                    </Stack.Toolbar.MenuAction>
+                </Stack.Toolbar.Menu>
             </Stack.Toolbar>
         </>
     );

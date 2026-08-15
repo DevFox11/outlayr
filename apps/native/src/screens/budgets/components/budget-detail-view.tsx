@@ -129,7 +129,7 @@ export function BudgetDetailView({
                     currency={currency}
                     rates={rates}
                     onPress={onPressTransaction}
-                    onLongPress={(id) => openRowActions(id, false)}
+                    menuItems={openRowActions(item, false)}
                 />
             )}
         />

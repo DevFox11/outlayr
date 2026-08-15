@@ -4,6 +4,7 @@ import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeabl
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated from "react-native-reanimated";
 
+import type { ActionMenuItem } from "@/components/action-menu";
 import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import type { TransactionWithCategory } from "@/data/transactions";
@@ -12,8 +13,9 @@ import { useTranslation } from "@/i18n/context";
 
 interface SwipeableTransactionRowProps {
     currency: string;
+    /** The row's context menu, opened by holding it. */
+    menuItems: readonly ActionMenuItem[];
     onDelete: (id: string) => void;
-    onLongPress: (id: string) => void;
     onPress: (id: string) => void;
     rates?: RateTable;
     transaction: TransactionWithCategory;
@@ -24,7 +26,7 @@ export function SwipeableTransactionRow({
     currency,
     rates,
     onPress,
-    onLongPress,
+    menuItems,
     onDelete,
 }: SwipeableTransactionRowProps) {
     const swipeRef = useRef<SwipeableMethods>(null);
@@ -55,8 +57,8 @@ export function SwipeableTransactionRow({
             <Animated.View className="bg-background">
                 <TransactionRow
                     currency={currency}
+                    menuItems={menuItems}
                     onDelete={onDelete}
-                    onLongPress={onLongPress}
                     onPress={onPress}
                     rates={rates}
                     transaction={transaction}

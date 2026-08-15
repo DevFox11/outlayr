@@ -11,10 +11,6 @@ const alerts = {
             en: "Delete the overall budget?",
             es: "¿Eliminar tu presupuesto general?",
         }),
-        "alerts.budget.fallbackTitle": t({
-            en: "Overall Budget",
-            es: "Presupuesto general",
-        }),
         "alerts.budget.irreversible": t({
             en: "This action cannot be undone.",
             es: "Esta acción no se puede deshacer.",
@@ -42,10 +38,6 @@ const alerts = {
         "alerts.photo.failed": t({
             en: "Couldn't open your photos. Check Outlayr's permission and try again.",
             es: "No se pudieron abrir tus fotos. Comprueba el permiso de Outlayr e inténtalo de nuevo.",
-        }),
-        "alerts.transaction.fallbackTitle": t({
-            en: "Transaction",
-            es: "Transacción",
         }),
         "alerts.transaction.logAgain": t({
             en: "Log Again",

@@ -94,7 +94,7 @@ function UpcomingContent({ db }: { db: Database }) {
                 <LogUpcoming
                     currency={currency}
                     nowMs={nowMs}
-                    onLongPress={(id) => openRowActions(id, true)}
+                    menuItems={(transaction) => openRowActions(transaction, true)}
                     onPress={(id) => router.push(`/transactions/${id}`)}
                     rates={rates}
                     schedules={upcoming}

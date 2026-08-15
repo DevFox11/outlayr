@@ -54,12 +54,7 @@ const PENDING_CUSTOM = {
 describe("transactionRow", () => {
     it("shows an accessible Rate needed badge for the derived pending custom triple", async () => {
         const { getByLabelText, getByText } = await render(
-            <TransactionRow
-                currency="USD"
-                onLongPress={() => {}}
-                onPress={() => {}}
-                transaction={PENDING_CUSTOM as never}
-            />
+            <TransactionRow currency="USD" onPress={() => {}} transaction={PENDING_CUSTOM as never} />
         );
 
         expect(getByText("log.row.rateNeeded")).toBeTruthy();

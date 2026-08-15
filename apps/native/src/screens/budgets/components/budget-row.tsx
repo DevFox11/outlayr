@@ -5,6 +5,8 @@ import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeabl
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated from "react-native-reanimated";
 
+import { ActionMenu } from "@/components/action-menu";
+import type { ActionMenuItem } from "@/components/action-menu";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -27,11 +29,12 @@ interface BudgetRowProps {
     burndown?: Burndown | null;
     contributions: readonly ExpenseContribution[];
     currency: string;
+    /** The row's context menu, opened by holding it. Omit where there is none. */
+    menuItems?: readonly ActionMenuItem[];
     /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
     nowMs: number;
     /** Runs once the swipe's Delete is confirmed; the row asks the question itself. */
     onDelete: (id: string) => void;
-    onLongPress?: (id: string) => void;
     onPress: (id: string) => void;
 }
 
@@ -45,7 +48,7 @@ export function BudgetRow({
     budget,
     currency,
     onPress,
-    onLongPress,
+    menuItems,
     onDelete,
     burndown,
     contributions,
@@ -116,80 +119,83 @@ export function BudgetRow({
             rightThreshold={40}
         >
             <Animated.View className="bg-background">
-                <Pressable
-                    // Delete otherwise lives only behind the right swipe, which is a pan no
-                    // assistive gesture can perform.
-                    accessibilityActions={[
-                        {
-                            label: t("budgets.row.deleteA11y", { name: budget.name }),
-                            name: DELETE_ACTION,
-                        },
-                    ]}
-                    accessibilityHint={onLongPress ? t("budgets.row.actionsHint") : undefined}
-                    accessibilityRole="button"
-                    className="flex-row items-center gap-3 py-3.5 active:opacity-70"
-                    onAccessibilityAction={(event: AccessibilityActionEvent) => {
-                        if (event.nativeEvent.actionName === DELETE_ACTION) {
-                            requestDelete();
-                        }
-                    }}
-                    onLongPress={onLongPress ? () => onLongPress(budget.id) : undefined}
-                    onPress={() => onPress(budget.id)}
-                >
-                    <View className="flex-1 gap-1">
-                        <View className="flex-row items-center gap-2">
-                            <View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
-                            <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
-                                {budget.name}
-                            </Text>
-                            <Text
-                                className={cn(
-                                    "font-sans-semibold text-body",
-                                    over ? "text-over-budget" : "text-foreground"
-                                )}
-                                numberOfLines={1}
-                                style={{ fontVariant: ["tabular-nums"] }}
-                            >
-                                {formatAmount(difference, currency, showCents, language)}
-                                <Text className="font-sans-medium text-label text-muted">
-                                    {` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
+                <ActionMenu items={menuItems ?? []}>
+                    <Pressable
+                        // Delete otherwise lives only behind the right swipe, which is a pan no
+                        // assistive gesture can perform.
+                        accessibilityActions={[
+                            {
+                                label: t("budgets.row.deleteA11y", { name: budget.name }),
+                                name: DELETE_ACTION,
+                            },
+                        ]}
+                        accessibilityHint={menuItems?.length ? t("budgets.row.actionsHint") : undefined}
+                        accessibilityRole="button"
+                        // The menu lifts this row into its preview, so the row carries the
+                        // ground it is snapshotted against rather than borrowing the list's.
+                        className="bg-background flex-row items-center gap-3 py-3.5 active:opacity-70"
+                        onAccessibilityAction={(event: AccessibilityActionEvent) => {
+                            if (event.nativeEvent.actionName === DELETE_ACTION) {
+                                requestDelete();
+                            }
+                        }}
+                        onPress={() => onPress(budget.id)}
+                    >
+                        <View className="flex-1 gap-1">
+                            <View className="flex-row items-center gap-2">
+                                <View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
+                                <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
+                                    {budget.name}
                                 </Text>
-                            </Text>
-                        </View>
-                        <MonoLabel numberOfLines={1}>{meta}</MonoLabel>
+                                <Text
+                                    className={cn(
+                                        "font-sans-semibold text-body",
+                                        over ? "text-over-budget" : "text-foreground"
+                                    )}
+                                    numberOfLines={1}
+                                    style={{ fontVariant: ["tabular-nums"] }}
+                                >
+                                    {formatAmount(difference, currency, showCents, language)}
+                                    <Text className="font-sans-medium text-label text-muted">
+                                        {` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
+                                    </Text>
+                                </Text>
+                            </View>
+                            <MonoLabel numberOfLines={1}>{meta}</MonoLabel>
 
-                        {isDay && dayVerdict ? (
-                            <Text className="text-foreground text-label pt-1">{dayVerdict}</Text>
+                            {isDay && dayVerdict ? (
+                                <Text className="text-foreground text-label pt-1">{dayVerdict}</Text>
+                            ) : null}
+                        </View>
+
+                        {isDay ? (
+                            <View style={{ width: THUMB_WIDTH }}>
+                                <BudgetDaySlots
+                                    bandOnly
+                                    categoryId={budget.categoryId}
+                                    compact
+                                    contributions={contributions}
+                                    currency={currency}
+                                    limit={budget.amount}
+                                    noun={budget.name}
+                                    nowMs={nowMs}
+                                    window={budget.window}
+                                />
+                            </View>
                         ) : null}
-                    </View>
 
-                    {isDay ? (
-                        <View style={{ width: THUMB_WIDTH }}>
-                            <BudgetDaySlots
-                                bandOnly
-                                categoryId={budget.categoryId}
-                                compact
-                                contributions={contributions}
-                                currency={currency}
+                        {isDay || !burndown ? null : (
+                            <BudgetBurndownChart
+                                burndown={burndown}
+                                domain="limit"
+                                height={THUMB_HEIGHT}
+                                interactive={false}
                                 limit={budget.amount}
-                                noun={budget.name}
-                                nowMs={nowMs}
-                                window={budget.window}
+                                width={THUMB_WIDTH}
                             />
-                        </View>
-                    ) : null}
-
-                    {isDay || !burndown ? null : (
-                        <BudgetBurndownChart
-                            burndown={burndown}
-                            domain="limit"
-                            height={THUMB_HEIGHT}
-                            interactive={false}
-                            limit={budget.amount}
-                            width={THUMB_WIDTH}
-                        />
-                    )}
-                </Pressable>
+                        )}
+                    </Pressable>
+                </ActionMenu>
             </Animated.View>
         </ReanimatedSwipeable>
     );

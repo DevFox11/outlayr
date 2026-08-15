@@ -1,8 +1,9 @@
 import { Alert } from "react-native";
-import type { AlertButton } from "react-native";
 
+import type { ActionMenuItem } from "@/components/action-menu";
 import { stopRecurringPrompt } from "@/domain/transaction-actions";
 import type { TransactionRowActions } from "@/domain/transaction-actions";
+import type { TranslateFn } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
 
 interface TransactionActionsOptions {
@@ -14,6 +15,7 @@ interface TransactionActionsOptions {
     onStopRecurring: () => void;
     /** The row is the charge still to land rather than one already logged. */
     pending: boolean;
+    t: TranslateFn;
 }
 
 export function confirmStopRecurring(note: string, pending: boolean, onConfirm: () => void): void {
@@ -33,9 +35,10 @@ export function confirmStopRecurring(note: string, pending: boolean, onConfirm: 
  *
  * Delete carries no confirmation of its own: it routes through the undo window
  * the swipe action already uses, and a dialog in front of an undoable action is
- * a second ask for the same permission.
+ * a second ask for the same permission. Stop Recurring keeps one, because ending
+ * a schedule is what nothing here can undo.
  */
-export function showTransactionActions({
+export function transactionMenuItems({
     note,
     actions,
     pending,
@@ -43,29 +46,34 @@ export function showTransactionActions({
     onLogAgain,
     onEdit,
     onDelete,
-}: TransactionActionsOptions): void {
-    const buttons: AlertButton[] = [];
+    t,
+}: TransactionActionsOptions): ActionMenuItem[] {
+    const items: ActionMenuItem[] = [];
     if (actions.canLogAgain) {
-        buttons.push({
+        items.push({
+            icon: "doc.on.doc",
+            id: "logAgain",
+            label: t("alerts.transaction.logAgain"),
             onPress: onLogAgain,
-            text: translateNow("alerts.transaction.logAgain"),
         });
     }
     if (actions.canStopRecurring) {
-        buttons.push({
+        items.push({
+            icon: "calendar.badge.minus",
+            id: "stopRecurring",
+            label: t("alerts.transaction.stopRecurring"),
             onPress: () => confirmStopRecurring(note, pending, onStopRecurring),
-            text: translateNow("alerts.transaction.stopRecurring"),
         });
     }
-    buttons.push({ onPress: onEdit, text: translateNow("common.edit") });
+    items.push({ icon: "pencil", id: "edit", label: t("common.edit"), onPress: onEdit });
     if (actions.canDelete) {
-        buttons.push({
+        items.push({
+            destructive: true,
+            icon: "trash",
+            id: "delete",
+            label: t("common.delete"),
             onPress: onDelete,
-            style: "destructive",
-            text: translateNow("common.delete"),
         });
     }
-    buttons.push({ style: "cancel", text: translateNow("common.cancel") });
-
-    Alert.alert(note.trim() || translateNow("alerts.transaction.fallbackTitle"), undefined, buttons);
+    return items;
 }

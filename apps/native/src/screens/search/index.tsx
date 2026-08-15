@@ -87,7 +87,7 @@ function SearchContent({ db }: { db: Database }) {
                     renderItem={({ item }) => (
                         <TransactionRow
                             currency={currency}
-                            onLongPress={(id) => openRowActions(id, false)}
+                            menuItems={openRowActions(item, false)}
                             onPress={(id) => router.push(`/transactions/${id}`)}
                             rates={rates}
                             transaction={item}

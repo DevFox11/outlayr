@@ -1,0 +1,72 @@
+import { describe, expect, it, jest } from "@jest/globals";
+import { Alert } from "react-native";
+
+import type { TransactionRowActions } from "@/domain/transaction-actions";
+import type { TranslateFn } from "@/i18n/context";
+
+import { transactionMenuItems } from "./transaction-actions";
+
+const t: TranslateFn = (key) => key;
+
+const ALL_ALLOWED: TransactionRowActions = { canDelete: true, canLogAgain: true, canStopRecurring: true };
+
+function items(actions: TransactionRowActions, overrides: Partial<Parameters<typeof transactionMenuItems>[0]> = {}) {
+    return transactionMenuItems({
+        actions,
+        note: "Netflix",
+        onDelete: jest.fn(),
+        onEdit: jest.fn(),
+        onLogAgain: jest.fn(),
+        onStopRecurring: jest.fn(),
+        pending: false,
+        t,
+        ...overrides,
+    });
+}
+
+describe("transactionMenuItems", () => {
+    it("orders the whole menu with Edit before the destructive Delete", () => {
+        expect(items(ALL_ALLOWED).map((item) => item.id)).toStrictEqual([
+            "logAgain",
+            "stopRecurring",
+            "edit",
+            "delete",
+        ]);
+    });
+
+    it("leaves only Edit when every guard is closed", () => {
+        const guarded: TransactionRowActions = { canDelete: false, canLogAgain: false, canStopRecurring: false };
+        expect(items(guarded).map((item) => item.id)).toStrictEqual(["edit"]);
+    });
+
+    it("marks Delete destructive and nothing else", () => {
+        const destructive = items(ALL_ALLOWED).filter((item) => item.destructive);
+        expect(destructive.map((item) => item.id)).toStrictEqual(["delete"]);
+    });
+
+    it("deletes outright, because the undo window is the confirmation", () => {
+        const onDelete = jest.fn();
+        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+
+        items(ALL_ALLOWED, { onDelete })
+            .find((item) => item.id === "delete")
+            ?.onPress();
+
+        expect(onDelete).toHaveBeenCalledTimes(1);
+        expect(alertSpy).not.toHaveBeenCalled();
+        alertSpy.mockRestore();
+    });
+
+    it("asks before stopping a schedule, which no undo window catches", () => {
+        const onStopRecurring = jest.fn();
+        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+
+        items(ALL_ALLOWED, { onStopRecurring })
+            .find((item) => item.id === "stopRecurring")
+            ?.onPress();
+
+        expect(onStopRecurring).not.toHaveBeenCalled();
+        expect(alertSpy).toHaveBeenCalledTimes(1);
+        alertSpy.mockRestore();
+    });
+});

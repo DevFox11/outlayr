@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { View } from "react-native";
 
+import type { ActionMenuItem } from "@/components/action-menu";
 import { DayTotal } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { TransactionRow } from "@/components/transaction-row";
@@ -16,7 +17,8 @@ interface LogUpcomingProps {
     currency: string;
     /** Frozen "now", so a row's landing date does not drift mid-session. */
     nowMs: number;
-    onLongPress: (id: string) => void;
+    /** Builds a row's context menu. Every row here is an upcoming occurrence. */
+    menuItems: (transaction: TransactionWithCategory) => readonly ActionMenuItem[];
     onPress: (id: string) => void;
     /**
      * Supplied rather than looked up, so the header converts against the same
@@ -33,15 +35,7 @@ interface LogUpcomingProps {
     transactions: TransactionWithCategory[];
 }
 
-export function LogUpcoming({
-    transactions,
-    schedules,
-    currency,
-    rates,
-    onPress,
-    onLongPress,
-    nowMs,
-}: LogUpcomingProps) {
+export function LogUpcoming({ transactions, schedules, currency, rates, onPress, menuItems, nowMs }: LogUpcomingProps) {
     const { showCents } = useDisplaySettings().state;
     const now = new Date(nowMs);
     const t = useTranslation();
@@ -81,7 +75,7 @@ export function LogUpcoming({
                     future
                     key={transaction.id}
                     landsOn={landingDate(transaction, now)}
-                    onLongPress={onLongPress}
+                    menuItems={menuItems(transaction)}
                     onPress={onPress}
                     rates={rates}
                     transaction={transaction}

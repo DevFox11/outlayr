@@ -16,6 +16,7 @@ import { logPeriodFromStored, storedLogPeriod, useLogInsights, useSparklineRows 
 import type { LogPeriod } from "@/data/log-totals";
 import { setNumberSetting } from "@/data/settings-core";
 import { useLoggedTransactions } from "@/data/transactions";
+import type { TransactionWithCategory } from "@/data/transactions";
 import { LOG_PAGE_DAYS } from "@/data/transactions-core";
 import { logTransferBounds, useLogTransfers } from "@/data/transfer-log";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
@@ -211,13 +212,10 @@ function LogContent({ db }: { db: Database }) {
     // opens a screen with nothing behind it.
     const openRow = (rowId: string) =>
         router.push(transferIds.has(rowId) ? `/transactions/transfers/${rowId}` : `/transactions/${rowId}`);
-    const openRowMenu = (rowId: string, scheduled: boolean) => {
-        if (transferIds.has(rowId)) {
-            openRow(rowId);
-            return;
-        }
-        openRowActions(rowId, scheduled);
-    };
+    // A transfer has no row menu: its actions live on its own screen, and the
+    // hold falls through to opening it.
+    const rowMenu = (transaction: TransactionWithCategory, scheduled: boolean) =>
+        transferIds.has(transaction.id) ? [] : openRowActions(transaction, scheduled);
     const cardOptions = useMemo(
         () => ({ currency, showCents, swapTimeLabel, use24Hour }),
         [currency, showCents, swapTimeLabel, use24Hour]
@@ -364,7 +362,7 @@ function LogContent({ db }: { db: Database }) {
                                 currency={currency}
                                 rates={rates}
                                 onPress={openRow}
-                                onLongPress={(id) => openRowMenu(id, true)}
+                                menuItems={(transaction) => rowMenu(transaction, true)}
                                 nowMs={nowMs}
                             />
                         ) : null}
@@ -375,7 +373,7 @@ function LogContent({ db }: { db: Database }) {
                     <DaySectionHeader
                         section={section}
                         first={sections[0] === section && upcomingRows.length === 0}
-                        onLongPress={() => shareDay(section)}
+                        onShare={() => shareDay(section)}
                     />
                 )}
                 renderItem={({ item }) => (
@@ -384,7 +382,7 @@ function LogContent({ db }: { db: Database }) {
                         currency={currency}
                         rates={rates}
                         onPress={openRow}
-                        onLongPress={(id) => openRowMenu(id, false)}
+                        menuItems={rowMenu(item, false)}
                         onDelete={requestDelete}
                     />
                 )}

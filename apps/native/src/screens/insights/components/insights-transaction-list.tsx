@@ -62,7 +62,7 @@ export function InsightsTransactionList({
         <TransactionRow
             currency={currency}
             key={transaction.id}
-            onLongPress={(id) => openRowActions(id, false)}
+            menuItems={openRowActions(transaction, false)}
             onPress={onPress}
             rates={rates}
             transaction={transaction}
