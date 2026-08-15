@@ -124,6 +124,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
 
     useEffect(() => {
         if (failed) {
+            // oxlint-disable-next-line react/react-compiler -- `hideSplash` calls the native splash API and records that it did; the flag exists because that call is not repeatable, so it cannot be derived.
             hideSplash();
         }
     }, [failed, hideSplash]);

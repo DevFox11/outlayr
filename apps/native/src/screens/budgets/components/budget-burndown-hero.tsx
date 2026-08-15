@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { HeroNumber } from "@/components/amount-text";
@@ -16,6 +16,7 @@ import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
+import { tapGesture } from "@/lib/gestures";
 
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
@@ -100,7 +101,7 @@ export function BudgetBurndownHero({
 
     const openDetail = useMemo(
         () =>
-            Gesture.Tap().onEnd((_event, success) => {
+            tapGesture().onEnd((_event, success) => {
                 "worklet";
                 if (success) {
                     scheduleOnRN(onPress);

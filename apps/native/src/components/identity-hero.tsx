@@ -160,22 +160,22 @@ export function IdentityHero({
     // `isEmpty` and `pickerOpen` are deliberately read as the state at the moment the
     // identity changed; listing them would re-fire the pop when the picker merely
     // opens or closes over an unchanged tile.
-    // oxlint-disable-next-line react/exhaustive-deps -- keyed on the identity string alone, see above
     useEffect(() => {
         const becameEmpty = isEmpty && !wasEmpty.current;
         wasEmpty.current = isEmpty;
         if (becameEmpty) {
             // A reset springs without the overshoot a pick gets.
-            contentOpacity.value = 0;
-            contentOpacity.value = withSpring(1, LAUNCH_SPRING);
+            contentOpacity.set(0);
+            contentOpacity.set(withSpring(1, LAUNCH_SPRING));
             return;
         }
         if (isEmpty || !pickerOpen) {
             return;
         }
-        popScale.value = withSequence(withSpring(POP_SCALE, PRESS_SPRING), withSpring(1, PRESS_SPRING));
-        contentOpacity.value = 0;
-        contentOpacity.value = withTiming(1, { duration: POP_FADE_MS });
+        popScale.set(withSequence(withSpring(POP_SCALE, PRESS_SPRING), withSpring(1, PRESS_SPRING)));
+        contentOpacity.set(0);
+        contentOpacity.set(withTiming(1, { duration: POP_FADE_MS }));
+        // oxlint-disable-next-line react/exhaustive-deps -- keyed on the identity string alone, see above
     }, [identity]);
 
     // A hard swap, not a crossfade: a single threshold read by both heroes means
@@ -191,13 +191,13 @@ export function IdentityHero({
             const p = float?.value ?? 0;
             const grown = 1 + p * (FLOAT_SCALE - 1);
             return {
-                opacity: contentOpacity.value,
-                transform: [{ translateY: p * (floatOffsetY?.value ?? 0) }, { scale: grown * popScale.value }],
+                opacity: contentOpacity.get(),
+                transform: [{ translateY: p * (floatOffsetY?.value ?? 0) }, { scale: grown * popScale.get() }],
             };
         }
         return {
-            opacity: pressOpacity.value * contentOpacity.value,
-            transform: [{ scale: pressScale.value * popScale.value }],
+            opacity: pressOpacity.get() * contentOpacity.get(),
+            transform: [{ scale: pressScale.get() * popScale.get() }],
         };
     });
 
@@ -257,12 +257,12 @@ export function IdentityHero({
                         accessibilityRole="button"
                         onPress={onPress}
                         onPressIn={() => {
-                            pressScale.value = withSpring(0.96, PRESS_SPRING);
-                            pressOpacity.value = withSpring(0.85, PRESS_SPRING);
+                            pressScale.set(withSpring(0.96, PRESS_SPRING));
+                            pressOpacity.set(withSpring(0.85, PRESS_SPRING));
                         }}
                         onPressOut={() => {
-                            pressScale.value = withSpring(1, PRESS_SPRING);
-                            pressOpacity.value = withSpring(1, PRESS_SPRING);
+                            pressScale.set(withSpring(1, PRESS_SPRING));
+                            pressOpacity.set(withSpring(1, PRESS_SPRING));
                         }}
                         style={{ height: HERO_RING, width: HERO_RING }}
                     >

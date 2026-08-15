@@ -565,7 +565,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             } else if (value.pendingCategory) {
                 const pending = value.pendingCategory;
                 try {
-                    categoryId = await createPendingCategory(db, pending, value.income, categoriesRef.current);
+                    categoryId = await createPendingCategory(db, pending, value.income, latest.current.categories);
                 } catch (error) {
                     console.error("Failed to create the pending category", error);
                     flagMissingCategory();
@@ -688,7 +688,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             // which has no equivalent here without hoisting state out of the
             // route.
             if (celebrate) {
-                setBurstSeed(Date.now());
+                // A counter, not a clock: mulberry32 avalanches its seed, so
+                // successive integers decorrelate as well as timestamps do, and
+                // the burst stays reproducible in a test.
+                setBurstSeed((previous) => previous + 1);
             }
             doneTimer.current = setTimeout(onDone, celebrate ? CONFETTI_FLIGHT_MS : 600);
             return await holdSubmitting();
@@ -745,9 +748,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const currency = txCurrency ?? globalCurrency;
     const minorUnits = minorUnitsFor(currency);
     const ratesVersion = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
-    // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
     const rateSuggestions = useMemo(
         () => transactionRateSuggestions(db, currency, date),
+        // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
         [db, currency, date, ratesVersion]
     );
     const rateViewState = transactionRateViewState({
@@ -795,9 +798,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     // roughly half of it too low. Halve it — or measure the top inset directly —
     // before shipping an iPad build.
     const heroRestTop = useDerivedValue(() =>
-        Number.isNaN(heroWinY.value) || containerHeight.value <= 0
+        Number.isNaN(heroWinY.get()) || containerHeight.get() <= 0
             ? HERO_REST_TOP_FALLBACK
-            : heroWinY.value - (windowHeight - containerHeight.value)
+            : heroWinY.get() - (windowHeight - containerHeight.get())
     );
     const scheme = useColorScheme();
     const isDark = scheme === "dark";
@@ -827,7 +830,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         setRateType: (next) => form.setFieldValue("exchangeRateType", next),
     });
     const currencySheetRef = useRef<BottomSheetModal>(null);
-    const categoryField = useCategoryPickerField((picked) => {
+    const {
+        present: presentCategoryPicker,
+        ref: categoryPickerRef,
+        select: selectCategory,
+    } = useCategoryPickerField((picked) => {
         form.setFieldValue("category", picked);
         form.setFieldValue("pendingCategory", null);
         setCategorySource("user");
@@ -835,7 +842,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     });
     const createCategoryNamed = useCallback(
         async (categoryName: string) => {
-            const siblings = categoriesRef.current;
+            const siblings = latest.current.categories;
             const used = new Set(
                 siblings.map((sibling) => sibling.color).filter((color): color is string => color != null)
             );
@@ -850,13 +857,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 );
                 const created = getCategoryById(db, id);
                 if (created != null) {
-                    categoryField.select(created);
+                    selectCategory(created);
                 }
             } catch (error) {
                 console.error("Failed to create the category", error);
             }
         },
-        [db, income, categoryField.select]
+        [db, income, selectCategory]
     );
     const tagSheetRef = useRef<BottomSheetModal>(null);
     const splitSheetRef = useRef<BottomSheetModal>(null);
@@ -898,14 +905,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 name: parent.name as string,
             }));
     }, [categoriesForNamespace]);
-    const categoriesRef = useRef(categoriesForNamespace);
-    useEffect(() => {
-        categoriesRef.current = categoriesForNamespace;
-    }, [categoriesForNamespace]);
-    const tagsRef = useRef(allTags);
-    useEffect(() => {
-        tagsRef.current = allTags;
-    }, [allTags]);
 
     const resolveHistory = useCallback(
         (key: string, forIncome: boolean) => rememberedCategoryFor(db, key, forIncome),
@@ -915,7 +914,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
         let { categoryId, pendingCategory: suggestedCategory } = suggestion;
         if (categoryId == null && suggestedCategory != null) {
-            const matchedCategory = categoriesRef.current.find(
+            const matchedCategory = latest.current.categories.find(
                 (candidate) => candidate.name === suggestedCategory?.name
             );
             if (matchedCategory != null) {
@@ -926,7 +925,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         const resolvedTagIds: string[] = [...suggestion.tagIds];
         const pendingTagNames: string[] = [];
         for (const tagName of suggestion.pendingTagNames) {
-            const matchedTag = findTagByName(tagsRef.current, tagName);
+            const matchedTag = findTagByName(latest.current.allTags, tagName);
             if (matchedTag == null) {
                 pendingTagNames.push(tagName);
             } else {
@@ -942,15 +941,30 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         };
     }, []);
 
-    const identitySourceRef = useRef(identitySource);
-    identitySourceRef.current = identitySource;
-    // Whether the well is already showing something, read at write time rather
-    // than closed over — the seeding effect can fill it while a request is out.
-    const hasIdentityRef = useRef(false);
-    hasIdentityRef.current = Boolean(identity.emoji || identity.icon || identity.photoUri);
     const logoRequestRef = useRef(0);
-    const pickerOpenRef = useRef(pickerOpen);
-    pickerOpenRef.current = pickerOpen;
+    /**
+     * What the well held at the last commit, read at write time rather than
+     * closed over — the seeding effect can fill it while a request is out.
+     * Mirrored in an effect, not during render, which is a side effect the
+     * compiler cannot follow.
+     */
+    const latest = useRef({
+        allTags,
+        categories: categoriesForNamespace,
+        hasIdentity: false,
+        identitySource,
+        pickerOpen,
+    });
+    useEffect(() => {
+        // oxlint-disable-next-line react/react-compiler -- `categories` and `allTags` come from data hooks, and the compiler treats anything holding them as owned by those hooks. Writing a ref inside an effect is exactly where a ref is meant to be written; the alias is what it cannot follow.
+        latest.current = {
+            allTags,
+            categories: categoriesForNamespace,
+            hasIdentity: Boolean(identity.emoji || identity.icon || identity.photoUri),
+            identitySource,
+            pickerOpen,
+        };
+    });
 
     /**
      * A suggested logo stays replaceable: typing on past one merchant to another
@@ -961,11 +975,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const attachLogo = useCallback(
         async (domain: string | null) => {
             const blocked = () =>
-                identitySourceRef.current === "user" ||
-                pickerOpenRef.current ||
+                latest.current.identitySource === "user" ||
+                latest.current.pickerOpen ||
                 // An emoji or photo carried in from `initial`/`copyOf` is a choice
                 // already made; only an empty well or an earlier suggestion moves.
-                (identitySourceRef.current === "initial" && hasIdentityRef.current);
+                (latest.current.identitySource === "initial" && latest.current.hasIdentity);
             if (blocked()) {
                 return;
             }
@@ -984,7 +998,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 // The new merchant resolved to nothing, so the previous merchant's
                 // logo has to go with it — keeping it would caption this entry with
                 // the wrong brand.
-                if (identitySourceRef.current === "suggested") {
+                if (latest.current.identitySource === "suggested") {
                     setIdentitySource("initial");
                     setIdentity((previous) => ({
                         ...previous,
@@ -1022,45 +1036,49 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         [name, setIdentity]
     );
 
-    const applySuggestion = useCallback(
-        (suggestion: EnrichmentSuggestion) => {
-            if (categorySource !== "user") {
-                if (suggestion.categoryId != null) {
-                    const matchedCategory = getCategoryById(db, suggestion.categoryId);
-                    if (matchedCategory != null) {
-                        form.setFieldValue("category", matchedCategory);
-                        form.setFieldValue("pendingCategory", null);
-                        setCategoryError(false);
-                        setCategorySource("suggested");
-                    }
-                } else if (suggestion.pendingCategory != null) {
-                    form.setFieldValue("category", null);
-                    form.setFieldValue("pendingCategory", suggestion.pendingCategory);
+    /*
+     * Not wrapped in `useCallback`: it both reads and sets `categorySource` and
+     * `tagsSource`, which the compiler could not reconcile with a hand-written
+     * dependency list, so it declined to optimize the whole form. Its only
+     * consumer reads it through the enrichment hook's committed snapshot rather
+     * than a dependency array, so the identity is free to change.
+     */
+    const applySuggestion = (suggestion: EnrichmentSuggestion) => {
+        if (categorySource !== "user") {
+            if (suggestion.categoryId != null) {
+                const matchedCategory = getCategoryById(db, suggestion.categoryId);
+                if (matchedCategory != null) {
+                    form.setFieldValue("category", matchedCategory);
+                    form.setFieldValue("pendingCategory", null);
                     setCategoryError(false);
                     setCategorySource("suggested");
-                } else if (categorySource === "suggested") {
-                    // This name has no answer, so the last one's category goes with it
-                    // rather than captioning an entry it has nothing to do with.
-                    form.setFieldValue("category", null);
-                    form.setFieldValue("pendingCategory", null);
-                    setCategorySource("initial");
                 }
+            } else if (suggestion.pendingCategory != null) {
+                form.setFieldValue("category", null);
+                form.setFieldValue("pendingCategory", suggestion.pendingCategory);
+                setCategoryError(false);
+                setCategorySource("suggested");
+            } else if (categorySource === "suggested") {
+                // This name has no answer, so the last one's category goes with it
+                // rather than captioning an entry it has nothing to do with.
+                form.setFieldValue("category", null);
+                form.setFieldValue("pendingCategory", null);
+                setCategorySource("initial");
             }
-            if (tagsSource !== "user") {
-                if (suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0) {
-                    form.setFieldValue("tagIds", [...suggestion.tagIds]);
-                    form.setFieldValue("pendingTagNames", [...suggestion.pendingTagNames]);
-                    setTagsSource("suggested");
-                } else if (tagsSource === "suggested") {
-                    form.setFieldValue("tagIds", []);
-                    form.setFieldValue("pendingTagNames", []);
-                    setTagsSource("initial");
-                }
+        }
+        if (tagsSource !== "user") {
+            if (suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0) {
+                form.setFieldValue("tagIds", [...suggestion.tagIds]);
+                form.setFieldValue("pendingTagNames", [...suggestion.pendingTagNames]);
+                setTagsSource("suggested");
+            } else if (tagsSource === "suggested") {
+                form.setFieldValue("tagIds", []);
+                form.setFieldValue("pendingTagNames", []);
+                setTagsSource("initial");
             }
-            attachLogo(suggestion.domain).catch(() => undefined);
-        },
-        [categorySource, tagsSource, db, form.setFieldValue, attachLogo]
-    );
+        }
+        attachLogo(suggestion.domain).catch(() => undefined);
+    };
 
     const locale = useLocaleTag();
     const regionCode = useRegionCode();
@@ -1253,7 +1271,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             <View
                 className="flex-1"
                 onLayout={(e) => {
-                    containerHeight.value = e.nativeEvent.layout.height;
+                    containerHeight.set(e.nativeEvent.layout.height);
                 }}
             >
                 {/* The curtain is the Host's own BACKGROUND, not a sibling: a view stacked
@@ -1395,7 +1413,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                     labelTint={categoryLabelTint}
                                     onPress={() => {
                                         setPadOpen(false);
-                                        categoryField.present();
+                                        presentCategoryPicker();
                                     }}
                                     pendingCategory={pendingCategory}
                                     shake={categoryShake}
@@ -1707,9 +1725,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     db={db}
                     income={income}
                     onCreate={createCategoryNamed}
-                    onSelect={categoryField.select}
+                    onSelect={selectCategory}
                     pendingCategory={pendingCategory}
-                    ref={categoryField.ref}
+                    ref={categoryPickerRef}
                     selectedId={category?.id ?? null}
                 />
                 <SubscribeFields selector={(s) => ({ date: s.values.date })} store={form.store}>

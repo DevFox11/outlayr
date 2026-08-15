@@ -41,31 +41,32 @@ const EASE_OUT = Easing.bezier(0.19, 1, 0.22, 1);
  */
 function CurrencyGlyph({ symbol }: { symbol: string }) {
     const reduced = useReducedMotion();
-    const [shown, setShown] = useState(symbol);
+    const [spun, setSpun] = useState(symbol);
+    // Reduced motion has no edge to swap at, so the glyph is just the symbol —
+    // derived rather than written back from the effect below.
+    const shown = reduced ? symbol : spun;
     const spin = useSharedValue(0);
 
     useEffect(() => {
-        if (symbol === shown) {
-            return;
-        }
-        if (reduced) {
-            setShown(symbol);
+        if (reduced || symbol === shown) {
             return;
         }
         const commit = (next: string) => {
-            setShown(next);
-            spin.value = -90;
-            spin.value = withTiming(0, { duration: 320, easing: EASE_OUT });
+            setSpun(next);
+            spin.set(-90);
+            spin.set(withTiming(0, { duration: 320, easing: EASE_OUT }));
         };
-        spin.value = withTiming(90, { duration: 160, easing: Easing.in(Easing.ease) }, (finished) => {
-            if (finished) {
-                runOnJS(commit)(symbol);
-            }
-        });
+        spin.set(
+            withTiming(90, { duration: 160, easing: Easing.in(Easing.ease) }, (finished) => {
+                if (finished) {
+                    runOnJS(commit)(symbol);
+                }
+            })
+        );
     }, [symbol, shown, reduced, spin]);
 
     const style = useAnimatedStyle(() => ({
-        transform: [{ perspective: 600 }, { rotateY: `${spin.value}deg` }],
+        transform: [{ perspective: 600 }, { rotateY: `${spin.get()}deg` }],
     }));
 
     return (

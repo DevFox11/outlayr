@@ -205,16 +205,6 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         suggestion: EnrichmentSuggestion;
     } | null>(null);
 
-    const enabledRef = useRef(enabled);
-    enabledRef.current = enabled;
-    const incomeRef = useRef(income);
-    incomeRef.current = income;
-    const treeRef = useRef(categoryTree);
-    treeRef.current = categoryTree;
-    const resolveLocalRef = useRef(resolveLocal);
-    resolveLocalRef.current = resolveLocal;
-    const resolveHistoryRef = useRef(resolveHistory);
-    resolveHistoryRef.current = resolveHistory;
     /**
      * Keyed, because a remote answer can land after the field has moved on to a
      * different merchant — the same reason `emitDomainResult` re-checks the key.
@@ -222,18 +212,43 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const rememberedRef = useRef<{ categoryId: string | null; key: string } | null>(null);
     /** What the tiers last said, so a late ledger answer can be merged onto it. */
     const lastEmittedRef = useRef<{ key: string; suggestion: EnrichmentSuggestion } | null>(null);
-    const onSuggestRef = useRef(onSuggest);
-    onSuggestRef.current = onSuggest;
-    const remoteEnabledRef = useRef(remoteEnabled);
-    remoteEnabledRef.current = remoteEnabled;
-    const localeRef = useRef(locale);
-    localeRef.current = locale;
-    const regionCodeRef = useRef(regionCode);
-    regionCodeRef.current = regionCode;
-    const groundedLookupRef = useRef(groundedLookup);
-    groundedLookupRef.current = groundedLookup;
-    const transportRef = useRef<EnrichmentFn | null | undefined>(transport);
-    transportRef.current = transport;
+
+    /**
+     * The arguments as of the last commit. The lookup pipeline is a chain of
+     * timers and awaits that outlives the render that started it, so every tier
+     * reads the current arguments from here rather than closing over a render's
+     * copy. Mirrored in an effect, not during render: a ref written while
+     * rendering is a side effect the compiler cannot follow, and every read
+     * happens after commit anyway.
+     */
+    const latest = useRef({
+        categoryTree,
+        enabled,
+        groundedLookup,
+        income,
+        locale,
+        onSuggest,
+        regionCode,
+        remoteEnabled,
+        resolveHistory,
+        resolveLocal,
+        transport,
+    });
+    useEffect(() => {
+        latest.current = {
+            categoryTree,
+            enabled,
+            groundedLookup,
+            income,
+            locale,
+            onSuggest,
+            regionCode,
+            remoteEnabled,
+            resolveHistory,
+            resolveLocal,
+            transport,
+        };
+    });
 
     /** Only while the field still holds the merchant the lookup was made for. */
     const rememberedNow = useCallback((): string | null => {
@@ -247,7 +262,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const emit = useCallback(
         (suggestion: EnrichmentSuggestion) => {
             lastEmittedRef.current = { key: merchantKey(nameRef.current), suggestion };
-            onSuggestRef.current(resolveLocalRef.current(withRemembered(suggestion, rememberedNow())));
+            latest.current.onSuggest(latest.current.resolveLocal(withRemembered(suggestion, rememberedNow())));
         },
         [rememberedNow]
     );
@@ -270,12 +285,12 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
      * good enough reason for that to stop being true.
      */
     const recallFromLedger = useCallback(async (key: string) => {
-        const resolve = resolveHistoryRef.current;
+        const resolve = latest.current.resolveHistory;
         if (resolve == null) {
             rememberedRef.current = { categoryId: null, key };
             return;
         }
-        const categoryId = await resolve(key, incomeRef.current);
+        const categoryId = await resolve(key, latest.current.income);
         if (merchantKey(nameRef.current) !== key) {
             return;
         }
@@ -285,25 +300,25 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         }
         const last = lastEmittedRef.current;
         const base = last != null && last.key === key ? last.suggestion : NOTHING;
-        onSuggestRef.current(resolveLocalRef.current(withRemembered(base, categoryId)));
+        latest.current.onSuggest(latest.current.resolveLocal(withRemembered(base, categoryId)));
     }, []);
 
     const resolveTransport = useCallback(
-        () => (transportRef.current === undefined ? enrichmentTransport() : transportRef.current),
+        () => (latest.current.transport === undefined ? enrichmentTransport() : latest.current.transport),
         []
     );
 
     const buildRequest = useCallback(
         (grounded: boolean) => ({
-            categoryTree: treeRef.current.map((branch) => ({
+            categoryTree: latest.current.categoryTree.map((branch) => ({
                 children: [...branch.children],
                 name: branch.name,
             })),
             groundedLookup: grounded,
-            income: incomeRef.current,
-            locale: localeRef.current,
+            income: latest.current.income,
+            locale: latest.current.locale,
             name: nameRef.current.trim(),
-            regionCode: regionCodeRef.current,
+            regionCode: latest.current.regionCode,
         }),
         []
     );
@@ -384,7 +399,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 
     /** A fast result that already carried a domain suppresses this follow-up entirely. */
     const runGroundedFollowUp = useCallback(async () => {
-        if (!groundedLookupRef.current) {
+        if (!latest.current.groundedLookup) {
             return;
         }
         const key = merchantKey(nameRef.current);
@@ -454,7 +469,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             curatedFallback = true;
             curatedFallbackRef.current = { key, suggestion: curatedSuggestion };
         }
-        if (!remoteEnabledRef.current) {
+        if (!latest.current.remoteEnabled) {
             if (!curatedFallback) {
                 emitNothing();
             }
@@ -474,7 +489,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const onNameChange = useCallback(
         (next: string) => {
             nameRef.current = next;
-            if (!enabledRef.current) {
+            if (!latest.current.enabled) {
                 return;
             }
             if (timerRef.current != null) {
@@ -513,6 +528,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 
     useEffect(() => {
         if (!enabled) {
+            // oxlint-disable-next-line react/react-compiler -- teardown is a cancellation, not a derivation: it clears three timers and abandons the in-flight requests, and `pending` reports whether one is outstanding. There is nothing to compute this from during render.
             teardown();
         }
     }, [enabled, teardown]);

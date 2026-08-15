@@ -31,6 +31,7 @@ import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
 import { logMeasureFromStored, storedLogMeasure } from "@/domain/log-measure";
 import type { LogMeasure } from "@/domain/log-measure";
 import { cursorStart } from "@/domain/log-period-cursor";
+import type { CursorUnit } from "@/domain/log-period-cursor";
 import { scopeHasFigures, scopeTotals } from "@/domain/log-scope-figures";
 import { sparklineIsPositive, sparklineRange, sparklineSeries } from "@/domain/log-sparkline";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
@@ -127,7 +128,7 @@ function LogContent({ db }: { db: Database }) {
     // One cursor per period unit, so switching between them leaves each where it
     // was. Seeded once: re-seeding as the clock ticks would step the calendar
     // filters out from under the user.
-    const [cursors, setCursors] = useState<Record<string, Date>>(() => ({
+    const [cursors, setCursors] = useState<Record<CursorUnit, Date>>(() => ({
         day: new Date(nowMs),
         month: new Date(nowMs),
         week: new Date(nowMs),
@@ -142,8 +143,10 @@ function LogContent({ db }: { db: Database }) {
     );
     const activeCategoryId = categoryId ?? filterableCategories[0]?.id ?? null;
 
-    const cursorUnit = filter === "week" || filter === "month" ? filter : "day";
-    const cursor = cursors[cursorUnit] ?? new Date(nowMs);
+    const cursorUnit: CursorUnit = filter === "week" || filter === "month" ? filter : "day";
+    // Every unit is seeded above, so this is a stable reference out of state
+    // rather than a fresh Date each render.
+    const cursor = cursors[cursorUnit];
 
     const { rows: windowRows, reachedEnd } = useLoggedTransactions(db, nowMs, days);
     const transferBounds = useMemo(

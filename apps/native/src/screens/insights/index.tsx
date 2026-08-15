@@ -1,7 +1,7 @@
 import type { MenuAction } from "@expo/ui/community/menu";
 import { Stack, useRouter } from "expo-router";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 
 import { HeroNumber } from "@/components/amount-text";
@@ -308,12 +308,16 @@ function InsightsContent({ db }: { db: Database }) {
     const spendingCalendar = useSpendingCalendar(db, nowMs);
 
     // Both selections name a bucket index and a category that may not survive the
-    // window, period or measure changing.
-    // oxlint-disable-next-line react/exhaustive-deps -- reset keys only
-    useEffect(() => {
+    // window, period or measure changing. Cleared on the change itself rather
+    // than from an effect, so no frame renders the old selection against the new
+    // window.
+    const windowKey = `${offset}|${period}|${measure}`;
+    const [selectionWindow, setSelectionWindow] = useState(windowKey);
+    if (windowKey !== selectionWindow) {
+        setSelectionWindow(windowKey);
         setLockedIndex(null);
         setFilterId(null);
-    }, [offset, period, measure]);
+    }
 
     const step = useCallback((direction: 1 | -1) => {
         setOffset((current) => (direction === 1 ? Math.min(0, current + 1) : current - 1));
@@ -336,27 +340,20 @@ function InsightsContent({ db }: { db: Database }) {
     const scrubBucket = bucketAt(result.buckets, scrubIndex);
     const readBucket = scrubBucket ?? lockedBucket;
 
-    const breakdown = useMemo(
-        () => breakdownFor(result.breakdown, result.rows, result.categoriesById, lockedBucket, measure, nowMs),
-        [lockedBucket, result.breakdown, result.rows, result.categoriesById, measure, nowMs]
-    );
+    const breakdown = breakdownFor(result.breakdown, result.rows, result.categoriesById, lockedBucket, measure, nowMs);
 
     const filteredEntry = filterId ? (breakdown.find((entry) => entry.id === filterId) ?? null) : null;
 
-    const subBreakdown = useMemo(
-        () =>
-            subBreakdownFor(
-                result.rows,
-                result.categoriesById,
-                filterId,
-                lockedBucket,
-                period,
-                measure,
-                nowMs,
-                offset,
-                calendar
-            ),
-        [filterId, lockedBucket, result.rows, result.categoriesById, period, measure, nowMs, offset, calendar]
+    const subBreakdown = subBreakdownFor(
+        result.rows,
+        result.categoriesById,
+        filterId,
+        lockedBucket,
+        period,
+        measure,
+        nowMs,
+        offset,
+        calendar
     );
 
     const totals = { income: result.income, spent: result.spent };
@@ -414,10 +411,7 @@ function InsightsContent({ db }: { db: Database }) {
         applyWindowAction(event, step, () => setOffset(0));
     };
 
-    const listQuery = useMemo(
-        () => windowQuery(lockedBucket, filterId, measure, nowMs, result.start, result.end),
-        [lockedBucket, filterId, measure, nowMs, result.start, result.end]
-    );
+    const listQuery = windowQuery(lockedBucket, filterId, measure, nowMs, result.start, result.end);
 
     const listTransactions = useWindowTransactions(db, listQuery);
     // Held here, not in the list: clearing the chart selection unmounts the list,

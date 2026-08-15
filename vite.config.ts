@@ -204,6 +204,15 @@ export default defineConfig({
                     // the hoisting it is complaining about.
                     "import/first": "off",
                     "import/no-named-as-default-member": "off",
+                    // The compiler never sees these files: it runs as a Babel pass
+                    // over the app bundle, and a suite is not bundled. All 8 reports
+                    // were one shape — a probe whose render body *is* the assertion.
+                    // Counting renders to prove a context does not wake an unrelated
+                    // subscriber, or capturing a hook's return so the test can read
+                    // it, means writing to something outside the component during
+                    // render, which is what the rule exists to find in shipped code.
+                    // It stays on everywhere else in `src/`.
+                    "react/react-compiler": "off",
                     "react/state-in-constructor": "off",
                     "typescript/class-literal-property-style": "off",
                     "typescript/no-explicit-any": "off",

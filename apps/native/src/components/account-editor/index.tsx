@@ -165,12 +165,20 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const [heroBand, setHeroBand] = useState(HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING);
 
     const [identitySource, setIdentitySource] = useState<IdentitySource>("initial");
-    const identitySourceRef = useRef(identitySource);
-    identitySourceRef.current = identitySource;
-    const hasIdentityRef = useRef(false);
-    hasIdentityRef.current = Boolean(draft.emoji || draft.icon || draft.photoUri);
-    const pickerOpenRef = useRef(pickerOpen);
-    pickerOpenRef.current = pickerOpen;
+    /**
+     * What the well held at the last commit. The logo lookup is debounced and
+     * settles long after the render that started it, so `canAttach`/`onClear`
+     * read from here. Mirrored in an effect, not during render, which is a side
+     * effect the compiler cannot follow.
+     */
+    const latest = useRef({ hasIdentity: false, identitySource, pickerOpen });
+    useEffect(() => {
+        latest.current = {
+            hasIdentity: Boolean(draft.emoji || draft.icon || draft.photoUri),
+            identitySource,
+            pickerOpen,
+        };
+    });
 
     // The draft is shared context, so this editor may mount onto another
     // screen's leftovers.
@@ -221,12 +229,14 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const keyboardLift = useSharedValue(0);
     useEffect(() => {
         const show = Keyboard.addListener("keyboardWillShow", (event) => {
-            keyboardLift.value = withTiming(Math.max(0, event.endCoordinates.height - insets.bottom), {
-                duration: event.duration,
-            });
+            keyboardLift.set(
+                withTiming(Math.max(0, event.endCoordinates.height - insets.bottom), {
+                    duration: event.duration,
+                })
+            );
         });
         const hide = Keyboard.addListener("keyboardWillHide", (event) => {
-            keyboardLift.value = withTiming(0, { duration: event.duration });
+            keyboardLift.set(withTiming(0, { duration: event.duration }));
         });
         return () => {
             show.remove();
@@ -234,21 +244,21 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         };
     }, [insets.bottom, keyboardLift]);
     const ctaStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: -keyboardLift.value }],
+        transform: [{ translateY: -keyboardLift.get() }],
     }));
 
     const identity = useAccountIdentity({
         canAttach: () =>
-            identitySourceRef.current !== "user" &&
-            !pickerOpenRef.current &&
+            latest.current.identitySource !== "user" &&
+            !latest.current.pickerOpen &&
             // An identity carried in from the stored row is a choice already made;
             // only an empty well or an earlier suggestion moves.
-            !(identitySourceRef.current === "initial" && hasIdentityRef.current),
+            !(latest.current.identitySource === "initial" && latest.current.hasIdentity),
         enabled: mode === "create",
         groundedLookup,
         locale,
         onClear: () => {
-            if (identitySourceRef.current !== "suggested") {
+            if (latest.current.identitySource !== "suggested") {
                 return;
             }
             setIdentitySource("initial");
@@ -309,7 +319,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     return (
         <View
             onLayout={(e) => {
-                containerHeight.value = e.nativeEvent.layout.height;
+                containerHeight.set(e.nativeEvent.layout.height);
             }}
             style={{ backgroundColor: colors.groupedBackground, flex: 1 }}
         >

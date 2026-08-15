@@ -1,5 +1,4 @@
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
-import { useMemo } from "react";
 import { Alert, View } from "react-native";
 
 import { ChoiceRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
@@ -139,11 +138,8 @@ function NotificationsContent({ db }: { db: Database }) {
     const custom = clampTimeOfDay(settings.number("notificationHour"), settings.number("notificationMinute"));
     const scheduled = reminderTime(option, custom);
 
-    const pickerValue = useMemo(() => {
-        const date = new Date();
-        date.setHours(custom.hour, custom.minute, 0, 0);
-        return date;
-    }, [custom.hour, custom.minute]);
+    const pickerValue = new Date();
+    pickerValue.setHours(custom.hour, custom.minute, 0, 0);
 
     const chooseOption = (next: number) => {
         setNumberSetting(db, "notificationOption", next)

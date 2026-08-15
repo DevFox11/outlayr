@@ -37,11 +37,11 @@ function Arriving({
     const progress = useSharedValue(0);
 
     useEffect(() => {
-        progress.value = withDelay(delay, withTiming(1, { duration, easing: SETTLE }));
+        progress.set(withDelay(delay, withTiming(1, { duration, easing: SETTLE })));
     }, [progress, delay, duration]);
 
     const travel = useAnimatedStyle(() => {
-        const frame = arrivalFrame(progress.value, distance);
+        const frame = arrivalFrame(progress.get(), distance);
         return {
             opacity: frame.opacity,
             transform: [{ translateY: frame.translateY }],
@@ -73,11 +73,11 @@ function Settling({
     const progress = useSharedValue(0);
 
     useEffect(() => {
-        progress.value = withDelay(delay, withTiming(1, { duration, easing: SETTLE }));
+        progress.set(withDelay(delay, withTiming(1, { duration, easing: SETTLE })));
     }, [progress, delay, duration]);
 
     const landing = useAnimatedStyle(() => {
-        const frame = settleFrame(progress.value, from);
+        const frame = settleFrame(progress.get(), from);
         return {
             opacity: frame.opacity,
             transform: [{ scale: frame.scale }],
@@ -108,10 +108,10 @@ function Fading({ children, to, from = 1, style, delay = 0, duration = MARK_MOTI
     const opacity = useSharedValue(from);
 
     useEffect(() => {
-        opacity.value = withDelay(delay, withTiming(to, { duration }));
+        opacity.set(withDelay(delay, withTiming(to, { duration })));
     }, [opacity, to, delay, duration]);
 
-    const dissolve = useAnimatedStyle(() => ({ opacity: opacity.value }));
+    const dissolve = useAnimatedStyle(() => ({ opacity: opacity.get() }));
 
     return <Animated.View style={[style, dissolve]}>{children}</Animated.View>;
 }

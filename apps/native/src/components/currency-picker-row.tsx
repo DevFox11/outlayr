@@ -107,17 +107,17 @@ function SwipeAction({
     // Reports crossings only. Acting mid-drag freezes the row: the close is undone
     // when the gesture settles the lane open, and it can only close again after.
     useAnimatedReaction(
-        () => translation.value <= -threshold,
+        () => translation.get() <= -threshold,
         (next) => {
-            if (next !== armed.value) {
-                armed.value = next;
+            if (next !== armed.get()) {
+                armed.set(next);
                 runOnJS(onArm)(next);
             }
         }
     );
 
     const style = useAnimatedStyle(() => ({
-        width: Math.max(LANE_WIDTH, -translation.value - 12),
+        width: Math.max(LANE_WIDTH, -translation.get() - 12),
     }));
 
     // The lane already follows the finger; what it could not say is when the
@@ -125,7 +125,7 @@ function SwipeAction({
     const glyph = useAnimatedStyle(() => ({
         transform: [
             {
-                scale: withTiming(translation.value <= -threshold ? 1.35 : 1, {
+                scale: withTiming(translation.get() <= -threshold ? 1.35 : 1, {
                     duration: 160,
                     easing: EASE,
                 }),

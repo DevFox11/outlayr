@@ -47,7 +47,7 @@ export function TransactionFormIdentitySection({
                 // then wrap it. Move it after them and the twin rests
                 // HERO_TOP_PADDING too high, ghosting through the crossfade.
                 onGeometryChange((frame) => {
-                    heroWinY.value = frame.y;
+                    heroWinY.set(frame.y);
                 }),
                 padding({ top: HERO_TOP_PADDING }),
                 padding({ bottom: HERO_BOTTOM_PADDING }),

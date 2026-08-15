@@ -122,9 +122,15 @@ export function ImportSheet({ ref }: ImportSheetProps) {
         }
     }, [presented]);
 
-    const previousStepRef = useRef(step);
-    const forward = IMPORT_STEPS.indexOf(step) >= IMPORT_STEPS.indexOf(previousStepRef.current);
-    previousStepRef.current = step;
+    // Which way the step transition animates. Held in state and adjusted on the
+    // change, rather than compared against a ref written during render, which is
+    // a side effect the compiler cannot follow.
+    const [previousStep, setPreviousStep] = useState(step);
+    const [forward, setForward] = useState(true);
+    if (step !== previousStep) {
+        setForward(IMPORT_STEPS.indexOf(step) >= IMPORT_STEPS.indexOf(previousStep));
+        setPreviousStep(step);
+    }
 
     const onDismiss = useCallback(() => {
         setPresented(false);

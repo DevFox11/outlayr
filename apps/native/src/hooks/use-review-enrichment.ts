@@ -47,15 +47,16 @@ export function useReviewEnrichment(entries: readonly ImportEntry[]): ReadonlyMa
             });
         };
         const worker = async () => {
-            for (;;) {
-                const item = queue.shift();
-                if (item == null || cancelled) {
+            let item = queue.shift();
+            while (item != null) {
+                if (cancelled) {
                     return;
                 }
                 const [key, request] = item;
                 // oxlint-disable-next-line no-await-in-loop -- this loop IS the concurrency limit — FETCH_BATCH workers drain one shared queue, so a worker must finish its fetch before it takes the next domain, or every merchant in the file would be requested at once
                 await fetchMerchantImage(request).catch(() => null);
                 settle(key);
+                item = queue.shift();
             }
         };
         for (let i = 0; i < Math.min(FETCH_BATCH, queue.length); i += 1) {

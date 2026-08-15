@@ -67,6 +67,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (accountId == null || settled) {
+            // oxlint-disable-next-line react/react-compiler -- one arm of an async state machine whose other arms settle from awaits; splitting this one out to a derivation would leave the status written from two places.
             setStatus("settled");
             return;
         }

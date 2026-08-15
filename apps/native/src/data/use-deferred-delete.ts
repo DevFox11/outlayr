@@ -42,13 +42,14 @@ export function useDeferredDelete(db: Database): DeferredDelete {
     // Read at commit time rather than captured: the controller outlives any one
     // handle, and a delete must land in the database the screen is on now.
     const dbRef = useRef(db);
-    const controllerRef = useRef<DeferredDeleteController | null>(null);
-
     useEffect(() => {
         dbRef.current = db;
     }, [db]);
 
-    if (controllerRef.current === null) {
+    // A lazy initializer rather than a ref filled in on first render: the
+    // controller is created once and never replaced, and building it during
+    // render is a side effect the compiler cannot follow.
+    const [controller] = useState<DeferredDeleteController>(() => {
         const created = createDeferredDelete({
             commit: async (id) => {
                 const transfer = await transfersRepo.getById(dbRef.current, id);
@@ -77,9 +78,8 @@ export function useDeferredDelete(db: Database): DeferredDelete {
             },
             windowMs: UNDO_WINDOW_MS,
         });
-        controllerRef.current = created;
-    }
-    const controller = controllerRef.current;
+        return created;
+    });
 
     useEffect(() => {
         mountedRef.current = true;

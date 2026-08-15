@@ -1,8 +1,8 @@
-import { Canvas, Circle as SkCircle, Group as SkGroup, Skia, Path as SkPath } from "@shopify/react-native-skia";
+import { Canvas, Circle as SkCircle, Group as SkGroup, Path as SkPath } from "@shopify/react-native-skia";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -12,6 +12,7 @@ import type { InsightsBucket, InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
+import { panGesture } from "@/lib/gestures";
 import { CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -59,17 +60,19 @@ export function InsightsNetChart({
 
     useEffect(() => {
         if (!animated) {
-            draw.value = 1;
+            draw.set(1);
             return;
         }
         if (drawn.current) {
             return;
         }
         drawn.current = true;
-        draw.value = withTiming(1, {
-            duration: CHART_DRAW.durationMs,
-            easing: Easing.out(Easing.cubic),
-        });
+        draw.set(
+            withTiming(1, {
+                duration: CHART_DRAW.durationMs,
+                easing: Easing.out(Easing.cubic),
+            })
+        );
     }, [animated, draw]);
 
     const liveCount = useMemo(() => {
@@ -112,10 +115,10 @@ export function InsightsNetChart({
         const area = `${line} L ${lastX} ${plot.zeroY} L 0 ${plot.zeroY} Z`;
 
         return {
-            axis: Skia.Path.MakeFromSVGString(`M 0 ${plot.zeroY} L ${width} ${plot.zeroY}`),
-            hatch: Skia.Path.MakeFromSVGString(hatchPathD(width, HEIGHT)),
-            line: Skia.Path.MakeFromSVGString(line),
-            surplus: Skia.Path.MakeFromSVGString(area),
+            axis: `M 0 ${plot.zeroY} L ${width} ${plot.zeroY}`,
+            hatch: hatchPathD(width, HEIGHT),
+            line,
+            surplus: area,
         };
     }, [live, plot, width]);
 
@@ -126,7 +129,7 @@ export function InsightsNetChart({
         }
         const x = plot.x(marker);
         const over = CHART_SCRUB.ruleOvershoot;
-        return Skia.Path.MakeFromSVGString(`M ${x} ${PAD.top - over} L ${x} ${HEIGHT - PAD.bottom + over}`);
+        return `M ${x} ${PAD.top - over} L ${x} ${HEIGHT - PAD.bottom + over}`;
     }, [marker, plot, width, live.length]);
 
     const count = live.length;
@@ -142,14 +145,14 @@ export function InsightsNetChart({
                 return;
             }
             const index = Math.min(count - 1, Math.max(0, Math.round(x / step)));
-            if (index !== reported.value) {
-                reported.value = index;
+            if (index !== reported.get()) {
+                reported.set(index);
                 scheduleOnRN(setScrubIndex, index);
                 scheduleOnRN(onScrub, index);
             }
         };
 
-        return Gesture.Pan()
+        return panGesture()
             .minDistance(0)
             .shouldCancelWhenOutside(false)
             .onBegin((event) => {
@@ -162,8 +165,8 @@ export function InsightsNetChart({
             })
             .onFinalize(() => {
                 "worklet";
-                const landed = reported.value;
-                reported.value = -1;
+                const landed = reported.get();
+                reported.set(-1);
                 scheduleOnRN(setScrubIndex, null);
                 scheduleOnRN(onScrub, null);
                 if (landed >= 0) {
@@ -191,7 +194,7 @@ export function InsightsNetChart({
 
                         {geometry?.surplus && geometry.hatch ? (
                             <SkGroup
-                                clip={Skia.XYWHRect(0, plot.zeroY, width, Math.max(0, HEIGHT - plot.zeroY))}
+                                clip={{ height: Math.max(0, HEIGHT - plot.zeroY), width, x: 0, y: plot.zeroY }}
                                 opacity={draw}
                             >
                                 <SkGroup clip={geometry.surplus}>
@@ -208,7 +211,7 @@ export function InsightsNetChart({
                         {/* One path drawn twice, clipped either side of the rule. */}
                         {geometry?.line ? (
                             <>
-                                <SkGroup clip={Skia.XYWHRect(0, 0, width, plot.zeroY)}>
+                                <SkGroup clip={{ height: plot.zeroY, width, x: 0, y: 0 }}>
                                     <SkPath
                                         color={colors.income}
                                         end={draw}
@@ -217,7 +220,9 @@ export function InsightsNetChart({
                                         style="stroke"
                                     />
                                 </SkGroup>
-                                <SkGroup clip={Skia.XYWHRect(0, plot.zeroY, width, Math.max(0, HEIGHT - plot.zeroY))}>
+                                <SkGroup
+                                    clip={{ height: Math.max(0, HEIGHT - plot.zeroY), width, x: 0, y: plot.zeroY }}
+                                >
                                     <SkPath
                                         color={colors.overBudget}
                                         end={draw}

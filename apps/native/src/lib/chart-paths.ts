@@ -1,6 +1,6 @@
 /**
- * SVG path strings shared by the budget charts. Skia parses these with
- * `Skia.Path.MakeFromSVGString`.
+ * SVG path strings shared by the budget charts. Passed straight to a Skia
+ * `<Path path={...}>`, which parses the string itself.
  */
 
 /**

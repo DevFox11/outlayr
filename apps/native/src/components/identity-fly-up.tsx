@@ -51,17 +51,17 @@ export function useFloatOffset({
         // NaN, never <= 0, is the "not measured yet" sentinel: a scrolled hero has a
         // legitimately NEGATIVE form-local centre — it sits above the scroll view's
         // top edge, under the nav bar.
-        if (Number.isNaN(restCenterY.value)) {
+        if (Number.isNaN(restCenterY.get())) {
             return 0;
         }
-        const container = containerHeight.value > 0 ? containerHeight.value : windowHeight;
+        const container = containerHeight.get() > 0 ? containerHeight.get() : windowHeight;
         const sheet = sheetHeight.value > 0 ? sheetHeight.value : container * FIRST_OPEN_DETENT_FRACTION;
         return (
             floatTargetY({
                 containerHeight: container,
                 heroHalf: HERO_HALF,
                 sheetHeight: sheet,
-            }) - restCenterY.value
+            }) - restCenterY.get()
         );
     });
 }
@@ -113,10 +113,10 @@ export function IdentityFlyUpLayer({
     // directions.
     const restLaunchTop = useSharedValue(Number.NaN);
     useAnimatedReaction(
-        () => (floatProgress.value === 0 ? restTop.value : null),
+        () => (floatProgress.value === 0 ? restTop.get() : null),
         (resting) => {
             if (resting !== null) {
-                restLaunchTop.value = resting;
+                restLaunchTop.set(resting);
             }
         },
         []
@@ -125,12 +125,12 @@ export function IdentityFlyUpLayer({
     // reading has to be taken here or the latch would sit at its sentinel until the
     // user happened to scroll.
     useEffect(() => {
-        if (Number.isNaN(restLaunchTop.value)) {
-            restLaunchTop.value = restTop.value;
+        if (Number.isNaN(restLaunchTop.get())) {
+            restLaunchTop.set(restTop.get());
         }
     }, [restLaunchTop, restTop]);
 
-    const restCenterY = useDerivedValue(() => restLaunchTop.value + HERO_RING / 2);
+    const restCenterY = useDerivedValue(() => restLaunchTop.get() + HERO_RING / 2);
     const floatOffsetY = useFloatOffset({ containerHeight, restCenterY });
 
     // A screen showing its own hero is, by definition, not showing a picker.
@@ -147,7 +147,7 @@ export function IdentityFlyUpLayer({
     // fly-up transform lives on a descendant view inside `IdentityHero`, so the two
     // stack instead of colliding.
     const twinStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: restLaunchTop.value }],
+        transform: [{ translateY: restLaunchTop.get() }],
     }));
 
     return (

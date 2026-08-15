@@ -3,15 +3,14 @@ import {
     DashPathEffect,
     Circle as SkCircle,
     Group as SkGroup,
-    Skia,
     Line as SkLine,
     Path as SkPath,
     vec,
 } from "@shopify/react-native-skia";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -26,6 +25,7 @@ import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
+import { panGesture } from "@/lib/gestures";
 import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -105,47 +105,45 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 
     // Opens under the month's total so the curve already crosses it.
     const suggested = useMemo(() => snapToStep(total * 0.8, maxLimit), [total, maxLimit]);
-    const [limit, setLimit] = useState(suggested);
+    // Null until the user drags, so the picker keeps following the suggestion as
+    // the month's total moves rather than needing an effect to re-sync it.
+    const [picked, setPicked] = useState<number | null>(null);
+    const limit = picked ?? suggested;
 
     const limitY = useSharedValue(yForLimit(suggested, axisTop));
     const snapped = useSharedValue(suggested);
     const dragging = useSharedValue(false);
-    const lastCrossing = useRef<number | null>(null);
-    const touched = useRef(false);
+    // Shared rather than a ref because the drag mutates it: a ref written from
+    // the gesture closure is state the compiler cannot follow, and it bailed out
+    // of optimizing the whole component over it.
+    const lastCrossing = useSharedValue<number | null>(null);
 
     useEffect(() => {
-        if (!touched.current) {
-            setLimit(suggested);
-        }
-    }, [suggested]);
-
-    useEffect(() => {
-        lastCrossing.current = crossingDay(cumulative, limit);
+        lastCrossing.set(crossingDay(cumulative, limit));
         // Mid-drag the finger owns the line. This render may be trailing a value the
         // gesture has already left behind, and writing it back would jolt the line.
-        if (dragging.value) {
+        if (dragging.get()) {
             return;
         }
-        limitY.value = yForLimit(limit, axisTop);
-        snapped.value = limit;
-    }, [limit, axisTop, cumulative, limitY, snapped, dragging]);
+        limitY.set(yForLimit(limit, axisTop));
+        snapped.set(limit);
+    }, [limit, axisTop, cumulative, limitY, snapped, dragging, lastCrossing]);
 
     const applyLimit = useCallback(
         (next: number) => {
-            touched.current = true;
             if (sparse) {
                 haptics("selection");
             } else {
                 const crossing = crossingDay(cumulative, next);
-                if (crossing !== lastCrossing.current) {
-                    const turned = lastCrossing.current === null && crossing !== null;
+                if (crossing !== lastCrossing.get()) {
+                    const turned = lastCrossing.get() === null && crossing !== null;
                     haptics(turned ? "medium" : "light");
-                    lastCrossing.current = crossing;
+                    lastCrossing.set(crossing);
                 }
             }
-            setLimit(next);
+            setPicked(next);
         },
-        [cumulative, sparse, haptics]
+        [cumulative, sparse, haptics, lastCrossing]
     );
 
     const pan = useMemo(() => {
@@ -155,21 +153,21 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
             // Inlined: module-scope worklets break this file's Babel transform.
             const stepped = Math.round(raw / LIMIT_STEP) * LIMIT_STEP;
             const next = Math.min(maxLimit, Math.max(LIMIT_STEP, stepped));
-            limitY.value = PLOT_TOP + (1 - next / axisTop) * PLOT_HEIGHT;
+            limitY.set(PLOT_TOP + (1 - next / axisTop) * PLOT_HEIGHT);
             // Only cross to JS when the snapped amount changes, so a full drag costs
             // one call per $25 rather than one per frame.
-            if (next !== snapped.value) {
-                snapped.value = next;
+            if (next !== snapped.get()) {
+                snapped.set(next);
                 scheduleOnRN(applyLimit, next);
             }
         };
 
-        return Gesture.Pan()
+        return panGesture()
             .minDistance(0)
             .shouldCancelWhenOutside(false)
             .onBegin((event) => {
                 "worklet";
-                dragging.value = true;
+                dragging.set(true);
                 report(event.y);
             })
             .onChange((event) => {
@@ -178,7 +176,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
             })
             .onFinalize(() => {
                 "worklet";
-                dragging.value = false;
+                dragging.set(false);
             });
     }, [axisTop, maxLimit, applyLimit, limitY, snapped, dragging]);
 
@@ -195,21 +193,21 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
         const weeksD = weekRulesD(burndown.totalDays, x, PLOT_TOP, bottomY);
 
         return {
-            area: Skia.Path.MakeFromSVGString(`${curveD} L ${x(lastDay)} ${bottomY} L ${x(1)} ${bottomY} Z`),
+            area: `${curveD} L ${x(lastDay)} ${bottomY} L ${x(1)} ${bottomY} Z`,
             bottomY,
-            curve: Skia.Path.MakeFromSVGString(curveD),
-            hatch: Skia.Path.MakeFromSVGString(hatchPathD(width, CHART_HEIGHT)),
+            curve: curveD,
+            hatch: hatchPathD(width, CHART_HEIGHT),
             lastDay,
             plotLeft,
             plotRight,
-            weeks: weeksD ? Skia.Path.MakeFromSVGString(weeksD) : null,
+            weeks: weeksD,
             x,
             y,
         };
     }, [burndown, width, axisTop]);
 
-    const limitLineStart = useDerivedValue(() => vec(geometry.plotLeft, limitY.value));
-    const limitLineEnd = useDerivedValue(() => vec(geometry.plotRight, limitY.value));
+    const limitLineStart = useDerivedValue(() => vec(geometry.plotLeft, limitY.get()));
+    const limitLineEnd = useDerivedValue(() => vec(geometry.plotRight, limitY.get()));
     const crossing = sparse ? null : crossingDay(cumulative, limit);
     const crossingDate =
         crossing == null
@@ -286,7 +284,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 
                             {geometry.area && geometry.hatch && total > limit ? (
                                 <SkGroup clip={geometry.area}>
-                                    <SkGroup clip={Skia.XYWHRect(0, 0, width, limitYCommitted)}>
+                                    <SkGroup clip={{ height: limitYCommitted, width, x: 0, y: 0 }}>
                                         <SkPath
                                             color={withAlpha(colors.overBudget, 0.55)}
                                             path={geometry.hatch}
@@ -305,11 +303,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 
                             <SkPath
                                 color={colors.foreground}
-                                path={
-                                    Skia.Path.MakeFromSVGString(
-                                        `M ${geometry.plotLeft} ${geometry.bottomY} L ${geometry.plotRight} ${geometry.bottomY}`
-                                    ) ?? Skia.Path.Make()
-                                }
+                                path={`M ${geometry.plotLeft} ${geometry.bottomY} L ${geometry.plotRight} ${geometry.bottomY}`}
                                 strokeWidth={1.6}
                                 style="stroke"
                             />
@@ -318,7 +312,12 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
                             {geometry.curve ? (
                                 <>
                                     <SkGroup
-                                        clip={Skia.XYWHRect(0, limitYCommitted, width, CHART_HEIGHT - limitYCommitted)}
+                                        clip={{
+                                            height: CHART_HEIGHT - limitYCommitted,
+                                            width,
+                                            x: 0,
+                                            y: limitYCommitted,
+                                        }}
                                     >
                                         <SkPath
                                             color={colors.foreground}
@@ -327,7 +326,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
                                             style="stroke"
                                         />
                                     </SkGroup>
-                                    <SkGroup clip={Skia.XYWHRect(0, 0, width, limitYCommitted)}>
+                                    <SkGroup clip={{ height: limitYCommitted, width, x: 0, y: 0 }}>
                                         <SkPath
                                             color={colors.overBudget}
                                             path={geometry.curve}
@@ -341,11 +340,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
                             {crossing == null ? null : (
                                 <SkPath
                                     color={withAlpha(colors.overBudget, 0.7)}
-                                    path={
-                                        Skia.Path.MakeFromSVGString(
-                                            `M ${geometry.x(crossing)} ${PLOT_TOP} L ${geometry.x(crossing)} ${geometry.bottomY}`
-                                        ) ?? Skia.Path.Make()
-                                    }
+                                    path={`M ${geometry.x(crossing)} ${PLOT_TOP} L ${geometry.x(crossing)} ${geometry.bottomY}`}
                                     strokeWidth={1}
                                     style="stroke"
                                 >

@@ -44,6 +44,7 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
     }, [db, retry]);
 
     useEffect(() => {
+        // oxlint-disable-next-line react/react-compiler -- an async bootstrap: `recover` awaits the cleanup and reports the outcome, so both writes land well after this effect returns.
         recover();
     }, [recover]);
 

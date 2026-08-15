@@ -27,9 +27,12 @@ const SWEEP_COOLDOWN_MS = 60_000;
 export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database) => void): void {
     const lastSweepAt = useRef(0);
     // Read through a ref so a caller passing an inline closure does not re-arm the
-    // AppState listener on every render.
+    // AppState listener on every render. Mirrored in an effect rather than during
+    // render, which is a side effect the compiler cannot follow.
     const swept = useRef(onSwept);
-    swept.current = onSwept;
+    useEffect(() => {
+        swept.current = onSwept;
+    });
 
     useEffect(() => {
         if (db == null) {

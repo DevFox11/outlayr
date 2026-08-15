@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -17,6 +17,7 @@ import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsMeasure, InsightsPeriod } from "@/data/insights";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { useLanguage } from "@/i18n/context";
+import { panGesture } from "@/lib/gestures";
 import { CHART_BAR, CHART_DASH, CHART_DRAW, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -102,17 +103,19 @@ export function InsightsBarChart({
 
     useEffect(() => {
         if (!animated) {
-            grow.value = 1;
+            grow.set(1);
             return;
         }
         if (drawn.current) {
             return;
         }
         drawn.current = true;
-        grow.value = withTiming(1, {
-            duration: CHART_DRAW.durationMs,
-            easing: Easing.out(Easing.cubic),
-        });
+        grow.set(
+            withTiming(1, {
+                duration: CHART_DRAW.durationMs,
+                easing: Easing.out(Easing.cubic),
+            })
+        );
     }, [animated, grow]);
 
     const gap = gapFor(period);
@@ -148,14 +151,14 @@ export function InsightsBarChart({
             }
             const raw = Math.min(count - 1, Math.floor(x / step));
             const index = Math.min(lastLive, Math.max(0, raw));
-            if (index !== reported.value) {
-                reported.value = index;
+            if (index !== reported.get()) {
+                reported.set(index);
                 scheduleOnRN(setScrubIndex, index);
                 scheduleOnRN(onScrub, index);
             }
         };
 
-        return Gesture.Pan()
+        return panGesture()
             .minDistance(0)
             .shouldCancelWhenOutside(false)
             .onBegin((event) => {
@@ -168,8 +171,8 @@ export function InsightsBarChart({
             })
             .onFinalize(() => {
                 "worklet";
-                const landed = reported.value;
-                reported.value = -1;
+                const landed = reported.get();
+                reported.set(-1);
                 scheduleOnRN(setScrubIndex, null);
                 scheduleOnRN(onScrub, null);
                 if (landed >= 0) {
@@ -324,7 +327,7 @@ function Bar({ value, plot, color, trackColor, grow, dimmed, future, label, sele
     const target = value > 0 ? Math.max(CHART_BAR.minHeight, (value / plot.span) * BAR_AREA) : 0;
 
     const fillStyle = useAnimatedStyle(() => ({
-        height: target * grow.value,
+        height: target * grow.get(),
     }));
 
     return (

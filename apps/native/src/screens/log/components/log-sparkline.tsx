@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { runOnJS, useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
@@ -12,6 +12,7 @@ import type { SparklinePoint } from "@/domain/log-sparkline";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
+import { panGesture } from "@/lib/gestures";
 import { CHART_SCRUB } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -40,17 +41,20 @@ export function LogSparkline({ points, positive, range, byMonth, measure }: LogS
     const animatedCharts = useSettingBool("animatedCharts") && !reduceMotion;
     const [width, setWidth] = useState(0);
     const [scrubIndex, setScrubIndex] = useState<number | null>(null);
-    const [drawn, setDrawn] = useState(!animatedCharts);
+    const [drawnAfterDelay, setDrawnAfterDelay] = useState(false);
+    // With charts off there is nothing to draw in, so the sparkline is simply
+    // already drawn — derived rather than written back from the effect below.
+    const drawn = !animatedCharts || drawnAfterDelay;
 
     const color = positive ? colors.income : colors.danger;
 
     useEffect(() => {
         if (!animatedCharts) {
-            setDrawn(true);
             return;
         }
-        setDrawn(false);
-        const timer = setTimeout(() => setDrawn(true), 100);
+        // oxlint-disable-next-line react/react-compiler -- restarts the draw-in when the setting is switched back on mid-session; without it the line is already drawn and the animation never replays.
+        setDrawnAfterDelay(false);
+        const timer = setTimeout(() => setDrawnAfterDelay(true), 100);
         return () => clearTimeout(timer);
     }, [animatedCharts]);
 
@@ -99,7 +103,7 @@ export function LogSparkline({ points, positive, range, byMonth, measure }: LogS
     const count = points.length;
     const pan = useMemo(
         () =>
-            Gesture.Pan()
+            panGesture()
                 .onUpdate((event) => {
                     "worklet";
                     if (width <= 0 || count < 2) {

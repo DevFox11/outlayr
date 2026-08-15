@@ -267,13 +267,26 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
     const generationRef = useRef(0);
     const partialRef = useRef<PartialResolution | null>(null);
 
+    /*
+     * These three writes have to land in the render that sees the new file, not
+     * in an effect. `run()` is called from an effect in `ResolveStep`, a
+     * descendant — and a child's effects run before its parent's. Deferring the
+     * reset means that call reads `runningRef` still true from the previous
+     * file's in-flight resolution, returns early, and the import sits at idle
+     * with nothing left to re-trigger it. `argsRef` is the same story one step
+     * on: `resolveImport` would label the new file's rows from the old file's
+     * args. The compiler cannot see that ordering, so it is stated here.
+     */
     if (state.fileKey !== args.fileKey) {
+        // oxlint-disable-next-line react/react-compiler -- see above: deferring this reset to an effect hangs the import
         generationRef.current += 1;
+        // oxlint-disable-next-line react/react-compiler -- see above
         runningRef.current = false;
         dispatch({ fileKey: args.fileKey, type: "fileChanged" });
     }
 
     const argsRef = useRef(args);
+    // oxlint-disable-next-line react/react-compiler -- see above: a commit-lagged mirror resolves the new file against the previous file's args
     argsRef.current = args;
 
     const resolveImport = useCallback(async (): Promise<Settlement> => {

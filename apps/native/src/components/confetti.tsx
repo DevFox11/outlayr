@@ -67,17 +67,19 @@ function Piece({
     const progress = useSharedValue(0);
 
     useEffect(() => {
-        progress.value = withDelay(
-            piece.delayMs,
-            withTiming(1, {
-                duration: piece.durationMs,
-                easing: Easing.out(Easing.quad),
-            })
+        progress.set(
+            withDelay(
+                piece.delayMs,
+                withTiming(1, {
+                    duration: piece.durationMs,
+                    easing: Easing.out(Easing.quad),
+                })
+            )
         );
     }, [progress, piece.delayMs, piece.durationMs]);
 
     const style = useAnimatedStyle(() => {
-        const p = progress.value;
+        const p = progress.get();
         return {
             opacity: interpolate(p, [0, 0.06, 0.75, 1], [0, 1, 1, 0]),
             transform: [

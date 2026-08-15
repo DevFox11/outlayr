@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import type { EnrichmentFn } from "@/lib/convex";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
@@ -70,19 +70,19 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
 
     const nameRef = useRef("");
     const ticketRef = useRef(0);
-    const canAttachRef = useRef(canAttach);
-    canAttachRef.current = canAttach;
-    const onLogoRef = useRef(onLogo);
-    onLogoRef.current = onLogo;
-    const onClearRef = useRef(onClear);
-    onClearRef.current = onClear;
-    const fetchImageRef = useRef(fetchImage);
-    fetchImageRef.current = fetchImage;
-    const persistLogoRef = useRef(persistLogo);
-    persistLogoRef.current = persistLogo;
+    /**
+     * The callers as of the last commit. `attach` is a long-lived async chain
+     * that outlives the render that started it, so it reads them from here.
+     * Mirrored in an effect rather than during render: a ref written while
+     * rendering is a side effect the compiler cannot follow.
+     */
+    const latest = useRef({ canAttach, fetchImage, onClear, onLogo, persistLogo });
+    useEffect(() => {
+        latest.current = { canAttach, fetchImage, onClear, onLogo, persistLogo };
+    });
 
     const attach = useCallback(async (domain: string | null) => {
-        const blocked = () => canAttachRef.current?.() === false;
+        const blocked = () => latest.current.canAttach?.() === false;
         if (blocked()) {
             return;
         }
@@ -90,10 +90,10 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
         const ticket = ticketRef.current;
         const stale = () => ticket !== ticketRef.current || blocked();
         if (domain == null) {
-            onClearRef.current();
+            latest.current.onClear();
             return;
         }
-        const outcome = await fetchImageRef.current({
+        const outcome = await latest.current.fetchImage({
             domain,
             name: nameRef.current,
         });
@@ -103,19 +103,19 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
         if (outcome.kind !== "logo") {
             // The new name resolved to nothing, so the previous name's logo has to
             // go with it — keeping it would brand this account wrongly.
-            onClearRef.current();
+            latest.current.onClear();
             return;
         }
         let logo: AccountLogo;
         try {
-            logo = await persistLogoRef.current(outcome.bytes);
+            logo = await latest.current.persistLogo(outcome.bytes);
         } catch {
             return;
         }
         if (stale()) {
             return;
         }
-        onLogoRef.current(logo);
+        latest.current.onLogo(logo);
     }, []);
 
     const onSuggest = useCallback(
@@ -127,7 +127,7 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
 
     const resolveLocal = useCallback((suggestion: EnrichmentSuggestion) => suggestion, []);
 
-    const enrichment = useTransactionEnrichment({
+    const { onNameChange: enrich, pending } = useTransactionEnrichment({
         categoryTree: [],
         enabled,
         groundedLookup,
@@ -143,10 +143,10 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
     const onNameChange = useCallback(
         (next: string) => {
             nameRef.current = next;
-            enrichment.onNameChange(next);
+            enrich(next);
         },
-        [enrichment.onNameChange]
+        [enrich]
     );
 
-    return { onNameChange, pending: enrichment.pending };
+    return { onNameChange, pending };
 }

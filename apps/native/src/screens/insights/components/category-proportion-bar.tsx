@@ -36,11 +36,11 @@ export function CategoryProportionBar({ entries, selectedId, onSelect }: Categor
     const shownTotal = shown.reduce((sum, e) => sum + e.fraction, 0) || 1;
 
     useEffect(() => {
-        progress.value = animated ? withTiming(1, { duration: 550 }) : 1;
+        progress.set(animated ? withTiming(1, { duration: 550 }) : 1);
     }, [animated, progress]);
 
     const revealStyle = useAnimatedStyle(() => ({
-        width: width * progress.value,
+        width: width * progress.get(),
     }));
 
     const onLayout = (event: LayoutChangeEvent) => {

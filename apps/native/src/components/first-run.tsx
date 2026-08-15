@@ -40,15 +40,14 @@ function useRise(active: boolean, delayMs: number, distance = 6) {
         if (!active) {
             return;
         }
-        progress.value = withDelay(
-            reduced ? 0 : delayMs,
-            withTiming(1, { duration: reduced ? FADE_MS : 480, easing: EASE })
+        progress.set(
+            withDelay(reduced ? 0 : delayMs, withTiming(1, { duration: reduced ? FADE_MS : 480, easing: EASE }))
         );
     }, [active, delayMs, reduced, progress]);
 
     return useAnimatedStyle(() => ({
-        opacity: progress.value,
-        transform: [{ translateY: reduced ? 0 : (1 - progress.value) * distance }],
+        opacity: progress.get(),
+        transform: [{ translateY: reduced ? 0 : (1 - progress.get()) * distance }],
     }));
 }
 
@@ -57,15 +56,14 @@ function Ring({ size, targetOpacity, delayMs }: { size: number; targetOpacity: n
     const progress = useSharedValue(0);
 
     useEffect(() => {
-        progress.value = withDelay(
-            reduced ? 0 : delayMs,
-            withTiming(1, { duration: reduced ? FADE_MS : 600, easing: EASE })
+        progress.set(
+            withDelay(reduced ? 0 : delayMs, withTiming(1, { duration: reduced ? FADE_MS : 600, easing: EASE }))
         );
     }, [delayMs, reduced, progress]);
 
     const style = useAnimatedStyle(() => ({
-        opacity: progress.value * targetOpacity,
-        transform: [{ scale: reduced ? 1 : 0.85 + progress.value * 0.15 }],
+        opacity: progress.get() * targetOpacity,
+        transform: [{ scale: reduced ? 1 : 0.85 + progress.get() * 0.15 }],
     }));
 
     return (
@@ -98,22 +96,24 @@ function StageObject({ children, cover }: { children: ReactNode; cover: boolean 
 
     useEffect(() => {
         const arrivalMs = cover ? 480 : 380;
-        progress.value = withTiming(1, {
-            duration: reduced ? FADE_MS : arrivalMs,
-            easing: EASE,
-        });
+        progress.set(
+            withTiming(1, {
+                duration: reduced ? FADE_MS : arrivalMs,
+                easing: EASE,
+            })
+        );
     }, [cover, reduced, progress]);
 
     const style = useAnimatedStyle(() => {
         if (reduced) {
-            return { opacity: progress.value };
+            return { opacity: progress.get() };
         }
         // The cover's mark settles into place; a step's object arrives from a
         // touch above scale, so a push reads as the stage swapping objects.
-        const scale = cover ? 0.92 + progress.value * 0.08 : 1.05 - progress.value * 0.05;
+        const scale = cover ? 0.92 + progress.get() * 0.08 : 1.05 - progress.get() * 0.05;
         return {
-            opacity: progress.value,
-            transform: [{ scale }, { translateY: cover ? (1 - progress.value) * 6 : 0 }],
+            opacity: progress.get(),
+            transform: [{ scale }, { translateY: cover ? (1 - progress.get()) * 6 : 0 }],
         };
     });
 

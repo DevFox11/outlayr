@@ -304,7 +304,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
         if (atExpenseLimit) {
             form.setFieldValue("income", true);
         }
-    }, [mode, parentId, atExpenseLimit, form.setFieldValue]);
+    }, [mode, parentId, atExpenseLimit, form]);
 
     // An add that fills the expense namespace closes the sheet. Keyed on the count
     // CHANGING, not on its value — firing on mount would race the force-income
@@ -419,7 +419,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
     return (
         <View
             onLayout={(e) => {
-                containerHeight.value = e.nativeEvent.layout.height;
+                containerHeight.set(e.nativeEvent.layout.height);
             }}
             style={{
                 backgroundColor: colors.groupedBackground,

@@ -91,15 +91,17 @@ export function IdentityCurtain({ hues }: IdentityCurtainProps) {
     const progress = useSharedValue(revealed);
 
     useEffect(() => {
-        progress.value = withTiming(revealed, {
-            duration: 450,
-            easing: Easing.inOut(Easing.ease),
-        });
+        progress.set(
+            withTiming(revealed, {
+                duration: 450,
+                easing: Easing.inOut(Easing.ease),
+            })
+        );
     }, [revealed, progress]);
 
     const animatedStyle = useAnimatedStyle(() => ({
-        opacity: progress.value,
-        transform: [{ translateY: -HEIGHT * (1 - progress.value) }],
+        opacity: progress.get(),
+        transform: [{ translateY: -HEIGHT * (1 - progress.get()) }],
     }));
 
     // Frozen, never cross-faded: mesh interpolation reads as a horizontal sweep.

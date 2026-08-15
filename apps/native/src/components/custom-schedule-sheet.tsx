@@ -149,6 +149,7 @@ function useRippledCharges(charges: readonly ScheduledCharge[], ready: RefObject
 
         const clamped = charges.some((charge) => charge.clamped);
         if (!ready.current) {
+            // oxlint-disable-next-line react/react-compiler -- the ripple is a timed sequence over the previous list; before it is armed the new dates have to land in one step instead, which is this branch.
             setShown(charges);
             setSwapping([]);
             setNoteVisible(clamped);
@@ -225,6 +226,22 @@ export function CustomScheduleSheet({
     const rippleReady = useRef(false);
 
     /*
+     * Declared above `useRippledCharges` so the disarm lands before that hook's
+     * own effect reads the ref — effects run in call order, and arming is what
+     * decides whether the re-seeded dates ripple.
+     */
+    useEffect(() => {
+        rippleReady.current = false;
+        if (!open) {
+            return;
+        }
+        const armed = setTimeout(() => {
+            rippleReady.current = true;
+        }, 0);
+        return () => clearTimeout(armed);
+    }, [open]);
+
+    /*
      * Re-seeded during render on the closed→open edge, not in an effect: the sheet
      * stays mounted across opens, so a form edit made while it was closed has to
      * land — and landing it a frame later would draw the previous schedule first.
@@ -233,7 +250,6 @@ export function CustomScheduleSheet({
      */
     if (open !== wasOpen) {
         setWasOpen(open);
-        rippleReady.current = false;
         if (open) {
             const next = normalizeSchedule(recurringType, recurringCoefficient);
             setType(next.type);
@@ -248,16 +264,6 @@ export function CustomScheduleSheet({
         [firstPayment, type, coefficient]
     );
     const { shown, swapping, noteVisible } = useRippledCharges(charges, rippleReady);
-
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-        const armed = setTimeout(() => {
-            rippleReady.current = true;
-        }, 0);
-        return () => clearTimeout(armed);
-    }, [open]);
 
     const close = useCallback(() => onOpenChange(false), [onOpenChange]);
 

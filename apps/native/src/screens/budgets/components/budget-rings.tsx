@@ -1,5 +1,5 @@
 import { RingChart } from "panelui-native";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
@@ -75,12 +75,13 @@ export function BudgetRings({ budgets, currency }: BudgetRingsProps) {
     const data = useMemo(() => budgetRingData(budgets), [budgets]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const activeIndex = selectedId === null ? -1 : data.findIndex((ring) => ring.id === selectedId);
-
-    useEffect(() => {
-        if (selectedId !== null && activeIndex === -1) {
-            setSelectedId(null);
-        }
-    }, [activeIndex, selectedId]);
+    // A budget the selection named can leave the list, and dropping it is final:
+    // the ring coming back later does not come back selected. Cleared on the
+    // render that notices rather than from an effect, so no frame paints a
+    // selection against a set that no longer holds it.
+    if (selectedId !== null && activeIndex === -1) {
+        setSelectedId(null);
+    }
 
     if (data.length === 0) {
         return null;

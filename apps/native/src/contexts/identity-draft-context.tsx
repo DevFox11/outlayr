@@ -86,12 +86,12 @@ export function IdentityDraftProvider({ children }: { children: React.ReactNode 
                 haptics("light");
             }
             setPickerOpenState(open);
-            floatProgress.value = withSpring(open ? 1 : 0, open ? LAUNCH_SPRING : RETURN_SPRING);
+            floatProgress.set(withSpring(open ? 1 : 0, open ? LAUNCH_SPRING : RETURN_SPRING));
         },
         [floatProgress, haptics]
     );
 
-    // A JS-side latch instead of reading `sheetHeight.value`: that is a cross-thread
+    // A JS-side latch instead of reading `sheetHeight.get()`: that is a cross-thread
     // read on every sheet layout, and two layouts landing before the UI thread syncs
     // would both still see the 0 sentinel and both hard-set.
     const sheetMeasured = useRef(false);
@@ -101,11 +101,11 @@ export function IdentityDraftProvider({ children }: { children: React.ReactNode 
             // the hero's target through every height in between while it is still
             // flying up.
             if (sheetMeasured.current) {
-                sheetHeight.value = withSpring(height, LAUNCH_SPRING);
+                sheetHeight.set(withSpring(height, LAUNCH_SPRING));
                 return;
             }
             sheetMeasured.current = true;
-            sheetHeight.value = height;
+            sheetHeight.set(height);
         },
         [sheetHeight]
     );

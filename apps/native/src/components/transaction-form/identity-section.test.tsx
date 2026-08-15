@@ -193,7 +193,13 @@ describe("transactionFormIdentitySection", () => {
     });
 
     it("wires the onGeometryChange modifier to write heroWinY", async () => {
-        const heroWinY = { value: Number.NaN } as unknown as SharedValue<number>;
+        let written = Number.NaN;
+        const heroWinY = {
+            get: () => written,
+            set: (next: number) => {
+                written = next;
+            },
+        } as unknown as SharedValue<number>;
         function Probe() {
             const floatProgress = useSharedValue(0);
             return (
@@ -218,7 +224,7 @@ describe("transactionFormIdentitySection", () => {
         expect(modifier).not.toBeNull();
 
         modifier?.eventListener?.({ height: 118, width: 335, x: 0, y: 42 });
-        expect(heroWinY.value).toBe(42);
+        expect(heroWinY.get()).toBe(42);
     });
 
     it("holds hook order across an empty -> filled -> empty re-render sequence", async () => {

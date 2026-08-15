@@ -91,15 +91,17 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 
     const shakeX = useSharedValue(0);
     const shakeStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: shakeX.value }],
+        transform: [{ translateX: shakeX.get() }],
     }));
 
     const shake = () => {
-        shakeX.value = withSequence(
-            withTiming(-8, { duration: 45 }),
-            withTiming(8, { duration: 45 }),
-            withTiming(-6, { duration: 45 }),
-            withTiming(0, { duration: 45 })
+        shakeX.set(
+            withSequence(
+                withTiming(-8, { duration: 45 }),
+                withTiming(8, { duration: 45 }),
+                withTiming(-6, { duration: 45 }),
+                withTiming(0, { duration: 45 })
+            )
         );
     };
 
@@ -179,7 +181,11 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
         onChange: (next) => form.setFieldValue("amount", next),
         value: amount,
     });
-    const categoryField = useCategoryPickerField((picked) => {
+    const {
+        present: presentCategoryPicker,
+        ref: categoryPickerRef,
+        select: selectCategory,
+    } = useCategoryPickerField((picked) => {
         form.setFieldValue("category", picked);
         setMissingCategory(false);
     });
@@ -257,7 +263,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
                                     "flex-row items-center gap-3 rounded-xl border px-3 py-3 active:opacity-70",
                                     missingCategory ? "border-danger" : "border-border"
                                 )}
-                                onPress={categoryField.present}
+                                onPress={presentCategoryPicker}
                             >
                                 {category ? (
                                     <>
@@ -348,8 +354,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
             <CategoryPickerSheet
                 db={db}
                 income={false}
-                onSelect={categoryField.select}
-                ref={categoryField.ref}
+                onSelect={selectCategory}
+                ref={categoryPickerRef}
                 selectedId={category?.id ?? null}
             />
         </View>
