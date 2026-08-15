@@ -1646,6 +1646,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             code={`${currency}/USD`}
                             income={false}
                             minorUnits={RATE_DISPLAY_DECIMALS}
+                            mode="explicitSeparator"
                             onChange={handleRateTextChange}
                             onOpenChange={setRatePadOpen}
                             open={ratePadOpen}

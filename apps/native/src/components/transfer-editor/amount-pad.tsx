@@ -1,10 +1,13 @@
 import { BottomSheet } from "panelui-native";
 
 import { AmountNumpad } from "@/components/amount-numpad";
+import type { NumpadMode } from "@/domain/numpad";
 
 interface TransferEditorAmountPadProps {
     code: string;
     minorUnits: number;
+    /** Passed straight through — see `AmountNumpad`'s own `mode`. */
+    mode?: NumpadMode;
     onChange: (next: string) => void;
     onOpenChange: (open: boolean) => void;
     open: boolean;
@@ -21,6 +24,7 @@ export function TransferEditorAmountPad({
     value,
     minorUnits,
     code,
+    mode,
     onChange,
     onOpenChange,
 }: TransferEditorAmountPadProps) {
@@ -30,6 +34,7 @@ export function TransferEditorAmountPad({
                 <AmountNumpad
                     code={code}
                     minorUnits={minorUnits}
+                    mode={mode}
                     onChange={onChange}
                     showDisplay={false}
                     value={value}

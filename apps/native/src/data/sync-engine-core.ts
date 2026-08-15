@@ -21,7 +21,7 @@ import {
 } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 
-import { getOrCreateDeviceId, getSyncCursor, isSyncEnabled, setSyncCursor } from "./sync-outbox-core";
+import { getOrCreateDeviceId, getSyncCursor, isSyncEnabled, setSyncCursor, SYNCED_META_KEYS } from "./sync-outbox-core";
 import type { SYNCED_TABLES } from "./sync-outbox-core";
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -523,6 +523,20 @@ export interface ApplyResult {
  * Only rows actually written are cleared: a local edit that WON its merge is
  * still owed to the server.
  */
+/**
+ * `appMeta` replicates key by key, so the allow-list has to govern both
+ * directions. A key this build stopped syncing is still on the server and in
+ * every peer's history, and applying it back would let another device reverse a
+ * choice this one now owns. Every other table replicates whole, so membership in
+ * {@link SPECS} is the only question there.
+ */
+function isReplicated(row: PulledRow): boolean {
+    if (!(row.table in SPECS)) {
+        return false;
+    }
+    return row.table !== "appMeta" || SYNCED_META_KEYS.some((key) => key === row.localId);
+}
+
 async function applyInTransaction(
     db: Database,
     page: { rows: readonly PulledRow[]; cursor: number },
@@ -533,7 +547,7 @@ async function applyInTransaction(
 
     const byTable = new Map<SyncedTable, PulledRow[]>();
     for (const row of page.rows) {
-        if (!(row.table in SPECS)) {
+        if (!isReplicated(row)) {
             continue;
         }
         const bucket = byTable.get(row.table) ?? [];
@@ -559,7 +573,7 @@ async function applyInTransaction(
 
     const winners: PulledRow[] = [];
     for (const row of page.rows) {
-        if (!(row.table in SPECS)) {
+        if (!isReplicated(row)) {
             continue;
         }
         const local = existing.get(row.table)?.get(row.localId);

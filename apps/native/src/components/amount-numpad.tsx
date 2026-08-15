@@ -1,13 +1,10 @@
-import { eq } from "drizzle-orm";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { NumberFlow } from "number-flow-react-native";
+import { useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { useLocalData } from "@/contexts/local-data-context";
-import { useLiveQuery } from "@/data/live-query";
-import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings-core";
-import { appMeta } from "@/db/schema";
+import { useSettingNumber } from "@/contexts/display-settings-context";
 import { currencySymbol, numberLocale } from "@/domain/money";
 import { applyNumpadKey, numpadMode, numpadToNumber } from "@/domain/numpad";
 import type { NumpadKey, NumpadMode, NumpadTileKey } from "@/domain/numpad";
@@ -26,27 +23,15 @@ const ROWS: NumpadTileKey[][] = [
     [".", "0", "back"],
 ];
 
-/**
- * The nullable `db` from the context, not `useDatabase()`: the keypad is mounted
- * by sheets whose own callers can sit above the root splash gate. An unread
- * setting resolves to its default, which is the mode the keypad has always had.
- */
-function useNumpadMode(): NumpadMode {
-    const { db } = useLocalData();
-    const rows = useLiveQuery(
-        appMeta,
-        () =>
-            db === null
-                ? { all: (): { value: string | null }[] => [] }
-                : db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, "numberEntryType")),
-        [db]
-    );
-    return numpadMode(parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS.numberEntryType));
-}
-
 interface AmountNumpadProps {
     code: string;
     minorUnits: number;
+    /**
+     * Overrides `numberEntryType`. For a field that is not money — an exchange
+     * rate — where "the last two digits are cents" describes nothing the user
+     * is typing, so the money preference must not reach it.
+     */
+    mode?: NumpadMode;
     onChange: (next: string) => void;
     /** Off where the caller already shows the figure above the keys. */
     showDisplay?: boolean;
@@ -54,21 +39,44 @@ interface AmountNumpadProps {
     value: string;
 }
 
-export function AmountNumpad({ value, minorUnits, code, toneClass, onChange, showDisplay = true }: AmountNumpadProps) {
+export function AmountNumpad({
+    value,
+    minorUnits,
+    code,
+    toneClass,
+    mode: modeOverride,
+    onChange,
+    showDisplay = true,
+}: AmountNumpadProps) {
     const colors = useColors();
     const haptics = useHaptics();
     const t = useTranslation();
     const { language } = useLanguage();
-    const mode = useNumpadMode();
+    const preference = useSettingNumber("numberEntryType");
+    const mode = modeOverride ?? numpadMode(preference);
     const locale = numberLocale(language);
     const symbol = currencySymbol(code);
     const amountColor = toneClass?.includes("income") ? colors.income : colors.foreground;
+
+    /**
+     * What the last press produced, and the `value` it was built from. `value`
+     * is a render-time prop, so two presses landing inside one commit window
+     * would both read the string from before the first of them and the earlier
+     * keystroke would be lost — a dropped digit is a tenfold error under
+     * `preDotted`. Keyed on the base rather than cleared on a timer so it stops
+     * applying the moment a render catches up. Every caller stores what it is
+     * handed verbatim; one that declined a keystroke would need to say so.
+     */
+    const chained = useRef<{ base: string; next: string } | null>(null);
 
     const press = (key: NumpadKey) => {
         // A long press has no tell of its own beyond the amount resetting, and
         // `keyTap` is silent below the excessive haptics level.
         haptics(key === "clear" ? "medium" : "keyTap");
-        onChange(applyNumpadKey(value, key, minorUnits, mode));
+        const current = chained.current?.base === value ? chained.current.next : value;
+        const next = applyNumpadKey(current, key, minorUnits, mode);
+        chained.current = { base: value, next };
+        onChange(next);
     };
 
     return (

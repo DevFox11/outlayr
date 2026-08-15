@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import {
     ImpactFeedbackStyle,
     impactAsync,
@@ -9,9 +8,7 @@ import {
 import { useCallback } from "react";
 
 import { useLocalData } from "@/contexts/local-data-context";
-import { useLiveQuery } from "@/data/live-query";
-import { parseIntSetting, SETTING_DEFAULTS } from "@/data/settings-core";
-import { appMeta } from "@/db/schema";
+import { useNumberSetting } from "@/data/settings";
 import { hapticPlay } from "@/domain/haptics";
 import type { HapticEvent } from "@/domain/haptics";
 
@@ -28,25 +25,16 @@ const NOTIFICATION = {
 } as const;
 
 /**
- * `useNumberSetting` takes an open `Database`, and `IdentityDraftProvider` sits
- * above the root splash gate — `useDatabase()` there throws on the first frame
- * of every launch. `null` resolves to silence rather than to the default, so
- * "no setting was read" can never mean "tap anyway".
+ * The nullable `db` rather than `useDatabase()`: `IdentityDraftProvider` sits
+ * above the root splash gate, where that throws on the first frame of every
+ * launch. `null` resolves to silence rather than to the default, so "no setting
+ * was read" can never mean "tap anyway" — which is why this cannot be
+ * `useSettingNumber`, whose unread value is the default.
  */
 function useHapticsLevel(): number | null {
     const { db } = useLocalData();
-    const rows = useLiveQuery(
-        appMeta,
-        () =>
-            db === null
-                ? { all: (): { value: string | null }[] => [] }
-                : db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, "haptics")),
-        [db]
-    );
-    if (db === null) {
-        return null;
-    }
-    return parseIntSetting(rows[0]?.value ?? null, SETTING_DEFAULTS.haptics);
+    const level = useNumberSetting(db, "haptics");
+    return db === null ? null : level;
 }
 
 /**

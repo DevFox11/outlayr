@@ -1,11 +1,15 @@
 import { BottomSheet } from "panelui-native";
 
+import type { NumpadMode } from "@/domain/numpad";
+
 import { AmountNumpad } from "../amount-numpad";
 
 interface TransactionFormAmountPadProps {
     code: string;
     income: boolean;
     minorUnits: number;
+    /** Passed straight through — see `AmountNumpad`'s own `mode`. */
+    mode?: NumpadMode;
     onChange: (next: string) => void;
     onOpenChange: (open: boolean) => void;
     open: boolean;
@@ -18,6 +22,7 @@ export function TransactionFormAmountPad({
     minorUnits,
     code,
     income,
+    mode,
     onChange,
     onOpenChange,
 }: TransactionFormAmountPadProps) {
@@ -27,6 +32,7 @@ export function TransactionFormAmountPad({
                 <AmountNumpad
                     code={code}
                     minorUnits={minorUnits}
+                    mode={mode}
                     onChange={onChange}
                     showDisplay={false}
                     toneClass={income ? "text-income" : "text-foreground"}

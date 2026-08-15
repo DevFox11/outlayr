@@ -330,6 +330,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
             <TransferEditorAmountPad
                 code={draft.toCurrency}
                 minorUnits={RATE_DISPLAY_DECIMALS}
+                mode="explicitSeparator"
                 onChange={draft.setCustomRate}
                 onOpenChange={(next) => !next && setPad(null)}
                 open={pad === "rate"}

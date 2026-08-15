@@ -65,7 +65,6 @@ export const SYNCED_META_KEYS = [
     "use24HourClock",
     "firstWeekday",
     "firstDayOfMonth",
-    "numberEntryType",
     "haptics",
     "logInsightsTimeFrame",
     "logInsightsType",
@@ -77,7 +76,11 @@ export const SYNCED_META_KEYS = [
     // phone at night and a tablet in daylight want different answers, and the
     // default already follows each device on its own. `accentColor` above it is
     // the opposite: which colour the app *is* belongs to the person, like their
-    // currency. `biometricLock` and the `notification*` keys describe a
+    // currency. `numberEntryType` describes a thumb on a keypad, and it sits
+    // beside `haptics` in the settings screen for that reason — a phone typed
+    // one-handed and a tablet typed with both want different answers, and
+    // replicating it let a second device silently reverse a choice made here.
+    // `biometricLock` and the `notification*` keys describe a
     // permission this handset holds and another may have been refused; the `sync*` keys and
     // `ledgerAdoption` describe this device's own replication identity, so
     // replicating them would hand every device the same one; `firstLaunch`,

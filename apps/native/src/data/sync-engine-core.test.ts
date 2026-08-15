@@ -684,6 +684,22 @@ describe("applyPulledRows", () => {
         await expect(getMeta(db, META_KEYS.currency)).resolves.toBe("JPY");
     });
 
+    // A key dropped from the allow-list is still on the server and in every
+    // peer's history. Without the inbound guard, the first pull after the
+    // handset made its own choice would hand that choice back to whichever
+    // device wrote it last.
+    it("ignores an incoming meta key the allow-list no longer names", async () => {
+        await setMeta(db, "numberEntryType", "1");
+
+        const result = await applyPulledRows(db, {
+            cursor: 1,
+            rows: [metaRow("numberEntryType", 1, 9000, "2")],
+        });
+
+        await expect(getMeta(db, "numberEntryType")).resolves.toBe("1");
+        expect(result.tables).toStrictEqual([]);
+    });
+
     it("reports the tables it wrote so the caller can invalidate them", async () => {
         const result = await applyPulledRows(db, {
             cursor: 2,

@@ -162,6 +162,13 @@
       "when": 1786606508464,
       "tag": "0022_accent_color_synced",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1786606568464,
+      "tag": "0023_number_entry_device_local",
+      "breakpoints": true
     }
   ]
 }
