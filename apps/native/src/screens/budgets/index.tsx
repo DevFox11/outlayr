@@ -19,6 +19,7 @@ import {
 } from "@/data/budgets";
 import { useCategoryMeta } from "@/data/categories";
 import { useSavingsGoals } from "@/data/savings-goals";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { buildBurndown } from "@/domain/budget-burndown";
@@ -65,8 +66,11 @@ function BudgetContent({ db }: { db: Database }) {
     // One transactions subscription for the screen: every hook below derives from
     // this list rather than opening its own listener.
     const contributions = useExpenseContributions(db, nowMs);
-    const main = useMainBudget(db, nowMs, contributions);
-    const budgets = usePerCategoryBudgets(db, nowMs, contributions);
+    const { pendingId, requestDelete } = useDeferredDelete("budget");
+    const mainRow = useMainBudget(db, nowMs, contributions);
+    const main = mainRow?.id === pendingId ? null : mainRow;
+    const allBudgets = usePerCategoryBudgets(db, nowMs, contributions);
+    const budgets = useMemo(() => allBudgets.filter((budget) => budget.id !== pendingId), [allBudgets, pendingId]);
     const mainBurndown = useBurndown(contributions, nowMs, main, null);
     const dominant = useDominant(db, contributions, main, nowMs);
     const burndowns = useBurndowns(contributions, nowMs, budgets);
@@ -100,16 +104,6 @@ function BudgetContent({ db }: { db: Database }) {
         [contributions, monthWindow]
     );
 
-    // The write is async and the action sheet is already gone by the time it lands,
-    // so an unhandled rejection would leave the budget sitting in the list with
-    // nothing said about why the delete did not take.
-    const deleteBudget = (id: string) => {
-        budgetsRepo.deleteBudget(db, id).catch((cause: unknown) => {
-            console.error("Failed to delete the budget", cause);
-            notifyFailure({ body: t("budgets.delete.failedBody"), title: t("budgets.delete.failedTitle") });
-        });
-    };
-
     const createMainBudget = async (amount: number) => {
         try {
             await budgetsRepo.createMainBudget(db, {
@@ -128,8 +122,7 @@ function BudgetContent({ db }: { db: Database }) {
 
     const menuItems = (budget: CategoryBudgetView) =>
         budgetMenuItems({
-            name: budget.name,
-            onDelete: () => deleteBudget(budget.id),
+            onDelete: () => requestDelete(budget.id),
             onEdit: () => router.push(`/budgets/edit/${budget.id}`),
             t,
         });
@@ -199,7 +192,7 @@ function BudgetContent({ db }: { db: Database }) {
                                     key={budget.id}
                                     menuItems={menuItems(budget)}
                                     nowMs={nowMs}
-                                    onDelete={deleteBudget}
+                                    onDelete={requestDelete}
                                     onPress={(id) => router.push(`/budgets/${id}`)}
                                 />
                             ))}

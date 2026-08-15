@@ -22,6 +22,7 @@ import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { LocalDataProvider, useDatabase, useLocalData } from "@/contexts/local-data-context";
 import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
+import { DeferredDeleteProvider } from "@/data/use-deferred-delete";
 import { rootStackGroup } from "@/domain/auth-gate";
 import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
 import { localShellReady, routeSettled } from "@/domain/splash-gate";
@@ -424,11 +425,13 @@ export default function RootLayout() {
                     <LanguageProvider>
                         <CloudRuntimeProvider>
                             <LocalDataProvider>
-                                <AppSettingsProvider>
-                                    <IdentityDraftProvider>
-                                        <RootNavigator fontsLoaded={fontsLoaded} />
-                                    </IdentityDraftProvider>
-                                </AppSettingsProvider>
+                                <DeferredDeleteProvider>
+                                    <AppSettingsProvider>
+                                        <IdentityDraftProvider>
+                                            <RootNavigator fontsLoaded={fontsLoaded} />
+                                        </IdentityDraftProvider>
+                                    </AppSettingsProvider>
+                                </DeferredDeleteProvider>
                             </LocalDataProvider>
                         </CloudRuntimeProvider>
                     </LanguageProvider>

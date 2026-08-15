@@ -72,8 +72,8 @@ export function BudgetDetailView({
     const db = useDatabase();
     const { displayCurrency, rates } = useValuation(db);
     const nowMs = useNow();
-    const { pendingId, requestDelete } = useDeferredDelete(db);
-    const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+    const { pendingId, requestDelete } = useDeferredDelete("row");
+    const openRowActions = useTransactionRowActions(nowMs, requestDelete);
     // Only the list drops the row being deleted. The summary above it is computed
     // by the caller from the same window and catches up when the write lands, the
     // same way the Log's header trails its own list.

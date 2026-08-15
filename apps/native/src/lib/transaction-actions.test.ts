@@ -13,12 +13,10 @@ const ALL_ALLOWED: TransactionRowActions = { canDelete: true, canLogAgain: true,
 function items(actions: TransactionRowActions, overrides: Partial<Parameters<typeof transactionMenuItems>[0]> = {}) {
     return transactionMenuItems({
         actions,
-        note: "Netflix",
         onDelete: jest.fn(),
         onEdit: jest.fn(),
         onLogAgain: jest.fn(),
         onStopRecurring: jest.fn(),
-        pending: false,
         t,
         ...overrides,
     });
@@ -57,7 +55,7 @@ describe("transactionMenuItems", () => {
         alertSpy.mockRestore();
     });
 
-    it("asks before stopping a schedule, which no undo window catches", () => {
+    it("stops a schedule outright too — that write is held for the same window", () => {
         const onStopRecurring = jest.fn();
         const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 
@@ -65,8 +63,8 @@ describe("transactionMenuItems", () => {
             .find((item) => item.id === "stopRecurring")
             ?.onPress();
 
-        expect(onStopRecurring).not.toHaveBeenCalled();
-        expect(alertSpy).toHaveBeenCalledTimes(1);
+        expect(onStopRecurring).toHaveBeenCalledTimes(1);
+        expect(alertSpy).not.toHaveBeenCalled();
         alertSpy.mockRestore();
     });
 });

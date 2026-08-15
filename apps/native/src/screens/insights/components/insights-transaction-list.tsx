@@ -44,7 +44,7 @@ export function InsightsTransactionList({
     const db = useDatabase();
     const { rates } = useValuation(db);
     const nowMs = useNow();
-    const openRowActions = useTransactionRowActions(db, nowMs, onRequestDelete);
+    const openRowActions = useTransactionRowActions(nowMs, onRequestDelete);
     const rows = useMemo(
         () => transactions.filter((transaction) => transaction.id !== pendingDeleteId),
         [transactions, pendingDeleteId]

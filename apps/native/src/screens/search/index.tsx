@@ -48,8 +48,8 @@ function SearchContent({ db }: { db: Database }) {
     const { showCents } = useDisplaySettings().state;
     const [query, setQuery] = useState("");
     const nowMs = useNow();
-    const { pendingId, requestDelete } = useDeferredDelete(db);
-    const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+    const { pendingId, requestDelete } = useDeferredDelete("row");
+    const openRowActions = useTransactionRowActions(nowMs, requestDelete);
 
     const found = useSearchedTransactions(db, query, nowMs);
     const rows = useMemo(() => found.filter((row) => row.id !== pendingId), [found, pendingId]);

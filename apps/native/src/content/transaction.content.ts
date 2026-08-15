@@ -111,14 +111,6 @@ const transaction = {
             en: "Save Changes",
             es: "Guardar cambios",
         }),
-        "transaction.delete.body": t({
-            en: "This action cannot be undone.",
-            es: "Esta acción no se puede deshacer.",
-        }),
-        "transaction.delete.title": t({
-            en: "Delete transaction?",
-            es: "¿Eliminar transacción?",
-        }),
         "transaction.edit.title": t({
             en: "Edit Transaction",
             es: "Editar transacción",
@@ -548,6 +540,10 @@ const transaction = {
         "transaction.stopRecurring.failedTitle": t({
             en: "Still recurring",
             es: "La recurrencia sigue activa",
+        }),
+        "transaction.stopRecurring.stopped": t({
+            en: "Recurring stopped",
+            es: "Recurrencia detenida",
         }),
         "transaction.tags.create": t({
             en: 'Add "{name}"',

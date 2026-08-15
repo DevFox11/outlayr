@@ -23,8 +23,8 @@ import {
     tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
-import { memo, useCallback } from "react";
-import { Alert, View } from "react-native";
+import { memo, useCallback, useMemo } from "react";
+import { View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
@@ -35,12 +35,11 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountBalance, useAccounts } from "@/data/accounts";
-import { accountsRepo } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { notifyFailure } from "@/lib/notify";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
@@ -74,7 +73,9 @@ function AccountsReady({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
     const colors = useColors();
-    const rows = useAccounts(db);
+    const all = useAccounts(db);
+    const { pendingId, requestDelete } = useDeferredDelete("account");
+    const rows = useMemo(() => all.filter((account) => account.id !== pendingId), [all, pendingId]);
     const rowGround = groupedRows(colors);
 
     const openDetail = useCallback(
@@ -87,25 +88,14 @@ function AccountsReady({ db }: { db: Database }) {
         [router]
     );
 
-    const confirmDelete = useCallback(
+    // The row goes now and the write is held for the undo window, so the toast is
+    // the only thing standing between the swipe and the delete — the body says
+    // what the row taking itself off the list does not.
+    const deleteAccount = useCallback(
         (account: Account) => {
-            Alert.alert(t("accounts.delete.title", { name: account.name }), t("accounts.delete.message"), [
-                { style: "cancel", text: t("common.cancel") },
-                {
-                    onPress: () => {
-                        accountsRepo.softDelete(db, account.id).catch(() => {
-                            notifyFailure({
-                                body: t("accounts.error.generic"),
-                                title: t("accounts.error.deleteTitle"),
-                            });
-                        });
-                    },
-                    style: "destructive",
-                    text: t("common.delete"),
-                },
-            ]);
+            requestDelete(account.id, t("accounts.undo.body"));
         },
-        [db, t]
+        [requestDelete, t]
     );
 
     return (
@@ -136,7 +126,7 @@ function AccountsReady({ db }: { db: Database }) {
                                     colors={colors}
                                     db={db}
                                     key={account.id}
-                                    onDelete={confirmDelete}
+                                    onDelete={deleteAccount}
                                     onOpen={openDetail}
                                 />
                             ))}

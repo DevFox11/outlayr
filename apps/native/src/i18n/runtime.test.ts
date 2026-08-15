@@ -24,6 +24,6 @@ describe("translateNow", () => {
 
     it("interpolates params", () => {
         setRuntimeLanguage("en");
-        expect(translateNow("alerts.budget.deleteNamed", { name: "Rent" })).toBe("Delete the 'Rent' budget?");
+        expect(translateNow("categories.inherits", { parent: "Food" })).toBe("Inherits Food's color.");
     });
 });

@@ -10,13 +10,12 @@ import {
 import { eq } from "drizzle-orm";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
-import { Alert } from "react-native";
 
 import { groupedList, groupedRows } from "@/components/native/styles";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { useLiveQuery } from "@/data/live-query";
-import { transfersRepo } from "@/data/transfers-core";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { transactions, transfers } from "@/db/schema";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -33,6 +32,7 @@ export default function TransferDetail({ id }: { id: string }) {
     const { language } = useLanguage();
     const colors = useColors();
     const accounts = useAccounts(db);
+    const { requestDelete } = useDeferredDelete("row");
 
     const rows = useLiveQuery(transfers, () => db.select().from(transfers).where(eq(transfers.id, id)), [id]);
     const feeRows = useLiveQuery(
@@ -49,18 +49,12 @@ export default function TransferDetail({ id }: { id: string }) {
         return null;
     }
 
-    const confirmDelete = () => {
-        Alert.alert(t("transfers.delete.title"), t("transfers.delete.message"), [
-            { style: "cancel", text: t("common.cancel") },
-            {
-                onPress: async () => {
-                    await transfersRepo.softDelete(db, id);
-                    router.back();
-                },
-                style: "destructive",
-                text: t("transfers.delete.confirm"),
-            },
-        ]);
+    // No confirmation in front of it: the write is held for the undo window and
+    // the toast that offers it is mounted at the app root, so it survives this
+    // screen going away — which it does immediately.
+    const deleteTransfer = () => {
+        requestDelete(id);
+        router.back();
     };
 
     return (
@@ -125,7 +119,7 @@ export default function TransferDetail({ id }: { id: string }) {
                     <HStack
                         modifiers={[
                             hitArea(outline.rectangle()),
-                            onTapGesture(confirmDelete),
+                            onTapGesture(deleteTransfer),
                             accessibilityElement("combine"),
                             accessibilityAddTraits(["isButton"]),
                             accessibilityLabel(t("transfers.delete.row")),

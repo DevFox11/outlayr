@@ -115,6 +115,10 @@ const common = {
             en: "Tomorrow",
             es: "Mañana",
         }),
+        "common.undo": t({
+            en: "Undo",
+            es: "Deshacer",
+        }),
         "common.yesterday": t({
             en: "Yesterday",
             es: "Ayer",

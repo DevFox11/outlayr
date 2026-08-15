@@ -1,5 +1,3 @@
-import type { TranslationKey } from "@/i18n/catalog";
-
 import { RECURRING_TYPE } from "./recurrence";
 
 export interface TransactionRowActionContext {
@@ -80,26 +78,5 @@ export function logAgainDraft(source: LogAgainDraft): LogAgainDraft {
         icon: source.icon,
         income: source.income,
         note: source.note,
-    };
-}
-
-export interface ConfirmCopy {
-    messageKey: TranslationKey;
-    /** Interpolated into `titleKey` when the row carries a note. */
-    note: string | null;
-    titleKey: TranslationKey;
-}
-
-/**
- * `pending` separates the two shapes a carrier takes: a future-dated row is the
- * next charge itself and still lands, while a past-dated one is already on the
- * ledger and only its schedule goes.
- */
-export function stopRecurringPrompt(note: string, pending: boolean): ConfirmCopy {
-    const named = note.trim();
-    return {
-        messageKey: pending ? "alerts.transaction.stopPending" : "alerts.transaction.stopSettled",
-        note: named || null,
-        titleKey: named ? "alerts.transaction.stopNamed" : "alerts.transaction.stopUnnamed",
     };
 }

@@ -18,7 +18,6 @@ import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import { BUDGET_TYPE, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { useHaptics } from "@/lib/use-haptics";
 
 import { BudgetBurndownChart } from "./budget-burndown-chart";
@@ -33,7 +32,7 @@ interface BudgetRowProps {
     menuItems?: readonly ActionMenuItem[];
     /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
     nowMs: number;
-    /** Runs once the swipe's Delete is confirmed; the row asks the question itself. */
+    /** Takes the row off the list and starts its undo window. No confirmation. */
     onDelete: (id: string) => void;
     onPress: (id: string) => void;
 }
@@ -88,10 +87,6 @@ export function BudgetRow({
         .filter(Boolean)
         .join(" · ");
 
-    const requestDelete = () => {
-        confirmDeleteBudget(budget.name, () => onDelete(budget.id));
-    };
-
     const renderRightActions = () => (
         <Pressable
             accessibilityLabel={t("budgets.row.deleteA11y", { name: budget.name })}
@@ -100,7 +95,7 @@ export function BudgetRow({
             onPress={() => {
                 haptics("heavy");
                 swipeRef.current?.close();
-                requestDelete();
+                onDelete(budget.id);
             }}
         >
             <Text className="font-sans-semibold text-subtitle text-white">{t("budgets.action.delete")}</Text>
@@ -136,7 +131,7 @@ export function BudgetRow({
                         className="bg-background flex-row items-center gap-3 py-3.5 active:opacity-70"
                         onAccessibilityAction={(event: AccessibilityActionEvent) => {
                             if (event.nativeEvent.actionName === DELETE_ACTION) {
-                                requestDelete();
+                                onDelete(budget.id);
                             }
                         }}
                         onPress={() => onPress(budget.id)}

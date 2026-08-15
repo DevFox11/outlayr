@@ -60,8 +60,8 @@ function UpcomingContent({ db }: { db: Database }) {
     // Unlimited whatever the 14-day toggle says, matching Swift's
     // `limitedMode: false` and the promise the footer above makes.
     const scheduled = useUpcomingTransactions(db, nowMs, false);
-    const { pendingId, requestDelete } = useDeferredDelete(db);
-    const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+    const { pendingId, requestDelete } = useDeferredDelete("row");
+    const openRowActions = useTransactionRowActions(nowMs, requestDelete);
     // A row waiting on the undo toast is already gone as far as the figures go,
     // or the monthly cost keeps charging for a subscription the user just deleted.
     const upcoming = scheduled.rows.filter((row) => row.id !== pendingId);

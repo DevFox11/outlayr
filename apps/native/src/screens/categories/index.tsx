@@ -33,7 +33,7 @@ import { PlusSignIcon } from "@hugeicons-pro/core-stroke-rounded";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, PlatformColor, View } from "react-native";
+import { PlatformColor, View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
@@ -49,6 +49,7 @@ import { useCategoriesByNamespace, useCategoryTotals } from "@/data/categories";
 import { categoriesRepo, suggestedCategoriesNotAdded } from "@/data/categories-core";
 import type { Category, CategoryWithChildren, SuggestedCategoryPreset } from "@/data/categories-core";
 import { setBoolSetting } from "@/data/settings-core";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -127,6 +128,30 @@ const EMPTY_TEXT = font({
     textStyle: "body",
     weight: "medium",
 });
+
+/**
+ * Takes the row inside its undo window out of the tree, laid out the way the
+ * write will leave it: deleting a parent re-parents its subcategories to the top
+ * level, so they are promoted here rather than vanishing with it and popping
+ * back somewhere else ten seconds later.
+ */
+function usePendingRemoved(parents: CategoryWithChildren[], pendingId: string | null): CategoryWithChildren[] {
+    return useMemo(() => {
+        if (pendingId === null) {
+            return parents;
+        }
+        return parents.flatMap((parent) => {
+            if (parent.id === pendingId) {
+                return parent.children.map((child) => ({ ...child, children: [] }));
+            }
+            if (!parent.children.some((child) => child.id === pendingId)) {
+                return [parent];
+            }
+            return [{ ...parent, children: parent.children.filter((child) => child.id !== pendingId) }];
+        });
+    }, [parents, pendingId]);
+}
+
 export function Categories({ income }: { income: boolean }) {
     const db = useDatabase();
     return <CategoriesReady db={db} income={income} />;
@@ -138,7 +163,9 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
     const colors = useColors();
     const currency = useGlobalCurrency(db);
     const showSuggestions = useAppSettings().state.bool("categorySuggestions");
-    const parents = useCategoriesByNamespace(db, income);
+    const namespace = useCategoriesByNamespace(db, income);
+    const { pendingId, requestDelete } = useDeferredDelete("category");
+    const parents = usePendingRemoved(namespace, pendingId);
     const totals = useCategoryTotals(db);
     const rowGround = groupedRows(colors);
 
@@ -194,20 +221,10 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
         });
     };
 
-    const confirmDelete = (category: Category, hasChildren: boolean) => {
-        const message = t(hasChildren ? "categories.delete.messageWithChildren" : "categories.delete.message", {
-            name: category.name,
-        });
-        Alert.alert(t("categories.delete.title", { name: category.name }), message, [
-            { style: "cancel", text: t("common.cancel") },
-            {
-                onPress: () => {
-                    categoriesRepo.remove(db, category.id);
-                },
-                style: "destructive",
-                text: t("common.delete"),
-            },
-        ]);
+    // The row goes now and the write is held for the undo window, so the toast is
+    // the only thing left to state the cascade the confirmation used to carry.
+    const deleteCategory = (category: Category, hasChildren: boolean) => {
+        requestDelete(category.id, t(hasChildren ? "categories.undo.bodyWithChildren" : "categories.undo.body"));
     };
 
     const addSuggested = (preset: SuggestedCategoryPreset) => {
@@ -258,7 +275,7 @@ function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
                                     income={income}
                                     key={parent.id}
                                     onAddChild={goToNewChild}
-                                    onDelete={confirmDelete}
+                                    onDelete={deleteCategory}
                                     onEdit={goToEdit}
                                     parent={parent}
                                     totals={totals}

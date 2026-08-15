@@ -4,7 +4,8 @@ import { View } from "react-native";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { budgetsRepo, useCategoryBudget } from "@/data/budgets";
+import { useCategoryBudget } from "@/data/budgets";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
@@ -16,7 +17,6 @@ import {
     shouldShowPaceMarker,
 } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
-import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
 
@@ -27,6 +27,7 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
     const nowMs = useNow();
     const [periodOffset, setPeriodOffset] = useState(0);
     const { budget, transactions, periodsBack } = useCategoryBudget(db, id, nowMs, periodOffset);
+    const { requestDelete } = useDeferredDelete("budget");
 
     useEffect(() => {
         if (budget === null) {
@@ -38,11 +39,12 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
         return <View className="bg-background flex-1" />;
     }
 
-    const requestDelete = () => {
-        confirmDeleteBudget(budget.name, async () => {
-            await budgetsRepo.deleteBudget(db, budget.id);
-            onDone();
-        });
+    // Left rather than waited on: the write is held for the undo window, so the
+    // budget is still readable and this screen would otherwise sit on a row it has
+    // already taken off the list behind it.
+    const deleteBudget = () => {
+        requestDelete(budget.id);
+        onDone();
     };
 
     const now = new Date(nowMs);
@@ -88,7 +90,7 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
                     <Stack.Toolbar.MenuAction icon="pencil" onPress={() => router.push(`/budgets/edit/${budget.id}`)}>
                         {t("common.edit")}
                     </Stack.Toolbar.MenuAction>
-                    <Stack.Toolbar.MenuAction destructive icon="trash" onPress={requestDelete}>
+                    <Stack.Toolbar.MenuAction destructive icon="trash" onPress={deleteBudget}>
                         {t("common.delete")}
                     </Stack.Toolbar.MenuAction>
                 </Stack.Toolbar.Menu>

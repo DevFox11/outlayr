@@ -31,21 +31,9 @@ const transfers = {
             en: "Nothing would arrive — the fee takes it all",
             es: "No llegaría nada: la comisión se lo lleva todo",
         }),
-        "transfers.delete.confirm": t({
-            en: "Delete",
-            es: "Eliminar",
-        }),
-        "transfers.delete.message": t({
-            en: "Both balances go back to what they were. Its fee, if it had one, goes with it.",
-            es: "Ambos saldos vuelven a lo que eran. Su comisión, si tenía, se va con ella.",
-        }),
         "transfers.delete.row": t({
             en: "Delete Transfer",
             es: "Eliminar transferencia",
-        }),
-        "transfers.delete.title": t({
-            en: "Delete this transfer?",
-            es: "¿Eliminar esta transferencia?",
         }),
         "transfers.detail.arrived": t({
             en: "Arrived",

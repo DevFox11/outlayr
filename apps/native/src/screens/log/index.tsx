@@ -188,7 +188,7 @@ function LogContent({ db }: { db: Database }) {
     );
     const sparkline = useSparkline(db, nowMs, logViewLineGraph, measure, period, firstWeekday, currency, rates);
     const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
-    const { pendingId, requestDelete } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete("row");
 
     const listRows = useMemo(() => {
         if (filter === "transfers") {
@@ -207,7 +207,7 @@ function LogContent({ db }: { db: Database }) {
         [filter, visibleRows, currency, rates]
     );
 
-    const openRowActions = useTransactionRowActions(db, nowMs, requestDelete);
+    const openRowActions = useTransactionRowActions(nowMs, requestDelete);
     // A transfer id is not a transaction id: routing it to `transactions/[id]`
     // opens a screen with nothing behind it.
     const openRow = (rowId: string) =>
@@ -229,7 +229,13 @@ function LogContent({ db }: { db: Database }) {
         : filterScopeLabel(t, filter, activeCategoryId ? categoryMeta.get(activeCategoryId)?.name : null, income);
 
     const showUpcomingSection = filter === "upcoming" || (filter === "all" && showUpcoming);
-    const upcomingRows = showUpcomingSection ? upcoming.rows : [];
+    // Filtered on `pendingId` like the day sections are: a future-dated row is
+    // drawn here rather than below, so without this a delete of one leaves it on
+    // screen for the whole undo window, under a toast saying it is gone.
+    const upcomingRows = useMemo(
+        () => (showUpcomingSection ? upcoming.rows.filter((row) => row.id !== pendingId) : []),
+        [showUpcomingSection, upcoming.rows, pendingId]
+    );
     const emptyResult = sections.length === 0 && (filter !== "upcoming" || upcomingRows.length === 0);
 
     // One setting behind both headers: the promoted figure must not depend on

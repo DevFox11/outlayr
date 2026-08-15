@@ -390,6 +390,10 @@ const budgets = {
             en: "Budgets",
             es: "Presupuestos",
         }),
+        "budgets.undo.deleted": t({
+            en: "Budget deleted",
+            es: "Presupuesto eliminado",
+        }),
         "budgets.widget.none": t({
             en: "No budget yet",
             es: "Aún sin presupuesto",

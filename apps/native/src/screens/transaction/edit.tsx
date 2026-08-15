@@ -1,17 +1,18 @@
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
-import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
+import { getTransactionById } from "@/data/transactions-core";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useTranslation } from "@/i18n/context";
 
 export function EditTransaction({ id }: { id: string }) {
     const router = useRouter();
     const db = useDatabase();
     const t = useTranslation();
+    const { requestDelete } = useDeferredDelete("row");
     // Read once, synchronously, while mounting: the database is already open (the
     // splash gate guarantees it) and the driver runs on the JS thread, so the row
     // is in hand for the very first render — the form never mounts empty.
@@ -23,26 +24,15 @@ export function EditTransaction({ id }: { id: string }) {
         }
     }, [initial, router]);
 
-    const confirmDelete = () => {
+    // No confirmation in front of it: the write is held for the undo window and
+    // the toast that offers it is mounted at the app root, so it survives this
+    // screen going away — which it does immediately.
+    const deleteTransaction = () => {
         if (!id) {
             return;
         }
-        Alert.alert(
-            t("transaction.delete.title"),
-            t("transaction.delete.body"),
-            [
-                { style: "cancel", text: t("common.cancel") },
-                {
-                    onPress: async () => {
-                        await transactionsRepo.remove(db, id);
-                        router.back();
-                    },
-                    style: "destructive",
-                    text: t("common.delete"),
-                },
-            ],
-            { cancelable: true }
-        );
+        requestDelete(id);
+        router.back();
     };
 
     if (initial == null) {
@@ -64,7 +54,7 @@ export function EditTransaction({ id }: { id: string }) {
                 db={db}
                 initial={initial}
                 mode="edit"
-                onDelete={confirmDelete}
+                onDelete={deleteTransaction}
                 onDone={() => router.back()}
             />
         </>

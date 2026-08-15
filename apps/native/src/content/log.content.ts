@@ -215,14 +215,6 @@ const log = {
             en: "Income",
             es: "Ingreso",
         }),
-        "log.undo.accessibility": t({
-            en: "Undo delete",
-            es: "Deshacer eliminación",
-        }),
-        "log.undo.action": t({
-            en: "Undo",
-            es: "Deshacer",
-        }),
         "log.undo.deleted": t({
             en: "Log deleted",
             es: "Registro eliminado",

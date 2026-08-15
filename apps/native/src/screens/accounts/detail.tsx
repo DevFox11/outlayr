@@ -17,6 +17,7 @@ import { useAccountTransfers } from "@/data/account-transfers";
 import { useAccountBalanceDetails, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import type { TransactionWithCategory } from "@/data/transactions";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
 import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
@@ -35,9 +36,12 @@ export function AccountDetail({ id }: { id: string }) {
 function AccountDetailReady({ db, id }: { db: Database; id: string }) {
     const router = useRouter();
     const accounts = useAccounts(db);
-    const account = accounts.find((row) => row.id === id) ?? null;
+    // A delete from the edit sheet holds its write for the undo window, so the row
+    // is still readable here. Pending counts as gone, or this screen sits on a
+    // doomed account and then pops on its own ten seconds later.
+    const { pendingId } = useDeferredDelete("account");
+    const account = accounts.find((row) => row.id === id && row.id !== pendingId) ?? null;
 
-    // A deletion from the edit sheet leaves this screen pointing at a tombstone.
     useEffect(() => {
         if (account == null) {
             router.back();

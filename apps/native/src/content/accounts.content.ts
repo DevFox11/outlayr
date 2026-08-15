@@ -51,17 +51,9 @@ const accounts = {
             en: "Balance history. Approximately {amount} on {date}.",
             es: "Historial del saldo. Aproximadamente {amount} el {date}.",
         }),
-        "accounts.delete.message": t({
-            en: "Its transactions are kept — they just stop belonging to an account.",
-            es: "Sus transacciones se conservan; solo dejan de pertenecer a una cuenta.",
-        }),
         "accounts.delete.row": t({
             en: "Delete Account",
             es: "Eliminar cuenta",
-        }),
-        "accounts.delete.title": t({
-            en: "Delete ‘{name}’?",
-            es: "¿Eliminar ‘{name}’?",
         }),
         "accounts.detail.empty": t({
             en: "Nothing attached yet — this account's transactions will gather here.",
@@ -151,6 +143,14 @@ const accounts = {
         "accounts.title": t({
             en: "Accounts",
             es: "Cuentas",
+        }),
+        "accounts.undo.body": t({
+            en: "Its transactions are kept — they just stop belonging to an account.",
+            es: "Sus transacciones se conservan; solo dejan de pertenecer a una cuenta.",
+        }),
+        "accounts.undo.deleted": t({
+            en: "Account deleted",
+            es: "Cuenta eliminada",
         }),
     },
     key: "accounts" as const,

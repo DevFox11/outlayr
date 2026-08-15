@@ -109,6 +109,10 @@ jest.mock("@/data/accounts", () => ({
     ],
 }));
 
+jest.mock("@/data/use-deferred-delete", () => ({
+    useDeferredDelete: () => ({ pendingId: null, requestDelete: jest.fn() }),
+}));
+
 jest.mock("@/data/account-transfers", () => ({
     useAccountTransfers: () => mockTransfers(),
 }));

@@ -4,13 +4,8 @@ import { View } from "react-native";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useGlobalCurrency } from "@/data/app-meta";
-import {
-    budgetsRepo,
-    useBudgetContributions,
-    useExpenseContributions,
-    useMainBudget,
-    windowEndMs,
-} from "@/data/budgets";
+import { useBudgetContributions, useExpenseContributions, useMainBudget, windowEndMs } from "@/data/budgets";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import {
@@ -22,7 +17,6 @@ import {
     shouldShowPaceMarker,
 } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
-import { confirmDeleteBudget } from "@/lib/budget-actions";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
 
@@ -40,6 +34,7 @@ function MainBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) 
     const currency = useGlobalCurrency(db);
     const nowMs = useNow();
     const [periodOffset, setPeriodOffset] = useState(0);
+    const { requestDelete } = useDeferredDelete("budget");
     const contributions = useExpenseContributions(db, nowMs);
     const budget = useMainBudget(db, nowMs, contributions, periodOffset);
     const transactions = useBudgetContributions(
@@ -59,11 +54,13 @@ function MainBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) 
         return <View className="bg-background flex-1" />;
     }
 
-    const confirmDelete = () => {
-        confirmDeleteBudget(null, async () => {
-            await budgetsRepo.deleteMainBudget(db, budget.id);
-            onDone();
-        });
+    // No confirmation in front of it: the write is held for the undo window. This
+    // screen leaves rather than waiting on it, because the budget is still
+    // readable and it would otherwise sit on a row already gone from the list
+    // behind it.
+    const deleteBudget = () => {
+        requestDelete(budget.id);
+        onDone();
     };
 
     const now = new Date(nowMs);
@@ -105,7 +102,7 @@ function MainBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) 
                 <Stack.Toolbar.Button
                     {...toolbarIcon("delete")}
                     accessibilityLabel={t("budgets.action.delete")}
-                    onPress={confirmDelete}
+                    onPress={deleteBudget}
                     tintColor={Color.ios.systemRed}
                 />
             </Stack.Toolbar>

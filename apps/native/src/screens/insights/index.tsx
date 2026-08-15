@@ -417,7 +417,7 @@ function InsightsContent({ db }: { db: Database }) {
     // and the hook flushes its pending write on unmount — so a delete owned down
     // there would commit the instant the row's own list went away, before the undo
     // window had run and before the toast offering it could be tapped.
-    const { pendingId, requestDelete } = useDeferredDelete(db);
+    const { pendingId, requestDelete } = useDeferredDelete("row");
     // Only a single day reads better ungrouped — every row would share one header.
     const listGrouped = !(lockedBucket && period !== "year");
 

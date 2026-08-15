@@ -1,10 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { EN } from "@/i18n/catalog";
-import { interpolate } from "@/i18n/translate";
-
 import { RECURRING_TYPE } from "./recurrence";
-import { logAgainDraft, stopRecurringPrompt, transactionRowActions } from "./transaction-actions";
+import { logAgainDraft, transactionRowActions } from "./transaction-actions";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
@@ -201,41 +198,5 @@ describe("logAgainDraft", () => {
             income: false,
             note: "",
         });
-    });
-});
-
-describe("stopRecurringPrompt", () => {
-    const render = (note: string, pending: boolean) => {
-        const copy = stopRecurringPrompt(note, pending);
-        return {
-            message: EN[copy.messageKey],
-            title: interpolate(EN[copy.titleKey], { note: copy.note ?? undefined }),
-        };
-    };
-
-    it("names the entry it is about to stop", () => {
-        expect(render("Netflix", false).title).toBe("Stop recurring 'Netflix'?");
-    });
-
-    it("falls back to a plain title when the entry has no note", () => {
-        expect(render("  ", false).title).toBe("Stop recurring?");
-    });
-
-    it("carries no note to interpolate when the entry has none", () => {
-        expect(stopRecurringPrompt("  ", false).note).toBeNull();
-    });
-
-    it("says the scheduled charge still lands when the row is the pending one", () => {
-        const { message } = render("Netflix", true);
-
-        expect(message).toMatch(/still lands/);
-        expect(message).toMatch(/Nothing is logged after it/);
-    });
-
-    it("promises entries already logged survive when the row has settled", () => {
-        const { message } = render("Netflix", false);
-
-        expect(message).toMatch(/no longer be logged automatically/);
-        expect(message).toMatch(/already logged are kept/);
     });
 });

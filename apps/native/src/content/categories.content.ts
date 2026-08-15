@@ -43,18 +43,6 @@ const categories = {
             en: "{count} subcategories",
             es: "{count} subcategorías",
         }),
-        "categories.delete.message": t({
-            en: "This can't be undone. All {name} transactions will be deleted too.",
-            es: "Esto no se puede deshacer. Se eliminarán también todas las transacciones de {name}.",
-        }),
-        "categories.delete.messageWithChildren": t({
-            en: "This can't be undone. {name} transactions will be deleted; its subcategories will be moved to the top level.",
-            es: "Esto no se puede deshacer. Las transacciones de {name} se eliminarán; sus subcategorías se moverán al nivel superior.",
-        }),
-        "categories.delete.title": t({
-            en: "Delete ‘{name}’?",
-            es: "¿Eliminar ‘{name}’?",
-        }),
         "categories.empty.expense": t({
             en: "No expense categories found, click the ‘New’ button to add some",
             es: "No se encontraron categorías de gastos; toca el botón ‘Nuevo’ para agregar algunas",
@@ -62,6 +50,10 @@ const categories = {
         "categories.empty.income": t({
             en: "No income categories found, click the ‘New’ button to add some",
             es: "No se encontraron categorías de ingresos; toca el botón ‘Nuevo’ para agregar algunas",
+        }),
+        "categories.error.deleteTitle": t({
+            en: "Couldn't Delete Category",
+            es: "No se pudo eliminar la categoría",
         }),
         "categories.error.duplicate": t({
             en: "A category with this symbol and name already exists.",
@@ -162,6 +154,18 @@ const categories = {
         "categories.toast.added": t({
             en: "Category added",
             es: "Categoría agregada",
+        }),
+        "categories.undo.body": t({
+            en: "Its transactions go with it.",
+            es: "Sus transacciones se van con ella.",
+        }),
+        "categories.undo.bodyWithChildren": t({
+            en: "Its transactions go with it; its subcategories move to the top level.",
+            es: "Sus transacciones se van con ella; sus subcategorías pasan al nivel superior.",
+        }),
+        "categories.undo.deleted": t({
+            en: "Category deleted",
+            es: "Categoría eliminada",
         }),
     },
     key: "categories" as const,

@@ -13,7 +13,7 @@ import {
 import { useForm, useSelector } from "@tanstack/react-form";
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Keyboard, View } from "react-native";
+import { Keyboard, View } from "react-native";
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -40,6 +40,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { accountsRepo, getAccountById } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { toAccountKind } from "@/domain/account-kind";
 import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
@@ -334,12 +335,10 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             {loaded == null ? null : (
                 <AccountDeleteToolbar
                     account={loaded}
-                    db={db}
                     onDeleted={() => {
                         haptics("warning");
                         router.back();
                     }}
-                    onFailed={setFailure}
                     t={t}
                     tintColor={colors.danger}
                 />
@@ -465,47 +464,32 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 }
 
 /**
- * The confirmation stays an `Alert` — it asks a question, which a toast cannot
- * carry. Its FAILURE is what moves inline, and it is raised from here rather
- * than from the route's toolbar because this is the only tree that has a place
- * to put it.
+ * No confirmation in front of it: the write is held for the undo window, and the
+ * toast carrying it is mounted at the app root, so it outlives this sheet —
+ * which goes away at once. The body says what the row vanishing cannot.
+ *
+ * Still the editor's button rather than the route's, because this is the tree
+ * that has the loaded account.
  */
 interface AccountDeleteToolbarProps {
     account: Account;
-    db: import("@/db/client").Database;
     onDeleted: () => void;
-    onFailed: (message: string) => void;
     t: TranslateFn;
     tintColor: string;
 }
 
-function AccountDeleteToolbar({ account, db, onDeleted, onFailed, t, tintColor }: AccountDeleteToolbarProps) {
-    const confirm = () => {
-        Alert.alert(t("accounts.delete.title", { name: account.name }), t("accounts.delete.message"), [
-            { style: "cancel", text: t("common.cancel") },
-            {
-                onPress: async () => {
-                    try {
-                        await accountsRepo.softDelete(db, account.id);
-                    } catch (error) {
-                        console.error("Failed to delete the account", error);
-                        onFailed(t("accounts.error.deleteFailed"));
-                        return;
-                    }
-                    onDeleted();
-                },
-                style: "destructive",
-                text: t("common.delete"),
-            },
-        ]);
-    };
+function AccountDeleteToolbar({ account, onDeleted, t, tintColor }: AccountDeleteToolbarProps) {
+    const { requestDelete } = useDeferredDelete("account");
 
     return (
         <Stack.Toolbar placement="right">
             <Stack.Toolbar.Button
                 {...toolbarIcon("delete")}
                 accessibilityLabel={t("common.delete")}
-                onPress={confirm}
+                onPress={() => {
+                    requestDelete(account.id, t("accounts.undo.body"));
+                    onDeleted();
+                }}
                 tintColor={tintColor}
             />
         </Stack.Toolbar>

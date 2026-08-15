@@ -29,8 +29,8 @@ jest.mock("@/data/accounts", () => ({
     ],
 }));
 
-jest.mock("@/data/transfers-core", () => ({
-    transfersRepo: { softDelete: jest.fn() },
+jest.mock("@/data/use-deferred-delete", () => ({
+    useDeferredDelete: () => ({ pendingId: null, requestDelete: jest.fn() }),
 }));
 
 jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
