@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
-import { Alert } from "react-native";
 
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
@@ -196,15 +195,15 @@ describe("budgetForm", () => {
         expect(created[0].categoryId).toBe(categoryId);
     });
 
-    it("alerts and re-enables the CTA when createBudget rejects", async () => {
+    it("shows the failure inline and re-enables the CTA when createBudget rejects", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
         selectedCategoryHolder.current = getCategoryById(db, categoryId);
         const onDone = jest.fn();
         const createSpy = jest.spyOn(budgetsRepo, "createBudget").mockRejectedValueOnce(new Error("boom"));
-        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
 
-        const { getByRole, getByTestId } = await render(
+        const { getByRole, getByTestId, getByText } = await render(
             <Providers>
                 <BudgetForm db={db} onDone={onDone} />
             </Providers>
@@ -216,12 +215,14 @@ describe("budgetForm", () => {
         await fireEvent.press(getByRole("button", { name: "budgets.form.create" }));
 
         await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1));
-        await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
+        // The screen is a `modal` that stays up, so the notice is a line in the form
+        // rather than a toast the presentation would cover.
+        await waitFor(() => expect(getByText("budgets.save.failedBody")).toBeTruthy());
         expect(onDone).not.toHaveBeenCalled();
         expect(getByRole("button", { name: "budgets.form.create" }).props.accessibilityState?.disabled).toBe(false);
 
         createSpy.mockRestore();
-        alertSpy.mockRestore();
+        consoleError.mockRestore();
     });
 
     it("keeps the CTA disabled after a successful create instead of re-enabling it", async () => {

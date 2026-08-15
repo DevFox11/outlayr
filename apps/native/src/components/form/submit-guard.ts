@@ -1,5 +1,3 @@
-import { Alert } from "react-native";
-
 interface SubmittableForm {
     handleSubmit: () => Promise<void>;
     readonly state: { readonly isSubmitting: boolean };
@@ -38,24 +36,4 @@ export function holdSubmitting(): Promise<never> {
     return new Promise<never>(() => {
         // Intentionally never settles.
     });
-}
-
-interface ReportSaveFailureOptions {
-    body: string;
-    cause?: unknown;
-    log?: string;
-    title: string;
-}
-
-/**
- * Stays an `Alert` rather than a toast: every form that calls this is presented
- * as a sheet or modal, and it keeps that presentation up on failure so the user
- * can retry. A toast is portalled at the app root, which is behind the
- * presentation — see the note in `@/lib/notify`.
- */
-export function reportSaveFailure(options: ReportSaveFailureOptions): void {
-    if (options.log !== undefined) {
-        console.error(options.log, options.cause);
-    }
-    Alert.alert(options.title, options.body);
 }

@@ -428,12 +428,8 @@ const transaction = {
             es: "1 semana antes",
         }),
         "transaction.save.failedBody": t({
-            en: "Something went wrong writing this transaction, so nothing was saved. Try again.",
-            es: "Algo salió mal al guardar esta transacción, así que no se guardó nada. Inténtalo de nuevo.",
-        }),
-        "transaction.save.failedTitle": t({
-            en: "Not saved",
-            es: "No se guardó",
+            en: "Nothing was saved. Try again.",
+            es: "No se guardó nada. Inténtalo de nuevo.",
         }),
         "transaction.save.scheduleFailedBody": t({
             en: "Your subscription was saved, but its charges could not be logged. Outlayr will try again the next time you open it.",

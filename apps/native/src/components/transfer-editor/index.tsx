@@ -13,12 +13,13 @@ import {
 import { useNavigation, useRouter } from "expo-router";
 import { Button } from "panelui-native";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Keyboard, useWindowDimensions, View } from "react-native";
+import { Keyboard, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { CTA_BOTTOM_PADDING, CTA_HEIGHT } from "@/components/editor-style";
+import { InlineFailure } from "@/components/form/inline-failure";
 import { useDatabase } from "@/contexts/local-data-context";
 import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
@@ -51,6 +52,8 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
     const draft = useTransferDraft(db);
     const noteState = useNativeState("");
     const [saving, setSaving] = useState(false);
+    /** This editor is a `modal` and stays up on failure, so the notice is inline. */
+    const [saveFailure, setSaveFailure] = useState<string | null>(null);
 
     const fromSheet = useRef<BottomSheetModal>(null);
     const toSheet = useRef<BottomSheetModal>(null);
@@ -95,6 +98,7 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
             return;
         }
         setSaving(true);
+        setSaveFailure(null);
         try {
             await transfersRepo.create(db, {
                 date,
@@ -122,8 +126,12 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
             }
             onDone();
         } catch (error) {
+            // The repo's own messages are untranslated invariants, and the two it
+            // raises are already gated by `draft.canSave` — so they are logged, and
+            // the reader gets the line that tells them the tap did nothing.
+            console.error("Failed to save the transfer", error);
             setSaving(false);
-            Alert.alert(t("transfers.title"), error instanceof Error ? error.message : String(error));
+            setSaveFailure(t("transfers.save.failed"));
         }
     };
 
@@ -275,6 +283,8 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
                     right: 20,
                 }}
             >
+                <InlineFailure message={saveFailure} />
+
                 <Button
                     className="rounded-full"
                     disabled={!(draft.canSave && !saving)}

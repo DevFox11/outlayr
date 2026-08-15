@@ -46,7 +46,9 @@ const FAKE_NAME_STATE = {
 
 const BASE_PROPS = {
     caption: null,
+    dangerColor: "#C01005",
     expenseLabel: "Expense",
+    failure: null,
     income: false,
     incomeLabel: "Income",
     nameFieldRef: { current: null },
@@ -99,5 +101,21 @@ describe("categoryEditorDetailsSection", () => {
     it("omits the footer when caption is null", async () => {
         const { toJSON } = await render(<CategoryEditorDetailsSection {...BASE_PROPS} caption={null} />);
         expect(findByProp(toJSON() as JsonNode, "text", "Inherits from Bills")).toBeNull();
+    });
+
+    it("shows a failure in the footer in place of the caption", async () => {
+        const { toJSON } = await render(
+            <CategoryEditorDetailsSection {...BASE_PROPS} caption="Inherits from Bills" failure="That name is taken." />
+        );
+        const json = toJSON() as JsonNode;
+        expect(findByProp(json, "text", "That name is taken.")).not.toBeNull();
+        expect(findByProp(json, "text", "Inherits from Bills")).toBeNull();
+    });
+
+    it("tints the failure footer with the danger color", async () => {
+        const { toJSON } = await render(
+            <CategoryEditorDetailsSection {...BASE_PROPS} dangerColor="#ABCDEF" failure="That name is taken." />
+        );
+        expect(JSON.stringify(toJSON())).toContain('"#ABCDEF"');
     });
 });

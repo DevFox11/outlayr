@@ -63,10 +63,6 @@ const categories = {
             en: "No income categories found, click the ‘New’ button to add some",
             es: "No se encontraron categorías de ingresos; toca el botón ‘Nuevo’ para agregar algunas",
         }),
-        "categories.error.addTitle": t({
-            en: "Couldn't Add Category",
-            es: "No se pudo agregar la categoría",
-        }),
         "categories.error.duplicate": t({
             en: "A category with this symbol and name already exists.",
             es: "Ya existe una categoría con este símbolo y nombre.",
@@ -98,10 +94,6 @@ const categories = {
         "categories.error.missingName": t({
             en: "Please enter a name for this category.",
             es: "Ingresa un nombre para esta categoría.",
-        }),
-        "categories.error.saveTitle": t({
-            en: "Couldn't Save Category",
-            es: "No se pudo guardar la categoría",
         }),
         "categories.field.name": t({
             en: "Name",
@@ -146,10 +138,6 @@ const categories = {
         "categories.namePlaceholder.subcategory": t({
             en: "Coffee, Snacks…",
             es: "Café, Botanas…",
-        }),
-        "categories.ok": t({
-            en: "OK",
-            es: "OK",
         }),
         "categories.reorderTitle": t({
             en: "Reorder Categories",

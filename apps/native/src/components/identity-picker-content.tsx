@@ -20,6 +20,7 @@ import {
     font,
     foregroundStyle,
     labelsHidden,
+    multilineTextAlignment,
     padding,
     pickerStyle,
     tag,
@@ -31,7 +32,7 @@ import { launchImageLibraryAsync } from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { Alert, PlatformColor, Pressable, useWindowDimensions } from "react-native";
+import { PlatformColor, Pressable, useWindowDimensions } from "react-native";
 
 import {
     ColorSwatch,
@@ -163,6 +164,7 @@ export function IdentityPickerContent({
     // it, the React one so the results recompute.
     const queryState = useNativeState("");
     const [query, setQuery] = useState("");
+    const [photoFailed, setPhotoFailed] = useState(false);
     const searching = query.trim() !== "";
     const searchResults = searching ? iconKeysMatching(query) : [];
 
@@ -228,11 +230,14 @@ export function IdentityPickerContent({
     // The library launch itself can reject — a revoked permission, a host torn
     // down mid-pick. Said out loud rather than logged: the well looks exactly the
     // same afterwards, so a silent rejection is indistinguishable from the tap
-    // never having registered.
+    // never having registered. It replaces the prompt under the well rather than
+    // raising an alert: this picker is pushed inside a sheet, which covers the
+    // toast viewport and would make an alert the second modal on the stack.
     const pickPhoto = () => {
+        setPhotoFailed(false);
         adoptPickedPhoto().catch((cause: unknown) => {
             console.error("Failed to pick a photo", cause);
-            Alert.alert(t("alerts.photo.failedTitle"), t("alerts.photo.failedBody"));
+            setPhotoFailed(true);
         });
     };
 
@@ -240,6 +245,7 @@ export function IdentityPickerContent({
     if (tab === "photo") {
         panel = (
             <PhotoPanel
+                failed={photoFailed}
                 onColorChange={(color) => onChange({ ...value, photoColor: color })}
                 onPick={pickPhoto}
                 photoColor={value.photoColor}
@@ -484,9 +490,12 @@ function ColorRail({
 function PhotoPanel({
     uri,
     photoColor,
+    failed,
     onPick,
     onColorChange,
 }: {
+    /** The last pick was refused, so the prompt says so instead of inviting one. */
+    failed: boolean;
     uri: string | null;
     photoColor: string | null;
     onPick: () => void;
@@ -500,8 +509,18 @@ function PhotoPanel({
                 <PhotoWell colors={colors} onPress={onPick} uri={uri} />
             </RNHostView>
 
-            <SwiftText modifiers={[SUBHEADLINE, foregroundStyle(SECONDARY_LABEL), padding({ bottom: 24, top: 10 })]}>
-                {t(uri ? "transaction.identity.changePhotoPrompt" : "transaction.identity.selectPhotoPrompt")}
+            <SwiftText
+                modifiers={[
+                    SUBHEADLINE,
+                    foregroundStyle(failed ? colors.danger : SECONDARY_LABEL),
+                    // The prompt is one centred line; the failure wraps to two.
+                    multilineTextAlignment("center"),
+                    padding({ bottom: 24, top: 10 }),
+                ]}
+            >
+                {failed
+                    ? t("alerts.photo.failed")
+                    : t(uri ? "transaction.identity.changePhotoPrompt" : "transaction.identity.selectPhotoPrompt")}
             </SwiftText>
 
             <VStack alignment="leading" spacing={8}>

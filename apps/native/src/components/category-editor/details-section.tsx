@@ -17,6 +17,9 @@ import { FORM_TOP_MARGIN } from "@/components/editor-style";
 
 interface CategoryEditorDetailsSectionProps {
     caption: string | null;
+    dangerColor: string;
+    /** A rejected save, shown in place of the caption. Null while the form is clean. */
+    failure: string | null;
     expenseLabel: string;
     income: boolean;
     incomeLabel: string;
@@ -34,6 +37,8 @@ interface CategoryEditorDetailsSectionProps {
 
 export function CategoryEditorDetailsSection({
     caption,
+    dangerColor,
+    failure,
     expenseLabel,
     income,
     incomeLabel,
@@ -48,9 +53,16 @@ export function CategoryEditorDetailsSection({
     typeLabel,
     typePickerVisible,
 }: CategoryEditorDetailsSectionProps) {
+    // The failure takes the caption's slot rather than stacking under it: this is
+    // the line directly below the name field, and two of them would push the form.
+    const footer = failure ?? caption;
     return (
         <Section
-            footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
+            footer={
+                footer ? (
+                    <SwiftText modifiers={failure ? [foregroundStyle(dangerColor)] : []}>{footer}</SwiftText>
+                ) : undefined
+            }
             modifiers={[listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN })]}
         >
             <HStack>

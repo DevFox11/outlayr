@@ -11,7 +11,7 @@ import {
     scrollDismissesKeyboard,
 } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
-import { useNavigation, useRouter } from "expo-router";
+import { Stack, useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Keyboard, View } from "react-native";
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
@@ -29,9 +29,11 @@ import {
     HERO_BOTTOM_PADDING,
     HERO_TOP_PADDING,
 } from "@/components/editor-style";
+import { InlineFailure } from "@/components/form/inline-failure";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
+import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -45,6 +47,7 @@ import { useAccountIdentity } from "@/hooks/use-account-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import type { TranslateFn } from "@/i18n/context";
 import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
@@ -104,6 +107,12 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         mode === "edit" && editId != null ? getAccountById(db, editId) : null
     );
 
+    /**
+     * This editor is presented as a sheet and stays up when a write fails, so the
+     * notice is inline rather than a toast — see `@/components/form/inline-failure`.
+     */
+    const [failure, setFailure] = useState<string | null>(null);
+
     const nameState = useNativeState(loaded?.name ?? "");
     const nameRef = useRef<TextFieldRef>(null);
     const currencySheetRef = useRef<BottomSheetModal>(null);
@@ -122,6 +131,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const form = useForm({
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
+            setFailure(null);
             // A currency swapped after typing can leave more precision in the pad
             // than the new code has minor units — JPY cannot hold "12.34".
             const magnitude = roundToMinorUnits(numpadToNumber(value.balanceText), value.currency);
@@ -148,12 +158,10 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 haptics("success");
                 router.back();
                 return await holdSubmitting();
-            } catch {
+            } catch (error) {
+                console.error("Failed to save the account", error);
                 haptics("error");
-                Alert.alert(
-                    t(mode === "create" ? "accounts.error.addTitle" : "accounts.error.saveTitle"),
-                    t("accounts.error.generic")
-                );
+                setFailure(t("accounts.error.saveFailed"));
             }
         },
     });
@@ -323,6 +331,20 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             }}
             style={{ backgroundColor: colors.groupedBackground, flex: 1 }}
         >
+            {loaded == null ? null : (
+                <AccountDeleteToolbar
+                    account={loaded}
+                    db={db}
+                    onDeleted={() => {
+                        haptics("warning");
+                        router.back();
+                    }}
+                    onFailed={setFailure}
+                    t={t}
+                    tintColor={colors.danger}
+                />
+            )}
+
             <IdentityCurtain hues={curtainHues} />
 
             <View
@@ -398,6 +420,8 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 pointerEvents="box-none"
                 style={ctaStyle}
             >
+                <InlineFailure message={failure} />
+
                 <AccountEditorCta
                     canSave={canSave}
                     label={t(mode === "create" ? "accounts.addAccount" : "accounts.saveAccount")}
@@ -440,31 +464,50 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     );
 }
 
-/** The edit route's toolbar needs the loaded name; expose the alert for it. */
-export function confirmAccountDelete(
-    db: import("@/db/client").Database,
-    id: string,
-    t: ReturnType<typeof useTranslation>,
-    onDeleted: () => void
-): void {
-    const account = getAccountById(db, id);
-    if (account == null) {
-        return;
-    }
-    Alert.alert(t("accounts.delete.title", { name: account.name }), t("accounts.delete.message"), [
-        { style: "cancel", text: t("common.cancel") },
-        {
-            onPress: async () => {
-                try {
-                    await accountsRepo.softDelete(db, id);
-                } catch {
-                    Alert.alert(t("accounts.error.deleteTitle"), t("accounts.error.generic"));
-                    return;
-                }
-                onDeleted();
+/**
+ * The confirmation stays an `Alert` — it asks a question, which a toast cannot
+ * carry. Its FAILURE is what moves inline, and it is raised from here rather
+ * than from the route's toolbar because this is the only tree that has a place
+ * to put it.
+ */
+interface AccountDeleteToolbarProps {
+    account: Account;
+    db: import("@/db/client").Database;
+    onDeleted: () => void;
+    onFailed: (message: string) => void;
+    t: TranslateFn;
+    tintColor: string;
+}
+
+function AccountDeleteToolbar({ account, db, onDeleted, onFailed, t, tintColor }: AccountDeleteToolbarProps) {
+    const confirm = () => {
+        Alert.alert(t("accounts.delete.title", { name: account.name }), t("accounts.delete.message"), [
+            { style: "cancel", text: t("common.cancel") },
+            {
+                onPress: async () => {
+                    try {
+                        await accountsRepo.softDelete(db, account.id);
+                    } catch (error) {
+                        console.error("Failed to delete the account", error);
+                        onFailed(t("accounts.error.deleteFailed"));
+                        return;
+                    }
+                    onDeleted();
+                },
+                style: "destructive",
+                text: t("common.delete"),
             },
-            style: "destructive",
-            text: t("common.delete"),
-        },
-    ]);
+        ]);
+    };
+
+    return (
+        <Stack.Toolbar placement="right">
+            <Stack.Toolbar.Button
+                {...toolbarIcon("delete")}
+                accessibilityLabel={t("common.delete")}
+                onPress={confirm}
+                tintColor={tintColor}
+            />
+        </Stack.Toolbar>
+    );
 }

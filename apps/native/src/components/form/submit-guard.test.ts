@@ -1,7 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { Alert } from "react-native";
 
-import { holdSubmitting, pressSubmit, pressSubmitWith, reportSaveFailure } from "./submit-guard";
+import { holdSubmitting, pressSubmit, pressSubmitWith } from "./submit-guard";
 
 describe("pressSubmit", () => {
     it("calls handleSubmit when the form is not submitting", () => {
@@ -50,44 +49,5 @@ describe("holdSubmitting", () => {
         await Promise.resolve();
         await Promise.resolve();
         expect(settled).not.toHaveBeenCalled();
-    });
-});
-
-describe("reportSaveFailure", () => {
-    it("shows the alert with the given title and body", () => {
-        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-
-        reportSaveFailure({ body: "Failed", title: "Oops" });
-
-        expect(alertSpy).toHaveBeenCalledWith("Oops", "Failed");
-        alertSpy.mockRestore();
-    });
-
-    it("logs the cause when a log message is provided", () => {
-        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-        const cause = new Error("db write failed");
-
-        reportSaveFailure({
-            body: "Failed",
-            cause,
-            log: "save failed",
-            title: "Oops",
-        });
-
-        expect(consoleError).toHaveBeenCalledWith("save failed", cause);
-        alertSpy.mockRestore();
-        consoleError.mockRestore();
-    });
-
-    it("does not log when no log message is provided", () => {
-        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-
-        reportSaveFailure({ body: "Failed", title: "Oops" });
-
-        expect(consoleError).not.toHaveBeenCalled();
-        alertSpy.mockRestore();
-        consoleError.mockRestore();
     });
 });

@@ -15,7 +15,7 @@ import Animated, {
 
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { FirstRun } from "@/components/first-run";
-import { holdSubmitting, pressSubmitWith, reportSaveFailure } from "@/components/form/submit-guard";
+import { holdSubmitting, pressSubmitWith } from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -24,6 +24,7 @@ import { finishOnboarding } from "@/data/onboarding-core";
 import { setCurrency } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n/context";
+import { notifyFailure } from "@/lib/notify";
 
 type CommitKind = "continue" | "finish";
 
@@ -111,8 +112,11 @@ function OnboardingCurrencyContent({ db }: { db: Database }) {
                     await finishOnboarding(db);
                 }
                 return await holdSubmitting();
-            } catch {
-                reportSaveFailure({
+            } catch (error) {
+                // A toast, unlike its sheet-bound siblings: onboarding is a plain
+                // pushed route, so nothing covers the viewport at the app root.
+                console.error("Failed to save the onboarding currency", error);
+                notifyFailure({
                     body: t("onboarding.currency.saveFailed.body"),
                     title: t("onboarding.currency.saveFailed.title"),
                 });

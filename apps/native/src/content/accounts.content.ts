@@ -75,9 +75,9 @@ const accounts = {
             en: "Money lives in places. Give yours its first one.",
             es: "El dinero vive en lugares. Dale a tu dinero el primero.",
         }),
-        "accounts.error.addTitle": t({
-            en: "Couldn't Add Account",
-            es: "No se pudo agregar la cuenta",
+        "accounts.error.deleteFailed": t({
+            en: "Couldn't delete this account. Try again.",
+            es: "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
         }),
         "accounts.error.deleteTitle": t({
             en: "Couldn't Delete Account",
@@ -87,9 +87,9 @@ const accounts = {
             en: "Something went wrong. Please try again.",
             es: "Algo salió mal. Inténtalo de nuevo.",
         }),
-        "accounts.error.saveTitle": t({
-            en: "Couldn't Save Account",
-            es: "No se pudo guardar la cuenta",
+        "accounts.error.saveFailed": t({
+            en: "Couldn't save this account. Try again.",
+            es: "No se pudo guardar la cuenta. Inténtalo de nuevo.",
         }),
         "accounts.field.currency": t({
             en: "Currency",

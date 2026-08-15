@@ -11,8 +11,9 @@ import { HeroNumber } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
+import { InlineFailure } from "@/components/form/inline-failure";
 import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
-import { holdSubmitting, pressSubmit, reportSaveFailure } from "@/components/form/submit-guard";
+import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { MonoLabel } from "@/components/mono-label";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Text } from "@/components/text";
@@ -88,6 +89,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
 
     const colors = useColors();
     const [missingCategory, setMissingCategory] = useState(false);
+    /** This screen is a `modal` and stays up on failure, so the notice is inline. */
+    const [saveFailure, setSaveFailure] = useState<string | null>(null);
 
     const shakeX = useSharedValue(0);
     const shakeStyle = useAnimatedStyle(() => ({
@@ -118,6 +121,7 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
     const form = useForm({
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
+            setSaveFailure(null);
             const amountNumber = numpadToNumber(value.amount);
             if (amountNumber <= 0) {
                 return;
@@ -162,12 +166,8 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
                 onDone();
                 return await holdSubmitting();
             } catch (error) {
-                reportSaveFailure({
-                    body: t("budgets.save.failedBody"),
-                    cause: error,
-                    log: "Failed to save budget",
-                    title: t("budgets.save.failedTitle"),
-                });
+                console.error("Failed to save budget", error);
+                setSaveFailure(t("budgets.save.failedBody"));
             }
         },
     });
@@ -330,10 +330,14 @@ export function BudgetForm({ db, onDone, initial }: BudgetFormProps) {
                     <Text className="text-footnote text-muted pt-1 leading-snug">{t("budgets.form.rolloverNote")}</Text>
                 </Field>
 
+                <View className="mt-4">
+                    <InlineFailure message={saveFailure} />
+                </View>
+
                 <Pressable
                     accessibilityRole="button"
                     className={cn(
-                        "mt-4 items-center rounded-xl py-3.5",
+                        "items-center rounded-xl py-3.5",
                         canSave ? "bg-accent active:opacity-80" : "bg-surface"
                     )}
                     disabled={!canSave}

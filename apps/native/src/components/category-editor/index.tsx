@@ -6,7 +6,7 @@ import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Keyboard, View } from "react-native";
+import { Keyboard, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -60,7 +60,6 @@ interface CategoryEditorSubject {
 interface CategoryEditorCopy {
     caption: string | null;
     ctaLabel: string;
-    errorTitle: string;
     namePlaceholder: string;
 }
 
@@ -77,7 +76,6 @@ function categoryEditorCopy(
     return {
         caption: create ? createCaption : null,
         ctaLabel: t(create ? addLabelKey : saveLabelKey),
-        errorTitle: t(create ? "categories.error.addTitle" : "categories.error.saveTitle"),
         namePlaceholder: t(isSubcategory ? "categories.namePlaceholder.subcategory" : namespacePlaceholderKey),
     };
 }
@@ -138,6 +136,11 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 
     const nameState = useNativeState(loaded?.name ?? "");
     const nameRef = useRef<TextFieldRef>(null);
+    /**
+     * A rejected save reads under the name field rather than in an `Alert`: this
+     * editor is a sheet and stays up, and every rule it can break is a field rule.
+     */
+    const [failure, setFailure] = useState<string | null>(null);
 
     const [initialValues] = useState(() => ({
         income: parent?.income ?? initialIncome,
@@ -146,6 +149,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
     const form = useForm({
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
+            setFailure(null);
             try {
                 if (mode === "create") {
                     return await addCategory(value);
@@ -327,7 +331,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 
     const canSave = categoryIsSaveable(mode, name, symbolEmpty, loaded) && !isSubmitting;
 
-    const { caption, ctaLabel, errorTitle, namePlaceholder } = categoryEditorCopy(t, {
+    const { caption, ctaLabel, namePlaceholder } = categoryEditorCopy(t, {
         create: mode === "create",
         income,
         isSubcategory,
@@ -397,14 +401,12 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
     const reportSaveFailure = (cause: unknown) => {
         haptics("error");
         const code = cause instanceof Error ? categoryErrorCode(cause.message) : null;
-        const message = code ? t(CATEGORY_ERROR_KEYS[code]) : t("categories.error.generic");
-        const refocus = code === "missingName" || code === "duplicateName";
-        Alert.alert(errorTitle, message, [
-            {
-                onPress: refocus ? () => nameRef.current?.focus() : undefined,
-                text: t("categories.ok"),
-            },
-        ]);
+        setFailure(code ? t(CATEGORY_ERROR_KEYS[code]) : t("categories.error.generic"));
+        // The name is what the reader has to change, so the cursor goes back to it
+        // — the line under the field says why on its own.
+        if (code === "missingName" || code === "duplicateName") {
+            nameRef.current?.focus();
+        }
     };
 
     /** Back-to-back adds must not let the first timer clear the second flash. */
@@ -448,7 +450,9 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                     <Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden"), ...underPicker]}>
                         <CategoryEditorDetailsSection
                             caption={caption}
+                            dangerColor={colors.danger}
                             expenseLabel={t("common.expense")}
+                            failure={failure}
                             income={income}
                             incomeLabel={t("common.income")}
                             nameFieldRef={nameRef}
@@ -456,7 +460,10 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                             namePlaceholder={namePlaceholder}
                             nameState={nameState}
                             onIncomeChange={(next) => form.setFieldValue("income", next)}
-                            onNameChange={(next) => form.setFieldValue("name", next)}
+                            onNameChange={(next) => {
+                                setFailure(null);
+                                form.setFieldValue("name", next);
+                            }}
                             onSubmitName={() => pressSubmit(form)}
                             tintColor={colors.foreground}
                             typeLabel={t("categories.field.type")}

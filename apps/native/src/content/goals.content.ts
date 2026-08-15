@@ -47,10 +47,6 @@ const goals = {
             en: "Something went wrong saving this goal. Try again.",
             es: "Algo salió mal al guardar esta meta. Inténtalo de nuevo.",
         }),
-        "goals.form.failedTitle": t({
-            en: "Couldn't save the goal",
-            es: "No se pudo guardar la meta",
-        }),
         "goals.form.name": t({
             en: "Name",
             es: "Nombre",

@@ -35,11 +35,13 @@ import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Alert, useColorScheme, useWindowDimensions, View } from "react-native";
+import { Alert, StyleSheet, useColorScheme, useWindowDimensions, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 import { Confetti } from "@/components/confetti";
+import { HEADER_HEIGHT } from "@/components/editor-style";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
+import { InlineFailure } from "@/components/form/inline-failure";
 import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
@@ -499,6 +501,14 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const { draft: identity, setDraft: setIdentity } = useIdentityDraft();
     const [identitySource, setIdentitySource] = useState<FieldSource>("initial");
     const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
+    /** A failed write, held until the next attempt: this sheet stays up under it. */
+    const [saveFailure, setSaveFailure] = useState<string | null>(null);
+    /**
+     * Measured, not assumed: the strip is pinned over the form, so the scroll
+     * content has to be pushed down by exactly what it covers — and what it
+     * covers turns on how many lines the message wraps to.
+     */
+    const [failureHeight, setFailureHeight] = useState(0);
 
     // Frozen at mount: `useForm` re-applies changed `defaultValues` on every
     // render while untouched, and `date`/`endDate` are `new Date()` here — an
@@ -558,6 +568,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             },
         },
         onSubmit: async ({ value }) => {
+            setSaveFailure(null);
             haptics("success");
 
             let categoryId: string;
@@ -611,9 +622,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 console.error("Failed to save transaction", error);
                 // Nothing was written, so the retry is the same tap again — but say so
                 // first: un-dimming the CTA in silence is indistinguishable from having
-                // missed the button.
+                // missed the button. Under the header rather than in a toast, which
+                // this sheet would cover, and pinned rather than in the scroll, so it
+                // stays beside the Save button that has to be pressed again.
                 haptics("error");
-                Alert.alert(t("transaction.save.failedTitle"), t("transaction.save.failedBody"));
+                setSaveFailure(t("transaction.save.failedBody"));
                 return;
             }
             // The row is COMMITTED from here down, so no failure below may re-enable the
@@ -1300,7 +1313,16 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             animation(pickerOpen ? FLY_UP : FLY_BACK, pickerOpen),
                         ]}
                     >
-                        <VStack modifiers={[padding({ bottom: 40, horizontal: 20 })]} spacing={16}>
+                        <VStack
+                            modifiers={[
+                                padding({
+                                    bottom: 40,
+                                    horizontal: 20,
+                                    top: saveFailure === null ? 0 : failureHeight,
+                                }),
+                            ]}
+                            spacing={16}
+                        >
                             <TransactionFormIdentitySection
                                 color={identity.color}
                                 contentWidth={contentWidth}
@@ -1577,6 +1599,23 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                         </VStack>
                     </ScrollView>
                 </Host>
+
+                {/* A strip under the header, not a floating pill: it is the Save button's
+				    own line, and it must not be mistaken for a row of the form. */}
+                <View
+                    className="absolute right-0 left-0 px-5 pt-2"
+                    onLayout={(e) => setFailureHeight(e.nativeEvent.layout.height)}
+                    pointerEvents="none"
+                    style={{
+                        backgroundColor: saveFailure === null ? "transparent" : colors.background,
+                        borderBottomColor: colors.separator,
+                        borderBottomWidth: saveFailure === null ? 0 : StyleSheet.hairlineWidth,
+                        // Under the nav bar, which this screen's root runs behind.
+                        top: HEADER_HEIGHT,
+                    }}
+                >
+                    <InlineFailure message={saveFailure} />
+                </View>
 
                 <form.Subscribe selector={(s) => numpadToNumber(s.values.amount) > 0 && !s.isSubmitting}>
                     {(canSave) => (

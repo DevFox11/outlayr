@@ -3,12 +3,13 @@ import { DatePicker, Host, HStack, Spacer, Toggle } from "@expo/ui/swift-ui";
 import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useMemo, useRef, useState } from "react";
-import { Alert, Pressable, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { HeroNumber } from "@/components/amount-text";
+import { InlineFailure } from "@/components/form/inline-failure";
 import { useNumpadAmountField } from "@/components/form/numpad-amount-field";
 import { Text } from "@/components/text";
 import { useAccounts } from "@/data/accounts";
@@ -58,9 +59,13 @@ export function GoalForm({ db, onDone, initial }: GoalFormProps) {
         targetText: numberToNumpad(initial?.targetAmount ?? 0, minorUnitsFor(initial?.currency ?? globalCurrency)),
     }));
 
+    /** This screen is a `modal` and stays up on failure, so the notice is inline. */
+    const [saveFailure, setSaveFailure] = useState<string | null>(null);
+
     const form = useForm({
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
+            setSaveFailure(null);
             const account = accounts.find((candidate) => candidate.id === value.accountId);
             if (account == null) {
                 return;
@@ -80,7 +85,7 @@ export function GoalForm({ db, onDone, initial }: GoalFormProps) {
             } catch (error) {
                 console.error("Failed to save the goal", error);
                 haptics("error");
-                Alert.alert(t("goals.form.failedTitle"), t("goals.form.failedBody"));
+                setSaveFailure(t("goals.form.failedBody"));
             }
         },
     });
@@ -173,9 +178,13 @@ export function GoalForm({ db, onDone, initial }: GoalFormProps) {
                     )}
                 </Field>
 
+                <View className="mt-8">
+                    <InlineFailure message={saveFailure} />
+                </View>
+
                 <Pressable
                     accessibilityRole="button"
-                    className={`mt-8 items-center rounded-xl py-4 ${canSave ? "bg-foreground" : "bg-surface"}`}
+                    className={`items-center rounded-xl py-4 ${canSave ? "bg-foreground" : "bg-surface"}`}
                     disabled={!canSave}
                     onPress={() => form.handleSubmit()}
                 >

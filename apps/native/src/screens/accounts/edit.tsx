@@ -1,18 +1,13 @@
 import { Stack, useRouter } from "expo-router";
 
-import AccountEditor, { confirmAccountDelete } from "@/components/account-editor";
+import AccountEditor from "@/components/account-editor";
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useDatabase } from "@/contexts/local-data-context";
 import { useTranslation } from "@/i18n/context";
-import { useHaptics } from "@/lib/use-haptics";
-import { useColors } from "@/theme/use-colors";
 
+/** The Delete button belongs to the editor: it is the tree that can show a failed delete. */
 export function AccountEdit({ id }: { id: string }) {
     const router = useRouter();
-    const db = useDatabase();
     const t = useTranslation();
-    const colors = useColors();
-    const haptics = useHaptics();
 
     return (
         <>
@@ -23,19 +18,6 @@ export function AccountEdit({ id }: { id: string }) {
                     {...toolbarIcon("close")}
                     accessibilityLabel={t("common.close")}
                     onPress={() => router.back()}
-                />
-            </Stack.Toolbar>
-            <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("delete")}
-                    accessibilityLabel={t("common.delete")}
-                    onPress={() => {
-                        confirmAccountDelete(db, id, t, () => {
-                            haptics("warning");
-                            router.back();
-                        });
-                    }}
-                    tintColor={colors.danger}
                 />
             </Stack.Toolbar>
 

@@ -39,13 +39,9 @@ const alerts = {
             en: "The image couldn't be drawn on this device.",
             es: "No se pudo dibujar la imagen en este dispositivo.",
         }),
-        "alerts.photo.failedBody": t({
-            en: "Check that Outlayr has permission to your photo library, then try again.",
-            es: "Comprueba que Outlayr tenga permiso para acceder a tus fotos e inténtalo de nuevo.",
-        }),
-        "alerts.photo.failedTitle": t({
-            en: "Couldn't open your photos",
-            es: "No se pudo abrir tus fotos",
+        "alerts.photo.failed": t({
+            en: "Couldn't open your photos. Check Outlayr's permission and try again.",
+            es: "No se pudieron abrir tus fotos. Comprueba el permiso de Outlayr e inténtalo de nuevo.",
         }),
         "alerts.transaction.fallbackTitle": t({
             en: "Transaction",

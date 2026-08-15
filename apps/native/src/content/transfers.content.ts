@@ -151,6 +151,10 @@ const transfers = {
             en: "Save Transfer",
             es: "Guardar transferencia",
         }),
+        "transfers.save.failed": t({
+            en: "Couldn't save this transfer. Try again.",
+            es: "No se pudo guardar la transferencia. Inténtalo de nuevo.",
+        }),
         "transfers.selectAccount": t({
             en: "Choose",
             es: "Elegir",
