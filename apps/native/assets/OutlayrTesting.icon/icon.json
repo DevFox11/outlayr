@@ -1,5 +1,4 @@
 {
-  "features": ["refractivity", "specular-location"],
   "fill-specializations": [
     {
       "value": {
@@ -39,7 +38,7 @@
         "kind": "neutral",
         "opacity": 0.4
       },
-      "specular": "inside"
+      "specular": true
     }
   ],
   "supported-platforms": {

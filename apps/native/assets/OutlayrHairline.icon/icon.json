@@ -1,8 +1,4 @@
 {
-  "features": [
-    "refractivity",
-    "specular-location"
-  ],
   "fill-specializations": [
     {
       "value": {
@@ -33,7 +29,7 @@
       ],
       "lighting": "combined",
       "name": "group",
-      "specular": "inside",
+      "specular": true,
       "shadow": {
         "kind": "neutral",
         "opacity": 0.3
