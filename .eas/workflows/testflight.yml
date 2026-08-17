@@ -33,7 +33,10 @@ jobs:
         environment: ${{ inputs.profile }}
         defaults:
             run:
-                working_directory: packages/backend
+                # Absolute, so it resolves from the repository root. A relative path
+                # resolves from the app's base directory (apps/native), which put the
+                # step in apps/native/packages/backend and failed with ENOENT.
+                working_directory: /packages/backend
         steps:
             - uses: eas/checkout
             - uses: eas/install_node_modules
