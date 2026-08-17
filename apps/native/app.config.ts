@@ -272,6 +272,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         "expo-alternate-app-icons",
         "./plugins/with-ui-scene.ts",
         "./plugins/with-min-pod-deployment-target.ts",
+        "./plugins/with-extension-pods-root.ts",
         ["./plugins/with-symbolsets.ts", { directory: "./assets/symbols" }],
     ],
     scheme: "outlayr",
