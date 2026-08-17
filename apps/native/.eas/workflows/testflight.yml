@@ -15,6 +15,17 @@ on:
                 default: production
                 required: true
 
+# Pinned, not `auto`. `auto` reads the image off the app's SDK version, which it
+# can only do when the run resolves its base directory to apps/native. A run that
+# resolves it to the repository root gets no SDK and falls back to the legacy
+# Ubuntu 22.04 image (Node 18, pnpm 8.7.5), where `pnpm install --frozen-lockfile`
+# fails with ERR_PNPM_NO_LOCKFILE: pnpm 8 cannot read a lockfileVersion 9 lockfile.
+#
+# `sdk-XX` resolves per runner, so this one tag covers both the Linux deploy job
+# and the macOS build. Bump it with every Expo SDK upgrade.
+defaults:
+    image: sdk-57
+
 jobs:
     # Deploy the backend first so the binary is never newer than the API it calls.
     #
