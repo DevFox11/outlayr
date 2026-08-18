@@ -1570,10 +1570,10 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState).toMatchObject({
-            selected: true,
-        });
-        expect(screen.getAllByText("55.5 transaction.rate.perUsd").length).toBeGreaterThan(0);
+        expect(screen.getByText("transaction.rate.title · transaction.rate.custom")).toBeTruthy();
+        expect(
+            screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
+        ).toMatchObject({ text: "55.5 transaction.rate.perUsd" });
     });
 
     it("opens a custom pending occurrence with the rate-needed confirmation visible", async () => {
@@ -1612,9 +1612,7 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={vesCopy} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        expect(ves.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject({
-            selected: true,
-        });
+        expect(ves.getByText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
         await ves.unmount();
 
         const usd = await render(
@@ -1647,20 +1645,12 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
         await waitFor(() => {
-            expect(
-                screen.getByRole("button", { name: "transaction.rate.eur_reference" }).props.accessibilityState
-            ).toMatchObject({
-                selected: true,
-            });
+            expect(screen.getByText("transaction.rate.title · transaction.rate.eur_reference")).toBeTruthy();
         });
         await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
 
         await waitFor(() => {
-            expect(
-                screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState
-            ).toMatchObject({
-                selected: true,
-            });
+            expect(screen.getByText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
             expect(screen.queryByRole("button", { name: "transaction.rate.eur_reference" })).toBeNull();
         });
     });
@@ -1678,16 +1668,14 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByRole("button", { name: "transaction.rate.editCustom" })).toHaveTextContent(/55\.5/);
+        expect(
+            screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
+        ).toMatchObject({ text: "55.5 transaction.rate.perUsd" });
         await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
 
         await waitFor(() => {
-            expect(
-                screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityState
-            ).toMatchObject({
-                selected: true,
-            });
-            expect(screen.getByRole("button", { name: "transaction.rate.editCustom" })).not.toHaveTextContent("55.5");
+            expect(screen.getByText("transaction.rate.title · transaction.rate.custom")).toBeTruthy();
+            expect(screen.queryByText("55.5")).toBeNull();
         });
     });
 
@@ -1739,7 +1727,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.5 transaction\.rate\.perUsd/));
+        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -1775,7 +1763,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/));
+        await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.official"));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -1809,7 +1797,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.eur_reference.*50 transaction\.rate\.perUsd/));
+        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -1839,7 +1827,9 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        expect(screen.queryByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/)).toBeNull();
+        expect(
+            screen.getByLabelText("transaction.rate.title · transaction.rate.official").props.accessibilityValue?.text
+        ).toBeUndefined();
 
         await act(async () => {
             await db.insert(exchangeRates).values({
@@ -1854,7 +1844,9 @@ describe("transactionForm entry-rate confirmation", () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/)).toBeTruthy();
+            expect(
+                screen.getByLabelText("transaction.rate.title · transaction.rate.official").props.accessibilityValue
+            ).toMatchObject({ text: "42 transaction.rate.perUsd" });
         });
     });
 
@@ -1877,7 +1869,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.5 transaction\.rate\.perUsd/));
+        await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.custom"));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -1905,12 +1897,10 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(
-            screen.getByRole("button", { name: "transaction.rate.official" }).props.accessibilityState
-        ).toMatchObject({
-            selected: true,
+        expect(screen.getByText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
+        expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityValue).toMatchObject({
+            text: "55.5 transaction.rate.perUsd",
         });
-        expect(screen.getAllByText("55.5 transaction.rate.perUsd").length).toBeGreaterThan(0);
     });
 
     it("re-resolves an official suggestion after the transaction currency changes", async () => {
@@ -1941,7 +1931,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.official.*42 transaction\.rate\.perUsd/));
+        await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.official"));
         await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
@@ -1976,7 +1966,7 @@ describe("transactionForm entry-rate confirmation", () => {
                 />
             </Providers>
         );
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.5 transaction\.rate\.perUsd/));
+        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
@@ -2135,7 +2125,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByLabelText(/transaction\.rate\.custom.*55\.555555/));
+        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 

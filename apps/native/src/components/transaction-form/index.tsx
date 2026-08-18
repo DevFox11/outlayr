@@ -66,7 +66,7 @@ import { firstAvailableColor } from "@/domain/category-color";
 import { FALLBACK_EXPENSE_ICON, FALLBACK_INCOME_ICON, iconKeysMatching } from "@/domain/category-icon-catalog";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
-import { amountParts, minorUnitsFor } from "@/domain/money";
+import { amountParts, formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { ensureRecurringType, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
@@ -75,7 +75,7 @@ import { isRealSplit } from "@/domain/split-draft";
 import { normalizeLead, REMINDER_LEAD_OPTIONS, resolveLeadSelection } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { isTransactionRateNeeded, transactionRateError } from "@/domain/transaction-entry-rate";
+import { effectiveEntryRate, isTransactionRateNeeded, transactionRateError } from "@/domain/transaction-entry-rate";
 import { cadenceLabel, ctaKey, leadLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-form-validate";
@@ -778,6 +778,17 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         requiredLabel: t("transaction.rate.required"),
     });
 
+    // What the entered amount comes to in USD at the selected rate. Stays silent on an
+    // empty amount or an unresolved rate, so a blank form says nothing.
+    const rateConversionLabel = (amountText: string): string | null => {
+        const amount = numpadToNumber(amountText);
+        const rate = effectiveEntryRate(rateViewState.selection, rateSuggestions);
+        if (amount <= 0 || rate === null || rate <= 0) {
+            return null;
+        }
+        return t("transaction.rate.conversion", { amount: formatAmount(amount / rate, "USD", true, language) });
+    };
+
     // A category carried in from `copyOf` is a deliberate choice, not a blank
     // slot an enrichment suggestion is free to fill.
     const [categorySource, setCategorySource] = useState<FieldSource>(() =>
@@ -1372,33 +1383,35 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                 }}
                             </form.Subscribe>
 
-                            <TransactionFormRateSection
-                                currency={currency}
-                                error={rateViewState.error}
-                                labels={{
-                                    currentSuggestion: t("transaction.rate.currentSuggestion"),
-                                    custom: t("transaction.rate.custom"),
-                                    editCustom: t("transaction.rate.editCustom"),
-                                    eurReference: t("transaction.rate.eur_reference"),
-                                    official: t("transaction.rate.official"),
-                                    pendingBody: t("transaction.rate.pendingBody"),
-                                    pendingTitle: t("transaction.rate.pendingTitle"),
-                                    perUsd: t("transaction.rate.perUsd", { currency }),
-                                    priorCustomDate: (priorDate) =>
-                                        t("transaction.rate.priorCustomDate", { date: priorDate.toLocaleDateString() }),
-                                    priorCustomSuggestion: t("transaction.rate.priorCustomSuggestion"),
-                                    required: t("transaction.rate.required"),
-                                    requiredHint: t("transaction.rate.requiredHint"),
-                                    title: t("transaction.rate.title"),
-                                    useSuggestion: t("transaction.rate.useSuggestion"),
-                                }}
-                                onEditCustom={openCustomRatePad}
-                                onSelectType={handleRateTypeChange}
-                                onUseSuggestion={handleRateSuggestion}
-                                pending={rateViewState.pending}
-                                selection={rateViewState.selection}
-                                suggestions={rateSuggestions}
-                            />
+                            <form.Subscribe selector={(s) => s.values.amount}>
+                                {(amount) => (
+                                    <TransactionFormRateSection
+                                        contentWidth={contentWidth}
+                                        currency={currency}
+                                        error={rateViewState.error}
+                                        labels={{
+                                            conversion: rateConversionLabel(amount),
+                                            custom: t("transaction.rate.custom"),
+                                            editCustom: t("transaction.rate.editCustom"),
+                                            eurReference: t("transaction.rate.eur_reference"),
+                                            official: t("transaction.rate.official"),
+                                            pendingBody: t("transaction.rate.pendingBody"),
+                                            pendingTitle: t("transaction.rate.pendingTitle"),
+                                            perUsd: t("transaction.rate.perUsd", { currency }),
+                                            required: t("transaction.rate.required"),
+                                            requiredHint: t("transaction.rate.requiredHint"),
+                                            set: t("transaction.rate.set"),
+                                            title: t("transaction.rate.title"),
+                                        }}
+                                        onEditCustom={openCustomRatePad}
+                                        onSelectType={handleRateTypeChange}
+                                        onUseSuggestion={handleRateSuggestion}
+                                        pending={rateViewState.pending}
+                                        selection={rateViewState.selection}
+                                        suggestions={rateSuggestions}
+                                    />
+                                )}
+                            </form.Subscribe>
 
                             <VStack spacing={0}>
                                 <HStack modifiers={ROW} spacing={12}>

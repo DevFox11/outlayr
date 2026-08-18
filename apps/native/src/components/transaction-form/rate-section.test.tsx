@@ -21,7 +21,7 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
 }));
 
 const labels = {
-    currentSuggestion: "Current suggestion",
+    conversion: null,
     custom: "Custom",
     editCustom: "Edit custom rate",
     eurReference: "EUR reference",
@@ -29,15 +29,14 @@ const labels = {
     pendingBody: "Native amount remains recorded. Cross-currency totals wait for confirmation.",
     pendingTitle: "Rate confirmation needed",
     perUsd: "VES per USD",
-    priorCustomDate: (date: Date) => `Prior custom · ${date.toISOString().slice(0, 10)}`,
-    priorCustomSuggestion: "Prior custom suggestion",
     required: "Enter a positive rate",
     requiredHint: "The rate must be greater than zero.",
+    set: "Set",
     title: "Entry rate",
-    useSuggestion: "Use suggestion",
 };
 
 const baseProps: ComponentProps<typeof TransactionFormRateSection> = {
+    contentWidth: 353,
     currency: "VES",
     error: null,
     labels,
@@ -57,7 +56,7 @@ describe("transactionFormRateSection", () => {
     it("renders no rate controls for USD", async () => {
         const { queryByText } = await render(<TransactionFormRateSection {...baseProps} currency="USD" />);
 
-        expect(queryByText("Entry rate")).toBeNull();
+        expect(queryByText("Entry rate · Official")).toBeNull();
     });
 
     it("offers Official and Custom for EUR and also EUR reference for VES", async () => {
@@ -65,7 +64,7 @@ describe("transactionFormRateSection", () => {
         const eur = await render(
             <TransactionFormRateSection {...baseProps} currency="EUR" suggestions={withoutSuggestions} />
         );
-        expect(eur.getByText("Official")).toBeTruthy();
+        expect(eur.getByText("Entry rate · Official")).toBeTruthy();
         expect(eur.getByText("Custom")).toBeTruthy();
         expect(eur.queryByText("EUR reference")).toBeNull();
 
@@ -80,23 +79,27 @@ describe("transactionFormRateSection", () => {
         expect(getByText(labels.pendingBody).props.accessibilityLiveRegion).toBe("polite");
     });
 
-    it("exposes each rate choice as a labelled button with selected state", async () => {
-        const { getByRole } = await render(<TransactionFormRateSection {...baseProps} />);
+    it("promotes the selected policy to the head and leaves only the others tappable", async () => {
+        const { getByText, getByRole, queryByRole } = await render(<TransactionFormRateSection {...baseProps} />);
 
-        expect(getByRole("button", { name: "Official" }).props.accessibilityState).toMatchObject({ selected: true });
-        expect(getByRole("button", { name: "Custom" }).props.accessibilityState).toMatchObject({ selected: false });
+        expect(getByText("Entry rate · Official")).toBeTruthy();
+        expect(queryByRole("button", { name: "Official" })).toBeNull();
+        expect(getByRole("button", { name: "EUR reference" }).props.accessibilityValue).toMatchObject({
+            text: "50 VES per USD",
+        });
+        expect(getByRole("button", { name: "Custom" }).props.accessibilityValue).toMatchObject({
+            text: "55.5 VES per USD",
+        });
     });
 
-    it("gives every rate-policy control at least a 44-point touch target", async () => {
+    it("gives the head and every alternate at least a 44-point touch target", async () => {
         const { getByRole, getByLabelText } = await render(
             <TransactionFormRateSection {...baseProps} selection={{ exchangeRate: 55.5, exchangeRateType: "custom" }} />
         );
         const controls = [
+            getByLabelText("Entry rate · Custom"),
             getByRole("button", { name: "Official" }),
             getByRole("button", { name: "EUR reference" }),
-            getByRole("button", { name: "Custom" }),
-            getByRole("button", { name: "Edit custom rate" }),
-            getByLabelText("Current suggestion · Official. Use suggestion: 42 VES per USD"),
         ];
 
         for (const control of controls) {
@@ -104,45 +107,75 @@ describe("transactionFormRateSection", () => {
         }
     });
 
-    it("shows current official EUR-reference and prior-custom suggestions without selecting them", async () => {
+    it("shows the selected rate as the head figure and the alternates beneath, selecting none of them", async () => {
         const onUseSuggestion = jest.fn();
-        const { getByText, getByRole } = await render(
+        const { getByText } = await render(
             <TransactionFormRateSection {...baseProps} onUseSuggestion={onUseSuggestion} />
         );
 
-        expect(getByText("42 VES per USD")).toBeTruthy();
-        expect(getByText("50 VES per USD")).toBeTruthy();
-        expect(getByText("55.5 VES per USD")).toBeTruthy();
-        expect(getByRole("button", { name: "Custom" }).props.accessibilityState).toMatchObject({ selected: false });
+        expect(getByText("42")).toBeTruthy();
+        expect(getByText("50")).toBeTruthy();
+        expect(getByText("55.5")).toBeTruthy();
         expect(onUseSuggestion).not.toHaveBeenCalled();
     });
 
-    it("calls onUseSuggestion with the exact displayed actual rate only after a user press", async () => {
+    it("falls back to the official suggestion when the policy is selected but no rate was applied", async () => {
+        const { getByLabelText } = await render(<TransactionFormRateSection {...baseProps} />);
+
+        expect(getByLabelText("Entry rate · Official").props.accessibilityValue).toMatchObject({
+            text: "42 VES per USD",
+        });
+    });
+
+    it("applies the exact displayed rate only after a user press", async () => {
         const onUseSuggestion = jest.fn();
-        const { getByLabelText } = await render(
+        const { getByRole } = await render(
             <TransactionFormRateSection {...baseProps} onUseSuggestion={onUseSuggestion} />
         );
 
         expect(onUseSuggestion).not.toHaveBeenCalled();
-        await fireEvent.press(
-            getByLabelText(
-                "Prior custom suggestion · Custom · Prior custom · 2026-08-01. Use suggestion: 55.5 VES per USD"
-            )
-        );
+        await fireEvent.press(getByRole("button", { name: "Custom" }));
         expect(onUseSuggestion).toHaveBeenCalledWith(55.5, "custom");
     });
 
-    it("names equal-valued suggestions with their visible policy so assistive technology can distinguish them", async () => {
-        const { getByLabelText } = await render(
+    it("opens the pad instead of applying a rate when custom has no prior value", async () => {
+        const onSelectType = jest.fn();
+        const onUseSuggestion = jest.fn();
+        const { getByRole } = await render(
+            <TransactionFormRateSection
+                {...baseProps}
+                onSelectType={onSelectType}
+                onUseSuggestion={onUseSuggestion}
+                suggestions={{ ...baseProps.suggestions, priorCustom: null }}
+            />
+        );
+
+        await fireEvent.press(getByRole("button", { name: "Custom" }));
+        expect(onSelectType).toHaveBeenCalledWith("custom");
+        expect(onUseSuggestion).not.toHaveBeenCalled();
+    });
+
+    it("names equal-valued rates by their visible policy so assistive technology can distinguish them", async () => {
+        const { getByLabelText, getByRole } = await render(
             <TransactionFormRateSection {...baseProps} suggestions={{ ...baseProps.suggestions, official: 55.5 }} />
         );
 
-        expect(getByLabelText("Current suggestion · Official. Use suggestion: 55.5 VES per USD")).toBeTruthy();
-        expect(
-            getByLabelText(
-                "Prior custom suggestion · Custom · Prior custom · 2026-08-01. Use suggestion: 55.5 VES per USD"
-            )
-        ).toBeTruthy();
+        expect(getByLabelText("Entry rate · Official").props.accessibilityValue).toMatchObject({
+            text: "55.5 VES per USD",
+        });
+        expect(getByRole("button", { name: "Custom" }).props.accessibilityValue).toMatchObject({
+            text: "55.5 VES per USD",
+        });
+    });
+
+    it("renders the conversion line only when the form supplies one", async () => {
+        const silent = await render(<TransactionFormRateSection {...baseProps} />);
+        expect(silent.queryByText("That is $1.32")).toBeNull();
+
+        const loud = await render(
+            <TransactionFormRateSection {...baseProps} labels={{ ...labels, conversion: "That is $1.32" }} />
+        );
+        expect(loud.getByText("That is $1.32")).toBeTruthy();
     });
 
     it("renders the positive-rate validation message beside the custom affordance", async () => {
@@ -151,6 +184,7 @@ describe("transactionFormRateSection", () => {
                 {...baseProps}
                 error="Enter a positive rate"
                 selection={{ exchangeRate: null, exchangeRateType: "custom" }}
+                suggestions={{ ...baseProps.suggestions, priorCustom: null }}
             />
         );
 

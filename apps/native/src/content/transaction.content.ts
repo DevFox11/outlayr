@@ -343,9 +343,9 @@ const transaction = {
             en: "Delete",
             es: "Borrar",
         }),
-        "transaction.rate.currentSuggestion": t({
-            en: "Current suggestion",
-            es: "Sugerencia actual",
+        "transaction.rate.conversion": t({
+            en: "That is {amount}",
+            es: "Eso es {amount}",
         }),
         "transaction.rate.custom": t({
             en: "Custom",
@@ -375,14 +375,6 @@ const transaction = {
             en: "{currency} per USD",
             es: "{currency} por USD",
         }),
-        "transaction.rate.priorCustomDate": t({
-            en: "Used on {date}",
-            es: "Usada el {date}",
-        }),
-        "transaction.rate.priorCustomSuggestion": t({
-            en: "Prior custom rate",
-            es: "Tasa personalizada anterior",
-        }),
         "transaction.rate.required": t({
             en: "Enter a positive rate",
             es: "Ingresa una tasa positiva",
@@ -391,13 +383,13 @@ const transaction = {
             en: "Enter the amount of this currency equal to one US dollar.",
             es: "Ingresa el monto de esta moneda equivalente a un dólar estadounidense.",
         }),
+        "transaction.rate.set": t({
+            en: "Set",
+            es: "Definir",
+        }),
         "transaction.rate.title": t({
             en: "Entry rate",
             es: "Tasa de la transacción",
-        }),
-        "transaction.rate.useSuggestion": t({
-            en: "Use suggestion",
-            es: "Usar sugerencia",
         }),
         "transaction.remind.dayBefore": t({
             en: "1 day before",
